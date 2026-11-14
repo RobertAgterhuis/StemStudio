@@ -5,7 +5,7 @@ using StemStudio.Contracts.Tracks;
 namespace StemStudio.Api.Importing;
 
 /// <summary>Maps <c>POST /api/imports</c> and <c>POST /api/imports/upload</c>.</summary>
-public static class ImportEndpoints
+public static partial class ImportEndpoints
 {
     /// <summary>Maps the import endpoints.</summary>
     /// <param name="app">Endpoint builder.</param>
@@ -22,9 +22,21 @@ public static class ImportEndpoints
         return app;
     }
 
-    private static Task<IResult> ImportUrl(ImportUrlRequest? request, ImportService service, CancellationToken cancellationToken) =>
-        service.ImportUrlAsync(request?.Url, cancellationToken);
+    private static async Task<IResult> ImportUrl(ImportUrlRequest? request, ImportService service, ILoggerFactory logs, CancellationToken cancellationToken) =>
+        Logged(logs, "url", await service.ImportUrlAsync(request?.Url, cancellationToken));
 
-    private static Task<IResult> ImportUpload(HttpRequest request, ImportService service, CancellationToken cancellationToken) =>
-        UploadRequestReader.ReadAsync(request, (content, fileName) => service.ImportUploadAsync(content, fileName, cancellationToken), cancellationToken);
+    private static async Task<IResult> ImportUpload(HttpRequest request, ImportService service, ILoggerFactory logs, CancellationToken cancellationToken) =>
+        Logged(logs, "upload", await UploadRequestReader.ReadAsync(
+            request, (content, fileName) => service.ImportUploadAsync(content, fileName, cancellationToken), cancellationToken));
+
+    private static IResult Logged(ILoggerFactory logs, string kind, IResult result)
+    {
+        var logger = logs.CreateLogger(typeof(ImportEndpoints));
+        var status = (result as IStatusCodeHttpResult)?.StatusCode;
+        LogImport(logger, kind, status);
+        return result;
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Import ({Kind}) answered {Status}")]
+    private static partial void LogImport(ILogger logger, string kind, int? status);
 }

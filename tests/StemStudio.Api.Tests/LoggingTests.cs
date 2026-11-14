@@ -131,7 +131,7 @@ public sealed class LoggingTests : IDisposable
         var entries = logs.For(nameof(WorkerClient)).ToList();
         entries.Count.ShouldBe(2);
         entries[0].Level.ShouldBe(LogLevel.Warning);
-        entries[0].Message.ShouldContain("POST v1/jobs");
+        entries[0].Message.ShouldContain("POST http://worker:8000/v1/jobs");
         entries[0].Message.ShouldContain("Connection refused");
         entries[0].Exception.ShouldBeNull();
         entries[1].Level.ShouldBe(LogLevel.Information);

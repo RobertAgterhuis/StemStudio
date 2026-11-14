@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -11,7 +12,8 @@ namespace StemStudio.Api.Worker;
 
 /// <summary>Typed <see cref="HttpClient"/> for the worker API; resilience is added at registration.</summary>
 /// <param name="http">Client whose base address is the worker URL (ending with a slash).</param>
-public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
+/// <param name="logger">Logger for worker problems (messages only, no stack traces).</param>
+public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> logger) : IWorkerClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -44,7 +46,7 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
     {
         using var message = new HttpRequestMessage(HttpMethod.Get, JobPath(jobId));
         using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
-        return response.StatusCode == HttpStatusCode.NotFound ? null : await ReadAsync<WorkerJob>(response, cancellationToken);
+        return response.StatusCode == HttpStatusCode.NotFound ? null : await ReadAsync<WorkerJob>(message, response, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -64,7 +66,7 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
 
         using var message = new HttpRequestMessage(HttpMethod.Get, $"{JobPath(jobId)}/stems/{stem}");
         using var response = await SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
+        await EnsureSuccessAsync(message, response, cancellationToken);
         await response.Content.CopyToAsync(destination, cancellationToken);
     }
 
@@ -82,7 +84,7 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
     private async Task<T> SendForAsync<T>(HttpRequestMessage message, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
-        return await ReadAsync<T>(response, cancellationToken);
+        return await ReadAsync<T>(message, response, cancellationToken);
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, HttpCompletionOption completion, CancellationToken cancellationToken)
@@ -93,6 +95,8 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
         }
         catch (Exception exception) when (IsTransportFailure(exception, cancellationToken))
         {
+            var unreachable = Describe(message);
+            LogUnavailable(logger, unreachable, exception.Message);
             throw new WorkerUnavailableException("The processing service cannot be reached.", exception);
         }
     }
@@ -101,9 +105,9 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
         exception is HttpRequestException or TimeoutRejectedException or BrokenCircuitException
         || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested);
 
-    private static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task<T> ReadAsync<T>(HttpRequestMessage message, HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        await EnsureSuccessAsync(response, cancellationToken);
+        await EnsureSuccessAsync(message, response, cancellationToken);
         try
         {
             return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken)
@@ -115,20 +119,28 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
         }
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task EnsureSuccessAsync(HttpRequestMessage message, HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)
         {
             return;
         }
 
-        if ((int)response.StatusCode >= 500)
+        var status = (int)response.StatusCode;
+        if (status >= 500)
         {
-            throw new WorkerUnavailableException($"The processing service answered {(int)response.StatusCode}.");
+            var failed = Describe(message);
+            LogUnavailable(logger, failed, "HTTP " + status.ToString(CultureInfo.InvariantCulture));
+            throw new WorkerUnavailableException($"The processing service answered {status}.");
         }
 
-        throw new WorkerRequestException(response.StatusCode, await ReadDetailAsync(response, cancellationToken));
+        var detail = await ReadDetailAsync(response, cancellationToken);
+        var rejected = Describe(message);
+        LogRejected(logger, rejected, status, detail);
+        throw new WorkerRequestException(response.StatusCode, detail);
     }
+
+    private static string Describe(HttpRequestMessage message) => $"{message.Method} {message.RequestUri}";
 
     private static async Task<string> ReadDetailAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
@@ -143,6 +155,12 @@ public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
             return fallback;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Processing service unreachable on {Request}: {Reason}")]
+    private static partial void LogUnavailable(ILogger logger, string request, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Processing service rejected {Request} with {Status}: {Detail}")]
+    private static partial void LogRejected(ILogger logger, string request, int status, string detail);
 
     [GeneratedRegex(@"\A[0-9a-f]{32}\z", RegexOptions.CultureInvariant)]
     private static partial Regex JobIdPattern();
