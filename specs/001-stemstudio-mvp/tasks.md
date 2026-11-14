@@ -278,7 +278,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 ## Phase 7: Polish (inside the wave, per owner)
 
 - [ ] T109 [P] [quality-gate] Write `docs/quality/LINT-CONFIG.md` mapping each SIG limit to the enforcing rule (ruff C90/PLR, ESLint complexity/max-params/max-lines-per-function, .NET analyzers CA1502/CA1506 settings, lizard thresholds) and list config gaps as requests to the architect (configs are architect-owned); hand-off `docs/handoffs/quality-gate-polish.md` (checkpoint hand-off, see ADR-008)
-- [ ] T110 [P] [qa] Audit test evidence: for every owner's hand-off check test-first commits, fakes instead of network/subprocess, the single integration marker, coverage numbers; write `docs/testing/AUDIT.md` with findings per owner
+- [X] T110 [P] [qa] Audit test evidence: for every owner's hand-off check test-first commits, fakes instead of network/subprocess, the single integration marker, coverage numbers; write `docs/testing/AUDIT.md` with findings per owner
 - [ ] T111 [P] [backend] Structured logging (job sync transitions, worker errors without stack traces to clients) in `src/StemStudio.Api/Sync/` and `Imports/`, with log assertions in existing tests; hand-off `docs/handoffs/backend-polish.md` (checkpoint hand-off, see ADR-008)
 - [ ] T112 [P] [frontend] Accessibility pass (labels/aria for faders, pan, buttons; keyboard space = play/pause) with bUnit assertions; hand-off `docs/handoffs/frontend-polish.md` (checkpoint hand-off, see ADR-008)
 - [ ] T113 [P] [audio-engine] TSDoc on every export, hand-off `docs/handoffs/audio-engine-polish.md` (checkpoint hand-off, see ADR-008)
@@ -286,7 +286,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [ ] T115 [P] [beat-analysis] Docstrings + hand-off `docs/handoffs/beat-analysis-polish.md` (checkpoint hand-off, see ADR-008) (measured BPM/beat errors per synthetic tempo)
 - [ ] T116 [P] [stem-separation] Docstrings + hand-off `docs/handoffs/stem-separation-polish.md` (checkpoint hand-off, see ADR-008) (unit coverage + integration test output, model download size/time)
 - [ ] T117 [P] [devops] Hand-off `docs/handoffs/devops-polish.md` (checkpoint hand-off, see ADR-008) (image sizes, compose config output, CI job list)
-- [ ] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
+- [X] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
 
 ---
 
