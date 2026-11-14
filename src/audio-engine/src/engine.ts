@@ -8,6 +8,8 @@ import { DotNetNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { setLoopChecked } from './loop';
 import { Meters } from './meters';
+import { ClickPlayer } from './metronome/clicks';
+import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
 import { loadStems } from './stem-loader';
@@ -28,6 +30,10 @@ import type {
 
 /** Default delay of the shared `when` (s). */
 export const DEFAULT_START_DELAY_SECONDS = 0.1;
+/** Default metronome look-ahead window (s). */
+export const DEFAULT_SCHEDULE_AHEAD_SECONDS = 0.1;
+/** Default scheduler wake-up interval (ms). */
+export const DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
 interface Parts {
   readonly context: AudioContext;
@@ -35,6 +41,7 @@ interface Parts {
   readonly transport: Transport;
   readonly notifier: DotNetNotifier;
   readonly meters: Meters;
+  readonly metronome: MetronomeScheduler;
 }
 
 function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
@@ -48,7 +55,20 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   const notifier = new DotNetNotifier(ref, () => transport.position());
   transport.addListener(notifier);
   const meters = new Meters({ source: (target) => mixer.analyser(target) });
-  return { context, mixer, transport, notifier, meters };
+  const metronome = createMetronome(context, transport, options);
+  return { context, mixer, transport, notifier, meters, metronome };
+}
+
+function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
+  const metronome = new MetronomeScheduler({
+    context,
+    clock: transport,
+    output: new ClickPlayer(context),
+    aheadSeconds: options.scheduleAheadSeconds ?? DEFAULT_SCHEDULE_AHEAD_SECONDS,
+    intervalMs: options.schedulerIntervalMs ?? DEFAULT_SCHEDULER_INTERVAL_MS,
+  });
+  transport.addListener(metronome);
+  return metronome;
 }
 
 /** The StemStudio audio engine (contract `types.ts`, behaviour `contracts/audio-engine.md`). */
@@ -68,7 +88,7 @@ export class Engine implements AudioEngine {
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   }
 
-  /** Validated metronome settings (scheduling is wired by the metronome module). */
+  /** Validated metronome settings. */
   public get metronomeSettings(): MetronomeSettings {
     return this.metronome;
   }
@@ -86,6 +106,7 @@ export class Engine implements AudioEngine {
     this.parts.transport.load(buffers);
     this.parts.mixer.build([...buffers.keys()]);
     this.grid = request.beatGrid;
+    this.parts.metronome.configure(this.metronome, this.grid);
     return this.parts.transport.duration;
   }
 
@@ -148,6 +169,7 @@ export class Engine implements AudioEngine {
   public setMetronome(settings: MetronomeSettings): void {
     this.alive();
     this.metronome = validateMetronomeSettings(settings);
+    this.parts.metronome.configure(this.metronome, this.grid);
   }
 
   /** {@inheritDoc AudioEngine.attachMeter} */
@@ -171,6 +193,7 @@ export class Engine implements AudioEngine {
     this.parts.transport.dispose();
     this.parts.notifier.dispose();
     this.parts.meters.dispose();
+    this.parts.metronome.dispose();
     await this.parts.context.close();
   }
 

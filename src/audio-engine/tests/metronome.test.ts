@@ -16,7 +16,7 @@ const SETTINGS: MetronomeSettings = { enabled: true, volume: 0.8, bpmOverride: n
 
 /** Beats every `period` s from `first`; a downbeat every `perBar` beats. */
 function makeGrid(options: { period?: number; first?: number; count?: number; perBar?: number; reliable?: boolean } = {}): BeatGrid {
-  const { period = 0.5, first = 0, count = 120, perBar = 4, reliable = true } = options;
+  const { period, first, count, perBar, reliable } = { period: 0.5, first: 0, count: 120, perBar: 4, reliable: true, ...options };
   const beats = Array.from({ length: count }, (_, i) => first + i * period);
   return {
     bpm: 60 / period,
@@ -168,12 +168,11 @@ describe('timeline segments', () => {
   it('splits a window crossing loopEnd and maps the remainder to loopStart', () => {
     const loop = { start: 2, end: 4, enabled: true };
     const segments = segmentsFor(clock({ when: 1, offset: 3 }, loop), { from: 1.95, to: 2.05 });
-    expect(segments).toHaveLength(2);
-    expect(segments[0]?.trackFrom).toBeCloseTo(3.95, 9);
-    expect(segments[0]?.trackTo).toBeCloseTo(4, 9);
-    expect(segments[1]?.trackFrom).toBeCloseTo(2, 9);
-    expect(segments[1]?.trackTo).toBeCloseTo(2.05, 9);
-    expect(segments[1]?.contextStart).toBeCloseTo(2, 9);
+    const flat = segments.flatMap((seg) => [seg.trackFrom, seg.trackTo, seg.contextStart]);
+    expect(flat).toHaveLength(6);
+    flat.forEach((value, i) => {
+      expect(value).toBeCloseTo([3.95, 4, 1.95, 2, 2.05, 2][i] ?? Number.NaN, 9);
+    });
     const later = segmentsFor(clock({ when: 1, offset: 3 }, loop), { from: 8.5, to: 8.6 });
     expect(later[0]?.trackFrom).toBeCloseTo(2.5, 9);
   });
