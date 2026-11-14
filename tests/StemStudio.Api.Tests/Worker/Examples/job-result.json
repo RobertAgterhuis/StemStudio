@@ -1,0 +1,62 @@
+{
+  "jobId": "3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c",
+  "sourceKey": "youtube:dQw4w9WgXcQ",
+  "metadata": {
+    "title": "Never Gonna Give You Up",
+    "artist": "Rick Astley",
+    "sourceUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  },
+  "durationSeconds": 213.04,
+  "sampleRate": 44100,
+  "channels": 2,
+  "audioSha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  "model": "htdemucs_6s",
+  "stems": [
+    {
+      "name": "vocals",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/vocals",
+      "sizeBytes": 21456789
+    },
+    {
+      "name": "drums",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/drums",
+      "sizeBytes": 23456789
+    },
+    {
+      "name": "bass",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/bass",
+      "sizeBytes": 22345678
+    },
+    {
+      "name": "guitar",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/guitar",
+      "sizeBytes": 22456789
+    },
+    {
+      "name": "piano",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/piano",
+      "sizeBytes": 21987654
+    },
+    {
+      "name": "other",
+      "path": "/v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/other",
+      "sizeBytes": 23123456
+    }
+  ],
+  "beatGrid": {
+    "bpm": 113.5,
+    "beats": [
+      0.52,
+      1.05,
+      1.58,
+      2.11
+    ],
+    "downbeats": [
+      0.52
+    ],
+    "beatsPerBar": 4,
+    "confidence": 0.87,
+    "reliable": true
+  },
+  "completedAt": "2026-11-14T12:06:30Z"
+}
