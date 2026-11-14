@@ -1,13 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { StemName } from '../support/api';
-import {
-  fillAndCommit,
-  isOn,
-  numericValue,
-  peakDb,
-  setNumericValue,
-  setToggle,
-} from '../support/controls';
+import { fillAndCommit, isOn, numericValue, peakDb, setNumericValue, setToggle } from '../support/controls';
 
 /** Settings the suite applies and verifies; faders/master in %, pan -100..100 (UI units). */
 export interface MixerSettings {
