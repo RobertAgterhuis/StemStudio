@@ -1,12 +1,14 @@
 """Demucs and fake separators (stem-separation agent).
 
 Contract (binding for the parallel wave): the composition root calls
-``create_separator(settings)``.
-The stem-separation agent replaces the placeholder body; the signature is fixed.
+``create_separator(settings)``; the signature is fixed.
 """
 
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.ports import Separator
+from stemstudio_worker.separation.demucs_runtime import default_runtime
+from stemstudio_worker.separation.demucs_separator import DemucsSeparator
+from stemstudio_worker.separation.fake import FakeSeparator
 
 __all__ = ["create_separator"]
 
@@ -14,14 +16,16 @@ __all__ = ["create_separator"]
 def create_separator(settings: WorkerSettings) -> Separator:
     """Build the separator selected by ``settings.separator`` (``demucs`` or ``fake``).
 
+    Nothing is loaded here: the Demucs model is loaded (and downloaded on first use) by the
+    first separation.
+
     Args:
-        settings: Worker settings (data directory, separator kind, device, limits).
+        settings: Worker settings (separator kind, device, primary and fallback model).
 
     Returns:
-        The separator.
-
-    Raises:
-        NotImplementedError: Placeholder until the stem-separation agent implements it.
+        A :class:`FakeSeparator` for ``fake``, else a :class:`DemucsSeparator`.
     """
-    msg = "create_separator is implemented by the stem-separation agent"
-    raise NotImplementedError(msg)
+    if settings.separator == "fake":
+        return FakeSeparator()
+    models = (settings.primary_model, settings.fallback_model)
+    return DemucsSeparator(models, settings.device, default_runtime())
