@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
+using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Health;
@@ -69,6 +70,9 @@ public static class ApiComposition
         services.AddSingleton<IStemFileStore, StemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
+        services.AddScoped<TrackJobApplier>();
+        services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
+        services.AddHostedService<JobSyncService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

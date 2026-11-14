@@ -310,7 +310,7 @@ public sealed class JobSyncServiceTests : IDisposable
 
     private IStemFileStore Stems() => _factory.Services.GetRequiredService<IStemFileStore>();
 
-    private Task SyncAsync() => _factory.WithScopeAsync(async sp =>
+    private Task<bool> SyncAsync() => _factory.WithScopeAsync(async sp =>
     {
         await sp.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(TestContext.Current.CancellationToken);
         return true;
