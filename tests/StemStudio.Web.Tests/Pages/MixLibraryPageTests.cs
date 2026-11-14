@@ -72,7 +72,7 @@ public sealed class MixLibraryPageTests : PageTestContext
 
         await page.Find($"[data-testid=mix-delete-{TestData.MixId}]").ClickAsync(new());
 
-        await Api.DidNotReceiveWithAnyArgs().DeleteMixAsync(default, TestContext.Current.CancellationToken);
+        await Api.DidNotReceiveWithAnyArgs().DeleteMixAsync(default, Xunit.TestContext.Current.CancellationToken);
         page.Find($"[data-testid=mix-row-{TestData.MixId}]").ShouldNotBeNull();
     }
 
@@ -88,7 +88,7 @@ public sealed class MixLibraryPageTests : PageTestContext
         page.Find("[data-testid=mix-name-input]").Input("Solo work");
         await page.Find("[data-testid=mix-save-confirm]").ClickAsync(new());
 
-        await Api.Received(1).UpdateMixAsync(TestData.MixId, TestData.Settings("Solo work"), Arg.Any<CancellationToken>());
+        await Api.Received(1).UpdateMixAsync(TestData.MixId, Arg.Is<MixSettingsDto>(s => s.Name == "Solo work" && s.MasterVolume == 0.9 && s.Channels.Count == 2), Arg.Any<CancellationToken>());
         page.FindAll("[data-testid=mix-name-input]").ShouldBeEmpty();
         await Api.Received(2).ListMixesAsync(null, Arg.Any<CancellationToken>());
     }

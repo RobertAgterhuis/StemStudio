@@ -65,7 +65,7 @@ public sealed class SaveMixTests : MixerTestContext
         await page.Find("[data-testid=mix-save-confirm]").ClickAsync(new());
 
         page.Find("[data-testid=mix-error]").TextContent.ShouldBe(MixNames.LengthMessage);
-        await Api.DidNotReceiveWithAnyArgs().CreateMixAsync(default!, TestContext.Current.CancellationToken);
+        await Api.DidNotReceiveWithAnyArgs().CreateMixAsync(default!, Xunit.TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class SaveMixTests : MixerTestContext
         await page.Find("[data-testid=mix-save-confirm]").ClickAsync(new());
 
         await Api.Received(1).CreateMixAsync(Arg.Is<CreateMixRequest>(r => r.Settings.Name == "Guitar practice 2"), Arg.Any<CancellationToken>());
-        await Api.DidNotReceiveWithAnyArgs().UpdateMixAsync(default, default!, TestContext.Current.CancellationToken);
+        await Api.DidNotReceiveWithAnyArgs().UpdateMixAsync(default, default!, Xunit.TestContext.Current.CancellationToken);
         page.Find("[data-testid=mix-name]").TextContent.ShouldBe("Guitar practice 2");
     }
 

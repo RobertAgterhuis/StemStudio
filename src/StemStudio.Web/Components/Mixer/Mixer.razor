@@ -27,6 +27,20 @@ else
             }
         </header>
 
+        <div class="ss-mix-actions">
+            <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" />
+            <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
+            @if (MixError is not null && !DialogOpen)
+            {
+                <div class="ss-error" role="alert" data-testid="mix-error">@MixError</div>
+            }
+        </div>
+
+        @if (DialogOpen)
+        {
+            <SaveMixDialog Title="Save mix as" Name="@DialogName" Error="@DialogError" OnConfirm="ConfirmSaveAsAsync" OnCancel="CloseDialog" />
+        }
+
         @if (EngineError is not null)
         {
             <div class="ss-error" role="alert" data-testid="mixer-engine-error">@EngineError</div>
