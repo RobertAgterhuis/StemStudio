@@ -111,6 +111,10 @@ stem alignment after 50 loop repetitions (unit evidence from the engine plus a b
 - **retries = 0** everywhere (Playwright config, CI). A flaky test is a defect, never retried away.
 - **Determinism**: fixtures are generated deterministically (fixed seeds, bit-exact encoders);
   E2E waits on observable state (`expect.poll`, `toHaveAttribute`), never on fixed sleeps.
+  Interactive Server renders before its JS interop is wired: Blazor's `InputFile` attaches its
+  `change` listener in a JS `init` call after the first render, so `ImportPage.uploadFile` waits
+  for the `_blazorInputFileNextFileId` marker before `setInputFiles` (T122 found the race on
+  Firefox: 1 of 36 failed once; 180/180 after the fix).
 - **Idempotent suite**: uploads are cached by SHA-256, so a second run gets `200` instead of `202`
   for the same fixture. Specs accept either and assert the end state, not the first response.
   Mix names include a per-run suffix so reruns against the same data volume do not collide.
