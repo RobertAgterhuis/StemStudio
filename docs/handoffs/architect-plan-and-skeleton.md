@@ -157,3 +157,45 @@ npm devDependencies (`src/audio-engine/package.json`, exact pins, lock committed
 
 CTO: review, then `/speckit-tasks` and dispatch backend, frontend, audio-engine, audio-ingest,
 stem-separation, beat-analysis, qa, quality-gate and devops against the contracts.
+
+## Phase 0 (contract fixes before the wave, tasks T001-T003)
+
+### What was built
+- `specs/001-stemstudio-mvp/tasks.md`: 128 tasks, a per-owner wave plan and an integration wave (commit ef47be1).
+- T001 (ea80444): `ports.py` now has the `UploadIntake` protocol and the `IngestAdapters` / `PipelineAdapters`
+  dataclasses. Factory stubs with fixed signatures (`ingest.create_ingest_adapters`, `separation.create_separator`,
+  `analysis.create_beat_analyzer`) raise `NotImplementedError` until their owners implement them. Covered by
+  `worker/tests/test_ports.py`.
+- T002 (8650a6c): `contracts/ui-test-ids.md` v1.0.0, linked from `audio-engine.md`.
+- T003 (ae481c4): test-only dependencies (tables below) and the local tool manifest `dotnet-tools.json` (dotnet-ef).
+  T016 now says the CI coverage gate needs an `-p:Include=[<Project>]*` filter per test project. Without it,
+  Contracts (0 % in Web.Tests) fails the default `ThresholdStat=Minimum`.
+
+### Proof (after T003)
+- `dotnet build StemStudio.slnx --no-incremental`: 0 warnings, 0 errors. `dotnet test`: 10 passed.
+  `dotnet format --verify-no-changes`: clean. Line/branch coverage per own module: Domain, Persistence, Api and
+  Web 100/100; Contracts 90/100 (via Api.Tests).
+- Worker: `ruff check` clean, `ruff format --check` clean, `mypy src tests` (strict) no issues in 14 files,
+  `pytest --cov` 28 passed, coverage 100 % (192 statements, 2 branches). `uv lock --check` ok.
+- Audio engine: `npm test` 2 passed; `lint`, `typecheck` and `test:coverage` clean (100 %).
+
+### Dependencies added
+| Name | Version | Licence | URL |
+|---|---|---|---|
+| jsonschema (dev) | 4.26.0 | MIT | https://github.com/python-jsonschema/jsonschema |
+| pyyaml (dev, already transitive) | 6.0.3 | MIT | https://github.com/yaml/pyyaml |
+| types-PyYAML (dev) | 6.0.12.20261030 | Apache-2.0 | https://github.com/python/typeshed |
+| types-jsonschema (dev) | 4.26.0.20261006 | Apache-2.0 | https://github.com/python/typeshed |
+| pytest-timeout (dev) | 2.4.0 (2.5.0 is yanked) | MIT | https://github.com/pytest-dev/pytest-timeout |
+| transitive: referencing 0.37.0, rpds-py 2026.9.1, jsonschema-specifications 2025.9.1 | | MIT | |
+| YamlDotNet (test projects) | 18.1.0 | MIT | https://github.com/aaubry/YamlDotNet |
+| dotnet-ef (local tool) | 10.0.15 | MIT | https://github.com/dotnet/efcore |
+
+The audio-engine `package.json` is unchanged; the wave plan needs no new engine dependency.
+
+**JsonSchema.Net is rejected.** Version 9.x ships under the OSMF EULA, which is not an OSI licence.
+
+### Open issues
+- dotnet-ef 10.0.15 was published on 2026-11-10, less than two weeks ago. It must match the EF Core 10.0.15
+  packages that were already accepted.
+- The CI job must run `dotnet tool restore` before migrations are used (devops).
