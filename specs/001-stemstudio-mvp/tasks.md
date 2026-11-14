@@ -226,8 +226,8 @@ A-B loop. **Independent test**: quickstart V7-V8.
 
 ### backend (tests first)
 
-- [ ] T091 [P] [US2] [backend] Write failing tests `tests/StemStudio.Api.Tests/Tracks/StemEndpointTests.cs`: `GET /api/tracks/{id}/stems/{stemName}` 200 `audio/flac` + `Accept-Ranges: bytes` + `ETag`, `Range: bytes=0-1023` -> 206 + `Content-Range`, unsatisfiable -> 416, `If-None-Match`/`If-Modified-Since` -> 304, `ETag` + `Last-Modified` on 200/206/304, 416 carries `Content-Range: bytes */<size>` (I4), unknown track/stem or stem not on the track -> 404, CORS header for `WebOrigin` only (FR-009b, FR-012)
-- [ ] T092 [US2] [backend] Implement `src/StemStudio.Api/Tracks/StemEndpoints.cs` (`Results.File` with `enableRangeProcessing`, path from `IStemFileStore`) to pass T091
+- [X] T091 [P] [US2] [backend] Write failing tests `tests/StemStudio.Api.Tests/Tracks/StemEndpointTests.cs`: `GET /api/tracks/{id}/stems/{stemName}` 200 `audio/flac` + `Accept-Ranges: bytes` + `ETag`, `Range: bytes=0-1023` -> 206 + `Content-Range`, unsatisfiable -> 416, `If-None-Match`/`If-Modified-Since` -> 304, `ETag` + `Last-Modified` on 200/206/304, 416 carries `Content-Range: bytes */<size>` (I4), unknown track/stem or stem not on the track -> 404, CORS header for `WebOrigin` only (FR-009b, FR-012)
+- [X] T092 [US2] [backend] Implement `src/StemStudio.Api/Tracks/StemEndpoints.cs` (`Results.File` with `enableRangeProcessing`, path from `IStemFileStore`) to pass T091
 
 ### frontend (tests first)
 
