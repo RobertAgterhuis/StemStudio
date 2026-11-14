@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.jobs.runner import JobRunner
+from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.ports import SourceInfo
 from stemstudio_worker.schemas import Job, JobState, SourceType
@@ -36,7 +36,7 @@ class Env:
         self.fakes = Fakes.create()
         self.submitted: list[str] = []
         clock = FakeClock()
-        self.runner = JobRunner(self.store, self.fakes.adapters(), self.paths, clock)
+        self.runner = JobRunner(JobContext(self.store, self.paths, clock), self.fakes.adapters())
         self.service = JobService(self.store, self.submitted.append, clock)
 
     def run(self, source: SourceInfo) -> Job:

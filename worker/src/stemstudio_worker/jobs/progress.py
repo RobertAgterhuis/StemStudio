@@ -1,6 +1,7 @@
 """Stage texts, progress ranges and the per-job state tracker (data-model.md section 3.2)."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -63,7 +64,7 @@ class JobTracker:
         self, status: JobState, stage: str, percent: Callable[[float], int]
     ) -> ProgressCallback:
         """Return a port progress callback reporting ``percent(fraction)`` in ``status``."""
-        return _Reporter(self, status, stage, percent)
+        return _Reporter(self, _Step(status, stage, percent))
 
     def complete(self, result: JobResult) -> None:
         """Mark the job completed with ``result`` (``updatedAt`` = ``result.completedAt``)."""
@@ -93,16 +94,22 @@ class JobTracker:
         self._store.save(record.model_copy(update={"job": job}))
 
 
+@dataclass(frozen=True, slots=True)
+class _Step:
+    """The fixed state, stage text and progress mapping of one pipeline step."""
+
+    status: JobState
+    stage: str
+    percent: Callable[[float], int]
+
+
 class _Reporter:
     """``ProgressCallback`` adapter; the adapter's own stage text is replaced by a fixed one."""
 
-    def __init__(
-        self, tracker: JobTracker, status: JobState, stage: str, percent: Callable[[float], int]
-    ) -> None:
+    def __init__(self, tracker: JobTracker, step: _Step) -> None:
         self._tracker = tracker
-        self._status = status
-        self._stage = stage
-        self._percent = percent
+        self._step = step
 
     def __call__(self, fraction: float, stage: str) -> None:  # noqa: ARG002 - port signature
-        self._tracker.update(self._status, self._stage, self._percent(fraction))
+        step = self._step
+        self._tracker.update(step.status, step.stage, step.percent(fraction))

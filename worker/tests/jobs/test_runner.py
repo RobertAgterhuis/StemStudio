@@ -10,7 +10,7 @@ import pytest
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.queue import JobQueue
-from stemstudio_worker.jobs.runner import JobRunner
+from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.ports import AudioTooLongError, SourceUnavailableError
 from stemstudio_worker.schemas import JobState, SourceMetadata, SourceType
 
@@ -45,7 +45,9 @@ def env(tmp_path: Path) -> Env:
     paths = DataPaths(tmp_path)
     store = RecordingStore(paths.jobs)
     fakes = Fakes.create()
-    return Env(store, fakes, paths, JobRunner(store, fakes.adapters(), paths, FakeClock()))
+    return Env(
+        store, fakes, paths, JobRunner(JobContext(store, paths, FakeClock()), fakes.adapters())
+    )
 
 
 def _url_job(make_record: RecordFactory) -> StoredJob:

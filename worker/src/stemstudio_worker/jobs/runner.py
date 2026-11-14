@@ -2,6 +2,7 @@
 
 import logging
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from stemstudio_worker.jobs import progress as p
@@ -20,18 +21,31 @@ from stemstudio_worker.schemas import JobResult, JobState, SourceMetadata
 _LOG = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True, slots=True)
+class JobContext:
+    """Where jobs live and how time is read.
+
+    Attributes:
+        store: The job store.
+        paths: The data directory layout.
+        clock: Current UTC time.
+    """
+
+    store: JobStore
+    paths: DataPaths
+    clock: p.Clock
+
+
 class JobRunner:
     """Processes one job at a time through the adapters (called by the queue thread)."""
 
-    def __init__(
-        self, store: JobStore, adapters: PipelineAdapters, paths: DataPaths, clock: p.Clock
-    ) -> None:
-        """Create a runner over ``store`` using ``adapters``, ``paths`` and ``clock``."""
-        self._store = store
+    def __init__(self, context: JobContext, adapters: PipelineAdapters) -> None:
+        """Create a runner over ``context`` (store, paths, clock) using ``adapters``."""
+        self._store = context.store
         self._adapters = adapters
-        self._paths = paths
-        self._clock = clock
-        self._cache = ResultCache(paths)
+        self._paths = context.paths
+        self._clock = context.clock
+        self._cache = ResultCache(context.paths)
 
     def process(self, job_id: str) -> None:
         """Run the job to a terminal state; unknown and terminal jobs are ignored.
