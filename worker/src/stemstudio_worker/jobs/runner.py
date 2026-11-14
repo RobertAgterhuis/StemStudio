@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 
 from stemstudio_worker.jobs import progress as p
-from stemstudio_worker.jobs.cache import ResultCache, stem_infos
+from stemstudio_worker.jobs.cache import ResultCache, rebind, stem_infos
 from stemstudio_worker.jobs.models import StoredJob, source_of
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.store import JobStore
@@ -54,8 +54,18 @@ class JobRunner:
             self._cleanup(job_id)
 
     def _run(self, record: StoredJob, tracker: p.JobTracker) -> None:
+        job = record.job
+        result = self._cache.lookup_source(job.source_key) or self._from_audio(record, tracker)
+        self._cache.link_source(job.source_key, result.audio_sha256)
+        tracker.complete(rebind(result, job, self._clock()))
+
+    def _from_audio(self, record: StoredJob, tracker: p.JobTracker) -> JobResult:
         audio = self._prepare(record, tracker)
-        tracker.set_audio(audio.sha256)
+        return self._cache.lookup_audio(audio.sha256) or self._produce(record, audio, tracker)
+
+    def _produce(
+        self, record: StoredJob, audio: NormalizedAudio, tracker: p.JobTracker
+    ) -> JobResult:
         separation = self._separate(record.job.job_id, audio, tracker)
         tracker.update(JobState.ANALYSING, p.ANALYSING, p.ANALYSIS_START)
         grid = self._adapters.analyzer.analyze(audio.wav_path)
@@ -67,7 +77,7 @@ class JobRunner:
             beat_grid=grid, completed_at=self._clock(),
         )  # fmt: skip
         self._cache.store(result, separation.stems)
-        tracker.complete(result)
+        return result
 
     def _prepare(self, record: StoredJob, tracker: p.JobTracker) -> NormalizedAudio:
         work = self._paths.work(record.job.job_id)

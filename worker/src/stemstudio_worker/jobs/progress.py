@@ -65,10 +65,6 @@ class JobTracker:
         """Return a port progress callback reporting ``percent(fraction)`` in ``status``."""
         return _Reporter(self, status, stage, percent)
 
-    def set_audio(self, audio_sha256: str) -> None:
-        """Remember the hash of the normalised audio."""
-        self._store.save(self._record().model_copy(update={"audio_sha256": audio_sha256}))
-
     def complete(self, result: JobResult) -> None:
         """Mark the job completed with ``result`` (``updatedAt`` = ``result.completedAt``)."""
         job = self._record().job.model_copy(

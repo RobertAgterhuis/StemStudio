@@ -3,11 +3,20 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Annotated
+
+from pydantic import Field, ValidationError
 
 from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.schemas import Job, JobResult, StemInfo, StemName
+from stemstudio_worker.schemas import ContractModel, Job, JobResult, StemInfo, StemName
 
 _RESULT = "result.json"
+
+
+class _SourcePointer(ContractModel):
+    """Content of ``cache/by-source/<key>.json``."""
+
+    audio_sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 
 def stem_url(job_id: str, stem: StemName) -> str:
@@ -50,3 +59,37 @@ class ResultCache:
         (partial / _RESULT).write_text(result.model_dump_json(by_alias=True), encoding="utf-8")
         shutil.rmtree(final, ignore_errors=True)
         partial.replace(final)
+
+    def lookup_source(self, source_key: str) -> JobResult | None:
+        """Return the cached result for a source key, or None (also for a damaged cache)."""
+        pointer = _read_model(_SourcePointer, self._paths.by_source(source_key))
+        return None if pointer is None else self.lookup_audio(pointer.audio_sha256)
+
+    def lookup_audio(self, audio_sha256: str) -> JobResult | None:
+        """Return the cached result for normalised audio when it and all its stems exist."""
+        result = _read_model(JobResult, self._paths.by_audio(audio_sha256) / _RESULT)
+        if result is None or not self._stems_exist(result):
+            return None
+        return result
+
+    def link_source(self, source_key: str, audio_sha256: str) -> None:
+        """Point ``source_key`` at the cached audio entry (atomic replace)."""
+        target = self._paths.by_source(source_key)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp = target.with_name(target.name + ".tmp")
+        pointer = _SourcePointer(audio_sha256=audio_sha256)
+        temp.write_text(pointer.model_dump_json(by_alias=True), encoding="utf-8")
+        temp.replace(target)
+
+    def _stems_exist(self, result: JobResult) -> bool:
+        return all(
+            self._paths.stem_file(result.audio_sha256, s.name).is_file() for s in result.stems
+        )
+
+
+def _read_model[M: ContractModel](model: type[M], path: Path) -> M | None:
+    """Parse ``path`` as ``model``; None when missing or invalid."""
+    try:
+        return model.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValidationError):
+        return None

@@ -276,6 +276,8 @@ def test_queue_survives_a_failing_job(caplog: pytest.LogCaptureFixture) -> None:
 def test_queue_stop_is_idempotent_and_ends_the_thread() -> None:
     queue = JobQueue(lambda job_id: None)
     queue.start()
+    queue.start()
+    assert queue.running
 
     queue.stop()
     queue.stop()

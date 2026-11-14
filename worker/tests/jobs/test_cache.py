@@ -104,8 +104,11 @@ def test_audio_cache_hit_after_normalisation_skips_separation(env: Env) -> None:
     }
 
 
-@pytest.mark.parametrize("damage", ["missing-entry", "corrupt-pointer", "corrupt-result"])
-def test_damaged_cache_is_treated_as_a_miss(env: Env, damage: str) -> None:
+@pytest.mark.parametrize(
+    ("damage", "separated"),
+    [("missing-entry", True), ("corrupt-pointer", False), ("corrupt-result", True)],
+)
+def test_damaged_cache_is_treated_as_a_miss(env: Env, damage: str, separated: bool) -> None:
     _fail(env, env.run(SOURCE))
     if damage == "missing-entry":
         (env.paths.by_audio(SHA) / "result.json").unlink()
@@ -117,7 +120,7 @@ def test_damaged_cache_is_treated_as_a_miss(env: Env, damage: str) -> None:
     job = env.run(SOURCE)
 
     assert job.status is S.COMPLETED
-    assert "separate" in env.fakes.calls.names
+    assert ("separate" in env.fakes.calls.names) is separated  # a bad pointer still hits by audio
 
 
 # ---------------------------------------------------------------- duplicate submissions
