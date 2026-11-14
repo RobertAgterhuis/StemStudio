@@ -13,6 +13,7 @@ from stemstudio_worker.ingest import fetcher as fetcher_module
 from stemstudio_worker.ingest.fetcher import DOWNLOAD_STAGE, YtDlpFetcher
 from stemstudio_worker.ports import (
     AudioTooLongError,
+    FetchedAudio,
     InvalidSourceError,
     SourceInfo,
     SourceUnavailableError,
@@ -86,7 +87,7 @@ def _source(url: str | None = VIDEO_URL) -> SourceInfo:
     return SourceInfo(SourceType.YOUTUBE, "youtube:dQw4w9WgXcQ", "t", None, url)
 
 
-def _fetch(tmp_path: Path, factory: Factory, recorder: Recorder | None = None) -> Path:
+def _fetch(tmp_path: Path, factory: Factory, recorder: Recorder | None = None) -> FetchedAudio:
     return YtDlpFetcher(ydl_factory=factory).fetch(_source(), tmp_path, recorder or Recorder())
 
 
@@ -96,8 +97,8 @@ def test_fetch_downloads_best_audio_only_into_work_dir(tmp_path: Path) -> None:
     result = _fetch(tmp_path, factory)
 
     ydl = factory.instances[0]
-    assert result == tmp_path / "source.webm"
-    assert result.read_bytes() == b"audio"
+    assert result.path == tmp_path / "source.webm"
+    assert result.path.read_bytes() == b"audio"
     assert ydl.options["format"] == "bestaudio/best"
     assert ydl.options["noplaylist"] is True
     assert Path(ydl.options["outtmpl"]["default"]).parent == tmp_path
@@ -211,7 +212,7 @@ def test_fetch_without_output_file_is_unavailable(tmp_path: Path) -> None:
 def test_fetch_ignores_partial_files(tmp_path: Path) -> None:
     names = ("source.m4a.part", "source.m4a.ytdl", "source.m4a")
 
-    assert _fetch(tmp_path, Factory({"file_names": names})) == tmp_path / "source.m4a"
+    assert _fetch(tmp_path, Factory({"file_names": names})).path == tmp_path / "source.m4a"
 
 
 @pytest.mark.parametrize(
@@ -252,3 +253,32 @@ def test_default_factory_builds_yt_dlp_youtubedl(monkeypatch: pytest.MonkeyPatch
 
 def test_fetcher_exposes_its_limit() -> None:
     assert YtDlpFetcher().max_duration_seconds == 900.0
+
+
+def test_fetch_returns_the_reported_title_and_artist(tmp_path: Path) -> None:
+    info = {"id": "x", "title": "  Never Gonna Give You Up  ", "artist": "Rick Astley",
+            "uploader": "RickAstleyVEVO"}  # fmt: skip
+
+    fetched = _fetch(tmp_path, Factory({"info": info}))
+
+    assert (fetched.title, fetched.artist) == ("Never Gonna Give You Up", "Rick Astley")
+
+
+def test_fetch_falls_back_to_the_uploader_then_the_channel(tmp_path: Path) -> None:
+    up = _fetch(tmp_path / "a", _dir_factory(tmp_path / "a", {"id": "x", "uploader": "Up"}))
+    ch = _fetch(tmp_path / "b", _dir_factory(tmp_path / "b", {"id": "x", "channel": "Ch"}))
+
+    assert (up.artist, ch.artist) == ("Up", "Ch")
+
+
+@pytest.mark.parametrize("title", [None, "", "   ", 42])
+def test_fetch_without_a_usable_title_reports_none(tmp_path: Path, title: object) -> None:
+    fetched = _fetch(tmp_path, Factory({"info": {"id": "x", "title": title}}))
+
+    assert (fetched.title, fetched.artist) == (None, None)
+
+
+def test_fetch_clips_long_titles_to_500_characters(tmp_path: Path) -> None:
+    fetched = _fetch(tmp_path, Factory({"info": {"id": "x", "title": "t" * 600}}))
+
+    assert fetched.title == "t" * 500

@@ -12,6 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
+from stemstudio_worker.ingest.text import clean_text
 from stemstudio_worker.ingest.urls import canonical_spotify_url
 from stemstudio_worker.ports import SourceUnavailableError
 
@@ -25,9 +26,6 @@ METADATA_FAILED_MESSAGE: Final = (
 
 SEARCH_FAILED_MESSAGE: Final = "The YouTube search for this Spotify track failed; try again later."
 """Job error text when the YouTube search itself fails (network, provider error)."""
-
-MAX_TEXT_LENGTH: Final = 500
-"""Longest title/artist kept (``SourceMetadata`` limit)."""
 
 _LOG = logging.getLogger(__name__)
 _CLIENT_LOCK = threading.Lock()
@@ -96,10 +94,10 @@ class SpotdlMetadataClient:
         except Exception as exc:
             _LOG.warning("spotDL metadata lookup failed: %s", type(exc).__name__)
             raise SourceUnavailableError(METADATA_FAILED_MESSAGE) from None
-        title = _clean(getattr(song, "name", None))
+        title = clean_text(getattr(song, "name", None))
         if title is None:
             raise SourceUnavailableError(METADATA_FAILED_MESSAGE)
-        artist = _clean(getattr(song, "artist", None))
+        artist = clean_text(getattr(song, "artist", None))
         duration = float(getattr(song, "duration", 0) or 0)
         return SpotifyTrack(track_id, title, artist, duration, handle=song)
 
@@ -177,10 +175,3 @@ def _ensure_spotify_client() -> None:
         except SpotifyError:
             _LOG.debug("spotDL Spotify client was already initialised")
         _client_ready = True
-
-
-def _clean(value: object) -> str | None:
-    """Strip ``value`` and cut it to ``MAX_TEXT_LENGTH``; None when empty or not a string."""
-    if not isinstance(value, str) or not value.strip():
-        return None
-    return value.strip()[:MAX_TEXT_LENGTH]

@@ -10,7 +10,8 @@ class UrlSourceResolver:
     """Resolves validated YouTube and Spotify URLs to a downloadable ``SourceInfo``.
 
     YouTube URLs are resolved without network access; the title is a placeholder naming the
-    video id because the real title is only known after download. Spotify URLs are resolved to
+    video id until the job pipeline replaces it with the title the fetcher reports after the
+    download (``ports.FetchedAudio``). Spotify URLs are resolved to
     public metadata and matched to a public YouTube video; Spotify audio is never accessed.
     """
 

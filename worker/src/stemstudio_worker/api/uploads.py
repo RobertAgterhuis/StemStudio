@@ -1,45 +1,95 @@
-"""Multipart upload intake: type check, streamed size limit, storage under ``uploads/<jobId>/``."""
+"""Multipart upload intake: type check, streamed size limit, storage under ``uploads/<jobId>/``.
+
+The request body is counted while it streams into the multipart parser, so an oversized upload
+is rejected with 413 as soon as the limit is passed, also without a ``Content-Length`` header
+(chunked transfer). Nothing beyond the limit plus a small multipart allowance is ever read.
+"""
 
 import shutil
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import aclosing
 from pathlib import Path, PureWindowsPath
 
 from fastapi import Request
 from starlette.concurrency import run_in_threadpool
-from starlette.datastructures import UploadFile
+from starlette.datastructures import FormData, UploadFile
+from starlette.formparsers import MultiPartException, MultiPartParser
 
 from stemstudio_worker.api.problems import ProblemError
 from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.ports import InvalidSourceError
+from stemstudio_worker.ports import (
+    EmptyUploadError,
+    InvalidSourceError,
+    UnsupportedMediaError,
+    UploadTooLargeError,
+)
 from stemstudio_worker.schemas import Job
 
 ALLOWED_EXTENSIONS = (".mp3", ".wav", ".flac")
 _CHUNK_BYTES = 1024 * 1024
 _MULTIPART_OVERHEAD_BYTES = 64 * 1024
 _UNSUPPORTED = "Unsupported file type"
+_INVALID = "Invalid request"
+_TOO_LARGE = "File too large"
+_INTAKE_STATUS: tuple[tuple[type[InvalidSourceError], int, str], ...] = (
+    (UploadTooLargeError, 413, _TOO_LARGE),
+    (UnsupportedMediaError, 415, _UNSUPPORTED),
+    (EmptyUploadError, 400, _INVALID),
+)
 
 
 async def create_from_upload(request: Request, runtime: WorkerRuntime) -> tuple[Job, bool]:
     """Store the ``file`` part and create (or reuse) its job.
 
     Raises:
-        ProblemError: 400 without a ``file`` part or for an empty file, 413 over the size limit,
-            415 for a type other than MP3, WAV or FLAC.
+        ProblemError: 400 without a ``file`` part, for malformed multipart or an empty file;
+            413 over the size limit; 415 for a type other than MP3, WAV or FLAC.
     """
     limit = runtime.settings.max_upload_bytes
     _check_content_length(request, limit)
-    async with request.form(max_files=1, max_fields=10) as form:
+    form = await _parse_form(request, limit)
+    try:
         upload = form.get("file")
         if not isinstance(upload, UploadFile):
-            raise ProblemError(400, "Invalid request", "Send the audio as multipart part 'file'.")
-        file_name = upload.filename or ""
-        target = runtime.paths.uploads(JobStore.new_job_id()) / f"input{_extension(file_name)}"
+            raise ProblemError(400, _INVALID, "Send the audio as multipart part 'file'.")
+        return await _store_and_register(runtime, upload, limit)
+    finally:
+        await form.close()
+
+
+async def _store_and_register(
+    runtime: WorkerRuntime, upload: UploadFile, limit: int
+) -> tuple[Job, bool]:
+    """Copy the part to ``uploads/<new jobId>/input.<ext>`` and register it; clean up on error."""
+    file_name = upload.filename or ""
+    target = runtime.paths.uploads(JobStore.new_job_id()) / f"input{_extension(file_name)}"
+    try:
+        await _save(upload, target, limit)
+        return await run_in_threadpool(_register, runtime, file_name, target)
+    except Exception:
+        shutil.rmtree(target.parent, ignore_errors=True)
+        raise
+
+
+async def _parse_form(request: Request, limit: int) -> FormData:
+    """Parse the multipart body from a size-limited stream (malformed multipart is a 400)."""
+    async with aclosing(_limited(request.stream(), limit)) as stream:
+        parser = MultiPartParser(request.headers, stream, max_files=1, max_fields=10)
         try:
-            await _save(upload, target, limit)
-            return await run_in_threadpool(_register, runtime, file_name, target)
-        except Exception:
-            shutil.rmtree(target.parent, ignore_errors=True)
-            raise
+            return await parser.parse()
+        except MultiPartException as exc:
+            raise ProblemError(400, _INVALID, exc.message) from exc
+
+
+async def _limited(chunks: AsyncIterator[bytes], limit: int) -> AsyncGenerator[bytes, None]:
+    """Pass ``chunks`` through; raise 413 once they exceed ``limit`` + the multipart allowance."""
+    received = 0
+    async for chunk in chunks:
+        received += len(chunk)
+        if received > limit + _MULTIPART_OVERHEAD_BYTES:
+            raise _too_large(limit)
+        yield chunk
 
 
 def _check_content_length(request: Request, limit: int) -> None:
@@ -68,7 +118,7 @@ async def _save(upload: UploadFile, target: Path, limit: int) -> None:
                 raise _too_large(limit)
             out.write(chunk)
     if size == 0:
-        raise ProblemError(400, "Invalid request", "The file is empty.")
+        raise ProblemError(400, _INVALID, "The file is empty.")
 
 
 def _register(runtime: WorkerRuntime, file_name: str, target: Path) -> tuple[Job, bool]:
@@ -76,7 +126,7 @@ def _register(runtime: WorkerRuntime, file_name: str, target: Path) -> tuple[Job
     try:
         source = runtime.adapters.ingest.upload_intake.accept(file_name, target)
     except InvalidSourceError as exc:
-        raise ProblemError(415, _UNSUPPORTED, str(exc)) from exc
+        raise _intake_problem(exc) from exc
     job, created = runtime.service.create(
         source, job_id=target.parent.name, upload_file=target.name
     )
@@ -85,8 +135,15 @@ def _register(runtime: WorkerRuntime, file_name: str, target: Path) -> tuple[Job
     return job, created
 
 
+def _intake_problem(exc: InvalidSourceError) -> ProblemError:
+    """Map an intake rejection to its contract status: 413, 415, else 400."""
+    status, title = next(
+        ((status, title) for kind, status, title in _INTAKE_STATUS if isinstance(exc, kind)),
+        (400, "Invalid source"),
+    )
+    return ProblemError(status, title, str(exc))
+
+
 def _too_large(limit: int) -> ProblemError:
     mib = limit / (1024 * 1024)
-    return ProblemError(
-        413, "File too large", f"The file is larger than {mib:g} MiB ({limit:,} bytes)."
-    )
+    return ProblemError(413, _TOO_LARGE, f"The file is larger than {mib:g} MiB ({limit:,} bytes).")

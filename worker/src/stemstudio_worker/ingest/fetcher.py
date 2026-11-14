@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any, Final, Protocol, Self
 
 from stemstudio_worker.ingest.limits import DEFAULT_MAX_DURATION_SECONDS, too_long_error
+from stemstudio_worker.ingest.text import clean_text
 from stemstudio_worker.ingest.urls import parse_source_url
 from stemstudio_worker.ports import (
+    FetchedAudio,
     InvalidSourceError,
     ProgressCallback,
     SourceInfo,
@@ -35,6 +37,7 @@ OUTPUT_STEM: Final = "source"
 
 _PARTIAL_SUFFIXES: Final = frozenset({".part", ".ytdl", ".temp", ".tmp"})
 _PLAYLIST_TYPES: Final = frozenset({"playlist", "multi_video"})
+_ARTIST_KEYS: Final = ("artist", "uploader", "channel")
 _LOG = logging.getLogger(__name__)
 
 
@@ -94,8 +97,11 @@ class YtDlpFetcher:
         self.max_duration_seconds = max_duration_seconds
         self._factory = ydl_factory or create_youtube_dl
 
-    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> Path:
+    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> FetchedAudio:
         """Download the best audio-only stream (see ``ports.AudioFetcher.fetch``).
+
+        The title comes from yt-dlp's ``title``; the artist from ``artist``, else ``uploader``,
+        else ``channel``.
 
         Raises:
             InvalidSourceError: The source has no allow-listed YouTube video URL, or is a playlist.
@@ -114,7 +120,7 @@ class YtDlpFetcher:
             _LOG.warning("yt-dlp download failed: %s", type(exc).__name__)
             raise SourceUnavailableError(DOWNLOAD_FAILED_MESSAGE) from None
         progress(1.0, DOWNLOAD_STAGE)
-        return _downloaded_file(work_dir)
+        return FetchedAudio(_downloaded_file(work_dir), *_title_and_artist(info))
 
     def _checked(self, info: dict[str, Any] | None) -> dict[str, Any]:
         """Reject missing info, playlists, live streams and over-long videos before download."""
@@ -167,6 +173,12 @@ def _reject_playlists_and_live(info: dict[str, Any]) -> None:
         raise InvalidSourceError(msg)
     if info.get("is_live"):
         raise SourceUnavailableError("Live streams are not supported.")
+
+
+def _title_and_artist(info: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Cleaned title and first usable artist-like field of a yt-dlp info dict."""
+    artists = (clean_text(info.get(key)) for key in _ARTIST_KEYS)
+    return clean_text(info.get("title")), next((a for a in artists if a), None)
 
 
 def _allow_listed_youtube_url(url: str | None) -> str:

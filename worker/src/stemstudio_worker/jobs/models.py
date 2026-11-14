@@ -4,8 +4,8 @@ from typing import Annotated
 
 from pydantic import Field
 
-from stemstudio_worker.ports import SourceInfo
-from stemstudio_worker.schemas import ContractModel, Job, JobResult, SourceMetadata
+from stemstudio_worker.ports import FetchedAudio, SourceInfo
+from stemstudio_worker.schemas import ContractModel, Job, JobResult, SourceMetadata, SourceType
 
 _MAX_TEXT = 500
 
@@ -34,6 +34,20 @@ def metadata_of(source: SourceInfo) -> SourceMetadata:
         artist=artist,
         source_url=source.youtube_url,
     )
+
+
+def fetched_metadata(job: Job, fetched: FetchedAudio) -> SourceMetadata | None:
+    """Metadata of a YouTube job after its download, or None when it stays unchanged.
+
+    The downloaded title replaces the resolver's placeholder ("YouTube video <id>") and the
+    reported artist replaces a missing one. Spotify metadata from spotDL is authoritative, so
+    Spotify (and upload) jobs are never changed.
+    """
+    if job.source_type is not SourceType.YOUTUBE or not fetched.title:
+        return None
+    current = job.metadata or SourceMetadata(title=fetched.title[:_MAX_TEXT])
+    artist = fetched.artist[:_MAX_TEXT] if fetched.artist else current.artist
+    return current.model_copy(update={"title": fetched.title[:_MAX_TEXT], "artist": artist})
 
 
 def source_of(job: Job) -> SourceInfo:

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.ingest.upload import FileUploadIntake
-from stemstudio_worker.ports import InvalidSourceError
+from stemstudio_worker.ports import EmptyUploadError, UnsupportedMediaError, UploadTooLargeError
 from stemstudio_worker.schemas import SourceType
 
 CONTENT = b"ID3 fake audio bytes"
@@ -34,7 +34,7 @@ def test_accepts_supported_extensions_case_insensitively(tmp_path: Path, file_na
     ["song.ogg", "song.m4a", "song", "song.mp3.exe", "song.", "mp3", "song.flac ", ""],
 )
 def test_rejects_other_extensions(tmp_path: Path, file_name: str) -> None:
-    with pytest.raises(InvalidSourceError, match=r"MP3, WAV (and|or) FLAC"):
+    with pytest.raises(UnsupportedMediaError, match=r"MP3, WAV (and|or) FLAC"):
         FileUploadIntake().accept(file_name, _stored(tmp_path))
 
 
@@ -92,14 +92,14 @@ def test_file_name_is_never_used_as_a_path(tmp_path: Path) -> None:
 
 
 def test_rejects_empty_files(tmp_path: Path) -> None:
-    with pytest.raises(InvalidSourceError, match="empty"):
+    with pytest.raises(EmptyUploadError, match="empty"):
         FileUploadIntake().accept("song.mp3", _stored(tmp_path, b""))
 
 
 def test_rejects_files_over_the_configured_limit(tmp_path: Path) -> None:
     intake = FileUploadIntake(max_upload_bytes=len(CONTENT) - 1)
 
-    with pytest.raises(InvalidSourceError, match="larger than"):
+    with pytest.raises(UploadTooLargeError, match="larger than"):
         intake.accept("song.mp3", _stored(tmp_path))
 
 

@@ -8,7 +8,7 @@ from typing import Any
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import ProgressCallback
-from stemstudio_worker.schemas import JobResult, JobState
+from stemstudio_worker.schemas import Job, JobResult, JobState, SourceMetadata
 
 Clock = Callable[[], datetime]
 """Returns the current UTC time."""
@@ -53,6 +53,15 @@ class JobTracker:
         self._job_id = job_id
         self._clock = clock
 
+    @property
+    def job(self) -> Job:
+        """The current state of the tracked job."""
+        return self._record().job
+
+    def set_metadata(self, metadata: SourceMetadata) -> None:
+        """Replace the job metadata (e.g. with the title reported by the download)."""
+        self._save_job(metadata=metadata)
+
     def update(self, status: JobState, stage: str, progress: int) -> None:
         """Move to ``status``/``stage``; saves only when something changed."""
         job = self._record().job
@@ -67,10 +76,13 @@ class JobTracker:
         return _Reporter(self, _Step(status, stage, percent))
 
     def complete(self, result: JobResult) -> None:
-        """Mark the job completed with ``result`` (``updatedAt`` = ``result.completedAt``)."""
+        """Mark the job completed with ``result``.
+
+        ``updatedAt`` becomes ``result.completedAt`` and the job metadata the result metadata.
+        """
         job = self._record().job.model_copy(
             update={"status": JobState.COMPLETED, "stage": COMPLETED, "progress": 100,
-                    "updated_at": result.completed_at},
+                    "metadata": result.metadata, "updated_at": result.completed_at},
         )  # fmt: skip
         record = self._record().model_copy(
             update={"job": job, "result": result, "audio_sha256": result.audio_sha256}

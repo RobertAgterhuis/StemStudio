@@ -12,7 +12,7 @@ from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.queue import JobQueue
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.ports import AudioTooLongError, SourceUnavailableError
-from stemstudio_worker.schemas import JobState, SourceMetadata, SourceType
+from stemstudio_worker.schemas import Job, JobState, SourceMetadata, SourceType
 
 from .conftest import RecordFactory
 from .fakes import GRID, FakeClock, Fakes, RecordingStore
@@ -285,3 +285,89 @@ def test_queue_stop_is_idempotent_and_ends_the_thread() -> None:
     queue.stop()
 
     assert not queue.running
+
+
+# ---------------------------------------------------------------- metadata from the download
+
+YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def _spotify_job(make_record: RecordFactory) -> StoredJob:
+    record = make_record(source_key="spotify:4cOdK2wGLETKBW3PvgPWqT")
+    metadata = SourceMetadata(title="Track", artist="Band", source_url=YOUTUBE_URL)
+    return record.model_copy(update={"job": record.job.model_copy(update={"metadata": metadata})})
+
+
+def test_youtube_job_takes_title_and_artist_from_the_download(
+    env: Env, make_record: RecordFactory
+) -> None:
+    env.fakes.ingest.fetched_title, env.fakes.ingest.fetched_artist = "Real Title", "Uploader"
+
+    env.runner.process(env.add(_url_job(make_record)))
+
+    record = env.final()
+    expected = SourceMetadata(title="Real Title", artist="Uploader", source_url=YOUTUBE_URL)
+    assert record.job.metadata == expected
+    assert record.result is not None
+    assert record.result.metadata == expected
+
+
+def test_downloaded_title_is_kept_when_a_later_stage_fails(
+    env: Env, make_record: RecordFactory
+) -> None:
+    env.fakes.ingest.fetched_title = "Real Title"
+    env.fakes.ingest.fail["normalize"] = AudioTooLongError("Audio is longer than 15 minutes")
+
+    env.runner.process(env.add(_url_job(make_record)))
+
+    metadata = env.final().job.metadata
+    assert metadata is not None
+    assert (metadata.title, metadata.artist) == ("Real Title", "Artist")
+
+
+def test_long_downloaded_title_and_artist_are_clipped(env: Env, make_record: RecordFactory) -> None:
+    env.fakes.ingest.fetched_title, env.fakes.ingest.fetched_artist = "t" * 600, "a" * 600
+
+    env.runner.process(env.add(_url_job(make_record)))
+
+    metadata = env.final().job.metadata
+    assert metadata is not None
+    assert (metadata.title, metadata.artist) == ("t" * 500, "a" * 500)
+
+
+def test_spotify_metadata_stays_authoritative(env: Env, make_record: RecordFactory) -> None:
+    env.fakes.ingest.fetched_title, env.fakes.ingest.fetched_artist = "Video title", "Channel"
+
+    env.runner.process(env.add(_spotify_job(make_record)))
+
+    record = env.final()
+    assert record.job.metadata == SourceMetadata(
+        title="Track", artist="Band", source_url=YOUTUBE_URL
+    )
+    assert record.result is not None
+    assert record.result.metadata == record.job.metadata
+
+
+def test_download_without_title_keeps_the_resolved_metadata(
+    env: Env, make_record: RecordFactory
+) -> None:
+    env.runner.process(env.add(_url_job(make_record)))
+
+    assert env.final().job.metadata == SourceMetadata(
+        title="Song", artist="Artist", source_url=YOUTUBE_URL
+    )
+
+
+def test_youtube_job_without_metadata_gets_the_downloaded_title(
+    env: Env, make_record: RecordFactory
+) -> None:
+    env.fakes.ingest.fetched_title = "Real Title"
+
+    record = make_record()
+    job: Job = record.job.model_copy(update={"metadata": None})
+
+    env.runner.process(env.add(record.model_copy(update={"job": job})))
+
+    metadata = env.final().job.metadata
+    assert metadata is not None
+    assert (metadata.title, metadata.artist, metadata.source_url) == ("Real Title", None, None)

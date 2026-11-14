@@ -9,7 +9,12 @@ import re
 from pathlib import Path
 from typing import Final
 
-from stemstudio_worker.ports import InvalidSourceError, SourceInfo
+from stemstudio_worker.ports import (
+    EmptyUploadError,
+    SourceInfo,
+    UnsupportedMediaError,
+    UploadTooLargeError,
+)
 from stemstudio_worker.schemas import SourceType
 
 ALLOWED_EXTENSIONS: Final = frozenset({"mp3", "wav", "flac"})
@@ -45,11 +50,13 @@ class FileUploadIntake:
         """Validate an upload (see ``ports.UploadIntake.accept``).
 
         Raises:
-            InvalidSourceError: Unsupported extension, empty file or file over the limit.
+            UnsupportedMediaError: The extension is not MP3, WAV or FLAC (HTTP 415).
+            EmptyUploadError: The stored file is empty (HTTP 400).
+            UploadTooLargeError: The stored file is over the limit (HTTP 413).
         """
         base, extension = _split_name(file_name)
         if extension.lower() not in ALLOWED_EXTENSIONS:
-            raise InvalidSourceError(_UNSUPPORTED_MESSAGE)
+            raise UnsupportedMediaError(_UNSUPPORTED_MESSAGE)
         self._check_size(path.stat().st_size)
         return SourceInfo(
             source_type=SourceType.UPLOAD,
@@ -62,11 +69,11 @@ class FileUploadIntake:
     def _check_size(self, size: int) -> None:
         """Reject empty files and files over ``max_upload_bytes``."""
         if size == 0:
-            raise InvalidSourceError(_EMPTY_MESSAGE)
+            raise EmptyUploadError(_EMPTY_MESSAGE)
         if size > self.max_upload_bytes:
             limit_mib = f"{self.max_upload_bytes / (1024 * 1024):g}"
             msg = f"The file is larger than {limit_mib} MiB."
-            raise InvalidSourceError(msg)
+            raise UploadTooLargeError(msg)
 
 
 def _split_name(file_name: str) -> tuple[str, str]:
