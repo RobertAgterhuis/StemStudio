@@ -43,7 +43,8 @@ None.
 | devops | Merged (19e0e0b) | compose config valid; 3 images build, non-root, healthchecks; Sonar job gated on secret |
 | audio-engine | Merged (56d932e) | 121 tests, 100% stmt/branch/func/line; lint+typecheck clean; G4 + SC-003 tests |
 | qa | Merged (9361e48) | fixture tests 100%; e2e tsc+lint clean; 40 Playwright tests listed (run in integration wave) |
-| stem-separation, backend, frontend | In progress | - |
+| stem-separation | Merged (c4dab5a) | 116 tests, 100% line/branch; real htdemucs_6s integration test passed (3.4 s warm on 6 s clip); full worker 386 tests 100%; live smoke (fake separator) upload -> completed -> FLAC stems OK |
+| backend, frontend | In progress | - |
 
 ## Integration backlog (CTO)
 
@@ -59,3 +60,10 @@ None.
 - QA audit F1: the extra audio-ingest integration test uses real ffmpeg, not the separation model;
   accepted (the constitution's "exactly one" applies to the model test). F2 resolved (stub tests
   updated at merge). F3: add `npm run typecheck` to CI `e2e-lint` (devops T117).
+- Worker SIG gate after ingest refactor: 0 errors, 24 soft warnings -> exit 0.
+- CTO decision: a Spotify track without a YouTube match is rejected synchronously at import
+  (worker 400 "Source unavailable" -> backend 400 with reason) instead of a failed job; spec edge
+  case and worker contract description to be updated in the integration wave (SC-007 still met).
+- Integration backlog additions: worker 413 without Content-Length buffers first (backend always
+  sends a length); backend worker-client timeout must allow for spotDL latency; review the
+  transitive `httpx2` used by Starlette's TestClient.
