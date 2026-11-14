@@ -30,6 +30,11 @@ dev = [
     "httpx>=0.28,<1",
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
+    "jsonschema>=4.26,<5",
+    "pyyaml>=6.0.3,<7",
+    "types-pyyaml>=6.0.12.20261030,<7",
+    "types-jsonschema>=4.26.0.20261006,<5",
+    "pytest-timeout>=2.4,<2.5",
 ]
 
 [build-system]
