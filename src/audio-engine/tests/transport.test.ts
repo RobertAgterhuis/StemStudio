@@ -3,7 +3,7 @@ import { DotNetNotifier } from '../src/callbacks';
 import { loadStems, trackDuration } from '../src/stem-loader';
 import { Transport, type TransportListener } from '../src/transport';
 import type { LoopRegion, StemName } from '../src/types';
-import { MockAudioContext, type MockAudioBufferSourceNode, type MockGainNode } from './mocks/audio-context';
+import { MockAudioContext, type MockAudioBufferSourceNode, type MockGainNode, type StartCall } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 import { FetchStub } from './mocks/fetch';
 
@@ -43,6 +43,14 @@ async function makeRig(durations: readonly number[] = [10, 10, 10, 12]): Promise
 /** Sources created by the transport since `from` (index into ctx.sources). */
 function startsSince(ctx: MockAudioContext, from: number): MockAudioBufferSourceNode[] {
   return ctx.sources.slice(from);
+}
+
+function firstStart(group: readonly MockAudioBufferSourceNode[]): StartCall {
+  const call = group[0]?.startCalls[0];
+  if (call === undefined) {
+    throw new Error('no start call');
+  }
+  return call;
 }
 
 function expectSampleLocked(group: readonly MockAudioBufferSourceNode[], stems = STEMS.length): void {
@@ -90,6 +98,14 @@ describe('stem-loader', () => {
     ctx.decodeError = new Error('EncodingError');
     await expect(loadStems(ctx.asAudioContext(), stub.fetch, [{ name: 'guitar', url: '/ok' }])).rejects.toThrow(
       'Failed to decode stem "guitar": EncodingError',
+    );
+  });
+
+  it('reports non-Error rejections as text', async () => {
+    const ctx = new MockAudioContext();
+    const failing = vi.fn<typeof fetch>().mockRejectedValue('socket closed');
+    await expect(loadStems(ctx.asAudioContext(), failing, [{ name: 'drums', url: '/x' }])).rejects.toThrow(
+      'Failed to load stem "drums": socket closed',
     );
   });
 
@@ -173,8 +189,8 @@ describe('transport', () => {
     await transport.play();
     const resumed = startsSince(ctx, STEMS.length);
     expectSampleLocked(resumed);
-    expect(resumed[0]?.startCalls[0]?.when).toBeCloseTo(5.1, 9);
-    expect(resumed[0]?.startCalls[0]?.offset).toBeCloseTo(2, 9);
+    expect(firstStart(resumed).when).toBeCloseTo(5.1, 9);
+    expect(firstStart(resumed).offset).toBeCloseTo(2, 9);
   });
 
   it('stop resets the position to 0 and play starts from 0', async () => {
@@ -334,14 +350,17 @@ describe('transport', () => {
       checkGroup();
       let wraps = 0;
       let seeks = 0;
-      while (wraps < 50) {
+      const advanceThreeWraps = (): void => {
         const { when, offset } = transport.anchor() ?? { when: 0, offset: 0 };
         ctx.currentTime = when + (loop.end - offset) + length * 2.5;
-        wraps += 3;
         const expected = loop.start + ((ctx.currentTime - when + offset - loop.start) % length);
         expect(transport.position()).toBeCloseTo(expected, 9);
         expect(transport.position()).toBeGreaterThanOrEqual(loop.start);
         expect(transport.position()).toBeLessThan(loop.end);
+      };
+      while (wraps < 50) {
+        advanceThreeWraps();
+        wraps += 3;
         if (seeks < 20) {
           transport.seek(loop.start + (seeks % 7) * 0.3);
           seeks += 1;
