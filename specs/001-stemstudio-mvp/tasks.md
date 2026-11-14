@@ -155,13 +155,13 @@ with progress, cache reuse, rejects, failure + retry, restart handling.
 
 ### beat-analysis (tests first)
 
-- [ ] T051 [P] [US1] [beat-analysis] Create the synthetic-signal helpers `worker/tests/analysis/conftest.py` (click tracks at 60/90/120/150/180 BPM, 3/4 and 4/4 accents, music-like tone mix, silence, white noise; written with soundfile into `tmp_path`)
-- [ ] T052 [P] [US1] [beat-analysis] Write failing tests `worker/tests/analysis/test_librosa_analyzer.py`: BPM within +-1, beats within 30 ms of truth, beats ascending, downbeats a subset, `beatsPerBar` 4 for 4/4 and 3 for 3/4 accent patterns (default 4 when undetermined), `confidence` 0..1 (FR-007)
-- [ ] T053 [US1] [beat-analysis] Implement `worker/src/stemstudio_worker/analysis/{librosa_analyzer.py,tempo.py,downbeats.py}` (`LibrosaBeatAnalyzer` implementing `BeatAnalyzer`) to pass T052
-- [ ] T054 [P] [US1] [beat-analysis] Write failing tests `worker/tests/analysis/test_reliability.py`: silence, noise and clips shorter than a few beats return `bpm=0` or low confidence with `reliable=False` and never raise (edge case "no clear pulse")
-- [ ] T055 [US1] [beat-analysis] Implement `worker/src/stemstudio_worker/analysis/reliability.py` to pass T054
-- [ ] T141 [P] [US1] [beat-analysis] Write failing test `worker/tests/analysis/test_factory.py`: `create_beat_analyzer(settings)` returns a `BeatAnalyzer` (O3)
-- [ ] T142 [US1] [beat-analysis] Implement `create_beat_analyzer` in `worker/src/stemstudio_worker/analysis/__init__.py` to pass T141
+- [X] T051 [P] [US1] [beat-analysis] Create the synthetic-signal helpers `worker/tests/analysis/conftest.py` (click tracks at 60/90/120/150/180 BPM, 3/4 and 4/4 accents, music-like tone mix, silence, white noise; written with soundfile into `tmp_path`)
+- [X] T052 [P] [US1] [beat-analysis] Write failing tests `worker/tests/analysis/test_librosa_analyzer.py`: BPM within +-1, beats within 30 ms of truth, beats ascending, downbeats a subset, `beatsPerBar` 4 for 4/4 and 3 for 3/4 accent patterns (default 4 when undetermined), `confidence` 0..1 (FR-007)
+- [X] T053 [US1] [beat-analysis] Implement `worker/src/stemstudio_worker/analysis/{librosa_analyzer.py,tempo.py,downbeats.py}` (`LibrosaBeatAnalyzer` implementing `BeatAnalyzer`) to pass T052
+- [X] T054 [P] [US1] [beat-analysis] Write failing tests `worker/tests/analysis/test_reliability.py`: silence, noise and clips shorter than a few beats return `bpm=0` or low confidence with `reliable=False` and never raise (edge case "no clear pulse")
+- [X] T055 [US1] [beat-analysis] Implement `worker/src/stemstudio_worker/analysis/reliability.py` to pass T054
+- [X] T141 [P] [US1] [beat-analysis] Write failing test `worker/tests/analysis/test_factory.py`: `create_beat_analyzer(settings)` returns a `BeatAnalyzer` (O3)
+- [X] T142 [US1] [beat-analysis] Implement `create_beat_analyzer` in `worker/src/stemstudio_worker/analysis/__init__.py` to pass T141
 
 ### stem-separation (tests first)
 
@@ -283,7 +283,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [ ] T112 [P] [frontend] Accessibility pass (labels/aria for faders, pan, buttons; keyboard space = play/pause) with bUnit assertions; hand-off `docs/handoffs/frontend-polish.md` (checkpoint hand-off, see ADR-008)
 - [ ] T113 [P] [audio-engine] TSDoc on every export, hand-off `docs/handoffs/audio-engine-polish.md` (checkpoint hand-off, see ADR-008)
 - [ ] T114 [P] [audio-ingest] Docstrings + hand-off `docs/handoffs/audio-ingest-polish.md` (checkpoint hand-off, see ADR-008) (coverage via `uv run pytest --cov=stemstudio_worker.ingest tests/ingest`)
-- [ ] T115 [P] [beat-analysis] Docstrings + hand-off `docs/handoffs/beat-analysis-polish.md` (checkpoint hand-off, see ADR-008) (measured BPM/beat errors per synthetic tempo)
+- [X] T115 [P] [beat-analysis] Docstrings + hand-off `docs/handoffs/beat-analysis-polish.md` (checkpoint hand-off, see ADR-008) (measured BPM/beat errors per synthetic tempo)
 - [ ] T116 [P] [stem-separation] Docstrings + hand-off `docs/handoffs/stem-separation-polish.md` (checkpoint hand-off, see ADR-008) (unit coverage + integration test output, model download size/time)
 - [ ] T117 [P] [devops] Hand-off `docs/handoffs/devops-polish.md` (checkpoint hand-off, see ADR-008) (image sizes, compose config output, CI job list)
 - [ ] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
