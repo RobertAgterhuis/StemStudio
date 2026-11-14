@@ -62,9 +62,14 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
             return MixValidator.Problem(errors, "settings");
         }
 
-        var track = await tracks.FindAsync(request.TrackId, cancellationToken);
+        return await CreateForTrackAsync(request.TrackId, settings, cancellationToken);
+    }
+
+    private async Task<IResult> CreateForTrackAsync(Guid trackId, MixSettings settings, CancellationToken cancellationToken)
+    {
+        var track = await tracks.FindAsync(trackId, cancellationToken);
         return track is null
-            ? TrackService.NotFound(request.TrackId)
+            ? TrackService.NotFound(trackId)
             : await AddAsync(() => Mix.Create(Guid.NewGuid(), track, settings, Now), cancellationToken);
     }
 
@@ -160,19 +165,20 @@ public sealed class MixService(ITrackRepository tracks, IMixRepository mixes, Ti
     /// <summary>Saves after a name check; the unique index still catches a concurrent clash (409).</summary>
     private async Task<IResult> SaveAsync(Mix mix, Func<Task> save, IResult success)
     {
-        if (await mixes.IsNameTakenAsync(mix.TrackId, mix.NormalizedName, mix.Id, CancellationToken.None))
-        {
-            return NameTaken(mix.Name);
-        }
+        var saved = !await mixes.IsNameTakenAsync(mix.TrackId, mix.NormalizedName, mix.Id, CancellationToken.None) && await TrySaveAsync(save);
+        return saved ? success : NameTaken(mix.Name);
+    }
 
+    private static async Task<bool> TrySaveAsync(Func<Task> save)
+    {
         try
         {
             await save();
-            return success;
+            return true;
         }
         catch (DuplicateKeyException)
         {
-            return NameTaken(mix.Name);
+            return false;
         }
     }
 }

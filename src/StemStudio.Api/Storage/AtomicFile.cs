@@ -13,12 +13,7 @@ internal static class AtomicFile
     {
         try
         {
-            T result;
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
-            {
-                result = await write(stream);
-            }
-
+            var result = await WriteTempAsync(tempPath, write);
             File.Move(tempPath, target(result), overwrite: true);
             return result;
         }
@@ -26,5 +21,11 @@ internal static class AtomicFile
         {
             File.Delete(tempPath);
         }
+    }
+
+    private static async Task<T> WriteTempAsync<T>(string tempPath, Func<FileStream, Task<T>> write)
+    {
+        await using var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        return await write(stream);
     }
 }

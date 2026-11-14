@@ -19,14 +19,16 @@ public static class UploadRequestReader
     {
         ArgumentNullException.ThrowIfNull(request);
         var boundary = Boundary(request.ContentType);
-        if (boundary is null)
-        {
-            return ApiProblems.Validation("file", NotMultipart);
-        }
+        return boundary is null
+            ? ApiProblems.Validation("file", NotMultipart)
+            : await ReadMultipartAsync(new MultipartReader(boundary, request.Body), handleFile, cancellationToken);
+    }
 
+    private static async Task<IResult> ReadMultipartAsync(MultipartReader reader, Func<Stream, string, Task<IResult>> handleFile, CancellationToken cancellationToken)
+    {
         try
         {
-            return await ReadSectionsAsync(new MultipartReader(boundary, request.Body), handleFile, cancellationToken);
+            return await ReadSectionsAsync(reader, handleFile, cancellationToken);
         }
         catch (BadHttpRequestException exception)
         {
