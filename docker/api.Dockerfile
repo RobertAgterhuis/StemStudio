@@ -22,8 +22,10 @@ COPY src/StemStudio.Domain/ src/StemStudio.Domain/
 COPY src/StemStudio.Contracts/ src/StemStudio.Contracts/
 COPY src/StemStudio.Persistence/ src/StemStudio.Persistence/
 COPY src/StemStudio.Api/ src/StemStudio.Api/
+# No --no-restore: the restore layer can stay cached while the cache mount was pruned (NETSDK1064);
+# the implicit restore is a no-op when the packages are present.
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet publish src/StemStudio.Api/StemStudio.Api.csproj -c Release -o /out --no-restore -p:UseAppHost=false
+    dotnet publish src/StemStudio.Api/StemStudio.Api.csproj -c Release -o /out -p:UseAppHost=false
 
 # ---------------------------------------------------------------- runtime
 FROM ${RUNTIME_IMAGE} AS runtime

@@ -285,7 +285,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [X] T114 [P] [audio-ingest] Docstrings + hand-off `docs/handoffs/audio-ingest-polish.md` (checkpoint hand-off, see ADR-008) (coverage via `uv run pytest --cov=stemstudio_worker.ingest tests/ingest`)
 - [X] T115 [P] [beat-analysis] Docstrings + hand-off `docs/handoffs/beat-analysis-polish.md` (checkpoint hand-off, see ADR-008) (measured BPM/beat errors per synthetic tempo)
 - [X] T116 [P] [stem-separation] Docstrings + hand-off `docs/handoffs/stem-separation-polish.md` (checkpoint hand-off, see ADR-008) (unit coverage + integration test output, model download size/time)
-- [ ] T117 [P] [devops] Hand-off `docs/handoffs/devops-polish.md` (checkpoint hand-off, see ADR-008) (image sizes, compose config output, CI job list)
+- [x] T117 [P] [devops] Hand-off `docs/handoffs/devops-polish.md` (checkpoint hand-off, see ADR-008) (image sizes, compose config output, CI job list)
 - [X] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
 
 ---
