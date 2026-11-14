@@ -96,6 +96,22 @@ function expectWithinOneMs(actual: readonly number[], expected: readonly number[
   });
 }
 
+/** Plays the default grid for 0.55 s, leaving exactly one scheduled future click (at 0.6 s). */
+async function playWithOnePendingClick(): Promise<{ rig: Rig; pending: MockAudioBufferSourceNode[] }> {
+  const rig = makeRig(makeGrid());
+  await rig.transport.play();
+  run(rig, 0.55);
+  const pending = clicks(rig).filter((s) => whenOf(s) >= rig.ctx.currentTime);
+  expect(pending).toHaveLength(1);
+  return { rig, pending };
+}
+
+function expectCancelled(sources: readonly MockAudioBufferSourceNode[]): void {
+  sources.forEach((s) => {
+    expect(s.stopCalls).toHaveLength(1);
+  });
+}
+
 describe('click grid', () => {
   it('detected grid: beats[i] + offsetMs/1000, accent from the nearest preceding downbeat', () => {
     const grid: BeatGrid = { ...makeGrid(), beats: [0, 0.5, 1, 1.5, 2, 2.5, 3], downbeats: [1, 3] };
@@ -323,15 +339,9 @@ describe('metronome scheduler', () => {
   });
 
   it('pause cancels future clicks and stops the wake-up timer', async () => {
-    const rig = makeRig(makeGrid());
-    await rig.transport.play();
-    run(rig, 0.55);
-    const pending = clicks(rig).filter((s) => whenOf(s) >= rig.ctx.currentTime);
-    expect(pending).toHaveLength(1);
+    const { rig, pending } = await playWithOnePendingClick();
     rig.transport.pause();
-    pending.forEach((s) => {
-      expect(s.stopCalls).toHaveLength(1);
-    });
+    expectCancelled(pending);
     const count = clicks(rig).length;
     rig.ctx.currentTime += 5;
     vi.advanceTimersByTime(5000);
@@ -400,15 +410,9 @@ describe('metronome scheduler', () => {
   });
 
   it('dispose stops the timer and cancels future clicks', async () => {
-    const rig = makeRig(makeGrid());
-    await rig.transport.play();
-    run(rig, 0.55);
-    const pending = clicks(rig).filter((s) => whenOf(s) >= rig.ctx.currentTime);
-    expect(pending).toHaveLength(1);
+    const { rig, pending } = await playWithOnePendingClick();
     rig.scheduler.dispose();
-    pending.forEach((s) => {
-      expect(s.stopCalls).toHaveLength(1);
-    });
+    expectCancelled(pending);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

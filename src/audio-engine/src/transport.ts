@@ -143,9 +143,18 @@ export class Transport implements TransportClock {
   public setLoop(region: LoopRegion): void {
     const position = this.position();
     this.region = region;
-    if (this.playState !== 'playing') {
-      return;
+    if (this.playState === 'playing') {
+      this.applyRunningLoop(position, region);
     }
+  }
+
+  /** Stops all sources without notifying anyone (engine disposal). */
+  public dispose(): void {
+    this.listeners.length = 0;
+    this.halt();
+  }
+
+  private applyRunningLoop(position: number, region: LoopRegion): void {
     if (region.enabled && !isInside(position, region)) {
       this.moveTo(region.start);
       this.reposition(region.start);
@@ -156,12 +165,6 @@ export class Transport implements TransportClock {
       applyLoop(source, region);
     });
     this.reposition(position);
-  }
-
-  /** Stops all sources without notifying anyone (engine disposal). */
-  public dispose(): void {
-    this.listeners.length = 0;
-    this.halt();
   }
 
   private moveTo(offset: number): void {

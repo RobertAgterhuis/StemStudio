@@ -61,21 +61,27 @@ function originOf(grid: BeatGrid | null): number {
   return grid?.downbeats[0] ?? grid?.beats[0] ?? 0;
 }
 
-function constantGrid(spec: { period: number; base: number; beatsPerBar: number }): ClickGrid {
-  return {
-    between(from: number, to: number): Click[] {
-      const clicks: Click[] = [];
-      for (let k = Math.ceil((from - spec.base) / spec.period) - 1; ; k++) {
-        const time = spec.base + k * spec.period;
-        if (time >= to) {
-          return clicks;
-        }
-        if (time >= from) {
-          clicks.push({ time, accent: mod(k, spec.beatsPerBar) === 0 });
-        }
-      }
-    },
-  };
+interface ConstantSpec {
+  readonly period: number;
+  readonly base: number;
+  readonly beatsPerBar: number;
+}
+
+function constantGrid(spec: ConstantSpec): ClickGrid {
+  return { between: (from, to) => constantClicks(spec, from, to) };
+}
+
+function constantClicks(spec: ConstantSpec, from: number, to: number): Click[] {
+  const clicks: Click[] = [];
+  for (let k = Math.ceil((from - spec.base) / spec.period) - 1; ; k++) {
+    const time = spec.base + k * spec.period;
+    if (time >= to) {
+      return clicks;
+    }
+    if (time >= from) {
+      clicks.push({ time, accent: mod(k, spec.beatsPerBar) === 0 });
+    }
+  }
 }
 
 function detectedGrid(grid: BeatGrid, beatsPerBar: number, offset: number): ClickGrid {
