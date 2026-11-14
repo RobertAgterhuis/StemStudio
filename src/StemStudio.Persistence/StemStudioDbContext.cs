@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using StemStudio.Domain.Mixes;
+using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Configurations;
 
 namespace StemStudio.Persistence;
 
@@ -9,6 +12,19 @@ namespace StemStudio.Persistence;
 /// <param name="options">Context options (provider and connection string).</param>
 public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> options) : DbContext(options)
 {
+    /// <summary>Imported tracks.</summary>
+    public DbSet<Track> Tracks => Set<Track>();
+
+    /// <summary>Saved mixes.</summary>
+    public DbSet<Mix> Mixes => Set<Mix>();
+
+    /// <inheritdoc />
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(configurationBuilder);
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+    }
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

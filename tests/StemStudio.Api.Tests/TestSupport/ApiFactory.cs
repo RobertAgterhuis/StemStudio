@@ -1,0 +1,116 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
+using StemStudio.Api.Worker;
+using StemStudio.Domain.Tracks;
+using StemStudio.Persistence.Repositories;
+
+namespace StemStudio.Api.Tests.TestSupport;
+
+/// <summary>Hosts the API with a temp data directory (file SQLite), a fake worker and a fake clock.</summary>
+internal sealed class ApiFactory : WebApplicationFactory<Program>
+{
+    public static readonly DateTimeOffset Start = new(2026, 11, 14, 12, 0, 0, TimeSpan.Zero);
+
+    private readonly bool _ownsDataDir;
+
+    public ApiFactory(string? dataDir = null)
+    {
+        _ownsDataDir = dataDir is null;
+        DataDir = dataDir ?? Directory.CreateTempSubdirectory("stemstudio-api-").FullName;
+    }
+
+    public string DataDir { get; }
+
+    public FakeWorkerClient Worker { get; } = new();
+
+    public FakeTimeProvider Clock { get; } = new(Start);
+
+    public Action<IServiceCollection>? ConfigureServices { get; init; }
+
+    public ListLoggerProvider Logs { get; } = new();
+
+    public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web);
+
+    public async Task<T> WithScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        return await action(scope.ServiceProvider);
+    }
+
+    public Task<Track?> FindTrackAsync(Guid id) =>
+        WithScopeAsync(sp => sp.GetRequiredService<ITrackRepository>().FindAsync(id, CancellationToken.None));
+
+    public Task<IReadOnlyList<Track>> AllTracksAsync() =>
+        WithScopeAsync(sp => sp.GetRequiredService<ITrackRepository>().ListAsync(CancellationToken.None));
+
+    public Task<Track> SeedAsync(Track track) => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<ITrackRepository>().AddAsync(track, CancellationToken.None);
+        return track;
+    });
+
+    public Task<Track> UpdateTrackAsync(Guid id, Action<Track> change) => WithScopeAsync(async sp =>
+    {
+        var tracks = sp.GetRequiredService<ITrackRepository>();
+        var track = (await tracks.FindAsync(id, CancellationToken.None))!;
+        change(track);
+        await tracks.SaveAsync(CancellationToken.None);
+        return track;
+    });
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureLogging(logging => logging.AddProvider(Logs));
+        builder.UseSetting("StemStudio:DataDir", DataDir);
+        builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IWorkerClient>(Worker);
+            services.AddSingleton<TimeProvider>(Clock);
+            ConfigureServices?.Invoke(services);
+        });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        SqliteConnection.ClearAllPools();
+        try
+        {
+            if (_ownsDataDir)
+            {
+                Directory.Delete(DataDir, true);
+            }
+        }
+        catch (IOException)
+        {
+            // A file may still be locked briefly on Windows; the OS temp cleanup removes it later.
+        }
+    }
+}
+
+internal static class HttpResponseExtensions
+{
+    public static async Task<T> BodyAsync<T>(this HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<T>(ApiFactory.Json, TestContext.Current.CancellationToken))!;
+
+    public static async Task<JsonElement> JsonAsync(this HttpResponseMessage response)
+    {
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        return document.RootElement.Clone();
+    }
+
+    public static async Task<string[]> FieldErrorsAsync(this HttpResponseMessage response, string field)
+    {
+        var json = await response.JsonAsync();
+        return json.GetProperty("errors").GetProperty(field).EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
+}

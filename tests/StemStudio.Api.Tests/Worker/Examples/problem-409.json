@@ -1,0 +1,5 @@
+{
+  "title": "Job not completed",
+  "status": 409,
+  "detail": "Job is in state separating."
+}

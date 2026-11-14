@@ -1,0 +1,5 @@
+{
+  "title": "File too large",
+  "status": 413,
+  "detail": "The file is larger than 200 MiB (209,715,200 bytes)."
+}
