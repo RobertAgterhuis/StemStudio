@@ -11,6 +11,26 @@ track URL, or local file), the song is split into instrument stems, and the musi
 along with a mixer (per-stem volume/pan/mute/solo/meters, master, transport, A-B loop), a
 beat-synced metronome, and saved, reusable mixes."
 
+## Clarifications
+
+### Session 2026-11-14
+
+Answered autonomously by the CTO (operating mode: fully autonomous); see
+`docs/decisions/ADR-001-clarification-decisions.md`.
+
+- Q: In which audio format are stems stored and delivered to the player? → A: Lossless FLAC,
+  44.1 kHz stereo 16-bit (no encoder padding, so stems stay sample-aligned; about half the size
+  of WAV).
+- Q: What identifies "the same source" for caching? → A: YouTube video ID, Spotify track ID
+  (cached by its resolved YouTube video ID as well), or SHA-256 of the uploaded file content.
+- Q: What happens to jobs that are running when the application restarts? → A: Completed results
+  persist; jobs that were in progress are marked failed ("interrupted by restart") and can be
+  retried.
+- Q: What does the level meter show? → A: Post-fader peak level per channel and master in dBFS,
+  range -60 to 0 dB, with a clip indicator at >= 0 dBFS.
+- Q: What happens to unsaved mixer changes? → A: No autosave; an "unsaved changes" indicator is
+  shown and the user is asked to confirm before leaving the mixer with unsaved changes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Import a song and get its stems (Priority: P1)
@@ -173,13 +193,20 @@ restored; duplicate, rename and delete mixes from the library.
   for each track.
 - **FR-008**: Processing MUST run as a background job exposing status (queued, downloading,
   separating, analysing, completed, failed), progress percentage and an error reason.
-- **FR-009**: Results MUST be cached per source so re-importing the same source reuses them.
+- **FR-009**: Results MUST be cached per source so re-importing the same source reuses them. The
+  source identity is the YouTube video ID, the Spotify track ID, or the SHA-256 of an uploaded
+  file.
+- **FR-009a**: Jobs in progress during a restart MUST be marked failed with reason "interrupted by
+  restart" and MUST be retryable.
+- **FR-009b**: Stems MUST be stored and delivered as lossless FLAC, 44.1 kHz stereo.
 - **FR-010**: Documentation and UI help MUST state that separating every instrument individually
   beyond the available stems is not reliably possible with current open-source models.
 
 **Mixer and playback**
 - **FR-011**: The mixer MUST provide per-stem volume, pan, mute, solo and a level meter, and a
-  master volume.
+  master volume. Meters show post-fader peak level in dBFS (-60..0 dB) with a clip indicator.
+- **FR-011a**: The mixer MUST show an "unsaved changes" indicator and ask for confirmation before
+  the user leaves the mixer with unsaved changes. There is no autosave.
 - **FR-012**: Playback MUST keep all stems sample-synchronised through play, pause, stop and seek.
 - **FR-013**: Users MUST be able to define an A-B loop region and toggle looping.
 
