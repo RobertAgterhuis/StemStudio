@@ -1,10 +1,11 @@
+from common import is_test
 from components import COMPONENTS, Component, component_rows, render_components
 from duplication import Clone
 from sig_check import UnitMetrics
 
 
-def _unit(path: str, nloc: int, ccn: int = 1, params: int = 0, *, test: bool = False) -> UnitMetrics:
-    return UnitMetrics(path, "f", 1, nloc, ccn, params, test)
+def _unit(path: str, nloc: int, ccn: int = 1, params: int = 0) -> UnitMetrics:
+    return UnitMetrics(path, "f", 1, nloc, ccn, params, is_test(path))
 
 
 API = Component("Api", ("src/StemStudio.Api/",))
@@ -22,23 +23,29 @@ def test_scope_selects_production_all_or_tests() -> None:
     assert not TESTS.contains("src/A.cs", test=False)
 
 
-def test_rows_use_three_bins_and_count_clones() -> None:
-    units = [
-        _unit("src/StemStudio.Api/A.cs", 10),
-        _unit("src/StemStudio.Api/B.cs", 20, ccn=7, params=3),
-        _unit("src/StemStudio.Api/C.cs", 70, ccn=11, params=5),
-        _unit("tests/StemStudio.Api.Tests/T.cs", 50, test=True),
-    ]
+UNITS = [
+    _unit("src/StemStudio.Api/A.cs", 10),
+    _unit("src/StemStudio.Api/B.cs", 20, ccn=7, params=3),
+    _unit("src/StemStudio.Api/C.cs", 70, ccn=11, params=5),
+    _unit("tests/StemStudio.Api.Tests/T.cs", 50),
+]
+
+
+def test_rows_use_three_bands() -> None:
+    (row,) = component_rows(UNITS, [], [API])
+    assert (row.units, row.loc) == (3, 100)
+    for profile in (row.size, row.complexity, row.params):
+        assert (profile.low, profile.moderate, profile.high) == (10.0, 20.0, 70.0)
+    assert row.stars == (1, 1, 1)
+
+
+def test_rows_count_clones_touching_the_component() -> None:
     clones = [
         Clone("tests/StemStudio.Api.Tests/T.cs", 1, "src/StemStudio.Api/A.cs", 2, 6),
         Clone("tests/a/T.cs", 1, "tests/b/T.cs", 2, 6),
     ]
-    (row,) = component_rows(units, clones, [API])
-    assert (row.units, row.loc, row.clones) == (3, 100, 1)
-    assert (row.size.low, row.size.moderate, row.size.high) == (10.0, 20.0, 70.0)
-    assert (row.complexity.low, row.complexity.moderate, row.complexity.high) == (10.0, 20.0, 70.0)
-    assert (row.params.low, row.params.moderate, row.params.high) == (10.0, 20.0, 70.0)
-    assert row.stars == (1, 1, 1)
+    (row,) = component_rows(UNITS, clones, [API])
+    assert row.clones == 1
 
 
 def test_empty_component_is_all_low_with_five_stars() -> None:
@@ -55,23 +62,24 @@ def test_render_components_table() -> None:
     assert "estimate" in text
 
 
+REQUESTED = [
+    "Domain",
+    "Contracts",
+    "Persistence",
+    "Api",
+    "Web",
+    "worker/ingest",
+    "worker/separation",
+    "worker/analysis",
+    "worker/jobs",
+    "worker/api",
+    "worker/core",
+    "audio-engine",
+    "e2e",
+    "tools/quality",
+]
+
+
 def test_default_components_cover_every_requested_area() -> None:
     names = [c.name for c in COMPONENTS]
-    for expected in [
-        "Domain",
-        "Contracts",
-        "Persistence",
-        "Api",
-        "Web",
-        "worker/ingest",
-        "worker/separation",
-        "worker/analysis",
-        "worker/jobs",
-        "worker/api",
-        "worker/core",
-        "audio-engine",
-        "e2e",
-        "tools/quality",
-        "Test code (all)",
-    ]:
-        assert expected in names
+    assert names == [*REQUESTED, "Test code (all)"]

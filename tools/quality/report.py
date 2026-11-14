@@ -1,78 +1,17 @@
-"""SIG-style risk profiles, indicative star ratings and the Markdown report.
+"""The Markdown SIG report: verdict, risk profiles, components, exemptions, clones, requests.
 
-Risk categories follow the SIG/TUViT maintainability model (lines of code per unit, McCabe
-complexity, parameters per unit). The star thresholds below are a house heuristic calibrated to
-the constitution's limits, not SIG's benchmark; Sigrid remains the authoritative rating.
+Star ratings are a house heuristic (``risk.py``), not SIG's benchmark; Sigrid is authoritative.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
-from common import Finding, Severity, count_errors
-from sig_check import UnitMetrics
-
-UNIT_SIZE_BINS = (15, 30, 60)
-"""Upper bounds of low / moderate / high risk; above the last bound is very high."""
-
-COMPLEXITY_BINS = (5, 10, 25)
-PARAMETER_BINS = (2, 4, 6)
-
-STAR_THRESHOLDS = (
-    (5, (15.0, 5.0, 0.0)),
-    (4, (25.0, 10.0, 2.0)),
-    (3, (35.0, 15.0, 5.0)),
-    (2, (50.0, 25.0, 10.0)),
-)
-"""Max % of code that is moderate-or-worse, high-or-worse and very high, per star level."""
-
-DUPLICATION_STARS = ((5, 3.0), (4, 5.0), (3, 10.0), (2, 20.0))
-"""Max % duplicated lines per star level."""
-
-
-@dataclass(frozen=True, slots=True)
-class RiskProfile:
-    """Share of code (NLOC-weighted, %) per risk category: low, moderate, high, very high."""
-
-    low: float
-    moderate: float
-    high: float
-    very_high: float
-
-    @property
-    def stars(self) -> int:
-        """Indicative star rating (1-5) from the cumulative profile."""
-        measured = (
-            self.moderate + self.high + self.very_high,
-            self.high + self.very_high,
-            self.very_high,
-        )
-        for stars, maxima in STAR_THRESHOLDS:
-            if all(value <= limit for value, limit in zip(measured, maxima, strict=True)):
-                return stars
-        return 1
-
-
-def risk_profile(
-    units: Sequence[UnitMetrics], value: Callable[[UnitMetrics], int], bins: Sequence[int]
-) -> RiskProfile:
-    """Return the NLOC-weighted risk profile of ``value`` over ``units`` (empty -> all low)."""
-    totals = [0, 0, 0, 0]
-    for unit in units:
-        totals[_category(value(unit), bins)] += unit.nloc
-    weight = sum(totals) or 1
-    low, moderate, high, very_high = (100.0 * total / weight for total in totals)
-    if not units:
-        low = 100.0
-    return RiskProfile(low, moderate, high, very_high)
-
-
-def _category(measured: int, bins: Sequence[int]) -> int:
-    return next((index for index, bound in enumerate(bins) if measured <= bound), len(bins))
-
-
-def duplication_stars(percentage: float) -> int:
-    """Indicative star rating (1-5) for a duplicated-lines percentage."""
-    return next((stars for stars, limit in DUPLICATION_STARS if percentage <= limit), 1)
+from common import Finding, Severity, count_errors, owner_of
+from components import component_rows, render_components
+from duplication import Clone
+from priorities import render_top
+from risk import duplication_stars, profiles
+from sig_check import Exemption, UnitMetrics
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +24,9 @@ class ReportInput:
     duplicated_percentage: float | None
     findings: Sequence[Finding]
     tool_errors: Sequence[str]
+    units: Sequence[UnitMetrics] = ()
+    clones: Sequence[Clone] = ()
+    exemptions: Sequence[Exemption] = ()
 
 
 def render(data: ReportInput) -> str:
@@ -92,6 +34,11 @@ def render(data: ReportInput) -> str:
     sections = [
         _header(data),
         _profiles(data),
+        render_components(component_rows(data.units, data.clones)),
+        _dependencies(data.findings),
+        _exemptions(data.exemptions),
+        _clones(data.clones),
+        render_top(data.findings),
         _findings_table(data.findings),
         _requests(data.findings),
     ]
@@ -125,31 +72,37 @@ _PROFILE_HEADER = (
 )
 
 
-def profiles(units: Sequence[UnitMetrics]) -> list[tuple[str, RiskProfile]]:
-    """Return the unit size, complexity and interfacing risk profiles of ``units``."""
-    return [
-        ("Unit size (LOC)", risk_profile(units, lambda u: u.nloc, UNIT_SIZE_BINS)),
-        ("Unit complexity (CCN)", risk_profile(units, lambda u: u.ccn, COMPLEXITY_BINS)),
-        ("Unit interfacing (params)", risk_profile(units, lambda u: u.params, PARAMETER_BINS)),
-    ]
-
-
 def _profiles(data: ReportInput) -> str:
+    measured = profiles(data.production_units)
     table = [_PROFILE_HEADER]
     table.extend(
         f"| {name} | {p.low:.1f} | {p.moderate:.1f} | {p.high:.1f} | {p.very_high:.1f} "
         f"| {p.stars} |"
-        for name, p in profiles(data.production_units)
+        for name, p in measured
     )
-    table.extend([_duplication_row(data.duplicated_percentage), "", _BINS_NOTE])
+    table.extend([_duplication_row(data.duplicated_percentage), "", _BINS_NOTE, ""])
+    table.append(_estimate([p.stars for _, p in measured], data.duplicated_percentage))
     return "\n".join(table)
 
 
 _BINS_NOTE = (
     "Bins: unit size 1-15 / 16-30 / 31-60 / >60 LOC; complexity 1-5 / 6-10 / 11-25 / >25; "
     "parameters 0-2 / 3-4 / 5-6 / >6. Stars are a house heuristic "
-    "(`tools/quality/report.py`), Sigrid is authoritative."
+    "(`tools/quality/risk.py`), Sigrid is authoritative."
 )
+
+
+def _estimate(unit_stars: Sequence[int], duplication: float | None) -> str:
+    prefix = "Estimated maintainability: "
+    suffix = (
+        " (mean of unit size, complexity, interfacing and duplication; house estimate, "
+        "not a Sigrid rating - module coupling and component balance are checked by "
+        "`dependency_check.py` but not scored)."
+    )
+    if duplication is None:
+        return prefix + "**n/a**" + suffix
+    stars = [*unit_stars, duplication_stars(duplication)]
+    return f"{prefix}**{sum(stars) / len(stars):.1f} stars**{suffix}"
 
 
 def _duplication_row(percentage: float | None) -> str:
@@ -157,6 +110,51 @@ def _duplication_row(percentage: float | None) -> str:
         return "| Duplication | n/a | | | | n/a |"
     stars = duplication_stars(percentage)
     return f"| Duplication (% lines, all scanned code) | {percentage:.2f} | | | | {stars} |"
+
+
+def _dependencies(findings: Sequence[Finding]) -> str:
+    own = [f for f in findings if f.check == "dependency"]
+    title = "## Dependency direction\n\n"
+    if not own:
+        return title + "**PASS** - no forbidden edges or cycles."
+    errors = count_errors(own)
+    verdict = "FAIL" if errors else "PASS"
+    return f"{title}**{verdict}** - {errors} errors, {len(own) - errors} warnings (see Findings)."
+
+
+def _exemptions(exemptions: Sequence[Exemption]) -> str:
+    lines = [
+        f"## Exemptions ({len(exemptions)})",
+        "",
+        "`sig-exempt: <reason>` on or directly above a signature waives only the parameters "
+        "check of that unit.",
+        "",
+    ]
+    if not exemptions:
+        return "\n".join([*lines, "None."])
+    lines.extend(["| Location | Unit | Reason |", "|---|---|---|"])
+    lines.extend(f"| `{e.path}:{e.line}` | {e.unit} | {e.reason} |" for e in exemptions)
+    return "\n".join(lines)
+
+
+def _clones(clones: Sequence[Clone]) -> str:
+    production = sum(1 for clone in clones if clone.in_production)
+    title = f"## Clones ({len(clones)}, {production} in production code)\n\n"
+    if not clones:
+        return title + "None."
+    rows = [_clone_row(rank, clone) for rank, clone in enumerate(clones, start=1)]
+    return title + "\n".join([*_CLONE_HEAD, *rows])
+
+
+_CLONE_HEAD = ["| # | First | Second | Lines | Owner | Production |", "|---:|---|---|---:|---|---|"]
+
+
+def _clone_row(rank: int, clone: Clone) -> str:
+    production = "yes" if clone.in_production else "no"
+    return (
+        f"| {rank} | `{clone.first}:{clone.first_line}` | `{clone.second}:{clone.second_line}` "
+        f"| {clone.lines} | {owner_of(clone.first)} | {production} |"
+    )
 
 
 def _findings_table(findings: Sequence[Finding]) -> str:

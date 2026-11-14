@@ -100,11 +100,13 @@ class Finding:
 
     Attributes:
         check: Check name (``unit-size``, ``complexity``, ``parameters``, ``razor-code``,
-            ``duplication``, ``dependency``).
+            ``exemption``, ``duplication``, ``dependency``).
         severity: ``error`` (hard limit) or ``warning`` (soft limit).
         path: Repository-relative POSIX path, or a project/module name for graph findings.
         line: 1-based line, 0 when not applicable.
         message: Human-readable description incl. measured value and limit.
+        excess: Amount above the limit (lines, branches, clone lines); 0 when not measurable.
+            Used to rank refactor requests.
     """
 
     check: str
@@ -112,6 +114,7 @@ class Finding:
     path: str
     line: int
     message: str
+    excess: int = 0
 
     @property
     def owner(self) -> str:

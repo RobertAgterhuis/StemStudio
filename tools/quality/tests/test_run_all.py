@@ -77,3 +77,18 @@ def test_dependency_violation_exits_one(tmp_path: Path) -> None:
     result = run_all.run(root, [], _dup(CLEAN))
     assert result.exit_code == 1
     assert result.findings[0].owner == "frontend"
+
+
+def test_exemption_passes_and_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path)
+    logger = root / "tests" / "Api.Tests" / "ListLogger.cs"
+    logger.parent.mkdir(parents=True)
+    logger.write_text((SAMPLES / "exempt_logger.cs").read_text(encoding="utf-8"), "utf-8")
+    report = tmp_path / "r.md"
+    run_all.main(["--root", str(root), "--report", str(report)], _dup(CLEAN))
+    out = capsys.readouterr().out
+    assert "exemption: tests/Api.Tests/ListLogger.cs:7 ListLogger::Log<TState>" in out
+    assert "2 exemptions" in out
+    assert "## Exemptions (2)" in report.read_text(encoding="utf-8")

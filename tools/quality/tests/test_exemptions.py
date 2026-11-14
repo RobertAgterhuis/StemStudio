@@ -73,24 +73,28 @@ def test_python_same_line_marker() -> None:
     assert _checks(unit) == []
 
 
-def test_result_lists_valid_exemptions(tmp_path: Path) -> None:
+def _logger_tree(tmp_path: Path) -> Path:
     target = tmp_path / "tests" / "Api.Tests" / "ListLogger.cs"
     target.parent.mkdir(parents=True)
     target.write_text((SAMPLES / "exempt_logger.cs").read_text(encoding="utf-8"), encoding="utf-8")
-    result = sig_check.run(tmp_path, [tmp_path / "tests"])
+    return tmp_path
+
+
+def test_result_lists_exemptions_with_a_reason(tmp_path: Path) -> None:
+    root = _logger_tree(tmp_path)
+    result = sig_check.run(root, [root / "tests"])
+    logger = "tests/Api.Tests/ListLogger.cs"
     assert result.exemptions == [
         Exemption(
-            "tests/Api.Tests/ListLogger.cs",
-            7,
-            "ListLogger::Log<TState>",
-            "interface-mandated signature (ILogger.Log)",
+            logger, 7, "ListLogger::Log<TState>", "interface-mandated signature (ILogger.Log)"
         ),
-        Exemption("tests/Api.Tests/ListLogger.cs", 14, "ListLogger::NotNeeded", "kept for symmetry"),
+        Exemption(logger, 14, "ListLogger::NotNeeded", "kept for symmetry"),
     ]
-    assert str(result.exemptions[0]) == (
-        "tests/Api.Tests/ListLogger.cs:7 ListLogger::Log<TState> - "
-        "interface-mandated signature (ILogger.Log)"
-    )
+
+
+def test_exemption_str() -> None:
+    exemption = Exemption("a.cs", 7, "L::Log", "interface-mandated")
+    assert str(exemption) == "a.cs:7 L::Log - interface-mandated"
 
 
 def test_main_prints_exemptions(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
