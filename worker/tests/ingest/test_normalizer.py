@@ -11,7 +11,6 @@ from typing import Any
 
 import pytest
 
-from stemstudio_worker.ingest import normalizer as normalizer_module
 from stemstudio_worker.ingest.normalizer import (
     CommandResult,
     FfmpegNormalizer,
@@ -39,7 +38,7 @@ def write_wav(path: Path, spec: WavSpec) -> None:
         handle.setnchannels(spec.channels)
         handle.setsampwidth(spec.width)
         handle.setframerate(spec.rate)
-        handle.writeframes(b"\x01\x00" * spec.channels * spec.frames * spec.width // 2)
+        handle.writeframes(b"\x01" * (spec.channels * spec.frames * spec.width))
 
 
 @dataclass
@@ -240,7 +239,7 @@ def test_subprocess_runner_passes_an_argument_list_without_shell(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     spy = RunSpy(subprocess.CompletedProcess(["ffprobe"], 0, "out", "err"))
-    monkeypatch.setattr(normalizer_module.subprocess, "run", spy)
+    monkeypatch.setattr(subprocess, "run", spy)
 
     result = SubprocessRunner().run(("ffprobe", "-v", "error"), timeout_seconds=5)
 
@@ -261,7 +260,7 @@ def test_subprocess_runner_passes_an_argument_list_without_shell(
 def test_subprocess_runner_maps_launch_failures_to_a_failed_result(
     monkeypatch: pytest.MonkeyPatch, error: BaseException
 ) -> None:
-    monkeypatch.setattr(normalizer_module.subprocess, "run", RunSpy(error))
+    monkeypatch.setattr(subprocess, "run", RunSpy(error))
 
     result = SubprocessRunner().run(["ffmpeg"], timeout_seconds=5)
 
