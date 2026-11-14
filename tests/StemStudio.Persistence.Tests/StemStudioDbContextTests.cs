@@ -93,17 +93,28 @@ public sealed class StemStudioDbContextTests
         active.AssignJob("0123456789abcdef0123456789abcdef", TestData.T0);
         var withoutJob = TestData.QueuedTrack("bbbbbbbbbbb");
         var completed = TestData.CompletedTrack("ccccccccccc");
-        await using (var context = db.NewContext())
-        {
-            var repository = new TrackRepository(context);
-            foreach (var track in new[] { active, withoutJob, completed })
-            {
-                await repository.AddAsync(track, Ct);
-            }
-        }
+        await SeedTracksAsync(db, active, withoutJob, completed);
 
         await using var read = db.NewContext();
         (await new TrackRepository(read).ListActiveAsync(Ct)).Select(t => t.Id).ShouldBe([active.Id]);
+    }
+
+    [Fact]
+    public async Task Track_ListOrphanedReturnsQueuedTracksWithoutJobUnchangedSinceTheCutoff()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var orphan = TestData.QueuedTrack("aaaaaaaaaaa");
+        var recent = TestData.QueuedTrack("bbbbbbbbbbb", TestData.T0.AddMinutes(5));
+        var withJob = TestData.QueuedTrack("ccccccccccc");
+        withJob.AssignJob("0123456789abcdef0123456789abcdef", TestData.T0);
+        var failed = TestData.QueuedTrack("ddddddddddd");
+        failed.Fail("Import interrupted", TestData.T0);
+        await SeedTracksAsync(db, orphan, recent, withJob, failed);
+
+        await using var read = db.NewContext();
+        var orphaned = await new TrackRepository(read).ListOrphanedAsync(TestData.T0.AddMinutes(5), Ct);
+
+        orphaned.Select(t => t.Id).ShouldBe([orphan.Id]);
     }
 
     [Fact]
@@ -329,6 +340,16 @@ public sealed class StemStudioDbContextTests
         var mix = Mix.Create(Guid.NewGuid(), target, settings ?? TestData.Settings(), now ?? TestData.T0.AddHours(1));
         await new MixRepository(context).AddAsync(mix, Ct);
         return (target, mix);
+    }
+
+    private static async Task SeedTracksAsync(SqliteTestDatabase db, params Track[] tracks)
+    {
+        await using var context = db.NewContext();
+        var repository = new TrackRepository(context);
+        foreach (var track in tracks)
+        {
+            await repository.AddAsync(track, Ct);
+        }
     }
 
     private static void AssertSameTrack(Track loaded, Track expected)

@@ -2,11 +2,16 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
+using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Tests.Mixes;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Domain.Mixes;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Tests.Contract;
 
@@ -83,6 +88,24 @@ public sealed partial class BackendContractTests
         await ContractAssert.MatchesAsync(await PostAsync(ApiRoutes.DuplicateMix(Guid.NewGuid())), "duplicateMix");
         await ContractAssert.MatchesAsync(await _client.DeleteAsync(new Uri(ApiRoutes.Mix(mix.Id), UriKind.Relative), Ct), "deleteMix");
         await ContractAssert.MatchesAsync(await _client.DeleteAsync(new Uri(unknown, UriKind.Relative), Ct), "deleteMix");
+    }
+
+    [Fact]
+    public async Task DuplicateMix_ConcurrentNameClash409MatchesContract()
+    {
+        var track = SyncTestData.CompletedTrack();
+        var mix = Mix.Create(Guid.NewGuid(), track, MixMapper.ToDomain(MixEndpointsTests.Settings()), SyncTestData.T0);
+        var mixes = Substitute.For<IMixRepository>();
+        mixes.FindAsync(mix.Id, Arg.Any<CancellationToken>()).Returns(mix);
+        mixes.NamesForTrackAsync(track.Id, Arg.Any<CancellationToken>()).Returns([]);
+        mixes.AddAsync(Arg.Any<Mix>(), Arg.Any<CancellationToken>()).ThrowsAsync(new DuplicateKeyException());
+        using var factory = new ApiFactory { ConfigureServices = services => services.AddScoped(_ => mixes) };
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(new Uri(ApiRoutes.DuplicateMix(mix.Id), UriKind.Relative), null, Ct);
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.Conflict);
+        await ContractAssert.MatchesAsync(response, "duplicateMix");
     }
 
     [Fact]

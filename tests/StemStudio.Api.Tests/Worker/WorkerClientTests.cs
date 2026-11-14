@@ -345,6 +345,45 @@ public sealed class WorkerClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Registration_CreateJobWaitsLongerThanThePollTimeout()
+    {
+        using var stub = new SlowHandler(TimeSpan.FromMilliseconds(400), HttpStatusCode.Accepted, "queued-job");
+        using var provider = RegisteredProvider(stub, new() { ["StemStudio:WorkerPollTimeout"] = "00:00:00.05", ["StemStudio:WorkerCreateJobTimeout"] = "00:00:30" });
+
+        var job = await provider.GetRequiredService<IWorkerClient>()
+            .CreateUrlJobAsync(new WorkerUrlJobRequest(SourceType.Spotify, "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"), Ct);
+
+        job.Status.ShouldBe(WorkerJobState.Queued);
+    }
+
+    [Fact]
+    public async Task Registration_StatusPollGivesUpAfterThePollTimeout()
+    {
+        using var stub = new SlowHandler(TimeSpan.FromSeconds(30), HttpStatusCode.OK, "separating-job");
+        using var provider = RegisteredProvider(stub, new() { ["StemStudio:WorkerPollTimeout"] = "00:00:00.05", ["StemStudio:WorkerCreateJobTimeout"] = "00:00:30" });
+        var started = System.Diagnostics.Stopwatch.StartNew();
+
+        await Should.ThrowAsync<WorkerUnavailableException>(() => provider.GetRequiredService<IWorkerClient>().GetJobAsync(JobId, Ct));
+
+        started.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(20));
+    }
+
+    [Fact]
+    public void Timeouts_PostGetsTheCreateJobTimeoutEverythingElseThePollTimeout()
+    {
+        var options = new StemStudioApiOptions();
+        using var post = new HttpRequestMessage(HttpMethod.Post, "v1/jobs");
+        using var get = new HttpRequestMessage(HttpMethod.Get, "v1/jobs");
+
+        options.WorkerCreateJobTimeout.ShouldBeGreaterThanOrEqualTo(TimeSpan.FromSeconds(60));
+        options.WorkerPollTimeout.ShouldBeLessThan(options.WorkerCreateJobTimeout);
+        options.OrphanedImportTimeout.ShouldBeGreaterThan(options.WorkerCreateJobTimeout);
+        WorkerTimeouts.For(post, options).ShouldBe(options.WorkerCreateJobTimeout);
+        WorkerTimeouts.For(get, options).ShouldBe(options.WorkerPollTimeout);
+        WorkerTimeouts.For(null, options).ShouldBe(options.WorkerPollTimeout);
+    }
+
+    [Fact]
     public void Registration_UsesConfiguredBaseAddress()
     {
         var stub = new StubHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
@@ -377,13 +416,22 @@ public sealed class WorkerClientTests : IDisposable
         return (new WorkerClient(http, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkerClient>.Instance), handler);
     }
 
-    private static ServiceProvider RegisteredProvider(StubHttpMessageHandler stub)
+    private static ServiceProvider RegisteredProvider(HttpMessageHandler stub, Dictionary<string, string?>? settings = null)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["StemStudio:WorkerBaseUrl"] = "http://worker:8000" })
-            .Build();
+        var values = new Dictionary<string, string?>(settings ?? []) { ["StemStudio:WorkerBaseUrl"] = "http://worker:8000" };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
         var services = new ServiceCollection();
         services.AddWorkerClient(configuration).ConfigurePrimaryHttpMessageHandler(() => stub);
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>Answers after a delay, honouring the cancellation of the resilience timeout.</summary>
+    private sealed class SlowHandler(TimeSpan delay, HttpStatusCode status, string example) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(delay, cancellationToken);
+            return StubHttpMessageHandler.Example(status, example);
+        }
     }
 }

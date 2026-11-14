@@ -132,19 +132,27 @@ public sealed class MixTests
         Settings().Validate(queued).Select(e => e.Field).ShouldContain("trackId");
     }
 
-    [Theory]
-    [InlineData(29.9, 0, 4, -0.1, "metronome.bpmOverride")]
-    [InlineData(300.1, 0, 4, 0.5, "metronome.bpmOverride")]
-    [InlineData(null, -2001, 4, 0.5, "metronome.offsetMs")]
-    [InlineData(null, 2001, 4, 0.5, "metronome.offsetMs")]
-    [InlineData(null, 0, 0, 0.5, "metronome.beatsPerBar")]
-    [InlineData(null, 0, 13, 0.5, "metronome.beatsPerBar")]
-    [InlineData(null, 0, 4, 1.5, "metronome.volume")]
-    public void Validate_RejectsMetronomeOutOfRange(double? bpm, int offset, int beatsPerBar, double volume, string field)
-    {
-        var metronome = new MetronomeSettings { Enabled = true, BpmOverride = bpm, OffsetMs = offset, BeatsPerBar = beatsPerBar, Volume = volume };
+    public static TheoryData<MetronomeCase> OutOfRangeMetronomes =>
+    [
+        new(29.9, 0, 4, -0.1, "metronome.bpmOverride"),
+        new(300.1, 0, 4, 0.5, "metronome.bpmOverride"),
+        new(null, -2001, 4, 0.5, "metronome.offsetMs"),
+        new(null, 2001, 4, 0.5, "metronome.offsetMs"),
+        new(null, 0, 0, 0.5, "metronome.beatsPerBar"),
+        new(null, 0, 13, 0.5, "metronome.beatsPerBar"),
+        new(null, 0, 4, 1.5, "metronome.volume"),
+    ];
 
-        FieldsOf(Settings() with { Metronome = metronome }).ShouldContain(field);
+    [Theory]
+    [MemberData(nameof(OutOfRangeMetronomes))]
+    public void Validate_RejectsMetronomeOutOfRange(MetronomeCase testCase)
+    {
+        var metronome = new MetronomeSettings
+        {
+            Enabled = true, BpmOverride = testCase.Bpm, OffsetMs = testCase.Offset, BeatsPerBar = testCase.BeatsPerBar, Volume = testCase.Volume,
+        };
+
+        FieldsOf(Settings() with { Metronome = metronome }).ShouldContain(testCase.Field);
     }
 
     [Theory]
@@ -286,3 +294,6 @@ public sealed class MixTests
         public int GetHashCode(MixSettings obj) => obj.Name.GetHashCode(StringComparison.Ordinal);
     }
 }
+
+/// <summary>One out-of-range metronome setting and the field that must be reported.</summary>
+public sealed record MetronomeCase(double? Bpm, int Offset, int BeatsPerBar, double Volume, string Field);
