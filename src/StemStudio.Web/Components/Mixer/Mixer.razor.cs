@@ -17,6 +17,7 @@ public sealed partial class Mixer : IAsyncDisposable
     private const string NotReadyMessage = "This track is not ready yet. Open the mixer once processing has completed.";
     private TrackDto? _track;
     private bool _engineStarted;
+    private IAsyncDisposable? _spaceKey;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -26,6 +27,9 @@ public sealed partial class Mixer : IAsyncDisposable
 
     [Inject]
     private IConfirmService Confirm { get; set; } = default!;
+
+    [Inject]
+    private IKeyboardShortcuts Shortcuts { get; set; } = default!;
 
     /// <summary>The track id from the route.</summary>
     [Parameter]
@@ -54,6 +58,7 @@ public sealed partial class Mixer : IAsyncDisposable
     {
         Engine.PositionChanged -= OnPositionChanged;
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
+        await (_spaceKey?.DisposeAsync() ?? ValueTask.CompletedTask);
         await Engine.DisposeAsync();
     }
 
@@ -81,6 +86,7 @@ public sealed partial class Mixer : IAsyncDisposable
         }
 
         _engineStarted = true;
+        _spaceKey = await Shortcuts.RegisterSpaceAsync(() => InvokeAsync(TogglePlaybackAsync));
         await StartEngineAsync(State);
         StateHasChanged();
     }

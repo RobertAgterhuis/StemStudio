@@ -26,6 +26,8 @@ public sealed partial class Mixer
 
     private Task SendMetronomeAsync(MetronomeSettingsDto settings) => EngineAsync(e => e.SetMetronomeAsync(settings));
 
+    private Task TogglePlaybackAsync() => Playback == PlaybackState.Playing ? PauseAsync() : PlayAsync();
+
     private Task PlayAsync() => EngineAsync(e => e.PlayAsync());
 
     private Task PauseAsync() => EngineAsync(e => e.PauseAsync());

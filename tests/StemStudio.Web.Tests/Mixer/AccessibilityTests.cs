@@ -68,7 +68,7 @@ public sealed class AccessibilityTests : MixerTestContext
     {
         var module = JSInterop.SetupModule("./js/mixer-keys.js");
         var listener = module.SetupModule("registerSpace", _ => true);
-        listener.SetupVoid("dispose", _ => true);
+        listener.SetupVoid("dispose", _ => true).SetVoidResult();
         var shortcuts = new KeyboardShortcuts(JSInterop.JSRuntime);
         var calls = 0;
 
