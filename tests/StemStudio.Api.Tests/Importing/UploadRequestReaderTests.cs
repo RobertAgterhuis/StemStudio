@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using StemStudio.Api.Imports;
+using StemStudio.Api.Importing;
 
-namespace StemStudio.Api.Tests.Imports;
+namespace StemStudio.Api.Tests.Importing;
 
 public sealed class UploadRequestReaderTests
 {

@@ -2,14 +2,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using StemStudio.Api.Imports;
+using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 
-namespace StemStudio.Api.Tests.Imports;
+namespace StemStudio.Api.Tests.Importing;
 
 /// <summary>Race paths that cannot be timed reliably over HTTP: the unique index catches a concurrent insert.</summary>
 public sealed class ImportServiceTests

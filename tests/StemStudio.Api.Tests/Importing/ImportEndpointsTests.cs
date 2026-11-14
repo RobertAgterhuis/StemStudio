@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Worker;
@@ -15,7 +16,7 @@ using StemStudio.Contracts.Importing;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
 
-namespace StemStudio.Api.Tests.Imports;
+namespace StemStudio.Api.Tests.Importing;
 
 public sealed class ImportEndpointsTests : IDisposable
 {
