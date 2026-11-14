@@ -1,5 +1,7 @@
 """Routes of the worker HTTP API v1 (``contracts/worker-api.openapi.yaml``)."""
 
+from typing import get_args
+
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ValidationError
@@ -18,10 +20,11 @@ from stemstudio_worker.schemas import (
     Job,
     JobResult,
     JobState,
+    StemName,
 )
-from stemstudio_worker.separation.flac_writer import SIX_STEMS
 
 router = APIRouter()
+_STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 
 @router.get("/health")
@@ -64,7 +67,7 @@ def get_job_result(job_id: str, runtime: Runtime) -> JSONResponse:
 def get_job_stem(job_id: str, stem: str, runtime: Runtime) -> FileResponse:
     """One stem of a completed job as FLAC."""
     record = _record(runtime, job_id)
-    if stem not in SIX_STEMS:
+    if stem not in _STEM_NAMES:
         raise _missing_stem(stem)
     result = _completed(record)
     path = runtime.paths.stem_file(result.audio_sha256, stem)

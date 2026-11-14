@@ -49,19 +49,23 @@ class FakeRuntime:
             raise RuntimeError(f"cannot download {name}")
         return FakeModel(SOURCES_6S if name == "htdemucs_6s" else SOURCES_4)
 
-    def apply(
-        self, model: DemucsModel, mix: Audio, device: str, on_fraction: Callable[[float], None]
-    ) -> Audio:
-        self.devices.append(device)
+    def separated(self, model: DemucsModel, mix: Audio) -> Audio:
+        """Source ``i`` is the mix scaled by ``(i + 1) / 10``."""
         if self.apply_error:
             raise self.apply_error
-        for fraction in self.fractions:
-            on_fraction(fraction)
         scale = np.arange(1, len(model.sources) + 1, dtype=np.float32)[:, None, None] / 10
         return (mix[None] * scale).astype(np.float32)
 
     def as_runtime(self) -> DemucsRuntime:
-        return DemucsRuntime(load=self.load, apply=self.apply, cuda_available=lambda: self.cuda)
+        def apply(
+            model: DemucsModel, mix: Audio, device: str, on_fraction: Callable[[float], None]
+        ) -> Audio:
+            self.devices.append(device)
+            for fraction in self.fractions:
+                on_fraction(fraction)
+            return self.separated(model, mix)
+
+        return DemucsRuntime(load=self.load, apply=apply, cuda_available=lambda: self.cuda)
 
 
 def _separator(fake: FakeRuntime, device: str = "cpu") -> DemucsSeparator:

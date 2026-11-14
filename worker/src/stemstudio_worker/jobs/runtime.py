@@ -8,7 +8,7 @@ from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.queue import JobQueue
 from stemstudio_worker.jobs.reconcile import reconcile
-from stemstudio_worker.jobs.runner import JobRunner
+from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import PipelineAdapters
@@ -50,7 +50,7 @@ class WorkerRuntime:
         store = JobStore(paths.jobs)
         store.load_all()
         reconcile(store, paths, clock)
-        queue = JobQueue(JobRunner(store, adapters, paths, clock).process)
+        queue = JobQueue(JobRunner(JobContext(store, paths, clock), adapters).process)
         service = JobService(store, queue.submit, clock)
         queue.start()
         return cls(settings, adapters, paths, store, queue, service)
