@@ -1,0 +1,20 @@
+@* Content of the Radzen confirmation dialog opened by DialogConfirmService. *@
+@inject DialogService Dialogs
+
+<p class="ss-dialog-message" data-testid="confirm-dialog-message">@Message</p>
+<div class="ss-dialog-actions">
+    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialogs.Close(false))"
+                  data-testid="confirm-dialog-cancel" />
+    <RadzenButton Text="@OkText" ButtonStyle="ButtonStyle.Danger" Click="@(() => Dialogs.Close(true))"
+                  data-testid="confirm-dialog-ok" />
+</div>
+
+@code {
+    /// <summary>The question shown to the user.</summary>
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>Text of the confirming button.</summary>
+    [Parameter]
+    public string OkText { get; set; } = "OK";
+}

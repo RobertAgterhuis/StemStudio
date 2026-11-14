@@ -29,6 +29,6 @@ public sealed class DialogConfirmServiceTests : BunitContext
         host.Find("[data-testid=confirm-dialog-ok]").TextContent.Trim().ShouldBe("Delete");
         await host.Find($"[data-testid={button}]").ClickAsync(new());
 
-        (await await answer).ShouldBe(expected);
+        (await answer).ShouldBe(expected);
     }
 }

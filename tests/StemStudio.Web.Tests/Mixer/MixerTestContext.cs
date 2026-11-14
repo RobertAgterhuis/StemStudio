@@ -24,7 +24,7 @@ public abstract class MixerTestContext : PageTestContext
                 .NavigateTo($"tracks/{TestData.TrackId}/mixer?mixId={id}");
         }
 
-        return Render<MixerPage>(p => p.Add(c => c.Id, TestData.TrackId).Add(c => c.MixId, mixId));
+        return Render<MixerPage>(p => p.Add(c => c.Id, TestData.TrackId));
     }
 
     protected static void SetValue(AngleSharp.Dom.IElement input, double value) =>

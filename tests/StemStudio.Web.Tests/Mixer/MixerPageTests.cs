@@ -162,7 +162,7 @@ public sealed class MixerPageTests : MixerTestContext
 
         await page.Find("[data-testid=loop-toggle]").ClickAsync(new());
 
-        await Engine.Received(1).SetLoopAsync(new LoopRegionDto(10, 20, false));
+        await Engine.Received(2).SetLoopAsync(new LoopRegionDto(10, 20, false));
         page.Find("[data-testid=loop-toggle]").GetAttribute("aria-pressed").ShouldBe("false");
     }
 

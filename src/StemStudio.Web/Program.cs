@@ -12,6 +12,7 @@ builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddTransient<IPollingTimer, PollingTimer>();
+builder.Services.AddScoped<IConfirmService, DialogConfirmService>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
 builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,

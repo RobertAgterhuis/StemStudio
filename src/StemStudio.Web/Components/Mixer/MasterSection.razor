@@ -1,0 +1,24 @@
+@* Master bus: meter and fader 0-100 %. *@
+
+<div class="ss-strip ss-strip-master" role="group" aria-label="Master">
+    <span class="ss-strip-name">master</span>
+    <Meter Target="master" />
+    <input type="range" class="ss-fader" min="0" max="100" step="1" value="@Percent" aria-valuenow="@Percent"
+           aria-valuemin="0" aria-valuemax="100" aria-label="Master volume" aria-orientation="vertical"
+           @oninput="Input" data-testid="master-fader" />
+</div>
+
+@code {
+    /// <summary>Master gain 0..1.</summary>
+    [Parameter]
+    public double Volume { get; set; }
+
+    /// <summary>Raised with the new gain 0..1.</summary>
+    [Parameter]
+    public EventCallback<double> OnVolume { get; set; }
+
+    private string Percent => InputValue.Percent(Volume);
+
+    private Task Input(ChangeEventArgs args) =>
+        InputValue.Parse(args) is { } percent ? OnVolume.InvokeAsync(percent / 100) : Task.CompletedTask;
+}
