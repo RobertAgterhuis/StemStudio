@@ -6,12 +6,14 @@ using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Api;
 
-public sealed class StemStudioApiClientTests
+public sealed class StemStudioApiClientTests : IDisposable
 {
     private readonly StubHttpMessageHandler _handler = new();
     private readonly StemStudioApiClient _client;
 
     public StemStudioApiClientTests() => _client = new StemStudioApiClient(StubHttpMessageHandler.CreateClient(_handler));
+
+    public void Dispose() => _handler.Dispose();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
