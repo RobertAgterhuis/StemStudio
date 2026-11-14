@@ -304,7 +304,8 @@ def generate(out_dir: Path, manifest_path: Path) -> dict[str, Any]:
         write_fixture(fixture, out_dir)
     manifest = build_manifest()
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    text = json.dumps(manifest, indent=2) + "\n"
+    manifest_path.write_text(text, encoding="utf-8", newline="\n")
     return manifest
 
 
