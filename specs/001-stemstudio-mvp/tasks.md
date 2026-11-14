@@ -238,7 +238,7 @@ A-B loop. **Independent test**: quickstart V7-V8.
 
 ### qa
 
-- [ ] T097 [P] [US2] [qa] Write `e2e/tests/mixer.spec.ts`: open the completed fixture track, strips for every stem with default 80 % / pan 0, play after a user gesture, `data-peak-db` on master meter rises above -60 while playing, mute/solo change meters, loop 10 s -> 20 s accepted, B <= A refused with a message; SC-004 timing: `page.evaluate` wraps the engine's `setChannel` to record `performance.now()`, the test asserts click -> engine call < 50 ms for fader, mute and solo (G3)
+- [X] T097 [P] [US2] [qa] Write `e2e/tests/mixer.spec.ts`: open the completed fixture track, strips for every stem with default 80 % / pan 0, play after a user gesture, `data-peak-db` on master meter rises above -60 while playing, mute/solo change meters, loop 10 s -> 20 s accepted, B <= A refused with a message; SC-004 timing: `page.evaluate` wraps the engine's `setChannel` to record `performance.now()`, the test asserts click -> engine call < 50 ms for fader, mute and solo (G3)
 
 **Checkpoint**: US1 + US2 = the smallest viable product (unit level).
 
