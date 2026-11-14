@@ -68,6 +68,9 @@ def to_report(result: GateResult) -> str:
         duplicated_percentage=None if result.dup.tool_error else result.dup.duplicated_percentage,
         findings=result.findings,
         tool_errors=result.tool_errors,
+        units=result.sig.units,
+        clones=result.dup.clones,
+        exemptions=result.sig.exemptions,
     )
     return render(data)
 
@@ -76,10 +79,12 @@ def summary(result: GateResult) -> str:
     """Return the console summary."""
     errors = count_errors(result.findings)
     lines = [format_findings(result.findings)] if result.findings else []
+    lines.extend(f"exemption: {exemption}" for exemption in result.sig.exemptions)
     lines.extend(f"tool error: {error}" for error in result.tool_errors)
     lines.append(
         f"quality gate: {result.sig.files} files, {len(result.sig.units)} units, "
-        f"{len(result.dup.clones)} clones, {errors} errors, "
+        f"{len(result.dup.clones)} clones, {len(result.sig.exemptions)} exemptions, "
+        f"{errors} errors, "
         f"{len(result.findings) - errors} warnings -> exit {result.exit_code}"
     )
     return "\n".join(lines) + "\n"

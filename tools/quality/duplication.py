@@ -120,6 +120,7 @@ def evaluate(clones: Sequence[Clone]) -> list[Finding]:
             clone.first,
             clone.first_line,
             f"{clone.lines} duplicated lines, also in {clone.second}:{clone.second_line}",
+            clone.lines,
         )
         for clone in clones
     ]

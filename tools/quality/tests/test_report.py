@@ -1,16 +1,16 @@
 import pytest
 
 from common import Finding, Severity
-from report import (
+from duplication import Clone
+from report import ReportInput, render
+from risk import (
     COMPLEXITY_BINS,
     UNIT_SIZE_BINS,
-    ReportInput,
     RiskProfile,
     duplication_stars,
-    render,
     risk_profile,
 )
-from sig_check import UnitMetrics
+from sig_check import Exemption, UnitMetrics
 
 
 def _unit(nloc: int, ccn: int = 1, params: int = 0) -> UnitMetrics:
@@ -60,7 +60,7 @@ def test_render_clean_report() -> None:
     assert "**Verdict: PASS** - 0 errors" in text
     assert "| Unit size (LOC) | 100.0 | 0.0 | 0.0 | 0.0 | 5 |" in text
     assert "| Duplication (% lines, all scanned code) | 1.00 | | | | 5 |" in text
-    assert text.count("None.") == 2
+    assert text.count("None.") == 5
 
 
 def test_render_groups_requests_per_owner() -> None:
@@ -84,3 +84,41 @@ def test_render_tool_error() -> None:
     assert "**Verdict: FAIL**" in text
     assert "**Tool error:** npx not found" in text
     assert "| Duplication | n/a | | | | n/a |" in text
+
+
+def _full(findings: list[Finding]) -> ReportInput:
+    units = [_unit(10)]
+    clones = [
+        Clone("src/StemStudio.Api/A.cs", 3, "src/StemStudio.Api/B.cs", 9, 7),
+        Clone("tests/X.Tests/A.cs", 1, "tests/X.Tests/B.cs", 2, 6),
+    ]
+    exemptions = [Exemption("tests/X.Tests/L.cs", 29, "L::Log", "interface-mandated")]
+    return ReportInput(units, 3, 4, 1.0, findings, [], units, clones, exemptions)
+
+
+def test_render_lists_exemptions_clones_and_dependencies() -> None:
+    dependency = Finding("dependency", Severity.ERROR, "StemStudio.Web", 0, "Web -> Persistence")
+    text = render(_full([dependency]))
+    assert "## Exemptions (1)" in text
+    assert "| `tests/X.Tests/L.cs:29` | L::Log | interface-mandated |" in text
+    assert "## Clones (2, 1 in production code)" in text
+    assert (
+        "| 1 | `src/StemStudio.Api/A.cs:3` | `src/StemStudio.Api/B.cs:9` | 7 | backend | yes |"
+        in text
+    )
+    assert "| 2 | `tests/X.Tests/A.cs:1` | `tests/X.Tests/B.cs:2` | 6 | architect | no |" in text
+    assert "## Dependency direction\n\n**FAIL** - 1 errors, 0 warnings" in text
+    assert "## Components" in text
+    assert "## Top 10 refactor requests" in text
+
+
+def test_render_estimated_rating_and_clean_sections() -> None:
+    text = render(_full([]))
+    assert "Estimated maintainability: **5.0 stars**" in text
+    assert "not a Sigrid rating" in text
+    assert "## Dependency direction\n\n**PASS** - no forbidden edges or cycles." in text
+    empty = render(_input([]))
+    assert "## Exemptions (0)" in empty
+    assert "check of that unit.\n\nNone.\n\n## Clones" in empty
+    assert "## Clones (0, 0 in production code)\n\nNone." in empty
+    assert "Estimated maintainability: **n/a**" in render(_input([], dup=None))
