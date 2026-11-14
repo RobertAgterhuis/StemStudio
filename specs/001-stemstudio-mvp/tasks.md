@@ -200,7 +200,7 @@ with progress, cache reuse, rejects, failure + retry, restart handling.
 
 ### qa (authored in the wave, executed in the integration wave)
 
-- [ ] T081 [P] [US1] [qa] Write `e2e/tests/import.spec.ts`: notice visible; upload `music_100bpm_20s.mp3` -> progress reaches completed with 6 stems (model `fake`) and BPM ~100; re-upload returns the same track within 2 s (SC-006); rejects for `unsupported.ogg`, a `vimeo.com` URL and a playlist URL show a reason and create no track (SC-007); `corrupt.mp3` upload ends `failed` with a readable reason and a visible `track-retry`; navigation `/tracks` -> track -> `open-mixer` works (G6)
+- [X] T081 [P] [US1] [qa] Write `e2e/tests/import.spec.ts`: notice visible; upload `music_100bpm_20s.mp3` -> progress reaches completed with 6 stems (model `fake`) and BPM ~100; re-upload returns the same track within 2 s (SC-006); rejects for `unsupported.ogg`, a `vimeo.com` URL and a playlist URL show a reason and create no track (SC-007); `corrupt.mp3` upload ends `failed` with a readable reason and a visible `track-retry`; navigation `/tracks` -> track -> `open-mixer` works (G6)
 
 **Checkpoint**: US1 is green in every owner's unit/contract tests; end-to-end proof follows in I-wave.
 
