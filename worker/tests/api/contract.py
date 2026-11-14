@@ -1,10 +1,10 @@
 """Validates HTTP responses against ``contracts/worker-api.openapi.yaml`` (OpenAPI 3.1)."""
 
+from collections.abc import Mapping
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-import httpx
 import yaml
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
@@ -20,6 +20,18 @@ SPEC_PATH = (
 _URI = "urn:stemstudio:worker-api"
 
 
+class Response(Protocol):
+    """The parts of a test-client response the checks need (any httpx flavour)."""
+
+    @property
+    def status_code(self) -> int: ...
+
+    @property
+    def headers(self) -> Mapping[str, str]: ...
+
+    def json(self) -> Any: ...
+
+
 @cache
 def spec() -> dict[str, Any]:
     """The parsed OpenAPI document."""
@@ -29,8 +41,9 @@ def spec() -> dict[str, Any]:
 
 @cache
 def _registry() -> Registry[Any]:
-    resource = Resource.from_contents(spec(), default_specification=DRAFT202012)
-    return Registry().with_resource(_URI, resource)
+    resource: Resource[Any] = Resource.from_contents(spec(), default_specification=DRAFT202012)
+    registry: Registry[Any] = Registry().with_resource(_URI, resource)
+    return registry
 
 
 def _resolve(node: dict[str, Any]) -> dict[str, Any]:
@@ -63,7 +76,7 @@ def validate_schema(schema: dict[str, Any], instance: Any) -> None:
     validator.validate(instance)
 
 
-def assert_conforms(response: httpx.Response, path: str, method: str = "get") -> None:
+def assert_conforms(response: Response, path: str, method: str = "get") -> None:
     """Assert the status, media type, required headers and JSON body are declared for ``path``.
 
     Args:

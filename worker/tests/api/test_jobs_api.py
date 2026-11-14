@@ -183,13 +183,17 @@ def test_upload_with_huge_content_length_is_rejected_before_reading(api: Api) ->
     assert response.status_code == 413
 
 
-@pytest.mark.parametrize("files", [{"other": ("a.mp3", b"x")}, {}])
-def test_upload_without_file_part_returns_400(
-    api: Api, files: dict[str, tuple[str, bytes]]
-) -> None:
-    response = api.client.post(JOBS, files=files or None, data={"x": "1"})
+def test_upload_without_file_part_returns_400(api: Api) -> None:
+    response = api.client.post(JOBS, files={"other": ("a.mp3", b"x")})
 
     assert response.status_code == 400
+    assert_conforms(response, JOBS, "post")
+
+
+def test_form_urlencoded_body_returns_415(api: Api) -> None:
+    response = api.client.post(JOBS, data={"url": YOUTUBE})
+
+    assert response.status_code == 415
     assert_conforms(response, JOBS, "post")
 
 
@@ -293,7 +297,7 @@ def test_stem_download_is_flac(api: Api) -> None:
     assert response.content[:4] == b"fLaC"
 
 
-@pytest.mark.parametrize("stem", ["kazoo", "..", "VOCALS"])
+@pytest.mark.parametrize("stem", ["kazoo", "vocals.flac", "VOCALS"])
 def test_unknown_stem_name_returns_404(api: Api, stem: str) -> None:
     job_id = api.completed_job()
 
@@ -309,6 +313,17 @@ def test_stem_not_produced_by_the_model_returns_404(make_api: ApiFactory) -> Non
 
     assert api.client.get(f"/v1/jobs/{job_id}/stems/bass").status_code == 200
     response = api.client.get(f"/v1/jobs/{job_id}/stems/guitar")
+
+    assert response.status_code == 404
+    assert_conforms(response, STEM)
+
+
+def test_stem_file_missing_on_disk_returns_404(api: Api) -> None:
+    job_id = api.completed_job()
+    sha = api.client.get(f"/v1/jobs/{job_id}/result").json()["audioSha256"]
+    (api.settings.data_dir / "cache" / "by-audio" / sha / "stems" / "drums.flac").unlink()
+
+    response = api.client.get(f"/v1/jobs/{job_id}/stems/drums")
 
     assert response.status_code == 404
     assert_conforms(response, STEM)
