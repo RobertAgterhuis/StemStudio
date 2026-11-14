@@ -1,0 +1,12 @@
+# Override: back the model-cache volume with a host directory (used by .github/workflows/e2e-real.yml
+# so the Demucs weights can be cached between runs with actions/cache).
+#   STEMSTUDIO_MODEL_CACHE_DIR=/abs/path docker compose -f docker-compose.yml -f docker/compose.model-cache-bind.yml up
+# The directory must exist and be writable by the worker user (uid 10001).
+
+volumes:
+  model-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${STEMSTUDIO_MODEL_CACHE_DIR:?set STEMSTUDIO_MODEL_CACHE_DIR to an absolute host directory}

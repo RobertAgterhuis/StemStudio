@@ -1,0 +1,20 @@
+# Optional NVIDIA GPU override for the worker (needs the NVIDIA Container Toolkit on the host).
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+# Rebuilds the worker with the CUDA wheel of the locked torch version (TORCH_VARIANT) and asks
+# the worker to use CUDA. CPU stays the supported default; this path is best effort.
+
+services:
+  worker:
+    build:
+      args:
+        TORCH_VARIANT: ${STEMSTUDIO_TORCH_VARIANT:-cu128}
+    image: stemstudio/worker:local-gpu
+    environment:
+      STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-cuda}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

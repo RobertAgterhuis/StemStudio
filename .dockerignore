@@ -1,0 +1,49 @@
+# Build context = repository root (see docker-compose.yml). Keep the context small and free of
+# local state: the images need only sources, lock files and the shared build props.
+.git
+.github
+.claude
+.specify
+.remember
+.vs
+.vscode
+.idea
+**/.env
+**/.env.*
+docs
+specs
+e2e
+tools
+scripts
+docker-compose*.yml
+
+# .NET outputs and test projects (tests run in CI, not in images)
+**/bin
+**/obj
+**/TestResults
+**/coverage
+tests
+
+# Python
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/htmlcov
+worker/tests
+
+# Node
+**/node_modules
+**/dist
+# Built inside the web image; never copy a stale local bundle
+src/StemStudio.Web/wwwroot/js/audio-engine.js
+src/StemStudio.Web/wwwroot/js/audio-engine.js.map
+
+# Runtime data
+data
+**/*.db
+**/*.db-shm
+**/*.db-wal
