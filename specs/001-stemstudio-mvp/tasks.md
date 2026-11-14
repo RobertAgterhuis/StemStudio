@@ -222,7 +222,7 @@ A-B loop. **Independent test**: quickstart V7-V8.
 - [X] T088 [P] [US2] [audio-engine] Write failing tests `src/audio-engine/tests/meters.test.ts` (fake `requestAnimationFrame`, jsdom elements): peak -> dB clamp -60..0, `--meter-level` = (dB + 60) / 60 with ~20 dB/s decay, `data-peak-db` rounded, `data-clip="true"` for 1.5 s after `|x| >= 1.0`, frame loop stops when no meter is attached and on `dispose` (FR-011, ADR-001 #4)
 - [X] T089 [US2] [audio-engine] Implement `src/audio-engine/src/meters.ts` to pass T088
 - [X] T090 [US2] [audio-engine] Write failing tests `src/audio-engine/tests/engine.test.ts`: `createEngine` composes transport, mixer, loop and meters; `ENGINE_CONTRACT_VERSION = "1.0.0"`; every method throws after `dispose()`; `setMetronome` accepted and stored (scheduling arrives in T099) (I5)
-- [ ] T137 [US2] [audio-engine] Implement `src/audio-engine/src/{engine.ts,index.ts}` to pass T090 and verify `npm run build` emits `src/StemStudio.Web/wwwroot/js/audio-engine.js` (O3)
+- [X] T137 [US2] [audio-engine] Implement `src/audio-engine/src/{engine.ts,index.ts}` to pass T090 and verify `npm run build` emits `src/StemStudio.Web/wwwroot/js/audio-engine.js` (O3)
 
 ### backend (tests first)
 

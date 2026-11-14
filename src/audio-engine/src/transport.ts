@@ -158,6 +158,12 @@ export class Transport implements TransportClock {
     this.reposition(position);
   }
 
+  /** Stops all sources without notifying anyone (engine disposal). */
+  public dispose(): void {
+    this.listeners.length = 0;
+    this.halt();
+  }
+
   private moveTo(offset: number): void {
     if (this.playState === 'playing') {
       this.halt();

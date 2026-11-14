@@ -1,10 +1,9 @@
 /**
  * StemStudio audio engine entry point (ES module loaded by Blazor via JS interop).
  *
- * Placeholder: the audio-engine agent implements {@link createEngine} against `types.ts`.
- *
  * @packageDocumentation
  */
+import { Engine } from './engine';
 import type { AudioEngine, DotNetObjectReference, EngineContractVersion, EngineOptions } from './types';
 
 export type * from './types';
@@ -20,5 +19,5 @@ export const ENGINE_CONTRACT_VERSION: EngineContractVersion = '1.0.0';
  * @returns The engine instance.
  */
 export function createEngine(dotnetRef: DotNetObjectReference, options?: EngineOptions): AudioEngine {
-  throw new Error('audio engine not implemented yet', { cause: { dotnetRef, options } });
+  return new Engine(dotnetRef, options);
 }
