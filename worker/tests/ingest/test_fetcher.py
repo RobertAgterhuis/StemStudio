@@ -215,7 +215,12 @@ def test_fetch_ignores_partial_files(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "url", [None, "https://evil.example/watch?v=dQw4w9WgXcQ", "https://open.spotify.com/track/x"]
+    "url",
+    [
+        None,
+        "https://evil.example/watch?v=dQw4w9WgXcQ",
+        "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+    ],
 )
 def test_fetch_refuses_sources_without_an_allow_listed_youtube_url(
     tmp_path: Path, url: str | None
