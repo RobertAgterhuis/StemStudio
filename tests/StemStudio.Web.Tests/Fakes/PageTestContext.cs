@@ -18,6 +18,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddRadzenComponents();
         Services.AddSingleton(Api);
         Services.AddSingleton(Engine);
+        Services.AddSingleton(Confirm);
         Services.AddSingleton<IPollingTimer>(Timer);
         Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
     }
@@ -25,6 +26,8 @@ public abstract class PageTestContext : BunitContext
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();
 
     protected IAudioEngine Engine { get; } = Substitute.For<IAudioEngine>();
+
+    protected IConfirmService Confirm { get; } = Substitute.For<IConfirmService>();
 
     protected ManualPollingTimer Timer { get; } = new();
 
