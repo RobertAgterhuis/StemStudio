@@ -119,6 +119,30 @@ def test_parse_rejects_additional_unsafe_or_malformed_forms(url: str) -> None:
         parse_source_url(url)
 
 
+CONTROL_CHAR_URLS = [
+    "https://youtu.be/dQw4w9WgXcQ\n",
+    "https://youtu.be/dQw4w9WgXcQ\r\n",
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ\n",
+    "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\n",
+    "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\r\n",
+    "\nhttps://youtu.be/dQw4w9WgXcQ",
+    "https://youtu.be/dQw4w\nWgXcQ",
+    "https://you\ttu.be/dQw4w9WgXcQ",
+    "https://www.youtube.com/watch?v=dQw4w9\rWgXcQ",
+    "https://open.spotify.com/track/4cOdK2wGLETKB\x00W3PvgPWqT",
+    "https://youtu.be/dQw4w9WgXcQ\x7f",
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ%0A",
+    "https://www.youtube.com/watch?v=dQw4w9WgXc%0A",
+    "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT%0A",
+]
+
+
+@pytest.mark.parametrize("url", CONTROL_CHAR_URLS, ids=[repr(u) for u in CONTROL_CHAR_URLS])
+def test_parse_rejects_trailing_newlines_and_control_characters(url: str) -> None:
+    with pytest.raises(InvalidSourceError):
+        parse_source_url(url)
+
+
 @pytest.mark.parametrize(
     ("url", "fragment"),
     [

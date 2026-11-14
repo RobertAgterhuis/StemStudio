@@ -27,6 +27,7 @@ YOUTU_BE_HOST: Final = "youtu.be"
 SPOTIFY_HOST: Final = "open.spotify.com"
 """Host serving ``/track/<id>`` and ``/intl-<xx>/track/<id>``."""
 
+_CONTROL_CHARS: Final = re.compile(r"[\x00-\x1f\x7f]")
 _YOUTUBE_ID: Final = re.compile(r"[A-Za-z0-9_-]{11}")
 _SPOTIFY_ID: Final = re.compile(r"[A-Za-z0-9]{22}")
 _SPOTIFY_LOCALE: Final = re.compile(r"intl-[A-Za-z]{2}(?:[-_][A-Za-z]{2})?")
@@ -93,7 +94,7 @@ def parse_source_url(url: str) -> ParsedSourceUrl:
         InvalidSourceError: Empty, malformed, non-http(s), host not allow-listed, playlist,
             album/artist/episode/show, unsupported path or missing/invalid id.
     """
-    parts = _split(url.strip())
+    parts = _split(url.strip(" "))
     host = parts.hostname or ""
     if host in YOUTUBE_HOSTS:
         return _youtube(_youtube_site_id(parts))
@@ -105,17 +106,28 @@ def parse_source_url(url: str) -> ParsedSourceUrl:
 
 
 def _split(url: str) -> SplitResult:
-    """Split ``url`` and check length, scheme, user info and port."""
-    if not url:
-        raise InvalidSourceError(_MSG_EMPTY)
-    parts = urlsplit(url) if len(url) <= MAX_URL_LENGTH else None
-    if parts is None or not parts.scheme:
+    """Split ``url`` and check length, control characters, scheme, user info and port.
+
+    Control characters are rejected before ``urlsplit``, which would otherwise silently drop
+    tab, CR and LF (WHATWG behaviour) and let a smuggled newline pass validation.
+    """
+    _check_text(url)
+    parts = urlsplit(url)
+    if not parts.scheme:
         raise InvalidSourceError(_MSG_MALFORMED)
     if parts.scheme.lower() not in ("http", "https"):
         raise InvalidSourceError(_MSG_SCHEME)
     if not parts.netloc or "@" in parts.netloc or _has_port(parts):
         raise InvalidSourceError(_MSG_MALFORMED)
     return parts
+
+
+def _check_text(url: str) -> None:
+    """Reject empty, over-long and control-character-containing input."""
+    if not url:
+        raise InvalidSourceError(_MSG_EMPTY)
+    if len(url) > MAX_URL_LENGTH or _CONTROL_CHARS.search(url):
+        raise InvalidSourceError(_MSG_MALFORMED)
 
 
 def _has_port(parts: SplitResult) -> bool:
