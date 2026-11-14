@@ -30,8 +30,10 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
 COPY src/StemStudio.Contracts/ src/StemStudio.Contracts/
 COPY src/StemStudio.Web/ src/StemStudio.Web/
 COPY --from=engine /src/src/StemStudio.Web/wwwroot/js/ src/StemStudio.Web/wwwroot/js/
+# No --no-restore: the restore layer can stay cached while the cache mount was pruned (NETSDK1064);
+# the implicit restore is a no-op when the packages are present.
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet publish src/StemStudio.Web/StemStudio.Web.csproj -c Release -o /out --no-restore -p:UseAppHost=false
+    dotnet publish src/StemStudio.Web/StemStudio.Web.csproj -c Release -o /out -p:UseAppHost=false
 
 # ---------------------------------------------------------------- runtime
 FROM ${RUNTIME_IMAGE} AS runtime

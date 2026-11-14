@@ -2,8 +2,9 @@
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
 # pytest + coverage), audio engine (lint, typecheck, coverage, build), contracts (Redocly),
-# quality tools, fixture generator and the E2E lint. Components whose folder does not exist yet
-# are skipped. Prints a summary; exits 1 when any step failed.
+# quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E suite
+# (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
+# Prints a summary; exits 1 when any step failed.
 #
 # Usage: scripts/test-all.sh [--continue-on-error]
 set -uo pipefail
@@ -13,51 +14,55 @@ CONTINUE=0
 [[ "${1:-}" == "--continue-on-error" ]] && CONTINUE=1
 REDOCLY=@redocly/cli@2.78.0
 CONTRACTS=specs/001-stemstudio-mvp/contracts
-QREQ=tools/quality/requirements.txt
+FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
 
-# step <name> <needs-path> <working-dir> <command...>
+# step <name> <working-dir> <command...>; a missing working directory fails the step.
 step() {
-  local name="$1" needs="$2" dir="$3"
-  shift 3
+  local name="$1" dir="$2"
+  shift 2
   if [[ $FAILED -eq 1 && $CONTINUE -eq 0 ]]; then return; fi
-  if [[ ! -e "$REPO_ROOT/$needs" ]]; then SUMMARY+=("skipped  $name"); return; fi
   echo -e "\n=== $name ==="
   if (cd "$REPO_ROOT/$dir" && "$@"); then SUMMARY+=("passed   $name"); else SUMMARY+=("FAILED   $name"); FAILED=1; fi
 }
 
-# Helpers invoked indirectly through step "$@"; uvq adds the quality tools' requirements.
+# Helpers invoked indirectly through step "$@": uvw = worker env, uvq = quality-gate env.
 # shellcheck disable=SC2329
 uvw() { uv run --project worker --frozen "$@"; }
 # shellcheck disable=SC2329
-uvq() { uv run --project worker --frozen --with-requirements "$QREQ" "$@"; }
+uvq() { uv run --frozen "$@"; }
 
-step "dotnet tool restore" StemStudio.slnx . dotnet tool restore
-step "dotnet build" StemStudio.slnx . dotnet build StemStudio.slnx -c Release
-step "dotnet format" StemStudio.slnx . dotnet format StemStudio.slnx --verify-no-changes
-step "dotnet test + coverage gate" StemStudio.slnx . dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
-step "worker uv sync" worker worker uv sync --frozen
-step "worker ruff check" worker worker uv run --frozen ruff check .
-step "worker ruff format" worker worker uv run --frozen ruff format --check .
-step "worker mypy" worker worker uv run --frozen mypy src tests
-step "worker pytest + coverage" worker worker uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
-step "engine npm ci" src/audio-engine src/audio-engine npm ci --no-audit --no-fund
-step "engine lint" src/audio-engine src/audio-engine npm run lint
-step "engine typecheck" src/audio-engine src/audio-engine npm run typecheck
-step "engine test:coverage" src/audio-engine src/audio-engine npm run test:coverage
-step "engine build" src/audio-engine src/audio-engine npm run build
-step "contracts lint" "$CONTRACTS" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
+step "dotnet tool restore" . dotnet tool restore
+step "dotnet build" . dotnet build StemStudio.slnx -c Release
+step "dotnet format" . dotnet format StemStudio.slnx --verify-no-changes
+step "dotnet test + coverage gate" . dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
+step "worker uv sync" worker uv sync --frozen
+step "worker ruff check" worker uv run --frozen ruff check .
+step "worker ruff format" worker uv run --frozen ruff format --check .
+step "worker mypy" worker uv run --frozen mypy src tests
+step "worker pytest + coverage" worker uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
+step "engine npm ci" src/audio-engine npm ci --no-audit --no-fund
+step "engine lint" src/audio-engine npm run lint
+step "engine typecheck" src/audio-engine npm run typecheck
+step "engine test:coverage" src/audio-engine npm run test:coverage
+step "engine build" src/audio-engine npm run build
+step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
-step "quality tools ruff" tools/quality . uvw ruff check tools/quality
-step "quality tools mypy" tools/quality . uvq mypy --strict --config-file tools/quality/pyproject.toml tools/quality
-step "quality tools pytest" tools/quality . uvq pytest tools/quality/tests --cov=tools/quality --cov-branch --cov-config=tools/quality/pyproject.toml --cov-fail-under=90
-step "quality run_all" tools/quality . uvq python tools/quality/run_all.py
-step "fixtures ruff" tests/fixtures . uvw ruff check tests/fixtures
-step "fixtures mypy" tests/fixtures . uvw mypy --strict tests/fixtures
-step "fixtures pytest" tests/fixtures/tests . uvw pytest tests/fixtures/tests --cov=tests/fixtures --cov-branch --cov-fail-under=90
-step "e2e npm ci" e2e e2e npm ci --no-audit --no-fund
-step "e2e lint" e2e e2e npm run lint
+step "quality ruff check" tools/quality uvq ruff check .
+step "quality ruff format" tools/quality uvq ruff format --check .
+step "quality mypy" tools/quality uvq mypy
+step "quality pytest + coverage" tools/quality uvq pytest --cov --cov-branch --cov-report=term
+step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
+step "fixtures ruff check" . uvw ruff check tests/fixtures
+step "fixtures ruff format" . uvw ruff format --check tests/fixtures
+step "fixtures mypy" . uvw mypy --config-file "$FX" tests/fixtures
+step "fixtures pytest + coverage" . uvw pytest -c "$FX" --cov --cov-branch --cov-config="$FX" tests/fixtures/tests
+step "fixtures generate" . uvw python tests/fixtures/generate_fixtures.py
+step "e2e npm ci" e2e npm ci --no-audit --no-fund
+step "e2e lint" e2e npm run lint
+step "e2e typecheck" e2e npm run typecheck
+step "e2e list" e2e npx playwright test --list
 
 echo -e "\n=== summary ==="
 printf '%s\n' "${SUMMARY[@]}"
