@@ -270,8 +270,8 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [ ] T105 [US4] [frontend] Implement `src/StemStudio.Web/Components/Mixer/SaveMixDialog.razor` and mix loading in `Mixer.razor.cs` to pass T104
 - [ ] T106 [P] [US4] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Pages/MixLibraryPageTests.cs` (list with track title + last modified, load -> mixer, duplicate, rename with 409 message, delete with confirm dialog; track remains) (US4-4, US4-5, FR-017)
 - [ ] T138 [US4] [frontend] Implement `src/StemStudio.Web/Components/Pages/Mixes.razor` (+ code-behind, route `/mixes`) to pass T106 (O3)
-- [ ] T107 [US4] [qa] Write `e2e/tests/main-flow.spec.ts` (the constitution's main flow): import(upload fixture) -> wait completed -> open mixer -> change fader, pan, mute, solo, metronome BPM + offset, loop -> save "Practice" -> reload page -> load "Practice" -> every control shows the saved value; save-as "Practice 2", duplicate, delete (SC-001, SC-005)
-- [ ] T108 [US4] [qa] Tag a variant of the main flow `@real` in `e2e/tests/main-flow.real.spec.ts` (expects model `htdemucs_6s` or `htdemucs`, long timeout, runs only via `npm run test:real`)
+- [X] T107 [US4] [qa] Write `e2e/tests/main-flow.spec.ts` (the constitution's main flow): import(upload fixture) -> wait completed -> open mixer -> change fader, pan, mute, solo, metronome BPM + offset, loop -> save "Practice" -> reload page -> load "Practice" -> every control shows the saved value; save-as "Practice 2", duplicate, delete (SC-001, SC-005)
+- [X] T108 [US4] [qa] Tag a variant of the main flow `@real` in `e2e/tests/main-flow.real.spec.ts` (expects model `htdemucs_6s` or `htdemucs`, long timeout, runs only via `npm run test:real`)
 
 ---
 
