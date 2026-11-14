@@ -32,7 +32,8 @@ public static class MixEndpoints
         app.MapDelete(MixRoute, (Guid mixId, MixService mixes, CancellationToken ct) => mixes.DeleteAsync(mixId, ct))
             .WithName("deleteMix").WithTags("mixes").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPost(MixRoute + "/duplicate", (Guid mixId, MixService mixes, CancellationToken ct) => mixes.DuplicateAsync(mixId, ct))
-            .WithName("duplicateMix").WithTags("mixes").Produces<MixDto>(StatusCodes.Status201Created).ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("duplicateMix").WithTags("mixes").Produces<MixDto>(StatusCodes.Status201Created).ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         return app;
     }
 }

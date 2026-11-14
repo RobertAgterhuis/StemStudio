@@ -6,7 +6,6 @@ using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tests.TestSupport;
-using StemStudio.Api.Worker;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -75,9 +74,9 @@ public sealed class ImportServiceTests
         Track? added = null;
         _tracks.FindByKeyAsync(Arg.Any<SourceKey>(), Arg.Any<CancellationToken>()).Returns((Track?)null);
         _tracks.AddAsync(Arg.Do<Track>(track => added = track), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
-        _worker.OnCreateUrl = _ => Task.FromException<WorkerJob>(failure);
+        _worker.OnCreateUrl = _ => throw failure;
 
-        var thrown = await Should.ThrowAsync<Exception>(() => Service().ImportUrlAsync("https://youtu.be/dQw4w9WgXcQ", Ct));
+        var thrown = await Record.ExceptionAsync(() => Service().ImportUrlAsync("https://youtu.be/dQw4w9WgXcQ", Ct));
 
         thrown.ShouldBeSameAs(failure);
         added.ShouldNotBeNull();

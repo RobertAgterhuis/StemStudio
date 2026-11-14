@@ -27,6 +27,15 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Queued tracks that never got a worker job and were last changed before <paramref name="updatedBeforeUtc"/>: the
+    /// import was interrupted between the insert and the worker call.
+    /// </summary>
+    /// <param name="updatedBeforeUtc">Cut-off time (UTC, exclusive).</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken);
+
     /// <summary>Adds a track and saves.</summary>
     /// <param name="track">New track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
