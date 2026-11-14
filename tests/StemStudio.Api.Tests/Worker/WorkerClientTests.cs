@@ -61,15 +61,19 @@ public sealed class WorkerClientTests : IDisposable
     {
         var path = Path.Combine(_tempDir, "abc.flac");
         await File.WriteAllBytesAsync(path, [1, 2, 3, 4], Ct);
-        var (client, handler) = Create(_ => StubHttpMessageHandler.Example(HttpStatusCode.Accepted, "queued-job"));
+        var parts = new List<HttpContent>();
+        var (client, handler) = Create(request =>
+        {
+            parts.AddRange(request.Content.ShouldBeOfType<MultipartFormDataContent>());
+            return StubHttpMessageHandler.Example(HttpStatusCode.Accepted, "queued-job");
+        });
 
         var job = await client.CreateUploadJobAsync(new WorkerUpload(path, "abc.flac"), Ct);
 
         job.Status.ShouldBe(WorkerJobState.Queued);
         var request = handler.Requests.Single();
         request.Uri.AbsolutePath.ShouldBe("/v1/jobs");
-        var multipart = request.Content.ShouldBeOfType<MultipartFormDataContent>();
-        var part = multipart.Single().ShouldBeOfType<StreamContent>();
+        var part = parts.Single().ShouldBeOfType<StreamContent>();
         part.Headers.ContentDisposition!.Name!.Trim('"').ShouldBe("file");
         part.Headers.ContentDisposition.FileName!.Trim('"').ShouldBe("abc.flac");
         part.Headers.ContentType!.MediaType.ShouldBe("application/octet-stream");

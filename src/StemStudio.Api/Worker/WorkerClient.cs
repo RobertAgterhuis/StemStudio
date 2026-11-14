@@ -1,0 +1,153 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using Polly.CircuitBreaker;
+using Polly.Timeout;
+using StemStudio.Domain.Tracks;
+
+namespace StemStudio.Api.Worker;
+
+/// <summary>Typed <see cref="HttpClient"/> for the worker API; resilience is added at registration.</summary>
+/// <param name="http">Client whose base address is the worker URL (ending with a slash).</param>
+public sealed partial class WorkerClient(HttpClient http) : IWorkerClient
+{
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
+
+    /// <inheritdoc />
+    public async Task<WorkerJob> CreateUrlJobAsync(WorkerUrlJobRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var body = new CreateJobBody(UrlSourceType(request.SourceType), request.Url);
+        using var message = new HttpRequestMessage(HttpMethod.Post, "v1/jobs") { Content = JsonContent.Create(body, options: Json) };
+        return await SendForAsync<WorkerJob>(message, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkerJob> CreateUploadJobAsync(WorkerUpload upload, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        await using var file = new FileStream(upload.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+        var part = new StreamContent(file);
+        part.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        using var content = new MultipartFormDataContent { { part, "file", upload.FileName } };
+        using var message = new HttpRequestMessage(HttpMethod.Post, "v1/jobs") { Content = content };
+        return await SendForAsync<WorkerJob>(message, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkerJob?> GetJobAsync(string jobId, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, JobPath(jobId));
+        using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
+        return response.StatusCode == HttpStatusCode.NotFound ? null : await ReadAsync<WorkerJob>(response, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkerJobResult> GetResultAsync(string jobId, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"{JobPath(jobId)}/result");
+        return await SendForAsync<WorkerJobResult>(message, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task DownloadStemAsync(string jobId, string stem, Stream destination, CancellationToken cancellationToken)
+    {
+        if (!StemCatalog.IsKnown(stem))
+        {
+            throw new ArgumentException($"'{stem}' is not a stem name.", nameof(stem));
+        }
+
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"{JobPath(jobId)}/stems/{stem}");
+        using var response = await SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        await response.Content.CopyToAsync(destination, cancellationToken);
+    }
+
+    private static string UrlSourceType(SourceType type) => type switch
+    {
+        SourceType.Youtube => "youtube",
+        SourceType.Spotify => "spotify",
+        _ => throw new ArgumentException("Uploads are sent with CreateUploadJobAsync.", nameof(type)),
+    };
+
+    private static string JobPath(string jobId) => JobIdPattern().IsMatch(jobId)
+        ? $"v1/jobs/{jobId}"
+        : throw new ArgumentException($"'{jobId}' is not a worker job ID.", nameof(jobId));
+
+    private async Task<T> SendForAsync<T>(HttpRequestMessage message, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
+        return await ReadAsync<T>(response, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, HttpCompletionOption completion, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await http.SendAsync(message, completion, cancellationToken);
+        }
+        catch (Exception exception) when (IsTransportFailure(exception, cancellationToken))
+        {
+            throw new WorkerUnavailableException("The processing service cannot be reached.", exception);
+        }
+    }
+
+    private static bool IsTransportFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception is HttpRequestException or TimeoutRejectedException or BrokenCircuitException
+        || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested);
+
+    private static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        await EnsureSuccessAsync(response, cancellationToken);
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken)
+                ?? throw new JsonException("Empty response.");
+        }
+        catch (JsonException exception)
+        {
+            throw new WorkerUnavailableException("The processing service sent an invalid response.", exception);
+        }
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        if ((int)response.StatusCode >= 500)
+        {
+            throw new WorkerUnavailableException($"The processing service answered {(int)response.StatusCode}.");
+        }
+
+        throw new WorkerRequestException(response.StatusCode, await ReadDetailAsync(response, cancellationToken));
+    }
+
+    private static async Task<string> ReadDetailAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var fallback = response.ReasonPhrase ?? response.StatusCode.ToString();
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<WorkerProblem>(Json, cancellationToken);
+            return problem?.Detail ?? problem?.Title ?? fallback;
+        }
+        catch (JsonException)
+        {
+            return fallback;
+        }
+    }
+
+    [GeneratedRegex(@"\A[0-9a-f]{32}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex JobIdPattern();
+
+    private sealed record CreateJobBody(string SourceType, string Url);
+
+    private sealed record WorkerProblem(string? Title, string? Detail);
+}
