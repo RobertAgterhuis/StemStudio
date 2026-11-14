@@ -121,12 +121,12 @@ builds on. Tasks of different owners still run in parallel.
 - [ ] T035 [P] [stem-separation] Write failing tests `worker/tests/jobs/test_job_store.py`: `jobs/<jobId>.json` atomic replace, `jobId` = `uuid4().hex`, load/save round-trip of `schemas.Job` + internal fields, lookup by source key of non-failed jobs
 - [ ] T036 [stem-separation] Implement `worker/src/stemstudio_worker/jobs/store.py` to pass T035
 - [ ] T037 [P] [audio-engine] Create the test doubles `src/audio-engine/tests/mocks/audio-context.ts` (records `start(when, offset)`, `stop`, `loop/loopStart/loopEnd`, `setTargetAtTime`, pan values, analyser data, `decodeAudioData`), `tests/mocks/dotnet-ref.ts`, `tests/mocks/fetch.ts`, with self-tests in `tests/mocks/mocks.test.ts`
-- [ ] T038 [P] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Api/StemStudioApiClientTests.cs` (stub handler: every backend operation, ProblemDetails/ValidationProblemDetails mapped to `ApiError` with field errors, 409/503 distinct)
-- [ ] T039 [frontend] Implement `src/StemStudio.Web/Api/{IStemStudioApiClient,StemStudioApiClient,ApiError}.cs` registered as typed client on `StemStudioWebOptions.ApiClientName`, to pass T038
-- [ ] T040 [P] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Audio/AudioEngineInteropTests.cs` (bUnit JSInterop: `import("./js/audio-engine.js")`, `createEngine`, `loadTrack` payload camelCase with absolute stem URLs from `PublicApiBaseUrl`, `setChannel`, `setMaster`, `setLoop`, `setMetronome`, `attachMeter`, `dispose`; `[JSInvokable] OnPositionChanged/OnPlaybackStateChanged` raise C# events; `JSException` surfaced as `AudioEngineException`; a drift test parses the `AudioEngine` interface in `src/audio-engine/src/types.ts` and asserts every method name the wrapper invokes exists there, U2)
-- [ ] T041 [frontend] Implement `src/StemStudio.Web/Audio/{IAudioEngine,AudioEngineInterop,AudioEngineException}.cs` to pass T040
-- [ ] T042 [P] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Layout/MainLayoutTests.cs` (nav links Import, Tracks, Mixes; body rendered)
-- [ ] T135 [frontend] Implement `src/StemStudio.Web/Components/Layout/MainLayout.razor` (+ `NavMenu.razor`) to pass T042 (O3)
+- [X] T038 [P] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Api/StemStudioApiClientTests.cs` (stub handler: every backend operation, ProblemDetails/ValidationProblemDetails mapped to `ApiError` with field errors, 409/503 distinct)
+- [X] T039 [frontend] Implement `src/StemStudio.Web/Api/{IStemStudioApiClient,StemStudioApiClient,ApiError}.cs` registered as typed client on `StemStudioWebOptions.ApiClientName`, to pass T038
+- [X] T040 [P] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Audio/AudioEngineInteropTests.cs` (bUnit JSInterop: `import("./js/audio-engine.js")`, `createEngine`, `loadTrack` payload camelCase with absolute stem URLs from `PublicApiBaseUrl`, `setChannel`, `setMaster`, `setLoop`, `setMetronome`, `attachMeter`, `dispose`; `[JSInvokable] OnPositionChanged/OnPlaybackStateChanged` raise C# events; `JSException` surfaced as `AudioEngineException`; a drift test parses the `AudioEngine` interface in `src/audio-engine/src/types.ts` and asserts every method name the wrapper invokes exists there, U2)
+- [X] T041 [frontend] Implement `src/StemStudio.Web/Audio/{IAudioEngine,AudioEngineInterop,AudioEngineException}.cs` to pass T040
+- [X] T042 [P] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Layout/MainLayoutTests.cs` (nav links Import, Tracks, Mixes; body rendered)
+- [X] T135 [frontend] Implement `src/StemStudio.Web/Components/Layout/MainLayout.razor` (+ `NavMenu.razor`) to pass T042 (O3)
 
 **Checkpoint**: each owner's foundation is green; story work proceeds inside the same worktree.
 
