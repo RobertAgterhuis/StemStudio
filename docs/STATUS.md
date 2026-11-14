@@ -40,7 +40,10 @@ None.
 | beat-analysis | Merged (dec46a8) | 41 tests, 100% line/branch, ruff+mypy clean; BPM err <= 0.44, beat err <= 15 ms |
 | audio-ingest | Merged (60a75e1) | 201 tests, 100% line/branch, ruff+mypy clean; fullmatch + control-char rejection |
 | quality-gate | Merged (9299d13) | 119 tests, 100% line/branch; gate on skeleton: 0 errors, 4 soft warnings |
-| stem-separation, audio-engine, backend, frontend, qa, devops | In progress | - |
+| devops | Merged (19e0e0b) | compose config valid; 3 images build, non-root, healthchecks; Sonar job gated on secret |
+| audio-engine | Merged (56d932e) | 121 tests, 100% stmt/branch/func/line; lint+typecheck clean; G4 + SC-003 tests |
+| qa | Merged (9361e48) | fixture tests 100%; e2e tsc+lint clean; 40 Playwright tests listed (run in integration wave) |
+| stem-separation, backend, frontend | In progress | - |
 
 ## Integration backlog (CTO)
 
@@ -51,3 +54,8 @@ None.
 - Add `dotnet-sonarscanner` to `dotnet-tools.json`.
 - Re-check beat reliability threshold (0.2) and downbeat placement on real music.
 - Licences accepted: pathspec MPL-2.0 (via lizard), spotDL GPL clients (metadata only).
+- SIG gate after merges: 1 hard error (ingest normalizer `__init__` 5 params) -> refactor
+  request sent to audio-ingest.
+- QA audit F1: the extra audio-ingest integration test uses real ffmpeg, not the separation model;
+  accepted (the constitution's "exactly one" applies to the model test). F2 resolved (stub tests
+  updated at merge). F3: add `npm run typecheck` to CI `e2e-lint` (devops T117).
