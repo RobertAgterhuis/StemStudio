@@ -1,0 +1,540 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API
+  version: 1.0.0
+  summary: Internal job API of the Python processing worker (ingest, Demucs separation, beat analysis).
+  description: |
+    Called only by the StemStudio backend (never by the browser). Jobs run one at a time in a FIFO
+    queue. The backend polls `GET /v1/jobs/{jobId}` about once per second and, when the job is
+    `completed`, downloads the result and every stem.
+
+    * JSON uses camelCase. Pydantic models: `worker/src/stemstudio_worker/schemas.py`.
+    * Errors are RFC 9457 problem details (`application/problem+json`).
+    * Job states and progress ranges: see `specs/001-stemstudio-mvp/data-model.md`.
+    * Jobs are persisted as JSON files; after a restart, jobs that were not terminal are reported
+      as `failed` with error "interrupted by restart".
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: docker compose (internal network)
+  - url: http://localhost:8000
+    description: local development
+security: []  # internal service on a private network; no authentication (spec Assumptions)
+tags:
+  - name: jobs
+    description: Processing jobs, their results and stem files.
+  - name: health
+    description: Liveness.
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: Worker is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+                separator: demucs
+                device: cpu
+                contractVersion: 1.0.0
+  /v1/jobs:
+    post:
+      tags: [jobs]
+      operationId: createJob
+      summary: Create a processing job for a URL or an uploaded file.
+      description: |
+        URL sources are sent as JSON, uploads as `multipart/form-data` with one part `file`
+        (`.mp3`, `.wav` or `.flac`, at most 200 MiB).
+
+        Idempotency by source key: if a non-failed job for the same source key exists (queued,
+        running or completed), that job is returned with `200`. If the audio was separated
+        before (same source key or same audio SHA-256 in the cache), the new job completes
+        without running Demucs again. Otherwise a new job is queued and `202` is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+            examples:
+              youtube:
+                value:
+                  sourceType: youtube
+                  url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+              spotify:
+                value:
+                  sourceType: spotify
+                  url: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadJobRequest'
+            encoding:
+              file:
+                contentType: audio/mpeg, audio/wav, audio/x-wav, audio/flac, application/octet-stream
+      responses:
+        '200':
+          description: An existing job for the same source key is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedJob'
+        '202':
+          description: Job accepted and queued.
+          headers:
+            Location:
+              description: URL of the job status resource.
+              schema:
+                type: string
+              example: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                queued:
+                  $ref: '#/components/examples/QueuedJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /v1/jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [jobs]
+      operationId: getJob
+      summary: Get status, stage and progress of a job.
+      responses:
+        '200':
+          description: Current job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                separating:
+                  $ref: '#/components/examples/SeparatingJob'
+                failed:
+                  $ref: '#/components/examples/FailedJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/jobs/{jobId}/result:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [jobs]
+      operationId: getJobResult
+      summary: Get the result of a completed job (also stored as result.json).
+      responses:
+        '200':
+          description: Result of the completed job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResult'
+              example:
+                jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+                sourceKey: youtube:dQw4w9WgXcQ
+                metadata:
+                  title: Never Gonna Give You Up
+                  artist: Rick Astley
+                  sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+                durationSeconds: 213.04
+                sampleRate: 44100
+                channels: 2
+                audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                model: htdemucs_6s
+                stems:
+                  - name: vocals
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/vocals
+                    sizeBytes: 21456789
+                  - name: drums
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/drums
+                    sizeBytes: 23456789
+                beatGrid:
+                  bpm: 113.5
+                  beats: [0.52, 1.05, 1.58, 2.11]
+                  downbeats: [0.52]
+                  beatsPerBar: 4
+                  confidence: 0.87
+                  reliable: true
+                completedAt: '2026-11-14T12:06:30Z'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+  /v1/jobs/{jobId}/stems/{stem}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+      - name: stem
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/StemName'
+    get:
+      tags: [jobs]
+      operationId: getJobStem
+      summary: Download one stem as FLAC (44.1 kHz, stereo, 16-bit).
+      responses:
+        '200':
+          description: The stem file.
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: Job identifier (32 lower-case hex characters, a UUID without dashes).
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
+      example: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+  schemas:
+    SourceType:
+      type: string
+      enum: [youtube, spotify, upload]
+    JobState:
+      type: string
+      description: '`completed` and `failed` are terminal.'
+      enum: [queued, downloading, separating, analysing, completed, failed]
+    StemName:
+      type: string
+      enum: [vocals, drums, bass, guitar, piano, other]
+    ModelName:
+      type: string
+      description: '`fake` only when STEMSTUDIO_SEPARATOR=fake (tests, CI).'
+      enum: [htdemucs_6s, htdemucs, fake]
+    CreateJobRequest:
+      type: object
+      additionalProperties: false
+      required: [sourceType, url]
+      properties:
+        sourceType:
+          type: string
+          enum: [youtube, spotify]
+        url:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: |
+            YouTube video URL (hosts youtube.com, www.youtube.com, m.youtube.com,
+            music.youtube.com, youtu.be) or Spotify track URL (open.spotify.com/track/...).
+            Playlists, albums and other hosts are rejected with 400.
+    UploadJobRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: Audio file; the file name extension must be .mp3, .wav or .flac.
+    SourceMetadata:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+        sourceUrl:
+          type: [string, 'null']
+          description: YouTube URL the audio was fetched from; null for uploads.
+    Job:
+      type: object
+      additionalProperties: false
+      required: [jobId, sourceKey, sourceType, status, stage, progress, createdAt, updatedAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        sourceKey:
+          type: string
+          pattern: '^(youtube|spotify|upload):[A-Za-z0-9_-]{1,64}$'
+          description: '`youtube:<videoId>`, `spotify:<trackId>` or `upload:<sha256 of the uploaded bytes>`.'
+        sourceType:
+          $ref: '#/components/schemas/SourceType'
+        status:
+          $ref: '#/components/schemas/JobState'
+        stage:
+          type: string
+          description: Human-readable stage, e.g. "Downloading audio", "Separating stems".
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          description: Readable failure reason when status is failed.
+        metadata:
+          oneOf:
+            - $ref: '#/components/schemas/SourceMetadata'
+            - type: 'null'
+          description: Known once the source is resolved (title/artist for display while processing).
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BeatGrid:
+      type: object
+      additionalProperties: false
+      required: [bpm, beats, downbeats, beatsPerBar, confidence, reliable]
+      properties:
+        bpm:
+          type: number
+          minimum: 0
+          maximum: 400
+          description: Global tempo estimate; 0 when detection failed.
+        beats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+          description: Beat times in seconds, ascending.
+        downbeats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+          description: Beat-1 times in seconds; a subset of beats.
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 4
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reliable:
+          type: boolean
+          description: False when there is no clear pulse; the metronome then starts disabled.
+    StemInfo:
+      type: object
+      additionalProperties: false
+      required: [name, path, sizeBytes]
+      properties:
+        name:
+          $ref: '#/components/schemas/StemName'
+        path:
+          type: string
+          description: Relative URL of the stem, /v1/jobs/{jobId}/stems/{name}.
+        sizeBytes:
+          type: integer
+          minimum: 0
+    JobResult:
+      type: object
+      additionalProperties: false
+      required: [jobId, sourceKey, metadata, durationSeconds, sampleRate, channels, audioSha256, model, stems, beatGrid, completedAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        sourceKey:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/SourceMetadata'
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 900
+        sampleRate:
+          type: integer
+          const: 44100
+        channels:
+          type: integer
+          const: 2
+        audioSha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 of the normalised WAV (second cache key).
+        model:
+          $ref: '#/components/schemas/ModelName'
+        stems:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/StemInfo'
+        beatGrid:
+          $ref: '#/components/schemas/BeatGrid'
+        completedAt:
+          type: string
+          format: date-time
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, separator, device, contractVersion]
+      properties:
+        status:
+          type: string
+          const: ok
+        separator:
+          type: string
+          enum: [demucs, fake]
+        device:
+          type: string
+          enum: [cpu, cuda, auto]
+          description: Configured torch device preference (STEMSTUDIO_DEVICE).
+        contractVersion:
+          type: string
+          example: 1.0.0
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+  responses:
+    BadRequest:
+      description: Invalid URL, unsupported host, playlist/album, or malformed request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: about:blank
+            title: Invalid source
+            status: 400
+            detail: Only YouTube video and Spotify track URLs are supported; playlists and albums are not.
+    PayloadTooLarge:
+      description: Upload larger than 200 MiB.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: File too large
+            status: 413
+            detail: The file is larger than 200 MB.
+    UnsupportedMediaType:
+      description: Upload is not .mp3, .wav or .flac, or the request body type is neither JSON nor multipart.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Unsupported file type
+            status: 415
+            detail: Only MP3, WAV and FLAC files are supported.
+    NotFound:
+      description: Unknown job or stem.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Job 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c does not exist.
+    NotCompleted:
+      description: The job is not completed (yet), so no result or stems exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Job not completed
+            status: 409
+            detail: Job is in state separating.
+  examples:
+    QueuedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: queued
+        stage: Queued
+        progress: 0
+        error: null
+        metadata: null
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:00Z'
+    SeparatingJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: separating
+        stage: Separating stems
+        progress: 47
+        error: null
+        metadata:
+          title: Never Gonna Give You Up
+          artist: Rick Astley
+          sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:03:10Z'
+    CompletedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: completed
+        stage: Completed
+        progress: 100
+        error: null
+        metadata:
+          title: Never Gonna Give You Up
+          artist: Rick Astley
+          sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:06:30Z'
+    FailedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: spotify:4cOdK2wGLETKBW3PvgPWqT
+        sourceType: spotify
+        status: failed
+        stage: Failed
+        progress: 5
+        error: No matching YouTube audio was found for this Spotify track.
+        metadata:
+          title: Some Song
+          artist: Some Artist
+          sourceUrl: null
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:20Z'
