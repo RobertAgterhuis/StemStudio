@@ -24,8 +24,8 @@ public static class WorkerClientRegistration
 
     private static void ConfigureClient(IServiceProvider provider, HttpClient client)
     {
-        var baseUrl = provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value.WorkerBaseUrl.ToString();
-        client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/");
+        var baseUrl = provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value.WorkerBaseUrl;
+        client.BaseAddress = new Uri(baseUrl.AbsoluteUri.TrimEnd('/') + "/");
         client.Timeout = Timeout.InfiniteTimeSpan;
     }
 

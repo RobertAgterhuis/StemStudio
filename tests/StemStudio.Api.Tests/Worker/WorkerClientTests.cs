@@ -221,6 +221,38 @@ public sealed class WorkerClientTests : IDisposable
         error.Detail.ShouldBe(expected);
     }
 
+    [Fact]
+    public async Task CreateJob_ProblemWithoutReasonPhraseUsesStatusName()
+    {
+        var (client, _) = Create(_ =>
+        {
+            var response = StubHttpMessageHandler.Json(HttpStatusCode.UnsupportedMediaType, "{}", "application/problem+json");
+            response.ReasonPhrase = null;
+            return response;
+        });
+
+        var error = await Should.ThrowAsync<WorkerRequestException>(() => client.CreateUploadJobAsync(new WorkerUpload(WriteTempFile(), "a.mp3"), Ct));
+
+        error.Detail.ShouldNotBeNullOrWhiteSpace();
+        error.StatusCode.ShouldBe(HttpStatusCode.UnsupportedMediaType);
+    }
+
+    [Fact]
+    public void Registration_AppendsSlashToBasePath()
+    {
+        var stub = new StubHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["StemStudio:WorkerBaseUrl"] = "http://host/worker" })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddWorkerClient(configuration).ConfigurePrimaryHttpMessageHandler(() => stub);
+        using var provider = services.BuildServiceProvider();
+
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+
+        factory.CreateClient(nameof(IWorkerClient)).BaseAddress.ShouldBe(new Uri("http://host/worker/"));
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.ServiceUnavailable)]
     [InlineData(HttpStatusCode.InternalServerError)]
@@ -304,6 +336,13 @@ public sealed class WorkerClientTests : IDisposable
         new WorkerRequestException().StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         new WorkerRequestException("x").Detail.ShouldBe("x");
         new WorkerRequestException("x", new InvalidOperationException()).InnerException.ShouldNotBeNull();
+    }
+
+    private string WriteTempFile()
+    {
+        var path = Path.Combine(_tempDir, $"{Guid.NewGuid():N}.mp3");
+        File.WriteAllBytes(path, [1]);
+        return path;
     }
 
     private static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond)
