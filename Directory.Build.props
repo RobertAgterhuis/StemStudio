@@ -31,6 +31,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <!-- coverlet.msbuild defaults (dotnet test -p:CollectCoverage=true); keep in sync with tests/coverlet.runsettings. -->
     <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/coverage/</CoverletOutput>
     <SkipAutoProps>true</SkipAutoProps>
     <Include>[StemStudio.*]*</Include>
     <Exclude>[StemStudio.*.Tests]*</Exclude>
