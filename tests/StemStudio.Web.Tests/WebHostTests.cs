@@ -20,6 +20,17 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
     }
 
     [Fact]
+    public async Task GetRoot_ServesAppShell_WithInteractiveServerScript()
+    {
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(new Uri("/", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        html.ShouldContain("blazor.web.js");
+        html.ShouldContain("Radzen.Blazor.js");
+    }
+
+    [Fact]
     public void ApiClient_UsesConfiguredServerSideBaseUrl()
     {
         var services = factory.Services;

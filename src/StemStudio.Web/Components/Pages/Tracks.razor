@@ -1,0 +1,46 @@
+@page "/tracks"
+
+<PageTitle>Tracks - StemStudio</PageTitle>
+
+<h1>Tracks</h1>
+
+@if (Error is not null)
+{
+    <div class="ss-error" role="alert" data-testid="tracks-error">@Error</div>
+}
+else if (Items is null)
+{
+    <p class="ss-muted" role="status">Loading...</p>
+}
+else if (Items.Count == 0)
+{
+    <p class="ss-muted" data-testid="tracks-empty">No tracks yet. <a href="">Import a song</a> to get started.</p>
+}
+else
+{
+    <table class="ss-table">
+        <thead>
+            <tr><th>Title</th><th>Artist</th><th>Status</th><th>Duration</th><th><span class="ss-sr-only">Actions</span></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var track in Items)
+            {
+                <tr data-testid="@($"track-row-{track.Id}")">
+                    <td><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a></td>
+                    <td>@track.Artist</td>
+                    <td>
+                        <RadzenBadge BadgeStyle="TrackStatusText.Badge(track.Status)" Text="@TrackStatusText.Label(track.Status)"
+                                     data-testid="@($"track-row-status-{track.Id}")" />
+                    </td>
+                    <td>@TimeText.Duration(track.DurationSeconds)</td>
+                    <td>
+                        @if (track.Status == TrackStatusDto.Completed)
+                        {
+                            <a href="@($"tracks/{track.Id}/mixer")" data-testid="track-mixer-link">Open mixer</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

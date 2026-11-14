@@ -31,7 +31,7 @@ public sealed class TrackDetailPageTests : PageTestContext
 
         page.WaitForAssertion(() => page.Find("[data-testid=track-status]").TextContent.ShouldBe("Completed"));
         page.Find("[data-testid=track-progress]").GetAttribute("aria-valuenow").ShouldBe("100");
-        Timer.Waits.ShouldBe(2);
+        Timer.Waits.ShouldBe(1);
     }
 
     [Fact]

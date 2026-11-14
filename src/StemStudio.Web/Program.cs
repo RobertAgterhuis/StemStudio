@@ -4,11 +4,14 @@ using StemStudio.Web;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
+using StemStudio.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddTransient<IPollingTimer, PollingTimer>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
 builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,

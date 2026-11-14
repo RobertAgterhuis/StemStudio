@@ -47,7 +47,7 @@ public sealed class ImportPageTests : PageTestContext
         await page.Find("form").SubmitAsync();
 
         page.Find("[data-testid=import-error]").TextContent.ShouldBe("Paste a YouTube video link or a Spotify track link.");
-        await Api.DidNotReceiveWithAnyArgs().ImportUrlAsync(default!, default);
+        Api.ReceivedCalls().ShouldBeEmpty();
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class ImportPageTests : PageTestContext
         page.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("x", "notes.txt"));
 
         page.WaitForAssertion(() => page.Find("[data-testid=import-error]").TextContent.ShouldBe(UploadRules.UnsupportedTypeMessage));
-        await Api.DidNotReceiveWithAnyArgs().ImportUploadAsync(default!, default);
+        Api.ReceivedCalls().ShouldBeEmpty();
     }
 
     [Fact]
