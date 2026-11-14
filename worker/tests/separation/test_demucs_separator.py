@@ -14,7 +14,11 @@ from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.ports import SeparationError
 from stemstudio_worker.separation import create_separator
 from stemstudio_worker.separation import demucs_runtime as runtime_module
-from stemstudio_worker.separation.demucs_separator import DemucsRuntime, DemucsSeparator
+from stemstudio_worker.separation.demucs_separator import (
+    DemucsModel,
+    DemucsRuntime,
+    DemucsSeparator,
+)
 from stemstudio_worker.separation.fake import FakeSeparator
 
 SOURCES_6S = ["drums", "bass", "other", "vocals", "guitar", "piano"]
@@ -46,7 +50,7 @@ class FakeRuntime:
         return FakeModel(SOURCES_6S if name == "htdemucs_6s" else SOURCES_4)
 
     def apply(
-        self, model: FakeModel, mix: Audio, device: str, on_fraction: Callable[[float], None]
+        self, model: DemucsModel, mix: Audio, device: str, on_fraction: Callable[[float], None]
     ) -> Audio:
         self.devices.append(device)
         if self.apply_error:
@@ -134,12 +138,10 @@ def test_unknown_model_source_raises_separation_error(mix_wav: Path, tmp_path: P
     ("device", "cuda", "expected"),
     [("cpu", True, "cpu"), ("cuda", False, "cuda"), ("auto", True, "cuda"), ("auto", False, "cpu")],
 )
-def test_device_follows_settings(
-    mix_wav: Path, tmp_path: Path, device: str, cuda: bool, expected: str
-) -> None:
+def test_device_follows_settings(mix_wav: Path, device: str, cuda: bool, expected: str) -> None:
     fake = FakeRuntime(cuda=cuda)
 
-    _separator(fake, device).separate(mix_wav, tmp_path, lambda f, s: None)
+    _separator(fake, device).separate(mix_wav, mix_wav.parent, lambda f, s: None)
 
     assert fake.devices == [expected]
 
@@ -153,7 +155,9 @@ def test_progress_is_clamped_and_non_decreasing(mix_wav: Path, tmp_path: Path) -
     assert {s for _, s in reports} == {"Separating stems"}
 
 
-@pytest.mark.parametrize(("kind", "expected"), [("fake", FakeSeparator), ("demucs", DemucsSeparator)])
+@pytest.mark.parametrize(
+    ("kind", "expected"), [("fake", FakeSeparator), ("demucs", DemucsSeparator)]
+)
 def test_create_separator_selects_by_settings(tmp_path: Path, kind: str, expected: type) -> None:
     settings = WorkerSettings(data_dir=tmp_path, separator=kind)  # type: ignore[arg-type]
 
@@ -163,8 +167,8 @@ def test_create_separator_selects_by_settings(tmp_path: Path, kind: str, expecte
 # ---------------------------------------------------------------- real runtime adapter
 
 
-class _HalfModel(torch.nn.Module):
-    """Tiny stand-in for a Demucs model: two sources, each half of the input."""
+class _CopyModel(torch.nn.Module):
+    """Tiny stand-in for a Demucs model: two sources, each a copy of the input."""
 
     sources = ["vocals", "other"]  # noqa: RUF012 - mirrors the Demucs attribute
     samplerate = 44_100
@@ -172,17 +176,18 @@ class _HalfModel(torch.nn.Module):
     segment = 0.1
 
     def forward(self, mix: torch.Tensor) -> torch.Tensor:
-        return torch.stack([mix * 0.5, mix * 0.5], dim=1)
+        return torch.stack([mix, mix], dim=1)
 
 
 def test_runtime_apply_runs_demucs_apply_model_and_denormalises() -> None:
     mix = (np.random.default_rng(1).standard_normal((2, 22_050)) * 0.1).astype(np.float32)
     fractions: list[float] = []
 
-    out = runtime_module.apply_pretrained(_HalfModel(), mix, "cpu", fractions.append)
+    out = runtime_module.apply_pretrained(_CopyModel(), mix, "cpu", fractions.append)
 
     assert out.shape == (2, 2, 22_050)
-    np.testing.assert_allclose(out[0] + out[1], mix, atol=1e-4)
+    np.testing.assert_allclose(out[0], mix, atol=1e-4)
+    np.testing.assert_allclose(out[1], mix, atol=1e-4)
     assert fractions
     assert fractions == sorted(fractions)
 
@@ -190,9 +195,17 @@ def test_runtime_apply_runs_demucs_apply_model_and_denormalises() -> None:
 def test_runtime_load_uses_demucs_get_model(monkeypatch: pytest.MonkeyPatch) -> None:
     import demucs.pretrained  # noqa: PLC0415
 
-    monkeypatch.setattr(demucs.pretrained, "get_model", lambda name: f"model:{name}")
+    model = FakeModel(SOURCES_6S)
+    names: list[str] = []
 
-    assert runtime_module.load_pretrained("htdemucs_6s") == "model:htdemucs_6s"
+    def get_model(name: str) -> FakeModel:
+        names.append(name)
+        return model
+
+    monkeypatch.setattr(demucs.pretrained, "get_model", get_model)
+
+    assert runtime_module.load_pretrained("htdemucs_6s") is model
+    assert names == ["htdemucs_6s"]
 
 
 def test_runtime_cuda_available_matches_torch() -> None:
