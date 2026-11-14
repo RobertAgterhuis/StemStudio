@@ -2,11 +2,14 @@
 
 Each protocol is implemented by a different agent and faked in unit tests:
 
-* ``SourceResolver``, ``AudioFetcher``, ``AudioNormalizer``: audio-ingest (``ingest/``)
-* ``Separator``: stem-separation (``separation/``)
-* ``BeatAnalyzer``: beat-analysis (``analysis/``)
+* ``SourceResolver``, ``UploadIntake``, ``AudioFetcher``, ``AudioNormalizer``: audio-ingest
+  (``ingest/``, factory ``create_ingest_adapters``)
+* ``Separator``: stem-separation (``separation/``, factory ``create_separator``)
+* ``BeatAnalyzer``: beat-analysis (``analysis/``, factory ``create_beat_analyzer``)
 
-The job runner (``jobs/``) composes them: resolve -> fetch -> normalise -> separate -> analyse.
+The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
+separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
+from the three factories; tests pass their own ``PipelineAdapters`` made of fakes.
 Adapters signal expected failures by raising a ``WorkerError`` subclass; its message is shown to
 the user verbatim as the job ``error`` text, so it must be readable and free of secrets.
 """
@@ -126,6 +129,31 @@ class SourceResolver(Protocol):
         ...
 
 
+class UploadIntake(Protocol):
+    """Accepts an uploaded file that the API has already stored and size-checked."""
+
+    def accept(self, file_name: str, path: Path) -> SourceInfo:
+        """Validate an upload and derive its source identity.
+
+        The size limit (200 MiB, HTTP 413) is enforced by the API layer while streaming; this
+        method checks the extension and hashes the stored bytes. ``file_name`` is only used for
+        the title and the extension check, never as a path component.
+
+        Args:
+            file_name: Client-supplied file name, e.g. ``"My Song.mp3"``.
+            path: Where the API stored the uploaded bytes.
+
+        Returns:
+            Source with ``source_type=upload``, ``source_key="upload:<64 lower-hex sha256>"``,
+            ``title`` = file name without extension, ``artist=None``, ``youtube_url=None``.
+
+        Raises:
+            InvalidSourceError: Extension is not ``.mp3``, ``.wav`` or ``.flac``
+                (case-insensitive); HTTP 415.
+        """
+        ...
+
+
 class AudioFetcher(Protocol):
     """Downloads the audio of a resolved URL source."""
 
@@ -206,3 +234,35 @@ class BeatAnalyzer(Protocol):
             The beat grid (beats ascending, downbeats a subset of beats).
         """
         ...
+
+
+@dataclass(frozen=True, slots=True)
+class IngestAdapters:
+    """Adapters provided by the audio-ingest package (``ingest.create_ingest_adapters``).
+
+    Attributes:
+        resolver: Resolves YouTube/Spotify URLs.
+        upload_intake: Accepts uploaded files.
+        fetcher: Downloads resolved URL sources.
+        normalizer: Converts audio to the pipeline WAV format.
+    """
+
+    resolver: SourceResolver
+    upload_intake: UploadIntake
+    fetcher: AudioFetcher
+    normalizer: AudioNormalizer
+
+
+@dataclass(frozen=True, slots=True)
+class PipelineAdapters:
+    """Every adapter the job pipeline needs; built by the composition root or by tests.
+
+    Attributes:
+        ingest: The audio-ingest adapters.
+        separator: The stem separator (Demucs or fake).
+        analyzer: The beat analyzer.
+    """
+
+    ingest: IngestAdapters
+    separator: Separator
+    analyzer: BeatAnalyzer
