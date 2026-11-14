@@ -1,0 +1,6 @@
+/* StemStudio global styles (frontend agent owns the design). */
+html,
+body {
+  margin: 0;
+  font-family: Roboto, "Segoe UI", sans-serif;
+}

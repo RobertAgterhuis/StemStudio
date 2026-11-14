@@ -1,0 +1,385 @@
+{
+  "StemStudio.Contracts.dll": {
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\ApiRoutes.cs": {
+      "StemStudio.Contracts.ApiRoutes": {
+        "System.String StemStudio.Contracts.ApiRoutes::Track(System.Guid)": {
+          "Lines": {
+            "24": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.ApiRoutes::RetryTrack(System.Guid)": {
+          "Lines": {
+            "29": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.ApiRoutes::Stem(System.Guid,System.String)": {
+          "Lines": {
+            "35": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.ApiRoutes::Mix(System.Guid)": {
+          "Lines": {
+            "40": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.ApiRoutes::DuplicateMix(System.Guid)": {
+          "Lines": {
+            "45": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\ContractLimits.cs": {
+      "StemStudio.Contracts.ContractLimits": {
+        "System.Void StemStudio.Contracts.ContractLimits::.cctor()": {
+          "Lines": {
+            "13": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\StemNames.cs": {
+      "StemStudio.Contracts.StemNames": {
+        "System.Void StemStudio.Contracts.StemNames::.cctor()": {
+          "Lines": {
+            "25": 0,
+            "28": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Tracks\\BeatGridDto.cs": {
+      "StemStudio.Contracts.Tracks.BeatGridDto": {
+        "System.Double StemStudio.Contracts.Tracks.BeatGridDto::get_Bpm()": {
+          "Lines": {
+            "11": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IReadOnlyList`1<System.Double> StemStudio.Contracts.Tracks.BeatGridDto::get_Beats()": {
+          "Lines": {
+            "12": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IReadOnlyList`1<System.Double> StemStudio.Contracts.Tracks.BeatGridDto::get_Downbeats()": {
+          "Lines": {
+            "13": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 StemStudio.Contracts.Tracks.BeatGridDto::get_BeatsPerBar()": {
+          "Lines": {
+            "14": 0
+          },
+          "Branches": []
+        },
+        "System.Double StemStudio.Contracts.Tracks.BeatGridDto::get_Confidence()": {
+          "Lines": {
+            "15": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean StemStudio.Contracts.Tracks.BeatGridDto::get_Reliable()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        },
+        "System.Void StemStudio.Contracts.Tracks.BeatGridDto::.ctor(System.Double,System.Collections.Generic.IReadOnlyList`1<System.Double>,System.Collections.Generic.IReadOnlyList`1<System.Double>,System.Int32,System.Double,System.Boolean)": {
+          "Lines": {
+            "10": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Tracks\\StemDto.cs": {
+      "StemStudio.Contracts.Tracks.StemDto": {
+        "System.String StemStudio.Contracts.Tracks.StemDto::get_Name()": {
+          "Lines": {
+            "6": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Tracks\\TrackDto.cs": {
+      "StemStudio.Contracts.Tracks.TrackDto": {
+        "System.Guid StemStudio.Contracts.Tracks.TrackDto::get_Id()": {
+          "Lines": {
+            "7": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_Title()": {
+          "Lines": {
+            "10": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_Artist()": {
+          "Lines": {
+            "13": 0
+          },
+          "Branches": []
+        },
+        "StemStudio.Contracts.Tracks.SourceTypeDto StemStudio.Contracts.Tracks.TrackDto::get_SourceType()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_SourceKey()": {
+          "Lines": {
+            "19": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_SourceUrl()": {
+          "Lines": {
+            "22": 0
+          },
+          "Branches": []
+        },
+        "StemStudio.Contracts.Tracks.TrackStatusDto StemStudio.Contracts.Tracks.TrackDto::get_Status()": {
+          "Lines": {
+            "25": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_Stage()": {
+          "Lines": {
+            "28": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 StemStudio.Contracts.Tracks.TrackDto::get_Progress()": {
+          "Lines": {
+            "31": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_Error()": {
+          "Lines": {
+            "34": 0
+          },
+          "Branches": []
+        },
+        "System.Nullable`1<System.Double> StemStudio.Contracts.Tracks.TrackDto::get_DurationSeconds()": {
+          "Lines": {
+            "37": 0
+          },
+          "Branches": []
+        },
+        "System.String StemStudio.Contracts.Tracks.TrackDto::get_Model()": {
+          "Lines": {
+            "40": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IReadOnlyList`1<StemStudio.Contracts.Tracks.StemDto> StemStudio.Contracts.Tracks.TrackDto::get_Stems()": {
+          "Lines": {
+            "43": 0
+          },
+          "Branches": []
+        },
+        "StemStudio.Contracts.Tracks.BeatGridDto StemStudio.Contracts.Tracks.TrackDto::get_BeatGrid()": {
+          "Lines": {
+            "46": 0
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset StemStudio.Contracts.Tracks.TrackDto::get_CreatedAt()": {
+          "Lines": {
+            "49": 0
+          },
+          "Branches": []
+        },
+        "System.DateTimeOffset StemStudio.Contracts.Tracks.TrackDto::get_UpdatedAt()": {
+          "Lines": {
+            "52": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\ChannelSettingsDto.cs": {
+      "StemStudio.Contracts.Mixes.ChannelSettingsDto": {
+        "System.String StemStudio.Contracts.Mixes.ChannelSettingsDto::get_Stem()": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\CreateMixRequest.cs": {
+      "StemStudio.Contracts.Mixes.CreateMixRequest": {
+        "System.Guid StemStudio.Contracts.Mixes.CreateMixRequest::get_TrackId()": {
+          "Lines": {
+            "6": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\LoopRegionDto.cs": {
+      "StemStudio.Contracts.Mixes.LoopRegionDto": {
+        "System.Double StemStudio.Contracts.Mixes.LoopRegionDto::get_Start()": {
+          "Lines": {
+            "7": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\MetronomeSettingsDto.cs": {
+      "StemStudio.Contracts.Mixes.MetronomeSettingsDto": {
+        "System.Boolean StemStudio.Contracts.Mixes.MetronomeSettingsDto::get_Enabled()": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\MixDto.cs": {
+      "StemStudio.Contracts.Mixes.MixDto": {
+        "System.Guid StemStudio.Contracts.Mixes.MixDto::get_Id()": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\MixSettingsDto.cs": {
+      "StemStudio.Contracts.Mixes.MixSettingsDto": {
+        "System.String StemStudio.Contracts.Mixes.MixSettingsDto::get_Name()": {
+          "Lines": {
+            "10": 0
+          },
+          "Branches": []
+        },
+        "System.Double StemStudio.Contracts.Mixes.MixSettingsDto::get_MasterVolume()": {
+          "Lines": {
+            "11": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IReadOnlyList`1<StemStudio.Contracts.Mixes.ChannelSettingsDto> StemStudio.Contracts.Mixes.MixSettingsDto::get_Channels()": {
+          "Lines": {
+            "12": 0
+          },
+          "Branches": []
+        },
+        "StemStudio.Contracts.Mixes.MetronomeSettingsDto StemStudio.Contracts.Mixes.MixSettingsDto::get_Metronome()": {
+          "Lines": {
+            "13": 0
+          },
+          "Branches": []
+        },
+        "StemStudio.Contracts.Mixes.LoopRegionDto StemStudio.Contracts.Mixes.MixSettingsDto::get_Loop()": {
+          "Lines": {
+            "14": 0
+          },
+          "Branches": []
+        },
+        "System.Void StemStudio.Contracts.Mixes.MixSettingsDto::.ctor(System.String,System.Double,System.Collections.Generic.IReadOnlyList`1<StemStudio.Contracts.Mixes.ChannelSettingsDto>,StemStudio.Contracts.Mixes.MetronomeSettingsDto,StemStudio.Contracts.Mixes.LoopRegionDto)": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Mixes\\MixSummaryDto.cs": {
+      "StemStudio.Contracts.Mixes.MixSummaryDto": {
+        "System.Guid StemStudio.Contracts.Mixes.MixSummaryDto::get_Id()": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Importing\\ImportUrlRequest.cs": {
+      "StemStudio.Contracts.Importing.ImportUrlRequest": {
+        "System.String StemStudio.Contracts.Importing.ImportUrlRequest::get_Url()": {
+          "Lines": {
+            "5": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Contracts\\Health\\HealthResponse.cs": {
+      "StemStudio.Contracts.Health.HealthResponse": {
+        "System.String StemStudio.Contracts.Health.HealthResponse::get_Status()": {
+          "Lines": {
+            "5": 0
+          },
+          "Branches": []
+        }
+      }
+    }
+  },
+  "StemStudio.Web.dll": {
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Web\\Program.cs": {
+      "Program/<<Main>$>d__0": {
+        "System.Void Program/<<Main>$>d__0::MoveNext()": {
+          "Lines": {
+            "6": 0,
+            "7": 0,
+            "8": 0,
+            "9": 0,
+            "10": 0,
+            "11": 0,
+            "12": 0,
+            "14": 0,
+            "15": 0,
+            "16": 0,
+            "17": 0,
+            "18": 0,
+            "20": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Web\\StemStudioWebOptions.cs": {
+      "StemStudio.Web.StemStudioWebOptions": {
+        "System.Uri StemStudio.Web.StemStudioWebOptions::get_ApiBaseUrl()": {
+          "Lines": {
+            "13": 0
+          },
+          "Branches": []
+        },
+        "System.Uri StemStudio.Web.StemStudioWebOptions::get_PublicApiBaseUrl()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "E:\\PatricksSoundStudio\\src\\StemStudio.Web\\Components\\Layout\\MainLayout.razor": {
+      "StemStudio.Web.Components.Layout.MainLayout": {
+        "System.Void StemStudio.Web.Components.Layout.MainLayout::<BuildRenderTree>b__0_2(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder)": {
+          "Lines": {
+            "9": 0
+          },
+          "Branches": []
+        }
+      }
+    }
+  }
+}

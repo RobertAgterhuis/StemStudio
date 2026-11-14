@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- ASP.NET Core Minimal API (ADR-002). Owned by the backend agent. -->
+  <PropertyGroup>
+    <RootNamespace>StemStudio.Api</RootNamespace>
+    <UserSecretsId>stemstudio-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StemStudio.Domain\StemStudio.Domain.csproj" />
+    <ProjectReference Include="..\StemStudio.Persistence\StemStudio.Persistence.csproj" />
+    <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>
