@@ -172,7 +172,8 @@ restored; duplicate, rename and delete mixes from the library.
   records which model was used; mixes only reference stems that exist.
 - The browser blocks audio until a user gesture: playback starts only after the user presses play.
 - Duplicate concurrent imports of the same source reuse the same job.
-- A Spotify track with no matching YouTube audio: the job fails with a clear reason.
+- A Spotify track with no matching YouTube audio: the import is rejected immediately with the
+  reason "Source unavailable" (Spotify resolution happens before a job is created).
 - Deleting a track that has saved mixes is out of scope for the MVP (tracks are not deletable).
 
 ## Requirements *(mandatory)*
