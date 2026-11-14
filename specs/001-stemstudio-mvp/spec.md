@@ -31,6 +31,9 @@ Answered autonomously by the CTO (operating mode: fully autonomous); see
 - Q: What happens to unsaved mixer changes? → A: No autosave; an "unsaved changes" indicator is
   shown and the user is asked to confirm before leaving the mixer with unsaved changes.
 
+- Q: (analyze follow-up) Is beats-per-bar user-editable, and which browsers are supported? → A:
+  Yes, 1-12, reset restores detection; Chromium and Firefox are tested, Safari is best effort.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Import a song and get its stems (Priority: P1)
@@ -161,7 +164,8 @@ restored; duplicate, rename and delete mixes from the library.
 
 - A song shorter than a few beats or without a clear pulse: BPM detection may fail; the metronome
   is then disabled by default and the user can enter a BPM manually.
-- Very long songs (longer than 15 minutes) are rejected at import to bound processing time.
+- Very long songs (longer than 15 minutes) are accepted for import but the job fails with the
+  reason "Audio is longer than 15 minutes" (the duration is only known after download).
 - The worker is unavailable: imports are rejected with "processing service unavailable" and
   existing tracks and mixes remain usable.
 - The 6-stem model cannot be loaded: processing falls back to the 4-stem model and the track
@@ -180,7 +184,7 @@ restored; duplicate, rename and delete mixes from the library.
   (`youtube.com`, `youtu.be`, `music.youtube.com`).
 - **FR-002**: Users MUST be able to import a Spotify track URL (`open.spotify.com/track/...`); the
   system MUST resolve metadata and fetch matching audio from YouTube and MUST NOT circumvent DRM.
-- **FR-003**: Users MUST be able to upload a local MP3, WAV or FLAC file of at most 200 MB.
+- **FR-003**: Users MUST be able to upload a local MP3, WAV or FLAC file of at most 200 MiB (209,715,200 bytes).
 - **FR-004**: The system MUST reject URLs from other hosts, playlists/albums, unsupported file types
   and oversized files with a clear message.
 - **FR-005**: The import screen MUST show the personal-practice / copyright notice.
@@ -212,8 +216,9 @@ restored; duplicate, rename and delete mixes from the library.
 
 **Metronome**
 - **FR-014**: The metronome MUST click on the track's beat grid with an accent on beat 1, have its
-  own volume and on/off toggle, and support manual BPM (30-300) and offset (-2000..+2000 ms)
-  correction with reset.
+  own volume and on/off toggle, and support manual BPM (30-300), offset (-2000..+2000 ms) and
+  beats-per-bar (1-12) correction; reset restores the detected BPM, offset 0 and the detected
+  beats per bar.
 - **FR-015**: Metronome clicks MUST be scheduled against the audio clock (sample-accurate), not
   against general-purpose timers.
 
@@ -242,13 +247,15 @@ restored; duplicate, rename and delete mixes from the library.
 - **SC-002**: Stems stay aligned within 1 ms of each other throughout playback, including after
   seeks and 50 loop repetitions.
 - **SC-003**: Metronome clicks deviate by at most 1 ms from their scheduled beat times.
-- **SC-004**: Mixer controls respond (audible change) within 50 ms of user input.
+- **SC-004**: Mixer controls respond (audible change) within 50 ms of user input, verified by an
+  automated end-to-end timing check from the user action to the audio engine receiving it.
 - **SC-005**: A saved mix restores 100% of its settings after an application restart.
 - **SC-006**: Re-importing a previously processed source shows the track as ready within 2 seconds.
 - **SC-007**: 100% of rejected imports show a reason the user can act on.
 
 ## Assumptions
 
+- Supported browsers: current Chromium-based browsers and Firefox (tested); Safari best effort.
 - Single local user; no accounts or authentication (MVP runs on the user's own machine).
 - The default tempo map is constant-BPM with detected beat times; time signature assumed 4/4
   when it cannot be determined. Tempo changes within a song are followed through the detected beat

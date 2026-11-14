@@ -25,4 +25,5 @@ autonomous mode, so the CTO answers the highest-impact questions and records the
 - The worker converts Demucs output to FLAC; the audio engine decodes FLAC via `decodeAudioData`.
 - The backend stores a `SourceKey` (`youtube:<id>`, `spotify:<id>`, `upload:<sha256>`) with a
   unique index.
-- At start-up the backend and the worker reconcile non-terminal jobs to `failed`.
+- At start-up the worker reconciles its non-terminal jobs to `failed`; the backend marks a track
+  failed when the worker reports `failed` or no longer knows the job (404).
