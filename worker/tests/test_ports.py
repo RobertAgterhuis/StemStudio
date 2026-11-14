@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from stemstudio_worker.analysis import create_beat_analyzer
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.ports import (
@@ -56,9 +55,7 @@ def test_pipeline_adapters_compose_fakes(tmp_path: Path) -> None:
     assert adapters.analyzer.analyze(tmp_path).reliable is False
 
 
-@pytest.mark.parametrize(
-    "factory", [create_ingest_adapters, create_separator, create_beat_analyzer]
-)
+@pytest.mark.parametrize("factory", [create_ingest_adapters, create_separator])
 def test_factory_stubs_are_placeholders(factory: Callable[[WorkerSettings], object]) -> None:
     with pytest.raises(NotImplementedError, match="agent"):
         factory(WorkerSettings(data_dir=Path("unused")))

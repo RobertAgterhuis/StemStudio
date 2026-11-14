@@ -28,3 +28,6 @@ test-results/
 # Local env
 .env
 .remember/
+
+# Agent worktrees
+.claude/worktrees/
