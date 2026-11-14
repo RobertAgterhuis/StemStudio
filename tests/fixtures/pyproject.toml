@@ -15,9 +15,6 @@ branch = true
 [tool.coverage.report]
 fail_under = 90
 show_missing = true
-exclude_also = [
-    "if __name__ == .__main__.:",
-]
 
 [tool.ruff]
 line-length = 100
@@ -54,7 +51,3 @@ strict = true
 warn_unreachable = true
 explicit_package_bases = true
 mypy_path = "$MYPY_CONFIG_FILE_DIR"
-
-[[tool.mypy.overrides]]
-module = ["soundfile.*"]
-ignore_missing_imports = true

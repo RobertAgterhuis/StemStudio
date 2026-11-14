@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-import soundfile as sf
+import soundfile as sf  # type: ignore[import-untyped]
 
 Audio = npt.NDArray[np.float64]
 """Mono (frames,) or stereo (frames, 2) float audio in -1..1."""

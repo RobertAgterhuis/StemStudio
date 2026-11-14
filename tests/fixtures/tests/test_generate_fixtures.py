@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import runpy
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
-import soundfile as sf
+import soundfile as sf  # type: ignore[import-untyped]
 
 import generate_fixtures as gen
 
@@ -181,3 +183,19 @@ def test_beat_times_cover_the_clip_from_the_first_beat() -> None:
 def test_rhythmic_fixture_without_rhythm_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(gen.FixtureGenerationError, match="needs a rhythm"):
         gen.write_fixture(gen.Fixture("broken.wav", "click", 1.0), tmp_path)
+
+
+def test_running_the_script_exits_with_zero(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    argv = [
+        "generate_fixtures.py",
+        "--out-dir",
+        str(tmp_path),
+        "--manifest",
+        str(tmp_path / "m.json"),
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit) as exit_info:
+        runpy.run_path(str(COMMITTED_MANIFEST.parent / "generate_fixtures.py"), run_name="__main__")
+    assert exit_info.value.code == 0
