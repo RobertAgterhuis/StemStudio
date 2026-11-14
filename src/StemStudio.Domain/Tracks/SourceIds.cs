@@ -3,6 +3,10 @@ using System.Text.RegularExpressions;
 namespace StemStudio.Domain.Tracks;
 
 /// <summary>Identifier formats per source type (data-model.md, SourceKey parsing).</summary>
+/// <remarks>
+/// Patterns are anchored with <c>\A</c> and <c>\z</c>: in .NET <c>$</c> also matches before a trailing
+/// newline, which would let <c>"id\n"</c> through into keys and worker URLs.
+/// </remarks>
 internal static partial class SourceIds
 {
     /// <summary>Checks an identifier against the format of its source type.</summary>
@@ -16,12 +20,12 @@ internal static partial class SourceIds
         _ => Sha256Hex().IsMatch(id),
     };
 
-    [GeneratedRegex("^[A-Za-z0-9_-]{11}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A[A-Za-z0-9_-]{11}\z", RegexOptions.CultureInvariant)]
     private static partial Regex YoutubeId();
 
-    [GeneratedRegex("^[A-Za-z0-9]{22}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A[A-Za-z0-9]{22}\z", RegexOptions.CultureInvariant)]
     private static partial Regex SpotifyId();
 
-    [GeneratedRegex("^[0-9a-f]{64}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A[0-9a-f]{64}\z", RegexOptions.CultureInvariant)]
     private static partial Regex Sha256Hex();
 }

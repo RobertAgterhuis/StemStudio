@@ -106,6 +106,54 @@ public sealed class SourceKeyTests
         SourceKey.Parse(url).Error!.ToLowerInvariant().ShouldContain(keyword);
     }
 
+    public static TheoryData<string> ControlCharacterUrls() =>
+    [
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ%0A",
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ%0D%0A",
+        "https://www.youtube.com/watch?v=dQw4w9W%00gXcQ",
+        "https://www.youtube.com/watch?v=dQw4w9WgXc%09",
+        "https://youtu.be/dQw4w9WgXcQ%0A",
+        "https://www.youtube.com/shorts/dQw4w9WgXcQ%0A",
+        "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT%0A",
+        "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT%0D%0A",
+    ];
+
+    [Theory]
+    [MemberData(nameof(ControlCharacterUrls))]
+    public void Parse_IdWithControlCharacters_IsRejected(string url)
+    {
+        var result = SourceKey.Parse(url);
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error!.ToLowerInvariant().ShouldContain(" id");
+    }
+
+    [Theory]
+    [InlineData("dQw4w9WgXcQ\n")]
+    [InlineData("dQw4w9WgXcQ\r\n")]
+    [InlineData("dQw4w9W\u0000gXcQ")]
+    public void FromStored_YoutubeIdWithControlCharacters_IsRejected(string id)
+    {
+        Should.Throw<ArgumentException>(() => SourceKey.FromStored("youtube:" + id));
+    }
+
+    [Theory]
+    [InlineData("4cOdK2wGLETKBW3PvgPWqT\n")]
+    [InlineData("4cOdK2wGLETKBW3PvgPWqT\r\n")]
+    public void FromStored_SpotifyIdWithControlCharacters_IsRejected(string id)
+    {
+        Should.Throw<ArgumentException>(() => SourceKey.FromStored("spotify:" + id));
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData("\t")]
+    public void ForUpload_ShaWithTrailingControlCharacter_IsRejected(string suffix)
+    {
+        Should.Throw<ArgumentException>(() => SourceKey.ForUpload(Sha + suffix));
+    }
+
     [Fact]
     public void ForUpload_BuildsUploadKeyWithoutCanonicalUrl()
     {
