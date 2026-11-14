@@ -94,10 +94,10 @@ until T001-T003 are committed (they change only architect-owned skeleton/contrac
 - [X] T016 [devops] Create `.github/workflows/ci.yml` (push + pull_request): jobs `dotnet` (`dotnet tool restore`, build, `dotnet format --verify-no-changes`, `dotnet test StemStudio.slnx -p:CollectCoverage=true`; the per-component 90 % line+branch gate and Cobertura/OpenCover output come from `Directory.Build.props`, ADR-006), `worker` (`uv sync --frozen`, ruff check, ruff format --check, mypy, `pytest --cov --cov-branch --cov-report=xml`, fail_under 90), `audio-engine` (`npm ci`, lint, typecheck, `test:coverage` thresholds 90, build), `contracts` (Redocly 2.78.0 lint), `quality` (ruff, mypy --strict and pytest-cov >= 90 % for `tools/quality` and `tests/fixtures`, then `python tools/quality/run_all.py`) (K2), `e2e-lint` (`npm ci && npm run lint` in `e2e/`) (U6), `licences` (`uvx pip-licenses`, `dnx nuget-license`, `npx license-checker` with pinned versions -> artifact `licence-report` for T126) (K7), `e2e` (needs all; generate fixtures, `STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait`, `npm ci && npm test` in `e2e/`, upload Playwright report, `docker compose down -v`); pinned action versions, least-privilege `permissions`
 - [X] T017 [P] [devops] Create `.github/workflows/e2e-real.yml` (`workflow_dispatch` only): job 1 `uv run pytest -m integration` in `worker/` with the cached model cache (`HF_HOME`/`TORCH_HOME`) and `CI=true`; job 2 compose with `STEMSTUDIO_SEPARATOR=demucs` and the `model-cache` volume, `npm run test:real` in `e2e/`; generous timeouts (K5)
 - [X] T018 [devops] Validate: `docker compose config -q`, `docker compose build` against the skeleton, `actionlint` on both workflows, `scripts/dev.ps1 -Fake` smoke (three `/health` endpoints return ok); record outputs in hand-off
-- [ ] T019 [P] [qa] Write `docs/testing/TEST-STRATEGY.md`: test pyramid per component, fakes per port, the single `@pytest.mark.integration` Demucs test, coverage gates, E2E scope (main flow + rejects + mixer), real-Demucs run policy, fixture catalogue, retries=0 rule, traceability matrix acceptance scenario -> test file; YouTube/Spotify imports (V3) are a manual, network-dependent check, not automated; owners keep their fixtures in their own test subfolders (G6, O5)
-- [ ] T020 [P] [qa] Write failing tests `tests/fixtures/tests/test_generate_fixtures.py` (files exist, 44.1 kHz stereo, durations, click onsets at the manifest's beat times within 1 sample, deterministic hash on re-run)
-- [ ] T021 [qa] Implement `tests/fixtures/generate_fixtures.py` (run with `uv run --project worker python tests/fixtures/generate_fixtures.py`; numpy + soundfile, ffmpeg for MP3): `click_120bpm_4-4_12s.wav`, `click_90bpm_3-4_12s.wav`, `music_100bpm_20s.mp3` (tones + clicks), `music_100bpm_20s.flac`, `silence_5s.wav`, `corrupt.mp3`, `unsupported.ogg`; writes `tests/fixtures/audio/` (git-ignored via `tests/fixtures/audio/.gitignore`) and commits `tests/fixtures/manifest.json` (bpm, beatsPerBar, beat times, duration); add `upload_4mb.wav` (a few MB, for the streaming-upload E2E, G1); generator is ruff-clean and mypy --strict typed with config in `tests/fixtures/pyproject.toml`, tests >= 90 % line+branch (K2)
-- [ ] T022 [qa] Scaffold Playwright in `e2e/` (`package.json` with pinned `@playwright/test`, scripts `test` = all except `@real`, `test:real` = `--grep @real`, `lint`; `playwright.config.ts` retries 0, `baseURL` from `E2E_BASE_URL` default `http://localhost:8080`, `E2E_API_URL` default `http://localhost:8081`, Chromium + Firefox projects; `tsconfig.json`; `eslint.config.js`; page objects in `e2e/pages/`)
+- [X] T019 [P] [qa] Write `docs/testing/TEST-STRATEGY.md`: test pyramid per component, fakes per port, the single `@pytest.mark.integration` Demucs test, coverage gates, E2E scope (main flow + rejects + mixer), real-Demucs run policy, fixture catalogue, retries=0 rule, traceability matrix acceptance scenario -> test file; YouTube/Spotify imports (V3) are a manual, network-dependent check, not automated; owners keep their fixtures in their own test subfolders (G6, O5)
+- [X] T020 [P] [qa] Write failing tests `tests/fixtures/tests/test_generate_fixtures.py` (files exist, 44.1 kHz stereo, durations, click onsets at the manifest's beat times within 1 sample, deterministic hash on re-run)
+- [X] T021 [qa] Implement `tests/fixtures/generate_fixtures.py` (run with `uv run --project worker python tests/fixtures/generate_fixtures.py`; numpy + soundfile, ffmpeg for MP3): `click_120bpm_4-4_12s.wav`, `click_90bpm_3-4_12s.wav`, `music_100bpm_20s.mp3` (tones + clicks), `music_100bpm_20s.flac`, `silence_5s.wav`, `corrupt.mp3`, `unsupported.ogg`; writes `tests/fixtures/audio/` (git-ignored via `tests/fixtures/audio/.gitignore`) and commits `tests/fixtures/manifest.json` (bpm, beatsPerBar, beat times, duration); add `upload_4mb.wav` (a few MB, for the streaming-upload E2E, G1); generator is ruff-clean and mypy --strict typed with config in `tests/fixtures/pyproject.toml`, tests >= 90 % line+branch (K2)
+- [X] T022 [qa] Scaffold Playwright in `e2e/` (`package.json` with pinned `@playwright/test`, scripts `test` = all except `@real`, `test:real` = `--grep @real`, `lint`; `playwright.config.ts` retries 0, `baseURL` from `E2E_BASE_URL` default `http://localhost:8080`, `E2E_API_URL` default `http://localhost:8081`, Chromium + Firefox projects; `tsconfig.json`; `eslint.config.js`; page objects in `e2e/pages/`)
 
 ---
 
@@ -200,7 +200,7 @@ with progress, cache reuse, rejects, failure + retry, restart handling.
 
 ### qa (authored in the wave, executed in the integration wave)
 
-- [ ] T081 [P] [US1] [qa] Write `e2e/tests/import.spec.ts`: notice visible; upload `music_100bpm_20s.mp3` -> progress reaches completed with 6 stems (model `fake`) and BPM ~100; re-upload returns the same track within 2 s (SC-006); rejects for `unsupported.ogg`, a `vimeo.com` URL and a playlist URL show a reason and create no track (SC-007); `corrupt.mp3` upload ends `failed` with a readable reason and a visible `track-retry`; navigation `/tracks` -> track -> `open-mixer` works (G6)
+- [X] T081 [P] [US1] [qa] Write `e2e/tests/import.spec.ts`: notice visible; upload `music_100bpm_20s.mp3` -> progress reaches completed with 6 stems (model `fake`) and BPM ~100; re-upload returns the same track within 2 s (SC-006); rejects for `unsupported.ogg`, a `vimeo.com` URL and a playlist URL show a reason and create no track (SC-007); `corrupt.mp3` upload ends `failed` with a readable reason and a visible `track-retry`; navigation `/tracks` -> track -> `open-mixer` works (G6)
 
 **Checkpoint**: US1 is green in every owner's unit/contract tests; end-to-end proof follows in I-wave.
 
@@ -238,7 +238,7 @@ A-B loop. **Independent test**: quickstart V7-V8.
 
 ### qa
 
-- [ ] T097 [P] [US2] [qa] Write `e2e/tests/mixer.spec.ts`: open the completed fixture track, strips for every stem with default 80 % / pan 0, play after a user gesture, `data-peak-db` on master meter rises above -60 while playing, mute/solo change meters, loop 10 s -> 20 s accepted, B <= A refused with a message; SC-004 timing: `page.evaluate` wraps the engine's `setChannel` to record `performance.now()`, the test asserts click -> engine call < 50 ms for fader, mute and solo (G3)
+- [X] T097 [P] [US2] [qa] Write `e2e/tests/mixer.spec.ts`: open the completed fixture track, strips for every stem with default 80 % / pan 0, play after a user gesture, `data-peak-db` on master meter rises above -60 while playing, mute/solo change meters, loop 10 s -> 20 s accepted, B <= A refused with a message; SC-004 timing: `page.evaluate` wraps the engine's `setChannel` to record `performance.now()`, the test asserts click -> engine call < 50 ms for fader, mute and solo (G3)
 
 **Checkpoint**: US1 + US2 = the smallest viable product (unit level).
 
@@ -270,15 +270,15 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [ ] T105 [US4] [frontend] Implement `src/StemStudio.Web/Components/Mixer/SaveMixDialog.razor` and mix loading in `Mixer.razor.cs` to pass T104
 - [ ] T106 [P] [US4] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Pages/MixLibraryPageTests.cs` (list with track title + last modified, load -> mixer, duplicate, rename with 409 message, delete with confirm dialog; track remains) (US4-4, US4-5, FR-017)
 - [ ] T138 [US4] [frontend] Implement `src/StemStudio.Web/Components/Pages/Mixes.razor` (+ code-behind, route `/mixes`) to pass T106 (O3)
-- [ ] T107 [US4] [qa] Write `e2e/tests/main-flow.spec.ts` (the constitution's main flow): import(upload fixture) -> wait completed -> open mixer -> change fader, pan, mute, solo, metronome BPM + offset, loop -> save "Practice" -> reload page -> load "Practice" -> every control shows the saved value; save-as "Practice 2", duplicate, delete (SC-001, SC-005)
-- [ ] T108 [US4] [qa] Tag a variant of the main flow `@real` in `e2e/tests/main-flow.real.spec.ts` (expects model `htdemucs_6s` or `htdemucs`, long timeout, runs only via `npm run test:real`)
+- [X] T107 [US4] [qa] Write `e2e/tests/main-flow.spec.ts` (the constitution's main flow): import(upload fixture) -> wait completed -> open mixer -> change fader, pan, mute, solo, metronome BPM + offset, loop -> save "Practice" -> reload page -> load "Practice" -> every control shows the saved value; save-as "Practice 2", duplicate, delete (SC-001, SC-005)
+- [X] T108 [US4] [qa] Tag a variant of the main flow `@real` in `e2e/tests/main-flow.real.spec.ts` (expects model `htdemucs_6s` or `htdemucs`, long timeout, runs only via `npm run test:real`)
 
 ---
 
 ## Phase 7: Polish (inside the wave, per owner)
 
 - [ ] T109 [P] [quality-gate] Write `docs/quality/LINT-CONFIG.md` mapping each SIG limit to the enforcing rule (ruff C90/PLR, ESLint complexity/max-params/max-lines-per-function, .NET analyzers CA1502/CA1506 settings, lizard thresholds) and list config gaps as requests to the architect (configs are architect-owned); hand-off `docs/handoffs/quality-gate-polish.md` (checkpoint hand-off, see ADR-008)
-- [ ] T110 [P] [qa] Audit test evidence: for every owner's hand-off check test-first commits, fakes instead of network/subprocess, the single integration marker, coverage numbers; write `docs/testing/AUDIT.md` with findings per owner
+- [X] T110 [P] [qa] Audit test evidence: for every owner's hand-off check test-first commits, fakes instead of network/subprocess, the single integration marker, coverage numbers; write `docs/testing/AUDIT.md` with findings per owner
 - [ ] T111 [P] [backend] Structured logging (job sync transitions, worker errors without stack traces to clients) in `src/StemStudio.Api/Sync/` and `Imports/`, with log assertions in existing tests; hand-off `docs/handoffs/backend-polish.md` (checkpoint hand-off, see ADR-008)
 - [ ] T112 [P] [frontend] Accessibility pass (labels/aria for faders, pan, buttons; keyboard space = play/pause) with bUnit assertions; hand-off `docs/handoffs/frontend-polish.md` (checkpoint hand-off, see ADR-008)
 - [X] T113 [P] [audio-engine] TSDoc on every export, hand-off `docs/handoffs/audio-engine-polish.md` (checkpoint hand-off, see ADR-008)
@@ -286,7 +286,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 - [X] T115 [P] [beat-analysis] Docstrings + hand-off `docs/handoffs/beat-analysis-polish.md` (checkpoint hand-off, see ADR-008) (measured BPM/beat errors per synthetic tempo)
 - [ ] T116 [P] [stem-separation] Docstrings + hand-off `docs/handoffs/stem-separation-polish.md` (checkpoint hand-off, see ADR-008) (unit coverage + integration test output, model download size/time)
 - [ ] T117 [P] [devops] Hand-off `docs/handoffs/devops-polish.md` (checkpoint hand-off, see ADR-008) (image sizes, compose config output, CI job list)
-- [ ] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
+- [X] T118 [P] [qa] Hand-off `docs/handoffs/qa-polish.md` (checkpoint hand-off, see ADR-008) (fixture generator coverage, suite inventory, audit summary)
 
 ---
 
