@@ -42,7 +42,7 @@ internal static class ContractAssert
     {
         foreach (var (name, _) in declared["headers"]?.AsObject() ?? [])
         {
-            var present = response.Headers.Contains(name) || response.Content.Headers.Contains(name);
+            var present = response.Headers.TryGetValues(name, out _) || response.Content.Headers.TryGetValues(name, out _);
             present.ShouldBeTrue(string.Create(CultureInfo.InvariantCulture, $"{operationId} {(int)response.StatusCode} misses header {name}"));
         }
     }
