@@ -199,3 +199,29 @@ The audio-engine `package.json` is unchanged; the wave plan needs no new engine 
 - dotnet-ef 10.0.15 was published on 2026-11-10, less than two weeks ago. It must match the EF Core 10.0.15
   packages that were already accepted.
 - The CI job must run `dotnet tool restore` before migrations are used (devops).
+
+### Phase 0, round 2 (speckit-analyze findings; tasks T129-T133)
+- 3735ab9: contracts 1.0.1. Adds `contracts/source-url-vectors.json` (16 accepted forms, 22 rejected), canonical-URL
+  forwarding, "200 MiB (209,715,200 bytes)", and getStem 304/ETag/Last-Modified plus 416 `bytes */N`. Collections
+  are ordered by `updatedAt` desc. Field limits are aligned in both OpenAPI files and `schemas.py`. The worker result
+  example lists all 6 stems, and the model -> stem-set rule is documented. Engine `stop()` always resets to 0 (types.ts
+  and audio-engine.md). data-model has `uploads/<jobId>/input<ext>` and fixed error texts. quickstart V4 uses
+  200 MiB + 1 byte.
+- 1feb1a3: `Directory.Build.props` gates coverage per component with coverlet.msbuild (`Include=[StemStudio.X]*`;
+  Api.Tests also covers Contracts), at 90 % line+branch minimum, writing Cobertura and OpenCover. ADR-006 is amended,
+  including the sonarscanner flow. The audio engine adds `eslint-plugin-jsdoc` 65.4.2 (BSD-3-Clause) with
+  `require-jsdoc` on the exported API; I checked that the rule fires on an undocumented export.
+- aec8aa5: plan.md makes Contracts architect-owned and read-only for backend and frontend during the wave. Safari is
+  best effort and untested.
+- tasks.md now has 142 tasks: new T134-T142 (split tasks) and checkpoint hand-offs `HO:<checkpoint>` in every owner
+  sequence.
+- Proof: `dotnet build` 0 warnings; `dotnet test -p:CollectCoverage=true` 10 passed, gate passes (Domain, Persistence,
+  Api and Web 100/100, Contracts 90/100); `dotnet format` clean. Worker ruff, format and mypy are clean, 31 passed,
+  100 %. Engine test, lint, typecheck, coverage and build are green. Redocly: both files valid, the same 3 known
+  warnings.
+- Open:
+  (a) `.claude/agents/backend.md` still lists `src/StemStudio.Contracts/**` as backend-owned. That file is CTO-owned
+      and needs aligning with O1.
+  (b) Contracts sits exactly at the 90 % line gate. Api.Tests must cover `ApiRoutes`/`StemNames` as the backend grows.
+  (c) `npm audit` reports a moderate minimatch advisory, inherited from typescript-eslint 8.72.2 (dev-only).
+      It was already present before this change.
