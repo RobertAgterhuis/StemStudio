@@ -52,7 +52,7 @@ goes through a committed contract and is replaced by a fake/mock in the dependen
 until T001-T003 are committed (they change only architect-owned skeleton/contract files).
 
 - [x] T001 [architect] Add the worker composition contract: in `worker/src/stemstudio_worker/ports.py` add `UploadIntake` protocol (`accept(file_name: str, path: Path) -> SourceInfo`, raises `InvalidSourceError` for extensions other than `.mp3`/`.wav`/`.flac`; key `upload:<64 lower-hex sha256 of the bytes>`) and frozen dataclasses `IngestAdapters(resolver, upload_intake, fetcher, normalizer)` and `PipelineAdapters(ingest, separator, analyzer)`; add factory stubs raising `NotImplementedError` with final signatures: `ingest/__init__.py::create_ingest_adapters(settings: WorkerSettings) -> IngestAdapters`, `separation/__init__.py::create_separator(settings) -> Separator`, `analysis/__init__.py::create_beat_analyzer(settings) -> BeatAnalyzer`; skeleton test `worker/tests/test_ports.py` (FR-003, FR-009)
-- [ ] T002 [P] [architect] Publish the UI test-id contract from Appendix A as `specs/001-stemstudio-mvp/contracts/ui-test-ids.md` (v1.0.0) and link it from `contracts/audio-engine.md` "Testing" (FR-005, FR-011, FR-016)
+- [x] T002 [P] [architect] Publish the UI test-id contract from Appendix A as `specs/001-stemstudio-mvp/contracts/ui-test-ids.md` (v1.0.0) and link it from `contracts/audio-engine.md` "Testing" (FR-005, FR-011, FR-016)
 - [ ] T003 [P] [architect] Add anticipated test-only dependencies the owners cannot add themselves: worker dev group `jsonschema`, `pyyaml`, `types-PyYAML` in `worker/pyproject.toml` + `worker/uv.lock`; `YamlDotNet` (test projects only) in `Directory.Packages.props`; record licences in the architect hand-off `docs/handoffs/architect-contract-fixes.md`
 
 **Checkpoint**: `dotnet build`, `uv run pytest`, `npm test` still green; wave may start.
@@ -372,6 +372,9 @@ Per task and for the MVP:
 ---
 
 ## Appendix A: UI test-id contract (binding for frontend and qa; published by T002)
+
+The authoritative copy is [contracts/ui-test-ids.md](contracts/ui-test-ids.md); if the two differ, the contract file wins.
+
 
 | Screen | `data-testid` |
 |---|---|

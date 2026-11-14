@@ -102,4 +102,5 @@ unknown stem name in `setChannel`/`attachMeter`, calls after `dispose()`.
 
 Vitest with a hand-written `AudioContext` mock (records `start(when, offset)` calls, gain values
 and scheduled click times) and fake timers; coverage >= 90 % lines/branches/functions/statements
-(`npm run test:coverage`). Real-browser behaviour is covered by the Playwright E2E suite.
+(`npm run test:coverage`). Real-browser behaviour is covered by the Playwright E2E suite, which locates meters and controls
+through the ids in [ui-test-ids.md](ui-test-ids.md).
