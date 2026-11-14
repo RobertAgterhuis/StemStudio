@@ -116,7 +116,7 @@ public sealed class MixEndpointsTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var problem = await response.JsonAsync();
         problem.GetProperty("title").GetString().ShouldBe("Mix name taken");
-        problem.GetProperty("detail").GetString().ShouldBe("A mix named \"Guitar practice\" already exists for this track.");
+        problem.GetProperty("detail").GetString().ShouldBe($"A mix named \"{name.Trim()}\" already exists for this track.");
     }
 
     [Theory]
@@ -149,7 +149,7 @@ public sealed class MixEndpointsTests : IDisposable
 
         var summaries = await all.BodyAsync<List<MixSummaryDto>>();
         summaries.Select(m => m.Id).ShouldBe([newer.Id, older.Id]);
-        summaries[0].ShouldBe(new MixSummaryDto(newer.Id, second.Id, first.Title, "Newer", ApiFactory.Start.AddMinutes(1)));
+        summaries[0].ShouldBe(new MixSummaryDto(newer.Id, second.Id, second.Title, "Newer", ApiFactory.Start.AddMinutes(1)));
         (await filtered.BodyAsync<List<MixSummaryDto>>()).Select(m => m.Id).ShouldBe([older.Id]);
     }
 

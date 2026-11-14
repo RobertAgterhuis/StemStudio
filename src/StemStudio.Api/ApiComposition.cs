@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tracks;
@@ -64,6 +65,7 @@ public static class ApiComposition
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
         app.MapStemEndpoints();
+        app.MapMixEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -76,6 +78,7 @@ public static class ApiComposition
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
         services.AddScoped<StemService>();
+        services.AddScoped<MixService>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddHostedService<JobSyncService>();
