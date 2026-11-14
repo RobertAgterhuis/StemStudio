@@ -41,6 +41,8 @@ else
         <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
                       Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
 
+        <MetronomePanel Settings="State.Metronome" Grid="_track?.BeatGrid" OnChange="SetMetronomeAsync" OnReset="ResetMetronomeAsync" />
+
         <section class="ss-strips" aria-label="Channels">
             @foreach (var channel in State.Channels)
             {

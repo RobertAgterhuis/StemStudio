@@ -20,6 +20,12 @@ public sealed partial class Mixer
         return EngineAsync(e => e.SetMasterAsync(gain));
     }
 
+    private Task SetMetronomeAsync(MetronomeSettingsDto settings) => SendMetronomeAsync(State!.SetMetronome(settings));
+
+    private Task ResetMetronomeAsync() => SendMetronomeAsync(State!.ResetMetronome());
+
+    private Task SendMetronomeAsync(MetronomeSettingsDto settings) => EngineAsync(e => e.SetMetronomeAsync(settings));
+
     private Task PlayAsync() => EngineAsync(e => e.PlayAsync());
 
     private Task PauseAsync() => EngineAsync(e => e.PauseAsync());
