@@ -4,6 +4,7 @@
  *
  * @packageDocumentation
  */
+import { NO_LOOP, applyLoop, isInside, wrapPosition } from './loop';
 import { trackDuration, type StemBuffers } from './stem-loader';
 import type { LoopRegion, PlaybackState, StemName } from './types';
 
@@ -42,9 +43,6 @@ export interface TransportOptions {
   /** Mixer input node of a stem. */
   readonly output: (name: StemName) => AudioNode;
 }
-
-/** No loop. */
-export const NO_LOOP: LoopRegion = { start: 0, end: 0, enabled: false };
 
 /** Play/pause/stop/seek/loop over the loaded stems. */
 export class Transport implements TransportClock {
@@ -229,21 +227,4 @@ export class Transport implements TransportClock {
       l.onReposition(position);
     });
   }
-}
-
-function applyLoop(source: AudioBufferSourceNode, region: LoopRegion): void {
-  source.loop = region.enabled;
-  source.loopStart = region.start;
-  source.loopEnd = region.end;
-}
-
-function isInside(position: number, region: LoopRegion): boolean {
-  return position >= region.start && position < region.end;
-}
-
-function wrapPosition(position: number, region: LoopRegion): number {
-  if (!region.enabled || position < region.end) {
-    return position;
-  }
-  return region.start + ((position - region.start) % (region.end - region.start));
 }
