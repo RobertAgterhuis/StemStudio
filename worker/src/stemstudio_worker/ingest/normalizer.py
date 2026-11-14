@@ -80,28 +80,40 @@ class SubprocessRunner:
         return CommandResult(completed.returncode, completed.stdout, completed.stderr)
 
 
+@dataclass(frozen=True, slots=True)
+class FfmpegConfig:
+    """Limits and executables of the ffmpeg normaliser.
+
+    Attributes:
+        max_duration_seconds: Longest accepted duration.
+        ffmpeg: ffmpeg executable (name on PATH or absolute path).
+        ffprobe: ffprobe executable (name on PATH or absolute path).
+    """
+
+    max_duration_seconds: float = DEFAULT_MAX_DURATION_SECONDS
+    ffmpeg: str = "ffmpeg"
+    ffprobe: str = "ffprobe"
+
+
 class FfmpegNormalizer:
     """Converts any ffmpeg-readable audio to the pipeline WAV format."""
 
     def __init__(
-        self,
-        runner: CommandRunner | None = None,
-        max_duration_seconds: float = DEFAULT_MAX_DURATION_SECONDS,
-        ffmpeg: str = "ffmpeg",
-        ffprobe: str = "ffprobe",
+        self, runner: CommandRunner | None = None, config: FfmpegConfig | None = None
     ) -> None:
         """Create the normaliser.
 
         Args:
             runner: Runs ffprobe/ffmpeg; defaults to ``SubprocessRunner``.
-            max_duration_seconds: Longest accepted duration.
-            ffmpeg: ffmpeg executable (name on PATH or absolute path).
-            ffprobe: ffprobe executable (name on PATH or absolute path).
+            config: Duration limit and executables; defaults to ``FfmpegConfig()``.
         """
-        self.max_duration_seconds = max_duration_seconds
+        self.config = config or FfmpegConfig()
         self._runner = runner or SubprocessRunner()
-        self._ffmpeg = ffmpeg
-        self._ffprobe = ffprobe
+
+    @property
+    def max_duration_seconds(self) -> float:
+        """Longest accepted duration (from ``config``)."""
+        return self.config.max_duration_seconds
 
     def normalize(self, input_path: Path, output_wav: Path) -> NormalizedAudio:
         """Convert ``input_path`` to WAV at ``output_wav`` (see ``ports.AudioNormalizer``).
@@ -118,7 +130,7 @@ class FfmpegNormalizer:
 
     def _probe(self, input_path: Path) -> float | None:
         """Return the container duration (None when unknown); require an audio stream."""
-        args = [self._ffprobe, "-v", "error", "-select_streams", "a:0"]
+        args = [self.config.ffprobe, "-v", "error", "-select_streams", "a:0"]
         args += ["-show_entries", "stream=codec_type:format=duration", "-of", "json"]
         result = self._runner.run([*args, _file_url(input_path)], PROBE_TIMEOUT_SECONDS)
         if result.returncode != 0:
@@ -127,7 +139,7 @@ class FfmpegNormalizer:
 
     def _convert(self, input_path: Path, output_wav: Path) -> None:
         """Run ffmpeg; output is cut just past the limit so endless inputs still terminate."""
-        args = [self._ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y"]
+        args = [self.config.ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y"]
         args += ["-i", _file_url(input_path), "-map", "0:a:0", "-vn", "-sn", "-dn"]
         args += ["-t", f"{self.max_duration_seconds + 1:g}", "-ac", str(CHANNELS)]
         args += ["-ar", str(SAMPLE_RATE), "-c:a", "pcm_s16le", "-f", "wav"]

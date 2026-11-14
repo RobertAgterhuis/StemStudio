@@ -10,7 +10,7 @@ import pytest
 from stemstudio_worker.ingest.resolver import UrlSourceResolver
 from stemstudio_worker.ingest.spotify import NO_MATCH_MESSAGE, SpotifyTrack
 from stemstudio_worker.ingest.urls import parse_source_url
-from stemstudio_worker.ports import InvalidSourceError, SourceUnavailableError
+from stemstudio_worker.ports import InvalidSourceError, SourceInfo, SourceUnavailableError
 from stemstudio_worker.schemas import SourceType
 
 VECTORS_PATH = (
@@ -159,16 +159,23 @@ def test_rejection_messages_are_actionable(url: str, fragment: str) -> None:
         parse_source_url(url)
 
 
-@pytest.mark.parametrize(
-    "vector",
-    [v for v in ACCEPTED if v["sourceType"] == "youtube"],
-    ids=[v["url"] for v in ACCEPTED if v["sourceType"] == "youtube"],
-)
-def test_resolve_youtube_needs_no_spotify_lookup(vector: dict[str, str]) -> None:
+YOUTUBE_ACCEPTED = [v for v in ACCEPTED if v["sourceType"] == "youtube"]
+SPOTIFY_ACCEPTED = [v for v in ACCEPTED if v["sourceType"] == "spotify"]
+
+
+def _url_ids(vectors: list[dict[str, str]]) -> list[str]:
+    return [v["url"] for v in vectors]
+
+
+def _resolve_with_fakes(url: str) -> tuple[SourceInfo, FakeMetadataClient, FakeMatcher]:
     client = FakeMetadataClient(track_to_return=_spotify_track())
     matcher = FakeMatcher()
+    return _resolver(client, matcher).resolve(url), client, matcher
 
-    info = _resolver(client, matcher).resolve(vector["url"])
+
+@pytest.mark.parametrize("vector", YOUTUBE_ACCEPTED, ids=_url_ids(YOUTUBE_ACCEPTED))
+def test_resolve_youtube_needs_no_spotify_lookup(vector: dict[str, str]) -> None:
+    info, client, matcher = _resolve_with_fakes(vector["url"])
 
     assert info.source_type is SourceType.YOUTUBE
     assert info.source_key == vector["sourceKey"]
@@ -179,16 +186,9 @@ def test_resolve_youtube_needs_no_spotify_lookup(vector: dict[str, str]) -> None
     assert matcher.calls == []
 
 
-@pytest.mark.parametrize(
-    "vector",
-    [v for v in ACCEPTED if v["sourceType"] == "spotify"],
-    ids=[v["url"] for v in ACCEPTED if v["sourceType"] == "spotify"],
-)
+@pytest.mark.parametrize("vector", SPOTIFY_ACCEPTED, ids=_url_ids(SPOTIFY_ACCEPTED))
 def test_resolve_spotify_uses_spotify_metadata_and_youtube_match(vector: dict[str, str]) -> None:
-    client = FakeMetadataClient(track_to_return=_spotify_track())
-    matcher = FakeMatcher()
-
-    info = _resolver(client, matcher).resolve(vector["url"])
+    info, client, matcher = _resolve_with_fakes(vector["url"])
 
     assert info.source_type is SourceType.SPOTIFY
     assert info.source_key == vector["sourceKey"]

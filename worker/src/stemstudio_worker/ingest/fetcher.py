@@ -120,11 +120,7 @@ class YtDlpFetcher:
         """Reject missing info, playlists, live streams and over-long videos before download."""
         if info is None:
             raise SourceUnavailableError(DOWNLOAD_FAILED_MESSAGE)
-        if info.get("_type") in _PLAYLIST_TYPES:
-            msg = "Playlists are not supported; paste the link of a single video or track."
-            raise InvalidSourceError(msg)
-        if info.get("is_live"):
-            raise SourceUnavailableError("Live streams are not supported.")
+        _reject_playlists_and_live(info)
         duration = info.get("duration")
         if isinstance(duration, int | float) and duration > self.max_duration_seconds:
             raise too_long_error(self.max_duration_seconds)
@@ -150,12 +146,27 @@ class _ProgressHook:
 
 def _fraction(event: dict[str, Any]) -> float | None:
     """Return the completion fraction of a yt-dlp progress event, or None when unknown."""
-    if event.get("status") == "finished":
+    status = event.get("status")
+    if status == "finished":
         return 1.0
-    total = event.get("total_bytes") or event.get("total_bytes_estimate")
-    if event.get("status") != "downloading" or not total:
+    total = _total_bytes(event)
+    if status != "downloading" or not total:
         return None
     return float(event.get("downloaded_bytes") or 0) / float(total)
+
+
+def _total_bytes(event: dict[str, Any]) -> Any:
+    """Exact total size of the download, else yt-dlp's estimate (None when unknown)."""
+    return event.get("total_bytes") or event.get("total_bytes_estimate")
+
+
+def _reject_playlists_and_live(info: dict[str, Any]) -> None:
+    """Refuse playlist results and live streams."""
+    if info.get("_type") in _PLAYLIST_TYPES:
+        msg = "Playlists are not supported; paste the link of a single video or track."
+        raise InvalidSourceError(msg)
+    if info.get("is_live"):
+        raise SourceUnavailableError("Live streams are not supported.")
 
 
 def _allow_listed_youtube_url(url: str | None) -> str:
