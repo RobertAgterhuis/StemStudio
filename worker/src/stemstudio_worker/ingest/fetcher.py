@@ -135,10 +135,12 @@ class _ProgressHook:
     """yt-dlp progress hook that forwards non-decreasing fractions to a ``ProgressCallback``."""
 
     def __init__(self, progress: ProgressCallback) -> None:
+        """Wrap ``progress``; the last reported fraction starts at 0."""
         self._progress = progress
         self._last = 0.0
 
     def __call__(self, event: dict[str, Any]) -> None:
+        """Forward the fraction of a yt-dlp progress ``event``; unknown progress is ignored."""
         fraction = _fraction(event)
         if fraction is None:
             return
