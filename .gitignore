@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+coverage/
+*.cobertura.xml
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# Node
+node_modules/
+dist/
+# Runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+# Playwright
+playwright-report/
+test-results/
+# Local env
+.env
+.remember/
