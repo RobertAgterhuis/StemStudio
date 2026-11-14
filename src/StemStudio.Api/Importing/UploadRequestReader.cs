@@ -69,6 +69,6 @@ public static class UploadRequestReader
         }
 
         var name = disposition.FileNameStar.HasValue ? disposition.FileNameStar : disposition.FileName;
-        return HeaderUtilities.RemoveQuotes(name).Value ?? string.Empty;
+        return HeaderUtilities.RemoveQuotes(name).ToString();
     }
 }

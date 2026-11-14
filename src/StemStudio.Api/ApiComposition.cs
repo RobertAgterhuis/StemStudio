@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
+using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Health;
@@ -25,7 +26,8 @@ public static class ApiComposition
     public static WebApplicationBuilder AddStemStudioApi(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        var options = builder.Configuration.GetSection(StemStudioApiOptions.SectionName).Get<StemStudioApiOptions>() ?? new StemStudioApiOptions();
+        var options = new StemStudioApiOptions();
+        builder.Configuration.GetSection(StemStudioApiOptions.SectionName).Bind(options);
         var dataDirectory = DataDirectory.Resolve(options.DataDir, builder.Environment.ContentRootPath);
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
@@ -60,6 +62,7 @@ public static class ApiComposition
     {
         app.MapGet(ApiRoutes.Health, () => TypedResults.Ok(new HealthResponse("ok"))).WithName("getHealth").WithTags("health");
         app.MapImportEndpoints();
+        app.MapTrackEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -70,6 +73,7 @@ public static class ApiComposition
         services.AddSingleton<IStemFileStore, StemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
+        services.AddScoped<TrackService>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddHostedService<JobSyncService>();

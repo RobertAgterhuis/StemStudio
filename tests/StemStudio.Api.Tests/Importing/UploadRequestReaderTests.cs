@@ -51,6 +51,18 @@ public sealed class UploadRequestReaderTests
         seen.ShouldBe("Lied é.mp3");
     }
 
+    [Fact]
+    public async Task PlainFileName_IsUsed()
+    {
+        const string body = "--abc\r\nContent-Disposition: form-data; name=\"file\"; filename=\"plain.wav\"\r\n\r\nxyz\r\n--abc--\r\n";
+        var request = Request("multipart/form-data; boundary=\"abc\"", new MemoryStream(System.Text.Encoding.UTF8.GetBytes(body)));
+        string? seen = null;
+
+        await UploadRequestReader.ReadAsync(request, (_, name) => { seen = name; return Task.FromResult(Results.Ok()); }, Ct);
+
+        seen.ShouldBe("plain.wav");
+    }
+
     private static HttpRequest Request(string? contentType, Stream body)
     {
         var context = new DefaultHttpContext();

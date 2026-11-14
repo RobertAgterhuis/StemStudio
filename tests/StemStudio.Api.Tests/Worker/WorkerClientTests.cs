@@ -274,6 +274,31 @@ public sealed class WorkerClientTests : IDisposable
         error.InnerException.ShouldBeOfType<HttpRequestException>();
     }
 
+    public static TheoryData<Exception> ResilienceFailures() =>
+    [
+        new Polly.Timeout.TimeoutRejectedException(),
+        new Polly.CircuitBreaker.BrokenCircuitException(),
+    ];
+
+    [Theory]
+    [MemberData(nameof(ResilienceFailures))]
+    public async Task ResiliencePipelineFailuresThrowUnavailable(Exception failure)
+    {
+        var (client, _) = Create(_ => throw failure);
+
+        await Should.ThrowAsync<WorkerUnavailableException>(() => client.GetJobAsync(JobId, Ct));
+    }
+
+    [Fact]
+    public async Task NullProblemBodyFallsBackToReasonPhrase()
+    {
+        var (client, _) = Create(_ => StubHttpMessageHandler.Json(HttpStatusCode.Conflict, "null", "application/problem+json"));
+
+        var error = await Should.ThrowAsync<WorkerRequestException>(() => client.GetResultAsync(JobId, Ct));
+
+        error.Detail.ShouldBe("Conflict");
+    }
+
     [Fact]
     public async Task TimeoutThrowsUnavailable()
     {
