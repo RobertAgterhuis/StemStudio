@@ -12,7 +12,7 @@ from typing import Annotated, Final, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.0.1"
+CONTRACT_VERSION = "1.0.2"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100

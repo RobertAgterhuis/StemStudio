@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Worker API
-  version: 1.0.1
+  version: 1.0.2
   summary: Internal job API of the Python processing worker (ingest, Demucs separation, beat analysis).
   description: |
     Called only by the StemStudio backend (never by the browser). Jobs run one at a time in a FIFO
@@ -107,6 +107,10 @@ paths:
                 queued:
                   $ref: '#/components/examples/QueuedJob'
         '400':
+          description: |
+            Invalid or unsupported source. Spotify tracks are resolved synchronously, so a Spotify
+            track without a matching public YouTube recording is also rejected here
+            (title "Source unavailable") instead of becoming a failed job.
           $ref: '#/components/responses/BadRequest'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'

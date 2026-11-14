@@ -10,7 +10,7 @@ using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Responses of the running API checked against backend-api.openapi.yaml 1.0.1 (Constitution III, O2).</summary>
+/// <summary>Responses of the running API checked against backend-api.openapi.yaml 1.0.2 (Constitution III, O2).</summary>
 public sealed partial class BackendContractTests : IDisposable
 {
     private readonly ApiFactory _factory = new();

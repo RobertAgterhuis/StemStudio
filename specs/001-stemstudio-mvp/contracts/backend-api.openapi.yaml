@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API
-  version: 1.0.1
+  version: 1.0.2
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -439,6 +439,8 @@ paths:
                 $ref: '#/components/schemas/Mix'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
 components:
   parameters:
     TrackId:
