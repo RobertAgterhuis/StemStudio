@@ -217,4 +217,20 @@ describe('browserFrames', () => {
     expect(raf).toHaveBeenCalledWith(callback);
     expect(caf).toHaveBeenCalledWith(7);
   });
+
+  it('is the default scheduler and the global document the default document', () => {
+    const callbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => callbacks.push(cb));
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    const analyser = new MockAudioContext().createAnalyser();
+    analyser.samples = [0.5];
+    const meters = new Meters({ source: () => analyser as unknown as AnalyserNode });
+    const element = document.createElement('div');
+    element.id = 'meter-master';
+    document.body.replaceChildren(element);
+    meters.attach('master', 'meter-master');
+    callbacks[0]?.(16);
+    expect(element.dataset.peakDb).toBe('-6');
+    meters.dispose();
+  });
 });
