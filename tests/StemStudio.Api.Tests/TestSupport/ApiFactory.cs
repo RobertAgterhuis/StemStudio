@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
@@ -32,6 +33,8 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     public FakeTimeProvider Clock { get; } = new(Start);
 
     public Action<IServiceCollection>? ConfigureServices { get; init; }
+
+    public ListLoggerProvider Logs { get; } = new();
 
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web);
 
@@ -65,6 +68,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.UseSetting("StemStudio:DataDir", DataDir);
         builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
         builder.ConfigureTestServices(services =>
