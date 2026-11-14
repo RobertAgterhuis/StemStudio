@@ -5,6 +5,8 @@ namespace StemStudio.Domain.Mixes;
 /// <summary>Aggregate root for a saved mixer configuration of one track (FR-016, FR-017).</summary>
 public sealed class Mix
 {
+    private List<ChannelSettings> _channels = [];
+
     private Mix()
     {
         Name = string.Empty;
@@ -28,7 +30,7 @@ public sealed class Mix
     public double MasterVolume { get; private set; }
 
     /// <summary>Channel settings, at most one per stem.</summary>
-    public IReadOnlyList<ChannelSettings> Channels { get; private set; } = [];
+    public IReadOnlyList<ChannelSettings> Channels => _channels;
 
     /// <summary>Metronome settings.</summary>
     public MetronomeSettings Metronome { get; private set; }
@@ -105,7 +107,7 @@ public sealed class Mix
     private void Apply(MixSettings settings, DateTime nowUtc)
     {
         (Name, NormalizedName) = (settings.Name.Trim(), MixNaming.Normalize(settings.Name));
-        (MasterVolume, Channels, Metronome, Loop) = (settings.MasterVolume, settings.Channels.ToList(), settings.Metronome, settings.Loop);
+        (MasterVolume, _channels, Metronome, Loop) = (settings.MasterVolume, settings.Channels.ToList(), settings.Metronome, settings.Loop);
         UpdatedAt = nowUtc;
     }
 }

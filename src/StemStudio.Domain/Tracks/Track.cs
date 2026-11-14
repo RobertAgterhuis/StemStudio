@@ -23,6 +23,8 @@ public sealed partial class Track
     /// <summary>Maximum duration in seconds (15 minutes).</summary>
     public const double MaxDurationSeconds = 900;
 
+    private List<Stem> _stems = [];
+
     private Track()
     {
         Key = null!;
@@ -72,7 +74,7 @@ public sealed partial class Track
     public string? Model { get; private set; }
 
     /// <summary>Stored stems in display order; empty until completed.</summary>
-    public IReadOnlyList<Stem> Stems { get; private set; } = [];
+    public IReadOnlyList<Stem> Stems => _stems;
 
     /// <summary>Beat analysis once completed.</summary>
     public BeatGrid? BeatGrid { get; private set; }
@@ -180,7 +182,7 @@ public sealed partial class Track
         RequireActive();
         TrackCompletionRules.Validate(completion);
         (DurationSeconds, Model, BeatGrid) = (completion.DurationSeconds, completion.Model, completion.BeatGrid);
-        Stems = completion.Stems.OrderBy(stem => StemCatalog.Order(stem.Name)).ToList();
+        _stems = completion.Stems.OrderBy(stem => StemCatalog.Order(stem.Name)).ToList();
         SetState(TrackStatus.Completed, "Completed", null);
         Progress = 100;
         UpdatedAt = nowUtc;
