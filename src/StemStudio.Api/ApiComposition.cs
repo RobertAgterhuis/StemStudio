@@ -63,6 +63,7 @@ public static class ApiComposition
         app.MapGet(ApiRoutes.Health, () => TypedResults.Ok(new HealthResponse("ok"))).WithName("getHealth").WithTags("health");
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
+        app.MapStemEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -74,6 +75,7 @@ public static class ApiComposition
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
+        services.AddScoped<StemService>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddHostedService<JobSyncService>();

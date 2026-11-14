@@ -230,7 +230,7 @@ public sealed class StemEndpointTests : IDisposable
         return track;
     }
 
-    private Task WriteStemAsync(Guid trackId, string stem) =>
+    private Task<long> WriteStemAsync(Guid trackId, string stem) =>
         _factory.Services.GetRequiredService<IStemFileStore>().SaveStemAsync(trackId, stem, (s, ct) => s.WriteAsync(Flac, ct).AsTask(), Ct);
 
     private async Task<HttpResponseMessage> SendAsync(Guid trackId, string stem, Action<HttpRequestMessage>? configure = null)
