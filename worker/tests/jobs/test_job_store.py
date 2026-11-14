@@ -8,9 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from stemstudio_worker.jobs.models import StoredJob
+from stemstudio_worker.jobs.models import StoredJob, metadata_of, source_of
 from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.schemas import JobState
+from stemstudio_worker.ports import SourceInfo
+from stemstudio_worker.schemas import JobState, SourceType
 
 RecordFactory = Callable[..., StoredJob]
 JOB_A = "a" * 32
@@ -107,3 +108,24 @@ def test_find_active_ignores_failed_jobs(tmp_path: Path, make_record: RecordFact
     store.save(make_record(status=JobState.FAILED))
 
     assert store.find_active("youtube:dQw4w9WgXcQ") is None
+
+
+def test_metadata_of_clips_texts_and_round_trips_through_source_of(
+    make_record: RecordFactory,
+) -> None:
+    source = SourceInfo(SourceType.YOUTUBE, "youtube:dQw4w9WgXcQ", "", "x" * 600, "https://y")
+    metadata = metadata_of(source)
+    job = make_record().job.model_copy(update={"metadata": metadata})
+
+    assert metadata.title == "Untitled"
+    assert metadata.artist == "x" * 500
+    assert source_of(job) == SourceInfo(
+        SourceType.YOUTUBE, "youtube:dQw4w9WgXcQ", "Untitled", "x" * 500, "https://y"
+    )
+
+
+def test_source_of_job_without_metadata(make_record: RecordFactory) -> None:
+    job = make_record().job.model_copy(update={"metadata": None})
+
+    assert source_of(job).title == "Untitled"
+    assert metadata_of(source_of(job)).artist is None
