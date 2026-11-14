@@ -8,6 +8,7 @@ from pathlib import Path
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import (
+    FetchedAudio,
     IngestAdapters,
     NormalizedAudio,
     PipelineAdapters,
@@ -55,12 +56,17 @@ class Calls:
 
 
 class FakeIngest:
-    """Resolver, intake, fetcher and normalizer; ``fail`` maps a method name to an exception."""
+    """Resolver, intake, fetcher and normalizer; ``fail`` maps a method name to an exception.
+
+    ``fetched_title``/``fetched_artist`` are what ``fetch`` reports (None by default).
+    """
 
     def __init__(self, calls: Calls, sha: str = "e" * 64) -> None:
         self.calls = calls
         self.sha = sha
         self.fail: dict[str, Exception] = {}
+        self.fetched_title: str | None = None
+        self.fetched_artist: str | None = None
 
     def _enter(self, name: str, path: Path) -> None:
         self.calls.names.append(name)
@@ -74,13 +80,13 @@ class FakeIngest:
     def accept(self, file_name: str, path: Path) -> SourceInfo:
         raise AssertionError("the runner never accepts uploads")
 
-    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> Path:
+    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> FetchedAudio:
         self._enter("fetch", work_dir)
         for fraction in (0.0, 0.5, 1.0):
             progress(fraction, "Downloading")
         target = work_dir / "download.webm"
         target.write_bytes(b"webm")
-        return target
+        return FetchedAudio(target, self.fetched_title, self.fetched_artist)
 
     def normalize(self, input_path: Path, output_wav: Path) -> NormalizedAudio:
         self._enter("normalize", input_path)

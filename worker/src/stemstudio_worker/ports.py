@@ -26,7 +26,22 @@ class WorkerError(Exception):
 
 
 class InvalidSourceError(WorkerError):
-    """The URL or upload is not acceptable (host, playlist, type, size); HTTP 400/413/415."""
+    """The URL or upload is not acceptable (host, playlist, type, size); HTTP 400.
+
+    Upload problems use a subclass so the API can answer with the contract status code.
+    """
+
+
+class EmptyUploadError(InvalidSourceError):
+    """The uploaded file contains no bytes; HTTP 400."""
+
+
+class UploadTooLargeError(InvalidSourceError):
+    """The uploaded file exceeds the size limit (200 MiB); HTTP 413."""
+
+
+class UnsupportedMediaError(InvalidSourceError):
+    """The uploaded file is not an MP3, WAV or FLAC file; HTTP 415."""
 
 
 class SourceUnavailableError(WorkerError):
@@ -77,6 +92,21 @@ class SourceInfo:
     title: str
     artist: str | None
     youtube_url: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class FetchedAudio:
+    """A downloaded audio file plus the metadata the download reported.
+
+    Attributes:
+        path: The downloaded file (any container/codec ffmpeg can read).
+        title: Title reported by the download (e.g. the YouTube video title), or None.
+        artist: Artist or uploader reported by the download, or None.
+    """
+
+    path: Path
+    title: str | None = None
+    artist: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,8 +178,10 @@ class UploadIntake(Protocol):
             ``title`` = file name without extension, ``artist=None``, ``youtube_url=None``.
 
         Raises:
-            InvalidSourceError: Extension is not ``.mp3``, ``.wav`` or ``.flac``
+            UnsupportedMediaError: Extension is not ``.mp3``, ``.wav`` or ``.flac``
                 (case-insensitive); HTTP 415.
+            EmptyUploadError: The stored file is empty; HTTP 400.
+            UploadTooLargeError: The stored file exceeds the size limit; HTTP 413.
         """
         ...
 
@@ -157,7 +189,7 @@ class UploadIntake(Protocol):
 class AudioFetcher(Protocol):
     """Downloads the audio of a resolved URL source."""
 
-    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> Path:
+    def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> FetchedAudio:
         """Download the best audio-only stream of ``source.youtube_url`` into ``work_dir``.
 
         Args:
@@ -166,7 +198,8 @@ class AudioFetcher(Protocol):
             progress: Receives download progress.
 
         Returns:
-            Path of the downloaded file (any container/codec ffmpeg can read).
+            The downloaded file plus the title/artist the source reported. The pipeline uses
+            them for YouTube jobs; for Spotify jobs the spotDL metadata stays authoritative.
 
         Raises:
             SourceUnavailableError: Download failed.

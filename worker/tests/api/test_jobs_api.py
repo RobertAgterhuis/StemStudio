@@ -1,14 +1,23 @@
 """Contract tests of the worker HTTP API: every response is validated against the YAML (T067)."""
 
+import asyncio
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from stemstudio_worker.ports import AudioDecodeError, InvalidSourceError, SourceInfo
+from stemstudio_worker.ports import (
+    AudioDecodeError,
+    EmptyUploadError,
+    InvalidSourceError,
+    SourceInfo,
+    UnsupportedMediaError,
+    UploadTooLargeError,
+)
 
 from .conftest import Api, ApiFactory
 from .contract import assert_conforms
-from .fakes import SPOTIFY, YOUTUBE, FourStemSeparator
+from .fakes import FETCHED_ARTIST, FETCHED_TITLE, SPOTIFY, YOUTUBE, FourStemSeparator
 
 JOBS = "/v1/jobs"
 JOB = "/v1/jobs/{jobId}"
@@ -148,15 +157,27 @@ def test_upload_with_wrong_type_returns_415(api: Api, name: str) -> None:
     assert not any((api.settings.data_dir / "uploads").glob("*/*"))
 
 
-def test_upload_rejected_by_intake_returns_415(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (EmptyUploadError, 400),
+        (UploadTooLargeError, 413),
+        (UnsupportedMediaError, 415),
+        (InvalidSourceError, 400),
+    ],
+)
+def test_upload_rejected_by_intake_maps_to_the_contract_status(
+    api: Api, monkeypatch: pytest.MonkeyPatch, error: type[InvalidSourceError], status: int
+) -> None:
     def reject(file_name: str, path: Path) -> SourceInfo:
-        raise InvalidSourceError("Not audio.")
+        raise error("Not audio.")
 
     monkeypatch.setattr(api.fakes, "accept", reject)
 
     response = api.upload()
 
-    assert response.status_code == 415
+    assert response.status_code == status
+    assert_conforms(response, JOBS, "post")
     assert response.json()["detail"] == "Not audio."
     assert not any((api.settings.data_dir / "uploads").iterdir())
 
@@ -201,6 +222,69 @@ def test_empty_upload_returns_400(api: Api) -> None:
     response = api.upload(data=b"")
 
     assert response.status_code == 400
+    assert_conforms(response, JOBS, "post")
+    assert "empty" in response.json()["detail"]
+    assert not any((api.settings.data_dir / "uploads").iterdir())
+
+
+def test_ogg_upload_returns_415(api: Api) -> None:
+    response = api.upload(name="song.ogg", data=b"OggS audio")
+
+    assert response.status_code == 415
+    assert_conforms(response, JOBS, "post")
+
+
+def test_malformed_multipart_body_returns_400(api: Api) -> None:
+    response = api.client.post(
+        JOBS, content=b"no parts", headers={"content-type": "multipart/form-data"}
+    )
+
+    assert response.status_code == 400
+    assert_conforms(response, JOBS, "post")
+
+
+def test_chunked_upload_over_the_limit_is_aborted_while_streaming(api: Api) -> None:
+    """Without Content-Length the body is counted while it streams; reading stops at the limit."""
+    chunk, count = b"x" * 4096, 100  # 400 KiB, far over 1000 bytes + the multipart allowance
+    head = (
+        b'--b\r\nContent-Disposition: form-data; name="file"; filename="big.mp3"\r\n'
+        b"Content-Type: audio/mpeg\r\n\r\n"
+    )
+    body = [head, *([chunk] * count), b"\r\n--b--\r\n"]
+
+    status, pulled = asyncio.run(_send_chunked(api, body))
+
+    assert status == 413
+    assert pulled < count // 2
+    assert list(api.settings.data_dir.glob("uploads/*")) == []
+
+
+async def _send_chunked(api: Api, body: list[bytes]) -> tuple[int, int]:
+    """Call the ASGI app with a chunked body (no Content-Length); return (status, chunks read)."""
+    pulled = 0
+    statuses: list[int] = []
+
+    async def receive() -> dict[str, Any]:
+        nonlocal pulled
+        if pulled >= len(body):
+            return {"type": "http.disconnect"}
+        pulled += 1
+        return {"type": "http.request", "body": body[pulled - 1], "more_body": pulled < len(body)}
+
+    async def send(message: dict[str, Any]) -> None:
+        if message["type"] == "http.response.start":
+            statuses.append(message["status"])
+
+    scope = {
+        "type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "POST",
+        "scheme": "http", "path": JOBS, "raw_path": JOBS.encode(), "query_string": b"",
+        "root_path": "", "client": ("test", 1), "server": ("test", 80),
+        "headers": [(b"content-type", b"multipart/form-data; boundary=b"),
+                    (b"transfer-encoding", b"chunked")],
+        "app": api.client.app, "state": {},
+    }  # fmt: skip
+    await api.client.app(scope, receive, send)  # type: ignore[arg-type]
+    return statuses[0], pulled
 
 
 # ---------------------------------------------------------------- get job
@@ -353,3 +437,25 @@ def test_unknown_route_returns_problem_json(api: Api) -> None:
     assert response.status_code == 404
     assert response.headers["content-type"] == "application/problem+json"
     assert response.json()["status"] == 404
+
+
+# ---------------------------------------------------------------- metadata from the download
+
+
+def test_youtube_job_and_result_carry_the_downloaded_title(api: Api) -> None:
+    job_id = api.completed_job()
+
+    job = api.client.get(f"/v1/jobs/{job_id}").json()
+    result = api.client.get(f"/v1/jobs/{job_id}/result").json()
+
+    expected = {"title": FETCHED_TITLE, "artist": FETCHED_ARTIST, "sourceUrl": YOUTUBE}
+    assert job["metadata"] == result["metadata"] == expected
+
+
+def test_spotify_job_keeps_the_spotify_title(api: Api) -> None:
+    job_id = api.post_url(SPOTIFY, "spotify").json()["jobId"]
+    api.wait()
+
+    metadata = api.client.get(f"/v1/jobs/{job_id}").json()["metadata"]
+
+    assert (metadata["title"], metadata["artist"]) == ("Track", "Band")

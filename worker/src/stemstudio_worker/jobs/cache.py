@@ -8,7 +8,15 @@ from typing import Annotated
 from pydantic import Field, ValidationError
 
 from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.schemas import ContractModel, Job, JobResult, StemInfo, StemName
+from stemstudio_worker.schemas import (
+    ContractModel,
+    Job,
+    JobResult,
+    SourceMetadata,
+    SourceType,
+    StemInfo,
+    StemName,
+)
 
 _RESULT = "result.json"
 
@@ -25,12 +33,24 @@ def stem_url(job_id: str, stem: StemName) -> str:
 
 
 def rebind(canonical: JobResult, job: Job, completed_at: datetime) -> JobResult:
-    """Derive the result of ``job`` from a cached result (own id, key, metadata and stem URLs)."""
+    """Derive the result of ``job`` from a cached result (own id, key, metadata and stem URLs).
+
+    The job keeps its own metadata, except a YouTube job re-using a result of the same source:
+    that result carries the downloaded title, which beats the resolver's placeholder.
+    """
     stems = [s.model_copy(update={"path": stem_url(job.job_id, s.name)}) for s in canonical.stems]
     return canonical.model_copy(
         update={"job_id": job.job_id, "source_key": job.source_key, "stems": stems,
-                "metadata": job.metadata or canonical.metadata, "completed_at": completed_at},
+                "metadata": _metadata(canonical, job), "completed_at": completed_at},
     )  # fmt: skip
+
+
+def _metadata(canonical: JobResult, job: Job) -> SourceMetadata:
+    """Metadata of a job completed from ``canonical`` (see :func:`rebind`)."""
+    same_video = job.source_type is SourceType.YOUTUBE and canonical.source_key == job.source_key
+    if same_video or job.metadata is None:
+        return canonical.metadata
+    return job.metadata
 
 
 def stem_infos(job_id: str, stems: dict[StemName, Path]) -> list[StemInfo]:

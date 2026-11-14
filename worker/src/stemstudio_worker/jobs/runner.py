@@ -7,7 +7,7 @@ from pathlib import Path
 
 from stemstudio_worker.jobs import progress as p
 from stemstudio_worker.jobs.cache import ResultCache, rebind, stem_infos
-from stemstudio_worker.jobs.models import StoredJob, source_of
+from stemstudio_worker.jobs.models import StoredJob, fetched_metadata, source_of
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import (
@@ -68,10 +68,10 @@ class JobRunner:
             self._cleanup(job_id)
 
     def _run(self, record: StoredJob, tracker: p.JobTracker) -> None:
-        job = record.job
-        result = self._cache.lookup_source(job.source_key) or self._from_audio(record, tracker)
-        self._cache.link_source(job.source_key, result.audio_sha256)
-        tracker.complete(rebind(result, job, self._clock()))
+        key = record.job.source_key
+        result = self._cache.lookup_source(key) or self._from_audio(record, tracker)
+        self._cache.link_source(key, result.audio_sha256)
+        tracker.complete(rebind(result, tracker.job, self._clock()))
 
     def _from_audio(self, record: StoredJob, tracker: p.JobTracker) -> JobResult:
         audio = self._prepare(record, tracker)
@@ -85,7 +85,7 @@ class JobRunner:
         grid = self._adapters.analyzer.analyze(audio.wav_path)
         result = JobResult(
             job_id=record.job.job_id, source_key=record.job.source_key,
-            metadata=record.job.metadata or SourceMetadata(title="Untitled"),
+            metadata=tracker.job.metadata or SourceMetadata(title="Untitled"),
             duration_seconds=audio.duration_seconds, audio_sha256=audio.sha256,
             model=separation.model, stems=stem_infos(record.job.job_id, separation.stems),
             beat_grid=grid, completed_at=self._clock(),
@@ -105,7 +105,11 @@ class JobRunner:
             return self._paths.uploads(record.job.job_id) / record.upload_file
         tracker.update(JobState.DOWNLOADING, p.DOWNLOADING, 0)
         report = tracker.callback(JobState.DOWNLOADING, p.DOWNLOADING, p.download_percent)
-        return self._adapters.ingest.fetcher.fetch(source_of(record.job), work, report)
+        fetched = self._adapters.ingest.fetcher.fetch(source_of(record.job), work, report)
+        metadata = fetched_metadata(record.job, fetched)
+        if metadata is not None:
+            tracker.set_metadata(metadata)
+        return fetched.path
 
     def _separate(
         self, job_id: str, audio: NormalizedAudio, tracker: p.JobTracker

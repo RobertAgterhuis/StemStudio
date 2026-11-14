@@ -184,3 +184,30 @@ def test_concurrent_duplicate_creates_share_one_job(env: Env) -> None:
     assert sum(created for _, created in results) == 1
     assert len({job.job_id for job, _ in results}) == 1
     assert len(env.submitted) == 1
+
+
+def test_source_cache_hit_reuses_the_downloaded_youtube_title(env: Env) -> None:
+    env.fakes.ingest.fetched_title = "Real Title"
+    _fail(env, env.run(SOURCE))
+
+    second = env.run(SOURCE)  # resolved again with the placeholder title "Song"
+
+    record = env.store.get(second.job_id)
+    assert record is not None
+    assert record.result is not None
+    assert record.job.metadata == record.result.metadata
+    assert record.result.metadata.title == "Real Title"
+
+
+def test_source_cache_hit_keeps_spotify_metadata(env: Env) -> None:
+    spotify = SourceInfo(
+        SourceType.SPOTIFY, "spotify:4cOdK2wGLETKBW3PvgPWqT", "Track", "Band", SOURCE.youtube_url
+    )
+    env.run(SOURCE)  # cached under the YouTube key; same audio
+    first = env.run(spotify)
+    _fail(env, first)
+
+    second = env.run(spotify)
+
+    assert second.metadata is not None
+    assert (second.metadata.title, second.metadata.artist) == ("Track", "Band")
