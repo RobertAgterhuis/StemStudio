@@ -197,7 +197,11 @@ def test_resolve_spotify_without_match_fails_with_fixed_text() -> None:
 
 @pytest.mark.parametrize(
     "bad_match",
-    ["https://evil.example/watch?v=abcdefghijk", "https://www.youtube.com/playlist?list=PL1"],
+    [
+        "https://evil.example/watch?v=abcdefghijk",
+        "https://www.youtube.com/playlist?list=PL1",
+        f"https://open.spotify.com/track/{TRACK_ID}",
+    ],
 )
 def test_resolve_spotify_treats_non_youtube_match_as_no_match(bad_match: str) -> None:
     resolver = _resolver(matcher=FakeMatcher(url=bad_match))

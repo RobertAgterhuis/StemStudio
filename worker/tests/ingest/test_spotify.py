@@ -3,7 +3,7 @@
 import sys
 import types
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -101,8 +101,8 @@ class _FakeSpotifyError(Exception):
 
 
 class _FakeSpotifyClient:
-    init_calls: list[dict[str, Any]] = []
-    initialised = False
+    init_calls: ClassVar[list[dict[str, Any]]] = []
+    initialised: ClassVar[bool] = False
 
     @classmethod
     def init(cls, **kwargs: Any) -> None:
@@ -113,7 +113,7 @@ class _FakeSpotifyClient:
 
 
 class _FakeSongType:
-    urls: list[str] = []
+    urls: ClassVar[list[str]] = []
 
     @classmethod
     def from_url(cls, url: str) -> FakeSong:
@@ -133,6 +133,7 @@ def fake_spotdl(monkeypatch: pytest.MonkeyPatch) -> None:
     _FakeSpotifyClient.init_calls = []
     _FakeSpotifyClient.initialised = False
     _FakeSongType.urls = []
+    monkeypatch.setattr(spotify, "_client_ready", False)
     for package in ("spotdl", "spotdl.types", "spotdl.utils", "spotdl.providers"):
         _install(monkeypatch, package)
     _install(monkeypatch, "spotdl.types.song", Song=_FakeSongType)
@@ -160,6 +161,14 @@ def test_load_spotdl_song_initialises_client_once_from_spotdl_defaults() -> None
         "client_id": "public-id",
         "client_secret": "public-app-value",
     }
+
+
+@pytest.mark.usefixtures("fake_spotdl")
+def test_load_spotdl_song_tolerates_a_client_initialised_elsewhere() -> None:
+    _FakeSpotifyClient.initialised = True
+
+    assert spotify.load_spotdl_song("https://open.spotify.com/track/x") == FakeSong()
+    assert len(_FakeSpotifyClient.init_calls) == 1
 
 
 def _provider(url: str | None, calls: list[str]) -> type:
