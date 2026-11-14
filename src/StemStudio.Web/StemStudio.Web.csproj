@@ -8,6 +8,9 @@
     <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="StemStudio.Web.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Radzen.Blazor" />
   </ItemGroup>
 </Project>

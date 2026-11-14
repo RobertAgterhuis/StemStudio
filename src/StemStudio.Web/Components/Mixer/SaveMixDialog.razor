@@ -1,0 +1,50 @@
+@* Modal name dialog used for "Save" (first save), "Save as" and renaming in the mix library. *@
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal rz-card" role="dialog" aria-modal="true" aria-labelledby="save-mix-title">
+        <h2 id="save-mix-title" class="ss-subtitle">@Title</h2>
+        <label class="ss-label" for="mix-name">Name (1-100 characters)</label>
+        <input id="mix-name" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput"
+               aria-label="Mix name" data-testid="mix-name-input" />
+        @if (Error is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="mix-error">@Error</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" data-testid="mix-save-cancel" />
+            <RadzenButton Text="Save" Icon="save" Disabled="Busy" Click="() => OnConfirm.InvokeAsync(_name)"
+                          data-testid="mix-save-confirm" />
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Dialog title.</summary>
+    [Parameter]
+    public string Title { get; set; } = "Save mix";
+
+    /// <summary>Suggested name; the user edits it in place.</summary>
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Why the last attempt failed (e.g. name taken).</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    /// <summary>True while saving.</summary>
+    [Parameter]
+    public bool Busy { get; set; }
+
+    private string _name = string.Empty;
+
+    /// <summary>Raised with the entered name.</summary>
+    [Parameter]
+    public EventCallback<string> OnConfirm { get; set; }
+
+    /// <summary>Cancel pressed.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _name = Name;
+}

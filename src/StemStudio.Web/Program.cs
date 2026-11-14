@@ -1,15 +1,27 @@
 using Microsoft.Extensions.Options;
 using Radzen;
 using StemStudio.Web;
+using StemStudio.Web.Api;
+using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
+using StemStudio.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
+builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddTransient<IPollingTimer, PollingTimer>();
+builder.Services.AddScoped<IConfirmService, DialogConfirmService>();
+builder.Services.AddScoped<IKeyboardShortcuts, KeyboardShortcuts>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
-builder.Services.AddHttpClient(
+builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,
-    (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
+    (services, client) =>
+    {
+        client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl;
+        client.Timeout = TimeSpan.FromMinutes(10); // 200 MiB uploads are streamed through this client
+    });
 
 var app = builder.Build();
 app.UseAntiforgery();

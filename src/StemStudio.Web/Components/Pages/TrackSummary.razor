@@ -1,0 +1,37 @@
+@* Results of a completed track: stems, beat grid, duration, model and the way into the mixer. *@
+
+<RadzenCard class="ss-card">
+    <dl class="ss-facts">
+        <dt>Tempo</dt>
+        <dd data-testid="track-bpm">@TrackFacts.Bpm(Track)</dd>
+        <dt>Duration</dt>
+        <dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd>
+        <dt>Model</dt>
+        <dd data-testid="track-model">@TrackFacts.Model(Track)</dd>
+    </dl>
+
+    @if (TrackFacts.IsFallback(Track))
+    {
+        <p class="ss-help" data-testid="track-fallback-note">
+            The 6-stem model was unavailable, so the 4-stem fallback model was used: guitar and piano are part of
+            "other".
+        </p>
+    }
+
+    <h2 class="ss-subtitle">Stems</h2>
+    <ul class="ss-stems">
+        @foreach (var stem in Track.Stems)
+        {
+            <li class="ss-stem" data-testid="@($"track-stem-{stem.Name}")">@stem.Name</li>
+        }
+    </ul>
+
+    <a class="rz-button rz-button-md rz-variant-filled rz-primary rz-shade-default ss-link-button"
+       href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer">Open mixer</a>
+</RadzenCard>
+
+@code {
+    /// <summary>The completed track.</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
+}

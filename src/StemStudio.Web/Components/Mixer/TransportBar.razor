@@ -1,0 +1,56 @@
+@* Transport: play, pause, stop, seek slider and position (FR-012). *@
+
+<div class="ss-transport" role="toolbar" aria-label="Transport">
+    <RadzenButton Icon="play_arrow" aria-label="Play" aria-pressed="@Pressed(PlaybackState.Playing)" Click="OnPlay" Disabled="!Ready"
+                  data-testid="transport-play" />
+    <RadzenButton Icon="pause" ButtonStyle="ButtonStyle.Light" aria-label="Pause" aria-pressed="@Pressed(PlaybackState.Paused)"
+                  Click="OnPause" Disabled="!Ready" data-testid="transport-pause" />
+    <RadzenButton Icon="stop" ButtonStyle="ButtonStyle.Light" aria-label="Stop" Click="OnStop" Disabled="!Ready" data-testid="transport-stop" />
+    <input type="range" class="ss-seek" min="0" max="@InputValue.Format(Duration)" step="0.1"
+           value="@InputValue.Format(Rounded)" aria-valuenow="@InputValue.Format(Rounded)" aria-valuemin="0"
+           aria-valuemax="@InputValue.Format(Duration)" aria-valuetext="@TimeText.Position(Position)" aria-label="Seek"
+           @onchange="Seek" data-testid="transport-seek" />
+    <span class="ss-position" data-testid="transport-position">@TimeText.Position(Position) / @TimeText.Duration(Duration)</span>
+    <span class="ss-state" role="status" data-testid="transport-state">@State</span>
+</div>
+
+@code {
+    /// <summary>Position in seconds.</summary>
+    [Parameter]
+    public double Position { get; set; }
+
+    /// <summary>Track duration in seconds.</summary>
+    [Parameter]
+    public double Duration { get; set; }
+
+    /// <summary>Engine transport state.</summary>
+    [Parameter]
+    public PlaybackState State { get; set; }
+
+    /// <summary>False until the stems are decoded; transport buttons are disabled meanwhile.</summary>
+    [Parameter]
+    public bool Ready { get; set; }
+
+    /// <summary>Play pressed.</summary>
+    [Parameter]
+    public EventCallback OnPlay { get; set; }
+
+    /// <summary>Pause pressed.</summary>
+    [Parameter]
+    public EventCallback OnPause { get; set; }
+
+    /// <summary>Stop pressed.</summary>
+    [Parameter]
+    public EventCallback OnStop { get; set; }
+
+    /// <summary>Seek slider released at a position in seconds.</summary>
+    [Parameter]
+    public EventCallback<double> OnSeek { get; set; }
+
+    private double Rounded => Math.Round(Position, 1);
+
+    private string Pressed(PlaybackState state) => State == state ? "true" : "false";
+
+    private Task Seek(ChangeEventArgs args) =>
+        InputValue.Parse(args) is { } seconds ? OnSeek.InvokeAsync(seconds) : Task.CompletedTask;
+}

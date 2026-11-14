@@ -1,0 +1,46 @@
+@page "/tracks/{Id:guid}"
+
+<PageTitle>Track - StemStudio</PageTitle>
+
+@if (LoadError is not null)
+{
+    <div class="ss-error" role="alert" data-testid="track-load-error">@LoadError</div>
+}
+else if (Track is null)
+{
+    <p class="ss-muted" role="status">Loading...</p>
+}
+else
+{
+    <h1 data-testid="track-title">@Track.Title</h1>
+    @if (Track.Artist is not null)
+    {
+        <p class="ss-artist">@Track.Artist</p>
+    }
+
+    <RadzenCard class="ss-card">
+        <div class="ss-row">
+            <RadzenBadge BadgeStyle="TrackStatusText.Badge(Track.Status)" Text="@TrackStatusText.Label(Track.Status)"
+                         data-testid="track-status" />
+            <span class="ss-stage" data-testid="track-stage">@Track.Stage</span>
+        </div>
+        <RadzenProgressBar Value="Track.Progress" Max="100" ShowValue="true" aria-label="Processing progress"
+                           data-testid="track-progress" />
+
+        @if (ActionError is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="track-action-error">@ActionError</div>
+        }
+
+        @if (Track.Status == TrackStatusDto.Failed)
+        {
+            <div class="ss-error" role="alert" data-testid="track-error">@Track.Error</div>
+            <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" data-testid="track-retry" />
+        }
+    </RadzenCard>
+
+    @if (Track.Status == TrackStatusDto.Completed)
+    {
+        <TrackSummary Track="Track" />
+    }
+}
