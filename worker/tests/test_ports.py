@@ -1,11 +1,7 @@
 """Skeleton tests for the pipeline composition contract (ports + factory stubs)."""
 
-from collections.abc import Callable
 from pathlib import Path
 
-import pytest
-
-from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.ports import (
     IngestAdapters,
     NormalizedAudio,
@@ -15,7 +11,6 @@ from stemstudio_worker.ports import (
     SourceInfo,
 )
 from stemstudio_worker.schemas import BeatGrid, SourceType
-from stemstudio_worker.separation import create_separator
 
 _SOURCE = SourceInfo(SourceType.UPLOAD, "upload:" + "a" * 64, "Song", None, None)
 
@@ -52,9 +47,3 @@ def test_pipeline_adapters_compose_fakes(tmp_path: Path) -> None:
     assert adapters.ingest.upload_intake.accept("Song.mp3", tmp_path / "x") is _SOURCE
     assert adapters.separator.separate(tmp_path, tmp_path, lambda f, s: None).model == "fake"
     assert adapters.analyzer.analyze(tmp_path).reliable is False
-
-
-@pytest.mark.parametrize("factory", [create_separator])
-def test_factory_stubs_are_placeholders(factory: Callable[[WorkerSettings], object]) -> None:
-    with pytest.raises(NotImplementedError, match="agent"):
-        factory(WorkerSettings(data_dir=Path("unused")))
