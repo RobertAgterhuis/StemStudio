@@ -32,3 +32,22 @@ None.
 - ADR-008: hand-off per owner per checkpoint; analyze resolutions (MiB, 15-min job failure,
   beats-per-bar editable, SC-004 automated timing, Chromium+Firefox tested).
 - Contracts project is architect-owned and read-only during the wave (O1).
+
+## Wave progress (implementation)
+
+| Owner | Status | Evidence (CTO-verified) |
+|-------|--------|-------------------------|
+| beat-analysis | Merged (dec46a8) | 41 tests, 100% line/branch, ruff+mypy clean; BPM err <= 0.44, beat err <= 15 ms |
+| audio-ingest | Merged (60a75e1) | 201 tests, 100% line/branch, ruff+mypy clean; fullmatch + control-char rejection |
+| quality-gate | Merged (9299d13) | 119 tests, 100% line/branch; gate on skeleton: 0 errors, 4 soft warnings |
+| stem-separation, audio-engine, backend, frontend, qa, devops | In progress | - |
+
+## Integration backlog (CTO)
+
+- Contract gap (ingest): `AudioFetcher.fetch` returns only a path, so YouTube titles are a
+  placeholder. Fix after stem-separation merges: return title/artist with the fetched audio.
+- Worker upload errors: distinguish 400 (empty) / 413 (too large) / 415 (extension) via
+  `InvalidSourceError` subclasses in `ports.py`.
+- Add `dotnet-sonarscanner` to `dotnet-tools.json`.
+- Re-check beat reliability threshold (0.2) and downbeat placement on real music.
+- Licences accepted: pathspec MPL-2.0 (via lizard), spotDL GPL clients (metadata only).
