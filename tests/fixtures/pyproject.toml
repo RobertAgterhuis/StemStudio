@@ -30,6 +30,9 @@ select = [
 ]
 ignore = ["D203", "D213"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["generate_fixtures"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 5
 
@@ -50,6 +53,7 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 explicit_package_bases = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
 
 [[tool.mypy.overrides]]
 module = ["soundfile.*"]

@@ -8,10 +8,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-import generate_fixtures as gen
 import numpy as np
 import pytest
 import soundfile as sf
+
+import generate_fixtures as gen
 
 COMMITTED_MANIFEST = Path(__file__).resolve().parents[1] / "manifest.json"
 CATALOGUE = {
@@ -107,7 +108,9 @@ def test_downbeats_are_accented(generated: tuple[Path, dict[str, Any]], name: st
     out_dir, manifest = generated
     audio, rate = sf.read(str(out_dir / name), dtype="float64")
     entry = _entry(manifest, name)
-    peaks = {t: np.abs(audio[round(t * rate) : round(t * rate) + 200]).max() for t in entry["beatTimes"]}
+    peaks = {
+        t: np.abs(audio[round(t * rate) : round(t * rate) + 200]).max() for t in entry["beatTimes"]
+    }
     downbeats = set(entry["downbeatTimes"])
     assert len(downbeats) == -(-len(entry["beatTimes"]) // entry["beatsPerBar"])
     assert min(peaks[t] for t in downbeats) > max(p for t, p in peaks.items() if t not in downbeats)
@@ -156,9 +159,7 @@ def test_failing_ffmpeg_is_reported(monkeypatch: pytest.MonkeyPatch, tmp_path: P
         gen.generate(tmp_path, tmp_path / "manifest.json")
 
 
-def test_main_writes_to_the_given_paths(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_main_writes_to_the_given_paths(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     manifest = tmp_path / "m.json"
     assert gen.main(["--out-dir", str(tmp_path / "out"), "--manifest", str(manifest)]) == 0
     assert manifest.is_file()
@@ -175,3 +176,8 @@ def test_main_defaults_point_into_the_fixture_folder() -> None:
 def test_beat_times_cover_the_clip_from_the_first_beat() -> None:
     times = gen.beat_times(gen.Rhythm(bpm=120, beats_per_bar=4, duration_s=2.0))
     assert times == [0.5, 1.0, 1.5]
+
+
+def test_rhythmic_fixture_without_rhythm_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(gen.FixtureGenerationError, match="needs a rhythm"):
+        gen.write_fixture(gen.Fixture("broken.wav", "click", 1.0), tmp_path)
