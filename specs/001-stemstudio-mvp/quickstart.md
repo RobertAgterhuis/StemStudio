@@ -22,7 +22,7 @@ No accounts, keys or secrets are needed.
 dotnet build StemStudio.slnx
 dotnet test StemStudio.slnx
 dotnet test StemStudio.slnx --collect "XPlat Code Coverage"          # Cobertura per test project
-dotnet test StemStudio.slnx -p:CollectCoverage=true -p:Threshold=90 -p:ThresholdType=line%2cbranch
+dotnet test StemStudio.slnx -p:CollectCoverage=true   # per-component gate: 90 % line+branch (Directory.Build.props, ADR-006)
 dotnet format StemStudio.slnx --verify-no-changes
 
 # Worker
@@ -86,7 +86,7 @@ Health first: `GET http://localhost:8000/health`, `GET http://localhost:8081/hea
 | V1 | US1 upload | Open `/`, read the practice/copyright notice, upload a 10-30 s MP3 | 202; progress moves queued -> downloading -> separating -> analysing -> completed with stage texts; 6 stems (4 if fallback), BPM and duration shown |
 | V2 | US1 cache | Upload the same file again | 200 with the same track id, ready within 2 s (SC-006), no new worker job |
 | V3 | US1 YouTube/Spotify | Import `https://youtu.be/<id>`, then a `open.spotify.com/track/<id>` URL | title (and artist for Spotify) from source metadata; Spotify audio comes from a YouTube match |
-| V4 | US1 rejects | Submit a playlist URL, a `vimeo.com` URL, a `.ogg` file, a 201 MB file | 400/415/413 problem details with an actionable message; no track created |
+| V4 | US1 rejects | Submit a playlist URL, a `vimeo.com` URL, a `.ogg` file, a file of 200 MiB + 1 byte (209,715,201 bytes) | 400/415/413 problem details with an actionable message; no track created |
 | V5 | US1 failure | Stop the worker, import a URL | 503 "processing service unavailable"; existing tracks still play |
 | V6 | US1 restart | Restart the stack during "Separating stems" | the track shows failed "interrupted by restart"; Retry re-queues it |
 | V7 | US2 mixer | Open a completed track; mute guitar, solo drums+bass, pan, move faders | one strip per stem (default 80 %, pan 0), meters move, only soloed unmuted stems audible, changes audible < 50 ms |

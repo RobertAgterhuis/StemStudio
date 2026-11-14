@@ -28,7 +28,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
         "status": "ok",
         "separator": "fake",
         "device": "auto",
-        "contractVersion": "1.0.0",
+        "contractVersion": "1.0.1",
     }
 
 

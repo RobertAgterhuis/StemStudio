@@ -105,3 +105,26 @@ def test_problem_details_defaults_and_extensions() -> None:
 
     assert problem.type == "about:blank"
     assert problem.model_dump()["jobId"] == JOB_ID
+
+
+@pytest.mark.parametrize(("field", "limit"), [("stage", 200), ("error", 1000)])
+def test_job_text_limits(field: str, limit: int) -> None:
+    base = {
+        "jobId": JOB_ID,
+        "sourceKey": "youtube:dQw4w9WgXcQ",
+        "sourceType": "youtube",
+        "status": "failed",
+        "stage": "Failed",
+        "progress": 5,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    Job.model_validate({**base, field: "x" * limit})
+    with pytest.raises(ValidationError):
+        Job.model_validate({**base, field: "x" * (limit + 1)})
+
+
+def test_metadata_artist_limit() -> None:
+    SourceMetadata(title="t", artist="a" * 500)
+    with pytest.raises(ValidationError):
+        SourceMetadata(title="t", artist="a" * 501)

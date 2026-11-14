@@ -43,7 +43,11 @@ strictly ascending, >= 0), `Downbeats` (subset of `Beats`), `BeatsPerBar` (1..12
 |---|---|---|
 | YouTube | hosts `youtube.com`, `www.youtube.com`, `m.youtube.com`, `music.youtube.com` with `/watch?v=<id>` or `/shorts/<id>`; `youtu.be/<id>` | `youtube:<id>` (`[A-Za-z0-9_-]{11}`) |
 | Spotify | host `open.spotify.com`, path `/track/<id>` or `/intl-<xx>/track/<id>` | `spotify:<id>` (`[A-Za-z0-9]{22}`) |
-| Upload | extension `.mp3`/`.wav`/`.flac` (case-insensitive), 1 byte .. 200 MiB | `upload:<sha256 of bytes>` |
+| Upload | extension `.mp3`/`.wav`/`.flac` (case-insensitive), 1 byte .. 200 MiB (209,715,200 bytes) | `upload:<sha256 of bytes>` |
+
+Binding test vectors (accepted forms with expected key and canonical URL, rejected forms):
+[contracts/source-url-vectors.json](contracts/source-url-vectors.json). The API forwards the canonical
+URL (`https://www.youtube.com/watch?v=<id>`, `https://open.spotify.com/track/<id>`) to the worker.
 
 Rejected (400 with an actionable message): other hosts, non-https/http schemes, `list=`-only or
 `/playlist`, `/album/`, `/artist/`, `/episode/`, `/show/` URLs, missing ids. A `watch?v=<id>&list=...`
@@ -74,6 +78,9 @@ URL is accepted as the single video `<id>`.
 
 **Duplicate**: copy of settings with name `"<name> (copy)"`, then `"<name> (copy 2)"`, ... until
 unique; the base name is truncated so the result is <= 100 characters.
+
+**Ordering**: `GET /api/tracks` and `GET /api/mixes` return items ordered by `UpdatedAt`
+descending.
 
 **SQLite note**: EF Core's SQLite provider cannot translate ordering/comparison on
 `DateTimeOffset`. Store timestamps as UTC `DateTime` (or convert `DateTimeOffset` to ticks with a
@@ -149,6 +156,16 @@ Rules:
 | completed | 100 | "Completed" |
 | failed | unchanged | "Failed" |
 
+Fixed error texts (asserted verbatim by tests; other `WorkerError` messages are free text but
+must be readable and free of secrets):
+
+| Cause | `error` |
+|---|---|
+| Duration > 900 s (`AudioTooLongError`) | "Audio is longer than 15 minutes" |
+| Non-terminal job found at start-up | "interrupted by restart" |
+| Spotify track without YouTube match | "No matching YouTube audio was found for this Spotify track." |
+| Unexpected exception (bug) | "Unexpected error" |
+
 Cache hit by source key: queued -> completed directly. Cache hit by audio SHA-256 after
 normalisation: downloading -> completed (separation and analysis reused).
 
@@ -163,7 +180,7 @@ normalisation: downloading -> completed (separation and analysis reused).
 <STEMSTUDIO_DATA_DIR>/                # worker (default data/worker, compose: /data)
 ├── jobs/<jobId>.json                 # job state (atomic replace)
 ├── work/<jobId>/                     # temporary download + normalised WAV; deleted when terminal
-├── uploads/<jobId>/<file>            # received upload; deleted when terminal
+├── uploads/<jobId>/input<ext>        # received upload (<ext> = .mp3|.wav|.flac, lower-case); deleted when terminal
 └── cache/
     ├── by-source/<source_key with ':' replaced by '_'>.json   # {"audioSha256": "..."}
     └── by-audio/<audioSha256>/{result.json, stems/<name>.flac}

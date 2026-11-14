@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API
-  version: 1.0.0
+  version: 1.0.1
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -11,6 +11,9 @@ info:
     * CORS: the configured web origin (`StemStudio:WebOrigin`) may `GET` stems and tracks, so the
       browser audio engine can fetch FLAC files directly.
     * Times are UTC ISO 8601. Durations and positions are seconds (number).
+    * Collections (`GET /api/tracks`, `GET /api/mixes`) are ordered by `updatedAt` descending.
+    * Changelog: 1.0.1 (non-breaking) - stem caching/range headers (304, Last-Modified, 416
+      Content-Range), explicit field limits, canonical URL forwarding, 200 MiB in bytes.
   license:
     name: MIT
     identifier: MIT
@@ -49,7 +52,11 @@ paths:
       summary: Import a YouTube video URL or a Spotify track URL.
       description: |
         The API validates the URL (allow-listed hosts, single video/track only) and derives the
-        source key (`youtube:<videoId>` or `spotify:<trackId>`).
+        source key (`youtube:<videoId>` or `spotify:<trackId>`). Accepted and rejected forms and
+        their keys are listed in `source-url-vectors.json` (binding test vectors for the API and
+        the worker). The API forwards the **canonical** URL to the worker
+        (`https://www.youtube.com/watch?v=<id>` or `https://open.spotify.com/track/<id>`); a worker
+        `400` is returned as a `400` validation problem on field `url`, and nothing is persisted.
 
         * A track with that key exists: it is returned with `200` (cached; no new job). A failed
           track is returned as-is; the client may call `POST /api/tracks/{id}/retry`.
@@ -93,7 +100,7 @@ paths:
     post:
       tags: [imports]
       operationId: importFromUpload
-      summary: Import an uploaded MP3, WAV or FLAC file (max 200 MiB).
+      summary: Import an uploaded MP3, WAV or FLAC file (max 200 MiB = 209,715,200 bytes).
       description: |
         The source key is `upload:<sha256 of the file bytes>`. Caching and responses behave as
         for `POST /api/imports`. The title is the file name without extension.
@@ -134,7 +141,7 @@ paths:
     get:
       tags: [tracks]
       operationId: listTracks
-      summary: List all imported tracks, newest first.
+      summary: List all imported tracks, ordered by updatedAt descending.
       responses:
         '200':
           description: All tracks.
@@ -202,7 +209,12 @@ paths:
     get:
       tags: [tracks]
       operationId: getStem
-      summary: Download one stem as FLAC; supports HTTP Range requests and ETag caching.
+      summary: Download one stem as FLAC; supports HTTP Range requests and conditional GET.
+      description: |
+        Static-file semantics (ASP.NET Core `Results.File` with range processing): `ETag` and
+        `Last-Modified` on every 200/206/304; `If-None-Match` / `If-Modified-Since` -> 304;
+        `If-Range` honoured; an unsatisfiable range -> 416 with `Content-Range: bytes */<size>`.
+        CORS allows the configured web origin and exposes `Content-Range`, `Accept-Ranges`, `ETag`.
       parameters:
         - name: Range
           in: header
@@ -210,17 +222,31 @@ paths:
           schema:
             type: string
           example: bytes=0-1048575
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Modified-Since
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Range
+          in: header
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Whole stem file.
           headers:
             Accept-Ranges:
-              schema:
-                type: string
-                const: bytes
+              $ref: '#/components/headers/AcceptRanges'
             ETag:
-              schema:
-                type: string
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
           content:
             audio/flac:
               schema:
@@ -233,20 +259,39 @@ paths:
               schema:
                 type: string
               example: bytes 0-1048575/23456789
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
           content:
             audio/flac:
               schema:
                 type: string
                 contentMediaType: audio/flac
+        '304':
+          description: Not modified (`If-None-Match` or `If-Modified-Since` matched); no body.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
         '404':
           $ref: '#/components/responses/NotFound'
         '416':
-          description: Range not satisfiable.
+          description: Range not satisfiable; no body.
+          headers:
+            Content-Range:
+              description: '`bytes */<file size>` (RFC 9110 section 14.4).'
+              schema:
+                type: string
+              example: bytes */23456789
   /api/mixes:
     get:
       tags: [mixes]
       operationId: listMixes
-      summary: List saved mixes, most recently updated first.
+      summary: List saved mixes, ordered by updatedAt descending.
       parameters:
         - name: trackId
           in: query
@@ -411,6 +456,20 @@ components:
         type: string
         format: uuid
   headers:
+    AcceptRanges:
+      schema:
+        type: string
+        const: bytes
+    ETag:
+      description: Entity tag of the stem file.
+      schema:
+        type: string
+      example: '"1db3f0a2c4e5"'
+    LastModified:
+      description: HTTP-date of the stem file's last write.
+      schema:
+        type: string
+      example: Sat, 14 Nov 2026 12:06:30 GMT
     TrackLocation:
       description: URL of the track resource to poll.
       schema:
@@ -506,8 +565,11 @@ components:
           format: uuid
         title:
           type: string
+          minLength: 1
+          maxLength: 500
         artist:
           type: [string, 'null']
+          maxLength: 500
         sourceType:
           $ref: '#/components/schemas/SourceType'
         sourceKey:
@@ -519,21 +581,26 @@ components:
           $ref: '#/components/schemas/TrackStatus'
         stage:
           type: [string, 'null']
+          maxLength: 200
         progress:
           type: integer
           minimum: 0
           maximum: 100
         error:
           type: [string, 'null']
+          maxLength: 1000
         durationSeconds:
           type: [number, 'null']
-          minimum: 0
+          exclusiveMinimum: 0
+          maximum: 900
         model:
           type: [string, 'null']
           enum: [htdemucs_6s, htdemucs, fake, null]
         stems:
           type: array
-          description: Empty until completed; six stems for htdemucs_6s, four for htdemucs.
+          description: |
+            Empty until completed. Stem set by model: `htdemucs_6s` and `fake` = vocals, drums, bass,
+            guitar, piano, other (6); `htdemucs` = vocals, drums, bass, other (4).
           items:
             $ref: '#/components/schemas/Stem'
         beatGrid:
@@ -730,7 +797,7 @@ components:
               url:
                 - Only YouTube video links and Spotify track links are supported. Playlists and albums are not.
     PayloadTooLarge:
-      description: Upload larger than 200 MiB.
+      description: Upload larger than 200 MiB (209,715,200 bytes).
       content:
         application/problem+json:
           schema:
@@ -738,7 +805,7 @@ components:
           example:
             title: File too large
             status: 413
-            detail: The file is larger than 200 MB.
+            detail: The file is larger than 200 MiB (209,715,200 bytes).
     UnsupportedMediaType:
       description: Upload is not an .mp3, .wav or .flac file.
       content:

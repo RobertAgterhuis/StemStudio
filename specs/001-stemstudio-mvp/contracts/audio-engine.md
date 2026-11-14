@@ -44,7 +44,8 @@ metronome: AudioBufferSourceNode (accent | normal click) -> GainNode(click volum
   the **same** `offset` for every stem. Sources are never re-used.
 - Position = `offset + (ctx.currentTime - when)` while playing (wrapped into the loop region when
   looping); it is never accumulated from timers.
-- `pause()` stores the position and stops all sources; `stop()` also resets it to 0;
+- `pause()` stores the position and stops all sources; `stop()` also resets it to 0 (also while
+  looping; not to the loop start);
   `seek(t)` while playing = stop all + start all at the new offset with a fresh shared `when`.
 - End of track (no loop): the engine stops, sets position 0 and reports state `stopped`.
 

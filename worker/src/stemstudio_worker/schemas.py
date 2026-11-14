@@ -12,7 +12,7 @@ from typing import Annotated, Final, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.0.1"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -80,7 +80,7 @@ class SourceMetadata(ContractModel):
     """Descriptive metadata of the source audio."""
 
     title: Annotated[str, Field(min_length=1, max_length=500)]
-    artist: str | None = None
+    artist: Annotated[str | None, Field(max_length=500)] = None
     source_url: str | None = Field(
         default=None, description="The YouTube URL the audio was fetched from (null for uploads)."
     )
@@ -93,9 +93,9 @@ class Job(ContractModel):
     source_key: Annotated[str, Field(pattern=r"^(youtube|spotify|upload):[A-Za-z0-9_-]{1,64}$")]
     source_type: SourceType
     status: JobState
-    stage: str
+    stage: Annotated[str, Field(max_length=200)]
     progress: Progress
-    error: str | None = None
+    error: Annotated[str | None, Field(max_length=1000)] = None
     metadata: SourceMetadata | None = None
     created_at: datetime
     updated_at: datetime

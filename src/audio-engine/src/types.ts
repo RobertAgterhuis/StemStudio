@@ -134,7 +134,7 @@ export interface AudioEngine {
   play(): Promise<void>;
   /** Stops sources and remembers the position. */
   pause(): void;
-  /** Stops sources and resets the position to 0 (or to loop start when looping). */
+  /** Stops sources and resets the position to 0 (also when looping). */
   stop(): void;
   /** Jumps to `seconds` (clamped to 0..duration); keeps playing if playing. */
   seek(seconds: number): void;
