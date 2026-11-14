@@ -1,0 +1,58 @@
+using System.Globalization;
+using StemStudio.Domain.Tracks;
+
+namespace StemStudio.Api.Storage;
+
+/// <summary>Local-disk implementation of <see cref="IStemFileStore"/>.</summary>
+/// <param name="dataDirectory">The API data directory.</param>
+public sealed class StemFileStore(DataDirectory dataDirectory) : IStemFileStore
+{
+    /// <inheritdoc />
+    public string GetStemPath(Guid trackId, string stem)
+    {
+        if (!StemCatalog.IsKnown(stem))
+        {
+            throw new ArgumentException($"'{stem}' is not a stem name.", nameof(stem));
+        }
+
+        return Path.Combine(dataDirectory.Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture), "stems", stem + ".flac");
+    }
+
+    /// <inheritdoc />
+    public FileInfo? FindStem(Guid trackId, string stem)
+    {
+        if (!StemCatalog.IsKnown(stem))
+        {
+            return null;
+        }
+
+        var file = new FileInfo(GetStemPath(trackId, stem));
+        return file.Exists ? file : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<long> SaveStemAsync(Guid trackId, string stem, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(write);
+        var path = GetStemPath(trackId, stem);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            var size = await WriteAsync(temp, write, cancellationToken);
+            File.Move(temp, path, overwrite: true);
+            return size;
+        }
+        finally
+        {
+            File.Delete(temp);
+        }
+    }
+
+    private static async Task<long> WriteAsync(string path, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await write(stream, cancellationToken);
+        return stream.Length;
+    }
+}
