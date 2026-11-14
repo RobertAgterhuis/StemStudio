@@ -2,6 +2,8 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using StemStudio.Web.Api;
+using StemStudio.Web.Audio;
 
 namespace StemStudio.Web.Tests;
 
@@ -27,5 +29,14 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
 
         client.BaseAddress.ShouldBe(options.ApiBaseUrl);
         options.PublicApiBaseUrl.ShouldBe(new Uri("http://localhost:8081"));
+    }
+
+    [Fact]
+    public async Task Services_RegisterTypedApiClientAndAudioEngine()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+
+        scope.ServiceProvider.GetRequiredService<IStemStudioApiClient>().ShouldBeOfType<StemStudioApiClient>();
+        scope.ServiceProvider.GetRequiredService<IAudioEngine>().ShouldBeOfType<AudioEngineInterop>();
     }
 }

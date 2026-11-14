@@ -2,6 +2,7 @@ using System.Text.Json;
 using Bunit;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
+using NSubstitute;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Audio;
@@ -20,6 +21,7 @@ public sealed class AudioEngineInteropTests : IAsyncDisposable
     {
         _module = _context.JSInterop.SetupModule("./js/audio-engine.js");
         _engine = _module.SetupModule("createEngine", _ => true);
+        _engine.Mode = JSRuntimeMode.Loose;
         var options = Options.Create(new StemStudioWebOptions { PublicApiBaseUrl = new Uri("http://public.test:8081") });
         _interop = new AudioEngineInterop(_context.JSInterop.JSRuntime, options);
     }
@@ -123,10 +125,14 @@ public sealed class AudioEngineInteropTests : IAsyncDisposable
     [Fact]
     public async Task Initialize_JSException_IsSurfacedAsAudioEngineException()
     {
-        using var context = new BunitContext();
-        context.JSInterop.SetupModule("./js/audio-engine.js").Setup<IJSObjectReference>("createEngine", _ => true)
-            .SetException(new JSException("AudioContext not supported"));
-        await using var interop = new AudioEngineInterop(context.JSInterop.JSRuntime, Options.Create(new StemStudioWebOptions()));
+#pragma warning disable CA2012 // NSubstitute stubs ValueTask-returning members; nothing is consumed twice.
+        var js = Substitute.For<IJSRuntime>();
+        var module = Substitute.For<IJSObjectReference>();
+        js.InvokeAsync<IJSObjectReference>("import", Arg.Any<object?[]?>()).Returns(ValueTask.FromResult(module));
+        module.InvokeAsync<IJSObjectReference>("createEngine", Arg.Any<object?[]?>())
+            .Returns(ValueTask.FromException<IJSObjectReference>(new JSException("AudioContext not supported")));
+#pragma warning restore CA2012
+        await using var interop = new AudioEngineInterop(js, Options.Create(new StemStudioWebOptions()));
 
         await Should.ThrowAsync<AudioEngineException>(() => interop.InitializeAsync());
         interop.IsInitialized.ShouldBeFalse();

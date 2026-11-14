@@ -2,11 +2,13 @@ using Microsoft.Extensions.Options;
 using Radzen;
 using StemStudio.Web;
 using StemStudio.Web.Api;
+using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
+builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
 builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,

@@ -1,11 +1,16 @@
 @inherits LayoutComponentBase
 
 <RadzenComponents />
-<RadzenLayout>
-    <RadzenHeader>
-        <RadzenText TextStyle="TextStyle.H5" class="rz-m-2">StemStudio</RadzenText>
+<RadzenLayout class="ss-layout">
+    <RadzenHeader class="ss-header">
+        <div class="ss-header-row">
+            <span class="ss-brand" aria-label="StemStudio">StemStudio</span>
+            <NavMenu />
+        </div>
     </RadzenHeader>
-    <RadzenBody>
-        @Body
+    <RadzenBody class="ss-body">
+        <main class="ss-main">
+            @Body
+        </main>
     </RadzenBody>
 </RadzenLayout>
