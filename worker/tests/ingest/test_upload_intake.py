@@ -26,7 +26,7 @@ def test_accepts_supported_extensions_case_insensitively(tmp_path: Path, file_na
     info = FileUploadIntake().accept(file_name, _stored(tmp_path))
 
     assert info.source_type is SourceType.UPLOAD
-    assert info.title == "song"
+    assert info.title == file_name.rpartition(".")[0]
 
 
 @pytest.mark.parametrize(
