@@ -277,7 +277,7 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 
 ## Phase 7: Polish (inside the wave, per owner)
 
-- [ ] T109 [P] [quality-gate] Write `docs/quality/LINT-CONFIG.md` mapping each SIG limit to the enforcing rule (ruff C90/PLR, ESLint complexity/max-params/max-lines-per-function, .NET analyzers CA1502/CA1506 settings, lizard thresholds) and list config gaps as requests to the architect (configs are architect-owned); hand-off `docs/handoffs/quality-gate-polish.md` (checkpoint hand-off, see ADR-008)
+- [X] T109 [P] [quality-gate] Write `docs/quality/LINT-CONFIG.md` mapping each SIG limit to the enforcing rule (ruff C90/PLR, ESLint complexity/max-params/max-lines-per-function, .NET analyzers CA1502/CA1506 settings, lizard thresholds) and list config gaps as requests to the architect (configs are architect-owned); hand-off `docs/handoffs/quality-gate-polish.md` (checkpoint hand-off, see ADR-008)
 - [X] T110 [P] [qa] Audit test evidence: for every owner's hand-off check test-first commits, fakes instead of network/subprocess, the single integration marker, coverage numbers; write `docs/testing/AUDIT.md` with findings per owner
 - [X] T111 [P] [backend] Structured logging (job sync transitions, worker errors without stack traces to clients) in `src/StemStudio.Api/Sync/` and `Imports/`, with log assertions in existing tests; hand-off `docs/handoffs/backend-polish.md` (checkpoint hand-off, see ADR-008)
 - [X] T112 [P] [frontend] Accessibility pass (labels/aria for faders, pan, buttons; keyboard space = play/pause) with bUnit assertions; hand-off `docs/handoffs/frontend-polish.md` (checkpoint hand-off, see ADR-008)
@@ -294,16 +294,16 @@ reset, aligned after seek/loop/pause. **Independent test**: quickstart V9.
 
 Sequential unless marked [P]. Owners named in brackets fix their own findings in their worktree.
 
-- [ ] T119 [CTO] Merge worktrees into `001-stemstudio-mvp` in dependency order: quality-gate, devops, audio-ingest, beat-analysis, stem-separation, backend, audio-engine, frontend, qa; resolve conflicts only in CTO-owned files, send anything else back to the owner
-- [ ] T120 [CTO] Full local verification on the merged branch: `scripts/test-all.ps1` (all builds, `dotnet format`, ruff/mypy, ESLint/tsc, every test suite) and coverage >= 90 % line+branch per component (.NET Api, .NET Web, worker, audio engine); worker coverage now measured on the whole `stemstudio_worker` package; record the output of `uv run pytest -m integration` (real Demucs, K5)
-- [ ] T121 [quality-gate] Run `python tools/quality/run_all.py --report docs/quality/SIG-REPORT.md` on the merged code; issue refactor requests per owner; re-run until no hard breach
+- [X] T119 [CTO] Merge worktrees into `001-stemstudio-mvp` in dependency order: quality-gate, devops, audio-ingest, beat-analysis, stem-separation, backend, audio-engine, frontend, qa; resolve conflicts only in CTO-owned files, send anything else back to the owner
+- [X] T120 [CTO] Full local verification on the merged branch: `scripts/test-all.ps1` (all builds, `dotnet format`, ruff/mypy, ESLint/tsc, every test suite) and coverage >= 90 % line+branch per component (.NET Api, .NET Web, worker, audio engine); worker coverage now measured on the whole `stemstudio_worker` package; record the output of `uv run pytest -m integration` (real Demucs, K5)
+- [X] T121 [quality-gate] Run `python tools/quality/run_all.py --report docs/quality/SIG-REPORT.md` on the merged code; issue refactor requests per owner; re-run until no hard breach
 - [x] T122 [qa] Generate fixtures, `STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait`, run `npm test` in `e2e/` with retries=0 (import, mixer, main flow) on Chromium and Firefox, including one streamed upload of `upload_4mb.wav` (G1) and the persistence check: save a mix, `docker compose restart api web`, reload and load the mix with every setting equal (G2, SC-005); file defects per owner
 - [x] T123 [qa] Real-Demucs run: `docker compose up` with `STEMSTUDIO_SEPARATOR=demucs`, `npm run test:real`; record processing time of the 20 s fixture and a 4-minute song, model used, model-cache reuse on second start
 - [ ] T124 [CTO] Manual quickstart validation V1-V10 (including V5 worker down -> 503, V6 restart -> "interrupted by restart" + Retry, V9 audible metronome alignment, SC-002 stem alignment after 50 loop repetitions). SC-002 method: unit evidence from T082 plus a browser check in which `page.evaluate` renders two stems of the fixture through an `OfflineAudioContext` with the engine's start/loop parameters and compares the sample offsets of the outputs (no Vitest: jsdom has no `OfflineAudioContext`); document the result in `docs/MVP-REPORT.md` (G4)
 - [ ] T125 [P] [CTO] Push the branch and confirm `.github/workflows/ci.yml` is green (all jobs incl. e2e); trigger `e2e-real.yml` once
-- [ ] T126 [P] [CTO] Consolidate `docs/THIRD-PARTY-LICENSES.md` from every hand-off (NuGet, Python incl. flagged GPL/LGPL transitive packages, npm, Docker base images, ffmpeg) and the known-limitations section (FR-010 stem limitation, unofficial Spotify-client ToS risk)
-- [ ] T127 [CTO] Write `README.md` (one-command start, non-Docker path, limitations, legal notice) and `docs/MVP-REPORT.md` (scope delivered per FR/SC, coverage table, SIG report summary, E2E evidence, open issues, backlog: mix export first)
-- [ ] T128 [CTO] Update `docs/STATUS.md`, run `/speckit-analyze` for drift between spec, plan, tasks and code, and tag the MVP commit
+- [X] T126 [P] [CTO] Consolidate `docs/THIRD-PARTY-LICENSES.md` from every hand-off (NuGet, Python incl. flagged GPL/LGPL transitive packages, npm, Docker base images, ffmpeg) and the known-limitations section (FR-010 stem limitation, unofficial Spotify-client ToS risk)
+- [X] T127 [CTO] Write `README.md` (one-command start, non-Docker path, limitations, legal notice) and `docs/MVP-REPORT.md` (scope delivered per FR/SC, coverage table, SIG report summary, E2E evidence, open issues, backlog: mix export first)
+- [X] T128 [CTO] Update `docs/STATUS.md`, run `/speckit-analyze` for drift between spec, plan, tasks and code, and tag the MVP commit
 
 ---
 
@@ -387,16 +387,16 @@ Agent devops:          T011 worker.Dockerfile
 
 Per task and for the MVP:
 
-- [ ] Red-green-refactor followed: the failing test was committed or shown before the implementation (I)
-- [ ] All tests green; coverage >= 90 % line AND branch per component (.NET Api, .NET Web, worker, audio engine), exact numbers in the hand-off; CI fails below the threshold (I)
-- [ ] Heavy tools (Demucs, librosa where slow, yt-dlp, spotDL, ffmpeg) behind ports with fakes; exactly one `@pytest.mark.integration` test; Playwright main flow green with retries=0 (I)
-- [ ] SIG limits: unit <= 15 LOC (never > 30), CC <= 5 (never > 10), <= 4 parameters, no duplicated block >= 6 lines, one-way dependencies; `tools/quality/run_all.py` passes (II)
-- [ ] Implementation matches the contracts; contract tests pass; no breaking change without ADR + version bump; every public API documented (XML docs, docstrings, TSDoc) (III)
-- [ ] Only OSI-licensed dependencies, each listed with version, licence and URL in the hand-off; no DRM circumvention; legal notice in the UI (IV)
-- [ ] MVP scope only; limitations documented (FR-010); audible timing only from `AudioContext.currentTime` (V)
-- [ ] No secrets in files or command lines; URLs/files validated (allow-listed hosts, size limits, no path traversal); subprocess argument arrays, never a shell (Security)
-- [ ] .NET analyzers with warnings as errors + `dotnet format --verify-no-changes`; ruff + ruff format + mypy --strict; ESLint + `tsc --noEmit` clean
-- [ ] Hand-off note `docs/handoffs/<agent>-<task>.md` written; `docs/STATUS.md` updated by the CTO; Conventional Commit with the Co-Authored-By trailer
+- [X] Red-green-refactor followed: the failing test was committed or shown before the implementation (I)
+- [X] All tests green; coverage >= 90 % line AND branch per component (.NET Api, .NET Web, worker, audio engine), exact numbers in the hand-off; CI fails below the threshold (I)
+- [X] Heavy tools (Demucs, librosa where slow, yt-dlp, spotDL, ffmpeg) behind ports with fakes; exactly one `@pytest.mark.integration` test; Playwright main flow green with retries=0 (I)
+- [X] SIG limits: unit <= 15 LOC (never > 30), CC <= 5 (never > 10), <= 4 parameters, no duplicated block >= 6 lines, one-way dependencies; `tools/quality/run_all.py` passes (II)
+- [X] Implementation matches the contracts; contract tests pass; no breaking change without ADR + version bump; every public API documented (XML docs, docstrings, TSDoc) (III)
+- [X] Only OSI-licensed dependencies, each listed with version, licence and URL in the hand-off; no DRM circumvention; legal notice in the UI (IV)
+- [X] MVP scope only; limitations documented (FR-010); audible timing only from `AudioContext.currentTime` (V)
+- [X] No secrets in files or command lines; URLs/files validated (allow-listed hosts, size limits, no path traversal); subprocess argument arrays, never a shell (Security)
+- [X] .NET analyzers with warnings as errors + `dotnet format --verify-no-changes`; ruff + ruff format + mypy --strict; ESLint + `tsc --noEmit` clean
+- [X] Hand-off note `docs/handoffs/<agent>-<task>.md` written; `docs/STATUS.md` updated by the CTO; Conventional Commit with the Co-Authored-By trailer
 
 ---
 

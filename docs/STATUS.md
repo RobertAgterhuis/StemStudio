@@ -12,12 +12,13 @@ _Owner: CTO (orchestrator). Updated after every reviewed hand-off._
 | 4 | Plan, contracts, data model, skeleton (`/speckit-plan`) | architect | Done (reviewed: build 0 warnings, 10+24+2 tests green) |
 | 5 | Tasks (`/speckit-tasks`) | architect | Done (142 tasks, Phase 0 T001-T003 + T129-T133 done) |
 | 6 | Analyze (`/speckit-analyze`) | CTO | Done (38 findings, 0 critical, all resolved; ADR-008) |
-| 7 | Implementation (`/speckit-implement`) | 9 agents in parallel worktrees | In progress |
-| 8 | E2E verification + MVP report | qa / CTO | Pending |
+| 7 | Implementation (`/speckit-implement`) | 9 agents in parallel worktrees | Done (all merged, all gates green) |
+| 8 | E2E verification + MVP report | qa / CTO | Done (see docs/MVP-REPORT.md); T124 partial, T125 open (no remote) |
 
 ## Blockers
 
-None.
+- T125: the repository has no GitHub remote, so GitHub Actions has not run. Pushing is an
+  outward-facing action left to the owner. Local equivalent (`scripts/test-all.ps1`) is 29/29 green.
 
 ## Decisions
 
@@ -44,7 +45,9 @@ None.
 | audio-engine | Merged (56d932e) | 121 tests, 100% stmt/branch/func/line; lint+typecheck clean; G4 + SC-003 tests |
 | qa | Merged (9361e48) | fixture tests 100%; e2e tsc+lint clean; 40 Playwright tests listed (run in integration wave) |
 | stem-separation | Merged (c4dab5a) | 116 tests, 100% line/branch; real htdemucs_6s integration test passed (3.4 s warm on 6 s clip); full worker 386 tests 100%; live smoke (fake separator) upload -> completed -> FLAC stems OK |
-| backend, frontend | In progress | - |
+| frontend | Merged (9de5f90) | 184 bUnit tests; 99.77% line / 94.36% branch |
+| backend | Merged (de334cb, 3455ba2) | 433 tests; Domain 97.7/97.7, Persistence 99.0/100, Api 99.9/98.3 |
+| integration fixes | Merged | worker titles/upload codes/streamed 413; sig-exempt; CI guards removed; orphaned imports |
 
 ## Integration backlog (CTO)
 
@@ -67,3 +70,10 @@ None.
 - Integration backlog additions: worker 413 without Content-Length buffers first (backend always
   sends a length); backend worker-client timeout must allow for spotDL latency; review the
   transitive `httpx2` used by Starlette's TestClient.
+
+## Final verification (CTO, 2026-11-15)
+
+- `scripts/test-all.ps1`: 29/29 steps passed.
+- Fake stack: Playwright 36/36 (Chromium + Firefox), restart specs 2/2.
+- `docker compose up` (real Demucs): `@real` main flow 2/2.
+- SIG gate: 0 errors, 1 exemption, 103 soft warnings.
