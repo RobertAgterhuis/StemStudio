@@ -1,0 +1,6 @@
+lizard==1.24.3 ; sys_platform == 'linux' or sys_platform == 'win32'
+    # via stemstudio-quality
+pathspec==1.1.1 ; sys_platform == 'linux' or sys_platform == 'win32'
+    # via lizard
+pygments==2.21.0 ; sys_platform == 'linux' or sys_platform == 'win32'
+    # via lizard
