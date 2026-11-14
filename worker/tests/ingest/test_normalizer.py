@@ -13,6 +13,7 @@ import pytest
 
 from stemstudio_worker.ingest.normalizer import (
     CommandResult,
+    FfmpegConfig,
     FfmpegNormalizer,
     SubprocessRunner,
 )
@@ -69,6 +70,13 @@ def _paths(tmp_path: Path) -> tuple[Path, Path]:
     return source, tmp_path / "audio.wav"
 
 
+PROBE_ARGS = "ffprobe -v error -select_streams a:0 -show_entries stream=codec_type:format=duration"
+CONVERT_ARGS = (
+    "-map 0:a:0 -vn -sn -dn -t 901 -ac 2 -ar 44100 -c:a pcm_s16le -f wav",
+    "ffmpeg -nostdin -hide_banner -loglevel error -y -i",
+)
+
+
 def test_probe_and_convert_use_exact_argument_lists(tmp_path: Path) -> None:
     runner = FakeRunner()
     source, output = _paths(tmp_path)
@@ -76,44 +84,10 @@ def test_probe_and_convert_use_exact_argument_lists(tmp_path: Path) -> None:
     FfmpegNormalizer(runner).normalize(source, output)
 
     (probe_args, _), (convert_args, _) = runner.calls
-    assert probe_args == [
-        "ffprobe",
-        "-v",
-        "error",
-        "-select_streams",
-        "a:0",
-        "-show_entries",
-        "stream=codec_type:format=duration",
-        "-of",
-        "json",
-        f"file:{source.resolve()}",
-    ]
-    assert convert_args == [
-        "ffmpeg",
-        "-nostdin",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-i",
-        f"file:{source.resolve()}",
-        "-map",
-        "0:a:0",
-        "-vn",
-        "-sn",
-        "-dn",
-        "-t",
-        "901",
-        "-ac",
-        "2",
-        "-ar",
-        "44100",
-        "-c:a",
-        "pcm_s16le",
-        "-f",
-        "wav",
-        f"file:{output.resolve()}",
-    ]
+    source_url, output_url = f"file:{source.resolve()}", f"file:{output.resolve()}"
+    assert probe_args == [*PROBE_ARGS.split(), "-of", "json", source_url]
+    convert_tail, convert_head = CONVERT_ARGS
+    assert convert_args == [*convert_head.split(), source_url, *convert_tail.split(), output_url]
 
 
 def test_normalize_returns_duration_and_sha256_of_the_wav(tmp_path: Path) -> None:
@@ -131,7 +105,7 @@ def test_custom_binaries_and_limit_are_used(tmp_path: Path) -> None:
     runner = FakeRunner()
     source, output = _paths(tmp_path)
 
-    FfmpegNormalizer(runner, max_duration_seconds=60, ffmpeg="/opt/ffmpeg").normalize(
+    FfmpegNormalizer(runner, FfmpegConfig(max_duration_seconds=60, ffmpeg="/opt/ffmpeg")).normalize(
         source, output
     )
 
@@ -192,7 +166,7 @@ def test_converted_duration_over_limit_is_too_long(tmp_path: Path) -> None:
     )
 
     with pytest.raises(AudioTooLongError, match="longer than 1 minutes"):
-        FfmpegNormalizer(runner, max_duration_seconds=60).normalize(*_paths(tmp_path))
+        FfmpegNormalizer(runner, FfmpegConfig(max_duration_seconds=60)).normalize(*_paths(tmp_path))
 
 
 def test_non_zero_ffmpeg_exit_is_a_decode_error(tmp_path: Path) -> None:

@@ -63,3 +63,26 @@ the architect or CTO, because the factory is now implemented.
 ## Next owner
 
 CTO (review and merge, order per T119).
+
+## Quality fix (CTO request after merge)
+
+- The quality gate (`uv run --project tools/quality python tools/quality/run_all.py`, after
+  `git merge 001-stemstudio-mvp`) reported a hard-limit error:
+  `normalizer.py:86 [parameters] __init__ has 5 parameters (max 4)`. This is fixed with the
+  frozen parameter object `FfmpegConfig(max_duration_seconds, ffmpeg, ffprobe)`. The new
+  signature is `FfmpegNormalizer(runner=None, config=None)`. `max_duration_seconds` stays a
+  read-only property, and the factory passes `FfmpegConfig(max_duration_seconds=settings...)`.
+- I also cleared every complexity warning in `ingest/` (the gate counts boolean operators). The
+  fixes were helper extraction in `urls.py` (`_check_scheme`, `_watch_id`, `_spotify_segments`,
+  `_spotify_track_id`; `_spotify` went from 10 to 3) and in `fetcher.py` (`_total_bytes`,
+  `_reject_playlists_and_live`).
+- Test duplication `test_url_resolver.py:167/187` is removed with shared vector lists and the
+  `_resolve_with_fakes` helper. The 43-LOC exact-argument test in `test_normalizer.py` is
+  compacted.
+- Result: `quality gate: 114 files, 932 units, 1 clones, 0 errors, 20 warnings -> exit 0`. There
+  are 0 findings in `worker/src/stemstudio_worker/ingest/**`. Four unit-size warnings (15-LOC
+  soft limit) remain in `worker/tests/ingest/**`, all at 17-23 LOC, and there is no clone in my
+  paths.
+- `uv run pytest tests/ingest --cov=stemstudio_worker.ingest --cov-branch`: 201 passed, 1
+  deselected. Line 100 % (465/465), branch 100 % (84/84). Integration: 1 passed. `ruff check`,
+  `ruff format --check` and `mypy --strict src` are clean.

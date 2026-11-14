@@ -15,7 +15,7 @@ Modules:
 
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.ingest.fetcher import YtDlpFetcher
-from stemstudio_worker.ingest.normalizer import FfmpegNormalizer
+from stemstudio_worker.ingest.normalizer import FfmpegConfig, FfmpegNormalizer
 from stemstudio_worker.ingest.resolver import UrlSourceResolver
 from stemstudio_worker.ingest.spotify import SpotdlMetadataClient, SpotdlYouTubeMatcher
 from stemstudio_worker.ingest.upload import FileUploadIntake
@@ -39,5 +39,7 @@ def create_ingest_adapters(settings: WorkerSettings) -> IngestAdapters:
         resolver=UrlSourceResolver(SpotdlMetadataClient(), SpotdlYouTubeMatcher()),
         upload_intake=FileUploadIntake(max_upload_bytes=settings.max_upload_bytes),
         fetcher=YtDlpFetcher(max_duration_seconds=settings.max_duration_seconds),
-        normalizer=FfmpegNormalizer(max_duration_seconds=settings.max_duration_seconds),
+        normalizer=FfmpegNormalizer(
+            config=FfmpegConfig(max_duration_seconds=settings.max_duration_seconds)
+        ),
     )

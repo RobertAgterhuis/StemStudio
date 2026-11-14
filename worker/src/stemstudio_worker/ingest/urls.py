@@ -113,10 +113,7 @@ def _split(url: str) -> SplitResult:
     """
     _check_text(url)
     parts = urlsplit(url)
-    if not parts.scheme:
-        raise InvalidSourceError(_MSG_MALFORMED)
-    if parts.scheme.lower() not in ("http", "https"):
-        raise InvalidSourceError(_MSG_SCHEME)
+    _check_scheme(parts.scheme)
     if not parts.netloc or "@" in parts.netloc or _has_port(parts):
         raise InvalidSourceError(_MSG_MALFORMED)
     return parts
@@ -128,6 +125,14 @@ def _check_text(url: str) -> None:
         raise InvalidSourceError(_MSG_EMPTY)
     if len(url) > MAX_URL_LENGTH or _CONTROL_CHARS.search(url):
         raise InvalidSourceError(_MSG_MALFORMED)
+
+
+def _check_scheme(scheme: str) -> None:
+    """Require an http or https scheme."""
+    if not scheme:
+        raise InvalidSourceError(_MSG_MALFORMED)
+    if scheme.lower() not in ("http", "https"):
+        raise InvalidSourceError(_MSG_SCHEME)
 
 
 def _has_port(parts: SplitResult) -> bool:
@@ -148,16 +153,20 @@ def _youtube(video_id: str) -> ParsedSourceUrl:
 def _youtube_site_id(parts: SplitResult) -> str:
     """Extract the video id from a ``youtube.com`` path and query."""
     path = parts.path.rstrip("/")
-    query = parse_qs(parts.query)
     if path == "/watch":
-        if "v" not in query and "list" in query:
-            raise InvalidSourceError(_MSG_PLAYLIST)
-        return query.get("v", [""])[0]
+        return _watch_id(parse_qs(parts.query))
     if path == "/playlist":
         raise InvalidSourceError(_MSG_PLAYLIST)
     if path == "/shorts" or path.startswith("/shorts/"):
         return path.removeprefix("/shorts").removeprefix("/")
     raise InvalidSourceError(_MSG_YOUTUBE_PATH)
+
+
+def _watch_id(query: dict[str, list[str]]) -> str:
+    """Return ``v`` of a ``/watch`` query; a ``list`` without ``v`` is a playlist."""
+    if "v" not in query and "list" in query:
+        raise InvalidSourceError(_MSG_PLAYLIST)
+    return query.get("v", [""])[0]
 
 
 def _youtu_be_id(path: str) -> str:
@@ -167,15 +176,26 @@ def _youtu_be_id(path: str) -> str:
 
 def _spotify(path: str) -> ParsedSourceUrl:
     """Validate a Spotify path ``[/intl-xx]/track/<id>``."""
-    segments = [segment for segment in path.split("/") if segment]
-    if segments and _SPOTIFY_LOCALE.fullmatch(segments[0]):
-        segments = segments[1:]
-    kind = segments[0] if segments else ""
+    kind, rest = _spotify_segments(path)
     if kind in _SPOTIFY_KIND_MESSAGES:
         raise InvalidSourceError(_SPOTIFY_KIND_MESSAGES[kind])
     if kind != "track":
         raise InvalidSourceError(_MSG_SPOTIFY_PATH)
-    track_id = segments[1] if len(segments) == 2 else ""  # noqa: PLR2004 - ["track", <id>]
+    track_id = _spotify_track_id(rest)
+    return ParsedSourceUrl(SourceType.SPOTIFY, track_id, canonical_spotify_url(track_id))
+
+
+def _spotify_segments(path: str) -> tuple[str, list[str]]:
+    """Split a Spotify path into (kind, remaining segments), skipping an ``intl-xx`` prefix."""
+    segments = list(filter(None, path.split("/")))
+    if segments and _SPOTIFY_LOCALE.fullmatch(segments[0]):
+        segments = segments[1:]
+    return (segments[0], segments[1:]) if segments else ("", [])
+
+
+def _spotify_track_id(rest: list[str]) -> str:
+    """Return the single segment after ``/track/`` when it is a valid 22-char track id."""
+    track_id = rest[0] if len(rest) == 1 else ""
     if not _SPOTIFY_ID.fullmatch(track_id):
         raise InvalidSourceError(_MSG_SPOTIFY_ID)
-    return ParsedSourceUrl(SourceType.SPOTIFY, track_id, canonical_spotify_url(track_id))
+    return track_id
