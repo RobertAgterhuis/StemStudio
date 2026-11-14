@@ -1,4 +1,4 @@
-""""No clear pulse" edge cases: the analyzer never raises and flags the grid unreliable (T054)."""
+"""No-clear-pulse edge cases: the analyzer never raises and flags the grid unreliable (T054)."""
 
 from pathlib import Path
 

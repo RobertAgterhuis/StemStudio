@@ -93,6 +93,4 @@ def _trim_weak_edges(times: FloatArray, strengths: FloatArray) -> FloatArray:
     if len(times) == 0:
         return times
     strong = np.flatnonzero(strengths >= EDGE_TRIM_RATIO * float(np.median(strengths)))
-    if len(strong) == 0:
-        return times[:0]
     return times[strong[0] : strong[-1] + 1]
