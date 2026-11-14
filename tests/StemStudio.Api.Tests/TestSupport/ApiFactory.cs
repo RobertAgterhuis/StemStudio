@@ -17,7 +17,15 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
 {
     public static readonly DateTimeOffset Start = new(2026, 11, 14, 12, 0, 0, TimeSpan.Zero);
 
-    public string DataDir { get; } = Directory.CreateTempSubdirectory("stemstudio-api-").FullName;
+    private readonly bool _ownsDataDir;
+
+    public ApiFactory(string? dataDir = null)
+    {
+        _ownsDataDir = dataDir is null;
+        DataDir = dataDir ?? Directory.CreateTempSubdirectory("stemstudio-api-").FullName;
+    }
+
+    public string DataDir { get; }
 
     public FakeWorkerClient Worker { get; } = new();
 
@@ -73,7 +81,10 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         SqliteConnection.ClearAllPools();
         try
         {
-            Directory.Delete(DataDir, true);
+            if (_ownsDataDir)
+            {
+                Directory.Delete(DataDir, true);
+            }
         }
         catch (IOException)
         {
