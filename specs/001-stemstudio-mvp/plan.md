@@ -41,7 +41,8 @@ with `STEMSTUDIO_SEPARATOR=fake`. SIG metrics via `tools/quality/` (lizard + jsc
 
 **Target Platform**: Single local machine. Docker Compose on Linux containers (x86_64/aarch64) as
 the primary run path; native run on Windows/Linux as documented alternative. Evergreen desktop
-browsers (Chromium, Firefox, Safari 17+) with Web Audio and FLAC decoding.
+browsers with Web Audio and FLAC decoding: Chromium and Firefox are tested (Playwright);
+Safari 17+ is best effort, untested.
 
 **Project Type**: Web application: Blazor server-rendered UI + REST API + Python worker service +
 browser-side TypeScript audio library.
@@ -171,6 +172,7 @@ agent owns disjoint folders (see `.claude/agents/*.md`).
 | Path | Owner |
 |---|---|
 | `specs/**`, `docs/decisions/ADR-002+`, skeleton files | architect |
+| `src/StemStudio.Contracts/**` (HTTP DTOs = backend contract) | architect; read-only for backend and frontend during the wave (DTO gaps come back as contract-fix requests) |
 | `src/StemStudio.{Domain,Persistence,Api}`, matching tests | backend |
 | `src/StemStudio.Web`, `tests/StemStudio.Web.Tests` | frontend |
 | `src/audio-engine/**` (except `src/types.ts`, configs) | audio-engine |
