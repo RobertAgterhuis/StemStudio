@@ -127,15 +127,15 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         }
 
         var status = (int)response.StatusCode;
-        if (status >= 500)
-        {
-            throw ServerFailure(message, status);
-        }
+        throw status >= 500 ? ServerFailure(message, status) : await RejectionAsync(message, response, cancellationToken);
+    }
 
+    private async Task<WorkerRequestException> RejectionAsync(HttpRequestMessage message, HttpResponseMessage response, CancellationToken cancellationToken)
+    {
         var detail = await ReadDetailAsync(response, cancellationToken);
         var rejected = Describe(message);
-        LogRejected(logger, rejected, status, detail);
-        throw new WorkerRequestException(response.StatusCode, detail);
+        LogRejected(logger, rejected, (int)response.StatusCode, detail);
+        return new WorkerRequestException(response.StatusCode, detail);
     }
 
     private WorkerUnavailableException ServerFailure(HttpRequestMessage message, int status)
@@ -153,13 +153,15 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         try
         {
             var problem = await response.Content.ReadFromJsonAsync<WorkerProblem>(Json, cancellationToken);
-            return problem?.Detail ?? problem?.Title ?? fallback;
+            return DetailOf(problem, fallback);
         }
         catch (JsonException)
         {
             return fallback;
         }
     }
+
+    private static string DetailOf(WorkerProblem? problem, string fallback) => problem?.Detail ?? problem?.Title ?? fallback;
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Processing service unreachable on {Request}: {Reason}")]
     private static partial void LogUnavailable(ILogger logger, string request, string reason);

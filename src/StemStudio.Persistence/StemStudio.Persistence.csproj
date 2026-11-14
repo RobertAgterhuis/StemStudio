@@ -4,6 +4,9 @@
     <RootNamespace>StemStudio.Persistence</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="StemStudio.Persistence.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\StemStudio.Domain\StemStudio.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>

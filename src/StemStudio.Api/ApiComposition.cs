@@ -81,6 +81,7 @@ public static class ApiComposition
         services.AddScoped<MixService>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
+        services.AddScoped<OrphanedImportSweeper>();
         services.AddHostedService<JobSyncService>();
     }
 

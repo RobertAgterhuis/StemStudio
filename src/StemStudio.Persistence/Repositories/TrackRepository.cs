@@ -27,6 +27,12 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .ToListAsync(cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken) =>
+        await context.Tracks
+            .Where(track => track.WorkerJobId == null && track.Status == TrackStatus.Queued && track.UpdatedAt < updatedBeforeUtc)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public async Task AddAsync(Track track, CancellationToken cancellationToken)
     {
         context.Tracks.Add(track);

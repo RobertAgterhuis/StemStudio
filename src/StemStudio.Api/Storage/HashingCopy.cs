@@ -24,6 +24,11 @@ public static class HashingCopy
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
+        return await HashCopyAsync(source, destination, maxBytes, cancellationToken);
+    }
+
+    private static async Task<HashResult> HashCopyAsync(Stream source, Stream destination, long maxBytes, CancellationToken cancellationToken)
+    {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
         try
@@ -44,16 +49,13 @@ public static class HashingCopy
         int read;
         while ((read = await source.ReadAsync(state.Buffer.AsMemory(0, BufferSize), cancellationToken)) > 0)
         {
-            total += read;
-            if (total > state.MaxBytes)
-            {
-                throw new UploadTooLargeException();
-            }
-
+            total = WithinLimit(total + read, state.MaxBytes);
             state.Hash.AppendData(state.Buffer, 0, read);
             await destination.WriteAsync(state.Buffer.AsMemory(0, read), cancellationToken);
         }
 
         return total;
     }
+
+    private static long WithinLimit(long total, long maxBytes) => total <= maxBytes ? total : throw new UploadTooLargeException();
 }

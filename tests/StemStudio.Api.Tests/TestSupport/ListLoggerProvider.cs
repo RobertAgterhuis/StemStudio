@@ -26,6 +26,7 @@ internal sealed class ListLoggerProvider : ILoggerProvider
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
+        // sig-exempt: interface-mandated signature (ILogger.Log)
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
             entries.Enqueue(new LogEntry(category, logLevel, formatter(state, exception), exception));
     }

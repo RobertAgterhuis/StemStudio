@@ -40,6 +40,49 @@ public sealed class JobSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Progress_PlaceholderTitleIsReplacedByTheRealTitleOnALaterPoll()
+    {
+        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(WithMetadata(FakeWorkerClient.Job(id, WorkerJobState.Downloading, 5), "YouTube video dQw4w9WgXcQ", null));
+        await SyncAsync();
+        (await _factory.FindTrackAsync(track.Id))!.Title.ShouldBe("YouTube video dQw4w9WgXcQ");
+
+        Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(WithMetadata(FakeWorkerClient.Job(id, WorkerJobState.Separating, 30), "Never Gonna Give You Up", "Rick Astley"));
+        await SyncAsync();
+
+        var synced = (await _factory.FindTrackAsync(track.Id))!;
+        synced.Title.ShouldBe("Never Gonna Give You Up");
+        synced.Artist.ShouldBe("Rick Astley");
+    }
+
+    [Fact]
+    public async Task Progress_LongWorkerMetadataIsCutToTheLimits()
+    {
+        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(WithMetadata(FakeWorkerClient.Job(id, WorkerJobState.Separating, 30), new string('t', 600), new string('a', 600)));
+
+        await SyncAsync();
+
+        var synced = (await _factory.FindTrackAsync(track.Id))!;
+        synced.Title.Length.ShouldBe(Track.MaxTitleLength);
+        synced.Artist!.Length.ShouldBe(Track.MaxArtistLength);
+    }
+
+    [Fact]
+    public async Task Completed_ResultMetadataReplacesThePlaceholderTitle()
+    {
+        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(WithMetadata(FakeWorkerClient.Job(id, WorkerJobState.Completed, 100), "YouTube video dQw4w9WgXcQ", null));
+
+        await SyncAsync();
+
+        var synced = (await _factory.FindTrackAsync(track.Id))!;
+        synced.Status.ShouldBe(TrackStatus.Completed);
+        synced.Title.ShouldBe("Never Gonna Give You Up");
+        synced.Artist.ShouldBe("Rick Astley");
+    }
+
+    [Fact]
     public async Task Progress_BackwardStatusIsIgnored()
     {
         var track = SyncTestData.UrlTrack();
@@ -279,7 +322,7 @@ public sealed class JobSyncServiceTests : IDisposable
         _factory.Clock.Advance(TimeSpan.FromMilliseconds(1000));
         await polled.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        await WaitUntilAsync(async () => (await _factory.FindTrackAsync(track.Id))!.Status == TrackStatus.Downloading);
+        await Eventually.WaitUntilAsync(async () => (await _factory.FindTrackAsync(track.Id))!.Status == TrackStatus.Downloading);
     }
 
     [Fact]
@@ -302,11 +345,14 @@ public sealed class JobSyncServiceTests : IDisposable
         factory.CreateClient().Dispose();
 
         factory.Clock.Advance(TimeSpan.FromSeconds(1));
-        await WaitUntilAsync(() => Task.FromResult(Volatile.Read(ref calls) >= 1));
+        await Eventually.WaitUntilAsync(() => Task.FromResult(Volatile.Read(ref calls) >= 1));
         factory.Clock.Advance(TimeSpan.FromSeconds(1));
 
         await secondTick.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
+
+    private static WorkerJob WithMetadata(WorkerJob job, string title, string? artist) =>
+        job with { Metadata = new WorkerSourceMetadata(title, artist, null) };
 
     private IStemFileStore Stems() => _factory.Services.GetRequiredService<IStemFileStore>();
 
@@ -315,19 +361,4 @@ public sealed class JobSyncServiceTests : IDisposable
         await sp.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(TestContext.Current.CancellationToken);
         return true;
     });
-
-    private static async Task WaitUntilAsync(Func<Task<bool>> condition)
-    {
-        for (var attempt = 0; attempt < 200; attempt++)
-        {
-            if (await condition())
-            {
-                return;
-            }
-
-            await Task.Delay(25, TestContext.Current.CancellationToken);
-        }
-
-        throw new TimeoutException("Condition not met.");
-    }
 }

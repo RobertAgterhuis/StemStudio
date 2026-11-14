@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
+using Polly;
 
 namespace StemStudio.Api.Worker;
 
@@ -8,8 +9,8 @@ public static class WorkerClientRegistration
 {
     /// <summary>
     /// Adds <see cref="IWorkerClient"/> with the standard resilience pipeline: retries (3, exponential from 200 ms) for
-    /// GET only (never POST, so a job or upload is never sent twice), 2-minute attempt and 5-minute total timeouts and a
-    /// circuit breaker.
+    /// GET only (never POST, so a job or upload is never sent twice), per-request attempt timeouts
+    /// (<see cref="WorkerTimeouts"/>: long for creating a job, short for polls), a total timeout and a circuit breaker.
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <param name="configuration">Configuration holding the <c>StemStudio</c> section.</param>
@@ -18,7 +19,8 @@ public static class WorkerClientRegistration
     {
         services.AddOptions<StemStudioApiOptions>().Bind(configuration.GetSection(StemStudioApiOptions.SectionName));
         var builder = services.AddHttpClient<IWorkerClient, WorkerClient>(ConfigureClient);
-        builder.AddStandardResilienceHandler(ConfigureResilience);
+        builder.AddStandardResilienceHandler()
+            .Configure((options, provider) => ConfigureResilience(options, provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value));
         return builder;
     }
 
@@ -29,13 +31,16 @@ public static class WorkerClientRegistration
         client.Timeout = Timeout.InfiniteTimeSpan;
     }
 
-    private static void ConfigureResilience(HttpStandardResilienceOptions options)
+    private static void ConfigureResilience(HttpStandardResilienceOptions options, StemStudioApiOptions api)
     {
+        // The static attempt timeout bounds every generated one; the total and sampling windows must cover it.
+        var longest = api.WorkerCreateJobTimeout + api.WorkerPollTimeout;
         options.Retry.DisableForUnsafeHttpMethods();
         options.Retry.MaxRetryAttempts = 3;
         options.Retry.Delay = TimeSpan.FromMilliseconds(200);
-        options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(2);
-        options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
-        options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(5);
+        options.AttemptTimeout.Timeout = longest;
+        options.AttemptTimeout.TimeoutGenerator = args => ValueTask.FromResult(WorkerTimeouts.For(args.Context.GetRequestMessage(), api));
+        options.TotalRequestTimeout.Timeout = longest * 2;
+        options.CircuitBreaker.SamplingDuration = longest * 3;
     }
 }

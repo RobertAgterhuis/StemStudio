@@ -86,6 +86,19 @@ public sealed partial class BackendContractTests
     }
 
     [Fact]
+    public async Task DuplicateMix_ConcurrentNameClash409MatchesContract()
+    {
+        var (mix, mixes) = MixRepositoryStubs.ConcurrentNameClash();
+        using var factory = new ApiFactory { ConfigureServices = services => services.AddScoped(_ => mixes) };
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(new Uri(ApiRoutes.DuplicateMix(mix.Id), UriKind.Relative), null, Ct);
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.Conflict);
+        await ContractAssert.MatchesAsync(response, "duplicateMix");
+    }
+
+    [Fact]
     public async Task ServedOpenApiDocument_ListsExactlyTheContractOperations()
     {
         using var response = await GetAsync("/openapi/v1.json");

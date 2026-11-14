@@ -17,4 +17,19 @@ public sealed class StemStudioApiOptions
 
     /// <summary>Interval of the job synchroniser in milliseconds.</summary>
     public int JobPollIntervalMs { get; set; } = 1000;
+
+    /// <summary>
+    /// Attempt timeout for creating a worker job (POST). Spotify imports resolve the YouTube match synchronously
+    /// (spotDL), so this is at least 60 seconds.
+    /// </summary>
+    public TimeSpan WorkerCreateJobTimeout { get; set; } = TimeSpan.FromSeconds(90);
+
+    /// <summary>Attempt timeout for every other worker call: status polls, results and stem response headers.</summary>
+    public TimeSpan WorkerPollTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Age after which a queued track without a worker job is failed as "Import interrupted"; longer than
+    /// <see cref="WorkerCreateJobTimeout"/>, so an import that is still waiting for the worker is never swept.
+    /// </summary>
+    public TimeSpan OrphanedImportTimeout { get; set; } = TimeSpan.FromSeconds(120);
 }

@@ -132,19 +132,22 @@ public sealed class MixTests
         Settings().Validate(queued).Select(e => e.Field).ShouldContain("trackId");
     }
 
-    [Theory]
-    [InlineData(29.9, 0, 4, -0.1, "metronome.bpmOverride")]
-    [InlineData(300.1, 0, 4, 0.5, "metronome.bpmOverride")]
-    [InlineData(null, -2001, 4, 0.5, "metronome.offsetMs")]
-    [InlineData(null, 2001, 4, 0.5, "metronome.offsetMs")]
-    [InlineData(null, 0, 0, 0.5, "metronome.beatsPerBar")]
-    [InlineData(null, 0, 13, 0.5, "metronome.beatsPerBar")]
-    [InlineData(null, 0, 4, 1.5, "metronome.volume")]
-    public void Validate_RejectsMetronomeOutOfRange(double? bpm, int offset, int beatsPerBar, double volume, string field)
-    {
-        var metronome = new MetronomeSettings { Enabled = true, BpmOverride = bpm, OffsetMs = offset, BeatsPerBar = beatsPerBar, Volume = volume };
+    public static TheoryData<MetronomeCase> OutOfRangeMetronomes =>
+    [
+        new MetronomeCase(29.9, 0, 4, -0.1, "metronome.bpmOverride"),
+        new MetronomeCase(300.1, 0, 4, 0.5, "metronome.bpmOverride"),
+        new MetronomeCase(null, -2001, 4, 0.5, "metronome.offsetMs"),
+        new MetronomeCase(null, 2001, 4, 0.5, "metronome.offsetMs"),
+        new MetronomeCase(null, 0, 0, 0.5, "metronome.beatsPerBar"),
+        new MetronomeCase(null, 0, 13, 0.5, "metronome.beatsPerBar"),
+        new MetronomeCase(null, 0, 4, 1.5, "metronome.volume"),
+    ];
 
-        FieldsOf(Settings() with { Metronome = metronome }).ShouldContain(field);
+    [Theory]
+    [MemberData(nameof(OutOfRangeMetronomes))]
+    public void Validate_RejectsMetronomeOutOfRange(MetronomeCase testCase)
+    {
+        FieldsOf(Settings() with { Metronome = testCase.ToSettings() }).ShouldContain(testCase.Field);
     }
 
     [Theory]
@@ -285,4 +288,12 @@ public sealed class MixTests
 
         public int GetHashCode(MixSettings obj) => obj.Name.GetHashCode(StringComparison.Ordinal);
     }
+}
+
+/// <summary>One out-of-range metronome setting and the field that must be reported.</summary>
+public sealed record MetronomeCase(double? Bpm, int Offset, int BeatsPerBar, double Volume, string Field)
+{
+    /// <summary>The enabled metronome settings of this case.</summary>
+    /// <returns>The settings.</returns>
+    public MetronomeSettings ToSettings() => new() { Enabled = true, BpmOverride = Bpm, OffsetMs = Offset, BeatsPerBar = BeatsPerBar, Volume = Volume };
 }

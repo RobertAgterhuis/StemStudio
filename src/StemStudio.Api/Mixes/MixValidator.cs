@@ -24,13 +24,7 @@ public static class MixValidator
         Require(errors, dto.Name is not null, "name");
         Require(errors, dto.Metronome is not null, "metronome");
         Require(errors, dto.Channels is not null, "channels");
-        for (var i = 0; i < (dto.Channels?.Count ?? 0); i++)
-        {
-            var field = string.Create(CultureInfo.InvariantCulture, $"channels[{i}]");
-            Require(errors, dto.Channels![i] is not null, field);
-            Require(errors, dto.Channels[i] is null || dto.Channels[i].Stem is not null, field + ".stem");
-        }
-
+        RequireChannels(errors, dto.Channels ?? []);
         return errors.Count == 0 ? (MixMapper.ToDomain(dto), errors) : (null, errors);
     }
 
@@ -40,6 +34,16 @@ public static class MixValidator
     /// <returns>The problem.</returns>
     public static IResult Problem(IEnumerable<DomainError> errors, string prefix) =>
         ApiProblems.Validation(errors.Select(error => error.Field == "trackId" || prefix.Length == 0 ? error : error with { Field = $"{prefix}.{error.Field}" }), string.Empty);
+
+    private static void RequireChannels(List<DomainError> errors, IReadOnlyList<ChannelSettingsDto> channels)
+    {
+        for (var i = 0; i < channels.Count; i++)
+        {
+            var field = string.Create(CultureInfo.InvariantCulture, $"channels[{i}]");
+            Require(errors, channels[i] is not null, field);
+            Require(errors, channels[i] is null || channels[i].Stem is not null, field + ".stem");
+        }
+    }
 
     private static void Require(List<DomainError> errors, bool present, string field)
     {

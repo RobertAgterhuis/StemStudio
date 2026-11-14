@@ -61,13 +61,11 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
             var stored = await uploads.SaveAsync(content, Path.GetExtension(fileName), cancellationToken);
             return await ImportStoredAsync(stored, fileName, cancellationToken);
         }
-        catch (UploadTooLargeException)
+        catch (Exception exception) when (exception is UploadTooLargeException or EmptyUploadException)
         {
-            return ApiProblems.TooLarge();
-        }
-        catch (EmptyUploadException)
-        {
-            return ApiProblems.Validation("file", "The file is empty. Choose an MP3, WAV or FLAC file.");
+            return exception is UploadTooLargeException
+                ? ApiProblems.TooLarge()
+                : ApiProblems.Validation("file", "The file is empty. Choose an MP3, WAV or FLAC file.");
         }
     }
 
@@ -90,7 +88,8 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
 
     /// <summary>
     /// Inserts the track first (the unique index serialises parallel imports of one source, G5), then creates the
-    /// worker job. On a worker failure the track is removed again, so nothing is persisted.
+    /// worker job. On a worker rejection or outage the track is removed again, so nothing is persisted; when the call is
+    /// cancelled (client gone) or fails unexpectedly the track is failed as interrupted, so it can be retried.
     /// </summary>
     private async Task<(IResult Result, Track? Owner)> StartAsync(
         Track track, Func<CancellationToken, Task<WorkerJob>> createJob, string field, CancellationToken cancellationToken)
@@ -104,7 +103,22 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
             return await ExistingAfterRaceAsync(track.Key, cancellationToken);
         }
 
-        return await StartJobAsync(track, createJob, field, cancellationToken);
+        return await InterruptOnFailureAsync(track, () => StartJobAsync(track, createJob, field, cancellationToken));
+    }
+
+    /// <summary>A cancelled (client gone) or unexpectedly failing job start fails the track, so it can be retried.</summary>
+    private async Task<T> InterruptOnFailureAsync<T>(Track track, Func<Task<T>> start)
+    {
+        try
+        {
+            return await start();
+        }
+        catch
+        {
+            track.Fail(Sync.OrphanedImportSweeper.ImportInterrupted, Now);
+            await tracks.SaveAsync(CancellationToken.None);
+            throw;
+        }
     }
 
     private async Task<(IResult Result, Track? Owner)> StartJobAsync(

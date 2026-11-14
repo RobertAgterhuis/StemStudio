@@ -4,6 +4,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Storage;
+using StemStudio.Api.Sync;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
@@ -58,6 +59,32 @@ public sealed class ImportServiceTests
 
         result.ShouldBeOfType<Ok<TrackDto>>().Value!.Id.ShouldBe(winner.Id);
         _uploads.DidNotReceive().Delete(Arg.Any<string>());
+    }
+
+    public static TheoryData<Exception> InterruptingFailures() =>
+    [
+        new OperationCanceledException("client disconnected"),
+        new InvalidOperationException("bug"),
+    ];
+
+    [Theory]
+    [MemberData(nameof(InterruptingFailures))]
+    public async Task WorkerCallInterrupted_FailsTheInsertedTrackRetryablyAndRethrows(Exception failure)
+    {
+        Track? added = null;
+        _tracks.FindByKeyAsync(Arg.Any<SourceKey>(), Arg.Any<CancellationToken>()).Returns((Track?)null);
+        _tracks.AddAsync(Arg.Do<Track>(track => added = track), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        _worker.OnCreateUrl = _ => throw failure;
+
+        var thrown = await Record.ExceptionAsync(() => Service().ImportUrlAsync("https://youtu.be/dQw4w9WgXcQ", Ct));
+
+        thrown.ShouldBeSameAs(failure);
+        added.ShouldNotBeNull();
+        added.Status.ShouldBe(TrackStatus.Failed);
+        added.Error.ShouldBe(OrphanedImportSweeper.ImportInterrupted);
+        added.CanRetry.ShouldBeTrue();
+        await _tracks.Received(1).SaveAsync(CancellationToken.None);
+        await _tracks.DidNotReceive().RemoveAsync(Arg.Any<Track>(), Arg.Any<CancellationToken>());
     }
 
     private ImportService Service() => new(_tracks, _worker, _uploads, _clock);
