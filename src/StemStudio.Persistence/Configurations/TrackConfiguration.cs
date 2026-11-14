@@ -14,16 +14,21 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.ToTable("Tracks");
         builder.HasKey(track => track.Id);
         builder.Property(track => track.Id).ValueGeneratedNever();
-        builder.Property(track => track.Key).HasColumnName("SourceKey").HasMaxLength(80)
-            .HasConversion(key => key.Value, value => SourceKey.FromStored(value));
-        builder.HasIndex(track => track.Key).IsUnique();
-        builder.Property(track => track.SourceType).HasConversion<string>().HasMaxLength(16);
-        builder.Property(track => track.Status).HasConversion<string>().HasMaxLength(16);
+        ConfigureKeyAndEnums(builder);
         ConfigureText(builder);
         builder.Ignore(track => track.Stems);
         builder.ComplexCollection<List<Stem>, Stem>("_stems", collection => collection.ToJson("Stems"));
         builder.ComplexProperty(track => track.BeatGrid, grid => grid.ToJson());
         builder.HasIndex(track => track.UpdatedAt);
+    }
+
+    private static void ConfigureKeyAndEnums(EntityTypeBuilder<Track> builder)
+    {
+        builder.Property(track => track.Key).HasColumnName("SourceKey").HasMaxLength(80)
+            .HasConversion(key => key.Value, value => SourceKey.FromStored(value));
+        builder.HasIndex(track => track.Key).IsUnique();
+        builder.Property(track => track.SourceType).HasConversion<string>().HasMaxLength(16);
+        builder.Property(track => track.Status).HasConversion<string>().HasMaxLength(16);
     }
 
     private static void ConfigureText(EntityTypeBuilder<Track> builder)

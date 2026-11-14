@@ -16,17 +16,9 @@ public sealed partial class UploadStore(DataDirectory dataDirectory, long maxByt
         var normalized = NormalizeExtension(extension);
         Directory.CreateDirectory(_directory);
         var temp = Path.Combine(_directory, $"{Guid.NewGuid():N}.tmp");
-        try
-        {
-            var hash = await WriteAsync(content, temp, cancellationToken);
-            var fileName = hash.Sha256 + normalized;
-            File.Move(temp, Path.Combine(_directory, fileName), overwrite: true);
-            return new StoredUpload(fileName, hash.Sha256, hash.SizeBytes);
-        }
-        finally
-        {
-            File.Delete(temp);
-        }
+        var hash = await AtomicFile.WriteAsync(
+            temp, file => CopyNonEmptyAsync(content, file, cancellationToken), result => Path.Combine(_directory, result.Sha256 + normalized));
+        return new StoredUpload(hash.Sha256 + normalized, hash.Sha256, hash.SizeBytes);
     }
 
     /// <inheritdoc />
@@ -50,9 +42,8 @@ public sealed partial class UploadStore(DataDirectory dataDirectory, long maxByt
         ? extension.ToLowerInvariant()
         : throw new ArgumentException($"'{extension}' is not an allowed upload extension.", nameof(extension));
 
-    private async Task<HashResult> WriteAsync(Stream content, string path, CancellationToken cancellationToken)
+    private async Task<HashResult> CopyNonEmptyAsync(Stream content, Stream file, CancellationToken cancellationToken)
     {
-        await using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
         var hash = await HashingCopy.CopyAsync(content, file, maxBytes, cancellationToken);
         return hash.SizeBytes > 0 ? hash : throw new EmptyUploadException();
     }

@@ -19,6 +19,11 @@ public static class MixEndpoints
         app.MapPost(ApiRoutes.Mixes, (CreateMixRequest? request, MixService mixes, CancellationToken ct) => mixes.CreateAsync(request, ct))
             .WithName("createMix").WithTags("mixes").Produces<MixDto>(StatusCodes.Status201Created).ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
+        return app.MapMixItemEndpoints();
+    }
+
+    private static IEndpointRouteBuilder MapMixItemEndpoints(this IEndpointRouteBuilder app)
+    {
         app.MapGet(MixRoute, (Guid mixId, MixService mixes, CancellationToken ct) => mixes.GetAsync(mixId, ct))
             .WithName("getMix").WithTags("mixes").Produces<MixDto>().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPut(MixRoute, (Guid mixId, MixSettingsDto? settings, MixService mixes, CancellationToken ct) => mixes.UpdateAsync(mixId, settings, ct))

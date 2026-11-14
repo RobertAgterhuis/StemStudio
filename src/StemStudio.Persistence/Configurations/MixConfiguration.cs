@@ -20,6 +20,11 @@ public sealed class MixConfiguration : IEntityTypeConfiguration<Mix>
         builder.HasIndex(mix => new { mix.TrackId, mix.NormalizedName }).IsUnique();
         builder.HasIndex(mix => mix.UpdatedAt);
         builder.HasOne<Track>().WithMany().HasForeignKey(mix => mix.TrackId).OnDelete(DeleteBehavior.Restrict);
+        ConfigureSettings(builder);
+    }
+
+    private static void ConfigureSettings(EntityTypeBuilder<Mix> builder)
+    {
         builder.Ignore(mix => mix.Channels);
         builder.ComplexCollection<List<ChannelSettings>, ChannelSettings>("_channels", collection => collection.ToJson("Channels"));
         builder.ComplexProperty(mix => mix.Metronome, metronome => metronome.ToJson());

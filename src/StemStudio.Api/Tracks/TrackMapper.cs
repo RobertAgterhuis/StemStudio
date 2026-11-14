@@ -13,24 +13,13 @@ public static class TrackMapper
     public static TrackDto ToDto(Track track)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return new TrackDto
+        return Source(track) with
         {
-            Id = track.Id,
-            Title = track.Title,
-            Artist = track.Artist,
-            SourceType = Enum.Parse<SourceTypeDto>(track.SourceType.ToString()),
-            SourceKey = track.Key.Value,
-            SourceUrl = track.SourceUrl,
-            Status = Enum.Parse<TrackStatusDto>(track.Status.ToString()),
             Stage = track.Stage,
-            Progress = track.Progress,
             Error = track.Error,
             DurationSeconds = track.DurationSeconds,
             Model = track.Model,
-            Stems = track.Stems.Select(stem => new StemDto(stem.Name, ApiRoutes.Stem(track.Id, stem.Name))).ToList(),
             BeatGrid = ToDto(track.BeatGrid),
-            CreatedAt = Utc(track.CreatedAt),
-            UpdatedAt = Utc(track.UpdatedAt),
         };
     }
 
@@ -38,6 +27,21 @@ public static class TrackMapper
     /// <param name="value">UTC time.</param>
     /// <returns>The timestamp.</returns>
     public static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private static TrackDto Source(Track track) => new()
+    {
+        Id = track.Id,
+        Title = track.Title,
+        Artist = track.Artist,
+        SourceType = Enum.Parse<SourceTypeDto>(track.SourceType.ToString()),
+        SourceKey = track.Key.Value,
+        SourceUrl = track.SourceUrl,
+        Status = Enum.Parse<TrackStatusDto>(track.Status.ToString()),
+        Progress = track.Progress,
+        Stems = track.Stems.Select(stem => new StemDto(stem.Name, ApiRoutes.Stem(track.Id, stem.Name))).ToList(),
+        CreatedAt = Utc(track.CreatedAt),
+        UpdatedAt = Utc(track.UpdatedAt),
+    };
 
     private static BeatGridDto? ToDto(BeatGrid? grid) => grid is null
         ? null

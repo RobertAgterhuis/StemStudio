@@ -30,14 +30,9 @@ public sealed partial class TrackSynchronizer(
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
     {
-        WorkerJob? job;
-        try
+        var (reachable, job) = await TryGetJobAsync(track, cancellationToken);
+        if (!reachable)
         {
-            job = await worker.GetJobAsync(track.WorkerJobId!, cancellationToken);
-        }
-        catch (WorkerUnavailableException)
-        {
-            LogWorkerUnavailable(logger, track.Id);
             return;
         }
 
@@ -45,6 +40,19 @@ public sealed partial class TrackSynchronizer(
         await applier.ApplyAsync(track, job, cancellationToken);
         await tracks.SaveAsync(cancellationToken);
         LogTransition(track, before);
+    }
+
+    private async Task<(bool Reachable, WorkerJob? Job)> TryGetJobAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (true, await worker.GetJobAsync(track.WorkerJobId!, cancellationToken));
+        }
+        catch (WorkerUnavailableException)
+        {
+            LogWorkerUnavailable(logger, track.Id);
+            return (false, null);
+        }
     }
 
     private void LogTransition(Track track, TrackStatus before)

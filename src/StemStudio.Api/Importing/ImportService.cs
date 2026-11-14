@@ -32,14 +32,7 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
         }
 
         var existing = await tracks.FindByKeyAsync(parsed.Key, cancellationToken);
-        if (existing is not null)
-        {
-            return Existing(existing);
-        }
-
-        var request = new WorkerUrlJobRequest(parsed.Key.Type, parsed.CanonicalUrl!);
-        var track = Track.FromUrl(Guid.NewGuid(), parsed.Key, url!, Now);
-        return (await StartAsync(track, ct => worker.CreateUrlJobAsync(request, ct), "url", cancellationToken)).Result;
+        return existing is not null ? Existing(existing) : await StartUrlAsync(parsed.Key, url!, cancellationToken);
     }
 
     /// <summary>Imports an uploaded file streamed from the request; the file is kept under <c>uploads/</c>.</summary>
@@ -49,15 +42,24 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
     /// <returns>200, 202, 400, 413, 415 or 503.</returns>
     public async Task<IResult> ImportUploadAsync(Stream content, string fileName, CancellationToken cancellationToken)
     {
-        var extension = Path.GetExtension(fileName);
-        if (!UploadStore.IsAllowedExtension(extension))
-        {
-            return ApiProblems.UnsupportedType();
-        }
+        return UploadStore.IsAllowedExtension(Path.GetExtension(fileName))
+            ? await StoreAndImportAsync(content, fileName, cancellationToken)
+            : ApiProblems.UnsupportedType();
+    }
 
+    private async Task<IResult> StartUrlAsync(SourceKey key, string url, CancellationToken cancellationToken)
+    {
+        var request = new WorkerUrlJobRequest(key.Type, key.CanonicalUrl!);
+        var track = Track.FromUrl(Guid.NewGuid(), key, url, Now);
+        return (await StartAsync(track, ct => worker.CreateUrlJobAsync(request, ct), "url", cancellationToken)).Result;
+    }
+
+    private async Task<IResult> StoreAndImportAsync(Stream content, string fileName, CancellationToken cancellationToken)
+    {
         try
         {
-            return await ImportStoredAsync(await uploads.SaveAsync(content, extension, cancellationToken), fileName, cancellationToken);
+            var stored = await uploads.SaveAsync(content, Path.GetExtension(fileName), cancellationToken);
+            return await ImportStoredAsync(stored, fileName, cancellationToken);
         }
         catch (UploadTooLargeException)
         {
@@ -102,6 +104,12 @@ public sealed class ImportService(ITrackRepository tracks, IWorkerClient worker,
             return await ExistingAfterRaceAsync(track.Key, cancellationToken);
         }
 
+        return await StartJobAsync(track, createJob, field, cancellationToken);
+    }
+
+    private async Task<(IResult Result, Track? Owner)> StartJobAsync(
+        Track track, Func<CancellationToken, Task<WorkerJob>> createJob, string field, CancellationToken cancellationToken)
+    {
         try
         {
             await AssignJobAsync(track, await createJob(cancellationToken), cancellationToken);

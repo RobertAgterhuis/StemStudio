@@ -25,26 +25,29 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
     /// <param name="job">The worker job, or null when the worker answered 404.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
-    public async Task ApplyAsync(Track track, WorkerJob? job, CancellationToken cancellationToken)
+    public Task ApplyAsync(Track track, WorkerJob? job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
         if (job is null)
         {
-            track.Fail(InterruptedByRestart, Now);
-            return;
+            return Fail(track, InterruptedByRestart);
         }
 
-        if (job.Metadata is { } metadata)
-        {
-            track.ApplyMetadata(new TrackMetadata(metadata.Title, metadata.Artist), Now);
-        }
-
-        await (job.Status switch
+        ApplyMetadata(track, job.Metadata);
+        return job.Status switch
         {
             WorkerJobState.Completed => CompleteAsync(track, job.JobId, cancellationToken),
             WorkerJobState.Failed => Fail(track, job.Error ?? "Processing failed."),
             _ => Progress(track, job),
-        });
+        };
+    }
+
+    private void ApplyMetadata(Track track, WorkerSourceMetadata? metadata)
+    {
+        if (metadata is not null)
+        {
+            track.ApplyMetadata(new TrackMetadata(metadata.Title, metadata.Artist), Now);
+        }
     }
 
     private Task Fail(Track track, string error)

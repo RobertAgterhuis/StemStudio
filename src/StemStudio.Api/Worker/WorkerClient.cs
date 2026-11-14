@@ -129,15 +129,20 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         var status = (int)response.StatusCode;
         if (status >= 500)
         {
-            var failed = Describe(message);
-            LogUnavailable(logger, failed, "HTTP " + status.ToString(CultureInfo.InvariantCulture));
-            throw new WorkerUnavailableException($"The processing service answered {status}.");
+            throw ServerFailure(message, status);
         }
 
         var detail = await ReadDetailAsync(response, cancellationToken);
         var rejected = Describe(message);
         LogRejected(logger, rejected, status, detail);
         throw new WorkerRequestException(response.StatusCode, detail);
+    }
+
+    private WorkerUnavailableException ServerFailure(HttpRequestMessage message, int status)
+    {
+        var failed = Describe(message);
+        LogUnavailable(logger, failed, "HTTP " + status.ToString(CultureInfo.InvariantCulture));
+        return new WorkerUnavailableException($"The processing service answered {status}.");
     }
 
     private static string Describe(HttpRequestMessage message) => $"{message.Method} {message.RequestUri}";

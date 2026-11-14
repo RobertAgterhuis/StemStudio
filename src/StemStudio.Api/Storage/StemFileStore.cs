@@ -36,23 +36,12 @@ public sealed class StemFileStore(DataDirectory dataDirectory) : IStemFileStore
         ArgumentNullException.ThrowIfNull(write);
         var path = GetStemPath(trackId, stem);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
-        try
-        {
-            var size = await WriteAsync(temp, write, cancellationToken);
-            File.Move(temp, path, overwrite: true);
-            return size;
-        }
-        finally
-        {
-            File.Delete(temp);
-        }
-    }
+        return await AtomicFile.WriteAsync($"{path}.{Guid.NewGuid():N}.tmp", WriteThenMeasure, _ => path);
 
-    private static async Task<long> WriteAsync(string path, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken)
-    {
-        await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-        await write(stream, cancellationToken);
-        return stream.Length;
+        async Task<long> WriteThenMeasure(FileStream stream)
+        {
+            await write(stream, cancellationToken);
+            return stream.Length;
+        }
     }
 }

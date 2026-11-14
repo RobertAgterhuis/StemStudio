@@ -47,21 +47,25 @@ public static class MixMapper
     public static MixSettings ToDomain(MixSettingsDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
-        var metronome = dto.Metronome;
         return new MixSettings
         {
             Name = dto.Name,
             MasterVolume = dto.MasterVolume,
-            Channels = dto.Channels.Select(c => new ChannelSettings { Stem = c.Stem, Volume = c.Volume, Pan = c.Pan, Mute = c.Mute, Solo = c.Solo }).ToList(),
-            Metronome = new MetronomeSettings
-            {
-                Enabled = metronome.Enabled,
-                Volume = metronome.Volume,
-                BpmOverride = metronome.BpmOverride,
-                OffsetMs = metronome.OffsetMs,
-                BeatsPerBar = metronome.BeatsPerBar,
-            },
+            Channels = dto.Channels.Select(ToDomain).ToList(),
+            Metronome = ToDomain(dto.Metronome),
             Loop = dto.Loop is { } loop ? new LoopRegion(loop.Start, loop.End, loop.Enabled) : null,
         };
     }
+
+    private static ChannelSettings ToDomain(ChannelSettingsDto channel) =>
+        new() { Stem = channel.Stem, Volume = channel.Volume, Pan = channel.Pan, Mute = channel.Mute, Solo = channel.Solo };
+
+    private static MetronomeSettings ToDomain(MetronomeSettingsDto metronome) => new()
+    {
+        Enabled = metronome.Enabled,
+        Volume = metronome.Volume,
+        BpmOverride = metronome.BpmOverride,
+        OffsetMs = metronome.OffsetMs,
+        BeatsPerBar = metronome.BeatsPerBar,
+    };
 }

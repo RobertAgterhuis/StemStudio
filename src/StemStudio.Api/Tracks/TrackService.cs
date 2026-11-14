@@ -63,11 +63,7 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
     {
         try
         {
-            var job = await CreateJobAsync(track, cancellationToken);
-            track.Retry(Now);
-            track.AssignJob(job.JobId, Now);
-            await tracks.SaveAsync(cancellationToken);
-            return TypedResults.Accepted(ApiRoutes.Track(track.Id), TrackMapper.ToDto(track));
+            return await ApplyRetryAsync(track, await CreateJobAsync(track, cancellationToken), cancellationToken);
         }
         catch (WorkerUnavailableException)
         {
@@ -77,6 +73,14 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
         {
             return ApiProblems.Conflict("Retry rejected", rejection.Detail);
         }
+    }
+
+    private async Task<IResult> ApplyRetryAsync(Track track, WorkerJob job, CancellationToken cancellationToken)
+    {
+        track.Retry(Now);
+        track.AssignJob(job.JobId, Now);
+        await tracks.SaveAsync(cancellationToken);
+        return TypedResults.Accepted(ApiRoutes.Track(track.Id), TrackMapper.ToDto(track));
     }
 
     private Task<WorkerJob> CreateJobAsync(Track track, CancellationToken cancellationToken) => track.UploadFileName is { } fileName
