@@ -174,8 +174,8 @@ with progress, cache reuse, rejects, failure + retry, restart handling.
 - [X] T062 [US1] [stem-separation] Implement `worker/src/stemstudio_worker/jobs/{runner.py,queue.py,progress.py}` (single worker thread, `queue.Queue`) to pass T061
 - [X] T063 [P] [US1] [stem-separation] Write failing tests `worker/tests/jobs/test_cache.py`: `cache/by-source/<key with ':' -> '_'>.json` hit -> queued -> completed without separation; `cache/by-audio/<audioSha256>/` hit after normalisation -> downloading -> completed; duplicate concurrent create for the same source key returns the existing non-failed job (FR-009, SC-006)
 - [X] T064 [US1] [stem-separation] Implement `worker/src/stemstudio_worker/jobs/cache.py` and wire it into the runner to pass T063
-- [ ] T065 [P] [US1] [stem-separation] Write failing tests `worker/tests/jobs/test_reconcile.py`: on start-up every non-terminal job becomes `failed` "interrupted by restart" (FR-009a)
-- [ ] T066 [US1] [stem-separation] Implement `worker/src/stemstudio_worker/jobs/reconcile.py` to pass T065
+- [X] T065 [P] [US1] [stem-separation] Write failing tests `worker/tests/jobs/test_reconcile.py`: on start-up every non-terminal job becomes `failed` "interrupted by restart" (FR-009a)
+- [X] T066 [US1] [stem-separation] Implement `worker/src/stemstudio_worker/jobs/reconcile.py` to pass T065
 - [ ] T067 [P] [US1] [stem-separation] Write failing contract tests `worker/tests/api/test_jobs_api.py` (httpx `TestClient`, fake `PipelineAdapters`): every response validated with `jsonschema` against `specs/001-stemstudio-mvp/contracts/worker-api.openapi.yaml`; JSON create 200/202 + `Location`, multipart upload, 400 invalid source, 413 > 200 MiB (streamed size check), 415 wrong type, get 200/404, result 200/404/409, stem FLAC 200/404/409, problem+json bodies, `/health` (FR-003, FR-004, FR-008)
 - [ ] T068 [US1] [stem-separation] Implement `worker/src/stemstudio_worker/api/{routes.py,problems.py,dependencies.py}` and composition root `worker/src/stemstudio_worker/main.py::create_app(settings=None, adapters=None)` (default adapters from the T001 factories; reconcile on start-up; start runner thread in lifespan) to pass T067
 

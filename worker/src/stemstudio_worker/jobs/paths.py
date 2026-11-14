@@ -37,9 +37,14 @@ class DataPaths:
         """Cache pointer ``{"audioSha256": ...}`` for a source key (``:`` becomes ``_``)."""
         return self.root / "cache" / "by-source" / f"{source_key.replace(':', '_')}.json"
 
+    @property
+    def audio_cache(self) -> Path:
+        """Directory of the per-audio cache entries."""
+        return self.root / "cache" / "by-audio"
+
     def by_audio(self, audio_sha256: str) -> Path:
         """Cache entry (``result.json`` + ``stems/``) for normalised audio."""
-        return self.root / "cache" / "by-audio" / audio_sha256
+        return self.audio_cache / audio_sha256
 
     def stem_file(self, audio_sha256: str, stem: StemName) -> Path:
         """FLAC file of one cached stem."""
