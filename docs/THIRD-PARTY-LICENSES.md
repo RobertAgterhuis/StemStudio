@@ -80,7 +80,8 @@ terms of these components (offer source, keep notices).
 | NSubstitute (+ Analyzers) | 6.2.0 / 1.0.17 | BSD-3-Clause / MIT |
 | Shouldly | 4.3.0 | BSD-3-Clause |
 | YamlDotNet | 18.1.0 | MIT |
-| dotnet-ef, dotnet-sonarscanner (local tools) | 10.0.15 / latest | MIT |
+| dotnet-ef (local tool) | 10.0.15 | MIT |
+| dotnet-sonarscanner (local tool, CI only, not shipped) | 12.0.0 | LGPL-3.0 |
 | pytest, pytest-cov, pytest-timeout | 9.2.0 / 7.1.0 / 2.4.0 | MIT |
 | httpx, jsonschema, PyYAML | 0.28.1 / 4.26.0 / 6.0.3 | BSD-3-Clause / MIT / MIT |
 | ruff, mypy (+ types-* stubs) | 0.17.5 / 2.4.1 | MIT (stubs Apache-2.0) |
