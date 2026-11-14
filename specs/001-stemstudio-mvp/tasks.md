@@ -231,10 +231,10 @@ A-B loop. **Independent test**: quickstart V7-V8.
 
 ### frontend (tests first)
 
-- [ ] T093 [P] [US2] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateTests.cs` (pure C#): defaults fader 0.8, pan 0, master 1.0; solo/mute rules mirrored for display; `IsDirty` after any change, cleared after save/load; loop validation "B must be after A" / "outside the track" messages (US2-1, US2-5, FR-011a)
-- [ ] T094 [US2] [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState,LoopValidator}.cs` to pass T093
-- [ ] T095 [P] [US2] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerPageTests.cs` (fake API client, mocked `IAudioEngine`): one `ChannelStrip` per stem in `StemNames.SixStem` order, control changes call `setChannel`/`setMaster` immediately, transport play/pause/stop/seek, position display from `OnPositionChanged`, meters attached by element id, loop A/B set + enable + refusal message, unsaved-changes indicator, `NavigationLock` confirm when dirty (FR-011, FR-011a, FR-012, FR-013)
-- [ ] T096 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{Mixer.razor,ChannelStrip.razor,MasterSection.razor,TransportBar.razor,LoopControls.razor}` (+ code-behind; route `/tracks/{id:guid}/mixer`) with Appendix A test ids to pass T095
+- [X] T093 [P] [US2] [frontend] Write failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateTests.cs` (pure C#): defaults fader 0.8, pan 0, master 1.0; solo/mute rules mirrored for display; `IsDirty` after any change, cleared after save/load; loop validation "B must be after A" / "outside the track" messages (US2-1, US2-5, FR-011a)
+- [X] T094 [US2] [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState,LoopValidator}.cs` to pass T093
+- [X] T095 [P] [US2] [frontend] Write failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerPageTests.cs` (fake API client, mocked `IAudioEngine`): one `ChannelStrip` per stem in `StemNames.SixStem` order, control changes call `setChannel`/`setMaster` immediately, transport play/pause/stop/seek, position display from `OnPositionChanged`, meters attached by element id, loop A/B set + enable + refusal message, unsaved-changes indicator, `NavigationLock` confirm when dirty (FR-011, FR-011a, FR-012, FR-013)
+- [X] T096 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{Mixer.razor,ChannelStrip.razor,MasterSection.razor,TransportBar.razor,LoopControls.razor}` (+ code-behind; route `/tracks/{id:guid}/mixer`) with Appendix A test ids to pass T095
 
 ### qa
 
