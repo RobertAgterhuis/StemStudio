@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import jsdoc from 'eslint-plugin-jsdoc';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -8,6 +9,22 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
+  {
+    files: ['src/**/*.ts'],
+    plugins: { jsdoc },
+    rules: {
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          publicOnly: true,
+          require: { FunctionDeclaration: true, ArrowFunctionExpression: true, ClassDeclaration: true },
+          contexts: ['TSInterfaceDeclaration', 'TSTypeAliasDeclaration', 'TSMethodSignature'],
+        },
+      ],
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/no-types': 'error',
+    },
+  },
   {
     languageOptions: {
       globals: { ...globals.browser },

@@ -29,11 +29,18 @@
     <!-- Needed so IDE0005 (unnecessary usings) runs on build; test code itself is not XML-documented. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <!-- coverlet.msbuild defaults (dotnet test -p:CollectCoverage=true); keep in sync with tests/coverlet.runsettings. -->
-    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <!-- coverlet.msbuild = the coverage GATE (dotnet test -p:CollectCoverage=true), see ADR-006:
+         each test project measures and gates only its own component (StemStudio.X.Tests -> [StemStudio.X]*);
+         Api.Tests additionally gates StemStudio.Contracts. Cobertura for humans/CI, OpenCover for Sonar. -->
+    <StemStudioCoverageComponent>$(MSBuildProjectName.Replace('.Tests', ''))</StemStudioCoverageComponent>
+    <CoverletOutputFormat>cobertura%2copencover</CoverletOutputFormat>
     <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/coverage/</CoverletOutput>
     <SkipAutoProps>true</SkipAutoProps>
-    <Include>[StemStudio.*]*</Include>
+    <Include>[$(StemStudioCoverageComponent)]*</Include>
+    <Include Condition="'$(MSBuildProjectName)' == 'StemStudio.Api.Tests'">[StemStudio.Api]*%2c[StemStudio.Contracts]*</Include>
+    <Threshold>90</Threshold>
+    <ThresholdType>line%2cbranch</ThresholdType>
+    <ThresholdStat>Minimum</ThresholdStat>
     <Exclude>[StemStudio.*.Tests]*</Exclude>
     <ExcludeByFile>**/*.generated.cs%3b**/*.g.cs%3b**/Migrations/*.cs</ExcludeByFile>
     <ExcludeByAttribute>GeneratedCodeAttribute%2cCompilerGeneratedAttribute%2cExcludeFromCodeCoverageAttribute%2cObsoleteAttribute</ExcludeByAttribute>
