@@ -11,7 +11,7 @@ Builds the ASP.NET Core (.NET 10) Minimal API: imports, tracks, stems (range-ena
 
 ## Owned paths (write only here, plus your hand-off note in `docs/handoffs/`)
 - `src/StemStudio.Domain/**`, `src/StemStudio.Persistence/**`, `src/StemStudio.Api/**`
-- `src/StemStudio.Contracts/**` (implement architect-defined DTOs; no shape changes)
+- (read-only) `src/StemStudio.Contracts/**` is architect-owned; DTO gaps go back as contract fix requests
 - `tests/StemStudio.Domain.Tests/**`, `tests/StemStudio.Persistence.Tests/**`, `tests/StemStudio.Api.Tests/**`
 
 ## Inputs
