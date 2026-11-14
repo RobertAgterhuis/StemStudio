@@ -52,3 +52,54 @@ pair; coverage commands from tasks.md give >= 90 % line and branch (exact number
 separation/jobs tests use fake Demucs loader/applier and fake clock; the only remaining
 `@pytest.mark.integration` is the T060 Demucs test; bUnit tests assert the ui-test-ids.md ids
 that `e2e/pages/` uses.
+
+## Re-audit after T119 (integration wave, qa T122/T123, 2026-11-15)
+
+Scope: backend, frontend, audio-engine, stem-separation (plus worker-integration) on the merged
+`001-stemstudio-mvp` tree. Coverage was re-measured by qa, not copied from the hand-offs.
+
+| Owner | Re-measured (qa) | Hand-off claim | Verdict |
+|---|---|---|---|
+| backend Domain | 173 passed; 97.73 % line / 97.72 % branch | same (backend-polish) | accept |
+| backend Persistence | 21 passed; 99.03 % / 100 % | same; devops-polish reported 83.33 % branch | accept, see R2 |
+| backend Api + Contracts | 220 passed; Api 99.88 % / 98.18 %, Contracts 100 % / 100 % | same | accept |
+| frontend Web | 184 passed; 99.77 % / 94.36 % | same (frontend-polish) | accept |
+| audio-engine | 121 passed; 100 % lines (432/432) / 100 % branches (147/147) | same | accept |
+| worker (stem-separation + all) | 413 passed, 2 deselected; 100 % (1591 stmts) / 100 % (188 branches) | same (worker-integration) | accept, see R1 |
+
+Commands: `dotnet test tests/StemStudio.{Domain,Persistence,Api,Web}.Tests -p:CollectCoverage=true`;
+`cd worker && uv run pytest -q --cov=stemstudio_worker --cov-branch`;
+`cd src/audio-engine && npm run test:coverage`.
+
+- **R1 (audio-ingest + architect; F1 still open)**: `git grep mark.integration -- worker` still
+  finds two markers: `worker/tests/ingest/test_normalizer.py:245` (real ffmpeg) and
+  `worker/tests/separation/test_demucs_integration.py:27` (real Demucs, the intended one). The CTO
+  accepted F1 in STATUS.md; the rule text in the constitution/TEST-STRATEGY still says "exactly
+  one". Either register a separate `ffmpeg` marker or amend the rule text so the evidence and the
+  rule agree.
+- **R2 (devops/backend, measurement drift)**: devops-polish reports Persistence branch 83.33 %
+  (`UnitOfWork.cs:31`, gate red), the per-project command gives 100 % on the same tree. The two
+  scripts measure differently (`scripts/test-all.ps1` vs `-p:CollectCoverage=true` per project).
+  Request: devops states which number the CI gate uses and makes both scripts identical, so a red
+  gate cannot hide behind a green local run (or the reverse).
+- **R3 (all four, test-first)**: a separate "add failing ... tests" commit exists for every test
+  task, and the implementation commits (the next task id, e.g. T069 -> T070) come after it in
+  `git log --reverse`; spot-checked T112 `3476275` (red) -> `9d267bb` (green). Test tasks: backend T031, T033, T069, T071, T073, T091, T102, T111; frontend T040/T042,
+  T076-T080, T093, T095, T100, T104/T106, T112; audio-engine T082, T084, T086, T088, T090, T098;
+  stem-separation T056, T058, T061, T063, T065, T067. audio-engine-foundational's mocks were
+  written with their self-tests (no red commit) - test infrastructure only, accepted.
+- **R4 (fakes and clock)**: no `time.sleep`, `time.time()` or `datetime.now` in
+  `worker/tests/{separation,jobs,api}`; the API job sync and services use `FakeTimeProvider`
+  (`CompositionTests`, `ImportServiceTests`, `MixServiceTests`); Demucs is faked in all but T060.
+- **R5 (G6)**: no owner test reads `tests/fixtures/` (only a docstring in
+  `worker/tests/separation/conftest.py` mentions the path, stating it is *not* read).
+- **R6 (UI test ids)**: bUnit asserts the contract ids on every page that `e2e/pages/` uses
+  (Import 12, TrackDetail 32, TrackList 10, MixLibrary 24 occurrences) and the full E2E suite
+  passes against those ids on Chromium and Firefox (T122).
+- **R7 (frontend, informational)**: no prerendering, so markup-only checks (legal notice without
+  JS) cannot pass and `InputFile` needs a JS init before it accepts files (the T122 race, fixed in
+  the page object). Not a defect against the spec; noted for future no-JS/accessibility audits.
+- **R8 (stem-separation, informational)**: with the weights cached in the `model-cache` volume the
+  worker still contacts the Hugging Face Hub on every process start (unauthenticated-request
+  warning in the log; blob timestamp proves no re-download). An offline start therefore depends on
+  huggingface_hub's offline fallback; consider `HF_HUB_OFFLINE=1` once the weights are present.

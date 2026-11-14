@@ -26,9 +26,24 @@ export class ImportPage {
     await this.legalNotice.waitFor();
   }
 
-  /** Selects a local file; the import starts on selection (there is no separate submit id). */
+  /**
+   * Selects a local file; the import starts on selection (there is no separate submit id).
+   * Blazor's `InputFile` attaches its `change` listener in a JS `init` call after the first
+   * render; a selection made before that is lost, so wait for the marker `init` sets.
+   */
   async uploadFile(filePath: string): Promise<void> {
-    await this.page.getByTestId('import-file-input').setInputFiles(filePath);
+    const input = this.page.getByTestId('import-file-input');
+    await input.evaluate(
+      (el) =>
+        new Promise<void>((resolve) => {
+          const ready = (): void => {
+            if ('_blazorInputFileNextFileId' in el) resolve();
+            else requestAnimationFrame(ready);
+          };
+          ready();
+        }),
+    );
+    await input.setInputFiles(filePath);
   }
 
   /** Enters a YouTube/Spotify URL and submits it. */
