@@ -18,7 +18,11 @@ public sealed class DeviceEndpointTests : IDisposable
 
     private static readonly WorkerDeviceInfo GpuInfo = new()
     {
-        Kind = ProcessingDeviceKind.Gpu, Name = Gpu, ComputeCapability = "12.0", TotalMemoryMiB = 16303, FreeMemoryMiB = 15469,
+        Kind = ProcessingDeviceKind.Gpu,
+        Name = Gpu,
+        ComputeCapability = "12.0",
+        TotalMemoryMiB = 16303,
+        FreeMemoryMiB = 15469,
     };
 
     private readonly ApiFactory _factory = new();

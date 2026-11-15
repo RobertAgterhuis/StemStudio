@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Detail;
+using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
@@ -63,6 +64,7 @@ public static class ApiComposition
     private static void MapEndpoints(WebApplication app)
     {
         app.MapGet(ApiRoutes.Health, () => TypedResults.Ok(new HealthResponse("ok"))).WithName("getHealth").WithTags("health");
+        app.MapDeviceEndpoints();
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
         app.MapStemEndpoints();
@@ -84,6 +86,8 @@ public static class ApiComposition
         services.AddScoped<MixService>();
         AddSyncServices(services);
         AddDetailServices(services);
+        services.AddSingleton<ProcessingDeviceCache>();
+        services.AddScoped<ProcessingDeviceService>();
     }
 
     private static void AddSyncServices(IServiceCollection services)
