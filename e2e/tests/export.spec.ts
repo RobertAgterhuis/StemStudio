@@ -1,10 +1,12 @@
 import type { StemName, TrackDto } from '../support/api';
-import { dbDifference, mixRms, samplesEqual, wavFacts } from '../support/audio-check';
+import type { Page } from '@playwright/test';
+import { dbDifference, mixRms, samplesEqual, wavFacts, type MixInput } from '../support/audio-check';
 import type { AssetDto, AssetsApi } from '../support/assets-api';
 import { setNumericValue, setToggle } from '../support/controls';
 import { ensureDetailCompleted, fakeStems } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
-import { expect, test } from '../support/feature-test';
+import { expectHelpMarker } from '../support/help';
+import { expect, test } from '../support/test';
 import { panMatrix } from '../support/render-vectors';
 
 // Feature 007 US1, US2, US4, US5 (007:T041, T047, T058, T063; FR-001..FR-006, FR-010, FR-013;
@@ -16,6 +18,39 @@ let track: TrackDto;
 async function stemBytes(assetsApi: AssetsApi, stem: StemName): Promise<Buffer> {
   const url = track.stems.find((s) => s.name === stem)?.url ?? `/api/tracks/${track.id}/stems/${stem}`;
   return assetsApi.bytes(url);
+}
+
+/** A stem of an expected mix at its volume (0..1) and pan (-1..1). */
+interface ExpectedChannel {
+  readonly stem: StemName;
+  readonly gain: number;
+  readonly pan: number;
+}
+
+/** What a mixed export must contain: these channels, summed and scaled by `master`. */
+interface ExpectedMix {
+  readonly asset: AssetDto;
+  readonly channels: readonly ExpectedChannel[];
+  readonly master: number;
+}
+
+/**
+ * Downloads the 16-bit WAV of `expected.asset` and asserts that its RMS per channel matches the
+ * served stems mixed with the shared pan vectors (+/- 0.1 dB, after the applied clip protection).
+ */
+async function expectVectorLaw(scratch: Page, assetsApi: AssetsApi, expected: ExpectedMix): Promise<void> {
+  const file = (await assetsApi.download(expected.asset.id)).bytes;
+  expect(wavFacts(file)).toMatchObject({ sampleRate: 44_100, channels: 2, bitsPerSample: 16 });
+  const lowered = 10 ** ((expected.asset.audio?.appliedGainDb ?? 0) / 20);
+  const inputs: MixInput[] = [];
+  for (const channel of expected.channels) {
+    const base64 = (await stemBytes(assetsApi, channel.stem)).toString('base64');
+    inputs.push({ base64, gain: channel.gain, matrix: panMatrix(channel.pan) });
+  }
+  const reference = await mixRms(scratch, inputs, expected.master * lowered);
+  const actual = await mixRms(scratch, [{ base64: file.toString('base64'), gain: 1, matrix: panMatrix(0) }], 1);
+  expect(Math.abs(dbDifference(actual[0], reference[0]))).toBeLessThanOrEqual(0.1);
+  expect(Math.abs(dbDifference(actual[1], reference[1]))).toBeLessThanOrEqual(0.1);
 }
 
 async function readyFromConfirmation(id: string, assetsApi: AssetsApi): Promise<AssetDto> {
@@ -78,17 +113,25 @@ test.describe('what I hear', { tag: '@export' }, () => {
     await exportDialog.save({ format: 'wav', bitDepth: 16 });
     const asset = await readyFromConfirmation(await exportDialog.savedAssetId(), assetsApi);
     expect(asset.provenance.contents).toMatch(/^drums \+ bass, mixed/);
+    const channels = [{ stem: 'drums', gain: 0.8, pan: 0 }, { stem: 'bass', gain: 0.8, pan: -0.4 }] as const;
+    await expectVectorLaw(scratch, assetsApi, { asset, channels, master: 0.7 });
+  });
 
-    const file = (await assetsApi.download(asset.id)).bytes;
-    expect(wavFacts(file)).toMatchObject({ sampleRate: 44_100, channels: 2, bitsPerSample: 16 });
-    const lowered = 10 ** ((asset.audio?.appliedGainDb ?? 0) / 20);
-    const expected = await mixRms(scratch, [
-      { base64: (await stemBytes(assetsApi, 'drums')).toString('base64'), gain: 0.8, matrix: panMatrix(0) },
-      { base64: (await stemBytes(assetsApi, 'bass')).toString('base64'), gain: 0.8, matrix: panMatrix(-0.4) },
-    ], 0.7 * lowered);
-    const actual = await mixRms(scratch, [{ base64: file.toString('base64'), gain: 1, matrix: panMatrix(0) }], 1);
-    expect(Math.abs(dbDifference(actual[0], expected[0]))).toBeLessThanOrEqual(0.1);
-    expect(Math.abs(dbDifference(actual[1], expected[1]))).toBeLessThanOrEqual(0.1);
+  test('"Selected channels" drums + bass: only those two, at fader and pan, mute and solo ignored (US2-3)', async ({ mixer, exportDialog, assetsApi, scratch }) => {
+    await mixer.goto(track.id);
+    await mixer.waitForReady(fakeStems);
+    await setNumericValue(mixer.fader('drums'), 60);
+    await setToggle(mixer.mute('drums'), true);
+    await setNumericValue(mixer.pan('bass'), -40);
+    await setToggle(mixer.solo('vocals'), true);
+    await setNumericValue(mixer.byId('master-fader'), 70);
+
+    await exportDialog.openForMix();
+    await exportDialog.save({ selectedChannels: ['drums', 'bass'], format: 'wav', bitDepth: 16 });
+    const asset = await readyFromConfirmation(await exportDialog.savedAssetId(), assetsApi);
+    expect(asset.provenance.contents).toMatch(/^drums \+ bass, mixed/);
+    const channels = [{ stem: 'drums', gain: 0.6, pan: 0 }, { stem: 'bass', gain: 0.8, pan: -0.4 }] as const;
+    await expectVectorLaw(scratch, assetsApi, { asset, channels, master: 0.7 });
   });
 
   test('a clipping mix is lowered and the library says by how much (FR-005)', async ({ mixer, exportDialog, library, assetsApi }) => {
@@ -105,6 +148,7 @@ test.describe('what I hear', { tag: '@export' }, () => {
     expect(asset.audio?.peakDbfs).toBeCloseTo(-0.1, 2);
     await library.goto();
     await expect(library.gainNote(asset.id)).toContainText(/Lowered by .* dB/);
+    await expectHelpMarker(library.gainNote(asset.id), 'export-clipping');
   });
 });
 
@@ -119,6 +163,30 @@ test.describe('loop region', { tag: '@export' }, () => {
     const facts = wavFacts((await assetsApi.download(asset.id)).bytes);
     expect(Math.abs(facts.durationSeconds - 2.5)).toBeLessThanOrEqual(0.001);
   });
+});
+
+// US4-2 (FR-006; ExportRange: 0 <= start < end <= track duration, length >= 0.5 s). The fixture
+// is 20 s long. The dialog may refuse on input (submit disabled) or show the API's 400/422.
+const invalidRanges = [
+  { name: 'shorter than 0.5 s', range: { start: 3, end: 3.2 } },
+  { name: 'ending before it starts', range: { start: 6, end: 4 } },
+  { name: 'reaching past the end of the song', range: { start: 18, end: 25 } },
+] as const;
+
+test.describe('range validation', { tag: '@export' }, () => {
+  for (const { name, range } of invalidRanges) {
+    test(`a range ${name} shows a readable reason and saves nothing (US4-2)`, async ({ mixer, exportDialog, assetsApi }) => {
+      const before = (await assetsApi.list({ trackId: track.id })).total;
+      await mixer.goto(track.id);
+      await mixer.waitForReady(fakeStems);
+      await exportDialog.openForMix();
+      await exportDialog.attempt({ format: 'wav', range });
+      await expect(exportDialog.error).toBeVisible();
+      await expect(exportDialog.error).not.toBeEmpty();
+      await expect(exportDialog.saved).toHaveCount(0);
+      expect((await assetsApi.list({ trackId: track.id })).total).toBe(before);
+    });
+  }
 });
 
 test.describe('stem pack', { tag: '@export' }, () => {
