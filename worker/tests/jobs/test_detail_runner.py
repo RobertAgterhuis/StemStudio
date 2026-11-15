@@ -261,3 +261,22 @@ def test_reconcile_fails_unfinished_detail_jobs_and_keeps_checkpoints(env: Env) 
     assert (partial / "drums" / "kick.flac").is_file()
     assert not (partial / "vocals.tmp").exists()
     assert reconcile_detail_jobs(env.details, env.paths, FakeClock()) == []
+
+
+def test_waiting_marks_active_detail_jobs_and_keeps_their_progress(env: Env) -> None:
+    detail_id = env.create()
+    env.runner.waiting([detail_id, "f" * 32])
+    job = env.job(detail_id)
+    assert (job.status, job.stage, job.progress) == (D.QUEUED, texts.WAITING, 0)
+    env.runner.step(detail_id)
+    env.runner.step(detail_id)
+    progress = env.job(detail_id).progress
+    env.runner.waiting([detail_id])
+    job = env.job(detail_id)
+    assert (job.status, job.stage, job.current_parent, job.progress) == (
+        D.RUNNING, texts.WAITING, None, progress,
+    )  # fmt: skip
+    env.service.cancel(detail_id)
+    env.runner.waiting([detail_id])
+    assert env.job(detail_id).stage == "Cancelled"
+    assert texts.WAITING == "Waiting for standard separations"

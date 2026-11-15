@@ -155,3 +155,28 @@ def test_pending_reports_waiting_work(make: Factory) -> None:
     scheduler.submit("s1")
     scheduler.submit_detail("a")
     assert scheduler.pending == (1, 1)
+
+
+def _started(scheduler: PriorityScheduler) -> PriorityScheduler:
+    scheduler.start()
+    return scheduler
+
+
+def test_active_detail_jobs_are_told_before_a_standard_job_runs() -> None:
+    recorder = Recorder({"a": 2, "b": 1})
+    release = recorder.block("a:1")
+    yielded: list[tuple[str, ...]] = []
+    scheduler = _started(PriorityScheduler(
+        recorder.standard, recorder.detail, lambda ids: yielded.append(tuple(ids))
+    ))  # fmt: skip
+    scheduler.submit_detail("a")
+    scheduler.submit_detail("b")
+    assert recorder.entered["a:1"].wait(WAIT)
+    scheduler.submit("s1")
+    release.set()
+    scheduler.join()
+    scheduler.submit("s2")
+    scheduler.join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["a:1", "s1", "a:2", "b:1", "s2"]
+    assert yielded == [("a", "b")]
