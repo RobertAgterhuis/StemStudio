@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail import create_detail_adapters, create_detail_pipeline
 from stemstudio_worker.detail.fake import CHUNKS, FAKE_SCALES, FakeModelProvider, FakeSource
 from stemstudio_worker.detail.steps import DetailPipeline
@@ -73,7 +74,7 @@ def test_fake_parents_run_one_by_one(tmp_path: Path) -> None:
 def test_every_model_call_waits_the_step_delay_in_chunks(tmp_path: Path) -> None:
     sleeper = Sleeper()
     fractions: list[float] = []
-    model = FakeSource(2.0, sleeper).choose("drums").model
+    model = FakeSource(2.0, sleeper).choose("drums").load("cuda")
     outputs = model.separate(noise(0.1, 0.2), lambda f, s: fractions.append(f))
     assert sorted(outputs) == ["kick", "snare", "toms"]
     assert sleeper.calls == [0.5] * CHUNKS
@@ -96,7 +97,7 @@ def test_create_detail_adapters_in_fake_mode_needs_no_downloads(tmp_path: Path) 
 
 def test_create_detail_pipeline_in_fake_mode_uses_the_fake_source(tmp_path: Path) -> None:
     settings = WorkerSettings(data_dir=tmp_path, separator="fake", fake_detail_step_seconds=0.0)
-    pipeline = create_detail_pipeline(settings)
+    pipeline = create_detail_pipeline(settings, CpuRunner())
     stems = _fake_stems(tmp_path)
     partial = tmp_path / "partial"
     for step in pipeline.plan(stems, partial):

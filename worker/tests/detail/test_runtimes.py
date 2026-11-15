@@ -26,7 +26,8 @@ from stemstudio_worker.detail.folding import MEGA_OUTPUTS
 from stemstudio_worker.detail.gating import relative_db
 from stemstudio_worker.detail.mdx_net import COMPENSATE, Kara2Model
 from stemstudio_worker.detail.registry import ModelSpec
-from stemstudio_worker.detail.runtimes import RealModelProvider, resolve_device
+from stemstudio_worker.detail.runtimes import RealModelProvider
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail.steps import DetailPipeline
 from stemstudio_worker.ports import (
     DetailAudio,
@@ -179,7 +180,7 @@ def test_provider_downloads_and_loads_each_model_once(tmp_path: Path) -> None:
         return _Model()
 
     loaders: dict[DetailModelId, runtimes.Loader] = {"uvr-mdxnet-kara-2": loader}
-    provider = RealModelProvider(downloader, "cpu", loaders)
+    provider = RealModelProvider(downloader, loaders)
     assert isinstance(provider, DetailModelProvider)
     first = provider.get("uvr-mdxnet-kara-2")
     assert provider.get("uvr-mdxnet-kara-2") is first
@@ -188,19 +189,8 @@ def test_provider_downloads_and_loads_each_model_once(tmp_path: Path) -> None:
 
 
 def test_provider_uses_the_registry_loaders_by_default(tmp_path: Path) -> None:
-    provider = RealModelProvider(ModelDownloader(tmp_path), "cpu")
+    provider = RealModelProvider(ModelDownloader(tmp_path))
     assert set(provider.loaders) == {"mdx23c-drumsep-6s", "uvr-mdxnet-kara-2", "mvsep-mega-53"}
-
-
-@pytest.mark.parametrize(
-    ("preference", "cuda", "device"),
-    [("cpu", True, "cpu"), ("cuda", False, "cuda"), ("auto", True, "cuda"), ("auto", False, "cpu")],
-)
-def test_resolve_device(
-    monkeypatch: pytest.MonkeyPatch, preference: str, cuda: bool, device: str
-) -> None:
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
-    assert resolve_device(preference) == device
 
 
 class _Tiny(torch.nn.Module):
@@ -280,7 +270,7 @@ def test_the_real_factories_build_lazy_providers(tmp_path: Path) -> None:
     settings = WorkerSettings(data_dir=tmp_path, separator="demucs", model_dir=tmp_path / "m")
     adapters = create_detail_adapters(settings)
     assert isinstance(adapters.models, RealModelProvider)
-    pipeline = create_detail_pipeline(settings)
+    pipeline = create_detail_pipeline(settings, CpuRunner())
     assert isinstance(pipeline, DetailPipeline)
     assert not (tmp_path / "m").exists()
 

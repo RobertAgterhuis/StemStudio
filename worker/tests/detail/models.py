@@ -10,7 +10,7 @@ from stemstudio_worker.detail.audio_io import write_stem
 from stemstudio_worker.detail.checks import to_pcm
 from stemstudio_worker.detail.folding import FoldTable
 from stemstudio_worker.detail.steps import FAMILIES, PARTITION, ModelChoice
-from stemstudio_worker.ports import DetailAudio, ProgressCallback
+from stemstudio_worker.ports import DetailAudio, DeviceUse, GpuNeed, ProgressCallback
 from stemstudio_worker.schemas import DetailModelId, ParentStemName, StemName
 
 from .signals import noise, silence, tone
@@ -54,15 +54,41 @@ class Source:
     sum_instruments: bool = True
     chosen: list[ParentStemName] = field(default_factory=list)
 
+    released: int = 0
+
     def choose(self, parent: ParentStemName) -> ModelChoice:
         self.chosen.append(parent)
         return self.choices[parent]
+
+    def release_gpu(self) -> None:
+        self.released += 1
 
 
 def choice(
     model: object, table: FoldTable, model_id: DetailModelId = "fake-detail", families: bool = False
 ) -> ModelChoice:
-    return ModelChoice(model_id, model, table, FAMILIES if families else PARTITION)  # type: ignore[arg-type]
+    policy = FAMILIES if families else PARTITION
+    return ModelChoice(model_id, lambda device: model, table, policy, NEED)  # type: ignore[arg-type,return-value]
+
+
+NEED = GpuNeed("a fake detail model", 100)
+
+
+@dataclass
+class RecordingRunner:
+    """A ``DeviceRunner`` running on ``first``; on any error it retries once on the CPU."""
+
+    first: str = "cuda"
+    needs: list[GpuNeed] = field(default_factory=list)
+    errors: list[Exception] = field(default_factory=list)
+
+    def run[T](self, work: Callable[[str], T], need: GpuNeed) -> tuple[T, DeviceUse]:
+        self.needs.append(need)
+        try:
+            return work(self.first), DeviceUse(kind="gpu", torch_device="cuda", name="GPU")
+        except Exception as exc:
+            self.errors.append(exc)
+        return work("cpu"), DeviceUse(kind="cpu", torch_device="cpu", fallback_reason="retried")
 
 
 def write_stems(directory: Path, audio: Mapping[StemName, DetailAudio]) -> dict[StemName, Path]:

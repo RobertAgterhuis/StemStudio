@@ -16,6 +16,7 @@ import pytest
 
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.detail import create_detail_pipeline
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail.audio_io import read_stem
 from stemstudio_worker.detail.gating import read_parent, relative_db, sub_stem_audible
 from stemstudio_worker.detail.names import REST
@@ -103,7 +104,7 @@ def _assert_split(outcome: ParentOutcome, parent: DetailAudio, folder: Path) -> 
 def _run(stems: dict[StemName, Path], partial: Path) -> dict[StemName, ParentOutcome]:
     """Plan and run every step with the real models; skip offline (fail in CI)."""
     settings = WorkerSettings(data_dir=partial.parent, separator="demucs", model_dir=_model_dir())
-    pipeline = create_detail_pipeline(settings)
+    pipeline = create_detail_pipeline(settings, CpuRunner())
     started = time.monotonic()
     timings: dict[str, float] = {}
     try:
