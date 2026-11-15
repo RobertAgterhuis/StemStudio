@@ -92,4 +92,23 @@ public interface IAudioEngine : IAsyncDisposable
     /// <param name="elementId">The element id.</param>
     /// <returns>A task that completes when the call is delivered.</returns>
     Task AttachMeterAsync(string target, string elementId);
+
+    /// <summary>
+    /// Builds the karaoke banner inside an empty host element and draws it on the engine's animation frame (engine
+    /// contract 2.1.0). Replaces an attached banner; call it after <see cref="LoadTrackAsync"/>.
+    /// </summary>
+    /// <param name="elementId">Id of the host element; Blazor renders it empty and never re-renders its content.</param>
+    /// <param name="lyrics">Word- or line-synced lyrics.</param>
+    /// <param name="options">Offset and the app's reduced-motion setting.</param>
+    /// <returns>A task that completes when the banner is attached.</returns>
+    Task AttachKaraokeAsync(string elementId, KaraokeLyrics lyrics, KaraokeOptions options);
+
+    /// <summary>Changes the karaoke offset (-5000..5000 ms); it takes effect on the next frame.</summary>
+    /// <param name="offsetMs">The offset; positive = the lyrics come later.</param>
+    /// <returns>A task that completes when the call is delivered.</returns>
+    Task SetKaraokeOffsetAsync(int offsetMs);
+
+    /// <summary>Removes the karaoke DOM and stops drawing it; a no-op without an attached banner or engine.</summary>
+    /// <returns>A task that completes when the call is delivered.</returns>
+    Task DetachKaraokeAsync();
 }

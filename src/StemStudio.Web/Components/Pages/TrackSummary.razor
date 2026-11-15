@@ -22,7 +22,8 @@
             <li data-testid="@($"track-stem-{stem.Name}")"><StemTab Stem="@stem.Name" /></li>
         }
     </ul>
-    <ExportButtons Channels="StemIds" OnExport="OnExport" />
+    <ChannelButtons Action="ChannelAction.Export" Channels="StemIds" OnSelect="OnExport" />
+    <ChannelButtons Action="ChannelAction.Score" Channels="StemIds" OnSelect="OnScore" />
     <LevelGate Feature="export.stem-pack">
         <RadzenButton Text="Save all stems" Icon="library_add" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnExportAll"
                       data-testid="export-all-stems" data-help-id="export-actions" />
@@ -40,6 +41,10 @@
     /// <summary>Raised with a stem name to save it raw to the library (feature 007).</summary>
     [Parameter]
     public EventCallback<string> OnExport { get; set; }
+
+    /// <summary>Raised with a stem name to make sheet music of it (feature 008).</summary>
+    [Parameter]
+    public EventCallback<string> OnScore { get; set; }
 
     /// <summary>Raised to save every stem as its own item (feature 007, US5).</summary>
     [Parameter]

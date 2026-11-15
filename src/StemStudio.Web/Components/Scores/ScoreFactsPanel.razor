@@ -1,0 +1,53 @@
+@* Facts and downloads of a ready score item in the library (feature 008, FR-010; ui-test-ids 1.7.0). Every limitation
+   and warning is spelled out as text. *@
+@using StemStudio.Contracts.Assets
+@using StemStudio.Contracts.Scores
+
+<div class="ss-score-facts">
+    <dl class="ss-facts">
+        @if (Facts.Key is { } key)
+        {
+            <div><dt>Key</dt><dd data-testid="@($"asset-score-key-{Asset.Id}")">@ScoreText.Key(key)</dd></div>
+        }
+        <div><dt>Tempo</dt><dd data-testid="@($"asset-score-tempo-{Asset.Id}")">@ScoreText.Tempo(Facts)</dd></div>
+    </dl>
+    <p class="ss-help ss-small" data-testid="@($"asset-score-limits-{Asset.Id}")">@ScoreText.Limit(Facts.Profile)</p>
+    @if (Facts.Warnings.Count > 0)
+    {
+        <p class="ss-label" id="@($"score-warnings-{Asset.Id}")">Warnings</p>
+        <ul class="ss-score-warnings" aria-labelledby="@($"score-warnings-{Asset.Id}")" data-testid="@($"asset-score-warnings-{Asset.Id}")">
+            @foreach (var warning in Facts.Warnings)
+            {
+                <li>@warning.Text</li>
+            }
+        </ul>
+    }
+    @if (Facts.Attribution is { } attribution)
+    {
+        <p class="ss-small ss-muted" data-testid="@($"asset-attribution-{Asset.Id}")">@attribution</p>
+    }
+    <div class="ss-row-actions">
+        @foreach (var (role, label) in Downloads)
+        {
+            <a class="ss-row-action" href="@FileUrl(role, false)" download aria-label="@($"Download {label} of {Asset.Name}")"
+               data-testid="@($"asset-download-{role}-{Asset.Id}")">@label</a>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly (string Role, string Label)[] Downloads =
+        [(ApiRoutes.AssetFilePdf, "PDF"), (ApiRoutes.AssetFileMusicXml, "MusicXML"), (ApiRoutes.AssetFileMidi, "MIDI")];
+
+    /// <summary>The score item.</summary>
+    [Parameter, EditorRequired]
+    public AssetDto Asset { get; set; } = default!;
+
+    /// <summary>Its facts.</summary>
+    [Parameter, EditorRequired]
+    public ScoreFactsDto Facts { get; set; } = default!;
+
+    /// <summary>The browser URL of a file role (inline or as a download).</summary>
+    [Parameter, EditorRequired]
+    public Func<string, bool, string> FileUrl { get; set; } = default!;
+}

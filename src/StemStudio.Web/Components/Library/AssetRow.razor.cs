@@ -28,6 +28,10 @@ public sealed partial class AssetRow
     [Parameter]
     public EventCallback<AssetDto> OnDelete { get; set; }
 
+    /// <summary>Sheet music pressed (ready audio items only, feature 008).</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnScore { get; set; }
+
     /// <summary>Retry pressed (failed items only).</summary>
     [Parameter]
     public EventCallback<AssetDto> OnRetry { get; set; }
@@ -36,6 +40,14 @@ public sealed partial class AssetRow
         ? $" · {format} · {TimeText.Duration(Asset.Audio!.DurationSeconds)} · {ByteSize.Format(Asset.SizeBytes)}"
         : string.Empty;
 
-    private string FileUrl(bool inline) =>
-        new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(Asset.Id, ApiRoutes.AssetFileAudio, inline)).ToString();
+    private bool IsReadyAudio => Asset is { Kind: AssetKindDto.Audio, Status: AssetStatusDto.Ready };
+
+    private string FileUrl(bool inline) => FileUrl(ApiRoutes.AssetFileAudio, inline);
+
+    /// <summary>The browser URL of one of the item's files.</summary>
+    /// <param name="role">The file role, e.g. <see cref="ApiRoutes.AssetFilePdf"/>.</param>
+    /// <param name="inline">True to show it in the page instead of downloading it.</param>
+    /// <returns>The absolute URL.</returns>
+    private string FileUrl(string role, bool inline) =>
+        new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(Asset.Id, role, inline)).ToString();
 }

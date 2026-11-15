@@ -1,0 +1,42 @@
+@* Manual tempo of a score (feature 008, FR-006): required (with a notice, at every level) when the beat grid is unreliable
+   or absent; otherwise an optional Advanced override that is empty, so the beat grid is used. *@
+
+@if (Tempo.Required)
+{
+    <div class="ss-notice" role="note" data-testid="score-tempo-required" data-help-id="sheet-music-key-tempo">
+        The beat grid of this song is not reliable, so enter the tempo, the beats per bar and the first downbeat (in seconds).
+    </div>
+    @Fields
+}
+else
+{
+    <LevelGate Feature="score.manual-tempo">
+        <fieldset>
+            <legend class="ss-label">Tempo (optional; empty = the detected beat grid) <HelpHint HelpId="sheet-music-key-tempo" /></legend>
+            @Fields
+        </fieldset>
+    </LevelGate>
+}
+
+@code {
+    /// <summary>The tempo as typed.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Scores.TempoInput Tempo { get; set; } = default!;
+
+    private RenderFragment Fields => @<div class="ss-range-row">
+        <label class="ss-field">
+            <span class="ss-small">Tempo (BPM)</span>
+            <input type="number" min="30" max="300" step="0.1" class="rz-textbox" @bind="Tempo.Bpm" @bind:event="oninput" data-testid="score-tempo-bpm" />
+        </label>
+        <label class="ss-field">
+            <span class="ss-small">Beats per bar</span>
+            <input type="number" min="1" max="12" step="1" class="rz-textbox" @bind="Tempo.BeatsPerBar" @bind:event="oninput"
+                   data-testid="score-tempo-beats-per-bar" />
+        </label>
+        <label class="ss-field">
+            <span class="ss-small">First downbeat (s)</span>
+            <input type="number" min="0" step="0.01" class="rz-textbox" @bind="Tempo.FirstDownbeat" @bind:event="oninput"
+                   data-testid="score-tempo-first-downbeat" />
+        </label>
+    </div>;
+}

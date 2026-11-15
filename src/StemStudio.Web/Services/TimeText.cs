@@ -28,4 +28,11 @@ public static class TimeText
         var whole = tenths / 10;
         return string.Create(CultureInfo.InvariantCulture, $"{whole / 60}:{whole % 60:00}.{tenths % 10}");
     }
+
+    /// <summary>A rough expected time: "about 31 seconds" under 90 s, else "about 9 minutes" (rounded up).</summary>
+    /// <param name="seconds">Whole seconds.</param>
+    /// <returns>The text.</returns>
+    public static string About(int seconds) => seconds < 90
+        ? $"about {seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds"
+        : $"about {((seconds + 59) / 60).ToString(System.Globalization.CultureInfo.InvariantCulture)} minutes";
 }

@@ -1,7 +1,9 @@
 using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
+using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Api;
@@ -174,4 +176,60 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The queued item; 409 (not failed, source unavailable) and 503 throw <see cref="ApiException"/>.</returns>
     Task<AssetDto> RetryAssetAsync(Guid assetId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/tracks/{id}/lyrics</c> (no-store): the lyrics; a completed track with status none starts its search.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics.</returns>
+    Task<LyricsDto> GetLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>PUT /api/tracks/{id}/lyrics/offset</c>: stores the karaoke offset (-5000..5000 ms, steps of 10).</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="offsetMs">The offset; positive = the lyrics come later.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics; 409 without lyrics.</returns>
+    Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default);
+
+    /// <summary><c>PUT /api/tracks/{id}/lyrics</c>: replaces the lyrics with text entered by the user; it is aligned next.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="request">The text (1..20,000 characters) and an optional language hint.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (alignPending or aligning); 409 while searching or aligning, 422 for invalid text.</returns>
+    Task<LyricsDto> SetLyricsAsync(Guid trackId, SetLyricsRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/align</c>: aligns the text to the vocal stem.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (aligning); 409 without text or while busy, 503 when the worker is unavailable.</returns>
+    Task<LyricsDto> AlignLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/align/cancel</c>: stops a running alignment.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (alignPending, or found when line timing was being refined); 409 when nothing is aligning.</returns>
+    Task<LyricsDto> CancelLyricsAlignmentAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/search</c>: searches LRCLIB again.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (searching); 409 while searching or aligning.</returns>
+    Task<LyricsDto> SearchLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>DELETE /api/tracks/{id}/lyrics</c>: removes the lyrics; no automatic lookup follows.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (removed).</returns>
+    Task<LyricsDto> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/scores/options</c>: profiles, defaults, estimates and limits for sheet music of one source.</summary>
+    /// <param name="source">A channel of a completed track or a ready audio item.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The options; 409 when the track is not ready, 422 for an unusable source.</returns>
+    Task<ScoreOptionsDto> GetScoreOptionsAsync(AudioSourceDto source, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/assets/scores</c>: creates a score item; it is transcribed in the background.</summary>
+    /// <param name="request">The source and the choices; null members take the defaults.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued item; 409, 422 or 503 as problem details.</returns>
+    Task<AssetDto> CreateScoreAsync(CreateScoreRequest request, CancellationToken cancellationToken = default);
 }

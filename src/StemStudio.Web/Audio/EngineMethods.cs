@@ -1,7 +1,7 @@
 namespace StemStudio.Web.Audio;
 
 /// <summary>
-/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.1.0; the 2.1.0 karaoke methods are not invoked yet).
+/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.1.0 incl. the karaoke methods).
 /// Every identifier the wrapper invokes is listed here so a drift test can compare them with the contract.
 /// </summary>
 internal static class EngineMethods
@@ -51,10 +51,22 @@ internal static class EngineMethods
     /// <summary><c>AudioEngine.attachMeter</c>.</summary>
     public const string AttachMeter = "attachMeter";
 
+    /// <summary><c>AudioEngine.attachKaraoke</c> (contract 2.1.0).</summary>
+    public const string AttachKaraoke = "attachKaraoke";
+
+    /// <summary><c>AudioEngine.setKaraokeOffset</c> (contract 2.1.0).</summary>
+    public const string SetKaraokeOffset = "setKaraokeOffset";
+
+    /// <summary><c>AudioEngine.detachKaraoke</c> (contract 2.1.0).</summary>
+    public const string DetachKaraoke = "detachKaraoke";
+
     /// <summary><c>AudioEngine.dispose</c>.</summary>
     public const string Dispose = "dispose";
 
     /// <summary>All <c>AudioEngine</c> instance methods the wrapper invokes.</summary>
     public static readonly IReadOnlyList<string> All =
-        [LoadTrack, Play, Pause, Stop, Seek, SetChannel, SetExpanded, SetMaster, SetLoop, SetMetronome, AttachMeter, Dispose];
+        [
+            LoadTrack, Play, Pause, Stop, Seek, SetChannel, SetExpanded, SetMaster, SetLoop, SetMetronome, AttachMeter,
+            AttachKaraoke, SetKaraokeOffset, DetachKaraoke, Dispose,
+        ];
 }

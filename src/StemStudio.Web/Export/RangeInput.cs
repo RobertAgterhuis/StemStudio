@@ -6,15 +6,16 @@ using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Export;
 
-/// <summary>Start and end of an export range as typed, or the loop region (feature 007, FR-006).</summary>
+/// <summary>Start and end of an export (feature 007, FR-006) or score (feature 008, FR-013) range as typed, or the loop region.</summary>
 /// <param name="loop">The mixer's loop region, if any.</param>
 /// <param name="duration">Length of the song in seconds.</param>
-public sealed class RangeInput(LoopRegionDto? loop, double duration)
+/// <param name="minSeconds">Shortest allowed range: 0.5 s for exports, 2 s for sheet music.</param>
+public sealed class RangeInput(LoopRegionDto? loop, double duration, double minSeconds = ContractLimits.MinExportRangeSeconds)
 {
     /// <summary>Message when only one of start and end is given or a value is not a number.</summary>
     public const string IncompleteMessage = "Enter start and end in seconds, or leave both empty for the whole song.";
 
-    /// <summary>Message for a range shorter than <see cref="ContractLimits.MinExportRangeSeconds"/>.</summary>
+    /// <summary>Message for an export range shorter than <see cref="ContractLimits.MinExportRangeSeconds"/>.</summary>
     public const string TooShortMessage = "The range must be at least 0.5 s long and end after it starts.";
 
     /// <summary>The loop region, when the mixer has one.</summary>
@@ -55,9 +56,11 @@ public sealed class RangeInput(LoopRegionDto? loop, double duration)
         IsWholeSong ? null : new RangeDto(double.Parse(Start, CultureInfo.InvariantCulture), double.Parse(End, CultureInfo.InvariantCulture));
 
     private string? Check(double start, double end) =>
-        end - start < ContractLimits.MinExportRangeSeconds ? TooShortMessage
+        end - start < minSeconds ? ShortMessage
         : start < 0 || end > duration ? $"The range must lie inside the song (0 to {TimeText.Duration(duration)})."
         : null;
+
+    private string ShortMessage => $"The range must be at least {minSeconds.ToString(CultureInfo.InvariantCulture)} s long and end after it starts.";
 
     private bool IsWholeSong => Start.Trim().Length == 0 && End.Trim().Length == 0;
 

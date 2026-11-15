@@ -1,0 +1,47 @@
+/* Lyrics card of the track page (feature 006); tokens only. */
+
+.ss-lyrics {
+  display: grid;
+  gap: var(--ss-space-3);
+}
+
+.ss-lyrics-align,
+.ss-lyrics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+}
+
+.ss-lyrics-align .rz-progressbar {
+  flex: 1 1 12rem;
+}
+
+.ss-lyrics-actions:empty {
+  display: none;
+}
+
+.ss-lyrics-paste {
+  display: grid;
+  gap: var(--ss-space-2);
+  max-width: 48rem;
+}
+
+.ss-lyrics-paste textarea {
+  font: inherit;
+  resize: vertical;
+}
+
+.ss-lyrics-preview {
+  max-height: 18rem;
+  overflow-y: auto;
+  padding: var(--ss-space-3) var(--ss-space-4);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-sunken);
+}
+
+.ss-lyrics-preview p {
+  margin: 0 0 var(--ss-space-1);
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,224 @@
+/*
+ * Karaoke banner (feature 006, FR-005, FR-008, FR-011; engine contract 2.1.0 "Karaoke"). The audio engine owns the host's
+ * children (.karaoke-line, .karaoke-word, .karaoke-ball, .karaoke-countdown) and writes only the ball's transform; all
+ * styling is here, from 004 tokens. Contrast: ink, muted and the vocals colour on --ss-color-raised are >= 4.5:1 in both
+ * themes (TokenContrastTests).
+ */
+
+/* Dock: the banner and the transport stick to the bottom of the viewport together; the banner never covers the transport. */
+.ss-mixer-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--ss-z-transport);
+  display: grid;
+  margin: 0 calc(-1 * var(--ss-gutter));
+  background: var(--ss-color-base);
+}
+
+.ss-mixer-dock > .ss-transport-dock {
+  position: static;
+  margin: 0;
+}
+
+html:has(.ss-karaoke-host) {
+  scroll-padding-bottom: calc(var(--ss-transport-height) + 9rem);
+}
+
+.ss-karaoke {
+  display: grid;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2) var(--ss-gutter) 0;
+  border-top: 1px solid var(--ss-color-divider);
+}
+
+.ss-karaoke-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-karaoke-offset input[type="range"] {
+  width: min(16rem, 40vw);
+  accent-color: var(--ss-color-ink);
+}
+
+.ss-karaoke-offset-value {
+  min-width: 5.5em;
+  font-size: var(--ss-type-label-size);
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-karaoke-error {
+  color: var(--ss-color-danger);
+}
+
+.ss-karaoke-unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  margin: 0;
+  padding: var(--ss-space-2) 0;
+  color: var(--ss-color-muted);
+}
+
+.ss-karaoke-unavailable a {
+  color: var(--ss-color-ink);
+}
+
+.ss-karaoke-credit {
+  margin: 0;
+  padding-bottom: var(--ss-space-1);
+}
+
+/* Host: position: relative so the engine's ball (left/top 0) is placed in the host's border box. */
+.ss-karaoke-host {
+  --ss-karaoke-size: var(--ss-type-title-size);
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--ss-space-1);
+  min-height: calc(var(--ss-karaoke-size) * 4.6);
+  padding: calc(var(--ss-karaoke-size) * 0.9) var(--ss-space-4) var(--ss-space-2);
+  overflow: hidden;
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  text-align: center;
+}
+
+.ss-karaoke-host[data-size="s"] {
+  --ss-karaoke-size: var(--ss-type-heading-size);
+}
+
+.ss-karaoke-host[data-size="l"] {
+  --ss-karaoke-size: var(--ss-type-display-size);
+}
+
+.ss-karaoke-host[data-state="hidden"] {
+  display: none;
+}
+
+.ss-karaoke-host .karaoke-line {
+  max-width: 100%;
+  font-size: calc(var(--ss-karaoke-size) * 0.62);
+  line-height: var(--ss-type-title-line);
+  overflow-wrap: anywhere;
+  color: var(--ss-color-muted);
+}
+
+.ss-karaoke-host .karaoke-line[data-slot="current"] {
+  font-size: var(--ss-karaoke-size);
+  font-weight: var(--ss-type-title-weight);
+  color: var(--ss-color-ink);
+}
+
+.ss-karaoke-host .karaoke-word {
+  margin: 0 0.14em;
+}
+
+.ss-karaoke-host .karaoke-line[data-slot="current"] .karaoke-word[data-state="future"] {
+  color: var(--ss-color-muted);
+}
+
+.ss-karaoke-host .karaoke-line[data-slot="current"] .karaoke-word[data-state="past"] {
+  color: var(--ss-color-ink);
+}
+
+.ss-karaoke-host .karaoke-line[data-slot="current"] .karaoke-word[data-state="current"] {
+  color: var(--ss-stem-vocals);
+}
+
+/* The engine writes translate3d(x, y, 0) into the transform: centre the ball with negative margins, never a transform. */
+.ss-karaoke-host .karaoke-ball {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--ss-karaoke-size) * 0.42);
+  height: calc(var(--ss-karaoke-size) * 0.42);
+  margin-top: calc(var(--ss-karaoke-size) * -0.5);
+  margin-left: calc(var(--ss-karaoke-size) * -0.21);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-stem-vocals);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ss-karaoke-host .karaoke-ball[hidden],
+.ss-karaoke-host:not([data-state="singing"]) .karaoke-ball {
+  display: none;
+}
+
+/* Countdown: three dots; the engine sets data-count (3, 2, 1, or 0 before the count starts). */
+.ss-karaoke-host .karaoke-countdown {
+  display: none;
+  gap: var(--ss-space-2);
+}
+
+.ss-karaoke-host[data-state="countdown"] .karaoke-countdown {
+  display: flex;
+}
+
+.ss-karaoke-host .karaoke-dot {
+  width: calc(var(--ss-karaoke-size) * 0.32);
+  height: calc(var(--ss-karaoke-size) * 0.32);
+  border: 2px solid var(--ss-color-muted);
+  border-radius: var(--ss-radius-pill);
+}
+
+.ss-karaoke-host .karaoke-countdown[data-count="3"] .karaoke-dot,
+.ss-karaoke-host .karaoke-countdown[data-count="2"] .karaoke-dot:nth-child(-n + 2),
+.ss-karaoke-host .karaoke-countdown[data-count="1"] .karaoke-dot:first-child {
+  border-color: var(--ss-stem-vocals);
+  background: var(--ss-stem-vocals);
+}
+
+/* Reduced motion (system or the app's own setting): no ball; the current word is highlighted instead. */
+html[data-motion="reduced"] .ss-karaoke-host .karaoke-ball {
+  display: none;
+}
+
+html[data-motion="reduced"] .ss-karaoke-host .karaoke-word[data-state="current"],
+.ss-karaoke-host .karaoke-ball[hidden] ~ .karaoke-line .karaoke-word[data-state="current"] {
+  text-decoration: underline 0.12em;
+  text-underline-offset: 0.18em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .ss-karaoke-host .karaoke-word[data-state="current"] {
+    text-decoration: underline 0.12em;
+    text-underline-offset: 0.18em;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .ss-mixer-dock {
+    bottom: 3.5rem;
+    margin: 0 calc(-1 * var(--ss-space-4));
+  }
+
+  .ss-karaoke {
+    padding: var(--ss-space-2) var(--ss-space-4) 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .ss-karaoke-host .karaoke-word[data-state="current"] {
+    text-decoration: underline 0.12em;
+  }
+
+  .ss-karaoke-host .karaoke-ball {
+    forced-color-adjust: none;
+    background: var(--ss-forced-accent);
+  }
+}
+
+.ss-karaoke-full-text {
+  max-height: 14rem;
+  margin: 0;
+  padding: var(--ss-space-2) var(--ss-space-4) var(--ss-space-2) var(--ss-space-6);
+  overflow-y: auto;
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-sunken);
+}
