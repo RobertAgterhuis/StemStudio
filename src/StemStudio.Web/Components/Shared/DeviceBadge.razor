@@ -1,0 +1,15 @@
+@* Processing device of a job or of the worker (FR-006, ui-test-ids 1.2.0). *@
+
+@code {
+    /// <summary>What to show.</summary>
+    [Parameter, EditorRequired]
+    public DeviceDisplay Display { get; set; } = default!;
+
+    /// <summary><c>data-testid</c> of the device text.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary><c>data-testid</c> of the reason text.</summary>
+    [Parameter, EditorRequired]
+    public string ReasonTestId { get; set; } = string.Empty;
+}

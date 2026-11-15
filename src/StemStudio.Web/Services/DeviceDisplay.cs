@@ -1,0 +1,19 @@
+using StemStudio.Contracts.Tracks;
+
+namespace StemStudio.Web.Services;
+
+/// <summary>What a <c>DeviceBadge</c> shows (ui-test-ids 1.2.0, FR-006).</summary>
+/// <param name="Kind">Value of <c>data-device</c>: <c>gpu</c>, <c>cpu</c> or <c>unknown</c>.</param>
+/// <param name="Text">Visible device text: <c>GPU (&lt;name&gt;)</c>, <c>CPU</c> or <c>Unknown</c>.</param>
+/// <param name="Fallback">Value of <c>data-fallback</c>; null leaves the attribute out.</param>
+/// <param name="Reason">Fallback or CPU reason; null hides the reason element.</param>
+public sealed record DeviceDisplay(string Kind, string Text, bool? Fallback, string? Reason)
+{
+    /// <summary>Reason shown when a fallback is flagged without a reason.</summary>
+    public const string UnknownFallbackReason = "A step ran on the CPU instead of the GPU.";
+
+    /// <summary>Display of the device a standard or detail job ran on.</summary>
+    /// <param name="device">The job device record.</param>
+    /// <returns>The display.</returns>
+    public static DeviceDisplay FromJob(JobDeviceDto device) => throw new NotImplementedException();
+}
