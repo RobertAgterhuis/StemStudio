@@ -7,7 +7,8 @@ namespace StemStudio.Api.Sync;
 
 /// <summary>
 /// Applies one worker job state to a track: forward progress and metadata, failure, or completion (result and every
-/// stem written to local storage first, then the status; data-model.md 3.1).
+/// stem written to local storage first, then the status; data-model.md 3.1). A completed track gets its detail phase
+/// queued in the same save (feature 002, FR-001); the detail synchroniser submits it.
 /// </summary>
 /// <param name="worker">Worker client.</param>
 /// <param name="stems">Stem store.</param>
@@ -70,6 +71,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
             var stored = await DownloadStemsAsync(track.Id, result, cancellationToken);
             track.ApplyMetadata(new TrackMetadata(result.Metadata.Title, result.Metadata.Artist), Now);
             track.Complete(new TrackCompletion(result.DurationSeconds, result.Model, stored, ToBeatGrid(result.BeatGrid)), Now);
+            track.RequestDetail(Now);
             DeleteUpload(track);
         }
         catch (Exception exception) when (FailureReason(exception) is { } reason)

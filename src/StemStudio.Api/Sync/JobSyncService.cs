@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Options;
+using StemStudio.Api.Detail;
 
 namespace StemStudio.Api.Sync;
 
 /// <summary>
 /// Background poller (ADR-003): every <see cref="StemStudioApiOptions.JobPollIntervalMs"/> on the injected
-/// <see cref="TimeProvider"/> it fails orphaned imports (<see cref="OrphanedImportSweeper"/>) and runs one
-/// <see cref="ITrackSynchronizer"/> pass, in a new scope.
+/// <see cref="TimeProvider"/> it fails orphaned imports (<see cref="OrphanedImportSweeper"/>), runs one
+/// <see cref="ITrackSynchronizer"/> pass and one <see cref="DetailSynchronizer"/> pass, in a new scope.
 /// </summary>
 /// <param name="scopes">Scope factory.</param>
 /// <param name="options">API options.</param>
@@ -48,6 +49,7 @@ public sealed partial class JobSyncService(
             await using var scope = scopes.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<OrphanedImportSweeper>().SweepAsync(cancellationToken);
             await scope.ServiceProvider.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(cancellationToken);
+            await scope.ServiceProvider.GetRequiredService<DetailSynchronizer>().SyncAllAsync(cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

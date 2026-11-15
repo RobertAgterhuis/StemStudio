@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Api.Detail;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
@@ -84,6 +85,8 @@ public static class ApiComposition
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
+        services.AddScoped<DetailJobApplier>();
+        services.AddScoped<DetailSynchronizer>();
         services.AddHostedService<JobSyncService>();
     }
 
