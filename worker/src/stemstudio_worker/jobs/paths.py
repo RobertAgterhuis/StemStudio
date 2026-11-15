@@ -7,7 +7,7 @@ user-supplied names are never used.
 from dataclasses import dataclass
 from pathlib import Path
 
-from stemstudio_worker.schemas import StemName
+from stemstudio_worker.schemas import DetailStemName, StemName
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,3 +49,20 @@ class DataPaths:
     def stem_file(self, audio_sha256: str, stem: StemName) -> Path:
         """FLAC file of one cached stem."""
         return self.by_audio(audio_sha256) / "stems" / f"{stem}.flac"
+
+    @property
+    def detail_jobs(self) -> Path:
+        """Directory of the ``<detailJobId>.json`` detail job files."""
+        return self.root / "detail-jobs"
+
+    def detail_partial(self, audio_sha256: str) -> Path:
+        """Per-parent checkpoints of an unfinished detail phase (kept across retries)."""
+        return self.by_audio(audio_sha256) / "detail.partial"
+
+    def detail_final(self, audio_sha256: str) -> Path:
+        """Finished detail result (``result.json`` + ``<parent>/<name>.flac``)."""
+        return self.by_audio(audio_sha256) / "detail"
+
+    def detail_stem(self, audio_sha256: str, parent: StemName, name: DetailStemName) -> Path:
+        """FLAC file of one cached detail stem."""
+        return self.detail_final(audio_sha256) / parent / f"{name}.flac"

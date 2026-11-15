@@ -93,7 +93,7 @@ def test_a_standard_job_that_is_not_completed_conflicts(env: Env) -> None:
     env.jobs.save(env.jobs.get(STD).model_copy(  # type: ignore[union-attr]
         update={"job": build_job(job_id=STD, status=JobState.SEPARATING), "result": None}
     ))  # fmt: skip
-    with pytest.raises(DetailConflictError, match="Job is in state separating."):
+    with pytest.raises(DetailConflictError, match=r"Job is in state separating."):
         env.service.create(STD)
 
 
@@ -113,7 +113,7 @@ def test_get_and_result_of_unknown_jobs_raise(env: Env) -> None:
 def test_result_of_a_job_that_is_not_completed_conflicts(env: Env) -> None:
     job, _ = env.service.create(STD)
     assert env.service.get(job.detail_job_id).job == job
-    with pytest.raises(DetailConflictError, match="Detail job is in state queued."):
+    with pytest.raises(DetailConflictError, match=r"Detail job is in state queued."):
         env.service.result(job.detail_job_id)
 
 
@@ -139,7 +139,7 @@ def test_cancel_of_a_cancelled_job_is_a_no_op(env: Env) -> None:
 def test_cancel_of_a_completed_or_failed_job_conflicts(env: Env, status: D) -> None:
     job, _ = env.service.create(STD)
     env.set_status(job, status)
-    with pytest.raises(DetailConflictError, match=f"Detail job is in state {status.value}."):
+    with pytest.raises(DetailConflictError, match=rf"Detail job is in state {status.value}."):
         env.service.cancel(job.detail_job_id)
 
 
