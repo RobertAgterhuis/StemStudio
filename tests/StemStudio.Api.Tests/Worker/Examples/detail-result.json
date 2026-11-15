@@ -1,0 +1,61 @@
+{
+  "detailJobId": "7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b",
+  "audioSha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  "separatorVersion": "1",
+  "parents": [
+    {
+      "parent": "vocals",
+      "outcome": "split",
+      "model": "uvr-mdxnet-kara-2",
+      "stems": [
+        { "name": "lead", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/lead", "sizeBytes": 19456789 },
+        { "name": "backing", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/backing", "sizeBytes": 9456789 },
+        { "name": "rest", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/rest", "sizeBytes": 1456789 }
+      ],
+      "metrics": { "parentLevelDbfs": -24.6, "activeShare": 0.67, "modelResidualDb": -160.0, "reconstructionErrorDb": -71.2 }
+    },
+    {
+      "parent": "drums",
+      "outcome": "split",
+      "model": "mdx23c-drumsep-6s",
+      "stems": [
+        { "name": "kick", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/kick", "sizeBytes": 12456789 },
+        { "name": "snare", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/snare", "sizeBytes": 13456789 },
+        { "name": "toms", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/toms", "sizeBytes": 9456789 },
+        { "name": "hihat", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/hihat", "sizeBytes": 10456789 },
+        { "name": "cymbals", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/cymbals", "sizeBytes": 11456789 },
+        { "name": "rest", "path": "/v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/rest", "sizeBytes": 8456789 }
+      ],
+      "metrics": { "parentLevelDbfs": -23.1, "activeShare": 0.68, "modelResidualDb": -25.9, "reconstructionErrorDb": -68.4 }
+    },
+    {
+      "parent": "bass",
+      "outcome": "not-supported",
+      "model": null,
+      "stems": [],
+      "metrics": { "parentLevelDbfs": -21.4, "activeShare": 0.91, "modelResidualDb": null, "reconstructionErrorDb": null }
+    },
+    {
+      "parent": "guitar",
+      "outcome": "nothing-further",
+      "model": "mvsep-mega-53",
+      "stems": [],
+      "metrics": { "parentLevelDbfs": -23.1, "activeShare": 0.98, "modelResidualDb": -9.1, "reconstructionErrorDb": null }
+    },
+    {
+      "parent": "piano",
+      "outcome": "skipped-silent",
+      "model": null,
+      "stems": [],
+      "metrics": { "parentLevelDbfs": -69.5, "activeShare": 0.0, "modelResidualDb": null, "reconstructionErrorDb": null }
+    },
+    {
+      "parent": "other",
+      "outcome": "skipped-silent",
+      "model": null,
+      "stems": [],
+      "metrics": { "parentLevelDbfs": -46.3, "activeShare": 0.05, "modelResidualDb": null, "reconstructionErrorDb": null }
+    }
+  ],
+  "completedAt": "2026-11-15T12:31:10Z"
+}
