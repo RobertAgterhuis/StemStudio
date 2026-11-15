@@ -14,8 +14,16 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
 Worker (imports inside ``stemstudio_worker``)::
 
     api -> jobs -> ports <- {ingest, separation, analysis, detail, devices, metadata,
-    render};
-    everything -> schemas, config
+    render, lyrics, alignment, transcription};  notation, engraving -> ports
+    everything -> schemas, config (notation and engraving: schemas only)
+    lyrics may also import metadata.{http, ratelimit, user_agent} (feature 006: shared egress),
+    no other metadata module; nothing imports lyrics or alignment (feature 006: jobs gets the
+    LyricsLookup and the Aligner injected); nothing imports transcription, notation or
+    engraving (feature 008: composed in main.py); transcription/vendor/** contributes no edges
+
+Worker third-party imports (feature 008; the standard library is always allowed)::
+
+    notation -> music21 only;  engraving -> verovio, cairosvg, pypdf only
     detail may also import its own vendor package (detail/vendor/** is third-party code and
     contributes no edges); no module imports devices (feature 003: separation and detail get
     the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
@@ -25,9 +33,12 @@ Worker (imports inside ``stemstudio_worker``)::
 TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` files)::
 
     web-interop -/- audio-engine   (feature 004: neither package imports the other)
+    audio-engine/{transport, mixer} -/- audio-engine/karaoke   (feature 006, module level)
 
     An import is an edge when its specifier is ``@stemstudio/<name>[/...]`` or a relative path
     that leaves the package into ``src/<name>/``; npm packages (``driver.js``) are not edges.
+    A module edge ``<package>/<module>`` is a relative import between the top-level files or
+    folders of ``src/<package>/src/`` (``transport.ts`` and ``transport/**`` are ``transport``).
 
 Forbidden edges and cycles fail the gate; modules missing from the map are warnings.
 
@@ -115,12 +126,35 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "detail": _ADAPTER,
     "metadata": _ADAPTER,
     "render": _ADAPTER,
+    "lyrics": _ADAPTER,
+    "alignment": _ADAPTER,
+    "transcription": _ADAPTER,
+    "notation": frozenset({"ports", "schemas"}),
+    "engraving": frozenset({"ports", "schemas"}),
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
     "main": None,
 }
 """Allowed imported top-level modules per worker module; ``None`` = unrestricted."""
+
+PYTHON_SUBMODULES_ALLOWED: Mapping[str, frozenset[str]] = {
+    "lyrics": frozenset({"metadata.http", "metadata.ratelimit", "metadata.user_agent"}),
+}
+"""Modules (dotted, below the package) a worker module may import beyond ``PYTHON_ALLOWED``.
+
+``metadata.http`` also allows ``metadata.http.<name>``; ``metadata.httpx`` stays forbidden.
+"""
+
+PYTHON_EXTERNAL_ALLOWED: Mapping[str, frozenset[str]] = {
+    "notation": frozenset({"music21"}),
+    "engraving": frozenset({"verovio", "cairosvg", "pypdf"}),
+}
+"""Third-party top-level packages a worker module may import (only modules listed here are
+restricted; the standard library and ``stemstudio_worker`` itself are never third party)."""
+
+STDLIB = frozenset(sys.stdlib_module_names) | {"__future__"}
+"""Top-level names of the standard library."""
 
 PYTHON_PACKAGE = "stemstudio_worker"
 """Name of the worker package."""
@@ -130,6 +164,14 @@ TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "audio-engine": frozenset(),
 }
 """Allowed sibling packages per TypeScript package below ``src/`` (none: they are independent)."""
+
+TS_MODULE_FORBIDDEN: Mapping[str, frozenset[str]] = {
+    "audio-engine/transport": frozenset({"audio-engine/karaoke"}),
+    "audio-engine/mixer": frozenset({"audio-engine/karaoke"}),
+}
+"""Forbidden module edges inside a TypeScript package (``<package>/<top-level module>``)."""
+
+_TS_SUFFIXES = (".tsx", ".ts", ".js")
 
 TS_SCOPE = "@stemstudio/"
 """npm scope of the StemStudio TypeScript packages."""
@@ -145,12 +187,17 @@ _TS_IMPORTS = (
 
 @dataclass(frozen=True, slots=True)
 class Edge:
-    """A dependency ``source -> target`` with its location."""
+    """A dependency ``source -> target`` with its location.
+
+    ``module`` is the imported dotted module below the worker package (``metadata.http``) for
+    worker edges and empty otherwise.
+    """
 
     source: str
     target: str
     path: str
     line: int
+    module: str = ""
 
 
 def read_dotnet_edges(src_dir: Path, root: Path) -> list[Edge]:
@@ -209,19 +256,86 @@ def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
 
     Excluded files (vendored third-party code) contribute no edges.
     """
-    edges: list[Edge] = []
+    return [
+        Edge(module.source, parts[0], module.path, line, ".".join(parts))
+        for module in _python_modules(package_dir, root)
+        for parts, line in _imports(module.tree, module.rel)
+        if parts and parts[0] != module.source
+    ]
+
+
+def read_external_edges(package_dir: Path, root: Path) -> list[Edge]:
+    """Return the absolute non-worker imports of the modules in ``PYTHON_EXTERNAL_ALLOWED``.
+
+    The target is the imported top-level name (``numpy`` for ``import numpy.typing``);
+    relative imports and ``stemstudio_worker`` imports are not external.
+    """
+    return [
+        Edge(module.source, target, module.path, line)
+        for module in _python_modules(package_dir, root)
+        if module.source in PYTHON_EXTERNAL_ALLOWED
+        for target, line in _external_imports(module.tree)
+        if target != PYTHON_PACKAGE
+    ]
+
+
+def _external_imports(tree: ast.Module) -> Iterator[tuple[str, int]]:
+    for node in ast.walk(tree):
+        yield from _node_externals(node)
+
+
+def _node_externals(node: ast.AST) -> list[tuple[str, int]]:
+    """Top-level names of an absolute import (``from x.y import z`` -> ``x``)."""
+    if isinstance(node, ast.Import):
+        return [(alias.name.split(".")[0], node.lineno) for alias in node.names]
+    if isinstance(node, ast.ImportFrom):
+        return _from_external(node)
+    return []
+
+
+def _from_external(node: ast.ImportFrom) -> list[tuple[str, int]]:
+    if node.level or node.module is None:
+        return []
+    return [(node.module.split(".")[0], node.lineno)]
+
+
+def check_external(edges: Sequence[Edge]) -> list[Finding]:
+    """Return an error per third-party import outside the module's allow-list."""
+    findings = (
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"forbidden third-party dependency {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+        if not _external_allowed(edge)
+    )
+    return list(dict.fromkeys(findings))
+
+
+def _external_allowed(edge: Edge) -> bool:
+    return edge.target in STDLIB or edge.target in PYTHON_EXTERNAL_ALLOWED[edge.source]
+
+
+@dataclass(frozen=True, slots=True)
+class _Module:
+    """A parsed worker file: top-level module, repository path, package path and AST."""
+
+    source: str
+    path: str
+    rel: Path
+    tree: ast.Module
+
+
+def _python_modules(package_dir: Path, root: Path) -> Iterator[_Module]:
     for module_file in sorted(package_dir.rglob("*.py")):
         rel_path = relative(module_file, root)
-        if is_excluded(rel_path):
-            continue
-        source = _top_module(module_file.relative_to(package_dir))
-        tree = ast.parse(module_file.read_text(encoding="utf-8"))
-        edges.extend(
-            Edge(source, target, rel_path, line)
-            for target, line in _imports(tree, module_file.relative_to(package_dir))
-            if target != source
-        )
-    return edges
+        if not is_excluded(rel_path):
+            rel = module_file.relative_to(package_dir)
+            tree = ast.parse(module_file.read_text(encoding="utf-8"))
+            yield _Module(_top_module(rel), rel_path, rel, tree)
 
 
 def read_ts_edges(src_dir: Path, root: Path) -> list[Edge]:
@@ -234,6 +348,51 @@ def read_ts_edges(src_dir: Path, root: Path) -> list[Edge]:
         for ts_file in _ts_files(package, root):
             edges.extend(_ts_file_edges(ts_file, package, root))
     return edges
+
+
+def read_ts_module_edges(src_dir: Path, root: Path) -> list[Edge]:
+    """Return the module edges inside every package named in ``TS_MODULE_FORBIDDEN``.
+
+    Only files below ``src/<package>/src/`` count (tests are not modules); an edge is
+    ``<package>/<module> -> <package>/<module>`` for a relative import between two different
+    top-level modules.
+    """
+    edges: list[Edge] = []
+    for package in sorted({key.split("/")[0] for key in TS_MODULE_FORBIDDEN}):
+        code = src_dir / package / "src"
+        for ts_file in _ts_files(code, root) if code.is_dir() else ():
+            edges.extend(_ts_module_edges(ts_file, code, package, root))
+    return edges
+
+
+def _ts_module_edges(ts_file: Path, code: Path, package: str, root: Path) -> Iterator[Edge]:
+    text = _TS_COMMENT.sub(_keep_newlines, ts_file.read_text(encoding="utf-8"))
+    source = _ts_module(ts_file.resolve(), code.resolve())
+    rel_path = relative(ts_file, root)
+    for pattern in _TS_IMPORTS:
+        for match in pattern.finditer(text):
+            target = _ts_relative_module(match.group("spec"), ts_file, code)
+            if target not in (None, source):
+                line = text.count("\n", 0, match.start()) + 1
+                yield Edge(f"{package}/{source}", f"{package}/{target}", rel_path, line)
+
+
+def _ts_relative_module(spec: str, ts_file: Path, code: Path) -> str | None:
+    """Top-level module a relative specifier points to (None: npm package or outside)."""
+    if not spec.startswith("."):
+        return None
+    try:
+        return _ts_module((ts_file.parent / spec).resolve(), code.resolve())
+    except ValueError:
+        return None
+
+
+def _ts_module(path: Path, code: Path) -> str:
+    """``src/transport.ts`` and ``src/transport/clock.ts`` -> ``transport``."""
+    first = path.relative_to(code).parts[0]
+    for suffix in _TS_SUFFIXES:
+        first = first.removesuffix(suffix)
+    return first
 
 
 def _ts_files(package: Path, root: Path) -> Iterator[Path]:
@@ -279,7 +438,8 @@ def _top_module(rel: Path) -> str:
     return rel.parts[0].removesuffix(".py")
 
 
-def _imports(tree: ast.Module, rel: Path) -> Iterator[tuple[str, int]]:
+def _imports(tree: ast.Module, rel: Path) -> Iterator[tuple[list[str], int]]:
+    """Yield the imported module parts below the package (``["metadata", "http"]``) per name."""
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -288,21 +448,20 @@ def _imports(tree: ast.Module, rel: Path) -> Iterator[tuple[str, int]]:
             yield from _from_targets(node, rel)
 
 
-def _absolute_target(dotted: str, line: int) -> Iterator[tuple[str, int]]:
+def _absolute_target(dotted: str, line: int) -> Iterator[tuple[list[str], int]]:
     parts = dotted.split(".")
-    if parts[0] == PYTHON_PACKAGE and len(parts) > 1:
-        yield parts[1], line
+    if parts[0] == PYTHON_PACKAGE:
+        yield parts[1:], line
 
 
-def _from_targets(node: ast.ImportFrom, rel: Path) -> Iterator[tuple[str, int]]:
-    """Targets of ``from X import Y``; ``from <package> import y`` / ``from . import y`` -> y."""
+def _from_targets(node: ast.ImportFrom, rel: Path) -> Iterator[tuple[list[str], int]]:
+    """Targets of ``from X import a, b``: ``[*X, a]`` and ``[*X, b]`` below the package."""
     dotted = _resolve_from(node, rel)
-    if dotted in ([], [PYTHON_PACKAGE]):
-        yield from ((alias.name, node.lineno) for alias in node.names)
-    elif dotted[0] == PYTHON_PACKAGE:
-        yield dotted[1], node.lineno
-    elif node.level > 0:
-        yield dotted[0], node.lineno
+    if dotted[:1] == [PYTHON_PACKAGE]:
+        dotted = dotted[1:]
+    elif node.level == 0:
+        return
+    yield from (([*dotted, alias.name], node.lineno) for alias in node.names)
 
 
 def _resolve_from(node: ast.ImportFrom, rel: Path) -> list[str]:
@@ -318,7 +477,8 @@ def check_edges(
     edges: Sequence[Edge], allowed: Mapping[str, frozenset[str] | None]
 ) -> list[Finding]:
     """Return findings for forbidden edges, unmapped modules and cycles."""
-    findings = [f for f in (_edge_finding(edge, allowed) for edge in edges) if f is not None]
+    found = (_edge_finding(edge, allowed) for edge in edges)
+    findings = list(dict.fromkeys(f for f in found if f is not None))
     return [*findings, *_unmapped(edges, allowed), *_cycles(edges)]
 
 
@@ -343,8 +503,23 @@ def _edge_finding(edge: Edge, allowed: Mapping[str, frozenset[str] | None]) -> F
     permitted = allowed[edge.source]
     if permitted is None or edge.target in permitted:
         return None
-    message = f"forbidden dependency {edge.source} -> {edge.target}"
+    extra = PYTHON_SUBMODULES_ALLOWED.get(edge.source, frozenset())
+    if _allows_module(extra, edge.module):
+        return None
+    message = f"forbidden dependency {edge.source} -> {_target_text(edge, extra)}"
     return Finding("dependency", Severity.ERROR, edge.path, edge.line, message)
+
+
+def _allows_module(extra: frozenset[str], module: str) -> bool:
+    return any(module == name or module.startswith(name + ".") for name in extra)
+
+
+def _target_text(edge: Edge, extra: frozenset[str]) -> str:
+    """``metadata.images (allowed: metadata.http, ...)`` when submodules of it are allowed."""
+    names = sorted(name for name in extra if name.split(".")[0] == edge.target)
+    if not names:
+        return edge.target
+    return f"{edge.module} (allowed: {', '.join(names)})"
 
 
 def find_cycles(edges: Sequence[Edge]) -> list[list[str]]:
@@ -377,9 +552,12 @@ def run(root: Path) -> list[Finding]:
     folder_edges = read_folder_edges(root / "src", root, list(DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
+    module_edges = read_ts_module_edges(root / "src", root)
+    findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))
     package_dir = root / "worker" / "src" / PYTHON_PACKAGE
     if package_dir.is_dir():
         findings.extend(check_edges(read_python_edges(package_dir, root), PYTHON_ALLOWED))
+        findings.extend(check_external(read_external_edges(package_dir, root)))
     return findings
 
 

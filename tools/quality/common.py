@@ -55,11 +55,14 @@ EXCLUDED_PATHS = (
     "src/StemStudio.Web/wwwroot/js/first-paint.js",
     "tools/quality/tests/samples/",
     "worker/src/stemstudio_worker/detail/vendor/",
+    "worker/src/stemstudio_worker/transcription/vendor/",
 )
 """Repository-relative paths (files or prefixes) never measured.
 
 ``detail/vendor/`` holds vendored third-party MIT inference code (MSST), excluded from SIG like
-``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO).
+``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO);
+``transcription/vendor/`` holds the vendored basic-pitch and piano-transcription post-processing
+(feature 008 plan.md, same rule). ``vendor_check.py`` keeps their LICENSE/NOTICE records.
 """
 
 OWNERS = (
@@ -82,19 +85,31 @@ OWNERS = (
     ("worker/tests/metadata/", "audio-ingest"),
     ("worker/src/stemstudio_worker/render/", "audio-ingest"),
     ("worker/tests/render/", "audio-ingest"),
+    ("worker/src/stemstudio_worker/lyrics/", "audio-ingest"),
+    ("worker/src/stemstudio_worker/engraving/", "audio-ingest"),
+    ("worker/tests/engraving/", "audio-ingest"),
+    ("worker/tests/lyrics/", "audio-ingest"),
     ("worker/src/stemstudio_worker/analysis/", "beat-analysis"),
     ("worker/tests/analysis/", "beat-analysis"),
+    ("worker/src/stemstudio_worker/notation/", "beat-analysis"),
+    ("worker/tests/notation/", "beat-analysis"),
     ("worker/src/stemstudio_worker/separation/", "stem-separation"),
     ("worker/src/stemstudio_worker/detail/", "stem-separation"),
     ("worker/src/stemstudio_worker/devices/", "stem-separation"),
     ("worker/src/stemstudio_worker/jobs/", "stem-separation"),
     ("worker/src/stemstudio_worker/api/", "stem-separation"),
+    ("worker/src/stemstudio_worker/alignment/", "stem-separation"),
+    ("worker/src/stemstudio_worker/transcription/", "stem-separation"),
     ("worker/src/stemstudio_worker/main.py", "stem-separation"),
+    ("worker/scripts/install_music_font.py", "architect"),
+    ("worker/scripts/", "stem-separation"),
     ("worker/tests/separation/", "stem-separation"),
     ("worker/tests/detail/", "stem-separation"),
     ("worker/tests/devices/", "stem-separation"),
     ("worker/tests/jobs/", "stem-separation"),
     ("worker/tests/api/", "stem-separation"),
+    ("worker/tests/alignment/", "stem-separation"),
+    ("worker/tests/transcription/", "stem-separation"),
     ("e2e/", "qa"),
     ("tests/fixtures/", "qa"),
     ("tools/quality/", "quality-gate"),

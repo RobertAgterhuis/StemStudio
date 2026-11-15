@@ -6,8 +6,9 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 |---|---|---|---|
 | `sig_check.py` | lizard unit metrics on C#, Python, TypeScript and Razor `@code` | NLOC > 30 (production code), CCN > 10, > 4 parameters | NLOC > 15, CCN > 5, test units > 30 NLOC, `@code` block > 30 lines |
 | `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/` or `worker/src/` production code | clones only between test files |
-| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), worker import graph | forbidden edge, cycle | module or package not in the dependency map |
+| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, worker import graph, worker third-party imports (`notation`, `engraving`) | forbidden edge, cycle | module or package not in the dependency map |
 | `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
+| `vendor_check.py` | licence records of every package below `detail/vendor/` and `transcription/vendor/` | a package without a `LICENSE`/`LICENCE`/`COPYING` file or without a `NOTICE` file | |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
 | `sonar_args.py` | `sonar-project.properties` -> `/d:` args for `dotnet sonarscanner begin` | | |
 
@@ -36,13 +37,24 @@ Excluded everywhere: `bin/`, `obj/`, `node_modules/`, `.venv/`, `Migrations/`, `
 `coverage/`, `dist/`, `*.g.cs`, `*.generated.cs`, `*.Designer.cs`, `*.d.ts`,
 `wwwroot/js/{audio-engine,web-interop,first-paint}.js` (build output), the deliberate samples in `tests/samples/` and the vendored
 third-party MSST code in `worker/src/stemstudio_worker/detail/vendor/` (feature 002 plan.md
-Complexity Tracking, accepted by the CTO; it is covered by the marked integration test instead).
-Vendored files contribute no edges to the dependency graph.
+Complexity Tracking, accepted by the CTO; it is covered by the marked integration test instead)
+and the vendored basic-pitch and piano-transcription code in
+`worker/src/stemstudio_worker/transcription/vendor/` (feature 008 plan.md, same rule; thin adapters
+in `transcription/` are measured). Both folders are also in `.jscpd.json` and in
+`sonar.exclusions`. Vendored files contribute no edges to the dependency graph; instead
+`vendor_check.py` requires a `LICENSE` and a `NOTICE` file (origin, version, modifications) in
+every vendored package directory.
 
 TypeScript package rule (feature 004): `src/web-interop` and `src/audio-engine` never import
 each other (`@stemstudio/<name>` or a relative path into the other package); npm packages such as
 `driver.js` are not edges. A new package below `src/` with a `package.json` is a warning until it
 is added to `TS_ALLOWED`.
+
+TypeScript module rule (feature 006, `TS_MODULE_FORBIDDEN`): inside `src/audio-engine/src/`,
+`transport` and `mixer` (the file `transport.ts` or any file below `transport/`) never import
+`karaoke/` through a relative specifier (static, type-only, `export ... from` or dynamic
+`import()`). `karaoke` may read the transport clock, `engine.ts`/`index.ts` compose it, and
+test files are not modules.
 
 Raw-colour guard (feature 004, FR-003): values are checked per declaration, so selectors (`#id`,
 `.red`), comments, strings, `url()` and custom-property names are ignored; `var()`,
@@ -50,12 +62,27 @@ Raw-colour guard (feature 004, FR-003): values are checked per declaration, so s
 Findings are owned by frontend.
 
 Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail, devices,
-metadata, render}`, every module may import `schemas` and `config`, `detail` may additionally import its own
+metadata, render, lyrics, alignment, transcription}`, `{notation, engraving} -> {ports,
+schemas}` (feature 008: no `config`), every other module may import `schemas` and `config`, `detail` may additionally import its own
 `vendor`, `jobs` never imports `detail`, no module imports `devices` (feature 003: `separation` and
 `detail` receive the `DeviceRunner` from the composition root), no module imports `metadata`
 (feature 005: `ingest` receives the `ImageNormalizer` from the composition root), no module imports
-`render` (feature 007: `jobs` receives the `RenderExecutor` from the composition root) and
-`main.py` (composition root) is unrestricted.
+`render` (feature 007: `jobs` receives the `RenderExecutor` from the composition root), no module
+imports `lyrics` or `alignment` (feature 006: `jobs` receives the `LyricsLookup` and the `Aligner`
+from the composition root), no module imports `transcription`, `notation` or `engraving`
+(feature 008: `jobs` receives the `PitchTranscriber`, `Notator` and `ScoreEngraver` from the
+composition root) and `main.py` (composition root) is unrestricted.
+
+Third-party rule (`PYTHON_EXTERNAL_ALLOWED`, feature 008): `notation` may import only `music21`
+and `engraving` only `verovio`, `cairosvg` and `pypdf` besides the standard library
+(`sys.stdlib_module_names`). Lazy imports inside functions and `TYPE_CHECKING` blocks count. So
+neither imports `torch`, `onnxruntime` or `numpy`. Other modules are not restricted (transcription
+uses onnxruntime/torch). The error reads `forbidden third-party dependency notation -> numpy`.
+
+Sub-module exception (`PYTHON_SUBMODULES_ALLOWED`, feature 006): `lyrics` may import the shared
+egress modules `metadata.http`, `metadata.ratelimit` and `metadata.user_agent` (and names inside
+them), no other `metadata` module; the error names the imported module and the allowed ones.
+Edges are recorded per imported name, and one statement yields at most one finding.
 
 .NET feature-folder rule (`DOTNET_FOLDER_FORBIDDEN`): the C# files below a listed folder must not
 reference the forbidden StemStudio project namespaces, neither in `using`/`global using`/
@@ -83,4 +110,4 @@ uv run --directory tools/quality pytest --cov --cov-branch --cov-report=xml
 
 Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
 `python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
-`python tools/quality/css_tokens_check.py`.
+`python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`.
