@@ -28,7 +28,9 @@ public sealed class ArtworkEndpointTests : ApiTestBase
         response.Content.Headers.ContentType!.MediaType.ShouldBe("image/jpeg");
         (await response.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(Cover);
         response.Headers.ETag!.Tag.ShouldBe("\"9b74c9897bac\"");
-        response.Headers.CacheControl!.ToString().ShouldBe("private, max-age=31536000, immutable");
+        var cache = response.Headers.CacheControl!;
+        (cache.Private, cache.MaxAge, cache.NoCache).ShouldBe((true, TimeSpan.FromSeconds(31536000), false));
+        cache.Extensions.Select(extension => extension.Name).ShouldBe(["immutable"]);
         await ContractAssert.MatchesAsync(response, "getTrackArtwork");
     }
 

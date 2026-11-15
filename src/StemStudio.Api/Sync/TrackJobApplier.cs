@@ -12,9 +12,9 @@ namespace StemStudio.Api.Sync;
 /// </summary>
 /// <param name="worker">Worker client.</param>
 /// <param name="files">Stem and upload stores (the API copy of an upload is deleted after completion, U3).</param>
-/// <param name="devices">Copies the job's device (feature 003).</param>
+/// <param name="reported">Applies device, title/artist and source picture reported with any state (features 003, 005).</param>
 /// <param name="clock">Clock.</param>
-public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobDeviceApplier devices, TimeProvider clock)
+public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobReportApplier reported, TimeProvider clock)
 {
     /// <summary>Failure text when the worker no longer knows the job (FR-009a).</summary>
     public const string InterruptedByRestart = "interrupted by restart";
@@ -26,37 +26,25 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobD
     /// <param name="job">The worker job, or null when the worker answered 404.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
-    public Task ApplyAsync(Track track, WorkerJob? job, CancellationToken cancellationToken)
+    public async Task ApplyAsync(Track track, WorkerJob? job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
         if (job is null)
         {
-            return Fail(track, InterruptedByRestart);
+            await Fail(track, InterruptedByRestart);
+            return;
         }
 
-        ApplyReported(track, job);
-        return job.Status switch
-        {
-            WorkerJobState.Completed => CompleteAsync(track, job.JobId, cancellationToken),
-            WorkerJobState.Failed => Fail(track, job.Error ?? "Processing failed."),
-            _ => Progress(track, job),
-        };
+        await reported.ApplyAsync(track, job, cancellationToken);
+        await ApplyStateAsync(track, job, cancellationToken);
     }
 
-    /// <summary>Copies the device and the metadata the worker reported with any state.</summary>
-    private void ApplyReported(Track track, WorkerJob job)
+    private Task ApplyStateAsync(Track track, WorkerJob job, CancellationToken cancellationToken) => job.Status switch
     {
-        devices.ApplyStandard(track, job.Device);
-        ApplyMetadata(track, job.Metadata);
-    }
-
-    private void ApplyMetadata(Track track, WorkerSourceMetadata? metadata)
-    {
-        if (metadata is not null)
-        {
-            track.ApplyMetadata(new SourceMetadata(metadata.Title, metadata.Artist), Now);
-        }
-    }
+        WorkerJobState.Completed => CompleteAsync(track, job.JobId, cancellationToken),
+        WorkerJobState.Failed => Fail(track, job.Error ?? "Processing failed."),
+        _ => Progress(track, job),
+    };
 
     private Task Fail(Track track, string error)
     {

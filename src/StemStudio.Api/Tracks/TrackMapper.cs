@@ -13,15 +13,50 @@ public static class TrackMapper
     public static TrackDto ToDto(Track track)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return Source(track) with
+        return WithFeatures(track, Source(track) with
         {
             Stage = track.Stage,
             Error = track.Error,
             DurationSeconds = track.DurationSeconds,
             Model = track.Model,
             BeatGrid = ToDto(track.BeatGrid),
-            Detail = DetailMapper.ToDto(track.Id, track.DetailPhase),
-            Device = ToDto(track.Device),
+        });
+    }
+
+    private static TrackDto WithFeatures(Track track, TrackDto dto) => dto with
+    {
+        Detail = DetailMapper.ToDto(track.Id, track.DetailPhase),
+        Device = ToDto(track.Device),
+        Artwork = ToDto(track.Id, track.Artwork),
+        Metadata = ToDto(track.Metadata),
+    };
+
+    /// <summary>Maps the shown picture to versioned cover and thumbnail URLs (feature 005).</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="artwork">The picture, or null.</param>
+    /// <returns>The DTO, or null.</returns>
+    public static ArtworkDto? ToDto(Guid trackId, TrackArtwork? artwork) => artwork is null
+        ? null
+        : new ArtworkDto(
+            Enum.Parse<ArtworkSourceDto>(artwork.Source.ToString()),
+            artwork.Version,
+            ApiRoutes.TrackArtwork(trackId, ApiRoutes.ArtworkCover, artwork.Version),
+            ApiRoutes.TrackArtwork(trackId, ApiRoutes.ArtworkThumb, artwork.Version));
+
+    /// <summary>Maps the lookup state and its main facts (feature 005).</summary>
+    /// <param name="metadata">The lookup state.</param>
+    /// <returns>The DTO.</returns>
+    public static TrackMetadataDto ToDto(TrackMetadata metadata)
+    {
+        ArgumentNullException.ThrowIfNull(metadata);
+        return new TrackMetadataDto
+        {
+            Status = Enum.Parse<MetadataStatusDto>(metadata.Status.ToString()),
+            Reason = metadata.Reason,
+            Album = metadata.Album,
+            Year = metadata.Year,
+            ArtistName = metadata.ArtistName,
+            CorrectedByUser = metadata.CorrectedByUser,
         };
     }
 
