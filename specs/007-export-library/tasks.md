@@ -163,8 +163,8 @@ in the execution plan.
 
 ## Phase 6: User Story 4 - Export only a part of the song (P2)
 
-- [ ] T054 [P] [US4] [backend] Failing tests: `range` validation (start >= 0, end <= duration, length >= 0.5 s; 422 with field `range`), range passed to the worker and included in the contents text (FR-006)
-- [ ] T055 [US4] [backend] Implement to pass T054
+- [x] T054 [P] [US4] [backend] Failing tests: `range` validation (start >= 0, end <= duration, length >= 0.5 s; 422 with field `range`), range passed to the worker and included in the contents text (FR-006)
+- [x] T055 [US4] [backend] Implement to pass T054
 - [ ] T056 [P] [US4] [frontend] Failing bUnit tests: `export-range-loop` only when the mixer has a loop region (Advanced), fills start/end; `export-range-start`/`export-range-end` validation messages; help id `export-range` (FR-006, FR-014)
 - [ ] T057 [US4] [frontend] Implement the range controls and help topic to pass T056
 - [ ] T058 [US4] [qa] Author `export.spec.ts` "loop region": loop 2.0-4.5 s on the fake track, export "Only the loop region", downloaded WAV lasts 2.500 s +/- 1 ms
