@@ -30,9 +30,9 @@ No backend, worker or audio-engine change.
 **Language/Version**: C# 14 / .NET 10 (Blazor Web App, Interactive Server, prerender off, as
 today); TypeScript 6.0 for the new `src/web-interop` package; CSS custom properties.
 
-**Primary Dependencies (new)**: NuGet `Markdig` 1.6.0 (BSD-2-Clause) and `YamlDotNet` (MIT,
+**Primary Dependencies (new)**: NuGet `Markdig` 1.5.1 (BSD-2-Clause) and `YamlDotNet` (MIT,
 already in `Directory.Packages.props` at 18.1.0, now also referenced by `StemStudio.Web`); npm
-(`src/web-interop`) `driver.js` 1.14.0 (MIT) runtime, dev: `vite`, `vitest`, `@vitest/coverage-v8`,
+(`src/web-interop`) `driver.js` 1.10.2 (MIT) runtime, dev: `vite`, `vitest`, `@vitest/coverage-v8`,
 `jsdom`, `eslint`, `typescript`, `typescript-eslint`, `eslint-plugin-jsdoc` at the versions already
 pinned in `src/audio-engine/package.json`; e2e dev: `@axe-core/playwright` (MPL-2.0) and
 `@lhci/cli` (Apache-2.0) (**verify** versions when added); assets: Archivo variable woff2
