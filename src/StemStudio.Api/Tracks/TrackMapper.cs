@@ -1,4 +1,5 @@
 using StemStudio.Contracts;
+using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
 
@@ -29,6 +30,7 @@ public static class TrackMapper
         Device = ToDto(track.Device),
         Artwork = ToDto(track.Id, track.Artwork),
         Metadata = ToDto(track.Metadata),
+        LyricsStatus = Enum.Parse<LyricsStatusDto>(track.LyricsStatus.ToString()),
     };
 
     /// <summary>Maps the shown picture to versioned cover and thumbnail URLs (feature 005).</summary>

@@ -58,7 +58,7 @@ public sealed class AssetLibraryService(IAssetRepository assets, IAssetFileStore
 
         try
         {
-            await worker.DeleteRenderJobAsync(jobId, cancellationToken);
+            await AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken);
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {

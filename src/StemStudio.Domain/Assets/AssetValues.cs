@@ -1,4 +1,5 @@
 using StemStudio.Domain.Rendering;
+using StemStudio.Domain.Scores;
 
 namespace StemStudio.Domain.Assets;
 
@@ -33,6 +34,9 @@ public enum AssetOrigin
 {
     /// <summary>Exported from the stems of a track (feature 007).</summary>
     Export,
+
+    /// <summary>Transcribed to sheet music (feature 008).</summary>
+    Transcription,
 }
 
 /// <summary>A stored file of a ready item under <c>assets/&lt;id&gt;/</c>.</summary>
@@ -80,6 +84,9 @@ public sealed record Provenance
     /// <summary>Short text such as "drums, raw" (&lt;= 200 characters).</summary>
     public required string Contents { get; init; }
 
-    /// <summary>How the item was made.</summary>
-    public required ExportRecipe Recipe { get; init; }
+    /// <summary>How an export was made (origin export); null for score items (feature 008).</summary>
+    public ExportRecipe? Recipe { get; init; }
+
+    /// <summary>How a score item was made (origin transcription, feature 008); null for exports.</summary>
+    public ScoreRecipe? ScoreRecipe { get; init; }
 }

@@ -26,9 +26,13 @@ public sealed partial class WorkerClient
         DownloadAsync($"{RenderJobPath(renderJobId)}/file", destination, cancellationToken);
 
     /// <inheritdoc />
-    public async Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken)
+    public Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken) =>
+        DeleteToleratingMissingAsync(RenderJobPath(renderJobId), cancellationToken);
+
+    /// <summary>Sends a <c>DELETE</c>; 404 (already gone) counts as success.</summary>
+    private async Task DeleteToleratingMissingAsync(string path, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Delete, RenderJobPath(renderJobId));
+        using var message = new HttpRequestMessage(HttpMethod.Delete, path);
         using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
         if (response.StatusCode != HttpStatusCode.NotFound)
         {

@@ -1,3 +1,4 @@
+using StemStudio.Api.Scores;
 using StemStudio.Contracts;
 using StemStudio.Domain.Assets;
 using StemStudio.Persistence.Repositories;
@@ -9,7 +10,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="tracks">Track repository.</param>
 /// <param name="submitter">Starts the render.</param>
 /// <param name="reader">Maps the item.</param>
-public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader)
+/// <param name="scores">Retries score items (feature 008).</param>
+public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores)
 {
     /// <summary>Re-plans and resubmits a failed item.</summary>
     /// <param name="id">Item ID.</param>
@@ -23,7 +25,12 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
             return asset is null ? AssetProblems.NotFound(id) : AssetProblems.NotFailed();
         }
 
-        var track = await tracks.FindAsync(asset.Provenance.Recipe.TrackId, cancellationToken);
+        return asset.Kind == AssetKind.Score ? await scores.RetryAsync(asset, cancellationToken) : await RetryExportAsync(asset, cancellationToken);
+    }
+
+    private async Task<IResult> RetryExportAsync(Asset asset, CancellationToken cancellationToken)
+    {
+        var track = await tracks.FindAsync(asset.Provenance.Recipe!.TrackId, cancellationToken);
         var (draft, problem) = ExportPlanner.Replan(track, asset.Provenance.Recipe);
         return problem ?? await ResubmitAsync(asset, draft!, cancellationToken);
     }

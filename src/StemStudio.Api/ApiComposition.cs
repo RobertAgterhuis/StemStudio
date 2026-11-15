@@ -8,8 +8,10 @@ using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
+using StemStudio.Api.Scores;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tracks;
@@ -76,6 +78,8 @@ public static class ApiComposition
         app.MapArtworkEndpoints();
         app.MapBandInfoEndpoints();
         app.MapAssetEndpoints();
+        app.MapLyricsEndpoints();
+        app.MapScoreEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -120,6 +124,27 @@ public static class ApiComposition
         AddDetailServices(services);
         AddArtworkServices(services);
         AddAssetServices(services);
+        AddLyricsServices(services);
+        AddScoreServices(services);
+    }
+
+    private static void AddScoreServices(IServiceCollection services)
+    {
+        services.AddScoped<ScoreEstimator>();
+        services.AddScoped<ScoreSourceResolver>();
+        services.AddScoped<ScorePlanner>();
+        services.AddScoped<ScoreSubmitter>();
+        services.AddScoped<ScoreJobApplier>();
+        services.AddScoped<ScoreService>();
+        services.AddScoped<ScoreOptionsService>();
+    }
+
+    private static void AddLyricsServices(IServiceCollection services)
+    {
+        services.AddScoped<LyricsJobApplier>();
+        services.AddScoped<LyricsAligner>();
+        services.AddScoped<LyricsSynchronizer>();
+        services.AddScoped<LyricsService>();
     }
 
     private static void AddArtworkServices(IServiceCollection services)

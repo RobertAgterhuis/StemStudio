@@ -49,7 +49,7 @@ public sealed class AssetSubmitter(IWorkerClient worker, TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(plan);
-        var recipe = provenance.Recipe;
+        var recipe = provenance.Recipe!;
         return new WorkerRenderJobRequest
         {
             Inputs = plan.Inputs.Select(input => new WorkerRenderInput(input.Path, input.Gain, input.Pan)).ToList(),

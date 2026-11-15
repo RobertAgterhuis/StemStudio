@@ -1,3 +1,5 @@
+using StemStudio.Domain.Scores;
+
 namespace StemStudio.Domain.Assets;
 
 /// <summary>
@@ -47,6 +49,9 @@ public sealed class Asset
     /// <summary>Audio facts once ready.</summary>
     public AudioFacts? Audio { get; private set; }
 
+    /// <summary>Score facts of a ready score item (feature 008); null otherwise.</summary>
+    public ScoreFacts? Score { get; private set; }
+
     /// <summary>Where the item came from.</summary>
     public Provenance Provenance { get; private set; }
 
@@ -74,18 +79,37 @@ public sealed class Asset
     /// <exception cref="DomainValidationException">The name breaks a rule.</exception>
     public static Asset Create(Guid id, string name, Provenance provenance, DateTime nowUtc)
     {
-        RequireTitle(provenance);
-        var asset = new Asset { Id = id, Kind = AssetKind.Audio, Name = AssetNaming.Validate(name), Status = AssetStatus.Queued };
-        (asset.Provenance, asset.TrackId, asset.CreatedAt, asset.UpdatedAt) = (provenance, provenance.TrackId, nowUtc, nowUtc);
-        return asset;
+        Require(provenance, provenance?.Recipe is not null, "An audio item needs an export recipe.");
+        return New(id, AssetKind.Audio, name).Started(provenance!, nowUtc);
     }
 
-    private static void RequireTitle(Provenance provenance)
+    /// <summary>Creates a queued score item (feature 008).</summary>
+    /// <param name="id">New identifier.</param>
+    /// <param name="name">Display name (validated).</param>
+    /// <param name="provenance">Where it came from, with its score recipe.</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <returns>The item.</returns>
+    /// <exception cref="DomainValidationException">The name breaks a rule.</exception>
+    public static Asset CreateScore(Guid id, string name, Provenance provenance, DateTime nowUtc)
+    {
+        Require(provenance, provenance?.ScoreRecipe is not null, "A score item needs a score recipe.");
+        return New(id, AssetKind.Score, name).Started(provenance!, nowUtc);
+    }
+
+    private static Asset New(Guid id, AssetKind kind, string name) => new() { Id = id, Kind = kind, Name = AssetNaming.Validate(name), Status = AssetStatus.Queued };
+
+    private Asset Started(Provenance provenance, DateTime nowUtc)
+    {
+        (Provenance, TrackId, CreatedAt, UpdatedAt) = (provenance, provenance.TrackId, nowUtc, nowUtc);
+        return this;
+    }
+
+    private static void Require(Provenance? provenance, bool recipeSet, string recipeMessage)
     {
         ArgumentNullException.ThrowIfNull(provenance);
-        if (string.IsNullOrWhiteSpace(provenance.TrackTitle))
+        if (string.IsNullOrWhiteSpace(provenance.TrackTitle) || !recipeSet)
         {
-            throw new ArgumentException("The provenance needs a track title.", nameof(provenance));
+            throw new ArgumentException($"The provenance needs a track title. {recipeMessage}", nameof(provenance));
         }
     }
 
@@ -125,6 +149,28 @@ public sealed class Asset
     /// <param name="nowUtc">Current time (UTC).</param>
     public void Complete(IReadOnlyList<AssetFile> files, AudioFacts audio, DateTime nowUtc)
     {
+        MarkReady(files, nowUtc);
+        Audio = audio;
+    }
+
+    /// <summary>Marks a score item ready after its files were stored and verified (feature 008).</summary>
+    /// <param name="files">The stored files (at least one).</param>
+    /// <param name="score">The score facts.</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <exception cref="InvalidOperationException">The item is not a score.</exception>
+    public void CompleteScore(IReadOnlyList<AssetFile> files, ScoreFacts score, DateTime nowUtc)
+    {
+        if (Kind != AssetKind.Score)
+        {
+            throw new InvalidOperationException($"Item {Id} is not a score.");
+        }
+
+        MarkReady(files, nowUtc);
+        Score = score;
+    }
+
+    private void MarkReady(IReadOnlyList<AssetFile> files, DateTime nowUtc)
+    {
         ArgumentNullException.ThrowIfNull(files);
         if (files.Count == 0)
         {
@@ -132,7 +178,7 @@ public sealed class Asset
         }
 
         RequireActive();
-        (_files, Audio, SizeBytes) = (files.ToList(), audio, files.Sum(file => file.SizeBytes));
+        (_files, SizeBytes) = (files.ToList(), files.Sum(file => file.SizeBytes));
         (Status, Progress, WorkerJobId, UpdatedAt) = (AssetStatus.Ready, 100, null, nowUtc);
     }
 

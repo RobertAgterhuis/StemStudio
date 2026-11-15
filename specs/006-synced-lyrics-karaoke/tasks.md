@@ -94,12 +94,12 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### backend (tests first)
 
-- [ ] T019 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/TrackLyricsTests.cs`: state machine data-model 3.2 incl. removed (no automatic lookup), paste from every allowed state, auto-align rule (GPU worker and standard completed), offset limits (±5000, multiple of 10), document invariants re-validated (invalid worker data -> `failed` with a reason), credit text per source/origin (FR-002, FR-007)
-- [ ] T020 [backend] Implement `Domain/Lyrics/*` to pass T019
-- [ ] T021 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/LyricsPersistenceTests.cs`: JSON document round trip, cascade delete with the track, `Tracks.LyricsStatus` column, a 005-schema database loads with `none`
-- [ ] T022 [backend] Implement configuration and migration `AddTrackLyrics` to pass T021
-- [ ] T023 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerLyricsClientTests.cs` with the worker examples: create (lookup/align), get, result (`no-store`), cancel, delete; 404/409/422 mapping; `Health.lyricsAlignment` parsed
-- [ ] T024 [backend] Implement the worker client additions to pass T023
+- [x] T019 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/TrackLyricsTests.cs`: state machine data-model 3.2 incl. removed (no automatic lookup), paste from every allowed state, auto-align rule (GPU worker and standard completed), offset limits (±5000, multiple of 10), document invariants re-validated (invalid worker data -> `failed` with a reason), credit text per source/origin (FR-002, FR-007)
+- [x] T020 [backend] Implement `Domain/Lyrics/*` to pass T019
+- [x] T021 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/LyricsPersistenceTests.cs`: JSON document round trip, cascade delete with the track, `Tracks.LyricsStatus` column, a 005-schema database loads with `none`
+- [x] T022 [backend] Implement configuration and migration `AddTrackLyrics` to pass T021
+- [x] T023 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerLyricsClientTests.cs` with the worker examples: create (lookup/align), get, result (`no-store`), cancel, delete; 404/409/422 mapping; `Health.lyricsAlignment` parsed
+- [x] T024 [backend] Implement the worker client additions to pass T023
 
 ### audio-engine (tests first)
 
@@ -119,10 +119,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T028 [US1] [audio-ingest] Implement `lyrics/{lrclib,select,lookup,fake}.py` to pass T027
 - [x] T029 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_lyrics_routes.py`: create/get/result/cancel/delete per contract (202, 404, 409, 422), `Cache-Control: no-store` on results, composition with the real lookup or the fake provider (FR-001, FR-010)
 - [x] T030 [US1] [stem-separation] Implement `api/lyrics_routes.py`, `main.py` wiring to pass T029
-- [ ] T031 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Lyrics/LyricsSyncTests.cs`: `none -> searching` when the standard poll reports `durationSeconds` (names from the 005 lookup fields), and on first mixer data request of an old track (FR-013); result applied (found/instrumental/notFound/disabled), worker job deleted after copy, worker 404 -> failed, unreachable keeps state (FR-001, FR-002)
-- [ ] T032 [US1] [backend] Implement `Api/Lyrics/{LyricsSynchronizer,LyricsJobApplier,LyricsService}.cs` (registered in `JobSyncService`) to pass T031
-- [ ] T033 [P] [US1] [backend] Failing tests `LyricsEndpointTests.cs`: `GET /api/tracks/{id}/lyrics` per status with `no-store`, `PUT .../lyrics/offset` (limits, 409 without lyrics), `TrackDto.lyricsStatus`; lyrics absent from `GET /api/tracks` and `GET /api/tracks/{id}`; a full fake run's log output contains none of the fixture words (FR-007, FR-010, SC-006)
-- [ ] T034 [US1] [backend] Implement `Api/Lyrics/LyricsEndpoints.cs` and a logging guard (lyrics DTOs excluded from request/response logging) to pass T033
+- [x] T031 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Lyrics/LyricsSyncTests.cs`: `none -> searching` when the standard poll reports `durationSeconds` (names from the 005 lookup fields), and on first mixer data request of an old track (FR-013); result applied (found/instrumental/notFound/disabled), worker job deleted after copy, worker 404 -> failed, unreachable keeps state (FR-001, FR-002)
+- [x] T032 [US1] [backend] Implement `Api/Lyrics/{LyricsSynchronizer,LyricsJobApplier,LyricsService}.cs` (registered in `JobSyncService`) to pass T031
+- [x] T033 [P] [US1] [backend] Failing tests `LyricsEndpointTests.cs`: `GET /api/tracks/{id}/lyrics` per status with `no-store`, `PUT .../lyrics/offset` (limits, 409 without lyrics), `TrackDto.lyricsStatus`; lyrics absent from `GET /api/tracks` and `GET /api/tracks/{id}`; a full fake run's log output contains none of the fixture words (FR-007, FR-010, SC-006)
+- [x] T034 [US1] [backend] Implement `Api/Lyrics/LyricsEndpoints.cs` and a logging guard (lyrics DTOs excluded from request/response logging) to pass T033
 - [x] T035 [P] [US1] [audio-engine] Failing tests `tests/karaoke/{cursor,layout,ball,dom,attach}.test.ts`: cursor O(1) forward and binary search after seek/loop wrap/offset change; DOM built with `textContent`, slots previous/current/next, word `data-state`, host `data-state`/`data-line-index`/`data-word-index`/`data-position-ms`; layout measured once and on resize (stubbed `getBoundingClientRect`, `ResizeObserver`), no layout reads inside the frame callback; ball parabola (lands exactly at each word start; short-word height scaling; arc to the next line's first word); countdown before the first line and in gaps > 5 s; `ended`; one frame after seek/pause/stop/loop/offset; `attachKaraoke` replaces, `detachKaraoke` removes, errors per contract; landing error 0 ms on the mock clock and <= 1 frame at 60 Hz with jittered frames (FR-005, FR-006, FR-008, SC-002, SC-004)
 - [x] T036 [US1] [audio-engine] Implement `src/karaoke/{cursor,layout,ball,dom,index}.ts` and the engine methods to pass T035
 - [ ] T037 [P] [US1] [frontend] Failing bUnit tests: `KaraokeBanner` renders the empty host `karaoke-banner` with `@key` and no child content, `data-sync`, `karaoke-credit`; calls `IAudioEngine.AttachKaraokeAsync` after the track and lyrics are loaded, `DetachKaraokeAsync` on dispose; `karaoke-offset` (±5000 ms, 10 ms steps, ±50 ms keys) calls `SetKaraokeOffsetAsync` immediately and saves debounced (500 ms); `karaoke-offset-reset`; `karaoke-unavailable` texts per status; layout at the bottom of the mixer in the 004 design (banner does not cover the transport); journey levels (beginner: banner + toggle; advanced: offset, size; expert: timing origin) (FR-005, FR-007, FR-015)
@@ -142,8 +142,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T041 [US2] [stem-separation] Implement `alignment/{audio_prep,mapping,stable_ts_aligner,fake}.py` (lazy imports) and the `align` job handler to pass T040
 - [x] T042 [P] [US2] [stem-separation] Failing tests: `estimatedSeconds` from the T002 formula per device; `Health.lyricsAlignment` (`modelCached` true when the weights file exists with the right size); `@pytest.mark.integration` test `worker/tests/alignment/test_align_clip.py` on the T012 clip asserting >= 80 % of word starts within 300 ms (SC-003, SC-005)
 - [x] T043 [US2] [stem-separation] Implement the estimate and health additions to pass T042 (the integration test is run in T066)
-- [ ] T044 [P] [US2] [backend] Failing tests `LyricsAlignTests.cs`: plain result -> `alignPending`; auto rule starts alignment when the worker device is GPU (from `/api/device`) and the standard job is completed, respecting `STEMSTUDIO_ALIGN_AUTO` reported by the worker; `PUT .../lyrics` (paste; limits; control characters rejected) -> plain document with source user; `POST .../lyrics/align` and `/align/cancel` (409 rules); alignment progress/device/estimate mapped; completion -> `found` origin `aligned` (FR-004)
-- [ ] T045 [US2] [backend] Implement in `Api/Lyrics/*` to pass T044
+- [x] T044 [P] [US2] [backend] Failing tests `LyricsAlignTests.cs`: plain result -> `alignPending`; auto rule starts alignment when the worker device is GPU (from `/api/device`) and the standard job is completed, respecting `STEMSTUDIO_ALIGN_AUTO` reported by the worker; `PUT .../lyrics` (paste; limits; control characters rejected) -> plain document with source user; `POST .../lyrics/align` and `/align/cancel` (409 rules); alignment progress/device/estimate mapped; completion -> `found` origin `aligned` (FR-004)
+- [x] T045 [US2] [backend] Implement in `Api/Lyrics/*` to pass T044
 - [ ] T046 [P] [US2] [frontend] Failing bUnit tests: track detail `lyrics-section` per status; `lyrics-preview` static text for alignPending/failed with text; `lyrics-align` with `lyrics-align-estimate`; `lyrics-align-progress`, `lyrics-align-device` (003 device badge), `lyrics-align-cancel`; paste dialog (`lyrics-paste-*`, client-side length check); `lyrics-error`; `lyrics-copyright-notice` (FR-004, FR-010)
 - [ ] T047 [US2] [frontend] Implement the track-detail lyrics section (after a failed alignment of unsplit vocals: hint "Split the vocals into detail stems and try again", research.md P0-2), paste dialog, API client methods, help topics `help-lyrics-sources`, `help-lyrics-align`, legal-notice sentence on lyrics to pass T046
 - [ ] T048 [US2] [qa] Author `e2e/tests/lyrics.spec.ts` (fake stack `plain`, `not-found`, `failed`; fake CPU and fake GPU devices): auto alignment on fake GPU, click-to-align on fake CPU with estimate, paste flow, failure + retry, banner appears with `data-sync="aligned"`
@@ -157,8 +157,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 **Goal**: show/hide, text size, search again, remove, reduced motion.
 **Independent test**: spec US3.
 
-- [ ] T049 [P] [US3] [backend] Failing tests: `DELETE .../lyrics` -> `removed` (document cleared, no automatic lookup on later polls or opens), `POST .../lyrics/search` from removed/notFound/failed/disabled (409 while searching/aligning) (FR-009)
-- [ ] T050 [US3] [backend] Implement to pass T049
+- [x] T049 [P] [US3] [backend] Failing tests: `DELETE .../lyrics` -> `removed` (document cleared, no automatic lookup on later polls or opens), `POST .../lyrics/search` from removed/notFound/failed/disabled (409 while searching/aligning) (FR-009)
+- [x] T050 [US3] [backend] Implement to pass T049
 - [x] T051 [P] [US3] [audio-engine] Failing tests: reduced motion (option and `matchMedia` change at runtime) hides the ball and highlights the current word; text-size class change triggers a re-measure (FR-011)
 - [x] T052 [US3] [audio-engine] Implement to pass T051
 - [ ] T053 [P] [US3] [frontend] Failing bUnit tests: `karaoke-toggle` (`aria-pressed`, banner removed and engine detached when hidden, remembered via `localStorage` with try/catch defaults), `karaoke-size` s/m/l, `lyrics-search`, `lyrics-remove` with confirm; contrast tokens for both 004 themes (FR-009, FR-011)
@@ -173,7 +173,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T056 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `lyrics`
 - [x] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
-- [ ] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
+- [x] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
 - [ ] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
 - [ ] T061 [P] [qa] Traceability matrix update, HO:polish
