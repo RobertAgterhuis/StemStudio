@@ -89,8 +89,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 ### stem-separation (tests first)
 
-- [ ] T022 [P] [stem-separation] Failing tests `worker/tests/devices/test_file_lease.py`: with `gpu_lease_file` set, the GPU runner takes the `flock` lease after its thread lease for every GPU step; a held lock makes it wait; after `gpu_lease_wait_seconds` the step runs on the CPU with the reason "GPU busy with another StemStudio job"; without the setting the 003 behaviour is unchanged; CPU runner never touches the file (FR-011)
-- [ ] T023 [stem-separation] Implement in `worker/src/stemstudio_worker/devices/{lease,runner}.py` to pass T022
+- [x] T022 [P] [stem-separation] Failing tests `worker/tests/devices/test_file_lease.py`: with `gpu_lease_file` set, the GPU runner takes the `flock` lease after its thread lease for every GPU step; a held lock makes it wait; after `gpu_lease_wait_seconds` the step runs on the CPU with the reason "GPU busy with another StemStudio job"; without the setting the 003 behaviour is unchanged; CPU runner never touches the file (FR-011)
+- [x] T023 [stem-separation] Implement in `worker/src/stemstudio_worker/devices/{lease,runner}.py` to pass T022
 
 ### backend (tests first)
 
@@ -197,7 +197,7 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 ## Phase 9: Polish (inside the wave, per owner)
 
 - [ ] T074 [P] [generative] Refactor to SIG limits, docstrings, HO:polish with coverage of `api`, `jobs`, `devices`, `engines`, `audio`
-- [ ] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
+- [x] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
 - [ ] T076 [P] [backend] Refactor, XML docs, HO:polish
 - [ ] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
 - [ ] T078 [P] [qa] Traceability matrix, HO:polish
