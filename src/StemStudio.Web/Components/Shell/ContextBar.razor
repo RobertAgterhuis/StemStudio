@@ -1,0 +1,35 @@
+@* Context bar (design-spec.md 4.1): journey slot on the left, level switch, command palette, help and preferences
+   in the same place on every screen (WCAG 3.2.6). *@
+
+<header class="ss-bar">
+    <div class="ss-bar-context">@ChildContent</div>
+    <div class="ss-bar-actions">
+        <LevelSwitch />
+        <button type="button" class="ss-bar-button" data-testid="command-palette-open" aria-keyshortcuts="Control+K" @onclick="OnPalette">
+            <span class="rzi" aria-hidden="true">search</span><span class="ss-bar-label">Commands</span>
+        </button>
+        <button type="button" class="ss-bar-button" data-testid="help-toggle" data-help-id="help-button"
+                aria-expanded="@(HelpOpen ? "true" : "false")" aria-controls="help-panel" aria-keyshortcuts="F1" @onclick="OnHelp">
+            <span class="rzi" aria-hidden="true">help</span><span class="ss-bar-label">Help</span>
+        </button>
+        <PreferencesMenu />
+    </div>
+</header>
+
+@code {
+    /// <summary>True while the help panel is open (<c>aria-expanded</c>).</summary>
+    [Parameter]
+    public bool HelpOpen { get; set; }
+
+    /// <summary>Help button pressed.</summary>
+    [Parameter]
+    public EventCallback OnHelp { get; set; }
+
+    /// <summary>Command palette button pressed.</summary>
+    [Parameter]
+    public EventCallback OnPalette { get; set; }
+
+    /// <summary>Left-hand content (the journey rail at Beginner).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

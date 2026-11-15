@@ -1,0 +1,13 @@
+@typeparam TValue
+@* Radio group as segmented buttons (WCAG radio semantics: roving tabindex, arrow keys move and select). *@
+
+<div class="ss-segmented" role="radiogroup" aria-label="@Label" data-testid="@TestId">
+    @for (var i = 0; i < Options.Count; i++)
+    {
+        var index = i;
+        var option = Options[index];
+        <button type="button" class="ss-segment" role="radio" aria-checked="@Checked(option)" tabindex="@TabIndex(index)"
+                data-testid="@option.TestId" @ref="_buttons[index]" @onclick="() => SelectAsync(index)"
+                @onkeydown="e => KeyAsync(e, index)">@option.Label</button>
+    }
+</div>

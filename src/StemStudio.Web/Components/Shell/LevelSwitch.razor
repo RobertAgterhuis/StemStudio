@@ -1,0 +1,21 @@
+@* Level switch in the context bar (FR-012): one action, effect at once, announced through the toast. *@
+@inherits PreferencesAware
+@inject ToastService Toasts
+
+<SegmentedChoice TValue="ExperienceLevel" Options="Levels" Value="Preferences.Current.EffectiveLevel" ValueChanged="SetAsync"
+                 Label="Experience level" TestId="level-switch" />
+
+@code {
+    private static readonly IReadOnlyList<ChoiceOption<ExperienceLevel>> Levels =
+    [
+        new(ExperienceLevel.Beginner, "Beginner", "level-beginner"),
+        new(ExperienceLevel.Advanced, "Advanced", "level-advanced"),
+        new(ExperienceLevel.Expert, "Expert", "level-expert"),
+    ];
+
+    private async Task SetAsync(ExperienceLevel level)
+    {
+        await Preferences.SetLevelAsync(level);
+        Toasts.Show($"Level set to {level}");
+    }
+}

@@ -124,7 +124,12 @@ export function applyFirstPaint(root: HTMLElement): void {
  * @param preferences - The record to apply.
  */
 export function applyAppearance(preferences: StoredPreferences): void {
-  applyAttributes(document.documentElement, resolveAppearance(preferences, systemMatcher()));
+  const appearance = resolveAppearance(preferences, systemMatcher());
+  applyAttributes(document.documentElement, appearance);
+  const shell = document.querySelector<HTMLElement>('[data-testid="app-shell"]');
+  if (shell) {
+    applyAttributes(shell, appearance);
+  }
 }
 
 /**
