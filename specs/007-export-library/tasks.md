@@ -65,8 +65,8 @@ in the execution plan.
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/render` may import only `ports`, `schemas`, `config`; `jobs` and `api` must not import `render` (only `main.py` composes it); `StemStudio.Domain.Rendering` must not reference `StemStudio.Api` or `StemStudio.Persistence`
-- [ ] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
+- [x] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/render` may import only `ports`, `schemas`, `config`; `jobs` and `api` must not import `render` (only `main.py` composes it); `StemStudio.Domain.Rendering` must not reference `StemStudio.Api` or `StemStudio.Persistence`
+- [x] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T008 [P] [devops] `docker-compose.yml`: worker gets `api-data:/library:ro` and `STEMSTUDIO_LIBRARY_DIR: /library` (comment: read-only, the API is the only writer); `scripts/dev.{ps1,sh}` set `STEMSTUDIO_LIBRARY_DIR` to the API data dir; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (FR-012, ADR-016 D5)
 - [ ] T009 [devops] Write the mount check first and show it fail on the current compose file, then make it pass: `scripts/check-library-mount.{ps1,sh}` (worker `/health` reports `library.readable: true`; a write attempt as the worker user inside `/library` fails with "Read-only file system"); run it in the CI `e2e` job after the fake stack is up
 - [ ] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: render tested with generated FLAC fixtures, shared vectors (three consumers + browser check), fake stack exports are real files, traceability US1..US5 -> test files

@@ -11,12 +11,15 @@ reference ``StemStudio.Web`` (source-level check of using directives and qualifi
 from pathlib import Path
 
 import pytest
+import repo_tree
 
 import dependency_check
 from common import Severity, owner_of
 from dependency_check import DOTNET_FOLDER_FORBIDDEN, PYTHON_ALLOWED
 
-PACKAGE = "worker/src/stemstudio_worker"
+PACKAGE = repo_tree.WORKER_PACKAGE
+_write = repo_tree.write_file
+_module = repo_tree.write_module
 
 METADATA_INIT = (
     "from stemstudio_worker.config import WorkerSettings\n"
@@ -24,16 +27,6 @@ METADATA_INIT = (
     "from stemstudio_worker import schemas\n"
     "from .musicbrainz import client\n"
 )
-
-
-def _write(root: Path, rel: str, text: str) -> None:
-    path = root / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-
-
-def _module(root: Path, rel: str, text: str) -> None:
-    _write(root, f"{PACKAGE}/{rel}", text)
 
 
 def _metadata_tree(root: Path) -> None:

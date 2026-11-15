@@ -48,6 +48,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("Web", ("src/StemStudio.Web/",)),
     Component("worker/ingest", (WORKER + "ingest/",)),
     Component("worker/metadata", (WORKER + "metadata/",)),
+    Component("worker/render", (WORKER + "render/",)),
     Component("worker/separation", (WORKER + "separation/",)),
     Component("worker/detail", (WORKER + "detail/",)),
     Component("worker/devices", (WORKER + "devices/",)),

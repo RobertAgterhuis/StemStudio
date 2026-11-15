@@ -50,17 +50,21 @@ Raw-colour guard (feature 004, FR-003): values are checked per declaration, so s
 Findings are owned by frontend.
 
 Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail, devices,
-metadata}`, every module may import `schemas` and `config`, `detail` may additionally import its own
+metadata, render}`, every module may import `schemas` and `config`, `detail` may additionally import its own
 `vendor`, `jobs` never imports `detail`, no module imports `devices` (feature 003: `separation` and
 `detail` receive the `DeviceRunner` from the composition root), no module imports `metadata`
-(feature 005: `ingest` receives the `ImageNormalizer` from the composition root) and `main.py`
-(composition root) is unrestricted.
+(feature 005: `ingest` receives the `ImageNormalizer` from the composition root), no module imports
+`render` (feature 007: `jobs` receives the `RenderExecutor` from the composition root) and
+`main.py` (composition root) is unrestricted.
 
 .NET feature-folder rule (`DOTNET_FOLDER_FORBIDDEN`): the C# files below a listed folder must not
 reference the forbidden StemStudio project namespaces, neither in `using`/`global using`/
 `using static`/alias directives nor as qualified names in code; comments, string and char
 literals and `namespace` declarations are ignored, `obj/` and generated files are skipped.
 Feature 005: `StemStudio.Api/Metadata` and `StemStudio.Api/Artwork` -/- `StemStudio.Web`.
+Feature 007: `StemStudio.Api/Assets` -/- `StemStudio.Web`; `StemStudio.Domain/Rendering` -/-
+`StemStudio.{Api, Persistence, Web, Contracts}` (the planner only knows Domain types and the
+library layout strings it produces).
 
 ## Commands (repository root)
 

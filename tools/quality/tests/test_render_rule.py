@@ -11,12 +11,13 @@ every other adapter) never import ``render``; only ``main.py`` composes it.
 from pathlib import Path
 
 import pytest
+from repo_tree import WORKER_PACKAGE as PACKAGE
+from repo_tree import write_file as _write
+from repo_tree import write_module as _module
 
 import dependency_check
 from common import Severity, owner_of
 from dependency_check import DOTNET_FOLDER_FORBIDDEN, PYTHON_ALLOWED
-
-PACKAGE = "worker/src/stemstudio_worker"
 
 RENDER_INIT = (
     "from stemstudio_worker.config import RenderSettings\n"
@@ -24,16 +25,6 @@ RENDER_INIT = (
     "from stemstudio_worker import schemas\n"
     "from .mixing import mix_block\n"
 )
-
-
-def _write(root: Path, rel: str, text: str) -> None:
-    path = root / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-
-
-def _module(root: Path, rel: str, text: str) -> None:
-    _write(root, f"{PACKAGE}/{rel}", text)
 
 
 def _render_tree(root: Path) -> None:

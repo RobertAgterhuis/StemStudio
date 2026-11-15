@@ -9,15 +9,18 @@
 comments, string/char literals and ``namespace`` declarations are ignored)::
 
     Api/Metadata, Api/Artwork -/- Web            (feature 005)
+    Api/Assets -/- Web;  Domain/Rendering -/- {Api, Persistence, Web, Contracts}   (feature 007)
 
 Worker (imports inside ``stemstudio_worker``)::
 
-    api -> jobs -> ports <- {ingest, separation, analysis, detail, devices, metadata};
+    api -> jobs -> ports <- {ingest, separation, analysis, detail, devices, metadata,
+    render};
     everything -> schemas, config
     detail may also import its own vendor package (detail/vendor/** is third-party code and
     contributes no edges); no module imports devices (feature 003: separation and detail get
     the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
-    ImageNormalizer injected); main.py is the composition root and may import every module.
+    ImageNormalizer injected); no module imports render (feature 007: jobs gets the
+    RenderExecutor injected); main.py is the composition root and may import every module.
 
 TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` files)::
 
@@ -72,6 +75,10 @@ _DOTNET_PROJECTS = "Api|Contracts|Domain|Persistence|Web"
 DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "StemStudio.Api/Metadata": frozenset({"StemStudio.Web"}),
     "StemStudio.Api/Artwork": frozenset({"StemStudio.Web"}),
+    "StemStudio.Api/Assets": frozenset({"StemStudio.Web"}),
+    "StemStudio.Domain/Rendering": frozenset(
+        {"StemStudio.Api", "StemStudio.Persistence", "StemStudio.Web", "StemStudio.Contracts"}
+    ),
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it)."""
 
@@ -107,6 +114,7 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "analysis": _ADAPTER,
     "detail": _ADAPTER,
     "metadata": _ADAPTER,
+    "render": _ADAPTER,
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
