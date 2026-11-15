@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StemStudio.Domain.Artists;
+using StemStudio.Domain.Assets;
 using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Configurations;
@@ -21,6 +22,9 @@ public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> op
 
     /// <summary>Artists matched by online lookups (feature 005).</summary>
     public DbSet<Artist> Artists => Set<Artist>();
+
+    /// <summary>Library items (feature 007).</summary>
+    public DbSet<Asset> Assets => Set<Asset>();
 
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
