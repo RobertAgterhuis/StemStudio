@@ -59,6 +59,14 @@ public sealed partial class ChannelStrip
         _ => "centre",
     };
 
+    /// <summary>Read-only pan note at Beginner (pan is hidden there but stays applied), e.g. "Panned L 30".</summary>
+    private string? PanMarker => Channel.Pan switch
+    {
+        < 0 => $"Panned L {InputValue.Percent(-Channel.Pan)}",
+        > 0 => $"Panned R {Pan}",
+        _ => null,
+    };
+
     private static string Bool(bool value) => value ? "true" : "false";
 
     private Task VolumeInput(ChangeEventArgs args) => Emit(OnVolume, args);

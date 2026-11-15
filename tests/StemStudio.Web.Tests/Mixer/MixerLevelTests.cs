@@ -29,8 +29,12 @@ public sealed class MixerLevelTests : MixerTestContext
 
     private static ExperienceContext Context(ExperienceLevel level) => new(level, DensityPreference.Comfortable);
 
+    // CascadingValue drops parameters that are not passed again, so the same child is passed with the new level;
+    // the renderer keeps the existing Mixer instance (same type, same position).
     private static void SwitchTo(IRenderedComponent<CascadingValue<ExperienceContext>> page, ExperienceLevel level) =>
-        page.Render(p => p.Add(c => c.Value, Context(level)));
+        page.Render(p => p
+            .Add(c => c.Value, Context(level))
+            .AddChildContent<MixerPage>(m => m.Add(x => x.Id, TestData.TrackId)));
 
     [Fact]
     public void Beginner_HidesExactlyTheR8Controls()

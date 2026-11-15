@@ -2,18 +2,22 @@
 
 <div class="ss-loop ss-console-panel" role="group" aria-label="A-B loop">
     <h2 class="ss-panel-title">Loop</h2>
-    <label class="ss-inline-label">
-        A (s)
-        <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(Start)" aria-label="Loop start A in seconds"
-               @onchange="StartChanged" data-testid="loop-start" />
-    </label>
+    <LevelGate Feature="mixer.loop.typed">
+        <label class="ss-inline-label">
+            A (s)
+            <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(Start)" aria-label="Loop start A in seconds"
+                   @onchange="StartChanged" data-testid="loop-start" />
+        </label>
+    </LevelGate>
     <RadzenButton Text="Set A" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnStart.InvokeAsync(Position)"
                   data-testid="loop-set-a" />
-    <label class="ss-inline-label">
-        B (s)
-        <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(End)" aria-label="Loop end B in seconds"
-               @onchange="EndChanged" data-testid="loop-end" />
-    </label>
+    <LevelGate Feature="mixer.loop.typed">
+        <label class="ss-inline-label">
+            B (s)
+            <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(End)" aria-label="Loop end B in seconds"
+                   @onchange="EndChanged" data-testid="loop-end" />
+        </label>
+    </LevelGate>
     <RadzenButton Text="Set B" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnEnd.InvokeAsync(Position)"
                   data-testid="loop-set-b" />
     <RadzenButton Text="@(Enabled ? "Loop on" : "Loop off")" Icon="repeat" ButtonStyle="@(Enabled ? ButtonStyle.Success : ButtonStyle.Light)"
