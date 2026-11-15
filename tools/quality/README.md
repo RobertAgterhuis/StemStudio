@@ -38,9 +38,11 @@ third-party MSST code in `worker/src/stemstudio_worker/detail/vendor/` (feature 
 Complexity Tracking, accepted by the CTO; it is covered by the marked integration test instead).
 Vendored files contribute no edges to the dependency graph.
 
-Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail}`, every
-module may import `schemas` and `config`, `detail` may additionally import its own `vendor`,
-`jobs` never imports `detail` and `main.py` (composition root) is unrestricted.
+Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail, devices}`,
+every module may import `schemas` and `config`, `detail` may additionally import its own `vendor`,
+`jobs` never imports `detail`, no module imports `devices` (feature 003: `separation` and `detail`
+receive the `DeviceRunner` from the composition root) and `main.py` (composition root) is
+unrestricted.
 
 ## Commands (repository root)
 

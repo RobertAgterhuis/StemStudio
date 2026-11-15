@@ -52,7 +52,6 @@ def test_devices_importing_allowed_modules_is_clean(tmp_path: Path) -> None:
         ("devices/wire.py", "from ..detail import loaders\n", "devices -> detail"),
         ("devices/wire.py", "import stemstudio_worker.jobs.runner\n", "devices -> jobs"),
         ("devices/wire.py", "from stemstudio_worker import api\n", "devices -> api"),
-        ("devices/wire.py", "from stemstudio_worker import main\n", "devices -> main"),
         ("separation/demucs.py", "from ..devices import runner\n", "separation -> devices"),
         ("detail/steps.py", "from stemstudio_worker.devices import lease\n", "detail -> devices"),
         ("jobs/runner.py", "import stemstudio_worker.devices\n", "jobs -> devices"),
@@ -67,6 +66,16 @@ def test_forbidden_devices_edges(tmp_path: Path, rel: str, text: str, message: s
     (finding,) = dependency_check.run(tmp_path)
     assert finding.severity is Severity.ERROR
     assert finding.message == f"forbidden dependency {message}"
+
+
+def test_devices_importing_main_is_forbidden_and_a_cycle(tmp_path: Path) -> None:
+    _devices_tree(tmp_path)
+    _write(tmp_path, "devices/wire.py", "from stemstudio_worker import main\n")
+    summary = sorted((f.severity, f.message) for f in dependency_check.run(tmp_path))
+    assert summary == [
+        (Severity.ERROR, "cycle: devices -> main -> devices"),
+        (Severity.ERROR, "forbidden dependency devices -> main"),
+    ]
 
 
 @pytest.mark.parametrize(
