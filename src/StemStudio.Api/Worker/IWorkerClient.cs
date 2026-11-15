@@ -219,4 +219,37 @@ public interface IWorkerClient
     /// <returns>A task.</returns>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Creates a transcription job (<c>POST /v1/transcription-jobs</c>, worker 1.6.0); never retried.</summary>
+    /// <param name="request">Profile, inputs, grid and titles.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">Invalid input path (400), input not found (404) or invalid values (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a transcription job with its result.</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerTranscriptionJob?> GetTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken);
+
+    /// <summary>Streams one file (<c>pdf</c>, <c>musicxml</c>, <c>midi</c>) of a completed transcription job.</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="role">File role.</param>
+    /// <param name="destination">Destination stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="ArgumentException">The role is not a score file role (no request is sent).</exception>
+    /// <exception cref="WorkerRequestException">Unknown job (404) or not completed (409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DownloadTranscriptionFileAsync(string transcriptionJobId, string role, Stream destination, CancellationToken cancellationToken);
+
+    /// <summary>Cancels and removes a transcription job (idempotent).</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DeleteTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken);
 }

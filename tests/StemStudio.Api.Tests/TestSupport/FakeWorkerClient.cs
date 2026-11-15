@@ -337,6 +337,66 @@ internal sealed class FakeWorkerClient : IWorkerClient
         return OnDeleteRender?.Invoke(renderJobId) ?? Task.CompletedTask;
     }
 
+    public List<WorkerTranscriptionJobRequest> TranscriptionCreates { get; } = [];
+
+    public List<string> TranscriptionDeletes { get; } = [];
+
+    public List<string> TranscriptionDownloads { get; } = [];
+
+    public Func<WorkerTranscriptionJobRequest, Task<WorkerTranscriptionJob>>? OnCreateTranscription { get; set; }
+
+    public Func<string, Task<WorkerTranscriptionJob?>>? OnGetTranscription { get; set; }
+
+    public Func<string, string, Stream, Task>? OnDownloadTranscriptionFile { get; set; }
+
+    public static WorkerTranscriptionJob TranscriptionJob(string jobId, WorkerRenderJobState status, double progress = 0, WorkerTranscriptionResult? result = null) => new()
+    {
+        TranscriptionJobId = jobId,
+        Status = status,
+        Progress = progress,
+        Error = status is WorkerRenderJobState.Failed or WorkerRenderJobState.Cancelled ? "No notes were detected in this audio." : null,
+        Result = result,
+    };
+
+    public Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            TranscriptionCreates.Add(request);
+        }
+
+        return OnCreateTranscription?.Invoke(request) ?? Task.FromResult(TranscriptionJob(NextJobId(), WorkerRenderJobState.Queued));
+    }
+
+    public Task<WorkerTranscriptionJob?> GetTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken) =>
+        OnGetTranscription?.Invoke(transcriptionJobId) ?? Task.FromResult<WorkerTranscriptionJob?>(TranscriptionJob(transcriptionJobId, WorkerRenderJobState.Running, 0.5));
+
+    public async Task DownloadTranscriptionFileAsync(string transcriptionJobId, string role, Stream destination, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            TranscriptionDownloads.Add(role);
+        }
+
+        if (OnDownloadTranscriptionFile is not null)
+        {
+            await OnDownloadTranscriptionFile(transcriptionJobId, role, destination);
+            return;
+        }
+
+        await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes($"{role}:{transcriptionJobId}"), cancellationToken);
+    }
+
+    public Task DeleteTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            TranscriptionDeletes.Add(transcriptionJobId);
+        }
+
+        return Task.CompletedTask;
+    }
+
     public List<WorkerLyricsLookupRequest> LyricsLookups { get; } = [];
 
     public List<WorkerLyricsAlignRequest> LyricsAligns { get; } = [];
