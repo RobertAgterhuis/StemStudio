@@ -149,7 +149,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### qa
 
-- [ ] T057 [US1] [qa] Author `e2e/tests/detail.spec.ts` "auto" (`@detail`, fake separator): import the fixture, standard completes, detail runs to completed, outcomes match the fake table, mixer usable during the phase (US1 AS1-AS3)
+- [x] T057 [US1] [qa] Author `e2e/tests/detail.spec.ts` "auto" (`@detail`, fake separator): import the fixture, standard completes, detail runs to completed, outcomes match the fake table, mixer usable during the phase (US1 AS1-AS3)
 
 **Checkpoint**: HO:us1 (stem-separation, backend, frontend, qa).
 
