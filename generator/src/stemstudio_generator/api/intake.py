@@ -40,5 +40,10 @@ async def restyle_intake(context: ApiContext, upload: GenerationUpload, generati
         raise source_too_short(end, seconds)
 
 
-INTAKES: Final[dict[str, Intake]] = {"restyle": restyle_intake}
+async def song_intake(context: ApiContext, upload: GenerationUpload, generation_id: str) -> None:
+    """A song has no files (JSON body); nothing to save."""
+    del context, upload, generation_id
+
+
+INTAKES: Final[dict[str, Intake]] = {"restyle": restyle_intake, "song": song_intake}
 """Intake per kind (the 1.1.0 kinds are added with their stories)."""

@@ -44,6 +44,7 @@ from stemstudio_generator.jobs.reconcile import reconcile
 from stemstudio_generator.jobs.restyle import RestyleHandler, TakeIdentity, TakeOutput
 from stemstudio_generator.jobs.runner import JobHandler, JobRunner
 from stemstudio_generator.jobs.scheduler import Scheduler
+from stemstudio_generator.jobs.song import SongHandler
 from stemstudio_generator.jobs.store import JsonJobStore
 from stemstudio_generator.ports import Clock, DeviceProbe, GpuGate, MusicEngine, TakeWriter
 from stemstudio_generator.schemas import DeviceInfo, GenerationKind, ModelStatus
@@ -162,12 +163,12 @@ def _handlers(
 ) -> dict[GenerationKind, JobHandler]:
     writer = wiring.writer or FlacWriter()
     handlers: dict[GenerationKind, JobHandler] = {}
-    if "restyle" in settings.kinds:
+    if {"restyle", "song"} & set(settings.kinds):
+        engine = _music_engine(settings, wiring)
         output = TakeOutput(writer, TakeIdentity(MUSIC_TAKE_MODEL, MUSIC_GENERATOR_LABEL), files)
-        handlers["restyle"] = RestyleHandler(
-            _music_engine(settings, wiring), AudioStemMixer(), output
-        )
-    return handlers
+        handlers["restyle"] = RestyleHandler(engine, AudioStemMixer(), output)
+        handlers["song"] = SongHandler(engine, output)
+    return {kind: handler for kind, handler in handlers.items() if kind in settings.kinds}
 
 
 def _music_engine(settings: GeneratorSettings, wiring: Wiring) -> MusicEngine:
