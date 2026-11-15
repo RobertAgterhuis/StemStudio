@@ -89,8 +89,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### stem-separation (tests first)
 
-- [ ] T017 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lyrics_jobs.py` (fake lookup, fake aligner, fake clock): `lookup` jobs on the 005 network lane, `align` jobs as scheduler steps with priority standard > align > detail parent step (a queued align runs before the next detail parent, after a queued standard job; never pre-empts); persisted in `lyrics-jobs/*.json`; restart re-runs; `DELETE` removes job + result; 24 h sweep; cancel of queued/running align (FR-014)
-- [ ] T018 [stem-separation] Implement `jobs/{lyrics_store,lyrics_lane}.py` and the scheduler priority in `jobs/scheduler.py` to pass T017
+- [x] T017 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lyrics_jobs.py` (fake lookup, fake aligner, fake clock): `lookup` jobs on the 005 network lane, `align` jobs as scheduler steps with priority standard > align > detail parent step (a queued align runs before the next detail parent, after a queued standard job; never pre-empts); persisted in `lyrics-jobs/*.json`; restart re-runs; `DELETE` removes job + result; 24 h sweep; cancel of queued/running align (FR-014)
+- [x] T018 [stem-separation] Implement `jobs/{lyrics_store,lyrics_lane}.py` and the scheduler priority in `jobs/scheduler.py` to pass T017
 
 ### backend (tests first)
 
