@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Scores;
 
 namespace StemStudio.Contracts.Assets;
@@ -31,4 +33,8 @@ public sealed record ProvenanceDto
 
     /// <summary>How a score item was made (origin transcription, 1.7.0); null for exports.</summary>
     public ScoreRecipeDto? ScoreRecipe { get; init; }
+
+    /// <summary>The generation of a take item (origin generation, 1.8.0); null (absent on the wire) otherwise.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GenerationProvenanceDto? Generation { get; init; }
 }

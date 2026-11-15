@@ -204,6 +204,66 @@ class DeviceProbe(Protocol):
         ...
 
 
+# ------------------------------------------------------------------ pinned code and weights
+
+
+@dataclass(frozen=True, slots=True)
+class WeightsPin:
+    """A Hugging Face model repository pinned by revision (ADR-009 rule 1, ADR-018 D5).
+
+    Attributes:
+        repo: Repository id.
+        revision: Commit of the repository.
+        files: Files used from it, with their SHA-256 where measured (empty string: recorded by
+            the CTO from the cache, 010 tasks T061).
+    """
+
+    repo: str
+    revision: str
+    files: tuple[tuple[str, str], ...] = ()
+
+
+ACESTEP_CODE_COMMIT: Final = "ca1e85fe9430179831e6bc6be790c332190a3866"
+"""ACE-Step 1.5 source commit (MIT), the ``acestep`` extra's git pin."""
+
+SOULX_CODE_COMMIT: Final = "81aeb3ae772c70093c3de74dc23c92d983801ae4"
+"""SoulX-Singer source commit (Apache-2.0), fetched by the singer image build."""
+
+ACESTEP_WEIGHTS: Final = WeightsPin(
+    "ACE-Step/Ace-Step1.5",
+    "19671f406d603126926c1b7e2adc169acbcade22",
+    (
+        (
+            "acestep-v15-turbo/model.safetensors",
+            "3f6e0797fad420a39bd33979eb6e840e30989e34a3794e843d23b60ec6e422d7",
+        ),
+        (
+            "acestep-5Hz-lm-1.7B/model.safetensors",
+            "f161689da73e5ecefa28ff780d51c2d92a00f056d021d7933c779ed5c6cd7db8",
+        ),
+    ),
+)
+"""ACE-Step 1.5 weights bundle (MIT): turbo DiT, VAE, Qwen3-Embedding-0.6B, 5Hz LM 1.7B."""
+
+SOULX_SVC_WEIGHTS: Final = WeightsPin(
+    "Soul-AILab/SoulX-Singer",
+    "40493ad90286056c7a9095035164434a79daa8c9",
+    (("model-svc.pt", "38e72d9e15be6eef3cc937daaf81421a7b5b546816786530bb9aa346cee5d43c"),),
+)
+"""SoulX-Singer-SVC checkpoint (Apache-2.0, 2.79 GB)."""
+
+RMVPE_WEIGHTS: Final = WeightsPin(
+    "Soul-AILab/SoulX-Singer-Preprocess",
+    "83dc50289d22a81b1e9998f5b9e111aef7c1fdcd",
+    (("rmvpe/rmvpe.pt", "6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193"),),
+)
+"""RMVPE F0 extractor (Apache-2.0, 0.18 GB)."""
+
+WHISPER_BASE_WEIGHTS: Final = WeightsPin(
+    "openai/whisper-base", "e37978b90ca9030d5170a5c07aadb050351a65bb"
+)
+"""whisper-base content encoder of SoulX-SVC (Apache-2.0); must be loaded by this revision."""
+
 # ------------------------------------------------------------------ engines
 
 

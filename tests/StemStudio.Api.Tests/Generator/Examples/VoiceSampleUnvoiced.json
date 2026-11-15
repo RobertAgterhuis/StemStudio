@@ -1,0 +1,9 @@
+{
+  "checkId": "9f1e3d5c7b9a41e3c5a7f9e1d3b5c7a9",
+  "durationSeconds": 20,
+  "voicedRatio": 0.12,
+  "pcmSha256": "5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c",
+  "ok": false,
+  "reason": "unvoiced",
+  "message": "The recording contains too little singing (12 % voiced, at least 50 % is needed). Sing for 20-30 seconds without background music."
+}

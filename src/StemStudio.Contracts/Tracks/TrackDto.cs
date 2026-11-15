@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using StemStudio.Contracts.Lyrics;
 
 namespace StemStudio.Contracts.Tracks;
@@ -61,6 +62,10 @@ public sealed record TrackDto
 
     /// <summary>Lyrics state (1.6.0); always present on the wire, <c>none</c> for older tracks. The lyrics themselves are only served by <c>GET /api/tracks/{id}/lyrics</c>.</summary>
     public LyricsStatusDto LyricsStatus { get; init; } = LyricsStatusDto.None;
+
+    /// <summary>Where the track came from (1.8.0); null (absent on the wire) for imported tracks.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TrackOriginDto? Origin { get; init; }
 
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }

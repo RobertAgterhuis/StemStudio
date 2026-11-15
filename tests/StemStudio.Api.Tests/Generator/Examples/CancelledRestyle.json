@@ -1,0 +1,31 @@
+{
+  "generationId": "5b0f7e2c9a1d4c3e8f6a2b1d0c9e8f7a",
+  "kind": "restyle",
+  "status": "cancelled",
+  "progress": 40,
+  "stage": "Cancelled",
+  "restyle": {
+    "caption": "Jazz swing, swing feel, piano, upright bass, brushed drums, relaxed, warm",
+    "audioCoverStrength": 0.55,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      1234567,
+      7654321
+    ],
+    "mode": "range",
+    "rangeStartSeconds": 60,
+    "rangeEndSeconds": 105
+  },
+  "takes": [],
+  "warnings": [],
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "createdAt": "2026-11-15T12:00:00Z",
+  "updatedAt": "2026-11-15T12:00:33Z"
+}

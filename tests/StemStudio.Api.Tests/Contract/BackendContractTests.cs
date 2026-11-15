@@ -199,7 +199,7 @@ public sealed partial class BackendContractTests : IDisposable
                 "getTrackArtwork", "setTrackArtwork", "resetTrackArtwork", "getBandInfo", "lookupTrackMetadata",
                 "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile",
                 "getLyrics", "setLyrics", "removeLyrics", "searchLyrics", "alignLyrics", "cancelLyricsAlignment", "setLyricsOffset",
-                "getScoreOptions", "createScore"], ignoreOrder: true);
+                "getScoreOptions", "createScore", .. PendingGenerationOperations, .. PendingSongVoiceOperations], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

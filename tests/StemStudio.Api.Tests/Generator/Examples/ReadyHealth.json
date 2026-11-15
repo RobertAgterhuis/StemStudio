@@ -1,0 +1,50 @@
+{
+  "status": "ok",
+  "contractVersion": "1.1.0",
+  "engine": "acestep",
+  "kinds": [
+    "restyle",
+    "song"
+  ],
+  "voiceSampleCheck": false,
+  "ready": true,
+  "reason": null,
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "computeCapability": "12.0",
+    "totalMemoryMiB": 16303,
+    "freeMemoryMiB": 14960,
+    "reason": null
+  },
+  "models": [
+    {
+      "id": "acestep-v15-turbo",
+      "present": false,
+      "bytes": 4790000000,
+      "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "id": "acestep-vae",
+      "present": false,
+      "bytes": 340000000,
+      "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "id": "qwen3-embedding-0.6b",
+      "present": false,
+      "bytes": 1190000000,
+      "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "id": "acestep-5hz-lm-1.7b",
+      "present": false,
+      "bytes": 3710000000,
+      "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+    }
+  ],
+  "queue": {
+    "queued": 0,
+    "running": null
+  }
+}

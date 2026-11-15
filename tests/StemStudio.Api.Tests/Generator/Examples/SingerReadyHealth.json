@@ -1,0 +1,43 @@
+{
+  "status": "ok",
+  "contractVersion": "1.1.0",
+  "engine": "soulx",
+  "kinds": [
+    "voiceConversion"
+  ],
+  "voiceSampleCheck": true,
+  "ready": true,
+  "reason": null,
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "computeCapability": "12.0",
+    "totalMemoryMiB": 16303,
+    "freeMemoryMiB": 14960,
+    "reason": null
+  },
+  "models": [
+    {
+      "id": "soulx-singer-svc",
+      "present": true,
+      "bytes": 2790000000,
+      "revision": "40493ad90286056c7a9095035164434a79daa8c9"
+    },
+    {
+      "id": "rmvpe",
+      "present": true,
+      "bytes": 180000000,
+      "revision": "83dc50289d22a81b1e9998f5b9e111aef7c1fdcd"
+    },
+    {
+      "id": "whisper-base",
+      "present": true,
+      "bytes": 290000000,
+      "revision": "e37978b90ca9030d5170a5c07aadb050351a65bb"
+    }
+  ],
+  "queue": {
+    "queued": 0,
+    "running": null
+  }
+}

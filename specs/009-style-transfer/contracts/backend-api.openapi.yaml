@@ -5628,7 +5628,9 @@ components:
           progress: 0
           error: null
           parents: []
+          device: null
           updatedAt: null
+        device: null
         artwork: null
         metadata:
           status: none
