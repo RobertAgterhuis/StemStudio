@@ -40,6 +40,15 @@ class Api:
         self.wait()
         return job_id
 
+    def post_detail(self, standard_job_id: str) -> Response:
+        return self.client.post("/v1/detail-jobs", json={"standardJobId": standard_job_id})
+
+    def completed_detail(self) -> str:
+        """Complete a standard job, then its detail job; return the detail job id."""
+        detail_id: str = self.post_detail(self.completed_job()).json()["detailJobId"]
+        self.wait()
+        return detail_id
+
 
 ApiFactory = Callable[..., Api]
 
@@ -52,8 +61,9 @@ def make_api(tmp_path: Path) -> Iterator[ApiFactory]:
         def factory(separator: Separator | None = None, max_upload_bytes: int = 1_000) -> Api:
             fakes = ApiFakes()
             settings = WorkerSettings(
-                data_dir=tmp_path, separator="fake", max_upload_bytes=max_upload_bytes
-            )
+                data_dir=tmp_path, separator="fake", max_upload_bytes=max_upload_bytes,
+                fake_detail_step_seconds=0.0,
+            )  # fmt: skip
             app = create_app(settings, adapters=fakes.adapters(separator))
             client = stack.enter_context(TestClient(app))
             return Api(client, fakes, settings)
