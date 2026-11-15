@@ -7,16 +7,19 @@ public sealed class HelpSearchTests
 {
     private static HelpSearch Search(params HelpFile[] files) => new(new HelpCatalog(files));
 
-    private static HelpFile T(string id, string title, string summary = "Nothing.", string keywords = "[]", string body = "Nothing.") =>
-        TopicFile(id, content: Topic(id, title: title, summary: summary, extra: $"keywords: {keywords}", body: body));
+    private static HelpFile T(string id, string title, TopicText? text = null) =>
+        TopicFile(id, content: Topic(id, (text ?? Text()) with { Title = title }));
+
+    private static TopicText Text(string summary = "Nothing.", string keywords = "[]", string body = "Nothing.") =>
+        new(null, summary, $"keywords: {keywords}", body);
 
     [Fact]
     public void Ranks_TitleOverKeywordOverSummaryOverBody()
     {
         var search = Search(
-            T("in-body", "Alpha", body: "the loop is here"),
-            T("in-summary", "Beta", summary: "About the loop."),
-            T("in-keyword", "Gamma", keywords: "[loop]"),
+            T("in-body", "Alpha", Text(body: "the loop is here")),
+            T("in-summary", "Beta", Text(summary: "About the loop.")),
+            T("in-keyword", "Gamma", Text(keywords: "[loop]")),
             T("in-title", "Loop"));
 
         search.Search("loop").Select(h => h.TopicId).ShouldBe(["in-title", "in-keyword", "in-summary", "in-body"]);
@@ -25,7 +28,7 @@ public sealed class HelpSearchTests
     [Fact]
     public void Scores_FollowTheResearchWeights()
     {
-        var search = Search(T("a", "Loop", summary: "A loop.", keywords: "[loop]", body: "loop"));
+        var search = Search(T("a", "Loop", Text(summary: "A loop.", keywords: "[loop]", body: "loop")));
 
         search.Search("loop").Single().Score.ShouldBe(5 + 3 + 2 + 1);
     }
@@ -54,7 +57,7 @@ public sealed class HelpSearchTests
     [Fact]
     public void Matching_IsCaseAndDiacriticInsensitive_AndKeepsHyphenatedTerms()
     {
-        var search = Search(T("a", "Café tempo", keywords: "[a-b]"), T("b", "Other"));
+        var search = Search(T("a", "Café tempo", Text(keywords: "[a-b]")), T("b", "Other"));
 
         search.Search("CAFE")[0].TopicId.ShouldBe("a");
         search.Search("a-b")[0].TopicId.ShouldBe("a");

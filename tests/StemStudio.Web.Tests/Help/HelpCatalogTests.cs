@@ -84,7 +84,7 @@ public sealed class HelpCatalogTests
 
     [Fact]
     public void LongSummary_Fails() =>
-        LoadError(TopicFile("x", content: Topic("x", summary: new string('a', 141)))).ShouldContain("summary is longer than 140");
+        LoadError(TopicFile("x", content: Topic("x", new(Summary: new string('a', 141))))).ShouldContain("summary is longer than 140");
 
     [Fact]
     public void MissingRequiredField_Fails() =>
@@ -96,7 +96,7 @@ public sealed class HelpCatalogTests
 
     [Fact]
     public void UnknownLevel_Fails() =>
-        LoadError(TopicFile("x", content: Topic("x", extra: "levels: [guru]"))).ShouldContain("unknown level 'guru'");
+        LoadError(TopicFile("x", content: Topic("x", new(Extra: "levels: [guru]")))).ShouldContain("unknown level 'guru'");
 
     [Fact]
     public void MissingFrontMatter_Fails() =>
@@ -104,11 +104,11 @@ public sealed class HelpCatalogTests
 
     [Fact]
     public void BrokenRelatedLink_Fails() =>
-        LoadError(TopicFile("x", content: Topic("x", extra: "related: [nope]"))).ShouldContain("related topic 'nope' does not exist");
+        LoadError(TopicFile("x", content: Topic("x", new(Extra: "related: [nope]")))).ShouldContain("related topic 'nope' does not exist");
 
     [Fact]
     public void BrokenHelpLink_Fails() =>
-        LoadError(TopicFile("x", content: Topic("x", body: "See [this](help:nope)."))).ShouldContain("link to unknown topic 'nope'");
+        LoadError(TopicFile("x", content: Topic("x", new(Body: "See [this](help:nope).")))).ShouldContain("link to unknown topic 'nope'");
 
     [Fact]
     public void TourWithUnknownTopic_Fails() =>

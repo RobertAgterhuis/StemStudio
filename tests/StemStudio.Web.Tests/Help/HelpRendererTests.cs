@@ -7,7 +7,7 @@ public sealed class HelpRendererTests
 {
     private static string Html(string body, params string[] otherIds)
     {
-        var files = otherIds.Select(id => TopicFile(id)).Append(TopicFile("x", content: Topic("x", body: body)));
+        var files = otherIds.Select(id => TopicFile(id)).Append(TopicFile("x", content: Topic("x", new(Body: body))));
         return new HelpCatalog(files).Render("x").Html;
     }
 

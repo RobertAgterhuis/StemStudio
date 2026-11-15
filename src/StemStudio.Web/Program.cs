@@ -4,6 +4,7 @@ using StemStudio.Web;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
+using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
@@ -19,6 +20,10 @@ builder.Services.AddScoped<IKeyboardShortcuts, KeyboardShortcuts>();
 builder.Services.AddScoped<IWebInterop, WebInterop>();
 builder.Services.AddScoped<IPreferencesStore, LocalPreferencesStore>();
 builder.Services.AddScoped<PreferencesState>();
+
+// Help content is validated once at start-up (contracts/help-content.md 1): invalid content fails fast.
+builder.Services.AddSingleton<IHelpCatalog>(HelpCatalog.FromAssembly(typeof(HelpCatalog).Assembly));
+builder.Services.AddSingleton<IHelpSearch, HelpSearch>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
 builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,
