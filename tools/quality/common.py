@@ -51,8 +51,13 @@ EXCLUDED_SUFFIXES = (".g.cs", ".generated.cs", ".designer.cs", ".d.ts", ".min.js
 EXCLUDED_PATHS = (
     "src/StemStudio.Web/wwwroot/js/audio-engine.js",
     "tools/quality/tests/samples/",
+    "worker/src/stemstudio_worker/detail/vendor/",
 )
-"""Repository-relative paths (files or prefixes) never measured."""
+"""Repository-relative paths (files or prefixes) never measured.
+
+``detail/vendor/`` holds vendored third-party MIT inference code (MSST), excluded from SIG like
+``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO).
+"""
 
 OWNERS = (
     ("src/StemStudio.Contracts/", "architect"),
@@ -71,10 +76,12 @@ OWNERS = (
     ("worker/src/stemstudio_worker/analysis/", "beat-analysis"),
     ("worker/tests/analysis/", "beat-analysis"),
     ("worker/src/stemstudio_worker/separation/", "stem-separation"),
+    ("worker/src/stemstudio_worker/detail/", "stem-separation"),
     ("worker/src/stemstudio_worker/jobs/", "stem-separation"),
     ("worker/src/stemstudio_worker/api/", "stem-separation"),
     ("worker/src/stemstudio_worker/main.py", "stem-separation"),
     ("worker/tests/separation/", "stem-separation"),
+    ("worker/tests/detail/", "stem-separation"),
     ("worker/tests/jobs/", "stem-separation"),
     ("worker/tests/api/", "stem-separation"),
     ("e2e/", "qa"),
