@@ -135,11 +135,11 @@ public sealed class GenerationStatusTests : PageTestContext
             .Returns(_ => GenerationData.Status(), _ => throw Problem(HttpStatusCode.ServiceUnavailable, "The StemStudio API cannot be reached. Is it running?"));
         var source = new GenerationStatusSource(Api, Time);
 
-        (await source.GetAsync(TestContext.Current.CancellationToken)).State.ShouldBe(GenerationAvailabilityDto.Ready);
+        (await source.GetAsync(Xunit.TestContext.Current.CancellationToken)).State.ShouldBe(GenerationAvailabilityDto.Ready);
         Time.Advance(TimeSpan.FromSeconds(9));
-        (await source.GetAsync(TestContext.Current.CancellationToken)).State.ShouldBe(GenerationAvailabilityDto.Ready);
+        (await source.GetAsync(Xunit.TestContext.Current.CancellationToken)).State.ShouldBe(GenerationAvailabilityDto.Ready);
         Time.Advance(TimeSpan.FromSeconds(1));
-        var failed = await source.GetAsync(TestContext.Current.CancellationToken);
+        var failed = await source.GetAsync(Xunit.TestContext.Current.CancellationToken);
 
         (failed.State, failed.Reason).ShouldBe((GenerationAvailabilityDto.NotInstalled, "The generation status could not be read: The StemStudio API cannot be reached. Is it running?"));
         await Api.Received(2).GetGenerationStatusAsync(Arg.Any<CancellationToken>());

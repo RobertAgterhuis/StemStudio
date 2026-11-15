@@ -121,3 +121,25 @@
   display: grid;
   gap: var(--ss-space-3);
 }
+
+/* Generation status (009 FR-010): state in words; the outline marks "not ready" without relying on colour. */
+.ss-generation-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-generation-status-notInstalled,
+.ss-generation-status-unavailable {
+  border-style: dashed;
+  border-color: var(--ss-color-warning);
+}
+
+.ss-generation-status-title {
+  font-weight: var(--ss-type-label-weight);
+}

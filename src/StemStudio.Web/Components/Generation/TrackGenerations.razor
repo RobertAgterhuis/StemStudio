@@ -1,5 +1,6 @@
-@* Track page section "Restyled versions" (009 US1, ui-test-ids 1.8.0 track-generations, track-restyle): starts a
-   restyle and lists the track's restyles with their takes. *@
+@* Track page section "Restyled versions" (009 US1/US6, ui-test-ids 1.8.0 track-generations, track-restyle): the
+   generation status, the restyle button (disabled, not hidden, with the reason when generation is not ready or the
+   track is not separated yet) and the track's restyles with their takes. *@
 @using StemStudio.Contracts.Generation
 @using StemStudio.Web.Api
 @using StemStudio.Web.Generation
@@ -9,8 +10,14 @@
         <h2 id="generations-heading" class="ss-heading">Restyled versions</h2>
         <HelpHint HelpId="restyle-options" />
     </div>
+    <GenerationStatusBanner />
     <div class="ss-row">
-        <RadzenButton Text="Restyle" Icon="auto_awesome" Disabled="@(!CanRestyle)" Click="() => Restyling = true" data-testid="track-restyle" />
+        <RadzenButton Text="Restyle" Icon="auto_awesome" Disabled="@(DisabledReasonId is not null)" Click="() => Restyling = true"
+                      aria-describedby="@DisabledReasonId" data-testid="track-restyle" />
+        @if (!TrackReady)
+        {
+            <span id="track-restyle-reason" class="ss-help ss-small">Restyle is possible once the track is separated.</span>
+        }
     </div>
     <GenerationList @ref="List" Query="Query" EmptyText="No restyled versions yet." />
 </section>
@@ -36,7 +43,10 @@
 
     private GenerationQuery Query => new(GenerationKindDto.Restyle, Track.Id);
 
-    private bool CanRestyle => Status?.State == GenerationAvailabilityDto.Ready;
+    private bool TrackReady => Track.Status == TrackStatusDto.Completed;
+
+    private string? DisabledReasonId =>
+        Status?.State != GenerationAvailabilityDto.Ready ? "generation-status-reason" : TrackReady ? null : "track-restyle-reason";
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync() => Status = await StatusSource.GetAsync();

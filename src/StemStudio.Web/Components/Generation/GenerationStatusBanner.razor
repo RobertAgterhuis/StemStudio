@@ -1,0 +1,33 @@
+@* Availability of the generative features (009 FR-010, 010 FR-012; ui-test-ids 1.8.0 generation-status*): the state as
+   an attribute and as text, the reason (the target of aria-describedby of every disabled generative control), a help
+   link and the first-download notice. The rest of the app keeps working whatever the state. *@
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Generation
+@inject GenerationStatusSource StatusSource
+@inject HelpContext Help
+
+@if (Status is { } status)
+{
+    <div class="@($"ss-generation-status ss-generation-status-{WireName.Of(status.State)}")" role="status" data-testid="generation-status"
+         data-state="@WireName.Of(status.State)" data-help-id="generation-gpu-required">
+        <span class="ss-generation-status-title">@GenerationStatusText.Title(status)</span>
+        @if (GenerationStatusText.Reason(status) is { } reason)
+        {
+            <span id="generation-status-reason" class="ss-generation-status-reason" data-testid="generation-status-reason">@reason</span>
+        }
+        @if (GenerationStatusText.DownloadNotice(status) is { } notice)
+        {
+            <span class="ss-small" data-testid="generation-download-notice">@notice</span>
+        }
+        <button type="button" class="ss-text-button" data-testid="generation-help-link" @onclick="@(() => Help.ShowAsync("generation-gpu-required"))">
+            Why generation needs a GPU
+        </button>
+    </div>
+}
+
+@code {
+    private GenerationStatusDto? Status { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync() => Status = await StatusSource.GetAsync();
+}
