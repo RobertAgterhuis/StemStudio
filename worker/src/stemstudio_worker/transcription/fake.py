@@ -133,9 +133,9 @@ class FakePitchTranscriber:
         return Transcription(notes=tuple(sorted(notes, key=lambda n: (n.start, n.pitch))))
 
     def _triads(self, beats: list[FakeBeat]) -> list[NoteEvent]:
-        if not beats:
-            return []
         starts = [b.time for b in beats if b.position == 0]
+        if not starts:
+            return []
         bars = zip(starts, [*starts[1:], beats[-1].end], strict=True)
         return [NoteEvent(start, end, pitch, _LEVEL) for start, end in bars for pitch in TRIAD]
 

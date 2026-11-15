@@ -205,19 +205,25 @@ class Pipeline:
     def _transcribe(
         self, inputs: Mapping[str, Path], settings: NotationSettings, report: StageReporter
     ) -> _Transcribed:
+        if self._request.profile == "drums":
+            return self._drums(inputs, settings, report)
         request, parts = self._request, self._parts
-        if request.profile == "drums":
-            drums = parts.engines.drums(request)
-            pieces: dict[Any, Path] = dict(inputs)
-            hits = drums.transcribe(pieces, request.range, report("transcribing"))
-            report("notating")
-            engine: ScoreEngine = getattr(drums, "engine", "drum-onsets")
-            return _Transcribed(parts.notator.notate_drums(hits, settings), engine, None, None)
         pitched = parts.engines.pitched(request, parts.rules.pitch_range(request.profile))
         result = pitched.transcribe(inputs["input"], request.range, report("transcribing"))
         report("notating")
         document = parts.notator.notate(result.notes, settings)
         return _Transcribed(document, pitched.engine, pitched.attribution, result.device)
+
+    def _drums(
+        self, inputs: Mapping[str, Path], settings: NotationSettings, report: StageReporter
+    ) -> _Transcribed:
+        request, parts = self._request, self._parts
+        drums = parts.engines.drums(request)
+        pieces: dict[Any, Path] = dict(inputs)
+        hits = drums.transcribe(pieces, request.range, report("transcribing"))
+        report("notating")
+        engine: ScoreEngine = getattr(drums, "engine", "drum-onsets")
+        return _Transcribed(parts.notator.notate_drums(hits, settings), engine, None, None)
 
     def _summary(self, done: _Transcribed, pages: int, inputs: Mapping[str, Path]) -> ScoreSummary:
         request, document = self._request, done.document
@@ -232,12 +238,25 @@ class Pipeline:
         )  # fmt: skip
 
     def _job_warnings(self, done: _Transcribed, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
-        request, warn = self._request, self._parts.rules.warning
-        found: list[ScoreWarning] = []
-        if request.input is not None and "/detail/" in request.input.path:
-            found.append(warn("detail-bleed"))
-        if done.engine == "piano-crnn" and done.use is not None and done.use.kind == "cpu":
-            found.append(warn("cpu-piano"))
-        if request.profile == "drums":
+        warn = self._parts.rules.warning
+        found = [
+            warn(code)
+            for code, applies in (
+                ("detail-bleed", self._on_detail_stem()),
+                ("cpu-piano", _piano_on_cpu(done)),
+            )
+            if applies
+        ]
+        if self._request.profile == "drums":
             found += [warn("missing-drum-piece", piece=p) for p in _PIECES if p not in inputs]
         return found
+
+    def _on_detail_stem(self) -> bool:
+        """A pitched profile transcribes a detail stem (other instruments may bleed in)."""
+        given = self._request.input
+        return given is not None and "/detail/" in given.path
+
+
+def _piano_on_cpu(done: _Transcribed) -> bool:
+    """The piano CRNN ran on the CPU."""
+    return done.engine == "piano-crnn" and done.use is not None and done.use.kind == "cpu"

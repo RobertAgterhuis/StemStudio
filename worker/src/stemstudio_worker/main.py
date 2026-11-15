@@ -253,14 +253,10 @@ def default_transcription(
     engines = overrides.transcription_engines or create_transcription_engines(
         settings, devices, LibrosaDrumTranscriber()
     )
-    return TranscriptionParts(
-        engines=engines,
-        notator=overrides.notator or create_notator(),
-        engraver=overrides.score_engraver or create_score_engraver(),
-        rules=SCORE_RULES,
-        library=library,
-        font=fonts.leipzig_available,
-    )
+    notator = overrides.notator or create_notator()
+    engraver = overrides.score_engraver or create_score_engraver()
+    return TranscriptionParts(engines, notator, engraver, SCORE_RULES, library,
+                              fonts.leipzig_available)  # fmt: skip
 
 
 class _GpuModels:
