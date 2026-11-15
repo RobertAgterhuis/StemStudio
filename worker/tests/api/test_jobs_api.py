@@ -37,7 +37,7 @@ def test_health_reports_fake_separator(api: Api) -> None:
         "status": "ok",
         "separator": "fake",
         "device": "cpu",
-        "contractVersion": "1.0.2",
+        "contractVersion": "1.1.0",
     }
 
 
