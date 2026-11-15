@@ -154,6 +154,7 @@ public static class ApiComposition
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
         services.AddScoped<StyleService>();
+        services.AddScoped<GenerationStatusService>();
         services.AddScoped<RetryService>();
         services.AddScoped<GenerationService>();
         services.AddSingleton<TakeStorage>();

@@ -18,6 +18,8 @@ public static class GenerationEndpoints
     /// <returns>The builder.</returns>
     public static IEndpointRouteBuilder MapGenerationEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet(ApiRoutes.GenerationStatus, (GenerationStatusService status, CancellationToken ct) => status.GetAsync(ct))
+            .WithName("getGenerationStatus").WithTags("generation").Produces<GenerationStatusDto>();
         app.MapPost(TrackEndpoints.TrackRoute + "/restyles", (Guid trackId, RestyleRequest? request, RestyleService restyles, CancellationToken ct) =>
                 restyles.CreateAsync(trackId, request, ct))
             .WithName("createRestyle").WithTags("generation").Produces<GenerationDto>(StatusCodes.Status202Accepted)

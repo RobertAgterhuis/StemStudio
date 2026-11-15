@@ -130,7 +130,7 @@ public sealed partial class BackendContractTests
     // Feature 009 (backend 1.8.0, staged in the 009/010 Phase 0): the backend removes each id per story (T042, T047, T054, T059, T064).
     private static readonly string[] PendingGenerationOperations =
     [
-        "getGenerationStatus", "createStyle", "updateStyle", "deleteStyle", "duplicateStyle",
+        "createStyle", "updateStyle", "deleteStyle", "duplicateStyle",
         "importTake",
     ];
 
