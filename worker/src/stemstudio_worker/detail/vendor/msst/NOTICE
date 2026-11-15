@@ -1,0 +1,35 @@
+StemStudio - vendored third-party inference code
+=================================================
+
+This directory contains source code from
+
+  Music-Source-Separation-Training (MSST)
+  https://github.com/ZFTurbo/Music-Source-Separation-Training
+  Commit 1f700c386e0dd763fe0a57242bb9420dce987354
+  Copyright (c) 2024 Roman Solovyev (ZFTurbo)
+  Licensed under the MIT License (see LICENSE in this directory).
+
+Files and modifications (each file carries a header naming its origin):
+
+  attend.py              models/bs_roformer/attend.py, verbatim
+  bs_roformer.py         models/bs_roformer/bs_roformer.py; beartype import and @beartype
+                         decorators removed, Attend imported relatively
+  mdx23c_tfc_tdf_v3.py   models/mdx23c_tfc_tdf_v3.py; prefer_target_instrument replaced by the
+                         instrument count of the configuration
+  configs.py             StemStudio file: hyper-parameters of config_drumsep_mdx23c.yaml and
+                         mvsep_mega_model_bs_roformer_53_stems.yaml as Python constants (no
+                         omegaconf / ml_collections), plus the two network builders
+
+Training code, configuration loaders and GUI code of MSST are not included. The overlap-add
+inference loop ("demix") is re-implemented in stemstudio_worker/detail/demix.py after
+utils/model_utils.py of the same commit, accumulating only the instrument families StemStudio
+uses.
+
+The MDX-Net STFT wrapper for UVR MDX-Net KARA 2 (stemstudio_worker/detail/mdx_net.py) is
+StemStudio code written after python-audio-separator (MIT License,
+https://github.com/nomadkaraoke/python-audio-separator) and the Ultimate Vocal Remover project
+(https://github.com/Anjok07/ultimatevocalremovergui). Credit: Ultimate Vocal Remover (UVR) and
+its developers.
+
+Model weights are not part of this directory or of the repository; they are downloaded at first
+use (see stemstudio_worker/detail/registry.py and docs/decisions/ADR-009).

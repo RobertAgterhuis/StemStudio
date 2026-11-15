@@ -12,8 +12,14 @@ import numpy as np
 import pytest
 import torch
 
+from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.detail import (
+    create_detail_adapters,
+    create_detail_pipeline,
+    mdx_net,
+    runtimes,
+)
 from stemstudio_worker.detail import demix as demix_module
-from stemstudio_worker.detail import mdx_net, runtimes
 from stemstudio_worker.detail.demix import DemixPlan, MsstModel, demix
 from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.folding import MEGA_OUTPUTS
@@ -21,6 +27,7 @@ from stemstudio_worker.detail.gating import relative_db
 from stemstudio_worker.detail.mdx_net import COMPENSATE, Kara2Model
 from stemstudio_worker.detail.registry import ModelSpec
 from stemstudio_worker.detail.runtimes import RealModelProvider, resolve_device
+from stemstudio_worker.detail.steps import DetailPipeline
 from stemstudio_worker.ports import (
     DetailAudio,
     DetailCancelledError,
@@ -47,7 +54,7 @@ def scaled_network(scales: tuple[float, ...]):  # type: ignore[no-untyped-def]
 def test_demix_overlap_adds_chunks_back_to_the_full_signal() -> None:
     mix = noise(0.5, 0.3)
     fractions: list[float] = []
-    out = demix(scaled_network((0.5, 0.25)), mix, PLAN, [0, 1], lambda f, s: fractions.append(f))
+    out = demix(scaled_network((0.5, 0.25)), mix, PLAN, lambda f, s: fractions.append(f))
     assert out.shape == (2, *mix.shape)
     assert np.allclose(out[0], 0.5 * mix, atol=1e-5)
     assert np.allclose(out[1], 0.25 * mix, atol=1e-5)
@@ -58,16 +65,17 @@ def test_demix_overlap_adds_chunks_back_to_the_full_signal() -> None:
     )
 
 
-def test_demix_keeps_only_the_selected_outputs() -> None:
+def test_msst_model_accumulates_only_the_kept_outputs() -> None:
     mix = noise(0.3, 0.3)
-    out = demix(scaled_network((0.1, 0.2, 0.3)), mix, PLAN, [2], lambda f, s: None)
-    assert out.shape == (1, *mix.shape)
-    assert np.allclose(out[0], 0.3 * mix, atol=1e-5)
+    model = MsstModel(scaled_network((0.1, 0.2, 0.3)), PLAN, ("a", "b", "c"), ("c",))
+    out = model.separate(mix, lambda f, s: None)
+    assert list(out) == ["c"]
+    assert np.allclose(out["c"], 0.3 * mix, atol=1e-5)
 
 
 def test_demix_of_a_short_input_pads_the_single_chunk() -> None:
     mix = noise(0.05, 0.3)
-    out = demix(scaled_network((1.0,)), mix, PLAN, [0], lambda f, s: None)
+    out = demix(scaled_network((1.0,)), mix, PLAN, lambda f, s: None)
     assert np.allclose(out[0], mix, atol=1e-5)
 
 
@@ -76,7 +84,7 @@ def test_demix_stops_when_progress_cancels() -> None:
         raise DetailCancelledError("stop")
 
     with pytest.raises(DetailCancelledError):
-        demix(scaled_network((1.0,)), noise(0.5, 0.3), PLAN, [0], cancel)
+        demix(scaled_network((1.0,)), noise(0.5, 0.3), PLAN, cancel)
 
 
 def test_msst_model_names_the_kept_outputs() -> None:
@@ -162,7 +170,7 @@ def test_provider_downloads_and_loads_each_model_once(tmp_path: Path) -> None:
 
     def loader(path: Path, device: str) -> DetailModel:
         loaded.append((path.name, device))
-        return _Model()  # type: ignore[return-value]
+        return _Model()
 
     loaders: dict[DetailModelId, runtimes.Loader] = {"uvr-mdxnet-kara-2": loader}
     provider = RealModelProvider(downloader, "cpu", loaders)
@@ -190,12 +198,13 @@ def test_resolve_device(
 
 
 class _Tiny(torch.nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, outputs: int = 6) -> None:
         super().__init__()
+        self.outputs = outputs
         self.scale = torch.nn.Parameter(torch.ones(1))
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
-        return torch.stack([batch * self.scale] * 6, dim=1)
+        return torch.stack([batch * self.scale] * self.outputs, dim=1)
 
 
 def test_torch_weights_are_loaded_safely_into_the_network(tmp_path: Path) -> None:
@@ -204,7 +213,7 @@ def test_torch_weights_are_loaded_safely_into_the_network(tmp_path: Path) -> Non
     network = runtimes.load_network(_Tiny, path, "cpu")
     out = network(torch.ones(1, 2, 8))
     assert out.shape == (1, 6, 2, 8)
-    assert float(out[0, 0, 0, 0]) == 0.5
+    assert float(out[0, 0, 0, 0].detach()) == 0.5
 
 
 def test_mdx23c_and_mega_loaders_wrap_the_vendored_networks(
@@ -213,9 +222,9 @@ def test_mdx23c_and_mega_loaders_wrap_the_vendored_networks(
     path = tmp_path / "w.ckpt"
     torch.save({"scale": torch.tensor([1.0])}, path)
     fake_vendor = SimpleNamespace(
-        build_mdx23c=_Tiny, build_mega53=_Tiny,
+        build_mdx23c=_Tiny, build_mega53=lambda: _Tiny(len(MEGA_OUTPUTS)),
         DRUMSEP_INSTRUMENTS=("kick", "snare", "toms", "hh", "ride", "crash"),
-        MEGA_INSTRUMENTS=MEGA_OUTPUTS[:6],
+        MEGA_INSTRUMENTS=MEGA_OUTPUTS,
     )  # fmt: skip
     monkeypatch.setattr(runtimes, "_vendor", lambda: fake_vendor)
     drums = runtimes.load_mdx23c(path, "cpu")
@@ -224,7 +233,7 @@ def test_mdx23c_and_mega_loaders_wrap_the_vendored_networks(
     mega = runtimes.load_mega53(path, "cpu")
     assert isinstance(mega, MsstModel)
     assert mega.plan == runtimes.MEGA_PLAN == DemixPlan(882_000, 2)
-    assert sorted(mega.separate(noise(0.05, 0.1), lambda f, s: None)) == sorted(MEGA_OUTPUTS[:6])
+    assert sorted(mega.separate(noise(0.05, 0.1), lambda f, s: None)) == sorted(MEGA_OUTPUTS)
 
 
 def test_kara2_loader_runs_the_onnx_session(
@@ -259,3 +268,21 @@ def test_importing_the_runtimes_does_not_import_onnxruntime_or_the_vendored_code
     )
     assert result.stdout.split() == ["False", "False"]
     assert demix_module.__name__.endswith("demix")
+
+
+def test_the_real_factories_build_lazy_providers(tmp_path: Path) -> None:
+    settings = WorkerSettings(data_dir=tmp_path, separator="demucs", model_dir=tmp_path / "m")
+    adapters = create_detail_adapters(settings)
+    assert isinstance(adapters.models, RealModelProvider)
+    pipeline = create_detail_pipeline(settings)
+    assert isinstance(pipeline, DetailPipeline)
+    assert not (tmp_path / "m").exists()
+
+
+def test_vendored_configs_name_every_needed_output() -> None:
+    vendor = runtimes._vendor()
+    assert set(MEGA_OUTPUTS) <= set(vendor.MEGA_INSTRUMENTS)
+    assert len(vendor.MEGA_INSTRUMENTS) == vendor.MEGA53_MODEL["num_stems"] == 53
+    assert sum(vendor.MEGA53_MODEL["freqs_per_bands"]) == vendor.MEGA53_MODEL["dim_freqs_in"]
+    network = vendor.build_mdx23c()
+    assert network.num_target_instruments == len(vendor.DRUMSEP_INSTRUMENTS) == 6

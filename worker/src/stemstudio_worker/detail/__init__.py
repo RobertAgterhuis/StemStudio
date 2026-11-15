@@ -7,7 +7,9 @@ re-assignment and checks follow ``specs/002-detail-separation/research.md`` (D-0
 """
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.fake import FakeModelProvider, FakeSource
+from stemstudio_worker.detail.runtimes import RealModelProvider
 from stemstudio_worker.detail.steps import DetailPipeline, RegistrySource
 from stemstudio_worker.ports import DetailAdapters
 
@@ -30,7 +32,8 @@ def create_detail_adapters(settings: WorkerSettings) -> DetailAdapters:
         return DetailAdapters(
             models=FakeModelProvider(FakeSource(settings.fake_detail_step_seconds))
         )
-    raise NotImplementedError("Real detail runtimes follow in tasks T049.")
+    downloader = ModelDownloader(settings.model_dir)
+    return DetailAdapters(models=RealModelProvider(downloader, settings.device))
 
 
 def create_detail_pipeline(settings: WorkerSettings) -> DetailPipeline:

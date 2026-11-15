@@ -175,6 +175,7 @@ def test_invalid_fake_step_seconds_raise(value: str) -> None:
         load_settings({"STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS": value})
 
 
-def test_detail_factory_is_a_stub_until_the_wave() -> None:
-    with pytest.raises(NotImplementedError):
-        create_detail_adapters(load_settings({}))
+def test_detail_factory_returns_a_model_provider() -> None:
+    adapters = create_detail_adapters(load_settings({}))
+    assert isinstance(adapters, DetailAdapters)
+    assert isinstance(adapters.models, DetailModelProvider)
