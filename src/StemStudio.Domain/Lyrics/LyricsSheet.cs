@@ -79,12 +79,7 @@ public static class LyricsRules
     public const int MaxTextLength = 4096;
 
     /// <summary>The vocal languages of ACE-Step (ISO 639-1) plus <c>unknown</c>.</summary>
-    public static IReadOnlyList<string> Languages { get; } =
-    [
-        "ar", "az", "bg", "bn", "ca", "cs", "da", "de", "el", "en", "es", "fa", "fi", "fr", "he", "hi", "hr", "ht", "hu", "id", "is", "it", "ja", "ko",
-        "la", "lt", "ms", "ne", "nl", "no", "pa", "pl", "pt", "ro", "ru", "sa", "sk", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur", "vi",
-        "yue", "zh", "unknown",
-    ];
+    public static IReadOnlyList<string> Languages { get; } = EmbeddedText.Lines("languages.v1.txt");
 
     /// <summary>Normalises the content and returns its errors.</summary>
     /// <param name="content">The content.</param>
