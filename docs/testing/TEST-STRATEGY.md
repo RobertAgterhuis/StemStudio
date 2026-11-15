@@ -379,7 +379,7 @@ npm run test:restart     # after `docker compose restart api web` (T122)
 npm run test:real        # real Demucs stack only
 
 # (004) design system and UX (section 10); fake CPU stack unless stated
-npm run test:legacy      # only the 1.0.0-1.2.0 specs (SC-006 evidence: the same set as before 004)
+npm run test:legacy      # only the 1.0.0-1.2.0 specs (SC-006 evidence; excludes the 005-008 tags, keeps the stack-free self-tests)
 npm run test:ux          # only the @ux specs (journeys, levels, help, tours, keyboard, theme flash)
 npm run test:a11y        # axe matrix, project "a11y" (Chromium)
 npm run test:lighthouse  # project lighthouse-setup writes the URLs, then lhci autorun (lighthouserc.json)
@@ -920,7 +920,7 @@ uv run --project worker python tests/fixtures/generate_score_fixtures.py
 STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
 (cd e2e && STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu npm run test:lyrics)
 # (008) sheet music, then the drums case with the detail phase
-(cd e2e && npm run test:sheet-music && npm run test:detail)
+(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium --project=firefox tests/sheet-music.spec.ts -g drums)
 # stack-free self-test of the 006/008 helpers (pass without docker)
 (cd e2e && npx playwright test tests/lyrics-score-support.spec.ts)
 ```

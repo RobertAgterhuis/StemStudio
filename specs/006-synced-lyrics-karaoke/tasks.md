@@ -127,7 +127,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T036 [US1] [audio-engine] Implement `src/karaoke/{cursor,layout,ball,dom,index}.ts` and the engine methods to pass T035
 - [x] T037 [P] [US1] [frontend] Failing bUnit tests: `KaraokeBanner` renders the empty host `karaoke-banner` with `@key` and no child content, `data-sync`, `karaoke-credit`; calls `IAudioEngine.AttachKaraokeAsync` after the track and lyrics are loaded, `DetachKaraokeAsync` on dispose; `karaoke-offset` (±5000 ms, 10 ms steps, ±50 ms keys) calls `SetKaraokeOffsetAsync` immediately and saves debounced (500 ms); `karaoke-offset-reset`; `karaoke-unavailable` texts per status; layout at the bottom of the mixer in the 004 design (banner does not cover the transport); journey levels (beginner: banner + toggle; advanced: offset, size; expert: timing origin) (FR-005, FR-007, FR-015)
 - [x] T038 [US1] [frontend] Implement `Components/Mixer/Karaoke/*`, `Audio/{IAudioEngine,AudioEngineInterop,EngineMethods}` karaoke members, `IStemStudioApiClient.{GetLyricsAsync, SetLyricsOffsetAsync}`, banner styles (004 tokens), help topics `help-karaoke`, `help-karaoke-offset` to pass T037
-- [ ] T039 [US1] [qa] Author `e2e/tests/karaoke.spec.ts` (fake stack `STEMSTUDIO_FAKE_LYRICS=word|line|instrumental`): states countdown -> singing -> ended, landing accuracy against the engine clock (quickstart L4: 30 s, 50 loops, 20 seeks), frame-rate/perf trace (L5), offset changes the landing time, instrumental has no banner (SC-002, SC-004)
+- [x] T039 [US1] [qa] Author `e2e/tests/karaoke.spec.ts` (fake stack `STEMSTUDIO_FAKE_LYRICS=word|line|instrumental`): states countdown -> singing -> ended, landing accuracy against the engine clock (quickstart L4: 30 s, 50 loops, 20 seeks), frame-rate/perf trace (L5), offset changes the landing time, instrumental has no banner (SC-002, SC-004)
 
 **Checkpoint**: HO:us1.
 
@@ -146,7 +146,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T045 [US2] [backend] Implement in `Api/Lyrics/*` to pass T044
 - [x] T046 [P] [US2] [frontend] Failing bUnit tests: track detail `lyrics-section` per status; `lyrics-preview` static text for alignPending/failed with text; `lyrics-align` with `lyrics-align-estimate`; `lyrics-align-progress`, `lyrics-align-device` (003 device badge), `lyrics-align-cancel`; paste dialog (`lyrics-paste-*`, client-side length check); `lyrics-error`; `lyrics-copyright-notice` (FR-004, FR-010)
 - [x] T047 [US2] [frontend] Implement the track-detail lyrics section (after a failed alignment of unsplit vocals: hint "Split the vocals into detail stems and try again", research.md P0-2), paste dialog, API client methods, help topics `help-lyrics-sources`, `help-lyrics-align`, legal-notice sentence on lyrics to pass T046
-- [ ] T048 [US2] [qa] Author `e2e/tests/lyrics.spec.ts` (fake stack `plain`, `not-found`, `failed`; fake CPU and fake GPU devices): auto alignment on fake GPU, click-to-align on fake CPU with estimate, paste flow, failure + retry, banner appears with `data-sync="aligned"`
+- [x] T048 [US2] [qa] Author `e2e/tests/lyrics.spec.ts` (fake stack `plain`, `not-found`, `failed`; fake CPU and fake GPU devices): auto alignment on fake GPU, click-to-align on fake CPU with estimate, paste flow, failure + retry, banner appears with `data-sync="aligned"`
 
 **Checkpoint**: HO:us2.
 
@@ -163,7 +163,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T052 [US3] [audio-engine] Implement to pass T051
 - [x] T053 [P] [US3] [frontend] Failing bUnit tests: `karaoke-toggle` (`aria-pressed`, banner removed and engine detached when hidden, remembered via `localStorage` with try/catch defaults), `karaoke-size` s/m/l, `lyrics-search`, `lyrics-remove` with confirm; contrast tokens for both 004 themes (FR-009, FR-011)
 - [x] T054 [US3] [frontend] Implement to pass T053
-- [ ] T055 [US3] [qa] Author `karaoke.spec.ts` "controls": toggle persists across reload, size change keeps landing accuracy, remove + search again, `reducedMotion: 'reduce'` emulation shows no ball
+- [x] T055 [US3] [qa] Author `karaoke.spec.ts` "controls": toggle persists across reload, size change keeps landing accuracy, remove + search again, `reducedMotion: 'reduce'` emulation shows no ball
 
 **Checkpoint**: HO:us3.
 
@@ -176,7 +176,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
 - [x] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
-- [ ] T061 [P] [qa] Traceability matrix update, HO:polish
+- [x] T061 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T062 [P] [devops] Validate compose/CI changes, CPU-image guard run, HO:polish
 - [ ] T063 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
