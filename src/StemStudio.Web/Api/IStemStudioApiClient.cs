@@ -50,6 +50,18 @@ public interface IStemStudioApiClient
     /// <returns>A task that completes when the track is deleted (204); 404 and 409 throw <see cref="ApiException"/>.</returns>
     Task DeleteTrackAsync(Guid trackId, CancellationToken cancellationToken = default);
 
+    /// <summary><c>POST /api/tracks/{id}/detail</c>: queues the detail phase ("Split further", or retry after failed/cancelled).</summary>
+    /// <param name="trackId">A completed track whose detail status is none, failed or cancelled.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The track with the detail phase back in status queued (202); 404 and 409 throw <see cref="ApiException"/>.</returns>
+    Task<TrackDto> StartDetailAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/detail/cancel</c>: cancels a queued or running detail phase.</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The track with the cancelled detail phase (200); 404, 409 and 503 throw <see cref="ApiException"/>.</returns>
+    Task<TrackDto> CancelDetailAsync(Guid trackId, CancellationToken cancellationToken = default);
+
     /// <summary><c>GET /api/mixes[?trackId=]</c>.</summary>
     /// <param name="trackId">Optional track filter.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
