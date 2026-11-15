@@ -9,7 +9,9 @@
   },
   "scripts": {
     "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu\"",
-    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux\"",
+    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library\"",
+    "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
+    "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",
     "test:gpu": "playwright test --project=chromium --project=firefox --grep @gpu",
     "test:real": "playwright test --project=chromium --project=firefox --grep @real",
