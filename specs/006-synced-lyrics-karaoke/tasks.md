@@ -174,7 +174,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T056 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `lyrics`
 - [ ] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
 - [ ] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
+- [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
 - [ ] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
 - [ ] T061 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T062 [P] [devops] Validate compose/CI changes, CPU-image guard run, HO:polish
