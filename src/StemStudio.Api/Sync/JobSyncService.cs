@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
+using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 
 namespace StemStudio.Api.Sync;
@@ -9,7 +10,8 @@ namespace StemStudio.Api.Sync;
 /// Background poller (ADR-003): every <see cref="StemStudioApiOptions.JobPollIntervalMs"/> on the injected
 /// <see cref="TimeProvider"/> it fails orphaned imports (<see cref="OrphanedImportSweeper"/>), runs one
 /// <see cref="ITrackSynchronizer"/> pass, one <see cref="DetailSynchronizer"/> pass and one <see cref="MetadataSynchronizer"/> pass
-/// (feature 005) and one <see cref="AssetSynchronizer"/> pass (feature 007), in a new scope.
+/// (feature 005), one <see cref="LyricsSynchronizer"/> pass (feature 006) and one <see cref="AssetSynchronizer"/> pass (feature 007),
+/// in a new scope.
 /// </summary>
 /// <param name="scopes">Scope factory.</param>
 /// <param name="options">API options.</param>
@@ -64,6 +66,7 @@ public sealed partial class JobSyncService(
         await services.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<DetailSynchronizer>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<MetadataSynchronizer>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<LyricsSynchronizer>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<AssetSynchronizer>().SyncAllAsync(cancellationToken);
     }
 

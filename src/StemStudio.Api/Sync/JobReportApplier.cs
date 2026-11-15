@@ -35,7 +35,7 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
         }
     }
 
-    /// <summary>Copies title and artist; once the duration is known the online lookup is scheduled (FR-003, ADR-014 D3).</summary>
+    /// <summary>Copies title and artist; once the duration is known the online lookup (FR-003, ADR-014 D3) and the lyrics search (006 FR-001) are scheduled.</summary>
     private void ApplyMetadata(Track track, WorkerSourceMetadata metadata)
     {
         var now = clock.GetUtcNow().UtcDateTime;
@@ -43,6 +43,7 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
         if (metadata.DurationSeconds is not null)
         {
             track.ScheduleLookup(MetadataMapper.ToQuery(metadata), now);
+            track.ScheduleLyricsLookup(now);
         }
     }
 }

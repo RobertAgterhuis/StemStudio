@@ -8,6 +8,7 @@ using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
@@ -120,6 +121,14 @@ public static class ApiComposition
         AddDetailServices(services);
         AddArtworkServices(services);
         AddAssetServices(services);
+        AddLyricsServices(services);
+    }
+
+    private static void AddLyricsServices(IServiceCollection services)
+    {
+        services.AddScoped<LyricsJobApplier>();
+        services.AddScoped<LyricsAligner>();
+        services.AddScoped<LyricsSynchronizer>();
     }
 
     private static void AddArtworkServices(IServiceCollection services)

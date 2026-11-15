@@ -36,6 +36,12 @@ public sealed partial class JobDeviceApplier(TimeProvider clock, ILogger<JobDevi
         }
     }
 
+    /// <summary>Validates a worker device for another record (e.g. a lyrics alignment, feature 006); an invalid one is logged and dropped.</summary>
+    /// <param name="trackId">Track ID for the log.</param>
+    /// <param name="device">The worker's device, or null.</param>
+    /// <returns>The device, or null when absent or invalid.</returns>
+    public JobDevice? Convert(Guid trackId, WorkerJobDevice? device) => TryConvert(trackId, device, out var converted) ? converted : null;
+
     private bool TryConvert(Guid trackId, WorkerJobDevice? device, out JobDevice? converted)
     {
         converted = null;
