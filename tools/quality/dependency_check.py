@@ -7,8 +7,9 @@
 
 Worker (imports inside ``stemstudio_worker``)::
 
-    api -> jobs -> ports <- {ingest, separation, analysis}; everything -> schemas, config
-    main.py is the composition root and may import every module.
+    api -> jobs -> ports <- {ingest, separation, analysis, detail}; everything -> schemas, config
+    detail may also import its own vendor package (detail/vendor/** is third-party code and
+    contributes no edges); main.py is the composition root and may import every module.
 
 Forbidden edges and cycles fail the gate; modules missing from the map are warnings.
 
@@ -29,7 +30,15 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 
-from common import Finding, Severity, build_parser, count_errors, format_findings, relative
+from common import (
+    Finding,
+    Severity,
+    build_parser,
+    count_errors,
+    format_findings,
+    is_excluded,
+    relative,
+)
 
 DOTNET_ALLOWED: Mapping[str, frozenset[str]] = {
     "StemStudio.Domain": frozenset(),
@@ -53,6 +62,7 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "ingest": _ADAPTER,
     "separation": _ADAPTER,
     "analysis": _ADAPTER,
+    "detail": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
     "main": None,
@@ -85,12 +95,17 @@ def read_dotnet_edges(src_dir: Path, root: Path) -> list[Edge]:
 
 
 def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
-    """Return the internal import edges between top-level modules of the worker package."""
+    """Return the internal import edges between top-level modules of the worker package.
+
+    Excluded files (vendored third-party code) contribute no edges.
+    """
     edges: list[Edge] = []
     for module_file in sorted(package_dir.rglob("*.py")):
+        rel_path = relative(module_file, root)
+        if is_excluded(rel_path):
+            continue
         source = _top_module(module_file.relative_to(package_dir))
         tree = ast.parse(module_file.read_text(encoding="utf-8"))
-        rel_path = relative(module_file, root)
         edges.extend(
             Edge(source, target, rel_path, line)
             for target, line in _imports(tree, module_file.relative_to(package_dir))
