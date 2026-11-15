@@ -41,7 +41,10 @@ public sealed partial class LyricsSection
     private string? ErrorText => LoadError ?? ActionError ?? (Lyrics?.Status == LyricsStatusDto.Failed ? Lyrics.Reason : null);
 
     /// <inheritdoc />
-    protected override bool NeedsPolling => Lyrics is not null && IsBusyState;
+    protected override bool NeedsPolling => Lyrics is not null && (IsBusyState || AwaitsAlignDecision);
+
+    /// <summary>Pending without an estimate: the backend has not yet decided between aligning now (GPU) and the CPU estimate.</summary>
+    private bool AwaitsAlignDecision => Lyrics!.Status == LyricsStatusDto.AlignPending && StemStudio.Web.Lyrics.LyricsText.Estimate(Lyrics) is null;
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
