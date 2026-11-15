@@ -21,6 +21,12 @@ public sealed partial class TrackDeletionService(
     /// <summary>Detail of the 409 problem for a track that is still queued or processing.</summary>
     public const string StillProcessingDetail = "The track is still being processed; wait until it has completed or failed.";
 
+    /// <summary>Title of the 409 problem for a track whose detail phase is queued or running (FR-016).</summary>
+    public const string DetailActiveTitle = "Detail separation in progress";
+
+    /// <summary>Detail of the 409 problem for a track whose detail phase is queued or running (FR-016).</summary>
+    public const string DetailActiveDetail = "The detail separation of this track is queued or running; cancel it first.";
+
     /// <summary>Deletes a track in a terminal status.</summary>
     /// <param name="id">Track ID.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -33,15 +39,22 @@ public sealed partial class TrackDeletionService(
             return TrackService.NotFound(id);
         }
 
-        if (!track.IsTerminal)
+        if (DeleteBlocker(track) is { } conflict)
         {
-            return ApiProblems.Conflict(StillProcessingTitle, StillProcessingDetail);
+            return conflict;
         }
 
         await tracks.RemoveWithMixesAsync(track, cancellationToken);
         DeleteFiles(track);
         return TypedResults.NoContent();
     }
+
+    private static IResult? DeleteBlocker(Track track) => track switch
+    {
+        { IsTerminal: false } => ApiProblems.Conflict(StillProcessingTitle, StillProcessingDetail),
+        { IsDetailActive: true } => ApiProblems.Conflict(DetailActiveTitle, DetailActiveDetail),
+        _ => null,
+    };
 
     private void DeleteFiles(Track track)
     {

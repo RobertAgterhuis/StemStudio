@@ -64,7 +64,13 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
             throw new ArgumentException($"'{stem}' is not a stem name.", nameof(stem));
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"{JobPath(jobId)}/stems/{stem}");
+        await DownloadAsync($"{JobPath(jobId)}/stems/{stem}", destination, cancellationToken);
+    }
+
+    /// <summary>Streams a file response into the destination (headers read first, then copied).</summary>
+    private async Task DownloadAsync(string path, Stream destination, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, path);
         using var response = await SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await EnsureSuccessAsync(message, response, cancellationToken);
         await response.Content.CopyToAsync(destination, cancellationToken);
@@ -77,9 +83,7 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         _ => throw new ArgumentException("Uploads are sent with CreateUploadJobAsync.", nameof(type)),
     };
 
-    private static string JobPath(string jobId) => JobIdPattern().IsMatch(jobId)
-        ? $"v1/jobs/{jobId}"
-        : throw new ArgumentException($"'{jobId}' is not a worker job ID.", nameof(jobId));
+    private static string JobPath(string jobId) => $"v1/jobs/{ValidJobId(jobId)}";
 
     private async Task<T> SendForAsync<T>(HttpRequestMessage message, CancellationToken cancellationToken)
     {

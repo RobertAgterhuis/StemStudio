@@ -89,16 +89,16 @@ committed contract and is faked:
 
 ### backend (tests first)
 
-- [ ] T024 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/DetailPhaseTests.cs`: state machine data-model 4.1 (forward only, cancel from queued/running, start/retry from none/failed/cancelled, only when the track is completed), progress never decreases, error iff failed, parents/stems validated against the allowed names per parent with `rest` last, completed requires every split parent to have >= 2 stems + rest; detail changes never touch `Track.Status`/`Stems` (FR-001, FR-007, FR-008)
-- [ ] T025 [backend] Implement `src/StemStudio.Domain/Tracks/Detail/{DetailPhase,ParentOutcome,DetailStem,DetailPhaseStatus,ParentOutcomeKind}.cs` and `Track` members (`DetailPhase`, `RequestDetail`, `ApplyDetailProgress`, `CompleteDetail`, `FailDetail`, `CancelDetail`, `CanDelete`) to pass T024
-- [ ] T026 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/MixDetailTests.cs`: `Expanded` only parents with outcome split, unique; `DetailChannels` at most one per (parent, stem), stem must exist on the track, value ranges as `ChannelSettings`; old mixes (empty) valid; duplicate copies both (FR-015, SC-005)
-- [ ] T027 [backend] Implement `src/StemStudio.Domain/Mixes/DetailChannelSettings.cs` and the `Mix`/`MixSettings` extensions to pass T026
-- [ ] T028 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/DetailPersistenceTests.cs`: JSON round trip of `DetailPhase`, `Expanded`, `DetailChannels`; a database migrated from the 001 schema with existing rows loads with null detail and empty mix detail settings (file-based SQLite)
-- [ ] T029 [backend] Implement configurations and migrations `AddDetailPhase`, `AddMixDetailSettings` (`dotnet ef migrations add ...`) to pass T028
-- [ ] T030 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDetailClientTests.cs` with the worker 1.1.0 examples copied to `tests/StemStudio.Api.Tests/Worker/Examples/detail-*.json`: create 200/202, get, cancel 200/409, result, detail stem stream, 404/409 problems, unreachable -> `WorkerUnavailableException`
-- [ ] T031 [backend] Implement `IWorkerClient` detail methods, `WorkerDetailJob`, `WorkerDetailResult` to pass T030
-- [ ] T032 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Storage/DetailStemFileStoreTests.cs`: path `<DataDir>/tracks/<id>/detail/<parent>/<name>.flac` from enum names only, temp + rename, delete removes `detail/`, unknown names rejected
-- [ ] T033 [backend] Implement `src/StemStudio.Api/Storage/DetailStemFileStore.cs` to pass T032
+- [x] T024 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/DetailPhaseTests.cs`: state machine data-model 4.1 (forward only, cancel from queued/running, start/retry from none/failed/cancelled, only when the track is completed), progress never decreases, error iff failed, parents/stems validated against the allowed names per parent with `rest` last, completed requires every split parent to have >= 2 stems + rest; detail changes never touch `Track.Status`/`Stems` (FR-001, FR-007, FR-008)
+- [x] T025 [backend] Implement `src/StemStudio.Domain/Tracks/Detail/{DetailPhase,ParentOutcome,DetailStem,DetailPhaseStatus,ParentOutcomeKind}.cs` and `Track` members (`DetailPhase`, `RequestDetail`, `ApplyDetailProgress`, `CompleteDetail`, `FailDetail`, `CancelDetail`, `CanDelete`) to pass T024
+- [x] T026 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/MixDetailTests.cs`: `Expanded` only parents with outcome split, unique; `DetailChannels` at most one per (parent, stem), stem must exist on the track, value ranges as `ChannelSettings`; old mixes (empty) valid; duplicate copies both (FR-015, SC-005)
+- [x] T027 [backend] Implement `src/StemStudio.Domain/Mixes/DetailChannelSettings.cs` and the `Mix`/`MixSettings` extensions to pass T026
+- [x] T028 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/DetailPersistenceTests.cs`: JSON round trip of `DetailPhase`, `Expanded`, `DetailChannels`; a database migrated from the 001 schema with existing rows loads with null detail and empty mix detail settings (file-based SQLite)
+- [x] T029 [backend] Implement configurations and migrations `AddDetailPhase`, `AddMixDetailSettings` (`dotnet ef migrations add ...`) to pass T028
+- [x] T030 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDetailClientTests.cs` with the worker 1.1.0 examples copied to `tests/StemStudio.Api.Tests/Worker/Examples/detail-*.json`: create 200/202, get, cancel 200/409, result, detail stem stream, 404/409 problems, unreachable -> `WorkerUnavailableException`
+- [x] T031 [backend] Implement `IWorkerClient` detail methods, `WorkerDetailJob`, `WorkerDetailResult` to pass T030
+- [x] T032 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Storage/DetailStemFileStoreTests.cs`: path `<DataDir>/tracks/<id>/detail/<parent>/<name>.flac` from enum names only, temp + rename, delete removes `detail/`, unknown names rejected
+- [x] T033 [backend] Implement `src/StemStudio.Api/Storage/DetailStemFileStore.cs` to pass T032
 
 ### frontend (tests first)
 
@@ -137,10 +137,10 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### backend (tests first)
 
-- [ ] T051 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailAutoQueueTests.cs`: when `TrackJobApplier` completes a track, the detail phase is `queued` in the same save; `DetailSynchronizer` submits pending phases (unreachable worker -> stays pending), maps running/progress/currentParent, on completed downloads the result and every detail stem then completes, worker 404 -> failed "interrupted by restart", worker cancelled -> cancelled, a failing stem download -> failed with reason and no stems offered (FR-001, FR-007, FR-008, FR-019)
-- [ ] T052 [US1] [backend] Implement `src/StemStudio.Api/Detail/{DetailSynchronizer,DetailJobApplier}.cs`, hook into `JobSyncService` and `TrackJobApplier` to pass T051
-- [ ] T053 [P] [US1] [backend] Failing contract tests (the `backend-api.openapi.yaml` link already points to `specs/002-detail-separation/contracts/` since Phase 0): remove the served operations from `PendingDetailOperations` in `BackendContractTests.StemsAndMixes.cs` as they are implemented and extend `BackendContractTests` for `Track.detail` (all statuses, examples `DetailQueuedTrack`, `DetailCompletedTrack`) and `getDetailStem` (200/206/304/404/416, CORS exposure) (FR-007)
-- [ ] T054 [US1] [backend] Implement `TrackMapper` detail mapping and `GET /api/tracks/{id}/detail-stems/{parent}/{name}` (same `Results.File` range processing as stems) to pass T053
+- [x] T051 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailAutoQueueTests.cs`: when `TrackJobApplier` completes a track, the detail phase is `queued` in the same save; `DetailSynchronizer` submits pending phases (unreachable worker -> stays pending), maps running/progress/currentParent, on completed downloads the result and every detail stem then completes, worker 404 -> failed "interrupted by restart", worker cancelled -> cancelled, a failing stem download -> failed with reason and no stems offered (FR-001, FR-007, FR-008, FR-019)
+- [x] T052 [US1] [backend] Implement `src/StemStudio.Api/Detail/{DetailSynchronizer,DetailJobApplier}.cs`, hook into `JobSyncService` and `TrackJobApplier` to pass T051
+- [x] T053 [P] [US1] [backend] Failing contract tests (the `backend-api.openapi.yaml` link already points to `specs/002-detail-separation/contracts/` since Phase 0): remove the served operations from `PendingDetailOperations` in `BackendContractTests.StemsAndMixes.cs` as they are implemented and extend `BackendContractTests` for `Track.detail` (all statuses, examples `DetailQueuedTrack`, `DetailCompletedTrack`) and `getDetailStem` (200/206/304/404/416, CORS exposure) (FR-007)
+- [x] T054 [US1] [backend] Implement `TrackMapper` detail mapping and `GET /api/tracks/{id}/detail-stems/{parent}/{name}` (same `Results.File` range processing as stems) to pass T053
 
 ### frontend (tests first)
 
@@ -186,8 +186,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 - [ ] T065 [P] [US3] [stem-separation] Failing tests: a standard job submitted while a detail step runs starts within 5 s after that step (fake clock), queued detail jobs never delay it (SC-006); cancel during a step reports cancelled within one chunk; retry after cancel/failure reuses checkpoints (stage text skips finished parents)
 - [ ] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
-- [ ] T067 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailEndpointTests.cs`: `POST .../detail` 202 from none/failed/cancelled, 409 otherwise and when the track is not completed; `POST .../detail/cancel` 200 from queued/running (pending submission cancels locally), 409 otherwise, 503 when the worker is unreachable; `DELETE /api/tracks/{id}` 409 while queued/running with the reason, removes `detail/` otherwise (FR-008, FR-009, FR-016)
-- [ ] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
+- [x] T067 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailEndpointTests.cs`: `POST .../detail` 202 from none/failed/cancelled, 409 otherwise and when the track is not completed; `POST .../detail/cancel` 200 from queued/running (pending submission cancels locally), 409 otherwise, 503 when the worker is unreachable; `DELETE /api/tracks/{id}` 409 while queued/running with the reason, removes `detail/` otherwise (FR-008, FR-009, FR-016)
+- [x] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
 - [x] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
 - [x] T070 [US3] [frontend] Implement the actions in `TrackDetail.Detail.razor.cs` / `TrackDetail.Actions.cs` to pass T069
 - [x] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
@@ -198,8 +198,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ## Phase 6: User Story 4 - Detail-separate existing tracks (P2)
 
-- [ ] T072 [P] [US4] [backend] Failing tests: tracks created before the migration expose `detail.status = none`; `POST .../detail` on them queues the phase; a second track with the same audio completes from the worker cache (fake worker returns completed on create) (FR-009, FR-010, SC-007)
-- [ ] T073 [US4] [backend] Implement anything missing to pass T072
+- [x] T072 [P] [US4] [backend] Failing tests: tracks created before the migration expose `detail.status = none`; `POST .../detail` on them queues the phase; a second track with the same audio completes from the worker cache (fake worker returns completed on create) (FR-009, FR-010, SC-007)
+- [x] T073 [US4] [backend] Implement anything missing to pass T072
 - [x] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
 - [x] T075 [US4] [frontend] Implement to pass T074
 - [x] T076 [US4] [qa] Author `detail.spec.ts` "split further": cancel the auto phase, Split further, detail completes, mixer offers expand
@@ -210,8 +210,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ## Phase 7: User Story 5 - Mixes with detail settings (P3)
 
-- [ ] T077 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/MixDetailEndpointTests.cs`: create/update/get/duplicate round-trip `expanded` + `detailChannels` exactly; 400 with JSON paths (`settings.detailChannels[0].stem`, `settings.expanded[0]`) for unknown stems or unsplit parents; a 1.1.0-shaped body without the fields is accepted and returned with empty arrays (FR-015, SC-005)
-- [ ] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
+- [x] T077 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/MixDetailEndpointTests.cs`: create/update/get/duplicate round-trip `expanded` + `detailChannels` exactly; 400 with JSON paths (`settings.detailChannels[0].stem`, `settings.expanded[0]`) for unknown stems or unsplit parents; a 1.1.0-shaped body without the fields is accepted and returned with empty arrays (FR-015, SC-005)
+- [x] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
 - [x] T079 [P] [US5] [frontend] Failing bUnit tests: save sends expansion + detail settings; loading a mix applies them (engine `setExpanded` before `setChannel`); loading an old mix collapses all groups and restores 001 settings exactly; dirty flag on detail changes
 - [x] T080 [US5] [frontend] Implement to pass T079
 - [x] T081 [US5] [qa] Author `detail.spec.ts` "mixes": save "No snare", reload, load -> expanded + snare muted; an old-style mix (created through the API without the fields) loads collapsed
@@ -223,7 +223,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 ## Phase 8: Polish (inside the wave, per owner)
 
 - [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
-- [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
+- [x] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [x] T086 [P] [qa] Traceability matrix update, HO:polish

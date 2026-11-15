@@ -45,6 +45,11 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.PrimitiveCollection<string>("_expanded")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Expanded");
+
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Loop", "StemStudio.Domain.Mixes.Mix.Loop#LoopRegion", b1 =>
                         {
                             b1.Property<bool>("Enabled");
@@ -97,6 +102,29 @@ namespace StemStudio.Persistence.Migrations
                                 .HasColumnType("TEXT");
                         });
 
+                    b.ComplexCollection(typeof(List<Dictionary<string, object>>), "_detailChannels", "StemStudio.Domain.Mixes.Mix._detailChannels#DetailChannelSettings", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<bool>("Mute");
+
+                            b1.Property<double>("Pan");
+
+                            b1.Property<string>("Parent")
+                                .IsRequired();
+
+                            b1.Property<bool>("Solo");
+
+                            b1.Property<string>("Stem")
+                                .IsRequired();
+
+                            b1.Property<double>("Volume");
+
+                            b1
+                                .ToJson("DetailChannels")
+                                .HasColumnType("TEXT");
+                        });
+
                     b.HasKey("Id");
 
                     b.HasIndex("UpdatedAt");
@@ -117,6 +145,9 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DetailPhase")
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("DurationSeconds")

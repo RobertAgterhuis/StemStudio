@@ -27,6 +27,17 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .ToListAsync(cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken)
+    {
+        // The phase is one JSON column; its status is filtered in memory (a local library has few tracks).
+        var withPhase = await context.Tracks
+            .Where(track => track.Status == TrackStatus.Completed && track.DetailPhase != null)
+            .OrderBy(track => track.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return withPhase.Where(track => track.IsDetailActive).ToList();
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken) =>
         await context.Tracks
             .Where(track => track.WorkerJobId == null && track.Status == TrackStatus.Queued && track.UpdatedAt < updatedBeforeUtc)

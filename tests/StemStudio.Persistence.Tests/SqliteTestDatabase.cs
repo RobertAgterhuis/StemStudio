@@ -23,6 +23,16 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
     public StemStudioDbContext NewContext() =>
         new(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(_connection).Options);
 
+    public async Task SeedAsync(params Domain.Tracks.Track[] tracks)
+    {
+        await using var context = NewContext();
+        var repository = new Repositories.TrackRepository(context);
+        foreach (var track in tracks)
+        {
+            await repository.AddAsync(track, TestContext.Current.CancellationToken);
+        }
+    }
+
     public async Task<string?> ScalarAsync(string sql)
     {
         await using var command = _connection.CreateCommand();

@@ -1,4 +1,3 @@
-using System.Globalization;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Storage;
@@ -44,17 +43,8 @@ public sealed class StemFileStore(DataDirectory dataDirectory) : IStemFileStore
     public async Task<long> SaveStemAsync(Guid trackId, string stem, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(write);
-        var path = GetStemPath(trackId, stem);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        return await AtomicFile.WriteAsync($"{path}.{Guid.NewGuid():N}.tmp", WriteThenMeasure, _ => path);
-
-        async Task<long> WriteThenMeasure(FileStream stream)
-        {
-            await write(stream, cancellationToken);
-            return stream.Length;
-        }
+        return await AtomicFile.SaveAsync(GetStemPath(trackId, stem), write, cancellationToken);
     }
 
-    private string TrackDirectory(Guid trackId) =>
-        Path.Combine(dataDirectory.Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture));
+    private string TrackDirectory(Guid trackId) => dataDirectory.TrackDirectory(trackId);
 }
