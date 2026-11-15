@@ -137,10 +137,10 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### backend (tests first)
 
-- [ ] T051 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailAutoQueueTests.cs`: when `TrackJobApplier` completes a track, the detail phase is `queued` in the same save; `DetailSynchronizer` submits pending phases (unreachable worker -> stays pending), maps running/progress/currentParent, on completed downloads the result and every detail stem then completes, worker 404 -> failed "interrupted by restart", worker cancelled -> cancelled, a failing stem download -> failed with reason and no stems offered (FR-001, FR-007, FR-008, FR-019)
-- [ ] T052 [US1] [backend] Implement `src/StemStudio.Api/Detail/{DetailSynchronizer,DetailJobApplier}.cs`, hook into `JobSyncService` and `TrackJobApplier` to pass T051
-- [ ] T053 [P] [US1] [backend] Failing contract tests (the `backend-api.openapi.yaml` link already points to `specs/002-detail-separation/contracts/` since Phase 0): remove the served operations from `PendingDetailOperations` in `BackendContractTests.StemsAndMixes.cs` as they are implemented and extend `BackendContractTests` for `Track.detail` (all statuses, examples `DetailQueuedTrack`, `DetailCompletedTrack`) and `getDetailStem` (200/206/304/404/416, CORS exposure) (FR-007)
-- [ ] T054 [US1] [backend] Implement `TrackMapper` detail mapping and `GET /api/tracks/{id}/detail-stems/{parent}/{name}` (same `Results.File` range processing as stems) to pass T053
+- [x] T051 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailAutoQueueTests.cs`: when `TrackJobApplier` completes a track, the detail phase is `queued` in the same save; `DetailSynchronizer` submits pending phases (unreachable worker -> stays pending), maps running/progress/currentParent, on completed downloads the result and every detail stem then completes, worker 404 -> failed "interrupted by restart", worker cancelled -> cancelled, a failing stem download -> failed with reason and no stems offered (FR-001, FR-007, FR-008, FR-019)
+- [x] T052 [US1] [backend] Implement `src/StemStudio.Api/Detail/{DetailSynchronizer,DetailJobApplier}.cs`, hook into `JobSyncService` and `TrackJobApplier` to pass T051
+- [x] T053 [P] [US1] [backend] Failing contract tests (the `backend-api.openapi.yaml` link already points to `specs/002-detail-separation/contracts/` since Phase 0): remove the served operations from `PendingDetailOperations` in `BackendContractTests.StemsAndMixes.cs` as they are implemented and extend `BackendContractTests` for `Track.detail` (all statuses, examples `DetailQueuedTrack`, `DetailCompletedTrack`) and `getDetailStem` (200/206/304/404/416, CORS exposure) (FR-007)
+- [x] T054 [US1] [backend] Implement `TrackMapper` detail mapping and `GET /api/tracks/{id}/detail-stems/{parent}/{name}` (same `Results.File` range processing as stems) to pass T053
 
 ### frontend (tests first)
 
