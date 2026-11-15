@@ -43,7 +43,8 @@
             <tbody>
                 @foreach (var sheet in Visible)
                 {
-                    <tr @key="sheet.Id" data-testid="@($"lyrics-row-{sheet.Id}")">
+                    <tr @key="sheet.Id" data-testid="@($"lyrics-row-{sheet.Id}")" aria-current="@(sheet.Id == Highlight ? "true" : null)"
+                        class="@(sheet.Id == Highlight ? "ss-row-highlight" : null)">
                         <td>@sheet.Title</td>
                         <td>@LanguageNames.Of(sheet.Language)</td>
                         <td class="ss-muted ss-small">@FirstLine(sheet.Text)</td>

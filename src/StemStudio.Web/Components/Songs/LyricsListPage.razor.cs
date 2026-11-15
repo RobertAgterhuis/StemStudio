@@ -10,6 +10,10 @@ public sealed partial class LyricsListPage
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
 
+    /// <summary>The sheet to highlight (<c>?sheet=</c>, from the lyrics link of a song track).</summary>
+    [SupplyParameterFromQuery(Name = "sheet")]
+    public Guid? Highlight { get; set; }
+
     private List<LyricsSheetDto>? Items { get; set; }
 
     private string? LoadError { get; set; }
