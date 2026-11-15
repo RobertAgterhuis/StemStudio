@@ -5,10 +5,10 @@ import sys
 from pathlib import Path
 
 import pytest
-from stemstudio_worker.devices.fake import FakeDeviceRunner
 
 from stemstudio_worker.config import DeviceKind, WorkerSettings
 from stemstudio_worker.devices import ManagedRunner, create_device_runner, default_probe
+from stemstudio_worker.devices.fake import FakeDeviceRunner
 from stemstudio_worker.devices.lease import GPU_LEASE
 from stemstudio_worker.devices.probe import NO_CUDA_BUILD
 from stemstudio_worker.devices.runner import CpuRunner, GpuRunner

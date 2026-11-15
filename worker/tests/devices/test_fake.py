@@ -1,7 +1,6 @@
 """The fake device for E2E tests (T015, ``STEMSTUDIO_FAKE_DEVICE``, data-model.md 1)."""
 
 from stemstudio_worker.devices.fake import FAKE_GPU, FakeDeviceRunner
-
 from stemstudio_worker.ports import DeviceRunner, DeviceUse, GpuNeed
 from stemstudio_worker.schemas import CPU_DEVICE
 
