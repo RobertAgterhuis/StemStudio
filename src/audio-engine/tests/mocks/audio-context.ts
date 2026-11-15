@@ -177,6 +177,12 @@ export class MockAudioContext {
   public readonly decodeDurations = new Map<number, number>();
   /** When set, `decodeAudioData` rejects with this error. */
   public decodeError: Error | null = null;
+  /** `outputLatency` in seconds; undefined models a browser without it (Safari). */
+  public outputLatency: number | undefined = undefined;
+  /** `baseLatency` in seconds; undefined models a browser without it. */
+  public baseLatency: number | undefined = undefined;
+  /** Returned by `getOutputTimestamp`; zeros model a context that has not rendered yet. */
+  public outputTimestamp: { contextTime: number; performanceTime: number } = { contextTime: 0, performanceTime: 0 };
 
   public constructor(sampleRate = 44100) {
     this.sampleRate = sampleRate;
@@ -212,6 +218,10 @@ export class MockAudioContext {
     return Promise.resolve(
       new MockAudioBuffer(2, Math.round(seconds * this.sampleRate), this.sampleRate, data.byteLength),
     );
+  }
+
+  public getOutputTimestamp(): { contextTime: number; performanceTime: number } {
+    return { ...this.outputTimestamp };
   }
 
   public resume(): Promise<void> {
