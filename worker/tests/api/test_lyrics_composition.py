@@ -28,7 +28,7 @@ def test_the_fake_stack_aligns_the_vocal_stem_with_the_fake_aligner(api: Api) ->
 
     assert_conforms(result, "/v1/lyrics-jobs/{lyricsJobId}/result")
     words = [w for line in result.json()["lyrics"]["lines"] for w in line["words"]]
-    assert words[0]["startMs"] == 2000
+    assert [w["startMs"] for w in words] == [2000 + 500 * k for k in range(6)]
     assert result.json()["lyrics"]["origin"] == "aligned"
 
 

@@ -31,22 +31,22 @@ def _settings(tmp_path: Path, **changes: Any) -> WorkerSettings:
 # ------------------------------------------------------------------ fake aligner
 
 
-def test_the_fake_aligner_spreads_the_words_evenly_after_two_seconds() -> None:
+def test_the_fake_aligner_puts_word_k_at_2000_plus_500_k_ms() -> None:
     audio = np.zeros(16_000 * 8, dtype=np.float32)
 
     document = FakeAligner("word").align(AlignRequest(audio, TEXT, "en"), "cpu", _ignore)
 
-    starts = [w.start_ms for line in document.lines for w in line.words]
-    assert starts == [2000, 3000, 4000, 5000, 6000, 7000]
+    spans = [(w.start_ms, w.end_ms) for line in document.lines for w in line.words]
+    assert spans == [(2000 + 500 * k, 2500 + 500 * k) for k in range(6)]
+    assert [(line.start_ms, line.end_ms) for line in document.lines] == [(2000, 3500), (3500, 5000)]
     assert (document.origin, document.source, document.language) == ("aligned", "user", "en")
 
 
-def test_the_fake_aligner_uses_short_slots_on_short_audio() -> None:
+def test_the_fake_aligner_defaults_to_english() -> None:
     audio = np.zeros(16_000, dtype=np.float32)
 
     document = FakeAligner("plain").align(AlignRequest(audio, TEXT), "cpu", _ignore)
 
-    assert [w.start_ms for w in document.lines[0].words] == [2000, 2500, 3000]
     assert document.language == "en"
 
 
