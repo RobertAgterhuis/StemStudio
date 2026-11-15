@@ -19,6 +19,7 @@ from stemstudio_worker.ports import EngravedScore, ScoreEngraver, TranscriptionE
 from stemstudio_worker.schemas import MUSIC_FONT_MISSING_TEXT
 
 from .scores import (
+    SMUFL_TARGET,
     bass_musicxml,
     blank_pdf,
     font_families,
@@ -124,6 +125,17 @@ def test_the_factory_builds_the_production_engraver() -> None:
     assert isinstance(engraver, VerovioScoreEngraver)
     assert engraver.font_check is fonts.leipzig_available
     assert engraver.svg_to_pdf is pdf.cairo_svg_to_pdf
+
+
+@pytest.mark.parametrize(
+    ("cmap_line", "smufl"),
+    [(b"<0001> <eca5>", True), (b"<0002> <ECA5>", True), (b"<42> <0042>", False)],
+)
+def test_the_sc004_check_finds_smufl_targets_in_cairo_tounicode_lines(
+    cmap_line: bytes, smufl: bool
+) -> None:
+    """Lines as Cairo 1.18 writes them (lower-case hex) for the glyph and for plain text."""
+    assert bool(SMUFL_TARGET.search(cmap_line)) is smufl
 
 
 @needs_cairo

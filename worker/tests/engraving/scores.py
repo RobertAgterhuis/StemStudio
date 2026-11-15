@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 from music21 import metadata, meter, musicxml, note, stream, tempo
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import DictionaryObject
+from pypdf.generic import DictionaryObject, IndirectObject
 
 FONT_FAMILY_ATTRIBUTE = re.compile(r'font-family="([^"]*)"')
 TEXT_FONTS = frozenset({"Times, serif"})
@@ -43,7 +43,7 @@ def font_families(svg: str) -> set[str]:
     return set(FONT_FAMILY_ATTRIBUTE.findall(svg))
 
 
-SMUFL_TARGET = re.compile(rb"<[0-9A-Fa-f]+>\s*<(?:E[0-9A-Fa-f]{3}|F[0-8][0-9A-Fa-f]{2})>")
+SMUFL_TARGET = re.compile(rb"<[0-9a-f]+>\s*<(?:e[0-9a-f]{3}|f[0-8][0-9a-f]{2})>", re.IGNORECASE)
 """A ToUnicode ``bfchar`` entry mapping a glyph to the Private Use Area, where SMuFL lives."""
 
 CAIRO_GENERATED_NAME = "CairoFont-"
@@ -71,15 +71,23 @@ def _maps_smufl(font: DictionaryObject) -> bool:
 
 
 def _fonts(resources: object) -> Iterator[DictionaryObject]:
-    if not isinstance(resources, DictionaryObject):
-        return
-    fonts = resources.get("/Font")
-    if isinstance(fonts, DictionaryObject):
-        yield from (font.get_object() for font in fonts.values())
-    xobjects = resources.get("/XObject")
-    if isinstance(xobjects, DictionaryObject):
-        for xobject in xobjects.values():
-            yield from _fonts(xobject.get_object().get("/Resources"))
+    """Fonts of a resource dictionary and, recursively, of its form XObjects."""
+    yield from (font.get_object() for font in _entries(resources, "/Font"))
+    for xobject in _entries(resources, "/XObject"):
+        yield from _fonts(xobject.get_object().get("/Resources"))
+
+
+def _entries(resources: object, key: str) -> list[DictionaryObject]:
+    resolved = _resolve(resources)
+    if not isinstance(resolved, DictionaryObject):
+        return []
+    entries = _resolve(resolved.get(key))
+    return list(entries.values()) if isinstance(entries, DictionaryObject) else []
+
+
+def _resolve(value: object) -> object:
+    """Follow an indirect reference (``/Resources`` and ``/Font`` often are one)."""
+    return value.get_object() if isinstance(value, IndirectObject) else value
 
 
 def read_pdf(data: bytes) -> PdfReader:

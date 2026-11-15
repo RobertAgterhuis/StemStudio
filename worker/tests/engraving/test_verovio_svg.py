@@ -1,6 +1,5 @@
 """Tests of the Verovio SVG pages (data-model.md 3) with the real Verovio wheel."""
 
-import json
 import re
 
 import pytest
@@ -26,7 +25,7 @@ def test_the_options_are_the_binding_engraving_options() -> None:
 
 
 def test_a_new_toolkit_has_the_options_applied() -> None:
-    applied = json.loads(verovio_svg.new_toolkit().getOptions())
+    applied = verovio_svg.new_toolkit().getOptions()  # type: ignore[attr-defined]
 
     for name, value in verovio_svg.VEROVIO_OPTIONS.items():
         assert applied[name] == value
