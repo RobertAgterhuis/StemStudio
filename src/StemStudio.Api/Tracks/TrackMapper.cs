@@ -31,6 +31,7 @@ public static class TrackMapper
         Artwork = ToDto(track.Id, track.Artwork),
         Metadata = ToDto(track.Metadata),
         LyricsStatus = Enum.Parse<LyricsStatusDto>(track.LyricsStatus.ToString()),
+        Origin = ToDto(track.Origin),
     };
 
     /// <summary>Maps the shown picture to versioned cover and thumbnail URLs (feature 005).</summary>
@@ -68,6 +69,20 @@ public static class TrackMapper
     public static JobDeviceDto? ToDto(JobDevice? device) => device is null
         ? null
         : new JobDeviceDto(Enum.Parse<ProcessingDeviceKindDto>(device.Kind.ToString()), device.Name, device.CpuFallback, device.FallbackReason);
+
+    /// <summary>The origin of a generated track; null for imported songs (feature 009).</summary>
+    /// <param name="origin">The origin.</param>
+    /// <returns>The DTO or null.</returns>
+    public static TrackOriginDto? ToDto(TrackOrigin? origin) => origin is null
+        ? null
+        : new TrackOriginDto
+        {
+            Kind = TrackOriginKindDto.Generated,
+            GenerationId = origin.GenerationId,
+            TakeIndex = origin.TakeIndex,
+            SourceTrackId = origin.SourceTrackId,
+            AiGenerated = origin.AiGenerated,
+        };
 
     /// <summary>A stored UTC timestamp as an offset-0 <see cref="DateTimeOffset"/>.</summary>
     /// <param name="value">UTC time.</param>

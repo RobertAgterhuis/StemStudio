@@ -159,6 +159,7 @@ public static class ApiComposition
         services.AddScoped<GenerationStatusService>();
         services.AddScoped<RetryService>();
         services.AddScoped<GenerationService>();
+        services.AddScoped<TakeImporter>();
         services.AddSingleton<TakeStorage>();
         services.AddScoped<IGeneratedAudioLibrary, GeneratedAudioLibraryAdapter>();
         services.AddScoped<TakeCollector>();

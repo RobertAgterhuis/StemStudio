@@ -1,6 +1,7 @@
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
+using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Api.Generations;
 
@@ -51,6 +52,9 @@ public static class GenerationEndpoints
             .WithName("getTakeAudio").WithTags("generation").Produces(StatusCodes.Status200OK, contentType: StemService.ContentType)
             .Produces(StatusCodes.Status206PartialContent, contentType: StemService.ContentType).Produces(StatusCodes.Status304NotModified)
             .ProducesProblem(StatusCodes.Status404NotFound).Produces(StatusCodes.Status416RangeNotSatisfiable);
+        app.MapPost(TakeRoute + "/import", (Guid generationId, int index, TakeImporter importer, CancellationToken ct) => importer.ImportAsync(generationId, index, ct))
+            .WithName("importTake").WithTags("generation").Produces<TrackDto>().Produces<TrackDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
     }
 }

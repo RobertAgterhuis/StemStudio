@@ -25,7 +25,11 @@ public sealed class TakeImportTests : ApiTestBase
         track.SourceKey.ShouldStartWith("upload:");
         track.Origin.ShouldBe(new TrackOriginDto
         {
-            Kind = TrackOriginKindDto.Generated, GenerationId = generation, TakeIndex = 2, SourceTrackId = await SourceAsync(generation), AiGenerated = true,
+            Kind = TrackOriginKindDto.Generated,
+            GenerationId = generation,
+            TakeIndex = 2,
+            SourceTrackId = await SourceAsync(generation),
+            AiGenerated = true,
         });
         Worker.Uploads.Single().Bytes.ShouldBe([5, 6, 7]);
         (await GenerationAsync(generation)).Takes[1].ImportedTrackId.ShouldBe(track.Id);
