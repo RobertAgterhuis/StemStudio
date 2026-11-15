@@ -37,6 +37,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddSingleton<IWebInterop>(Interop);
+        Services.AddSingleton(Recorder);
         Services.AddSingleton<IPreferencesStore>(Store);
         Services.AddSingleton<PreferencesState>();
         Services.AddSingleton<ToastService>();
@@ -59,6 +60,9 @@ public abstract class PageTestContext : BunitContext
         Api.ListStylesAsync(Arg.Any<CancellationToken>()).Returns(GenerationData.Styles());
         Api.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([]);
         Api.ListLyricsSheetsAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns([]);
+        Api.ListVoiceProfilesAsync(Arg.Any<CancellationToken>()).Returns([]);
+        Api.GetVoiceConsentAsync(Arg.Any<CancellationToken>()).Returns(VoiceData.Statement());
+        Recorder.UnavailableReasonAsync().Returns((string?)null);
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();
@@ -72,6 +76,9 @@ public abstract class PageTestContext : BunitContext
     protected FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 11, 15, 10, 0, 0, TimeSpan.Zero));
 
     protected FakeWebInterop Interop { get; } = new();
+
+    /// <summary>The voice recorder port (MediaRecorder in web-interop.js), substituted.</summary>
+    protected IVoiceRecorder Recorder { get; } = Substitute.For<IVoiceRecorder>();
 
     protected FakePreferencesStore Store { get; } = new();
 
