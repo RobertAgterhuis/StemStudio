@@ -111,9 +111,14 @@ def _line(items: Sequence[_Timed], bounds: tuple[int, int] | None, cursor: int) 
     for item in items:
         words.append(_word(item, bounds or _UNBOUNDED, cursor))
         cursor = _span(words[-1])[0]
-    start, end = bounds or (_span(words[0])[0], max(_span(w)[1] for w in words))
+    start, end = bounds or _words_span(words)
     text = " ".join(item.text for item in items)[:500]
     return LyricsLine(start_ms=start, end_ms=end, text=text, words=words)
+
+
+def _words_span(words: Sequence[LyricsWord]) -> tuple[int, int]:
+    """From the first word's start to the latest word end."""
+    return _span(words[0])[0], max(_span(w)[1] for w in words)
 
 
 def _bounds(refine: TimedLyrics | None, count: int) -> list[tuple[int, int] | None]:

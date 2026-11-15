@@ -88,23 +88,24 @@ class _Run:
     onsets: npt.NDArray[np.float64]
 
     def attempt(self, *, vad: bool) -> TimedLyrics | None:
-        """One stable-ts run; None when stable-ts gave up."""
-        request = self.request
-        if request.refine is None:
-            result = self.model.align(request.audio, request.text, language=self.language,
-                                      original_split=True, vad=vad,
-                                      progress_callback=self.callback)  # fmt: skip
-        else:
-            segments = _segments(request.refine)
-            result = self.model.align_words(
-                request.audio, segments, language=self.language, vad=vad
-            )
+        """One stable-ts run, onset-refined; None when stable-ts gave up."""
+        result = self._result(vad=vad)
         if result is None:
             return None
         words = [AlignedWord(w.word, w.start, w.end, w.probability) for w in result.all_words()]
-        words = snap_starts(words, self.onsets)
         found = _language(getattr(result, "language", None), self.language)
-        return build_document(request.text, words, found, request.refine)
+        request = self.request
+        return build_document(request.text, snap_starts(words, self.onsets), found, request.refine)
+
+    def _result(self, *, vad: bool) -> Any:
+        """``align`` with our line breaks, or ``align_words`` inside the refined lines."""
+        request = self.request
+        if request.refine is None:
+            return self.model.align(request.audio, request.text, language=self.language,
+                                    original_split=True, vad=vad,
+                                    progress_callback=self.callback)  # fmt: skip
+        segments = _segments(request.refine)
+        return self.model.align_words(request.audio, segments, language=self.language, vad=vad)
 
 
 class StableTsAligner:
