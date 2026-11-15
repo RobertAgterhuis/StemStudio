@@ -40,6 +40,8 @@ public sealed partial class ChannelStrip
 
     private string Name => Channel.Stem.Replace('.', ' ');
 
+    private string StripLabel => Expanded == true ? $"{Name} channel, replaced by its detail stems" : $"{Name} channel";
+
     private string? ExpandedText => Expanded is { } expanded ? Bool(expanded) : null;
 
     private string Volume => InputValue.Percent(Channel.Volume);

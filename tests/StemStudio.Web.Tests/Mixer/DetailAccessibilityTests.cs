@@ -19,11 +19,7 @@ public sealed class DetailAccessibilityTests : MixerTestContext
         var page = RenderMixer();
         await page.Find(ExpandDrums).ClickAsync(new());
 
-        foreach (var control in page.FindAll("input, button"))
-        {
-            var name = control.GetAttribute("aria-label") ?? control.TextContent.Trim();
-            name.ShouldNotBeNullOrWhiteSpace($"{control.GetAttribute("data-testid")} has no accessible name");
-        }
+        AssertEveryControlIsNamed(page);
 
         page.Find("[data-testid=fader-drums-snare]").GetAttribute("aria-label").ShouldBe("drums snare volume");
         page.Find("[data-testid=mute-drums-snare]").GetAttribute("aria-label").ShouldBe("Mute drums snare");

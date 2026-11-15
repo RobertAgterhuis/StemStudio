@@ -1,6 +1,6 @@
 @* One channel strip (standard or detail stem): meter, fader (0-100 %), pan (-100 L..100 R), mute and solo (FR-011, FR-012). *@
 
-<div class="ss-strip @(Audible ? null : "ss-strip-silent")" role="group" aria-label="@($"{Name} channel")"
+<div class="ss-strip @(Audible ? null : "ss-strip-silent")" role="group" aria-label="@StripLabel"
      data-testid="@($"strip-{Channel.Key}")" data-expanded="@ExpandedText">
     <span class="ss-strip-name">@Channel.Label</span>
     <Meter Target="@Channel.Key" Label="@Name" />
