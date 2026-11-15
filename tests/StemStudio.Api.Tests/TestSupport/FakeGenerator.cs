@@ -62,14 +62,23 @@ internal sealed class FakeGenerator
     }
 
     /// <summary>Completes a job with takes of the given bytes (hashes and sizes match the bytes).</summary>
-    public void Complete(string id, params byte[][] takes)
+    public void Complete(string id, params byte[][] takes) => CompleteAs(id, "CompletedRestyle", takes);
+
+    /// <summary>Completes a job from another completed example (song, conversion) with takes of the given bytes.</summary>
+    public void CompleteAs(string id, string example, params byte[][] takes)
     {
-        SetJob(id, "CompletedRestyle", job =>
+        SetJob(id, example, job =>
         {
             var list = job["takes"]!.AsArray();
             while (list.Count > takes.Length)
             {
                 list.RemoveAt(list.Count - 1);
+            }
+
+            while (list.Count < takes.Length)
+            {
+                list.Add(list[0]!.DeepClone());
+                list[^1]!["index"] = list.Count;
             }
 
             for (var i = 0; i < takes.Length; i++)
