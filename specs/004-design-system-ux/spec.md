@@ -400,7 +400,7 @@ only the keyboard at level Expert.
 - Radzen.Blazor 13.1.0 (MIT) stays the component library; the free `software` base theme exposes
   enough CSS variables for the design (verified by the Phase 1 spike; otherwise ADR-013 D1 fallback).
 - Fonts: Archivo (variable, SIL OFL-1.1) self-hosted; icons: Material Symbols Outlined (Apache-2.0)
-  as shipped by Radzen. Tours: driver.js 1.14.0 (MIT). Markdown: Markdig 1.6.0 (BSD-2-Clause). Front
+  as shipped by Radzen. Tours: driver.js 1.10.2 (MIT). Markdown: Markdig 1.5.1 (BSD-2-Clause). Front
   matter: YamlDotNet (MIT, already used in tests). Accessibility scans: @axe-core/playwright
   (MPL-2.0, dev only). Exact versions and licences are re-verified when added (constitution IV).
 - English only; content tone follows design-spec.md section 8 (plain, active, sentence case).

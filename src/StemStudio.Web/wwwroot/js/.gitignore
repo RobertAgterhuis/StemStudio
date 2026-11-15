@@ -1,3 +1,8 @@
 # Build output of src/audio-engine (npm run build); never committed.
 audio-engine.js
 audio-engine.js.map
+# Build output of src/web-interop (npm run build); never committed (feature 004, architect T004).
+web-interop.js
+web-interop.js.map
+first-paint.js
+first-paint.js.map

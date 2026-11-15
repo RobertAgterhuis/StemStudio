@@ -1,6 +1,6 @@
 # ADR-013: Design system, experience levels and in-app help (feature 004)
 
-- **Status**: Proposed (architect, 2026-11-15); becomes Accepted in feature 004 Phase 0 (T003)
+- **Status**: Accepted (architect, 2026-11-15, feature 004 Phase 0 T003; proposed 2026-11-15)
 - **Context documents**: `specs/004-design-system-ux/{spec.md, research.md, design-spec.md,
   data-model.md, contracts/}`, `docs/research/roadmap-003-011.md` section 2, ADR-002 (layers),
   ADR-005 (audio engine), constitution 1.2.0
@@ -61,7 +61,7 @@ Help topics are Markdown files with YAML front matter and tours are JSON files, 
 `StemStudio.Web`, loaded once into `HelpCatalog`, rendered with Markdig (raw HTML disabled) and
 searched with a small in-memory index. Four layers: tooltip (topic summary), contextual help panel
 (help button in a fixed place, `?`, F1), library with glossary and search, and guided tours via
-driver.js 1.14.0 (MIT) that are offered, never auto-started, and recorded per tour version.
+driver.js 1.10.2 (MIT) that are offered, never auto-started, and recorded per tour version.
 Automated tests fail the build when a help marker has no topic, an anchor or link is broken, or a
 tour step targets an unknown marker; later features must add topics and tours for their UI.
 

@@ -1,7 +1,7 @@
 # Contract delta: feature 004 against 003
 
-Final version numbers are confirmed when the feature starts (Phase 0, T003); the numbers below
-are the proposal.
+Version numbers confirmed in Phase 0 (T003, 2026-11-15) against docs/ROADMAP.md; they are final
+for 004.
 
 | Contract | 003 version | 004 | Change |
 |---|---|---|---|

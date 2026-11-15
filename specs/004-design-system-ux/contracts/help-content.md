@@ -1,4 +1,4 @@
-# Contract: help content and tours (v1.0.0, proposed)
+# Contract: help content and tours (v1.0.0)
 
 Binding for the **frontend** agent (author, loader, renderer, tests) and for every later feature
 that adds help (roadmap cross-cutting rule). Schemas: [help-topic.schema.json](help-topic.schema.json),
@@ -12,8 +12,12 @@ src/StemStudio.Web/Help/
 └── tours/<tourId>.json       # one tour per file; file name == id
 ```
 
-Both folders are embedded resources of `StemStudio.Web` (`<EmbeddedResource Include="Help/**" />`)
-and loaded once at start-up by `HelpCatalog`. A load error (invalid file) fails start-up in
+Both folders are embedded resources of `StemStudio.Web`
+(`<EmbeddedResource Include="Help\topics\**\*.md;Help\tours\*.json" />`, so the C# files in `Help/`
+are not embedded; `Help/**` is removed from `Content`/`None` so tour JSON is not published as
+static content) and loaded once at start-up by `HelpCatalog`. Manifest resource names:
+`StemStudio.Web.Help.topics.<area>.<id>.md` and `StemStudio.Web.Help.tours.<id>.json` (area
+folder names must stay plain lower-case words: MSBuild turns `-` in folder names into `_`). A load error (invalid file) fails start-up in
 Development and is caught by the unit tests; it can never reach a release build.
 
 ## 2. Topic format
@@ -89,7 +93,12 @@ step is not offered.
 
 ## 4. Automated checks (FR-026; tests in `tests/StemStudio.Web.Tests/Help/`)
 
-1. Every topic and tour validates against its schema; ids unique; file name == id.
+1. Every topic and tour validates against its schema; ids unique; file name == id. Schema
+   validation in tests uses `tests/StemStudio.Web.Tests/Skeleton/SchemaSubsetValidator.cs`
+   (dependency-free; JsonSchema.Net is excluded: OSMF EULA) and `FrontMatterJson.cs` (YAML front
+   matter -> JSON). The validator supports exactly the keywords the two schemas use and throws on
+   any other keyword; a schema change that adds a keyword must extend it. The schemas are copied
+   to `<test output>/Contracts/`.
 2. Every `related` entry and every `help:` link resolves; every `route:` link matches a page route.
 3. Exactly one screen topic per routable page (`@page` directives in `Components/Pages`).
 4. Marker coverage: every literal `data-help-id="..."` / `HelpId="..."` in

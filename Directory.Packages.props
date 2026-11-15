@@ -16,6 +16,13 @@
   </ItemGroup>
   <ItemGroup Label="Web">
     <PackageVersion Include="Radzen.Blazor" Version="13.1.0" />
+    <!-- Help topics (feature 004): Markdown rendering, BSD-2-Clause; 1.5.1 because 1.6.0 was < 2 weeks old at pinning. -->
+    <PackageVersion Include="Markdig" Version="1.5.1" />
+  </ItemGroup>
+  <ItemGroup Label="Shared">
+    <!-- YAML: help-topic front matter in StemStudio.Web (runtime, feature 004) and OpenAPI parsing in the
+         contract tests (JsonSchema.Net excluded: OSMF EULA, not OSI). MIT. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
@@ -29,7 +36,5 @@
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
-    <!-- Contract tests: parse the OpenAPI YAML (JsonSchema.Net excluded: OSMF EULA, not OSI). -->
-    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 </Project>

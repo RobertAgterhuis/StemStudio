@@ -1,4 +1,4 @@
-# Contract: UI test ids (v1.3.0, proposed)
+# Contract: UI test ids (v1.3.0)
 
 Binding for the **frontend** agent (renders the attributes) and the **qa** agent (Playwright
 selectors use `page.getByTestId(...)` only). Changing, renaming or removing an id is a breaking
@@ -7,8 +7,8 @@ change: bump the version here and record it in the owner's hand-off.
 Changelog: 1.1.0 (additive, feature 002) - detail-phase ids on the track detail page and grouped
 detail strips in the mixer. All 1.0.0 ids are unchanged. 1.2.0 (additive, feature 003) - device
 indication (GPU or CPU, CPU fallback) on the import page and the track detail page. All 1.1.0 ids
-are unchanged. 1.3.0 (additive, feature 004, proposed; the number is confirmed when the feature
-starts) - app shell, experience levels, journey, presets, help, tours, command palette and expert
+are unchanged. 1.3.0 (additive, feature 004; number confirmed in Phase 0 T003, 2026-11-15) -
+app shell, experience levels, journey, presets, help, tours, command palette and expert
 controls; ids that already existed in code but were not listed are adopted as binding; level
 visibility rules R7-R9. All 1.2.0 ids keep their name, element and meaning.
 
