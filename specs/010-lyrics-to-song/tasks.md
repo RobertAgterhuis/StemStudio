@@ -144,7 +144,7 @@ unchanged through the 009 import flow).
 
 - [ ] T053 [P] [US4] [backend] Failing tests: importing song and conversion takes sets `Track.Origin` with `vocal`, `voiceProfileName`, `lyricsId`; `TrackDto.origin` mapped (FR-013)
 - [ ] T054 [US4] [backend] Implement to pass T053
-- [ ] T055 [P] [US4] [frontend] Failing bUnit test + implementation of `track-lyrics-link` and the vocal badge on generated tracks (combined red -> green pair inside the frontend sequence: test commit first)
+- [x] T055 [P] [US4] [frontend] Failing bUnit test + implementation of `track-lyrics-link` and the vocal badge on generated tracks (combined red -> green pair inside the frontend sequence: test commit first)
 - [ ] T056 [US4] [qa] Author "song to practice" spec: import a song take -> fake separation -> mixer; lyrics link present
 
 **Checkpoint**: HO:us4.
