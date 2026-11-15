@@ -37,7 +37,11 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
         return TrackProblem(track, request.TrackId) is { } problem ? (null, problem) : await PlanForAsync(request, track!, cancellationToken);
     }
 
-    private static IResult? TrackProblem(Track? track, Guid trackId) => track switch
+    /// <summary>The 404 or 409 <c>track-not-ready</c> problem of a track that cannot be exported, or null.</summary>
+    /// <param name="track">The track, or null.</param>
+    /// <param name="trackId">The requested track ID.</param>
+    /// <returns>The problem or null.</returns>
+    public static IResult? TrackProblem(Track? track, Guid trackId) => track switch
     {
         null => Tracks.TrackService.NotFound(trackId),
         { Status: not TrackStatus.Completed } => AssetProblems.TrackNotReady(),
@@ -75,6 +79,18 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
 
         var (draft, problem) = Draft(track, recipe);
         return problem is null ? (draft, null) : (null, AssetProblems.SourceUnavailable("A channel of this item no longer exists on the track."));
+    }
+
+    /// <summary>The raw export of one existing channel of a completed track (stem packs).</summary>
+    /// <param name="track">The track.</param>
+    /// <param name="channelId">An existing channel.</param>
+    /// <param name="format">A valid format.</param>
+    /// <returns>The draft.</returns>
+    public static ExportDraft RawDraft(Track track, string channelId, ExportFormatDto format)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        var recipe = new ExportRecipe { TrackId = track.Id, Mode = ExportMode.Raw, Channels = [channelId], Format = ExportRequestRules.Resolve(format, singleRaw: true) };
+        return new ExportDraft(track, recipe, RenderPlanner.Plan(RenderSource.Of(track), ExportMode.Raw, recipe.Channels, null));
     }
 
     private static (ExportDraft?, IResult?) Draft(Track track, ExportRecipe recipe)

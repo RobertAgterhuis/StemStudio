@@ -146,6 +146,7 @@ public static class ApiComposition
         services.AddScoped<AssetService>();
         services.AddScoped<AssetLibraryService>();
         services.AddScoped<AssetRetryService>();
+        services.AddScoped<StemPackService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

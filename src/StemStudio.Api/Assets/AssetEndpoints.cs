@@ -21,6 +21,10 @@ public static class AssetEndpoints
             .WithName("createAudioExport").WithTags("assets").Produces<AssetDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapPost(ApiRoutes.StemPacks, (CreateStemPackRequest request, StemPackService packs, CancellationToken ct) => packs.CreateAsync(request, ct))
+            .WithName("createStemPack").WithTags("assets").Produces<StemPackDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapGet(AssetRoute, (Guid assetId, AssetService assets, CancellationToken ct) => assets.GetAsync(assetId, ct))
             .WithName("getAsset").WithTags("assets").Produces<AssetDto>().ProducesProblem(StatusCodes.Status404NotFound);
         return app.MapLibraryEndpoints().MapFileEndpoints();
