@@ -151,6 +151,11 @@ public static class ApiComposition
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
+        services.AddSingleton<TakeStorage>();
+        services.AddScoped<IGeneratedAudioLibrary, GeneratedAudioLibraryAdapter>();
+        services.AddScoped<TakeCollector>();
+        services.AddScoped<GenerationSynchronizer>();
+        services.AddHostedService<GenerationSyncService>();
     }
 
     private static void AddScoreServices(IServiceCollection services)

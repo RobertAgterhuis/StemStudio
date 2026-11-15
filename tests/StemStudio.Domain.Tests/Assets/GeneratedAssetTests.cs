@@ -1,5 +1,6 @@
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
+using StemStudio.Domain.Rendering;
 
 namespace StemStudio.Domain.Tests.Assets;
 
@@ -16,7 +17,7 @@ public sealed class GeneratedAssetTests
         var provenance = Provenance(generation);
         var audio = new AudioFacts(AudioFormat.Flac, 24, null, 45, -0.9, 0) { SampleRate = 48_000 };
 
-        var asset = Asset.CreateGenerated(Guid.NewGuid(), "Song - Jazz trio (take 2)", provenance, [File], audio, T0);
+        var asset = Asset.CreateGenerated(Guid.NewGuid(), provenance, new GeneratedAudio("Song - Jazz trio (take 2)", [File], audio), T0);
 
         (asset.Kind, asset.Status, asset.Progress, asset.SizeBytes).ShouldBe((AssetKind.Audio, AssetStatus.Ready, 100, 1234L));
         asset.Provenance.Origin.ShouldBe(AssetOrigin.Generation);
@@ -29,13 +30,13 @@ public sealed class GeneratedAssetTests
     [Fact]
     public void CreateGenerated_NeedsAGenerationProvenance() =>
         Should.Throw<ArgumentException>(() =>
-            Asset.CreateGenerated(Guid.NewGuid(), "x", Provenance(null), [File], new AudioFacts(AudioFormat.Flac, 24, null, 45, -1, 0), T0));
+            Asset.CreateGenerated(Guid.NewGuid(), Provenance(null), new GeneratedAudio("x", [File], new AudioFacts(AudioFormat.Flac, 24, null, 45, -1, 0)), T0));
 
     [Fact]
     public void CreateGenerated_LongNamesAreCut()
     {
-        var asset = Asset.CreateGenerated(Guid.NewGuid(), new string('n', 200), Provenance(new GenerationSource(Guid.NewGuid(), 1, GenerationKind.Restyle)),
-            [File], new AudioFacts(AudioFormat.Flac, 24, null, 45, -1, 0), T0);
+        var asset = Asset.CreateGenerated(Guid.NewGuid(), Provenance(new GenerationSource(Guid.NewGuid(), 1, GenerationKind.Restyle)),
+            new GeneratedAudio(new string('n', 200), [File], new AudioFacts(AudioFormat.Flac, 24, null, 45, -1, 0)), T0);
 
         asset.Name.Length.ShouldBe(AssetNaming.MaxNameLength);
     }
