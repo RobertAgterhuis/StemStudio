@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Final, Protocol, Self
 
+from stemstudio_worker.ingest.details import NoSourceDetails, SourceDetails, with_details
 from stemstudio_worker.ingest.limits import DEFAULT_MAX_DURATION_SECONDS, too_long_error
 from stemstudio_worker.ingest.text import clean_text
 from stemstudio_worker.ingest.urls import parse_source_url
@@ -87,21 +88,25 @@ class YtDlpFetcher:
         self,
         max_duration_seconds: float = DEFAULT_MAX_DURATION_SECONDS,
         ydl_factory: YoutubeDLFactory | None = None,
+        details: SourceDetails | None = None,
     ) -> None:
         """Create the fetcher.
 
         Args:
             max_duration_seconds: Longest accepted duration as reported by YouTube.
             ydl_factory: Builds the downloader; defaults to ``create_youtube_dl``.
+            details: Adds the thumbnail and lookup names (feature 005); none by default.
         """
         self.max_duration_seconds = max_duration_seconds
         self._factory = ydl_factory or create_youtube_dl
+        self.details: SourceDetails = details or NoSourceDetails()
 
     def fetch(self, source: SourceInfo, work_dir: Path, progress: ProgressCallback) -> FetchedAudio:
         """Download the best audio-only stream (see ``ports.AudioFetcher.fetch``).
 
         The title comes from yt-dlp's ``title``; the artist from ``artist``, else ``uploader``,
-        else ``channel``.
+        else ``channel``; the album from ``album``. The source details add the thumbnail and the
+        cleaned lookup names (best effort).
 
         Raises:
             InvalidSourceError: The source has no allow-listed YouTube video URL, or is a playlist.
@@ -109,7 +114,17 @@ class YtDlpFetcher:
             SourceUnavailableError: yt-dlp failed, the video is live or no file was written.
         """
         url = _allow_listed_youtube_url(source.youtube_url)
-        options = _options(work_dir, _ProgressHook(progress))
+        info = self._download(url, _options(work_dir, _ProgressHook(progress)))
+        progress(1.0, DOWNLOAD_STAGE)
+        fetched = FetchedAudio(
+            _downloaded_file(work_dir),
+            *_title_and_artist(info),
+            album=clean_text(info.get("album")),
+        )
+        return with_details(lambda: self.details.youtube(fetched, info), fetched)
+
+    def _download(self, url: str, options: dict[str, Any]) -> dict[str, Any]:
+        """Check the info of ``url`` and download it; library errors become a readable error."""
         try:
             with self._factory(options) as ydl:
                 info = self._checked(ydl.extract_info(url, download=False))
@@ -119,8 +134,7 @@ class YtDlpFetcher:
         except Exception as exc:
             _LOG.warning("yt-dlp download failed: %s", type(exc).__name__)
             raise SourceUnavailableError(DOWNLOAD_FAILED_MESSAGE) from None
-        progress(1.0, DOWNLOAD_STAGE)
-        return FetchedAudio(_downloaded_file(work_dir), *_title_and_artist(info))
+        return info
 
     def _checked(self, info: dict[str, Any] | None) -> dict[str, Any]:
         """Reject missing info, playlists, live streams and over-long videos before download."""

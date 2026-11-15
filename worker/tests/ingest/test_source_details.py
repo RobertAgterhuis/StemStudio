@@ -86,9 +86,15 @@ INFO: dict[str, Any] = {
 
 
 def _fetch(tmp_path: Path, details: SourceDetails | None, info: dict[str, Any]) -> FetchedAudio:
-    fetcher = YtDlpFetcher(ydl_factory=lambda options: OneShotYoutubeDL(options, info), details=details)
+    fetcher = YtDlpFetcher(
+        ydl_factory=lambda options: OneShotYoutubeDL(options, info), details=details
+    )
     source = SourceInfo(
-        SourceType.YOUTUBE, f"youtube:{VIDEO}", "t", None, f"https://www.youtube.com/watch?v={VIDEO}"
+        SourceType.YOUTUBE,
+        f"youtube:{VIDEO}",
+        "t",
+        None,
+        f"https://www.youtube.com/watch?v={VIDEO}",
     )
     return fetcher.fetch(source, tmp_path, lambda fraction, stage: None)
 

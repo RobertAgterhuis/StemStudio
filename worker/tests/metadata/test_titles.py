@@ -79,7 +79,7 @@ def test_clean_artist(artist: str, expected: str) -> None:
             ("Hero Of The Day", "Metallica"),
         ),
         (
-            {"title": "Kevin MacLeod – Monkeys Spinning Monkeys", "uploader": "Fan"},
+            {"title": "Kevin MacLeod \u2013 Monkeys Spinning Monkeys", "uploader": "Fan"},
             ("Monkeys Spinning Monkeys", "Kevin MacLeod"),
         ),
         (
@@ -99,7 +99,9 @@ def test_clean_artist(artist: str, expected: str) -> None:
         ({"title": " - Song", "uploader": "U"}, ("- Song", "U")),
     ],
 )
-def test_youtube_lookup_names(info: dict[str, Any], expected: tuple[str | None, str | None]) -> None:
+def test_youtube_lookup_names(
+    info: dict[str, Any], expected: tuple[str | None, str | None]
+) -> None:
     assert youtube_lookup_names(info) == expected
 
 
@@ -119,7 +121,7 @@ def test_lookup_names_are_cut_to_500_characters() -> None:
         ("Don't Stop Me Now!", "dont stop me now"),
         ("AC/DC", "acdc"),
         ("  Multiple   spaces\there ", "multiple spaces here"),
-        ("Ｆｕｌｌ", "full"),
+        ("\uff26\uff55\uff4c\uff4c", "full"),
         ("Straße", "strasse"),
         ("东京事变", "东京事变"),
         ("Beyoncé", "beyoncé"),

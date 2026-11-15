@@ -7,6 +7,7 @@ imported lazily so that the worker starts, and unit tests run, without touching 
 """
 
 import logging
+import re
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -41,6 +42,7 @@ _FLAT_SEARCH_OPTIONS: Final[dict[str, Any]] = {
     "extract_flat": "in_playlist",
 }
 
+_ISRC: Final = re.compile(r"[A-Z]{2}[A-Z0-9]{3}[0-9]{7}")
 _LOG = logging.getLogger(__name__)
 _CLIENT_LOCK = threading.Lock()
 _client_ready = False
@@ -55,6 +57,8 @@ class SpotifyTrack:
         title: Track title (1..500 chars).
         artist: Primary artist, or None when unknown.
         duration_seconds: Duration reported by Spotify.
+        album: Album name, or None (feature 005).
+        isrc: ISRC in canonical form (12 characters, no hyphens), or None (feature 005).
         handle: Library object the matcher may reuse (spotDL ``Song``); excluded from equality.
     """
 
@@ -62,6 +66,8 @@ class SpotifyTrack:
     title: str
     artist: str | None
     duration_seconds: float
+    album: str | None = None
+    isrc: str | None = None
     handle: object | None = field(default=None, compare=False, repr=False)
 
 
@@ -97,7 +103,8 @@ class SpotdlMetadataClient:
 
         Args:
             song_loader: Maps a canonical track URL to a spotDL ``Song``-like object with
-                ``name``, ``artist`` and ``duration``; defaults to ``load_spotdl_song``.
+                ``name``, ``artist``, ``duration`` and optionally ``album_name`` and ``isrc``;
+                defaults to ``load_spotdl_song``.
         """
         self._load = song_loader or load_spotdl_song
 
@@ -108,12 +115,7 @@ class SpotdlMetadataClient:
         except Exception as exc:
             _LOG.warning("spotDL metadata lookup failed: %s", type(exc).__name__)
             raise SourceUnavailableError(METADATA_FAILED_MESSAGE) from None
-        title = clean_text(getattr(song, "name", None))
-        if title is None:
-            raise SourceUnavailableError(METADATA_FAILED_MESSAGE)
-        artist = clean_text(getattr(song, "artist", None))
-        duration = float(getattr(song, "duration", 0) or 0)
-        return SpotifyTrack(track_id, title, artist, duration, handle=song)
+        return _track_from_song(track_id, song)
 
 
 class SpotdlYouTubeMatcher:
@@ -137,6 +139,37 @@ class SpotdlYouTubeMatcher:
         except Exception as exc:
             _LOG.warning("spotDL YouTube search failed: %s", type(exc).__name__)
             raise SourceUnavailableError(SEARCH_FAILED_MESSAGE) from None
+
+
+def _track_from_song(track_id: str, song: Any) -> SpotifyTrack:
+    """Map a spotDL ``Song``-like object; a missing title counts as a failed lookup."""
+    title = clean_text(getattr(song, "name", None))
+    if title is None:
+        raise SourceUnavailableError(METADATA_FAILED_MESSAGE)
+    return SpotifyTrack(
+        track_id,
+        title,
+        clean_text(getattr(song, "artist", None)),
+        float(getattr(song, "duration", 0) or 0),
+        album=clean_text(getattr(song, "album_name", None)),
+        isrc=canonical_isrc(getattr(song, "isrc", None)),
+        handle=song,
+    )
+
+
+def canonical_isrc(value: object) -> str | None:
+    """Return ``value`` as a canonical ISRC (upper case, hyphens removed), or None if invalid.
+
+    Args:
+        value: The ISRC reported by spotDL (any type).
+
+    Returns:
+        e.g. ``"USEVI9692306"``, or None.
+    """
+    if not isinstance(value, str):
+        return None
+    code = value.replace("-", "").strip().upper()
+    return code if _ISRC.fullmatch(code) else None
 
 
 def load_spotdl_song(url: str) -> Any:
@@ -186,12 +219,15 @@ def pick_match(entries: list[dict[str, Any]], duration_seconds: float) -> str | 
     """
     tolerance = max(DURATION_TOLERANCE_SECONDS, duration_seconds * DURATION_TOLERANCE_RATIO)
     for entry in entries:
-        length = float(entry.get("duration") or 0)
-        if entry.get("id") and (
-            duration_seconds <= 0 or abs(length - duration_seconds) <= tolerance
-        ):
+        if entry.get("id") and _plausible(entry, duration_seconds, tolerance):
             return f"https://www.youtube.com/watch?v={entry['id']}"
     return None
+
+
+def _plausible(entry: dict[str, Any], duration_seconds: float, tolerance: float) -> bool:
+    """True when the duration is unknown (0) or the entry is within ``tolerance`` of it."""
+    length = float(entry.get("duration") or 0)
+    return duration_seconds <= 0 or abs(length - duration_seconds) <= tolerance
 
 
 def _ensure_spotify_client() -> None:

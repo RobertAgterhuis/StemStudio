@@ -134,7 +134,7 @@ def test_spotify_cover_of_an_object_without_the_attribute() -> None:
     assert spotify_cover(object()) is None
 
 
-# ------------------------------------------------------------------ uploads (tinytag)
+# ------------------------------------------------------------------ uploads read with tinytag
 
 
 def test_mp3_front_cover_and_tags(tmp_path: Path) -> None:
