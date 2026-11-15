@@ -204,8 +204,16 @@ html:has(.ss-transport-dock) {
   font-weight: 700;
 }
 
-.ss-expand {
+.ss-expand.rz-button {
   width: 100%;
+  min-width: 0;
+  padding: 0 var(--ss-space-1);
+  font-size: var(--ss-type-small-size);
+  font-stretch: var(--ss-type-strip-width);
+}
+
+.ss-expand .rz-button-icon-left {
+  font-size: 1rem;
 }
 
 /* Master: ink tab, wider meter. */
@@ -235,7 +243,7 @@ html:has(.ss-transport-dock) {
   flex: none;
   gap: var(--ss-space-2);
   padding: var(--ss-space-2);
-  border-top: 3px solid var(--ss-color-divider);
+  border-top: 3px solid var(--stem-color, var(--ss-color-divider));
   border-radius: var(--ss-radius-panel);
   background: var(--ss-color-sunken);
 }

@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  border-left: 1px solid var(--ss-color-divider);
 }
 
 /* Skip link: first focusable element, visible on focus only. */
@@ -43,7 +44,6 @@
   gap: var(--ss-space-1);
   height: 100vh;
   padding: var(--ss-space-3) 0;
-  border-right: 1px solid var(--ss-color-divider);
   background: var(--ss-color-base);
 }
 

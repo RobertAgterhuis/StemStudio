@@ -41,3 +41,8 @@
 .ss-panel > .ss-heading {
   margin: 0;
 }
+
+.ss-panel > .ss-link-button,
+.ss-panel > .rz-button {
+  justify-self: start;
+}

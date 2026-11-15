@@ -1,20 +1,20 @@
 @* Stem ribbon (design-spec.md 1): a grey strand that splits into the six stem lines; missing stems stay grey and a
    track without stems is a single grey strand. Decorative; the stem names are written elsewhere. *@
 
-<svg class="ss-ribbon" viewBox="0 0 48 14" width="48" height="14" aria-hidden="true" focusable="false"
+<svg class="ss-ribbon" viewBox="0 0 48 21" width="48" height="21" aria-hidden="true" focusable="false"
      data-testid="@TestId" data-stems="@string.Join(',', Ordered)">
     @if (Ordered.Count == 0)
     {
-        <path class="ss-ribbon-song" d="M1 7H47" />
+        <path class="ss-ribbon-song" d="M1 10.5H47" />
     }
     else
     {
-        <path class="ss-ribbon-song" d="M1 7H14" />
+        <path class="ss-ribbon-song" d="M1 10.5H14" />
         @for (var i = 0; i < StemNames.SixStem.Count; i++)
         {
             var stem = StemNames.SixStem[i];
-            var y = 2 + (i * 2);
-            <path class="@StrandClass(stem)" d="@($"M14 7C19 7 18 {y} 23 {y}H47")" />
+            var y = 3 + (i * 3);
+            <path class="@StrandClass(stem)" d="@($"M14 10.5C19 10.5 18 {y} 23 {y}H47")" />
         }
     }
 </svg>

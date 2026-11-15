@@ -114,7 +114,11 @@
 }
 
 .ss-search {
-  width: min(18rem, 100%);
+  width: min(16rem, 100%);
+}
+
+.ss-library-tools .ss-inline-label {
+  margin-left: var(--ss-space-2);
 }
 
 select.ss-select {
@@ -134,7 +138,7 @@ select.ss-select {
 }
 
 .ss-cell-ribbon {
-  width: 4rem;
+  width: 4.5rem;
 }
 
 .ss-cell-title a {

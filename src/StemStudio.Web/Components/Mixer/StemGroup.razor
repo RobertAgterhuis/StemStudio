@@ -1,7 +1,7 @@
 @* Detail strips of an expanded parent (group-<parent>), each with fader, pan, mute, solo and meter (FR-012). *@
 
 <div class="ss-group" role="group" id="@($"group-{Group.Parent}")" aria-label="@($"{Group.Parent} detail stems")"
-     data-testid="@($"group-{Group.Parent}")">
+     data-testid="@($"group-{Group.Parent}")" style="@($"--stem-color: {StemColor.Var(Group.Parent)}")">
     @for (var i = 0; i < Group.Stems.Count; i++)
     {
         var stem = Group.Stems[i];
