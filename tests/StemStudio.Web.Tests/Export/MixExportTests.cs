@@ -59,6 +59,16 @@ public sealed class MixExportTests : MixerTestContext
     }
 
     [Fact]
+    public async Task AMix_ShowsTheBackendDefaultOf24Bit()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        await OpenAsync(page);
+
+        // data-model 4.2: a mix without a chosen bit depth is rendered at 24-bit, so the select shows that.
+        page.Find("[data-testid=export-bit-depth]").GetAttribute("value").ShouldBe("24");
+    }
+
+    [Fact]
     public async Task SelectedChannels_ArePrefilledWithTheAudibleChannels()
     {
         var page = RenderAt(ExperienceLevel.Advanced);
