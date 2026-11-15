@@ -120,14 +120,14 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 **Goal**: levels, welcome, journey rail, presets, gated controls.
 **Independent test**: quickstart V-J1..V-J9.
 
-- [ ] T039 [P] [US2] [frontend] Failing bUnit tests `Experience/WelcomePanelTests.cs`: shown on Import while not dismissed; non-modal (no focus trap, form still operable); each level button sets the level and dismisses; `welcome-tour-start` starts `import-basics`; `welcome-dismiss`; not shown after reload (FR-011)
-- [ ] T040 [US2] [frontend] Implement `Components/Experience/WelcomePanel.razor` to pass T039
-- [ ] T041 [P] [US2] [frontend] Failing bUnit tests `Experience/JourneyRailTests.cs`: Beginner only; step states per route and track status (import page: Import current; processing: Separate current; completed track page and mixer: Mix current; mixer with a saved, clean mix: Save done); `aria-current="step"` (FR-015)
-- [ ] T042 [US2] [frontend] Implement `Components/Experience/JourneyRail.razor` and place it in the context bar to pass T041
-- [ ] T043 [P] [US2] [frontend] Failing bUnit tests: mixer gates per level (exact ids of ui-test-ids R8 hidden at Beginner, present at Advanced, Expert extras present); `pan-marker-<key>` at Beginner only when pan != 0; switching level does not call any `IAudioEngine` method and keeps `MixerState` (dirty flag, values, position) (FR-012..FR-014, SC-010)
-- [ ] T044 [US2] [frontend] Apply `LevelGate` in ChannelStrip, LoopControls, MetronomePanel, Tracks, Mixes, TrackDetail per the catalogue to pass T043
-- [ ] T045 [P] [US2] [frontend] Failing tests `Mixer/PracticePresetsTests.cs` + bUnit `PracticePresetsComponentTests.cs`: each preset's effect via `MixerState` operations (and engine calls through the existing fake), availability by present stems, mix becomes dirty, Beginner chip row vs Advanced/Expert menu, `preset-<id>` ids (FR-016)
-- [ ] T046 [US2] [frontend] Implement `Mixer/{PracticePreset,PracticePresets}.cs`, `Components/Mixer/PracticePresets.razor` to pass T045
+- [x] T039 [P] [US2] [frontend] Failing bUnit tests `Experience/WelcomePanelTests.cs`: shown on Import while not dismissed; non-modal (no focus trap, form still operable); each level button sets the level and dismisses; `welcome-tour-start` starts `import-basics`; `welcome-dismiss`; not shown after reload (FR-011)
+- [x] T040 [US2] [frontend] Implement `Components/Experience/WelcomePanel.razor` to pass T039
+- [x] T041 [P] [US2] [frontend] Failing bUnit tests `Experience/JourneyRailTests.cs`: Beginner only; step states per route and track status (import page: Import current; processing: Separate current; completed track page and mixer: Mix current; mixer with a saved, clean mix: Save done); `aria-current="step"` (FR-015)
+- [x] T042 [US2] [frontend] Implement `Components/Experience/JourneyRail.razor` and place it in the context bar to pass T041
+- [x] T043 [P] [US2] [frontend] Failing bUnit tests: mixer gates per level (exact ids of ui-test-ids R8 hidden at Beginner, present at Advanced, Expert extras present); `pan-marker-<key>` at Beginner only when pan != 0; switching level does not call any `IAudioEngine` method and keeps `MixerState` (dirty flag, values, position) (FR-012..FR-014, SC-010)
+- [x] T044 [US2] [frontend] Apply `LevelGate` in ChannelStrip, LoopControls, MetronomePanel, Tracks, Mixes, TrackDetail per the catalogue to pass T043
+- [x] T045 [P] [US2] [frontend] Failing tests `Mixer/PracticePresetsTests.cs` + bUnit `PracticePresetsComponentTests.cs`: each preset's effect via `MixerState` operations (and engine calls through the existing fake), availability by present stems, mix becomes dirty, Beginner chip row vs Advanced/Expert menu, `preset-<id>` ids (FR-016)
+- [x] T046 [US2] [frontend] Implement `Mixer/{PracticePreset,PracticePresets}.cs`, `Components/Mixer/PracticePresets.razor` to pass T045
 - [ ] T047 [US2] [qa] Author `e2e/tests/journey-beginner.spec.ts` (fresh storage: welcome -> Beginner -> import fixture -> mixer -> "Play along: drums" -> Save, using only rail, primary buttons and presets; SC-007), `journey-levels.spec.ts` (R8 hidden ids at Beginner, Expert extras, level persists after reload, second tab follows, switch keeps playback/position/unsaved state; SC-010)
 
 **Checkpoint**: HO:us2.
