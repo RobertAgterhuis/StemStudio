@@ -1,6 +1,6 @@
 # ADR-010: Detail separation models and pipeline
 
-- **Status**: Accepted (architect; to be confirmed by the CTO at plan review)
+- **Status**: Accepted (architect; plan accepted by the CTO 2026-11-15)
 - **Date**: 2026-11-15
 - **Context documents**: `specs/002-detail-separation/{spec,plan,research,data-model}.md`,
   `docs/research/detail-separation-models.md`, ADR-009 (model weights exception), ADR-003
@@ -87,7 +87,8 @@ fixtures; `separatorVersion` in the cached result changes when models or thresho
 - First detail phase downloads ~1.86 GB of weights; the worker needs ~16 GB RAM (4 min) up to
   ~24 GB (15 min) during the instrument step.
 - Disk grows by up to ~3x per track.
-- Two exceptions are tracked in plan.md Complexity Tracking (vendored code excluded from SIG and
-  unit coverage; a second marked integration test).
+- Two exceptions are tracked in plan.md Complexity Tracking: vendored code excluded from SIG and
+  unit coverage with the detail integration test as compensation (accepted by CTO 2026-11-15),
+  and a second marked integration test (accepted by CTO 2026-11-15).
 - If StemStudio is ever distributed or used commercially, all three detail models must be
   re-evaluated (ADR-009).
