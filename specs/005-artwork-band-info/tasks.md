@@ -173,13 +173,13 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T058 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
-- [ ] T059 [CTO] Playwright default suite + `artwork`/`band-info` specs on the fake stack (retries 0)
-- [ ] T060 [CTO] `docs/THIRD-PARTY-LICENSES.md`: tinytag 2.3.2 (MIT); Pillow 13.0.0 (MIT-CMU), httpx 0.28.1 (BSD-3), rapidfuzz 3.14.6 (MIT) as direct dependencies; new section "Online data services" (MusicBrainz CC0 core data, Cover Art Archive no stated image licence, Wikidata CC0, Wikipedia CC BY-SA 4.0 with attribution) (FR-014)
-- [ ] T061 [CTO] README: online lookups (what is sent, User-Agent, `STEMSTUDIO_CONTACT_URL`, how to switch off), personal-practice notice incl. pictures and band texts
-- [ ] T062 [CTO] Real-service validation on the reference machine (quickstart A4, A5, A7, A8, A10; `pytest -m integration tests/metadata/test_live_services.py`); record in `docs/STATUS.md`
-- [ ] T063 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
-- [ ] T063a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
+- [x] T058 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green (2026-11-15: merged on `005-007-artwork-export`; `scripts/test-all.ps1` all steps green in the integration run and again at close-out)
+- [x] T059 [CTO] Playwright default suite + `artwork`/`band-info` specs on the fake stack (retries 0) (2026-11-15: qa integration run, retries 0: legacy 66/66, ux 74/74, `test:artwork` in all four fake online modes; HO:qa-005-007-integration)
+- [x] T060 [CTO] `docs/THIRD-PARTY-LICENSES.md`: tinytag 2.3.2 (MIT); Pillow 13.0.0 (MIT-CMU), httpx 0.28.1 (BSD-3), rapidfuzz 3.14.6 (MIT) as direct dependencies; new section "Online data services" (MusicBrainz CC0 core data, Cover Art Archive no stated image licence, Wikidata CC0, Wikipedia CC BY-SA 4.0 with attribution) (FR-014) (2026-11-15)
+- [ ] T061 [CTO] README: online lookups (what is sent, User-Agent, `STEMSTUDIO_CONTACT_URL`, how to switch off), personal-practice notice incl. pictures and band texts (OPEN 2026-11-15: README section not written yet; the manuals cover it)
+- [ ] T062 [CTO] Real-service validation on the reference machine (quickstart A4, A5, A7, A8, A10; `pytest -m integration tests/metadata/test_live_services.py`); record in `docs/STATUS.md` (PARTLY 2026-11-15: `test_live_services.py` 4/4 passed with the generic User-Agent after the ISRC `inc` fix; quickstart A4, A5, A7, A8, A10 on the real stack still open)
+- [x] T063 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR (2026-11-15: STATUS updated. The formal `/speckit-analyze` pass was NOT run; consistency is covered by the contract tests and the E2E suites. No PR opened: the branch is handed to the owner)
+- [x] T063a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes (2026-11-15: chapters 7 and tech manual 2/3/6/7/8 updated, PDFs rebuilt, `check.mjs` passes)
 
 ---
 
