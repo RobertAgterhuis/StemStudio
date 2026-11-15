@@ -59,12 +59,15 @@ test.describe('band info found', { tag: '@band-info' }, () => {
     await page.goto(`/tracks/${track.id}`);
     await bandInfo.show();
     await bandInfo.submitCorrection('Corrected Title', fake.found.artist.name);
+    // The other browser corrects the same track, so "found" and correctedByUser may already be
+    // true before this correction runs: poll status, flag and title together.
+    const correction = async (): Promise<unknown[]> => {
+      const { metadata } = await metadataApi.getTrack(track.id);
+      return [metadata.status, metadata.correctedByUser, (await metadataApi.getBandInfo(track.id)).recording?.title];
+    };
+    await expect.poll(correction, { timeout: settleMs }).toEqual(['found', true, 'Corrected Title']);
     await expect(bandInfo.status).toHaveAttribute('data-status', 'found', { timeout: settleMs });
-    const corrected = await metadataApi.waitForMetadata(track.id, settleMs);
-    expect([corrected.metadata.status, corrected.metadata.correctedByUser]).toEqual(['found', true]);
     await expect(artwork.trackCover).toHaveAttribute('data-artwork-source', fake.modes.found.artworkSource ?? 'none');
-    // The same track's correction from the other browser already reads "found": poll for this one's result.
-    await expect.poll(async () => (await metadataApi.getBandInfo(track.id)).recording?.title, { timeout: settleMs }).toBe('Corrected Title');
   });
 });
 
