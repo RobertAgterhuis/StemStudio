@@ -61,8 +61,8 @@ in the execution plan.
 
 - [x] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: the dependency rule lets `worker/src/stemstudio_worker/devices` import only `ports`, `schemas`, `config`, and forbids `separation`, `detail`, `jobs`, `api` from importing `devices` (only `main.py` composes it) (plan.md dependency direction)
 - [x] T007 [quality-gate] Implement the rule in `tools/quality/dependency_check.py`; re-run `tools/quality/run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T008 [P] [devops] `docker/worker.Dockerfile`: build arg `ORT_VARIANT` (`cpu` default; `gpu` uninstalls `onnxruntime` and installs `onnxruntime-gpu==1.32.0` without extras plus `cuda-toolkit[curand]==13.2.2`, research.md G-01) next to `TORCH_VARIANT`; header comment updated. `docker-compose.gpu.yml`: `TORCH_VARIANT` default **`cu132`** (fixes the broken `cu128`, FR-009), `ORT_VARIANT: gpu`, image `stemstudio/worker:local-gpu`, `STEMSTUDIO_DEVICE` default `auto`, keep the `deploy.resources.reservations.devices` block, comments (prerequisites, ~11.3 GB image, no Linux driver inside WSL). `docker-compose.yml`: comment line for the GPU option; pass `STEMSTUDIO_FAKE_DEVICE` (default `cpu`) to the worker. CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/003-gpu-acceleration/contracts`; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_FAKE_DEVICE` (FR-001, FR-009)
-- [ ] T009 [devops] Write the CPU-image guard first and show it fail on a GPU-variant image, then wire it: `scripts/check-cpu-image.{ps1,sh}` (no distribution named `nvidia-*` other than `nvidia-ml-py`, no `cuda-*`, `triton` or `onnxruntime-gpu`, and `torch.version.cuda is None`; quickstart G2) and CI job `cpu-image-guard`; `scripts/gpu-smoke.{ps1,sh}` (build `stemstudio/worker:local-gpu`, run with `--gpus all`: torch `+cu132`, `sm_<cc>` in arch list, matmul, onnxruntime CUDA EP after `preload_dlls()`, `/health` `deviceInfo.kind == gpu`; and without `--gpus`: `kind == cpu` with a reason; quickstart G3/G4) (FR-003, FR-008)
+- [x] T008 [P] [devops] `docker/worker.Dockerfile`: build arg `ORT_VARIANT` (`cpu` default; `gpu` uninstalls `onnxruntime` and installs `onnxruntime-gpu==1.32.0` without extras plus `cuda-toolkit[curand]==13.2.2`, research.md G-01) next to `TORCH_VARIANT`; header comment updated. `docker-compose.gpu.yml`: `TORCH_VARIANT` default **`cu132`** (fixes the broken `cu128`, FR-009), `ORT_VARIANT: gpu`, image `stemstudio/worker:local-gpu`, `STEMSTUDIO_DEVICE` default `auto`, keep the `deploy.resources.reservations.devices` block, comments (prerequisites, ~11.3 GB image, no Linux driver inside WSL). `docker-compose.yml`: comment line for the GPU option; pass `STEMSTUDIO_FAKE_DEVICE` (default `cpu`) to the worker. CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/003-gpu-acceleration/contracts`; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_FAKE_DEVICE` (FR-001, FR-009)
+- [x] T009 [devops] Write the CPU-image guard first and show it fail on a GPU-variant image, then wire it: `scripts/check-cpu-image.{ps1,sh}` (no distribution named `nvidia-*` other than `nvidia-ml-py`, no `cuda-*`, `triton` or `onnxruntime-gpu`, and `torch.version.cuda is None`; quickstart G2) and CI job `cpu-image-guard`; `scripts/gpu-smoke.{ps1,sh}` (build `stemstudio/worker:local-gpu`, run with `--gpus all`: torch `+cu132`, `sm_<cc>` in arch list, matmul, onnxruntime CUDA EP after `preload_dlls()`, `/health` `deviceInfo.kind == gpu`; and without `--gpus`: `kind == cpu` with a reason; quickstart G3/G4) (FR-003, FR-008)
 - [x] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: GPU path tested with fakes (device runner, probe, NVML), `STEMSTUDIO_FAKE_DEVICE` for E2E, reference-machine validation by the CTO, traceability US1..US3 -> test files
 
 ---
@@ -122,7 +122,7 @@ in the execution plan.
 - [ ] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
 - [ ] T037 [US2] [backend] Implement anything missing to pass T036
 - [x] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
-- [ ] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
+- [x] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
 
 **Checkpoint**: HO:us2.
 
@@ -149,7 +149,7 @@ in the execution plan.
 - [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [x] T048 [P] [qa] Traceability matrix update, HO:polish
-- [ ] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
+- [x] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
 - [ ] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---

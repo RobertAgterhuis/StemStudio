@@ -6,14 +6,26 @@
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
-# Usage: scripts/test-all.sh [--continue-on-error]
+# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e]
+#   --gpu-e2e  also start a fake stack as compose project stemstudio-e2e twice, with a fake GPU
+#              (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and run the
+#              Playwright @gpu specs each time (feature 003); needs ports 8080/8081 free and the Playwright
+#              browsers installed; the project and its volumes are removed afterwards
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTINUE=0
-[[ "${1:-}" == "--continue-on-error" ]] && CONTINUE=1
+GPU_E2E=0
+E2E_PROJECT=stemstudio-e2e
+for arg in "$@"; do
+  case "$arg" in
+    --continue-on-error) CONTINUE=1 ;;
+    --gpu-e2e) GPU_E2E=1 ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
 REDOCLY=@redocly/cli@2.78.0
-CONTRACTS=specs/002-detail-separation/contracts
+CONTRACTS=specs/003-gpu-acceleration/contracts
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
@@ -63,6 +75,15 @@ step "e2e npm ci" e2e npm ci --no-audit --no-fund
 step "e2e lint" e2e npm run lint
 step "e2e typecheck" e2e npm run typecheck
 step "e2e list" e2e npx playwright test --list
+if [[ $GPU_E2E -eq 1 ]]; then
+  # Two passes; the mode goes to compose (worker env) and to Playwright (STEMSTUDIO_FAKE_DEVICE).
+  for mode in gpu gpu-oom; do
+    step "gpu e2e: fake stack ($mode) up" . env STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DEVICE="$mode" \
+      docker compose -p "$E2E_PROJECT" up -d --build --wait --wait-timeout 300
+    step "gpu e2e: playwright @gpu ($mode)" e2e env STEMSTUDIO_FAKE_DEVICE="$mode" npm run test:gpu
+  done
+  docker compose -p "$E2E_PROJECT" down -v
+fi
 
 echo -e "\n=== summary ==="
 printf '%s\n' "${SUMMARY[@]}"

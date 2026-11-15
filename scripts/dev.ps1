@@ -67,12 +67,14 @@ function Initialize-Environment {
     # Detail model weights (~1.9 GB, first real detail phase); data/ is git-ignored; existing values win.
     if (-not $env:STEMSTUDIO_MODEL_DIR) { $env:STEMSTUDIO_MODEL_DIR = Join-Path $dataDir 'models' }
     if (-not $env:STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS) { $env:STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS = '1' }
+    # Fake device of the fake separator (cpu, gpu, gpu-oom; feature 003); an existing value wins.
+    if (-not $env:STEMSTUDIO_FAKE_DEVICE) { $env:STEMSTUDIO_FAKE_DEVICE = 'cpu' }
     $env:StemStudio__DataDir = Join-Path $dataDir 'api'
     $env:StemStudio__WorkerBaseUrl = 'http://localhost:8000'
     $env:StemStudio__WebOrigin = 'http://localhost:8080'
     $env:StemStudio__ApiBaseUrl = 'http://localhost:8081'
     $env:StemStudio__PublicApiBaseUrl = 'http://localhost:8081'
-    Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR; data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
+    Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR (fake device $env:STEMSTUDIO_FAKE_DEVICE); data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
 }
 
 function Build-Engine {

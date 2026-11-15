@@ -44,12 +44,14 @@ init_environment() {
   # Detail model weights (~1.9 GB, first real detail phase); data/ is git-ignored; existing values win.
   export STEMSTUDIO_MODEL_DIR="${STEMSTUDIO_MODEL_DIR:-$data_dir/models}"
   export STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS="${STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS:-1}"
+  # Fake device of the fake separator (cpu, gpu, gpu-oom; feature 003); existing value wins.
+  export STEMSTUDIO_FAKE_DEVICE="${STEMSTUDIO_FAKE_DEVICE:-cpu}"
   export StemStudio__DataDir="$data_dir/api"
   export StemStudio__WorkerBaseUrl=http://localhost:8000
   export StemStudio__WebOrigin=http://localhost:8080
   export StemStudio__ApiBaseUrl=http://localhost:8081
   export StemStudio__PublicApiBaseUrl=http://localhost:8081
-  echo "Separator: $STEMSTUDIO_SEPARATOR; data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
+  echo "Separator: $STEMSTUDIO_SEPARATOR (fake device $STEMSTUDIO_FAKE_DEVICE); data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
 }
 
 build_engine() {
