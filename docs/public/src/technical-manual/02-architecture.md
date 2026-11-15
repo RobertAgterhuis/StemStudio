@@ -34,8 +34,8 @@ product; it must not be exposed to the internet (ADR-002).
    Analyser → master Gain, all started at the same `when` (ADR-005).
 5. Detail separation is a second worker job per track; standard jobs always have priority.
 
-Later features add worker lanes rather than new paths: a network-only lane for metadata and
-lyrics lookups (005, 006), a render lane for exports (007) and a transcription lane (008).
+Later features add worker lanes rather than new paths: a network-only lane for metadata (005;
+lyrics lookups follow in 006), a render lane for exports (007) and a transcription lane (008).
 Generative work runs in the separate generator and singer containers (009, 010) because of
 their size and incompatible dependencies. The agent (011) runs inside the API and calls the
 public API over loopback, so it has exactly the capabilities of a user.
@@ -57,13 +57,13 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.3.0 (003) | 1.4.0 (005), 1.5.0 (007), 1.6.0 (006), 1.7.0 (008), 1.8.0 (009), 1.9.0 (010), 1.10.0 (011) |
-| Worker API (`worker-api.openapi.yaml`) | 1.2.0 (003) | 1.3.0 (005), 1.4.0 (007), 1.5.0 (006), 1.6.0 (008) |
+| Backend API (`backend-api.openapi.yaml`) | 1.5.0 (005: 1.4.0, 007: 1.5.0) | 1.6.0 (006), 1.7.0 (008), 1.8.0 (009), 1.9.0 (010), 1.10.0 (011) |
+| Worker API (`worker-api.openapi.yaml`) | 1.4.0 (005: 1.3.0, 007: 1.4.0) | 1.5.0 (006), 1.6.0 (008) |
 | Audio engine (`audio-engine.md`) | 2.0.0 (002) | 2.1.0 (006), 2.2.0 if needed (011) |
-| UI test ids (`ui-test-ids.md`) | 1.3.0 (004) | one minor per feature, up to 1.10.0 (011) |
+| UI test ids (`ui-test-ids.md`) | 1.5.1 (005: 1.4.0, 007: 1.5.0 + patch 1.5.1) | one minor per feature, up to 1.10.0 (011) |
 | Help content (`help-content.md` + schemas) | 1.0.0 (004) | additive topics per feature |
 | Web interop (`web-interop.md`) | 1.0.0 (004) | — |
-| Render vectors (`render-vectors.json`) | — | 1.0.0 (007) |
+| Render vectors (`render-vectors.json`) | 1.0.0 (007) | — |
 | Generator API (`generator-api.openapi.yaml`) | — | 1.0.0 (009), 1.1.0 (010) |
 | Agent tool catalogue (`tool-catalogue.md`) | draft 0.1.0 | 1.0.0 (011) |
 

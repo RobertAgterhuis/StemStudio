@@ -84,18 +84,26 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `StemStudio__ApiBaseUrl` | web | `http://api:8081` | Server-side API calls |
 | `StemStudio__PublicApiBaseUrl` | web | `http://localhost:8081` | Stem URLs used by the browser |
 | `ASPNETCORE_HTTP_PORTS` | api, web | 8081, 8080 | Listening ports |
+| `STEMSTUDIO_ONLINE_LOOKUPS` | worker | `on` | 005: `off` sends no request to MusicBrainz, the Cover Art Archive, Wikidata or Wikipedia; metadata jobs end as `disabled` |
+| `STEMSTUDIO_CONTACT_URL` | worker | unset | 005: public page about your install, sent in the User-Agent. Must be `https://` with a host, no user info or `@` (so never an e-mail), at most 200 characters; an invalid value is replaced by the generic token and logged without the value |
+| `STEMSTUDIO_WIKIPEDIA_LANGUAGES` | worker | `en` | 005: excerpt languages in order, comma list of 1-5 codes (`[a-z]{2,3}`); anything else stops the worker at start-up |
+| `STEMSTUDIO_FAKE_ONLINE` | worker | `found` | 005, fake stack only: `found`, `not-found`, `failed`, `off` |
+| `STEMSTUDIO_LIBRARY_DIR` | worker | unset (compose: `/library`) | 007: the API data volume mounted **read-only**; unset means renders fail with *"The library is not available to the worker"* |
+| `STEMSTUDIO_RENDER_BLOCK_SECONDS` | worker | `10` | 007: render block length (> 0) |
+| `StemStudio__MinFreeDiskBytes` | api | 1073741824 (1 GiB) | 007: exports are refused (409 *"Not enough disk space"*) while less is free on the data drive |
+
+Online lookups (005) identify themselves with the User-Agent
+`StemStudio/<worker version> ( <STEMSTUDIO_CONTACT_URL> )`, or
+`StemStudio/<worker version> ( local-practice-tool; contact not configured )` when no contact
+URL is set. Check the read-only library mount with `scripts/check-library-mount.{ps1,sh}`. In
+the non-Docker path `scripts/dev.{ps1,sh}` points `STEMSTUDIO_LIBRARY_DIR` at the API data
+folder; the worker only reads it, but the file system does not enforce that there.
 
 Planned settings of later features <span class="planned">In development</span>:
 
 | Variable | Feature | Default | Meaning |
 |---|---|---|---|
-| `STEMSTUDIO_ONLINE_LOOKUPS` | 005 | `on` | `off` disables MusicBrainz, Wikidata, Wikipedia, Cover Art Archive and LRCLIB |
-| `STEMSTUDIO_CONTACT_URL` | 005 | unset | Contact part of the User-Agent (https, no e-mail) |
-| `STEMSTUDIO_WIKIPEDIA_LANGUAGES` | 005 | `en` | Up to 5 languages in order |
 | `STEMSTUDIO_ALIGN_MODEL`, `STEMSTUDIO_ALIGN_AUTO` | 006 | `turbo`, `gpu` | Lyrics alignment model and when it runs |
-| `STEMSTUDIO_LIBRARY_DIR` | 007 | `/library` | API data mounted read-only into the worker |
-| `STEMSTUDIO_RENDER_BLOCK_SECONDS` | 007 | `10` | Render block size |
-| `StemStudio__MinFreeDiskBytes` | 007 | 1 GiB | Export refused below this free space |
 | `STEMSTUDIO_TRANSCRIBER`, `STEMSTUDIO_TRANSCRIBE_THREADS` | 008 | `real`, `8` | Transcription engine and threads |
 | `StemStudio__GeneratorBaseUrl`, `StemStudio__SingerBaseUrl` | 009, 010 | unset | Unset means "not installed" |
 | `STEMSTUDIO_GPU_LEASE_FILE` | 009 | `/gpu-lease/gpu.lock` | Cross-container GPU lease |

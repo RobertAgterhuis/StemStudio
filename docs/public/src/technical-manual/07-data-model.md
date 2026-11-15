@@ -21,6 +21,19 @@ channels (stem, volume 0 to 1, default 0.8, pan −1 to 1, mute, solo), metronom
 volume, BPM override 30 to 300, offset −2000 to 2000 ms, beats per bar), loop (start, end,
 enabled), expanded parents and detail channels.
 
+**Track artwork and metadata (005)**: the chosen picture (source `user`, `spotify`,
+`embedded`, `coverartarchive` or `youtube`, version) and the best automatic one, the lookup
+result (status `none`, `pending`, `searching`, `found`, `notFound`, `failed`, `disabled`,
+recording, release group, warnings, `correctedByUser`) and a link to an **Artist** (MBID,
+facts and the Wikipedia summary with its attribution, shared by all tracks of the artist and
+refreshed after 30 days).
+
+**Asset (007)**: a library item: kind (audio), name (1 to 120 characters, unique with
+" (2)", " (3)" suffixes), status (`queued`, `rendering`, `ready`, `failed`), progress, error,
+worker job id, audio facts (format, bit depth or bit rate, duration, `appliedGainDb`),
+provenance (track id, title and artist, contents, render recipe) and its files. Items keep
+their provenance when the track is deleted; the API then reports `trackAvailable: false`.
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -29,8 +42,8 @@ enabled), expanded parents and detail channels.
 | `20261115091546_AddDetailPhase` | 002 | Track detail phase |
 | `20261115091608_AddMixDetailSettings` | 002 | Mix expanded groups and detail channels |
 | `20261115115115_AddJobDevice` | 003 | Processing device per track and detail phase |
-| `AddArtworkAndArtists` (planned) | 005 | Track artwork and metadata, `Artists` table |
-| `AddAssets` (planned) | 007 | `Assets` table (export library) |
+| `20261115143937_AddArtworkAndArtists` | 005 | `Tracks.ArtistId` (FK, indexed), `Artwork`, `AutoArtwork`, `Metadata` (JSON); table `Artists` (MBID key, name, type, country, years, website, Wikidata id, genres, members, summary, `FetchedAt` for the 30-day refresh) |
+| `20261115152313_AddAssets` | 007 | Table `Assets` (export library: kind, name, status, progress, error, worker job, audio facts, provenance, nullable `TrackId`, size, files; indexes on `CreatedAt`, `Status`, `TrackId`) |
 | `AddTrackLyrics` (planned) | 006 | `TrackLyrics` table, `Tracks.LyricsStatus` |
 | `AddScoreFacts` (planned) | 008 | `Assets.Score` |
 | `AddGenerativeStyles` (planned) | 009 | `Styles`, `Generations`, `GenerationTakes`, `Tracks.Origin` |

@@ -118,3 +118,35 @@ Next: feature 003 GPU acceleration (docs/ROADMAP.md).
 | Judgement call | Lighthouse uses `throttlingMethod: devtools`: the simulator mis-models Blazor Server's first render (prerendering off); documented in TEST-STRATEGY 10.4 |
 | Design review | CTO approval under the owner mandate, owner review pending (docs/design-review/004/REVIEW.md) |
 | Backlog | Radzen CSS/JS served uncompressed (812 KB vs 64 KB brotli); Material Symbols font (1 MB) on every page; level click before stored level loads is overwritten; mixer shortcut commands not serialised |
+
+## Feature 005 artwork and band info (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0 (shared with 007), audio-ingest, stem-separation, backend, frontend, qa, devops, quality-gate merged on `005-007-artwork-export`; integration run by qa on an isolated fake stack (`docs/handoffs/qa-005-007-integration.md`) |
+| `scripts/test-all.ps1` | 35/35 steps passed; Domain 389, Persistence 66, Web 1004, Api 672 tests (Web 99.44 % / 92.47 %, Api 99.51 / 95.88, Domain 98.63 / 96.39, Persistence 98.35 / 92.85, Contracts 100 / 100); worker 1596 tests 100 % line and branch |
+| Playwright, isolated fake stack (retries 0) | legacy 001-003 66/66, `@ux` 74/74; `test:artwork` per fake online mode: `found` 32 passed, `not-found`/`failed`/`off` 28 passed each (skips = other modes, `@online`, `@perf`) |
+| Accessibility | axe matrix incl. `band-info` 104/104, 0 violations; CTO close-out after the library column fix 106/106 |
+| Lighthouse (SC-003) | all budgets met, medians FCP 171-201 ms, LCP 304-401 ms, CLS <= 0.023 |
+| Visual (SC-005) | 80 baselines (60 of 004 regenerated for the covers, 20 new: `band-info`, `export-dialog`, `library`); 80/80 in the Playwright container on a fresh stack |
+| Live services (T062, generic User-Agent, `STEMSTUDIO_CONTACT_URL` unset) | integration run: 3 passed, 1 failed (`test_full_lookup_of_kevin_macleod_by_isrc`, HTTP 400 below; a first MusicBrainz 503 "busy" passed on the retry). After the fix: **4/4 passed** on the first run |
+| Bug fixed in close-out | the ISRC lookup asked MusicBrainz `/ws/2/isrc/<isrc>?inc=artist-credits+releases+release-groups`, which answers 400 ("release-groups is not a valid inc parameter for the isrc resource"), so every song with an ISRC failed with "Band information could not be retrieved". Now `/isrc` with `inc=artist-credits+releases`, then one `/recording/<mbid>?inc=artist-credits+releases+release-groups` per listed recording (at most 5); fixtures corrected to the real response shape (test-first; worker 1599 tests, 100 %) |
+| Integration app fixes | help query "export range", library reflow at 320 px (WCAG 1.4.10) |
+| Licences | tinytag (MIT), Pillow (MIT-CMU), httpx (BSD-3), rapidfuzz (MIT) direct; new "Online data services" section (MusicBrainz CC0, Cover Art Archive images in-app only, Wikidata CC0, Wikipedia CC BY-SA 4.0 with in-app attribution) |
+| Contracts | ui-test-ids 1.5.1 patch note adopts the extra ids the frontend renders (`band-info-close`, `band-info-album`, `band-info-error`, `metadata-correct-cancel`, `metadata-correct-error`, `artwork-progress`) |
+| Not done | quickstart A4, A5, A7, A8, A10 on the real stack (reference machine, owner); README section on online lookups (T061); formal `/speckit-analyze` pass (consistency covered by the contract tests and the E2E suites) |
+
+## Feature 007 export library (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0 (shared with 005), audio-engine, audio-ingest, stem-separation, backend, frontend, qa, devops, quality-gate merged on `005-007-artwork-export`; same integration run as 005 |
+| `scripts/test-all.ps1` | 35/35 steps passed (numbers as for 005); engine vitest 204 tests 100 %; web-interop 232 tests 99.62 % lines / 97.7 % branches |
+| Playwright, isolated fake stack (retries 0) | `test:export` 58 passed, 8 skipped (Firefox: `panner-law` is Chromium-only); `test:detail` incl. the `@detail` export case 26/26 |
+| Accessibility | axe matrix incl. `export-dialog` and `library` (+ 320 px reflow) 104/104, 0 violations; close-out 106/106 with the new desktop column check |
+| Visual (SC-005) | `export-dialog` and `library` (6 cells each) plus `library` at 360 px; after the close-out column fix the 8 `library--*` baselines were regenerated on a fresh isolated stack (compose project `stemstudio-e2e3`) and the whole set compared: **80/80** |
+| UI polish in close-out | desktop library Status column no longer breaks words ("Statu s", "Rea dy"): headings, status words and dates use `white-space: nowrap`; names and titles still wrap anywhere, so the 320 px reflow stays green |
+| Quality gate | `run_all.py` 0 errors (integration: 1 010 files, 8 033 units, 74 clones, 259 warnings) |
+| Licences | `lameenc` 1.9.0 (LGPL-3.0-or-later) recorded as a direct dependency |
+| Contracts | ui-test-ids 1.5.1 patch note adopts `export-close`, `export-error-hint`, `library-error`, `library-action-error`, `asset-rename-cancel`, `asset-rename-error` and command id `go-library` |
+| Not done | reference-machine validation X2-X10 on the real stack with "Hero of the Day" (T072: SC-001/SC-002 timings, X10 first-time-user check); README "Library and exports" section (T073 README part); formal `/speckit-analyze` pass; the 80 baselines still need the owner review |
