@@ -1,0 +1,28 @@
+@* Command palette (FR-018, design-spec.md 4.8): screens, actions of this screen, tracks, mixes and help topics;
+   type to filter, arrows and Enter to run, Escape to close (focus returns). *@
+@implements IAsyncDisposable
+
+<div class="ss-palette-backdrop" @onclick="CloseAsync">
+    <div class="ss-palette" role="dialog" aria-modal="true" aria-label="Command palette" data-testid="command-palette"
+         @onclick:stopPropagation="true">
+        <input class="rz-textbox ss-wide ss-palette-input" type="text" role="combobox" aria-expanded="true" aria-controls="command-list"
+               aria-autocomplete="list" aria-activedescendant="@ActiveId" aria-label="Type a command" placeholder="Type a command or search"
+               value="@Query" @oninput="OnInput" @onkeydown="KeyAsync" @ref="_input" data-testid="command-palette-input" />
+        <ul id="command-list" class="ss-palette-list" role="listbox" aria-label="Commands">
+            @foreach (var group in Visible.GroupBy(i => i.Group))
+            {
+                <li role="presentation" class="ss-palette-group">@group.Key</li>
+                @foreach (var item in group)
+                {
+                    var index = Visible.IndexOf(item);
+                    <li id="@($"command-{item.Id}")" role="option" aria-selected="@(index == Selected ? "true" : "false")"
+                        class="ss-palette-item" data-testid="@($"command-{item.Id}")" @onclick="() => RunAsync(item)">@item.Label</li>
+                }
+            }
+        </ul>
+        @if (Visible.Count == 0)
+        {
+            <p class="ss-muted ss-palette-empty" role="status">No commands match "@Query".</p>
+        }
+    </div>
+</div>

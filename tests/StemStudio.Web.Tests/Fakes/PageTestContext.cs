@@ -38,6 +38,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton(Substitute.For<ITourLauncher>());
         Services.AddScoped<TourService>();
         Services.AddScoped<PageCommands>();
+        Services.AddScoped<ShellOverlays>();
         Services.AddScoped<HelpContext>();
     }
 

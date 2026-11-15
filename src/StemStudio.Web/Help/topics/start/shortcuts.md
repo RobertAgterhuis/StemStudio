@@ -3,7 +3,7 @@ id: shortcuts
 title: "Keyboard shortcuts"
 area: start
 summary: "Use the keyboard for help, the command palette, navigation and every mixer action."
-anchors: ["command-palette"]
+anchors: ["command-palette", "shortcut-overlay"]
 keywords: ["keyboard", "keys", "hotkeys", "palette"]
 related: [mixer-transport, levels]
 reviewed: "004"

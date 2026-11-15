@@ -10,7 +10,7 @@
     <NavMenu OnHelp="Help.OpenScreenAsync" />
     <CascadingValue Value="Experience">
         <div class="ss-shell-body">
-            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="OpenPalette" />
+            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="Overlays.OpenPalette" />
             <main id="main" class="ss-main" tabindex="-1">
                 @if (Preferences.Loaded)
                 {
@@ -31,6 +31,14 @@
         @if (Help.IsOpen)
         {
             <HelpPanel />
+        }
+        @if (Overlays.PaletteOpen)
+        {
+            <CommandPalette />
+        }
+        @if (Overlays.ShortcutsOpen)
+        {
+            <ShortcutOverlay />
         }
     </CascadingValue>
     <div class="ss-toast-region" aria-live="polite">

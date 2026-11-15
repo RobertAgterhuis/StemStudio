@@ -72,6 +72,7 @@ public sealed partial class Mixer : IAsyncDisposable
         Engine.PositionChanged -= OnPositionChanged;
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
         await (_spaceKey?.DisposeAsync() ?? ValueTask.CompletedTask);
+        await ReleaseKeysAsync();
         await Engine.DisposeAsync();
     }
 
@@ -100,6 +101,7 @@ public sealed partial class Mixer : IAsyncDisposable
 
         _engineStarted = true;
         _spaceKey = await Shortcuts.RegisterSpaceAsync(() => InvokeAsync(TogglePlaybackAsync));
+        await RegisterKeysAsync();
         await StartEngineAsync(State);
         StateHasChanged();
     }

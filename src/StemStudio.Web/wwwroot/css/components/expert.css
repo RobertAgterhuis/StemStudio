@@ -1,0 +1,144 @@
+/* Command palette and shortcut overlay (design-spec.md 4.8): top-centred floating dialogs. */
+.ss-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ss-z-dialog);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--ss-space-4) var(--ss-space-4);
+  background: var(--ss-color-scrim);
+}
+
+.ss-palette {
+  display: grid;
+  gap: var(--ss-space-2);
+  width: min(40rem, 100%);
+  max-height: 70vh;
+  padding: var(--ss-space-3);
+  overflow: hidden;
+  border-radius: var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  box-shadow: var(--ss-elev-float);
+  animation: ss-float-in var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+.ss-palette-input {
+  min-height: 3rem;
+  font-size: var(--ss-type-heading-size);
+}
+
+.ss-palette-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ss-palette-group {
+  padding: var(--ss-space-2) var(--ss-space-3) var(--ss-space-1);
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-small-size);
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-palette-item {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-radius: var(--ss-radius-control);
+  cursor: pointer;
+}
+
+.ss-palette-item:hover,
+.ss-palette-item[aria-selected="true"] {
+  background: var(--ss-color-surface);
+  box-shadow: inset 3px 0 0 var(--ss-color-ink);
+}
+
+.ss-shortcuts {
+  overflow-y: auto;
+  padding: var(--ss-space-5);
+}
+
+.ss-shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--ss-space-3);
+}
+
+.ss-shortcut-table caption {
+  padding-bottom: var(--ss-space-1);
+  color: var(--ss-color-muted);
+  font-weight: var(--ss-type-label-weight);
+  text-align: left;
+}
+
+.ss-shortcut-table th,
+.ss-shortcut-table td {
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-bottom: 1px solid var(--ss-color-divider);
+  text-align: left;
+  font-weight: 400;
+}
+
+.ss-bar-kbd {
+  margin-left: var(--ss-space-1);
+}
+
+/* Expert controls in the mixer. */
+.ss-strip-numbers {
+  display: grid;
+  gap: var(--ss-space-1);
+  width: 100%;
+}
+
+input.ss-strip-number {
+  width: 100%;
+  min-height: var(--ss-target-min);
+  padding: 0 var(--ss-space-1);
+  font-size: var(--ss-type-small-size);
+  text-align: right;
+}
+
+.ss-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ss-space-1);
+  height: 100%;
+}
+
+.ss-meter-wrap .ss-meter {
+  flex: 1;
+}
+
+.ss-meter-db {
+  min-width: 2.5rem;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-small-size);
+  font-variant-numeric: var(--ss-num);
+  text-align: center;
+}
+
+.ss-kbd-hints {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-1);
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--ss-space-4);
+}
+
+.ss-job-details .ss-text-button {
+  justify-self: start;
+}
+
+.ss-strip[data-selected="true"] {
+  outline: var(--ss-focus-width) solid var(--ss-color-ink);
+  outline-offset: -2px;
+}

@@ -4,6 +4,7 @@ title: "Job details"
 area: tracks
 summary: "Expert: the model, stage, device and fallback reason of the standard and detail jobs."
 feature: track.job-details
+anchors: ["track-job-details"]
 keywords: ["technical", "job", "stage"]
 related: [processing-device, levels]
 reviewed: "004"

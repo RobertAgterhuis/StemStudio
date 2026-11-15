@@ -2,6 +2,7 @@
 @inject IHelpCatalog Catalog
 @inject HelpContext Help
 @inject ITourLauncher Tours
+@inject ShellOverlays Overlays
 
 <nav class="ss-help-index" aria-label="Help topics" data-testid="help-index">
     @foreach (var area in Catalog.Areas)
@@ -16,6 +17,9 @@
             }
         </ul>
     }
+    <p class="ss-help-shortcuts">
+        <button type="button" class="ss-text-button" data-testid="help-shortcuts" @onclick="Overlays.OpenShortcuts">Show keyboard shortcuts</button>
+    </p>
     @if (LevelTours.Count > 0)
     {
         <h3 class="ss-heading">Tours</h3>

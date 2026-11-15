@@ -72,7 +72,7 @@ else
                 @foreach (var channel in State.Channels)
                 {
                     var group = State.GroupOf(channel.Stem);
-                    <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded"
+                    <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded" Selected="channel.Stem == SelectedStem"
                                   OnVolume="v => SetVolumeAsync(channel.Stem, v)" OnPan="p => SetPanAsync(channel.Stem, p)"
                                   OnMute="() => ToggleMuteAsync(channel.Stem)" OnSolo="() => ToggleSoloAsync(channel.Stem)">
                         @if (group is not null)

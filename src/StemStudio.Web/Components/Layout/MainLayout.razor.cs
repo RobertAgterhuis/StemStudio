@@ -29,6 +29,12 @@ public sealed partial class MainLayout : IAsyncDisposable
     [Inject]
     private IWebInterop Web { get; set; } = default!;
 
+    [Inject]
+    private ShellOverlays Overlays { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     private ExperienceContext Experience => new(Preferences.Current.EffectiveLevel, Preferences.Current.EffectiveDensity);
 
     private string LevelName => Lower(Preferences.Current.EffectiveLevel);
@@ -43,6 +49,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         Preferences.Changed -= OnChanged;
         Toasts.Changed -= OnChanged;
         Help.Changed -= OnChanged;
+        Overlays.Changed -= OnChanged;
         await (_shortcuts?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 
@@ -52,6 +59,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         Preferences.Changed += OnChanged;
         Toasts.Changed += OnChanged;
         Help.Changed += OnChanged;
+        Overlays.Changed += OnChanged;
     }
 
     /// <inheritdoc />
@@ -72,8 +80,33 @@ public sealed partial class MainLayout : IAsyncDisposable
     private Task OnCommandAsync(string commandId) => commandId switch
     {
         "help.open" => Help.OpenAsync(),
+        "palette.open" => Run(Overlays.OpenPalette),
+        "shortcuts.open" => Run(OpenShortcutsByKey),
+        _ when commandId.StartsWith("go.", StringComparison.Ordinal) => Run(() => Go(commandId)),
         _ => Task.CompletedTask,
     };
+
+    private static Task Run(Action action)
+    {
+        action();
+        return Task.CompletedTask;
+    }
+
+    // Mod+/ opens the overview at Expert only; other levels reach it from the help panel (FR-017).
+    private void OpenShortcutsByKey()
+    {
+        if (Experience.IsVisible("shell.shortcut-overlay-key"))
+        {
+            Overlays.OpenShortcuts();
+        }
+    }
+
+    private void Go(string commandId) => Navigation.NavigateTo(commandId switch
+    {
+        "go.tracks" => "tracks",
+        "go.mixes" => "mixes",
+        _ => string.Empty,
+    });
 
     private async Task InterceptHelpLinkAsync(LocationChangingContext context)
     {
@@ -84,8 +117,4 @@ public sealed partial class MainLayout : IAsyncDisposable
         }
     }
 
-    private static void OpenPalette()
-    {
-        // The command palette arrives with US5 (T061).
-    }
 }

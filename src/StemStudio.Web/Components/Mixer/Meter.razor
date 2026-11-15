@@ -1,8 +1,14 @@
 @* Peak meter element; the audio engine writes --meter-level, data-peak-db and data-clip into it (contracts/audio-engine.md). *@
 
-<div class="ss-meter" id="@($"meter-{Target}")" role="img" aria-label="@($"{Label ?? Target} level meter")"
-     data-testid="@($"meter-{Target}")" data-help-id="mixer-meters">
-    <div class="ss-meter-fill"></div>
+<div class="ss-meter-wrap">
+    <div class="ss-meter" id="@($"meter-{Target}")" role="img" aria-label="@($"{Label ?? Target} level meter")"
+         data-testid="@($"meter-{Target}")" data-help-id="mixer-meters">
+        <div class="ss-meter-fill"></div>
+    </div>
+    <LevelGate Feature="mixer.meter.db">
+        @* Text follows the engine's data-peak-db through web-interop (meters.ts). *@
+        <span class="ss-meter-db" data-testid="@($"meter-db-{Target}")">-inf</span>
+    </LevelGate>
 </div>
 
 @code {

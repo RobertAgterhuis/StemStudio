@@ -18,6 +18,10 @@ public sealed partial class ChannelStrip
     [Parameter]
     public bool? Expanded { get; set; }
 
+    /// <summary>True when the strip is selected for keyboard mute/solo (<c>data-selected</c>).</summary>
+    [Parameter]
+    public bool Selected { get; set; }
+
     /// <summary>Detail index for the tab pattern (detail strips); null for standard strips.</summary>
     [Parameter]
     public int? Pattern { get; set; }

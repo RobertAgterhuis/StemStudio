@@ -4,6 +4,7 @@ title: "Exact values"
 area: mixer
 summary: "Expert: type exact volume (0 to 100) and pan (-100 to 100) values under each fader."
 feature: mixer.numeric
+anchors: ["mixer-numeric-entry"]
 keywords: ["numeric", "exact", "number"]
 related: [mixer-volume, mixer-pan]
 reviewed: "004"

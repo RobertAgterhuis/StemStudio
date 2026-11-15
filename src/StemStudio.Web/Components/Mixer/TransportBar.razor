@@ -12,6 +12,9 @@
            @onchange="Seek" data-testid="transport-seek" />
     <span class="ss-position ss-counter" data-testid="transport-position">@TimeText.Position(Position) / @TimeText.Duration(Duration)</span>
     <span class="ss-transport-state" role="status" data-testid="transport-state">@State</span>
+    <LevelGate Feature="shell.kbd-hints">
+        <span class="ss-kbd-hints"><kbd>Space</kbd> play <kbd>Home</kbd> stop <kbd>[</kbd> <kbd>]</kbd> loop A, B <kbd>L</kbd> loop</span>
+    </LevelGate>
 </div>
 
 @code {

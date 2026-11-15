@@ -1,13 +1,21 @@
 @* Context bar (design-spec.md 4.1): journey slot on the left, level switch, command palette, help and preferences
    in the same place on every screen (WCAG 3.2.6). *@
 
+@inject ShellOverlays Overlays
+
 <header class="ss-bar">
     <div class="ss-bar-context"><SectionOutlet SectionName="@JourneySection" />@ChildContent</div>
     <div class="ss-bar-actions">
         <LevelSwitch />
         <button type="button" class="ss-bar-button" data-testid="command-palette-open" data-help-id="command-palette" aria-keyshortcuts="Control+K" @onclick="OnPalette">
             <span class="rzi" aria-hidden="true">search</span><span class="ss-bar-label">Commands</span>
+            <LevelGate Feature="shell.kbd-hints"><kbd class="ss-bar-kbd">Ctrl K</kbd></LevelGate>
         </button>
+        <LevelGate Feature="shell.shortcut-overlay-key">
+            <button type="button" class="ss-bar-button" data-help-id="shortcut-overlay" aria-keyshortcuts="Control+/" @onclick="Overlays.OpenShortcuts">
+                <span class="rzi" aria-hidden="true">keyboard</span><span class="ss-bar-label">Shortcuts</span>
+            </button>
+        </LevelGate>
         <button type="button" class="ss-bar-button" data-testid="help-toggle" data-help-id="help-button"
                 aria-expanded="@(HelpOpen ? "true" : "false")" aria-controls="help-panel" aria-keyshortcuts="F1" @onclick="OnHelp">
             <span class="rzi" aria-hidden="true">help</span><span class="ss-bar-label">Help</span>
