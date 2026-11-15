@@ -1,35 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLIP_HOLD_MS, DECAY_DB_PER_SECOND, METER_FLOOR_DB, Meters, browserFrames, peakOf, peakToDb, type FrameScheduler } from '../src/meters';
+import { CLIP_HOLD_MS, DECAY_DB_PER_SECOND, METER_FLOOR_DB, Meters, browserFrames, peakOf, peakToDb } from '../src/meters';
 import type { MeterTarget } from '../src/types';
 import { MockAudioContext, type MockAnalyserNode } from './mocks/audio-context';
-
-/** Manually stepped requestAnimationFrame. */
-class FakeFrames implements FrameScheduler {
-  private readonly pending = new Map<number, FrameRequestCallback>();
-  private next = 1;
-
-  public request(callback: FrameRequestCallback): number {
-    const id = this.next++;
-    this.pending.set(id, callback);
-    return id;
-  }
-
-  public cancel(handle: number): void {
-    this.pending.delete(handle);
-  }
-
-  public get size(): number {
-    return this.pending.size;
-  }
-
-  public step(timestamp: number): void {
-    const callbacks = [...this.pending.values()];
-    this.pending.clear();
-    callbacks.forEach((cb) => {
-      cb(timestamp);
-    });
-  }
-}
+import { FakeFrames } from './mocks/frames';
 
 interface Rig {
   readonly frames: FakeFrames;

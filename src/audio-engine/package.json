@@ -1,7 +1,7 @@
 {
   "name": "@stemstudio/audio-engine",
   "version": "0.1.0",
-  "description": "StemStudio Web Audio engine: sample-locked multi-stem playback, mixer, meters, A-B loop and look-ahead metronome, consumed by Blazor via JS interop.",
+  "description": "StemStudio Web Audio engine: sample-locked multi-stem playback, mixer, meters, A-B loop, look-ahead metronome and karaoke banner, consumed by Blazor via JS interop.",
   "license": "MIT",
   "private": true,
   "type": "module",

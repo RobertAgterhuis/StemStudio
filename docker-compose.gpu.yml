@@ -1,8 +1,9 @@
 # Optional NVIDIA GPU override for the worker (feature 003, ADR-012).
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 #
-# Builds the GPU variant of docker/worker.Dockerfile (TORCH_VARIANT=cu132: torch 2.15.0+cu132;
-# ORT_VARIANT=gpu: onnxruntime-gpu 1.32.0 + cuRAND) as stemstudio/worker:local-gpu and sets
+# Builds the GPU variant of docker/worker.Dockerfile (TORCH_VARIANT=cu132: torch 2.15.0+cu132 and
+# torchaudio 2.11.1+cu132; ORT_VARIANT=gpu: onnxruntime-gpu 1.32.0 + cuRAND) as
+# stemstudio/worker:local-gpu and sets
 # STEMSTUDIO_DEVICE=auto: the worker uses the GPU when its start-up probe passes and otherwise
 # runs on the CPU with the reason in /health (it never fails to start). CPU stays the default.
 #

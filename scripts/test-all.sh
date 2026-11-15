@@ -25,7 +25,8 @@ for arg in "$@"; do
   esac
 done
 REDOCLY=@redocly/cli@2.78.0
-CONTRACTS=specs/007-export-library/contracts  # 007 documents contain 005's unchanged
+CONTRACTS=specs/008-sheet-music/contracts  # 008 documents contain 006's and 007's unchanged
+RENDER_VECTORS=specs/007-export-library/contracts/generate_render_vectors.py  # 008 has no vectors file
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
@@ -66,7 +67,7 @@ step "web-interop test:coverage" src/web-interop npm run test:coverage
 step "web-interop build" src/web-interop npm run build
 step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
-step "render vectors check" . uv run --project worker --frozen python "$CONTRACTS/generate_render_vectors.py" --check
+step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
 step "quality ruff check" tools/quality uvq ruff check .
 step "quality ruff format" tools/quality uvq ruff format --check .
 step "quality mypy" tools/quality uvq mypy
