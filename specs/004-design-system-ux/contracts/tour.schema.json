@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/contracts/004/tour.schema.json",
+  "title": "StemStudio guided tour",
+  "description": "A guided tour file Help/tours/<id>.json (contracts/help-content.md section 3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "title", "route", "levels", "steps"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 48 },
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "route": { "type": "string", "pattern": "^(\\*|/.*)$" },
+    "levels": {
+      "type": "array",
+      "items": { "enum": ["beginner", "advanced", "expert"] },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "topic"],
+        "properties": {
+          "target": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "topic": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "text": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
+    }
+  }
+}
