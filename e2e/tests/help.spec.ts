@@ -103,6 +103,10 @@ async function expectTopicsReachable(help: HelpPanel, queries: Readonly<Record<s
   await help.open('button');
   expect(await wrongFirstResults(help, queries)).toEqual({});
   for (const [query, topicId] of Object.entries(queries)) {
+    // Click only once the list shows this query's results: a result clicked while the previous
+    // list is still being replaced can open another topic.
+    await help.search(query);
+    await expect.poll(() => help.firstResultTopic(), query).toBe(topicId);
     await help.openTopic(query, topicId);
     await expect(help.byId('help-topic-body')).not.toBeEmpty();
   }
@@ -147,6 +151,8 @@ test('the export dialog and the library carry their help markers', { tag: '@expo
 // @styles, so `npm run test:styles` covers them on every stack.
 test('the 009/010 reference queries return their topic first, and each topic opens', { tag: '@styles' }, async ({ help, page }) => {
   await page.goto('/styles');
+  // Wait for the page to finish loading: its screen topic would otherwise replace a topic opened early.
+  await expect(page.locator('[data-testid^="style-row-"]').first()).toBeVisible();
   await expect(help.byId('help-toggle')).toBeVisible();
   await expectTopicsReachable(help, generativeReferenceQueries);
 });
@@ -157,8 +163,9 @@ test('the style, generation, song and voice pages open their screen topic', { ta
     await shell.waitForShell();
     await help.open('button');
     await help.expectTopic(topicId);
+    // Escape closes the panel once focus has moved into it (as in the 004 help cases).
+    await expect.poll(() => shell.focusIsInside(help.panel), `${path}: focus moves into the panel`).toBe(true);
     await help.closeWithEscape();
-    await expect(help.panel).toBeHidden();
   }
 });
 
