@@ -1,7 +1,7 @@
 """Images generated in the tests themselves (never third-party pictures)."""
 
+import hashlib
 import io
-import random
 import struct
 import zlib
 
@@ -17,7 +17,9 @@ def encode(image: Image.Image, image_format: str, **options: object) -> bytes:
     return buffer.getvalue()
 
 
-def solid(size: tuple[int, int], colour: Colour = (200, 40, 40), image_format: str = "JPEG") -> bytes:
+def solid(
+    size: tuple[int, int], colour: Colour = (200, 40, 40), image_format: str = "JPEG"
+) -> bytes:
     """A solid-colour picture."""
     return encode(Image.new("RGB", size, colour), image_format)
 
@@ -31,8 +33,7 @@ def halves(size: tuple[int, int], left: Colour, right: Colour) -> Image.Image:
 
 def noise(size: tuple[int, int], seed: int = 5) -> bytes:
     """A high-entropy PNG (worst case for JPEG size limits)."""
-    rng = random.Random(seed)
-    data = bytes(rng.getrandbits(8) for _ in range(size[0] * size[1] * 3))
+    data = hashlib.shake_256(str(seed).encode()).digest(size[0] * size[1] * 3)
     return encode(Image.frombytes("RGB", size, data), "PNG")
 
 

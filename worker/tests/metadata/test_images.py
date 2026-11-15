@@ -214,7 +214,7 @@ def test_other_formats_are_unsupported(image_format: str) -> None:
 
 def test_polyglot_payload_does_not_survive_re_encoding() -> None:
     payload = b"PK\x03\x04<script>alert(1)</script>"
-    cover, thumb, cover_bytes, thumb_bytes, _ = _normalise(solid((64, 64)) + payload)
+    cover, _, cover_bytes, thumb_bytes, _ = _normalise(solid((64, 64)) + payload)
 
     assert payload not in cover_bytes
     assert payload not in thumb_bytes
@@ -223,7 +223,11 @@ def test_polyglot_payload_does_not_survive_re_encoding() -> None:
 
 def test_url_candidate_is_fetched_with_the_online_client() -> None:
     harness = online_harness(
-        [httpx.Response(200, content=solid((480, 360), BLUE), headers={"content-type": "image/jpeg"})]
+        [
+            httpx.Response(
+                200, content=solid((480, 360), BLUE), headers={"content-type": "image/jpeg"}
+            )
+        ]
     )
     normalizer = PillowImageNormalizer(harness.client)
 
