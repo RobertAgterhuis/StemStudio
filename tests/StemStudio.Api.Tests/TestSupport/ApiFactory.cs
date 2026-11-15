@@ -65,6 +65,20 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         return track;
     });
 
+    /// <summary>One pass of the standard job synchroniser in a fresh scope.</summary>
+    public Task<bool> SyncTracksAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Sync.ITrackSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
+    /// <summary>One pass of the detail synchroniser in a fresh scope.</summary>
+    public Task<bool> SyncDetailAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Detail.DetailSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");

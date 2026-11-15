@@ -1,8 +1,5 @@
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using StemStudio.Api.Detail;
-using StemStudio.Api.Sync;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Worker;
@@ -38,11 +35,11 @@ public sealed class DeviceSyncTests : IDisposable
     {
         var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Separating, OnGpu);
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
         (await _factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, null));
 
         ReportJob(WorkerJobState.Analysing, WithFallback);
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
 
         (await _factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, Oom));
     }
@@ -53,7 +50,7 @@ public sealed class DeviceSyncTests : IDisposable
         var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Completed, WithFallback);
 
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
 
         var synced = (await _factory.FindTrackAsync(track.Id))!;
         (synced.Status, synced.Device!.FallbackReason).ShouldBe((TrackStatus.Completed, Oom));
@@ -64,10 +61,10 @@ public sealed class DeviceSyncTests : IDisposable
     {
         var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Separating, OnGpu);
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
 
         ReportJob(WorkerJobState.Analysing, Invalid);
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
 
         var synced = (await _factory.FindTrackAsync(track.Id))!;
         (synced.Status, synced.Device!.Name).ShouldBe((TrackStatus.Analysing, Gpu));
@@ -79,11 +76,11 @@ public sealed class DeviceSyncTests : IDisposable
     {
         var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
         ReportDetailJob(WorkerDetailJobState.Running, OnGpu);
-        await SyncDetailAsync();
+        await _factory.SyncDetailAsync();
         (await DetailPhaseAsync(track)).Device!.CpuFallback.ShouldBeFalse();
 
         ReportDetailJob(WorkerDetailJobState.Completed, WithFallback);
-        await SyncDetailAsync();
+        await _factory.SyncDetailAsync();
 
         var phase = await DetailPhaseAsync(track);
         (phase.Status, phase.Device!.FallbackReason).ShouldBe((DetailPhaseStatus.Completed, Oom));
@@ -96,7 +93,7 @@ public sealed class DeviceSyncTests : IDisposable
         var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
         ReportDetailJob(WorkerDetailJobState.Running, Invalid);
 
-        await SyncDetailAsync();
+        await _factory.SyncDetailAsync();
 
         var phase = await DetailPhaseAsync(track);
         (phase.Status, phase.Device).ShouldBe((DetailPhaseStatus.Running, null));
@@ -146,16 +143,4 @@ public sealed class DeviceSyncTests : IDisposable
         Worker.OnGetDetailJob = id => Task.FromResult<WorkerDetailJob?>(FakeWorkerClient.DetailJob(id, state, 40, "drums") with { Device = device });
 
     private async Task<DetailPhase> DetailPhaseAsync(Track track) => (await _factory.FindTrackAsync(track.Id))!.DetailPhase!;
-
-    private Task<bool> SyncTracksAsync() => _factory.WithScopeAsync(async sp =>
-    {
-        await sp.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(Ct);
-        return true;
-    });
-
-    private Task<bool> SyncDetailAsync() => _factory.WithScopeAsync(async sp =>
-    {
-        await sp.GetRequiredService<DetailSynchronizer>().SyncAllAsync(Ct);
-        return true;
-    });
 }

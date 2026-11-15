@@ -1,8 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
-using StemStudio.Api.Detail;
-using StemStudio.Api.Sync;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Api.Tests.Worker;
 using StemStudio.Api.Worker;
@@ -38,7 +35,7 @@ public sealed class DeviceFallbackTests : IDisposable
         var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
         Worker.OnGetDetailJob = _ => Task.FromResult<WorkerDetailJob?>(example);
 
-        await SyncDetailAsync();
+        await _factory.SyncDetailAsync();
 
         var device = (await GetTrackAsync(track.Id)).Detail.Device!;
         (device.Kind, device.CpuFallback).ShouldBe((ProcessingDeviceKindDto.Gpu, true));
@@ -51,7 +48,7 @@ public sealed class DeviceFallbackTests : IDisposable
         var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
         Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(FakeWorkerClient.Job(id, WorkerJobState.Separating, 30));
 
-        await SyncTracksAsync();
+        await _factory.SyncTracksAsync();
 
         var dto = await GetTrackAsync(track.Id);
         (dto.Status, dto.Device).ShouldBe((TrackStatusDto.Separating, null));
@@ -74,16 +71,4 @@ public sealed class DeviceFallbackTests : IDisposable
 
     private async Task<TrackDto> GetTrackAsync(Guid id) =>
         (await _client.GetFromJsonAsync<TrackDto>(new Uri(ApiRoutes.Track(id), UriKind.Relative), ApiFactory.Json, Ct))!;
-
-    private Task<bool> SyncTracksAsync() => _factory.WithScopeAsync(async sp =>
-    {
-        await sp.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(Ct);
-        return true;
-    });
-
-    private Task<bool> SyncDetailAsync() => _factory.WithScopeAsync(async sp =>
-    {
-        await sp.GetRequiredService<DetailSynchronizer>().SyncAllAsync(Ct);
-        return true;
-    });
 }
