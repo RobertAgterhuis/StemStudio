@@ -184,8 +184,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 **Goal**: the detail phase can fail, be cancelled and retried without touching the standard stems.
 **Independent test**: quickstart D5-D7, D11; E2E "restart", "priority".
 
-- [ ] T065 [P] [US3] [stem-separation] Failing tests: a standard job submitted while a detail step runs starts within 5 s after that step (fake clock), queued detail jobs never delay it (SC-006); cancel during a step reports cancelled within one chunk; retry after cancel/failure reuses checkpoints (stage text skips finished parents)
-- [ ] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
+- [x] T065 [P] [US3] [stem-separation] Failing tests: a standard job submitted while a detail step runs starts within 5 s after that step (fake clock), queued detail jobs never delay it (SC-006); cancel during a step reports cancelled within one chunk; retry after cancel/failure reuses checkpoints (stage text skips finished parents)
+- [x] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
 - [ ] T067 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailEndpointTests.cs`: `POST .../detail` 202 from none/failed/cancelled, 409 otherwise and when the track is not completed; `POST .../detail/cancel` 200 from queued/running (pending submission cancels locally), 409 otherwise, 503 when the worker is unreachable; `DELETE /api/tracks/{id}` 409 while queued/running with the reason, removes `detail/` otherwise (FR-008, FR-009, FR-016)
 - [ ] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
 - [ ] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
