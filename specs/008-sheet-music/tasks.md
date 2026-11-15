@@ -158,8 +158,8 @@ in the execution plan.
 - [x] T051 [US3] [stem-separation] Integration test (`@pytest.mark.integration`, downloads the piano checkpoint): the synthetic polyphonic fixture (research.md S-04) through the real piano CRNN + cleaning reaches note F1 >= 0.85 (SC-002); records the time per audio second on the test machine in the output
 - [x] T052 [P] [US3] [backend] Failing tests: piano options list `accurate` and `fast` with estimates from `StemStudio:ScoreEstimates` and the device (`GET /api/device` faked); default `accurate` on a GPU worker, `fast` on CPU; `attribution` set for the piano engine; the `cpu-piano` warning surfaces in `score.warnings` (FR-008)
 - [x] T053 [US3] [backend] Implement to pass T052
-- [ ] T054 [P] [US3] [frontend] Failing bUnit tests: `score-quality` (Advanced) for piano with both estimates; `asset-attribution-<id>` for piano items; help id `sheet-music-piano` (FR-008, FR-014)
-- [ ] T055 [US3] [frontend] Implement to pass T054
+- [x] T054 [P] [US3] [frontend] Failing bUnit tests: `score-quality` (Advanced) for piano with both estimates; `asset-attribution-<id>` for piano items; help id `sheet-music-piano` (FR-008, FR-014)
+- [x] T055 [US3] [frontend] Implement to pass T054
 - [ ] T056 [US3] [qa] Author `sheet-music.spec.ts` "piano": the fake piano score's MusicXML has two staves (`<staves>2</staves>`) with treble and bass clefs
 
 **Checkpoint**: HO:us3.
