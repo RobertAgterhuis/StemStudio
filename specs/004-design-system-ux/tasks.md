@@ -128,7 +128,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 - [ ] T044 [US2] [frontend] Apply `LevelGate` in ChannelStrip, LoopControls, MetronomePanel, Tracks, Mixes, TrackDetail per the catalogue to pass T043
 - [ ] T045 [P] [US2] [frontend] Failing tests `Mixer/PracticePresetsTests.cs` + bUnit `PracticePresetsComponentTests.cs`: each preset's effect via `MixerState` operations (and engine calls through the existing fake), availability by present stems, mix becomes dirty, Beginner chip row vs Advanced/Expert menu, `preset-<id>` ids (FR-016)
 - [ ] T046 [US2] [frontend] Implement `Mixer/{PracticePreset,PracticePresets}.cs`, `Components/Mixer/PracticePresets.razor` to pass T045
-- [ ] T047 [US2] [qa] Author `e2e/tests/journey-beginner.spec.ts` (fresh storage: welcome -> Beginner -> import fixture -> mixer -> "Play along: drums" -> Save, using only rail, primary buttons and presets; SC-007), `journey-levels.spec.ts` (R8 hidden ids at Beginner, Expert extras, level persists after reload, second tab follows, switch keeps playback/position/unsaved state; SC-010)
+- [x] T047 [US2] [qa] Author `e2e/tests/journey-beginner.spec.ts` (fresh storage: welcome -> Beginner -> import fixture -> mixer -> "Play along: drums" -> Save, using only rail, primary buttons and presets; SC-007), `journey-levels.spec.ts` (R8 hidden ids at Beginner, Expert extras, level persists after reload, second tab follows, switch keeps playback/position/unsaved state; SC-010)
 
 **Checkpoint**: HO:us2.
 
