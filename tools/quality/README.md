@@ -94,6 +94,13 @@ Feature 007: `StemStudio.Api/Assets` -/- `StemStudio.Web`; `StemStudio.Domain/Re
 library layout strings it produces).
 Feature 009: `StemStudio.Api/Generation` and the generator client `StemStudio.Api/Generator` -/-
 `StemStudio.Web`.
+Feature 010 (namespace entries): `StemStudio.Api/Voices` -/- `StemStudio.Web`,
+`StemStudio.Api.Generation` (one-way `Generation -> Voices`); `StemStudio.Api/Generator` -/-
+`StemStudio.Api.Generation`, `StemStudio.Api.Voices` (the client is the lowest layer). A
+forbidden name matches itself and every namespace below it, never a longer name
+(`StemStudio.Api.GenerationTools` is not `StemStudio.Api.Generation`). Not detected: a
+partially qualified name that relies on the enclosing namespace (`Generation.SongService` written
+inside `namespace StemStudio.Api.Voices`); review catches those.
 
 Generator (features 009/010, `GENERATOR_ALLOWED`): `generator/src/stemstudio_generator` follows
 `api -> jobs -> ports <- {engines, devices, audio}`; `engines`, `devices` and `audio` import only
@@ -102,7 +109,9 @@ and `config` are leaves; nothing but `main.py` (the composition root) imports an
 generator is a default root of `sig_check` and `duplication`, `generator/src/` is production code
 (hard limits apply), it has component rows `generator/{engines,devices,audio,jobs,api,core}`,
 and its service code and tests belong to the `generative` agent (`ports`, `schemas`, `config` and
-`__init__` stay with the architect). It has no vendored code (SoulX-Singer is path-installed in
+`__init__` stay with the architect). The SoulX-Singer adapters `engines/soulx_svc.py` and
+`engines/rmvpe.py` and `audio/{remix,normalise}.py` (feature 010) follow the same rule. It has no
+vendored code (SoulX-Singer is path-installed in
 the singer image, ADR-019), so nothing below `generator/` is excluded. Sonar analyses
 `generator/src` and `generator/tests` and reads `generator/coverage.xml`.
 

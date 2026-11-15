@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 from repo_tree import GENERATOR_PACKAGE as GEN
-from repo_tree import WORKER_PACKAGE, api_findings
+from repo_tree import WORKER_PACKAGE, api_findings, write_generator_tree
 from repo_tree import write_file as _write
 from repo_tree import write_generator_module as _gen
 from repo_tree import write_module as _worker
@@ -77,11 +77,6 @@ GENERATOR_TREE = {
 }
 
 
-def _generator_tree(root: Path) -> None:
-    for rel, text in GENERATOR_TREE.items():
-        _gen(root, rel, text)
-
-
 # ------------------------------------------------------------------ generator layer rule
 
 
@@ -101,7 +96,7 @@ def test_generator_layer_map() -> None:
 
 
 def test_generator_importing_allowed_modules_is_clean(tmp_path: Path) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     assert dependency_check.run(tmp_path) == []
 
 
@@ -129,7 +124,7 @@ def test_generator_importing_allowed_modules_is_clean(tmp_path: Path) -> None:
     ],
 )
 def test_generator_forbidden_edges(tmp_path: Path, rel: str, text: str, edge: str) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     _gen(tmp_path, rel, text)
     findings = dependency_check.run(tmp_path)
     (finding,) = [f for f in findings if not f.message.startswith("cycle: ")]
@@ -140,7 +135,7 @@ def test_generator_forbidden_edges(tmp_path: Path, rel: str, text: str, edge: st
 
 
 def test_generator_module_missing_from_the_map_is_a_warning(tmp_path: Path) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     _gen(tmp_path, "voices/store.py", "from ..ports import Clock\n")
     (finding,) = dependency_check.run(tmp_path)
     assert finding.severity is Severity.WARNING
@@ -148,7 +143,7 @@ def test_generator_module_missing_from_the_map_is_a_warning(tmp_path: Path) -> N
 
 
 def test_generator_cycle_is_an_error(tmp_path: Path) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     _gen(tmp_path, "schemas.py", "from stemstudio_generator.config import X\n")
     (finding,) = dependency_check.run(tmp_path)
     assert finding.severity is Severity.ERROR
@@ -156,7 +151,7 @@ def test_generator_cycle_is_an_error(tmp_path: Path) -> None:
 
 
 def test_generator_finding_names_the_generative_owner(tmp_path: Path) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     _gen(tmp_path, "engines/wire.py", "\n\nfrom ..jobs import x\n")
     (finding,) = dependency_check.run(tmp_path)
     assert (finding.line, finding.owner) == (3, "generative")
@@ -199,7 +194,7 @@ def test_worker_and_generator_never_import_each_other(
 
 def test_worker_package_rules_ignore_the_generator(tmp_path: Path) -> None:
     _worker(tmp_path, "jobs/runner.py", "from stemstudio_worker.ports import JobStore\n")
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
     assert dependency_check.run(tmp_path) == []
     assert (tmp_path / WORKER_PACKAGE).is_dir()
 

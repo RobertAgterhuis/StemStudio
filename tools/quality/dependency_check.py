@@ -11,6 +11,7 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
     Api/Metadata, Api/Artwork -/- Web            (feature 005)
     Api/Assets -/- Web;  Domain/Rendering -/- {Api, Persistence, Web, Contracts}   (feature 007)
     Api/Generation, Api/Generator -/- Web                                          (feature 009)
+    Api/Voices -/- {Web, Api.Generation};  Api/Generator -/- {Api.Generation, Api.Voices}  (010)
 
 Worker (imports inside ``stemstudio_worker``)::
 
@@ -101,9 +102,17 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
         {"StemStudio.Api", "StemStudio.Persistence", "StemStudio.Web", "StemStudio.Contracts"}
     ),
     "StemStudio.Api/Generation": frozenset({"StemStudio.Web"}),
-    "StemStudio.Api/Generator": frozenset({"StemStudio.Web"}),
+    "StemStudio.Api/Generator": frozenset(
+        {"StemStudio.Web", "StemStudio.Api.Generation", "StemStudio.Api.Voices"}
+    ),
+    "StemStudio.Api/Voices": frozenset({"StemStudio.Web", "StemStudio.Api.Generation"}),
 }
-"""Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it)."""
+"""Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it).
+
+An entry forbids the namespace and every namespace below it (``StemStudio.Web`` forbids
+``StemStudio.Web.Pages``, ``StemStudio.Api.Generation`` does not forbid
+``StemStudio.Api.GenerationTools``).
+"""
 
 _CS_NOISE = re.compile(
     "|".join(
@@ -121,8 +130,8 @@ _CS_NOISE = re.compile(
 )
 """C# comments, string/char literals and namespace declarations (no references)."""
 
-_CS_REFERENCE = re.compile(rf"\bStemStudio\.(?:{_DOTNET_PROJECTS})\b")
-"""A qualified reference into a StemStudio project namespace."""
+_CS_REFERENCE = re.compile(rf"\bStemStudio\.(?:{_DOTNET_PROJECTS})\b(?:\.[A-Za-z_]\w*)*")
+"""A qualified reference into a StemStudio project namespace (the whole dotted name)."""
 
 _LEAVES = frozenset({"schemas", "config"})
 _ADAPTER = _LEAVES | {"ports"}
@@ -290,18 +299,32 @@ def _cs_file_edges(cs_file: Path, folder: str, rel_path: str) -> Iterator[Edge]:
 def check_forbidden(
     edges: Sequence[Edge], forbidden: Mapping[str, frozenset[str]]
 ) -> list[Finding]:
-    """Return an error for every edge whose target is forbidden for its source."""
+    """Return an error for every edge whose target is (below) a forbidden name of its source.
+
+    A forbidden name ``a.b`` matches the target ``a.b`` and ``a.b.<anything>``; the message names
+    the matched forbidden name.
+    """
+    hits = ((edge, _forbidden_hit(edge, forbidden)) for edge in edges)
     return [
         Finding(
             "dependency",
             Severity.ERROR,
             edge.path,
             edge.line,
-            f"forbidden dependency {edge.source} -> {edge.target}",
+            f"{_FORBIDDEN} {edge.source} -> {hit}",
         )
-        for edge in edges
-        if edge.target in forbidden.get(edge.source, frozenset())
+        for edge, hit in hits
+        if hit is not None
     ]
+
+
+_FORBIDDEN = "forbidden dependency"
+
+
+def _forbidden_hit(edge: Edge, forbidden: Mapping[str, frozenset[str]]) -> str | None:
+    names = sorted(forbidden.get(edge.source, frozenset()))
+    target = edge.target
+    return next((n for n in names if target == n or target.startswith(n + ".")), None)
 
 
 def read_python_edges(package_dir: Path, root: Path, package: str = PYTHON_PACKAGE) -> list[Edge]:

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 from repo_tree import GENERATOR_PACKAGE as GEN
-from repo_tree import api_findings
+from repo_tree import api_findings, write_generator_tree
 from repo_tree import write_generator_module as _gen
 
 import dependency_check
@@ -155,16 +155,6 @@ GENERATOR_TREE = {
 }
 
 
-def _generator_tree(root: Path) -> None:
-    for rel, text in GENERATOR_TREE.items():
-        _gen(root, rel, text)
-
-
-def test_soulx_adapters_importing_ports_schemas_config_are_clean(tmp_path: Path) -> None:
-    _generator_tree(tmp_path)
-    assert dependency_check.run(tmp_path) == []
-
-
 @pytest.mark.parametrize(
     ("rel", "text", "edge"),
     [
@@ -184,7 +174,8 @@ def test_soulx_adapters_importing_ports_schemas_config_are_clean(tmp_path: Path)
 def test_soulx_adapters_follow_the_layer_rule(
     tmp_path: Path, rel: str, text: str, edge: str
 ) -> None:
-    _generator_tree(tmp_path)
+    write_generator_tree(tmp_path, GENERATOR_TREE)
+    assert dependency_check.run(tmp_path) == [], "the SoulX tree itself is clean"
     _gen(tmp_path, rel, text)
     messages = [f.message for f in dependency_check.run(tmp_path) if f.path == f"{GEN}/{rel}"]
     assert messages == [f"forbidden dependency {edge}"]

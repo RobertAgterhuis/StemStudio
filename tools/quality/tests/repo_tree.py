@@ -1,5 +1,6 @@
 """Helpers that write small fake repository trees below ``tmp_path`` for the check tests."""
 
+from collections.abc import Mapping
 from pathlib import Path
 
 import dependency_check
@@ -29,6 +30,12 @@ GENERATOR_PACKAGE = "generator/src/stemstudio_generator"
 def write_generator_module(root: Path, rel: str, text: str) -> Path:
     """Write a generator module ``rel`` (relative to the generator package); return the path."""
     return write_file(root, f"{GENERATOR_PACKAGE}/{rel}", text)
+
+
+def write_generator_tree(root: Path, tree: Mapping[str, str]) -> None:
+    """Write every generator module of ``tree`` (package-relative path -> source)."""
+    for rel, text in tree.items():
+        write_generator_module(root, rel, text)
 
 
 API_PROJECT = "src/StemStudio.Api"
