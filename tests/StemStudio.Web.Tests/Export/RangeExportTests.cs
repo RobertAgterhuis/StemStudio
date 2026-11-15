@@ -2,7 +2,6 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using NSubstitute;
 using StemStudio.Contracts.Assets;
-using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Export;
 using StemStudio.Web.Tests.Fakes;
 using StemStudio.Web.Tests.Mixer;
