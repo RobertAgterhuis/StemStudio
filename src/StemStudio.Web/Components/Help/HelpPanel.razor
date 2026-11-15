@@ -1,0 +1,63 @@
+@* Contextual help panel (FR-023, design-spec.md 4.7): docked at >= 1280 px, overlay below, full sheet under 768 px.
+   Search, Back, the topic or the index; Escape and Close return focus to where it was. *@
+@implements IDisposable
+@inject HelpContext Help
+
+<aside id="help-panel" class="ss-help-panel" aria-label="Help" data-testid="help-panel" data-topic-id="@Help.TopicId" @onkeydown="KeyAsync">
+    <header class="ss-help-head">
+        <h2 class="ss-heading" tabindex="-1" @ref="_heading">Help</h2>
+        <button type="button" class="ss-bar-button" aria-label="Close help" data-testid="help-close" @onclick="Help.CloseAsync">
+            <span class="rzi" aria-hidden="true">close</span>
+        </button>
+    </header>
+    <HelpSearchBox @bind-Query="Query" OnOpen="OpenResultAsync" />
+    @if (Query.Trim().Length == 0)
+    {
+        @if (Help.CanGoBack)
+        {
+            <button type="button" class="ss-text-button ss-help-back" data-testid="help-back" @onclick="Help.Back">Back</button>
+        }
+        @if (Help.TopicId is { } topicId)
+        {
+            <HelpTopicView TopicId="@topicId" />
+            <HelpLinks />
+        }
+        else
+        {
+            <HelpIndex />
+        }
+    }
+</aside>
+
+@code {
+    private ElementReference _heading;
+    private string? _focusedTopic = "\0";
+
+    private string Query { get; set; } = string.Empty;
+
+    /// <inheritdoc />
+    public void Dispose() => Help.Changed -= OnChanged;
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => Help.Changed += OnChanged;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusedTopic != Help.TopicId)
+        {
+            _focusedTopic = Help.TopicId;
+            await _heading.FocusAsync();
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private Task KeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? Help.CloseAsync() : Task.CompletedTask;
+
+    private Task OpenResultAsync(string topicId)
+    {
+        Query = string.Empty;
+        return Help.ShowAsync(topicId);
+    }
+}

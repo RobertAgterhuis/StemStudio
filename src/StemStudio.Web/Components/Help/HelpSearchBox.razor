@@ -1,0 +1,46 @@
+@* Help search (FR-024, research.md R-06): results as buttons help-result-<topicId> while a query is typed. *@
+@inject IHelpSearch Search
+@inject IHelpCatalog Catalog
+
+<div class="ss-help-search" role="search">
+    <label class="ss-sr-only" for="help-search">Search help</label>
+    <input id="help-search" type="search" class="rz-textbox ss-wide" placeholder="Search help" value="@Query"
+           @oninput="OnInput" data-testid="help-search-input" />
+    @if (Query.Trim().Length > 0)
+    {
+        var hits = Search.Search(Query);
+        <p class="ss-sr-only" role="status">@hits.Count results</p>
+        @if (hits.Count == 0)
+        {
+            <p class="ss-muted">No help topics match "@Query".</p>
+        }
+        <ul class="ss-help-list">
+            @foreach (var hit in hits)
+            {
+                var topic = Catalog.Topic(hit.TopicId)!;
+                <li>
+                    <button type="button" class="ss-help-item" data-testid="@($"help-result-{topic.Id}")" @onclick="() => OnOpen.InvokeAsync(topic.Id)">
+                        <span class="ss-help-item-title">@topic.Title</span>
+                        <span class="ss-help-item-text">@topic.Summary</span>
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    /// <summary>The search text.</summary>
+    [Parameter]
+    public string Query { get; set; } = string.Empty;
+
+    /// <summary>Raised when the text changes.</summary>
+    [Parameter]
+    public EventCallback<string> QueryChanged { get; set; }
+
+    /// <summary>Raised with the chosen topic id.</summary>
+    [Parameter]
+    public EventCallback<string> OnOpen { get; set; }
+
+    private Task OnInput(ChangeEventArgs args) => QueryChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+}

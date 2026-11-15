@@ -2,10 +2,11 @@
 
 @if (Stems.Count > 0)
 {
-    <ul class="ss-stems ss-detail-stems" aria-label="@($"Detail stems of {Outcome.Parent}")">
-        @foreach (var stem in Stems)
+    <ul class="ss-stem-tabs ss-detail-stems" aria-label="@($"Detail stems of {Outcome.Parent}")">
+        @for (var i = 0; i < Stems.Count; i++)
         {
-            <li class="ss-stem" data-testid="@($"detail-stem-{Outcome.Parent}-{stem.Name}")">@stem.Name</li>
+            var stem = Stems[i];
+            <li data-testid="@($"detail-stem-{Outcome.Parent}-{stem.Name}")"><StemTab Stem="@($"{Outcome.Parent}.{stem.Name}")" Pattern="i" /></li>
         }
     </ul>
 }

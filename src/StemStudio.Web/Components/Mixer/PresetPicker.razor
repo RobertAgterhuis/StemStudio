@@ -1,0 +1,55 @@
+@* Practice presets (FR-016, design-spec.md 4.5): a chip row at Beginner, a menu at Advanced and Expert. *@
+
+@if ((Experience ?? ExperienceContext.Default).Is(ExperienceLevel.Beginner))
+{
+    <div class="ss-preset-chips" role="group" aria-label="Practice presets" data-testid="mixer-presets" data-help-id="mixer-presets">
+        @foreach (var preset in Presets)
+        {
+            <button type="button" class="ss-chip" data-testid="@($"preset-{preset.Id}")" @onclick="() => OnApply.InvokeAsync(preset)">@preset.Label</button>
+        }
+        <InlineHint TopicId="mixer-presets" />
+    </div>
+}
+else
+{
+    <div class="ss-menu">
+        <RadzenButton Text="Presets" Icon="playlist_play" ButtonStyle="ButtonStyle.Light" aria-haspopup="menu" aria-expanded="@(Open ? "true" : "false")"
+                      Click="Toggle" data-testid="mixer-presets" data-help-id="mixer-presets" />
+        @if (Open)
+        {
+            <div class="ss-menu-list" role="menu" aria-label="Practice presets" @onkeydown="Key">
+                @foreach (var preset in Presets)
+                {
+                    <button type="button" role="menuitem" class="ss-menu-item" data-testid="@($"preset-{preset.Id}")"
+                            @onclick="() => ChooseAsync(preset)">@preset.Label</button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>The cascaded level (Advanced without a shell).</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
+    /// <summary>The presets available for this track.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PracticePreset> Presets { get; set; } = [];
+
+    /// <summary>Raised with the chosen preset.</summary>
+    [Parameter]
+    public EventCallback<PracticePreset> OnApply { get; set; }
+
+    private bool Open { get; set; }
+
+    private void Toggle() => Open = !Open;
+
+    private void Key(KeyboardEventArgs args) => Open = Open && args.Key != "Escape";
+
+    private Task ChooseAsync(PracticePreset preset)
+    {
+        Open = false;
+        return OnApply.InvokeAsync(preset);
+    }
+}

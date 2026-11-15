@@ -47,14 +47,15 @@ test.describe('Expert', () => {
   test('mixer shortcuts do not fire while typing in a text field', { tag: '@ux' }, async ({ page, mixer, uxData }) => {
     await mixer.goto(uxData.detailTrack.id);
     await mixer.waitForReady(['vocals']);
+    // The metronome starts on when the beat grid is reliable (MixerState), so every toggle is compared
+    // with its state before typing instead of with "off".
+    const toggles = [mixer.byId('loop-toggle'), mixer.byId('metronome-toggle'), mixer.mute('vocals'), mixer.solo('vocals')];
+    const before = await Promise.all(toggles.map((toggle) => isOn(toggle)));
     await mixer.byId('mix-save-as').click();
     await expect(mixer.byId('mix-name-input')).toBeFocused();
     await page.keyboard.type('lk[]ms1gm');
     await expect(mixer.byId('mix-name-input')).toHaveValue('lk[]ms1gm');
-    expect(await isOn(mixer.byId('loop-toggle'))).toBe(false);
-    expect(await isOn(mixer.byId('metronome-toggle'))).toBe(false);
-    expect(await isOn(mixer.mute('vocals'))).toBe(false);
-    expect(await isOn(mixer.solo('vocals'))).toBe(false);
+    expect(await Promise.all(toggles.map((toggle) => isOn(toggle)))).toEqual(before);
     await expect(page).toHaveURL(/\/mixer/);
 
     await page.goto('/tracks');

@@ -1,0 +1,198 @@
+/* Page frame and the import screen (design-spec.md 4.2). */
+
+.ss-page {
+  display: grid;
+  gap: var(--ss-space-5);
+  max-width: 52rem;
+}
+
+.ss-page-wide {
+  max-width: none;
+}
+
+.ss-page-head h1 {
+  margin-bottom: var(--ss-space-2);
+}
+
+.ss-lede {
+  margin: 0;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-body-size);
+  max-width: 60ch;
+}
+
+.ss-page-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ss-space-4);
+}
+
+/* Import panel. */
+.ss-import-panel {
+  display: grid;
+  gap: var(--ss-space-4);
+  padding: var(--ss-space-5);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+.ss-import-url {
+  flex: 1 1 18rem;
+  min-width: 0;
+  min-height: 3rem;
+  font-size: var(--ss-type-heading-size);
+}
+
+.ss-import-row .rz-button {
+  min-height: 3rem;
+  padding: 0 var(--ss-space-5);
+}
+
+/* Drop zone: the native file input covers the zone, so click and drop both work without script. */
+.ss-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  min-height: 5.5rem;
+  padding: var(--ss-space-4) var(--ss-space-5);
+  border: 1px dashed var(--ss-color-control-border);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-base);
+  transition: background-color var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.ss-dropzone:hover,
+.ss-dropzone:focus-within {
+  background: var(--ss-color-raised);
+}
+
+.ss-dropzone:focus-within {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+.ss-dropzone-icon {
+  font-size: 2rem;
+  color: var(--ss-color-muted);
+}
+
+.ss-dropzone-text {
+  display: grid;
+  gap: var(--ss-space-1);
+}
+
+.ss-dropzone-choose {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.ss-dropzone-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ss-dropzone-input:disabled {
+  cursor: progress;
+}
+
+/* Legal notice and the limitation card: always visible, quiet. */
+.ss-limitation {
+  padding: var(--ss-space-4) var(--ss-space-5);
+  border-radius: var(--ss-radius-panel);
+  border: 1px solid var(--ss-color-divider);
+}
+
+.ss-limitation .ss-help {
+  margin: 0;
+  font-size: var(--ss-type-body-size);
+}
+
+/* Welcome panel (design-spec.md 4.2): three level cards, the tour and "Not now". */
+.ss-welcome {
+  display: grid;
+  gap: var(--ss-space-4);
+  padding: var(--ss-space-5);
+  border-radius: var(--ss-radius-panel);
+  border: 1px solid var(--ss-color-divider);
+  background: var(--ss-color-surface);
+  animation: ss-float-in var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+.ss-welcome .ss-title {
+  margin: 0;
+}
+
+.ss-welcome-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--ss-space-3);
+}
+
+.ss-welcome-choice {
+  display: grid;
+  gap: var(--ss-space-1);
+  padding: var(--ss-space-4);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--ss-dur-small) var(--ss-ease-enter), transform var(--ss-dur-press) var(--ss-ease-enter);
+}
+
+.ss-welcome-choice:hover {
+  border-color: var(--ss-color-ink);
+}
+
+.ss-welcome-choice:active {
+  transform: scale(0.99);
+}
+
+.ss-welcome-choice-title {
+  font-size: var(--ss-type-heading-size);
+  font-weight: var(--ss-type-heading-weight);
+}
+
+.ss-welcome-choice-text {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+}
+
+/* A label or a device line with its help hint. */
+.ss-label-row,
+.ss-device-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-label-row .ss-label {
+  margin: 0;
+}
+
+.ss-panel-title .ss-help-hint {
+  vertical-align: middle;
+}

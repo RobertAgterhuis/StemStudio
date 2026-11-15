@@ -1,0 +1,32 @@
+{
+  "id": "mixer-advanced",
+  "version": 1,
+  "title": "Mixer in depth",
+  "route": "/tracks/{id}/mixer",
+  "levels": [
+    "advanced"
+  ],
+  "steps": [
+    {
+      "target": "mixer-pan",
+      "topic": "mixer-pan"
+    },
+    {
+      "target": "mixer-detail-groups",
+      "topic": "mixer-detail-groups"
+    },
+    {
+      "target": "mixer-loop",
+      "topic": "mixer-loop",
+      "text": "Set A and B while playing, or type exact times."
+    },
+    {
+      "target": "mixer-metronome",
+      "topic": "mixer-metronome"
+    },
+    {
+      "target": "mixer-save",
+      "topic": "mixer-save"
+    }
+  ]
+}

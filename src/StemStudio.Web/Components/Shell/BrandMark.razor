@@ -1,0 +1,14 @@
+@* Logo mark: one grey strand that becomes the six stem colours (design-spec.md 1, the signature). Decorative. *@
+
+<svg class="ss-mark" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+    <path class="ss-mark-song" d="M2 16h9" />
+    @foreach (var (stem, y) in Strands)
+    {
+        <path class="@($"ss-mark-strand ss-stroke-{stem}")" d="@($"M11 16C17 16 18 {y} 24 {y}H30")" />
+    }
+</svg>
+
+@code {
+    private static readonly (string Stem, int Y)[] Strands =
+        [("vocals", 6), ("drums", 10), ("bass", 14), ("guitar", 18), ("piano", 22), ("other", 26)];
+}

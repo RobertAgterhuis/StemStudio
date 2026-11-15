@@ -1,16 +1,50 @@
 @inherits LayoutComponentBase
+@* App shell (design-spec.md 4.1, FR-006): skip link, navigation rail, context bar, content gated on the loaded
+   preferences (skeleton before, no layout shift), cascading experience context, toast region. data-theme and
+   data-motion on app-shell are set by web-interop applyAppearance (they depend on OS settings). *@
 
 <RadzenComponents />
-<RadzenLayout class="ss-layout">
-    <RadzenHeader class="ss-header">
-        <div class="ss-header-row">
-            <span class="ss-brand" aria-label="StemStudio">StemStudio</span>
-            <NavMenu />
+<NavigationLock OnBeforeInternalNavigation="InterceptHelpLinkAsync" />
+<div class="@ShellClass" data-testid="app-shell" data-level="@LevelName" data-density="@DensityName">
+    <a class="ss-skip" href="#main" data-testid="skip-link">Skip to content</a>
+    <NavMenu OnHelp="Help.OpenScreenAsync" />
+    <CascadingValue Value="Experience">
+        <div class="ss-shell-body">
+            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="Overlays.OpenPalette" />
+            <main id="main" class="ss-main" tabindex="-1">
+                @if (Preferences.Loaded)
+                {
+                    <TourOffer />
+                    @Body
+                }
+                else
+                {
+                    <div class="ss-content-loading" role="status">
+                        <span class="ss-sr-only">Loading...</span>
+                        <span class="ss-skeleton-bar ss-skeleton-title" aria-hidden="true"></span>
+                        <span class="ss-skeleton-bar" aria-hidden="true"></span>
+                        <span class="ss-skeleton-bar ss-skeleton-short" aria-hidden="true"></span>
+                    </div>
+                }
+            </main>
         </div>
-    </RadzenHeader>
-    <RadzenBody class="ss-body">
-        <main class="ss-main">
-            @Body
-        </main>
-    </RadzenBody>
-</RadzenLayout>
+        @if (Help.IsOpen)
+        {
+            <HelpPanel />
+        }
+        @if (Overlays.PaletteOpen)
+        {
+            <CommandPalette />
+        }
+        @if (Overlays.ShortcutsOpen)
+        {
+            <ShortcutOverlay />
+        }
+    </CascadingValue>
+    <div class="ss-toast-region" aria-live="polite">
+        @if (Toasts.Message is { } message)
+        {
+            <div class="ss-toast" role="status" data-testid="toast">@message</div>
+        }
+    </div>
+</div>

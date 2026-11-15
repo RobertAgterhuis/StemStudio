@@ -17,6 +17,16 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | Microsoft.Extensions.Http.Resilience | 10.11.0 | MIT | https://github.com/dotnet/extensions |
 | Radzen.Blazor | 13.1.0 | MIT | https://github.com/radzenhq/radzen-blazor |
 
+### Web UI (feature 004 design system)
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| Markdig (help content rendering, raw HTML disabled) | 1.5.1 | BSD-2-Clause | https://github.com/xoofx/markdig |
+| YamlDotNet (help front matter; now also runtime) | 18.1.0 | MIT | https://github.com/aaubry/YamlDotNet |
+| driver.js (guided tours, bundled in web-interop) | 1.10.2 | MIT | https://github.com/nilbuild/driver.js |
+| Archivo variable font `Archivo[wdth,wght]` (self-hosted) | google/fonts | SIL OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
+| Radzen.Blazor free `software` base theme (customised via `--rz-*` / `--ss-*` tokens; no premium themes, no Radzen Studio) | 13.1.0 | MIT | https://github.com/radzenhq/radzen-blazor |
+
 ## Runtime: Python worker
 
 | Component | Version | Licence | Source |
@@ -124,6 +134,9 @@ terms of these components (offer source, keep notices).
 | lizard | pinned in tools/quality | MIT |
 | jscpd (via npx) | pinned in tools/quality | MIT |
 | @playwright/test (+ browsers) | 1.65.1 | Apache-2.0 |
+| @axe-core/playwright, axe-core (accessibility tests) | 4.14.0 | MPL-2.0 |
+| @lhci/cli (Lighthouse CI, pulls lighthouse 12.6.1) | 0.15.1 | Apache-2.0 |
+| Playwright container image `mcr.microsoft.com/playwright:v1.65.1-noble` (CI visual/a11y only) | 1.65.1 | Apache-2.0 |
 | eslint-plugin-playwright | 2.12.2 | MIT |
 | @redocly/cli (via npx) | 2.78.0 | MIT |
 
