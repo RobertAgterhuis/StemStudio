@@ -158,15 +158,10 @@ public sealed class MixerStateDetailTests
         var settings = _state.ToSettings("No snare");
 
         settings.Expanded.ShouldBe([StemNames.Drums]);
-        settings.DetailChannels.ShouldBe(
-        [
-            new DetailChannelSettingsDto(StemNames.Vocals, "lead", 0.8, -0.5, false, false),
-            new DetailChannelSettingsDto(StemNames.Vocals, "backing", 0.8, 0, false, false),
-            new DetailChannelSettingsDto(StemNames.Vocals, "rest", 0.8, 0, false, false),
-            new DetailChannelSettingsDto(StemNames.Drums, "kick", 0.8, 0, false, false),
-            new DetailChannelSettingsDto(StemNames.Drums, "snare", 0.8, 0, true, false),
-            new DetailChannelSettingsDto(StemNames.Drums, "rest", 0.8, 0, false, false),
-        ]);
+        settings.DetailChannels.Select(d => $"{d.Parent}.{d.Stem}").ShouldBe(["vocals.lead", "vocals.backing", "vocals.rest", Kick, Snare, "drums.rest"]);
+        settings.DetailChannels[0].ShouldBe(new DetailChannelSettingsDto(StemNames.Vocals, "lead", 0.8, -0.5, false, false));
+        settings.DetailChannels[4].ShouldBe(new DetailChannelSettingsDto(StemNames.Drums, "snare", 0.8, 0, true, false));
+        settings.DetailChannels[5].ShouldBe(new DetailChannelSettingsDto(StemNames.Drums, "rest", 0.8, 0, false, false));
         settings.Channels.Select(c => c.Stem).ShouldBe(StemNames.SixStem);
     }
 

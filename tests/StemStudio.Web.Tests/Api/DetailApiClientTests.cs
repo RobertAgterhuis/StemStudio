@@ -5,18 +5,9 @@ using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Api;
 
-/// <summary>Detail phase operations of the typed client (backend contract 1.2.0).</summary>
-public sealed class DetailApiClientTests : IDisposable
+/// <summary>Detail phase operations of the typed client (backend contract 1.2.0); shares the fixture of the client tests.</summary>
+public sealed partial class StemStudioApiClientTests
 {
-    private readonly StubHttpMessageHandler _handler = new();
-    private readonly StemStudioApiClient _client;
-
-    public DetailApiClientTests() => _client = new StemStudioApiClient(StubHttpMessageHandler.CreateClient(_handler));
-
-    public void Dispose() => _handler.Dispose();
-
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task StartDetail_PostsToDetailRoute_AndReturnsQueuedTrack()
     {
@@ -102,9 +93,7 @@ public sealed class DetailApiClientTests : IDisposable
 
         var detail = (await _client.GetTrackAsync(TestData.TrackId, Ct)).Detail;
 
-        detail.Status.ShouldBe(DetailPhaseStatusDto.Completed);
-        detail.Progress.ShouldBe(100);
-        detail.UpdatedAt.ShouldBe(new DateTimeOffset(2026, 11, 15, 12, 31, 10, TimeSpan.Zero));
+        (detail.Status, detail.Progress, detail.UpdatedAt).ShouldBe((DetailPhaseStatusDto.Completed, 100, new DateTimeOffset(2026, 11, 15, 12, 31, 10, TimeSpan.Zero)));
         detail.Parents.Select(p => (p.Parent, p.Outcome)).ShouldBe(
         [
             ("vocals", ParentOutcomeKindDto.Split),
@@ -112,8 +101,7 @@ public sealed class DetailApiClientTests : IDisposable
             ("bass", ParentOutcomeKindDto.NotSupported),
             ("other", ParentOutcomeKindDto.SkippedSilent),
         ]);
-        detail.Parents[1].Stems.Select(s => s.Name).ShouldBe(["kick", "snare", "rest"]);
-        detail.Parents[1].Stems[0].Url.ShouldBe($"/api/tracks/{TestData.TrackId}/detail-stems/drums/kick");
+        detail.Parents[1].Stems.ShouldBe([TestData.DetailStem("drums", "kick"), TestData.DetailStem("drums", "snare"), TestData.DetailStem("drums", "rest")]);
         detail.Parents[3].Stems.ShouldBeEmpty();
     }
 

@@ -102,10 +102,10 @@ committed contract and is faked:
 
 ### frontend (tests first)
 
-- [ ] T034 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Api/DetailApiClientTests.cs`: `StartDetailAsync`, `CancelDetailAsync` (202/200, 409 and 503 problems -> `ApiException` with the readable detail), `TrackDto.Detail` deserialisation incl. `none`
-- [ ] T035 [frontend] Implement the client methods in `src/StemStudio.Web/Api/` to pass T034
-- [ ] T036 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateDetailTests.cs`: groups from parents with outcome split (display order, rest last), expand/collapse flags, audible-level gate mirror (FR-013 cases: solo on a detail stem, solo on a collapsed parent, hidden channel flags ignored), detail settings kept across collapse, `ToMixSettings` writes `expanded` + `detailChannels`, applying a mix without them collapses everything (FR-012, FR-013, FR-015)
-- [ ] T037 [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState.Detail.cs, DetailChannelState.cs}` to pass T036
+- [x] T034 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Api/DetailApiClientTests.cs`: `StartDetailAsync`, `CancelDetailAsync` (202/200, 409 and 503 problems -> `ApiException` with the readable detail), `TrackDto.Detail` deserialisation incl. `none`
+- [x] T035 [frontend] Implement the client methods in `src/StemStudio.Web/Api/` to pass T034
+- [x] T036 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateDetailTests.cs`: groups from parents with outcome split (display order, rest last), expand/collapse flags, audible-level gate mirror (FR-013 cases: solo on a detail stem, solo on a collapsed parent, hidden channel flags ignored), detail settings kept across collapse, `ToMixSettings` writes `expanded` + `detailChannels`, applying a mix without them collapses everything (FR-012, FR-013, FR-015)
+- [x] T037 [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState.Detail.cs, DetailChannelState.cs}` to pass T036
 
 ### audio-engine (tests first)
 
