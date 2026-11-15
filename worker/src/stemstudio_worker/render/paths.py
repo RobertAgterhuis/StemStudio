@@ -36,18 +36,10 @@ class MountedLibrary:
         return LibraryHealth(readable=True, reason=None)
 
     def resolve(self, path: str) -> Path:
-        """Check a library-relative input path and return the real file path.
+        """Return the real file of ``path`` (contract: ``ports.LibraryReader.resolve``).
 
-        Args:
-            path: Path from ``RenderInput.path``.
-
-        Returns:
-            The resolved file inside the library root.
-
-        Raises:
-            InputPathError: Not on the allow-list, or the real path escapes the root.
-            InputNotFoundError: The file does not exist (or is not a regular file).
-            RenderError: The library root is unset or unreadable (``LIBRARY_UNAVAILABLE_TEXT``).
+        The allow-list is checked first, so a bad path is rejected even without a library; a
+        directory with a file-like name counts as not found.
         """
         if not is_allowed_library_path(path):
             raise InputPathError(f"Input path is not allowed: {path}")
