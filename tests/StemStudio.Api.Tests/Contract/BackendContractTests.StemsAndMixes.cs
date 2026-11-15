@@ -121,7 +121,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingAssetOperations = [];
 
     // Feature 006 (backend 1.6.0, staged in the 006/008 Phase 0): the backend removes each id per story (T033, T044, T049).
-    private static readonly string[] PendingLyricsOperations = ["removeLyrics", "searchLyrics"];
+    private static readonly string[] PendingLyricsOperations = [];
 
     // Feature 008 (backend 1.7.0, staged in the 006/008 Phase 0): the backend removes both ids in T041.
     private static readonly string[] PendingScoreOperations = ["getScoreOptions", "createScore"];
