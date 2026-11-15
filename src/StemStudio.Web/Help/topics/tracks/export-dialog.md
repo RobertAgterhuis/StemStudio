@@ -1,6 +1,6 @@
 ---
 id: export-dialog
-title: "Save to library"
+title: "Export: save to library"
 area: tracks
 summary: "Saves a stem, a detail stem or what you hear in the mixer as an audio file in your library."
 anchors: ["export-dialog", "export-actions"]

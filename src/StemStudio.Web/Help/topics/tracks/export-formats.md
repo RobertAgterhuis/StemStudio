@@ -1,6 +1,6 @@
 ---
 id: export-formats
-title: "Export formats"
+title: "File formats"
 area: tracks
 summary: "FLAC is lossless and the default, WAV is uncompressed, MP3 is small. All files are 44.1 kHz stereo."
 feature: export.format-details
