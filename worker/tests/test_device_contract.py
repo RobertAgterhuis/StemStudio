@@ -1,4 +1,4 @@
-"""Skeleton tests for the GPU contract code (feature 003): worker API 1.2.0, ports, settings."""
+"""Skeleton tests for the GPU contract code (feature 003 additions of worker API 1.2.0)."""
 
 from collections.abc import Callable
 from pathlib import Path
@@ -25,7 +25,7 @@ from stemstudio_worker.schemas import (
 _SPEC = (
     Path(__file__).resolve().parents[2]
     / "specs"
-    / "003-gpu-acceleration"
+    / "007-export-library"
     / "contracts"
     / "worker-api.openapi.yaml"
 )
@@ -50,8 +50,8 @@ def _health_examples() -> dict[str, Any]:
     return examples
 
 
-def test_contract_version_is_1_2_0() -> None:
-    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.2.0"
+def test_contract_version_is_the_current_document() -> None:
+    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.4.0"
 
 
 def test_device_kind_matches_the_contract() -> None:

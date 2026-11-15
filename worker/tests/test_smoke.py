@@ -36,7 +36,10 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "freeMemoryMiB": None,
             "reason": None,
         },
-        "contractVersion": "1.2.0",
+        "onlineLookups": True,
+        "library": {"readable": False, "reason": "The library is not available to the worker"},
+        "lanes": {"render": {"queued": 0, "running": False}},
+        "contractVersion": "1.4.0",
     }
 
 

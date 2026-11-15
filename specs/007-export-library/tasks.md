@@ -9,7 +9,9 @@ description: "Task list for feature 007 Export isolated channels / asset library
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [contracts/DELTA.md](contracts/DELTA.md),
 constitution 1.2.0, ADR-016.
 
-**Status**: planned. Phase 0 is listed, **not executed** (it runs when 007 starts, on top of the
+**Status**: Phase 0 **done** (2026-11-15, combined with 005 Phase 0; hand-off
+`docs/handoffs/architect-005-007-phase0.md`): worker 1.4.0, backend 1.5.0, UI test ids 1.5.0,
+render-vectors 1.0.0, each = 005's version plus the 007 additions. Original note: (it runs when 007 starts, on top of the
 contract versions current at that time; 004-006 may bump them first).
 
 **Tests**: REQUIRED (constitution I). Within every owner sequence the test task comes before the
@@ -51,11 +53,11 @@ in the execution plan.
 
 ## Phase 0: Contract code and skeleton (architect, BEFORE the wave)
 
-- [ ] T001 [architect] Worker contract code: `schemas.py` (`CONTRACT_VERSION` next minor; `RenderInput`, `RenderRange`, `RenderOutput`, `RenderMetadata`, `RenderJobRequest`, `RenderJobStatus`, `RenderJob`, `RenderResult`, `Health.library`, `Health.lanes` with defaults); `ports.py` (`LibraryReader`, `RenderExecutor` protocols, `RenderProgress`, `RenderError`, `InputPathError`, `InputNotFoundError`); `config.py` (`library_dir` from `STEMSTUDIO_LIBRARY_DIR`, `render_block_seconds`); `lameenc==1.9.0` as a direct dependency in `worker/pyproject.toml` + `uv.lock`; skeleton tests `worker/tests/test_render_contract.py`; worker contract tests switched to the 007 document (agreed one-time edit of the `/health` assertions in stem-separation tests) (FR-004, FR-012)
-- [ ] T002 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Assets/*` (data-model 4, DELTA 2), `ApiRoutes.Assets`, `ContractLimits` additions (data-model 6); skeleton tests `tests/StemStudio.Api.Tests/Contract/AssetContractTests.cs`; `StemStudio.Api.Tests.csproj` links -> 007 contracts; new operationIds staged in `PendingAssetOperations` (agreed one-time edit in backend tests, un-staged by the backend per story) (FR-012)
-- [ ] T003 [P] [architect] Contracts: full `worker-api.openapi.yaml`, `backend-api.openapi.yaml` (OpenAPI 3.1, Redocly lint clean, examples per DELTA 1-2), `ui-test-ids.md` (DELTA 5), `redocly.yaml`; ADR-016 status -> Accepted
-- [ ] T004 [P] [architect] `contracts/render-vectors.json` 1.0.0 with the cases of DELTA 4 and its generator `contracts/generate_render_vectors.py` (pure Python, documented formulas; matrices to 1e-9) (FR-003, SC-003)
-- [ ] T005 [architect] Verify the skeleton: `dotnet build` 0 warnings, all .NET tests + coverage gates, worker `pytest --cov`/ruff/mypy, engine tests, `tools/quality/run_all.py` 0 errors; hand-off `docs/handoffs/architect-007-plan.md` (contract versions assigned, dependency record for lameenc)
+- [x] T001 [architect] Worker contract code: `schemas.py` (`CONTRACT_VERSION` next minor; `RenderInput`, `RenderRange`, `RenderOutput`, `RenderMetadata`, `RenderJobRequest`, `RenderJobStatus`, `RenderJob`, `RenderResult`, `Health.library`, `Health.lanes` with defaults); `ports.py` (`LibraryReader`, `RenderExecutor` protocols, `RenderProgress`, `RenderError`, `InputPathError`, `InputNotFoundError`); `config.py` (`library_dir` from `STEMSTUDIO_LIBRARY_DIR`, `render_block_seconds`); `lameenc==1.9.0` as a direct dependency in `worker/pyproject.toml` + `uv.lock`; skeleton tests `worker/tests/test_render_contract.py`; worker contract tests switched to the 007 document (agreed one-time edit of the `/health` assertions in stem-separation tests) (FR-004, FR-012)
+- [x] T002 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Assets/*` (data-model 4, DELTA 2), `ApiRoutes.Assets`, `ContractLimits` additions (data-model 6); skeleton tests `tests/StemStudio.Api.Tests/Contract/AssetContractTests.cs`; `StemStudio.Api.Tests.csproj` links -> 007 contracts; new operationIds staged in `PendingAssetOperations` (agreed one-time edit in backend tests, un-staged by the backend per story) (FR-012)
+- [x] T003 [P] [architect] Contracts: full `worker-api.openapi.yaml`, `backend-api.openapi.yaml` (OpenAPI 3.1, Redocly lint clean, examples per DELTA 1-2), `ui-test-ids.md` (DELTA 5), `redocly.yaml`; ADR-016 status -> Accepted
+- [x] T004 [P] [architect] `contracts/render-vectors.json` 1.0.0 with the cases of DELTA 4 and its generator `contracts/generate_render_vectors.py` (pure Python, documented formulas; matrices to 1e-9) (FR-003, SC-003)
+- [x] T005 [architect] Verify the skeleton: `dotnet build` 0 warnings, all .NET tests + coverage gates, worker `pytest --cov`/ruff/mypy, engine tests, `tools/quality/run_all.py` 0 errors; hand-off `docs/handoffs/architect-005-007-phase0.md` (combined with 005) (contract versions assigned, dependency record for lameenc)
 
 **Checkpoint**: skeleton green; wave may start.
 

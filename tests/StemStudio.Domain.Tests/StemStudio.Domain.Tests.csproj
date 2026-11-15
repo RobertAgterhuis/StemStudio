@@ -6,5 +6,7 @@
   <ItemGroup>
     <!-- Binding URL vectors (contract 1.0.1), shared with the worker. -->
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Tracks\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Shared render vectors 1.0.0 (feature 007): gate cases for RenderPlannerTests (backend T027). -->
+    <None Include="..\..\specs\007-export-library\contracts\render-vectors.json" Link="Rendering\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

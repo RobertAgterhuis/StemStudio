@@ -59,7 +59,7 @@ the rule matters for assets of later features).
 
 | Field | Type | Rule |
 |---|---|---|
-| `id` | 32 hex chars | as `Job.id` |
+| `renderJobId` | 32 hex chars | as `Job.jobId` (Phase 0: named like `detailJobId`) |
 | `status` | `queued`, `running`, `completed`, `failed`, `cancelled` | state machine 2.5 |
 | `progress` | 0..1 | pass 1 = 0..0.5, pass 2 = 0.5..1 |
 | `error` | string \| null (<= 500) | readable reason when `failed` |

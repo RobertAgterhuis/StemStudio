@@ -1,6 +1,6 @@
 # ADR-016: Asset library and server-side export rendering (feature 007)
 
-- **Status**: Proposed (architect, 2026-11-15; becomes Accepted when Phase 0 of 007 starts)
+- **Status**: Accepted (architect, 2026-11-15, 007 Phase 0 T003; contracts worker 1.4.0, backend 1.5.0, UI test ids 1.5.0, render-vectors 1.0.0 in `specs/007-export-library/contracts/`)
 - **Context documents**: `specs/007-export-library/{spec.md, research.md, data-model.md,
   contracts/DELTA.md}`, ADR-003 (worker contract and polling), ADR-004 (stem storage and
   serving), ADR-005/ADR-010 (audio engine, gate rule v2), ADR-012 (device policy),

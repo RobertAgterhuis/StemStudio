@@ -6,18 +6,12 @@ using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Skeleton tests (architect, feature 003 Phase 0): device DTOs and route against backend-api.openapi.yaml 1.3.0.</summary>
+/// <summary>Skeleton tests (architect, feature 003 Phase 0): device DTOs and route against the backend contract (1.3.0 additions; the version is asserted in AssetContractTests).</summary>
 public sealed class DeviceContractTests
 {
     private const string Gpu = "NVIDIA GeForce RTX 5070 Ti";
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
-
-    [Fact]
-    public void BackendContract_IsVersion130()
-    {
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.3.0");
-    }
 
     [Fact]
     public void SeparatingTrackExample_CarriesTheGpuDeviceAndRoundTrips()

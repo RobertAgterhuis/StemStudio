@@ -1,0 +1,61 @@
+{
+  "outcome": "found",
+  "recording": {
+    "mbid": "0f4e8a7c-3b2d-4c1e-9f8a-7b6c5d4e3f2a",
+    "title": "Example Song",
+    "lengthSeconds": 262.0,
+    "score": 100,
+    "matchedBy": "isrc"
+  },
+  "releaseGroup": {
+    "mbid": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "title": "Example Album",
+    "primaryType": "Album",
+    "firstReleaseYear": 1996
+  },
+  "artwork": {
+    "source": "coverartarchive",
+    "sha256": "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+    "coverBytes": 84211,
+    "thumbBytes": 9120,
+    "originUrl": "https://coverartarchive.org/release-group/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/front-500"
+  },
+  "artist": {
+    "mbid": "6b7c8d9e-0f1a-4b2c-8d3e-4f5a6b7c8d9e",
+    "name": "The Example Band",
+    "type": "group",
+    "country": "US",
+    "beginYear": 1981,
+    "endYear": null,
+    "genres": [
+      "heavy metal",
+      "thrash metal"
+    ],
+    "members": [
+      {
+        "name": "First Member",
+        "fromYear": 1981,
+        "toYear": null
+      },
+      {
+        "name": "Second Member",
+        "fromYear": 1983,
+        "toYear": 2001
+      }
+    ],
+    "website": "https://www.example.org/",
+    "wikidataId": "Q15920",
+    "summary": {
+      "language": "en",
+      "title": "The Example Band",
+      "extract": "The Example Band is a placeholder group used in contract examples; real excerpts are fetched at run time.",
+      "pageUrl": "https://en.wikipedia.org/wiki/The_Example_Band",
+      "historyUrl": "https://en.wikipedia.org/w/index.php?title=The_Example_Band&action=history",
+      "revisionId": "1255000000",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    "fetchedAt": "2026-11-15T12:00:14Z"
+  },
+  "warnings": []
+}
