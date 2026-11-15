@@ -84,7 +84,7 @@ public sealed partial class HelpCoverageTests : PageTestContext
         {
             foreach (Match link in RouteLink().Matches(topic.Markdown))
             {
-                routes.Any(r => HelpContext.RouteMatches(r, link.Groups[1].Value)).ShouldBeTrue($"{topic.Id}: route:{link.Groups[1].Value}");
+                routes.Any(r => AppRoutes.Matches(r, link.Groups[1].Value)).ShouldBeTrue($"{topic.Id}: route:{link.Groups[1].Value}");
             }
         }
     }
@@ -159,13 +159,13 @@ public sealed partial class HelpCoverageTests : PageTestContext
         new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 
     [Fact]
-    public void TourTargets_RenderOnTheirRoute_AtEachOfTheirLevels()
+    public async Task TourTargets_RenderOnTheirRoute_AtEachOfTheirLevels()
     {
         foreach (var tour in Catalog.Tours)
         {
             foreach (var level in tour.Levels)
             {
-                var markup = RenderRoute(tour.Route, level);
+                var markup = await RenderRouteAsync(tour.Route, level);
                 foreach (var step in tour.Steps)
                 {
                     markup.ShouldContain($"data-help-id=\"{step.Target}\"", Case.Sensitive, $"{tour.Id} at {level}: {step.Target}");
@@ -174,9 +174,9 @@ public sealed partial class HelpCoverageTests : PageTestContext
         }
     }
 
-    private static string RenderRoute(string route, ExperienceLevel level)
+    private static async Task<string> RenderRouteAsync(string route, ExperienceLevel level)
     {
-        using var context = new RouteContext(level);
+        await using var context = new RouteContext(level);
         return context.Render(route);
     }
 

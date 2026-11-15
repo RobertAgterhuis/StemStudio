@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using StemStudio.Web.Interop;
@@ -48,8 +47,8 @@ public sealed class HelpContext : IDisposable
     {
         get
         {
-            var path = "/" + _navigation.ToBaseRelativePath(_navigation.Uri).Split('?', '#')[0].TrimEnd('/');
-            return _catalog.Topics.FirstOrDefault(t => t.Route is { } route && RouteMatches(route, path))?.Id;
+            var path = AppRoutes.CurrentPath(_navigation);
+            return _catalog.Topics.FirstOrDefault(t => t.Route is { } route && AppRoutes.Matches(route, path))?.Id;
         }
     }
 
@@ -120,16 +119,6 @@ public sealed class HelpContext : IDisposable
         {
             _navigation.LocationChanged -= OnLocationChanged;
         }
-    }
-
-    /// <summary>True when an app path matches a route template such as <c>/tracks/{id}/mixer</c>.</summary>
-    /// <param name="template">The route template.</param>
-    /// <param name="path">The path, starting with <c>/</c>.</param>
-    /// <returns>Whether the template matches.</returns>
-    internal static bool RouteMatches(string template, string path)
-    {
-        var pattern = "^" + Regex.Replace(Regex.Escape(template.TrimEnd('/')), @"\\\{[^}]+}", "[^/]+") + "/?$";
-        return Regex.IsMatch(path, pattern, RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     }
 
     private string? Known(string topicId) => _catalog.Topic(topicId)?.Id;

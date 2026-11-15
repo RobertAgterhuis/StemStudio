@@ -17,7 +17,7 @@ public sealed class TourServiceTests : IAsyncDisposable
     public TourServiceTests()
     {
         _preferences = new PreferencesState(_store, _interop, new FakeTimeProvider(new DateTimeOffset(2026, 11, 15, 10, 0, 0, TimeSpan.Zero)));
-        _tours = new TourService(new HelpCatalog(HelpSamples.Files), _interop, _preferences);
+        _tours = new TourService(new HelpCatalog(HelpSamples.Files), _interop, _preferences, new TestNavigationManager());
     }
 
     public async ValueTask DisposeAsync()

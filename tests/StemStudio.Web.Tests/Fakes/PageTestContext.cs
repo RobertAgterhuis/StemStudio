@@ -36,6 +36,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton<IHelpCatalog>(_ => RealHelp.Value);
         Services.AddSingleton<IHelpSearch, HelpSearch>();
         Services.AddSingleton(Substitute.For<ITourLauncher>());
+        Services.AddScoped<TourService>();
         Services.AddScoped<HelpContext>();
     }
 

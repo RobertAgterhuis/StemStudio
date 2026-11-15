@@ -214,3 +214,21 @@
   color: var(--ss-color-warning);
   font-size: 1.125rem;
 }
+
+/* Tour offer chip above the content. */
+.ss-tour-offer {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin: 0 var(--ss-space-2) var(--ss-space-4) 0;
+  padding: var(--ss-space-1) var(--ss-space-1) var(--ss-space-1) var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-surface);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-tour-offer > .rzi {
+  color: var(--ss-color-muted);
+  font-size: 1.125rem;
+}
