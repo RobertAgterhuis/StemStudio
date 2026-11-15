@@ -1,7 +1,3 @@
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Http.Resilience;
-using Microsoft.Extensions.Options;
-
 namespace StemStudio.Api.Worker;
 
 /// <summary>Registers the typed worker client with <c>Microsoft.Extensions.Http.Resilience</c>.</summary>
@@ -15,23 +11,7 @@ public static class WorkerClientRegistration
     /// <param name="services">Service collection.</param>
     /// <param name="configuration">Configuration holding the <c>StemStudio</c> section.</param>
     /// <returns>The HTTP client builder (tests replace the primary handler).</returns>
-    public static IHttpClientBuilder AddWorkerClient(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddOptions<StemStudioApiOptions>().Bind(configuration.GetSection(StemStudioApiOptions.SectionName));
-        services.TryAddSingleton(TimeProvider.System);
-        var builder = services.AddHttpClient<IWorkerClient, WorkerClient>(ConfigureClient);
-        builder.AddStandardResilienceHandler()
-            .Configure((options, provider) => ConfigureResilience(options, provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value));
-        return builder;
-    }
-
-    private static void ConfigureClient(IServiceProvider provider, HttpClient client)
-    {
-        var baseUrl = provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value.WorkerBaseUrl;
-        client.BaseAddress = new Uri(baseUrl.AbsoluteUri.TrimEnd('/') + "/");
-        client.Timeout = Timeout.InfiniteTimeSpan;
-    }
-
-    private static void ConfigureResilience(HttpStandardResilienceOptions options, StemStudioApiOptions api) =>
-        ServiceResilience.Apply(options, api.WorkerCreateJobTimeout, api.WorkerPollTimeout);
+    public static IHttpClientBuilder AddWorkerClient(this IServiceCollection services, IConfiguration configuration) =>
+        services.AddServiceClient<IWorkerClient, WorkerClient>(
+            configuration, api => new ServiceClientSettings(api.WorkerBaseUrl, api.WorkerCreateJobTimeout, api.WorkerPollTimeout));
 }

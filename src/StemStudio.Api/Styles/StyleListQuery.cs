@@ -17,29 +17,12 @@ public sealed record StyleListQuery(string? Kind, string? GenreFamily, string? M
     public StyleFilter ToFilter(List<DomainError> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
-        var kind = Parse<StyleKind>(Kind, "kind", errors);
-        var family = Parse<Domain.Styles.GenreFamily>(GenreFamily, "genreFamily", errors);
+        var kind = QueryParsing.Enum<StyleKind>(Kind, "kind", errors);
+        var family = QueryParsing.Enum<Domain.Styles.GenreFamily>(GenreFamily, "genreFamily", errors);
         Limit(Mood, "mood", StyleRules.MaxTagLength, errors);
         Limit(Instrument, "instrument", StyleRules.MaxTagLength, errors);
         Limit(Q, "q", 100, errors);
         return new StyleFilter(kind, family, Mood, Instrument, Q);
-    }
-
-    private static T? Parse<T>(string? value, string field, List<DomainError> errors)
-        where T : struct, Enum
-    {
-        if (value is null)
-        {
-            return null;
-        }
-
-        if (Enum.TryParse<T>(value, true, out var parsed) && Enum.IsDefined(parsed))
-        {
-            return parsed;
-        }
-
-        errors.Add(new DomainError(field, $"'{value}' is not a known value."));
-        return null;
     }
 
     private static void Limit(string? value, string field, int maxLength, List<DomainError> errors)

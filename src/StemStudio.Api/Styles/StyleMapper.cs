@@ -75,11 +75,7 @@ public static class StyleMapper
     /// <param name="value">The value.</param>
     /// <returns>The mapped value.</returns>
     public static T Map<T>(Enum value)
-        where T : struct, Enum
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        return Enum.Parse<T>(value.ToString());
-    }
+        where T : struct, Enum => Scores.ScoreMapper.Map<T>(value);
 
     private static T Fill<T>(T dto, StyleFields fields)
         where T : StyleDefinition => (T)(dto with

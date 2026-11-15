@@ -21,20 +21,30 @@ public sealed class GenerationService(
     /// <returns>200 or 400.</returns>
     public async Task<IResult> ListAsync(string? kind, string? sourceTrackId, CancellationToken cancellationToken)
     {
-        var parsedKind = GenerationKind.Restyle;
-        if (kind is not null && !(Enum.TryParse(kind, true, out parsedKind) && Enum.IsDefined(parsedKind)))
+        if (!TryKind(kind, out var parsedKind))
         {
             return ApiProblems.Validation("kind", "Use restyle, song or voiceConversion.");
         }
 
-        var parsedTrack = Guid.Empty;
-        if (sourceTrackId is not null && !Guid.TryParse(sourceTrackId, out parsedTrack))
+        if (!TryTrack(sourceTrackId, out var parsedTrack))
         {
             return ApiProblems.Validation("sourceTrackId", "Must be a track id.");
         }
 
-        var list = await generations.ListAsync(kind is null ? null : parsedKind, sourceTrackId is null ? null : parsedTrack, cancellationToken);
+        var list = await generations.ListAsync(parsedKind, parsedTrack, cancellationToken);
         return TypedResults.Ok(list.Select(GenerationMapper.ToDto).ToList());
+    }
+
+    private static bool TryKind(string? value, out GenerationKind? kind)
+    {
+        kind = Enum.TryParse<GenerationKind>(value, true, out var parsed) && Enum.IsDefined(parsed) ? parsed : null;
+        return value is null || kind is not null;
+    }
+
+    private static bool TryTrack(string? value, out Guid? trackId)
+    {
+        trackId = Guid.TryParse(value, out var parsed) ? parsed : null;
+        return value is null || trackId is not null;
     }
 
     /// <summary>One generation.</summary>
@@ -48,14 +58,10 @@ public sealed class GenerationService(
     /// <param name="id">Generation id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 or 404.</returns>
-    public async Task<IResult> CancelAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var generation = await generations.FindAsync(id, cancellationToken);
-        if (generation is null)
-        {
-            return GenerationProblems.NotFound(id);
-        }
+    public Task<IResult> CancelAsync(Guid id, CancellationToken cancellationToken) => WithAsync(id, generation => CancelAsync(generation, cancellationToken), cancellationToken);
 
+    private async Task<IResult> CancelAsync(Generation generation, CancellationToken cancellationToken)
+    {
         if (generation.IsActive)
         {
             await BestEffortAsync(generation.GeneratorJobId, generator.CancelAsync, cancellationToken);
@@ -70,14 +76,13 @@ public sealed class GenerationService(
     /// <param name="id">Generation id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>204 or 404.</returns>
-    public async Task<IResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var generation = await generations.FindAsync(id, cancellationToken);
-        if (generation is null)
-        {
-            return GenerationProblems.NotFound(id);
-        }
+    public Task<IResult> DeleteAsync(Guid id, CancellationToken cancellationToken) => WithAsync(id, generation => DeleteAsync(generation, cancellationToken), cancellationToken);
 
+    private async Task<IResult> WithAsync(Guid id, Func<Generation, Task<IResult>> action, CancellationToken cancellationToken) =>
+        await generations.FindAsync(id, cancellationToken) is { } generation ? await action(generation) : GenerationProblems.NotFound(id);
+
+    private async Task<IResult> DeleteAsync(Generation generation, CancellationToken cancellationToken)
+    {
         if (generation.IsActive)
         {
             await BestEffortAsync(generation.GeneratorJobId, generator.DeleteAsync, cancellationToken);

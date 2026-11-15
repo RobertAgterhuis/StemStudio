@@ -39,7 +39,7 @@ public sealed class TakeImporter(IGenerationRepository generations, ITrackReposi
         }
 
         var result = await UploadAsync(generation.Take(index)!, cancellationToken);
-        return result is IValueHttpResult<TrackDto> { Value: { } dto } ? await MarkAsync(generation, index, dto.Id, result, cancellationToken) : result;
+        return result is IValueHttpResult<TrackDto> { Value: not null } ? await MarkAsync(generation, index, result, cancellationToken) : result;
     }
 
     private async Task<IResult> UploadAsync(GenerationTake take, CancellationToken cancellationToken)
@@ -48,10 +48,10 @@ public sealed class TakeImporter(IGenerationRepository generations, ITrackReposi
         return await imports.ImportUploadAsync(file, "take.flac", cancellationToken);
     }
 
-    private async Task<IResult> MarkAsync(Generation generation, int index, Guid trackId, IResult imported, CancellationToken cancellationToken)
+    private async Task<IResult> MarkAsync(Generation generation, int index, IResult imported, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        var track = (await tracks.FindAsync(trackId, cancellationToken))!;
+        var track = (await tracks.FindAsync(((IValueHttpResult<TrackDto>)imported).Value!.Id, cancellationToken))!;
         track.ApplyMetadata(new SourceMetadata(GenerationText.TakeTitle(generation, index), null), now);
         track.MarkGenerated(new TrackOrigin(generation.Id, index, generation.Kind, generation.SourceTrackId), now);
         generation.MarkImported(index, track.Id, now);

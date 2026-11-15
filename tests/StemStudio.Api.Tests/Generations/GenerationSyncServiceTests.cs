@@ -146,6 +146,21 @@ public sealed class GenerationSyncServiceTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Sync_AnOutageDuringTheDownloadRetriesOnTheNextPass()
+    {
+        var (generation, jobId) = await StartAsync(Factory, Client);
+        Factory.Generator.Complete(jobId, Take1);
+        Factory.Generator.Override = request => request.RequestUri!.AbsolutePath.Contains("/takes/", StringComparison.Ordinal) ? throw new HttpRequestException("down") : null;
+
+        await Factory.SyncGenerationsAsync();
+        (await FindAsync(generation)).Status.ShouldBe(GenerationState.Queued);
+        Factory.Generator.Override = null;
+        await Factory.SyncGenerationsAsync();
+
+        (await FindAsync(generation)).Status.ShouldBe(GenerationState.Completed);
+    }
+
+    [Fact]
     public async Task HostedService_PollsEveryTwoSeconds()
     {
         var (generation, jobId) = await StartAsync(Factory, Client);

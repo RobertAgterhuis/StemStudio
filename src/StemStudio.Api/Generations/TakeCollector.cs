@@ -25,6 +25,15 @@ public sealed class TakeCollector(IGeneratorClient generator, TakeStorage storag
     {
         ArgumentNullException.ThrowIfNull(generation);
         ArgumentNullException.ThrowIfNull(job);
+        if (await DownloadAllAsync(generation, job, cancellationToken))
+        {
+            await RegisterAsync(generation, cancellationToken);
+            await DeleteCopyAsync(job.GenerationId, cancellationToken);
+        }
+    }
+
+    private async Task<bool> DownloadAllAsync(Generation generation, GeneratorJob job, CancellationToken cancellationToken)
+    {
         try
         {
             var takes = new List<GenerationTake>();
@@ -34,21 +43,22 @@ public sealed class TakeCollector(IGeneratorClient generator, TakeStorage storag
             }
 
             generation.Complete(takes, Now);
+            return true;
         }
-        catch (Exception exception) when (exception is GeneratorIntegrityException or GeneratorRequestException or ArgumentException)
+        catch (Exception exception) when (exception is GeneratorUnavailableException or GeneratorRequestException or ArgumentException)
         {
             storage.DeleteAll(generation.Id);
-            generation.Fail(new GenerationError(GenerationErrorCode.EngineError, DamagedTake), Now);
-            return;
+            FailIfDamaged(generation, exception);
+            return false;
         }
-        catch (GeneratorUnavailableException)
-        {
-            storage.DeleteAll(generation.Id);
-            return;
-        }
+    }
 
-        await RegisterAsync(generation, cancellationToken);
-        await DeleteCopyAsync(job.GenerationId, cancellationToken);
+    private void FailIfDamaged(Generation generation, Exception exception)
+    {
+        if (exception is not GeneratorUnavailableException || exception is GeneratorIntegrityException)
+        {
+            generation.Fail(new GenerationError(GenerationErrorCode.EngineError, DamagedTake), Now);
+        }
     }
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
