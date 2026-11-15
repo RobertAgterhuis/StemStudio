@@ -26,7 +26,7 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | python-multipart | 0.0.33 | Apache-2.0 | https://github.com/Kludex/python-multipart |
 | pydantic | 2.14.3 | MIT | https://github.com/pydantic/pydantic |
 | Demucs (code) | 4.1.0 | MIT | https://github.com/adefossez/demucs |
-| Demucs pretrained weights (`htdemucs_6s`, `htdemucs`) | - | Released with the MIT-licensed Demucs repository | https://github.com/adefossez/demucs |
+| Demucs pretrained weights (`htdemucs_6s`, `htdemucs`) | - | **Unclear / likely CC BY-NC** (not OSI). Demucs README: "The license of the weights is not clear"; `htdemucs_6s` "was trained only on Meta internal dataset, which likely means CC-NC-BY license is applicable". Open constitution-IV issue, see below | https://github.com/adefossez/demucs#license |
 | PyTorch (CPU build) | 2.15.0+cpu | BSD-3-Clause (bundled parts Apache-2.0/MIT/Zlib/BSL-1.0) | https://github.com/pytorch/pytorch |
 | librosa | 1.0.1 | ISC | https://github.com/librosa/librosa |
 | soundfile (+ libsndfile) | 0.14.0 | BSD-3-Clause (libsndfile LGPL-2.1+) | https://github.com/bastibe/python-soundfile |
@@ -90,6 +90,13 @@ terms of these components (offer source, keep notices).
 | @playwright/test (+ browsers) | 1.65.1 | Apache-2.0 |
 | eslint-plugin-playwright | 2.12.2 | MIT |
 | @redocly/cli (via npx) | 2.78.0 | MIT |
+
+## Open licence issue: Demucs weights
+
+The Demucs code is MIT, but the pretrained weights have no clear licence and `htdemucs_6s` is
+likely CC BY-NC (author's statement above). This was recorded incorrectly as MIT-covered until
+2026-11-15. Non-commercial, local, single-user use is the intended use of StemStudio; a decision by
+the owner (documented exception or a different first-stage model) is pending.
 
 ## Rejected for licence reasons
 
