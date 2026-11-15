@@ -200,7 +200,7 @@ in the execution plan.
 - [ ] T072 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `engraving/`
 - [x] T073 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `transcription/` (vendor excluded), `jobs/`, `api/`; dependency records (vendored sources with commit ids)
 - [x] T074 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T075 [P] [frontend] Accessibility (PDF preview has a download alternative and a title; warnings as text), help texts final, HO:polish
+- [x] T075 [P] [frontend] Accessibility (PDF preview has a download alternative and a title; warnings as text), help texts final, HO:polish
 - [ ] T076 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-014 -> tests), HO:polish
 - [ ] T077 [P] [devops] Validate compose/CI, image size delta recorded (CPU and GPU variants), HO:polish
 - [ ] T078 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
