@@ -107,6 +107,16 @@ public sealed class LyricsDocumentTests
     }
 
     [Fact]
+    public void TimedLinesWithoutTimesAndPlainWordsWithTimes_AreRejected()
+    {
+        var timed = Word() with { Lines = [new LyricsLine(null, 10, "a", [new LyricsWord("a", 0, 10, WordOrigin.Source, false)])] };
+        var plain = Plain() with { Lines = [new LyricsLine(null, null, "a", [new LyricsWord("a", null, 10, null, false), new LyricsWord("b", 5, null, null, false)])] };
+
+        Fields(timed).ShouldBe(["lines[0].startMs"]);
+        Fields(plain).ShouldBe(["lines[0].words[0].startMs", "lines[0].words[1].startMs"]);
+    }
+
+    [Fact]
     public void ValidationMessages_NeverQuoteTheLyrics()
     {
         var document = Word() with { Lines = [new LyricsLine(10, 5, "Secret words", [new LyricsWord("Secret", 10, 5, WordOrigin.Source, false)])] };
@@ -134,9 +144,10 @@ public sealed class LyricsDocumentTests
     [InlineData(" \n \t")]
     [InlineData("bell\u0007")]
     [InlineData("nul\0")]
-    public void FromUserText_RejectsEmptyTextAndControlCharacters(string text)
+    [InlineData(null)]
+    public void FromUserText_RejectsEmptyTextAndControlCharacters(string? text)
     {
-        var error = Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText(text, null));
+        var error = Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText(text!, null));
 
         error.Errors.Single().Field.ShouldBe("text");
     }
@@ -145,7 +156,7 @@ public sealed class LyricsDocumentTests
     public void FromUserText_RejectsOversizedTextLinesAndBadLanguages()
     {
         Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText(new string('x', 20_001), null)).Errors.Single().Field.ShouldBe("text");
-        Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText(new string('x', 501), null)).Errors.Single().Field.ShouldBe("lines[0].text");
+        Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText(string.Join(' ', Enumerable.Repeat(new string('x', 50), 10)), null)).Errors.Single().Field.ShouldBe("lines[0].text");
         Should.Throw<DomainValidationException>(() => LyricsDocument.FromUserText("a", "english")).Errors.Single().Field.ShouldBe("language");
     }
 

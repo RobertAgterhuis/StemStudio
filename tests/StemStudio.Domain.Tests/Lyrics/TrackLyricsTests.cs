@@ -415,6 +415,27 @@ public sealed class TrackLyricsTests
     }
 
     [Fact]
+    public void SetOffset_NeedsLines()
+    {
+        var lyrics = Searching();
+        lyrics.ApplyLookup(LyricsOutcome.Found, Word() with { Lines = [] }, T1);
+
+        lyrics.Status.ShouldBe(LyricsStatus.Found);
+        Conflict(() => lyrics.SetOffset(100, T1)).ShouldBe(LyricsConflict.None);
+    }
+
+    [Fact]
+    public void ScheduleLyricsLookup_IgnoresAZeroDuration()
+    {
+        var track = Track.FromUrl(Guid.NewGuid(), SourceKey.FromStored("youtube:dQw4w9WgXcQ"), "https://youtu.be/dQw4w9WgXcQ", T0);
+        track.ScheduleLookup(new LookupQuery("Song", "Band", null, 0), T0);
+
+        track.ScheduleLyricsLookup(T1);
+
+        track.LyricsStatus.ShouldBe(LyricsStatus.None);
+    }
+
+    [Fact]
     public void DeclineAutoAlign_StoresTheEstimateAndItsReason()
     {
         var lyrics = TrackWith(LyricsStatus.AlignPending).Lyrics!;

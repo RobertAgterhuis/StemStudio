@@ -1,6 +1,6 @@
 using StemStudio.Domain.Lyrics;
-using StemStudio.Domain.Tracks;
 using StemStudio.Domain.Tests.Tracks;
+using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Domain.Tests.Lyrics;
 
