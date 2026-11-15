@@ -6,18 +6,14 @@ At start-up (lifespan) the device runner is built once (``devices.create_device_
 probe of feature 003) and shared by the separator, the detail pipeline and ``/health``; when the
 scheduler becomes idle the GPU models are released (ADR-012 D6).
 
-The adapters of features 005 and 007 come from the ``metadata`` and ``render`` packages, looked
-up by factory name (:func:`optional_factory`): a worker without such a package runs without that
-feature (no source pictures, lookups reported as disabled, renders failing with the "library is
-not available" text) instead of failing to start.
+The adapters of features 005 and 007 come from the ``metadata`` package (picture normaliser,
+song lookup, source details reader; one rate-limited online client) and the ``render`` package
+(one library reader shared by ``/health`` and the render executor).
 """
 
-import importlib
-import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
-from typing import Any
 
 from fastapi import FastAPI
 
@@ -37,6 +33,11 @@ from stemstudio_worker.jobs.runtime import (
     WorkerParts,
     WorkerRuntime,
 )
+from stemstudio_worker.metadata import (
+    create_image_normalizer,
+    create_metadata_lookup,
+    create_source_details,
+)
 from stemstudio_worker.ports import (
     GpuNeed,
     ImageNormalizer,
@@ -49,8 +50,6 @@ from stemstudio_worker.render import create_library_reader, create_render_execut
 from stemstudio_worker.schemas import CONTRACT_VERSION
 from stemstudio_worker.separation import create_separator
 
-_LOG = logging.getLogger(__name__)
-
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
 _ROUTERS = (
@@ -60,10 +59,6 @@ _ROUTERS = (
     artwork_routes.router,
     render_routes.router,
 )
-
-METADATA_PACKAGE = "stemstudio_worker.metadata"
-"""Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``
-and ``create_metadata_lookup(settings)``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,37 +112,23 @@ def create_app(
 
 
 def default_adapters(settings: WorkerSettings, devices: ManagedRunner) -> PipelineAdapters:
-    """Build the production adapters from the ingest, separation and analysis factories."""
+    """Build the production adapters from the ingest, separation and analysis factories.
+
+    The ingest adapters get the ``metadata`` source details reader, which adds the artwork
+    candidates, album, ISRC and lookup names of feature 005 to resolved and fetched sources.
+    """
+    details = create_source_details(settings)
     return PipelineAdapters(
-        ingest=create_ingest_adapters(settings),
+        ingest=create_ingest_adapters(settings, details=details),
         separator=create_separator(settings, devices),
         analyzer=create_beat_analyzer(settings),
     )
 
 
-def optional_factory(module: str, name: str) -> Callable[..., Any] | None:
-    """Return ``module.name`` when that package is installed, else None (logged).
-
-    Only the absence of ``module`` itself (or of ``name`` in it) is tolerated; a package that
-    exists but fails to import (e.g. a missing dependency) raises.
-    """
-    try:
-        factory: Callable[..., Any] = getattr(importlib.import_module(module), name)
-    except ModuleNotFoundError as exc:
-        if exc.name != module:
-            raise
-    except AttributeError:
-        pass
-    else:
-        return factory
-    _LOG.warning("%s.%s is not available; that feature is switched off", module, name)
-    return None
-
-
 def default_online(settings: WorkerSettings, overrides: AppOverrides) -> OnlineParts:
     """The feature 005 parts: injected ones, else built by the ``metadata`` factories."""
-    normalizer = overrides.image_normalizer or _built(settings, "create_image_normalizer")
-    lookup = overrides.metadata_lookup or _built(settings, "create_metadata_lookup")
+    normalizer = overrides.image_normalizer or create_image_normalizer(settings)
+    lookup = overrides.metadata_lookup or create_metadata_lookup(settings)
     return OnlineParts(normalizer=normalizer, lookup=lookup)
 
 
@@ -156,12 +137,6 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
     library = overrides.library or create_library_reader(settings)
     executor = overrides.render_executor or create_render_executor(settings, library)
     return RenderParts(executor=executor, library=library)
-
-
-def _built(settings: WorkerSettings, name: str) -> Any:
-    """``METADATA_PACKAGE.<name>(settings)``, or None without that factory."""
-    factory = optional_factory(METADATA_PACKAGE, name)
-    return None if factory is None else factory(settings)
 
 
 class _Parts:
