@@ -146,23 +146,28 @@ public sealed class StyleTests
         StyleTestData.JazzTrio().Equals(null).ShouldBeFalse();
     }
 
+    /// <summary>Filters (kind, family, mood, instrument, query) and how many of the two test styles match.</summary>
+    public static TheoryData<StyleFilter, int> FilterCases => new()
+    {
+        { new StyleFilter(StyleKind.Preset, null, null, null, null), 1 },
+        { new StyleFilter(StyleKind.User, null, null, null, null), 1 },
+        { new StyleFilter(null, GenreFamily.Jazz, null, null, null), 2 },
+        { new StyleFilter(null, GenreFamily.Rock, null, null, null), 0 },
+        { new StyleFilter(null, null, "WARM", null, null), 1 },
+        { new StyleFilter(null, null, null, "Piano", null), 2 },
+        { new StyleFilter(null, null, null, null, "late-NIGHT"), 1 },
+        { new StyleFilter(null, null, null, null, "upright"), 2 },
+        { new StyleFilter(null, null, null, null, "rainy"), 1 },
+        { new StyleFilter(null, null, null, null, "relaxed"), 1 },
+        { new StyleFilter(null, null, null, null, "nothing"), 0 },
+        { new StyleFilter(null, null, " ", "", "  "), 2 },
+    };
+
     [Theory]
-    [InlineData(StyleKind.Preset, null, null, null, null, 1)]
-    [InlineData(StyleKind.User, null, null, null, null, 1)]
-    [InlineData(null, GenreFamily.Jazz, null, null, null, 2)]
-    [InlineData(null, GenreFamily.Rock, null, null, null, 0)]
-    [InlineData(null, null, "WARM", null, null, 1)]
-    [InlineData(null, null, null, "Piano", null, 2)]
-    [InlineData(null, null, null, null, "late-NIGHT", 1)]
-    [InlineData(null, null, null, null, "upright", 2)]
-    [InlineData(null, null, null, null, "rainy", 1)]
-    [InlineData(null, null, null, null, "relaxed", 1)]
-    [InlineData(null, null, null, null, "nothing", 0)]
-    [InlineData(null, null, " ", "", "  ", 2)]
-    public void Filter_CombinesCriteria(StyleKind? kind, GenreFamily? family, string? mood, string? instrument, string? query, int expected)
+    [MemberData(nameof(FilterCases))]
+    public void Filter_CombinesCriteria(StyleFilter filter, int expected)
     {
         var styles = new[] { StyleTestData.Preset(), StyleTestData.User() };
-        var filter = new StyleFilter(kind, family, mood, instrument, query);
 
         styles.Count(filter.Matches).ShouldBe(expected);
     }

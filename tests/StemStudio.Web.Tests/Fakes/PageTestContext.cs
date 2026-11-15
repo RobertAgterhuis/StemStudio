@@ -6,7 +6,6 @@ using NSubstitute;
 using Radzen;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
-using StemStudio.Web.Generation;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Lyrics;
@@ -49,7 +48,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<ShellOverlays>();
         Services.AddScoped<HelpContext>();
         Services.AddScoped<KaraokePreferences>();
-        Services.AddScoped<GenerationStatusSource>();
+        Services.AddScoped<StemStudio.Web.Generation.GenerationStatusSource>();
         GenerativeDefaults();
     }
 

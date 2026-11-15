@@ -18,14 +18,20 @@ public sealed class VoiceProfileTests
         ConsentStatement.Sha256.ShouldBe(Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(ConsentStatement.Text))));
     }
 
-    [Theory]
-    [InlineData(false, "consent.v1", "Pat", ConsentProblem.Required, "consentConfirmed")]
-    [InlineData(true, "consent.v0", "Pat", ConsentProblem.Outdated, "consentStatementVersion")]
-    [InlineData(true, null, "Pat", ConsentProblem.Outdated, "consentStatementVersion")]
-    [InlineData(true, "consent.v1", " ", ConsentProblem.Invalid, "personName")]
-    public void Check_RefusesMissingOutdatedOrNamelessConsent(bool confirmed, string? version, string name, ConsentProblem problem, string field)
+    /// <summary>Consent input (confirmed, statement version, person name), the problem and the field it names.</summary>
+    public static TheoryData<(bool Confirmed, string? Version, string Name), ConsentProblem, string> RefusedConsent => new()
     {
-        var outcome = ConsentRules.Check(confirmed, version, name, T0);
+        { (false, "consent.v1", "Pat"), ConsentProblem.Required, "consentConfirmed" },
+        { (true, "consent.v0", "Pat"), ConsentProblem.Outdated, "consentStatementVersion" },
+        { (true, null, "Pat"), ConsentProblem.Outdated, "consentStatementVersion" },
+        { (true, "consent.v1", " "), ConsentProblem.Invalid, "personName" },
+    };
+
+    [Theory]
+    [MemberData(nameof(RefusedConsent))]
+    public void Check_RefusesMissingOutdatedOrNamelessConsent((bool Confirmed, string? Version, string Name) input, ConsentProblem problem, string field)
+    {
+        var outcome = ConsentRules.Check(input.Confirmed, input.Version, input.Name, T0);
 
         (outcome.Problem, outcome.Consent).ShouldBe((problem, null));
         outcome.Errors.Single().Field.ShouldBe(field);

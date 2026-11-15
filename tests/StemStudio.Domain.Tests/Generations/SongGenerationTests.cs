@@ -50,15 +50,21 @@ public sealed class SongGenerationTests
         SongCaptionBuilder.Check(Guard, null, null).ShouldBeEmpty();
     }
 
+    /// <summary>Song options with one invalid value and the field it names.</summary>
+    public static TheoryData<SongOptions, string> InvalidOptions => new()
+    {
+        { new SongOptions(39, null, null, 60, 1, "x", null), "bpm" },
+        { new SongOptions(null, "H major", null, 60, 1, "x", null), "keyScale" },
+        { new SongOptions(null, null, "5", 60, 1, "x", null), "timeSignature" },
+        { new SongOptions(null, null, null, 9, 1, "x", null), "durationSeconds" },
+        { new SongOptions(null, null, null, 481, 1, "x", null), "durationSeconds" },
+        { new SongOptions(null, null, null, 60, 3, "x", null), "takes" },
+    };
+
     [Theory]
-    [InlineData(39, null, null, 60, 1, "bpm")]
-    [InlineData(null, "H major", null, 60, 1, "keyScale")]
-    [InlineData(null, null, "5", 60, 1, "timeSignature")]
-    [InlineData(null, null, null, 9, 1, "durationSeconds")]
-    [InlineData(null, null, null, 481, 1, "durationSeconds")]
-    [InlineData(null, null, null, 60, 3, "takes")]
-    public void Options_AreValidated(int? bpm, string? key, string? signature, double duration, int takes, string field) =>
-        SongRules.Validate(new SongOptions(bpm, key, signature, duration, takes, "x", null)).ShouldContain(e => e.Field == field);
+    [MemberData(nameof(InvalidOptions))]
+    public void Options_AreValidated(SongOptions options, string field) =>
+        SongRules.Validate(options).ShouldContain(e => e.Field == field);
 
     [Fact]
     public void Options_AcceptValidValuesAndLimitTexts()

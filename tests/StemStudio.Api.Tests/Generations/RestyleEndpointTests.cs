@@ -88,15 +88,21 @@ public sealed class RestyleEndpointTests : ApiTestBase
         Factory.Generator.Created.Single().Stems.Select(stem => stem.FileName).ShouldBe(["drums.flac", "bass.flac"]);
     }
 
+    /// <summary>Range start and end, one included stem (or none), the take count, and the field each refusal names.</summary>
+    public static TheoryData<(double Start, double End, string? Stem, int Takes), string> InvalidRequests => new()
+    {
+        { (60, 65, null, 1), "rangeEndSeconds" },
+        { (0, 600, null, 1), "rangeEndSeconds" },
+        { (60, 105, "kazoo", 1), "includedStems" },
+        { (60, 105, null, 3), "takes" },
+    };
+
     [Theory]
-    [InlineData(60, 65, null, 1, "rangeEndSeconds")]
-    [InlineData(0, 600, null, 1, "rangeEndSeconds")]
-    [InlineData(60, 105, "kazoo", 1, "includedStems")]
-    [InlineData(60, 105, null, 3, "takes")]
-    public async Task Create_InvalidRequestsAre400(double start, double end, string? stem, int takes, string field)
+    [MemberData(nameof(InvalidRequests))]
+    public async Task Create_InvalidRequestsAre400((double Start, double End, string? Stem, int Takes) bad, string field)
     {
         var track = await SeedTrackAsync(Factory);
-        var request = Request() with { RangeStartSeconds = start, RangeEndSeconds = end, Takes = takes, IncludedStems = stem is null ? null : [stem] };
+        var request = Request() with { RangeStartSeconds = bad.Start, RangeEndSeconds = bad.End, Takes = bad.Takes, IncludedStems = bad.Stem is null ? null : [bad.Stem] };
 
         using var response = await PostAsync(track.Id, request);
 

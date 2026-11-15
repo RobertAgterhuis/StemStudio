@@ -38,13 +38,19 @@ public sealed class VoiceProfileEndpointTests : ApiTestBase
         await ContractAssert.MatchesAsync(response, "createVoiceProfile");
     }
 
-    [Theory]
-    [InlineData("false", "consent.v1", "Pat", "consent-required", "consentConfirmed")]
-    [InlineData("true", "consent.v0", "Pat", "consent-outdated", "consentStatementVersion")]
-    [InlineData("true", "consent.v1", "", null, "personName")]
-    public async Task Create_ConsentIsCheckedBeforeAnythingIsStored(string confirmed, string version, string person, string? type, string field)
+    /// <summary>Consent form fields (confirmed, statement version, person name), the problem type and the field it names.</summary>
+    public static TheoryData<(string Confirmed, string Version, string Person), string?, string> RefusedConsent => new()
     {
-        using var response = await CreateAsync(Client, form => form with { Confirmed = confirmed, Version = version, Person = person });
+        { ("false", "consent.v1", "Pat"), "consent-required", "consentConfirmed" },
+        { ("true", "consent.v0", "Pat"), "consent-outdated", "consentStatementVersion" },
+        { ("true", "consent.v1", ""), null, "personName" },
+    };
+
+    [Theory]
+    [MemberData(nameof(RefusedConsent))]
+    public async Task Create_ConsentIsCheckedBeforeAnythingIsStored((string Confirmed, string Version, string Person) consent, string? type, string field)
+    {
+        using var response = await CreateAsync(Client, form => form with { Confirmed = consent.Confirmed, Version = consent.Version, Person = consent.Person });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         if (type is not null)
