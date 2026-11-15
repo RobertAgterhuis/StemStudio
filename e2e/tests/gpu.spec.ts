@@ -5,6 +5,7 @@ import {
   fakeGpuText,
   freshImportTimeoutMs,
   importFreshBand,
+  outOfMemoryReason,
   requireGpuStack,
   type ExpectedJobDevice,
 } from '../support/device';
@@ -15,6 +16,9 @@ import { expect, test } from '../support/test';
 // `npm test`; run with `npm run test:gpu` once per fake device mode (CTO, T051).
 
 const onFakeGpu: ExpectedJobDevice = { kind: 'gpu', fallback: false, text: fakeGpuText };
+
+// The kind is not pinned: it depends on whether any later step of the job ran on the GPU.
+const afterOutOfMemory: ExpectedJobDevice = { fallback: true, reason: outOfMemoryReason };
 
 test.describe('device', { tag: '@gpu' }, () => {
   // T033: US1-1, FR-006.
@@ -33,6 +37,26 @@ test.describe('device', { tag: '@gpu' }, () => {
       await trackPage.goto(track.id);
       await expectJobDevice(trackPage.device, trackPage.deviceFallback, onFakeGpu);
       await expectJobDevice(detail.device, detail.deviceFallback, onFakeGpu);
+    });
+  });
+
+  // T038: US2-3, FR-004, SC-004. The fake `gpu-oom` device makes the first model step of every
+  // job run out of GPU memory; the step is repeated on the CPU and the job completes.
+  test('fallback notice', { tag: '@fake-gpu-oom' }, async ({ api, trackPage, detail }, testInfo) => {
+    requireGpuStack(['gpu-oom']);
+    test.setTimeout(freshImportTimeoutMs);
+    const track = await importFreshBand(api, `gpu-oom-${testInfo.project.name}`);
+
+    await test.step('both jobs completed and record the CPU fallback', () => {
+      expect(track.status).toBe('completed');
+      expectJobDeviceRecord(track.device, afterOutOfMemory);
+      expectJobDeviceRecord(track.detail.device, afterOutOfMemory);
+    });
+
+    await test.step('the track page shows the fallback reason for both jobs', async () => {
+      await trackPage.goto(track.id);
+      await expectJobDevice(trackPage.device, trackPage.deviceFallback, afterOutOfMemory);
+      await expectJobDevice(detail.device, detail.deviceFallback, afterOutOfMemory);
     });
   });
 });

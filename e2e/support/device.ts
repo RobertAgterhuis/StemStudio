@@ -64,10 +64,16 @@ export async function importFreshBand(api: StemStudioApi, salt: string): Promise
 /** Asserts a job device record of `GET /api/tracks/{id}` (server state behind the badge). */
 export function expectJobDeviceRecord(device: JobDeviceDto | null | undefined, expected: ExpectedJobDevice): void {
   expect(device, 'job device record').toBeTruthy();
-  expect(device?.cpuFallback).toBe(expected.fallback);
-  if (expected.kind !== undefined) {
-    expect(device?.kind).toBe(expected.kind);
-  }
+  expect(device).toMatchObject(recordShape(expected));
+}
+
+/** The `JobDevice` fields an expectation pins (`toMatchObject` shape). */
+function recordShape(expected: ExpectedJobDevice): Record<string, unknown> {
+  return {
+    cpuFallback: expected.fallback,
+    ...(expected.kind === undefined ? {} : { kind: expected.kind }),
+    ...(expected.reason === undefined ? {} : { fallbackReason: expect.stringMatching(expected.reason) }),
+  };
 }
 
 /**
