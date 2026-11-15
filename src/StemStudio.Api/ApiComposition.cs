@@ -15,6 +15,7 @@ using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Storage;
+using StemStudio.Api.Styles;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
@@ -96,6 +97,7 @@ public static class ApiComposition
         app.MapLyricsEndpoints();
         app.MapScoreEndpoints();
         app.MapGenerationEndpoints();
+        app.MapStyleEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -151,6 +153,7 @@ public static class ApiComposition
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
+        services.AddScoped<StyleService>();
         services.AddScoped<RetryService>();
         services.AddScoped<GenerationService>();
         services.AddSingleton<TakeStorage>();
