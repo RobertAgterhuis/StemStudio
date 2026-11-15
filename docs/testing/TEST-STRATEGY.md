@@ -14,6 +14,12 @@ Feature 003 (GPU acceleration) adds the processing device; its additions are mar
 The binding contracts are now those in `specs/003-gpu-acceleration/contracts/` (worker 1.2.0,
 backend 1.3.0, engine 2.0.0 unchanged, UI test ids 1.2.0, all additive).
 
+Feature 004 (design system and UX foundation) changes only the web front end; its additions are
+marked **(004)** and collected in section 10. Binding contracts: `specs/004-design-system-ux/contracts/`
+(UI test ids **1.3.0** with level rules R7-R9, help-content 1.0.0, web-interop 1.0.0); backend
+1.3.0, worker 1.2.0 and engine 2.0.0 are unchanged (`DELTA.md`). ADR-013 holds the design
+decisions.
+
 ## 1. Test pyramid
 
 ```text
@@ -49,6 +55,8 @@ backend 1.3.0, engine 2.0.0 unchanged, UI test ids 1.2.0, all additive).
 | Audio engine (TS) | audio-engine | Vitest + jsdom, hand-written `AudioContext` mock, fake timers | v8 thresholds 90/90/90/90 | ESLint strict type-checked + jsdoc, `tsc --noEmit` |
 | Fixture generators (`generate_fixtures.py`; `generate_detail_fixtures.py` (002)) | qa | pytest | pytest-cov `--cov-branch`, `fail_under = 90` over both modules (`tests/fixtures/pyproject.toml`) | ruff, ruff format, mypy --strict |
 | E2E suite | qa | Playwright Test (TypeScript) | n/a (behavioural) | ESLint strict type-checked + eslint-plugin-playwright, `tsc --noEmit` |
+| **(004)** Web interop (TS, `src/web-interop`) | frontend | Vitest + jsdom, fake driver.js factory | v8 thresholds 90/90/90/90 | ESLint strict type-checked + jsdoc, `tsc --noEmit` |
+| **(004)** Design quality (visual, a11y, Lighthouse) | qa (specs), devops (CI jobs) | Playwright `toHaveScreenshot` (container only), `@axe-core/playwright` 4.14.0, `@lhci/cli` 0.15.1 | n/a (budgets: 0.1 % pixels, 0 axe violations, SC-003 timings) | same as the E2E suite |
 | SIG metrics | quality-gate | `tools/quality/run_all.py` (lizard, jscpd, dependency direction) | own tests >= 90 % | unit <= 15 LOC (max 30), CC <= 5 (max 10), <= 4 params, no 6-line duplicates |
 
 CI (devops, `.github/workflows/ci.yml`) runs exactly these commands and fails below the gates.
@@ -123,7 +131,7 @@ CI (devops, `.github/workflows/ci.yml`) runs exactly these commands and fails be
 Runs against the real stack (`STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait`), web
 on `E2E_BASE_URL` (default `http://localhost:8080`), API on `E2E_API_URL` (default
 `http://localhost:8081`). Selectors use `page.getByTestId(...)` with the ids of
-`specs/003-gpu-acceleration/contracts/ui-test-ids.md` (1.2.0, a superset of 1.1.0 and 1.0.0) only, wrapped in page objects (`e2e/pages/`).
+`specs/004-design-system-ux/contracts/ui-test-ids.md` (1.3.0, a superset of 1.2.0, 1.1.0 and 1.0.0) only, wrapped in page objects (`e2e/pages/`). **(004)** Every browser context starts at level Advanced (section 10.1), where every 1.2.0 id renders exactly as before (R7).
 
 | Spec | Covers |
 |---|---|
@@ -357,4 +365,152 @@ npm run test:detail      # (002) only @detail, without @worker-restart
 npm run test:worker-restart  # (002) needs Docker on the host (docker compose restart worker)
 npm run test:restart     # after `docker compose restart api web` (T122)
 npm run test:real        # real Demucs stack only
+
+# (004) design system and UX (section 10); fake CPU stack unless stated
+npm run test:legacy      # only the 1.0.0-1.2.0 specs (SC-006 evidence: the same set as before 004)
+npm run test:ux          # only the @ux specs (journeys, levels, help, tours, keyboard, theme flash)
+npm run test:a11y        # axe matrix, project "a11y" (Chromium)
+npm run test:lighthouse  # project lighthouse-setup writes the URLs, then lhci autorun (lighthouserc.json)
+# Visual regression: ONLY inside the Playwright container and on a FRESH stack (empty data volume).
+# CI job "visual" uses scripts/playwright-container.sh (devops); by hand, from the repository root on Linux:
+docker compose down -v && STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5 docker compose up -d --build --wait
+docker run --rm --network host --ipc=host -e E2E_VISUAL_CONTAINER=1 \
+  -v "$PWD:/work" -w /work/e2e mcr.microsoft.com/playwright:v1.65.1-noble \
+  sh -c "npm ci && npm run test:visual"                          # compare against the baselines
+# Baselines (integration wave T067, then reviewed in T068): same, with
+#   sh -c "npm ci && npm run test:visual -- --update-snapshots"
+# -> e2e/visual/__screenshots__/screens.spec.ts/*.png
 ```
+
+## 10. (004) Design system and UX foundation
+
+Scope: the web front end only (spec 004, ADR-013). Unit and component tests (bUnit; Vitest for
+`src/web-interop`) belong to the frontend agent; the qa suites below exercise the result in real
+browsers against the fake stack. They are authored during the wave (they lint, typecheck and
+list) and executed by the CTO in the integration wave (T067) after the frontend merge.
+
+### 10.1 Levels in E2E (storage state per level)
+
+`e2e/support/preferences.ts` builds the local-storage record `stemstudio.preferences`
+(data-model.md 1.1, schema version 1) as a Playwright storage state for the web origin:
+
+| State | Record | Used by |
+|---|---|---|
+| `advancedState` (config default) | `level: "advanced"`, `help.welcomeDismissed: true`, every known tour recorded as `completed` at its current version (no tour offers) | every 1.0.0-1.2.0 spec, unchanged (ui-test-ids R7, SC-006); the specs themselves were not edited |
+| `freshState` | nothing stored (effective level Beginner, welcome panel shown) | `journey-beginner.spec.ts`, welcome cases |
+| `levelState(level, options)` | any level / theme / density / motion; welcome and tours configurable | the level, help, tour, keyboard, visual and a11y matrices |
+| `expertState` | Expert, welcome dismissed, no offers | `expert-keyboard.spec.ts` |
+
+`tourVersions` in the same file must follow the `version` of each `Help/tours/<id>.json`: a bumped
+tour version re-offers the tour and would add an offer chip to the 1.2.0 screens. Specs that need
+another state use `test.use({ storageState: ... })` per file or describe block, or a second context
+or page for cross-tab checks. The record carries a fixed timestamp, so it is deterministic.
+
+The Playwright config has five projects: `chromium` and `firefox` (testDir `tests/`, the E2E suite;
+`npm test` and the other behavioural scripts select exactly these two), `visual` (testDir
+`visual/`), `a11y` (testDir `a11y/`) and `lighthouse-setup` (`lighthouse/*.setup.ts`). The new
+behavioural specs in `tests/` are tagged `@ux`, so `npm run test:legacy` still runs exactly the
+1.2.0 set.
+
+Shared data (`e2e/support/ux-data.ts`, worker-scoped fixture `uxData` in `e2e/support/ux-test.ts`):
+`detail_10s_band.wav` with a completed detail phase (track with detail stems, mixer collapsed and
+expanded), `click_120bpm_4-4_12s.wav` with its detail phase cancelled (track without detail stems;
+tour step skipping) and the mix "UX practice" of the band track (find-or-create). The screens of
+the matrices are defined once in `e2e/support/screens.ts`; new page objects: `app-shell.ts`,
+`help-panel.ts`, `tour-popover.ts`, `command-palette.ts`.
+
+### 10.2 Visual regression rules (SC-005)
+
+- `e2e/visual/screens.spec.ts`, Playwright `toHaveScreenshot`, project `visual` (Chromium,
+  1440 x 900, device scale 1, `reducedMotion: reduce`, stored `motion: "reduced"`).
+- **Container only**: baselines are rendered and compared only in
+  `mcr.microsoft.com/playwright:v1.65.1-noble` (same version as `@playwright/test`); the spec skips
+  itself with the reason unless it runs on Linux inside that image (`/ms-playwright` exists, as
+  with devops' `scripts/playwright-container.sh`) or `E2E_VISUAL_CONTAINER=1` is set. Windows or macOS renderings are never
+  committed. Path: `e2e/visual/__screenshots__/screens.spec.ts/<name>.png` (no platform suffix).
+- **Fresh stack**: the run starts on an empty data volume (`docker compose down -v`, then up) and
+  runs `test:visual` alone, so the track list and mix library contain only the seeded data.
+- **Threshold**: `maxDiffPixelRatio: 0.001` (0.1 % of pixels), animations disabled, caret hidden,
+  CSS scale; full-page captures.
+- **Masks**: meters and dB readouts (`meter-*`), `transport-position`, `transport-state`, `toast`,
+  and every `<time>` element (mix dates); GUIDs never appear as text. The `<time>` mask is the only
+  non-test-id selector of the suite (a mask is cosmetic, not an interaction); it relies on the
+  front end rendering dates in `<time>` (requested in the qa hand-off).
+- **Matrix**: 7 screen states (import, tracks, track with and without detail stems, mixer collapsed
+  and expanded, mixes) x 2 themes x 3 levels = 42, plus per theme: welcome panel, help panel open
+  (mixer, docked), a tour step (`import-basics` step 1), 360 px views of Import, Tracks, Track,
+  Mixes and the help sheet, and the mixer at 768 px: 60 baselines (>= 30 required).
+- **Baseline review**: the CTO generates the first set in the integration wave (T067) with
+  `--update-snapshots` in the container, and the owner approves it (T068). Afterwards a baseline
+  changes only through the CI job's `update-baselines` dispatch; the new images are reviewed in
+  the pull request like code. A failing comparison is never "fixed" by regenerating without review.
+- `e2e/tests/theme-flash.spec.ts` (SC-004, `@ux`) runs in the normal suite: 20 reloads per theme
+  (dark, light, and system with the OS dark and with the OS light); a 1 x 1 px screenshot taken at
+  `domcontentloaded` must be closer to that theme's page background than to the other theme's
+  (both read from the `body` background with `html[data-theme]` set), and `html[data-theme]` must
+  already be set at that moment.
+
+### 10.3 Accessibility scan matrix (SC-001)
+
+`e2e/a11y/screens.a11y.spec.ts`, project `a11y` (Chromium, 1440 x 900), `@axe-core/playwright`
+with tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`; **0 violations**, no rule disabled
+and no element excluded. Matrix: the 7 screen states x 3 levels x 2 themes (42 scans), plus per
+level and theme the help panel open (mixer), the command palette open (import) and a tour step on
+the mixer (`mixer-basics` at Beginner, `mixer-advanced` at Advanced, `expert-keyboard` at Expert),
+plus the welcome panel (fresh storage, both themes): 62 scans. A failure lists rule id, impact,
+help URL and target selectors. Keyboard-only walkthroughs are covered by `journey-beginner`,
+`tours` and `expert-keyboard`.
+
+### 10.4 Lighthouse budgets (SC-003)
+
+`npm run test:lighthouse` = project `lighthouse-setup` (`e2e/lighthouse/urls.setup.ts`: seeds the
+shared data through the API and writes the five URLs plus Playwright's Chromium path to
+`.state/lighthouse-urls.json`) followed by `node lighthouse/run-lighthouse.mts`, which runs
+`lhci autorun --config=lighthouserc.json` with those URLs (argument list, no shell). Budgets in
+`e2e/lighthouserc.json` (desktop preset, cold cache, 3 runs, median): FCP <= 1000 ms, LCP <= 1500
+ms, CLS <= 0.05 for Import, Tracks, Track, Mixes and Mixer. Reports go to `e2e/lighthouse-report/`
+(CI artifact). Lighthouse resets storage, so it measures the first visit (Beginner with the
+welcome panel). The byte budget (+<= 200 KB) and the performance trace (SC-011) are measured by
+the frontend (T063).
+
+### 10.5 Help-coverage tests (FR-025, FR-026, SC-009)
+
+The build-breaking checks (markers <-> anchors, one screen topic per page, links, tour targets,
+the 20 reference queries) are xUnit/bUnit tests of the frontend (`HelpCoverageTests.cs`, T050).
+`e2e/tests/help.spec.ts` checks the same behaviour in the browser: V-H1 on every screen (help
+button, rail item, `?` and F1 open the screen topic; F1 on a focused marked control opens its
+topic; focus moves into the panel; Escape returns it), V-H2 tooltip with "Learn more", V-H3 the 20
+reference queries (expected topic first), a related link and Back, V-H4 the level note and its
+switch, V-H5 transport and strips usable beside the docked panel at 1280 px. V-H6 (unknown topic)
+has no browser hook and stays a bUnit test.
+
+### 10.6 Counting rule for SC-008
+
+`e2e/support/keyboard.ts` counts every `press` (a chord such as `ControlOrMeta+K` is one press) and
+every text entry (palette query, mix name) as one, the same way SC-008 treats typing the import
+URL. The fake stack cannot import from a URL (no network), so the spec starts from the seeded,
+completed band track and measures palette -> track -> mixer -> `→` `[` `→` `→` `]` `L` -> `Mod+S`
+-> name -> Enter -> `G` `M` -> palette -> load (20 of the 25 allowed).
+
+### 10.7 (004) acceptance scenario -> tests
+
+| Scenario | Unit / component (frontend) | E2E / design suites (qa) |
+|---|---|---|
+| US1 tokens, themes, no flash (FR-001..FR-005, SC-002, SC-004) | token contrast test, `PreferencesState` tests, Vitest `first-paint`, `theme` | `tests/theme-flash.spec.ts`; `visual/screens.spec.ts` |
+| US1 designed screens and states, 360 px, stem colours (FR-006..FR-009, SC-005) | bUnit design components (`StemRibbon`, `SplitProgress`, states) | `visual/screens.spec.ts` (60 baselines); `a11y/screens.a11y.spec.ts` |
+| US1 performance (SC-003, SC-011) | frontend T063 (bytes, trace) | `lighthouserc.json` + `lighthouse/` |
+| US2 welcome, Beginner journey, presets (FR-010, FR-011, FR-015, FR-016, SC-007) | `WelcomePanelTests`, `JourneyRailTests`, `PracticePresetsTests` | `tests/journey-beginner.spec.ts` |
+| US2 level gates, persistence, cross-tab, state kept (FR-012..FR-014, FR-020, SC-010, R7-R9) | feature catalogue and gate tests, `PreferencesState` tests | `tests/journey-levels.spec.ts`; the whole 1.2.0 suite at Advanced (`npm run test:legacy`, SC-006) |
+| US3 tooltips, panel, search, level note (FR-021..FR-024) | `HelpPanelTests`, `HelpHintTests`, `HelpContextTests`, help search tests | `tests/help.spec.ts` |
+| US3 coverage (FR-025, FR-026, SC-009) | `HelpCoverageTests.cs` | `tests/help.spec.ts` (reference queries in the browser) |
+| US4 tours (FR-027) | Vitest `tour.test.ts`, `TourOfferTests`, `TourServiceTests` | `tests/tours.spec.ts` |
+| US5 palette, shortcuts, overlay, Expert controls (FR-017..FR-019, SC-008) | Vitest `shortcuts.test.ts`, `CommandPaletteTests`, `ShortcutOverlayTests`, mixer command tests | `tests/expert-keyboard.spec.ts` |
+| Accessibility (SC-001) | bUnit roles and labels | `a11y/screens.a11y.spec.ts`; the keyboard-only flows above |
+
+Suite inventory after T064 (`npx playwright test --list`): `chromium` + `firefox` 78 tests of
+1.0.0-1.2.0 (unchanged) + 37 `@ux` tests each; `visual` 60; `a11y` 62; `lighthouse-setup` 1 (then
+`lhci autorun` over 5 URLs x 3 runs). Success criteria -> evidence: SC-001 `a11y/`; SC-003
+`lighthouserc.json`; SC-004 `theme-flash.spec.ts`; SC-005 `visual/`; SC-006 `npm run test:legacy`;
+SC-007 `journey-beginner.spec.ts`; SC-008 `expert-keyboard.spec.ts`; SC-009 `help.spec.ts` +
+`HelpCoverageTests.cs`; SC-010 `journey-levels.spec.ts`; SC-002 and SC-011 frontend (token
+contrast test, T063 trace).
