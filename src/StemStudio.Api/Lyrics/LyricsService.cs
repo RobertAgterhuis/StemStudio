@@ -1,4 +1,5 @@
 using StemStudio.Api.Tracks;
+using StemStudio.Api.Worker;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
@@ -7,13 +8,15 @@ using StemStudio.Persistence.Repositories;
 namespace StemStudio.Api.Lyrics;
 
 /// <summary>
-/// The lyrics endpoints of a track (FR-007, FR-009, FR-013): every answer is <c>no-store</c>; the text is only ever
-/// part of these responses, never of the track resources or the logs (FR-010).
+/// The lyrics endpoints of a track (FR-004, FR-007, FR-009, FR-013): every answer is <c>no-store</c>; the text is only
+/// ever part of these responses, never of the track resources or the logs (FR-010).
 /// </summary>
 /// <param name="tracks">Track repository.</param>
 /// <param name="trackService">Schedules the lookups of a track opened for the first time.</param>
+/// <param name="aligner">The automatic rule and alignment submission.</param>
+/// <param name="applier">Deletes worker jobs.</param>
 /// <param name="clock">Clock.</param>
-public sealed class LyricsService(ITrackRepository tracks, TrackService trackService, TimeProvider clock)
+public sealed class LyricsService(ITrackRepository tracks, TrackService trackService, LyricsAligner aligner, LyricsJobApplier applier, TimeProvider clock)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -33,6 +36,42 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
         return Document(track, StatusCodes.Status200OK);
     }
 
+    /// <summary>Replaces the lyrics with text entered by the user and applies the automatic rule (FR-004).</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="request">The text and the language hint.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>202, 404, 409 or 422.</returns>
+    public Task<IResult> SetAsync(Guid trackId, SetLyricsRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ChangeAsync(trackId, StatusCodes.Status202Accepted, async (track, lyrics) =>
+        {
+            lyrics.Paste(LyricsDocument.FromUserText(request.Text, request.Language), Now);
+            await EvaluateQuietlyAsync(track, cancellationToken);
+            return null;
+        }, cancellationToken);
+    }
+
+    /// <summary>Starts the alignment the user asked for.</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>202, 404, 409 or 503.</returns>
+    public Task<IResult> AlignAsync(Guid trackId, CancellationToken cancellationToken) =>
+        ChangeAsync(trackId, StatusCodes.Status202Accepted, (track, _) => aligner.StartAsync(track, cancellationToken), cancellationToken);
+
+    /// <summary>Cancels the running alignment and removes its worker job.</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200, 404 or 409.</returns>
+    public Task<IResult> CancelAlignAsync(Guid trackId, CancellationToken cancellationToken) =>
+        ChangeAsync(trackId, StatusCodes.Status200OK, async (_, lyrics) =>
+        {
+            var jobId = lyrics.LyricsJobId;
+            lyrics.CancelAlign(Now);
+            await DeleteJobAsync(jobId, cancellationToken);
+            return null;
+        }, cancellationToken);
+
     /// <summary>Stores the offset (FR-007).</summary>
     /// <param name="trackId">Track ID.</param>
     /// <param name="request">The offset.</param>
@@ -41,11 +80,15 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
     public Task<IResult> SetOffsetAsync(Guid trackId, LyricsOffsetRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return ChangeAsync(trackId, lyrics => lyrics.SetOffset(request.OffsetMs, Now), StatusCodes.Status200OK, cancellationToken);
+        return ChangeAsync(trackId, StatusCodes.Status200OK, (_, lyrics) =>
+        {
+            lyrics.SetOffset(request.OffsetMs, Now);
+            return Task.FromResult<IResult?>(null);
+        }, cancellationToken);
     }
 
-    /// <summary>Applies a lyrics transition and saves; conflicts become 409 and broken rules 422 (nothing is saved).</summary>
-    private async Task<IResult> ChangeAsync(Guid trackId, Action<TrackLyrics> change, int status, CancellationToken cancellationToken)
+    /// <summary>Applies a lyrics transition and saves; a conflict (409), a broken rule (422) or a returned problem saves nothing.</summary>
+    private async Task<IResult> ChangeAsync(Guid trackId, int status, Func<Track, TrackLyrics, Task<IResult?>> change, CancellationToken cancellationToken)
     {
         var track = await tracks.FindAsync(trackId, cancellationToken);
         if (track is null)
@@ -53,7 +96,7 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
             return LyricsProblems.NotStored(TrackService.NotFound(trackId));
         }
 
-        if (Apply(track, change) is { } problem)
+        if (await ApplyAsync(track, change) is { } problem)
         {
             return LyricsProblems.NotStored(problem);
         }
@@ -62,16 +105,36 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
         return Document(track, status);
     }
 
-    private IResult? Apply(Track track, Action<TrackLyrics> change)
+    private async Task<IResult?> ApplyAsync(Track track, Func<Track, TrackLyrics, Task<IResult?>> change)
     {
         try
         {
-            change(track.EnsureLyrics(Now));
-            return null;
+            return await change(track, track.EnsureLyrics(Now));
         }
         catch (Exception exception) when (LyricsProblems.For(exception) is { } problem)
         {
             return problem;
+        }
+    }
+
+    /// <summary>Applies the automatic rule; an unreachable worker leaves it pending for the synchroniser.</summary>
+    private async Task EvaluateQuietlyAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await aligner.EvaluateAutoAsync(track, cancellationToken);
+        }
+        catch (WorkerUnavailableException)
+        {
+            // The synchroniser evaluates the rule (or submits the started alignment) on its next pass.
+        }
+    }
+
+    private async Task DeleteJobAsync(string? lyricsJobId, CancellationToken cancellationToken)
+    {
+        if (lyricsJobId is not null)
+        {
+            await applier.DeleteQuietlyAsync(lyricsJobId, cancellationToken);
         }
     }
 

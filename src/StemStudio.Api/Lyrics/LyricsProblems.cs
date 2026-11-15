@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using StemStudio.Api.Worker;
 using StemStudio.Domain;
 using StemStudio.Domain.Lyrics;
 
@@ -36,6 +37,13 @@ public static class LyricsProblems
         LyricsConflict.NotAligning => Typed("lyrics-not-aligning", "No alignment running", "No alignment of these lyrics is running."),
         _ => Typed("lyrics-none", "No lyrics", "This track has no lyrics."),
     };
+
+    /// <summary>The answer when the worker cannot take an alignment: 503 when unreachable, else 409 with its detail.</summary>
+    /// <param name="exception">The worker exception.</param>
+    /// <returns>The result.</returns>
+    public static IResult WorkerProblem(Exception exception) => exception is WorkerRequestException rejection
+        ? Typed("lyrics-align-rejected", "Alignment rejected", rejection.Detail)
+        : ApiProblems.Unavailable();
 
     /// <summary>The 409 problem while the standard separation is not completed.</summary>
     /// <returns>The result.</returns>

@@ -31,6 +31,7 @@ public sealed class LyricsJobApplier(IWorkerClient worker, JobDeviceApplier devi
         ArgumentNullException.ThrowIfNull(track);
         ArgumentNullException.ThrowIfNull(job);
         track.Lyrics!.AssignJob(job.LyricsJobId, Now);
+        Progress(track, track.Lyrics, job);
     }
 
     /// <summary>Fails lyrics whose job the worker rejected.</summary>

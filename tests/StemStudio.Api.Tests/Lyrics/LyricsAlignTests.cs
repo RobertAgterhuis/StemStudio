@@ -104,6 +104,18 @@ public sealed class LyricsAlignTests : ApiTestBase
     }
 
     [Fact]
+    public async Task ARefusedHealthCheck_KeepsTheAutomaticRulePending()
+    {
+        var track = await Factory.SeedAsync(AlignPending());
+        Worker.OnGetHealth = () => throw new WorkerRequestException(HttpStatusCode.NotFound, "Not found");
+
+        await Factory.SyncLyricsAsync();
+
+        var lyrics = (await Factory.FindTrackAsync(track.Id))!.Lyrics!;
+        (lyrics.Status, lyrics.AutoAlign).ShouldBe((LyricsStatus.AlignPending, true));
+    }
+
+    [Fact]
     public async Task ARejectedAlignment_FailsWithTheWorkerText()
     {
         var track = await Factory.SeedAsync(AlignPending());
