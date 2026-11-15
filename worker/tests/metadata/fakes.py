@@ -72,3 +72,37 @@ def online_harness(
 def json_response(body: object, status: int = 200) -> httpx.Response:
     """A JSON response."""
     return httpx.Response(status, json=body)
+
+
+RouteKey = tuple[str, str, str]
+"""``(host, path, props)``: Wikidata calls share a path and differ by ``props``."""
+
+
+@dataclass
+class Router:
+    """A ``MockTransport`` handler answering by host, path and ``props`` (order-independent).
+
+    A route with several replies hands them out in order and then keeps repeating the last one.
+    """
+
+    routes: dict[RouteKey, list[httpx.Response]] = field(default_factory=dict)
+    requests: list[httpx.Request] = field(default_factory=list)
+
+    def add(self, host: str, path: str, *replies: httpx.Response, props: str = "") -> None:
+        self.routes.setdefault((host, path, props), []).extend(replies)
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        key = (request.url.host, request.url.path, request.url.params.get("props", ""))
+        replies = self.routes.get(key)
+        if not replies:
+            return httpx.Response(400, text=f"no route for {key}")
+        return replies.pop(0) if len(replies) > 1 else replies[0]
+
+
+def routed_client(router: Router) -> OnlineClient:
+    """An ``OnlineClient`` on ``router`` with a fake clock (no real sleeping)."""
+    clock = FakeClock()
+    limiter = RateLimiter(clock=clock, sleep=clock.sleep)
+    pacing = RequestPacing(limiter, sleep=clock.sleep, now=lambda: NOW, jitter=lambda: 0.5)
+    return OnlineClient(USER_AGENT, httpx.MockTransport(router), pacing)
