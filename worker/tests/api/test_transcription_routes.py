@@ -323,7 +323,7 @@ def test_a_score_file_that_vanished_answers_404(score_api: Api) -> None:
     assert response.status_code == 404
 
 
-# ------------------------------------------------------------------ drums (T059)
+# ------------------------------------------------------------------ drums
 
 
 def _drum_body(library: Path, pieces: tuple[str, ...]) -> dict[str, Any]:

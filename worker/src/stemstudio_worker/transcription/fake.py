@@ -147,6 +147,11 @@ class FakeDrumTranscriber:
         """Play the fake groove on ``grid``."""
         self._grid = grid
 
+    @property
+    def engine(self) -> ScoreEngine:
+        """``fake`` (``ScoreSummary.engine`` of fake drum scores)."""
+        return "fake"
+
     def transcribe(
         self,
         inputs: Mapping[DrumPiece, Path],

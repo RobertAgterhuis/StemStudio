@@ -179,6 +179,7 @@ class Pipeline:
         """
         report("loading-model")
         settings = self._settings(next(iter(inputs.values())))
+        self._notation = settings
         done = self._transcribe(inputs, settings, report)
         finished = report("engraving")
         engraved = self._parts.engraver.engrave(
@@ -190,7 +191,7 @@ class Pipeline:
             "pdf": engraved.pdf, "musicxml": document.musicxml, "midi": document.midi,
         }  # fmt: skip
         device = _CPU if done.use is None else merge_device(None, done.use)
-        return Outcome(files, self._summary(done, engraved.pages, settings, inputs), device)
+        return Outcome(files, self._summary(done, engraved.pages, inputs), device)
 
     def _settings(self, first: Path) -> NotationSettings:
         request, rules = self._request, self._parts.rules
@@ -218,9 +219,7 @@ class Pipeline:
         document = parts.notator.notate(result.notes, settings)
         return _Transcribed(document, pitched.engine, pitched.attribution, result.device)
 
-    def _summary(
-        self, done: _Transcribed, pages: int, settings: NotationSettings, inputs: Mapping[str, Path]
-    ) -> ScoreSummary:
+    def _summary(self, done: _Transcribed, pages: int, inputs: Mapping[str, Path]) -> ScoreSummary:
         request, document = self._request, done.document
         warnings = [*document.warnings, *self._job_warnings(done, inputs)][:MAX_WARNINGS]
         return ScoreSummary(
@@ -228,7 +227,8 @@ class Pipeline:
             quality=request.quality if request.profile == "piano" else None,
             key=document.key, bpm=document.bpm, time_signature=document.time_signature,
             bars=document.bars, notes=document.notes, pages=pages,
-            resolution=settings.resolution, warnings=warnings, attribution=done.attribution,
+            resolution=self._notation.resolution, warnings=warnings,
+            attribution=done.attribution,
         )  # fmt: skip
 
     def _job_warnings(self, done: _Transcribed, inputs: Mapping[str, Path]) -> list[ScoreWarning]:
