@@ -11,6 +11,7 @@ from collections import deque
 from collections.abc import Callable
 
 from stemstudio_worker.jobs.threads import QueueThread
+from stemstudio_worker.schemas import LaneHealth
 
 _LOG = logging.getLogger(__name__)
 
@@ -35,6 +36,11 @@ class LaneScheduler(QueueThread):
         with self._changed:
             self._queue.append(job_id)
             self._changed.notify_all()
+
+    def health(self) -> LaneHealth:
+        """Waiting jobs and whether one runs now (``Health.lanes``)."""
+        with self._changed:
+            return LaneHealth(queued=len(self._queue), running=self._busy)
 
     def _idle(self) -> bool:
         return not (self._busy or self._queue)
