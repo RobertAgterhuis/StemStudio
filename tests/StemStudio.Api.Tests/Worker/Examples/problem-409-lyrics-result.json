@@ -1,0 +1,6 @@
+{
+  "type": "lyrics-not-completed",
+  "title": "Lyrics job not completed",
+  "status": 409,
+  "detail": "Lyrics job is in state running."
+}

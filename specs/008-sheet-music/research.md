@@ -180,3 +180,24 @@ docker rm -f ss-arch-spike-007-008
 
 (`/tmp/stub/resampy.py` is an empty module standing in for resampy; the piano scripts stub
 `matplotlib` and `audioread` the same way.)
+
+## Phase 0 measurements (2026-11-15, T005)
+
+Throw-away containers from `stemstudio/worker:local-gpu` (torch 2.15.0+cu132) and
+`stemstudio/worker:local` (CPU), packages installed with `pip --target /tmp/pk --no-deps` inside
+the container only, volumes read-only, the running `stemstudio` project untouched; `nvidia-smi`
+showed 13.6-13.7 GB free before every GPU run.
+
+| Item | Result |
+|---|---|
+| Piano CRNN on the GPU (60 s synthetic polyphonic audio, 11 segments) | load 4.0 s; cold 4.46 s, warm 4.47 s = **0.075 s per audio second** (incl. post-processing and MIDI write) |
+| Piano CRNN GPU memory | NVML peak delta **939-952 MiB** (CUDA context included); torch max allocated 340 MiB, reserved 612 MiB -> `GpuNeed` **1280 MiB** |
+| Piano checkpoint download | 171,966,578 B in 37.8 s, SHA-256 `c3fa9730...76141` matches |
+| Extra import found | `piano_transcription_inference/utilities.py` imports **mido** (vendored subset drops it with matplotlib and audioread) |
+| basic-pitch ONNX at tag v0.4.0 | `https://github.com/spotify/basic-pitch/raw/v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx` -> `raw.githubusercontent.com/...`, 230,444 B, SHA-256 `2c3c1d14...59a0ec` matches |
+| music21 10.5.2 without matplotlib | `import music21` 0.45 s; `analyze('key')` G major (0.928); MusicXML 4,176 B and MIDI (`MThd`) written; matplotlib never imported; one informational message at import -> **excluded by uv override** |
+| Leipzig in verovio 6.4.1 and 6.4.0 | identical `verovio/data/Leipzig.css` (58,604 B, SHA-256 `aacdcb5d...1f8c`): one `@font-face` with `src: url(data:application/font-woff2;charset=utf-8;base64,...) format('woff2')`; WOFF2 43,824 B |
+| WOFF2 -> sfnt (fontTools 4.68.0 + brotli) | 119,416 B, SHA-256 `9606f129728ffaba5fed10b2645931392c55f90ccfc3699a1dd20ca5bc64ef08`, deterministic, 0.07 s; sfnt 0x00010000 = TrueType -> `Leipzig.ttf`; `fc-scan`: "Leipzig / Medium / TrueType"; fontconfig 2.15.0 and libcairo2 1.18.4 already in the CPU image |
+| Wheel licence files | `COPYING`, `COPYING.LESSER` (LGPL); no OFL text and no licence name records in the font |
+| Version rule (>= 2 weeks) | verovio 6.4.1 (2026-11-03) and pypdf 7.x (2026-11-06..13) too new -> **verovio 6.4.0** (2026-10-30), **pypdf 6.21.4** (2026-10-28) |
+

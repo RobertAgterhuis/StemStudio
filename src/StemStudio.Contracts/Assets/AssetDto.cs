@@ -1,6 +1,8 @@
+using StemStudio.Contracts.Scores;
+
 namespace StemStudio.Contracts.Assets;
 
-/// <summary>A library item (backend contract 1.5.0).</summary>
+/// <summary>A library item (backend contract 1.5.0; score items 1.7.0).</summary>
 public sealed record AssetDto
 {
     /// <summary>Item id.</summary>
@@ -27,8 +29,8 @@ public sealed record AssetDto
     /// <summary>Audio facts of a ready audio item.</summary>
     public AudioFactsDto? Audio { get; init; }
 
-    /// <summary>Score facts; always null in 1.5.0 (feature 008).</summary>
-    public object? Score { get; init; }
+    /// <summary>Score facts of a ready score item (1.7.0); null otherwise.</summary>
+    public ScoreFactsDto? Score { get; init; }
 
     /// <summary>Where the item came from.</summary>
     public required ProvenanceDto Provenance { get; init; }

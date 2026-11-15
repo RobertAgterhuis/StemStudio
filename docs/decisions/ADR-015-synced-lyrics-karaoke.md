@@ -1,6 +1,6 @@
 # ADR-015: Synced lyrics with a karaoke ball (feature 006)
 
-- **Status**: Proposed (architect, 2026-11-15); becomes Accepted when feature 006 starts
+- **Status**: Accepted (architect, 006 Phase 0, 2026-11-15; see "Phase 0 outcome")
 - **Date**: 2026-11-15
 - **Decider**: Architect (autonomous mode), to be confirmed by the CTO
 - **Feature**: `specs/006-synced-lyrics-karaoke/`
@@ -112,3 +112,23 @@ mixes, because it describes the lyrics-to-audio relation). Keyboard nudges +-50 
   runtime group for `lyricsfile` (`yaml.safe_load` only).
 - One more model download (1.6 GB) on first alignment; disk and VRAM figures are measured in
   Phase 0 and shown to the user before the first download.
+
+## Phase 0 outcome (2026-11-15, combined 006 + 008 Phase 0)
+
+- **D3 confirmed, no aligner image**: torchaudio 2.11.1 imports and runs its resample and
+  biquad filters next to torch 2.15.0 in both images (`+cpu` in the CPU lock, `+cu132` from the
+  cu132 index in the GPU image, installed by devops); triton is never imported, so the uv
+  override keeps the CPU image free of NVIDIA binaries.
+- **D2 sizing**: `WHISPER_GPU_NEED = GpuNeed("Lyrics alignment (Whisper large-v3-turbo)", 5120)`
+  (NVML peak 4,118 MiB); a 4:22 song aligns in 2.7-6.7 s on the RTX 5070 Ti and in about 3.5 min
+  on 8 CPU threads (estimate 0.03 / 0.8 s per audio second + model load, + 140 s for the first
+  download).
+- **D1.3 refined (stem choice and collapse check)**: alignment on the plain `vocals` stem
+  collapsed on the reference song while `vocals.lead` worked (research.md P0-2). The adapter uses
+  `vocals.lead` when available, detects a collapse (> 35 % of words under 20 ms, or > 25 % of
+  lines overlapping), retries once with `vad=True` and otherwise fails with "The lyrics could not
+  be aligned to the vocals."; the UI then offers splitting the vocals first. Automatic alignment
+  stays on (it is cheap on the GPU), but its reliability on unsplit vocals is a known limit
+  (README, help topic `lyrics-align`).
+- Contracts: worker-api 1.5.0, backend-api 1.6.0, audio-engine 2.1.0, ui-test-ids 1.6.0
+  (`specs/006-synced-lyrics-karaoke/contracts/`, refinements in `DELTA.md`).

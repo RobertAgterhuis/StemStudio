@@ -1,3 +1,5 @@
+using StemStudio.Contracts.Lyrics;
+
 namespace StemStudio.Contracts.Tracks;
 
 /// <summary>A track with its processing state, stems and analysis.</summary>
@@ -56,6 +58,9 @@ public sealed record TrackDto
 
     /// <summary>Online lookup state and main facts (1.4.0); always present on the wire, <c>none</c> for older tracks.</summary>
     public TrackMetadataDto Metadata { get; init; } = TrackMetadataDto.None;
+
+    /// <summary>Lyrics state (1.6.0); always present on the wire, <c>none</c> for older tracks. The lyrics themselves are only served by <c>GET /api/tracks/{id}/lyrics</c>.</summary>
+    public LyricsStatusDto LyricsStatus { get; init; } = LyricsStatusDto.None;
 
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }

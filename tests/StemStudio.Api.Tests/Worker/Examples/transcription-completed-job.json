@@ -1,0 +1,64 @@
+{
+  "transcriptionJobId": "c4e6a8b0d2f4416385a7c9e1b3d5f7a9",
+  "status": "completed",
+  "stage": null,
+  "progress": 1,
+  "device": {
+    "kind": "cpu",
+    "name": null,
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "result": {
+    "files": [
+      {
+        "role": "pdf",
+        "fileName": "score.pdf",
+        "contentType": "application/pdf",
+        "sizeBytes": 183296,
+        "sha256": "4a5b6c7d8e9f00112233445566778899aabbccddeeff00112233445566778899"
+      },
+      {
+        "role": "musicxml",
+        "fileName": "score.musicxml",
+        "contentType": "application/vnd.recordare.musicxml+xml",
+        "sizeBytes": 412877,
+        "sha256": "5b6c7d8e9f00112233445566778899aabbccddeeff0011223344556677889900"
+      },
+      {
+        "role": "midi",
+        "fileName": "score.mid",
+        "contentType": "audio/midi",
+        "sizeBytes": 6214,
+        "sha256": "6c7d8e9f00112233445566778899aabbccddeeff001122334455667788990011"
+      }
+    ],
+    "summary": {
+      "profile": "bass",
+      "engine": "basic-pitch",
+      "quality": null,
+      "key": {
+        "tonic": "A-",
+        "mode": "major",
+        "confidence": 0.83,
+        "source": "estimated"
+      },
+      "bpm": 118,
+      "timeSignature": "4/4",
+      "bars": 125,
+      "notes": 386,
+      "pages": 3,
+      "resolution": "sixteenth",
+      "warnings": [
+        {
+          "code": "notes-cleaned",
+          "text": "87 very short or out-of-range notes were removed."
+        }
+      ],
+      "attribution": null
+    }
+  },
+  "createdAt": "2026-11-15T11:00:00Z",
+  "updatedAt": "2026-11-15T11:00:14Z"
+}

@@ -1,0 +1,71 @@
+{
+  "outcome": "found",
+  "lyrics": {
+    "syncLevel": "line",
+    "origin": "interpolated",
+    "language": null,
+    "source": "lrclib",
+    "sourceId": "1000003",
+    "sourceDurationSeconds": 261.0,
+    "instrumental": false,
+    "lines": [
+      {
+        "startMs": 10950,
+        "endMs": 13230,
+        "text": "Fake line one",
+        "words": [
+          {
+            "text": "Fake",
+            "startMs": 10950,
+            "endMs": 11710,
+            "origin": "interpolated",
+            "lowConfidence": false
+          },
+          {
+            "text": "line",
+            "startMs": 11710,
+            "endMs": 12470,
+            "origin": "interpolated",
+            "lowConfidence": false
+          },
+          {
+            "text": "one",
+            "startMs": 12470,
+            "endMs": 13230,
+            "origin": "interpolated",
+            "lowConfidence": false
+          }
+        ]
+      },
+      {
+        "startMs": 14000,
+        "endMs": 15980,
+        "text": "La la la",
+        "words": [
+          {
+            "text": "La",
+            "startMs": 14000,
+            "endMs": 14660,
+            "origin": "interpolated",
+            "lowConfidence": false
+          },
+          {
+            "text": "la",
+            "startMs": 14660,
+            "endMs": 15320,
+            "origin": "interpolated",
+            "lowConfidence": false
+          },
+          {
+            "text": "la",
+            "startMs": 15320,
+            "endMs": 15980,
+            "origin": "interpolated",
+            "lowConfidence": false
+          }
+        ]
+      }
+    ],
+    "plainText": "Fake line one\nLa la la"
+  }
+}

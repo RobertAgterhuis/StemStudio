@@ -22,6 +22,8 @@ import type {
   ChannelSettings,
   DotNetObjectReference,
   EngineOptions,
+  KaraokeLyrics,
+  KaraokeOptions,
   LoadTrackRequest,
   LoopRegion,
   MeterTarget,
@@ -29,6 +31,9 @@ import type {
   ParentStemName,
   PlaybackState,
 } from './types';
+
+/** Message of the karaoke methods until the karaoke module exists (contract 2.1.0 skeleton). */
+export const KARAOKE_NOT_IMPLEMENTED = 'Karaoke is not implemented yet';
 
 /** Default delay of the shared `when` (s). */
 export const DEFAULT_START_DELAY_SECONDS = 0.1;
@@ -212,6 +217,21 @@ export class Engine implements AudioEngine {
     this.parts.meters.detach(target);
   }
 
+  /** {@inheritDoc AudioEngine.attachKaraoke} */
+  public attachKaraoke(elementId: string, lyrics: KaraokeLyrics, options: KaraokeOptions): void {
+    this.karaokeStub([elementId, lyrics, options]);
+  }
+
+  /** {@inheritDoc AudioEngine.setKaraokeOffset} */
+  public setKaraokeOffset(offsetMs: number): void {
+    this.karaokeStub([offsetMs]);
+  }
+
+  /** {@inheritDoc AudioEngine.detachKaraoke} */
+  public detachKaraoke(): void {
+    this.karaokeStub([]);
+  }
+
   /** {@inheritDoc AudioEngine.dispose} */
   public async dispose(): Promise<void> {
     if (this.disposed) {
@@ -233,6 +253,12 @@ export class Engine implements AudioEngine {
     this.alive();
     return buffers;
   };
+
+  /** Contract stub of the 2.1.0 karaoke methods (006 T026/T036 replace it); the arguments are ignored. */
+  private karaokeStub(args: readonly unknown[]): never {
+    this.alive();
+    throw new Error(`${KARAOKE_NOT_IMPLEMENTED} (${String(args.length)} argument(s))`);
+  }
 
   private alive(): void {
     if (this.disposed) {

@@ -11,12 +11,23 @@ SeparatorKind = Literal["demucs", "fake"]
 DeviceKind = Literal["cpu", "cuda", "auto"]
 FakeDeviceKind = Literal["cpu", "gpu", "gpu-oom"]
 FakeOnlineMode = Literal["found", "not-found", "failed", "off"]
+AlignModel = Literal["turbo", "small"]
+AlignAutoMode = Literal["gpu", "always", "never"]
+FakeLyricsMode = Literal["word", "line", "plain", "instrumental", "not-found", "failed"]
+TranscriberKind = Literal["real", "fake"]
 
 _SEPARATORS: tuple[SeparatorKind, ...] = ("demucs", "fake")
 _DEVICES: tuple[DeviceKind, ...] = ("cpu", "cuda", "auto")
 _FAKE_DEVICES: tuple[FakeDeviceKind, ...] = ("cpu", "gpu", "gpu-oom")
 _FAKE_ONLINE: tuple[FakeOnlineMode, ...] = ("found", "not-found", "failed", "off")
 _ON_OFF: tuple[str, ...] = ("on", "off")
+_ALIGN_MODELS: tuple[AlignModel, ...] = ("turbo", "small")
+_ALIGN_AUTO: tuple[AlignAutoMode, ...] = ("gpu", "always", "never")
+_FAKE_LYRICS: tuple[FakeLyricsMode, ...] = (
+    "word", "line", "plain", "instrumental", "not-found", "failed",
+)  # fmt: skip
+_TRANSCRIBERS: tuple[str, ...] = ("", "real", "fake")
+_MAX_THREADS = 64
 _LANGUAGE = re.compile(r"[a-z]{2,3}")
 _MAX_LANGUAGES = 5
 
@@ -60,6 +71,41 @@ class RenderSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class LyricsSettings:
+    """Lyrics alignment of feature 006 (data-model.md 1).
+
+    Attributes:
+        align_model: Whisper model of the alignment (``STEMSTUDIO_ALIGN_MODEL``): ``turbo``
+            (large-v3-turbo, default) or ``small``.
+        align_auto: When an alignment starts without a click (``STEMSTUDIO_ALIGN_AUTO``):
+            ``gpu`` (only on a GPU worker, default), ``always`` or ``never``; reported in
+            ``/health`` for the backend's auto rule.
+        fake_mode: Behaviour of the fake LRCLIB provider and the fake aligner
+            (``STEMSTUDIO_FAKE_LYRICS``); only used with ``separator=fake``.
+    """
+
+    align_model: AlignModel = "turbo"
+    align_auto: AlignAutoMode = "gpu"
+    fake_mode: FakeLyricsMode = "word"
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptionSettings:
+    """Sheet music transcription of feature 008 (data-model.md 1).
+
+    Attributes:
+        transcriber: ``real`` models or the deterministic ``fake`` transcriber
+            (``STEMSTUDIO_TRANSCRIBER``; unset = ``fake`` with ``separator=fake``, else ``real``).
+            Notation and engraving are always real.
+        threads: torch/onnxruntime intra-op threads of the transcribe lane
+            (``STEMSTUDIO_TRANSCRIBE_THREADS``, 1..64, default 8).
+    """
+
+    transcriber: TranscriberKind = "real"
+    threads: int = 8
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerSettings:
     """Runtime settings of the worker.
 
@@ -84,6 +130,8 @@ class WorkerSettings:
             ``separator=fake``, for E2E tests of the device display (feature 003).
         online: Online lookup settings (feature 005).
         render: Render job settings (feature 007).
+        lyrics: Lyrics alignment settings (feature 006).
+        transcription: Transcription settings (feature 008).
     """
 
     data_dir: Path
@@ -98,6 +146,8 @@ class WorkerSettings:
     fake_device: FakeDeviceKind = "cpu"
     online: OnlineSettings = OnlineSettings()
     render: RenderSettings = RenderSettings()
+    lyrics: LyricsSettings = LyricsSettings()
+    transcription: TranscriptionSettings = TranscriptionSettings()
 
 
 def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
@@ -113,15 +163,18 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         ValueError: A variable has a value outside its allowed set.
     """
     env = os.environ if environ is None else environ
+    separator = cast(SeparatorKind, _choice(env, "STEMSTUDIO_SEPARATOR", _SEPARATORS))
     return WorkerSettings(
         data_dir=Path(env.get("STEMSTUDIO_DATA_DIR", "data/worker")),
-        separator=cast(SeparatorKind, _choice(env, "STEMSTUDIO_SEPARATOR", _SEPARATORS)),
+        separator=separator,
         device=cast(DeviceKind, _choice(env, "STEMSTUDIO_DEVICE", _DEVICES)),
         model_dir=Path(env.get("STEMSTUDIO_MODEL_DIR", "data/models")),
         fake_detail_step_seconds=_seconds(env, "STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS", 1.0),
         fake_device=cast(FakeDeviceKind, _choice(env, "STEMSTUDIO_FAKE_DEVICE", _FAKE_DEVICES)),
         online=_online_settings(env),
         render=_render_settings(env),
+        lyrics=_lyrics_settings(env),
+        transcription=_transcription_settings(env, separator),
     )
 
 
@@ -144,6 +197,29 @@ def _render_settings(env: Mapping[str, str]) -> RenderSettings:
         msg = "STEMSTUDIO_RENDER_BLOCK_SECONDS must be greater than 0"
         raise ValueError(msg)
     return RenderSettings(library_dir=Path(library) if library else None, block_seconds=block)
+
+
+def _lyrics_settings(env: Mapping[str, str]) -> LyricsSettings:
+    """Read the feature 006 variables (``STEMSTUDIO_ALIGN_MODEL`` ... ``FAKE_LYRICS``)."""
+    return LyricsSettings(
+        align_model=cast(AlignModel, _choice(env, "STEMSTUDIO_ALIGN_MODEL", _ALIGN_MODELS)),
+        align_auto=cast(AlignAutoMode, _choice(env, "STEMSTUDIO_ALIGN_AUTO", _ALIGN_AUTO)),
+        fake_mode=cast(FakeLyricsMode, _choice(env, "STEMSTUDIO_FAKE_LYRICS", _FAKE_LYRICS)),
+    )
+
+
+def _transcription_settings(
+    env: Mapping[str, str], separator: SeparatorKind
+) -> TranscriptionSettings:
+    """Read the feature 008 variables (``STEMSTUDIO_TRANSCRIBER``, ``..._TRANSCRIBE_THREADS``)."""
+    kind = _choice(env, "STEMSTUDIO_TRANSCRIBER", _TRANSCRIBERS) or (
+        "fake" if separator == "fake" else "real"
+    )
+    raw = env.get("STEMSTUDIO_TRANSCRIBE_THREADS", "8").strip()
+    if not raw.isdigit() or not 0 < int(raw) <= _MAX_THREADS:
+        msg = f"STEMSTUDIO_TRANSCRIBE_THREADS must be a whole number from 1 to 64; got {raw!r}"
+        raise ValueError(msg)
+    return TranscriptionSettings(transcriber=cast(TranscriberKind, kind), threads=int(raw))
 
 
 def _languages(raw: str) -> tuple[str, ...]:

@@ -47,8 +47,25 @@ def test_health_reports_fake_separator(api: Api) -> None:
         },
         "onlineLookups": True,
         "library": {"readable": True, "reason": None},
-        "lanes": {"render": {"queued": 0, "running": False}},
-        "contractVersion": "1.4.0",
+        "lanes": {
+            "render": {"queued": 0, "running": False},
+            "transcribe": {"queued": 0, "running": False},
+        },
+        "lyricsAlignment": {
+            "available": False,
+            "model": "large-v3-turbo",
+            "modelCached": False,
+            "auto": "gpu",
+            "reason": "The lyrics alignment has not been checked yet.",
+        },
+        "transcription": {
+            "models": {
+                "basic-pitch-icassp2022": "not-downloaded",
+                "piano-crnn-note-pedal": "not-downloaded",
+            },
+            "font": {"leipzig": False},
+        },
+        "contractVersion": "1.6.0",
     }
 
 

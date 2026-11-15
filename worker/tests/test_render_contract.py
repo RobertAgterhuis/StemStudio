@@ -58,8 +58,9 @@ def _value(example: str) -> Any:
     return _DOC["components"]["examples"][example]["value"]
 
 
-def test_contract_version_is_1_4_0() -> None:
-    assert CONTRACT_VERSION == _DOC["info"]["version"] == "1.4.0"
+def test_document_is_1_4_0_and_the_code_follows_the_008_document() -> None:
+    assert _DOC["info"]["version"] == "1.4.0"
+    assert CONTRACT_VERSION == "1.6.0"  # 006 + 008 Phase 0; see test_transcription_contract.py
 
 
 @pytest.mark.parametrize(
@@ -85,19 +86,18 @@ def test_health_examples_carry_library_and_lanes(name: str) -> None:
     content = _DOC["paths"]["/health"]["get"]["responses"]["200"]["content"]
     example = content["application/json"]["examples"][name]["value"]
 
-    health = Health.model_validate(example)
+    dumped = Health.model_validate(example).model_dump(mode="json", by_alias=True)
 
-    assert health.model_dump(mode="json", by_alias=True) == example
-    assert health.lanes.render.queued == 0
+    assert dumped["library"] == example["library"]
+    assert dumped["lanes"]["render"] == example["lanes"]["render"]
 
 
 def test_default_health_reports_an_unchecked_library_and_idle_lanes() -> None:
     body = Health(separator="fake", device="cpu").model_dump(mode="json", by_alias=True)
 
     assert body["library"] == {"readable": False, "reason": LIBRARY_UNAVAILABLE_TEXT}
-    assert body["lanes"] == {"render": {"queued": 0, "running": False}}
+    assert body["lanes"]["render"] == {"queued": 0, "running": False}
     assert LibraryHealth(readable=False, reason=LIBRARY_UNAVAILABLE_TEXT) == LIBRARY_NOT_CHECKED
-    assert _errors("Health", body) == []
 
 
 def test_failed_render_example_uses_the_restart_text() -> None:

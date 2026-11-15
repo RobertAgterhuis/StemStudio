@@ -26,6 +26,19 @@ dependencies = [
     "httpx==0.28.1",               # online lookups (005); was a dev dependency, BSD-3-Clause
     "rapidfuzz==3.14.6",           # recording matcher (005); was transitive, MIT
     "lameenc==1.9.0",              # MP3 encoding of exports (feature 007, ADR-016); was transitive, LGPL-3.0-or-later
+    # Feature 006 (ADR-015): lyrics alignment with stable-ts + Whisper large-v3-turbo; LRCLIB lyricsfile YAML.
+    "stable-ts==2.19.1",           # MIT; needs openai-whisper<=20250625 and torchaudio
+    "openai-whisper==20250625",    # MIT; its triton requirement is dropped by the override below (CPU image)
+    "torchaudio==2.11.1",          # BSD-2-Clause; newest build, works next to torch 2.15 (006 Phase 0 P0-1)
+    "tiktoken==0.14.0",            # MIT (whisper tokenizer)
+    "more-itertools==11.2.1",      # MIT (whisper, music21)
+    "pyyaml==6.0.3",               # MIT; was a dev dependency; lyricsfile parsing (yaml.safe_load only)
+    # Feature 008 (ADR-017): notation and engraving; basic-pitch and the piano CRNN are vendored subsets.
+    "music21==10.5.2",             # BSD-3-Clause; matplotlib excluded by the override below (008 Phase 0)
+    "verovio==6.4.0",              # LGPL-3.0-only, unmodified wheel; 6.4.1 is < 2 weeks old, same Leipzig.css
+    "cairosvg==2.9.1",             # LGPL-3.0-or-later, unmodified (SVG -> PDF)
+    "pypdf==6.21.4",               # BSD-3-Clause; 7.x is < 2 weeks old
+    "torchlibrosa==0.1.0",         # MIT (piano CRNN feature layers)
 ]
 
 [project.scripts]
@@ -38,7 +51,6 @@ dev = [
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
     "jsonschema>=4.26,<5",
-    "pyyaml>=6.0.3,<7",
     "types-pyyaml>=6.0.12.20261030,<7",
     "types-jsonschema>=4.26.0.20261006,<5",
     "pytest-timeout>=2.4,<2.5",
@@ -59,12 +71,25 @@ explicit = true
 
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
 
 [tool.uv]
 # Supported platforms: Windows (local dev) and Linux x86_64/aarch64 (Docker, CI).
 environments = [
     "sys_platform == 'win32'",
     "sys_platform == 'linux'",
+]
+# triton (openai-whisper, Linux x86_64) bundles NVIDIA binaries and is never imported for CPU
+# tensors: dropped from the CPU lock so the 003 CPU-image guard holds; the GPU image keeps the
+# triton that torch cu132 brings (ADR-011, 006 Phase 0). matplotlib is a music21 dependency
+# that music21 imports lazily; key analysis, MusicXML and MIDI work without it (008 Phase 0).
+override-dependencies = [
+    "triton ; sys_platform == 'never'",
+    "matplotlib ; sys_platform == 'never'",
+]
+# Transitive packages whose newest release is less than two weeks old (supply-chain rule).
+constraint-dependencies = [
+    "regex==2026.9.29",
 ]
 
 # ------------------------------------------------------------------ pytest / coverage
@@ -146,6 +171,14 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = ["onnxruntime.*", "rotary_embedding_torch.*", "einops.*", "pynvml.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Features 006 and 008: packages without type information (lazy imports in the adapters).
+module = [
+    "stable_whisper.*", "whisper.*", "torchaudio.*", "music21.*", "verovio.*", "cairosvg.*",
+    "torchlibrosa.*", "fontTools.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
