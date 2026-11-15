@@ -97,7 +97,7 @@ WORKDIR /home/stemstudio
 EXPOSE 8010
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=6 \
   CMD ["python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=4).status == 200 else 1)"]
-CMD ["uvicorn", "--factory", "stemstudio_generator.main:create_app", "--host", "0.0.0.0", "--port", "8010"]
+CMD ["uvicorn", "--factory", "stemstudio_generator.main:create", "--host", "0.0.0.0", "--port", "8010"]
 
 # ---------------------------------------------------------------- variants
 FROM runtime AS variant-fake
