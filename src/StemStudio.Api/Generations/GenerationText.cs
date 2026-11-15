@@ -3,7 +3,7 @@ using StemStudio.Domain.Generations;
 
 namespace StemStudio.Api.Generations;
 
-/// <summary>Readable names of generations and takes (009 data-model 3.6 title rule).</summary>
+/// <summary>Readable names of generations and takes (009 data-model 3.6, 010 FR-011 title rules).</summary>
 public static class GenerationText
 {
     /// <summary>What a generation was made from: the title snapshot and a short description.</summary>
@@ -12,19 +12,28 @@ public static class GenerationText
     public static (string Title, string Description) Source(Generation generation)
     {
         ArgumentNullException.ThrowIfNull(generation);
-        return generation.Restyle is { } restyle
-            ? (restyle.SourceTrackTitle, $"restyle, {restyle.Style.Name}")
-            : ("Generation", generation.Kind.ToString().ToLowerInvariant());
+        return generation switch
+        {
+            { Restyle: { } restyle } => (restyle.SourceTrackTitle, $"restyle, {restyle.Style.Name}"),
+            { Song: { } song } => (song.Lyrics.Title, song.Style is { } style ? $"song, {style.Name}" : "song"),
+            { VoiceConversion: { } conversion } => ("Voice conversion", $"voice conversion, {conversion.VoiceProfileName}"),
+            _ => ("Generation", generation.Kind.ToString().ToLowerInvariant()),
+        };
     }
 
-    /// <summary>"&lt;source title&gt; - &lt;style name&gt; (take n)".</summary>
+    /// <summary>"&lt;source&gt; - &lt;style&gt; (take n)" for restyles and styled songs, "&lt;lyrics title&gt; (take n)" otherwise.</summary>
     /// <param name="generation">The generation.</param>
     /// <param name="index">The take number.</param>
     /// <returns>The title.</returns>
     public static string TakeTitle(Generation generation, int index)
     {
         ArgumentNullException.ThrowIfNull(generation);
-        var label = generation.Restyle is { } restyle ? $"{restyle.SourceTrackTitle} - {restyle.Style.Name}" : Source(generation).Title;
+        var label = generation switch
+        {
+            { Restyle: { } restyle } => $"{restyle.SourceTrackTitle} - {restyle.Style.Name}",
+            { Song.Style: { } style } => $"{generation.Song!.Lyrics.Title} - {style.Name}",
+            _ => Source(generation).Title,
+        };
         return string.Create(CultureInfo.InvariantCulture, $"{label} (take {index})");
     }
 

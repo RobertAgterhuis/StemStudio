@@ -200,7 +200,7 @@ public sealed partial class BackendContractTests : IDisposable
                 "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile",
                 "getLyrics", "setLyrics", "removeLyrics", "searchLyrics", "alignLyrics", "cancelLyricsAlignment", "setLyricsOffset",
                 "getScoreOptions", "createScore", "createRestyle", "listStyles", "getStyle", "getGenerationStatus",
-                "createStyle", "updateStyle", "deleteStyle", "duplicateStyle", "importTake", "createSong",
+                "createStyle", "updateStyle", "deleteStyle", "duplicateStyle", "importTake", "createSong", "proposeSections",
                 "listGenerations", "getGeneration", "deleteGeneration", "cancelGeneration", "retryGeneration", "getTakeAudio", .. PendingGenerationOperations, .. PendingSongVoiceOperations], ignoreOrder: true);
     }
 

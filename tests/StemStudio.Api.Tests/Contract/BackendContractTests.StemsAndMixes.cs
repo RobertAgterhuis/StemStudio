@@ -133,7 +133,7 @@ public sealed partial class BackendContractTests
     // Feature 010 (backend 1.9.0, staged in the 009/010 Phase 0): the backend removes each id per story (T028, T030, T035, T045, T047, T049).
     private static readonly string[] PendingSongVoiceOperations =
     [
-        "listLyricsSheets", "createLyricsSheet", "uploadLyricsSheet", "proposeSections", "getLyricsSheet", "updateLyricsSheet", "deleteLyricsSheet",
+        "listLyricsSheets", "createLyricsSheet", "uploadLyricsSheet", "getLyricsSheet", "updateLyricsSheet", "deleteLyricsSheet",
         "listVoiceProfiles", "createVoiceProfile", "getVoiceProfile", "deleteVoiceProfile", "getVoiceSample",
         "getVoiceConsentStatement", "createVoiceConversion", "getTakeVocal",
     ];

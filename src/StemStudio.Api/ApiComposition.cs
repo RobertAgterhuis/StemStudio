@@ -99,6 +99,7 @@ public static class ApiComposition
         app.MapScoreEndpoints();
         app.MapGenerationEndpoints();
         app.MapStyleEndpoints();
+        app.MapLyricsSheetEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

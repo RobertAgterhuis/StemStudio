@@ -58,7 +58,11 @@ public sealed class SongTakeTests : ApiTestBase
     {
         using var create = await Client.PostAsJsonAsync(new Uri(ApiRoutes.Songs, UriKind.Relative), new SongRequest
         {
-            LyricsText = "la la", Title = "Mine", Language = "en", LeadVoice = LeadVoiceDto.Any, Instrumental = true,
+            LyricsText = "la la",
+            Title = "Mine",
+            Language = "en",
+            LeadVoice = LeadVoiceDto.Any,
+            Instrumental = true,
         }, Ct);
         var generation = await create.BodyAsync<GenerationDto>();
         Factory.Generator.CompleteAs(Factory.Generator.Created[^1].Id, "CompletedInstrumental", [3, 3]);
@@ -76,7 +80,11 @@ public sealed class SongTakeTests : ApiTestBase
         var sheet = await SongEndpointTests.SeedSheetAsync(factory);
         using var create = await client.PostAsJsonAsync(new Uri(ApiRoutes.Songs, UriKind.Relative), new SongRequest
         {
-            LyricsId = sheet.Id, Language = "en", StyleId = RestyleEndpointTests.JazzTrio, LeadVoice = LeadVoiceDto.Female, DurationSeconds = 60,
+            LyricsId = sheet.Id,
+            Language = "en",
+            StyleId = RestyleEndpointTests.JazzTrio,
+            LeadVoice = LeadVoiceDto.Female,
+            DurationSeconds = 60,
         }, TestContext.Current.CancellationToken);
         var generation = await create.BodyAsync<GenerationDto>();
         factory.Generator.CompleteAs(factory.Generator.Created[^1].Id, "CompletedSong", [4, 4, 4]);

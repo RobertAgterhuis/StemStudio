@@ -68,7 +68,10 @@ public sealed class TakeCollector(IGeneratorClient generator, TakeStorage storag
         var path = TakeStorage.RelativePath(generationId, take.Index);
         var size = await storage.SaveAsync(
             path, (stream, ct) => generator.DownloadTakeAsync(new GeneratorTakeRef(jobId, take.Index, take.Sha256), stream, ct), cancellationToken);
-        return new GenerationTake(take.Index, take.Seed, take.DurationSeconds, take.Sha256, size, take.PeakDbfs, path, new TakeModel(take.Model.Id, take.Model.Revision));
+        return new GenerationTake(take.Index, take.Seed, take.DurationSeconds, take.Sha256, size, take.PeakDbfs, path, new TakeModel(take.Model.Id, take.Model.Revision))
+        {
+            Vocal = Enum.TryParse<VocalLabel>(take.Vocal, true, out var vocal) ? vocal : null,
+        };
     }
 
     private async Task RegisterAsync(Generation generation, CancellationToken cancellationToken)
