@@ -25,7 +25,7 @@ class SoulXApi:
     Attributes:
         svc: ``soulxsinger.models.soulxsinger_svc.SoulXSingerSVC``.
         load_config: ``soulxsinger.utils.file_utils.load_config``.
-        load_wav: ``soulxsinger.utils.audio_utils.load_wav`` (path, rate) -> (1, T) tensor.
+        load_wav: (path, rate) -> (1, T) mono tensor (librosa; see ``_librosa_wav``).
         f0_extractor: ``F0Extractor`` of ``f0_extraction.py`` (RMVPE on the SVC frame grid).
         rmvpe: ``RMVPE`` of ``f0_extraction.py`` (10 ms frames, voiced-ratio checks).
         load_16k: Loads an audio file as 16 kHz mono float32 (``librosa.load``).
@@ -67,21 +67,32 @@ def import_soulx() -> SoulXApi:  # pragma: no cover - needs the soulx image vari
     import soulxsinger  # noqa: PLC0415
     import torch  # noqa: PLC0415
 
-    svc, load_config, load_wav, whisper = _soulx_parts()
+    svc, load_config, whisper = _soulx_parts()
     source = Path(soulxsinger.__file__).resolve().parent.parent
     f0 = load_f0_module(source)
     return SoulXApi(
-        svc=svc, load_config=load_config, load_wav=load_wav, f0_extractor=f0.F0Extractor,
+        svc=svc, load_config=load_config, load_wav=_librosa_wav(librosa, torch),
+        f0_extractor=f0.F0Extractor,
         rmvpe=f0.RMVPE, load_16k=_librosa_16k(librosa), torch=torch, whisper=whisper,
         config_path=source / CONFIG_FILE,
     )  # fmt: skip
 
 
-def _soulx_parts() -> tuple[Any, Any, Any, Any]:  # pragma: no cover - soulx image variant
-    """SVC model class, config and wav loaders, whisper encoder module."""
+def _soulx_parts() -> tuple[Any, Any, Any]:  # pragma: no cover - soulx image variant
+    """SVC model class, config loader, whisper encoder module."""
     from soulxsinger.models.modules import whisper_encoder  # noqa: PLC0415
     from soulxsinger.models.soulxsinger_svc import SoulXSingerSVC  # noqa: PLC0415
-    from soulxsinger.utils.audio_utils import load_wav  # noqa: PLC0415
     from soulxsinger.utils.file_utils import load_config  # noqa: PLC0415
 
-    return SoulXSingerSVC, load_config, load_wav, whisper_encoder
+    return SoulXSingerSVC, load_config, whisper_encoder
+
+
+def _librosa_wav(librosa: Any, torch: Any) -> Any:
+    """``(path, rate) -> (1, T)`` mono float32 tensor, like SoulX's ``load_wav``.
+
+    SoulX's own ``load_wav`` calls ``torchaudio.load``, which needs ``torchcodec`` with
+    torchaudio 2.10 (not part of the ``soulx`` extra); librosa decodes and resamples instead.
+    """
+    return lambda path, rate: torch.from_numpy(librosa.load(path, sr=rate, mono=True)[0]).unsqueeze(
+        0
+    )
