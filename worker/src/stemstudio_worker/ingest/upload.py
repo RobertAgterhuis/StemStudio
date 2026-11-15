@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Final
 
+from stemstudio_worker.ingest.details import NoSourceDetails, SourceDetails, with_details
 from stemstudio_worker.ports import (
     EmptyUploadError,
     SourceInfo,
@@ -37,14 +38,18 @@ _CONTROL_CHARS: Final = re.compile(r"[\x00-\x1f\x7f]")
 class FileUploadIntake:
     """Validates uploads stored by the API and derives ``upload:<sha256>`` source keys."""
 
-    def __init__(self, max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES) -> None:
+    def __init__(
+        self, max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES, details: SourceDetails | None = None
+    ) -> None:
         """Create the intake.
 
         Args:
             max_upload_bytes: Largest accepted file; the API enforces it while streaming (413),
                 this is a second line of defence.
+            details: Adds the embedded picture and tag names (feature 005); none by default.
         """
         self.max_upload_bytes = max_upload_bytes
+        self.details: SourceDetails = details or NoSourceDetails()
 
     def accept(self, file_name: str, path: Path) -> SourceInfo:
         """Validate an upload (see ``ports.UploadIntake.accept``).
@@ -58,13 +63,14 @@ class FileUploadIntake:
         if extension.lower() not in ALLOWED_EXTENSIONS:
             raise UnsupportedMediaError(_UNSUPPORTED_MESSAGE)
         self._check_size(path.stat().st_size)
-        return SourceInfo(
+        source = SourceInfo(
             source_type=SourceType.UPLOAD,
             source_key=f"upload:{_sha256(path)}",
             title=_title(base),
             artist=None,
             youtube_url=None,
         )
+        return with_details(lambda: self.details.upload(source, path), source)
 
     def _check_size(self, size: int) -> None:
         """Reject empty files and files over ``max_upload_bytes``."""
