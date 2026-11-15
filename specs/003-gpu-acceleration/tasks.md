@@ -122,7 +122,7 @@ in the execution plan.
 - [ ] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
 - [ ] T037 [US2] [backend] Implement anything missing to pass T036
 - [ ] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
-- [ ] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
+- [x] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
 
 **Checkpoint**: HO:us2.
 
