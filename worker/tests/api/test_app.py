@@ -8,15 +8,37 @@ from fastapi.testclient import TestClient
 
 from stemstudio_worker import main
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.jobs.detail_store import DetailJobStore, StoredDetailJob
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import BeatAnalyzer, IngestAdapters
-from stemstudio_worker.schemas import Job, JobState, SourceType
+from stemstudio_worker.schemas import DetailJob, DetailJobState, Job, JobState, SourceType
 
 from .contract import assert_conforms
 from .fakes import ApiFakes
 
 JOB_ID = "3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c"
+DETAIL_ID = "7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b"
+
+
+def test_start_up_fails_detail_jobs_interrupted_by_restart(tmp_path: Path) -> None:
+    now = datetime(2026, 11, 15, 12, 0, tzinfo=UTC)
+    job = DetailJob(
+        detail_job_id=DETAIL_ID, standard_job_id=JOB_ID, audio_sha256="9" * 64,
+        status=DetailJobState.RUNNING, stage="Splitting drums (1 of 3)", current_parent="drums",
+        progress=12, created_at=now, updated_at=now,
+    )  # fmt: skip
+    DetailJobStore(tmp_path / "detail-jobs").save(StoredDetailJob(job=job))
+    app = main.create_app(_settings(tmp_path), adapters=ApiFakes().adapters())
+
+    with TestClient(app) as client:
+        response = client.get(f"/v1/detail-jobs/{DETAIL_ID}")
+
+    assert_conforms(response, "/v1/detail-jobs/{detailJobId}")
+    body = response.json()
+    assert (body["status"], body["error"], body["progress"], body["currentParent"]) == (
+        "failed", "interrupted by restart", 12, None,
+    )  # fmt: skip
 
 
 def _settings(tmp_path: Path) -> WorkerSettings:
