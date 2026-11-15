@@ -34,30 +34,34 @@ test('a saved mix restores the expanded group and the muted snare after a reload
   mixLibrary,
   page,
 }, testInfo) => {
-  await mixer.goto(track.id);
-  await mixer.waitForReady(fakeStems);
-  await mixer.setExpanded('drums', true, fakeDetailOutcomes.drums.stems);
-  await mixer.mute(snare).click();
-  await expect(mixer.byId('unsaved-indicator')).toBeVisible();
-  const name = uniqueMixName('No snare', testInfo.project.name);
-  await mixer.saveNew(name);
-  await expect.poll(async () => (await api.findMix(track.id, name))?.id).toBeTruthy();
-  const mixId = (await api.findMix(track.id, name))?.id ?? '';
+  const mixId = await test.step('expand drums, mute the snare, save "No snare"', async () => {
+    await mixer.goto(track.id);
+    await mixer.waitForReady(fakeStems);
+    await mixer.setExpanded('drums', true, fakeDetailOutcomes.drums.stems);
+    await mixer.mute(snare).click();
+    await expect(mixer.byId('unsaved-indicator')).toBeVisible();
+    const name = uniqueMixName('No snare', testInfo.project.name);
+    await mixer.saveNew(name);
+    await expect.poll(async () => (await api.findMix(track.id, name))?.id).toBeTruthy();
+    return (await api.findMix(track.id, name))?.id ?? '';
+  });
 
   const saved = (await api.getMix(mixId)).settings;
   expect(saved.expanded).toEqual(['drums']);
   expect(saved.detailChannels).toContainEqual(expect.objectContaining({ parent: 'drums', stem: 'snare', mute: true }));
 
-  await page.reload();
-  await mixLibrary.goto();
-  await mixLibrary.load(mixId);
-  await mixer.waitForReady(fakeStems);
-  await expect(mixer.expand('drums')).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 });
-  await expect.poll(() => isOn(mixer.mute(snare))).toBe(true);
-  await expect.poll(() => isOn(mixer.mute(kick))).toBe(false);
-  for (const parent of splitParents.filter((p) => p !== 'drums')) {
-    await expect(mixer.expand(parent)).toHaveAttribute('aria-expanded', 'false');
-  }
+  await test.step('reload and load restore expansion and detail settings', async () => {
+    await page.reload();
+    await mixLibrary.goto();
+    await mixLibrary.load(mixId);
+    await mixer.waitForReady(fakeStems);
+    await expect(mixer.expand('drums')).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 });
+    await expect.poll(() => isOn(mixer.mute(snare))).toBe(true);
+    await expect.poll(() => isOn(mixer.mute(kick))).toBe(false);
+    for (const parent of splitParents.filter((p) => p !== 'drums')) {
+      await expect(mixer.expand(parent)).toHaveAttribute('aria-expanded', 'false');
+    }
+  });
 
   const copy = await api.duplicateMix(mixId);
   expect(copy.settings.expanded).toEqual(saved.expanded);
