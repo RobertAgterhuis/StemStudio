@@ -1,9 +1,13 @@
+using System.Globalization;
+using System.Text;
+
 namespace StemStudio.Contracts.Lyrics;
 
 /// <summary>
 /// The lyrics of a track (backend contract 1.6.0): <c>GET /api/tracks/{id}/lyrics</c> only, served with
 /// <c>Cache-Control: no-store</c>; never part of the track resources, never logged, never exported.
 /// </summary>
+/// <remarks><c>ToString()</c> never prints the lines; it counts them (FR-010).</remarks>
 public sealed record LyricsDto
 {
     /// <summary>Lyrics state.</summary>
@@ -38,4 +42,11 @@ public sealed record LyricsDto
 
     /// <summary>Alignment estimate, device and progress; null when no alignment is pending or running.</summary>
     public LyricsAlignmentDto? Alignment { get; init; }
+
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append(CultureInfo.InvariantCulture, $"Status = {Status}, Reason = {Reason}, SyncLevel = {SyncLevel}, Origin = {Origin}, Language = {Language}, Source = {Source}, ");
+        builder.Append(CultureInfo.InvariantCulture, $"Credit = {Credit}, OffsetMs = {OffsetMs}, Instrumental = {Instrumental}, Lines = {Lines.Count}, Alignment = {Alignment}");
+        return true;
+    }
 }

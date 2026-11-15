@@ -1288,8 +1288,9 @@ paths:
       operationId: searchLyrics
       summary: Search LRCLIB again (from removed, notFound, failed, disabled or found).
       description: |
-        Status becomes `searching` (or stays `disabled` when online lookups are off). `409` while
-        a search or an alignment runs.
+        Status becomes `searching`. With online lookups off the response also says `searching`
+        (the backend does not know the worker's setting); the next `GET` reports `disabled`.
+        `409 lyrics-busy` while a search or an alignment runs.
       responses:
         '202':
           $ref: '#/components/responses/LyricsDocument'
@@ -1306,8 +1307,10 @@ paths:
       summary: Align the lyrics text to the vocal stem (status `aligning`).
       description: |
         From `alignPending`, `failed` with text, or `found` with `syncLevel: line` (refines the
-        words inside the line times). `409` without text, while aligning, or while the standard
-        separation is not completed; `503` when the worker cannot be reached.
+        words inside the line times). `409` with `lyrics-no-text` (no text), `lyrics-busy` (while
+        searching or aligning), `lyrics-timed` (word-synced lyrics), `track-not-ready` (the
+        standard separation is not completed) or `lyrics-align-rejected` (the worker refused the
+        job); `503` when the worker cannot be reached.
       responses:
         '202':
           $ref: '#/components/responses/LyricsDocument'
@@ -1324,6 +1327,8 @@ paths:
       tags: [lyrics]
       operationId: cancelLyricsAlignment
       summary: Cancel a running alignment (back to `alignPending`, or `found` when a line-synced document was being refined).
+      description: |
+        `409 lyrics-not-aligning` when no alignment is running.
       responses:
         '200':
           $ref: '#/components/responses/LyricsDocument'
@@ -1411,8 +1416,9 @@ paths:
         `score` (status `queued`) and submits a worker transcription job. Poll
         `GET /api/assets/{assetId}`; when `ready`, the files `pdf`, `musicxml` and `midi` and
         `score` are set. `409 drums-not-split` when `drums` is chosen before the drums were
-        split into detail stems; `422 tempo-required` when the track has no reliable beat grid
-        and no `tempo` is given.
+        split into detail stems; `409 source-unavailable` when the worker rejects the input (a
+        stem or item file is missing); `422 tempo-required` when the track has no reliable beat
+        grid and no `tempo` is given; `503` when the worker cannot be reached (nothing is stored).
       requestBody:
         required: true
         content:
@@ -1443,6 +1449,8 @@ paths:
           $ref: '#/components/responses/ScoreConflict'
         '422':
           $ref: '#/components/responses/ScoreUnprocessable'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
 components:
   parameters:
     TrackId:
@@ -3246,9 +3254,13 @@ components:
               $ref: '#/components/examples/RemovedLyrics'
     LyricsConflict:
       description: |
-        The lyrics are in a state that does not allow the operation (a search or an alignment
-        is running, there is no text to align, the standard separation is not completed, or there
-        are no lyrics to offset).
+        The lyrics are in a state that does not allow the operation: `lyrics-busy` (a search or
+        an alignment is running), `lyrics-no-text` (there is no text to align), `lyrics-timed`
+        (align on lyrics that already have word timing), `lyrics-not-aligning` (cancel without a
+        running alignment), `lyrics-align-rejected` (the worker refused the alignment at
+        creation, e.g. the vocal stem is no longer available; `detail` is the worker's text),
+        `track-not-ready` (align before the standard separation is completed) or `lyrics-none`
+        (there are no lyrics to offset).
       content:
         application/problem+json:
           schema:
@@ -3259,7 +3271,7 @@ components:
                 type: lyrics-busy
                 title: Lyrics are being processed
                 status: 409
-                detail: The lyrics are being aligned; try again when it has finished.
+                detail: The lyrics are being searched or aligned; try again when it has finished.
             noText:
               value:
                 type: lyrics-no-text
@@ -3272,10 +3284,35 @@ components:
                 title: No lyrics
                 status: 409
                 detail: This track has no lyrics.
+            alreadyTimed:
+              value:
+                type: lyrics-timed
+                title: Lyrics already timed
+                status: 409
+                detail: These lyrics already have word timing.
+            notAligning:
+              value:
+                type: lyrics-not-aligning
+                title: No alignment running
+                status: 409
+                detail: No alignment of these lyrics is running.
+            alignRejected:
+              value:
+                type: lyrics-align-rejected
+                title: Alignment rejected
+                status: 409
+                detail: The vocal stem of this track is no longer available.
+            trackNotReady:
+              value:
+                type: track-not-ready
+                title: Track not ready
+                status: 409
+                detail: The track is still being processed; align the lyrics when it is completed.
     ScoreConflict:
       description: |
         `track-not-ready` (the track is not completed), `drums-not-split` (the `drums` profile
-        needs the drum detail stems; split the drums first) or `insufficient-disk-space`.
+        needs the drum detail stems; split the drums first), `insufficient-disk-space` or
+        `source-unavailable` (the worker rejected the input; `detail` is the worker's text).
       content:
         application/problem+json:
           schema:
@@ -3299,6 +3336,12 @@ components:
                 title: Not enough disk space
                 status: 409
                 detail: Less than 1 GiB is free on the data drive; delete items or free space first.
+            sourceUnavailable:
+              value:
+                type: source-unavailable
+                title: Source unavailable
+                status: 409
+                detail: A stem file of this track is missing; separate the track again and retry.
     ScoreUnprocessable:
       description: |
         A value is outside its limits (`errors` names the field, e.g. `profile`, `range`,

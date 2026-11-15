@@ -62,13 +62,14 @@ the rule matters for assets of later features).
 | `renderJobId` | 32 hex chars | as `Job.jobId` (Phase 0: named like `detailJobId`) |
 | `status` | `queued`, `running`, `completed`, `failed`, `cancelled` | state machine 2.5 |
 | `progress` | 0..1 | pass 1 = 0..0.5, pass 2 = 0.5..1 |
-| `error` | string \| null (<= 500) | readable reason when `failed` |
+| `error` | string \| null (<= 500) | readable reason when `failed`; besides the texts named elsewhere: "Cannot read <path>", "Unsupported channel count <n> in <path>", "The range starts after the end of the inputs", "The export file could not be written" (paths library-relative) |
 | `result` | `RenderResult` \| null | set when `completed` |
 | `createdAt`, `updatedAt` | ISO 8601 UTC | - |
 
 **RenderResult**: `fileName` (`output.<ext>`), `contentType` (`audio/flac`, `audio/wav`,
 `audio/mpeg`), `sizeBytes`, `sha256`, `durationSeconds`, `sampleRate` (44100), `channels` (2),
-`peakDbfs` (of the written file, before encoding for MP3), `appliedGainDb` (0 or negative).
+`peakDbfs` (of the written file, before encoding for MP3; floored at -150 when every written
+sample quantises to zero, because `-inf` is not valid JSON), `appliedGainDb` (0 or negative).
 
 ### 2.5 State machine and persistence
 
@@ -92,13 +93,19 @@ float32): `acc += pan(x_i * gain_i, pan_i)`; then `y = acc * masterGain`.
 
 | Pan | `θ` | Output |
 |---|---|---|
-| `p <= 0` | `(p + 1)·π/2` | `L' = L + R·cos θ`, `R' = R·sin θ` |
-| `p > 0` | `p·π/2` | `L' = L·cos θ`, `R' = R + L·sin θ` |
+| `p < 0` | `(p + 1)·π/2` | `L' = L + R·cos θ`, `R' = R·sin θ` |
+| `p >= 0` | `p·π/2` | `L' = L·cos θ`, `R' = R + L·sin θ` |
+
+(At `p = 0` both rows give `L' = L`, `R' = R`; the `p >= 0` form is exact in floating point.)
 
 Pass 1 computes `peak = max |y|` over the range. Pass 2 writes `y * s` with `s = 1` when
 `peak <= 1.0`, else `s = 10^(-0.1/20) / peak`; `appliedGainDb = 20·log10(s)`. Integer formats
-quantise with `round(y·(2^(b-1) - 1))` after TPDF dither (when `dither`), clamped to the integer
-range. A render whose peak is 0 (all silent) fails with "Nothing to export: the selected channels
+(16- and 24-bit WAV/FLAC, and the 16-bit PCM fed to the MP3 encoder) quantise with
+`clamp(round(y·2^(b-1)), -2^(b-1), 2^(b-1) - 1)` after TPDF dither (when `dither`). The scale
+`2^(b-1)` is libsndfile's read scale (`int / 2^(b-1)`), so a raw render is bit-identical to its
+16-bit source (SC-004), including -32768 and 32767. The dither seed is the
+first 8 bytes (big-endian) of `sha256(out_dir.name)` (the job's output directory, i.e. the
+render job id). A render whose peak is 0 (all silent) fails with "Nothing to export: the selected channels
 are silent".
 
 ## 4. Backend entities

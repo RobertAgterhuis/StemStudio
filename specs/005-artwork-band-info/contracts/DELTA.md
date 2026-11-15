@@ -149,3 +149,12 @@ The import page legal notice (`legal-notice`) text gains the sentence on online 
 Worker env: `STEMSTUDIO_ONLINE_LOOKUPS` (default `on`), `STEMSTUDIO_CONTACT_URL` (unset),
 `STEMSTUDIO_WIKIPEDIA_LANGUAGES` (`en`), `STEMSTUDIO_FAKE_ONLINE` (`found`, fake stack only).
 `scripts/test-all.*` and CI `CONTRACTS_DIR` -> `specs/005-artwork-band-info/contracts`.
+
+## Reconciliation (architect, 2026-11, after the 005-008 implementation waves)
+
+- Worker 1.3.0 `POST /v1/artwork` now declares `503` "Pictures unavailable" (a worker without an
+  image normaliser; partial builds only). Mirrored unchanged into the 006, 007 and 008 worker
+  documents. No version bump (documents existing behaviour; the backend already maps worker 5xx
+  to its own 503).
+- ADR-014 D4: the ISRC step is the exact `/ws/2/isrc/<code>` lookup. data-model 2.7: two more
+  warning texts (Wikidata, artist details).

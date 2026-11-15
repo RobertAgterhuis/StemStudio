@@ -163,3 +163,12 @@ selected channels, raw vs mixed), `export-formats` (FLAC/WAV/MP3, bit depth, bit
 `export-range` (Advanced), `export-clipping` (why an item was lowered). Minimum journey levels:
 format select = Beginner (default FLAC preselected), bit depth / bit rate / range / selected
 channels / stem pack = Advanced.
+
+## Reconciliation (architect, 2026-11, after the 007 implementation wave)
+
+- data-model 3: quantisation `clamp(round(y·2^(b-1)), -2^(b-1), 2^(b-1)-1)` (libsndfile's read
+  scale; keeps raw renders bit-identical), pan table rows `p < 0` / `p >= 0`, TPDF dither on every
+  integer output (16/24-bit and the PCM fed to LAME) seeded from `sha256(<render job id>)`;
+  data-model 2.4: `peakDbfs` floored at -150 when every sample quantises to zero, four more
+  readable `error` texts. ADR-016 D4 amended for 24-bit dither. tasks T017: MP3 decoded length
+  `n .. n + 2 frames` (no gapless header from lameenc). Wire contracts unchanged.

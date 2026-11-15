@@ -59,8 +59,8 @@ DTOs) follows the **008** documents, which contain these unchanged except `/heal
   LyricsLanguagePattern}`; the seven operation ids are staged in `PendingLyricsOperations`.
 - **Engine 2.1.0**: as section 3, plus: `data-word-index` -1 when there is no current word;
   `baseLatency` fallback when `outputLatency` is undefined; `offsetMs` out of range throws
-  `Error("Karaoke offset out of range: <value>")`. Until 006 T026/T036 the three methods throw
-  `KARAOKE_NOT_IMPLEMENTED` (skeleton); `EngineMethods.ContractVersion` (Web) is `2.1.0`.
+  `Error("Karaoke offset out of range: <value>")`. The Phase 0 skeleton threw
+  `KARAOKE_NOT_IMPLEMENTED` until 006 T026/T036 (removed; see Reconciliation); `EngineMethods.ContractVersion` (Web) is `2.1.0`.
 - **UI ids / help**: topic ids without the `help-` prefix (as in 005): `karaoke`, `karaoke-offset`,
   `lyrics-sources`, `lyrics-align`.
 - **P0-1/P0-2**: torchaudio 2.11.1 imports and runs next to torch 2.15.0 in both images (CPU:
@@ -200,3 +200,17 @@ Worker env: `STEMSTUDIO_ALIGN_MODEL` (`turbo`), `STEMSTUDIO_ALIGN_AUTO` (`gpu`),
 `STEMSTUDIO_MODEL_DIR/whisper` (existing model-cache volume; `XDG_CACHE_HOME` not used: the
 adapter passes `download_root`). CPU image: built from `uv.lock` (triton excluded by the
 override); GPU image: unchanged build arguments. CI `CONTRACTS_DIR` -> 006.
+
+## Reconciliation (architect, 2026-11, after the 006 implementation wave)
+
+- Backend 1.6.0 `LyricsConflict` lists every 409 type the backend answers: `lyrics-busy`,
+  `lyrics-no-text`, `lyrics-timed`, `lyrics-not-aligning`, `lyrics-align-rejected`,
+  `track-not-ready` and `lyrics-none` (examples carry the implemented texts). `searchLyrics`
+  with lookups off answers `searching`; the next `GET` reports `disabled`. Mirrored unchanged
+  into backend 1.7.0 (008). No version bump (documentation of implemented behaviour).
+- Contracts lyrics records (`LyricsDto`, `LyricsLineDto`, `LyricsWordDto`, `SetLyricsRequest`)
+  print no lyric text in `ToString()` (FR-010).
+- Engine 2.1.0 (`audio-engine.md`): the Phase 0 skeleton paragraph and `KARAOKE_NOT_IMPLEMENTED`
+  are gone (the methods are implemented); latency is subtracted before the loop wrap; slots,
+  countdown (`data-count`, three `.karaoke-dot`), `translate3d(<x>px, <y>px, 0px)`, validation
+  and resize details are documented as implemented.

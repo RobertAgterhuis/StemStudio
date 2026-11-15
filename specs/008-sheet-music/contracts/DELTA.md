@@ -140,3 +140,13 @@ paragraph per profile with its limits), `sheet-music-key-tempo` (grid, key confi
 tempo; Advanced), `sheet-music-drums` (detail stems needed, notation legend), `sheet-music-piano`
 (accurate vs fast, CPU time, CC BY 4.0 attribution). Levels: profile + simplified = Beginner;
 quality, key override, manual tempo, range = Advanced.
+
+## Reconciliation (architect, 2026-11, after the 008 implementation wave)
+
+- Backend 1.7.0 `createScore` declares `503 WorkerUnavailable` (worker unreachable at creation;
+  nothing stored) and `ScoreConflict` lists `source-unavailable` (worker 400/404 at creation),
+  as the 007 exports do. The 006 lyrics reconciliation is mirrored unchanged (see the 006 DELTA).
+- Worker 1.6.0: `BeatGridTempo.downbeats` description notes bar 1 with more than one bar of
+  lead-in. data-model 2.3 (chords per staff cut at the next onset; drum gate on the linear onset
+  peak), 2.4 (pickup longer than a bar keeps the meter phase), 2.8 (beats may be negative) and
+  the Leipzig font facts (119,356 B, SHA-256 `773c72dc...584a4b`, deterministic) updated.
