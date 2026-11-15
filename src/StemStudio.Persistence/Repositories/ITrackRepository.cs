@@ -49,6 +49,12 @@ public interface ITrackRepository
     /// <returns>A task.</returns>
     Task RemoveAsync(Track track, CancellationToken cancellationToken);
 
+    /// <summary>Removes a track together with all of its mixes in one unit of work (the mix foreign key is restrict).</summary>
+    /// <param name="track">Tracked track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    Task RemoveWithMixesAsync(Track track, CancellationToken cancellationToken);
+
     /// <summary>Saves changes made to tracked tracks.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>

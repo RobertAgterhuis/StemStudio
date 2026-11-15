@@ -15,7 +15,17 @@ public sealed class StemFileStore(DataDirectory dataDirectory) : IStemFileStore
             throw new ArgumentException($"'{stem}' is not a stem name.", nameof(stem));
         }
 
-        return Path.Combine(dataDirectory.Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture), "stems", stem + ".flac");
+        return Path.Combine(TrackDirectory(trackId), "stems", stem + ".flac");
+    }
+
+    /// <inheritdoc />
+    public void DeleteTrackFiles(Guid trackId)
+    {
+        var directory = TrackDirectory(trackId);
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     /// <inheritdoc />
@@ -44,4 +54,7 @@ public sealed class StemFileStore(DataDirectory dataDirectory) : IStemFileStore
             return stream.Length;
         }
     }
+
+    private string TrackDirectory(Guid trackId) =>
+        Path.Combine(dataDirectory.Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture));
 }

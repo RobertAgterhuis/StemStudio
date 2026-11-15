@@ -270,6 +270,28 @@ public sealed class StemStudioDbContextTests
         await Should.ThrowAsync<DbUpdateException>(() => repository.RemoveAsync(loaded!, Ct));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task Track_RemoveWithMixesDeletesTheTrackAndOnlyItsMixes(int mixCount)
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var track = TestData.CompletedTrack();
+        await SeedTracksAsync(db, track);
+        for (var i = 0; i < mixCount; i++)
+        {
+            await SeedMixAsync(db, TestData.Settings($"Mix {i}"), track);
+        }
+
+        var (other, otherMix) = await SeedMixAsync(db, track: TestData.CompletedTrack("aaaaaaaaaaa"));
+
+        await RemoveWithMixesAsync(db, track.Id);
+
+        await using var read = db.NewContext();
+        (await new TrackRepository(read).FindAsync(track.Id, Ct)).ShouldBeNull();
+        (await new MixRepository(read).ListAsync(null, Ct)).Select(m => (m.Id, m.TrackId)).ShouldBe([(otherMix.Id, other.Id)]);
+    }
+
     [Fact]
     public async Task FileDatabase_RoundTripsTrackAndMixAcrossContexts()
     {
@@ -340,6 +362,13 @@ public sealed class StemStudioDbContextTests
         var mix = Mix.Create(Guid.NewGuid(), target, settings ?? TestData.Settings(), now ?? TestData.T0.AddHours(1));
         await new MixRepository(context).AddAsync(mix, Ct);
         return (target, mix);
+    }
+
+    private static async Task RemoveWithMixesAsync(SqliteTestDatabase db, Guid trackId)
+    {
+        await using var context = db.NewContext();
+        var repository = new TrackRepository(context);
+        await repository.RemoveWithMixesAsync((await repository.FindAsync(trackId, Ct))!, Ct);
     }
 
     private static async Task SeedTracksAsync(SqliteTestDatabase db, params Track[] tracks)

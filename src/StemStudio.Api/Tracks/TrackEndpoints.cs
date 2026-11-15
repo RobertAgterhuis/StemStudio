@@ -3,7 +3,10 @@ using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Api.Tracks;
 
-/// <summary>Maps <c>GET /api/tracks</c>, <c>GET /api/tracks/{trackId}</c> and <c>POST /api/tracks/{trackId}/retry</c>.</summary>
+/// <summary>
+/// Maps <c>GET /api/tracks</c>, <c>GET /api/tracks/{trackId}</c>, <c>DELETE /api/tracks/{trackId}</c> and
+/// <c>POST /api/tracks/{trackId}/retry</c>.
+/// </summary>
 public static class TrackEndpoints
 {
     /// <summary>Route of a single track with a GUID constraint.</summary>
@@ -18,6 +21,9 @@ public static class TrackEndpoints
             .WithName("listTracks").WithTags("tracks").Produces<List<TrackDto>>();
         app.MapGet(TrackRoute, (Guid trackId, TrackService tracks, CancellationToken ct) => tracks.GetAsync(trackId, ct))
             .WithName("getTrack").WithTags("tracks").Produces<TrackDto>().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapDelete(TrackRoute, (Guid trackId, TrackDeletionService deletion, CancellationToken ct) => deletion.DeleteAsync(trackId, ct))
+            .WithName("deleteTrack").WithTags("tracks").Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapPost(TrackRoute + "/retry", (Guid trackId, TrackService tracks, CancellationToken ct) => tracks.RetryAsync(trackId, ct))
             .WithName("retryTrack").WithTags("tracks").Produces<TrackDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
