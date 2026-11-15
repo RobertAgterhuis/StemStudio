@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Audio;
 
@@ -42,9 +43,11 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     /// <inheritdoc />
     public Task<double> LoadTrackAsync(TrackDto track)
     {
-        var baseUrl = options.Value.PublicApiBaseUrl;
-        var stems = track.Stems.Select(s => new EngineStem(s.Name, new Uri(baseUrl, s.Url).ToString())).ToList();
-        return Guard(() => Engine.InvokeAsync<double>(EngineMethods.LoadTrack, new EngineLoadRequest(stems, track.BeatGrid)).AsTask());
+        var stems = track.Stems.Select(s => Stem(s.Name, s.Url)).ToList();
+        var groups = DetailPhaseText.SplitParents(track)
+            .Select(p => new EngineGroup(p.Parent, DetailPhaseText.OrderedStems(p).Select(s => Stem(s.Name, s.Url)).ToList()))
+            .ToList();
+        return Guard(() => Engine.InvokeAsync<double>(EngineMethods.LoadTrack, new EngineLoadRequest(stems, track.BeatGrid, groups)).AsTask());
     }
 
     /// <inheritdoc />
@@ -62,6 +65,9 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     /// <inheritdoc />
     public Task SetChannelAsync(ChannelSettingsDto channel) =>
         Call(EngineMethods.SetChannel, channel.Stem, new EngineChannel(channel.Volume, channel.Pan, channel.Mute, channel.Solo));
+
+    /// <inheritdoc />
+    public Task SetExpandedAsync(string parent, bool expanded) => Call(EngineMethods.SetExpanded, parent, expanded);
 
     /// <inheritdoc />
     public Task SetMasterAsync(double volume) => Call(EngineMethods.SetMaster, volume);
@@ -102,6 +108,8 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
         _self?.Dispose();
         _self = null;
     }
+
+    private EngineStem Stem(string name, string url) => new(name, new Uri(options.Value.PublicApiBaseUrl, url).ToString());
 
     private IJSObjectReference Engine =>
         _engine ?? throw new InvalidOperationException("The audio engine is not initialized.");
@@ -148,7 +156,9 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
 
     private sealed record EngineStem(string Name, string Url);
 
-    private sealed record EngineLoadRequest(IReadOnlyList<EngineStem> Stems, BeatGridDto? BeatGrid);
+    private sealed record EngineGroup(string Parent, IReadOnlyList<EngineStem> Stems);
+
+    private sealed record EngineLoadRequest(IReadOnlyList<EngineStem> Stems, BeatGridDto? BeatGrid, IReadOnlyList<EngineGroup> Groups);
 
     private sealed record EngineChannel(double Volume, double Pan, bool Mute, bool Solo);
 }

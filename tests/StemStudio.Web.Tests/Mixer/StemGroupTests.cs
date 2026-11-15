@@ -124,6 +124,36 @@ public sealed class StemGroupTests : MixerTestContext
         page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Expand_WhileLoading_IsBusy_AndIgnoresSecondToggle()
+    {
+        var pending = new TaskCompletionSource();
+        Engine.SetExpandedAsync("drums", true).Returns(pending.Task);
+        var page = RenderMixer();
+
+        var first = page.Find(ExpandDrums).ClickAsync(new());
+
+        page.Find(ExpandDrums).HasAttribute("disabled").ShouldBeTrue();
+        page.Find(ExpandDrums).TextContent.ShouldContain("Loading...");
+        await page.InvokeAsync(() => page.FindComponent<StemStudio.Web.Components.Mixer.ExpandToggle>().Instance.OnToggle.InvokeAsync());
+        pending.SetResult();
+        await first;
+        await Engine.Received(1).SetExpandedAsync("drums", Arg.Any<bool>());
+        page.Find(ExpandDrums).GetAttribute("aria-expanded").ShouldBe("true");
+    }
+
+    [Fact]
+    public async Task Expand_BeforeTheEngineIsReady_DoesNothing()
+    {
+        Engine.LoadTrackAsync(Arg.Any<TrackDto>()).Returns(new TaskCompletionSource<double>().Task);
+        var page = RenderMixer();
+
+        await page.Find(ExpandDrums).ClickAsync(new());
+
+        await Engine.DidNotReceiveWithAnyArgs().SetExpandedAsync(default!, default);
+        page.Find(ExpandDrums).GetAttribute("aria-expanded").ShouldBe("false");
+    }
+
     private static void AssertControls(IRenderedComponent<MixerPage> page, string key)
     {
         page.Find($"[data-testid=fader-{key}]").GetAttribute("aria-valuenow").ShouldBe("80");

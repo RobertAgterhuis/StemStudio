@@ -111,15 +111,17 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task AttachMetersAsync(MixerState state)
     {
-        foreach (var target in state.Channels.Select(c => c.Stem).Append("master"))
+        foreach (var channel in state.AllChannels)
         {
-            await Engine.AttachMeterAsync(target, $"meter-{target}");
+            await Engine.AttachMeterAsync(channel.Stem, $"meter-{channel.Key}");
         }
+
+        await Engine.AttachMeterAsync("master", "meter-master");
     }
 
     private async Task PushStateAsync(MixerState state)
     {
-        foreach (var channel in state.Channels)
+        foreach (var channel in state.AllChannels)
         {
             await Engine.SetChannelAsync(channel.ToDto());
         }

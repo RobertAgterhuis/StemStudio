@@ -168,8 +168,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### frontend (tests first)
 
-- [ ] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/StemGroupTests.cs`: `expand-<parent>` only for split parents with `aria-expanded`; group strips with all controls and meters (`*-<parent>-<detail>` ids); engine receives `loadTrack` with `groups`, `setExpanded`, `setChannel("<parent>.<detail>", ...)`; parent strip marked `data-expanded`; a rejected `setExpanded` shows the error and stays collapsed (FR-012, FR-013)
-- [ ] T063 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{StemGroup,ExpandToggle}.razor` and the mixer wiring to pass T062
+- [x] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/StemGroupTests.cs`: `expand-<parent>` only for split parents with `aria-expanded`; group strips with all controls and meters (`*-<parent>-<detail>` ids); engine receives `loadTrack` with `groups`, `setExpanded`, `setChannel("<parent>.<detail>", ...)`; parent strip marked `data-expanded`; a rejected `setExpanded` shows the error and stays collapsed (FR-012, FR-013)
+- [x] T063 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{StemGroup,ExpandToggle}.razor` and the mixer wiring to pass T062
 
 ### qa
 

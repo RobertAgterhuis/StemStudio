@@ -93,6 +93,22 @@ public static class DetailPhaseText
         return DetailNames.AllowedFor(outcome.Parent).Where(byName.ContainsKey).Select(n => byName[n]).ToList();
     }
 
+    /// <summary>
+    /// The split parents that the mixer offers as groups: outcome split, parent stem present on the track, at least
+    /// one allowed detail stem; one per parent, in standard display order. Shared by the mixer state and the engine
+    /// groups so both always agree.
+    /// </summary>
+    /// <param name="track">The track.</param>
+    /// <returns>The split outcomes.</returns>
+    public static IReadOnlyList<ParentOutcomeDto> SplitParents(TrackDto track)
+    {
+        var split = track.Detail.Parents
+            .Where(p => p.Outcome == ParentOutcomeKindDto.Split && track.Stems.Any(s => s.Name == p.Parent) && OrderedStems(p).Count > 0)
+            .DistinctBy(p => p.Parent)
+            .ToDictionary(p => p.Parent, StringComparer.Ordinal);
+        return DetailNames.Parents.Where(split.ContainsKey).Select(parent => split[parent]).ToList();
+    }
+
     /// <summary>The long-duration notice for a completed track, or null when none is shown.</summary>
     /// <param name="track">The track.</param>
     /// <returns>The notice: while the phase is active, and for songs over 10 minutes until the phase completes.</returns>

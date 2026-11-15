@@ -3,7 +3,7 @@ using StemStudio.Web.Mixer;
 
 namespace StemStudio.Web.Components.Mixer;
 
-/// <summary>Channel strip of one stem; emits gains 0..1 and pans -1..1.</summary>
+/// <summary>Channel strip of one standard or detail stem; emits gains 0..1 and pans -1..1.</summary>
 public sealed partial class ChannelStrip
 {
     /// <summary>The channel to show.</summary>
@@ -13,6 +13,14 @@ public sealed partial class ChannelStrip
     /// <summary>False when mute/solo silence the channel (strip is dimmed).</summary>
     [Parameter]
     public bool Audible { get; set; } = true;
+
+    /// <summary>Expansion state of a parent with detail stems (<c>data-expanded</c>); null for strips without a group.</summary>
+    [Parameter]
+    public bool? Expanded { get; set; }
+
+    /// <summary>Extra content at the bottom of the strip (the expand toggle of a split parent).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     /// <summary>Raised with the new gain 0..1.</summary>
     [Parameter]
@@ -29,6 +37,10 @@ public sealed partial class ChannelStrip
     /// <summary>Raised when solo is toggled.</summary>
     [Parameter]
     public EventCallback OnSolo { get; set; }
+
+    private string Name => Channel.Stem.Replace('.', ' ');
+
+    private string? ExpandedText => Expanded is { } expanded ? Bool(expanded) : null;
 
     private string Volume => InputValue.Percent(Channel.Volume);
 

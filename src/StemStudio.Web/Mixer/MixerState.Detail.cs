@@ -1,5 +1,5 @@
-using StemStudio.Contracts;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Mixer;
 
@@ -47,15 +47,9 @@ public sealed partial class MixerState
     public bool IsHidden(ChannelState channel) =>
         Groups.FirstOrDefault(g => g.Contains(channel)) is { } owner ? !owner.Expanded : IsExpanded(channel.Stem);
 
-    private static List<StemGroupState> BuildGroups(TrackDto track, HashSet<string> present)
-    {
-        var split = track.Detail.Parents
-            .Where(p => p.Outcome == ParentOutcomeKindDto.Split && present.Contains(p.Parent))
-            .DistinctBy(p => p.Parent)
-            .ToDictionary(p => p.Parent, StringComparer.Ordinal);
-        return DetailNames.Parents.Where(split.ContainsKey)
-            .Select(parent => StemGroupState.From(split[parent]))
-            .Where(g => g.Stems.Count > 0)
-            .ToList();
-    }
+    /// <summary>Every channel: the standard stems first, then the detail channels of each group in display order.</summary>
+    public IEnumerable<ChannelState> AllChannels => Channels.Concat(Groups.SelectMany(g => g.Stems.Select(s => s.Channel)));
+
+    private static List<StemGroupState> BuildGroups(TrackDto track) =>
+        DetailPhaseText.SplitParents(track).Select(StemGroupState.From).ToList();
 }

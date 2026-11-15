@@ -23,8 +23,8 @@ public sealed partial class MixerState
         DetectedBeatsPerBar = track.BeatGrid?.BeatsPerBar ?? 4;
         var present = track.Stems.Select(s => s.Name).ToHashSet(StringComparer.Ordinal);
         Channels = StemNames.SixStem.Where(present.Contains).Select(name => new ChannelState(name)).ToList();
-        Groups = BuildGroups(track, present);
-        _byStem = Channels.Concat(Groups.SelectMany(g => g.Stems.Select(s => s.Channel))).ToDictionary(c => c.Stem, StringComparer.Ordinal);
+        Groups = BuildGroups(track);
+        _byStem = AllChannels.ToDictionary(c => c.Stem, StringComparer.Ordinal);
         Metronome = new MetronomeSettingsDto(track.BeatGrid?.Reliable ?? false, ContractLimits.DefaultMetronomeVolume, null, 0, DetectedBeatsPerBar);
     }
 
@@ -71,7 +71,7 @@ public sealed partial class MixerState
     public bool IsDirty { get; private set; }
 
     /// <summary>True when at least one audible-level channel is soloed (solo flags of hidden channels are ignored).</summary>
-    public bool AnySolo => _byStem.Values.Any(c => c.Solo && !IsHidden(c));
+    public bool AnySolo => AllChannels.Any(c => c.Solo && !IsHidden(c));
 
     /// <summary>
     /// Mirror of the engine's gate (contract 2.0.0): hidden and muted channels are silent; with any audible-level

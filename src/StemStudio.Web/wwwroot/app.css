@@ -266,6 +266,27 @@ h1 {
   border: 2px solid var(--ss-ink);
 }
 
+.ss-expand {
+  grid-column: 1 / -1;
+}
+
+.ss-strip[data-expanded="true"] {
+  outline: 2px solid var(--ss-accent);
+}
+
+/* Detail strips of an expanded parent (feature 002) */
+.ss-group {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: var(--ss-radius);
+  background: color-mix(in srgb, var(--ss-accent) 12%, transparent);
+}
+
+.ss-group .ss-strip {
+  min-width: 6rem;
+}
+
 .ss-strip-silent {
   opacity: 0.45;
 }
