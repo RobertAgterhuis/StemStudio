@@ -106,6 +106,13 @@ test.describe('karaoke word sync', { tag: '@karaoke' }, () => {
     await openPlaying(page, mixer);
     for (const seconds of seededPositions(seeks, 17)) {
       await mixer.seek(seconds);
+      // The seek reaches the engine after a server round trip; the jump itself is not a landing.
+      await expect
+        .poll(async () => {
+          const ahead = Number(await karaoke.host.getAttribute('data-position-ms')) - seconds * 1000;
+          return ahead >= -50 && ahead <= 400;
+        }, { timeout: 5_000, intervals: [50] })
+        .toBe(true);
       const landings = landingErrors(await recordKaraoke(karaoke.host, 2_500), fake.lines, 0);
       expect(maxLandingErrorMs(landings), `after a seek to ${String(seconds)} s`).toBeLessThanOrEqual(maxErrorMs);
     }
