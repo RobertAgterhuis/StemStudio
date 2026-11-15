@@ -1,0 +1,34 @@
+@* Help library index (FR-024): topics per area (glossary last), then the tours offered at this level. *@
+@inject IHelpCatalog Catalog
+@inject HelpContext Help
+
+<nav class="ss-help-index" aria-label="Help topics" data-testid="help-index">
+    @foreach (var area in Catalog.Areas)
+    {
+        <h3 class="ss-heading">@AreaTitle(area)</h3>
+        <ul class="ss-help-list">
+            @foreach (var topic in Catalog.Topics.Where(t => t.Area == area).OrderBy(t => t.Title, StringComparer.OrdinalIgnoreCase))
+            {
+                <li>
+                    <button type="button" class="ss-text-button" data-help-topic="@topic.Id" @onclick="() => Help.ShowAsync(topic.Id)">@topic.Title</button>
+                </li>
+            }
+        </ul>
+    }
+    <HelpLinks />
+</nav>
+
+@code {
+    private static readonly Dictionary<string, string> AreaTitles = new(StringComparer.Ordinal)
+    {
+        ["start"] = "Getting started",
+        ["import"] = "Import",
+        ["tracks"] = "Tracks",
+        ["detail"] = "Detail stems",
+        ["mixer"] = "Mixer",
+        ["mixes"] = "Mixes",
+        ["glossary"] = "Glossary",
+    };
+
+    private static string AreaTitle(string area) => AreaTitles.GetValueOrDefault(area, area);
+}

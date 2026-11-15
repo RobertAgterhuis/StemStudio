@@ -1,10 +1,13 @@
-@* Modal name dialog used for "Save" (first save), "Save as" and renaming in the mix library. *@
+@* Modal name dialog used for "Save" (first save), "Save as" and renaming in the mix library. Focus moves to the name
+   field, Enter in it confirms, Escape cancels, and focus returns to the opener when the dialog closes. *@
+@implements IAsyncDisposable
+@inject StemStudio.Web.Interop.IWebInterop Web
 
 <div class="ss-modal-backdrop">
-    <div class="ss-modal rz-card" role="dialog" aria-modal="true" aria-labelledby="save-mix-title">
-        <h2 id="save-mix-title" class="ss-subtitle">@Title</h2>
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="save-mix-title" @onkeydown="KeyAsync">
+        <h2 id="save-mix-title" class="ss-title">@Title</h2>
         <label class="ss-label" for="mix-name">Name (1-100 characters)</label>
-        <input id="mix-name" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput"
+        <input id="mix-name" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput" @onkeydown="NameKeyAsync" @ref="_input"
                aria-label="Mix name" data-testid="mix-name-input" />
         @if (Error is not null)
         {
@@ -19,6 +22,10 @@
 </div>
 
 @code {
+    private string _name = string.Empty;
+    private ElementReference _input;
+    private IAsyncDisposable? _focus;
+
     /// <summary>Dialog title.</summary>
     [Parameter]
     public string Title { get; set; } = "Save mix";
@@ -35,16 +42,28 @@
     [Parameter]
     public bool Busy { get; set; }
 
-    private string _name = string.Empty;
-
     /// <summary>Raised with the entered name.</summary>
     [Parameter]
     public EventCallback<string> OnConfirm { get; set; }
 
-    /// <summary>Cancel pressed.</summary>
+    /// <summary>Cancel pressed (button or Escape).</summary>
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
     /// <inheritdoc />
-    protected override void OnInitialized() => _name = Name;
+    public async ValueTask DisposeAsync() => await (_focus?.DisposeAsync() ?? ValueTask.CompletedTask);
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        _name = Name;
+        _focus = await Web.CaptureFocusAsync();
+    }
+
+    /// <inheritdoc />
+    protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? _input.FocusAsync().AsTask() : Task.CompletedTask;
+
+    private Task KeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;
+
+    private Task NameKeyAsync(KeyboardEventArgs args) => args.Key == "Enter" && !Busy ? OnConfirm.InvokeAsync(_name) : Task.CompletedTask;
 }

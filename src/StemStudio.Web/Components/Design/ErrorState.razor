@@ -1,0 +1,32 @@
+@* Designed error state (design-spec.md 4.10): what happened (the existing error id stays on this text element), how
+   to fix it, and a retry where possible. *@
+
+<div class="ss-state ss-state-error">
+    <span class="rzi ss-state-icon" aria-hidden="true">error</span>
+    <div class="ss-state-body">
+        <div class="ss-state-message" role="alert" data-testid="@TestId">@Message</div>
+        @if (Hint is not null)
+        {
+            <p class="ss-state-hint">@Hint</p>
+        }
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary><c>data-testid</c> of the message (for example <c>tracks-error</c>).</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>What happened, verbatim from the API where tests compare it.</summary>
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>How to fix it.</summary>
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>Optional action, e.g. a retry button.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,66 @@
+/* Dialogs: Radzen confirm dialog and the save/rename dialog (design-spec.md 3.1 Dialog). */
+
+.rz-dialog {
+  border-radius: var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  box-shadow: var(--ss-elev-float);
+}
+
+.rz-dialog-titlebar {
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+}
+
+.rz-dialog-title {
+  font-size: var(--ss-type-title-size);
+  font-weight: var(--ss-type-title-weight);
+  font-stretch: var(--ss-type-title-width);
+}
+
+.rz-dialog-mask {
+  background: var(--ss-color-scrim);
+}
+
+.ss-dialog-message {
+  margin: 0;
+}
+
+.ss-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ss-space-2);
+  margin-top: var(--ss-space-5);
+}
+
+.ss-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ss-z-dialog);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ss-space-4);
+  background: var(--ss-color-scrim);
+}
+
+.ss-modal {
+  width: min(28rem, 100%);
+  padding: var(--ss-space-5);
+  border-radius: var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  box-shadow: var(--ss-elev-float);
+  animation: ss-float-in var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+@keyframes ss-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

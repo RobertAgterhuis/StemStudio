@@ -1,0 +1,39 @@
+@* Tour offers (FR-027): a chip per tour offered on this route and level; never starts by itself. Dismissing records
+   the tour version, so the offer only returns when the tour is updated. *@
+@inherits StemStudio.Web.Components.Shell.PreferencesAware
+@implements IAsyncDisposable
+@inject TourService Tours
+@inject NavigationManager Navigation
+
+<LevelGate Feature="help.tour-offers">
+    @foreach (var tour in Tours.CurrentOffers())
+    {
+        <div class="ss-tour-offer" data-testid="@($"tour-offer-{tour.Id}")">
+            <span class="rzi" aria-hidden="true">tour</span>
+            <button type="button" class="ss-text-button" @onclick="() => Tours.StartAsync(tour.Id)">Take the tour: @tour.Title</button>
+            <button type="button" class="ss-help-hint" aria-label="@($"Dismiss the {tour.Title} tour")"
+                    data-testid="@($"tour-offer-dismiss-{tour.Id}")" @onclick="() => Tours.DismissOfferAsync(tour)">
+                <span class="rzi" aria-hidden="true">close</span>
+            </button>
+        </div>
+    }
+</LevelGate>
+
+@code {
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args) => _ = InvokeAsync(StateHasChanged);
+}

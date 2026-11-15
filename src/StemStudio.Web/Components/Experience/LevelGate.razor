@@ -1,0 +1,21 @@
+@* Renders its content only at the levels the feature catalogue allows (design-spec.md 5, FR-013). Hidden content
+   is not rendered at all, so it is out of the tab order and the accessibility tree. *@
+
+@if ((Experience ?? ExperienceContext.Default).IsVisible(Feature))
+{
+    @ChildContent
+}
+
+@code {
+    /// <summary>The cascaded level; Advanced when no shell provides one.</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
+    /// <summary>Catalogue id, e.g. <c>mixer.pan</c>; an unknown id throws.</summary>
+    [Parameter, EditorRequired]
+    public string Feature { get; set; } = string.Empty;
+
+    /// <summary>The gated content.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

@@ -1,18 +1,12 @@
 /**
  * Entry of the classic `first-paint.js` script (web-interop.md 1), built as an IIFE by
- * `vite build --mode first-paint`. Phase 0 placeholder owned by the frontend agent (T013/T014):
- * the implementation reads `localStorage["stemstudio.preferences"]` synchronously and sets
- * `data-theme`, `data-density`, `data-motion` and `data-level` on `document.documentElement`,
- * then calls {@link applyFirstPaint} at the end of this module.
+ * `vite build --mode first-paint` and loaded synchronously as the first element of `<head>`. It sets
+ * `data-theme`, `data-density`, `data-motion` and `data-level` on the document element before any
+ * stylesheet applies (no theme flash, SC-004). The logic lives in `theme.ts` ({@link applyFirstPaint});
+ * this entry exports nothing so the minified script stays below 1 KB.
  *
  * @packageDocumentation
  */
+import { applyFirstPaint } from './theme';
 
-/**
- * Applies the stored appearance before the first paint; never throws once implemented.
- *
- * @param root - The element receiving the data attributes (normally `document.documentElement`).
- */
-export function applyFirstPaint(root: HTMLElement): void {
-  throw new Error(`not implemented: applyFirstPaint (${root.tagName})`);
-}
+applyFirstPaint(document.documentElement);

@@ -1,0 +1,18 @@
+@* Coloured name tab of a stem (masking tape on a desk): the name is always written, colour is never the only cue. *@
+
+<span class="@($"ss-stem-tab ss-pattern-{StemColor.Pattern(Pattern ?? 0)}")" style="@($"--stem-color: {StemColor.Var(Stem)}")"
+      data-stem="@StemColor.Known(StemColor.Parent(Stem))">@(Label ?? Stem[(Stem.LastIndexOf('.') + 1)..])</span>
+
+@code {
+    /// <summary>Stem name or channel id (<c>drums.snare</c>).</summary>
+    [Parameter, EditorRequired]
+    public string Stem { get; set; } = string.Empty;
+
+    /// <summary>Visible text; defaults to the stem or detail name.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Detail index for the underline pattern; null (standard stems) is solid.</summary>
+    [Parameter]
+    public int? Pattern { get; set; }
+}

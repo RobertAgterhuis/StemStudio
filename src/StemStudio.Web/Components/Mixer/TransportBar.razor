@@ -1,6 +1,6 @@
 @* Transport: play, pause, stop, seek slider and position (FR-012). *@
 
-<div class="ss-transport" role="toolbar" aria-label="Transport">
+<div class="ss-transport ss-transport-dock" role="toolbar" aria-label="Transport" data-help-id="mixer-transport">
     <RadzenButton Icon="play_arrow" aria-label="Play" aria-pressed="@Pressed(PlaybackState.Playing)" Click="OnPlay" Disabled="!Ready"
                   data-testid="transport-play" />
     <RadzenButton Icon="pause" ButtonStyle="ButtonStyle.Light" aria-label="Pause" aria-pressed="@Pressed(PlaybackState.Paused)"
@@ -10,8 +10,11 @@
            value="@InputValue.Format(Rounded)" aria-valuenow="@InputValue.Format(Rounded)" aria-valuemin="0"
            aria-valuemax="@InputValue.Format(Duration)" aria-valuetext="@TimeText.Position(Position)" aria-label="Seek"
            @onchange="Seek" data-testid="transport-seek" />
-    <span class="ss-position" data-testid="transport-position">@TimeText.Position(Position) / @TimeText.Duration(Duration)</span>
-    <span class="ss-state" role="status" data-testid="transport-state">@State</span>
+    <span class="ss-position ss-counter" data-testid="transport-position">@TimeText.Position(Position) / @TimeText.Duration(Duration)</span>
+    <span class="ss-transport-state" role="status" data-testid="transport-state">@State</span>
+    <LevelGate Feature="shell.kbd-hints">
+        <span class="ss-kbd-hints"><kbd>Space</kbd> play <kbd>Home</kbd> stop <kbd>[</kbd> <kbd>]</kbd> loop A, B <kbd>L</kbd> loop</span>
+    </LevelGate>
 </div>
 
 @code {

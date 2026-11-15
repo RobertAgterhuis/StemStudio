@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Api;
+using StemStudio.Web.Experience;
 using StemStudio.Web.Mixer;
 using StemStudio.Web.Services;
 
@@ -19,7 +20,22 @@ public sealed partial class Mixes
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
 
+    /// <summary>The cascaded level (Advanced without a shell).</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
     private IReadOnlyList<MixSummaryDto>? Items { get; set; }
+
+    private Dictionary<Guid, IReadOnlyList<string>> TrackStems { get; set; } = [];
+
+    private string Search { get; set; } = string.Empty;
+
+    private IReadOnlyList<MixSummaryDto> Visible => (Items ?? []).Where(Matches).ToList();
+
+    /// <summary>Expert: compact rows with icon buttons (names stay in aria-label, labels in a visible tooltip).</summary>
+    private bool IconOnly => (Experience ?? ExperienceContext.Default).Is(ExperienceLevel.Expert);
+
+    private string? IconClass => IconOnly ? "ss-icon-only" : null;
 
     private string? Error { get; set; }
 
@@ -28,11 +44,41 @@ public sealed partial class Mixes
     private string? RenameError { get; set; }
 
     /// <inheritdoc />
-    protected override Task OnInitializedAsync() => RunAsync(() => Task.CompletedTask);
+    protected override async Task OnInitializedAsync()
+    {
+        await RunAsync(() => Task.CompletedTask);
+        TrackStems = await LoadTrackStemsAsync();
+    }
 
     private static string Iso(DateTimeOffset time) => time.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
     private static string Local(DateTimeOffset time) => time.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+
+    private async Task<Dictionary<Guid, IReadOnlyList<string>>> LoadTrackStemsAsync()
+    {
+        try
+        {
+            var tracks = await Api.ListTracksAsync();
+            return tracks.ToDictionary(t => t.Id, t => (IReadOnlyList<string>)[.. t.Stems.Select(s => s.Name)]);
+        }
+        catch (ApiException)
+        {
+            return [];
+        }
+    }
+
+    private IReadOnlyList<string> StemsOf(MixSummaryDto mix) => TrackStems.GetValueOrDefault(mix.TrackId) ?? [];
+
+    private bool Matches(MixSummaryDto mix) =>
+        Search.Trim().Length == 0
+        || mix.Name.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase)
+        || mix.TrackTitle.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private void OnSearch(ChangeEventArgs args) => Search = args.Value?.ToString() ?? string.Empty;
+
+    private string? Label(string text) => IconOnly ? null : text;
+
+    private string? Tooltip(string text) => IconOnly ? text : null;
 
     private void Load(MixSummaryDto mix) => Navigation.NavigateTo($"tracks/{mix.TrackId}/mixer?mixId={mix.Id}");
 

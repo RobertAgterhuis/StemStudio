@@ -10,6 +10,7 @@ import type { MixerPage } from '../pages/mixer-page';
 import type { StemStudioApi, TrackDto } from './api';
 import { isOn, numericValue } from './controls';
 import { KeyCounter } from './keyboard';
+import { positionSeconds } from './levels';
 
 /** What the flow needs. */
 export interface ExpertFlow {
@@ -36,12 +37,29 @@ export async function paletteToMixer(flow: ExpertFlow, track: TrackDto): Promise
   await flow.mixer.waitForReady(track.stems.map((stem) => stem.name));
 }
 
-/** `→` `[` `→` `→` `]` `L`: loop A at 5 s, B at 15 s, loop on. */
+/**
+ * `→` `[` `→` `→` `]` `L`: loop A at 5 s, B at 15 s, loop on. Each key waits for its effect before the
+ * next one (at human speed; key presses sent with no gap overtake each other on the circuit).
+ */
 export async function loopWithKeys(flow: ExpertFlow): Promise<void> {
-  for (const key of ['ArrowRight', '[', 'ArrowRight', 'ArrowRight', ']', 'l']) {
+  const position = (): Promise<number> => transportSeconds(flow.mixer);
+  const steps: readonly (readonly [string, () => Promise<number>, number])[] = [
+    ['ArrowRight', position, 5],
+    ['[', () => numericValue(flow.mixer.byId('loop-start')), 5],
+    ['ArrowRight', position, 10],
+    ['ArrowRight', position, 15],
+    [']', () => numericValue(flow.mixer.byId('loop-end')), 15],
+  ];
+  for (const [key, read, expected] of steps) {
     await flow.keys.press(key);
+    await expect.poll(read).toBeCloseTo(expected, 0);
   }
+  await flow.keys.press('l');
   await expectLoop(flow.mixer, 5, 15);
+}
+
+async function transportSeconds(mixer: MixerPage): Promise<number> {
+  return positionSeconds((await mixer.byId('transport-position').textContent()) ?? '');
 }
 
 /** Asserts loop A/B (seconds, +-0.5) and the loop toggle on. */

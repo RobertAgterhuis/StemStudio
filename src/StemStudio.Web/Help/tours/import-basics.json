@@ -1,0 +1,34 @@
+{
+  "id": "import-basics",
+  "version": 1,
+  "title": "Import basics",
+  "route": "/",
+  "levels": [
+    "beginner",
+    "advanced"
+  ],
+  "steps": [
+    {
+      "target": "import-url",
+      "topic": "import-url",
+      "text": "Paste a YouTube or Spotify link here and press Import."
+    },
+    {
+      "target": "import-file",
+      "topic": "import-file"
+    },
+    {
+      "target": "processing-device",
+      "topic": "processing-device"
+    },
+    {
+      "target": "legal-notice",
+      "topic": "legal-notice"
+    },
+    {
+      "target": "help-button",
+      "topic": "help",
+      "text": "Help is always here. Press ? or F1 for help on what you are working on."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 @* Metronome: on/off, click volume, manual BPM, offset and beats per bar, reset (FR-014). *@
 
-<div class="ss-metronome" role="group" aria-label="Metronome">
+<div class="ss-metronome ss-console-panel" role="group" aria-label="Metronome" data-help-id="mixer-metronome">
+    <h2 class="ss-panel-title">Click <HelpHint HelpId="mixer-metronome" /></h2>
     <RadzenButton Text="@(Settings.Enabled ? "Click on" : "Click off")" Icon="timer"
                   ButtonStyle="@(Settings.Enabled ? ButtonStyle.Success : ButtonStyle.Light)"
                   aria-pressed="@(Settings.Enabled ? "true" : "false")" Click="ToggleAsync" data-testid="metronome-toggle" />
@@ -10,23 +11,26 @@
                aria-valuenow="@InputValue.Percent(Settings.Volume)" aria-valuemin="0" aria-valuemax="100"
                aria-label="Metronome volume" @oninput="VolumeInput" data-testid="metronome-volume" />
     </label>
-    <label class="ss-inline-label">
-        BPM
-        <input type="number" class="rz-textbox ss-number" min="30" max="300" step="0.1" value="@BpmText"
-               placeholder="@BpmPlaceholder" aria-label="Manual BPM (empty follows the detected beats)"
-               @onchange="BpmChanged" data-testid="metronome-bpm" />
-    </label>
-    <label class="ss-inline-label">
-        Offset (ms)
-        <input type="number" class="rz-textbox ss-number" min="-2000" max="2000" step="1" value="@Settings.OffsetMs"
-               aria-label="Metronome offset in milliseconds" @onchange="OffsetChanged" data-testid="metronome-offset" />
-    </label>
-    <label class="ss-inline-label">
-        Beats/bar
-        <input type="number" class="rz-textbox ss-number" min="1" max="12" step="1" value="@Settings.BeatsPerBar"
-               aria-label="Beats per bar" @onchange="BeatsChanged" data-testid="metronome-beats-per-bar" />
-    </label>
-    <RadzenButton Text="Reset" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="OnReset" data-testid="metronome-reset" />
+    <LevelGate Feature="mixer.metronome.advanced">
+        <label class="ss-inline-label">
+            BPM
+            <input type="number" class="rz-textbox ss-number" min="30" max="300" step="0.1" value="@BpmText"
+                   placeholder="@BpmPlaceholder" aria-label="Manual BPM (empty follows the detected beats)"
+                   @onchange="BpmChanged" data-testid="metronome-bpm" />
+        </label>
+        <label class="ss-inline-label">
+            Offset (ms)
+            <input type="number" class="rz-textbox ss-number" min="-2000" max="2000" step="1" value="@Settings.OffsetMs"
+                   aria-label="Metronome offset in milliseconds" @onchange="OffsetChanged" data-testid="metronome-offset" />
+        </label>
+        <label class="ss-inline-label">
+            Beats/bar
+            <input type="number" class="rz-textbox ss-number" min="1" max="12" step="1" value="@Settings.BeatsPerBar"
+                   aria-label="Beats per bar" @onchange="BeatsChanged" data-testid="metronome-beats-per-bar" />
+        </label>
+        <RadzenButton Text="Reset" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="OnReset" data-testid="metronome-reset" />
+    </LevelGate>
+    <InlineHint TopicId="mixer-metronome" />
     @if (Hint is not null)
     {
         <span class="ss-help" data-testid="metronome-hint">@Hint</span>

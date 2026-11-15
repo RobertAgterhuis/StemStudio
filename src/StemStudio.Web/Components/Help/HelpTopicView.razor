@@ -1,0 +1,62 @@
+@* One help topic (ui-test-ids help-topic): title, rendered body, the level note for gated features, related topics. *@
+@inject IHelpCatalog Catalog
+@inject HelpContext Help
+@inject PreferencesState Preferences
+@inject ToastService Toasts
+
+@{
+    var rendered = Catalog.Render(TopicId);
+    var topic = rendered.Topic;
+}
+<article class="ss-help-topic" data-testid="help-topic" aria-labelledby="help-topic-title">
+    <h3 id="help-topic-title" class="ss-title" data-testid="help-topic-title">@topic.Title</h3>
+    @if (LevelNeeded(topic) is { } level)
+    {
+        <p class="ss-help-level" data-testid="help-level-note">
+            Available at @level level.
+            <button type="button" class="ss-text-button" data-testid="help-level-switch" @onclick="() => SwitchAsync(level)">Switch to @level</button>
+        </p>
+    }
+    <div class="ss-help-body" data-testid="help-topic-body">@((MarkupString)rendered.Html)</div>
+    @if (topic.Related.Count > 0)
+    {
+        <h4 class="ss-help-related-title">Related</h4>
+        <ul class="ss-help-related">
+            @foreach (var related in topic.Related.Select(Catalog.Topic).OfType<HelpTopic>())
+            {
+                <li>
+                    <button type="button" class="ss-text-button" data-testid="@($"help-related-{related.Id}")"
+                            @onclick="() => Help.ShowAsync(related.Id)">@related.Title</button>
+                </li>
+            }
+        </ul>
+    }
+</article>
+
+@code {
+    /// <summary>The cascaded level (Advanced without a shell).</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
+    /// <summary>The topic to show.</summary>
+    [Parameter, EditorRequired]
+    public string TopicId { get; set; } = string.Empty;
+
+    private ExperienceLevel? LevelNeeded(HelpTopic topic)
+    {
+        var context = Experience ?? ExperienceContext.Default;
+        if (topic.Feature is null || context.IsVisible(topic.Feature))
+        {
+            return null;
+        }
+
+        var feature = FeatureCatalog.Get(topic.Feature);
+        return context.Level < feature.Min ? feature.Min : feature.Max;
+    }
+
+    private async Task SwitchAsync(ExperienceLevel level)
+    {
+        await Preferences.SetLevelAsync(level);
+        Toasts.Show($"Level set to {level}");
+    }
+}
