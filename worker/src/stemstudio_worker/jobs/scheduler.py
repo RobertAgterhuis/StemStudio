@@ -47,8 +47,7 @@ class PriorityScheduler:
         """
         self._standard = standard
         self._detail_step = detail_step
-        self._on_yield = hooks.on_yield
-        self._on_idle = hooks.on_idle
+        self._hooks = hooks
         self._standard_queue: deque[str] = deque()
         self._detail_queue: deque[str] = deque()
         self._busy = False
@@ -120,9 +119,9 @@ class PriorityScheduler:
             return self._detail_unit(self._detail_queue[0])
 
     def _standard_unit(self, job_id: str, waiting: list[str]) -> None:
-        if waiting and self._on_yield is not None:
+        if waiting and self._hooks.on_yield is not None:
             try:
-                self._on_yield(waiting)
+                self._hooks.on_yield(waiting)
             except Exception:
                 _LOG.exception("Reporting the waiting detail jobs failed")
         self._standard(job_id)
@@ -152,9 +151,9 @@ class PriorityScheduler:
             self._after_unit()
 
     def _after_unit(self) -> None:
-        if self._on_idle is not None and self._nothing_queued():
+        if self._hooks.on_idle is not None and self._nothing_queued():
             try:
-                self._on_idle()
+                self._hooks.on_idle()
             except Exception:
                 _LOG.exception("Releasing idle GPU memory failed")
         with self._changed:

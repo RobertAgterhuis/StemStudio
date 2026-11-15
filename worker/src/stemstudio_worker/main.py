@@ -51,11 +51,8 @@ def create_app(
         The configured application.
     """
     resolved = settings or load_settings()
-    app = FastAPI(
-        title="StemStudio Worker API",
-        version=CONTRACT_VERSION,
-        lifespan=_lifespan(resolved, _Parts(adapters, detail_pipeline, devices)),
-    )
+    lifespan = _lifespan(resolved, _Parts(adapters, detail_pipeline, devices))
+    app = FastAPI(title="StemStudio Worker API", version=CONTRACT_VERSION, lifespan=lifespan)
     app.state.settings = resolved
     install_problem_handlers(app)
     app.include_router(router)
