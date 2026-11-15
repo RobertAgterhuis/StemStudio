@@ -18,6 +18,7 @@ from .conftest import SR, MakeWav, Signal, click, place
 
 SECONDS = 4.0
 TOLERANCE = 0.020
+ATTACK_TOLERANCE = 0.003
 
 TIMES: dict[DrumPiece, list[float]] = {
     "kick": [0.50, 1.25, 2.00, 3.10],
@@ -81,6 +82,16 @@ def test_hits_of_every_piece_are_found_within_20_ms(
     all_pieces: dict[DrumPiece, Path], piece: DrumPiece
 ) -> None:
     assert_close(times_of(transcribe(all_pieces), piece), TIMES[piece])
+
+
+def test_onsets_are_refined_to_the_attack(all_pieces: dict[DrumPiece, Path]) -> None:
+    hits = transcribe(all_pieces)
+    errors = [
+        found - expected
+        for piece, times in TIMES.items()
+        for found, expected in zip(times_of(hits, piece), times, strict=True)
+    ]
+    assert max(abs(e) for e in errors) <= ATTACK_TOLERANCE, errors
 
 
 def test_hits_come_in_time_order(all_pieces: dict[DrumPiece, Path]) -> None:
