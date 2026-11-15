@@ -16,7 +16,6 @@ from stemstudio_worker.metadata.matcher import (
     DURATION_WINDOW_SECONDS,
     Candidate,
     Credit,
-    MatchedBy,
     RecordingFound,
     Release,
     select,
@@ -31,6 +30,9 @@ MB_ROOT: Final = "https://musicbrainz.org/ws/2"
 
 SEARCH_LIMIT: Final = 25
 """Search results requested per query."""
+
+ISRC_INCLUDES: Final = "artist-credits+releases+release-groups"
+"""``inc`` of the ISRC lookup (``/isrc/{isrc}``): credits and releases with their groups."""
 
 _LUCENE_SPECIAL: Final = re.compile(r'([+\-&|!(){}\[\]^"~*?:\\/])')
 _ARTIST_TYPES: Final[dict[str, ArtistType]] = {
@@ -160,11 +162,6 @@ def search_query(title: str, artist: str, duration_seconds: float | None) -> str
     return f"{query} AND dur:[{max(centre - window, 0)} TO {centre + window}]"
 
 
-def isrc_query(isrc: str) -> str:
-    """The ISRC search query (``isrc:<code>``; the code is validated by the contract)."""
-    return f"isrc:{isrc}"
-
-
 class MusicBrainz:
     """Finds recordings and reads artist facts through the allow-listed client."""
 
@@ -177,7 +174,7 @@ class MusicBrainz:
         self._client = client
 
     def find(self, query: MetadataQuery) -> RecordingFound | None:
-        """Look ``query`` up: ISRC search first, then the title/artist search.
+        """Look ``query`` up: ISRC lookup first (404 = unknown), then the title/artist search.
 
         Args:
             query: The metadata job query.
@@ -190,13 +187,14 @@ class MusicBrainz:
             OnlineRequestError: A request failed after retries or an answer was malformed.
         """
         if query.isrc is not None:
-            found = self._select(isrc_query(query.isrc), query, "isrc")
+            found = self._isrc(query)
             if found is not None:
                 return found
         if query.artist is None:
             return None
         text = search_query(clean_title(query.title), query.artist, query.duration_seconds)
-        return self._select(text, query, "search")
+        params = {"query": text, "fmt": "json", "limit": str(SEARCH_LIMIT)}
+        return select(self._candidates(f"{MB_ROOT}/recording", params), query, "search")
 
     def artist(self, mbid: str) -> ArtistFacts | None:
         """Read the facts of artist ``mbid`` (None when MusicBrainz does not know it).
@@ -207,16 +205,17 @@ class MusicBrainz:
         response = self._client.get(f"{MB_ROOT}/artist/{mbid}", {"inc": "url-rels", "fmt": "json"})
         return None if response is None else _artist_facts(_parse(response, _Artist))
 
-    def _select(
-        self, text: str, query: MetadataQuery, matched_by: MatchedBy
-    ) -> RecordingFound | None:
-        """Run one search and let the matcher choose."""
-        params = {"query": text, "fmt": "json", "limit": str(SEARCH_LIMIT)}
-        response = self._client.get(f"{MB_ROOT}/recording", params)
+    def _isrc(self, query: MetadataQuery) -> RecordingFound | None:
+        """The recordings registered under the query's ISRC (exact; no title/artist checks)."""
+        params = {"inc": ISRC_INCLUDES, "fmt": "json"}
+        return select(self._candidates(f"{MB_ROOT}/isrc/{query.isrc}", params), query, "isrc")
+
+    def _candidates(self, url: str, params: dict[str, str]) -> list[Candidate]:
+        """The recordings of one lookup or search (none for a 404 answer)."""
+        response = self._client.get(url, params)
         if response is None:
-            return None
-        candidates = [_candidate(raw) for raw in _parse(response, _Search).recordings]
-        return select(candidates, query, matched_by)
+            return []
+        return [_candidate(raw) for raw in _parse(response, _Search).recordings]
 
 
 def _parse[M: BaseModel](response: OnlineResponse, model: type[M]) -> M:

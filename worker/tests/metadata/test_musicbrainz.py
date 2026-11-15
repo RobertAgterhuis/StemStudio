@@ -7,11 +7,11 @@ import pytest
 
 from stemstudio_worker.metadata.http import OnlineRequestError, ServiceBusyError
 from stemstudio_worker.metadata.musicbrainz import (
+    ISRC_INCLUDES,
     MB_ROOT,
     SEARCH_LIMIT,
     MusicBrainz,
     escape_lucene,
-    ISRC_INCLUDES,
     search_query,
 )
 from stemstudio_worker.ports import MetadataQuery
@@ -165,7 +165,7 @@ def test_busy_service_propagates_after_retries() -> None:
         MusicBrainz(harness.client).find(MetadataQuery(title="x", artist="y"))
 
 
-def test_recordings_without_length_score_or_credits_are_parsed() -> None:
+def test_isrc_recordings_without_length_score_or_credits_are_parsed() -> None:
     raw = {"id": RECORDING, "title": "Hero of the Day"}
     harness = online_harness([json_response({"recordings": [raw]})])
 
@@ -175,7 +175,7 @@ def test_recordings_without_length_score_or_credits_are_parsed() -> None:
 
     assert found is not None
     assert (found.recording.score, found.recording.length_seconds, found.artist_mbid) == (
-        0,
+        100,
         None,
         None,
     )

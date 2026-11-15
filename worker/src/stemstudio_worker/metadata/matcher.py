@@ -231,7 +231,7 @@ def _recording(candidate: Candidate, matched_by: MatchedBy) -> RecordingMatch:
         mbid=candidate.mbid,
         title=candidate.title[:_MAX_TITLE],
         length_seconds=candidate.length_seconds,
-        score=min(max(candidate.score, 0), 100),
+        score=100 if matched_by == "isrc" else min(max(candidate.score, 0), 100),
         matched_by=matched_by,
     )
 

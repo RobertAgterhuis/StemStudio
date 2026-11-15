@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from stemstudio_worker.metadata.http import ServiceBusyError
+from stemstudio_worker.metadata.matcher import RecordingFound
 from stemstudio_worker.metadata.musicbrainz import MusicBrainz
 from stemstudio_worker.metadata.titles import normalize_for_compare, youtube_lookup_names
 from stemstudio_worker.ports import MetadataQuery
@@ -66,23 +67,26 @@ def test_the_qa_set_has_at_least_20_cases() -> None:
 @pytest.mark.parametrize("case", CASES, ids=[case["id"] for case in CASES])
 def test_qa_matching_case(case: dict[str, Any]) -> None:
     harness = online_harness(_replay(case))
-    expected = case["expected"]
     musicbrainz = MusicBrainz(harness.client)
 
-    if expected["outcome"] == "failed":
+    if case["expected"]["outcome"] == "failed":
         with pytest.raises(ServiceBusyError):
             musicbrainz.find(_query(case["input"]))
     else:
-        found = musicbrainz.find(_query(case["input"]))
-        if expected["outcome"] == "not-found":
-            assert found is None
-        else:
-            assert found is not None
-            assert found.recording.mbid == expected["recordingMbid"]
-            assert found.recording.matched_by == expected["matchedBy"]
-            assert found.release_group is not None
-            assert found.release_group.mbid == expected["releaseGroupMbid"]
+        _check(musicbrainz.find(_query(case["input"])), case["expected"])
     assert len(harness.recorder.requests) == len(case["exchanges"])
+
+
+def _check(found: RecordingFound | None, expected: dict[str, Any]) -> None:
+    """Compare a lookup outcome with the case's ``expected`` block."""
+    if expected["outcome"] == "not-found":
+        assert found is None
+        return
+    assert found is not None
+    assert found.recording.mbid == expected["recordingMbid"]
+    assert found.recording.matched_by == expected["matchedBy"]
+    assert found.release_group is not None
+    assert found.release_group.mbid == expected["releaseGroupMbid"]
 
 
 SOURCED = [case for case in CASES if "source" in case]
