@@ -321,3 +321,42 @@ def test_a_score_file_that_vanished_answers_404(score_api: Api) -> None:
 
     assert_conforms(response, FILE)
     assert response.status_code == 404
+
+
+# ------------------------------------------------------------------ drums (T059)
+
+
+def _drum_body(library: Path, pieces: tuple[str, ...]) -> dict[str, Any]:
+    inputs = {}
+    for piece in pieces:
+        inputs[piece] = f"{TRACK}/detail/drums/{piece}.flac"
+        write_stem(library, inputs[piece])
+    return request_body("DrumsTranscriptionRequest", drumInputs=inputs)
+
+
+def test_a_drums_job_notates_the_hits_and_warns_about_absent_pieces(
+    score_api: Api, notator: FakeNotator
+) -> None:
+    library: Path = score_api.settings.render.library_dir  # type: ignore[assignment]
+
+    job = _completed(score_api, _drum_body(library, ("kick", "snare", "hihat")))
+
+    summary = job["result"]["summary"]
+    assert (job["status"], summary["profile"], summary["engine"], summary["key"]) == (
+        "completed", "drums", "fake", None,
+    )  # fmt: skip
+    assert [(w["code"], w["text"]) for w in summary["warnings"]] == [
+        ("missing-drum-piece", "No toms stem was available; that part is empty."),
+        ("missing-drum-piece", "No cymbals stem was available; that part is empty."),
+    ]
+    assert notator.calls[0][0] > 0
+    assert summary["attribution"] is None
+
+
+def test_drums_need_drum_inputs_and_no_input(score_api: Api) -> None:
+    library: Path = score_api.settings.render.library_dir  # type: ignore[assignment]
+    with_input = _drum_body(library, ("kick",)) | {"input": {"path": BASS}}
+    without = request_body("DrumsTranscriptionRequest", drumInputs=None)
+
+    assert _post(score_api, with_input).status_code == 422
+    assert _post(score_api, without).status_code == 422
