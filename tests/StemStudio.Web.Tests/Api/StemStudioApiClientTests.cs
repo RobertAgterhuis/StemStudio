@@ -101,6 +101,31 @@ public sealed class StemStudioApiClientTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteTrack_SendsDeleteToTrackRoute_AndAcceptsNoContent()
+    {
+        _handler.Respond(HttpStatusCode.NoContent);
+
+        await _client.DeleteTrackAsync(TestData.TrackId, Ct);
+
+        var request = _handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Delete);
+        request.PathAndQuery.ShouldBe($"/api/tracks/{TestData.TrackId}");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, """{"title":"Not found","status":404,"detail":"Track does not exist."}""", "Track does not exist.")]
+    [InlineData(HttpStatusCode.Conflict, """{"title":"Track is busy","status":409,"detail":"The track is still processing."}""", "The track is still processing.")]
+    public async Task DeleteTrack_Problem_ThrowsApiException(HttpStatusCode status, string problem, string message)
+    {
+        _handler.RespondProblem(status, problem);
+
+        var error = (await Should.ThrowAsync<ApiException>(() => _client.DeleteTrackAsync(TestData.TrackId, Ct))).Error;
+
+        error.Status.ShouldBe(status);
+        error.UserMessage.ShouldBe(message);
+    }
+
+    [Fact]
     public async Task ValidationProblem_MapsFieldErrors()
     {
         _handler.RespondProblem(HttpStatusCode.BadRequest, """

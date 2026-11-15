@@ -27,7 +27,7 @@ public sealed partial class TrackDetail : IDisposable
     /// <summary>Error when the track cannot be loaded at all (e.g. 404).</summary>
     private string? LoadError { get; set; }
 
-    /// <summary>Error of the last poll or retry, cleared by the next success.</summary>
+    /// <summary>Error of the last poll, retry or delete, cleared by the next successful poll or retry.</summary>
     private string? ActionError { get; set; }
 
     /// <inheritdoc />
@@ -48,20 +48,6 @@ public sealed partial class TrackDetail : IDisposable
         catch (ApiException ex)
         {
             LoadError = ex.Error.UserMessage;
-        }
-    }
-
-    private async Task RetryAsync()
-    {
-        try
-        {
-            Track = await Api.RetryTrackAsync(Id, _stop.Token);
-            ActionError = null;
-            StartPolling();
-        }
-        catch (ApiException ex)
-        {
-            ActionError = ex.Error.UserMessage;
         }
     }
 

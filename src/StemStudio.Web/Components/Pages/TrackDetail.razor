@@ -35,7 +35,31 @@ else
         @if (Track.Status == TrackStatusDto.Failed)
         {
             <div class="ss-error" role="alert" data-testid="track-error">@Track.Error</div>
-            <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" data-testid="track-retry" />
+            @if (RetryFailedAgain)
+            {
+                <div class="ss-error" role="alert" data-testid="track-retry-failed-again">The retry failed again.</div>
+            }
+            <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" IsBusy="IsRetrying" BusyText="Retrying..."
+                          Disabled="IsRetrying" data-testid="track-retry" />
+        }
+
+        @if (CanDelete)
+        {
+            <div class="ss-row ss-delete">
+                @if (ConfirmingDelete)
+                {
+                    <span role="alert">This deletes the track, its stems and all of its mixes.</span>
+                    <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger" Click="DeleteAsync" IsBusy="IsDeleting"
+                                  BusyText="Deleting..." Disabled="IsDeleting" data-testid="track-delete-confirm" />
+                    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelDelete" Disabled="IsDeleting"
+                                  data-testid="track-delete-cancel" />
+                }
+                else
+                {
+                    <RadzenButton Text="Delete track" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                                  Click="AskDelete" data-testid="track-delete" />
+                }
+            </div>
         }
     </RadzenCard>
 
