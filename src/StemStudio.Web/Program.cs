@@ -4,6 +4,8 @@ using StemStudio.Web;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
+using StemStudio.Web.Interop;
+using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,9 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddTransient<IPollingTimer, PollingTimer>();
 builder.Services.AddScoped<IConfirmService, DialogConfirmService>();
 builder.Services.AddScoped<IKeyboardShortcuts, KeyboardShortcuts>();
+builder.Services.AddScoped<IWebInterop, WebInterop>();
+builder.Services.AddScoped<IPreferencesStore, LocalPreferencesStore>();
+builder.Services.AddScoped<PreferencesState>();
 builder.Services.Configure<StemStudioWebOptions>(builder.Configuration.GetSection(StemStudioWebOptions.SectionName));
 builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
     StemStudioWebOptions.ApiClientName,

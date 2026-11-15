@@ -55,7 +55,7 @@ public sealed class WebInteropTests : IAsyncDisposable
     public async Task WatchPreferences_PassesACallbackReceiver_AndDisposeReleasesIt()
     {
         var handle = _module.SetupModule("watchPreferences", _ => true);
-        handle.SetupVoid("dispose");
+        handle.SetupVoid("dispose", _ => true).SetVoidResult();
         string? received = null;
 
         var registration = await _interop.WatchPreferencesAsync(json =>
@@ -141,8 +141,8 @@ public sealed class WebInteropTests : IAsyncDisposable
     [Fact]
     public async Task CaptureFocus_DisposeRestoresFocus()
     {
-        var handle = _module.SetupModule("captureFocus");
-        handle.SetupVoid("dispose");
+        var handle = _module.SetupModule("captureFocus", _ => true);
+        handle.SetupVoid("dispose", _ => true).SetVoidResult();
 
         var capture = await _interop.CaptureFocusAsync();
         await capture.DisposeAsync();
@@ -153,8 +153,8 @@ public sealed class WebInteropTests : IAsyncDisposable
     [Fact]
     public async Task Registration_DisposeAfterTheCircuitIsGone_DoesNotThrow()
     {
-        var handle = _module.SetupModule("captureFocus");
-        handle.SetupVoid("dispose").SetException(new JSDisconnectedException("gone"));
+        var handle = _module.SetupModule("captureFocus", _ => true);
+        handle.SetupVoid("dispose", _ => true).SetException(new JSDisconnectedException("gone"));
 
         var capture = await _interop.CaptureFocusAsync();
 
