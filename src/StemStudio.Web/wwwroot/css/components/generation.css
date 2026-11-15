@@ -143,3 +143,41 @@
 .ss-generation-status-title {
   font-weight: var(--ss-type-label-weight);
 }
+
+/* Style editor tags (009 US3). */
+.ss-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  padding: 0 var(--ss-space-1) 0 var(--ss-space-2);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-raised);
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-tag-remove {
+  min-width: var(--ss-target-min);
+  min-height: var(--ss-target-min);
+  border: 0;
+  background: var(--ss-color-none);
+  color: var(--ss-color-muted);
+  cursor: pointer;
+}
+
+.ss-tag-remove::before {
+  content: "\00D7";
+}
+
+.ss-style-kind {
+  margin-left: var(--ss-space-2);
+}

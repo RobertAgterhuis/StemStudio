@@ -72,7 +72,8 @@ public sealed class StyleEditorTests : PageTestContext
         var input = Sent(nameof(IStemStudioApiClient.CreateStyleAsync));
         (input.Name, input.GenreFamily, input.SubGenre, input.TempoFeel, input.VocalHandling, input.DefaultStrength, input.Description).ShouldBe(
             ("Night drive", GenreFamilyDto.Electronic, "Synth pop", TempoFeelDto.Driving, VocalHandlingDto.Instrumental, StrengthDto.Strong, "Pulsing bass and wide pads."));
-        (input.Moods, input.Instrumentation).ShouldBe((["dark"], ["analog synth"]));
+        input.Moods.ShouldBe(["dark"]);
+        input.Instrumentation.ShouldBe(["analog synth"]);
         NavigatedTo.ShouldEndWith("/styles");
     }
 

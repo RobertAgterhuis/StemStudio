@@ -1,0 +1,62 @@
+@* Tag input of the style editor (ui-test-ids 1.8.0 style-mood-tags, style-instrument-tags): type a tag and press Enter
+   or "Add"; each tag has a remove button named after it. The tags are a list, so screen readers count them. *@
+
+<div class="ss-field ss-tag-input">
+    <label class="ss-label" for="@TestId">@Label</label>
+    <div class="ss-row">
+        <input id="@TestId" type="text" class="rz-textbox" maxlength="30" value="@Draft" @oninput="e => Draft = (string)e.Value!"
+               @onkeydown="OnKeyAsync" data-testid="@TestId" />
+        <RadzenButton Text="Add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="AddAsync" data-testid="@($"{TestId}-add")" />
+    </div>
+    <ul class="ss-tags" aria-label="@Label" data-testid="@ListTestId">
+        @foreach (var tag in Tags)
+        {
+            <li class="ss-tag">@tag<button type="button" class="ss-tag-remove" aria-label="@($"Remove {tag}")" @onclick="() => OnRemove.InvokeAsync(tag)"></button></li>
+        }
+    </ul>
+    <span class="ss-help ss-small">Up to 8 tags, press Enter after each.</span>
+</div>
+
+@code {
+    /// <summary>Visible label, e.g. "Moods".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary><c>data-testid</c> (and element id) of the text input.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary><c>data-testid</c> of the tag list.</summary>
+    [Parameter, EditorRequired]
+    public string ListTestId { get; set; } = string.Empty;
+
+    /// <summary>The current tags.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Tags { get; set; } = [];
+
+    /// <summary>Tries to add the typed tag; returns false when it was refused (the draft is kept).</summary>
+    [Parameter, EditorRequired]
+    public Func<string, bool> TryAdd { get; set; } = default!;
+
+    /// <summary>Raised after an add attempt so the editor shows the tags or the problem.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    /// <summary>Remove pressed for a tag.</summary>
+    [Parameter]
+    public EventCallback<string> OnRemove { get; set; }
+
+    private string Draft { get; set; } = string.Empty;
+
+    private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Enter" ? AddAsync() : Task.CompletedTask;
+
+    private Task AddAsync()
+    {
+        if (TryAdd(Draft))
+        {
+            Draft = string.Empty;
+        }
+
+        return OnChanged.InvokeAsync();
+    }
+}

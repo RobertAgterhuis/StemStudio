@@ -1,0 +1,50 @@
+@page "/styles/{Id:guid}/edit"
+@* Edit an own style (009 US3); presets are read-only and only offer "Duplicate" in the library. *@
+@using StemStudio.Contracts.Styles
+
+<PageTitle>Edit style - StemStudio</PageTitle>
+
+@if (LoadError is not null)
+{
+    <div class="ss-page">
+        <ErrorState TestId="style-load-error" Message="@LoadError"><a href="styles">Back to the styles</a></ErrorState>
+    </div>
+}
+else if (Style is null)
+{
+    <Skeleton Lines="5" />
+}
+else
+{
+    <StyleEditor Title="Edit style" Style="Style" />
+}
+
+@code {
+    /// <summary>The style id from the route.</summary>
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [Inject]
+    private IStemStudioApiClient Api { get; set; } = default!;
+
+    private StyleDto? Style { get; set; }
+
+    private string? LoadError { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var style = await Api.GetStyleAsync(Id);
+            LoadError = style.Kind == StyleKindDto.Preset
+                ? "Presets cannot be changed. Duplicate the preset in the style library to make your own version."
+                : null;
+            Style = LoadError is null ? style : null;
+        }
+        catch (ApiException ex)
+        {
+            LoadError = ex.Error.UserMessage;
+        }
+    }
+}
