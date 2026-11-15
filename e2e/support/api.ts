@@ -1,7 +1,10 @@
 /**
- * Thin client for the backend HTTP API (`specs/003-gpu-acceleration/contracts/backend-api.openapi.yaml`
- * 1.3.0), used only for test set-up (a completed fixture track, an old-style mix) and for asserting
- * server state the UI cannot show (for example "no track was created").
+ * Thin client for the track, import, mix and device endpoints of the backend HTTP API
+ * (`specs/007-export-library/contracts/backend-api.openapi.yaml` 1.5.0, which keeps every 1.3.0
+ * path of feature 003 unchanged), used only for test set-up (a completed fixture track, an
+ * old-style mix) and for asserting server state the UI cannot show (for example "no track was
+ * created"). The metadata/artwork (1.4.0) and asset (1.5.0) endpoints live in
+ * `metadata-api.ts` and `assets-api.ts`.
  *
  * @packageDocumentation
  */

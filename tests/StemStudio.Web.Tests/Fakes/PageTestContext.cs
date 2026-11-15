@@ -8,6 +8,7 @@ using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
@@ -17,6 +18,11 @@ namespace StemStudio.Web.Tests.Fakes;
 public abstract class PageTestContext : BunitContext
 {
     private static readonly Lazy<HelpCatalog> RealHelp = new(() => HelpCatalog.FromAssembly(typeof(HelpCatalog).Assembly));
+
+    // Polling tests release ManualPollingTimer continuations on the thread pool; under a fully parallel run the pool
+    // can be busy for more than bUnit's 1 s default, which made WaitForAssertion flaky (007 T067). Correct waits
+    // still finish at once; only a starved run waits longer.
+    static PageTestContext() => DefaultWaitTimeout = TimeSpan.FromSeconds(10);
 
     protected PageTestContext()
     {
@@ -40,6 +46,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<PageCommands>();
         Services.AddScoped<ShellOverlays>();
         Services.AddScoped<HelpContext>();
+        Services.AddScoped<KaraokePreferences>();
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();
@@ -60,6 +67,14 @@ public abstract class PageTestContext : BunitContext
 
     protected static ApiException Problem(System.Net.HttpStatusCode status, string title, string? detail = null) =>
         new(new ApiError(status, title, detail, new Dictionary<string, string[]>()));
+
+    /// <summary>Renders a component under a cascaded experience level.</summary>
+    protected IRenderedComponent<Microsoft.AspNetCore.Components.CascadingValue<StemStudio.Web.Experience.ExperienceContext>> RenderAtLevel<TComponent>(
+        StemStudio.Web.Experience.ExperienceLevel level, Action<ComponentParameterCollectionBuilder<TComponent>> parameters)
+        where TComponent : Microsoft.AspNetCore.Components.IComponent =>
+        Render<Microsoft.AspNetCore.Components.CascadingValue<StemStudio.Web.Experience.ExperienceContext>>(p => p
+            .Add(c => c.Value, new StemStudio.Web.Experience.ExperienceContext(level, DensityPreference.Comfortable))
+            .AddChildContent(parameters));
 
     protected string NavigatedTo => Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri;
 }

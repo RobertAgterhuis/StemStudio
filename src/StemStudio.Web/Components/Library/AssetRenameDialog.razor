@@ -1,0 +1,18 @@
+@* Rename a library item (feature 007, FR-008): modal, 1-120 characters, Enter confirms, Escape cancels. *@
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="asset-rename-title" @onkeydown="OnDialogKeyAsync">
+        <h2 id="asset-rename-title" class="ss-title">Rename item</h2>
+        <label class="ss-label" for="asset-rename-input">Name (1-120 characters)</label>
+        <input id="asset-rename-input" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput" @onkeydown="OnFieldKeyAsync"
+               @ref="_input" data-testid="asset-rename-input" />
+        @if ((_problem ?? Error) is { } problem)
+        {
+            <div class="ss-error" role="alert" data-testid="asset-rename-error">@problem</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" data-testid="asset-rename-cancel" />
+            <RadzenButton Text="Rename" Icon="edit" Click="ConfirmAsync" data-testid="asset-rename-confirm" />
+        </div>
+    </div>
+</div>

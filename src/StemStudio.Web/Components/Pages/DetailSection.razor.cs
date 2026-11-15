@@ -23,6 +23,14 @@ public sealed partial class DetailSection
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
+    /// <summary>Raised with a detail channel id to save it raw to the library (feature 007).</summary>
+    [Parameter]
+    public EventCallback<string> OnExport { get; set; }
+
+    /// <summary>Raised with a pitched detail channel id to make sheet music of it (feature 008).</summary>
+    [Parameter]
+    public EventCallback<string> OnScore { get; set; }
+
     private DetailPhaseDto Detail => Track.Detail;
 
     private bool CanRetry => Detail.Status is DetailPhaseStatusDto.Failed or DetailPhaseStatusDto.Cancelled;

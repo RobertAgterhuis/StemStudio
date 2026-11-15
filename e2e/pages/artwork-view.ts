@@ -6,7 +6,8 @@ export type ShownArtworkSource = 'user' | 'spotify' | 'embedded' | 'coverartarch
 
 /**
  * Artwork and metadata ids of feature 005 on the track list, the track detail page and the mixer
- * (ui-test-ids 1.4.0). A separate object, so the 004 page objects stay untouched.
+ * (ui-test-ids 1.4.0). Kept as its own object (fixture `artwork`) rather than members of
+ * `TrackListPage`, `TrackDetailPage` and `MixerPage`, because the same ids appear on all three.
  */
 export class ArtworkView {
   /** @param page The Playwright page. */

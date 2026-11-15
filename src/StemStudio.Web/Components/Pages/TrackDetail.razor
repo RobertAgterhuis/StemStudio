@@ -1,4 +1,5 @@
 @page "/tracks/{Id:guid}"
+@inherits PollingComponent
 
 <PageTitle>Track - StemStudio</PageTitle>
 
@@ -15,15 +16,26 @@ else
     <SectionContent SectionName="@ContextBar.JourneySection"><JourneyRail Stage="JourneyStages.ForTrack(Track.Status)" /></SectionContent>
     <div class="ss-page ss-track">
         <header class="ss-track-head">
+            <TrackArtwork Track="Track" TestId="track-cover" HelpId="artwork" />
             <div class="ss-track-names">
                 <h1 data-testid="track-title">@Track.Title</h1>
                 @if (Track.Artist is not null)
                 {
                     <p class="ss-track-artist">@Track.Artist</p>
                 }
+                <div class="ss-meta-row">
+                    <span class="ss-meta-status" data-testid="metadata-status" data-status="@MetadataStatusText.Value(Track.Metadata.Status)">@MetadataStatusText.Label(Track.Metadata.Status)</span>
+                    <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
+                </div>
+                <ArtworkActions Track="Track" OnChanged="SetTrack" />
             </div>
             <StemRibbon Stems="StemList" TestId="track-ribbon" />
         </header>
+
+        @if (ShowBandInfo)
+        {
+            <BandInfoPanel Track="Track" OnClose="ToggleBandInfo" OnChanged="OnBandInfoChangedAsync" />
+        }
 
         <TrackProcessing Track="Track">
             @if (ActionError is not null)
@@ -73,8 +85,20 @@ else
 
         @if (Track.Status == TrackStatusDto.Completed)
         {
-            <TrackSummary Track="Track" />
-            <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" />
+            <TrackSummary Track="Track" OnExport="OpenExport" OnExportAll="OpenStemPack" OnScore="OpenScore" />
+            <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" OnExport="OpenExport"
+                           OnScore="OpenScore" />
+            <LyricsSection Track="Track" />
         }
     </div>
+}
+
+@if (Exporting is not null)
+{
+    <ExportDialog Target="Exporting" OnClose="CloseExport" />
+}
+
+@if (Scoring is not null)
+{
+    <ScoreDialog Target="Scoring" OnClose="CloseScoreAsync" />
 }

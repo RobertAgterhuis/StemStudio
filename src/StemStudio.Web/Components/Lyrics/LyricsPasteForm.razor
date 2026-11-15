@@ -1,0 +1,49 @@
+@* "Enter lyrics yourself" (feature 006, US2-3, FR-009): one line per sung line, checked before submit; the page stores the
+   text and the alignment follows. *@
+
+<div class="ss-lyrics-paste" role="group" aria-labelledby="lyrics-paste-title">
+    <label id="lyrics-paste-title" class="ss-label" for="lyrics-paste-input">Your lyrics (one line per sung line)</label>
+    <textarea id="lyrics-paste-input" class="rz-textarea ss-wide" rows="8" maxlength="@ContractLimits.MaxLyricsChars" @ref="_input"
+              @bind="_text" @bind:event="oninput" aria-describedby="lyrics-paste-count" data-testid="lyrics-paste-input"></textarea>
+    <span id="lyrics-paste-count" class="ss-small ss-muted">@_text.Length / @ContractLimits.MaxLyricsChars characters</span>
+    @if (_error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="lyrics-paste-error">@_error</div>
+    }
+    <div class="ss-dialog-actions">
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" class="ss-lyrics-paste-cancel" />
+        <RadzenButton Text="Save and align" Icon="save" Click="SubmitAsync" IsBusy="_busy" BusyText="Saving..." Disabled="_busy"
+                      data-testid="lyrics-paste-submit" />
+    </div>
+</div>
+
+@code {
+    private ElementReference _input;
+    private string _text = string.Empty;
+    private string? _error;
+    private bool _busy;
+
+    /// <summary>Stores the text; returns the reason it was refused, or null.</summary>
+    [Parameter, EditorRequired]
+    public Func<string, Task<string?>> OnSubmit { get; set; } = default!;
+
+    /// <summary>Cancel pressed.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _input.FocusAsync();
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = await OnSubmit(_text);
+        _busy = false;
+    }
+}

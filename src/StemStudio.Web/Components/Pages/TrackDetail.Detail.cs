@@ -36,7 +36,7 @@ public sealed partial class TrackDetail
     {
         try
         {
-            Track = await call(_stop.Token);
+            Track = await call(Stopping);
             ActionError = null;
             StartPolling();
         }

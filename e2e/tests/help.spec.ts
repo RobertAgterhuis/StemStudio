@@ -1,5 +1,11 @@
-import type { HelpOpener } from '../pages/help-panel';
-import { blurActiveElement, wrongFirstResults } from '../support/help';
+import type { HelpOpener, HelpPanel } from '../pages/help-panel';
+import {
+  artworkReferenceQueries,
+  blurActiveElement,
+  expectHelpMarker,
+  exportReferenceQueries,
+  wrongFirstResults,
+} from '../support/help';
 import { levelState } from '../support/preferences';
 import { openScreen, screenTopics, type ScreenId } from '../support/screens';
 import { expect, test } from '../support/ux-test';
@@ -84,6 +90,52 @@ test.describe('in the mixer', () => {
     await expect(mixer.byId('transport-position')).not.toHaveText(/^\s*0?0:00(\.0+)?\b/, { timeout: 5_000 });
     await expect(help.panel).toBeVisible();
   });
+});
+
+// Help topics of features 005 and 007 (ui-test-ids 1.4.0/1.5.0; 007 FR-014, quickstart X10:
+// "every new area opens its help topic"). Not tagged @ux, so the 004 suite keeps its scope.
+async function expectTopicsReachable(help: HelpPanel, queries: Readonly<Record<string, string>>): Promise<void> {
+  await help.open('button');
+  expect(await wrongFirstResults(help, queries)).toEqual({});
+  for (const [query, topicId] of Object.entries(queries)) {
+    await help.openTopic(query, topicId);
+    await expect(help.byId('help-topic-body')).not.toBeEmpty();
+  }
+}
+
+test('the 005 reference queries return their topic first, and each topic opens', { tag: '@artwork' }, async ({ page, help, uxData }) => {
+  await openScreen(page, 'mixer', uxData);
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, artworkReferenceQueries);
+});
+
+test('the 007 reference queries return their topic first, and each topic opens', { tag: '@export' }, async ({ page, help, uxData }) => {
+  await openScreen(page, 'mixer', uxData);
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, exportReferenceQueries);
+});
+
+test('covers and the band info panel carry their help markers', { tag: '@artwork' }, async ({ page, artwork, bandInfo, importPage, mixer, uxData }) => {
+  await importPage.goto();
+  await expectHelpMarker(importPage.legalNotice, 'online-lookups');
+  await openScreen(page, 'track', uxData);
+  await expect(artwork.trackCover).toBeVisible();
+  await expectHelpMarker(artwork.trackCover, 'artwork');
+  await bandInfo.show();
+  await expectHelpMarker(bandInfo.panel, 'band-info');
+  await mixer.goto(uxData.detailTrack.id);
+  await expectHelpMarker(artwork.mixerCover, 'artwork');
+});
+
+test('the export dialog and the library carry their help markers', { tag: '@export' }, async ({ page, exportDialog, library, shell, uxData }) => {
+  await openScreen(page, 'mixer', uxData);
+  await exportDialog.openForMix();
+  await expect(exportDialog.dialog).toBeVisible();
+  await expectHelpMarker(exportDialog.dialog, 'export-dialog');
+  await expectHelpMarker(exportDialog.byId('export-format'), 'export-formats');
+  await expectHelpMarker(exportDialog.byId('export-range-start'), 'export-range');
+  await library.goto();
+  await expectHelpMarker(shell.root, 'library');
 });
 
 test.describe('at Beginner', () => {

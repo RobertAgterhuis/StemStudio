@@ -1,0 +1,57 @@
+/* Sheet music (feature 008): the dialog's fields and the score items of the library; tokens only. */
+
+.ss-score-dialog .ss-field {
+  display: grid;
+  gap: var(--ss-space-1);
+}
+
+.ss-score-dialog fieldset {
+  display: grid;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+}
+
+.ss-score-row > td {
+  padding-top: 0;
+}
+
+.ss-score-item {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(16rem, 2fr);
+  gap: var(--ss-space-4);
+  align-items: start;
+}
+
+.ss-score-facts {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-score-warnings {
+  margin: 0;
+  padding-left: var(--ss-space-5);
+  color: var(--ss-color-ink);
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-pdf-preview {
+  width: 100%;
+  min-height: 22rem;
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-raised);
+}
+
+@media (max-width: 767.98px) {
+  .ss-score-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ss-pdf {
+  display: grid;
+  gap: var(--ss-space-1);
+}

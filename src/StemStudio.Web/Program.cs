@@ -6,6 +6,7 @@ using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
@@ -25,6 +26,7 @@ builder.Services.AddScoped<TourService>();
 builder.Services.AddScoped<HelpContext>();
 builder.Services.AddScoped<PageCommands>();
 builder.Services.AddScoped<ShellOverlays>();
+builder.Services.AddScoped<KaraokePreferences>();
 builder.Services.AddScoped<ITourLauncher>(services => services.GetRequiredService<TourService>());
 
 // Help content is validated once at start-up (contracts/help-content.md 1): invalid content fails fast.

@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { setBlazorInputFiles } from '../support/input-file';
 
 /** Import screen `/` (ui-test-ids.md, "Import"). */
 export class ImportPage {
@@ -41,22 +42,10 @@ export class ImportPage {
 
   /**
    * Selects a local file; the import starts on selection (there is no separate submit id).
-   * Blazor's `InputFile` attaches its `change` listener in a JS `init` call after the first
-   * render; a selection made before that is lost, so wait for the marker `init` sets.
+   * Waits until Blazor's `InputFile` is wired first ({@link setBlazorInputFiles}).
    */
   async uploadFile(filePath: string): Promise<void> {
-    const input = this.page.getByTestId('import-file-input');
-    await input.evaluate(
-      (el) =>
-        new Promise<void>((resolve) => {
-          const ready = (): void => {
-            if ('_blazorInputFileNextFileId' in el) resolve();
-            else requestAnimationFrame(ready);
-          };
-          ready();
-        }),
-    );
-    await input.setInputFiles(filePath);
+    await setBlazorInputFiles(this.page.getByTestId('import-file-input'), filePath);
   }
 
   /** Enters a YouTube/Spotify URL and submits it. */

@@ -1,0 +1,25 @@
+@* Own picture of a track (feature 005, US3, FR-013): choose a JPEG/PNG/WebP picture (upload starts on selection) or go
+   back to the automatic one. Advanced and Expert only (feature artwork.own-picture). *@
+
+<LevelGate Feature="artwork.own-picture">
+    <div class="ss-artwork-actions" data-help-id="artwork-actions">
+        <label class="ss-link-button ss-artwork-choose rz-button rz-button-sm rz-variant-outlined rz-base rz-shade-default" for="artwork-upload">
+            <span class="rzi" aria-hidden="true">image</span> Choose picture
+        </label>
+        <InputFile id="artwork-upload" class="ss-sr-only" OnChange="UploadAsync" accept="@ArtworkRules.Accept" disabled="@Busy"
+                   aria-label="Choose your own picture" data-testid="artwork-upload-input" />
+        @if (Track.Artwork?.Source == ArtworkSourceDto.User)
+        {
+            <RadzenButton Text="Use automatic picture" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="Busy"
+                          Click="ResetAsync" data-testid="artwork-reset" />
+        }
+        @if (Busy)
+        {
+            <span class="ss-muted" role="status" data-testid="artwork-progress">Uploading picture...</span>
+        }
+        @if (Error is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="artwork-error">@Error</div>
+        }
+    </div>
+</LevelGate>

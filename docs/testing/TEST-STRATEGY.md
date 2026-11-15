@@ -630,7 +630,8 @@ Identifiers other than those observed in research.md F-01..F-05 are synthetic.
 | US2 no wrong match (FR-004, SC-004) | `test_matcher.py` over `matching-cases.json` | `band-info.spec.ts` not-found |
 | US2 status, retry, correction (FR-009) | `MetadataSyncTests.cs`, `BandInfoEndpointTests.cs`, `CorrectMetadataDialogTests` | `band-info.spec.ts` correction, not-found retry, failed |
 | US2 lookups off (FR-011) | `test_lookup.py` (no request), `MetadataSyncTests.cs` | `band-info.spec.ts` off |
-| US2 levels (FR-015) | `BandInfoPanelTests` per level | `band-info.spec.ts` Beginner subset; `artwork.spec.ts` Beginner |
+| US2 levels (FR-015) | `BandInfoPanelTests` per level | `band-info.spec.ts` Beginner subset (`beginnerHiddenBandInfoIds`); `artwork.spec.ts` Beginner; `feature-levels.spec.ts` track page |
+| FR-014 legal notice sentence; help topics `artwork`, `band-info`, `online-lookups` | help coverage tests | `import.spec.ts` notice sentence (`@artwork`); `help.spec.ts` 005 reference queries and markers |
 | FR-010 User-Agent / no personal data (SC-005) | `test_user_agent.py`, `test_lookup.py` (recorded requests) | - |
 | FR-012 old tracks looked up on first open | `MetadataSyncTests.cs` | - |
 | US3 own picture, reset, refused files (FR-013) | `test_artwork_upload.py`, `UserArtworkEndpointTests.cs`, artwork action bUnit tests | `artwork.spec.ts` own picture |
@@ -662,8 +663,8 @@ ids 1.5.0, render vectors 1.0.0). Design: ADR-016.
   resampling), so both sides of a comparison go through one decoder. The expected mix applies
   the matrices with splitter/gain/merger nodes, independent of the browser panner. The oracle is
   self-tested without a stack (`e2e/tests/audio-check.spec.ts`, both browsers, 12 tests, green).
-- Assumption of the E2E specs (to confirm after the 004 merge): mixer fader % maps linearly to
-  the export `volume` (default 80 % = 0.8), as in the 001 mixer tests.
+- Assumption of the E2E specs (to confirm in the integration run): mixer fader % maps linearly
+  to the export `volume` (default 80 % = 0.8), as in the 001 mixer tests.
 
 ### 12.2 (007) acceptance scenario -> tests
 
@@ -674,7 +675,7 @@ ids 1.5.0, render vectors 1.0.0). Design: ADR-016.
 | US1-3 no export for unsplit parents | bUnit export actions | `export.spec.ts` (no `export-detail-bass-*`, `-guitar-*`) |
 | US2-1 what I hear uses unsaved state, no metronome (FR-002, FR-003) | engine/backend/worker vector consumers | `export.spec.ts` what I hear (+/- 0.1 dB per channel) |
 | US2-2 expanded group, muted detail | vectors `expanded-muted-detail` (three consumers) | - |
-| US2-3 selected channels ignore mute/solo | vectors `explicit-selection` | `ExportDialog.save({ selectedChannels })` ready for a spec after the 004 merge |
+| US2-3 selected channels ignore mute/solo | vectors `explicit-selection` | `export.spec.ts` "Selected channels" (drums muted at 60 %, vocals soloed; drums + bass at fader and pan, master 70 %, +/- 0.1 dB) |
 | US2-4 clip protection -0.1 dBFS + note (FR-005, SC-005) | worker render tests | `export.spec.ts` clipping mix |
 | SC-003 browser panner = vectors | engine, backend, worker | `panner-law.spec.ts` |
 | US3-1 list, total size, newest first (FR-007) | `AssetEndpointTests`, bUnit library | `library.spec.ts` |
@@ -683,14 +684,38 @@ ids 1.5.0, render vectors 1.0.0). Design: ADR-016.
 | US3-4 live status, retry | `AssetSyncTests`, bUnit library | `LibraryPage.waitForStatus` (no reload) in every export case |
 | US3-5 orphaned items stay and play (FR-009) | `AssetEndpointTests` | `library.spec.ts` deleted track |
 | US4-1 loop region length (FR-006) | worker range tests, backend validation | `export.spec.ts` loop region 2.500 s +/- 1 ms |
-| US4-2 range too short / outside | backend validation, bUnit dialog | - |
+| US4-2 range too short / outside | backend validation, bUnit dialog | `export.spec.ts` range validation (0.2 s, end before start, past the end: `export-error`, no item created) |
 | US5-1 stem pack (FR-013) | `StemPackEndpointTests` | `export.spec.ts` stem pack (six items ready) |
 | FR-010 recipe/provenance | backend recipe tests | `provenance.contents` asserted in export specs |
 | FR-011 not blocked by separations (SC-001, SC-002) | lane scheduler tests | CTO 007:T071 (timing on the reference machine) |
-| FR-014 help and levels (SC-006) | help coverage tests, bUnit levels | pending: level specs after the 004 merge |
+| FR-014 help and levels (SC-006) | help coverage tests, bUnit levels | `feature-levels.spec.ts` (Beginner/Advanced dialog, track page, library); `help.spec.ts` 007 reference queries and markers; `export.spec.ts` `export-clipping` marker |
 | FR-015 low disk space refused | backend disk check | - |
 
-### 12.3 Commands
+### 12.3 (005/007) suite structure after the 004 merge
+
+- **One `test` object**: the 005/007 fixtures (`metadataApi`, `assetsApi`, `artwork`,
+  `bandInfo`, `exportDialog`, `library`, `scratch`) live in `support/test.ts` next to the
+  001-003 ones (`support/feature-test.ts` is gone); fixtures are lazy, so older specs pay nothing.
+  `ux-test.ts` extends it, so 004-style specs (help, levels) can use them too. `AppShell.navigate`
+  covers `nav-library`; `ImportPage.uploadFile` uses `support/input-file.ts`.
+- **Levels**: the 1.4.0/1.5.0 Beginner exceptions are id lists in `support/levels.ts` (next to
+  R7-R9 of 1.3.0) and asserted by `tests/feature-levels.spec.ts` with `levelState(...)` storage
+  states (Beginner: format only, FLAC preselected; Advanced adds bit depth, range, selected
+  channels, stem pack, own picture and library filters; MP3 swaps bit depth for bit rate).
+- **Help**: the new topics have their own reference queries (`artworkReferenceQueries`,
+  `exportReferenceQueries` in `support/help.ts`; the 20 of V-H3 stay as SC-009 specifies) and
+  their `data-help-id` markers are checked with `expectHelpMarker` (a validation, never a
+  selector for an action).
+- **Visual / a11y matrices**: `support/screens.ts` adds `band-info` (panel open, lookup settled),
+  `export-dialog` (mixer, mode `mix`) and `library` (one seeded item "UX bass", created by
+  `support/ux-library.ts` before navigating); `library` also joins the 360 px visual set and the
+  320 px reflow check. Covers/thumbnails change the existing 004 screens: every baseline is
+  regenerated by the CTO in the integration run (fresh stack, container). `asset-play-*`
+  (native player) is masked.
+- **Tags**: every new case carries `@artwork`, `@band-info`, `@export` or `@library` and none
+  carries `@ux`, so `test:legacy` (66 tests) and `test:ux` (74 tests) list exactly as before.
+
+### 12.4 Commands
 
 ```bash
 # (005/007) fixtures (adds the artwork generator; the metadata JSON is hand-maintained)

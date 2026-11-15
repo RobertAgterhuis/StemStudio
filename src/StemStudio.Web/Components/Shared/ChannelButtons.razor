@@ -1,0 +1,31 @@
+@* Per-channel action row of the track page (feature 007 "Save to library", feature 008 "Sheet music"): one native button
+   per stem or detail stem, in a separate row so the stem tabs keep their text. *@
+
+@if (Channels.Count > 0)
+{
+    <div class="ss-export-row" data-help-id="@Action.HelpId">
+        <span class="ss-small ss-muted">@Action.Caption</span>
+        @foreach (var channel in Channels)
+        {
+            var label = channel[(channel.LastIndexOf('.') + 1)..];
+            <button type="button" class="ss-text-button ss-export-button" aria-label="@Action.AriaLabel(label)"
+                    data-testid="@Action.TestId(channel)" @onclick="() => OnSelect.InvokeAsync(channel)">
+                <span class="rzi" aria-hidden="true">@Action.Icon</span>@label
+            </button>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>The action of the row.</summary>
+    [Parameter, EditorRequired]
+    public ChannelAction Action { get; set; } = default!;
+
+    /// <summary>Channel ids in display order (<c>bass</c>, <c>drums.snare</c>).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Channels { get; set; } = [];
+
+    /// <summary>Raised with the channel id.</summary>
+    [Parameter]
+    public EventCallback<string> OnSelect { get; set; }
+}

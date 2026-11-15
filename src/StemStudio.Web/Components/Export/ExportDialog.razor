@@ -1,0 +1,58 @@
+@* "Save to library" dialog (feature 007, US1-US5; ui-test-ids 1.5.0): a raw stem, the mixer (what I hear or selected
+   channels) or a stem pack. After submit it confirms with a link to the item; the render runs in the background. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-title" data-testid="export-dialog"
+         data-mode="@Target.ModeName" data-help-id="export-dialog" @onkeydown="OnKeyAsync">
+        <div class="ss-label-row">
+            <h2 id="export-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Save to library</h2>
+            <HelpHint HelpId="export-dialog" />
+        </div>
+        <p class="ss-help">@Subject</p>
+
+        @if (Saved is { } saved)
+        {
+            <div class="ss-export-saved" role="status" data-testid="export-saved">
+                <p>@saved.Text</p>
+                <a href="@($"library?asset={saved.FirstId}")" data-testid="export-saved-open">Open in library</a>
+            </div>
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Close" Click="OnClose" data-testid="export-close" />
+            </div>
+        }
+        else
+        {
+            @if (Target.Kind == ExportKind.Mix)
+            {
+                <SourcePicker Form="_form" OnChanged="StateHasChanged" />
+            }
+            <FormatPicker Form="_form" />
+            @if (Target.Kind == ExportKind.StemPack)
+            {
+                @if (Target.HasDetail)
+                {
+                    <label class="ss-check"><input type="checkbox" checked="@_form.IncludeDetail" @onchange="OnIncludeDetail"
+                                                   data-testid="export-include-detail" /> Also save the detail stems</label>
+                }
+            }
+            else
+            {
+                <RangePicker Form="_form" />
+                <div class="ss-field">
+                    <label class="ss-label" for="export-name">Name (optional)</label>
+                    <input id="export-name" class="rz-textbox ss-wide" maxlength="200" placeholder="Default name" @bind="_form.Name" @bind:event="oninput"
+                           data-testid="export-name" />
+                </div>
+            }
+            @if (Error is not null)
+            {
+                <div class="ss-error" role="alert" data-testid="export-error">@Error</div>
+            }
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="export-cancel" />
+                <RadzenButton Text="Save to library" Icon="library_add" Disabled="@(Busy || !_form.CanSubmit)" Click="SubmitAsync" data-testid="export-submit" />
+            </div>
+        }
+    </div>
+</div>

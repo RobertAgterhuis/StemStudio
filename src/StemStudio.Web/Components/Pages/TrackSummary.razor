@@ -22,6 +22,12 @@
             <li data-testid="@($"track-stem-{stem.Name}")"><StemTab Stem="@stem.Name" /></li>
         }
     </ul>
+    <ChannelButtons Action="ChannelAction.Export" Channels="StemIds" OnSelect="OnExport" />
+    <ChannelButtons Action="ChannelAction.Score" Channels="StemIds" OnSelect="OnScore" />
+    <LevelGate Feature="export.stem-pack">
+        <RadzenButton Text="Save all stems" Icon="library_add" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnExportAll"
+                      data-testid="export-all-stems" data-help-id="export-actions" />
+    </LevelGate>
 
     <a class="rz-button rz-button-md rz-variant-filled rz-primary rz-shade-default ss-link-button"
        href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer" data-help-id="open-mixer">Open mixer</a>
@@ -31,4 +37,18 @@
     /// <summary>The completed track.</summary>
     [Parameter, EditorRequired]
     public TrackDto Track { get; set; } = default!;
+
+    /// <summary>Raised with a stem name to save it raw to the library (feature 007).</summary>
+    [Parameter]
+    public EventCallback<string> OnExport { get; set; }
+
+    /// <summary>Raised with a stem name to make sheet music of it (feature 008).</summary>
+    [Parameter]
+    public EventCallback<string> OnScore { get; set; }
+
+    /// <summary>Raised to save every stem as its own item (feature 007, US5).</summary>
+    [Parameter]
+    public EventCallback OnExportAll { get; set; }
+
+    private IReadOnlyList<string> StemIds => Track.Stems.Select(s => s.Name).ToList();
 }

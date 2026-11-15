@@ -9,12 +9,29 @@
             <li data-testid="@($"detail-stem-{Outcome.Parent}-{stem.Name}")"><StemTab Stem="@($"{Outcome.Parent}.{stem.Name}")" Pattern="i" /></li>
         }
     </ul>
+    <ChannelButtons Action="ChannelAction.Export" Channels="ChannelIds" OnSelect="OnExport" />
+    <LevelGate Feature="score.detail-stems">
+        <ChannelButtons Action="ChannelAction.Score" Channels="PitchedIds" OnSelect="OnScore" />
+    </LevelGate>
 }
 
 @code {
     /// <summary>The parent outcome whose stems are listed.</summary>
     [Parameter, EditorRequired]
     public ParentOutcomeDto Outcome { get; set; } = default!;
+
+    /// <summary>Raised with a detail channel id (<c>drums.snare</c>) to save it raw to the library (feature 007).</summary>
+    [Parameter]
+    public EventCallback<string> OnExport { get; set; }
+
+    /// <summary>Raised with a pitched detail channel id (<c>vocals.lead</c>) to make sheet music of it (feature 008).</summary>
+    [Parameter]
+    public EventCallback<string> OnScore { get; set; }
+
+    // Drum pieces are notated together by the drums profile, never one by one (ui-test-ids 1.7.0).
+    private IReadOnlyList<string> PitchedIds => Outcome.Parent == StemNames.Drums ? [] : ChannelIds;
+
+    private IReadOnlyList<string> ChannelIds => Stems.Select(s => $"{Outcome.Parent}.{s.Name}").ToList();
 
     private IReadOnlyList<DetailStemDto> Stems => DetailPhaseText.OrderedStems(Outcome);
 }
