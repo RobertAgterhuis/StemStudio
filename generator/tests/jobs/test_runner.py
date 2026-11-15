@@ -153,14 +153,15 @@ def test_an_oom_on_the_low_memory_profile_is_not_retried(tmp_path: Path) -> None
     assert len(gate.requested) == 1
 
 
-def test_an_oom_without_a_low_memory_profile_is_not_retried(tmp_path: Path) -> None:
+def test_an_oom_without_a_low_memory_profile_retries_the_same_need_once(tmp_path: Path) -> None:
     handler = FakeHandler(steps=[raising(GpuOutOfMemoryError())], job_needs=(SVC_FP16,))
 
     job, _, gate = _run(tmp_path, handler)
 
     assert job.error is not None
     assert job.error.code == "outOfMemory"
-    assert gate.requested == [("SVC_FP16",)]
+    assert gate.requested == [("SVC_FP16",), ("SVC_FP16",)]
+    assert handler.engine.unloads == 2
 
 
 def test_gpu_busy_from_the_gate_fails_the_job(tmp_path: Path) -> None:
@@ -281,3 +282,25 @@ def test_a_non_oom_failure_of_the_retry_keeps_its_code(tmp_path: Path) -> None:
 
     assert job.error is not None
     assert job.error.code == "invalidInput"
+
+
+def test_prepare_runs_before_the_gate_and_cleanup_always(tmp_path: Path) -> None:
+    handler = FakeHandler(steps=[raising(InvalidInputError("bad"))])
+
+    _, _, gate = _run(tmp_path, handler)
+
+    assert handler.events == ["prepare", "cleanup"]
+    assert gate.events == ["acquire", "release"]
+
+
+def test_a_failing_prepare_never_requests_the_gpu(tmp_path: Path) -> None:
+    class BadInputs(FakeHandler):
+        def prepare(self, job: Generation) -> None:
+            raise InvalidInputError("An uploaded file could not be read as WAV or FLAC audio.")
+
+    handler = BadInputs()
+    job, _, gate = _run(tmp_path, handler)
+
+    assert job.error is not None
+    assert job.error.code == "invalidInput"
+    assert gate.requested == []

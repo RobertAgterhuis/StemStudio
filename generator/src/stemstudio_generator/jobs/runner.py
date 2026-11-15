@@ -4,8 +4,9 @@ Per job (data-model 2.4): ``waitingForGpu`` until the gate admits a ``GpuNeed``;
 ``downloadingModel`` while missing weights are fetched (else "Loading model"); ``running``
 while the kind's handler works; then ``completed``, ``failed`` or ``cancelled``. A GPU
 out-of-memory error unloads the engine and retries the step **once** with the low-memory
-needs (stage "Retrying with low memory"); a second OOM, or an OOM without a low-memory
-profile, fails with the readable ``outOfMemory`` text (ADR-018 D4). Expected failures
+needs (stage "Retrying with low memory"; the same needs when the kind has no low-memory
+profile, SoulX-SVC); a second OOM, or an OOM on a low-memory profile, fails with the readable
+``outOfMemory`` text (ADR-018 D4). Expected failures
 (``GeneratorError``) keep their code and message; anything else is logged and reported as a
 generic ``engineError`` (no internals in the message).
 """
@@ -93,6 +94,14 @@ class JobHandler(Protocol):
         """GPU needs of the job in order of preference."""
         ...
 
+    def prepare(self, job: Generation) -> None:
+        """CPU work before the GPU is requested (decode and check the inputs)."""
+        ...
+
+    def cleanup(self, job: Generation) -> None:
+        """Delete the job's inputs and scratch files (called whatever the outcome)."""
+        ...
+
     def execute(self, job: Generation, use: DeviceUse, on_progress: ProgressCallback) -> JobOutcome:
         """Run the step on the admitted device and return the takes."""
         ...
@@ -121,8 +130,7 @@ class JobRunner:
     def run(self, reporter: JobReporter) -> Generation:
         """Process the reporter's job to a terminal state and return it."""
         try:
-            run = _Run(self._handler(reporter.job), reporter)
-            reporter.complete(self._attempts(run))
+            self._process(self._handler(reporter.job), reporter)
         except Cancelled:
             reporter.cancelled()
         except GeneratorError as error:
@@ -137,6 +145,13 @@ class JobRunner:
         engines = {id(handler.engine): handler.engine for handler in self.handlers.values()}
         for engine in engines.values():
             engine.unload()
+
+    def _process(self, handler: JobHandler, reporter: JobReporter) -> None:
+        try:
+            handler.prepare(reporter.job)
+            reporter.complete(self._attempts(_Run(handler, reporter)))
+        finally:
+            handler.cleanup(reporter.job)
 
     def _handler(self, job: Generation) -> JobHandler:
         handler = self.handlers.get(job.kind)
@@ -182,10 +197,15 @@ class JobRunner:
 
 
 def _retry_needs(needs: Sequence[GpuNeed], failed: DeviceUse) -> tuple[GpuNeed, ...]:
-    """Low-memory needs for the one retry; none when the failed attempt was low-memory already."""
+    """Needs of the one OOM retry (empty: no retry).
+
+    The low-memory needs, or the same needs again when there is no low-memory profile
+    (SoulX-SVC; the engine was unloaded and the CUDA cache emptied); none when the failed
+    attempt ran on a low-memory profile already.
+    """
     if failed.need.profile == "lowMemory":
         return ()
-    return tuple(need for need in needs if need.profile == "lowMemory")
+    return tuple(need for need in needs if need.profile == "lowMemory") or tuple(needs)
 
 
 def _load(engine: ModelHost, use: DeviceUse, reporter: JobReporter) -> None:

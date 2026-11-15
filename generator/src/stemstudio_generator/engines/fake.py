@@ -117,6 +117,8 @@ class TakePlan:
         out_dir: Directory of the take files.
         voice: Add the fake 'voice' (songs with vocals).
         profile: Song profile the takes report.
+        keep: In-place restyle (009 US5): the 48 kHz source and the repainted frame window;
+            samples outside the window stay identical.
     """
 
     seeds: Sequence[int]
@@ -124,11 +126,15 @@ class TakePlan:
     out_dir: Path
     voice: bool = False
     profile: SongProfile | None = None
+    keep: tuple[Signal, tuple[int, int]] | None = None
 
     def write(self, index: int, seed: int) -> EngineTake:
         """Write take ``index`` as ``take-<index>.flac`` (48 kHz stereo 24-bit)."""
         path = self.out_dir / f"take-{index}.flac"
         signal = fake_take_signal(seed, self.frames, voice=self.voice)
+        if self.keep is not None:
+            source, (start, end) = self.keep
+            signal = np.concatenate([source[:start], signal[start:end], source[end:]])
         sf.write(path, signal, TAKE_SAMPLE_RATE, subtype="PCM_24")
         return EngineTake(index, seed, path, self.frames / TAKE_SAMPLE_RATE, self.profile)
 
@@ -196,10 +202,16 @@ class FakeMusicEngine:
         self._steps.load(use, on_progress)
 
     def restyle(self, request: EngineRestyle, on_progress: ProgressCallback) -> list[EngineTake]:
-        """One take per seed with the length of the summed source."""
+        """One take per seed with the length of the source; ``inPlace`` keeps the outside."""
         self._attempt()
-        frames = round(sf.info(request.source).duration * TAKE_SAMPLE_RATE)
-        return self._takes(TakePlan(request.params.seeds, frames, request.out_dir), on_progress)
+        params = request.params
+        if params.mode == "range":
+            frames = round(sf.info(request.source).duration * TAKE_SAMPLE_RATE)
+            return self._takes(TakePlan(params.seeds, frames, request.out_dir), on_progress)
+        source = _stereo_48k(request.source)
+        window = (_frame(params.range_start_seconds), _frame(params.range_end_seconds))
+        plan = TakePlan(params.seeds, len(source), request.out_dir, keep=(source, window))
+        return self._takes(plan, on_progress)
 
     def song(self, request: EngineSong, on_progress: ProgressCallback) -> list[EngineTake]:
         """One take per seed of ``durationSeconds``; planned only when the LM was loaded."""
@@ -276,6 +288,20 @@ class FakeVoiceConverter:
     def unload(self) -> None:
         """Forget the loaded model."""
         self._steps.use = None
+
+
+def _frame(seconds: float) -> int:
+    return round(seconds * TAKE_SAMPLE_RATE)
+
+
+def _stereo_48k(path: Path) -> Signal:
+    """The source as 48 kHz stereo float32 (linear resample for the fake)."""
+    data, rate = sf.read(path, dtype="float32", always_2d=True)
+    channels = [
+        _resample_linear(data[:, index % data.shape[1]], int(rate), TAKE_SAMPLE_RATE)
+        for index in range(2)
+    ]
+    return np.column_stack(channels).astype(np.float32)
 
 
 def _resample_linear(mono: Signal, rate: int, target_rate: int) -> Signal:

@@ -39,6 +39,7 @@ from stemstudio_generator.schemas import (
     RestyleParams,
     SongParams,
     SongProfile,
+    VocalLabel,
     VoiceConversionParams,
 )
 
@@ -404,6 +405,165 @@ class PitchTracker(Protocol):
 
     def f0(self, audio: Path) -> npt.NDArray[np.float32]:
         """F0 per 10 ms frame in Hz; 0 marks an unvoiced frame."""
+        ...
+
+
+# ------------------------------------------------------------------ audio (009 US1)
+# Moved here from ``audio/flac.py`` (generative agent A as architect delegate, 009 US1) so that
+# ``jobs`` and ``api`` reach the audio helpers through ports injected by ``main.py``.
+
+
+@dataclass(frozen=True, slots=True)
+class TakeLabels:
+    """What the Vorbis comments of one take say.
+
+    Attributes:
+        generator: Model and revision, e.g. ``ACE-Step 1.5 (19671f4...)``.
+        generation_id: The job id.
+        take_index: Take number from 1.
+        voice: AI voice label (``synthetic``/``converted``; ``none``/None writes no label).
+        voice_profile: Voice-profile display name (voice conversions only).
+    """
+
+    generator: str
+    generation_id: str
+    take_index: int
+    voice: VocalLabel | None = None
+    voice_profile: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class WrittenFile:
+    """A labelled take file with the facts of ``GeneratedTake``.
+
+    Attributes:
+        path: The FLAC file.
+        sha256: SHA-256 of the file bytes.
+        bytes: File size.
+        duration_seconds: Length.
+        peak_dbfs: Sample peak in dBFS.
+    """
+
+    path: Path
+    sha256: str
+    bytes: int
+    duration_seconds: float
+    peak_dbfs: float
+
+
+@dataclass(frozen=True, slots=True)
+class MixedSource:
+    """The engine input of a restyle: the summed (and cut) stems as a WAV file.
+
+    Attributes:
+        path: The WAV file.
+        duration_seconds: Its length.
+        clipped: The sum exceeded full scale and was limited.
+    """
+
+    path: Path
+    duration_seconds: float
+    clipped: bool
+
+
+@runtime_checkable
+class TakeWriter(Protocol):
+    """Writes the labelled FLAC take (``audio.flac.FlacWriter``)."""
+
+    def write(self, source: Path, dest: Path, labels: TakeLabels) -> WrittenFile:
+        """Encode ``source`` to the labelled FLAC ``dest`` (``dest != source``)."""
+        ...
+
+
+@runtime_checkable
+class StemMixer(Protocol):
+    """Reads, checks and sums the uploaded stems (``audio.pipeline.AudioStemMixer``)."""
+
+    def measure(self, stems: Sequence[Path]) -> float:
+        """Length in seconds of the summed stems.
+
+        Raises:
+            InvalidInputError: Unreadable stems, mismatched rates or lengths, bad count.
+        """
+        ...
+
+    def mix(
+        self, stems: Sequence[Path], dest: Path, cut: tuple[float, float] | None
+    ) -> MixedSource:
+        """Sum the stems (cut to ``cut`` seconds when given) and write ``dest`` as WAV."""
+        ...
+
+
+SVC_SAMPLE_RATE: Final = 24_000
+"""Rate of the converted vocal returned by ``VoiceConverter.convert`` (mono)."""
+
+
+@dataclass(frozen=True, slots=True)
+class RemixedFiles:
+    """The two WAV files of a voice-conversion take, before labelling (010 US3).
+
+    Attributes:
+        mix: The converted vocal mixed into the accompaniment (48 kHz stereo).
+        vocal: The converted vocal alone (48 kHz stereo), for ``GET .../takes/1/vocal``.
+    """
+
+    mix: Path
+    vocal: Path
+
+
+@dataclass(frozen=True, slots=True)
+class RemixRequest:
+    """How to remix a converted vocal.
+
+    Attributes:
+        accompaniment: 0-5 accompaniment stems (WAV/FLAC).
+        gain_db: Gain of the converted vocal in the mix (``vocalGainDb``).
+        work_dir: Where the WAV files are written.
+    """
+
+    accompaniment: Sequence[Path]
+    gain_db: float
+    work_dir: Path
+
+
+@runtime_checkable
+class VoiceRemixer(Protocol):
+    """Mixes a converted vocal back into its accompaniment (``audio.pipeline``)."""
+
+    def remix(self, vocal: Signal, request: RemixRequest) -> RemixedFiles:
+        """Write the mix and the vocal stem as WAV files into ``request.work_dir``.
+
+        Raises:
+            InvalidInputError: Unreadable or mismatched accompaniment, more than 5 stems.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class SampleFacts:
+    """What a voice-sample check measured (1.1.0).
+
+    Attributes:
+        duration_seconds: Length of the normalised sample.
+        voiced_ratio: Share of voiced 10 ms frames.
+        pcm_sha256: SHA-256 of the int16 LE 48 kHz mono PCM.
+    """
+
+    duration_seconds: float
+    voiced_ratio: float
+    pcm_sha256: str
+
+
+@runtime_checkable
+class VoiceSampleAnalyzer(Protocol):
+    """Decodes, normalises and measures an own-voice sample (``audio.samples``)."""
+
+    def analyze(self, upload: Path, dest: Path) -> SampleFacts:
+        """Write the normalised 48 kHz mono FLAC to ``dest`` and measure it.
+
+        Raises:
+            InvalidInputError: The upload cannot be decoded as audio.
+        """
         ...
 
 

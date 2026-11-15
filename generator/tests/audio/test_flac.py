@@ -16,12 +16,11 @@ from stemstudio_generator.audio.commands import CommandResult, SubprocessRunner
 from stemstudio_generator.audio.flac import (
     AI_COMMENT,
     FlacWriter,
-    TakeLabels,
     ffmpeg_flac_args,
     file_sha256,
     vorbis_comments,
 )
-from stemstudio_generator.ports import GeneratorError
+from stemstudio_generator.ports import GeneratorError, TakeLabels
 
 from ..signals import stereo, tone, write
 
