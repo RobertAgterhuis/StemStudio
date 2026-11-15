@@ -69,7 +69,7 @@ def test_default_adapters_come_from_the_factories(
 
     with TestClient(main.create_app(settings)) as client:
         job_id = client.post("/v1/jobs", files={"file": ("a.wav", b"RIFF", "audio/wav")}).json()
-        client.app.state.runtime.queue.join()  # type: ignore[attr-defined]
+        client.app.state.runtime.scheduler.join()  # type: ignore[attr-defined]
         result = client.get(f"/v1/jobs/{job_id['jobId']}/result").json()
 
     assert seen == [settings, settings]
@@ -81,6 +81,6 @@ def test_shutdown_stops_the_worker_thread(tmp_path: Path) -> None:
 
     with TestClient(app):
         runtime = app.state.runtime
-        assert runtime.queue.running
+        assert runtime.scheduler.running
 
-    assert not runtime.queue.running
+    assert not runtime.scheduler.running

@@ -33,7 +33,7 @@ class Recorder:
         if unit in self.entered:
             self.entered[unit].set()
             assert self.blocking[unit].wait(WAIT)
-        if unit.split(":")[0] in self.crash:
+        if unit.split(":", maxsplit=1)[0] in self.crash:
             raise RuntimeError("boom")
 
     def standard(self, job_id: str) -> None:

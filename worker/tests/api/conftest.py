@@ -26,7 +26,7 @@ class Api:
 
     def wait(self) -> None:
         """Block until every queued job is processed."""
-        self.client.app.state.runtime.queue.join()  # type: ignore[attr-defined]
+        self.client.app.state.runtime.scheduler.join()  # type: ignore[attr-defined]
 
     def post_url(self, url: str = YOUTUBE, source_type: str = "youtube") -> Response:
         return self.client.post("/v1/jobs", json={"sourceType": source_type, "url": url})
