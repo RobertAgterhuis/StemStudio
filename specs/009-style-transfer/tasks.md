@@ -64,8 +64,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T007 [P] [quality-gate] Failing tests in `tools/quality/tests/`: generator layer rule (`engines`, `devices`, `audio` import only `ports`, `schemas`, `config`; `api -> jobs -> ports`; only `main.py` composes), generator included in `sig_check` and coverage collection; .NET rule `Api.Generation` must not reference `StemStudio.Web`
-- [ ] T008 [quality-gate] Implement the rules in `tools/quality/`; update `docs/quality/SIG-REPORT.md`
+- [x] T007 [P] [quality-gate] Failing tests in `tools/quality/tests/`: generator layer rule (`engines`, `devices`, `audio` import only `ports`, `schemas`, `config`; `api -> jobs -> ports`; only `main.py` composes), generator included in `sig_check` and coverage collection; .NET rule `Api.Generation` must not reference `StemStudio.Web`
+- [x] T008 [quality-gate] Implement the rules in `tools/quality/`; update `docs/quality/SIG-REPORT.md`
 - [ ] T009 [P] [devops] `docker/generator.Dockerfile` (python:3.12-slim, ffmpeg + libsndfile, `uv sync --frozen`; build arg `GENERATOR_VARIANT=fake|acestep`: `fake` installs without the `acestep` extra (no torch, OSI-only), `acestep` with it; non-root user; healthcheck `/health`; no host port); `docker-compose.generative.yml` (service `generator` image `stemstudio/generator:local`, `GENERATOR_VARIANT=acestep`, GPU reservation, volumes `generator-data`, `model-cache:/models`, `gpu-lease:/gpu-lease`, env per data-model 1; api env `StemStudio__GeneratorBaseUrl=http://generator:8010`); `docker-compose.generative-fake.yml` (variant `fake`, `STEMSTUDIO_GENERATOR=fake`, no GPU reservation); `docker-compose.gpu.yml`: worker mounts `gpu-lease` and sets `STEMSTUDIO_GPU_LEASE_FILE` (FR-010, FR-011)
 - [ ] T010 [devops] CI: generator job (ruff, mypy, pytest + coverage gate, contract lint), fake-variant image build + the 003 CPU-image guard applied to it (no NVIDIA wheels); `scripts/generative-smoke.{ps1,sh}` (real GPU stack: torch `2.10.0+cu128`, `sm_<cc>` in arch list, `/health ready`, one 10 s fake-free restyle; quickstart Q3); `scripts/test-all.*` include the generator
 - [ ] T011 [P] [qa] `docs/testing/TEST-STRATEGY.md`: generator fakes and modes, `@generative` Playwright tag, reference-machine validation, traceability US1..US6 -> test files
@@ -89,8 +89,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 ### stem-separation (tests first)
 
-- [ ] T022 [P] [stem-separation] Failing tests `worker/tests/devices/test_file_lease.py`: with `gpu_lease_file` set, the GPU runner takes the `flock` lease after its thread lease for every GPU step; a held lock makes it wait; after `gpu_lease_wait_seconds` the step runs on the CPU with the reason "GPU busy with another StemStudio job"; without the setting the 003 behaviour is unchanged; CPU runner never touches the file (FR-011)
-- [ ] T023 [stem-separation] Implement in `worker/src/stemstudio_worker/devices/{lease,runner}.py` to pass T022
+- [x] T022 [P] [stem-separation] Failing tests `worker/tests/devices/test_file_lease.py`: with `gpu_lease_file` set, the GPU runner takes the `flock` lease after its thread lease for every GPU step; a held lock makes it wait; after `gpu_lease_wait_seconds` the step runs on the CPU with the reason "GPU busy with another StemStudio job"; without the setting the 003 behaviour is unchanged; CPU runner never touches the file (FR-011)
+- [x] T023 [stem-separation] Implement in `worker/src/stemstudio_worker/devices/{lease,runner}.py` to pass T022
 
 ### backend (tests first)
 
@@ -197,7 +197,7 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 ## Phase 9: Polish (inside the wave, per owner)
 
 - [ ] T074 [P] [generative] Refactor to SIG limits, docstrings, HO:polish with coverage of `api`, `jobs`, `devices`, `engines`, `audio`
-- [ ] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
+- [x] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
 - [ ] T076 [P] [backend] Refactor, XML docs, HO:polish
 - [ ] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
 - [ ] T078 [P] [qa] Traceability matrix, HO:polish

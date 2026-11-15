@@ -16,3 +16,6 @@ decided as follows; the owner can review and reverse any of them.
 | 004 | Owner design approval (T038) before visual baselines | CTO approves; screenshots are kept in `docs/design-review/` for later owner review |
 | 008 | Quality level, drum prerequisite, piano fast default, asset retention | Architect decisions accepted |
 | 007 | Assets survive track deletion; 1 GiB free-disk guard | Accepted |
+| 009 | 21 packages in worker/uv.lock younger than 2 weeks (pydantic 2.14.3, onnxruntime 1.32.0, ...) | Accepted as locked by earlier features; the >= 2-week rule applies to new pins and upgrades. fastapi was moved to 0.162.0. Re-check at the next dependency refresh |
+| 009 | Worker GPU file lease: polling (not strict FIFO), CPU fallbacks after releasing the file lease, unreadable lock file -> GPU without cross-container lease | Accepted; ADR-018 D3 wording to be aligned in the 009 integration |
+| 009/010 | Clones between worker and generator production code (config env helpers, DeviceInfo/Problem schemas) | Accepted as flagged warnings (separate services may not import each other; no shared package in the plan) |

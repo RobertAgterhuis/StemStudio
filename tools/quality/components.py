@@ -22,7 +22,12 @@ THREE_BANDS = {"Unit size (LOC)": (15, 30), "Unit complexity (CCN)": (5, 10)}
 
 WORKER = "worker/src/stemstudio_worker/"
 WORKER_CORE = ("__init__.py", "config.py", "main.py", "ports.py", "schemas.py")
-"""Worker modules outside the feature packages (composition root, ports, schemas)."""
+"""Worker modules outside the feature packages (composition root, ports, schemas).
+
+The generator (features 009/010) has the same top-level modules.
+"""
+
+GENERATOR = "generator/src/stemstudio_generator/"
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +66,12 @@ COMPONENTS: tuple[Component, ...] = (
     Component("worker/jobs", (WORKER + "jobs/",)),
     Component("worker/api", (WORKER + "api/",)),
     Component("worker/core", tuple(WORKER + name for name in WORKER_CORE)),
+    Component("generator/engines", (GENERATOR + "engines/",)),
+    Component("generator/devices", (GENERATOR + "devices/",)),
+    Component("generator/audio", (GENERATOR + "audio/",)),
+    Component("generator/jobs", (GENERATOR + "jobs/",)),
+    Component("generator/api", (GENERATOR + "api/",)),
+    Component("generator/core", tuple(GENERATOR + name for name in WORKER_CORE)),
     Component("audio-engine", ("src/audio-engine/",)),
     Component("web-interop", ("src/web-interop/",)),
     Component("e2e", ("e2e/",), scope="all"),
