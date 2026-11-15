@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from xml.etree.ElementTree import ParseError
 
 from pypdf.errors import PyPdfError
 
@@ -11,9 +12,9 @@ from stemstudio_worker.engraving.verovio_svg import ENGRAVING_FAILED_TEXT, rende
 from stemstudio_worker.ports import EngravedScore, TranscriptionError
 from stemstudio_worker.schemas import MUSIC_FONT_MISSING_TEXT
 
-_CONVERSION_ERRORS = (OSError, ValueError, PyPdfError)
-"""libcairo missing (OSError), unparsable SVG (ValueError, incl. XML parse errors' subclasses),
-unreadable page PDF (pypdf)."""
+_CONVERSION_ERRORS = (OSError, ValueError, ParseError, PyPdfError)
+"""libcairo missing (``OSError``), SVG CairoSVG cannot use (``ValueError``) or parse (ElementTree
+``ParseError``, a ``SyntaxError``), unreadable page PDF (pypdf)."""
 
 
 @dataclass(frozen=True, slots=True)
