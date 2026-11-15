@@ -14,7 +14,7 @@ internal static class TestData
     {
         var track = QueuedTrack(videoId);
         track.AssignJob("3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c", T0);
-        track.ApplyMetadata(new TrackMetadata("Never Gonna Give You Up", "Rick Astley"), T0);
+        track.ApplyMetadata(new SourceMetadata("Never Gonna Give You Up", "Rick Astley"), T0);
         track.Complete(Completion(), T0.AddMinutes(6));
         return track;
     }

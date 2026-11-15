@@ -54,7 +54,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobD
     {
         if (metadata is not null)
         {
-            track.ApplyMetadata(new TrackMetadata(metadata.Title, metadata.Artist), Now);
+            track.ApplyMetadata(new SourceMetadata(metadata.Title, metadata.Artist), Now);
         }
     }
 
@@ -86,7 +86,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobD
     /// <summary>Completes the track, queues its detail phase (FR-001) and drops the API copy of the upload.</summary>
     private void Finish(Track track, WorkerJobResult result, List<Stem> stored)
     {
-        track.ApplyMetadata(new TrackMetadata(result.Metadata.Title, result.Metadata.Artist), Now);
+        track.ApplyMetadata(new SourceMetadata(result.Metadata.Title, result.Metadata.Artist), Now);
         track.Complete(new TrackCompletion(result.DurationSeconds, result.Model, stored, ToBeatGrid(result.BeatGrid)), Now);
         track.RequestDetail(Now);
         DeleteUpload(track);
