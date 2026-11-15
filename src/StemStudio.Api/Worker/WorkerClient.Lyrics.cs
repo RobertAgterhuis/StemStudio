@@ -36,15 +36,8 @@ public sealed partial class WorkerClient
     }
 
     /// <inheritdoc />
-    public async Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Delete, LyricsJobPath(lyricsJobId));
-        using var response = await SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
-        if (response.StatusCode != HttpStatusCode.NotFound)
-        {
-            await EnsureSuccessAsync(message, response, cancellationToken);
-        }
-    }
+    public Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken) =>
+        DeleteToleratingMissingAsync(LyricsJobPath(lyricsJobId), cancellationToken);
 
     private async Task<WorkerLyricsJob> CreateLyricsJobAsync<T>(T request, CancellationToken cancellationToken)
         where T : class

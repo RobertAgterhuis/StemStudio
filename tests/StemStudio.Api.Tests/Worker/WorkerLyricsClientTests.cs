@@ -69,18 +69,18 @@ public sealed class WorkerLyricsClientTests
     }
 
     [Theory]
-    [InlineData("lyrics-running-align-job", WorkerLyricsJobState.Running, "Aligning lyrics", 0.4, 30.0)]
-    [InlineData("lyrics-completed-lookup-job", WorkerLyricsJobState.Completed, "Completed", 1.0, null)]
-    [InlineData("lyrics-failed-align-job", WorkerLyricsJobState.Failed, "Failed", 0.05, 30.0)]
-    [InlineData("lyrics-cancelled-align-job", WorkerLyricsJobState.Cancelled, "Cancelled", 0.4, 420.0)]
-    public async Task GetJob_ParsesEveryState(string example, WorkerLyricsJobState state, string stage, double progress, double? estimate)
+    [InlineData("lyrics-running-align-job", WorkerLyricsJobState.Running, 0.4, 30.0)]
+    [InlineData("lyrics-completed-lookup-job", WorkerLyricsJobState.Completed, 1.0, null)]
+    [InlineData("lyrics-failed-align-job", WorkerLyricsJobState.Failed, 0.05, 30.0)]
+    [InlineData("lyrics-cancelled-align-job", WorkerLyricsJobState.Cancelled, 0.4, 420.0)]
+    public async Task GetJob_ParsesEveryState(string example, WorkerLyricsJobState state, double progress, double? estimate)
     {
         var (client, handler) = Create(_ => StubHttpMessageHandler.Example(HttpStatusCode.OK, example));
         var id = JsonNode.Parse(WorkerExamples.Read(example))!["lyricsJobId"]!.GetValue<string>();
 
         var job = (await client.GetLyricsJobAsync(id, Ct))!;
 
-        (job.Status, job.Stage, job.Progress, job.EstimatedSeconds).ShouldBe((state, stage, progress, estimate));
+        (job.Status, job.Stage, job.Progress, job.EstimatedSeconds).ShouldBe((state, JsonNode.Parse(WorkerExamples.Read(example))!["stage"]!.GetValue<string>(), progress, estimate));
         handler.Requests.Single().Uri.AbsolutePath.ShouldBe($"/v1/lyrics-jobs/{id}");
     }
 
