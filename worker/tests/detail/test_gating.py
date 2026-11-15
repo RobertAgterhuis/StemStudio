@@ -92,7 +92,7 @@ def test_relative_db_compares_energies() -> None:
 
 
 @pytest.mark.parametrize(("level", "floor"), [(-10.0, -35.0), (-25.0, -50.0), (-40.0, -50.0)])
-def test_sub_floor_is_the_higher_of_minus_50_and_parent_minus_25(level: float, floor: float) -> None:
+def test_sub_floor_is_max_of_minus_50_and_parent_minus_25(level: float, floor: float) -> None:
     assert sub_active_floor(level) == floor
 
 
