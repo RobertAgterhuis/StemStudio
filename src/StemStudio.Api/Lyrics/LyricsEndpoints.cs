@@ -15,7 +15,17 @@ public static class LyricsEndpoints
     {
         MapDocument(app);
         MapAlignment(app);
+        MapControls(app);
         return app;
+    }
+
+    private static void MapControls(IEndpointRouteBuilder app)
+    {
+        app.MapDelete(LyricsRoute, (Guid trackId, LyricsService lyrics, CancellationToken ct) => lyrics.RemoveAsync(trackId, ct))
+            .WithName("removeLyrics").WithTags("lyrics").Produces<LyricsDto>().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPost(LyricsRoute + "/search", (Guid trackId, LyricsService lyrics, CancellationToken ct) => lyrics.SearchAsync(trackId, ct))
+            .WithName("searchLyrics").WithTags("lyrics").Produces<LyricsDto>(StatusCodes.Status202Accepted).ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
     private static void MapDocument(IEndpointRouteBuilder app)

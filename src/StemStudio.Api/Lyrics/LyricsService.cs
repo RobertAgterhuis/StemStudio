@@ -52,6 +52,30 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
         }, cancellationToken);
     }
 
+    /// <summary>Removes the lyrics; a running job is removed from the worker and no automatic lookup follows (FR-009).</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200 or 404.</returns>
+    public Task<IResult> RemoveAsync(Guid trackId, CancellationToken cancellationToken) =>
+        ChangeAsync(trackId, StatusCodes.Status200OK, async (_, lyrics) =>
+        {
+            var jobId = lyrics.LyricsJobId;
+            lyrics.Remove(Now);
+            await DeleteJobAsync(jobId, cancellationToken);
+            return null;
+        }, cancellationToken);
+
+    /// <summary>Searches LRCLIB again; the synchroniser submits the lookup (FR-009).</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>202, 404 or 409.</returns>
+    public Task<IResult> SearchAsync(Guid trackId, CancellationToken cancellationToken) =>
+        ChangeAsync(trackId, StatusCodes.Status202Accepted, (_, lyrics) =>
+        {
+            lyrics.Search(Now);
+            return Task.FromResult<IResult?>(null);
+        }, cancellationToken);
+
     /// <summary>Starts the alignment the user asked for.</summary>
     /// <param name="trackId">Track ID.</param>
     /// <param name="cancellationToken">Cancellation.</param>
