@@ -18,6 +18,8 @@ dependencies = [
     "soundfile>=0.14,<1",
     "librosa>=1.0.1,<2",
     "numpy>=2.5,<3",
+    "onnxruntime==1.32.0",         # UVR MDX-Net KARA 2 (detail vocals, ADR-010), MIT
+    "rotary-embedding-torch==0.9.2",  # BS-RoFormer (vendored MSST code, ADR-010), MIT
 ]
 
 [project.scripts]
@@ -72,6 +74,9 @@ markers = [
 [tool.coverage.run]
 source = ["stemstudio_worker"]
 branch = true
+# Vendored third-party inference code (MIT, ZFTurbo MSST); covered by the detail integration test
+# instead (plan.md Complexity Tracking, accepted by CTO 2026-11-15).
+omit = ["*/stemstudio_worker/detail/vendor/*"]
 
 [tool.coverage.report]
 fail_under = 90
@@ -89,6 +94,7 @@ exclude_also = [
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
+extend-exclude = ["src/stemstudio_worker/detail/vendor"]
 
 [tool.ruff.lint]
 select = [
@@ -126,6 +132,15 @@ warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = ["librosa.*", "soundfile.*", "demucs.*", "yt_dlp.*", "spotdl.*", "julius.*", "numba.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Vendored third-party code (plan.md Complexity Tracking).
+module = ["stemstudio_worker.detail.vendor.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime.*", "rotary_embedding_torch.*", "einops.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
