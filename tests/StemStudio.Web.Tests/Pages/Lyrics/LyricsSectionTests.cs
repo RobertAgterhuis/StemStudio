@@ -295,6 +295,26 @@ public sealed class LyricsSectionTests : LyricsTestContext
     }
 
     [Fact]
+    public void AlignPending_BeforeTheBackendDecided_IsPolledUntilTheEstimateArrives()
+    {
+        var undecided = LyricsData.Plain(reason: null) with { Alignment = new LyricsAlignmentDto(null, null, null) };
+        var page = RenderSection(undecided, LyricsData.Plain());
+        page.FindAll("[data-testid=lyrics-align-estimate]").ShouldBeEmpty();
+
+        Timer.Tick();
+
+        page.WaitForAssertion(() => page.Find("[data-testid=lyrics-align-estimate]").TextContent.ShouldContain("CPU"));
+    }
+
+    [Fact]
+    public void AlignPending_WithTheEstimate_IsNotPolled()
+    {
+        RenderSection(LyricsData.Plain());
+
+        Timer.Waits.ShouldBe(0);
+    }
+
+    [Fact]
     public void Searching_IsPolledUntilSettled()
     {
         var page = RenderSection(LyricsData.Empty(LyricsStatusDto.Searching), LyricsData.Empty(LyricsStatusDto.NotFound));
