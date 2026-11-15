@@ -21,7 +21,10 @@ public sealed class ImportDeviceTests : PageTestContext
     {
         var page = RenderWith(new ProcessingDeviceDto
         {
-            Reachable = true, Kind = ProcessingDeviceKindDto.Gpu, Name = "NVIDIA GeForce RTX 5070 Ti", TotalMemoryMiB = 16303,
+            Reachable = true,
+            Kind = ProcessingDeviceKindDto.Gpu,
+            Name = "NVIDIA GeForce RTX 5070 Ti",
+            TotalMemoryMiB = 16303,
         });
 
         var device = page.Find(Device);

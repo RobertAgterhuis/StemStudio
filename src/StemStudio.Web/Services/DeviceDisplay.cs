@@ -28,7 +28,9 @@ public sealed record DeviceDisplay(string Kind, string Text, bool? Fallback, str
     /// <summary>Display of the worker's active processing device (<c>GET /api/device</c>).</summary>
     /// <param name="device">The answer, or null when the API could not be asked.</param>
     /// <returns>The display; <see cref="Unknown"/> without an answer.</returns>
-    public static DeviceDisplay FromWorker(ProcessingDeviceDto? device) => throw new NotImplementedException();
+    public static DeviceDisplay FromWorker(ProcessingDeviceDto? device) => device is { Reachable: true, Kind: { } kind }
+        ? new(KindValue(kind), new JobDeviceDto(kind, device.Name, false, null).DisplayText(), null, device.Reason)
+        : Unknown;
 
     private static string KindValue(ProcessingDeviceKindDto kind) =>
         kind == ProcessingDeviceKindDto.Gpu ? "gpu" : "cpu";

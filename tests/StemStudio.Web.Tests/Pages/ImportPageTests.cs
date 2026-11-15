@@ -47,7 +47,7 @@ public sealed class ImportPageTests : PageTestContext
         await page.Find("form").SubmitAsync();
 
         page.Find("[data-testid=import-error]").TextContent.ShouldBe("Paste a YouTube video link or a Spotify track link.");
-        Api.ReceivedCalls().ShouldBeEmpty();
+        ImportCalls().ShouldBeEmpty();
     }
 
     [Fact]
@@ -82,14 +82,17 @@ public sealed class ImportPageTests : PageTestContext
     [Fact]
     public void Upload_LargeFile_IsStreamedAsStreamContent()
     {
-        using var handler = new StubHttpMessageHandler().Respond(HttpStatusCode.Accepted, TestData.CompletedTrackJson);
+        using var handler = new StubHttpMessageHandler()
+            .Respond(HttpStatusCode.OK, """{ "reachable": false }""")
+            .Respond(HttpStatusCode.Accepted, TestData.CompletedTrackJson);
         Services.AddSingleton<IStemStudioApiClient>(new StemStudioApiClient(StubHttpMessageHandler.CreateClient(handler)));
         var page = Render<Import>();
 
         page.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromBinary(new byte[600 * 1024], "song.mp3", null, "audio/mpeg"));
 
         page.WaitForAssertion(() => NavigatedTo.ShouldBe($"http://localhost/tracks/{TestData.TrackId}"));
-        var part = handler.Requests.ShouldHaveSingleItem().Parts.ShouldHaveSingleItem();
+        handler.Requests[0].PathAndQuery.ShouldBe("/api/device");
+        var part = handler.Requests.Skip(1).ShouldHaveSingleItem().Parts.ShouldHaveSingleItem();
         part.ContentType.ShouldBe(typeof(StreamContent));
         part.FileName.ShouldBe("song.mp3");
         part.Length.ShouldBe(600 * 1024);
@@ -103,7 +106,7 @@ public sealed class ImportPageTests : PageTestContext
         page.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("x", "notes.txt"));
 
         page.WaitForAssertion(() => page.Find("[data-testid=import-error]").TextContent.ShouldBe(UploadRules.UnsupportedTypeMessage));
-        Api.ReceivedCalls().ShouldBeEmpty();
+        ImportCalls().ShouldBeEmpty();
     }
 
     [Fact]
@@ -141,4 +144,8 @@ public sealed class ImportPageTests : PageTestContext
     {
         UploadRules.Validate(name, size).ShouldBe(expected);
     }
+
+    // Every call except the device query the page makes on load (feature 003).
+    private IEnumerable<NSubstitute.Core.ICall> ImportCalls() =>
+        Api.ReceivedCalls().Where(c => c.GetMethodInfo().Name != nameof(IStemStudioApiClient.GetDeviceAsync));
 }

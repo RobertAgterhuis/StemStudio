@@ -54,7 +54,7 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
 
     /// <inheritdoc />
     public Task<ProcessingDeviceDto> GetDeviceAsync(CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        SendAsync<ProcessingDeviceDto>(HttpMethod.Get, ApiRoutes.Device, null, cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MixSummaryDto>> ListMixesAsync(Guid? trackId = null, CancellationToken cancellationToken = default) =>

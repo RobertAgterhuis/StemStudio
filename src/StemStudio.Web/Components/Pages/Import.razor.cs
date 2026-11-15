@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Api;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Pages;
 
@@ -26,6 +27,22 @@ public partial class Import
 
     /// <summary>True while an import request is running.</summary>
     protected bool Busy { get; private set; }
+
+    /// <summary>The worker's processing device, shown in <c>worker-device</c> (FR-006).</summary>
+    protected DeviceDisplay Device { get; private set; } = DeviceDisplay.Unknown;
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Device = DeviceDisplay.FromWorker(await Api.GetDeviceAsync());
+        }
+        catch (ApiException)
+        {
+            Device = DeviceDisplay.Unknown;
+        }
+    }
 
     /// <summary>Submits the URL.</summary>
     /// <returns>A task that completes when the import has finished or failed.</returns>
