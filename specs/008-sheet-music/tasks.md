@@ -96,14 +96,14 @@ in the execution plan.
 
 ### stem-separation (`transcription/`, `jobs/`, tests first)
 
-- [ ] T022 [P] [stem-separation] Failing tests `worker/tests/transcription/test_basic_pitch.py` with a fake ONNX session (fixed onset/frame/contour arrays): audio is resampled to 22,050 Hz mono and windowed with the original overlap; outputs are stitched and turned into `NoteEvent`s with thresholds 0.6/0.4 and 127.7 ms; the session is created on the CPU provider with `transcribe_threads`; the model is fetched through the model manager with the pinned id/URL/SHA-256 (data-model 2.10); progress callbacks per window (FR-001)
-- [ ] T023 [stem-separation] Vendor the needed basic-pitch post-processing into `transcription/vendor/basic_pitch/` (LICENSE, NOTICE, header naming the source commit; no TF/resampy/pretty_midi imports) and implement `transcription/basic_pitch.py` to pass T022
-- [ ] T024 [P] [stem-separation] Failing tests `worker/tests/transcription/test_piano.py` with a fake torch module: the CRNN runs through the injected `DeviceRunner` with the piano `GpuNeed`, on 10 s segments with progress per segment; CPU fallback reason propagates to the job device; the regression post-processor output maps to `NoteEvent`s; no `os.system`, matplotlib or audioread import (import guard test); weights fetched by the model manager (FR-008, FR-011)
-- [ ] T025 [stem-separation] Vendor the piano model definition and post-processor into `transcription/vendor/piano_transcription/` (MIT LICENSE kept; drop the matplotlib, audioread **and mido** imports, Phase 0) and implement `transcription/piano.py` to pass T024
-- [ ] T026 [P] [stem-separation] Failing tests `worker/tests/transcription/test_fake.py`: the fake transcriber's notes/hits follow data-model 2.6 for every profile and respect ranges and the grid
-- [ ] T027 [stem-separation] Implement `transcription/fake.py` and `transcription/__init__.py` factories (real/fake by settings) to pass T026
-- [ ] T028 [P] [stem-separation] Failing tests `worker/tests/jobs/test_transcription_store.py`: jobs persisted as `transcription-jobs/<id>.json` with three result files; restart -> `failed` "interrupted by restart"; delete removes everything; 24 h sweep (fake clock)
-- [ ] T029 [stem-separation] Implement `jobs/transcription_store.py` to pass T028
+- [x] T022 [P] [stem-separation] Failing tests `worker/tests/transcription/test_basic_pitch.py` with a fake ONNX session (fixed onset/frame/contour arrays): audio is resampled to 22,050 Hz mono and windowed with the original overlap; outputs are stitched and turned into `NoteEvent`s with thresholds 0.6/0.4 and 127.7 ms; the session is created on the CPU provider with `transcribe_threads`; the model is fetched through the model manager with the pinned id/URL/SHA-256 (data-model 2.10); progress callbacks per window (FR-001)
+- [x] T023 [stem-separation] Vendor the needed basic-pitch post-processing into `transcription/vendor/basic_pitch/` (LICENSE, NOTICE, header naming the source commit; no TF/resampy/pretty_midi imports) and implement `transcription/basic_pitch.py` to pass T022
+- [x] T024 [P] [stem-separation] Failing tests `worker/tests/transcription/test_piano.py` with a fake torch module: the CRNN runs through the injected `DeviceRunner` with the piano `GpuNeed`, on 10 s segments with progress per segment; CPU fallback reason propagates to the job device; the regression post-processor output maps to `NoteEvent`s; no `os.system`, matplotlib or audioread import (import guard test); weights fetched by the model manager (FR-008, FR-011)
+- [x] T025 [stem-separation] Vendor the piano model definition and post-processor into `transcription/vendor/piano_transcription/` (MIT LICENSE kept; drop the matplotlib, audioread **and mido** imports, Phase 0) and implement `transcription/piano.py` to pass T024
+- [x] T026 [P] [stem-separation] Failing tests `worker/tests/transcription/test_fake.py`: the fake transcriber's notes/hits follow data-model 2.6 for every profile and respect ranges and the grid
+- [x] T027 [stem-separation] Implement `transcription/fake.py` and `transcription/__init__.py` factories (real/fake by settings) to pass T026
+- [x] T028 [P] [stem-separation] Failing tests `worker/tests/jobs/test_transcription_store.py`: jobs persisted as `transcription-jobs/<id>.json` with three result files; restart -> `failed` "interrupted by restart"; delete removes everything; 24 h sweep (fake clock)
+- [x] T029 [stem-separation] Implement `jobs/transcription_store.py` to pass T028
 
 ### backend (tests first)
 

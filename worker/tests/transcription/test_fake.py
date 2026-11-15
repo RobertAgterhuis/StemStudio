@@ -103,12 +103,13 @@ def test_drums_play_kick_snare_and_eighth_hi_hats(tmp_path: Path) -> None:
 
     hits = FakeDrumTranscriber(GRID).transcribe(inputs, None, reports.append)  # type: ignore[arg-type]
 
-    kicks = [h.time for h in hits if h.piece == "kick"]
-    snares = [h.time for h in hits if h.piece == "snare"]
-    hats = [h.time for h in hits if h.piece == "hihat"]
-    assert kicks == [0.5, 1.5, 2.5, 3.5]
-    assert snares == [0.0, 1.0, 2.0, 3.0, 4.0]
-    assert hats == [i * 0.25 for i in range(17)]
+    times: dict[str, list[float]] = {}
+    for hit in hits:
+        times.setdefault(hit.piece, []).append(hit.time)
+    assert times == {
+        "kick": [0.5, 1.5, 2.5, 3.5], "snare": [0.0, 1.0, 2.0, 3.0, 4.0],
+        "hihat": [i * 0.25 for i in range(17)],
+    }  # fmt: skip
     assert [h.time for h in hits] == sorted(h.time for h in hits)
     assert reports == [pytest.approx(1 / 3), pytest.approx(2 / 3), 1.0]
 
