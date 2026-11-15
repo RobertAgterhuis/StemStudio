@@ -1,0 +1,49 @@
+{
+  "request": "GET /api/search?track_name=Fixture Song&artist_name=The Fixture Band",
+  "status": 200,
+  "expected": {
+    "120|Fixture Album": 9000502,
+    "120|Other Album": 9000501
+  },
+  "body": [
+    {
+      "id": 9000503,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Album",
+      "duration": 120.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+      "hasWordSync": false,
+      "lyricsfile": null
+    },
+    {
+      "id": 9000501,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Single",
+      "duration": 121.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+      "hasWordSync": true,
+      "lyricsfile": "version: '1.0'\nmetadata:\n  title: Hero of the Day\n  artist: Metallica\n  album: Load\n  duration_ms: 262000\n  instrumental: false\n  language: en\nlines:\n- text: Fake line one\n  start_ms: 10950\n  end_ms: 13200\n  words:\n  - text: Fake\n    start_ms: 10950\n  - text: line\n    start_ms: 11400\n  - text: one\n    start_ms: 11900\n- text: La la la\n  start_ms: 14000\n  end_ms: 16000\n  words:\n  - text: La\n    start_ms: 14000\n  - text: la\n    start_ms: 14500\n  - text: la\n    start_ms: 15000\n"
+    },
+    {
+      "id": 9000502,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Album",
+      "duration": 119.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+      "hasWordSync": true,
+      "lyricsfile": "version: '1.0'\nmetadata:\n  title: Hero of the Day\n  artist: Metallica\n  album: Load\n  duration_ms: 262000\n  instrumental: false\n  language: en\nlines:\n- text: Fake line one\n  start_ms: 10950\n  end_ms: 13200\n  words:\n  - text: Fake\n    start_ms: 10950\n  - text: line\n    start_ms: 11400\n  - text: one\n    start_ms: 11900\n- text: La la la\n  start_ms: 14000\n  end_ms: 16000\n  words:\n  - text: La\n    start_ms: 14000\n  - text: la\n    start_ms: 14500\n  - text: la\n    start_ms: 15000\n"
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import pytest
 import generate_artwork_fixtures
 import generate_detail_fixtures
 import generate_fixtures
+import generate_score_fixtures
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,6 +52,15 @@ GENERATORS = [
             "6 artwork fixtures",
         ),
         id="artwork",
+    ),
+    pytest.param(
+        Spec(
+            generate_score_fixtures,
+            "score-manifest.json",
+            "score_drums_kick.wav",
+            "7 score fixtures",
+        ),
+        id="score",
     ),
 ]
 

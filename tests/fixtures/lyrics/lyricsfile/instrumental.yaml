@@ -1,0 +1,11 @@
+# Shape of the LRCLIB `lyricsfile` of an instrumental record (research.md F-01: metadata only,
+# empty lines). Self-written metadata.
+version: '1.0'
+metadata:
+  title: Fixture Instrumental
+  artist: The Fixture Band
+  album: Fixture Album
+  duration_ms: 125000
+  instrumental: true
+  language: null
+lines: []

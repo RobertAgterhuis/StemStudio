@@ -1,0 +1,48 @@
+# Self-written lyrics in the shape of an LRCLIB `lyricsfile` (research.md F-03). No third-party text.
+# Words carry only start_ms: a word ends at the next word's start; the last word of a line ends at
+# min(line end_ms, start + 3000) (research.md R-03). Expected word ends are listed in README.md.
+version: '1.0'
+metadata:
+  title: Fixture Song
+  artist: The Fixture Band
+  album: Fixture Album
+  duration_ms: 120000
+  instrumental: false
+  language: en
+lines:
+  - text: Fake line one
+    start_ms: 10950
+    end_ms: 13200
+    words:
+      - text: Fake
+        start_ms: 10950
+      - text: line
+        start_ms: 11400
+      - text: one
+        start_ms: 11900
+  - text: La la la
+    start_ms: 14000
+    end_ms: 16000
+    words:
+      - text: La
+        start_ms: 14000
+      - text: la
+        start_ms: 14500
+      - text: la
+        start_ms: 15000
+  - text: A very long held last word
+    start_ms: 17500
+    end_ms: 25000
+    words:
+      - text: A
+        start_ms: 17500
+      - text: very
+        start_ms: 17800
+      - text: long
+        start_ms: 18200
+      - text: held
+        start_ms: 18600
+      - text: last
+        start_ms: 19000
+      - text: word
+        start_ms: 19400

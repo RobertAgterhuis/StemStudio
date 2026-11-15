@@ -9,7 +9,10 @@ pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 
 [tool.coverage.run]
-source = ["generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures"]
+source = [
+    "generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures",
+    "generate_lyrics_fixtures", "sung_voice", "generate_score_fixtures",
+]
 branch = true
 
 [tool.coverage.report]
@@ -28,7 +31,10 @@ select = [
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures"]
+known-first-party = [
+    "generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures",
+    "generate_lyrics_fixtures", "sung_voice", "generate_score_fixtures",
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5
