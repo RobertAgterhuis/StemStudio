@@ -4,6 +4,7 @@
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop",
+        "throttlingMethod": "devtools",
         "chromeFlags": "--headless=new --no-sandbox --disable-dev-shm-usage",
         "onlyCategories": ["performance"]
       }

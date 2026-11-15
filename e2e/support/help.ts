@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import type { HelpPanel } from '../pages/help-panel';
 
 /** The 20 reference queries of quickstart V-H3: query -> expected first topic. */
@@ -41,12 +41,16 @@ export async function wrongFirstResults(help: HelpPanel): Promise<Record<string,
   return wrong;
 }
 
-/** First result once the list shows the expected id or settles on another one. */
+/**
+ * First result once the list shows `expected` first, or whatever is first after 3 s. A stale list
+ * of the previous query can already contain `expected` further down, so the first position is
+ * polled rather than the presence of `expected`.
+ */
 async function firstResultFor(help: HelpPanel, expected: string): Promise<string> {
   try {
-    await help.byId(`help-result-${expected}`).first().waitFor({ timeout: 2_000 });
+    await expect.poll(() => help.firstResultTopic(), { timeout: 3_000 }).toBe(expected);
   } catch {
-    // Not in the list at all: report whatever is first.
+    // Settled on another topic: report whatever is first.
   }
   return help.firstResultTopic();
 }

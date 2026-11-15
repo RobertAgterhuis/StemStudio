@@ -81,4 +81,7 @@ async function mixerExpandedReady(page: Page): Promise<void> {
   await page.getByTestId('expand-drums').click();
   await expect(page.getByTestId('expand-drums')).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 });
   await expect(page.getByTestId('strip-drums-kick')).toBeVisible();
+  // The re-layout leaves the pointer over the drums Mute/Solo, whose help tooltip would then be captured.
+  await page.mouse.move(0, 0);
+  await expect(page.getByTestId(/^help-tooltip-/)).toHaveCount(0);
 }
