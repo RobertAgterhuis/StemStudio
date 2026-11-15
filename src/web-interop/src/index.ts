@@ -8,7 +8,6 @@
 import type {
   Disposable,
   DotNetRef,
-  ShortcutScope,
   TourRuntime,
   WebInteropContractVersion,
 } from './types';
@@ -16,25 +15,13 @@ import type {
 export type * from './types';
 export { readPreferences, writePreferences, watchPreferences } from './preferences';
 export { applyAppearance, watchSystemAppearance } from './theme';
+export { registerShortcuts } from './shortcuts';
 
 /** Version of the web-interop contract implemented by this module. */
 export const WEB_INTEROP_CONTRACT_VERSION: WebInteropContractVersion = '1.0.0';
 
 function notImplemented(name: string, args: readonly unknown[]): never {
   throw new Error(`not implemented: ${name} (${String(args.length)} argument(s))`);
-}
-
-/**
- * Registers the key map of design-spec.md 6 and calls `dotnet.invokeMethodAsync("OnCommand", id)`
- * with a command id. Keys are ignored in inputs, textareas, selects, contenteditable, dialogs and
- * the tour popover; Space is never handled here.
- *
- * @param dotnet - Receiver of the command ids.
- * @param scope - `global` or `mixer` key map.
- * @returns Handle that removes the key listeners.
- */
-export function registerShortcuts(dotnet: DotNetRef, scope: ShortcutScope): Disposable {
-  return notImplemented('registerShortcuts', [dotnet, scope]);
 }
 
 /**

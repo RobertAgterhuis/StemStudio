@@ -63,5 +63,7 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
         services.GetRequiredService<StemStudio.Web.Services.ToastService>().ShouldNotBeNull();
         services.GetRequiredService<StemStudio.Web.Help.IHelpCatalog>().Topic("welcome").ShouldNotBeNull();
         services.GetRequiredService<StemStudio.Web.Help.IHelpSearch>().ShouldBeOfType<StemStudio.Web.Help.HelpSearch>();
+        services.GetRequiredService<StemStudio.Web.Help.HelpContext>().IsOpen.ShouldBeFalse();
+        services.GetRequiredService<StemStudio.Web.Help.ITourLauncher>().ShouldBeOfType<StemStudio.Web.Help.TourService>();
     }
 }

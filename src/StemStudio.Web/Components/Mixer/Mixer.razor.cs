@@ -4,6 +4,7 @@ using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Experience;
+using StemStudio.Web.Help;
 using StemStudio.Web.Mixer;
 using StemStudio.Web.Services;
 
@@ -160,7 +161,7 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task ConfirmLeaveAsync(LocationChangingContext context)
     {
-        if (State?.IsDirty != true)
+        if (State?.IsDirty != true || HelpLinks.TopicFromUri(context.TargetLocation) is not null)
         {
             return;
         }

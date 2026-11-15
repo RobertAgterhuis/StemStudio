@@ -52,6 +52,14 @@ describe('help keys (T048)', () => {
     expect(calls).not.toHaveBeenCalled();
   });
 
+  it('ignores keys that are not shortcuts, in every scope', () => {
+    const calls = register('mixer');
+    press('a');
+    expect(calls).not.toHaveBeenCalled();
+    press('F1');
+    expect(calls).toHaveBeenCalledWith('OnCommand', 'help.open');
+  });
+
   it('ignores key repeats', () => {
     const calls = register();
     press('?', { repeat: true });

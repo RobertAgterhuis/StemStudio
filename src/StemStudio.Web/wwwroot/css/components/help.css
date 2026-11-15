@@ -1,0 +1,216 @@
+/*
+ * In-app help (design-spec.md 4.7): the panel docks at >= 1280 px (content reflows), overlays between 768 and
+ * 1279 px and becomes a full-screen sheet under 768 px. Tooltips, help hints and inline hints.
+ */
+
+.ss-help-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--ss-z-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+  width: min(var(--ss-help-width), 100vw);
+  padding: var(--ss-space-4) var(--ss-space-5) var(--ss-space-6);
+  overflow-y: auto;
+  border-left: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-float) 0 0 var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  box-shadow: var(--ss-elev-float);
+  animation: ss-help-in var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+@keyframes ss-help-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ss-shell-help-open {
+    padding-right: var(--ss-help-width);
+  }
+
+  .ss-help-panel {
+    box-shadow: var(--ss-elev-0);
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .ss-help-panel {
+    width: 100vw;
+    border-radius: 0;
+  }
+}
+
+.ss-help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ss-help-head .ss-heading {
+  margin: 0;
+}
+
+.ss-help-back {
+  justify-self: start;
+  align-self: flex-start;
+}
+
+.ss-help-topic .ss-title {
+  margin-bottom: var(--ss-space-2);
+}
+
+.ss-help-body {
+  max-width: 64ch;
+}
+
+.ss-help-body h2,
+.ss-help-body h3 {
+  margin-top: var(--ss-space-4);
+  font-size: var(--ss-type-heading-size);
+  font-stretch: 100%;
+}
+
+.ss-help-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-help-body th,
+.ss-help-body td {
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-bottom: 1px solid var(--ss-color-divider);
+  text-align: left;
+}
+
+.ss-help-level {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-left: 3px solid var(--ss-color-warning);
+  background: var(--ss-color-surface);
+}
+
+.ss-help-related-title {
+  margin: var(--ss-space-4) 0 var(--ss-space-1);
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-help-related,
+.ss-help-list {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0 0 var(--ss-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.ss-help-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border: 0;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-none);
+  color: var(--ss-color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ss-help-item:hover {
+  background: var(--ss-color-surface);
+}
+
+.ss-help-item-title {
+  font-weight: 600;
+}
+
+.ss-help-item-text {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+/* Tooltip of a marked control. */
+.ss-helptip {
+  position: relative;
+  display: inline-flex;
+}
+
+.ss-tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--ss-space-2));
+  left: 50%;
+  z-index: var(--ss-z-popover);
+  display: grid;
+  gap: var(--ss-space-1);
+  width: max-content;
+  max-width: 16rem;
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+  font-size: var(--ss-type-small-size);
+  line-height: var(--ss-type-small-line);
+  text-align: left;
+  transform: translateX(-50%);
+  box-shadow: var(--ss-elev-float);
+}
+
+.ss-tooltip .ss-text-button {
+  color: var(--ss-color-on-primary);
+  font-size: var(--ss-type-small-size);
+  min-height: var(--ss-target-min);
+  justify-self: start;
+}
+
+/* Small help button next to a label. */
+.ss-help-hint {
+  display: inline-grid;
+  place-items: center;
+  width: var(--ss-target-min);
+  height: var(--ss-target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-none);
+  color: var(--ss-color-muted);
+  cursor: pointer;
+}
+
+.ss-help-hint:hover {
+  color: var(--ss-color-ink);
+  background: var(--ss-color-surface);
+}
+
+.ss-help-hint .rzi {
+  font-size: 1.125rem;
+}
+
+/* Inline hint at Beginner. */
+.ss-inline-hint {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin: 0;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-inline-hint .rzi {
+  color: var(--ss-color-warning);
+  font-size: 1.125rem;
+}

@@ -4,12 +4,13 @@
    data-motion on app-shell are set by web-interop applyAppearance (they depend on OS settings). *@
 
 <RadzenComponents />
-<div class="ss-shell" data-testid="app-shell" data-level="@LevelName" data-density="@DensityName">
+<NavigationLock OnBeforeInternalNavigation="InterceptHelpLinkAsync" />
+<div class="@ShellClass" data-testid="app-shell" data-level="@LevelName" data-density="@DensityName">
     <a class="ss-skip" href="#main" data-testid="skip-link">Skip to content</a>
-    <NavMenu OnHelp="ToggleHelp" />
+    <NavMenu OnHelp="Help.OpenScreenAsync" />
     <CascadingValue Value="Experience">
         <div class="ss-shell-body">
-            <ContextBar HelpOpen="HelpOpen" OnHelp="ToggleHelp" OnPalette="OpenPalette" />
+            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="OpenPalette" />
             <main id="main" class="ss-main" tabindex="-1">
                 @if (Preferences.Loaded)
                 {
@@ -26,6 +27,10 @@
                 }
             </main>
         </div>
+        @if (Help.IsOpen)
+        {
+            <HelpPanel />
+        }
     </CascadingValue>
     <div class="ss-toast-region" aria-live="polite">
         @if (Toasts.Message is { } message)

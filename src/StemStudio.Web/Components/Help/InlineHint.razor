@@ -1,7 +1,21 @@
-@* Red stub (T048). *@
+@* Inline hint under a panel at Beginner (help.inline-hints, ui-test-ids hint-<topicId>): the topic summary, dismissible. *@
+@inherits StemStudio.Web.Components.Shell.PreferencesAware
+@inject IHelpCatalog Catalog
+
+<LevelGate Feature="help.inline-hints">
+    @if (Catalog.Topic(TopicId) is { } topic && !Preferences.Current.Help.HintsDismissed.Contains(topic.Id))
+    {
+        <p class="ss-inline-hint" data-testid="@($"hint-{topic.Id}")">
+            <span class="rzi" aria-hidden="true">lightbulb</span>
+            <span>@topic.Summary</span>
+            <button type="button" class="ss-text-button" aria-label="@($"Hide hint: {topic.Title}")"
+                    @onclick="() => Preferences.DismissHintAsync(topic.Id)">Hide</button>
+        </p>
+    }
+</LevelGate>
 
 @code {
-    /// <summary>Topic.</summary>
+    /// <summary>The topic whose summary is the hint.</summary>
     [Parameter, EditorRequired]
     public string TopicId { get; set; } = string.Empty;
 }

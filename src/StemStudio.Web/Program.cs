@@ -22,6 +22,7 @@ builder.Services.AddScoped<IPreferencesStore, LocalPreferencesStore>();
 builder.Services.AddScoped<PreferencesState>();
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<TourService>();
+builder.Services.AddScoped<HelpContext>();
 builder.Services.AddScoped<ITourLauncher>(services => services.GetRequiredService<TourService>());
 
 // Help content is validated once at start-up (contracts/help-content.md 1): invalid content fails fast.

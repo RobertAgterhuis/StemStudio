@@ -1,21 +1,33 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using StemStudio.Web.Experience;
+using StemStudio.Web.Help;
+using StemStudio.Web.Interop;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Layout;
 
 /// <summary>
-/// The app shell: loads the preferences once after the first render (one interop call), re-renders on every
-/// preference change or toast, and cascades the effective <see cref="ExperienceContext"/> to the pages.
+/// The app shell: loads the preferences once after the first render, registers the global shortcuts, re-renders
+/// on every preference, help or toast change, cascades the effective <see cref="ExperienceContext"/> and turns
+/// in-app help links (<c>/help/&lt;id&gt;</c>) into help panel navigation.
 /// </summary>
-public sealed partial class MainLayout : IDisposable
+public sealed partial class MainLayout : IAsyncDisposable
 {
+    private IAsyncDisposable? _shortcuts;
+
     [Inject]
     private PreferencesState Preferences { get; set; } = default!;
 
     [Inject]
     private ToastService Toasts { get; set; } = default!;
+
+    [Inject]
+    private HelpContext Help { get; set; } = default!;
+
+    [Inject]
+    private IWebInterop Web { get; set; } = default!;
 
     private ExperienceContext Experience => new(Preferences.Current.EffectiveLevel, Preferences.Current.EffectiveDensity);
 
@@ -23,13 +35,15 @@ public sealed partial class MainLayout : IDisposable
 
     private string DensityName => Lower(Preferences.Current.EffectiveDensity);
 
-    private bool HelpOpen { get; set; }
+    private string? ShellClass => Help.IsOpen ? "ss-shell ss-shell-help-open" : "ss-shell";
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         Preferences.Changed -= OnChanged;
         Toasts.Changed -= OnChanged;
+        Help.Changed -= OnChanged;
+        await (_shortcuts?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 
     /// <inheritdoc />
@@ -37,18 +51,38 @@ public sealed partial class MainLayout : IDisposable
     {
         Preferences.Changed += OnChanged;
         Toasts.Changed += OnChanged;
+        Help.Changed += OnChanged;
     }
 
     /// <inheritdoc />
-    protected override Task OnAfterRenderAsync(bool firstRender) =>
-        firstRender ? Preferences.LoadAsync() : Task.CompletedTask;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Preferences.LoadAsync();
+            _shortcuts = await Web.RegisterShortcutsAsync(ShortcutScope.Global, id => InvokeAsync(() => OnCommandAsync(id)));
+        }
+    }
 
     private static string Lower<T>(T value)
         where T : struct, Enum => value.ToString().ToLowerInvariant();
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
 
-    private void ToggleHelp() => HelpOpen = !HelpOpen;
+    private Task OnCommandAsync(string commandId) => commandId switch
+    {
+        "help.open" => Help.OpenAsync(),
+        _ => Task.CompletedTask,
+    };
+
+    private async Task InterceptHelpLinkAsync(LocationChangingContext context)
+    {
+        if (HelpLinks.TopicFromUri(context.TargetLocation) is { } topicId)
+        {
+            context.PreventNavigation();
+            await Help.ShowAsync(topicId);
+        }
+    }
 
     private static void OpenPalette()
     {

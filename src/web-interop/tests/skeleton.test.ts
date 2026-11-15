@@ -3,7 +3,6 @@ import {
   WEB_INTEROP_CONTRACT_VERSION,
   captureFocus,
   focusedHelpId,
-  registerShortcuts,
   startTour,
   type DotNetRef,
   type TourRuntime,
@@ -25,7 +24,6 @@ describe('web-interop skeleton (Phase 0)', () => {
   });
 
   it.each([
-    ['registerShortcuts', () => registerShortcuts(dotnet, 'global')],
     ['startTour', () => startTour(dotnet, tour)],
     ['focusedHelpId', () => focusedHelpId()],
     ['captureFocus', () => captureFocus()],
