@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace StemStudio.Domain.Lyrics;
 
 /// <summary>One word; times (ms from the track start) and origin are null in a plain document.</summary>
@@ -6,14 +9,30 @@ namespace StemStudio.Domain.Lyrics;
 /// <param name="EndMs">End (&gt; start, at most start + 3000).</param>
 /// <param name="Origin">Where the time comes from; null in a plain document.</param>
 /// <param name="LowConfidence">Aligned word with a low probability.</param>
-public sealed record LyricsWord(string Text, int? StartMs, int? EndMs, WordOrigin? Origin, bool LowConfidence);
+public sealed record LyricsWord(string Text, int? StartMs, int? EndMs, WordOrigin? Origin, bool LowConfidence)
+{
+    /// <summary>Prints the timing only: lyrics are copyrighted and never logged (FR-010).</summary>
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append(CultureInfo.InvariantCulture, $"StartMs = {StartMs}, EndMs = {EndMs}, Origin = {Origin}, LowConfidence = {LowConfidence}");
+        return true;
+    }
+}
 
 /// <summary>One line with its words; times are null in a plain document.</summary>
 /// <param name="StartMs">Start.</param>
 /// <param name="EndMs">End.</param>
 /// <param name="Text">Text (1..500 characters).</param>
 /// <param name="Words">Words in order (1..40).</param>
-public sealed record LyricsLine(int? StartMs, int? EndMs, string Text, IReadOnlyList<LyricsWord> Words);
+public sealed record LyricsLine(int? StartMs, int? EndMs, string Text, IReadOnlyList<LyricsWord> Words)
+{
+    /// <summary>Prints the timing only: lyrics are copyrighted and never logged (FR-010).</summary>
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append(CultureInfo.InvariantCulture, $"StartMs = {StartMs}, EndMs = {EndMs}, Words = {Words.Count}");
+        return true;
+    }
+}
 
 /// <summary>
 /// One normalised lyrics document (feature 006, data-model 2.1). Copyrighted text: stored per track, shown in the app
@@ -84,6 +103,13 @@ public sealed record LyricsDocument
         errors.Check(!text.Any(IsForbiddenControl), "text", "Must not contain control characters other than line breaks and tabs.");
         errors.ThrowIfAny();
         return text;
+    }
+
+    /// <summary>Prints the facts only: lyrics are copyrighted and never logged (FR-010).</summary>
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append(CultureInfo.InvariantCulture, $"SyncLevel = {SyncLevel}, Origin = {Origin}, Source = {Source}, Language = {Language}, Instrumental = {Instrumental}, Lines = {Lines.Count}");
+        return true;
     }
 
     private static bool IsForbiddenControl(char value) => char.IsControl(value) && value is not ('\n' or '\t');

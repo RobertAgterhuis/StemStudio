@@ -177,7 +177,7 @@ public sealed class LyricsEndpointTests : ApiTestBase
     [Fact]
     public async Task AFullFakeRun_NeverLogsTheLyrics()
     {
-        using var factory = new ApiFactory { ConfigureServices = services => services.Configure<LoggerFilterOptions>(options => (options.MinLevel, options.Rules) = (LogLevel.Trace, [])) };
+        using var factory = new ApiFactory { ConfigureServices = services => services.Configure<LoggerFilterOptions>(options => options.AddFilter<ListLoggerProvider>(null, LogLevel.Trace)) };
         using var client = factory.CreateClient();
         var track = await factory.SeedAsync(SearchingWithJob());
         factory.Worker.OnGetLyricsJob = id => Task.FromResult<WorkerLyricsJob?>(FakeWorkerClient.LyricsJob(id, WorkerLyricsJobMode.Lookup, WorkerLyricsJobState.Completed, 1));
@@ -189,7 +189,7 @@ public sealed class LyricsEndpointTests : ApiTestBase
         (await client.PutAsJsonAsync(new Uri(ApiRoutes.LyricsOffset(track.Id), UriKind.Relative), new LyricsOffsetRequest(7), Ct)).Dispose();
 
         var messages = factory.Logs.Entries.Select(entry => entry.Message + entry.Exception).ToList();
-        messages.ShouldNotBeEmpty();
+        factory.Logs.Entries.ShouldContain(entry => entry.Level <= LogLevel.Debug);
         messages.ShouldAllBe(message => !FixtureWords.Any(words => message.Contains(words, StringComparison.Ordinal)));
         messages.ShouldContain(message => message.Contains("Searching -> Found", StringComparison.Ordinal));
     }

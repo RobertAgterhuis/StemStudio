@@ -117,6 +117,19 @@ public sealed class LyricsDocumentTests
     }
 
     [Fact]
+    public void Printing_ShowsTheTimingButNeverTheText()
+    {
+        var document = Word();
+
+        var printed = string.Join(" | ", document, document.Lines[0], document.Lines[0].Words[0]);
+
+        printed.ShouldNotContain("Fake");
+        printed.ShouldContain("SyncLevel = Word, Origin = Source, Source = Lrclib, Language = en, Instrumental = False, Lines = 2");
+        printed.ShouldContain("StartMs = 10950, EndMs = 13200, Words = 3");
+        printed.ShouldContain("StartMs = 10950, EndMs = 11400, Origin = Source, LowConfidence = False");
+    }
+
+    [Fact]
     public void ValidationMessages_NeverQuoteTheLyrics()
     {
         var document = Word() with { Lines = [new LyricsLine(10, 5, "Secret words", [new LyricsWord("Secret", 10, 5, WordOrigin.Source, false)])] };

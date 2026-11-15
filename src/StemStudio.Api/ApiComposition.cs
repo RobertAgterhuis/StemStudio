@@ -77,6 +77,7 @@ public static class ApiComposition
         app.MapArtworkEndpoints();
         app.MapBandInfoEndpoints();
         app.MapAssetEndpoints();
+        app.MapLyricsEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -129,6 +130,7 @@ public static class ApiComposition
         services.AddScoped<LyricsJobApplier>();
         services.AddScoped<LyricsAligner>();
         services.AddScoped<LyricsSynchronizer>();
+        services.AddScoped<LyricsService>();
     }
 
     private static void AddArtworkServices(IServiceCollection services)

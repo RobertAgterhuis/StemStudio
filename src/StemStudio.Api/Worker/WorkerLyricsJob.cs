@@ -42,6 +42,13 @@ public sealed record WorkerLyricsAlignRequest
 
     /// <summary>A line-synced document whose line times are kept; null aligns the whole text.</summary>
     public LyricsDocument? Refine { get; init; }
+
+    /// <summary>Prints everything but the text: lyrics are copyrighted and never logged (FR-010).</summary>
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append(System.Globalization.CultureInfo.InvariantCulture, $"Mode = {Mode}, StandardJobId = {StandardJobId}, Language = {Language}, Refine = {Refine}");
+        return true;
+    }
 }
 
 /// <summary>Mode of a lyrics job (contract <c>LyricsJobMode</c>).</summary>
