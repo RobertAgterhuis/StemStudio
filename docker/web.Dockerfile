@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
-# StemStudio web: Blazor Web App (.NET 10, Interactive Server) with the TypeScript audio engine
-# bundle (src/audio-engine -> wwwroot/js/audio-engine.js, built here; the file is git-ignored).
+# StemStudio web: Blazor Web App (.NET 10, Interactive Server) with two TypeScript bundles built
+# here (both git-ignored): the audio engine (src/audio-engine -> wwwroot/js/audio-engine.js) and the
+# browser glue of feature 004 (src/web-interop -> wwwroot/js/web-interop.js + first-paint.js).
 # Build context: repository root.  docker build -f docker/web.Dockerfile .
 
 ARG NODE_IMAGE=node:22-slim
@@ -17,6 +18,16 @@ COPY src/audio-engine/ ./
 # vite writes to ../StemStudio.Web/wwwroot/js/audio-engine.js (see vite.config.ts)
 RUN npm run build
 
+# ---------------------------------------------------------------- web-interop bundles
+FROM ${NODE_IMAGE} AS interop
+WORKDIR /src/src/web-interop
+COPY src/web-interop/package.json src/web-interop/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+COPY src/web-interop/ ./
+# vite writes web-interop.js and first-paint.js to ../StemStudio.Web/wwwroot/js/ (see vite.config.ts)
+RUN npm run build
+
 # ---------------------------------------------------------------- build
 FROM ${SDK_IMAGE} AS build
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
@@ -30,6 +41,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
 COPY src/StemStudio.Contracts/ src/StemStudio.Contracts/
 COPY src/StemStudio.Web/ src/StemStudio.Web/
 COPY --from=engine /src/src/StemStudio.Web/wwwroot/js/ src/StemStudio.Web/wwwroot/js/
+COPY --from=interop /src/src/StemStudio.Web/wwwroot/js/ src/StemStudio.Web/wwwroot/js/
 # No --no-restore: the restore layer can stay cached while the cache mount was pruned (NETSDK1064);
 # the implicit restore is a no-op when the packages are present.
 RUN --mount=type=cache,target=/root/.nuget/packages \

@@ -92,3 +92,19 @@ def test_exemption_passes_and_is_reported(
     assert "exemption: tests/Api.Tests/ListLogger.cs:7 ListLogger::Log<TState>" in out
     assert "2 exemptions" in out
     assert "## Exemptions (2)" in report.read_text(encoding="utf-8")
+
+
+def test_raw_colour_exits_one_and_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path)
+    css = root / "src" / "StemStudio.Web" / "wwwroot" / "css" / "base.css"
+    css.parent.mkdir(parents=True)
+    css.write_text("body { color: #fff; }\n", encoding="utf-8")
+    report = tmp_path / "r.md"
+    assert run_all.main(["--root", str(root), "--report", str(report)], _dup(CLEAN)) == 1
+    assert "[raw-colour]" in capsys.readouterr().out
+    text = report.read_text(encoding="utf-8")
+    assert "## Design tokens\n\n**FAIL** - 1 errors" in text
+    row = "| error | raw-colour | `src/StemStudio.Web/wwwroot/css/base.css:1` | frontend |"
+    assert row in text

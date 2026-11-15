@@ -8,6 +8,11 @@ on:
     branches: [main, "0*-**"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      update-baselines:
+        description: Visual job only - regenerate the screenshots and upload them as an artifact for review (commits nothing)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -114,6 +119,7 @@ jobs:
           dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
           (cd worker && uv sync --frozen && uv run --frozen pytest --cov --cov-branch --cov-report=xml -q)
           (cd src/audio-engine && npm ci --no-audit --no-fund && npm run test:coverage)
+          (cd src/web-interop && npm ci --no-audit --no-fund && npm run test:coverage)
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
   worker:
@@ -185,6 +191,34 @@ jobs:
         with:
           name: coverage-audio-engine
           path: src/audio-engine/coverage/
+          if-no-files-found: warn
+
+  web-interop:
+    name: Web interop lint, types, tests (coverage gate), build (feature 004)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/web-interop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/web-interop/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Tests with 90 % thresholds (vitest.config.ts)
+        run: npm run test:coverage
+      - name: Build web-interop.js and first-paint.js into wwwroot/js
+        run: npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: coverage-web-interop
+          path: src/web-interop/coverage/
           if-no-files-found: warn
 
   contracts:
@@ -294,6 +328,8 @@ jobs:
         run: |
           (cd src/audio-engine && npm ci --no-audit --no-fund)
           npx --yes license-checker@25.0.1 --start src/audio-engine --markdown --out licence-report/npm-audio-engine.md
+          (cd src/web-interop && npm ci --no-audit --no-fund)
+          npx --yes license-checker@25.0.1 --start src/web-interop --markdown --out licence-report/npm-web-interop.md
           (cd e2e && npm ci --no-audit --no-fund)
           npx --yes license-checker@25.0.1 --start e2e --markdown --out licence-report/npm-e2e.md
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -303,7 +339,7 @@ jobs:
 
   e2e:
     name: E2E main flow (compose, fake separator, Playwright)
-    needs: [dotnet, worker, audio-engine, contracts, quality, e2e-lint]
+    needs: [dotnet, worker, audio-engine, web-interop, contracts, quality, e2e-lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -367,6 +403,115 @@ jobs:
             e2e/playwright-report/
             e2e/test-results/
           if-no-files-found: warn
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --timestamps
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  # Feature 004 browser suites against the fake stack (tasks.md T009). scripts/ci-e2e-suite.sh passes
+  # while a suite has no specs yet; once qa adds them these jobs are required checks on PRs.
+  visual:
+    name: Visual regression (Playwright container, fake stack)
+    needs: [web-interop, e2e-lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: http://localhost:8080
+      E2E_API_URL: http://localhost:8081
+      # true only on a manual run with "update baselines" ticked; empty on push and PR.
+      UPDATE_BASELINES: ${{ inputs.update-baselines }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/fake-stack
+        with:
+          uv-version: ${{ env.UV_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Compare screenshots (image version = @playwright/test pin)
+        if: env.UPDATE_BASELINES != 'true'
+        run: scripts/playwright-container.sh scripts/ci-e2e-suite.sh test:visual visual
+      - name: Regenerate baselines (workflow_dispatch, review only)
+        if: env.UPDATE_BASELINES == 'true'
+        run: scripts/playwright-container.sh scripts/ci-e2e-suite.sh test:visual visual --update-snapshots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: env.UPDATE_BASELINES == 'true'
+        with:
+          name: visual-baselines
+          path: e2e/visual/__screenshots__/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: visual-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: ignore
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --timestamps
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  a11y:
+    name: Accessibility scans (axe, Playwright container, fake stack)
+    needs: [web-interop, e2e-lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: http://localhost:8080
+      E2E_API_URL: http://localhost:8081
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/fake-stack
+        with:
+          uv-version: ${{ env.UV_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+      - name: axe scans, every screen x level x theme (SC-001)
+        run: scripts/playwright-container.sh scripts/ci-e2e-suite.sh test:a11y a11y
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: a11y-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: ignore
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color --timestamps
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  lighthouse:
+    name: Lighthouse CI budgets (fake stack, SC-003)
+    needs: [web-interop, e2e-lint]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: http://localhost:8080
+      E2E_API_URL: http://localhost:8081
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/fake-stack
+        with:
+          uv-version: ${{ env.UV_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install the e2e package (@lhci/cli; Chrome comes with the runner image)
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+      - name: Lighthouse CI (e2e/lighthouserc.json)
+        run: scripts/ci-e2e-suite.sh test:lighthouse lighthouserc.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: lighthouse-report
+          path: e2e/.lighthouseci/
+          if-no-files-found: ignore
+          include-hidden-files: true
       - name: Compose logs on failure
         if: failure()
         run: docker compose logs --no-color --timestamps

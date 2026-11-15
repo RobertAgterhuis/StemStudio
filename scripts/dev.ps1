@@ -4,7 +4,7 @@
     Runs StemStudio without Docker: worker (uv, :8000), API (dotnet run, :8081) and web (dotnet run, :8080).
 
 .DESCRIPTION
-    Builds the audio-engine bundle first, then starts the three processes with data under <repo>/data.
+    Builds the audio-engine and web-interop bundles first, then starts the three processes with data under <repo>/data.
     Press Ctrl+C to stop all of them. No secrets are read or needed.
 
 .PARAMETER Fake
@@ -12,7 +12,8 @@
     The detail phase is faked too (STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS per parent step, default 1).
 
 .PARAMETER SkipEngineBuild
-    Does not run 'npm ci' / 'npm run build' in src/audio-engine (reuse the existing bundle).
+    Does not run 'npm ci' / 'npm run build' in src/audio-engine and src/web-interop (reuse the
+    existing bundles in src/StemStudio.Web/wwwroot/js).
 
 .PARAMETER SmokeTest
     Starts everything, waits until the three /health endpoints answer 200, prints them and stops.
@@ -78,10 +79,12 @@ function Initialize-Environment {
 }
 
 function Build-Engine {
-    <# Builds src/audio-engine into src/StemStudio.Web/wwwroot/js/audio-engine.js. #>
-    $engineDir = Join-Path $RepoRoot 'src/audio-engine'
-    Invoke-Checked $engineDir 'npm' @('ci', '--no-audit', '--no-fund')
-    Invoke-Checked $engineDir 'npm' @('run', 'build')
+    <# Builds src/audio-engine (audio-engine.js) and src/web-interop (web-interop.js, first-paint.js) into wwwroot/js. #>
+    foreach ($bundle in 'src/audio-engine', 'src/web-interop') {
+        $bundleDir = Join-Path $RepoRoot $bundle
+        Invoke-Checked $bundleDir 'npm' @('ci', '--no-audit', '--no-fund')
+        Invoke-Checked $bundleDir 'npm' @('run', 'build')
+    }
 }
 
 function Build-DotNet {

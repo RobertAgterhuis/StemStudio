@@ -1,4 +1,4 @@
-# Contract: web-interop module (v1.0.0, proposed)
+# Contract: web-interop module (v1.0.0)
 
 Typed JS interop surface between `StemStudio.Web` (Blazor, C#) and the new TypeScript package
 `src/web-interop/` (`@stemstudio/web-interop`), built by Vite to
@@ -46,8 +46,8 @@ export function applyAppearance(preferences: StoredPreferences): void;
  *  reduced-motion setting changes. */
 export function watchSystemAppearance(dotnet: DotNetRef): Disposable;
 
-/** Registers the global key map (design-spec.md 6). The callback receives a command id
- *  (e.g. "help.open", "palette.open", "mixer.loop.toggle", "mixer.channel.select:3").
+/** Registers the global key map (design-spec.md 6). Calls dotnet.invokeMethodAsync("OnCommand", id)
+ *  with a command id (e.g. "help.open", "palette.open", "mixer.loop.toggle", "mixer.channel.select:3").
  *  Keys are ignored while focus is in an input, textarea, select, contenteditable, dialog
  *  or tour popover. Space is NOT handled here (mixer-keys.js keeps it). */
 export function registerShortcuts(dotnet: DotNetRef, scope: "global" | "mixer"): Disposable;
@@ -86,3 +86,25 @@ export interface TourRuntime {
 - No module touches the audio engine or audio timing (constitution V).
 - C# side: `IWebInterop` (Phase 0 stub) wraps these calls; components never call
   `IJSRuntime` for these features directly.
+- The full TypeScript types (incl. `StoredPreferences`, `StoredHelpProgress`, `StoredTourRecord`,
+  `TourRuntimeStep`, `TourLabels`, `ShortcutScope`) are in `src/web-interop/src/types.ts`; the
+  module also exports `WEB_INTEROP_CONTRACT_VERSION = "1.0.0"`. `first-paint.ts` is a separate
+  IIFE entry (`vite build --mode first-paint`).
+
+## 4. C# mapping (`src/StemStudio.Web/Interop/`, Phase 0 T002)
+
+| JS | `IWebInterop` | JS -> .NET callback |
+|---|---|---|
+| `readPreferences()` | `ReadPreferencesAsync()` -> `StoredPreferencesRead(JsonElement, bool)` | - |
+| `writePreferences(p)` | `WritePreferencesAsync(JsonElement)` -> `bool` | - |
+| `applyAppearance(p)` | `ApplyAppearanceAsync(JsonElement)` | - |
+| `watchPreferences` | `WatchPreferencesAsync(Func<string, Task>)` -> `IAsyncDisposable` | `OnPreferencesChanged(json)` |
+| `watchSystemAppearance` | `WatchSystemAppearanceAsync(Func<Task>)` | `OnSystemAppearanceChanged()` |
+| `registerShortcuts` | `RegisterShortcutsAsync(ShortcutScope, Func<string, Task>)` | `OnCommand(commandId)` |
+| `startTour` | `StartTourAsync(TourRuntime, Func<TourEnded, Task>)` | `OnTourEnded(tourId, status, lastStep)` -> `TourEnded(TourId, Completed, LastStep)` |
+| `focusedHelpId()` | `FocusedHelpIdAsync()` -> `string?` | - |
+| `captureFocus()` | `CaptureFocusAsync()` -> `IAsyncDisposable` (dispose restores focus) | - |
+
+The implementation (`WebInterop`, frontend T016) owns the `DotNetObjectReference` and the
+`[JSInvokable]` methods; the record mapping UserPreferences <-> JSON lives in
+`LocalPreferencesStore`, not in the interop layer (Interop does not depend on Preferences).

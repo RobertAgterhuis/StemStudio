@@ -106,3 +106,15 @@ Next: feature 003 GPU acceleration (docs/ROADMAP.md).
 | T052 real stack (GPU override), owner imports | "Broken Wings" 5:02 standard + detail 6 min 49 s on GPU while another GPU spike ran on the machine; "Sneaky Snitch" standard 31 s; Mega 53 step correctly fell back to the CPU with the reason when another container held the GPU |
 | T052 finding | worker starved itself (cached GPU models kept while the queue never idles) -> fix: reclaim own cached models before a memory fallback. Re-run: "Hysteria" 3:47 detail phase fully on GPU in 89 s, no fallback, peak 12.6 GB |
 | Licences | GPU-only system dependencies section; CPU image guard in CI |
+
+## Feature 004 design system and UX (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0, frontend (single lane, T012-T063), qa, devops, quality-gate merged |
+| Integration (isolated fake stack, retries 0) | legacy 66/66, ux 74/74, a11y 84/84 (0 axe violations), lighthouse all budgets (FCP 189-232 ms, LCP 305-459 ms, CLS <= 0.025), visual 60/60 baselines |
+| `scripts/test-all.ps1` | 34/34; Web 798 tests 99.45 % / 92.11 %; web-interop 232 tests |
+| Integration app fixes | command palette input, Enter saves mix, help footer links, tour focus/ARIA, expand button name, progress bar names, strip contrast, tooltip clipping, 320 px mixer title |
+| Judgement call | Lighthouse uses `throttlingMethod: devtools`: the simulator mis-models Blazor Server's first render (prerendering off); documented in TEST-STRATEGY 10.4 |
+| Design review | CTO approval under the owner mandate, owner review pending (docs/design-review/004/REVIEW.md) |
+| Backlog | Radzen CSS/JS served uncompressed (812 KB vs 64 KB brotli); Material Symbols font (1 MB) on every page; level click before stored level loads is overwritten; mixer shortcut commands not serialised |

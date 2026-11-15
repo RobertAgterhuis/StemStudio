@@ -33,3 +33,7 @@ test-results/
 .claude/worktrees/
 coverage.xml
 .playwright-mcp/
+
+# src/web-interop (feature 004): also covered by the generic node_modules/ and coverage/ rules above.
+src/web-interop/node_modules/
+src/web-interop/coverage/

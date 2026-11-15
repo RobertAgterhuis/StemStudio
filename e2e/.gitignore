@@ -4,3 +4,6 @@ playwright-report/
 blob-report/
 # Hand-over state between `npm test` and `npm run test:restart` (persistence check, T122)
 .state/
+# Lighthouse CI working folder and filesystem reports (feature 004, npm run test:lighthouse)
+.lighthouseci/
+lighthouse-report/

@@ -1,0 +1,27 @@
+{
+  "id": "expert-keyboard",
+  "version": 1,
+  "title": "Keyboard first",
+  "route": "/tracks/{id}/mixer",
+  "levels": [
+    "expert"
+  ],
+  "steps": [
+    {
+      "target": "command-palette",
+      "topic": "shortcuts",
+      "title": "Command palette",
+      "text": "Mod+K opens the palette on every screen: screens, tracks, mixes, help and the actions of this screen."
+    },
+    {
+      "target": "shortcut-overlay",
+      "topic": "shortcuts",
+      "title": "Every shortcut",
+      "text": "Mod+/ lists the shortcuts of the screen you are on."
+    },
+    {
+      "target": "mixer-numeric-entry",
+      "topic": "mixer-numeric-entry"
+    }
+  ]
+}

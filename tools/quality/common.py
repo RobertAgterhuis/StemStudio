@@ -6,6 +6,7 @@ identical on Windows and Linux.
 """
 
 import argparse
+import sys
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -50,6 +51,8 @@ EXCLUDED_SUFFIXES = (".g.cs", ".generated.cs", ".designer.cs", ".d.ts", ".min.js
 
 EXCLUDED_PATHS = (
     "src/StemStudio.Web/wwwroot/js/audio-engine.js",
+    "src/StemStudio.Web/wwwroot/js/web-interop.js",
+    "src/StemStudio.Web/wwwroot/js/first-paint.js",
     "tools/quality/tests/samples/",
     "worker/src/stemstudio_worker/detail/vendor/",
 )
@@ -71,6 +74,8 @@ OWNERS = (
     ("tests/StemStudio.Web.Tests/", "frontend"),
     ("src/audio-engine/src/types.ts", "architect"),
     ("src/audio-engine/", "audio-engine"),
+    ("src/web-interop/src/types.ts", "architect"),
+    ("src/web-interop/", "frontend"),
     ("worker/src/stemstudio_worker/ingest/", "audio-ingest"),
     ("worker/tests/ingest/", "audio-ingest"),
     ("worker/src/stemstudio_worker/analysis/", "beat-analysis"),
@@ -227,3 +232,12 @@ def count_errors(findings: Iterable[Finding]) -> int:
 def format_findings(findings: Iterable[Finding]) -> str:
     """Return one ``path:line: severity [check] message`` line per finding."""
     return "\n".join(f"{f.path}:{f.line}: {f.severity} [{f.check}] {f.message}" for f in findings)
+
+
+def report_findings(name: str, findings: Sequence[Finding]) -> int:
+    """Print ``findings`` and a ``<name>: N errors, M warnings`` line; return 1 on any error."""
+    errors = count_errors(findings)
+    lines = [format_findings(findings)] if findings else []
+    lines.append(f"{name}: {errors} errors, {len(findings) - errors} warnings")
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 1 if errors else 0

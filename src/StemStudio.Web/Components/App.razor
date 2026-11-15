@@ -3,11 +3,23 @@
 
 <head>
     <meta charset="utf-8" />
+    @* First paint (web-interop.md 1, R-10): sets data-theme/density/motion/level before any stylesheet applies. *@
+    <script src="js/first-paint.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="StemStudio splits a song into stems so you can mix them while you practise." />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <base href="/" />
-    <ResourcePreloader />
-    <RadzenTheme Theme="material" @rendermode="ServerNoPrerender" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="preload" href="fonts/archivo/Archivo-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    @* Cascade (ADR-013 D1): free MIT software base, StemStudio tokens, Radzen variable map, base layer, components. *@
+    <link rel="stylesheet" href="@Assets["_content/Radzen.Blazor/css/software.css"]" />
+    <link rel="stylesheet" href="@Assets["css/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["css/radzen-map.css"]" />
+    <link rel="stylesheet" href="@Assets["css/base.css"]" />
+    @foreach (var sheet in ComponentSheets)
+    {
+        <link rel="stylesheet" href="@Assets[$"css/components/{sheet}.css"]" />
+    }
     <ImportMap />
     <HeadOutlet @rendermode="ServerNoPrerender" />
 </head>
@@ -23,4 +35,7 @@
 @code {
     // Prerendering is off: pages load data and the audio engine once, after the circuit is up.
     private static readonly IComponentRenderMode ServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
+
+    // Component style sheets in cascade order (css/components/*.css).
+    private static readonly string[] ComponentSheets = ["states", "design", "shell", "pages", "track", "mixer", "help", "tour", "expert", "dialog"];
 }

@@ -1,22 +1,47 @@
-@* One channel strip (standard or detail stem): meter, fader (0-100 %), pan (-100 L..100 R), mute and solo (FR-011, FR-012). *@
+@* One channel strip (standard or detail stem): colour tab, meter, fader (0-100 %), pan (-100 L..100 R), mute and solo
+   (FR-011, FR-012; design-spec.md 4.5). *@
 
 <div class="ss-strip @(Audible ? null : "ss-strip-silent")" role="group" aria-label="@StripLabel"
-     data-testid="@($"strip-{Channel.Key}")" data-expanded="@ExpandedText">
-    <span class="ss-strip-name">@Channel.Label</span>
-    <Meter Target="@Channel.Key" Label="@Name" />
-    <input type="range" class="ss-fader" min="0" max="100" step="1" value="@Volume" aria-valuenow="@Volume"
-           aria-valuemin="0" aria-valuemax="100" aria-label="@($"{Name} volume")" aria-orientation="vertical"
-           @oninput="VolumeInput" data-testid="@($"fader-{Channel.Key}")" />
-    <input type="range" class="ss-pan" min="-100" max="100" step="1" value="@Pan" aria-valuenow="@Pan"
-           aria-valuemin="-100" aria-valuemax="100" aria-label="@($"{Name} pan")" aria-valuetext="@PanText"
-           @oninput="PanInput" data-testid="@($"pan-{Channel.Key}")" />
-    <div class="ss-strip-buttons">
-        <RadzenButton Text="M" Size="ButtonSize.Small" ButtonStyle="@(Channel.Mute ? ButtonStyle.Danger : ButtonStyle.Light)"
-                      aria-pressed="@Bool(Channel.Mute)" aria-label="@($"Mute {Name}")" Click="OnMute"
-                      data-testid="@($"mute-{Channel.Key}")" />
-        <RadzenButton Text="S" Size="ButtonSize.Small" ButtonStyle="@(Channel.Solo ? ButtonStyle.Warning : ButtonStyle.Light)"
-                      aria-pressed="@Bool(Channel.Solo)" aria-label="@($"Solo {Name}")" Click="OnSolo"
-                      data-testid="@($"solo-{Channel.Key}")" />
+     data-testid="@($"strip-{Channel.Key}")" data-expanded="@ExpandedText" data-selected="@(Selected ? "true" : null)">
+    <StemTab Stem="@Channel.Stem" Pattern="Pattern" />
+    <div class="ss-strip-levels">
+        <Meter Target="@Channel.Key" Label="@Name" />
+        <input type="range" class="ss-fader" min="0" max="100" step="1" value="@Volume" aria-valuenow="@Volume"
+               aria-valuemin="0" aria-valuemax="100" aria-label="@($"{Name} volume")" aria-orientation="vertical"
+               @oninput="VolumeInput" data-testid="@($"fader-{Channel.Key}")" data-help-id="mixer-volume" />
     </div>
+    <LevelGate Feature="mixer.pan">
+        <HelpTip HelpId="mixer-pan">
+            <input type="range" class="ss-pan" min="-100" max="100" step="1" value="@Pan" aria-valuenow="@Pan"
+                   aria-valuemin="-100" aria-valuemax="100" aria-label="@($"{Name} pan")" aria-valuetext="@PanText"
+                   @oninput="PanInput" data-testid="@($"pan-{Channel.Key}")" data-help-id="mixer-pan" />
+        </HelpTip>
+    </LevelGate>
+    <LevelGate Feature="mixer.numeric">
+        <div class="ss-strip-numbers">
+            <label class="ss-sr-only" for="@($"fader-value-{Channel.Key}")">@($"{Name} volume value")</label>
+            <input id="@($"fader-value-{Channel.Key}")" type="number" class="rz-textbox ss-number ss-strip-number" min="0" max="100" step="1"
+                   value="@Volume" @onchange="VolumeInput" data-testid="@($"fader-value-{Channel.Key}")" data-help-id="mixer-numeric-entry" />
+            <label class="ss-sr-only" for="@($"pan-value-{Channel.Key}")">@($"{Name} pan value")</label>
+            <input id="@($"pan-value-{Channel.Key}")" type="number" class="rz-textbox ss-number ss-strip-number" min="-100" max="100" step="1"
+                   value="@Pan" @onchange="PanInput" data-testid="@($"pan-value-{Channel.Key}")" data-help-id="mixer-numeric-entry" />
+        </div>
+    </LevelGate>
+    <LevelGate Feature="mixer.pan-marker">
+        @if (PanMarker is { } marker)
+        {
+            <span class="ss-pan-marker" data-testid="@($"pan-marker-{Channel.Key}")">@marker</span>
+        }
+    </LevelGate>
+    <HelpTip HelpId="mixer-mute-solo">
+    <div class="ss-strip-buttons">
+        <RadzenButton Text="M" Size="ButtonSize.Small" ButtonStyle="@(Channel.Mute ? ButtonStyle.Danger : ButtonStyle.Light)" class="ss-strip-toggle"
+                      aria-pressed="@Bool(Channel.Mute)" aria-label="@($"Mute {Name}")" Click="OnMute"
+                      data-testid="@($"mute-{Channel.Key}")" data-help-id="mixer-mute-solo" />
+        <RadzenButton Text="S" Size="ButtonSize.Small" ButtonStyle="@(Channel.Solo ? ButtonStyle.Warning : ButtonStyle.Light)" class="ss-strip-toggle"
+                      aria-pressed="@Bool(Channel.Solo)" aria-label="@($"Solo {Name}")" Click="OnSolo"
+                      data-testid="@($"solo-{Channel.Key}")" data-help-id="mixer-mute-solo" />
+    </div>
+    </HelpTip>
     @ChildContent
 </div>

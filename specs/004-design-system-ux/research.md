@@ -218,7 +218,7 @@ a server help API (no need, content is static per build).
 
 ## R-07 Guided tours: driver.js
 
-**Decision**: driver.js 1.14.0 (MIT; roadmap research 2.4, **verify** version and licence in T001 and T054),
+**Decision**: driver.js 1.10.2 (MIT; roadmap research 2.4, **verify** version and licence in T001 and T054),
 wrapped by `web-interop/src/tour.ts`. Tours are JSON in `src/StemStudio.Web/Help/tours/<id>.json`
 ([contracts/help-content.md](contracts/help-content.md) and `tour.schema.json`); a step targets
 `[data-help-id="<id>"]` and takes its text from the topic summary unless the step overrides it.
@@ -323,3 +323,19 @@ replaced by the `software` base, so the net change is smaller.
 | Key conflicts with browser or screen readers | no single-letter shortcuts inside text fields or while a screen reader virtual cursor is in a form (guard by focused element); `?`/F1 only outside inputs; every shortcut also has a visible control |
 | Help content drifts from the UI | marker/anchor/tour tests fail the build (R-08) |
 | Tour library a11y gaps | wrapper adds focus trap/return and labels; tour content is also readable in the help panel |
+
+## R-14 Phase 0 verification of versions and licences (T001-T003, 2026-11-15)
+
+Rule: exact pins, each version published at least two weeks before pinning (before 2026-11-01).
+
+| Dependency | Planned | Pinned / verified | Licence (source checked) | Note |
+|---|---|---|---|---|
+| driver.js (npm, runtime of `src/web-interop`) | 1.14.0 | **1.10.2** (2026-10-18) | MIT: `license` file in the npm tarball (Copyright Kamran Ahmed), `package.json` `license: MIT`, no dependencies | 1.14.0 was published 2026-11-13 (2 days old); 1.10.2 is the newest version older than two weeks. The API the wrapper needs (`driver()`, `popoverClass`, `onPopoverRender`, `onDestroyed`, `animate`, `allowKeyboardControl`) is in its `driver.js.d.ts`. Repository now `github.com/nilbuild/driver.js` |
+| Markdig (NuGet) | 1.6.0 | **1.5.1** (2026-10-28) | BSD-2-Clause: nuspec `licenseExpression` and `license.txt` at the packaged commit `bbf197e` of `github.com/xoofx/markdig` | 1.6.0 was published 2026-11-04 (11 days); net10.0 asset, no dependencies |
+| YamlDotNet (NuGet) | 18.1.0 | 18.1.0 (2026-06-26), now also runtime | MIT | unchanged pin |
+| Archivo (font, frontend T020) | variable, OFL | `google/fonts` `ofl/archivo/Archivo[wdth,wght].ttf` (+ Italic), upstream `Omnibus-Type/Archivo` commit `b5d6398` (2021-02-01) | SIL OFL-1.1: `OFL.txt` in both repositories | axes `wght` 100-900, `wdth` 62-125; frontend subsets to a Latin woff2 and records the SHA-256 |
+| `@axe-core/playwright` (e2e dev, qa) | verify | **4.14.0** (2026-10-15); pulls `axe-core ~4.14.0` (4.14.0, 2026-10-05) | MPL-2.0: `LICENSE` in both tarballs (axe-core also ships `LICENSE-3RD-PARTY.txt`, MIT parts) | peer `playwright-core >= 1.0.0` |
+| `@lhci/cli` (e2e dev, qa) | verify | **0.15.1** (2025-06-25) | Apache-2.0: `LICENSE` in the tarball | 0.16.0 (2026-11-02) and 0.16.1 are less than two weeks old |
+
+`src/web-interop/package-lock.json` was seeded from `src/audio-engine/package-lock.json`, so the
+dev tree (228 packages) is identical to the audio engine's; the only addition is driver.js.

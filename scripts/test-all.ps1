@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-    pytest with coverage), audio engine (lint, typecheck, coverage, build), contracts (Redocly),
+    pytest with coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly),
     quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -54,6 +54,11 @@ $Steps = @(
     @{ Name = 'engine typecheck'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'engine test:coverage'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'engine build'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'build') }
+    @{ Name = 'web-interop npm ci'; Dir = 'src/web-interop'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
+    @{ Name = 'web-interop lint'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'lint') }
+    @{ Name = 'web-interop typecheck'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'typecheck') }
+    @{ Name = 'web-interop test:coverage'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'test:coverage') }
+    @{ Name = 'web-interop build'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'build') }
     @{ Name = 'contracts lint'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/worker-api.openapi.yaml", "$Contracts/backend-api.openapi.yaml") }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }

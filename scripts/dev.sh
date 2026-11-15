@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Runs StemStudio without Docker: worker (uv, :8000), API (dotnet run, :8081), web (dotnet run, :8080).
-# Builds the audio-engine bundle first; data lives under <repo>/data. Ctrl+C stops all three.
+# Builds the audio-engine and web-interop bundles first; data lives under <repo>/data. Ctrl+C stops all three.
 # No secrets are read or needed.
 #
 # Usage: scripts/dev.sh [--fake] [--skip-engine-build] [--smoke-test] [--timeout <seconds>]
 #   --fake               STEMSTUDIO_SEPARATOR=fake (stems are copies of the mix; detail faked; no download)
-#   --skip-engine-build  reuse the existing wwwroot/js/audio-engine.js
+#   --skip-engine-build  reuse the existing wwwroot/js bundles (audio-engine, web-interop)
 #   --smoke-test         wait for the three /health endpoints, print them, stop; exit 0 when all are 200
 #   --timeout <s>        how long to wait per /health endpoint (default 180)
 set -euo pipefail
@@ -55,7 +55,10 @@ init_environment() {
 }
 
 build_engine() {
-  (cd "$REPO_ROOT/src/audio-engine" && npm ci --no-audit --no-fund && npm run build)
+  local bundle
+  for bundle in src/audio-engine src/web-interop; do
+    (cd "$REPO_ROOT/$bundle" && npm ci --no-audit --no-fund && npm run build)
+  done
 }
 
 start_all() {

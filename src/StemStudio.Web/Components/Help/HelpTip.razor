@@ -1,0 +1,41 @@
+@* Tooltip of a marked control (FR-022): the topic summary and "Learn more" on hover and keyboard focus; Escape hides
+   it and it stays while the pointer is over it (WCAG 1.4.13). *@
+@inject IHelpCatalog Catalog
+@inject HelpContext Help
+
+<span class="ss-helptip" @onmouseenter="Show" @onmouseleave="Hide" @onfocusin="Show" @onfocusout="Hide" @onkeydown="Key">
+    @ChildContent
+    @if (Shown && Topic is { } topic)
+    {
+        <span class="ss-tooltip" role="tooltip" data-testid="@($"help-tooltip-{topic.Id}")">
+            <span>@topic.Summary</span>
+            <button type="button" class="ss-text-button" data-testid="help-learn-more" @onclick="() => LearnMoreAsync(topic.Id)">Learn more</button>
+        </span>
+    }
+</span>
+
+@code {
+    /// <summary>The marker of the wrapped control (also set as <c>data-help-id</c> on the control itself).</summary>
+    [Parameter, EditorRequired]
+    public string HelpId { get; set; } = string.Empty;
+
+    /// <summary>The control.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool Shown { get; set; }
+
+    private HelpTopic? Topic => Catalog.TopicForAnchor(HelpId);
+
+    private void Show() => Shown = true;
+
+    private void Hide() => Shown = false;
+
+    private void Key(KeyboardEventArgs args) => Shown = Shown && args.Key != "Escape";
+
+    private Task LearnMoreAsync(string topicId)
+    {
+        Shown = false;
+        return Help.ShowAsync(topicId);
+    }
+}

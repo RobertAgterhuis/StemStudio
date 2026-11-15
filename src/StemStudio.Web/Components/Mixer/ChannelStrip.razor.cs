@@ -18,6 +18,14 @@ public sealed partial class ChannelStrip
     [Parameter]
     public bool? Expanded { get; set; }
 
+    /// <summary>True when the strip is selected for keyboard mute/solo (<c>data-selected</c>).</summary>
+    [Parameter]
+    public bool Selected { get; set; }
+
+    /// <summary>Detail index for the tab pattern (detail strips); null for standard strips.</summary>
+    [Parameter]
+    public int? Pattern { get; set; }
+
     /// <summary>Extra content at the bottom of the strip (the expand toggle of a split parent).</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -53,6 +61,14 @@ public sealed partial class ChannelStrip
         < 0 => $"{InputValue.Percent(-Channel.Pan)} left",
         > 0 => $"{Pan} right",
         _ => "centre",
+    };
+
+    /// <summary>Read-only pan note at Beginner (pan is hidden there but stays applied), e.g. "Panned L 30".</summary>
+    private string? PanMarker => Channel.Pan switch
+    {
+        < 0 => $"Panned L {InputValue.Percent(-Channel.Pan)}",
+        > 0 => $"Panned R {Pan}",
+        _ => null,
     };
 
     private static string Bool(bool value) => value ? "true" : "false";

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+import common
 from common import (
     REPO_ROOT,
     Finding,
@@ -108,3 +109,17 @@ def test_helpers() -> None:
     assert args.root == Path("x")
     assert not hasattr(args, "paths")
     assert build_parser(None).parse_args([]).paths == []
+
+
+def test_report_findings_prints_totals_and_returns_the_exit_code(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    error = common.Finding("x", common.Severity.ERROR, "a.cs", 3, "bad")
+    warning = common.Finding("x", common.Severity.WARNING, "b.cs", 0, "meh")
+    assert common.report_findings("demo", [error, warning]) == 1
+    assert capsys.readouterr().out == (
+        "a.cs:3: error [x] bad\nb.cs:0: warning [x] meh\ndemo: 1 errors, 1 warnings\n"
+    )
+    assert common.report_findings("demo", [warning]) == 0
+    assert common.report_findings("demo", []) == 0
+    assert capsys.readouterr().out.endswith("demo: 0 errors, 0 warnings\n")

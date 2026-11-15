@@ -15,6 +15,7 @@ CHECK_WEIGHTS = {
     "unit-size": 1.0,
     "duplication": 1.0,
     "razor-code": 0.5,
+    "raw-colour": 1.0,
 }
 """Weight per check; unknown checks (``exemption``, ``dependency``) weigh 0."""
 
@@ -24,6 +25,7 @@ REMEDIES = {
     "razor-code": "move the `@code` logic to a `.razor.cs` code-behind or a service",
     "duplication": "extract a shared helper, fixture or builder",
     "parameters": "introduce a parameter object (record)",
+    "raw-colour": "replace the literal with a design token `var(--ss-...)` from tokens.css",
 }
 """Concrete refactoring per check."""
 

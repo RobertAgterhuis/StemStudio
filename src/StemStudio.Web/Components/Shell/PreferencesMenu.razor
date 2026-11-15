@@ -1,0 +1,29 @@
+@* Preferences menu (FR-002, FR-020): theme, density, motion, reset help; storage note when nothing can be kept. *@
+@inherits PreferencesAware
+
+<div class="ss-prefs">
+    <button type="button" class="ss-bar-button" aria-expanded="@(Open ? "true" : "false")" aria-controls="preferences-panel"
+            data-testid="preferences-open" data-help-id="preferences" @ref="_button" @onclick="Toggle">
+        <span class="rzi" aria-hidden="true">tune</span><span class="ss-bar-label">Preferences</span>
+    </button>
+    @if (Open)
+    {
+        <div id="preferences-panel" class="ss-prefs-panel" role="dialog" aria-modal="false" aria-labelledby="preferences-title"
+             data-testid="preferences-panel" @onkeydown="KeyAsync">
+            <h2 id="preferences-title" class="ss-heading">Preferences</h2>
+            <p class="ss-prefs-label">Theme</p>
+            <SegmentedChoice TValue="ThemePreference" Options="Themes" Value="Preferences.Current.Theme" ValueChanged="Preferences.SetThemeAsync" Label="Theme" />
+            <p class="ss-prefs-label">Density</p>
+            <SegmentedChoice TValue="DensityPreference" Options="Densities" Value="Preferences.Current.Density" ValueChanged="Preferences.SetDensityAsync" Label="Density" />
+            <p class="ss-prefs-label">Motion</p>
+            <SegmentedChoice TValue="MotionPreference" Options="Motions" Value="Preferences.Current.Motion" ValueChanged="Preferences.SetMotionAsync" Label="Motion" />
+            <button type="button" class="ss-text-button" data-testid="pref-reset-help" @onclick="ResetHelpAsync">Reset help and tours</button>
+            @if (!Preferences.StorageAvailable)
+            {
+                <p class="ss-help" role="note" data-testid="pref-storage-unavailable">
+                    This browser blocks local storage, so your choices will not be remembered after a reload.
+                </p>
+            }
+        </div>
+    }
+</div>

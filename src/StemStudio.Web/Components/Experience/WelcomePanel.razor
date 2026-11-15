@@ -1,0 +1,41 @@
+@* First-run welcome (FR-011, design-spec.md 4.2): non-modal, above the import form; a level choice, the tour or
+   "Not now" dismisses it for good (until "Reset help and tours"). *@
+@inherits PreferencesAware
+@inject ITourLauncher Tours
+
+@if (Preferences.Loaded && !Preferences.Current.Help.WelcomeDismissed)
+{
+    <section class="ss-welcome" aria-labelledby="welcome-title" data-testid="welcome-panel" data-help-id="welcome">
+        <h2 id="welcome-title" class="ss-title">Welcome to StemStudio. How do you want to start?</h2>
+        <div class="ss-welcome-choices">
+            @foreach (var choice in Choices)
+            {
+                <button type="button" class="ss-welcome-choice" data-testid="@choice.TestId" @onclick="() => ChooseAsync(choice.Level)">
+                    <span class="ss-welcome-choice-title">@choice.Title</span>
+                    <span class="ss-welcome-choice-text">@choice.Text</span>
+                </button>
+            }
+        </div>
+        <div class="ss-welcome-actions">
+            <button type="button" class="ss-text-button" data-testid="welcome-tour-start" @onclick="StartTourAsync">Take a one-minute tour</button>
+            <button type="button" class="ss-text-button" data-testid="welcome-dismiss" @onclick="Preferences.DismissWelcomeAsync">Not now</button>
+        </div>
+    </section>
+}
+
+@code {
+    private static readonly (ExperienceLevel Level, string TestId, string Title, string Text)[] Choices =
+    [
+        (ExperienceLevel.Beginner, "welcome-level-beginner", "I am new to this", "Guided steps, practice presets and short hints."),
+        (ExperienceLevel.Advanced, "welcome-level-advanced", "I know my way around", "All controls, as usual."),
+        (ExperienceLevel.Expert, "welcome-level-expert", "Give me everything", "Shortcuts, exact numbers and job details."),
+    ];
+
+    private Task ChooseAsync(ExperienceLevel level) => Preferences.ChooseLevelAsync(level);
+
+    private async Task StartTourAsync()
+    {
+        await Preferences.DismissWelcomeAsync();
+        await Tours.StartAsync("import-basics");
+    }
+}
