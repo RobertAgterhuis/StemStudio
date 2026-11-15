@@ -3,8 +3,9 @@ import type { AssetsApi } from '../support/assets-api';
 import { ensureDetailCompleted } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { expect, test } from '../support/test';
-import { clefs, crossNoteheads, expectedFakeBars, fifths, isMidi, isPdf, measureCount, noteTypes, staves, timeSignature, voices, type GridDto } from '../support/musicxml';
+import { clefs, crossNoteheads, expectedFakeBars, fifths, isMidi, isPdf, measureCount, noteTypes, staves, timeSignature, unpitchedNotes, voices, type GridDto } from '../support/musicxml';
 import type { ScoreApi } from '../support/score-api';
+import { ensurePlainTrack } from '../support/ux-data';
 
 // Feature 008 US1-US5 (008:T045, T050, T056, T065, T070; FR-001..FR-010; SC-003; quickstart
 // M3-M8). Fake stack: the fake transcriber plays one note per beat of the track's real grid
@@ -83,14 +84,22 @@ test.describe('piano', { tag: '@sheet-music' }, () => {
 });
 
 test.describe('drums', { tag: ['@sheet-music', '@detail'] }, () => {
-  test('before the split the dialog asks to split the drums first (US4-2)', async ({ scoreDialog, trackPage }) => {
-    await trackPage.goto(track.id);
+  // The fake stack runs the detail phase by itself, so the "not split" track is the click
+  // fixture whose detail phase is cancelled (the shared 004 plain track).
+  test('before the split the dialog asks to split the drums first (US4-2)', async ({ api, scoreApi, scoreDialog, trackPage }) => {
+    test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + scoreMs);
+    const plain = await ensurePlainTrack(api);
+    expect((await scoreApi.options(plain.id, 'drums')).drumsRequireSplit).toBe(true);
+    await trackPage.goto(plain.id);
     await scoreDialog.openForStem('drums');
     await expect(scoreDialog.byId('score-drums-split-required')).toBeVisible();
     await expect(scoreDialog.byId('score-drums-split-start')).toBeVisible();
   });
 
-  test('after the split: percussion clef, two voices, x noteheads (US4)', async ({ api, assetsApi, scoreApi, scoreDialog, trackPage }) => {
+  // The fake detail phase splits the drums into kick, snare, toms and rest (no hi-hat or
+  // cymbals), so the fake score has no x noteheads; those are covered by the percussion
+  // builder's unit tests (beat-analysis 008).
+  test('after the split: percussion clef, two voices of unpitched notes (US4)', async ({ api, assetsApi, scoreApi, scoreDialog, trackPage }) => {
     test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 2 * scoreMs);
     const band = await ensureDetailCompleted(api);
     await trackPage.goto(band.id);
@@ -99,12 +108,13 @@ test.describe('drums', { tag: ['@sheet-music', '@detail'] }, () => {
     const xml = await readyScore(assetsApi, scoreApi, await scoreDialog.savedAssetId());
     expect(clefs(xml).map((c) => c.sign)).toContain('percussion');
     expect([...voices(xml)].sort()).toEqual([1, 2]);
-    expect(crossNoteheads(xml)).toBeGreaterThan(0);
+    expect(unpitchedNotes(xml)).toBeGreaterThan(0);
+    expect(crossNoteheads(xml)).toBe(0);
   });
 });
 
 test.describe('sheet music from a library item', { tag: '@sheet-music' }, () => {
-  test('a loop-region export becomes sheet music whose source names the item and the track (US5)', async ({ assetsApi, library, scoreApi, scoreDialog }) => {
+  test('a loop-region export becomes sheet music linked to the item and the track (US5)', async ({ assetsApi, library, scoreApi, scoreDialog }) => {
     const exported = await assetsApi.createExport({ trackId: track.id, mode: 'raw', channels: ['bass'], range: { startSeconds: 4, endSeconds: 12 }, format: { format: 'flac' } });
     await assetsApi.waitForReady(exported.id, scoreMs);
     await library.goto();
@@ -114,8 +124,9 @@ test.describe('sheet music from a library item', { tag: '@sheet-music' }, () => 
     await assetsApi.waitForReady(id, scoreMs);
     const score = await scoreApi.get(id);
     expect([score.provenance.trackId, score.provenance.sourceAssetIds]).toEqual([track.id, [exported.id]]);
+    // ui-test-ids 1.7.0: `asset-source-<id>` shows the track title; the audio item is linked in
+    // `provenance.sourceAssetIds` only (frontend 008 US5 hand-off).
     await library.goto();
-    await expect(library.source(id)).toContainText(exported.name);
     await expect(library.source(id)).toContainText(track.title);
   });
 });

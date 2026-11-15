@@ -77,6 +77,11 @@ export function voices(xml: string): Set<number> {
   return new Set([...xml.matchAll(/<voice>(\d+)<\/voice>/gu)].map(([, v = '0']) => Number(v)));
 }
 
+/** Number of `<unpitched>` notes (percussion). */
+export function unpitchedNotes(xml: string): number {
+  return (xml.match(/<unpitched>/gu) ?? []).length;
+}
+
 /** Number of `<notehead>x</notehead>` elements (hi-hat and cymbals). */
 export function crossNoteheads(xml: string): number {
   return (xml.match(/<notehead\b[^>]*>x<\/notehead>/gu) ?? []).length;

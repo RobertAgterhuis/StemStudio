@@ -754,20 +754,26 @@ change). `data-position-ms` must stay within 50 ms of the reference. `E2E_KARAOK
 `E2E_KARAOKE_SEEKS` lower the counts for a quick local run; the CTO run uses the defaults (50/20).
 
 **Frame rate (SC-004, L5).** Chromium only: rAF frames over 20 s of playback >= 55 fps, and the
-`performance.measure` entries whose name starts with `karaoke` (audio-engine) stay below 2 ms. On
-the reference machine the Chrome DevTools trace is the binding measurement (CTO T066).
+95th percentile of the time spent in every `requestAnimationFrame` callback (timed by an init
+script; the engine emits no `performance.measure` entries, so this is the whole engine frame loop
+including the meters, stricter than the karaoke work alone) stays below 2 ms. On the reference
+machine the Chrome DevTools trace is the binding measurement (CTO T066).
 
 ### 13.2 Fake stack modes and run matrix
 
 `STEMSTUDIO_FAKE_LYRICS` (only with `STEMSTUDIO_SEPARATOR=fake`) selects a row of
-`tests/fixtures/lyrics/fake-lyrics.json` (qa proposal: audio-ingest 006:T028 and stem-separation
-006:T041 return exactly those values). The suite reads `E2E_FAKE_LYRICS`, else
+`tests/fixtures/lyrics/fake-lyrics.json`. The table started as the qa proposal and was aligned with
+the implementation in the 006+008 integration run: the worker's fake provider spreads four
+self-written lines evenly over the track (line i of n at `floor(durationMs / (n + 1)) * (i + 1)`,
+words interpolated: 4, 8, 12 and 16 s on the 20 s fixture); the fake aligner follows the
+`fakeAlignment` rule (word k at 2000 + 500 k ms). No gap is longer than 5 s, so the gap countdown
+(US1-6) is covered by the engine's `dom`/`timeline` unit tests only. The suite reads `E2E_FAKE_LYRICS`, else
 `STEMSTUDIO_FAKE_LYRICS`, else `word`, and skips cases of other modes (`support/lyrics.ts`). While
 the stack has no 006 backend (`GET .../lyrics` 404/405) every case skips with that reason.
 
 | Stack (`STEMSTUDIO_FAKE_LYRICS`, `STEMSTUDIO_FAKE_DEVICE`) | Runs |
 |---|---|
-| `word`, `cpu` (compose default) | `karaoke.spec.ts` word sync, landing, loops, seeks, offset, frame rate, controls, reduced motion, Beginner; `lyrics.spec.ts` FR-010 privacy |
+| `word`, `cpu` (compose default) | `karaoke.spec.ts` word sync, landing, loops, seeks, offset, frame rate, controls, reduced motion, Beginner; `lyrics.spec.ts` FR-010 privacy; `lyrics-score-levels.spec.ts` (banner and lyrics card per level); `help.spec.ts` 006 queries and markers |
 | `line`, `cpu` | karaoke line sync (`data-sync="line"`, "word timing estimated") |
 | `instrumental`, `cpu` | no banner, `karaoke-unavailable` `instrumental` |
 | `plain`, `cpu` | click-to-align with the CPU estimate, paste flow (click) |
@@ -795,10 +801,13 @@ committed.
 |---|---|---|---|
 | `align_clip_sung_29s.wav` | isolated lead vocal, 28.97 s, 44.1 kHz stereo PCM16: a self-written 4-line song (22 words, D major, 100 BPM, a 2.4 s rest) sung by the formant synthesiser `tests/fixtures/sung_voice.py`; CC0 | per word the exact start/end (first/last sample of its phones), `plainText`, `language: en`, SC-003 target 80 % within 300 ms | `worker/tests/alignment/test_align_clip.py` (`-m integration`) |
 
-qa measurement on 2026-11-15 (CPU, stable-ts 2.19.1 `align`, default options): Whisper turbo
-63.6 % of word starts within 300 ms (median 170 ms), base 59.1 %. The misses are words after held
-notes, placed 340-580 ms early. This is below SC-003 and is reported to stem-separation (qa
-hand-off `qa-006-pre-ui.md`); the fixture is not tuned to pass.
+qa measurement on 2026-11-15 before the fix (CPU, stable-ts 2.19.1 `align`, default options):
+Whisper turbo 63.6 % of word starts within 300 ms (median 170 ms), base 59.1 %; the misses were
+words after held notes. After stem-separation's onset refinement (006 US2) the integration run
+measured `worker/tests/alignment/test_align_clip.py` with Whisper turbo at **20 / 22 = 90.9 %**
+on the GPU image (`STEMSTUDIO_DEVICE=cuda`, RTX 5070 Ti, align phase 1.4 s for 29 s of audio) and
+the same 20 / 22 on the CPU image (align phase 7.5 s); SC-003 (>= 80 %) is met. The fixture was
+never tuned to pass.
 
 ### 13.4 (006) acceptance scenario -> tests
 
@@ -809,7 +818,7 @@ hand-off `qa-006-pre-ui.md`); the fixture is not tuned to pass.
 | US1-3 pause, seek, loop keep the ball in time (FR-006, SC-002) | engine `clock` / `cursor` tests | `karaoke.spec.ts` loops and seeks |
 | US1-4 offset (FR-007) | `TrackLyricsTests.cs`, `LyricsEndpointTests.cs`, `KaraokeBanner` bUnit | `karaoke.spec.ts` offset (+500 ms, stored, reset) |
 | US1-5 instrumental, no banner | `test_select.py`, `LyricsSyncTests.cs` | `karaoke.spec.ts` instrumental |
-| US1-6 countdown in gaps > 5 s (FR-008) | engine `dom` tests | `karaoke.spec.ts` L2 (gap 9.8-16.0 s) |
+| US1-6 countdown in gaps > 5 s (FR-008) | engine `dom` / `timeline` tests | `karaoke.spec.ts` L2 covers the countdown before the first line only (the fake document has no gap > 5 s) |
 | US2-1 automatic alignment on a GPU worker (FR-004, FR-014) | `LyricsAlignTests.cs`, `test_aligner.py` | `lyrics.spec.ts` plain + gpu |
 | US2-2 click to align on a CPU worker with the estimate (SC-005) | estimate tests (stem-separation T042), `LyricsAlignTests.cs` | `lyrics.spec.ts` plain + cpu |
 | US2-3 paste and align | `LyricsAlignTests.cs`, paste dialog bUnit | `lyrics.spec.ts` paste |
@@ -821,7 +830,8 @@ hand-off `qa-006-pre-ui.md`); the fixture is not tuned to pass.
 | FR-010 lyrics never leave the app (SC-006) | `LyricsEndpointTests.cs` (log scan) | `lyrics.spec.ts` no-store + track list without text |
 | FR-012 rate limits and identification | `test_lrclib.py` | - |
 | FR-013 old tracks looked up on first mixer open | `LyricsSyncTests.cs` | - |
-| FR-015 levels (Beginner: banner + toggle) | bUnit levels | `karaoke.spec.ts` Beginner |
+| FR-015 levels (Beginner: banner + toggle) | bUnit levels | `karaoke.spec.ts` Beginner, `lyrics-score-levels.spec.ts` |
+| help topics `karaoke`, `karaoke-offset`, `lyrics-sources`, `lyrics-align` | help coverage bUnit | `help.spec.ts` 006 queries and markers |
 | SC-004 frame rate | engine layout tests (no layout reads per frame) | `karaoke.spec.ts` frame rate (Chromium); CTO T066 trace |
 
 ## 14. (008) Sheet music per instrument
@@ -850,6 +860,10 @@ Binding contracts: `specs/008-sheet-music/contracts/` (worker 1.6.0, backend 1.7
   `<voice>`, `<notehead>x</notehead>`). The readers are self-tested in
   `lyrics-score-support.spec.ts`. While the stack has no 008 backend (`/api/scores/options`
   404/405) every case skips with that reason.
+- **Design-quality matrices**: the `score-dialog` screen (track page, dialog open for the bass) and
+  a ready score item on `library` (`support/ux-library.ts` `ensureScoreItem`, the PDF preview frame
+  is masked in screenshots) join the visual and a11y matrices; the karaoke banner and the lyrics
+  card appear on the existing `mixer` and `track` screens (fake lyrics mode `word`).
 
 ### 14.2 Run matrix
 
@@ -891,8 +905,9 @@ first downbeat 0.5 s, every onset on the 1/16 grid.
 | US5-1 from a library item with a range (FR-012, FR-013) | `TempoGridResolverTests.cs`, `CreateScoreTests.cs` | `sheet-music.spec.ts` from a library item (provenance track + source asset) |
 | US5-2 item without a source track -> manual tempo | `TempoGridResolverTests.cs` | - |
 | FR-011 not blocking (SC-005) | lane scheduler tests | CTO M10 |
-| FR-014 help topics | help coverage tests | pending: level/help specs after the 004 merge |
-| SC-002 synthetic accuracy | integration tests on 14.3 | - |
+| FR-014 help topics | help coverage tests | `help.spec.ts` 008 queries and score dialog markers |
+| levels (Beginner: profile, rhythm, estimate, limits) | dialog bUnit | `lyrics-score-levels.spec.ts` |
+| SC-002 synthetic accuracy | integration tests on 14.3: integration run 2026-11-15 bass F1 1.000, piano F1 0.933 (GPU and CPU) | - |
 | SC-004 PDF glyphs | `test_engraver.py`, `scripts/check-worker-fonts.*` | `sheet-music.spec.ts` bass (`%PDF`) |
 
 ### 14.5 Commands (006 + 008)
