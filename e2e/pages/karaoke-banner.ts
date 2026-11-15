@@ -52,7 +52,7 @@ export class KaraokeBanner {
     return this.byId('karaoke-unavailable');
   }
 
-  /** The engine's ball (absent with reduced motion). */
+  /** The engine's ball (present but hidden with reduced motion, audio-engine.md "Reduced motion"). */
   get ball(): Locator {
     return this.host.locator('.karaoke-ball');
   }
