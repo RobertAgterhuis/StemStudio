@@ -46,14 +46,10 @@ afterEach(() => {
 
 describe('defaults and validation (data-model.md 1.1)', () => {
   it('has the documented defaults', () => {
-    expect(defaultPreferences()).toEqual({
-      schemaVersion: 1,
-      level: null,
-      theme: 'system',
-      density: 'auto',
-      motion: 'system',
-      help: { welcomeDismissed: false, tours: {}, hintsDismissed: [] },
-    });
+    // The example record of data-model.md 1.1 with every field at its default.
+    const documented = '{"schemaVersion":1,"level":null,"theme":"system","density":"auto","motion":"system",'
+      + '"help":{"welcomeDismissed":false,"tours":{},"hintsDismissed":[]}}';
+    expect(defaultPreferences()).toEqual(JSON.parse(documented));
   });
 
   it('returns a fresh object each time', () => {
