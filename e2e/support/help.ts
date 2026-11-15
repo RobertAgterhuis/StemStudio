@@ -50,7 +50,7 @@ export const artworkReferenceQueries: Readonly<Record<string, string>> = {
  * `export-dialog`, `export-formats`, `export-range`, `export-clipping`).
  */
 export const exportReferenceQueries: Readonly<Record<string, string>> = {
-  'save to library': 'library',
+  'save to library': 'export-dialog',
   'what I hear': 'export-dialog',
   'selected channels': 'export-dialog',
   flac: 'export-formats',
