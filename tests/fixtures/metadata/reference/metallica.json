@@ -1,0 +1,608 @@
+{
+  "description": "Reference artist 1 (quickstart A4, SC-002): Metallica / Hero of the Day / Load (1996).",
+  "expected": {
+    "artist": {
+      "mbid": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+      "name": "Metallica",
+      "type": "group",
+      "country": "US",
+      "beginYear": 1981,
+      "endYear": null,
+      "genres": [
+        "heavy metal",
+        "thrash metal"
+      ],
+      "members": [
+        {
+          "name": "James Hetfield",
+          "fromYear": 1981,
+          "toYear": null
+        },
+        {
+          "name": "Lars Ulrich",
+          "fromYear": 1981,
+          "toYear": null
+        },
+        {
+          "name": "Dave Mustaine",
+          "fromYear": 1981,
+          "toYear": 1983
+        },
+        {
+          "name": "Ron McGovney",
+          "fromYear": 1981,
+          "toYear": 1982
+        },
+        {
+          "name": "Cliff Burton",
+          "fromYear": 1982,
+          "toYear": 1986
+        },
+        {
+          "name": "Kirk Hammett",
+          "fromYear": 1983,
+          "toYear": null
+        },
+        {
+          "name": "Jason Newsted",
+          "fromYear": 1986,
+          "toYear": 2001
+        },
+        {
+          "name": "Robert Trujillo",
+          "fromYear": 2003,
+          "toYear": null
+        }
+      ],
+      "website": "https://www.metallica.com/",
+      "wikidataId": "Q15920"
+    },
+    "releaseGroup": {
+      "mbid": "e389b7df-862d-3d91-a612-acca150f6e71",
+      "title": "Load",
+      "primaryType": "Album",
+      "firstReleaseYear": 1996
+    },
+    "summary": {
+      "language": "en",
+      "title": "Metallica",
+      "pageUrl": "https://en.wikipedia.org/wiki/Metallica",
+      "historyUrl": "https://en.wikipedia.org/w/index.php?title=Metallica&action=history",
+      "revisionId": "1250000001",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    "artworkSource": "coverartarchive"
+  },
+  "musicbrainz": [
+    {
+      "request": {
+        "kind": "artist",
+        "path": "/ws/2/artist/847be904-7fc1-5a75-8c97-1b9818ca88cf",
+        "query": "inc=url-rels&fmt=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+          "name": "Metallica",
+          "type": "Group",
+          "country": "US",
+          "life-span": {
+            "begin": "1981-10-28",
+            "end": null,
+            "ended": false
+          },
+          "relations": [
+            {
+              "type": "official homepage",
+              "url": {
+                "resource": "https://www.metallica.com/"
+              }
+            },
+            {
+              "type": "wikidata",
+              "url": {
+                "resource": "https://www.wikidata.org/wiki/Q15920"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "release-group",
+        "path": "/ws/2/release-group/e389b7df-862d-3d91-a612-acca150f6e71",
+        "query": "fmt=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+          "title": "Load",
+          "primary-type": "Album",
+          "secondary-types": [],
+          "first-release-date": "1996-05-04"
+        }
+      }
+    }
+  ],
+  "coverArtArchive": {
+    "note": "Image bodies are not committed; tests generate a JPEG of the listed size in place of the body.",
+    "imageSize": [
+      500,
+      499
+    ],
+    "exchanges": [
+      {
+        "request": {
+          "kind": "cover-art",
+          "host": "coverartarchive.org",
+          "path": "/release-group/e389b7df-862d-3d91-a612-acca150f6e71/front-500"
+        },
+        "response": {
+          "status": 307,
+          "headers": {
+            "Location": "https://archive.org/download/mbid-00000000-0000-0000-0000-000000000000/front-500.jpg"
+          },
+          "body": null
+        }
+      },
+      {
+        "request": {
+          "kind": "cover-art-redirect",
+          "url": "https://archive.org/download/mbid-00000000-0000-0000-0000-000000000000/front-500.jpg"
+        },
+        "response": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "image/jpeg"
+          },
+          "body": null
+        }
+      }
+    ]
+  },
+  "wikidata": [
+    {
+      "request": {
+        "kind": "wikidata-entity",
+        "host": "www.wikidata.org",
+        "path": "/w/api.php",
+        "query": "action=wbgetentities&ids=Q15920&props=sitelinks|claims&sitefilter=enwiki|nlwiki&format=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "entities": {
+            "Q15920": {
+              "id": "Q15920",
+              "sitelinks": {
+                "enwiki": {
+                  "site": "enwiki",
+                  "title": "Metallica"
+                },
+                "nlwiki": {
+                  "site": "nlwiki",
+                  "title": "Metallica"
+                }
+              },
+              "claims": {
+                "P136": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000001"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000002"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    }
+                  }
+                ],
+                "P527": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000010"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1981-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000011"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1981-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000012"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1981-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ],
+                      "P582": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1983-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000013"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1981-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ],
+                      "P582": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1982-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000014"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1982-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ],
+                      "P582": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1986-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000015"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1983-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000016"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+1986-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ],
+                      "P582": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+2001-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000017"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    },
+                    "qualifiers": {
+                      "P580": [
+                        {
+                          "datavalue": {
+                            "value": {
+                              "time": "+2003-00-00T00:00:00Z",
+                              "precision": 9
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "P571": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "time": "+1981-10-28T00:00:00Z",
+                          "precision": 11
+                        },
+                        "type": "time"
+                      }
+                    }
+                  }
+                ],
+                "P495": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q30"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    }
+                  }
+                ],
+                "P856": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": "https://www.metallica.com/",
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "wikidata-labels",
+        "host": "www.wikidata.org",
+        "path": "/w/api.php",
+        "query": "action=wbgetentities&ids=Q900000001|Q900000002|Q900000010|Q900000011|Q900000012|Q900000013|Q900000014|Q900000015|Q900000016|Q900000017&props=labels&languages=en&format=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "entities": {
+            "Q900000001": {
+              "id": "Q900000001",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "heavy metal"
+                }
+              }
+            },
+            "Q900000002": {
+              "id": "Q900000002",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "thrash metal"
+                }
+              }
+            },
+            "Q900000010": {
+              "id": "Q900000010",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "James Hetfield"
+                }
+              }
+            },
+            "Q900000011": {
+              "id": "Q900000011",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Lars Ulrich"
+                }
+              }
+            },
+            "Q900000012": {
+              "id": "Q900000012",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Dave Mustaine"
+                }
+              }
+            },
+            "Q900000013": {
+              "id": "Q900000013",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Ron McGovney"
+                }
+              }
+            },
+            "Q900000014": {
+              "id": "Q900000014",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Cliff Burton"
+                }
+              }
+            },
+            "Q900000015": {
+              "id": "Q900000015",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Kirk Hammett"
+                }
+              }
+            },
+            "Q900000016": {
+              "id": "Q900000016",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Jason Newsted"
+                }
+              }
+            },
+            "Q900000017": {
+              "id": "Q900000017",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "Robert Trujillo"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "wikipedia": [
+    {
+      "request": {
+        "kind": "wikipedia-summary",
+        "host": "en.wikipedia.org",
+        "path": "/api/rest_v1/page/summary/Metallica"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "type": "standard",
+          "title": "Metallica",
+          "lang": "en",
+          "extract": "Placeholder summary written for the StemStudio tests. It stands in for the Wikipedia excerpt about Metallica; no Wikipedia text is committed (CC BY-SA 4.0). The live-service test reads the real excerpt at run time.",
+          "revision": 1250000001,
+          "content_urls": {
+            "desktop": {
+              "page": "https://en.wikipedia.org/wiki/Metallica"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

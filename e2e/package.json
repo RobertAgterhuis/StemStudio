@@ -22,7 +22,7 @@
     "list": "playwright test --list",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_detail_fixtures.py"
+    "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_detail_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_artwork_fixtures.py"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

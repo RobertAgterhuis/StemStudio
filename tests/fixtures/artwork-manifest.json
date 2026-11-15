@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "sampleRate": 44100,
+  "fixtures": {
+    "cover_embedded_10s.mp3": {
+      "kind": "audio-with-cover",
+      "format": "mp3",
+      "durationSeconds": 10.0,
+      "tags": {
+        "title": "Embedded Cover Song",
+        "artist": "StemStudio Fixtures",
+        "album": "Synthetic Covers"
+      },
+      "picture": {
+        "mediaType": "image/png",
+        "width": 500,
+        "height": 499,
+        "sha256": "9ce1730b7e05a901f144ff1e2a023f5436c108e2fe92a77bc176e5ea25961fa2"
+      },
+      "expectedArtworkSource": "embedded",
+      "uploadStatus": null
+    },
+    "cover_embedded_10s.flac": {
+      "kind": "audio-with-cover",
+      "format": "flac",
+      "durationSeconds": 10.0,
+      "tags": {
+        "title": "Embedded Cover Song (FLAC)",
+        "artist": "StemStudio Fixtures",
+        "album": "Synthetic Covers"
+      },
+      "picture": {
+        "mediaType": "image/jpeg",
+        "width": 640,
+        "height": 640,
+        "sha256": "8dab306e7a251ff5b4a95e8bcb5dfb3938cffaf024f634762c10ec0f3bd12e08"
+      },
+      "expectedArtworkSource": "embedded",
+      "uploadStatus": null
+    },
+    "own_picture_800x600.png": {
+      "kind": "picture",
+      "format": "png",
+      "durationSeconds": null,
+      "tags": null,
+      "picture": {
+        "mediaType": "image/png",
+        "width": 800,
+        "height": 600,
+        "sha256": "81e5f15810b9ebab1605538971b860b82ae0b06ff1d8ad6fcefc196b90c29333"
+      },
+      "expectedArtworkSource": null,
+      "uploadStatus": 200
+    },
+    "own_picture_640x640.jpg": {
+      "kind": "picture",
+      "format": "jpg",
+      "durationSeconds": null,
+      "tags": null,
+      "picture": {
+        "mediaType": "image/jpeg",
+        "width": 640,
+        "height": 640,
+        "sha256": "27927bed319036310891604e5f585d9ed0d504502f1f58b0029dd7b5b325d445"
+      },
+      "expectedArtworkSource": null,
+      "uploadStatus": 200
+    },
+    "not_a_picture.png": {
+      "kind": "invalid-picture",
+      "format": "png",
+      "durationSeconds": null,
+      "tags": null,
+      "picture": null,
+      "expectedArtworkSource": null,
+      "uploadStatus": 400
+    },
+    "unsupported_picture.gif": {
+      "kind": "invalid-picture",
+      "format": "gif",
+      "durationSeconds": null,
+      "tags": null,
+      "picture": {
+        "mediaType": "image/gif",
+        "width": 64,
+        "height": 64,
+        "sha256": "52e61ed24c0ae70262f4cad747197661d9518b73fd58f634b8b90a27e0e23cb3"
+      },
+      "expectedArtworkSource": null,
+      "uploadStatus": 415
+    }
+  }
+}
