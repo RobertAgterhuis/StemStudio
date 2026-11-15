@@ -51,6 +51,12 @@ public sealed record TrackDto
     /// <summary>Where the standard separation ran (1.3.0); null before it, for cached results and for older tracks.</summary>
     public JobDeviceDto? Device { get; init; }
 
+    /// <summary>The picture shown (1.4.0); null when there is none (the UI shows a placeholder).</summary>
+    public ArtworkDto? Artwork { get; init; }
+
+    /// <summary>Online lookup state and main facts (1.4.0); always present on the wire, <c>none</c> for older tracks.</summary>
+    public TrackMetadataDto Metadata { get; init; } = TrackMetadataDto.None;
+
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 

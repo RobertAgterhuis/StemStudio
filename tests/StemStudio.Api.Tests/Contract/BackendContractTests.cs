@@ -10,7 +10,7 @@ using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Responses of the running API checked against backend-api.openapi.yaml 1.2.0 (Constitution III, O2).</summary>
+/// <summary>Responses of the running API checked against backend-api.openapi.yaml (1.5.0 since the 005/007 Phase 0; Constitution III, O2).</summary>
 public sealed partial class BackendContractTests : IDisposable
 {
     private readonly ApiFactory _factory = new();
@@ -195,7 +195,9 @@ public sealed partial class BackendContractTests : IDisposable
     public void Contract_EveryOperationHasAnOperationId()
     {
         OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
-            .ShouldBe(["getHealth", "getProcessingDevice", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "startDetail", "cancelDetail", "getDetailStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix"], ignoreOrder: true);
+            .ShouldBe(["getHealth", "getProcessingDevice", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "startDetail", "cancelDetail", "getDetailStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix",
+                "getTrackArtwork", "setTrackArtwork", "resetTrackArtwork", "getBandInfo", "lookupTrackMetadata",
+                "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile"], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

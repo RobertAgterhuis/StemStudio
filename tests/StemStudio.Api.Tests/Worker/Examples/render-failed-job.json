@@ -1,0 +1,9 @@
+{
+  "renderJobId": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "status": "failed",
+  "progress": 0.2,
+  "error": "interrupted by restart",
+  "result": null,
+  "createdAt": "2026-11-15T13:00:00Z",
+  "updatedAt": "2026-11-15T13:00:30Z"
+}

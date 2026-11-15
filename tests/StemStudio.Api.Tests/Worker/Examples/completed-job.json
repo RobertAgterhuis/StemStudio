@@ -9,13 +9,25 @@
   "metadata": {
     "title": "Never Gonna Give You Up",
     "artist": "Rick Astley",
-    "sourceUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    "sourceUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "album": null,
+    "isrc": null,
+    "durationSeconds": 213.04,
+    "lookupTitle": "Never Gonna Give You Up",
+    "lookupArtist": "Rick Astley"
   },
   "device": {
     "kind": "cpu",
     "name": null,
     "cpuFallback": false,
     "fallbackReason": null
+  },
+  "artwork": {
+    "source": "youtube",
+    "sha256": "9b74c9897bac770ffc029102a200c5de2c2f6f8b6e8e0b4f3b8a5a0f52a3c1d2",
+    "coverBytes": 48210,
+    "thumbBytes": 6120,
+    "originUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
   },
   "createdAt": "2026-11-14T12:00:00Z",
   "updatedAt": "2026-11-14T12:06:30Z"

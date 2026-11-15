@@ -21,6 +21,11 @@ dependencies = [
     "onnxruntime==1.32.0",         # UVR MDX-Net KARA 2 (detail vocals, ADR-010), MIT
     "rotary-embedding-torch==0.9.2",  # BS-RoFormer (vendored MSST code, ADR-010), MIT
     "nvidia-ml-py==13.615.71",     # NVML free-memory reads for the GPU policy (ADR-012), BSD-3, pure Python
+    "tinytag==2.3.2",              # embedded cover + tags of uploads (feature 005, ADR-014), MIT, no deps
+    "pillow==13.0.0",              # artwork normalisation (005); was transitive, MIT-CMU
+    "httpx==0.28.1",               # online lookups (005); was a dev dependency, BSD-3-Clause
+    "rapidfuzz==3.14.6",           # recording matcher (005); was transitive, MIT
+    "lameenc==1.9.0",              # MP3 encoding of exports (feature 007, ADR-016); was transitive, LGPL-3.0-or-later
 ]
 
 [project.scripts]
@@ -30,7 +35,6 @@ stemstudio-worker = "stemstudio_worker.main:run"
 dev = [
     "pytest>=9.2,<10",
     "pytest-cov>=7.1,<8",
-    "httpx>=0.28,<1",
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
     "jsonschema>=4.26,<5",
@@ -142,6 +146,11 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = ["onnxruntime.*", "rotary_embedding_torch.*", "einops.*", "pynvml.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Feature 007 MP3 encoder: a C extension without type information (tinytag 2.3.2 ships py.typed).
+module = ["lameenc.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

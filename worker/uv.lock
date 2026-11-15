@@ -1579,15 +1579,20 @@ source = { editable = "." }
 dependencies = [
     { name = "demucs" },
     { name = "fastapi" },
+    { name = "httpx" },
+    { name = "lameenc" },
     { name = "librosa" },
     { name = "numpy" },
     { name = "nvidia-ml-py" },
     { name = "onnxruntime" },
+    { name = "pillow" },
     { name = "pydantic" },
     { name = "python-multipart" },
+    { name = "rapidfuzz" },
     { name = "rotary-embedding-torch" },
     { name = "soundfile" },
     { name = "spotdl" },
+    { name = "tinytag" },
     { name = "torch" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "yt-dlp" },
@@ -1595,7 +1600,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "jsonschema" },
     { name = "mypy" },
     { name = "pytest" },
@@ -1611,15 +1615,20 @@ dev = [
 requires-dist = [
     { name = "demucs", specifier = "==4.1.0" },
     { name = "fastapi", specifier = ">=0.163,<1" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "lameenc", specifier = "==1.9.0" },
     { name = "librosa", specifier = ">=1.0.1,<2" },
     { name = "numpy", specifier = ">=2.5,<3" },
     { name = "nvidia-ml-py", specifier = "==13.615.71" },
     { name = "onnxruntime", specifier = "==1.32.0" },
+    { name = "pillow", specifier = "==13.0.0" },
     { name = "pydantic", specifier = ">=2.14,<3" },
     { name = "python-multipart", specifier = ">=0.0.33,<0.1" },
+    { name = "rapidfuzz", specifier = "==3.14.6" },
     { name = "rotary-embedding-torch", specifier = "==0.9.2" },
     { name = "soundfile", specifier = ">=0.14,<1" },
     { name = "spotdl", specifier = "==4.6.0" },
+    { name = "tinytag", specifier = "==2.3.2" },
     { name = "torch", specifier = "==2.15.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.23.2" },
     { name = "yt-dlp", specifier = ">=2026.10.26" },
@@ -1627,7 +1636,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28,<1" },
     { name = "jsonschema", specifier = ">=4.26,<5" },
     { name = "mypy", specifier = ">=2.4,<3" },
     { name = "pytest", specifier = ">=9.2,<10" },
@@ -1681,6 +1689,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/56/97/b4748951a683e369513691c8eea33d100298d556308dcb0ab66b132a67f0/threadpoolctl-3.8.0.tar.gz", hash = "sha256:01080674ad7ac6182429c918a79de92da789bb448acc02fc0b620b1abd6b6137", size = 39424, upload-time = "2026-11-05T11:08:51.112Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/1b/831f2de4840a25db1dd7b1afea433ccafe6bb10aca07e13264f2079462d0/threadpoolctl-3.8.0-py3-none-any.whl", hash = "sha256:f1b49c82704d50f13ffae019c727b0fa4f6791a58f48f06a09c45face1be66da", size = 32091, upload-time = "2026-11-05T11:08:49.773Z" },
+]
+
+[[package]]
+name = "tinytag"
+version = "2.3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/0f/fae085b7f19fe0c67b68e6d70098ac6cd046cc498f253f5ee56a3dd03bbc/tinytag-2.3.2.tar.gz", hash = "sha256:021d711cdbdbf840d3b67b976cb34dadc58d2fcfd490eb74ef9602b37b991414", size = 47353, upload-time = "2026-09-07T17:46:08.886Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/54/d378858d14e5c5c7b921cb9ffccf27be3d34f3d6d010c57404ddd634685d/tinytag-2.3.2-py3-none-any.whl", hash = "sha256:ebaf957915266b9c20414a10f8c5170a345aa039a794650d39d66e7d6b96199f", size = 37171, upload-time = "2026-09-07T17:46:07.434Z" },
 ]
 
 [[package]]

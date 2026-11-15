@@ -11,6 +11,11 @@ Each protocol is implemented by a different agent and faked in unit tests:
 * ``DeviceRunner``: stem-separation (``devices/``, factory ``create_device_runner``), feature 003:
   start-up GPU probe, one-GPU-step lease, free-memory check and the CPU retry on GPU
   out-of-memory, shared by the separator and the detail models (ADR-012)
+* ``ImageNormalizer``, ``MetadataLookup``: audio-ingest (``metadata/``), feature 005: source and
+  Cover Art Archive pictures re-encoded to cover/thumb JPEGs, and the MusicBrainz/Wikidata/
+  Wikipedia lookup of a metadata job (ADR-014)
+* ``LibraryReader``, ``RenderExecutor``: audio-ingest (``render/``), feature 007: the path guard
+  over the read-only library mount and the two-pass renderer of render jobs (ADR-016)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -19,21 +24,28 @@ Adapters signal expected failures by raising a ``WorkerError`` subclass; its mes
 the user verbatim as the job ``error`` text, so it must be readable and free of secrets.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Final, Protocol, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
 
 from stemstudio_worker.schemas import (
+    ArtworkInfo,
+    ArtworkSource,
     BeatGrid,
     DetailModelId,
     DeviceInfo,
     JobDevice,
+    LibraryHealth,
+    MetadataResult,
     ModelName,
     ProcessingDeviceKind,
+    RenderJobRequest,
+    RenderResult,
     SourceType,
     StemName,
 )
@@ -93,6 +105,55 @@ class DetailCancelledError(WorkerError):
     """The running detail job was cancelled; raised from a progress callback between chunks."""
 
 
+class ArtworkError(WorkerError):
+    """A picture could not be fetched or normalised (feature 005); never fails a standard job."""
+
+
+class ArtworkFetchError(ArtworkError):
+    """A remote picture could not be downloaded (network, host not allowed, too big, timeout)."""
+
+
+class NotAnImageError(ArtworkError):
+    """The bytes are not a decodable image (corrupt, truncated, polyglot); HTTP 400."""
+
+
+class UnsupportedImageTypeError(ArtworkError):
+    """The image is not a JPEG, PNG or WebP file; HTTP 415."""
+
+
+class ImageTooLargeError(ArtworkError):
+    """The image has more than 40 megapixels; HTTP 422."""
+
+
+class MetadataLookupError(WorkerError):
+    """The recording search failed after retries; the metadata job fails (data-model.md 2.7)."""
+
+
+class RenderError(WorkerError):
+    """A render job cannot run or failed (feature 007); the message is the job ``error``."""
+
+
+class InputPathError(RenderError):
+    """An input path is not on the allow-list or escapes the library root; HTTP 400."""
+
+
+class InputNotFoundError(RenderError):
+    """An allowed input path does not exist; HTTP 404 (the message names the path).
+
+    Attributes:
+        path: The library-relative path that was not found.
+    """
+
+    def __init__(self, path: str) -> None:
+        """Create the error for ``path``."""
+        super().__init__(f"Input not found: {path}")
+        self.path = path
+
+
+class RenderCancelledError(RenderError):
+    """The render job was cancelled; raised from a render progress callback between blocks."""
+
+
 @runtime_checkable
 class ProgressCallback(Protocol):
     """Receives progress of the current pipeline step."""
@@ -108,6 +169,63 @@ class ProgressCallback(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class ArtworkCandidate:
+    """A picture offered by an import source, not yet normalised (feature 005).
+
+    Exactly one of ``url`` (a remote image on an allow-listed host) and ``data`` (embedded
+    bytes, e.g. an upload's front cover) is set.
+
+    Attributes:
+        source: ``youtube``, ``spotify``, ``embedded``, ``coverartarchive`` or ``user``.
+        url: Remote https image URL, or None.
+        data: Image bytes, or None.
+    """
+
+    source: ArtworkSource
+    url: str | None = None
+    data: bytes | None = None
+
+    def __post_init__(self) -> None:
+        """Reject candidates with neither or both of ``url`` and ``data``."""
+        if (self.url is None) == (self.data is None):
+            msg = "An artwork candidate needs exactly one of url and data"
+            raise ValueError(msg)
+
+
+@dataclass(frozen=True, slots=True)
+class ArtworkImages:
+    """The two normalised JPEGs of a picture.
+
+    Attributes:
+        cover: 600 x 600 JPEG, at most 200 KB.
+        thumb: 160 x 160 JPEG, at most 20 KB.
+        sha256: Lower-case hex SHA-256 of ``cover`` (the artwork version).
+    """
+
+    cover: bytes
+    thumb: bytes
+    sha256: str
+
+    def info(self, source: ArtworkSource, origin_url: str | None = None) -> ArtworkInfo:
+        """Describe these images for the contract (``Job.artwork``, ``MetadataResult.artwork``).
+
+        Args:
+            source: Where the picture came from.
+            origin_url: Remote URL of the original picture; None for embedded/user pictures.
+
+        Returns:
+            The artwork record with sizes and hash.
+        """
+        return ArtworkInfo(
+            source=source,
+            sha256=self.sha256,
+            cover_bytes=len(self.cover),
+            thumb_bytes=len(self.thumb),
+            origin_url=origin_url,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class SourceInfo:
     """A validated, resolved source.
 
@@ -118,6 +236,11 @@ class SourceInfo:
         artist: Artist when known.
         youtube_url: Canonical ``https://www.youtube.com/watch?v=<id>`` to download, or None
             for uploads.
+        album: Album name when the source knows it (Spotify ``album_name``, upload tag), 005.
+        isrc: ISRC of a Spotify track, 005.
+        artwork: Picture offered by the source (Spotify cover URL, embedded upload cover), 005.
+        lookup_title: Cleaned title for the metadata lookup (upload tag title), 005.
+        lookup_artist: Cleaned artist for the metadata lookup (upload tag artist), 005.
     """
 
     source_type: SourceType
@@ -125,6 +248,11 @@ class SourceInfo:
     title: str
     artist: str | None
     youtube_url: str | None
+    album: str | None = None
+    isrc: str | None = None
+    artwork: ArtworkCandidate | None = None
+    lookup_title: str | None = None
+    lookup_artist: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,11 +263,19 @@ class FetchedAudio:
         path: The downloaded file (any container/codec ffmpeg can read).
         title: Title reported by the download (e.g. the YouTube video title), or None.
         artist: Artist or uploader reported by the download, or None.
+        album: Album reported by the download (yt-dlp ``album``), or None; 005.
+        artwork: Picture offered by the download (largest YouTube thumbnail), or None; 005.
+        lookup_title: Cleaned title for the metadata lookup (research R-04), or None; 005.
+        lookup_artist: Cleaned artist for the metadata lookup, or None; 005.
     """
 
     path: Path
     title: str | None = None
     artist: str | None = None
+    album: str | None = None
+    artwork: ArtworkCandidate | None = None
+    lookup_title: str | None = None
+    lookup_artist: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -477,3 +613,188 @@ def merge_device(record: JobDevice | None, use: DeviceUse) -> JobDevice:
 def _merged_kind(first: ProcessingDeviceKind, second: ProcessingDeviceKind) -> ProcessingDeviceKind:
     """``gpu`` when either step ran on the GPU, else ``cpu``."""
     return "gpu" if "gpu" in (first, second) else "cpu"
+
+
+# ------------------------------------------------------------------ feature 005: artwork, metadata
+
+
+class ImageNormalizer(Protocol):
+    """Turns a picture candidate into the two normalised JPEGs (Pillow, audio-ingest)."""
+
+    def normalize(self, candidate: ArtworkCandidate) -> ArtworkImages:
+        """Fetch (for URL candidates) and re-encode a picture.
+
+        EXIF orientation is applied and all metadata stripped, alpha flattened, the first frame
+        of an animation used, the picture centre-cropped to a square and encoded as a 600 px
+        cover (<= 200 KB) and a 160 px thumbnail (<= 20 KB).
+
+        Args:
+            candidate: The picture to normalise.
+
+        Returns:
+            The cover and thumbnail JPEGs with the cover's SHA-256.
+
+        Raises:
+            ArtworkFetchError: A remote picture could not be downloaded.
+            NotAnImageError: The bytes cannot be decoded.
+            UnsupportedImageTypeError: The image is not JPEG, PNG or WebP.
+            ImageTooLargeError: The image has more than 40 megapixels.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class MetadataQuery:
+    """What a metadata job looks up (the body of ``POST /v1/metadata-jobs``).
+
+    Attributes:
+        title: Title to search for (1..500 characters).
+        artist: Artist, when known.
+        album: Album, when known.
+        duration_seconds: Duration of the normalised audio, when known (search window +-5 s).
+        isrc: ISRC (Spotify sources); tried before the search.
+    """
+
+    title: str
+    artist: str | None = None
+    album: str | None = None
+    duration_seconds: float | None = None
+    isrc: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class MetadataFindings:
+    """Output of a lookup: the contract result plus the bytes of its picture.
+
+    Attributes:
+        result: The result served by ``GET /v1/metadata-jobs/{id}/result``.
+        artwork: The normalised Cover Art Archive picture whose ``info`` is ``result.artwork``,
+            or None when there is none.
+    """
+
+    result: MetadataResult
+    artwork: ArtworkImages | None = None
+
+
+class MetadataLookup(Protocol):
+    """Looks a song up in MusicBrainz, Cover Art Archive, Wikidata and Wikipedia (ADR-014)."""
+
+    def lookup(self, query: MetadataQuery, progress: ProgressCallback) -> MetadataFindings:
+        """Find the recording, release group, cover and artist facts for ``query``.
+
+        Throttled to 1 request/s per service with a User-Agent without personal data. Failures
+        after the recording was found become ``result.warnings``; lookups switched off give
+        outcome ``disabled`` without any request.
+
+        Args:
+            query: What to look up.
+            progress: Receives the stage ("Searching MusicBrainz", "Fetching album cover",
+                "Reading Wikidata", "Reading Wikipedia").
+
+        Returns:
+            The result (outcome ``found``, ``not-found`` or ``disabled``) and its picture.
+
+        Raises:
+            MetadataLookupError: The recording search itself failed after retries.
+        """
+        ...
+
+
+# ------------------------------------------------------------------ feature 007: rendering
+
+_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+LIBRARY_PATH_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    re.compile(rf"tracks/{_UUID}/stems/(vocals|drums|bass|guitar|piano|other)\.flac"),
+    re.compile(
+        rf"tracks/{_UUID}/detail/(vocals|drums|guitar|piano|other)/[a-z][a-z-]{{0,31}}\.flac"
+    ),
+    re.compile(rf"assets/{_UUID}/[a-z][a-z0-9-]{{0,31}}\.(flac|wav|mp3)"),
+)
+"""Allow-list of render input paths relative to the library root (data-model.md 2.1).
+
+A path is allowed when one pattern matches it completely (``fullmatch``); the path guard then
+resolves it and requires the real path to stay inside the library root.
+"""
+
+
+def is_allowed_library_path(path: str) -> bool:
+    """Return True when ``path`` fully matches one of ``LIBRARY_PATH_PATTERNS``."""
+    return any(pattern.fullmatch(path) for pattern in LIBRARY_PATH_PATTERNS)
+
+
+@runtime_checkable
+class RenderProgress(Protocol):
+    """Receives the progress of a render job."""
+
+    def __call__(self, fraction: float, /) -> None:
+        """Report progress.
+
+        Args:
+            fraction: 0.0..1.0, non-decreasing (pass 1 = 0..0.5, pass 2 = 0.5..1).
+
+        Raises:
+            RenderCancelledError: The job was cancelled; the renderer stops after this block.
+        """
+        ...
+
+
+class LibraryReader(Protocol):
+    """Read-only access to the API library mounted into the worker (ADR-016 D5)."""
+
+    def status(self) -> LibraryHealth:
+        """Report whether the library root exists and is listable (``Health.library``)."""
+        ...
+
+    def resolve(self, path: str) -> Path:
+        """Check a library-relative input path and return the real file path.
+
+        Args:
+            path: Path from ``RenderInput.path``.
+
+        Returns:
+            The resolved file inside the library root.
+
+        Raises:
+            InputPathError: Not on the allow-list, or the real path escapes the root.
+            InputNotFoundError: The file does not exist.
+            RenderError: The library root is unset or unreadable (``LIBRARY_UNAVAILABLE_TEXT``).
+        """
+        ...
+
+
+class RenderExecutor(Protocol):
+    """Renders a flat render plan to one audio file (two passes, block-wise; data-model.md 3)."""
+
+    def validate(self, request: RenderJobRequest) -> None:
+        """Check every input path before the job is queued (``POST /v1/render-jobs``).
+
+        Args:
+            request: The request to check.
+
+        Raises:
+            InputPathError: An input path is not allowed (HTTP 400).
+            InputNotFoundError: An input file does not exist (HTTP 404).
+            RenderError: The library is not available.
+        """
+        ...
+
+    def render(
+        self, request: RenderJobRequest, out_dir: Path, progress: RenderProgress
+    ) -> RenderResult:
+        """Mix the inputs, protect against clipping and encode ``out_dir/output.<ext>``.
+
+        Args:
+            request: The validated render request.
+            out_dir: Existing, job-private output directory.
+            progress: Receives progress after each block; may raise ``RenderCancelledError``.
+
+        Returns:
+            The written file's facts.
+
+        Raises:
+            RenderError: Inputs unreadable, unsupported sample rate, silent result
+                (``SILENT_RENDER_TEXT``) or encoder failure.
+            RenderCancelledError: Propagated from ``progress``.
+        """
+        ...
