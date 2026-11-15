@@ -2,51 +2,76 @@
 
 <PageTitle>Mixes - StemStudio</PageTitle>
 
-<h1>Mix library</h1>
+<div class="ss-page ss-page-wide ss-library">
+    <header class="ss-page-head ss-page-head-row">
+        <h1>Mix library</h1>
+        @if (Items is { Count: > 0 })
+        {
+            <LevelGate Feature="mixes.search">
+                <div class="ss-library-tools">
+                    <label class="ss-sr-only" for="mixes-search">Search mixes</label>
+                    <input id="mixes-search" type="search" class="rz-textbox ss-search" placeholder="Search mixes" value="@Search"
+                           @oninput="OnSearch" data-testid="mixes-search" />
+                </div>
+            </LevelGate>
+        }
+    </header>
 
-@if (Error is not null)
-{
-    <div class="ss-error" role="alert" data-testid="mixes-error">@Error</div>
-}
-
-@if (Items is null)
-{
-    @if (Error is null)
+    @if (Error is not null)
     {
-        <p class="ss-muted" role="status">Loading...</p>
+        <ErrorState TestId="mixes-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
     }
-}
-else if (Items.Count == 0)
-{
-    <p class="ss-muted" data-testid="mixes-empty">No saved mixes yet. Open a track in the mixer and press Save.</p>
-}
-else
-{
-    <table class="ss-table">
-        <thead>
-            <tr><th>Mix</th><th>Track</th><th>Last modified</th><th><span class="ss-sr-only">Actions</span></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var mix in Items)
-            {
-                <tr data-testid="@($"mix-row-{mix.Id}")">
-                    <td>@mix.Name</td>
-                    <td>@mix.TrackTitle</td>
-                    <td><time datetime="@Iso(mix.UpdatedAt)">@Local(mix.UpdatedAt)</time></td>
-                    <td class="ss-row">
-                        <RadzenButton Text="Load" Size="ButtonSize.Small" Click="() => Load(mix)" data-testid="@($"mix-load-{mix.Id}")" />
-                        <RadzenButton Text="Duplicate" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                                      Click="() => DuplicateAsync(mix)" data-testid="@($"mix-duplicate-{mix.Id}")" />
-                        <RadzenButton Text="Rename" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                                      Click="() => OpenRename(mix)" data-testid="@($"mix-rename-{mix.Id}")" />
-                        <RadzenButton Text="Delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
-                                      Click="() => DeleteAsync(mix)" data-testid="@($"mix-delete-{mix.Id}")" />
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+
+    @if (Items is null)
+    {
+        @if (Error is null)
+        {
+            <Skeleton Lines="4" />
+        }
+    }
+    else if (Items.Count == 0)
+    {
+        <EmptyState TestId="mixes-empty" Text="No saved mixes yet. Open a track in the mixer and press Save." />
+    }
+    else if (Visible.Count == 0)
+    {
+        <p class="ss-no-results" role="status">No mixes match "@Search".</p>
+    }
+    else
+    {
+        <table class="@($"ss-table ss-mix-table{(IconOnly ? " ss-table-compact" : null)}")">
+            <thead>
+                <tr><th><span class="ss-sr-only">Stems</span></th><th>Mix</th><th>Track</th><th>Last modified</th><th><span class="ss-sr-only">Actions</span></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var mix in Visible)
+                {
+                    <tr data-testid="@($"mix-row-{mix.Id}")">
+                        <td class="ss-cell-ribbon"><StemRibbon Stems="StemsOf(mix)" TestId="@($"mix-ribbon-{mix.Id}")" /></td>
+                        <td class="ss-cell-title">@mix.Name</td>
+                        <td class="ss-muted">@mix.TrackTitle</td>
+                        <td class="ss-num"><time datetime="@Iso(mix.UpdatedAt)">@Local(mix.UpdatedAt)</time></td>
+                        <td class="ss-cell-action">
+                            <div class="ss-row-actions">
+                                <RadzenButton Text="@Label("Load")" Icon="play_circle" Size="ButtonSize.Small" class="@IconClass" data-tooltip="@Tooltip("Load")"
+                                              aria-label="@($"Load {mix.Name}")" Click="() => Load(mix)" data-testid="@($"mix-load-{mix.Id}")" />
+                                <RadzenButton Text="@Label("Duplicate")" Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                              class="@IconClass" data-tooltip="@Tooltip("Duplicate")" aria-label="@($"Duplicate {mix.Name}")"
+                                              Click="() => DuplicateAsync(mix)" data-testid="@($"mix-duplicate-{mix.Id}")" />
+                                <RadzenButton Text="@Label("Rename")" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                              class="@IconClass" data-tooltip="@Tooltip("Rename")" aria-label="@($"Rename {mix.Name}")"
+                                              Click="() => OpenRename(mix)" data-testid="@($"mix-rename-{mix.Id}")" />
+                                <RadzenButton Text="@Label("Delete")" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                              Variant="Variant.Outlined" class="@IconClass" data-tooltip="@Tooltip("Delete")"
+                                              aria-label="@($"Delete {mix.Name}")" Click="() => DeleteAsync(mix)" data-testid="@($"mix-delete-{mix.Id}")" />
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
 
 @if (Renaming is not null)
 {

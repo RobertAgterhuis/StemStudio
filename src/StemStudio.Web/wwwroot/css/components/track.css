@@ -287,3 +287,34 @@ select.ss-select {
 .ss-device:has([data-device="gpu"])::before {
   content: "developer_board";
 }
+
+/* Mix library actions (design-spec.md 4.6): inline at every level; icon-only with a visible tooltip at Expert. */
+.ss-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ss-space-1);
+}
+
+.ss-icon-only.rz-button {
+  position: relative;
+  min-width: var(--ss-target-min);
+  padding: 0 var(--ss-space-1);
+}
+
+.ss-icon-only[data-tooltip]:hover::after,
+.ss-icon-only[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + var(--ss-space-1));
+  left: 50%;
+  z-index: var(--ss-z-popover);
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+  font-size: var(--ss-type-small-size);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
