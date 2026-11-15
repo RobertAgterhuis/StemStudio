@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using StemStudio.Contracts.Assets;
 using StemStudio.Web.Api;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Library;
 
@@ -21,9 +22,13 @@ public sealed partial class LibraryPage
 
     private string? Error { get; set; }
 
-    private IReadOnlyList<AssetDto> Visible => Items ?? [];
+    private AssetFilter Filter { get; } = new();
 
-    private const string EmptyText = "No items yet. Save a stem on a track page or what you hear in the mixer.";
+    private IReadOnlyList<AssetDto> Visible => Filter.Apply(Items ?? []);
+
+    private string EmptyText => Filter.IsActive && Items is { Count: > 0 }
+        ? "No items match the filters."
+        : "No items yet. Save a stem on a track page or what you hear in the mixer.";
 
     /// <inheritdoc />
     protected override bool NeedsPolling => Items?.Any(a => a.Status is AssetStatusDto.Queued or AssetStatusDto.Rendering) == true;

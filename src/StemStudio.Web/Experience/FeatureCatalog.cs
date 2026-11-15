@@ -28,6 +28,7 @@ public static class FeatureCatalog
         new("artwork.own-picture", Advanced, null, "artwork"),
         new("export.format-details", Advanced, null, "export-formats"),
         new("export.selected-channels", Advanced, null, "export-dialog"),
+        new("library.filters", Advanced, null, "library"),
         new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
         new("shell.kbd-hints", Expert, null, "shortcuts"),
         new("journey.rail", Beginner, Beginner, "journey"),

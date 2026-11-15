@@ -1,7 +1,6 @@
 @* One library item (feature 007, ui-test-ids 1.5.0): name, contents and format, source track, status (a progressbar while
    rendering), player and download when ready. *@
 @using StemStudio.Contracts.Assets
-@inject Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> Options
 
 <tr data-testid="@($"asset-row-{Asset.Id}")" data-status="@AssetText.Value(Asset.Status)" aria-current="@(Highlighted ? "true" : null)"
     class="@(Highlighted ? "ss-row-highlight" : null)">
@@ -10,6 +9,10 @@
         <span class="ss-small ss-muted ss-asset-facts">
             <span data-testid="@($"asset-contents-{Asset.Id}")">@Asset.Provenance.Contents</span>@Facts
         </span>
+        @if (AssetText.GainNote(Asset.Audio) is { } note)
+        {
+            <span class="ss-small ss-gain-note" data-testid="@($"asset-gain-note-{Asset.Id}")" data-help-id="export-clipping">@note</span>
+        }
     </td>
     <td>
         @if (Asset.Provenance is { TrackAvailable: true, TrackId: { } trackId })
@@ -31,32 +34,28 @@
         {
             <span class="@($"ss-asset-status ss-asset-{AssetText.Value(Asset.Status)}")" data-testid="@($"asset-status-{Asset.Id}")">@AssetText.Status(Asset)</span>
         }
+        @if (Asset.Status == AssetStatusDto.Failed)
+        {
+            <span class="ss-small ss-asset-error" role="alert" data-testid="@($"asset-error-{Asset.Id}")">@Asset.Error</span>
+        }
     </td>
     <td class="ss-num"><time datetime="@Asset.CreatedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture)">@Asset.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</time></td>
     <td class="ss-cell-action">
-        @if (Asset.Status == AssetStatusDto.Ready)
-        {
-            <div class="ss-row-actions">
+        <div class="ss-row-actions">
+            @if (Asset.Status == AssetStatusDto.Ready)
+            {
                 <audio controls preload="none" src="@FileUrl(true)" aria-label="@($"Play {Asset.Name}")" data-testid="@($"asset-play-{Asset.Id}")"></audio>
                 <a class="ss-row-action" href="@FileUrl(false)" download aria-label="@($"Download {Asset.Name}")" data-testid="@($"asset-download-{Asset.Id}")">Download</a>
-            </div>
-        }
+            }
+            @if (Asset.Status == AssetStatusDto.Failed)
+            {
+                <RadzenButton Text="Retry" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Retry {Asset.Name}")"
+                              Click="() => OnRetry.InvokeAsync(Asset)" data-testid="@($"asset-retry-{Asset.Id}")" />
+            }
+            <RadzenButton Text="Rename" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Rename {Asset.Name}")"
+                          Click="() => OnRename.InvokeAsync(Asset)" data-testid="@($"asset-rename-{Asset.Id}")" />
+            <RadzenButton Text="Delete" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                          aria-label="@($"Delete {Asset.Name}")" Click="() => OnDelete.InvokeAsync(Asset)" data-testid="@($"asset-delete-{Asset.Id}")" />
+        </div>
     </td>
 </tr>
-
-@code {
-    /// <summary>The item.</summary>
-    [Parameter, EditorRequired]
-    public AssetDto Asset { get; set; } = default!;
-
-    /// <summary>True for the item opened from an export confirmation.</summary>
-    [Parameter]
-    public bool Highlighted { get; set; }
-
-    private string Facts => AssetText.Format(Asset.Audio) is { } format
-        ? $" · {format} · {TimeText.Duration(Asset.Audio!.DurationSeconds)} · {ByteSize.Format(Asset.SizeBytes)}"
-        : string.Empty;
-
-    private string FileUrl(bool inline) =>
-        new Uri(Options.Value.PublicApiBaseUrl, ApiRoutes.AssetFile(Asset.Id, ApiRoutes.AssetFileAudio, inline)).ToString();
-}

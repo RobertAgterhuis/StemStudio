@@ -11,11 +11,17 @@
             <div class="ss-label-row"><h1>Library</h1><HelpHint HelpId="library" /></div>
             <p class="ss-muted ss-small">Total size <span class="ss-num" data-testid="library-total-size">@ByteSize.Format(TotalSize)</span></p>
         </div>
+        <LibraryFilters Items="Items ?? []" Filter="Filter" OnChanged="StateHasChanged" />
     </header>
 
     @if (Error is not null)
     {
         <ErrorState TestId="library-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+
+    @if (ActionError is not null)
+    {
+        <ErrorState TestId="library-action-error" Message="@ActionError" />
     }
 
     @if (Items is null)
@@ -38,9 +44,14 @@
             <tbody>
                 @foreach (var asset in Visible)
                 {
-                    <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" />
+                    <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" OnRename="OpenRename" OnDelete="DeleteAsync" OnRetry="RetryAsync" />
                 }
             </tbody>
         </table>
     }
 </div>
+
+@if (Renaming is not null)
+{
+    <AssetRenameDialog Name="@Renaming.Name" Error="@RenameError" OnConfirm="RenameAsync" OnCancel="CloseRename" />
+}

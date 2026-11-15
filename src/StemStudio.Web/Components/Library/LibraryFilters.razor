@@ -1,0 +1,57 @@
+@* Library filters (feature 007, FR-007; Advanced+, feature library.filters): source track, kind and a name search,
+   applied on the client. Native selects, values as in ui-test-ids 1.5.0 (track id, kind). *@
+@using StemStudio.Contracts.Assets
+
+<LevelGate Feature="library.filters">
+    <div class="ss-library-tools">
+        <label class="ss-sr-only" for="library-filter-track">Track</label>
+        <select id="library-filter-track" class="ss-select" @onchange="OnTrackAsync" data-testid="library-filter-track">
+            <option value="">All tracks</option>
+            @foreach (var track in AssetFilter.Tracks(Items))
+            {
+                <option value="@track.Id">@track.Label</option>
+            }
+        </select>
+        <label class="ss-sr-only" for="library-filter-kind">Kind</label>
+        <select id="library-filter-kind" class="ss-select" @onchange="OnKindAsync" data-testid="library-filter-kind">
+            <option value="">All kinds</option>
+            <option value="audio">Audio</option>
+            <option value="score">Sheet music</option>
+        </select>
+        <label class="ss-sr-only" for="library-search">Search items</label>
+        <input id="library-search" type="search" class="rz-textbox ss-search" placeholder="Search items" @oninput="OnSearchAsync"
+               data-testid="library-search" />
+    </div>
+</LevelGate>
+
+@code {
+    /// <summary>Every loaded item (the track options come from them).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AssetDto> Items { get; set; } = [];
+
+    /// <summary>The filter the page applies.</summary>
+    [Parameter, EditorRequired]
+    public AssetFilter Filter { get; set; } = default!;
+
+    /// <summary>Raised after a change.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task OnTrackAsync(ChangeEventArgs args) =>
+        ChangeAsync(() => Filter.TrackId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null);
+
+    private Task OnKindAsync(ChangeEventArgs args) => ChangeAsync(() => Filter.Kind = args.Value?.ToString() switch
+    {
+        "audio" => AssetKindDto.Audio,
+        "score" => AssetKindDto.Score,
+        _ => null,
+    });
+
+    private Task OnSearchAsync(ChangeEventArgs args) => ChangeAsync(() => Filter.Search = args.Value?.ToString() ?? string.Empty);
+
+    private Task ChangeAsync(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+}
