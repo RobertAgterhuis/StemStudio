@@ -1,0 +1,38 @@
+# Genre and common music words v1: library artist names equal to one of these are not used by the imitation guard
+# (research.md R-05: no false positives on genre words such as "rock" or "soul").
+rock
+pop
+jazz
+blues
+electronic
+hip hop
+latin
+folk
+classical
+world
+country
+metal
+soul
+ambient
+funk
+punk
+house
+techno
+disco
+reggae
+swing
+gospel
+trance
+dub
+grunge
+indie
+orchestra
+choir
+piano
+guitar
+drums
+bass
+vocals
+unknown
+unknown artist
+various artists

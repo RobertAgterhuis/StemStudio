@@ -3,4 +3,8 @@
   <PropertyGroup>
     <RootNamespace>StemStudio.Domain</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Versioned text resources (feature 009 style library and imitation guard, 010 consent statement); logical name = file name. -->
+    <EmbeddedResource Include="Styles\*.json;Styles\*.txt;Voices\*.txt" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

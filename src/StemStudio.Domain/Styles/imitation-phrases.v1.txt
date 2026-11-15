@@ -1,0 +1,30 @@
+# Imitation phrases v1 (ADR-018 D8). One phrase per line, matched on whole words after lower-casing and
+# removing diacritics and punctuation; a trailing * matches every word that starts with the stem.
+# English
+in the style of
+in the vein of
+sounds like
+sound like
+sounding like
+voice of
+vocals of
+cover by
+covered by
+imitat*
+impersonat*
+mimic*
+soundalike
+sound alike
+# Dutch
+in de stijl van
+in de trant van
+klinkt als
+klinken als
+klinkend als
+stem van
+imiteer*
+imitatie*
+nadoen
+nagedaan
+covert van
+cover van
