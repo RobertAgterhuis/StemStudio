@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Scores;
 
 namespace StemStudio.Persistence.Configurations;
 
 /// <summary>
-/// Maps <see cref="Asset"/> (table <c>Assets</c>, feature 007): kind and status by name, files, audio facts and provenance
+/// Maps <see cref="Asset"/> (table <c>Assets</c>, feature 007): kind and status by name, files, audio facts, score facts (008) and provenance
 /// as JSON, the source track as an indexed filter column (no foreign key: items outlive their track).
 /// </summary>
 public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
@@ -36,7 +37,7 @@ public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
     private static void ConfigureJson(EntityTypeBuilder<Asset> builder)
     {
         builder.Ignore(asset => asset.Files);
-        builder.Ignore(asset => asset.Score); // mapped by the 008 migration AddScoreFacts (T035)
+        builder.Property(asset => asset.Score).HasConversion(JsonColumn<ScoreFacts>.Converter!, JsonColumn<ScoreFacts>.Comparer!);
         builder.Property<List<AssetFile>>("_files").HasColumnName("Files")
             .HasConversion(JsonColumn<List<AssetFile>>.Converter, JsonColumn<List<AssetFile>>.Comparer);
         builder.Property(asset => asset.Audio).HasConversion(JsonColumn<AudioFacts>.Converter!, JsonColumn<AudioFacts>.Comparer!);
