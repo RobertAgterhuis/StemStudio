@@ -1,21 +1,23 @@
 """Tests of the fake transcriber (008 T026, data-model 2.6; E2E bar counts depend on it).
 
 One note per beat of the grid from the input start to its end: pitched profiles walk the C-major
-scale inside the profile range (from the C nearest its middle); piano adds a C-major triad in the bass staff on every bar; drums
-play kick on beats 1 and 3, snare on 2 and 4 and hi-hat on every eighth.
+scale inside the profile range (from the C nearest its middle); piano adds a C-major triad
+in the bass staff on every bar; drums play kick on beats 1 and 3, snare on 2 and 4 and hi-hat
+on every eighth.
 """
 
 from pathlib import Path
 
 import numpy as np
 import pytest
+
+from stemstudio_worker.ports import TranscriptionError
+from stemstudio_worker.schemas import BeatGridTempo, ManualTempo, RenderRange
 from stemstudio_worker.transcription.fake import (
     FakeDrumTranscriber,
     FakePitchTranscriber,
     grid_beats,
 )
-
-from stemstudio_worker.schemas import BeatGridTempo, ManualTempo, RenderRange
 
 from .helpers import write_audio
 
@@ -115,3 +117,21 @@ def test_missing_drum_pieces_give_no_hits(tmp_path: Path) -> None:
     hits = FakeDrumTranscriber(GRID).transcribe({"snare": _audio(tmp_path)}, None, print)
 
     assert {h.piece for h in hits} == {"snare"}
+
+
+def test_an_unreadable_input_fails_with_the_fixed_text(tmp_path: Path) -> None:
+    broken = tmp_path / "broken.flac"
+    broken.write_bytes(b"no audio")
+
+    with pytest.raises(TranscriptionError, match="could not be read"):
+        FakePitchTranscriber("bass", (28, 67), GRID).transcribe(broken, None, print)
+
+
+def test_a_grid_without_beats_in_the_input_gives_nothing(tmp_path: Path) -> None:
+    early = BeatGridTempo(bpm=60, beats_per_bar=4, beats=[-2.0, -1.0], downbeats=[-2.0])
+    audio = _audio(tmp_path, 1.0)
+
+    notes = FakePitchTranscriber("piano", (21, 108), early).transcribe(audio, None, print).notes
+    hits = FakeDrumTranscriber(early).transcribe({"hihat": audio}, None, print)
+
+    assert (notes, hits) == ((), ())
