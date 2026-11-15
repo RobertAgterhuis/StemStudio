@@ -7,9 +7,11 @@
 
 Worker (imports inside ``stemstudio_worker``)::
 
-    api -> jobs -> ports <- {ingest, separation, analysis, detail}; everything -> schemas, config
+    api -> jobs -> ports <- {ingest, separation, analysis, detail, devices};
+    everything -> schemas, config
     detail may also import its own vendor package (detail/vendor/** is third-party code and
-    contributes no edges); main.py is the composition root and may import every module.
+    contributes no edges); no module imports devices (feature 003: separation and detail get
+    the DeviceRunner injected); main.py is the composition root and may import every module.
 
 Forbidden edges and cycles fail the gate; modules missing from the map are warnings.
 
@@ -63,6 +65,7 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "separation": _ADAPTER,
     "analysis": _ADAPTER,
     "detail": _ADAPTER,
+    "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
     "main": None,
