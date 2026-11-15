@@ -17,7 +17,7 @@ const score = `<?xml version="1.0"?><score-partwise><part id="P1">
 test.describe('karaoke landing maths', () => {
   test('a word change is measured against its start and the offset', () => {
     const lines = fake.lines;
-    const landings = landingErrors([sample(0, 0, 2010), sample(0, 0, 2030), sample(0, 1, 3080)], lines, 500);
+    const landings = landingErrors([sample(0, 0, 4010), sample(0, 0, 4030), sample(0, 1, 5240)], lines, 500);
     expect(landings).toEqual([
       { word: 'Fake', errorMs: -490 },
       { word: 'line', errorMs: -20 },
