@@ -119,6 +119,7 @@ public static class ApiComposition
         services.AddSingleton<IArtworkFileStore, ArtworkFileStore>();
         services.AddScoped<ArtworkDownloader>();
         services.AddScoped<ArtworkService>();
+        services.AddScoped<UserArtworkService>();
         services.AddScoped<MetadataJobApplier>();
         services.AddScoped<MetadataSynchronizer>();
         services.AddScoped<MetadataService>();

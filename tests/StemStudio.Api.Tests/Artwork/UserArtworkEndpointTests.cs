@@ -31,7 +31,8 @@ public sealed class UserArtworkEndpointTests : ApiTestBase
         var dto = await response.BodyAsync<TrackDto>();
         (dto.Artwork!.Source, dto.Artwork.Version).ShouldBe((ArtworkSourceDto.User, "eeeeeeeeeeee"));
         var upload = Worker.ArtworkUploads.Single();
-        (upload.FileName, upload.ContentType, upload.Bytes).ShouldBe(("me.png", "image/png", Png));
+        (upload.FileName, upload.ContentType).ShouldBe(("me.png", "image/png"));
+        upload.Bytes.ShouldBe(Png);
         var cover = new WorkerArtworkRef(WorkerArtworkOwner.Upload, ArtworkId, ApiRoutes.ArtworkCover);
         Worker.ArtworkDownloads.ShouldBe([cover, cover with { Variant = ApiRoutes.ArtworkThumb }], ignoreOrder: true);
         (await GetCoverAsync(track.Id)).ShouldBe(FakeWorkerClient.ArtworkBytes(cover));
