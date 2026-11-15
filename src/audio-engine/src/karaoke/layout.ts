@@ -46,7 +46,7 @@ export function measureSlots(host: HTMLElement, slots: readonly [SlotView, SlotV
 }
 
 /** Host attributes whose change means a new text size (re-measure). */
-export const SIZE_ATTRIBUTES = ['class', 'data-size'];
+export const SIZE_ATTRIBUTES: readonly string[] = ['class', 'data-size'];
 
 /**
  * Observes the host and the current word elements with a `ResizeObserver` (when available)
@@ -66,7 +66,7 @@ export class LayoutWatcher {
     this.observer = Observer === undefined ? null : new Observer(onResize);
     this.observer?.observe(host);
     this.sizeClass = new MutationObserver(onResize);
-    this.sizeClass.observe(host, { attributes: true, attributeFilter: SIZE_ATTRIBUTES });
+    this.sizeClass.observe(host, { attributes: true, attributeFilter: [...SIZE_ATTRIBUTES] });
   }
 
   /** Whether resize callbacks deliver measurements (false: measure right after building). */

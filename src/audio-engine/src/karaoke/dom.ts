@@ -15,8 +15,8 @@ export type SlotName = (typeof SLOT_NAMES)[number];
 /** `data-state` of a word. */
 export type WordState = 'past' | 'current' | 'future';
 
-/** Host `dataset` keys written by the engine (removed again on detach). */
-export const HOST_KEYS = ['state', 'lineIndex', 'wordIndex', 'positionMs'] as const;
+/** Host attributes written by the engine (removed again on detach; Blazor's `data-sync` stays). */
+export const HOST_ATTRIBUTES = ['data-state', 'data-line-index', 'data-word-index', 'data-position-ms'] as const;
 
 /** The engine-created elements. */
 export interface BannerDom {
@@ -90,10 +90,10 @@ export function writeData(target: HTMLElement, key: string, value: string): void
   }
 }
 
-/** @param host - Host whose engine children and {@link HOST_KEYS} attributes are removed. */
+/** @param host - Host whose engine children and {@link HOST_ATTRIBUTES} are removed. */
 export function clearBanner(host: HTMLElement): void {
   host.replaceChildren();
-  HOST_KEYS.forEach((key) => {
-    host.removeAttribute(`data-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
+  HOST_ATTRIBUTES.forEach((name) => {
+    host.removeAttribute(name);
   });
 }

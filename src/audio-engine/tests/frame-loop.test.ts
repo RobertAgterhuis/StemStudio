@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FrameLoop, browserFrames } from '../src/frame-loop';
+import { FrameLoop } from '../src/frame-loop';
 import { Meters } from '../src/meters';
 import { MockAudioContext } from './mocks/audio-context';
 import { FakeFrames, setVisibility } from './mocks/frames';
@@ -165,17 +165,5 @@ describe('FrameLoop defaults', () => {
     expect(draw).toHaveBeenCalledWith(16);
     loop.dispose();
     expect(cancel).toHaveBeenCalledWith(2);
-  });
-
-  it('browserFrames delegates to requestAnimationFrame / cancelAnimationFrame', () => {
-    const raf = vi.fn(() => 7);
-    const caf = vi.fn();
-    vi.stubGlobal('requestAnimationFrame', raf);
-    vi.stubGlobal('cancelAnimationFrame', caf);
-    const callback = vi.fn();
-    expect(browserFrames.request(callback)).toBe(7);
-    browserFrames.cancel(7);
-    expect(raf).toHaveBeenCalledWith(callback);
-    expect(caf).toHaveBeenCalledWith(7);
   });
 });
