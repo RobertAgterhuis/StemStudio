@@ -1,0 +1,19 @@
+@* Detail stems of one split parent in display order, rest last (ids detail-stem-<parent>-<detail>). *@
+
+@if (Stems.Count > 0)
+{
+    <ul class="ss-stems ss-detail-stems" aria-label="@($"Detail stems of {Outcome.Parent}")">
+        @foreach (var stem in Stems)
+        {
+            <li class="ss-stem" data-testid="@($"detail-stem-{Outcome.Parent}-{stem.Name}")">@stem.Name</li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>The parent outcome whose stems are listed.</summary>
+    [Parameter, EditorRequired]
+    public ParentOutcomeDto Outcome { get; set; } = default!;
+
+    private IReadOnlyList<DetailStemDto> Stems => DetailPhaseText.OrderedStems(Outcome);
+}

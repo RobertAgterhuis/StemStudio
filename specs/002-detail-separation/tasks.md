@@ -102,10 +102,10 @@ committed contract and is faked:
 
 ### frontend (tests first)
 
-- [ ] T034 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Api/DetailApiClientTests.cs`: `StartDetailAsync`, `CancelDetailAsync` (202/200, 409 and 503 problems -> `ApiException` with the readable detail), `TrackDto.Detail` deserialisation incl. `none`
-- [ ] T035 [frontend] Implement the client methods in `src/StemStudio.Web/Api/` to pass T034
-- [ ] T036 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateDetailTests.cs`: groups from parents with outcome split (display order, rest last), expand/collapse flags, audible-level gate mirror (FR-013 cases: solo on a detail stem, solo on a collapsed parent, hidden channel flags ignored), detail settings kept across collapse, `ToMixSettings` writes `expanded` + `detailChannels`, applying a mix without them collapses everything (FR-012, FR-013, FR-015)
-- [ ] T037 [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState.Detail.cs, DetailChannelState.cs}` to pass T036
+- [x] T034 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Api/DetailApiClientTests.cs`: `StartDetailAsync`, `CancelDetailAsync` (202/200, 409 and 503 problems -> `ApiException` with the readable detail), `TrackDto.Detail` deserialisation incl. `none`
+- [x] T035 [frontend] Implement the client methods in `src/StemStudio.Web/Api/` to pass T034
+- [x] T036 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Mixer/MixerStateDetailTests.cs`: groups from parents with outcome split (display order, rest last), expand/collapse flags, audible-level gate mirror (FR-013 cases: solo on a detail stem, solo on a collapsed parent, hidden channel flags ignored), detail settings kept across collapse, `ToMixSettings` writes `expanded` + `detailChannels`, applying a mix without them collapses everything (FR-012, FR-013, FR-015)
+- [x] T037 [frontend] Implement `src/StemStudio.Web/Mixer/{MixerState.Detail.cs, DetailChannelState.cs}` to pass T036
 
 ### audio-engine (tests first)
 
@@ -144,8 +144,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### frontend (tests first)
 
-- [ ] T055 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Pages/TrackDetailDetailTests.cs`: `detail-section` per status, stage and progress (`aria-valuenow`), outcome texts per kind (data-model 2.2), `detail-stem-<parent>-<detail>` list, `detail-long-notice`, `detail-limitation-help` text (FR-017), polling continues while the detail phase is active even though the track is completed (FR-007, US3 AS1)
-- [ ] T056 [US1] [frontend] Implement `src/StemStudio.Web/Components/Pages/TrackDetail.Detail.razor(.cs)` and the polling change to pass T055
+- [x] T055 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Pages/TrackDetailDetailTests.cs`: `detail-section` per status, stage and progress (`aria-valuenow`), outcome texts per kind (data-model 2.2), `detail-stem-<parent>-<detail>` list, `detail-long-notice`, `detail-limitation-help` text (FR-017), polling continues while the detail phase is active even though the track is completed (FR-007, US3 AS1)
+- [x] T056 [US1] [frontend] Implement `src/StemStudio.Web/Components/Pages/TrackDetail.Detail.razor(.cs)` and the polling change to pass T055
 
 ### qa
 
@@ -168,8 +168,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### frontend (tests first)
 
-- [ ] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/StemGroupTests.cs`: `expand-<parent>` only for split parents with `aria-expanded`; group strips with all controls and meters (`*-<parent>-<detail>` ids); engine receives `loadTrack` with `groups`, `setExpanded`, `setChannel("<parent>.<detail>", ...)`; parent strip marked `data-expanded`; a rejected `setExpanded` shows the error and stays collapsed (FR-012, FR-013)
-- [ ] T063 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{StemGroup,ExpandToggle}.razor` and the mixer wiring to pass T062
+- [x] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/StemGroupTests.cs`: `expand-<parent>` only for split parents with `aria-expanded`; group strips with all controls and meters (`*-<parent>-<detail>` ids); engine receives `loadTrack` with `groups`, `setExpanded`, `setChannel("<parent>.<detail>", ...)`; parent strip marked `data-expanded`; a rejected `setExpanded` shows the error and stays collapsed (FR-012, FR-013)
+- [x] T063 [US2] [frontend] Implement `src/StemStudio.Web/Components/Mixer/{StemGroup,ExpandToggle}.razor` and the mixer wiring to pass T062
 
 ### qa
 
@@ -188,8 +188,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
 - [ ] T067 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailEndpointTests.cs`: `POST .../detail` 202 from none/failed/cancelled, 409 otherwise and when the track is not completed; `POST .../detail/cancel` 200 from queued/running (pending submission cancels locally), 409 otherwise, 503 when the worker is unreachable; `DELETE /api/tracks/{id}` 409 while queued/running with the reason, removes `detail/` otherwise (FR-008, FR-009, FR-016)
 - [ ] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
-- [ ] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
-- [ ] T070 [US3] [frontend] Implement the actions in `TrackDetail.Detail.razor.cs` / `TrackDetail.Actions.cs` to pass T069
+- [x] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
+- [x] T070 [US3] [frontend] Implement the actions in `TrackDetail.Detail.razor.cs` / `TrackDetail.Actions.cs` to pass T069
 - [ ] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
 
 **Checkpoint**: HO:us3.
@@ -200,8 +200,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 - [ ] T072 [P] [US4] [backend] Failing tests: tracks created before the migration expose `detail.status = none`; `POST .../detail` on them queues the phase; a second track with the same audio completes from the worker cache (fake worker returns completed on create) (FR-009, FR-010, SC-007)
 - [ ] T073 [US4] [backend] Implement anything missing to pass T072
-- [ ] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
-- [ ] T075 [US4] [frontend] Implement to pass T074
+- [x] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
+- [x] T075 [US4] [frontend] Implement to pass T074
 - [ ] T076 [US4] [qa] Author `detail.spec.ts` "split further": cancel the auto phase, Split further, detail completes, mixer offers expand
 
 **Checkpoint**: HO:us4.
@@ -212,8 +212,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 - [ ] T077 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/MixDetailEndpointTests.cs`: create/update/get/duplicate round-trip `expanded` + `detailChannels` exactly; 400 with JSON paths (`settings.detailChannels[0].stem`, `settings.expanded[0]`) for unknown stems or unsplit parents; a 1.1.0-shaped body without the fields is accepted and returned with empty arrays (FR-015, SC-005)
 - [ ] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
-- [ ] T079 [P] [US5] [frontend] Failing bUnit tests: save sends expansion + detail settings; loading a mix applies them (engine `setExpanded` before `setChannel`); loading an old mix collapses all groups and restores 001 settings exactly; dirty flag on detail changes
-- [ ] T080 [US5] [frontend] Implement to pass T079
+- [x] T079 [P] [US5] [frontend] Failing bUnit tests: save sends expansion + detail settings; loading a mix applies them (engine `setExpanded` before `setChannel`); loading an old mix collapses all groups and restores 001 settings exactly; dirty flag on detail changes
+- [x] T080 [US5] [frontend] Implement to pass T079
 - [ ] T081 [US5] [qa] Author `detail.spec.ts` "mixes": save "No snare", reload, load -> expanded + snare muted; an old-style mix (created through the API without the fields) loads collapsed
 
 **Checkpoint**: HO:us5.
@@ -224,7 +224,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 - [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
 - [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
+- [x] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [ ] T086 [P] [qa] Traceability matrix update, HO:polish
 - [x] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish

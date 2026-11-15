@@ -1,12 +1,16 @@
 @* Peak meter element; the audio engine writes --meter-level, data-peak-db and data-clip into it (contracts/audio-engine.md). *@
 
-<div class="ss-meter" id="@($"meter-{Target}")" role="img" aria-label="@($"{Target} level meter")"
+<div class="ss-meter" id="@($"meter-{Target}")" role="img" aria-label="@($"{Label ?? Target} level meter")"
      data-testid="@($"meter-{Target}")">
     <div class="ss-meter-fill"></div>
 </div>
 
 @code {
-    /// <summary>A stem name or <c>master</c>.</summary>
+    /// <summary>The id suffix: a channel key (e.g. <c>vocals</c>, <c>drums-snare</c>) or <c>master</c>.</summary>
     [Parameter, EditorRequired]
     public string Target { get; set; } = string.Empty;
+
+    /// <summary>The spoken name (e.g. "drums snare"); defaults to <see cref="Target"/>.</summary>
+    [Parameter]
+    public string? Label { get; set; }
 }

@@ -6,7 +6,7 @@ using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Api;
 
-public sealed class StemStudioApiClientTests : IDisposable
+public sealed partial class StemStudioApiClientTests : IDisposable
 {
     private readonly StubHttpMessageHandler _handler = new();
     private readonly StemStudioApiClient _client;

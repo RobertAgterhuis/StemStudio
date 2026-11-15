@@ -36,6 +36,9 @@ internal static class EngineMethods
     /// <summary><c>AudioEngine.setChannel</c>.</summary>
     public const string SetChannel = "setChannel";
 
+    /// <summary><c>AudioEngine.setExpanded</c> (contract 2.0.0).</summary>
+    public const string SetExpanded = "setExpanded";
+
     /// <summary><c>AudioEngine.setMaster</c>.</summary>
     public const string SetMaster = "setMaster";
 
@@ -53,5 +56,5 @@ internal static class EngineMethods
 
     /// <summary>All <c>AudioEngine</c> instance methods the wrapper invokes.</summary>
     public static readonly IReadOnlyList<string> All =
-        [LoadTrack, Play, Pause, Stop, Seek, SetChannel, SetMaster, SetLoop, SetMetronome, AttachMeter, Dispose];
+        [LoadTrack, Play, Pause, Stop, Seek, SetChannel, SetExpanded, SetMaster, SetLoop, SetMetronome, AttachMeter, Dispose];
 }
