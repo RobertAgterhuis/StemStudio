@@ -1,12 +1,10 @@
-using System.Text.RegularExpressions;
-
 namespace StemStudio.Domain.Assets;
 
 /// <summary>
 /// A library item: a file the app made, e.g. an exported stem or mix (feature 007, data-model 4.1 and status mapping
 /// 4.5). Kept when its track is deleted.
 /// </summary>
-public sealed partial class Asset
+public sealed class Asset
 {
     /// <summary>Longest error text.</summary>
     public const int MaxErrorLength = 500;
@@ -102,13 +100,9 @@ public sealed partial class Asset
     /// <param name="nowUtc">Current time (UTC).</param>
     public void AssignJob(string workerJobId, DateTime nowUtc)
     {
-        if (!JobIdPattern().IsMatch(workerJobId))
-        {
-            throw new ArgumentException($"'{workerJobId}' is not a worker job ID.", nameof(workerJobId));
-        }
-
+        var jobId = JobIds.Require(workerJobId, nameof(workerJobId));
         RequireActive();
-        (WorkerJobId, UpdatedAt) = (workerJobId, nowUtc);
+        (WorkerJobId, UpdatedAt) = (jobId, nowUtc);
     }
 
     /// <summary>Applies the worker's progress (0..1): rendering, percent clamped, never lower; ignored when finished.</summary>
@@ -171,7 +165,4 @@ public sealed partial class Asset
             throw new InvalidOperationException($"Item {Id} is already {Status}.");
         }
     }
-
-    [GeneratedRegex(@"\A[0-9a-f]{32}\z", RegexOptions.CultureInvariant)]
-    private static partial Regex JobIdPattern();
 }
