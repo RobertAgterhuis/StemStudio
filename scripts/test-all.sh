@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
-# .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-# pytest + coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+# .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
+# (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
 # quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
@@ -27,6 +27,8 @@ done
 REDOCLY=@redocly/cli@2.78.0
 CONTRACTS=specs/008-sheet-music/contracts  # 008 documents contain 006's and 007's unchanged
 RENDER_VECTORS=specs/007-export-library/contracts/generate_render_vectors.py  # 008 has no vectors file
+# Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
+GENERATIVE_CONTRACTS=(specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts)
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
@@ -55,6 +57,11 @@ step "worker ruff check" worker uv run --frozen ruff check .
 step "worker ruff format" worker uv run --frozen ruff format --check .
 step "worker mypy" worker uv run --frozen mypy src tests
 step "worker pytest + coverage" worker uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
+step "generator uv sync" generator uv sync --frozen
+step "generator ruff check" generator uv run --frozen ruff check .
+step "generator ruff format" generator uv run --frozen ruff format --check .
+step "generator mypy" generator uv run --frozen mypy src tests
+step "generator pytest + coverage" generator uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-fail-under=90
 step "engine npm ci" src/audio-engine npm ci --no-audit --no-fund
 step "engine lint" src/audio-engine npm run lint
 step "engine typecheck" src/audio-engine npm run typecheck
@@ -67,6 +74,10 @@ step "web-interop test:coverage" src/web-interop npm run test:coverage
 step "web-interop build" src/web-interop npm run build
 step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
+for dir in "${GENERATIVE_CONTRACTS[@]}"; do
+  feature="${dir#specs/}"
+  step "contracts lint (${feature%%/*})" . npx --yes "$REDOCLY" lint --config "$dir/redocly.yaml"     "$dir/generator-api.openapi.yaml" "$dir/backend-api.openapi.yaml"
+done
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
 step "quality ruff check" tools/quality uvq ruff check .
 step "quality ruff format" tools/quality uvq ruff format --check .
