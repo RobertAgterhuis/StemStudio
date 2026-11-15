@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { KaraokeClock, MAX_OFFSET_MS, audioNow, outputLatency, validateOffset } from '../../src/karaoke/clock';
 import { MockAudioContext } from '../mocks/audio-context';
 import { makeTransport, type TransportRig } from '../mocks/transport-rig';
@@ -82,6 +82,15 @@ describe('KaraokeClock', () => {
     expect(rig.clock.positionMs()).toBe(1875);
     rig.clock.setOffset(-250);
     expect(rig.clock.positionMs()).toBe(2225);
+  });
+
+  it('reads performance.now() by default', async () => {
+    const rig = makeTransport();
+    await rig.transport.play();
+    const clock = new KaraokeClock({ context: rig.ctx.asAudioContext(), transport: rig.transport });
+    vi.spyOn(performance, 'now').mockReturnValue(2000);
+    rig.ctx.outputTimestamp = { contextTime: 1.1, performanceTime: 1500 };
+    expect(clock.positionMs()).toBe(1500);
   });
 
   it('rejects an out-of-range offset and keeps the previous one', async () => {

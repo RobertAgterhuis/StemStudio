@@ -6,6 +6,7 @@
  */
 import { DotNetNotifier } from './callbacks';
 import { clampChecked } from './channel';
+import { FrameLoop } from './frame-loop';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
 import { Meters } from './meters';
@@ -47,6 +48,7 @@ interface Parts {
   readonly mixer: Mixer;
   readonly transport: Transport;
   readonly notifier: DotNetNotifier;
+  readonly frames: FrameLoop;
   readonly meters: Meters;
   readonly metronome: MetronomeScheduler;
 }
@@ -61,9 +63,10 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   });
   const notifier = new DotNetNotifier(ref, () => transport.position());
   transport.addListener(notifier);
-  const meters = new Meters({ source: (target) => mixer.analyser(target) });
+  const frames = new FrameLoop();
+  const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
   const metronome = createMetronome(context, transport, options);
-  return { context, mixer, transport, notifier, meters, metronome };
+  return { context, mixer, transport, notifier, frames, meters, metronome };
 }
 
 function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
@@ -243,6 +246,7 @@ export class Engine implements AudioEngine {
     this.parts.mixer.dispose();
     this.parts.notifier.dispose();
     this.parts.meters.dispose();
+    this.parts.frames.dispose();
     this.parts.metronome.dispose();
     await this.parts.context.close();
   }
