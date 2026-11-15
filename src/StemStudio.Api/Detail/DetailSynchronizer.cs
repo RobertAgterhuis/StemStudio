@@ -38,47 +38,40 @@ public sealed partial class DetailSynchronizer(
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
     {
         var before = track.DetailPhase!.Status;
-        var changed = track.DetailPhase.WorkerDetailJobId is { } detailJobId
-            ? await PollAsync(track, detailJobId, cancellationToken)
-            : await SubmitAsync(track, cancellationToken);
-        if (changed)
-        {
-            await tracks.SaveAsync(cancellationToken);
-            LogTransition(track, before);
-        }
-    }
-
-    private async Task<bool> PollAsync(Track track, string detailJobId, CancellationToken cancellationToken)
-    {
         try
         {
-            await applier.ApplyAsync(track, await worker.GetDetailJobAsync(detailJobId, cancellationToken), cancellationToken);
-            return true;
+            await ApplyAsync(track, track.DetailPhase.WorkerDetailJobId, cancellationToken);
         }
         catch (WorkerUnavailableException)
         {
             LogWorkerUnavailable(logger, track.Id);
-            return false;
+            return;
         }
+
+        await tracks.SaveAsync(cancellationToken);
+        LogTransition(track, before);
     }
 
-    private async Task<bool> SubmitAsync(Track track, CancellationToken cancellationToken)
+    private async Task ApplyAsync(Track track, string? detailJobId, CancellationToken cancellationToken)
+    {
+        if (detailJobId is null)
+        {
+            await SubmitAsync(track, cancellationToken);
+            return;
+        }
+
+        await applier.ApplyAsync(track, await worker.GetDetailJobAsync(detailJobId, cancellationToken), cancellationToken);
+    }
+
+    private async Task SubmitAsync(Track track, CancellationToken cancellationToken)
     {
         try
         {
-            var job = await worker.CreateDetailJobAsync(track.WorkerJobId!, cancellationToken);
-            await applier.ApplySubmissionAsync(track, job, cancellationToken);
-            return true;
-        }
-        catch (WorkerUnavailableException)
-        {
-            LogWorkerUnavailable(logger, track.Id);
-            return false;
+            await applier.ApplySubmissionAsync(track, await worker.CreateDetailJobAsync(track.WorkerJobId!, cancellationToken), cancellationToken);
         }
         catch (WorkerRequestException rejection)
         {
             applier.ApplyRejection(track, rejection.Detail);
-            return true;
         }
     }
 

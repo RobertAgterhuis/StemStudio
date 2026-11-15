@@ -66,6 +66,7 @@ public static class ApiComposition
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
         app.MapStemEndpoints();
+        app.MapDetailEndpoints();
         app.MapMixEndpoints();
     }
 
@@ -75,7 +76,6 @@ public static class ApiComposition
     private static void AddApplicationServices(IServiceCollection services)
     {
         services.AddSingleton<IStemFileStore, StemFileStore>();
-        services.AddSingleton<IDetailStemFileStore, DetailStemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
@@ -85,9 +85,16 @@ public static class ApiComposition
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
+        services.AddHostedService<JobSyncService>();
+        AddDetailServices(services);
+    }
+
+    private static void AddDetailServices(IServiceCollection services)
+    {
+        services.AddSingleton<IDetailStemFileStore, DetailStemFileStore>();
         services.AddScoped<DetailJobApplier>();
         services.AddScoped<DetailSynchronizer>();
-        services.AddHostedService<JobSyncService>();
+        services.AddScoped<DetailService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

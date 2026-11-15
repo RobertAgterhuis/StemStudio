@@ -84,19 +84,24 @@ public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore 
         try
         {
             var result = await worker.GetDetailResultAsync(detailJobId, cancellationToken);
-            var parents = new List<ParentOutcome>();
-            foreach (var parent in result.Parents)
-            {
-                parents.Add(await StoreAsync(track.Id, detailJobId, parent, cancellationToken));
-            }
-
-            track.CompleteDetail(parents, Now);
+            track.CompleteDetail(await StoreAllAsync(track.Id, result, cancellationToken), Now);
         }
         catch (Exception exception) when (FailureReason(exception) is { } reason)
         {
             files.DeleteAll(track.Id);
             track.FailDetail(reason, Now);
         }
+    }
+
+    private async Task<List<ParentOutcome>> StoreAllAsync(Guid trackId, WorkerDetailResult result, CancellationToken cancellationToken)
+    {
+        var parents = new List<ParentOutcome>();
+        foreach (var parent in result.Parents)
+        {
+            parents.Add(await StoreAsync(trackId, result.DetailJobId, parent, cancellationToken));
+        }
+
+        return parents;
     }
 
     private async Task<ParentOutcome> StoreAsync(Guid trackId, string detailJobId, WorkerParentOutcome parent, CancellationToken cancellationToken)
