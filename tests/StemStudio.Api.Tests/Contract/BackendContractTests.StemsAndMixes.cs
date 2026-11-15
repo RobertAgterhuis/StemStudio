@@ -115,7 +115,7 @@ public sealed partial class BackendContractTests
 
     // Contract operations not served yet (staged by the architect in the 005/007 Phase 0).
     // Feature 005 (backend 1.4.0): the backend removes each id when it serves it (T026, T039, T046).
-    private static readonly string[] PendingArtworkOperations = ["setTrackArtwork", "resetTrackArtwork"];
+    private static readonly string[] PendingArtworkOperations = [];
 
     // Feature 007 (backend 1.5.0): the backend removes each id per story (T035, T042, T049, T054, T059).
     private static readonly string[] PendingAssetOperations = ["listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile"];
