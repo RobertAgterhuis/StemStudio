@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "about": "qa proposal (006:T012) for the worker's fake lyrics provider and fake aligner (STEMSTUDIO_FAKE_LYRICS, only with STEMSTUDIO_SEPARATOR=fake). audio-ingest 006:T028 (lyrics/fake.py) and stem-separation 006:T041 (alignment/fake.py) should return exactly these values; e2e/support/lyrics.ts reads its expectations from this file. All text is self-written. Times fit the 20 s fake-stack fixtures (music_100bpm_20s.*: 100 BPM, first beat 0.5 s).",
+  "text": {
+    "plainText": "Fake line one la la la\nSecond fake line for the ball\nLast fake line",
+    "pastedText": "Pasted line one\nPasted line two for the ball"
+  },
+  "modes": {
+    "word": {
+      "outcome": "found",
+      "status": "found",
+      "syncLevel": "word",
+      "origin": "source",
+      "sourceId": "fake-word",
+      "credit": "Lyrics: LRCLIB",
+      "dataSync": "word"
+    },
+    "line": {
+      "outcome": "found",
+      "status": "found",
+      "syncLevel": "line",
+      "origin": "interpolated",
+      "sourceId": "fake-line",
+      "credit": "Lyrics: LRCLIB; word timing estimated",
+      "dataSync": "line"
+    },
+    "plain": {
+      "outcome": "found",
+      "status": "alignPending",
+      "syncLevel": "plain",
+      "origin": "none",
+      "sourceId": "fake-plain",
+      "credit": "Lyrics: LRCLIB",
+      "dataSync": "aligned",
+      "alignedCredit": "Lyrics: LRCLIB; timing: automatic alignment"
+    },
+    "instrumental": { "outcome": "instrumental", "status": "instrumental" },
+    "not-found": { "outcome": "not-found", "status": "notFound" },
+    "failed": { "outcome": null, "status": "failed", "error": "Lyrics could not be retrieved; try again later." }
+  },
+  "fakeAlignment": {
+    "rule": "word k (counted over the whole text, line breaks kept) starts at firstWordMs + k * wordMs and ends wordMs later; a line spans its words",
+    "firstWordMs": 2000,
+    "wordMs": 500
+  },
+  "countdownGapMs": 5000,
+  "lines": [
+    {
+      "startMs": 2000,
+      "endMs": 5600,
+      "text": "Fake line one la la la",
+      "words": [
+        { "text": "Fake", "startMs": 2000, "endMs": 2600 },
+        { "text": "line", "startMs": 2600, "endMs": 3200 },
+        { "text": "one", "startMs": 3200, "endMs": 3800 },
+        { "text": "la", "startMs": 3800, "endMs": 4400 },
+        { "text": "la", "startMs": 4400, "endMs": 5000 },
+        { "text": "la", "startMs": 5000, "endMs": 5600 }
+      ]
+    },
+    {
+      "startMs": 6200,
+      "endMs": 9800,
+      "text": "Second fake line for the ball",
+      "words": [
+        { "text": "Second", "startMs": 6200, "endMs": 6800 },
+        { "text": "fake", "startMs": 6800, "endMs": 7400 },
+        { "text": "line", "startMs": 7400, "endMs": 8000 },
+        { "text": "for", "startMs": 8000, "endMs": 8600 },
+        { "text": "the", "startMs": 8600, "endMs": 9200 },
+        { "text": "ball", "startMs": 9200, "endMs": 9800 }
+      ]
+    },
+    {
+      "startMs": 16000,
+      "endMs": 17800,
+      "text": "Last fake line",
+      "words": [
+        { "text": "Last", "startMs": 16000, "endMs": 16600 },
+        { "text": "fake", "startMs": 16600, "endMs": 17200 },
+        { "text": "line", "startMs": 17200, "endMs": 17800 }
+      ]
+    }
+  ]
+}

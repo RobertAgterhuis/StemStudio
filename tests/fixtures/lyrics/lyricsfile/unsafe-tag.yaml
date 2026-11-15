@@ -1,0 +1,4 @@
+# Must be rejected as unusable: a Python object tag that only yaml.load (never safe_load) builds.
+version: '1.0'
+metadata: !!python/object/apply:os.getcwd []
+lines: []

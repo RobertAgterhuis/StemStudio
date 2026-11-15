@@ -1,0 +1,16 @@
+[ti:Fixture Edge Cases]
+[ar:The Fixture Band]
+[offset:+250]
+[re:hand-written]
+[00:05]Whole seconds without a fraction
+[00:08.5]One fraction digit
+[00:10.120]Three fraction digits
+[00:12.00][00:42.00]A chorus line with two stamps
+[00:15.30]
+[00:18.00]After an empty stamp line
+
+[00:21.75]After a blank line without a stamp
+[00:25.00]春の風がそっと吹く
+[00:29.40]שיר קטן על הים
+[01:02.00]   Leading and trailing spaces
+[01:05.00]Last line after the repeated chorus

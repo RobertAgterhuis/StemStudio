@@ -72,7 +72,7 @@ in the execution plan.
 - [x] T008 [quality-gate] Implement the rules in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [x] T009 [P] [devops] Write the font check first and show it fail on the current image: `scripts/check-worker-fonts.{ps1,sh}` (`fc-list` inside `stemstudio/worker:local` lists "Leipzig"; `python -c "import verovio, cairosvg, music21"` succeeds as the worker user) (SC-004)
 - [x] T010 [devops] `docker/worker.Dockerfile`: build stage runs `worker/scripts/install_music_font.py` (fontTools only in that stage) with `fontTools[woff]` (brotli) and copies the printed file (`Leipzig.ttf`, TrueType outlines) to `/usr/local/share/fonts/verovio/` + `fc-cache`; `fontconfig` present; both image variants; `docker-compose.yml` passes `STEMSTUDIO_TRANSCRIBER` (default empty = automatic); CI `CONTRACTS_DIR`/`scripts/test-all.*` -> `specs/008-sheet-music/contracts` (once for 006 + 008; the render-vectors check keeps the 007 path); wire T009 into CI (image job) to pass
-- [ ] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: notation/engraving tested on synthetic notes and MusicXML assertions; integration tests with real models on synthetic audio (SC-002); fake transcriber for E2E; traceability US1..US5 -> test files
+- [x] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: notation/engraving tested on synthetic notes and MusicXML assertions; integration tests with real models on synthetic audio (SC-002); fake transcriber for E2E; traceability US1..US5 -> test files
 
 ---
 

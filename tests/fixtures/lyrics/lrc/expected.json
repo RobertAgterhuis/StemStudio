@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "rules": {
+    "offset": "LRC convention: [offset:+n] shows the lyrics n ms sooner, so startMs = stamp - n (n may be negative). This is NOT the app's karaoke offset (backend: positive = lyrics later).",
+    "metadataTags": "[ti:], [ar:], [al:], [length:], [by:], [re:], [offset:] are not lines",
+    "multiStamp": "a line with several stamps appears once per stamp",
+    "emptyStamp": "a stamp without text is a break: it ends the previous line and is not a line",
+    "blankLine": "a blank line without a stamp is ignored",
+    "text": "trimmed; order of the result is by startMs",
+    "noStamps": "a file without any time stamp is unusable (typed 'unusable' error, data-model 2.4 text)"
+  },
+  "files": {
+    "basic.lrc": {
+      "usable": true,
+      "lines": [
+        { "startMs": 10950, "text": "Fake line one" },
+        { "startMs": 14000, "text": "La la la" },
+        { "startMs": 17500, "text": "Second fake line for the ball" },
+        { "startMs": 22250, "text": "Last fake line" }
+      ],
+      "breaksMs": []
+    },
+    "edge-cases.lrc": {
+      "usable": true,
+      "lines": [
+        { "startMs": 4750, "text": "Whole seconds without a fraction" },
+        { "startMs": 8250, "text": "One fraction digit" },
+        { "startMs": 9870, "text": "Three fraction digits" },
+        { "startMs": 11750, "text": "A chorus line with two stamps" },
+        { "startMs": 17750, "text": "After an empty stamp line" },
+        { "startMs": 21500, "text": "After a blank line without a stamp" },
+        { "startMs": 24750, "text": "春の風がそっと吹く" },
+        { "startMs": 29150, "text": "שיר קטן על הים" },
+        { "startMs": 41750, "text": "A chorus line with two stamps" },
+        { "startMs": 61750, "text": "Leading and trailing spaces" },
+        { "startMs": 64750, "text": "Last line after the repeated chorus" }
+      ],
+      "breaksMs": [15050]
+    },
+    "negative-offset.lrc": {
+      "usable": true,
+      "lines": [
+        { "startMs": 1500, "text": "Fake line one" },
+        { "startMs": 3500, "text": "La la la" }
+      ],
+      "breaksMs": []
+    },
+    "no-stamps.lrc": { "usable": false, "lines": [], "breaksMs": [] }
+  }
+}

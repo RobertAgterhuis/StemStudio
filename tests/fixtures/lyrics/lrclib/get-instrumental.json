@@ -1,0 +1,17 @@
+{
+  "request": "GET /api/get?track_name=Monkeys Spinning Monkeys&artist_name=Kevin MacLeod&duration=125",
+  "status": 200,
+  "body": {
+    "id": 3879894,
+    "name": "Monkeys Spinning Monkeys",
+    "trackName": "Monkeys Spinning Monkeys",
+    "artistName": "Kevin MacLeod",
+    "albumName": "Over The Moon",
+    "duration": 125.0,
+    "instrumental": true,
+    "plainLyrics": null,
+    "syncedLyrics": null,
+    "hasWordSync": false,
+    "lyricsfile": "version: '1.0'\nmetadata:\n  title: Monkeys Spinning Monkeys\n  artist: Kevin MacLeod\n  album: Over The Moon\n  duration_ms: 125000\n  instrumental: true\n  language: null\nlines: []\n"
+  }
+}
