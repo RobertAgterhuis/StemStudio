@@ -17,8 +17,13 @@ else
     <SectionContent SectionName="@ContextBar.JourneySection"><JourneyRail Stage="JourneyStages.ForMixer(State.MixId is not null, State.IsDirty)" /></SectionContent>
     <div class="ss-console">
         <header class="ss-console-head">
+            <TrackArtwork Track="_track!" TestId="mixer-cover" HelpId="artwork" />
             <div class="ss-console-title">
                 <h1>@Title</h1>
+                @if (MetadataStatusText.AlbumLine(_track!.Metadata) is { } album)
+                {
+                    <span class="ss-muted" data-testid="mixer-album">@album</span>
+                }
                 @if (State.MixName is not null)
                 {
                     <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>
@@ -29,10 +34,13 @@ else
                 }
             </div>
             <div class="ss-mix-actions">
+                <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
                 @if (!IsBeginner)
                 {
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
                 }
+                <RadzenButton Text="Save to library" Icon="library_add" ButtonStyle="ButtonStyle.Light" Click="OpenExport" data-testid="mixer-export"
+                              data-help-id="export-dialog" />
                 <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
                 <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" data-help-id="mixer-save" />
             </div>
@@ -41,6 +49,16 @@ else
                 <ErrorState TestId="mix-error" Message="@MixError" />
             }
         </header>
+
+        @if (ShowBandInfo)
+        {
+            <BandInfoPanel Track="_track" OnClose="ToggleBandInfo" OnChanged="RefreshTrackAsync" />
+        }
+
+        @if (Exporting is not null)
+        {
+            <ExportDialog Target="Exporting" OnClose="CloseExport" />
+        }
 
         @if (DialogOpen)
         {

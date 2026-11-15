@@ -1,0 +1,54 @@
+@* Format of an export (feature 007, FR-004, FR-014): the format at every level (FLAC preselected); bit depth or bit rate
+   from Advanced (feature export.format-details). Native selects, values as in ui-test-ids 1.5.0. *@
+@using StemStudio.Contracts.Assets
+
+<div class="ss-field">
+    <div class="ss-label-row"><label class="ss-label" for="export-format">Format</label><HelpHint HelpId="export-formats" /></div>
+    <select id="export-format" class="ss-select" value="@FormatValue" @onchange="OnFormat" data-testid="export-format" data-help-id="export-formats">
+        <option value="flac">FLAC (lossless)</option>
+        <option value="wav">WAV (uncompressed)</option>
+        <option value="mp3">MP3 (small)</option>
+    </select>
+</div>
+<LevelGate Feature="export.format-details">
+    @if (Form.Format == AudioFileFormatDto.Mp3)
+    {
+        <div class="ss-field">
+            <label class="ss-label" for="export-mp3-bitrate">Bit rate</label>
+            <select id="export-mp3-bitrate" class="ss-select" value="@(Form.Mp3Bitrate ?? 320)" @onchange="OnBitrate" data-testid="export-mp3-bitrate">
+                <option value="192">192 kbps</option>
+                <option value="256">256 kbps</option>
+                <option value="320">320 kbps</option>
+            </select>
+        </div>
+    }
+    else
+    {
+        <div class="ss-field">
+            <label class="ss-label" for="export-bit-depth">Bit depth</label>
+            <select id="export-bit-depth" class="ss-select" value="@(Form.BitDepth ?? 16)" @onchange="OnBitDepth" data-testid="export-bit-depth">
+                <option value="16">16-bit</option>
+                <option value="24">24-bit</option>
+            </select>
+        </div>
+    }
+</LevelGate>
+
+@code {
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+
+    private string FormatValue => Form.Format.ToString().ToLowerInvariant();
+
+    private void OnFormat(ChangeEventArgs args) => Form.Format = args.Value?.ToString() switch
+    {
+        "wav" => AudioFileFormatDto.Wav,
+        "mp3" => AudioFileFormatDto.Mp3,
+        _ => AudioFileFormatDto.Flac,
+    };
+
+    private void OnBitDepth(ChangeEventArgs args) => Form.BitDepth = int.Parse(args.Value!.ToString()!, System.Globalization.CultureInfo.InvariantCulture);
+
+    private void OnBitrate(ChangeEventArgs args) => Form.Mp3Bitrate = int.Parse(args.Value!.ToString()!, System.Globalization.CultureInfo.InvariantCulture);
+}

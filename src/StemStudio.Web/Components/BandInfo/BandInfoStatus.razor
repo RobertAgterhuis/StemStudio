@@ -1,0 +1,43 @@
+@* Lookup status inside the band info panel (feature 005, FR-009): searching skeleton, not found, failed with the reason,
+   disabled with a link to the help topic. data-status carries the contract value at every state. *@
+@using StemStudio.Contracts.Artists
+
+<div class="ss-band-status" role="status" data-testid="band-info-status" data-status="@MetadataStatusText.Value(Info.Status)">
+    @switch (Info.Status)
+    {
+        case MetadataStatusDto.Found:
+            <span class="ss-sr-only">Band information found</span>
+            break;
+        case MetadataStatusDto.NotFound:
+            <p>No band information found. Check the title and artist, then search again.</p>
+            break;
+        case MetadataStatusDto.Failed:
+            <p>@(Info.Reason ?? MetadataStatusText.FailedText)</p>
+            break;
+        case MetadataStatusDto.Disabled:
+            <p>Online lookups are switched off.</p>
+            break;
+        default:
+            <div class="ss-skeleton">
+                <span class="ss-skeleton-label">Searching for band information...</span>
+                <span class="ss-skeleton-bar ss-skeleton-title" aria-hidden="true"></span>
+                <span class="ss-skeleton-bar" aria-hidden="true"></span>
+                <span class="ss-skeleton-bar" aria-hidden="true"></span>
+            </div>
+            break;
+    }
+</div>
+
+@if (Info.Status == MetadataStatusDto.Disabled)
+{
+    <div class="ss-notice" data-testid="band-info-disabled" data-help-id="online-lookups">
+        <a href="/help/online-lookups">How to switch online lookups on</a>.
+        StemStudio then fetches no pictures and no band information; everything else works as before.
+    </div>
+}
+
+@code {
+    /// <summary>The latest band info.</summary>
+    [Parameter, EditorRequired]
+    public BandInfoDto Info { get; set; } = default!;
+}

@@ -1,0 +1,25 @@
+@* Placeholder for a track without a (loadable) picture (feature 005, FR-006): initials on a stem colour picked by a
+   stable hash of the title. The initials are decoration; the element itself carries the text alternative. *@
+
+<span class="@($"ss-art ss-art-{Variant.ToString().ToLowerInvariant()} ss-art-placeholder ss-art-tone-{ArtworkDisplay.Tone(Title)}")"
+      role="img" aria-label="@($"No picture for {Title}")" data-testid="@TestId" data-artwork-source="none" data-help-id="@HelpId">
+    <span class="ss-art-initials" aria-hidden="true">@ArtworkDisplay.Initials(Title)</span>
+</span>
+
+@code {
+    /// <summary>The track title (initials, colour and text alternative).</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Cover or thumbnail size.</summary>
+    [Parameter]
+    public ArtworkVariant Variant { get; set; }
+
+    /// <summary>The <c>data-testid</c> of the element (e.g. <c>track-cover</c>).</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>Optional help marker (<c>artwork</c>).</summary>
+    [Parameter]
+    public string? HelpId { get; set; }
+}

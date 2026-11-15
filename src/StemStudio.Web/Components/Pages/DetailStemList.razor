@@ -9,12 +9,19 @@
             <li data-testid="@($"detail-stem-{Outcome.Parent}-{stem.Name}")"><StemTab Stem="@($"{Outcome.Parent}.{stem.Name}")" Pattern="i" /></li>
         }
     </ul>
+    <ExportButtons Channels="ChannelIds" OnExport="OnExport" />
 }
 
 @code {
     /// <summary>The parent outcome whose stems are listed.</summary>
     [Parameter, EditorRequired]
     public ParentOutcomeDto Outcome { get; set; } = default!;
+
+    /// <summary>Raised with a detail channel id (<c>drums.snare</c>) to save it raw to the library (feature 007).</summary>
+    [Parameter]
+    public EventCallback<string> OnExport { get; set; }
+
+    private IReadOnlyList<string> ChannelIds => Stems.Select(s => $"{Outcome.Parent}.{s.Name}").ToList();
 
     private IReadOnlyList<DetailStemDto> Stems => DetailPhaseText.OrderedStems(Outcome);
 }

@@ -11,7 +11,7 @@ import type { ScreenId } from './screens';
 export const reflowViewport = { width: 320, height: 720 } as const;
 
 /** Screens that must reflow without horizontal page scrolling at 320 px. */
-export const reflowScreens: readonly ScreenId[] = ['import', 'tracks', 'track', 'track-no-detail', 'mixes', 'mixer'];
+export const reflowScreens: readonly ScreenId[] = ['import', 'tracks', 'track', 'track-no-detail', 'mixes', 'mixer', 'library'];
 
 /** Pixels the document is wider than the viewport (0 when nothing scrolls horizontally). */
 export async function horizontalOverflow(page: Page): Promise<number> {

@@ -119,10 +119,10 @@ in the execution plan.
 - [x] T034 [US1] [stem-separation] Implement `jobs/render_service.py`, `api/render_routes.py`, `/health` additions and the composition in `main.py` (lane, store, `create_render_executor`, restart reconciliation, sweep timer) to pass T033
 - [x] T035 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Assets/RawExportTests.cs`: `POST /api/assets/audio-exports` mode `raw` for a stem and a detail stem -> 202 `Asset` (queued, default name, contents, recipe with `bitDepth` 16 and `dither=false` sent to the worker); track not completed -> 409; free space below `MinFreeDiskBytes` (fake `IDiskSpace`) -> 409 `insufficient-disk-space`; sync: worker running -> `rendering` + progress, completed -> hashing copy to `assets/<id>/audio.flac`, SHA-256 verified, `ready`, worker job deleted; `GET /api/assets/{id}/files/audio` serves Range/ETag/`Content-Disposition` (RFC 6266 `filename*`, sanitised) and `inline=true`; un-stage `createAudioExport`, `getAsset`, `getAssetFile` (FR-001, FR-004, FR-015, SC-004)
 - [x] T036 [US1] [backend] Implement `Assets/{ExportService,AssetFileStore,AssetJobApplier,AssetSyncService,DiskSpaceGuard,ContentDisposition,AssetEndpoints}.cs` (+ registration) to pass T035
-- [ ] T037 [P] [US1] [frontend] Failing bUnit tests: track page shows `export-stem-<stem>` for each stem and `export-detail-<parent>-<detail>` only for kept detail stems of split parents; `ExportDialog` (source fixed) shows `export-format` with FLAC preselected, hides `export-bit-depth`/`export-mp3-bitrate` below Advanced (004 level context, faked), submits the raw request through `IStemStudioApiClient`, shows `export-saved` with `export-saved-open` or `export-error` with the problem detail; help ids `export-dialog`, `export-formats` present (FR-001, FR-014)
-- [ ] T038 [US1] [frontend] Implement the track-page actions, `Components/Export/{ExportDialog,FormatPicker}.razor`, client methods and the help topics `export-dialog`, `export-formats` (004 framework) to pass T037
-- [ ] T039 [P] [US1] [frontend] Failing bUnit tests: `/library` page (`nav-library`) lists assets newest first with `asset-row-<id>`, name, contents, status (`aria-valuenow` while rendering, polled until terminal), `asset-play-<id>` (`<audio>` with the inline URL) and `asset-download-<id>` only when ready; `library-empty` when none; help id `library` (FR-007, FR-008)
-- [ ] T040 [US1] [frontend] Implement `Components/Library/{Library,AssetRow}.razor`, the navigation item and the help topic `library` to pass T039
+- [x] T037 [P] [US1] [frontend] Failing bUnit tests: track page shows `export-stem-<stem>` for each stem and `export-detail-<parent>-<detail>` only for kept detail stems of split parents; `ExportDialog` (source fixed) shows `export-format` with FLAC preselected, hides `export-bit-depth`/`export-mp3-bitrate` below Advanced (004 level context, faked), submits the raw request through `IStemStudioApiClient`, shows `export-saved` with `export-saved-open` or `export-error` with the problem detail; help ids `export-dialog`, `export-formats` present (FR-001, FR-014)
+- [x] T038 [US1] [frontend] Implement the track-page actions, `Components/Export/{ExportDialog,FormatPicker}.razor`, client methods and the help topics `export-dialog`, `export-formats` (004 framework) to pass T037
+- [x] T039 [P] [US1] [frontend] Failing bUnit tests: `/library` page (`nav-library`) lists assets newest first with `asset-row-<id>`, name, contents, status (`aria-valuenow` while rendering, polled until terminal), `asset-play-<id>` (`<audio>` with the inline URL) and `asset-download-<id>` only when ready; `library-empty` when none; help id `library` (FR-007, FR-008)
+- [x] T040 [US1] [frontend] Implement `Components/Library/{Library,AssetRow}.razor`, the navigation item and the help topic `library` to pass T039
 - [ ] T041 [US1] [qa] Author `e2e/tests/export.spec.ts` "raw stem" (fake stack): save `bass` FLAC 16 from the track page, open the item via `export-saved-open`, wait for `ready`, download it and compare its bytes' decoded samples with the stem served by `GET /api/tracks/{id}/stems/bass` (helper decodes FLAC with the engine-free Node decoder used by the fixtures, or compares via a test-only API call; SC-004); save `drums.snare` as MP3 and check that the `<audio>` element reports a duration > 0
 
 **Checkpoint**: HO:us1.
@@ -136,8 +136,8 @@ in the execution plan.
 
 - [x] T042 [P] [US2] [backend] Failing tests `tests/StemStudio.Api.Tests/Assets/MixExportTests.cs`: mode `mix` with an unsaved `mix` body and with `mixId` (exactly one, else 422); `channels = null` uses the audible level; explicit channels ignore mute/solo; the worker request carries the planner's gains/pans/master and `bitDepth` 24 by default; `nothing-to-export` -> 422; mix validation errors keep their field paths (`mix.detailChannels[0].stem`); the recipe stores the mix snapshot (also for `mixId`); `appliedGainDb` from the worker result is exposed in `audio` (FR-002, FR-003, FR-005, FR-010)
 - [x] T043 [US2] [backend] Implement anything missing in `ExportService`/mapping to pass T042
-- [ ] T044 [P] [US2] [frontend] Failing bUnit tests: `mixer-export` opens the dialog with `export-source-audible` selected and passes the mixer's current (unsaved) state; `export-source-selected` (Advanced) shows `export-channel-<id>` checkboxes prefilled with the currently audible channels; an empty selection disables `export-submit`; the request matches the selection; help id present (FR-002, FR-014)
-- [ ] T045 [US2] [frontend] Implement `Components/Export/ChannelPicker.razor` and the mixer integration to pass T044
+- [x] T044 [P] [US2] [frontend] Failing bUnit tests: `mixer-export` opens the dialog with `export-source-audible` selected and passes the mixer's current (unsaved) state; `export-source-selected` (Advanced) shows `export-channel-<id>` checkboxes prefilled with the currently audible channels; an empty selection disables `export-submit`; the request matches the selection; help id present (FR-002, FR-014)
+- [x] T045 [US2] [frontend] Implement `Components/Export/ChannelPicker.razor` and the mixer integration to pass T044
 - [x] T046 [P] [US2] [audio-engine] Vector consumer `src/audio-engine/tests/render-vectors.test.ts`: every gate case of `render-vectors.json` through the engine's real gate functions gives the expected per-channel gates/gains (test-only; it must pass against the existing engine; a failure is reported to the architect as a contract defect, no engine change in this feature) (FR-003, SC-003)
 - [ ] T047 [US2] [qa] Author `export.spec.ts` "what I hear": in the mixer set solo drums + bass, bass pan -40 %, master 70 %, export WAV 16, download and check with a fixture helper that the file's RMS per channel matches the value computed from the fake stems and the vector law (+/- 0.1 dB) and that muted/non-soloed stems are absent (FR-002, FR-003)
 - [x] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
@@ -153,8 +153,8 @@ in the execution plan.
 
 - [x] T049 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Assets/LibraryTests.cs`: `GET /api/assets` filters (`kind`, `trackId`, `status`, `q`), paging, newest first, `total` and `totalSizeBytes`; `PATCH` rename (422 rules); `DELETE` removes row + folder and cancels an active worker job (late completion is ignored and its worker job deleted); `retry` only from failed (409 otherwise), re-plans the recipe, 409 `source-unavailable` when the track is gone; deleting a track keeps its assets with `trackAvailable = false`; worker 404 during sync -> failed "lost this job"; un-stage the remaining operations (FR-007..FR-010)
 - [x] T050 [US3] [backend] Implement `AssetService` (list/rename/delete/retry) and the track-availability lookup to pass T049
-- [ ] T051 [P] [US3] [frontend] Failing bUnit tests: `library-filter-track`, `library-filter-kind`, `library-search` narrow the list; `library-total-size` formatted; rename dialog (`asset-rename-*`) with validation; delete with `confirm-dialog-ok`; `asset-retry-<id>` only for failed with `asset-error-<id>`; `asset-gain-note-<id>` only when `appliedGainDb < 0` (help id `export-clipping`); `asset-source-<id>` with `data-track-available` (FR-005, FR-007, FR-008)
-- [ ] T052 [US3] [frontend] Implement the library management UI and help topic `export-clipping` to pass T051
+- [x] T051 [P] [US3] [frontend] Failing bUnit tests: `library-filter-track`, `library-filter-kind`, `library-search` narrow the list; `library-total-size` formatted; rename dialog (`asset-rename-*`) with validation; delete with `confirm-dialog-ok`; `asset-retry-<id>` only for failed with `asset-error-<id>`; `asset-gain-note-<id>` only when `appliedGainDb < 0` (help id `export-clipping`); `asset-source-<id>` with `data-track-available` (FR-005, FR-007, FR-008)
+- [x] T052 [US3] [frontend] Implement the library management UI and help topic `export-clipping` to pass T051
 - [ ] T053 [US3] [qa] Author `e2e/tests/library.spec.ts`: save three items, filter by track, rename (downloaded file name follows), delete one (gone after reload), delete the source track of another (item stays, `data-track-available="false"`, still plays)
 
 **Checkpoint**: HO:us3.
@@ -165,8 +165,8 @@ in the execution plan.
 
 - [x] T054 [P] [US4] [backend] Failing tests: `range` validation (start >= 0, end <= duration, length >= 0.5 s; 422 with field `range`), range passed to the worker and included in the contents text (FR-006)
 - [x] T055 [US4] [backend] Implement to pass T054
-- [ ] T056 [P] [US4] [frontend] Failing bUnit tests: `export-range-loop` only when the mixer has a loop region (Advanced), fills start/end; `export-range-start`/`export-range-end` validation messages; help id `export-range` (FR-006, FR-014)
-- [ ] T057 [US4] [frontend] Implement the range controls and help topic to pass T056
+- [x] T056 [P] [US4] [frontend] Failing bUnit tests: `export-range-loop` only when the mixer has a loop region (Advanced), fills start/end; `export-range-start`/`export-range-end` validation messages; help id `export-range` (FR-006, FR-014)
+- [x] T057 [US4] [frontend] Implement the range controls and help topic to pass T056
 - [ ] T058 [US4] [qa] Author `export.spec.ts` "loop region": loop 2.0-4.5 s on the fake track, export "Only the loop region", downloaded WAV lasts 2.500 s +/- 1 ms
 
 **Checkpoint**: HO:us4.
@@ -177,8 +177,8 @@ in the execution plan.
 
 - [x] T059 [P] [US5] [backend] Failing tests `POST /api/assets/stem-packs`: one raw asset per standard stem (catalog order) and, with `includeDetail`, per kept detail stem of each split parent; disk guard applies once for the whole pack; un-stage `createStemPack` (FR-013)
 - [x] T060 [US5] [backend] Implement to pass T059
-- [ ] T061 [P] [US5] [frontend] Failing bUnit tests: `export-all-stems` (Advanced) opens the dialog with `export-include-detail` (only when the track has split parents) and submits the pack request; the confirmation names the number of items (FR-013)
-- [ ] T062 [US5] [frontend] Implement to pass T061
+- [x] T061 [P] [US5] [frontend] Failing bUnit tests: `export-all-stems` (Advanced) opens the dialog with `export-include-detail` (only when the track has split parents) and submits the pack request; the confirmation names the number of items (FR-013)
+- [x] T062 [US5] [frontend] Implement to pass T061
 - [ ] T063 [US5] [qa] Author `export.spec.ts` "stem pack": six items appear (fake track without detail), all reach `ready`
 
 **Checkpoint**: HO:us5.
@@ -190,7 +190,7 @@ in the execution plan.
 - [x] T064 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `render/`
 - [x] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
 - [x] T066 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
+- [x] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
 - [ ] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish
 - [x] T069 [P] [devops] Validate compose/CI (`docker compose config -q` for both compose variants, `actionlint`), HO:polish
 - [ ] T070 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish

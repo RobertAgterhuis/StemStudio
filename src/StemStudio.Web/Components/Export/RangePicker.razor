@@ -1,0 +1,33 @@
+@* Range of an export (feature 007, US4, FR-006; Advanced+, feature export.range): "Only the loop region" when the
+   mixer has one (fills start and end), or start and end in seconds; empty = the whole song. *@
+
+<LevelGate Feature="export.range">
+    <fieldset>
+        <legend class="ss-label">Part of the song <HelpHint HelpId="export-range" /></legend>
+        @if (Form.Range.Loop is not null)
+        {
+            <label class="ss-check">
+                <input type="checkbox" checked="@Form.Range.LoopOnly" @onchange="args => Form.Range.SetLoopOnly(args.Value is true)"
+                       data-testid="export-range-loop" /> Only the loop region
+            </label>
+        }
+        <div class="ss-range-row">
+            <label class="ss-field">
+                <span class="ss-small">Start (s)</span>
+                <input type="number" min="0" step="0.1" class="rz-textbox" placeholder="0" @bind="Form.Range.Start" @bind:event="oninput"
+                       data-testid="export-range-start" data-help-id="export-range" />
+            </label>
+            <label class="ss-field">
+                <span class="ss-small">End (s)</span>
+                <input type="number" min="0" step="0.1" class="rz-textbox" placeholder="end" @bind="Form.Range.End" @bind:event="oninput"
+                       data-testid="export-range-end" />
+            </label>
+        </div>
+    </fieldset>
+</LevelGate>
+
+@code {
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+}
