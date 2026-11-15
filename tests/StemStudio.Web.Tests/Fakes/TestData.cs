@@ -122,6 +122,41 @@ public static class TestData
             .Select(name => new StemDto(name, ApiRoutes.Stem(TrackId, name)))
             .ToList();
 
+    public static DetailStemDto DetailStem(string parent, string name) => new(name, ApiRoutes.DetailStem(TrackId, parent, name));
+
+    public static ParentOutcomeDto Split(string parent, params string[] names) =>
+        new(parent, ParentOutcomeKindDto.Split, names.Select(n => DetailStem(parent, n)).ToList());
+
+    public static ParentOutcomeDto Outcome(string parent, ParentOutcomeKindDto kind) => new(parent, kind, []);
+
+    public static DetailPhaseDto Phase(DetailPhaseStatusDto status, int progress = 0, string? stage = null, string? error = null) => new()
+    {
+        Status = status,
+        Stage = stage,
+        Progress = progress,
+        Error = error,
+        Parents = [],
+        UpdatedAt = Created,
+    };
+
+    /// <summary>Completed detail phase: drums and vocals split (stems deliberately out of display order), the rest not split.</summary>
+    public static DetailPhaseDto CompletedDetail() => Phase(DetailPhaseStatusDto.Completed, 100, "Completed") with
+    {
+        Parents =
+        [
+            Split(StemNames.Drums, "snare", "kick", "rest"),
+            Split(StemNames.Vocals, "rest", "lead", "backing"),
+            Outcome(StemNames.Bass, ParentOutcomeKindDto.NotSupported),
+            Outcome(StemNames.Guitar, ParentOutcomeKindDto.NothingFurther),
+            Outcome(StemNames.Piano, ParentOutcomeKindDto.SkippedSilent),
+            Outcome(StemNames.Other, ParentOutcomeKindDto.NotReliable),
+        ],
+    };
+
+    public static TrackDto DetailTrack() => Track() with { Detail = CompletedDetail() };
+
+    public static TrackDto WithDetail(DetailPhaseDto detail) => Track() with { Detail = detail };
+
     public static MixSettingsDto Settings(string name = "Guitar practice") => new(
         name,
         0.9,
