@@ -19,7 +19,7 @@ for (const screen of helpScreens) {
     for (const [opener, returnTo] of [['button', 'help-toggle'], ['nav', 'nav-help']] as const) {
       await help.open(opener);
       await help.expectTopic(screenTopics[screen]);
-      expect(await shell.focusIsInside(help.panel), `${opener}: focus moves into the panel`).toBe(true);
+      await expect.poll(() => shell.focusIsInside(help.panel), `${opener}: focus moves into the panel`).toBe(true);
       await help.closeWithEscape();
       await expect(page.getByTestId(returnTo)).toBeFocused();
     }
@@ -27,7 +27,7 @@ for (const screen of helpScreens) {
       await blurActiveElement(page);
       await help.open(opener);
       await help.expectTopic(screenTopics[screen]);
-      expect(await shell.focusIsInside(help.panel), `${opener}: focus moves into the panel`).toBe(true);
+      await expect.poll(() => shell.focusIsInside(help.panel), `${opener}: focus moves into the panel`).toBe(true);
       await help.closeWithEscape();
     }
   });

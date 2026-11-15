@@ -23,7 +23,9 @@ for (const { id, level, screen } of tourCases) {
       expect(steps).toBeLessThanOrEqual(readTourDefinition(id).steps.length);
       expect(await tour.finishWithKeyboard()).toEqual(stepRange(steps));
 
-      expect((await readStoredPreferences(page))?.help.tours[id]).toMatchObject({ version: tourVersions[id], status: 'completed' });
+      await expect
+        .poll(async () => (await readStoredPreferences(page))?.help.tours[id])
+        .toMatchObject({ version: tourVersions[id], status: 'completed' });
       await expect(tour.offer(id)).toHaveCount(0);
       await page.reload();
       await openScreen(page, screen, uxData);
@@ -49,8 +51,8 @@ test.describe('import-basics interrupted', () => {
 
     await page.keyboard.press('Escape');
     await expect(tour.popover).toBeHidden();
-    expect(await shell.focusIsOnAnElement()).toBe(true);
-    expect((await readStoredPreferences(page))?.help.tours['import-basics']).toMatchObject({ status: 'dismissed' });
+    await expect.poll(() => shell.focusIsOnAnElement()).toBe(true);
+    await expect.poll(async () => (await readStoredPreferences(page))?.help.tours['import-basics']).toMatchObject({ status: 'dismissed' });
     await page.reload();
     await openScreen(page, 'import', uxData);
     await expect(tour.offer('import-basics')).toHaveCount(0);

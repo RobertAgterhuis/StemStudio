@@ -35,12 +35,12 @@ public sealed class DetailAccessibilityTests : MixerTestContext
 
         toggle.TagName.ShouldBe("BUTTON");
         toggle.GetAttribute("tabindex").ShouldNotBe("-1");
-        toggle.GetAttribute("aria-label").ShouldBe("Show detail stems of drums");
+        toggle.GetAttribute("aria-label").ShouldBe("Expand detail stems of drums");
         toggle.GetAttribute("aria-controls").ShouldBe("group-drums");
 
         await toggle.ClickAsync(new());
 
-        page.Find(ExpandDrums).GetAttribute("aria-label").ShouldBe("Hide detail stems of drums");
+        page.Find(ExpandDrums).GetAttribute("aria-label").ShouldBe("Collapse detail stems of drums");
         var group = page.Find("[data-testid=group-drums]");
         (group.Id, group.GetAttribute("role"), group.GetAttribute("aria-label")).ShouldBe(("group-drums", "group", "drums detail stems"));
     }

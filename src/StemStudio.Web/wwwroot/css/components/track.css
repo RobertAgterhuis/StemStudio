@@ -1,0 +1,344 @@
+/* Track list, track detail, detail stems, device line and mix library (design-spec.md 4.3, 4.4, 4.6). */
+
+.ss-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--ss-space-1) var(--ss-space-4);
+  margin: 0 0 var(--ss-space-4);
+}
+
+.ss-facts dt {
+  color: var(--ss-color-muted);
+}
+
+.ss-facts dd {
+  margin: 0;
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-stems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  margin: 0 0 var(--ss-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.ss-stem {
+  padding: var(--ss-space-1) var(--ss-space-3);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-raised);
+}
+
+.ss-outcomes {
+  display: grid;
+  gap: var(--ss-space-2);
+  margin: var(--ss-space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-4);
+}
+
+.ss-outcome-parent {
+  min-width: 5rem;
+  font-weight: 600;
+}
+
+.ss-detail-stems {
+  margin: 0;
+}
+
+.ss-link-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 0 var(--ss-space-4);
+}
+
+.ss-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--ss-color-surface);
+  border-radius: var(--ss-radius-panel);
+}
+
+.ss-table th,
+.ss-table td {
+  padding: var(--ss-space-3);
+  border-bottom: 1px solid var(--ss-color-divider);
+  text-align: left;
+}
+
+.ss-table th {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ss-space-1) var(--ss-space-3);
+  margin: var(--ss-space-2) 0;
+}
+
+.ss-device-name {
+  font-weight: 600;
+}
+
+.ss-device-label,
+.ss-device-reason,
+.ss-device-reason-label {
+  color: var(--ss-color-muted);
+}
+
+.ss-device-reason-label {
+  margin-right: var(--ss-space-1);
+  font-weight: 600;
+}
+
+/* Library tools and rows (design-spec.md 4.3, 4.6). */
+.ss-library-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-search {
+  width: min(16rem, 100%);
+}
+
+.ss-library-tools .ss-inline-label {
+  margin-left: var(--ss-space-2);
+}
+
+select.ss-select {
+  padding-right: var(--ss-space-5);
+}
+
+.ss-table tbody tr {
+  transition: background-color var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.ss-table tbody tr:hover {
+  background: var(--ss-color-raised);
+}
+
+.ss-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ss-cell-ribbon {
+  width: 4.5rem;
+}
+
+.ss-cell-title a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ss-cell-title a:hover {
+  text-decoration: underline;
+}
+
+.ss-cell-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ss-row-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+  padding: var(--ss-space-1) var(--ss-space-3);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  text-decoration: none;
+}
+
+.ss-row-action:hover {
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+}
+
+.ss-table-compact th,
+.ss-table-compact td {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-no-results {
+  color: var(--ss-color-muted);
+}
+
+/* Narrow screens: each row becomes a stacked card (WCAG 1.4.10 reflow). */
+@media (max-width: 767.98px) {
+  .ss-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .ss-table,
+  .ss-table tbody,
+  .ss-table tr,
+  .ss-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ss-table tr {
+    padding: var(--ss-space-3) var(--ss-space-4);
+    border-bottom: 1px solid var(--ss-color-divider);
+  }
+
+  .ss-table td {
+    padding: var(--ss-space-1) 0;
+    border: 0;
+  }
+
+  .ss-cell-action {
+    text-align: left;
+  }
+}
+
+/* Track page (design-spec.md 4.4). */
+.ss-track {
+  max-width: 60rem;
+}
+
+.ss-track-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ss-space-4);
+}
+
+.ss-track-head .ss-ribbon {
+  width: 7rem;
+  height: auto;
+}
+
+.ss-track-names h1 {
+  margin-bottom: var(--ss-space-1);
+}
+
+.ss-track-artist {
+  margin: 0;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-heading-size);
+}
+
+.ss-stage {
+  color: var(--ss-color-muted);
+}
+
+.ss-progress {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-facts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-5);
+}
+
+.ss-facts-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.ss-facts-row dd {
+  font-size: var(--ss-type-heading-size);
+  font-weight: 600;
+}
+
+.ss-delete {
+  padding-top: var(--ss-space-2);
+  border-top: 1px solid var(--ss-color-divider);
+}
+
+.ss-limitation-note {
+  padding-left: var(--ss-space-3);
+  border-left: 2px solid var(--ss-color-divider);
+}
+
+/* Device line: icon from the Material Symbols font via CSS, so the text stays exactly the device text. */
+.ss-device::before {
+  content: "memory";
+  font-family: "Material Symbols";
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--ss-color-muted);
+  align-self: center;
+}
+
+.ss-device:has([data-device="gpu"])::before {
+  content: "developer_board";
+}
+
+/* Mix library actions (design-spec.md 4.6): inline at every level; icon-only with a visible tooltip at Expert. */
+.ss-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ss-space-1);
+}
+
+.ss-icon-only.rz-button {
+  position: relative;
+  min-width: var(--ss-target-min);
+  padding: 0 var(--ss-space-1);
+}
+
+.ss-icon-only[data-tooltip]:hover::after,
+.ss-icon-only[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + var(--ss-space-1));
+  left: 50%;
+  z-index: var(--ss-z-popover);
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+  font-size: var(--ss-type-small-size);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Reflow at 320 CSS px (WCAG 1.4.10): long titles (file hashes, URLs) wrap instead of widening the page. */
+.ss-page,
+.ss-table td,
+.ss-cell-title a,
+.ss-track-names h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  .ss-library-tools,
+  .ss-search {
+    width: 100%;
+  }
+
+  .ss-row-actions {
+    justify-content: flex-start;
+  }
+}

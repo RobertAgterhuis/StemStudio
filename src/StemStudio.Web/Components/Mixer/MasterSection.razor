@@ -1,11 +1,13 @@
 @* Master bus: meter and fader 0-100 %. *@
 
-<div class="ss-strip ss-strip-master" role="group" aria-label="Master">
-    <span class="ss-strip-name">master</span>
-    <Meter Target="master" />
+<div class="ss-strip ss-strip-master" role="group" aria-label="Master" data-help-id="mixer-master">
+    <span class="ss-master-tab">Master</span>
+    <div class="ss-strip-levels">
+        <Meter Target="master" />
     <input type="range" class="ss-fader" min="0" max="100" step="1" value="@Percent" aria-valuenow="@Percent"
            aria-valuemin="0" aria-valuemax="100" aria-label="Master volume" aria-orientation="vertical"
            @oninput="Input" data-testid="master-fader" />
+    </div>
 </div>
 
 @code {

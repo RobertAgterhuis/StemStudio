@@ -1,0 +1,37 @@
+{
+  "id": "mixer-basics",
+  "version": 1,
+  "title": "Mixer basics",
+  "route": "/tracks/{id}/mixer",
+  "levels": [
+    "beginner"
+  ],
+  "steps": [
+    {
+      "target": "mixer-presets",
+      "topic": "mixer-presets",
+      "text": "Start with a preset: one click sets up playing along or karaoke."
+    },
+    {
+      "target": "mixer-volume",
+      "topic": "mixer-volume",
+      "text": "Drag a fader or use the arrow keys."
+    },
+    {
+      "target": "mixer-mute-solo",
+      "topic": "mixer-mute-solo"
+    },
+    {
+      "target": "mixer-transport",
+      "topic": "mixer-transport"
+    },
+    {
+      "target": "mixer-loop",
+      "topic": "mixer-loop"
+    },
+    {
+      "target": "mixer-save",
+      "topic": "mixer-save"
+    }
+  ]
+}

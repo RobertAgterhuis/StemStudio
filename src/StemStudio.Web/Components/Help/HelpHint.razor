@@ -1,0 +1,15 @@
+@* Small help button next to a label (ui-test-ids help-hint-<topicId>): opens the help panel at the marker's topic. *@
+@inject IHelpCatalog Catalog
+@inject HelpContext Help
+
+@if (Catalog.TopicForAnchor(HelpId) is { } topic)
+{
+    <button type="button" class="ss-help-hint" data-testid="@($"help-hint-{topic.Id}")" aria-label="@($"Help: {topic.Title}")"
+            @onclick="() => Help.ShowAsync(topic.Id)"><span class="rzi" aria-hidden="true">help</span></button>
+}
+
+@code {
+    /// <summary>The <c>data-help-id</c> marker whose topic the hint opens.</summary>
+    [Parameter, EditorRequired]
+    public string HelpId { get; set; } = string.Empty;
+}

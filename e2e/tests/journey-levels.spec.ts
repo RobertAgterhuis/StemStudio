@@ -70,7 +70,10 @@ test.describe('Advanced', () => {
 
   test('a level choice persists after a reload', { tag: '@ux' }, async ({ page, shell }) => {
     await page.goto('/');
+    // The shell renders Beginner until the stored record is read; a click before that would be overwritten.
+    await shell.expectLevel('advanced');
     await shell.setLevel('expert');
+    await expect.poll(async () => (await readStoredPreferences(page))?.level).toBe('expert');
     await page.reload();
     await shell.expectLevel('expert');
     expect((await readStoredPreferences(page))?.level).toBe('expert');
@@ -81,6 +84,7 @@ test.describe('Advanced', () => {
     const other = await page.context().newPage();
     await other.goto('/');
     await expect(other.getByTestId('app-shell')).toHaveAttribute('data-level', 'advanced');
+    await shell.expectLevel('advanced');
     await shell.setLevel('beginner');
     await expect(other.getByTestId('app-shell')).toHaveAttribute('data-level', 'beginner');
     await other.close();

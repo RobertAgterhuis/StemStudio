@@ -1,0 +1,183 @@
+/*
+ * Radzen variable map (design-spec.md 2.7, spike T012 / frontend-004-spike.md): redefines every --rz-*
+ * variable StemStudio relies on from the --ss-* tokens. Loaded after the free MIT `software` base theme;
+ * html[data-theme] outranks the theme's :root block. No literal colours here (tokens.css only).
+ */
+html[data-theme] {
+  /* Base ramp: raised (50) -> ink (900). */
+  --rz-white: var(--ss-color-raised);
+  --rz-black: var(--ss-color-ink);
+  --rz-base: var(--ss-color-divider);
+  --rz-base-50: var(--ss-color-raised);
+  --rz-base-100: var(--ss-color-surface);
+  --rz-base-200: var(--ss-color-base);
+  --rz-base-300: var(--ss-color-divider);
+  --rz-base-400: var(--ss-color-control-border);
+  --rz-base-500: var(--ss-color-control-border);
+  --rz-base-600: var(--ss-color-muted);
+  --rz-base-700: var(--ss-color-muted);
+  --rz-base-800: var(--ss-color-ink);
+  --rz-base-900: var(--ss-color-ink);
+  --rz-base-light: var(--ss-color-surface);
+  --rz-base-lighter: var(--ss-color-raised);
+  --rz-base-dark: var(--ss-color-muted);
+  --rz-base-darker: var(--ss-color-ink);
+  --rz-on-base: var(--ss-color-ink);
+  --rz-on-base-light: var(--ss-color-ink);
+  --rz-on-base-lighter: var(--ss-color-ink);
+  --rz-on-base-dark: var(--ss-color-raised);
+  --rz-on-base-darker: var(--ss-color-raised);
+
+  /* Primary = ink-filled. Shades via color-mix with the base colour. */
+  --rz-primary: var(--ss-color-primary);
+  --rz-primary-light: color-mix(in srgb, var(--ss-color-primary) 88%, var(--ss-color-base));
+  --rz-primary-lighter: color-mix(in srgb, var(--ss-color-primary) 14%, var(--ss-color-none));
+  --rz-primary-dark: color-mix(in srgb, var(--ss-color-primary) 92%, var(--ss-color-base));
+  --rz-primary-darker: color-mix(in srgb, var(--ss-color-primary) 84%, var(--ss-color-base));
+  --rz-on-primary: var(--ss-color-on-primary);
+  --rz-on-primary-light: var(--ss-color-on-primary);
+  --rz-on-primary-lighter: var(--ss-color-ink);
+  --rz-on-primary-dark: var(--ss-color-on-primary);
+  --rz-on-primary-darker: var(--ss-color-on-primary);
+
+  /* Secondary = muted, info = ink. */
+  --rz-secondary: var(--ss-color-muted);
+  --rz-secondary-light: color-mix(in srgb, var(--ss-color-muted) 88%, var(--ss-color-base));
+  --rz-secondary-lighter: color-mix(in srgb, var(--ss-color-muted) 18%, var(--ss-color-none));
+  --rz-secondary-dark: var(--ss-color-muted);
+  --rz-secondary-darker: var(--ss-color-ink);
+  --rz-on-secondary: var(--ss-color-base);
+  --rz-on-secondary-light: var(--ss-color-base);
+  --rz-on-secondary-lighter: var(--ss-color-ink);
+  --rz-on-secondary-dark: var(--ss-color-base);
+  --rz-on-secondary-darker: var(--ss-color-base);
+  --rz-info: var(--ss-color-ink);
+  --rz-info-light: var(--ss-color-ink);
+  --rz-info-lighter: color-mix(in srgb, var(--ss-color-ink) 12%, var(--ss-color-none));
+  --rz-info-dark: var(--ss-color-ink);
+  --rz-info-darker: var(--ss-color-ink);
+  --rz-on-info: var(--ss-color-base);
+  --rz-on-info-light: var(--ss-color-base);
+  --rz-on-info-lighter: var(--ss-color-ink);
+  --rz-on-info-dark: var(--ss-color-base);
+  --rz-on-info-darker: var(--ss-color-base);
+
+  /* States. */
+  --rz-success: var(--ss-color-success);
+  --rz-success-light: var(--ss-color-success);
+  --rz-success-lighter: color-mix(in srgb, var(--ss-color-success) 16%, var(--ss-color-none));
+  --rz-success-dark: var(--ss-color-success);
+  --rz-success-darker: var(--ss-color-success);
+  --rz-on-success: var(--ss-color-on-state);
+  --rz-on-success-light: var(--ss-color-on-state);
+  --rz-on-success-lighter: var(--ss-color-ink);
+  --rz-on-success-dark: var(--ss-color-on-state);
+  --rz-on-success-darker: var(--ss-color-on-state);
+  --rz-warning: var(--ss-color-warning);
+  --rz-warning-light: var(--ss-color-warning);
+  --rz-warning-lighter: color-mix(in srgb, var(--ss-color-warning) 18%, var(--ss-color-none));
+  --rz-warning-dark: var(--ss-color-warning);
+  --rz-warning-darker: var(--ss-color-warning);
+  --rz-on-warning: var(--ss-color-on-state);
+  --rz-on-warning-light: var(--ss-color-on-state);
+  --rz-on-warning-lighter: var(--ss-color-ink);
+  --rz-on-warning-dark: var(--ss-color-on-state);
+  --rz-on-warning-darker: var(--ss-color-on-state);
+  --rz-danger: var(--ss-color-danger);
+  --rz-danger-light: var(--ss-color-danger);
+  --rz-danger-lighter: color-mix(in srgb, var(--ss-color-danger) 16%, var(--ss-color-none));
+  --rz-danger-dark: var(--ss-color-danger);
+  --rz-danger-darker: var(--ss-color-danger);
+  --rz-on-danger: var(--ss-color-on-state);
+  --rz-on-danger-light: var(--ss-color-on-state);
+  --rz-on-danger-lighter: var(--ss-color-ink);
+  --rz-on-danger-dark: var(--ss-color-on-state);
+  --rz-on-danger-darker: var(--ss-color-on-state);
+
+  /* Text, links, page. */
+  --rz-text-title-color: var(--ss-color-ink);
+  --rz-text-color: var(--ss-color-ink);
+  --rz-text-secondary-color: var(--ss-color-muted);
+  --rz-text-tertiary-color: var(--ss-color-muted);
+  --rz-text-disabled-color: var(--ss-color-muted);
+  --rz-text-contrast-color: var(--ss-color-base);
+  --rz-text-font-family: var(--ss-font);
+  --rz-body-font-size: var(--ss-type-body-size);
+  --rz-body-background-color: var(--ss-color-base);
+  --rz-link-color: var(--ss-color-ink);
+  --rz-link-hover-color: var(--ss-color-ink);
+
+  /* Shape. */
+  --rz-border-radius: var(--ss-radius-control);
+  --rz-input-border: var(--rz-border-width) solid var(--ss-color-control-border);
+  --rz-input-hover-border: var(--rz-border-width) solid var(--ss-color-ink);
+  --rz-input-background-color: var(--ss-color-raised);
+  --rz-card-border-radius: var(--ss-radius-panel);
+  --rz-card-background-color: var(--ss-color-surface);
+  --rz-dialog-border-radius: var(--ss-radius-float);
+  --rz-badge-border-radius: var(--ss-radius-pill);
+  --rz-badge-text-transform: none;
+  --rz-badge-letter-spacing: normal;
+
+  /* Focus: one amber ring everywhere. */
+  --rz-outline-color: var(--ss-color-focus);
+  --rz-outline-width: var(--ss-focus-width);
+  --rz-outline-offset: var(--ss-focus-offset);
+
+  /* Elevation: only floating surfaces get a shadow; no gradients (design-spec.md 2.4). */
+  --rz-shadow-1: var(--ss-elev-0);
+  --rz-shadow-2: var(--ss-elev-0);
+  --rz-shadow-3: var(--ss-elev-float);
+  --rz-shadow-4: var(--ss-elev-float);
+  --rz-shadow-5: var(--ss-elev-float);
+  --rz-shadow-6: var(--ss-elev-float);
+  --rz-shadow-7: var(--ss-elev-float);
+  --rz-shadow-8: var(--ss-elev-float);
+  --rz-shadow-9: var(--ss-elev-float);
+  --rz-shadow-10: var(--ss-elev-float);
+  --rz-dialog-shadow: var(--ss-elev-float);
+  --rz-tooltip-shadow: var(--ss-elev-float);
+  --rz-overlay-shadow: var(--ss-elev-float);
+  --rz-button-hover-shadow: none;
+  --rz-button-hover-gradient: none;
+  --rz-button-focus-shadow: none;
+  --rz-button-focus-gradient: none;
+  --rz-button-active-shadow: none;
+  --rz-button-active-gradient: none;
+  --rz-checkbox-checked-shadow: none;
+  --rz-radio-active-shadow: none;
+  --rz-radio-checked-hover-shadow: none;
+  --rz-radio-circle-shadow: none;
+  --rz-slider-handle-hover-shadow: none;
+  --rz-input-shadow: none;
+  --rz-input-hover-shadow: none;
+  --rz-input-focus-shadow: none;
+  --rz-input-disabled-shadow: none;
+  --rz-grid-shadow: none;
+  --rz-tabs-shadow: none;
+  --rz-datalist-shadow: none;
+  --rz-datalist-item-shadow: none;
+  --rz-dropdown-item-selected-shadow: none;
+
+  /* Progress bar: ink value in a sunken well; dialog close icon in ink. */
+  --rz-progressbar-background-color: var(--ss-color-sunken);
+  --rz-progressbar-value-background-color: var(--ss-color-ink);
+  --rz-progressbar-color: var(--ss-color-ink);
+  --rz-dialog-close-color: var(--ss-color-ink);
+
+  /* Tooltip: raised surface, ink text. */
+  --rz-tooltip-background-color: var(--ss-color-raised);
+  --rz-tooltip-color: var(--ss-color-ink);
+  --rz-tooltip-border-radius: var(--ss-radius-panel);
+}
+
+/* Targeted overrides for the few colours the base hard-codes (spike T012). */
+html[data-theme] .rz-button.rz-variant-outlined.rz-light:not(.rz-state-disabled):hover,
+html[data-theme] .rz-button.rz-variant-outlined.rz-dark:not(.rz-state-disabled):hover {
+  background-color: var(--ss-color-raised);
+}
+
+/* The dialog close control is a <button> that inherits the UA ButtonText colour. */
+html[data-theme] .rz-dialog-titlebar-close {
+  color: var(--ss-color-ink);
+}

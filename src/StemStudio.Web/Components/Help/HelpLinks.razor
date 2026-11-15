@@ -1,0 +1,38 @@
+@* Footer of the help panel (design-spec.md 4.7, FR-024): the shortcut overview and the tours offered at this level.
+   Shown below a topic and below the index, so both stay reachable from every screen. *@
+@inject IHelpCatalog Catalog
+@inject HelpContext Help
+@inject ITourLauncher Tours
+@inject ShellOverlays Overlays
+
+<p class="ss-help-shortcuts">
+    <button type="button" class="ss-text-button" data-testid="help-shortcuts" @onclick="Overlays.OpenShortcuts">Show keyboard shortcuts</button>
+</p>
+@if (LevelTours.Count > 0)
+{
+    <h3 class="ss-heading">Tours</h3>
+    <ul class="ss-help-list">
+        @foreach (var tour in LevelTours)
+        {
+            <li>
+                <button type="button" class="ss-text-button" data-testid="@($"help-tour-start-{tour.Id}")"
+                        @onclick="() => StartTourAsync(tour.Id)">@tour.Title</button>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>The cascaded level (Advanced without a shell).</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
+    private List<TourDefinition> LevelTours =>
+        Catalog.Tours.Where(t => t.Levels.Contains((Experience ?? ExperienceContext.Default).Level)).ToList();
+
+    private async Task StartTourAsync(string tourId)
+    {
+        await Help.CloseAsync();
+        await Tours.StartAsync(tourId);
+    }
+}
