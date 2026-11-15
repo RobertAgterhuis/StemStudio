@@ -1,11 +1,12 @@
 """Skeleton smoke tests: the package imports and the placeholder app answers /health."""
 
 import importlib
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.config import RenderSettings, WorkerSettings
 from stemstudio_worker.main import create_app
 
 
@@ -18,10 +19,14 @@ def test_module_imports(module: str) -> None:
 
 
 def test_health_reports_settings(tmp_path: object) -> None:
-    settings = WorkerSettings(data_dir=tmp_path, separator="fake", device="auto")  # type: ignore[arg-type]
-    client = TestClient(create_app(settings))
-
-    response = client.get("/health")
+    library = Path(str(tmp_path)) / "library"
+    library.mkdir()
+    settings = WorkerSettings(
+        data_dir=Path(str(tmp_path)), separator="fake", device="auto",
+        render=RenderSettings(library_dir=library),
+    )  # fmt: skip
+    with TestClient(create_app(settings)) as client:
+        response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -37,7 +42,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "reason": None,
         },
         "onlineLookups": True,
-        "library": {"readable": False, "reason": "The library is not available to the worker"},
+        "library": {"readable": True, "reason": None},
         "lanes": {"render": {"queued": 0, "running": False}},
         "contractVersion": "1.4.0",
     }

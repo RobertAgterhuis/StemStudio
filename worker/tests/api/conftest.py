@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.config import RenderSettings, WorkerSettings
 from stemstudio_worker.main import AppOverrides, create_app
 from stemstudio_worker.ports import Separator
 
@@ -64,9 +64,11 @@ def make_api(tmp_path: Path) -> Iterator[ApiFactory]:
             overrides: AppOverrides | None = None,
         ) -> Api:
             fakes = ApiFakes()
+            library = tmp_path / "library"
+            library.mkdir(exist_ok=True)
             settings = WorkerSettings(
                 data_dir=tmp_path, separator="fake", max_upload_bytes=max_upload_bytes,
-                fake_detail_step_seconds=0.0,
+                fake_detail_step_seconds=0.0, render=RenderSettings(library_dir=library),
             )  # fmt: skip
             app = create_app(settings, fakes.adapters(separator), overrides=overrides)
             client = stack.enter_context(TestClient(app))

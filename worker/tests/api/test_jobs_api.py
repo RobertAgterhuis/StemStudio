@@ -46,7 +46,7 @@ def test_health_reports_fake_separator(api: Api) -> None:
             "reason": None,
         },
         "onlineLookups": True,
-        "library": {"readable": False, "reason": "The library is not available to the worker"},
+        "library": {"readable": True, "reason": None},
         "lanes": {"render": {"queued": 0, "running": False}},
         "contractVersion": "1.4.0",
     }
