@@ -1,6 +1,6 @@
 import { HelpPanel } from '../pages/help-panel';
 import type { TrackDto } from '../support/api';
-import { fakeJobTimeoutMs } from '../support/env';
+import { fakeJobTimeoutMs, runId } from '../support/env';
 import { expect, test } from '../support/test';
 import { requireOnlineMode } from '../support/feature-skips';
 import { beginnerHiddenBandInfoIds, expectNotRendered } from '../support/levels';
@@ -55,19 +55,20 @@ test.describe('band info found', { tag: '@band-info' }, () => {
     await expect(bandInfo.fact('name')).toHaveText(fake.found.artist.name);
   });
 
-  test('a correction is stored and the panel and cover follow it', async ({ artwork, bandInfo, metadataApi, page }) => {
+  test('a correction is stored and the panel and cover follow it', async ({ artwork, bandInfo, metadataApi, page }, testInfo) => {
+    // A title of its own per run, so a correction stored by an earlier run cannot satisfy the wait.
+    const title = `Corrected ${runId()} ${testInfo.project.name}`;
     await page.goto(`/tracks/${track.id}`);
     await bandInfo.show();
-    await bandInfo.submitCorrection('Corrected Title', fake.found.artist.name);
-    // The panel already said "found" before the correction; wait for the corrected lookup itself.
-    const correction = async (): Promise<[string, boolean]> => {
-      const t = await metadataApi.getTrack(track.id);
-      return [t.metadata.status, t.metadata.correctedByUser];
+    await bandInfo.submitCorrection(title, fake.found.artist.name);
+    const corrected = async (): Promise<[string, string | undefined]> => {
+      const info = await metadataApi.getBandInfo(track.id);
+      return [info.status, info.recording?.title];
     };
-    await expect.poll(correction, { timeout: settleMs }).toEqual(['found', true]);
+    await expect.poll(corrected, { timeout: settleMs }).toEqual(['found', title]);
+    expect((await metadataApi.getTrack(track.id)).metadata.correctedByUser).toBe(true);
     await expect(bandInfo.status).toHaveAttribute('data-status', 'found', { timeout: settleMs });
     await expect(artwork.trackCover).toHaveAttribute('data-artwork-source', fake.modes.found.artworkSource ?? 'none');
-    expect((await metadataApi.getBandInfo(track.id)).recording?.title).toBe('Corrected Title');
   });
 });
 
