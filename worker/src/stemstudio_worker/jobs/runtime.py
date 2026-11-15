@@ -1,4 +1,7 @@
-"""The running job subsystem: stores, reconciliation, scheduler thread and services."""
+"""The running job subsystem: stores, reconciliation, scheduler, lanes and services.
+
+Besides the priority scheduler it runs the light lanes (metadata, render) and the sweep timer.
+"""
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
