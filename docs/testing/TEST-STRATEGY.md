@@ -439,7 +439,7 @@ the matrices are defined once in `e2e/support/screens.ts`; new page objects: `ap
 - **Matrix**: 7 screen states (import, tracks, track with and without detail stems, mixer collapsed
   and expanded, mixes) x 2 themes x 3 levels = 42, plus per theme: welcome panel, help panel open
   (mixer, docked), a tour step (`import-basics` step 1), 360 px views of Import, Tracks, Track,
-  Mixes and the help sheet, and the mixer at 768 px: 62 baselines (>= 30 required).
+  Mixes and the help sheet, and the mixer at 768 px: 60 baselines (>= 30 required).
 - **Baseline review**: the CTO generates the first set in the integration wave (T067) with
   `--update-snapshots` in the container, and the owner approves it (T068). Afterwards a baseline
   changes only through the CI job's `update-baselines` dispatch; the new images are reviewed in
@@ -497,7 +497,7 @@ completed band track and measures palette -> track -> mixer -> `→` `[` `→` `
 | Scenario | Unit / component (frontend) | E2E / design suites (qa) |
 |---|---|---|
 | US1 tokens, themes, no flash (FR-001..FR-005, SC-002, SC-004) | token contrast test, `PreferencesState` tests, Vitest `first-paint`, `theme` | `tests/theme-flash.spec.ts`; `visual/screens.spec.ts` |
-| US1 designed screens and states, 360 px, stem colours (FR-006..FR-009, SC-005) | bUnit design components (`StemRibbon`, `SplitProgress`, states) | `visual/screens.spec.ts` (62 baselines); `a11y/screens.a11y.spec.ts` |
+| US1 designed screens and states, 360 px, stem colours (FR-006..FR-009, SC-005) | bUnit design components (`StemRibbon`, `SplitProgress`, states) | `visual/screens.spec.ts` (60 baselines); `a11y/screens.a11y.spec.ts` |
 | US1 performance (SC-003, SC-011) | frontend T063 (bytes, trace) | `lighthouserc.json` + `lighthouse/` |
 | US2 welcome, Beginner journey, presets (FR-010, FR-011, FR-015, FR-016, SC-007) | `WelcomePanelTests`, `JourneyRailTests`, `PracticePresetsTests` | `tests/journey-beginner.spec.ts` |
 | US2 level gates, persistence, cross-tab, state kept (FR-012..FR-014, FR-020, SC-010, R7-R9) | feature catalogue and gate tests, `PreferencesState` tests | `tests/journey-levels.spec.ts`; the whole 1.2.0 suite at Advanced (`npm run test:legacy`, SC-006) |
