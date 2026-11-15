@@ -137,9 +137,7 @@ class FakeHandler:
     def needs(self, job: Generation) -> Sequence[GpuNeed]:
         return self.job_needs
 
-    def execute(
-        self, job: Generation, use: DeviceUse, on_progress: ProgressCallback
-    ) -> JobOutcome:
+    def execute(self, job: Generation, use: DeviceUse, on_progress: ProgressCallback) -> JobOutcome:
         self.uses.append(use)
         step = self.steps[0] if len(self.steps) == 1 else self.steps.pop(0)
         return step(job, use, on_progress)

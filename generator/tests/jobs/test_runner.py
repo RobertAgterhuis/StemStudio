@@ -87,7 +87,13 @@ def test_missing_models_are_downloaded_in_their_own_state(tmp_path: Path) -> Non
     job, store, _ = _run(tmp_path, FakeHandler(engine=engine))
 
     assert job.status == "completed"
-    assert _statuses(store) == ["queued", "waitingForGpu", "downloadingModel", "running", "completed"]
+    assert _statuses(store) == [
+        "queued",
+        "waitingForGpu",
+        "downloadingModel",
+        "running",
+        "completed",
+    ]
     assert ("downloadingModel", 0, DOWNLOADING_STAGE) in store.history
     assert ("downloadingModel", 25, "Downloading model (1.2 of 4.7 GB)") in store.history
 
@@ -212,9 +218,9 @@ def test_a_cancel_request_is_seen_at_the_next_progress_report(tmp_path: Path) ->
         reporter.request_cancel()
         on_progress(0.5, "Generating take 1 of 1")
 
-    result = JobRunner(RecordingGate(), {"restyle": FakeHandler(steps=[calling(request_and_report)])}).run(
-        reporter
-    )
+    result = JobRunner(
+        RecordingGate(), {"restyle": FakeHandler(steps=[calling(request_and_report)])}
+    ).run(reporter)
 
     assert result.status == "cancelled"
 
@@ -247,3 +253,31 @@ def test_runner_reports_the_kinds_it_serves(kinds: tuple[str, ...]) -> None:
     runner = JobRunner(RecordingGate(), {kind: FakeHandler() for kind in kinds})  # type: ignore[misc]
 
     assert runner.kinds == kinds
+
+
+def test_a_failure_after_a_cancel_request_ends_cancelled(tmp_path: Path) -> None:
+    store = JsonJobStore(tmp_path)
+    job = make_job()
+    store.save(job)
+    reporter = JobReporter(job, store, FakeClock())
+
+    def request_then_fail(on_progress: ProgressCallback) -> None:
+        reporter.request_cancel()
+        raise InvalidInputError("The stems differ in sample rate.")
+
+    handler = FakeHandler(steps=[calling(request_then_fail)])
+    result = JobRunner(RecordingGate(), {"restyle": handler}).run(reporter)
+
+    assert result.status == "cancelled"
+    assert result.error is None
+
+
+def test_a_non_oom_failure_of_the_retry_keeps_its_code(tmp_path: Path) -> None:
+    handler = FakeHandler(
+        steps=[raising(GpuOutOfMemoryError()), raising(InvalidInputError("Unreadable stem."))]
+    )
+
+    job, _, _ = _run(tmp_path, handler)
+
+    assert job.error is not None
+    assert job.error.code == "invalidInput"

@@ -164,3 +164,15 @@ def test_completion_after_a_cancel_request_ends_cancelled(tmp_path: Path) -> Non
 
     with pytest.raises(Cancelled):
         reporter.complete(JobOutcome(takes=[TAKE]))
+
+
+def test_cancelled_is_idempotent(tmp_path: Path) -> None:
+    reporter, _, clock = _reporter(tmp_path)
+    reporter.request_cancel()
+    stamp = reporter.job.updated_at
+    clock.advance(5)
+
+    reporter.cancelled()
+
+    assert reporter.job.status == "cancelled"
+    assert reporter.job.updated_at == stamp

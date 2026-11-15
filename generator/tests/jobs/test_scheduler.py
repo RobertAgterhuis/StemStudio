@@ -282,7 +282,7 @@ def test_the_worker_thread_sweeps_while_idle(tmp_path: Path) -> None:
     scheduler.start()
     try:
         for _ in range(500):
-            if store.get(old.generation_id) is None:
+            if scheduler.get(old.generation_id) is None:
                 break
             threading.Event().wait(0.01)
     finally:
@@ -308,3 +308,31 @@ def test_jobs_older_than_retention_use_updated_at(tmp_path: Path) -> None:
     assert scheduler.sweep() == []
     clock.advance(timedelta(hours=1).total_seconds())
     assert scheduler.sweep() == [job.generation_id]
+
+
+def test_queue_entries_whose_job_changed_meanwhile_are_skipped(tmp_path: Path) -> None:
+    scheduler, runner, store, _ = _scheduler(tmp_path)
+    scheduler.submit(make_job(1))
+    store.save(make_job(1).model_copy(update={"status": "cancelled", "stage": "Cancelled"}))
+
+    assert not scheduler.run_next()
+    assert runner.order == []
+
+
+def test_the_worker_thread_survives_a_failing_loop_step(tmp_path: Path) -> None:
+    scheduler, _, _, _ = _scheduler(tmp_path)
+    scheduler.sweep_seconds = 0.01
+    done = threading.Barrier(2, timeout=5)
+
+    def broken_sweep() -> list[str]:
+        done.wait()  # the second loop round proves the thread survived the first error
+        raise OSError("disk gone")
+
+    scheduler.sweep = broken_sweep  # type: ignore[method-assign]
+    scheduler.start()
+    try:
+        done.wait()
+        done.wait()
+    finally:
+        done.abort()
+        scheduler.stop()
