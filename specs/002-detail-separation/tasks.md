@@ -74,18 +74,18 @@ committed contract and is faked:
 
 ### stem-separation (tests first)
 
-- [ ] T012 [P] [stem-separation] Failing tests `worker/tests/detail/test_gating.py` on synthetic signals: frame levels (2048/512, mono), parent gate (skip when < 8 % of frames > -40 dBFS; boundary cases), sub-stem gate (energy >= -20 dB rel. parent and >= 5 % frames above max(-50 dBFS, parent level - 25 dB)) (FR-003, FR-004)
-- [ ] T013 [stem-separation] Implement `detail/names.py` and `detail/gating.py` (named constants from research.md D-04) to pass T012
-- [ ] T014 [P] [stem-separation] Failing tests `worker/tests/detail/test_folding.py` and `test_reassign.py`: DrumSep 6 -> 5 (`ride + crash -> cymbals`, `hh -> hihat`), Mega 53 -> 8 families (research.md D-05 table; unlisted outputs ignored), shares of a family over 1..3 parents sum to the family within 1e-5 and follow the parents' power (FR-002)
-- [ ] T015 [stem-separation] Implement `detail/folding.py` and `detail/reassign.py` to pass T014
-- [ ] T016 [P] [stem-separation] Failing tests `worker/tests/detail/test_checks.py`: rest = parent - sum(kept); model residual > -15 dB -> not-reliable; family sum > parent + 1 dB -> not-reliable; < 2 kept -> nothing-further; reconstruction of 16-bit FLAC round trip <= -30 dB, a clipped rest fails it (FR-005, FR-006, SC-002)
-- [ ] T017 [stem-separation] Implement `detail/checks.py` to pass T016
-- [ ] T018 [P] [stem-separation] Failing tests `worker/tests/detail/test_download.py` with a fake opener: first-use download to `<model_dir>/detail/<id>/<file>.part`, SHA-256 verified then renamed, existing verified file skips the network, mismatch deletes and raises "Detail model download was corrupt; try again.", network error raises "Detail model could not be downloaded; try again when online." (FR-018)
-- [ ] T019 [stem-separation] Implement `detail/registry.py` (three `ModelSpec`s from research.md D-07) and `detail/download.py` to pass T018
-- [ ] T020 [P] [stem-separation] Failing tests `worker/tests/jobs/test_detail_store.py`, `test_detail_service.py`: persist/load `detail-jobs/*.json`; create is idempotent per `audioSha256` for queued/running/completed, new job after failed/cancelled; unknown standard job -> 404; not completed or stems missing -> 409; cancel queued -> cancelled at once, running -> flag + cancelled, terminal -> 409 (FR-010, FR-016)
-- [ ] T021 [stem-separation] Implement `jobs/detail_store.py`, `jobs/detail_service.py` to pass T020
-- [ ] T022 [P] [stem-separation] Failing tests `worker/tests/jobs/test_scheduler.py` (fake step functions, fake clock): a submitted standard job runs before the next detail step; detail steps interleave in FIFO job order; stop() waits for the current unit; a crashing step does not stop the thread (FR-011, SC-006)
-- [ ] T023 [stem-separation] Implement `jobs/scheduler.py` and switch `jobs/runtime.py` from `JobQueue` to the scheduler (standard behaviour unchanged; existing tests stay green)
+- [x] T012 [P] [stem-separation] Failing tests `worker/tests/detail/test_gating.py` on synthetic signals: frame levels (2048/512, mono), parent gate (skip when < 8 % of frames > -40 dBFS; boundary cases), sub-stem gate (energy >= -20 dB rel. parent and >= 5 % frames above max(-50 dBFS, parent level - 25 dB)) (FR-003, FR-004)
+- [x] T013 [stem-separation] Implement `detail/names.py` and `detail/gating.py` (named constants from research.md D-04) to pass T012
+- [x] T014 [P] [stem-separation] Failing tests `worker/tests/detail/test_folding.py` and `test_reassign.py`: DrumSep 6 -> 5 (`ride + crash -> cymbals`, `hh -> hihat`), Mega 53 -> 8 families (research.md D-05 table; unlisted outputs ignored), shares of a family over 1..3 parents sum to the family within 1e-5 and follow the parents' power (FR-002)
+- [x] T015 [stem-separation] Implement `detail/folding.py` and `detail/reassign.py` to pass T014
+- [x] T016 [P] [stem-separation] Failing tests `worker/tests/detail/test_checks.py`: rest = parent - sum(kept); model residual > -15 dB -> not-reliable; family sum > parent + 1 dB -> not-reliable; < 2 kept -> nothing-further; reconstruction of 16-bit FLAC round trip <= -30 dB, a clipped rest fails it (FR-005, FR-006, SC-002)
+- [x] T017 [stem-separation] Implement `detail/checks.py` to pass T016
+- [x] T018 [P] [stem-separation] Failing tests `worker/tests/detail/test_download.py` with a fake opener: first-use download to `<model_dir>/detail/<id>/<file>.part`, SHA-256 verified then renamed, existing verified file skips the network, mismatch deletes and raises "Detail model download was corrupt; try again.", network error raises "Detail model could not be downloaded; try again when online." (FR-018)
+- [x] T019 [stem-separation] Implement `detail/registry.py` (three `ModelSpec`s from research.md D-07) and `detail/download.py` to pass T018
+- [x] T020 [P] [stem-separation] Failing tests `worker/tests/jobs/test_detail_store.py`, `test_detail_service.py`: persist/load `detail-jobs/*.json`; create is idempotent per `audioSha256` for queued/running/completed, new job after failed/cancelled; unknown standard job -> 404; not completed or stems missing -> 409; cancel queued -> cancelled at once, running -> flag + cancelled, terminal -> 409 (FR-010, FR-016)
+- [x] T021 [stem-separation] Implement `jobs/detail_store.py`, `jobs/detail_service.py` to pass T020
+- [x] T022 [P] [stem-separation] Failing tests `worker/tests/jobs/test_scheduler.py` (fake step functions, fake clock): a submitted standard job runs before the next detail step; detail steps interleave in FIFO job order; stop() waits for the current unit; a crashing step does not stop the thread (FR-011, SC-006)
+- [x] T023 [stem-separation] Implement `jobs/scheduler.py` and switch `jobs/runtime.py` from `JobQueue` to the scheduler (standard behaviour unchanged; existing tests stay green)
 
 ### backend (tests first)
 
@@ -123,17 +123,17 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### stem-separation (tests first)
 
-- [ ] T040 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_steps.py` with fake models: step plan from the standard result (bass not-supported, 4-stem fallback without guitar/piano, instrument group = active parents among other/guitar/piano, single active parent runs directly), drums/vocals/instrument steps produce outcomes + FLACs, checkpoint written atomically and skipped on resume, progress weights from research.md D-03, cancel flag raises `DetailCancelledError` between chunks (FR-001..FR-006, FR-019)
-- [ ] T041 [US1] [stem-separation] Implement `detail/steps.py` to pass T040
-- [ ] T042 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_fake.py`: `STEMSTUDIO_SEPARATOR=fake` gives deterministic fake models (drums: kick 0.5x, snare 0.3x, toms 0.2x of the parent -> split; vocals: lead 0.7x, backing 0.3x -> split; guitar: one audible family -> nothing-further; piano: outputs summing to 0.3x -> not-reliable; other: brass 0.6x, strings 0.4x -> split), no downloads, `fake_detail_step_seconds` delay per step via the injected clock/sleeper
-- [ ] T043 [US1] [stem-separation] Implement `detail/fake.py` and `create_detail_adapters` to pass T042
-- [ ] T044 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_detail_runner.py`: queued -> running -> completed with `result.json` written last and cached under `cache/by-audio/<sha>/detail/`; cache hit completes in one step (SC-007); errors mapped to the fixed texts of data-model.md 4.2 (`MemoryError`, ENOSPC, download errors, bug -> "Unexpected error"); failed/cancelled leave no `detail/`; start-up reconcile marks non-terminal detail jobs "interrupted by restart" and keeps checkpoints (FR-008, FR-010, FR-019)
-- [ ] T045 [US1] [stem-separation] Implement `jobs/detail_runner.py` and the reconcile extension to pass T044
-- [ ] T046 [P] [US1] [stem-separation] Failing contract tests `worker/tests/api/test_detail_routes.py` against `specs/002-detail-separation/contracts/worker-api.openapi.yaml` (switch `worker/tests/api/contract.py` to the 002 path): every status code and example of `/v1/detail-jobs/**`, `Location` header, FLAC streaming, `health.contractVersion == "1.1.0"`
-- [ ] T047 [US1] [stem-separation] Implement `api/detail_routes.py` and wire scheduler + detail adapters in `main.py` to pass T046
-- [ ] T048 [P] [US1] [stem-separation] Failing tests for the real runtimes with fake torch/onnx callables `worker/tests/detail/test_runtimes.py` (chunk callbacks -> progress, family accumulation inside demix, model loading from the downloaded path, lazy imports so fake mode never imports onnxruntime)
-- [ ] T049 [US1] [stem-separation] Vendor MSST code into `detail/vendor/msst/` (pinned commit, MIT `LICENSE` + `NOTICE`, decorators and config loaders removed, hyper-parameters as constants) and implement `detail/runtimes.py` (MDX23C, KARA 2 STFT wrapper after python-audio-separator, Mega 53 with family accumulators) to pass T048
-- [ ] T050 [US1] [stem-separation] Marked integration test `worker/tests/detail/test_detail_integration.py` (`@pytest.mark.integration`): real models on a generated 10 s band fixture; every split parent reconstructs <= -30 dB, gates hold, wall time logged (SC-002, SC-003)
+- [x] T040 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_steps.py` with fake models: step plan from the standard result (bass not-supported, 4-stem fallback without guitar/piano, instrument group = active parents among other/guitar/piano, single active parent runs directly), drums/vocals/instrument steps produce outcomes + FLACs, checkpoint written atomically and skipped on resume, progress weights from research.md D-03, cancel flag raises `DetailCancelledError` between chunks (FR-001..FR-006, FR-019)
+- [x] T041 [US1] [stem-separation] Implement `detail/steps.py` to pass T040
+- [x] T042 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_fake.py`: `STEMSTUDIO_SEPARATOR=fake` gives deterministic fake models (drums: kick 0.5x, snare 0.3x, toms 0.2x of the parent -> split; vocals: lead 0.7x, backing 0.3x -> split; guitar: one audible family -> nothing-further; piano: outputs summing to 0.3x -> not-reliable; other: brass 0.6x, strings 0.4x -> split), no downloads, `fake_detail_step_seconds` delay per step via the injected clock/sleeper
+- [x] T043 [US1] [stem-separation] Implement `detail/fake.py` and `create_detail_adapters` to pass T042
+- [x] T044 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_detail_runner.py`: queued -> running -> completed with `result.json` written last and cached under `cache/by-audio/<sha>/detail/`; cache hit completes in one step (SC-007); errors mapped to the fixed texts of data-model.md 4.2 (`MemoryError`, ENOSPC, download errors, bug -> "Unexpected error"); failed/cancelled leave no `detail/`; start-up reconcile marks non-terminal detail jobs "interrupted by restart" and keeps checkpoints (FR-008, FR-010, FR-019)
+- [x] T045 [US1] [stem-separation] Implement `jobs/detail_runner.py` and the reconcile extension to pass T044
+- [x] T046 [P] [US1] [stem-separation] Failing contract tests `worker/tests/api/test_detail_routes.py` against `specs/002-detail-separation/contracts/worker-api.openapi.yaml` (switch `worker/tests/api/contract.py` to the 002 path): every status code and example of `/v1/detail-jobs/**`, `Location` header, FLAC streaming, `health.contractVersion == "1.1.0"`
+- [x] T047 [US1] [stem-separation] Implement `api/detail_routes.py` and wire scheduler + detail adapters in `main.py` to pass T046
+- [x] T048 [P] [US1] [stem-separation] Failing tests for the real runtimes with fake torch/onnx callables `worker/tests/detail/test_runtimes.py` (chunk callbacks -> progress, family accumulation inside demix, model loading from the downloaded path, lazy imports so fake mode never imports onnxruntime)
+- [x] T049 [US1] [stem-separation] Vendor MSST code into `detail/vendor/msst/` (pinned commit, MIT `LICENSE` + `NOTICE`, decorators and config loaders removed, hyper-parameters as constants) and implement `detail/runtimes.py` (MDX23C, KARA 2 STFT wrapper after python-audio-separator, Mega 53 with family accumulators) to pass T048
+- [x] T050 [US1] [stem-separation] Marked integration test `worker/tests/detail/test_detail_integration.py` (`@pytest.mark.integration`): real models on a generated 10 s band fixture; every split parent reconstructs <= -30 dB, gates hold, wall time logged (SC-002, SC-003)
 
 ### backend (tests first)
 
@@ -184,8 +184,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 **Goal**: the detail phase can fail, be cancelled and retried without touching the standard stems.
 **Independent test**: quickstart D5-D7, D11; E2E "restart", "priority".
 
-- [ ] T065 [P] [US3] [stem-separation] Failing tests: a standard job submitted while a detail step runs starts within 5 s after that step (fake clock), queued detail jobs never delay it (SC-006); cancel during a step reports cancelled within one chunk; retry after cancel/failure reuses checkpoints (stage text skips finished parents)
-- [ ] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
+- [x] T065 [P] [US3] [stem-separation] Failing tests: a standard job submitted while a detail step runs starts within 5 s after that step (fake clock), queued detail jobs never delay it (SC-006); cancel during a step reports cancelled within one chunk; retry after cancel/failure reuses checkpoints (stage text skips finished parents)
+- [x] T066 [US3] [stem-separation] Implement the remaining scheduler/runner behaviour to pass T065
 - [x] T067 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Detail/DetailEndpointTests.cs`: `POST .../detail` 202 from none/failed/cancelled, 409 otherwise and when the track is not completed; `POST .../detail/cancel` 200 from queued/running (pending submission cancels locally), 409 otherwise, 503 when the worker is unreachable; `DELETE /api/tracks/{id}` 409 while queued/running with the reason, removes `detail/` otherwise (FR-008, FR-009, FR-016)
 - [x] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
 - [x] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
@@ -222,7 +222,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ## Phase 8: Polish (inside the wave, per owner)
 
-- [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
+- [x] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
 - [x] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
