@@ -1,6 +1,7 @@
 """RFC 9457 problem details (``application/problem+json``) for every error response."""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -16,6 +17,9 @@ PROBLEM_JSON = "application/problem+json"
 class ProblemError(Exception):
     """Raised by route code to answer with a problem response."""
 
+    problem_type = "about:blank"
+    """The problem ``type``; :class:`TypedProblemError` sets a specific one (1.4.0)."""
+
     def __init__(self, status: int, title: str, detail: str) -> None:
         """Create a problem with HTTP ``status``, a short ``title`` and a readable ``detail``."""
         super().__init__(detail)
@@ -24,9 +28,29 @@ class ProblemError(Exception):
         self.detail = detail
 
 
-def problem_response(status: int, title: str, detail: str | None) -> JSONResponse:
+@dataclass(frozen=True, slots=True)
+class ProblemKind:
+    """A problem with its own ``type`` (e.g. ``invalid-input-path``)."""
+
+    type: str
+    status: int
+    title: str
+
+
+class TypedProblemError(ProblemError):
+    """A :class:`ProblemError` of a :class:`ProblemKind`."""
+
+    def __init__(self, kind: ProblemKind, detail: str) -> None:
+        """Create the problem ``kind`` with a readable ``detail``."""
+        super().__init__(kind.status, kind.title, detail)
+        self.problem_type = kind.type
+
+
+def problem_response(
+    status: int, title: str, detail: str | None, problem_type: str = "about:blank"
+) -> JSONResponse:
     """Build a problem+json response."""
-    body = ProblemDetails(title=title, status=status, detail=detail)
+    body = ProblemDetails(type=problem_type, title=title, status=status, detail=detail)
     return JSONResponse(body.model_dump(), status_code=status, media_type=PROBLEM_JSON)
 
 
@@ -43,7 +67,7 @@ def install_problem_handlers(app: FastAPI) -> None:
 
 async def _on_problem(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ProblemError)  # noqa: S101 - registered for this type only
-    return problem_response(exc.status, exc.title, exc.detail)
+    return problem_response(exc.status, exc.title, exc.detail, exc.problem_type)
 
 
 async def _on_http_error(_request: Request, exc: Exception) -> JSONResponse:

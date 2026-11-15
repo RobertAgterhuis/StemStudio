@@ -15,12 +15,12 @@ from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.ports import SourceInfo, SourceUnavailableError, WorkerError
 from stemstudio_worker.schemas import (
-    CPU_DEVICE,
     CreateJobRequest,
     Health,
     Job,
     JobResult,
     JobState,
+    LanesHealth,
     StemName,
 )
 
@@ -30,18 +30,24 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    """Liveness probe with the configured separator, device preference and active device.
+    """Liveness probe: separator, device preference, active device, lookups, library, lanes.
 
-    The active device comes from the start-up probe of the running worker; before the lifespan
-    started (no runtime yet) it is reported as the CPU.
+    The active device comes from the start-up probe, the library state from the library reader
+    (checked on every call) and the lane state from the render lane; before the lifespan started
+    (no runtime yet) they are reported with their defaults (CPU, library not readable, idle).
     """
     settings: WorkerSettings = request.app.state.settings
     runtime: WorkerRuntime | None = getattr(request.app.state, "runtime", None)
-    info = CPU_DEVICE if runtime is None else runtime.device
     health = Health(
-        separator=settings.separator, device=settings.device, device_info=info,
+        separator=settings.separator, device=settings.device,
         online_lookups=settings.online.lookups_enabled,
     )  # fmt: skip
+    if runtime is not None:
+        lanes = LanesHealth(render=runtime.lanes.render.health())
+        library = runtime.lanes.library.status()
+        health = health.model_copy(
+            update={"device_info": runtime.device, "library": library, "lanes": lanes}
+        )
     return json_response(health)
 
 

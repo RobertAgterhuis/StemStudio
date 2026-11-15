@@ -209,25 +209,28 @@ def test_an_unexpected_error_fails_the_job_with_a_generic_text(
 # ------------------------------------------------------------------ file download
 
 
-def test_the_file_is_409_until_completed_then_served(
-    render_api: Api, executor: FakeExecutor
-) -> None:
+def test_the_file_is_409_while_the_job_runs(render_api: Api, executor: FakeExecutor) -> None:
     executor.gate.clear()
     job_id = _create(render_api)
     assert executor.entered.wait(WAIT)
 
-    early = render_api.client.get(f"{JOBS}/{job_id}/file")
+    response = render_api.client.get(f"{JOBS}/{job_id}/file")
     executor.gate.set()
     _wait(render_api)
-    late = render_api.client.get(f"{JOBS}/{job_id}/file")
 
-    assert early.status_code == 409
-    assert_conforms(early, FILE)
-    assert early.json()["type"] == "render-not-completed"
-    assert late.status_code == 200
-    assert_conforms(late, FILE)
-    assert (late.content, late.headers["content-type"]) == (OUTPUT, "audio/flac")
-    assert late.headers["content-length"] == str(len(OUTPUT))
+    assert (response.status_code, response.json()["type"]) == (409, "render-not-completed")
+    assert_conforms(response, FILE)
+
+
+def test_the_file_of_a_completed_job_is_served_with_its_length(render_api: Api) -> None:
+    job_id = _completed(render_api)
+
+    response = render_api.client.get(f"{JOBS}/{job_id}/file")
+
+    assert_conforms(response, FILE)
+    assert (response.status_code, response.content) == (200, OUTPUT)
+    assert response.headers["content-type"] == "audio/flac"
+    assert response.headers["content-length"] == str(len(OUTPUT))
 
 
 def test_a_file_that_vanished_is_404(render_api: Api) -> None:

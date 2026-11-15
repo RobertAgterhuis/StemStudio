@@ -22,7 +22,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from stemstudio_worker.analysis import create_beat_analyzer
-from stemstudio_worker.api import artwork_routes, detail_routes, metadata_routes
+from stemstudio_worker.api import artwork_routes, detail_routes, metadata_routes, render_routes
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
@@ -30,8 +30,22 @@ from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
-from stemstudio_worker.jobs.runtime import DeviceHooks, OnlineParts, WorkerParts, WorkerRuntime
-from stemstudio_worker.ports import GpuNeed, ImageNormalizer, MetadataLookup, PipelineAdapters
+from stemstudio_worker.jobs.runtime import (
+    DeviceHooks,
+    OnlineParts,
+    RenderParts,
+    WorkerParts,
+    WorkerRuntime,
+)
+from stemstudio_worker.ports import (
+    GpuNeed,
+    ImageNormalizer,
+    LibraryReader,
+    MetadataLookup,
+    PipelineAdapters,
+    RenderExecutor,
+)
+from stemstudio_worker.render import create_library_reader, create_render_executor
 from stemstudio_worker.schemas import CONTRACT_VERSION
 from stemstudio_worker.separation import create_separator
 
@@ -39,7 +53,13 @@ _LOG = logging.getLogger(__name__)
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
-_ROUTERS = (router, detail_routes.router, metadata_routes.router, artwork_routes.router)
+_ROUTERS = (
+    router,
+    detail_routes.router,
+    metadata_routes.router,
+    artwork_routes.router,
+    render_routes.router,
+)
 
 METADATA_PACKAGE = "stemstudio_worker.metadata"
 """Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``
@@ -54,11 +74,15 @@ class AppOverrides:
         detail_pipeline: Detail step pipeline (default ``create_detail_pipeline``).
         image_normalizer: Source picture normaliser (default ``metadata.create_image_normalizer``).
         metadata_lookup: Song lookup of metadata jobs (default ``metadata.create_metadata_lookup``).
+        render_executor: Renderer of render jobs (default ``render.create_render_executor``).
+        library: Library reader (default ``render.create_library_reader``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
     image_normalizer: ImageNormalizer | None = None
     metadata_lookup: MetadataLookup | None = None
+    render_executor: RenderExecutor | None = None
+    library: LibraryReader | None = None
 
 
 def create_app(
@@ -127,6 +151,13 @@ def default_online(settings: WorkerSettings, overrides: AppOverrides) -> OnlineP
     return OnlineParts(normalizer=normalizer, lookup=lookup)
 
 
+def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderParts:
+    """The feature 007 parts: one library reader shared by ``/health`` and the executor."""
+    library = overrides.library or create_library_reader(settings)
+    executor = overrides.render_executor or create_render_executor(settings, library)
+    return RenderParts(executor=executor, library=library)
+
+
 def _built(settings: WorkerSettings, name: str) -> Any:
     """``METADATA_PACKAGE.<name>(settings)``, or None without that factory."""
     factory = optional_factory(METADATA_PACKAGE, name)
@@ -154,7 +185,9 @@ class _Parts:
         devices.reclaim_with(_reclaimer(pipeline))
         hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
         online = default_online(settings, self.overrides)
-        return WorkerRuntime.start_with(settings, WorkerParts(adapters, pipeline, hooks, online))
+        render = default_render(settings, self.overrides)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render)
+        return WorkerRuntime.start_with(settings, parts)
 
 
 def _reclaimer(pipeline: DetailPipelinePort) -> Callable[[GpuNeed], None]:

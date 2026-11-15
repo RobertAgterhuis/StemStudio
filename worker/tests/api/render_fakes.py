@@ -43,15 +43,18 @@ class FakeExecutor:
         if self.validate_error is not None:
             raise self.validate_error
 
-    def render(
-        self, request: RenderJobRequest, out_dir: Path, progress: RenderProgress
-    ) -> RenderResult:
+    def _run(self, out_dir: Path, progress: RenderProgress) -> None:
         self.out_dirs.append(out_dir)
         progress(0.25)
         self.entered.set()
         assert self.gate.wait(WAIT), "render gate never opened"
         progress(0.75)
         (out_dir / "output.flac").write_bytes(OUTPUT)
+
+    def render(
+        self, request: RenderJobRequest, out_dir: Path, progress: RenderProgress
+    ) -> RenderResult:
+        self._run(out_dir, progress)
         if self.render_error is not None:
             raise self.render_error
         return RenderResult(
