@@ -45,4 +45,29 @@ public sealed partial class StemStudioApiClientTests
         error.Error.IsConflict.ShouldBeTrue();
         error.Error.UserMessage.ShouldBe("The track has no lyrics.");
     }
+
+    [Fact]
+    public async Task SetLyrics_PutsTheText()
+    {
+        _handler.Respond(HttpStatusCode.Accepted, Json(LyricsData.Aligning(0)));
+
+        var lyrics = await _client.SetLyricsAsync(TestData.TrackId, new SetLyricsRequest("My line\nNext"), Ct);
+
+        lyrics.Status.ShouldBe(LyricsStatusDto.Aligning);
+        var sent = _handler.Requests.ShouldHaveSingleItem();
+        (sent.Method, sent.PathAndQuery).ShouldBe((HttpMethod.Put, LyricsPath));
+        sent.Body!.ShouldContain("\"text\":\"My line\\nNext\"");
+    }
+
+    [Fact]
+    public async Task AlignAndCancel_PostToTheirRoutes()
+    {
+        _handler.Respond(HttpStatusCode.Accepted, Json(LyricsData.Aligning(0))).Respond(HttpStatusCode.OK, Json(LyricsData.Plain()));
+
+        (await _client.AlignLyricsAsync(TestData.TrackId, Ct)).Status.ShouldBe(LyricsStatusDto.Aligning);
+        (await _client.CancelLyricsAlignmentAsync(TestData.TrackId, Ct)).Status.ShouldBe(LyricsStatusDto.AlignPending);
+
+        _handler.Requests.Select(r => (r.Method, r.PathAndQuery)).ShouldBe(
+            [(HttpMethod.Post, $"{LyricsPath}/align"), (HttpMethod.Post, $"{LyricsPath}/align/cancel")]);
+    }
 }

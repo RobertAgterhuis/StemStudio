@@ -36,6 +36,8 @@ public sealed class FeatureCatalogTests
         { "karaoke.size", [A, E], "karaoke" },
         { "karaoke.offset", [A, E], "karaoke-offset" },
         { "karaoke.timing-origin", [E], "karaoke" },
+        { "lyrics.align-device", [A, E], "lyrics-align" },
+        { "lyrics.refine", [E], "lyrics-align" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -91,7 +93,7 @@ public sealed class FeatureCatalogTests
             .Select(f => f.Id)
             .ShouldBe(["mixer.pan", "mixer.loop.typed", "mixer.metronome.advanced", "mixer.numeric", "mixer.meter.db", "tracks.search",
                 "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels", "library.filters", "export.range", "export.stem-pack",
-                "karaoke.size", "karaoke.offset", "karaoke.timing-origin"], ignoreOrder: true);
+                "karaoke.size", "karaoke.offset", "karaoke.timing-origin", "lyrics.align-device", "lyrics.refine"], ignoreOrder: true);
     }
 
     [Fact]
