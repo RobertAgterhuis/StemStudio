@@ -69,6 +69,7 @@ REQUESTED = [
     "Api",
     "Web",
     "worker/ingest",
+    "worker/metadata",
     "worker/separation",
     "worker/detail",
     "worker/devices",
@@ -99,3 +100,10 @@ def test_worker_devices_component_measures_devices_production_code() -> None:
     assert devices.contains("worker/src/stemstudio_worker/devices/runner.py", test=False)
     assert not devices.contains("worker/src/stemstudio_worker/detail/steps.py", test=False)
     assert not devices.contains("worker/tests/devices/test_runner.py", test=True)
+
+
+def test_worker_metadata_component_measures_metadata_production_code() -> None:
+    (metadata,) = [c for c in COMPONENTS if c.name == "worker/metadata"]
+    assert metadata.contains("worker/src/stemstudio_worker/metadata/musicbrainz.py", test=False)
+    assert not metadata.contains("worker/src/stemstudio_worker/ingest/fetch.py", test=False)
+    assert not metadata.contains("worker/tests/metadata/test_musicbrainz.py", test=True)
