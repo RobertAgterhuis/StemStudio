@@ -1,4 +1,5 @@
 using StemStudio.Contracts;
+using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Tracks;
@@ -82,6 +83,9 @@ public static class TrackMapper
             TakeIndex = origin.TakeIndex,
             SourceTrackId = origin.SourceTrackId,
             AiGenerated = origin.AiGenerated,
+            Vocal = origin.Vocal is { } vocal ? Enum.Parse<VocalLabelDto>(vocal.ToString()) : null,
+            VoiceProfileName = origin.VoiceProfileName,
+            LyricsSheetId = origin.LyricsSheetId,
         };
 
     /// <summary>A stored UTC timestamp as an offset-0 <see cref="DateTimeOffset"/>.</summary>

@@ -29,7 +29,12 @@ public sealed class SongImportOriginTests : ApiTestBase
         var track = await response.BodyAsync<TrackDto>();
         track.Origin.ShouldBe(new TrackOriginDto
         {
-            Kind = TrackOriginKindDto.Generated, GenerationId = song, TakeIndex = 1, AiGenerated = true, Vocal = VocalLabelDto.Synthetic, LyricsSheetId = sheetId,
+            Kind = TrackOriginKindDto.Generated,
+            GenerationId = song,
+            TakeIndex = 1,
+            AiGenerated = true,
+            Vocal = VocalLabelDto.Synthetic,
+            LyricsSheetId = sheetId,
         });
         track.Title.ShouldBe("This little song - Jazz trio (take 1)");
         await ContractAssert.MatchesAsync(response, "importTake");

@@ -64,7 +64,13 @@ public sealed class TakeImporter(IGenerationRepository generations, ITrackReposi
         var now = clock.GetUtcNow().UtcDateTime;
         var track = (await tracks.FindAsync(((IValueHttpResult<TrackDto>)imported).Value!.Id, cancellationToken))!;
         track.ApplyMetadata(new SourceMetadata(GenerationText.TakeTitle(generation, index), null), now);
-        track.MarkGenerated(new TrackOrigin(generation.Id, index, generation.Kind, generation.SourceTrackId), now);
+        var take = generation.Take(index)!;
+        track.MarkGenerated(new TrackOrigin(generation.Id, index, generation.Kind, generation.SourceTrackId)
+        {
+            Vocal = take.Vocal,
+            VoiceProfileName = take.VoiceProfileName,
+            LyricsSheetId = generation.Song?.Lyrics.LyricsId,
+        }, now);
         generation.MarkImported(index, track.Id, now);
         await tracks.SaveAsync(cancellationToken);
         var dto = TrackMapper.ToDto(track);
