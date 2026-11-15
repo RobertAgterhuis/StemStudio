@@ -173,7 +173,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 - [ ] T059 [US5] [frontend] Implement the full map in `src/web-interop/src/shortcuts.ts` to pass T058
 - [ ] T060 [P] [US5] [frontend] Failing bUnit tests: `Shell/CommandPaletteTests.cs` (sources: screens, tracks, mixes, help topics, current-page actions; filter; arrow/Enter; Escape focus return; `command-<id>` ids), `Shell/ShortcutOverlayTests.cs` (content per screen; Ctrl+/ only at Expert; `help-shortcuts` at every level), mixer command handlers (loop, A/B, metronome, seek, channel select with `data-selected`, M/S, save) calling the same methods as the buttons, Expert `fader-value-*`/`pan-value-*` two-way with the sliders, `meter-db-*` from `data-peak-db` (via engine callback or attribute read), `job-details` content (FR-017, FR-018)
 - [ ] T061 [US5] [frontend] Implement `Components/Shell/{CommandPalette,ShortcutOverlay}.razor`, mixer command wiring (`Mixer.Shortcuts.cs`), `Components/Pages/JobDetails.razor`, Expert controls to pass T060
-- [ ] T062 [US5] [qa] Author `e2e/tests/expert-keyboard.spec.ts`: keyboard-only import -> palette -> mixer -> `[` `]` `L` -> Ctrl+S -> name -> Enter -> `G` `M` -> load, counting key presses (<= 25 after the URL, SC-008); shortcuts do not fire while typing (V-E3); overlay (V-E4)
+- [x] T062 [US5] [qa] Author `e2e/tests/expert-keyboard.spec.ts`: keyboard-only import -> palette -> mixer -> `[` `]` `L` -> Ctrl+S -> name -> Enter -> `G` `M` -> load, counting key presses (<= 25 after the URL, SC-008); shortcuts do not fire while typing (V-E3); overlay (V-E4)
 
 **Checkpoint**: HO:us5.
 
