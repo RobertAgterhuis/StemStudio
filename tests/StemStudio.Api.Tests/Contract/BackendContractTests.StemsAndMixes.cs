@@ -124,7 +124,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingLyricsOperations = [];
 
     // Feature 008 (backend 1.7.0, staged in the 006/008 Phase 0): the backend removes both ids in T041.
-    private static readonly string[] PendingScoreOperations = ["getScoreOptions", "createScore"];
+    private static readonly string[] PendingScoreOperations = [];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);
