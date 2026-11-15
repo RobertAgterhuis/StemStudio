@@ -10,9 +10,9 @@ from stemstudio_generator.config import FakeGeneratorMode
 from stemstudio_generator.engines.fake import (
     SVC_SAMPLE_RATE,
     FakeMusicEngine,
-    FakePitchTracker,
     FakeVoiceConverter,
 )
+from stemstudio_generator.engines.fake_pitch import FakePitchTracker
 from stemstudio_generator.engines.profiles import song_vocal_label
 from stemstudio_generator.ports import (
     SONG_DIRECT,

@@ -11,7 +11,6 @@ its output is never shown to users.
 import hashlib
 import logging
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
@@ -19,8 +18,8 @@ import soundfile as sf
 
 from stemstudio_generator.audio.commands import CommandRunner, SubprocessRunner
 from stemstudio_generator.audio.levels import peak_dbfs
-from stemstudio_generator.ports import GeneratorError
-from stemstudio_generator.schemas import TAKE_SAMPLE_RATE, VocalLabel
+from stemstudio_generator.ports import GeneratorError, TakeLabels, WrittenFile
+from stemstudio_generator.schemas import TAKE_SAMPLE_RATE
 
 AI_COMMENT: Final = "AI-generated with StemStudio"
 """Value of the ``COMMENT`` Vorbis comment."""
@@ -35,44 +34,6 @@ _HASH_CHUNK: Final = 1024 * 1024
 _CONTROL_CHARS: Final = re.compile(r"[\x00-\x1f\x7f]+")
 
 _log = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class TakeLabels:
-    """What the Vorbis comments of one take say.
-
-    Attributes:
-        generator: Model and revision, e.g. ``ACE-Step 1.5 (19671f4...)``.
-        generation_id: The job id.
-        take_index: Take number from 1.
-        voice: AI voice label (``synthetic``/``converted``; ``none``/None writes no label).
-        voice_profile: Voice-profile display name (voice conversions only).
-    """
-
-    generator: str
-    generation_id: str
-    take_index: int
-    voice: VocalLabel | None = None
-    voice_profile: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class WrittenFile:
-    """A labelled take file with the facts of ``GeneratedTake``.
-
-    Attributes:
-        path: The FLAC file.
-        sha256: SHA-256 of the file bytes.
-        bytes: File size.
-        duration_seconds: Length.
-        peak_dbfs: Sample peak in dBFS.
-    """
-
-    path: Path
-    sha256: str
-    bytes: int
-    duration_seconds: float
-    peak_dbfs: float
 
 
 def vorbis_comments(labels: TakeLabels) -> list[tuple[str, str]]:
