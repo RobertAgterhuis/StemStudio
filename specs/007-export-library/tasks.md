@@ -190,7 +190,7 @@ in the execution plan.
 - [x] T064 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `render/`
 - [x] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
 - [x] T066 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
+- [x] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
 - [ ] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish
 - [x] T069 [P] [devops] Validate compose/CI (`docker compose config -q` for both compose variants, `actionlint`), HO:polish
 - [ ] T070 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
