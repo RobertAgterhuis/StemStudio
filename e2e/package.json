@@ -15,6 +15,9 @@
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",
     "test:lyrics": "playwright test --project=chromium --project=firefox --grep \"@karaoke|@lyrics\"",
     "test:sheet-music": "playwright test --project=chromium --project=firefox --grep @sheet-music --grep-invert @detail",
+    "test:styles": "playwright test --project=chromium --project=firefox --grep \"@styles|@generation-status\"",
+    "test:generative": "playwright test --project=chromium --project=firefox --grep @generative --grep-invert @restart",
+    "test:generative-restart": "playwright test --project=chromium --project=firefox --grep \"@generative.*@restart|@restart.*@generative\"",
     "test:gpu": "playwright test --project=chromium --project=firefox --grep @gpu",
     "test:real": "playwright test --project=chromium --project=firefox --grep @real",
     "test:restart": "playwright test --project=chromium --project=firefox --grep @restart",
@@ -24,6 +27,7 @@
     "test:a11y": "playwright test --project=a11y",
     "test:lighthouse": "playwright test --project=lighthouse-setup && node lighthouse/run-lighthouse.mts",
     "list": "playwright test --list",
+    "fixtures:generative": "uv run --project ../worker python ../tests/fixtures/generate_voice_fixtures.py",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_detail_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_artwork_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_lyrics_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_score_fixtures.py"

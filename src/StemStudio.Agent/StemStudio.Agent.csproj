@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The composer agent library (feature 011, ADR-020, plan.md "Source Code"). No ASP.NET, Domain, Persistence or Web reference:
+       Agent -> Contracts + Microsoft.Extensions.AI only; OllamaSharp and Anthropic are used only in StemStudio.Agent.Backends
+       (quality-gate dependency rule T007). Ports/ and Model/ are architect-owned; Tools/, Policy/, Runtime/, Backends/ and
+       AgentServiceCollectionExtensions.cs belong to the ai-agent role. -->
+  <PropertyGroup>
+    <RootNamespace>StemStudio.Agent</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="OllamaSharp" />
+    <!-- Optional paid backend: constitution 1.3.0 principle IV exception (opt-in, off by default, key only from ANTHROPIC_API_KEY). -->
+    <PackageReference Include="Anthropic" />
+  </ItemGroup>
+</Project>

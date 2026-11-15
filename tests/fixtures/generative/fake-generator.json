@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "about": "What the E2E specs expect from the fake generator and fake singer per STEMSTUDIO_FAKE_GENERATOR_MODE (009/010 data-model 1, generator config.py). qa proposal for generative 009:T020/T021, 010:T010/T011; the E2E specs read it through e2e/support/generative.ts.",
+  "stack": {
+    "STEMSTUDIO_GENERATOR": "fake",
+    "STEMSTUDIO_FAKE_GENERATOR_STEP_SECONDS": 1,
+    "STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS": 5,
+    "STEMSTUDIO_SEPARATOR": "fake"
+  },
+  "modes": {
+    "ready": {
+      "availability": "ready",
+      "restyle": { "terminal": "completed", "takeSeconds": "range length (mode range) or track length (mode inPlace)" },
+      "song": { "terminal": "completed", "vocal": "synthetic, or none when instrumental", "takeSeconds": "durationSeconds" },
+      "voiceSample": "duration 10-60 s and the fake pitch tracker's voiced ratio (tone high, noise 0) >= 0.5",
+      "voiceConversion": { "terminal": "completed", "vocal": "converted", "takeSeconds": "source take length" }
+    },
+    "no-gpu": {
+      "availability": "unavailable",
+      "reasonPattern": "GPU|CUDA",
+      "createProblem": "gpu-required"
+    },
+    "oom": {
+      "availability": "ready",
+      "restyle": { "terminal": "completed", "note": "first attempt raises a GPU out-of-memory error, the low-memory retry succeeds" }
+    },
+    "oom-twice": {
+      "availability": "ready",
+      "restyle": { "terminal": "failed", "errorCode": "outOfMemory", "messagePattern": "memory" },
+      "retry": "a retry creates a new generation, which fails the same way"
+    },
+    "busy": {
+      "availability": "ready",
+      "restyle": { "passesThrough": "waitingForGpu", "terminal": "failed", "errorCode": "gpuBusy", "messagePattern": "^GPU busy: needs [0-9.]+ GB, [0-9.]+ GB free" }
+    },
+    "slow": {
+      "availability": "ready",
+      "restyle": { "terminal": "completed", "note": "long steps: a generation stays running long enough to cancel it" }
+    },
+    "unvoiced-sample": {
+      "availability": "ready",
+      "voiceSample": "every check fails with unvoiced (422 unvoiced)"
+    }
+  },
+  "takeFile": {
+    "format": "flac",
+    "sampleRate": 48000,
+    "tags": ["AI_GENERATED=true", "GENERATOR=<name and version>", "STEMSTUDIO_GENERATION=<generator job id>", "STEMSTUDIO_TAKE=<take index>", "AI_VOICE=synthetic|converted (songs with a voice and conversions only)"]
+  }
+}

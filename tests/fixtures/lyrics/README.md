@@ -13,6 +13,8 @@ the E2E specs `e2e/tests/karaoke.spec.ts` and `lyrics.spec.ts`, and the checks i
 | `lrclib/get-*.json`, `lrclib/search-*.json`, `lrclib/get-not-json.txt` | LRCLIB `/api/get` and `/api/search` responses (status + body) in the shape of F-01/F-02, with placeholder text | `test_lrclib.py`, `test_select.py`, `test_lookup.py` (replay with `httpx.MockTransport`) |
 | `fake-lyrics.json` | proposed behaviour table of the fake lyrics provider and fake aligner (`STEMSTUDIO_FAKE_LYRICS` = `word`, `line`, `plain`, `instrumental`, `not-found`, `failed`) and the word-synced document they return | `lyrics/fake.py` (006:T028) and `alignment/fake.py` (006:T041) should return exactly this; the E2E specs read it (`e2e/support/lyrics.ts`) |
 | `align-clip.json` | exact word-start annotation of the sung alignment clip (generated, committed) | SC-003 integration test `worker/tests/alignment/test_align_clip.py` (006:T042, run in T066) |
+| `sample-en.txt`, `sample-nl.txt`, `sample.lrc` (feature 010) | self-written own lyrics (CC0): English in four blocks with a repeated chorus (no markers, for the section helper), Dutch with `[verse]`/`[chorus]`, an LRC version with stamps and an empty-stamp break | E2E `song.spec.ts`, quickstart V3; checked by `test_generative_fixtures.py` |
+| `own-lyrics-expected.json` (feature 010) | expected facts of the own lyrics: word count, density, proposed markers, the normalised LRC text | E2E `song.spec.ts`, `generative-support.spec.ts` |
 
 ## Rules the fixtures encode
 

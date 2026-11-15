@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "sampleRate": 44100,
+  "licence": "CC0-1.0",
+  "provenance": "self-written melodies; formant synthesiser tests/fixtures/sung_voice.py",
+  "limits": {
+    "minSeconds": 10.0,
+    "maxSeconds": 60.0,
+    "minVoicedRatio": 0.5
+  },
+  "fixtures": {
+    "own-voice-20s.wav": {
+      "kind": "sung-voice",
+      "durationSeconds": 20.0,
+      "channels": 1,
+      "voicedShare": 0.843,
+      "expectedCheck": "ok"
+    },
+    "own-voice-6s.wav": {
+      "kind": "sung-voice",
+      "durationSeconds": 6.0,
+      "channels": 1,
+      "voicedShare": 0.618,
+      "expectedCheck": "too-short"
+    },
+    "own-voice-70s.wav": {
+      "kind": "sung-voice",
+      "durationSeconds": 70.0,
+      "channels": 1,
+      "voicedShare": 0.86,
+      "expectedCheck": "too-long"
+    },
+    "unvoiced-20s.wav": {
+      "kind": "noise",
+      "durationSeconds": 20.0,
+      "channels": 1,
+      "voicedShare": 0.0,
+      "expectedCheck": "unvoiced"
+    },
+    "sung-target-10s.wav": {
+      "kind": "sung-voice",
+      "durationSeconds": 10.0,
+      "channels": 1,
+      "voicedShare": 0.731,
+      "expectedCheck": "ok"
+    }
+  }
+}
