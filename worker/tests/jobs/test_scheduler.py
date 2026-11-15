@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterator
 
 import pytest
 
-from stemstudio_worker.jobs.scheduler import PriorityScheduler
+from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 
 WAIT = 5.0
 
@@ -165,7 +165,9 @@ def test_a_failing_yield_hook_does_not_stop_the_standard_job(
     def broken(ids: list[str]) -> None:
         raise RuntimeError("hook")
 
-    scheduler = PriorityScheduler(recorder.standard, recorder.detail, broken)
+    scheduler = PriorityScheduler(
+        recorder.standard, recorder.detail, SchedulerHooks(on_yield=broken)
+    )
     scheduler.submit_detail("a")
     scheduler.submit("s1")
     with caplog.at_level(logging.ERROR):
@@ -185,7 +187,8 @@ def test_active_detail_jobs_are_told_before_a_standard_job_runs() -> None:
     release = recorder.block("a:1")
     yielded: list[tuple[str, ...]] = []
     scheduler = _started(PriorityScheduler(
-        recorder.standard, recorder.detail, lambda ids: yielded.append(tuple(ids))
+        recorder.standard, recorder.detail,
+        SchedulerHooks(on_yield=lambda ids: yielded.append(tuple(ids))),
     ))  # fmt: skip
     scheduler.submit_detail("a")
     scheduler.submit_detail("b")

@@ -1,16 +1,30 @@
-# Optional NVIDIA GPU override for the worker (needs the NVIDIA Container Toolkit on the host).
+# Optional NVIDIA GPU override for the worker (feature 003, ADR-012).
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
-# Rebuilds the worker with the CUDA wheel of the locked torch version (TORCH_VARIANT) and asks
-# the worker to use CUDA. CPU stays the supported default; this path is best effort.
+#
+# Builds the GPU variant of docker/worker.Dockerfile (TORCH_VARIANT=cu132: torch 2.15.0+cu132;
+# ORT_VARIANT=gpu: onnxruntime-gpu 1.32.0 + cuRAND) as stemstudio/worker:local-gpu and sets
+# STEMSTUDIO_DEVICE=auto: the worker uses the GPU when its start-up probe passes and otherwise
+# runs on the CPU with the reason in /health (it never fails to start). CPU stays the default.
+#
+# Prerequisites (specs/003-gpu-acceleration/quickstart.md, research.md G-05):
+#   - NVIDIA GPU with compute capability >= 7.5 (Turing or newer) and a host driver with CUDA 13.2
+#     support (R580 or newer).
+#   - Windows 11: Docker Desktop with the WSL2 backend; do NOT install a Linux NVIDIA driver inside
+#     WSL. Linux: the NVIDIA Container Toolkit.
+#   - Check: docker run --rm --gpus all nvcr.io/nvidia/k8s/cuda-sample:nbody nbody -gpu -benchmark
+# The GPU image is about 11.6 GB on disk (CPU image 3.4 GB) and contains the proprietary NVIDIA
+# CUDA runtime libraries (system dependency, ADR-011; never in the CPU image or CI).
 
 services:
   worker:
     build:
       args:
-        TORCH_VARIANT: ${STEMSTUDIO_TORCH_VARIANT:-cu128}
+        TORCH_VARIANT: ${STEMSTUDIO_TORCH_VARIANT:-cu132}
+        ORT_VARIANT: gpu
+        WORKER_DEVICE: auto
     image: stemstudio/worker:local-gpu
     environment:
-      STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-cuda}
+      STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-auto}
     deploy:
       resources:
         reservations:

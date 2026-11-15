@@ -12,29 +12,15 @@ using StemStudio.Domain.Tracks.Detail;
 namespace StemStudio.Api.Tests.Detail;
 
 /// <summary>Start, cancel and the delete rule of the detail phase (T067; FR-008, FR-009, FR-016).</summary>
-public sealed class DetailEndpointTests : IDisposable
+public sealed class DetailEndpointTests : ApiTestBase
 {
     private const string DetailJobId = SyncTestData.DetailJobId;
-    private readonly ApiFactory _factory = new();
-    private readonly HttpClient _client;
-
-    public DetailEndpointTests() => _client = _factory.CreateClient();
-
-    private FakeWorkerClient Worker => _factory.Worker;
-
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    public void Dispose()
-    {
-        _client.Dispose();
-        _factory.Dispose();
-    }
 
     [Fact]
     public async Task Start_FromNoneQueuesThePhaseWithoutCallingTheWorker()
     {
-        var track = await _factory.SeedAsync(SyncTestData.CompletedTrack());
-        _factory.Clock.Advance(TimeSpan.FromMinutes(5));
+        var track = await Factory.SeedAsync(SyncTestData.CompletedTrack());
+        Factory.Clock.Advance(TimeSpan.FromMinutes(5));
 
         using var response = await PostAsync(ApiRoutes.StartDetail(track.Id));
 
@@ -53,7 +39,7 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData(DetailPhaseStatus.Cancelled)]
     public async Task Start_RetriesAFailedOrCancelledPhaseAndRemovesOldDetailFiles(DetailPhaseStatus status)
     {
-        var track = await _factory.SeedAsync(Finished(status));
+        var track = await Factory.SeedAsync(Finished(status));
         await DetailFiles.SaveAsync(new DetailStemKey(track.Id, "drums", "kick"), (s, ct) => s.WriteAsync(new byte[4], ct).AsTask(), Ct);
 
         using var response = await PostAsync(ApiRoutes.StartDetail(track.Id));
@@ -70,7 +56,7 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData("completed")]
     public async Task Start_IsAConflictWhileActiveOrCompleted(string status)
     {
-        var track = await _factory.SeedAsync(WithPhase(status));
+        var track = await Factory.SeedAsync(WithPhase(status));
 
         using var response = await PostAsync(ApiRoutes.StartDetail(track.Id));
 
@@ -82,8 +68,8 @@ public sealed class DetailEndpointTests : IDisposable
     [Fact]
     public async Task Start_IsAConflictWhenTheTrackIsNotCompleted()
     {
-        var queued = await _factory.SeedAsync(SyncTestData.UrlTrack("aaaaaaaaaaa"));
-        var failed = await _factory.SeedAsync(SyncTestData.FailedTrack("bbbbbbbbbbb"));
+        var queued = await Factory.SeedAsync(SyncTestData.UrlTrack("aaaaaaaaaaa"));
+        var failed = await Factory.SeedAsync(SyncTestData.FailedTrack("bbbbbbbbbbb"));
 
         using var notReady = await PostAsync(ApiRoutes.StartDetail(queued.Id));
         using var notCompleted = await PostAsync(ApiRoutes.StartDetail(failed.Id));
@@ -107,7 +93,7 @@ public sealed class DetailEndpointTests : IDisposable
     [Fact]
     public async Task Cancel_PendingSubmissionCancelsLocally()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued(detailJobId: null));
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued(detailJobId: null));
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
 
@@ -123,7 +109,7 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData("running")]
     public async Task Cancel_QueuedOrRunningCancelsTheWorkerJob(string status)
     {
-        var track = await _factory.SeedAsync(WithPhase(status));
+        var track = await Factory.SeedAsync(WithPhase(status));
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
 
@@ -131,13 +117,13 @@ public sealed class DetailEndpointTests : IDisposable
         Worker.DetailCancels.ShouldBe([DetailJobId]);
         var phase = await PhaseAsync(track);
         (phase.Status, phase.Stage).ShouldBe((DetailPhaseStatus.Cancelled, "Cancelled"));
-        (await _factory.FindTrackAsync(track.Id))!.Status.ShouldBe(TrackStatus.Completed);
+        (await Factory.FindTrackAsync(track.Id))!.Status.ShouldBe(TrackStatus.Completed);
     }
 
     [Fact]
     public async Task Cancel_JobTheWorkerNoLongerKnowsCancelsLocally()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
         Worker.OnCancelDetail = _ => throw new WorkerRequestException(HttpStatusCode.NotFound, "Detail job does not exist.");
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
@@ -149,7 +135,7 @@ public sealed class DetailEndpointTests : IDisposable
     [Fact]
     public async Task Cancel_JobThatAlreadyFinishedInTheWorkerIsAConflictAndChangesNothing()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
         Worker.OnCancelDetail = _ => throw new WorkerRequestException(HttpStatusCode.Conflict, "Detail job is in state completed.");
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
@@ -163,7 +149,7 @@ public sealed class DetailEndpointTests : IDisposable
     [Fact]
     public async Task Cancel_UnreachableWorkerIs503AndChangesNothing()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
         Worker.OnCancelDetail = _ => throw new WorkerUnavailableException();
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
@@ -180,7 +166,7 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData("cancelled")]
     public async Task Cancel_IsAConflictWithoutAnActivePhase(string status)
     {
-        var track = await _factory.SeedAsync(WithPhase(status));
+        var track = await Factory.SeedAsync(WithPhase(status));
 
         using var response = await PostAsync(ApiRoutes.CancelDetail(track.Id));
 
@@ -194,13 +180,13 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData("running")]
     public async Task Delete_IsRefusedWhileTheDetailPhaseIsActive(string status)
     {
-        var track = await _factory.SeedAsync(WithPhase(status));
+        var track = await Factory.SeedAsync(WithPhase(status));
 
-        using var response = await _client.DeleteAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+        using var response = await Client.DeleteAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.JsonAsync()).GetProperty("detail").GetString()!.ShouldContain("cancel it first");
-        (await _factory.FindTrackAsync(track.Id)).ShouldNotBeNull();
+        (await Factory.FindTrackAsync(track.Id)).ShouldNotBeNull();
         await ContractAssert.MatchesAsync(response, "deleteTrack");
     }
 
@@ -210,16 +196,16 @@ public sealed class DetailEndpointTests : IDisposable
     [InlineData("cancelled")]
     public async Task Delete_RemovesTheDetailFolderOtherwise(string status)
     {
-        var track = await _factory.SeedAsync(WithPhase(status));
+        var track = await Factory.SeedAsync(WithPhase(status));
         await DetailFiles.SaveAsync(new DetailStemKey(track.Id, "drums", "kick"), (s, ct) => s.WriteAsync(new byte[4], ct).AsTask(), Ct);
 
-        using var response = await _client.DeleteAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+        using var response = await Client.DeleteAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        Directory.Exists(Path.Combine(_factory.DataDir, "tracks", track.Id.ToString(), "detail")).ShouldBeFalse();
+        Directory.Exists(Path.Combine(Factory.DataDir, "tracks", track.Id.ToString(), "detail")).ShouldBeFalse();
     }
 
-    private IDetailStemFileStore DetailFiles => _factory.Services.GetRequiredService<IDetailStemFileStore>();
+    private IDetailStemFileStore DetailFiles => Factory.Services.GetRequiredService<IDetailStemFileStore>();
 
     private static Track WithPhase(string status) => status switch
     {
@@ -253,7 +239,7 @@ public sealed class DetailEndpointTests : IDisposable
         return track;
     }
 
-    private async Task<DetailPhase> PhaseAsync(Track track) => (await _factory.FindTrackAsync(track.Id))!.DetailPhase!;
+    private async Task<DetailPhase> PhaseAsync(Track track) => (await Factory.FindTrackAsync(track.Id))!.DetailPhase!;
 
-    private Task<HttpResponseMessage> PostAsync(string path) => _client.PostAsync(new Uri(path, UriKind.Relative), null, Ct);
+    private Task<HttpResponseMessage> PostAsync(string path) => Client.PostAsync(new Uri(path, UriKind.Relative), null, Ct);
 }

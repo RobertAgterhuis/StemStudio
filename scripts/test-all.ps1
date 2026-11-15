@@ -13,18 +13,28 @@
 .PARAMETER ContinueOnError
     Runs all steps even after a failure (default: stop at the first failure).
 
+.PARAMETER Gpu
+    Also starts a fake stack as compose project stemstudio-e2e twice, with a fake GPU
+    (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and runs the Playwright
+    @gpu specs each time (feature 003). Needs ports
+    8080/8081 free and the Playwright browsers installed; the project and its volumes are removed
+    afterwards.
+
 .EXAMPLE
     ./scripts/test-all.ps1
+.EXAMPLE
+    ./scripts/test-all.ps1 -Gpu
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive developer script; console output is the UI.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Private helpers that only change this script''s own throwaway containers or process environment.')]
 [CmdletBinding()]
-param([switch] $ContinueOnError)
+param([switch] $ContinueOnError, [switch] $Gpu)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Redocly = '@redocly/cli@2.78.0'
-$Contracts = 'specs/002-detail-separation/contracts'
+$Contracts = 'specs/003-gpu-acceleration/contracts'
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
@@ -60,6 +70,27 @@ $Steps = @(
     @{ Name = 'e2e typecheck'; Dir = 'e2e'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'e2e list'; Dir = 'e2e'; Cmd = @('npx', 'playwright', 'test', '--list') }
 )
+# Optional (-Gpu): two passes of the fake stack (fake GPU, then a fake GPU that runs out of memory),
+# each followed by the @gpu specs (003); the mode goes to compose (worker env) and to Playwright.
+$E2eProject = 'stemstudio-e2e'
+if ($Gpu) {
+    foreach ($mode in 'gpu', 'gpu-oom') {
+        $gpuEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_FAKE_DEVICE = $mode }
+        $Steps += @{ Name = "gpu e2e: fake stack ($mode) up"; Dir = '.'; Env = $gpuEnv; Cmd = @('docker', 'compose', '-p', $E2eProject, 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
+        $Steps += @{ Name = "gpu e2e: playwright @gpu ($mode)"; Dir = 'e2e'; Env = $gpuEnv; Cmd = @('npm', 'run', 'test:gpu') }
+    }
+}
+
+function Set-StepEnvironment {
+    <# Sets the given process environment variables; returns their previous values. #>
+    param([hashtable] $Variables)
+    $previous = @{}
+    foreach ($name in $Variables.Keys) {
+        $previous[$name] = [Environment]::GetEnvironmentVariable($name)
+        [Environment]::SetEnvironmentVariable($name, $Variables[$name])
+    }
+    $previous
+}
 
 function Invoke-Step {
     <# Runs one step; returns 'passed' or 'failed' (a missing working directory fails). #>
@@ -67,13 +98,17 @@ function Invoke-Step {
     if (-not (Test-Path (Join-Path $RepoRoot $Step.Dir))) { return 'failed' }
     Write-Host "`n=== $($Step.Name) ===" -ForegroundColor Cyan
     Push-Location (Join-Path $RepoRoot $Step.Dir)
+    $previous = if ($Step.ContainsKey('Env')) { Set-StepEnvironment $Step.Env } else { @{} }
     try {
         $command = $Step.Cmd[0]
         $arguments = @($Step.Cmd | Select-Object -Skip 1)
         & $command @arguments | Out-Host
         if ($LASTEXITCODE -eq 0) { 'passed' } else { 'failed' }
     }
-    finally { Pop-Location }
+    finally {
+        Set-StepEnvironment $previous | Out-Null
+        Pop-Location
+    }
 }
 
 $summary = [System.Collections.Generic.List[object]]::new()
@@ -82,5 +117,6 @@ foreach ($step in $Steps) {
     $summary.Add([pscustomobject]@{ Step = $step.Name; Result = $result })
     if ($result -eq 'failed' -and -not $ContinueOnError) { break }
 }
+if ($Gpu) { & docker compose -p $E2eProject down -v | Out-Host }
 $summary | Format-Table -AutoSize | Out-String | Write-Host
 exit ([int]($summary.Result -contains 'failed'))

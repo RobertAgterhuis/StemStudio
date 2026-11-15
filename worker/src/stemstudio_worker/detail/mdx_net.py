@@ -56,9 +56,16 @@ def _wave(spec: "torch.Tensor", window: "torch.Tensor") -> "torch.Tensor":
 class Kara2Model:
     """``DetailModel`` for UVR MDX-Net KARA 2: outputs ``backing`` and ``lead``."""
 
-    def __init__(self, session: Session) -> None:
-        """Run inference through ``session``."""
+    def __init__(self, session: Session, fallback_reason: str | None = None) -> None:
+        """Run inference through ``session``.
+
+        Args:
+            session: The ONNX model.
+            fallback_reason: Set when the model was requested on CUDA but onnxruntime runs it
+                on the CPU (the step then records a CPU fallback, data-model.md 2.3).
+        """
         self._session = session
+        self.fallback_reason = fallback_reason
 
     def separate(self, audio: DetailAudio, progress: ProgressCallback) -> dict[str, DetailAudio]:
         """Split a vocals stem into backing (model output x 1.065) and lead (the remainder)."""

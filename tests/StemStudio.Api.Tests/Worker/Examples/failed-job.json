@@ -11,6 +11,7 @@
     "artist": "Some Artist",
     "sourceUrl": null
   },
+  "device": null,
   "createdAt": "2026-11-14T12:00:00Z",
   "updatedAt": "2026-11-14T12:00:20Z"
 }

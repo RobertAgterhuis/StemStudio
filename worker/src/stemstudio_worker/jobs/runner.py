@@ -16,7 +16,14 @@ from stemstudio_worker.ports import (
     SeparationResult,
     WorkerError,
 )
-from stemstudio_worker.schemas import JobResult, JobState, SourceMetadata
+from stemstudio_worker.schemas import (
+    CPU_DEVICE,
+    DeviceInfo,
+    JobDevice,
+    JobResult,
+    JobState,
+    SourceMetadata,
+)
 
 _LOG = logging.getLogger(__name__)
 
@@ -29,11 +36,13 @@ class JobContext:
         store: The job store.
         paths: The data directory layout.
         clock: Current UTC time.
+        device: The worker's device from the start-up probe; a separation is planned on it.
     """
 
     store: JobStore
     paths: DataPaths
     clock: p.Clock
+    device: DeviceInfo = CPU_DEVICE
 
 
 class JobRunner:
@@ -45,6 +54,7 @@ class JobRunner:
         self._adapters = adapters
         self._paths = context.paths
         self._clock = context.clock
+        self._planned = JobDevice(kind=context.device.kind, name=context.device.name)
         self._cache = ResultCache(context.paths)
 
     def process(self, job_id: str) -> None:
@@ -120,9 +130,13 @@ class JobRunner:
     ) -> SeparationResult:
         out_dir = self._paths.work(job_id) / "stems"
         out_dir.mkdir(parents=True, exist_ok=True)
+        tracker.set_device(self._planned)
         tracker.update(JobState.SEPARATING, p.SEPARATING, p.SEPARATION_START)
         report = tracker.callback(JobState.SEPARATING, p.SEPARATING, p.separation_percent)
-        return self._adapters.separator.separate(audio.wav_path, out_dir, report)
+        separation = self._adapters.separator.separate(audio.wav_path, out_dir, report)
+        if separation.device is not None:
+            tracker.set_device(separation.device)
+        return separation
 
     def _cleanup(self, job_id: str) -> None:
         shutil.rmtree(self._paths.work(job_id), ignore_errors=True)

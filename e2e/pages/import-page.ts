@@ -20,6 +20,19 @@ export class ImportPage {
     return this.page.getByTestId('import-error');
   }
 
+  /**
+   * The worker's processing device (ui-test-ids 1.2.0): `data-device` = `gpu`, `cpu` or
+   * `unknown`; text "GPU (<name>)", "CPU" or "Unknown".
+   */
+  get workerDevice(): Locator {
+    return this.page.getByTestId('worker-device');
+  }
+
+  /** Why the CPU is used although a GPU was requested; exists only while such a reason is set. */
+  get workerDeviceReason(): Locator {
+    return this.page.getByTestId('worker-device-reason');
+  }
+
   /** Opens the import screen. */
   async goto(): Promise<void> {
     await this.page.goto('/');

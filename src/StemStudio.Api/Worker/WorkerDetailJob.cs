@@ -42,4 +42,7 @@ public sealed record WorkerDetailJob
 
     /// <summary>Failure reason when failed.</summary>
     public string? Error { get; init; }
+
+    /// <summary>Where the detail steps ran (1.2.0); null before the first parent step, for cached results and for 1.1.0 workers.</summary>
+    public WorkerJobDevice? Device { get; init; }
 }

@@ -7,6 +7,7 @@
   "currentParent": null,
   "progress": 3,
   "error": "Detail model could not be downloaded; try again when online.",
+  "device": null,
   "createdAt": "2026-11-15T12:06:31Z",
   "updatedAt": "2026-11-15T12:06:40Z"
 }

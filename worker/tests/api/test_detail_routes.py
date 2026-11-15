@@ -44,10 +44,10 @@ def test_contract_examples_are_valid(example: str, schema: str) -> None:
     validate_schema(component(schema), spec()["components"]["examples"][example]["value"])
 
 
-def test_health_reports_contract_1_1_0(api: Api) -> None:
+def test_health_reports_contract_1_2_0(api: Api) -> None:
     response = api.client.get("/health")
     assert_conforms(response, "/health")
-    assert response.json()["contractVersion"] == "1.1.0"
+    assert response.json()["contractVersion"] == "1.2.0"
 
 
 def test_create_returns_202_with_location(api: Api) -> None:

@@ -56,6 +56,22 @@ volume), verified by SHA-256, never committed or baked into an image.
 these weights or the Demucs weights. They are for local, personal, non-commercial use only
 (constitution 1.1.0, principle IV).
 
+| nvidia-ml-py (NVML bindings, GPU memory checks; both images) | 13.615.71 | BSD-3-Clause | https://pypi.org/project/nvidia-ml-py/ |
+
+### System dependencies: GPU image variant only (constitution 1.2.0, ADR-011)
+
+Present only in the optional GPU worker image (`docker-compose.gpu.yml`, build args
+`TORCH_VARIANT=cu132`, `ORT_VARIANT=gpu`). The default CPU image and CI contain none of them; the
+CI job `cpu-image-guard` (`scripts/cpu_image_guard.py`) fails if they appear there.
+
+| Component | Version | Licence | Notes |
+|---|---|---|---|
+| PyTorch CUDA build | 2.15.0+cu132 | BSD-3-Clause (code) | pulls in the NVIDIA runtime below |
+| NVIDIA CUDA runtime wheels (`nvidia-*`: cuBLAS, cuDNN, cuFFT, cuSPARSE, NCCL, NVRTC, ...; `cuda-bindings`, `cuda-pathfinder`) | as locked by torch 2.15.0+cu132 | **NVIDIA proprietary (free)**, NVIDIA Software License Agreement / CUDA EULA | system dependency like the GPU driver |
+| `cuda-toolkit[curand]` (cuRAND for onnxruntime-gpu) | 13.2.2 | **NVIDIA proprietary (free)**, CUDA EULA | system dependency |
+| onnxruntime-gpu | 1.32.0 | MIT | replaces `onnxruntime` in the GPU image |
+| triton | as locked by torch | MIT | |
+
 ### Copyleft transitive dependencies (reviewed and accepted)
 
 All are OSI-approved. They are used unmodified, as separate libraries or executables, in a tool

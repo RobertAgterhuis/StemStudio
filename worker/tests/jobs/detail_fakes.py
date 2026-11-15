@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from stemstudio_worker.ports import DeviceUse
 from stemstudio_worker.schemas import (
     DetailStemInfo,
     OutcomeMetrics,
@@ -25,7 +26,7 @@ class FakeStep:
     partial: Path
     pipeline: "FakePipeline"
 
-    def run(self, progress: Callable[[float], None]) -> None:
+    def run(self, progress: Callable[[float], None]) -> DeviceUse | None:
         self.pipeline.runs.append(self.parents)
         hook = self.pipeline.during.get(self.parents[0], lambda: None)
         progress(0.0)
@@ -36,6 +37,7 @@ class FakeStep:
         if error is not None:
             raise error
         self._write()
+        return self.pipeline.uses.get(self.parents[0])
 
     def _write(self) -> None:
         for parent in self.parents:
@@ -58,6 +60,7 @@ class FakePipeline:
     during: dict[str, Callable[[], object]] = field(default_factory=dict)
     plans: list[Mapping[StemName, Path]] = field(default_factory=list)
     runs: list[tuple[ParentStemName, ...]] = field(default_factory=list)
+    uses: dict[str, DeviceUse] = field(default_factory=dict)
 
     def plan(self, stems: Mapping[StemName, Path], partial: Path) -> list[FakeStep]:
         self.plans.append(dict(stems))

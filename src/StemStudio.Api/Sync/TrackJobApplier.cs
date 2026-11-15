@@ -11,10 +11,10 @@ namespace StemStudio.Api.Sync;
 /// queued in the same save (feature 002, FR-001); the detail synchroniser submits it.
 /// </summary>
 /// <param name="worker">Worker client.</param>
-/// <param name="stems">Stem store.</param>
-/// <param name="uploads">Upload store (the API copy is deleted after completion, U3).</param>
+/// <param name="files">Stem and upload stores (the API copy of an upload is deleted after completion, U3).</param>
+/// <param name="devices">Copies the job's device (feature 003).</param>
 /// <param name="clock">Clock.</param>
-public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, IUploadStore uploads, TimeProvider clock)
+public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobDeviceApplier devices, TimeProvider clock)
 {
     /// <summary>Failure text when the worker no longer knows the job (FR-009a).</summary>
     public const string InterruptedByRestart = "interrupted by restart";
@@ -34,13 +34,20 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
             return Fail(track, InterruptedByRestart);
         }
 
-        ApplyMetadata(track, job.Metadata);
+        ApplyReported(track, job);
         return job.Status switch
         {
             WorkerJobState.Completed => CompleteAsync(track, job.JobId, cancellationToken),
             WorkerJobState.Failed => Fail(track, job.Error ?? "Processing failed."),
             _ => Progress(track, job),
         };
+    }
+
+    /// <summary>Copies the device and the metadata the worker reported with any state.</summary>
+    private void ApplyReported(Track track, WorkerJob job)
+    {
+        devices.ApplyStandard(track, job.Device);
+        ApplyMetadata(track, job.Metadata);
     }
 
     private void ApplyMetadata(Track track, WorkerSourceMetadata? metadata)
@@ -90,7 +97,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
         var stored = new List<Stem>();
         foreach (var stem in result.Stems)
         {
-            var size = await stems.SaveStemAsync(
+            var size = await files.Stems.SaveStemAsync(
                 trackId, stem.Name, (stream, ct) => worker.DownloadStemAsync(result.JobId, stem.Name, stream, ct), cancellationToken);
             stored.Add(new Stem(stem.Name, size));
         }
@@ -100,9 +107,9 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
 
     private void DeleteUpload(Track track)
     {
-        if (track.UploadFileName is { } fileName && uploads.Exists(fileName))
+        if (track.UploadFileName is { } fileName && files.Uploads.Exists(fileName))
         {
-            uploads.Delete(fileName);
+            files.Uploads.Delete(fileName);
         }
     }
 
@@ -126,3 +133,8 @@ public sealed class TrackJobApplier(IWorkerClient worker, IStemFileStore stems, 
         Reliable = grid.Reliable,
     };
 }
+
+/// <summary>The local stores a <see cref="TrackJobApplier"/> writes to.</summary>
+/// <param name="Stems">Stem store.</param>
+/// <param name="Uploads">Upload store.</param>
+public sealed record TrackFiles(IStemFileStore Stems, IUploadStore Uploads);

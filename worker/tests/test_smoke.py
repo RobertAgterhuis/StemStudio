@@ -28,7 +28,15 @@ def test_health_reports_settings(tmp_path: object) -> None:
         "status": "ok",
         "separator": "fake",
         "device": "auto",
-        "contractVersion": "1.1.0",
+        "deviceInfo": {
+            "kind": "cpu",
+            "name": None,
+            "computeCapability": None,
+            "totalMemoryMiB": None,
+            "freeMemoryMiB": None,
+            "reason": None,
+        },
+        "contractVersion": "1.2.0",
     }
 
 

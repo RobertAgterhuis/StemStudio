@@ -21,6 +21,7 @@ public static class DetailMapper
             Progress = phase.Progress,
             Error = phase.Error,
             Parents = phase.Parents.Select(parent => ToDto(trackId, parent)).ToList(),
+            Device = TrackMapper.ToDto(phase.Device),
             UpdatedAt = TrackMapper.Utc(phase.UpdatedAt),
         };
 

@@ -41,6 +41,19 @@ internal sealed class FakeWorkerClient : IWorkerClient
 
     public Func<WorkerDetailStemRef, Stream, Task>? OnDownloadDetailStem { get; set; }
 
+    public Func<Task<WorkerHealth>>? OnGetHealth { get; set; }
+
+    public int HealthCalls { get; private set; }
+
+    public static WorkerHealth Health(WorkerDeviceInfo deviceInfo) => new()
+    {
+        Status = "ok",
+        Separator = "fake",
+        Device = deviceInfo.Kind == ProcessingDeviceKind.Gpu ? "auto" : "cpu",
+        DeviceInfo = deviceInfo,
+        ContractVersion = "1.2.0",
+    };
+
     public static WorkerDetailJob DetailJob(string detailJobId, WorkerDetailJobState status, int progress = 0, string? parent = null) => new()
     {
         DetailJobId = detailJobId,
@@ -191,5 +204,15 @@ internal sealed class FakeWorkerClient : IWorkerClient
         }
 
         await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes($"fLaC:{stem.Parent}/{stem.Name}"), cancellationToken);
+    }
+
+    public Task<WorkerHealth> GetHealthAsync(CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            HealthCalls++;
+        }
+
+        return OnGetHealth?.Invoke() ?? Task.FromResult(Health(new WorkerDeviceInfo { Kind = ProcessingDeviceKind.Cpu }));
     }
 }

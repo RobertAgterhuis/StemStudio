@@ -7,6 +7,12 @@
   "currentParent": null,
   "progress": 100,
   "error": null,
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
   "createdAt": "2026-11-15T12:06:31Z",
   "updatedAt": "2026-11-15T12:31:10Z"
 }

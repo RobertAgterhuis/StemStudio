@@ -63,6 +63,19 @@ export class TrackDetailPage {
     return this.page.getByTestId('track-model');
   }
 
+  /**
+   * Device of the standard separation (ui-test-ids 1.2.0): exists once `track.device` is set;
+   * `data-device` = `gpu`/`cpu`, `data-fallback` = `true`/`false`.
+   */
+  get device(): Locator {
+    return this.page.getByTestId('track-device');
+  }
+
+  /** Fallback notice with the reason; exists only when `track.device.cpuFallback`. */
+  get deviceFallback(): Locator {
+    return this.page.getByTestId('track-device-fallback');
+  }
+
   /** "Open mixer" action. */
   get openMixer(): Locator {
     return this.page.getByTestId('open-mixer');

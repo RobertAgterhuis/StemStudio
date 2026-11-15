@@ -364,3 +364,30 @@ h1 {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* Processing device (feature 003, FR-006) */
+.ss-device {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  margin: 0.5rem 0;
+}
+
+.ss-device-name {
+  font-weight: 600;
+}
+
+.ss-device-reason {
+  color: var(--ss-muted);
+}
+
+.ss-device-label,
+.ss-device-reason-label {
+  color: var(--ss-muted);
+}
+
+.ss-device-reason-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}

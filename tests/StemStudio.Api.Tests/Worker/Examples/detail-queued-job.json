@@ -7,6 +7,7 @@
   "currentParent": null,
   "progress": 0,
   "error": null,
+  "device": null,
   "createdAt": "2026-11-15T12:06:31Z",
   "updatedAt": "2026-11-15T12:06:31Z"
 }

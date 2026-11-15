@@ -208,7 +208,7 @@ public sealed partial class Track
         }
 
         SetState(TrackStatus.Queued, "Queued", null);
-        (Progress, WorkerJobId, UpdatedAt) = (0, null, nowUtc);
+        (Progress, WorkerJobId, Device, UpdatedAt) = (0, null, null, nowUtc);
     }
 
     private static Track Create(SourceKey key, DateTime nowUtc, Action<Track> init)

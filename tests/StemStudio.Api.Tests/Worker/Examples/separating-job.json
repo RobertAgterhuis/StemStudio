@@ -11,6 +11,12 @@
     "artist": "Rick Astley",
     "sourceUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   },
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
   "createdAt": "2026-11-14T12:00:00Z",
   "updatedAt": "2026-11-14T12:03:10Z"
 }

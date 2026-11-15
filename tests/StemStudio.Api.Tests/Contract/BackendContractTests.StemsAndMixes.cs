@@ -113,7 +113,7 @@ public sealed partial class BackendContractTests
         served.ShouldBe(contract, ignoreOrder: true);
     }
 
-    // Contract 1.2.0 operations not served yet; empty since T068 (kept so a future contract addition is staged the same way).
+    // Contract operations not served yet (empty: every backend 1.3.0 operation is served).
     private static readonly string[] PendingDetailOperations = [];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>

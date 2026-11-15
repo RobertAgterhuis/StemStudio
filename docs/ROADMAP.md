@@ -30,3 +30,24 @@ Cross-cutting, every feature: in-app help entries (004 framework), user-journey 
   needs a constitution amendment for an optional, opt-in paid external service (feature 011).
 - 2026-11-15: Model weights exception (constitution 1.1.0, ADR-009) also applies to the generative
   and transcription models of 008-010.
+
+## Contract version allocation (CTO, 2026-11-15)
+
+Fixed up front so features can be built in parallel without version collisions. Each feature
+bumps only the contracts listed for it; a feature that needs no change in a contract keeps the
+previous version.
+
+| Feature | backend-api | worker-api | audio-engine | ui-test-ids | other |
+|---|---|---|---|---|---|
+| 003 GPU | 1.3.0 | 1.2.0 | 2.0.0 | 1.2.0 | |
+| 004 Design/UX | - | - | - | 1.3.0 | help-content 1.0.0, web-interop 1.0.0 |
+| 005 Artwork/band info | 1.4.0 | 1.3.0 | - | 1.4.0 | |
+| 007 Export library | 1.5.0 | 1.4.0 | - | 1.5.0 | render-vectors 1.0.0 |
+| 006 Lyrics/karaoke | 1.6.0 | 1.5.0 | 2.1.0 | 1.6.0 | |
+| 008 Sheet music | 1.7.0 | 1.6.0 | - | 1.7.0 | |
+| 009 Style transfer | 1.8.0 | - | - | 1.8.0 | generator-api 1.0.0 |
+| 010 Lyrics to song | 1.9.0 | - | - | 1.9.0 | generator-api 1.1.0 |
+| 011 AI agent | 1.10.0 | - | 2.2.0 if needed | 1.10.0 | agent tool catalogue 1.0.0 |
+
+Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011. Features in braces
+are built in parallel; their contract edits are additive and merged by the CTO.

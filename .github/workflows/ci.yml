@@ -23,7 +23,7 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  CONTRACTS_DIR: specs/002-detail-separation/contracts
+  CONTRACTS_DIR: specs/003-gpu-acceleration/contracts
 
 jobs:
   dotnet:
@@ -253,6 +253,15 @@ jobs:
       - name: List the suite (catches broken imports and tag filters without browsers)
         run: npx playwright test --list
 
+  cpu-image-guard:
+    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the default (CPU) worker image and run the guard (scripts/cpu_image_guard.py)
+        run: scripts/check-cpu-image.sh --build stemstudio/worker:ci-cpu
+
   licences:
     name: Licence report (NuGet, Python, npm)
     runs-on: ubuntu-24.04
@@ -335,6 +344,21 @@ jobs:
           docker compose restart api web
           docker compose up -d --wait --wait-timeout 180 api web
           (cd e2e && npm run test:restart)
+      - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
+        env:
+          STEMSTUDIO_FAKE_DEVICE: gpu
+        run: |
+          # Only the worker's environment changes, so compose recreates just the worker.
+          docker compose up -d --wait --wait-timeout 300
+          docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+          (cd e2e && npm run test:gpu)
+      - name: Fake GPU that runs out of memory (STEMSTUDIO_FAKE_DEVICE=gpu-oom), then the @gpu specs (003, SC-004)
+        env:
+          STEMSTUDIO_FAKE_DEVICE: gpu-oom
+        run: |
+          docker compose up -d --wait --wait-timeout 300
+          docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+          (cd e2e && npm run test:gpu)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

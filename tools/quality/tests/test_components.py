@@ -71,6 +71,7 @@ REQUESTED = [
     "worker/ingest",
     "worker/separation",
     "worker/detail",
+    "worker/devices",
     "worker/analysis",
     "worker/jobs",
     "worker/api",
@@ -90,3 +91,10 @@ def test_worker_detail_component_measures_detail_production_code() -> None:
     (detail,) = [c for c in COMPONENTS if c.name == "worker/detail"]
     assert detail.contains("worker/src/stemstudio_worker/detail/steps.py", test=False)
     assert not detail.contains("worker/src/stemstudio_worker/jobs/scheduler.py", test=False)
+
+
+def test_worker_devices_component_measures_devices_production_code() -> None:
+    (devices,) = [c for c in COMPONENTS if c.name == "worker/devices"]
+    assert devices.contains("worker/src/stemstudio_worker/devices/runner.py", test=False)
+    assert not devices.contains("worker/src/stemstudio_worker/detail/steps.py", test=False)
+    assert not devices.contains("worker/tests/devices/test_runner.py", test=True)

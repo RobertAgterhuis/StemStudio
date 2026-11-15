@@ -6,6 +6,9 @@ public static class ApiRoutes
     /// <summary>Liveness endpoint.</summary>
     public const string Health = "/health";
 
+    /// <summary>The worker's active processing device (contract 1.3.0).</summary>
+    public const string Device = "/api/device";
+
     /// <summary>Import from a YouTube or Spotify URL (JSON body).</summary>
     public const string Imports = "/api/imports";
 

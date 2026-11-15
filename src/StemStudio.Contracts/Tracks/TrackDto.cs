@@ -48,6 +48,9 @@ public sealed record TrackDto
     /// <summary>Detail phase (status <c>none</c> when never requested); always present on the wire.</summary>
     public DetailPhaseDto Detail { get; init; } = DetailPhaseDto.None;
 
+    /// <summary>Where the standard separation ran (1.3.0); null before it, for cached results and for older tracks.</summary>
+    public JobDeviceDto? Device { get; init; }
+
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 

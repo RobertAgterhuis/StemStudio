@@ -23,7 +23,7 @@ public sealed class DetailPersistenceTests
         await using var db = await SqliteTestDatabase.CreateAsync();
         var track = DetailCompletedTrack();
 
-        var loaded = await SaveAndReloadAsync(db, track);
+        var loaded = await db.SaveAndReloadAsync(track);
 
         AssertSamePhase(loaded.DetailPhase!, track.DetailPhase!);
         loaded.DetailPhase!.RequestedAt.Kind.ShouldBe(DateTimeKind.Utc);
@@ -33,12 +33,9 @@ public sealed class DetailPersistenceTests
     public async Task RunningDetailPhase_RoundTripsWithJobAndCurrentParent()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        var track = TestData.CompletedTrack();
-        track.RequestDetail(TestData.T0.AddMinutes(7));
-        track.AssignDetailJob(DetailJobId, TestData.T0.AddMinutes(7));
-        track.ApplyDetailProgress(new DetailProgress(DetailPhaseStatus.Running, "Splitting drums (1 of 3)", "drums", 12), TestData.T0.AddMinutes(8));
+        var track = TestData.RunningDetailTrack();
 
-        var loaded = await SaveAndReloadAsync(db, track);
+        var loaded = await db.SaveAndReloadAsync(track);
 
         AssertSamePhase(loaded.DetailPhase!, track.DetailPhase!);
     }
@@ -48,7 +45,7 @@ public sealed class DetailPersistenceTests
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
 
-        var loaded = await SaveAndReloadAsync(db, TestData.CompletedTrack());
+        var loaded = await db.SaveAndReloadAsync(TestData.CompletedTrack());
 
         loaded.DetailPhase.ShouldBeNull();
         (await db.ScalarAsync("SELECT DetailPhase IS NULL FROM Tracks")).ShouldBe("1");
@@ -58,7 +55,7 @@ public sealed class DetailPersistenceTests
     public async Task DetailPhase_IsStoredAsJsonWithEnumNames()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        await SaveAndReloadAsync(db, DetailCompletedTrack());
+        await db.SaveAndReloadAsync(DetailCompletedTrack());
 
         var json = await db.ScalarAsync("SELECT DetailPhase FROM Tracks");
 
@@ -71,7 +68,7 @@ public sealed class DetailPersistenceTests
     public async Task ChangingTheDetailPhaseOfATrackedTrack_IsSaved()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        var track = await SaveAndReloadAsync(db, TestData.CompletedTrack());
+        var track = await db.SaveAndReloadAsync(TestData.CompletedTrack());
         await using (var context = db.NewContext())
         {
             var repository = new TrackRepository(context);
@@ -233,12 +230,6 @@ public sealed class DetailPersistenceTests
         ],
     };
 
-    private static async Task<Track> SaveAndReloadAsync(SqliteTestDatabase db, Track track)
-    {
-        await db.SeedAsync(track);
-        await using var read = db.NewContext();
-        return (await new TrackRepository(read).FindAsync(track.Id, Ct))!;
-    }
 
 
     private static void AssertSamePhase(DetailPhase loaded, DetailPhase expected)

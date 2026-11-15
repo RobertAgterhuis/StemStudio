@@ -33,6 +33,13 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
         }
     }
 
+    public async Task<Domain.Tracks.Track> SaveAndReloadAsync(Domain.Tracks.Track track)
+    {
+        await SeedAsync(track);
+        await using var read = NewContext();
+        return (await new Repositories.TrackRepository(read).FindAsync(track.Id, TestContext.Current.CancellationToken))!;
+    }
+
     public async Task<string?> ScalarAsync(string sql)
     {
         await using var command = _connection.CreateCommand();

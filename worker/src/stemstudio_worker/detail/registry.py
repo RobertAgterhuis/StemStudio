@@ -4,9 +4,11 @@ URLs are constants (no user input reaches a download); weights are downloaded at
 ``STEMSTUDIO_MODEL_DIR/detail/<id>/`` and verified with SHA-256, never committed.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
 
+from stemstudio_worker.ports import GpuNeed
 from stemstudio_worker.schemas import DetailModelId
 
 SEPARATOR_VERSION: Final = "1"
@@ -66,6 +68,14 @@ MODELS: Final[tuple[ModelSpec, ...]] = (
 """The three detail models, in pipeline order (drums, vocals, instruments)."""
 
 _BY_ID: Final = {spec.model_id: spec for spec in MODELS}
+
+GPU_NEEDS: Final[Mapping[DetailModelId, GpuNeed]] = {
+    "mdx23c-drumsep-6s": GpuNeed("MDX23C DrumSep", 4_400),
+    "uvr-mdxnet-kara-2": GpuNeed("UVR MDX-Net KARA 2", 3_600),
+    "mvsep-mega-53": GpuNeed("Mega 53-stem", 10_600),
+}
+"""Free GPU memory per model step (research.md G-04: measured allocated peak, or the NVML peak
+for onnxruntime, rounded up to 100 MiB, plus 1,024 MiB margin; ADR-012 D4)."""
 
 
 def spec_of(model_id: DetailModelId) -> ModelSpec:

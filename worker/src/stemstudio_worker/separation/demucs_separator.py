@@ -2,24 +2,36 @@
 
 The model runtime (loading weights, running inference) is injected as :class:`DemucsRuntime`, so
 this module never imports torch or demucs; ``demucs_runtime.default_runtime()`` provides the real
-one and unit tests pass a fake.
+one and unit tests pass a fake. The separation runs as one model step of the injected
+``DeviceRunner`` (feature 003): GPU or CPU, with the single CPU retry on GPU out-of-memory.
 """
 
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, cast
+from typing import Final, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
 
-from stemstudio_worker.config import DeviceKind
-from stemstudio_worker.ports import ProgressCallback, SeparationError, SeparationResult
+from stemstudio_worker.ports import (
+    DeviceRunner,
+    DeviceUse,
+    GpuNeed,
+    ProgressCallback,
+    SeparationError,
+    SeparationResult,
+    merge_device,
+)
 from stemstudio_worker.schemas import ModelName, StemName
 from stemstudio_worker.separation.flac_writer import SIX_STEMS, STAGE, read_audio, write_flac
 
 _LOG = logging.getLogger(__name__)
+
+HTDEMUCS_NEED_MIB: Final = 1_700
+"""Free GPU memory a Demucs separation needs (research.md G-04: htdemucs_6s 0.57 GiB allocated,
+rounded up, plus 1,024 MiB margin); also used for the smaller ``htdemucs`` fallback."""
 
 Audio = npt.NDArray[np.float32]
 """Float audio; a mix is ``(channels, frames)``, a separation ``(sources, channels, frames)``."""
@@ -42,35 +54,38 @@ class DemucsRuntime:
 
     Attributes:
         load: Loads (and downloads on first use) a pretrained model by name.
-        apply: Runs the model on a mix.
-        cuda_available: Whether a CUDA device can be used (for ``device=auto``).
+        apply: Runs the model on a mix on a torch device (``cuda`` or ``cpu``).
     """
 
     load: Callable[[str], DemucsModel]
     apply: ModelApplier
-    cuda_available: Callable[[], bool]
 
 
 class DemucsSeparator:
     """Implements the ``Separator`` port with Demucs; the model is loaded once and reused."""
 
-    def __init__(self, models: tuple[str, str], device: DeviceKind, runtime: DemucsRuntime) -> None:
+    def __init__(
+        self, models: tuple[str, str], runtime: DemucsRuntime, devices: DeviceRunner
+    ) -> None:
         """Create a separator.
 
         Args:
             models: Primary and fallback model names, e.g. ``("htdemucs_6s", "htdemucs")``.
-            device: ``cpu``, ``cuda`` or ``auto`` (CUDA when available).
             runtime: The model runtime.
+            devices: Runs the separation on the worker's device (GPU policy of ADR-012).
         """
         self._models = models
-        self._device = device
         self._runtime = runtime
+        self._devices = devices
         self._loaded: tuple[ModelName, DemucsModel] | None = None
 
     def separate(
         self, wav_path: Path, out_dir: Path, progress: ProgressCallback
     ) -> SeparationResult:
         """Separate ``wav_path`` into ``out_dir/<name>.flac`` (see ``ports.Separator``).
+
+        Returns:
+            The model, the stems and where the separation ran.
 
         Raises:
             SeparationError: Neither model could be loaded, or inference failed.
@@ -79,10 +94,10 @@ class DemucsSeparator:
         report = _MonotonicProgress(progress)
         report(0.0)
         mix = np.ascontiguousarray(read_audio(wav_path).T, dtype=np.float32)
-        separated = self._apply(model, mix, report)
+        separated, use = self._apply(_Loaded(name, model), mix, report)
         stems = _write_stems(model.sources, separated, out_dir)
         report(1.0)
-        return SeparationResult(model=name, stems=stems)
+        return SeparationResult(model=name, stems=stems, device=merge_device(None, use))
 
     def _model(self) -> tuple[ModelName, DemucsModel]:
         if self._loaded is None:
@@ -101,17 +116,24 @@ class DemucsSeparator:
         )
         raise SeparationError(msg)
 
-    def _apply(self, model: DemucsModel, mix: Audio, report: Callable[[float], None]) -> Audio:
+    def _apply(
+        self, loaded: "_Loaded", mix: Audio, report: Callable[[float], None]
+    ) -> tuple[Audio, DeviceUse]:
+        """Run the model as one device step; errors reach the runner raw (OOM -> CPU retry)."""
+        need = GpuNeed(loaded.name, HTDEMUCS_NEED_MIB)
         try:
-            return self._runtime.apply(model, mix, self._device_name(), report)
+            return self._devices.run(
+                lambda device: self._runtime.apply(loaded.model, mix, device, report), need
+            )
         except Exception as exc:
             _LOG.exception("Demucs inference failed")
             raise SeparationError("Stem separation failed.") from exc
 
-    def _device_name(self) -> str:
-        if self._device == "auto":
-            return "cuda" if self._runtime.cuda_available() else "cpu"
-        return self._device
+
+@dataclass(frozen=True, slots=True)
+class _Loaded:
+    name: ModelName
+    model: DemucsModel
 
 
 class _MonotonicProgress:
