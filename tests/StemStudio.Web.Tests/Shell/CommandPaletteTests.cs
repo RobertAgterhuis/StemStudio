@@ -86,6 +86,18 @@ public sealed class CommandPaletteTests : PageTestContext
     }
 
     [Fact]
+    public async Task Typing_DoesNotEchoTheQueryIntoTheInput()
+    {
+        // The browser owns the text: a server-rendered value would overwrite characters typed while a render is in
+        // flight (T067: fast typing lost characters in Chromium and Firefox).
+        var shell = await OpenAsync(RenderShell());
+
+        Id(shell, "command-palette-input").Input("mixes");
+
+        Id(shell, "command-palette-input").HasAttribute("value").ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ArrowKeys_MoveTheSelection_AndEnterRunsIt()
     {
         var shell = await OpenAsync(RenderShell());

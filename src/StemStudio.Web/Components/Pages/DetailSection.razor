@@ -14,7 +14,7 @@
     @if (Detail.Status != DetailPhaseStatusDto.None)
     {
         <SplitProgress State="SplitStates.Of(Detail.Status)" Progress="Detail.Progress" TestId="detail-split-progress" />
-        <RadzenProgressBar Value="Detail.Progress" Max="100" ShowValue="true" aria-label="Detail separation progress"
+        <RadzenProgressBar Value="Detail.Progress" Max="100" ShowValue="true" AriaLabel="Detail separation progress"
                            data-testid="detail-progress" />
     }
 

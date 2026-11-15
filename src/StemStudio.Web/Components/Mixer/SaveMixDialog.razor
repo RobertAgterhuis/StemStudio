@@ -1,5 +1,5 @@
 @* Modal name dialog used for "Save" (first save), "Save as" and renaming in the mix library. Focus moves to the name
-   field, Escape cancels, and focus returns to the opener when the dialog closes. *@
+   field, Enter in it confirms, Escape cancels, and focus returns to the opener when the dialog closes. *@
 @implements IAsyncDisposable
 @inject StemStudio.Web.Interop.IWebInterop Web
 
@@ -7,7 +7,7 @@
     <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="save-mix-title" @onkeydown="KeyAsync">
         <h2 id="save-mix-title" class="ss-title">@Title</h2>
         <label class="ss-label" for="mix-name">Name (1-100 characters)</label>
-        <input id="mix-name" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput" @ref="_input"
+        <input id="mix-name" class="rz-textbox ss-wide" maxlength="200" @bind="_name" @bind:event="oninput" @onkeydown="NameKeyAsync" @ref="_input"
                aria-label="Mix name" data-testid="mix-name-input" />
         @if (Error is not null)
         {
@@ -64,4 +64,6 @@
     protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? _input.FocusAsync().AsTask() : Task.CompletedTask;
 
     private Task KeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;
+
+    private Task NameKeyAsync(KeyboardEventArgs args) => args.Key == "Enter" && !Busy ? OnConfirm.InvokeAsync(_name) : Task.CompletedTask;
 }

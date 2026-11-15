@@ -174,6 +174,21 @@ public sealed class TourOfferTests : HelpTestContext
     }
 
     [Fact]
+    public async Task HelpPanel_UnderAShownTopic_ListsTheToursOfTheLevel()
+    {
+        // design-spec.md 4.7: tours stay listed below the topic, so they can be started from every screen (T067).
+        Store.Snapshot = new(UserPreferences.Default with { Level = ExperienceLevel.Advanced }, true);
+        var shell = Render<MainLayout>(p => p.Add(l => l.Body, (RenderFragment)(b => b.AddMarkupContent(0, "<h1>Page</h1>"))));
+        await Help.OpenAsync("welcome");
+        shell.Render();
+        shell.Find("[data-testid=help-topic]").ShouldNotBeNull();
+
+        await shell.Find("[data-testid=help-tour-start-import-basics]").ClickAsync(new MouseEventArgs());
+
+        Interop.StartedTour!.Id.ShouldBe("import-basics");
+    }
+
+    [Fact]
     public async Task Shell_ShowsTheOfferAboveTheContent()
     {
         Store.Snapshot = new(UserPreferences.Default with { Level = ExperienceLevel.Beginner }, true);

@@ -172,6 +172,23 @@ public sealed class MixesDesignTests : PageTestContext
     }
 
     [Fact]
+    public async Task SaveMixDialog_EnterInTheNameField_Confirms_UnlessBusy()
+    {
+        // SC-008 keyboard flow "Mod+S, name, Enter" (T067: Enter did nothing).
+        var confirmed = new List<string>();
+        var dialog = Render<SaveMixDialog>(p => p.Add(d => d.OnConfirm, (string name) => confirmed.Add(name)));
+        var input = dialog.Find("[data-testid=mix-name-input]");
+
+        await input.InputAsync(new ChangeEventArgs { Value = "Groove" });
+        await dialog.Find("[data-testid=mix-name-input]").KeyDownAsync(new KeyboardEventArgs { Key = "a" });
+        await dialog.Find("[data-testid=mix-name-input]").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+        dialog.Render(p => p.Add(d => d.Busy, true));
+        await dialog.Find("[data-testid=mix-name-input]").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+
+        confirmed.ShouldBe(["Groove"]);
+    }
+
+    [Fact]
     public void ConfirmDialog_HasItsIds_CancelFirst_DestructiveLast()
     {
         var dialog = Render<ConfirmDialog>(p => p.Add(d => d.Message, "Delete it?").Add(d => d.OkText, "Delete"));

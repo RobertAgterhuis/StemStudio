@@ -1,6 +1,18 @@
 import type { Config, DriveStep, PopoverDOM } from 'driver.js';
 import type { TourDriver } from '../src/tour';
 
+const POPUP_ARIA = { 'aria-haspopup': 'dialog', 'aria-expanded': 'true', 'aria-controls': 'driver-popover-content' };
+
+function elementOf(step: DriveStep): Element | undefined {
+  return step.element instanceof Element ? step.element : undefined;
+}
+
+function markAsPopupOpener(element: Element | undefined): void {
+  for (const [name, value] of element === undefined ? [] : Object.entries(POPUP_ARIA)) {
+    element?.setAttribute(name, value);
+  }
+}
+
 /** A minimal driver.js stand-in: renders a popover for the active step and calls the config hooks. */
 export class FakeDriver implements TourDriver {
   public index = -1;
@@ -45,9 +57,18 @@ export class FakeDriver implements TourDriver {
 
   private show(index: number): void {
     this.index = index;
+    this.highlight(this.steps[index]);
     this.popover?.wrapper.remove();
     this.popover = this.render(this.steps[index]?.popover ?? {});
     this.config.onPopoverRender?.(this.popover, this.opts());
+  }
+
+  /** Like driver.js 1.10: onHighlightStarted, then the popup ARIA attributes on the target, then onHighlighted. */
+  private highlight(step: DriveStep = {}): void {
+    const element = elementOf(step);
+    this.config.onHighlightStarted?.(element, step, this.opts());
+    markAsPopupOpener(element);
+    this.config.onHighlighted?.(element, step, this.opts());
   }
 
   private button(text: string, hook: Config['onNextClick']): HTMLButtonElement {

@@ -49,6 +49,8 @@ html:has(.ss-transport-dock) {
   margin: 0;
   font-size: var(--ss-type-title-size);
   font-stretch: var(--ss-type-title-width);
+  /* Long file-hash titles must not widen the console at 320 px (WCAG 1.4.10). */
+  overflow-wrap: anywhere;
 }
 
 .ss-mix-name {
@@ -164,11 +166,15 @@ html:has(.ss-transport-dock) {
   justify-content: center;
 }
 
-.ss-strip-silent {
+/* A silent strip dims its graphic parts only: its name, dB text, Mute/Solo and Expand keep their text contrast
+   (WCAG 1.4.3), so the user can still read and un-silence it. */
+.ss-strip-silent :is(.ss-meter, .ss-fader, .ss-pan) {
   opacity: 0.45;
 }
 
-.ss-strip[data-expanded="true"] {
+/* An expanded parent is replaced by its detail stems: only its graphic parts are dimmed, so its name, numbers,
+   Mute/Solo, the Collapse button, the dB text and help tooltips keep their text contrast (WCAG 1.4.3). */
+.ss-strip[data-expanded="true"] :is(.ss-meter, .ss-fader, .ss-pan) {
   opacity: 0.6;
 }
 

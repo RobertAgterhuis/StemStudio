@@ -11,17 +11,29 @@
 import type { BrowserContextOptions, Page } from '@playwright/test';
 import { webBaseUrl } from './env';
 
-/** Experience level (ui-test-ids 1.3.0 `app-shell[data-level]`). */
-export type Level = 'beginner' | 'advanced' | 'expert';
+/**
+ * Allowed values of the record's choice fields (data-model.md 1.1). `level` is the experience level of
+ * ui-test-ids 1.3.0 `app-shell[data-level]`; theme `system` follows `prefers-color-scheme`; density
+ * `auto` = compact at Expert, comfortable otherwise; motion `system` follows `prefers-reduced-motion`.
+ */
+export const preferenceChoices = {
+  level: ['beginner', 'advanced', 'expert'],
+  theme: ['system', 'light', 'dark'],
+  density: ['auto', 'comfortable', 'compact'],
+  motion: ['system', 'reduced'],
+} as const;
 
-/** Stored theme choice; `system` follows `prefers-color-scheme`. */
-export type ThemePreference = 'system' | 'light' | 'dark';
+/** Experience level. */
+export type Level = (typeof preferenceChoices.level)[number];
 
-/** Stored density choice; `auto` = compact at Expert, comfortable otherwise. */
-export type DensityPreference = 'auto' | 'comfortable' | 'compact';
+/** Stored theme choice. */
+export type ThemePreference = (typeof preferenceChoices.theme)[number];
 
-/** Stored motion choice; `system` follows `prefers-reduced-motion`. */
-export type MotionPreference = 'system' | 'reduced';
+/** Stored density choice. */
+export type DensityPreference = (typeof preferenceChoices.density)[number];
+
+/** Stored motion choice. */
+export type MotionPreference = (typeof preferenceChoices.motion)[number];
 
 /** Ids of the five tours of design-spec.md 7. */
 export type TourId = 'import-basics' | 'track-basics' | 'mixer-basics' | 'mixer-advanced' | 'expert-keyboard';

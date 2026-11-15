@@ -377,6 +377,8 @@ docker compose down -v && STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DETAIL_STEP_
 docker run --rm --network host --ipc=host -e E2E_VISUAL_CONTAINER=1 \
   -v "$PWD:/work" -w /work/e2e mcr.microsoft.com/playwright:v1.65.1-noble \
   sh -c "npm ci && npm run test:visual"                          # compare against the baselines
+# On Windows/macOS hosts (Docker Desktop with host networking) add -v /work/e2e/node_modules so the
+# container's npm ci does not overwrite the host's node_modules.
 # Baselines (integration wave T067, then reviewed in T068): same, with
 #   sh -c "npm ci && npm run test:visual -- --update-snapshots"
 # -> e2e/visual/__screenshots__/screens.spec.ts/*.png
@@ -461,6 +463,13 @@ plus the welcome panel (fresh storage, both themes): 62 scans. A failure lists r
 help URL and target selectors. Keyboard-only walkthroughs are covered by `journey-beginner`,
 `tours` and `expert-keyboard`.
 
+`e2e/a11y/robustness.a11y.spec.ts` (same project, added in the T067 integration run) covers the
+checks suggested by HO:frontend-004-polish: six screen states at 320 x 720 CSS px with 0 px
+horizontal document overflow (WCAG 1.4.10; Import, Tracks, Track, Track without detail, Mixes,
+Mixer), and `page.emulateMedia({ forcedColors: 'active' })` with the checked level segment and the
+primary Import button keeping a label colour distinct from their fill, plus axe on Import, Track
+and Mixer in forced colours (WCAG 1.4.11): 2 themes x 11 = 22 tests.
+
 ### 10.4 Lighthouse budgets (SC-003)
 
 `npm run test:lighthouse` = project `lighthouse-setup` (`e2e/lighthouse/urls.setup.ts`: seeds the
@@ -468,7 +477,11 @@ shared data through the API and writes the five URLs plus Playwright's Chromium 
 `.state/lighthouse-urls.json`) followed by `node lighthouse/run-lighthouse.mts`, which runs
 `lhci autorun --config=lighthouserc.json` with those URLs (argument list, no shell). Budgets in
 `e2e/lighthouserc.json` (desktop preset, cold cache, 3 runs, median): FCP <= 1000 ms, LCP <= 1500
-ms, CLS <= 0.05 for Import, Tracks, Track, Mixes and Mixer. Reports go to `e2e/lighthouse-report/`
+ms, CLS <= 0.05 for Import, Tracks, Track, Mixes and Mixer. Throttling method `devtools` (T067): the
+desktop profile's RTT and bandwidth are applied in the browser and the paints are observed. The default
+`simulate` (Lantern) cannot model Blazor Server's first render, which waits for the SignalR circuit
+(no prerendering): it estimated FCP 2.0-2.1 s and Mixer LCP 4.4-4.6 s, while the same page measured
+FCP 0.17-0.19 s and LCP 0.35-0.37 s with `devtools` or `provided` throttling. Reports go to `e2e/lighthouse-report/`
 (CI artifact). Lighthouse resets storage, so it measures the first visit (Beginner with the
 welcome panel). The byte budget (+<= 200 KB) and the performance trace (SC-011) are measured by
 the frontend (T063).
@@ -508,7 +521,8 @@ completed band track and measures palette -> track -> mixer -> `→` `[` `→` `
 | Accessibility (SC-001) | bUnit roles and labels | `a11y/screens.a11y.spec.ts`; the keyboard-only flows above |
 
 Suite inventory after T064 (`npx playwright test --list`): `chromium` + `firefox` 78 tests of
-1.0.0-1.2.0 (unchanged) + 37 `@ux` tests each; `visual` 60; `a11y` 62; `lighthouse-setup` 1 (then
+1.0.0-1.2.0 (unchanged) + 37 `@ux` tests each; `visual` 60; `a11y` 62 (84 after T067: + 22
+robustness); `lighthouse-setup` 1 (then
 `lhci autorun` over 5 URLs x 3 runs). Success criteria -> evidence: SC-001 `a11y/`; SC-003
 `lighthouserc.json`; SC-004 `theme-flash.spec.ts`; SC-005 `visual/`; SC-006 `npm run test:legacy`;
 SC-007 `journey-beginner.spec.ts`; SC-008 `expert-keyboard.spec.ts`; SC-009 `help.spec.ts` +

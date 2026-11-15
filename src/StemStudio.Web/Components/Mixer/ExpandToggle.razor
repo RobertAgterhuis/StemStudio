@@ -1,9 +1,10 @@
-@* Expand/collapse button of a split parent (FR-012); busy while the engine loads the group. *@
+@* Expand/collapse button of a split parent (FR-012); busy while the engine loads the group. The accessible name
+   starts with the visible text (WCAG 2.5.3 label in name). *@
 
 <RadzenButton Text="@(Expanded ? "Collapse" : "Expand")" Icon="@(Expanded ? "unfold_less" : "unfold_more")"
               Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" class="ss-expand" IsBusy="Busy" BusyText="Loading..."
               aria-expanded="@(Expanded ? "true" : "false")" aria-controls="@($"group-{Parent}")"
-              aria-label="@($"{(Expanded ? "Hide" : "Show")} detail stems of {Parent}")" Click="OnToggle"
+              aria-label="@($"{(Expanded ? "Collapse" : "Expand")} detail stems of {Parent}")" Click="OnToggle"
               data-testid="@($"expand-{Parent}")" data-help-id="mixer-detail-groups" />
 
 @code {

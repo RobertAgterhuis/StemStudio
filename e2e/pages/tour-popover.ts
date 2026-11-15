@@ -19,9 +19,15 @@ export class TourPopover {
     return this.page.getByTestId(`tour-offer-${tourId}`);
   }
 
+  /** Start button of an offer chip (the chip itself is a non-focusable wrapper). */
+  offerStart(tourId: TourId): Locator {
+    return this.offer(tourId).locator('button').first();
+  }
+
   /** Starts a tour from its offer chip with the keyboard only (focus + Enter). */
   async startFromOfferWithKeyboard(tourId: TourId): Promise<void> {
-    await this.offer(tourId).focus();
+    await this.offerStart(tourId).focus();
+    await expect(this.offerStart(tourId)).toBeFocused();
     await this.page.keyboard.press('Enter');
     await expect(this.popover).toHaveAttribute('data-tour-id', tourId);
   }

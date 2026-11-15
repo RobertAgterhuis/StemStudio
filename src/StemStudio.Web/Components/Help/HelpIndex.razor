@@ -1,8 +1,6 @@
 @* Help library index (FR-024): topics per area (glossary last), then the tours offered at this level. *@
 @inject IHelpCatalog Catalog
 @inject HelpContext Help
-@inject ITourLauncher Tours
-@inject ShellOverlays Overlays
 
 <nav class="ss-help-index" aria-label="Help topics" data-testid="help-index">
     @foreach (var area in Catalog.Areas)
@@ -17,22 +15,7 @@
             }
         </ul>
     }
-    <p class="ss-help-shortcuts">
-        <button type="button" class="ss-text-button" data-testid="help-shortcuts" @onclick="Overlays.OpenShortcuts">Show keyboard shortcuts</button>
-    </p>
-    @if (LevelTours.Count > 0)
-    {
-        <h3 class="ss-heading">Tours</h3>
-        <ul class="ss-help-list">
-            @foreach (var tour in LevelTours)
-            {
-                <li>
-                    <button type="button" class="ss-text-button" data-testid="@($"help-tour-start-{tour.Id}")"
-                            @onclick="() => StartTourAsync(tour.Id)">@tour.Title</button>
-                </li>
-            }
-        </ul>
-    }
+    <HelpLinks />
 </nav>
 
 @code {
@@ -47,18 +30,5 @@
         ["glossary"] = "Glossary",
     };
 
-    /// <summary>The cascaded level (Advanced without a shell).</summary>
-    [CascadingParameter]
-    public ExperienceContext? Experience { get; set; }
-
-    private List<TourDefinition> LevelTours =>
-        Catalog.Tours.Where(t => t.Levels.Contains((Experience ?? ExperienceContext.Default).Level)).ToList();
-
     private static string AreaTitle(string area) => AreaTitles.GetValueOrDefault(area, area);
-
-    private async Task StartTourAsync(string tourId)
-    {
-        await Help.CloseAsync();
-        await Tours.StartAsync(tourId);
-    }
 }

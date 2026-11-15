@@ -50,6 +50,75 @@ interface Session {
   readonly onKey: (event: KeyboardEvent) => void;
   driver: TourDriver;
   ended: boolean;
+  targetAria?: AriaSnapshot;
+}
+
+/** ARIA attributes driver.js puts on the highlighted element (a "popup" button), saved and put back. */
+const POPUP_ARIA = ['aria-haspopup', 'aria-expanded', 'aria-controls'] as const;
+
+type AriaSnapshot = readonly (readonly [string, string | null])[];
+
+function ariaOf(element: Element | undefined): AriaSnapshot {
+  return element === undefined ? [] : POPUP_ARIA.map((name) => [name, element.getAttribute(name)] as const);
+}
+
+function setOrRemove(element: Element, name: string, value: string | null): void {
+  if (value === null) {
+    element.removeAttribute(name);
+  } else {
+    element.setAttribute(name, value);
+  }
+}
+
+/** Restores the target's own values: popup attributes are not allowed on every role (axe aria-allowed-attr). */
+function restoreAria(element: Element | undefined, snapshot: AriaSnapshot = []): void {
+  if (element === undefined) {
+    return;
+  }
+
+  for (const [name, value] of snapshot) {
+    setOrRemove(element, name, value);
+  }
+}
+
+/** Highlight hooks that keep the target's own ARIA semantics while it is highlighted. */
+function ariaHooks(session: Session): Pick<Config, 'onHighlightStarted' | 'onHighlighted'> {
+  return {
+    onHighlightStarted: (element) => {
+      session.targetAria = ariaOf(element);
+    },
+    onHighlighted: (element) => {
+      restoreAria(element, session.targetAria);
+    },
+  };
+}
+
+/** Offer chips; .NET removes a chip once its tour is recorded, so focus must not return into one. */
+const OFFER_CHIP = '[data-testid^="tour-offer-"]';
+
+function focusHeading(heading: HTMLElement): void {
+  if (!heading.hasAttribute('tabindex')) {
+    heading.tabIndex = -1;
+  }
+
+  heading.focus();
+}
+
+/**
+ * Remembers where focus returns when the tour ends: the opener, or the page heading when the opener sits in an
+ * offer chip that disappears with the recorded tour (WCAG 2.4.3; focus would otherwise fall back to the body).
+ */
+function captureTourFocus(): Disposable {
+  const inChip = document.activeElement?.closest(OFFER_CHIP) != null;
+  const heading = document.querySelector<HTMLElement>('h1');
+  const restore = captureFocus();
+  return once(() => {
+    if (inChip && heading !== null) {
+      focusHeading(heading);
+    } else {
+      restore.dispose();
+    }
+  });
 }
 
 /** The driver is assigned right after its config is built; driver.js calls no hook before `drive()`. */
@@ -180,9 +249,16 @@ function configFor(session: Session, steps: DriveStep[]): Config {
     doneBtnText: labels.done,
     closeBtnLabel: labels.close,
     popoverClass: 'ss-tour',
+    ...ariaHooks(session),
+    ...navigationHooks(session),
     onPopoverRender: (popover, opts) => {
       decorate(popover, session, steps.length, Number(opts.state.activeIndex));
     },
+  };
+}
+
+function navigationHooks(session: Session): Pick<Config, 'onNextClick' | 'onPrevClick' | 'onCloseClick' | 'onDestroyed'> {
+  return {
     onNextClick: () => {
       next(session);
     },
@@ -214,7 +290,7 @@ export function startTour(dotnet: DotNetRef, tour: TourRuntime): Disposable {
     return once(() => undefined);
   }
 
-  const session: Session = { dotnet, tour, focus: captureFocus(), ended: false, driver: PENDING, onKey: (event) => { onKey(session, event); } };
+  const session: Session = { dotnet, tour, focus: captureTourFocus(), ended: false, driver: PENDING, onKey: (event) => { onKey(session, event); } };
   document.addEventListener('keydown', session.onKey, true);
   session.driver = factory(configFor(session, steps));
   session.driver.drive(0);
