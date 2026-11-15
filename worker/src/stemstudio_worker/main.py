@@ -19,19 +19,21 @@ from dataclasses import dataclass
 from fastapi import FastAPI
 
 from stemstudio_worker.alignment import alignment_status, create_aligner, create_vocal_loader
-from stemstudio_worker.analysis import create_beat_analyzer
+from stemstudio_worker.analysis import LibrosaDrumTranscriber, create_beat_analyzer
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
     lyrics_routes,
     metadata_routes,
     render_routes,
+    transcription_routes,
 )
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
 from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
+from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
@@ -42,6 +44,11 @@ from stemstudio_worker.jobs.runtime import (
     WorkerParts,
     WorkerRuntime,
 )
+from stemstudio_worker.jobs.transcription_pipeline import (
+    ScoreRules,
+    TranscriptionEnginesPort,
+    TranscriptionParts,
+)
 from stemstudio_worker.lyrics.lookup import create_lyrics_lookup
 from stemstudio_worker.metadata import (
     _shared_client as shared_online_client,
@@ -51,6 +58,9 @@ from stemstudio_worker.metadata import (
     create_metadata_lookup,
     create_source_details,
 )
+from stemstudio_worker.notation import create_notator
+from stemstudio_worker.notation.notices import score_warning
+from stemstudio_worker.notation.profiles import get_profile, resolve_resolution
 from stemstudio_worker.ports import (
     WHISPER_GPU_NEED,
     Aligner,
@@ -59,12 +69,15 @@ from stemstudio_worker.ports import (
     LibraryReader,
     LyricsLookup,
     MetadataLookup,
+    Notator,
     PipelineAdapters,
     RenderExecutor,
+    ScoreEngraver,
 )
 from stemstudio_worker.render import create_library_reader, create_render_executor
-from stemstudio_worker.schemas import CONTRACT_VERSION
+from stemstudio_worker.schemas import CONTRACT_VERSION, ScoreProfile
 from stemstudio_worker.separation import create_separator
+from stemstudio_worker.transcription import create_transcription_engines
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
@@ -75,6 +88,7 @@ _ROUTERS = (
     artwork_routes.router,
     render_routes.router,
     lyrics_routes.router,
+    transcription_routes.router,
 )
 
 
@@ -91,6 +105,10 @@ class AppOverrides:
         lyrics_lookup: LRCLIB lookup of lyrics jobs (default ``lyrics.create_lyrics_lookup``).
         aligner: Lyrics aligner (default ``alignment.create_aligner``).
         vocal_loader: Vocal stem loader of alignments (default ``alignment.create_vocal_loader``).
+        transcription_engines: Per-job transcribers (default
+            ``transcription.create_transcription_engines``).
+        notator: Notes -> score (default ``notation.create_notator``).
+        score_engraver: MusicXML -> PDF (default ``engraving.create_score_engraver``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -101,6 +119,9 @@ class AppOverrides:
     lyrics_lookup: LyricsLookup | None = None
     aligner: Aligner | None = None
     vocal_loader: VocalLoader | None = None
+    transcription_engines: TranscriptionEnginesPort | None = None
+    notator: Notator | None = None
+    score_engraver: ScoreEngraver | None = None
 
 
 def create_app(
@@ -207,8 +228,39 @@ class _Parts:
         hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics)
+        scores = default_transcription(settings, self.overrides, devices, render.library)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores)
         return WorkerRuntime.start_with(settings, parts)
+
+
+def _pitch_range(profile: ScoreProfile) -> tuple[int, int]:
+    found = get_profile(profile)
+    return found.low, found.high
+
+
+SCORE_RULES = ScoreRules(pitch_range=_pitch_range, resolution=resolve_resolution,
+                         warning=score_warning)  # fmt: skip
+"""The ``notation`` profile facts the transcription jobs use."""
+
+
+def default_transcription(
+    settings: WorkerSettings,
+    overrides: AppOverrides,
+    devices: ManagedRunner,
+    library: LibraryReader,
+) -> TranscriptionParts:
+    """The feature 008 parts: injected ones, else the transcription/notation/engraving factories."""
+    engines = overrides.transcription_engines or create_transcription_engines(
+        settings, devices, LibrosaDrumTranscriber()
+    )
+    return TranscriptionParts(
+        engines=engines,
+        notator=overrides.notator or create_notator(),
+        engraver=overrides.score_engraver or create_score_engraver(),
+        rules=SCORE_RULES,
+        library=library,
+        font=fonts.leipzig_available,
+    )
 
 
 class _GpuModels:
