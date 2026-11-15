@@ -32,6 +32,8 @@ env:
   # unchanged. The render vectors (007 render-vectors 1.0.0) have no 008 copy and keep 007's path.
   CONTRACTS_DIR: specs/008-sheet-music/contracts
   RENDER_VECTORS: specs/007-export-library/contracts/generate_render_vectors.py
+  # Features 009/010 (generator 1.0.0 / 1.1.0, backend 1.8.0 / 1.9.0); 010's documents contain 009's.
+  GENERATIVE_CONTRACTS: specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts
 
 jobs:
   dotnet:
@@ -169,6 +171,39 @@ jobs:
           path: worker/coverage.xml
           if-no-files-found: warn
 
+  generator:
+    name: Generator lint, types, tests (coverage gate; base install, no torch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: generator
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: generator/uv.lock
+      - name: Sync (frozen lock; base + dev only, the GPU extras acestep/soulx are never installed in CI)
+        run: |
+          uv lock --check
+          uv sync --frozen
+      - name: Ruff
+        run: |
+          uv run --frozen ruff check .
+          uv run --frozen ruff format --check .
+      - name: Mypy (strict)
+        run: uv run --frozen mypy src tests
+      - name: Pytest with 90 % line+branch gate
+        run: uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml --cov-fail-under=90
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: coverage-generator
+          path: generator/coverage.xml
+          if-no-files-found: warn
+
   audio-engine:
     name: Audio engine lint, types, tests (coverage gate), build
     runs-on: ubuntu-24.04
@@ -237,6 +272,11 @@ jobs:
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$CONTRACTS_DIR/redocly.yaml"
           "$CONTRACTS_DIR/worker-api.openapi.yaml" "$CONTRACTS_DIR/backend-api.openapi.yaml"
+      - name: Redocly lint, generative documents (009 + 010)
+        run: |
+          for dir in $GENERATIVE_CONTRACTS; do
+            npx --yes "$REDOCLY_CLI" lint --config "$dir/redocly.yaml"               "$dir/generator-api.openapi.yaml" "$dir/backend-api.openapi.yaml"
+          done
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -311,6 +351,26 @@ jobs:
           fi
           echo "stemstudio/worker:ci-cpu does not set STEMSTUDIO_CONTACT_URL"
 
+  generator-image:
+    name: Fake generator image has no NVIDIA/CUDA runtime or torch (009/010, ADR-018 D9); compose files valid
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every compose combination validates (default, GPU, GPU + generative, fake generative)
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q
+          docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml config -q
+          docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml config -q
+      - name: Build the fake generator image (GENERATOR_VARIANT=fake) and run the guard (profile generator)
+        run: scripts/check-cpu-image.sh --build --generator stemstudio/generator:ci-fake
+      - name: The fake image runs as the non-root user stemstudio (uid 10001)
+        run: |
+          user="$(docker image inspect --format '{{.Config.User}}' stemstudio/generator:ci-fake)"
+          test "$user" = stemstudio || { echo "::error::image user is '$user'"; exit 1; }
+          docker run --rm --network none --entrypoint id stemstudio/generator:ci-fake
+
   licences:
     name: Licence report (NuGet, Python, npm)
     runs-on: ubuntu-24.04
@@ -324,7 +384,9 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: worker/uv.lock
+          cache-dependency-glob: |
+            worker/uv.lock
+            generator/uv.lock
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -339,6 +401,11 @@ jobs:
         run: |
           uv sync --frozen --no-dev
           uv run --frozen --no-dev --with pip-licenses==5.5.5 pip-licenses --from=mixed --with-urls --format=markdown --output-file ../licence-report/python-worker.md
+      - name: Python generator runtime dependencies, base install (pip-licenses 5.5.5; the GPU extras come from scripts/image-licences.sh)
+        working-directory: generator
+        run: |
+          uv sync --frozen --no-dev
+          uv run --frozen --no-dev --with pip-licenses==5.5.5 pip-licenses --from=mixed --with-urls --format=markdown --output-file ../licence-report/python-generator.md
       - name: npm (license-checker 25.0.1)
         run: |
           (cd src/audio-engine && npm ci --no-audit --no-fund)
@@ -354,7 +421,7 @@ jobs:
 
   e2e:
     name: E2E main flow (compose, fake separator, Playwright)
-    needs: [dotnet, worker, audio-engine, web-interop, contracts, quality, e2e-lint]
+    needs: [dotnet, worker, generator, audio-engine, web-interop, contracts, quality, e2e-lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:

@@ -15,6 +15,13 @@
 #   - Check: docker run --rm --gpus all nvcr.io/nvidia/k8s/cuda-sample:nbody nbody -gpu -benchmark
 # The GPU image is about 11.6 GB on disk (CPU image 3.4 GB) and contains the proprietary NVIDIA
 # CUDA runtime libraries (system dependency, ADR-011; never in the CPU image or CI).
+#
+# GPU lease (feature 009, ADR-018 D3, FR-011): the worker takes an exclusive flock on
+# /gpu-lease/gpu.lock (named volume gpu-lease) for every GPU step. The optional generative services
+# (docker-compose.generative.yml: generator, singer) mount the same volume, so only one StemStudio
+# GPU step runs at a time across containers. A step waits up to STEMSTUDIO_GPU_LEASE_WAIT_SECONDS
+# (default 900) for the lease and then runs on the CPU. Without the generative services the lease
+# is always free.
 
 services:
   worker:
@@ -26,6 +33,10 @@ services:
     image: stemstudio/worker:local-gpu
     environment:
       STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-auto}
+      STEMSTUDIO_GPU_LEASE_FILE: /gpu-lease/gpu.lock
+      STEMSTUDIO_GPU_LEASE_WAIT_SECONDS: ${STEMSTUDIO_GPU_LEASE_WAIT_SECONDS:-900}
+    volumes:
+      - gpu-lease:/gpu-lease
     deploy:
       resources:
         reservations:
@@ -33,3 +44,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+volumes:
+  gpu-lease:

@@ -23,6 +23,10 @@
 #   GPU build by hand (scripts/gpu-smoke.* does this):
 #     docker build -f docker/worker.Dockerfile --build-arg TORCH_VARIANT=cu132
 #       --build-arg ORT_VARIANT=gpu --build-arg WORKER_DEVICE=auto -t stemstudio/worker:local-gpu .
+#   /gpu-lease (both variants, empty, owned by the runtime user) is the mount point of the shared
+#   gpu-lease volume of docker-compose.gpu.yml (009 ADR-018 D3): an empty named volume takes the
+#   ownership of the first image that mounts it, so the worker and the generator (same uid 10001)
+#   can both create /gpu-lease/gpu.lock.
 
 ARG PYTHON_IMAGE=python:3.12-slim
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.5
@@ -101,8 +105,8 @@ RUN apt-get update \
  && fc-cache -f /usr/local/share/fonts \
  && groupadd --gid 10001 stemstudio \
  && useradd --uid 10001 --gid stemstudio --no-log-init --create-home --home-dir /home/stemstudio stemstudio \
- && mkdir -p /data /models/hf /models/torch /models/whisper \
- && chown -R stemstudio:stemstudio /data /models
+ && mkdir -p /data /models/hf /models/torch /models/whisper /gpu-lease \
+ && chown -R stemstudio:stemstudio /data /models /gpu-lease
 COPY --from=build --chown=stemstudio:stemstudio /app/.venv /app/.venv
 # HOME must be writable for the non-root user: spotDL keeps ~/.spotdl, yt-dlp and deno their caches.
 ENV HOME=/home/stemstudio \
