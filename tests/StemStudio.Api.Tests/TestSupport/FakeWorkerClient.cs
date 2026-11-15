@@ -281,4 +281,59 @@ internal sealed class FakeWorkerClient : IWorkerClient
         return await (OnNormalizeArtwork?.Invoke(file)
             ?? Task.FromResult(new WorkerArtworkUpload("8e4f2a6c0b1d4e3f9a7c5b3d1e0f2a4c", new WorkerArtworkInfo(WorkerArtworkSource.User, new string('e', 64), 100, 10))));
     }
+
+    public List<WorkerRenderJobRequest> RenderCreates { get; } = [];
+
+    public List<string> RenderDeletes { get; } = [];
+
+    public Func<WorkerRenderJobRequest, Task<WorkerRenderJob>>? OnCreateRender { get; set; }
+
+    public Func<string, Task<WorkerRenderJob?>>? OnGetRender { get; set; }
+
+    public Func<string, Stream, Task>? OnDownloadRender { get; set; }
+
+    public Func<string, Task>? OnDeleteRender { get; set; }
+
+    public static WorkerRenderJob RenderJob(string renderJobId, WorkerRenderJobState status, double progress = 0, WorkerRenderResult? result = null) => new()
+    {
+        RenderJobId = renderJobId,
+        Status = status,
+        Progress = progress,
+        Error = status is WorkerRenderJobState.Failed or WorkerRenderJobState.Cancelled ? "interrupted by restart" : null,
+        Result = result,
+    };
+
+    public Task<WorkerRenderJob> CreateRenderJobAsync(WorkerRenderJobRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            RenderCreates.Add(request);
+        }
+
+        return OnCreateRender?.Invoke(request) ?? Task.FromResult(RenderJob(NextJobId(), WorkerRenderJobState.Queued));
+    }
+
+    public Task<WorkerRenderJob?> GetRenderJobAsync(string renderJobId, CancellationToken cancellationToken) =>
+        OnGetRender?.Invoke(renderJobId) ?? Task.FromResult<WorkerRenderJob?>(RenderJob(renderJobId, WorkerRenderJobState.Running, 0.5));
+
+    public async Task DownloadRenderFileAsync(string renderJobId, Stream destination, CancellationToken cancellationToken)
+    {
+        if (OnDownloadRender is not null)
+        {
+            await OnDownloadRender(renderJobId, destination);
+            return;
+        }
+
+        await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes("fLaC:render:" + renderJobId), cancellationToken);
+    }
+
+    public Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            RenderDeletes.Add(renderJobId);
+        }
+
+        return OnDeleteRender?.Invoke(renderJobId) ?? Task.CompletedTask;
+    }
 }

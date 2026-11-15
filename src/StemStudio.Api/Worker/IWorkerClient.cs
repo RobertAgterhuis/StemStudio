@@ -142,4 +142,35 @@ public interface IWorkerClient
     /// <exception cref="WorkerRequestException">Not a picture (400), too large (413), wrong type (415) or over 40 MP (422).</exception>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task<WorkerArtworkUpload> NormalizeArtworkAsync(WorkerArtworkFile file, CancellationToken cancellationToken);
+
+    /// <summary>Creates a render job (<c>POST /v1/render-jobs</c>, worker 1.4.0); never retried.</summary>
+    /// <param name="request">Inputs, master gain, range and output.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">Invalid input path (400), input not found (404) or invalid values (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerRenderJob> CreateRenderJobAsync(WorkerRenderJobRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a render job.</summary>
+    /// <param name="renderJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerRenderJob?> GetRenderJobAsync(string renderJobId, CancellationToken cancellationToken);
+
+    /// <summary>Streams the file of a completed render job into a stream.</summary>
+    /// <param name="renderJobId">Job ID.</param>
+    /// <param name="destination">Destination stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerRequestException">Unknown job (404) or not completed (409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DownloadRenderFileAsync(string renderJobId, Stream destination, CancellationToken cancellationToken);
+
+    /// <summary>Cancels and removes a render job (idempotent; 404 is tolerated).</summary>
+    /// <param name="renderJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken);
 }
