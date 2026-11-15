@@ -175,8 +175,8 @@ in the execution plan.
 
 ## Phase 7: User Story 5 - Save all stems at once (P3)
 
-- [ ] T059 [P] [US5] [backend] Failing tests `POST /api/assets/stem-packs`: one raw asset per standard stem (catalog order) and, with `includeDetail`, per kept detail stem of each split parent; disk guard applies once for the whole pack; un-stage `createStemPack` (FR-013)
-- [ ] T060 [US5] [backend] Implement to pass T059
+- [x] T059 [P] [US5] [backend] Failing tests `POST /api/assets/stem-packs`: one raw asset per standard stem (catalog order) and, with `includeDetail`, per kept detail stem of each split parent; disk guard applies once for the whole pack; un-stage `createStemPack` (FR-013)
+- [x] T060 [US5] [backend] Implement to pass T059
 - [ ] T061 [P] [US5] [frontend] Failing bUnit tests: `export-all-stems` (Advanced) opens the dialog with `export-include-detail` (only when the track has split parents) and submits the pack request; the confirmation names the number of items (FR-013)
 - [ ] T062 [US5] [frontend] Implement to pass T061
 - [ ] T063 [US5] [qa] Author `export.spec.ts` "stem pack": six items appear (fake track without detail), all reach `ready`
