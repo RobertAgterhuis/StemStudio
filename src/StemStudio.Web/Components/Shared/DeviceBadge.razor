@@ -1,11 +1,16 @@
-@* Processing device of a job or of the worker (FR-006, ui-test-ids 1.2.0). *@
+@* Processing device of a job or of the worker (FR-006, ui-test-ids 1.2.0). Everything is spelled out in text,
+   never conveyed by colour alone (T047). *@
 
 <span class="ss-device">
+    <span class="ss-device-label">@Label:</span>
     <span class="ss-device-name" data-testid="@TestId" data-device="@Display.Kind"
           data-fallback="@FallbackAttribute">@Display.Text</span>
     @if (Display.Reason is not null)
     {
-        <span class="ss-device-reason" data-testid="@ReasonTestId">@Display.Reason</span>
+        <span class="ss-device-reason" role="note">
+            <span class="ss-device-reason-label">@ReasonLabel</span>
+            <span data-testid="@ReasonTestId">@Display.Reason</span>
+        </span>
     }
 </span>
 
@@ -28,4 +33,7 @@
 
     // A null attribute value makes Blazor leave the attribute out.
     private string? FallbackAttribute => Display.Fallback is { } fallback ? (fallback ? "true" : "false") : null;
+
+    // A job reason explains a fallback; a worker reason (no fallback flag) explains why the GPU is not used.
+    private string ReasonLabel => Display.Fallback == true ? "CPU fallback:" : "GPU not used:";
 }

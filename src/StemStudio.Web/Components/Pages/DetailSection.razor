@@ -19,7 +19,8 @@
 
     @if (Detail.Device is not null)
     {
-        <DeviceBadge Display="DeviceDisplay.FromJob(Detail.Device)" TestId="detail-device" ReasonTestId="detail-device-fallback" />
+        <DeviceBadge Display="DeviceDisplay.FromJob(Detail.Device)" TestId="detail-device" ReasonTestId="detail-device-fallback"
+                     Label="Detail stems processed on" />
     }
 
     @if (Detail.Status == DetailPhaseStatusDto.Failed)

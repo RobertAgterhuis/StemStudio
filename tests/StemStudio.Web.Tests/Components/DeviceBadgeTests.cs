@@ -101,7 +101,8 @@ public sealed class DeviceBadgeTests : PageTestContext
         var badge = RenderBadge(new DeviceDisplay("gpu", $"GPU ({Gpu})", false, null));
 
         badge.Find(".ss-device-label").TextContent.ShouldBe("Device:");
-        badge.Find(".ss-device").TextContent.Trim().ShouldStartWith($"Device: GPU ({Gpu})");
+        string.Join(' ', badge.Find(".ss-device").TextContent.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+            .ShouldBe($"Device: GPU ({Gpu})");
     }
 
     [Fact]

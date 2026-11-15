@@ -28,7 +28,8 @@ else
                            data-testid="track-progress" />
         @if (Track.Device is not null)
         {
-            <DeviceBadge Display="DeviceDisplay.FromJob(Track.Device)" TestId="track-device" ReasonTestId="track-device-fallback" />
+            <DeviceBadge Display="DeviceDisplay.FromJob(Track.Device)" TestId="track-device" ReasonTestId="track-device-fallback"
+                         Label="Processed on" />
         }
 
         @if (ActionError is not null)

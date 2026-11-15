@@ -381,3 +381,13 @@ h1 {
 .ss-device-reason {
   color: var(--ss-muted);
 }
+
+.ss-device-label,
+.ss-device-reason-label {
+  color: var(--ss-muted);
+}
+
+.ss-device-reason-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
