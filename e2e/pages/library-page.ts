@@ -75,6 +75,13 @@ export class LibraryPage {
   /** Duration in seconds the item's `<audio>` element reports once its metadata is loaded. */
   async playerDuration(assetId: string): Promise<number> {
     const player = this.player(assetId);
+    // The rows use preload="none" (nothing loads until play); ask for the metadata only, as a
+    // press on play would, without starting playback.
+    await player.evaluate((el) => {
+      const audio = el as HTMLAudioElement;
+      audio.preload = 'metadata';
+      audio.load();
+    });
     await expect.poll(() => player.evaluate((el) => (el as HTMLAudioElement).readyState)).toBeGreaterThanOrEqual(1);
     return player.evaluate((el) => (el as HTMLAudioElement).duration);
   }
