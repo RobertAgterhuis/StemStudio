@@ -113,8 +113,8 @@ def test_audio_is_resampled_to_mono_22050_and_padded_by_half_an_overlap(tmp_path
     assert feed.dtype == np.float32
     signal = feed[0, :, 0]
     assert np.all(signal[:3840] == 0)
-    assert signal[3840] == pytest.approx(-0.5, abs=0.02)
-    assert signal[3840 + SAMPLE_RATE - 1] == pytest.approx(0.5, abs=0.02)
+    assert signal[3840 + 100] == pytest.approx(-0.5, abs=0.02)
+    assert signal[3840 + SAMPLE_RATE - 100] == pytest.approx(0.5, abs=0.02)
     assert np.all(signal[3840 + SAMPLE_RATE + 8 :] == 0)
 
 
@@ -146,7 +146,7 @@ def test_a_window_transcribes_only_that_part_with_times_from_its_start(tmp_path:
     )
 
     signal = session.feeds[0][0, :, 0]
-    assert signal[3840] == pytest.approx(0.0, abs=0.02)
+    assert signal[3840 + 100] == pytest.approx(0.0, abs=0.02)
     assert np.all(signal[3840 + SAMPLE_RATE + 8 :] == 0)
     assert result.notes[0].start == pytest.approx(30 * HOP_SECONDS, abs=0.01)
 
@@ -206,16 +206,41 @@ def test_the_onnx_session_uses_the_cpu_provider_and_the_thread_cap(
         intra_op_num_threads = 0
         inter_op_num_threads = 0
 
-    def session(path: str, sess_options: Options, providers: list[str]) -> str:
-        created.append({"path": path, "threads": sess_options.intra_op_num_threads,
-                        "inter": sess_options.inter_op_num_threads, "providers": providers})  # fmt: skip
-        return "session"
+    marker = FakeSession()
+
+    def session(path: str, sess_options: Options, providers: list[str]) -> FakeSession:
+        threads = (sess_options.intra_op_num_threads, sess_options.inter_op_num_threads)
+        created.append({"path": path, "threads": threads, "providers": providers})
+        return marker
 
     fake: Any = types.ModuleType("onnxruntime")
     fake.SessionOptions = Options
     fake.InferenceSession = session
     monkeypatch.setitem(sys.modules, "onnxruntime", fake)
 
-    assert onnx_session(tmp_path / "nmp.onnx", 4) == "session"
-    assert created == [{"path": str(tmp_path / "nmp.onnx"), "threads": 4, "inter": 1,
+    assert onnx_session(tmp_path / "nmp.onnx", 4) is marker
+    assert created == [{"path": str(tmp_path / "nmp.onnx"), "threads": (4, 1),
                         "providers": ["CPUExecutionProvider"]}]  # fmt: skip
+
+
+class _BrokenSession(FakeSession):
+    def run(self, outputs: list[str], feeds: dict[str, Any]) -> list[npt.NDArray[np.float32]]:
+        raise RuntimeError("onnx failure")
+
+
+def test_a_failing_model_run_is_a_transcription_error(tmp_path: Path) -> None:
+    audio = write_audio(tmp_path / "in.flac", ramp(1.0))
+    transcriber, _factory = _transcriber(tmp_path, _BrokenSession())
+
+    with pytest.raises(TranscriptionError, match="could not be run"):
+        transcriber.transcribe(audio, None, lambda f: None)
+
+
+def test_audio_at_the_model_rate_is_used_as_it_is(tmp_path: Path) -> None:
+    audio = write_audio(tmp_path / "in.flac", ramp(1.0, SAMPLE_RATE), SAMPLE_RATE, stereo=False)
+    session = FakeSession()
+    transcriber, _factory = _transcriber(tmp_path, session)
+
+    transcriber.transcribe(audio, None, lambda f: None)
+
+    assert session.feeds[0][0, 3840, 0] == pytest.approx(-0.5, abs=1e-3)

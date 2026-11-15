@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import urllib.request
 from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 from typing import IO
@@ -9,6 +10,7 @@ from typing import IO
 import pytest
 
 from stemstudio_worker.ports import WeightsFile
+from stemstudio_worker.transcription import models
 from stemstudio_worker.transcription.models import (
     MODEL_DOWNLOAD_TEXT,
     ModelStore,
@@ -77,3 +79,17 @@ def test_a_failed_or_mismatching_download_leaves_nothing(tmp_path: Path, opener:
 
     assert list((tmp_path / "transcription" / "basic-pitch-icassp2022").iterdir()) == []
     assert not store.ready(WEIGHTS)
+
+
+def test_the_default_opener_uses_urllib_with_a_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, float]] = []
+
+    def urlopen(url: str, timeout: float) -> io.BytesIO:
+        calls.append((url, timeout))
+        return io.BytesIO(DATA)
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+
+    with models.https_open(WEIGHTS.url) as stream:
+        assert stream.read() == DATA
+    assert calls == [(WEIGHTS.url, 60.0)]
