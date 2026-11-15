@@ -1,10 +1,12 @@
+import { fakeStems } from '../support/detail';
 import { requireEnv } from '../support/feature-skips';
 import { fakeJobTimeoutMs, runId } from '../support/env';
 import { expectAiLabels, generationTimeoutMs, restyledTake, slowGenerationTimeoutMs, sourceTrack, takeOf } from '../support/generative-flow';
 import { present, readFakeGenerator, requireGeneratorMode, uniqueName } from '../support/generative';
 import { expectProblem, terminalStates } from '../support/generation-api';
 import { restartService } from '../support/generator-stack';
-import { expectNotRendered, expectRendered } from '../support/levels';
+import { expectHelpMarker } from '../support/help';
+import { beginnerHiddenRestyleIds, everyLevelRestyleIds, expectNotRendered, expectRendered } from '../support/levels';
 import { expectPlayable } from '../support/media';
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/generative-test';
@@ -25,11 +27,11 @@ test.describe('restyle a track', { tag: '@generative' }, () => {
     requireGeneratorMode('ready', 'oom');
   });
 
-  test('"Jazz trio" in four interactions: progress, a playable AI-labelled take with details (US1-1, US1-4, US2-3, SC-007)', async ({ api, generatedTrack, generationApi, generations, restyle }) => {
+  test('"Jazz trio" in four interactions: progress, a playable AI-labelled take with details (US1-1, US1-4, US2-3, SC-007)', async ({ api, generationApi, generations, restyle, trackPage }) => {
     const track = await sourceTrack(api);
     const jazz = await generationApi.preset('Jazz trio');
     const before = (await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await restyle.open();
     await restyle.chooseStyle(jazz.name);
     await expect(restyle.description).toContainText(present(jazz.description, 'preset description'));
@@ -50,10 +52,10 @@ test.describe('restyle a track', { tag: '@generative' }, () => {
     await expectAiLabels(generationApi, take);
   });
 
-  test('range, stems, strength and two takes are applied (FR-002, FR-006)', async ({ api, generatedTrack, generationApi, restyle }) => {
+  test('range, stems, strength and two takes are applied (FR-002, FR-006)', async ({ api, generationApi, restyle, trackPage }) => {
     const track = await sourceTrack(api);
     const before = (await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await restyle.open();
     await restyle.fill({ style: 'Synthwave', range: { start: 2, end: 14 }, excludeStems: ['vocals'], strength: 1, takes: 2 });
     await restyle.start();
@@ -67,10 +69,10 @@ test.describe('restyle a track', { tag: '@generative' }, () => {
     await expectAiLabels(generationApi, takeOf(done, 2));
   });
 
-  test('in place: the take keeps the length of the track (US5-1, FR-014)', async ({ api, generatedTrack, generationApi, restyle }) => {
+  test('in place: the take keeps the length of the track (US5-1, FR-014)', async ({ api, generationApi, restyle, trackPage }) => {
     const track = await sourceTrack(api);
     const before = (await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await restyle.open();
     await restyle.fill({ style: 'Jazz trio', mode: 'inPlace', range: { start: 5, end: 15 } });
     await restyle.start();
@@ -95,7 +97,7 @@ test.describe('restyle: limits and own styles', { tag: '@generative' }, () => {
     await expectProblem(await generationApi.restyle(track.id, { styleId: jazz.id, mode: 'range', takes: 3 }), 400);
   });
 
-  test('an own style restyles and the take keeps its snapshot after the style changes (US3, US3-3, FR-006)', async ({ api, generatedTrack, generationApi, generations }, info) => {
+  test('an own style restyles and the take keeps its snapshot after the style changes (US3, US3-3, FR-006)', async ({ api, generationApi, generations, trackPage }, info) => {
     const track = await sourceTrack(api);
     const copy = await generationApi.duplicateStyle((await generationApi.preset('Bossa nova')).id);
     const name = uniqueName('My bossa', info.project.name, runId());
@@ -105,7 +107,7 @@ test.describe('restyle: limits and own styles', { tag: '@generative' }, () => {
     expect(await generationApi.deleteStyle(copy.id)).toBe(204);
     const done = await generationApi.get(queued.id);
     expect([done.restyle?.style.name, done.restyle?.style.kind]).toEqual([name, 'user']);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await expect(await generations.openDetails(queued.id)).toContainText(name);
   });
 });
@@ -113,33 +115,35 @@ test.describe('restyle: limits and own styles', { tag: '@generative' }, () => {
 test.describe('restyle at Beginner', { tag: '@generative' }, () => {
   test.use({ storageState: levelState('beginner') });
 
-  test('the dialog shows style, notice and start; the options are not rendered (ui-test-ids 1.8.0, R7)', async ({ api, generatedTrack, page, restyle }) => {
+  test('the dialog shows style, notice and start; the options are not rendered (ui-test-ids 1.8.0, R7)', async ({ api, page, restyle, trackPage }) => {
     requireGeneratorMode('ready', 'oom');
-    await generatedTrack.goto((await sourceTrack(api)).id);
+    await trackPage.gotoLoaded((await sourceTrack(api)).id);
     await restyle.open();
-    await expectRendered(page, ['restyle-style-select', 'restyle-style-description', 'restyle-personal-use-notice', 'restyle-start', 'restyle-cancel']);
-    await expectNotRendered(page, ['restyle-mode-range', 'restyle-mode-inplace', 'restyle-range-start', 'restyle-range-end', 'restyle-stem-vocals', 'restyle-strength', 'restyle-takes']);
+    await expectRendered(page, everyLevelRestyleIds);
+    await expectNotRendered(page, beginnerHiddenRestyleIds(fakeStems));
     await expect(restyle.dialog).toBeVisible();
+    await expectHelpMarker(restyle.dialog, 'restyle-options');
+    await expectHelpMarker(restyle.dialog, 'generation-personal-use');
   });
 });
 
 test.describe('import a take', { tag: '@generative' }, () => {
-  test('the take becomes a separated, mixable AI-labelled track linked to its source; again returns it (US4-1, US4-2, FR-009)', async ({ api, generatedTrack, generationApi, generations, mixer, page }) => {
+  test('the take becomes a separated, mixable AI-labelled track linked to its source; again returns it (US4-1, US4-2, FR-009)', async ({ api, generationApi, generations, mixer, page, trackList, trackPage }) => {
     requireGeneratorMode('ready', 'oom');
     const source = await sourceTrack(api);
     const done = await restyledTake(generationApi, source.id, 'Jazz trio');
-    await generatedTrack.goto(source.id);
+    await trackPage.gotoLoaded(source.id);
     await generations.take('import', done.id).click();
     await expect.poll(async () => takeOf(await generationApi.get(done.id)).importedTrackId ?? '').not.toBe('');
     const trackId = present(takeOf(await generationApi.get(done.id)).importedTrackId, 'imported track');
     expect((await api.waitForTerminal(trackId, fakeJobTimeoutMs)).status).toBe('completed');
     await mixer.goto(trackId);
     await expect(page.getByTestId('strip-vocals')).toBeVisible();
-    await generatedTrack.goto(trackId);
-    await expect(generatedTrack.originBadge).toContainText(/AI-generated/iu);
-    await expect(generatedTrack.sourceLink).toHaveAttribute('href', new RegExp(source.id, 'u'));
+    await trackPage.gotoLoaded(trackId);
+    await expect(trackPage.originBadge).toContainText(/AI-generated/iu);
+    await expect(trackPage.originSourceLink).toHaveAttribute('href', new RegExp(source.id, 'u'));
     await page.goto('/tracks');
-    await expect(generatedTrack.listBadge(trackId)).toContainText('AI');
+    await expect(trackList.aiBadge(trackId)).toContainText('AI');
     const again = await generationApi.importTake(done.id, 1);
     expect([again.status, again.track.id, again.track.origin?.kind, again.track.origin?.sourceTrackId]).toEqual([200, trackId, 'generated', source.id]);
   });
@@ -159,12 +163,12 @@ test.describe('import a take', { tag: '@generative' }, () => {
 });
 
 test.describe('cancel, failures and retry', { tag: '@generative' }, () => {
-  test('a running restyle can be cancelled: no take, retry offered, the GPU is free again (US1-2, FR-007, SC-006)', async ({ api, generatedTrack, generationApi, generations }) => {
+  test('a running restyle can be cancelled: no take, retry offered, the GPU is free again (US1-2, FR-007, SC-006)', async ({ api, generationApi, generations, trackPage }) => {
     requireGeneratorMode('slow');
     const track = await sourceTrack(api);
     const jazz = await generationApi.preset('Jazz trio');
     const queued = await generationApi.restyleOk(track.id, { styleId: jazz.id, mode: 'range', rangeStartSeconds: 0, rangeEndSeconds: 12 });
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await generations.waitForStatus(queued.id, 'running', generationTimeoutMs);
     await generations.part('cancel', queued.id).click();
     await generations.waitForStatus(queued.id, 'cancelled');
@@ -175,14 +179,14 @@ test.describe('cancel, failures and retry', { tag: '@generative' }, () => {
     expect(await generationApi.cancel(next.id)).toBeLessThan(300);
   });
 
-  test('out of memory twice fails with a readable reason; retry makes a new generation (US1-3, FR-012, SC-006)', async ({ api, generatedTrack, generationApi, generations }) => {
+  test('out of memory twice fails with a readable reason; retry makes a new generation (US1-3, FR-012, SC-006)', async ({ api, generationApi, generations, trackPage }) => {
     requireGeneratorMode('oom-twice');
     const track = await sourceTrack(api);
     const jazz = await generationApi.preset('Jazz trio');
     const queued = await generationApi.restyleOk(track.id, { styleId: jazz.id, mode: 'range', rangeStartSeconds: 0, rangeEndSeconds: 12 });
     const failed = await generationApi.waitForStatus(queued.id, terminalStates, generationTimeoutMs);
     expect([failed.status, failed.error?.code]).toEqual(['failed', fake.modes['oom-twice'].restyle.errorCode]);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await expect(generations.part('error', queued.id)).toContainText(new RegExp(fake.modes['oom-twice'].restyle.messagePattern, 'iu'));
     const before = (await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id);
     await generations.part('retry', queued.id).click();
@@ -191,12 +195,12 @@ test.describe('cancel, failures and retry', { tag: '@generative' }, () => {
     expect((await api.getTrack(track.id)).status).toBe('completed');
   });
 
-  test('without enough free GPU memory the job waits, then fails "GPU busy" (FR-012, SC-006)', async ({ api, generatedTrack, generationApi, generations }) => {
+  test('without enough free GPU memory the job waits, then fails "GPU busy" (FR-012, SC-006)', async ({ api, generationApi, generations, trackPage }) => {
     requireGeneratorMode('busy');
     const track = await sourceTrack(api);
     const jazz = await generationApi.preset('Jazz trio');
     const queued = await generationApi.restyleOk(track.id, { styleId: jazz.id, mode: 'range', rangeStartSeconds: 0, rangeEndSeconds: 12 });
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await generations.waitForStatus(queued.id, 'waitingForGpu', generationTimeoutMs);
     const failed = await generationApi.waitForStatus(queued.id, terminalStates, generationTimeoutMs);
     expect([failed.status, failed.error?.code]).toEqual(['failed', fake.modes.busy.restyle.errorCode]);

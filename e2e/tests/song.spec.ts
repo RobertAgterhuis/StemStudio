@@ -6,7 +6,7 @@ import {
   ownLyricsPath, placeholderLyrics, present, readEthicsCases, readOwnLyrics, readOwnLyricsExpected, requireGeneratorMode, uniqueName,
 } from '../support/generative';
 import { expectProblem } from '../support/generation-api';
-import { expectNotRendered, expectRendered } from '../support/levels';
+import { beginnerHiddenSongIds, everyLevelSongIds, expectNotRendered, expectRendered } from '../support/levels';
 import { expectPlayable } from '../support/media';
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/generative-test';
@@ -119,8 +119,8 @@ test.describe('song page at Beginner', { tag: '@generative' }, () => {
 
   test('lyrics, style, voice, length and generate are shown; the expert options are not rendered (ui-test-ids 1.9.0, R7)', async ({ page, song }) => {
     await song.goto();
-    await expectRendered(page, ['song-lyrics-text', 'song-sections-propose', 'song-style-select', 'song-lead-voice', 'song-instrumental', 'song-duration', 'song-generate', 'song-personal-use-notice']);
-    await expectNotRendered(page, ['song-free-caption', 'song-delivery-input', 'song-bpm', 'song-key', 'song-time-signature', 'song-takes']);
+    await expectRendered(page, everyLevelSongIds);
+    await expectNotRendered(page, beginnerHiddenSongIds);
     await expect(song.generateButton).toBeEnabled();
   });
 });
@@ -148,7 +148,7 @@ test.describe('lyrics list', { tag: '@generative' }, () => {
 });
 
 test.describe('song to practice and instrumental', { tag: '@generative' }, () => {
-  test('an imported song take is separated, mixable, AI-labelled and links to its lyrics (US4-1, FR-013)', async ({ api, generatedTrack, generationApi, mixer, page, voiceApi }, info) => {
+  test('an imported song take is separated, mixable, AI-labelled and links to its lyrics (US4-1, FR-013)', async ({ api, generationApi, mixer, page, trackPage, voiceApi }, info) => {
     const sheet = await voiceApi.createLyricsOk(uniqueName('Practice lyrics', info.project.name, runId()), 'en', english);
     const done = await songTake(voiceApi, generationApi, { lyricsId: sheet.id, language: 'en', leadVoice: 'female', durationSeconds: 20 });
     const imported = await generationApi.importTake(done.id, 1);
@@ -156,10 +156,10 @@ test.describe('song to practice and instrumental', { tag: '@generative' }, () =>
     expect((await api.waitForTerminal(imported.track.id, fakeJobTimeoutMs)).status).toBe('completed');
     await mixer.goto(imported.track.id);
     await expect(page.getByTestId('strip-vocals')).toBeVisible();
-    await generatedTrack.goto(imported.track.id);
-    await expect(generatedTrack.originBadge).toContainText(/AI-generated/iu);
-    await expect(generatedTrack.vocalBadge).toContainText(/AI voice/iu);
-    await expect(generatedTrack.lyricsLink).toHaveAttribute('href', new RegExp(sheet.id, 'u'));
+    await trackPage.gotoLoaded(imported.track.id);
+    await expect(trackPage.originBadge).toContainText(/AI-generated/iu);
+    await expect(trackPage.vocalBadge).toContainText(/AI voice/iu);
+    await expect(trackPage.lyricsLink).toHaveAttribute('href', new RegExp(sheet.id, 'u'));
     const origin = present((await generationApi.track(imported.track.id)).origin, 'track origin');
     expect([origin.kind, origin.vocal, origin.lyricsSheetId]).toEqual(['generated', 'synthetic', sheet.id]);
   });

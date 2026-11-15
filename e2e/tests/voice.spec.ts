@@ -8,7 +8,10 @@ import {
 } from '../support/generative';
 import { expectProblem, type GenerationApi, type GenerationDto } from '../support/generation-api';
 import { dataFilesContaining } from '../support/generator-stack';
+import { expectHelpMarker } from '../support/help';
+import { beginnerHiddenUseMyVoiceIds, everyLevelUseMyVoiceIds, expectNotRendered, expectRendered } from '../support/levels';
 import { expectPlayable } from '../support/media';
+import { levelState } from '../support/preferences';
 import type { VoiceApi, VoiceProfileDto, VoiceProfileForm } from '../support/voice-api';
 import { expect, test } from '../support/generative-test';
 
@@ -174,6 +177,24 @@ test.describe('use my voice', { tag: '@generative' }, () => {
     await generations.goto();
     await expect(generations.take('use-my-voice', instrumental.id)).toHaveCount(0);
     await expect(generations.take('use-my-voice', restyled.id)).toHaveCount(0);
+    expect(await voiceApi.deleteProfile(profile.id, true)).toBe(204);
+  });
+});
+
+test.describe('use my voice at Beginner', { tag: '@generative' }, () => {
+  test.use({ storageState: levelState('beginner') });
+
+  test('profile select and buttons are shown; pitch shift and auto shift are not rendered (ui-test-ids 1.9.0, R7)', async ({ generationApi, generations, page, useMyVoice, voiceApi }, info) => {
+    requireGeneratorMode('ready', 'oom', 'slow');
+    const profile = await createdProfile(voiceApi, uniqueName('Beginner voice', info.project.name, runId()));
+    const song = await songTake(voiceApi, generationApi, { lyricsText: readOwnLyrics('sample-en.txt'), language: 'en', leadVoice: 'any', durationSeconds: 20 });
+    await generations.goto();
+    await useMyVoice.open(song.id, 1);
+    await expectRendered(page, everyLevelUseMyVoiceIds);
+    await expectNotRendered(page, beginnerHiddenUseMyVoiceIds);
+    await expectHelpMarker(page.locator('body'), 'voice-conversion');
+    await useMyVoice.byId('take-voice-convert-cancel').click();
+    await expect(useMyVoice.profileSelect).toBeHidden();
     expect(await voiceApi.deleteProfile(profile.id, true)).toBe(204);
   });
 });

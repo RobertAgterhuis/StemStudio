@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu\"",
-    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library\"",
+    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
     "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",

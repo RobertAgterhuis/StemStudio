@@ -1,12 +1,11 @@
 /**
  * The `test` object of the feature 009 and 010 specs: the feature 006/008 `test`
  * (support/lyrics-test.ts) extended with the generation and voice clients and page objects.
- * Kept separate so the existing fixtures stay untouched while other UI work is in flight (qa
- * 009/010 pre-UI hand-off).
+ * The generation ids of the track pages live in `pages/track-detail-page.ts` and
+ * `pages/track-list-page.ts` (folded in after the UI merge, TEST-STRATEGY 16.6).
  *
  * @packageDocumentation
  */
-import { GeneratedTrack } from '../pages/generated-track';
 import { GenerationStatusBanner } from '../pages/generation-status';
 import { GenerationsList } from '../pages/generations-list';
 import { LyricsListPage } from '../pages/lyrics-list-page';
@@ -30,7 +29,6 @@ export interface GenerativeFixtures {
   readonly generations: GenerationsList;
   readonly styles: StyleLibraryPage;
   readonly styleEditor: StyleEditorPage;
-  readonly generatedTrack: GeneratedTrack;
   readonly song: SongPage;
   readonly lyricsList: LyricsListPage;
   readonly voices: VoiceProfilesPage;
@@ -54,7 +52,6 @@ export const test = lyricsScore.extend<GenerativeFixtures>({
   generations: async ({ page }, use) => use(new GenerationsList(page)),
   styles: async ({ page }, use) => use(new StyleLibraryPage(page)),
   styleEditor: async ({ page }, use) => use(new StyleEditorPage(page)),
-  generatedTrack: async ({ page }, use) => use(new GeneratedTrack(page)),
   song: async ({ page }, use) => use(new SongPage(page)),
   lyricsList: async ({ page }, use) => use(new LyricsListPage(page)),
   voices: async ({ page }, use) => use(new VoiceProfilesPage(page)),

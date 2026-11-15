@@ -1,8 +1,7 @@
 /**
- * The `test` object of the feature 006 and 008 specs: the feature 005/007 `test`
- * (support/feature-test.ts) extended with the lyrics and sheet music clients and page objects.
- * Kept separate so the existing fixtures stay untouched until the 004 merge (qa 006/008 pre-UI
- * hand-off).
+ * The `test` object of the feature 006 and 008 specs: the suite's `test` (support/test.ts, which
+ * holds the 005/007 fixtures since they were folded in) extended with the lyrics and sheet music
+ * clients and page objects.
  *
  * @packageDocumentation
  */
@@ -11,7 +10,7 @@ import { LyricsSection } from '../pages/lyrics-section';
 import { ScoreDialog } from '../pages/score-dialog';
 import { ScoreItems } from '../pages/score-items';
 import { apiBaseUrl } from './env';
-import { test as feature } from './feature-test';
+import { test as feature } from './test';
 import { LyricsApi } from './lyrics-api';
 import { ScoreApi } from './score-api';
 

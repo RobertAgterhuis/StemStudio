@@ -14,7 +14,7 @@ const score = `<?xml version="1.0"?><score-partwise><part id="P1">
 <note><type>quarter</type><voice>1</voice><notehead>x</notehead></note></measure>
 <measure number="1"><note><type>eighth</type><voice>2</voice></note></measure></part></score-partwise>`;
 
-test.describe('karaoke landing maths', () => {
+test.describe('karaoke landing maths', { tag: '@self-test' }, () => {
   test('a word change is measured against its start and the offset', () => {
     const lines = fake.lines;
     const landings = landingErrors([sample(0, 0, 2010), sample(0, 0, 2030), sample(0, 1, 3080)], lines, 500);
@@ -36,7 +36,7 @@ test.describe('karaoke landing maths', () => {
   });
 });
 
-test.describe('fake lyrics table', () => {
+test.describe('fake lyrics table', { tag: '@self-test' }, () => {
   test('modes parse with word as the default and refuse unknown values', () => {
     expect(parseFakeLyricsMode(undefined)).toBe('word');
     expect(parseFakeLyricsMode('')).toBe('word');
@@ -51,7 +51,7 @@ test.describe('fake lyrics table', () => {
   });
 });
 
-test.describe('MusicXML, PDF and MIDI readers', () => {
+test.describe('MusicXML, PDF and MIDI readers', { tag: '@self-test' }, () => {
   test('read bars, key, time, staves, clefs, types, voices and noteheads', () => {
     expect([measureCount(score), hasPickup(score), fifths(score), timeSignature(score), staves(score)]).toEqual([2, true, 1, '4/4', 2]);
     expect(clefs(score)).toEqual([

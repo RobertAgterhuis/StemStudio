@@ -112,9 +112,15 @@ export function present<T>(value: T | null | undefined, what: string): T {
   return value;
 }
 
-/** Skips unless the stack read the embedded artist tag of an uploaded fixture (feature 005). */
-export function requireTrackArtist(actual: string | null | undefined, expected: string): void {
-  test.skip(actual !== expected, `the stack did not read the embedded artist (got "${actual ?? ''}")`);
+/**
+ * The artist name the guard knows for a library track: the track's own artist, else the artist of
+ * its band info lookup (005; the fake online mode `found` answers "The Fixture Band", no real
+ * artist). Skips when there is none.
+ */
+export function requireLibraryArtist(names: readonly (string | null | undefined)[]): string {
+  const name = names.find((candidate) => (candidate ?? '').trim().length > 1);
+  test.skip(name === undefined, 'the track has no artist name (neither its own nor from the band info lookup)');
+  return name ?? '';
 }
 
 /** Reads the committed voice manifest. */

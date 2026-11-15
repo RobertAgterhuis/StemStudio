@@ -16,9 +16,9 @@ test.describe('without a generator', { tag: '@generation-status' }, () => {
     await generationApi.requireState('notInstalled');
   });
 
-  test('the track page says "not installed" and Restyle is disabled with the reason (US6-1, SC-002)', async ({ api, generatedTrack, restyle, status }) => {
+  test('the track page says "not installed" and Restyle is disabled with the reason (US6-1, SC-002)', async ({ api, restyle, status, trackPage }) => {
     const track = await sourceTrack(api);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await status.expectState('notInstalled');
     await expect(status.reason).toContainText(notInstalled);
     await expect(status.helpLink).toBeVisible();
@@ -67,11 +67,11 @@ test.describe('generator without a usable GPU', { tag: '@generative' }, () => {
     await generationApi.requireState('unavailable');
   });
 
-  test('Restyle is disabled with the probe reason; the API answers 409 gpu-required (US6-2, FR-010)', async ({ api, generatedTrack, generationApi, restyle, status }) => {
+  test('Restyle is disabled with the probe reason; the API answers 409 gpu-required (US6-2, FR-010)', async ({ api, generationApi, restyle, status, trackPage }) => {
     const reason = (await generationApi.status()).reason ?? '';
     expect(reason).toMatch(new RegExp(readFakeGenerator().modes['no-gpu'].reasonPattern, 'u'));
     const track = await sourceTrack(api);
-    await generatedTrack.goto(track.id);
+    await trackPage.gotoLoaded(track.id);
     await status.expectState('unavailable');
     await expect(status.reason).toContainText(reason);
     await status.expectDisabledWithReason(restyle.openButton, reason);

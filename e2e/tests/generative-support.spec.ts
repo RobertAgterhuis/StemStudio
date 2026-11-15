@@ -14,7 +14,7 @@ function stripStamps(lrc: string): string {
   return lrc.split('\n').map((line) => line.replace(/^(\[\d{2}:\d{2}(\.\d{1,3})?\])+/u, '').trimEnd()).join('\n').trim();
 }
 
-test.describe('FLAC tag reader', () => {
+test.describe('FLAC tag reader', { tag: '@self-test' }, () => {
   test('reads the Vorbis comments with upper-case keys and values that contain "="', () => {
     const tags = readVorbisComments(buildFlacWithComments(['AI_GENERATED=true', 'generator=Fake 1.0', 'COMMENT=a=b', 'ai_voice=synthetic']));
     expect(tags).toEqual({ AI_GENERATED: ['true'], GENERATOR: ['Fake 1.0'], COMMENT: ['a=b'], AI_VOICE: ['synthetic'] });
@@ -27,7 +27,7 @@ test.describe('FLAC tag reader', () => {
   });
 });
 
-test.describe('fake generator modes', () => {
+test.describe('fake generator modes', { tag: '@self-test' }, () => {
   test('unset means ready; unknown modes are refused with the allowed values', () => {
     expect([parseFakeGeneratorMode(undefined), parseFakeGeneratorMode(''), parseFakeGeneratorMode('oom-twice')]).toEqual(['ready', 'ready', 'oom-twice']);
     expect(() => parseFakeGeneratorMode('melt')).toThrow(/ready, no-gpu, oom, oom-twice, busy, slow, unvoiced-sample/u);
@@ -40,7 +40,7 @@ test.describe('fake generator modes', () => {
   });
 });
 
-test.describe('generative fixtures', () => {
+test.describe('generative fixtures', { tag: '@self-test' }, () => {
   test('the voice manifest covers every sample check outcome and is CC0', () => {
     const manifest = readVoiceManifest();
     const checks = Object.values(manifest.fixtures).map((facts) => facts.expectedCheck);
@@ -65,7 +65,7 @@ test.describe('generative fixtures', () => {
   });
 });
 
-test.describe('helpers', () => {
+test.describe('helpers', { tag: '@self-test' }, () => {
   test('placeholder lyrics have the exact length; names fit the 60-character limit', () => {
     expect(placeholderLyrics(4097)).toHaveLength(4097);
     expect(uniqueName('A rather long prefix for a style name', 'firefox', 'run-0123456789').length).toBeLessThanOrEqual(60);

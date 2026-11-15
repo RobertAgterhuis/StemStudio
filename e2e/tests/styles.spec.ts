@@ -1,6 +1,6 @@
 import { artworkFixturePath } from '../support/artwork-fixtures';
 import { fakeJobTimeoutMs, runId } from '../support/env';
-import { present, readEthicsCases, requireTrackArtist, uniqueName, type RefusedText } from '../support/generative';
+import { present, readEthicsCases, requireLibraryArtist, uniqueName, type RefusedText } from '../support/generative';
 import { expectProblem, type GenerationApi, type StyleDto, type StyleInputDto } from '../support/generation-api';
 import { expect, test } from '../support/generative-test';
 
@@ -89,7 +89,9 @@ test.describe('style library: presets', { tag: '@styles' }, () => {
     await styles.filter('mood', 'All');
     await styles.search('Jazz trio');
     await expect(styles.row(jazzTrio.id)).toBeVisible();
-    expect((await styles.visibleIds()).length).toBeLessThan((await generationApi.listStyles()).length);
+    const total = (await generationApi.listStyles()).length;
+    // The list follows the search box after a round trip; poll rather than read it once.
+    await expect.poll(async () => (await styles.visibleIds()).length).toBeLessThan(total);
     await styles.search(`no style called ${runId()}`);
     await expect(styles.empty).toBeVisible();
   });
@@ -133,7 +135,8 @@ test.describe('style library: no artist imitation', { tag: '@styles' }, () => {
   });
 
   test('the editor refuses an imitation phrase with the field and the reason (US3-2, FR-005)', async ({ generationApi, styleEditor }, info) => {
-    const name = uniqueName('Imitation check', info.project.name, runId());
+    // The name must pass the guard itself: "imitat*" is one of its phrases.
+    const name = uniqueName('Editor guard check', info.project.name, runId());
     await styleEditor.gotoNew();
     await styleEditor.fill({ name, genre: 'Jazz', description: present(ethics.imitationRefused[0], 'first case').text });
     await styleEditor.save();
@@ -159,10 +162,13 @@ test.describe('style library: no artist imitation', { tag: '@styles' }, () => {
     }
   });
 
-  test('an artist of the own library is refused (FR-005)', async ({ api, generationApi }, info) => {
+  test('an artist of the own library is refused (FR-005)', async ({ api, generationApi, metadataApi }, info) => {
     const track = await api.ensureFileCompleted(artworkFixturePath('cover_embedded_10s.mp3'), fakeJobTimeoutMs);
-    requireTrackArtist((await generationApi.track(track.id)).artist, ethics.libraryArtist.artist);
-    const input = userStyle(uniqueName('Library artist', info.project.name, runId()), { description: ethics.libraryArtist.refusedDescription });
+    const metadata = (await metadataApi.waitForMetadata(track.id, fakeJobTimeoutMs)).metadata;
+    const artist = requireLibraryArtist([(await generationApi.track(track.id)).artist, metadata.artistName]);
+    // "like" alone is no imitation phrase: only the artist name can make the guard refuse it.
+    const description = ethics.libraryArtist.refusedDescription.replace(ethics.libraryArtist.artist, artist);
+    const input = userStyle(uniqueName('Library artist', info.project.name, runId()), { description });
     expect((await expectProblem(await generationApi.createStyle(input), 400)).type).toBe('imitation');
   });
 });

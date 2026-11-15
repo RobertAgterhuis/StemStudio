@@ -60,6 +60,46 @@ export const exportReferenceQueries: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Reference queries of the 15 help topics of features 009 and 010 (ui-test-ids 1.8.0/1.9.0;
+ * TEST-STRATEGY 16.6 item 2) plus the extra screen topic `styles-new` of `/styles/new`.
+ */
+export const generativeReferenceQueries: Readonly<Record<string, string>> = {
+  'graphics card': 'generation-gpu-required',
+  'style library': 'styles-library',
+  'edit style': 'styles-editor',
+  'new style': 'styles-new',
+  restyle: 'restyle-options',
+  strength: 'restyle-strength',
+  'ai label': 'generation-ai-label',
+  'personal use': 'generation-personal-use',
+  generations: 'generation-limits',
+  'lyrics format': 'lyrics-format',
+  'add sections': 'lyrics-sections',
+  'new song': 'song-options',
+  language: 'song-language',
+  'voice profile': 'voice-profiles',
+  consent: 'voice-consent',
+  'use my voice': 'voice-conversion',
+};
+
+/** Screen topic per 009/010 page (help opened with the button). */
+export const generativeScreenTopics: Readonly<Record<string, string>> = {
+  '/styles': 'styles-library',
+  '/styles/new': 'styles-new',
+  '/generations': 'generation-limits',
+  '/songs/new': 'song-options',
+  '/voices': 'voice-profiles',
+};
+
+/** Help markers per 009/010 page that need no generator (the restyle dialog's are in generative.spec.ts). */
+export const generativePageMarkers: Readonly<Record<string, readonly string[]>> = {
+  '/styles': ['styles-library', 'generation-gpu-required'],
+  '/styles/new': ['styles-editor'],
+  '/generations': ['generation-limits', 'generation-gpu-required'],
+  '/songs/new': ['song-options', 'song-language', 'lyrics-format', 'lyrics-sections', 'generation-personal-use'],
+};
+
+/**
  * Runs every reference query and returns the ones whose first result is wrong (query -> got).
  * @param queries Query -> expected first topic; defaults to the 20 of V-H3.
  */

@@ -979,7 +979,7 @@ silently).
 |---|---|---|
 | E-01 | No preset names an artist, band, song or label, or uses an imitation phrase (FR-003, SC-003) | backend `PresetCatalog` + guard over every preset (unit); E2E `styles.spec.ts` "no preset uses an imitation phrase" (phrases of `presetForbiddenPhrases`) |
 | E-02 | A user style with "in the style of", "sounds like", "voice of" (any case, extra spaces, diacritics) is refused with the field and the reason, problem type `imitation` (FR-005) | backend `StyleTextGuard` tests; E2E editor case (field error shown) and API loop over `imitationRefused` |
-| E-03 | An artist of the user's own library is refused (FR-005) | backend guard with library names; E2E: upload `cover_embedded_10s.mp3` (artist tag "StemStudio Fixtures", no real artist) and refuse a description naming it |
+| E-03 | An artist of the user's own library is refused (FR-005) | backend guard with library names; E2E: upload `cover_embedded_10s.mp3` and refuse a description naming the artist the library knows for it: the track's own artist, else its band info artist (fake online `found`: "The Fixture Band", no real artist). Uploads keep `TrackDto.artist` empty (the embedded tag only feeds the 005 lookup), so the tag text "StemStudio Fixtures" itself is not in the guard (qa 009/010 integration, reported) |
 | E-04 | Genre words are not mistaken for names ("Soul ballad", "Rock steady", "Blues shuffle", ...) | backend guard (no false positive on "rock", "soul"); E2E `genreNamesAccepted` loop |
 | E-05 | 010 free caption and delivery pass the same guard (010 FR-010) | backend `SongEndpointTests`; E2E `song.spec.ts` "imitation in a free caption or the delivery" |
 | E-06 | Every take is labelled AI-generated: take badge (text, not colour only), track origin badge, track-list badge, library item origin `generation`, file tags (FR-008, SC-005) | generator FLAC writer tests, backend sync/import tests, bUnit badges; E2E `expectAiLabels` on every completed take, `track-origin-badge`, `track-ai-badge-*` |
@@ -1015,7 +1015,7 @@ hand-maintained tables in `tests/fixtures/generative/` (README there): `ethics-c
 | US6-2 no usable GPU: disabled with the reason, `409` (FR-010) | generator `/health`, status service | `generation-status.spec.ts` "generator without a usable GPU" |
 | FR-011 one GPU step at a time across services | gate + worker file-lease tests | CTO Q7 |
 | FR-013 models released when idle | idle-hook test | CTO Q4 (VRAM log) |
-| FR-015 help links | help coverage tests | pending: help spec after the UI merge (16.6) |
+| FR-015 help links | help coverage tests | `help.spec.ts` (`@styles`): 16 reference queries, screen topics, markers; `generative.spec.ts` restyle dialog markers |
 | FR-017 weights pinned, downloaded on first use | adapter tests (revision, SHA-256) | CTO Q3/Q4 |
 | SC-001, SC-004 timings, listening | - | CTO T082/T084 |
 
@@ -1115,14 +1115,14 @@ density warning starts below 23.25 s), `sample-nl.txt` (Dutch, with `[verse]`/`[
 | US5-1 instrumental: no voice (FR-004) | fake song (`vocal=none`) | `song.spec.ts` instrumental (`data-vocal="none"`, no "Use my voice", no `AI_VOICE`) |
 | Edge: microphone denied -> reason, upload possible | `VoiceRecorder` bUnit | `voice-recording.spec.ts` denied (Chromium) |
 | FR-012 job rules (states, cancel, GPU-only, OOM, retry) | as 009 | `generation-status.spec.ts` `no-gpu`; 009 fault cases cover the shared job path |
-| FR-014 help links | help coverage tests | pending (16.6) |
+| FR-014 help links | help coverage tests | `help.spec.ts` (`@styles`); `voice.spec.ts` Use-my-voice dialog marker |
 | SC-001-SC-003 timings and listening | - | CTO T060/T062 |
 
-### 16.6 Pending edits to existing E2E files (after the UI merge; not touched in the pre-UI wave)
+### 16.6 Edits to existing E2E files after the UI merge (done in the 009/010 integration run)
 
 The 009/010 specs use new page objects and `support/generative-test.ts` so that the existing
-fixtures and level set-up stay untouched while other UI work is in flight. To do in qa 009:T078 /
-010:T058 (polish):
+fixtures and level set-up stay untouched while other UI work is in flight. Done in the
+009/010 integration run (009:T081, 010:T059), item by item:
 
 1. `support/levels.ts` (+ `journey-levels.spec.ts`): the 1.8.0/1.9.0 ids with their Beginner rule
    (not rendered: `restyle-mode-*`, `restyle-range-*`, `restyle-stem-*`, `restyle-strength`,
@@ -1146,6 +1146,25 @@ fixtures and level set-up stay untouched while other UI work is in flight. To do
    FR-014/T058); baselines after the UI merge.
 8. `package.json` `test`: decide whether `@generative` stays in the default run (its cases skip
    unless a generator is ready) or moves to `--grep-invert`.
+
+Outcome: (1) `support/levels.ts` has the 1.8.0/1.9.0 lists (`everyLevelRestyleIds`,
+`beginnerHiddenRestyleIds`, song, Use-my-voice, `generativeNavIds`); the Beginner cases of
+`generative.spec.ts`, `song.spec.ts` and a new `voice.spec.ts` "use my voice at Beginner" use them
+(the @ux journey specs stay generator-free). (2) `support/help.ts` `generativeReferenceQueries`
+(15 topics + `styles-new`), `generativeScreenTopics`, `generativePageMarkers`; `help.spec.ts` cases
+tagged `@styles`. (3) `pages/generated-track.ts` is gone: `TrackDetailPage` (`originBadge`,
+`originSourceLink`, `lyricsLink`, `vocalBadge`, `gotoLoaded`) and `TrackListPage.aiBadge`. (4)
+`AppShell` `NavTarget` + exported `navPaths`; `help.spec.ts` "the rail links reach ...". (5)
+`generative-test.ts` stays a thin extension (it only adds 009/010 clients and page objects);
+`lyrics-test.ts` now extends `support/test.ts` (`feature-test.ts` was removed by the 005/007 fold,
+which broke every 006-010 spec at load time). (6) kept `GeneratedTrackDto` in
+`support/generation-api.ts` (`api.ts` stays free of generative types). (7) screens
+`style-library`, `song`, `voices` (consent panel open) and `restyle-dialog` in `support/screens.ts`
+(a11y + visual matrices; the restyle dialog skips unless the generator is `ready`), and the three
+pages in the 320 px reflow list. (8) `@generative` stays in `npm test`: every case skips with a
+reason unless the stack has a ready (or `no-gpu`) generator, so the default run stays green and
+the fake stack runs everything. `test:legacy` also excludes the 006-010 tags and the stack-free
+self-tests (tag `@self-test`), so it is again exactly the 33 + 33 tests of 1.0.0-1.2.0.
 
 ### 16.7 Commands (009 + 010)
 

@@ -1,11 +1,16 @@
+import { navPaths } from '../pages/app-shell';
 import type { HelpOpener, HelpPanel } from '../pages/help-panel';
 import {
   artworkReferenceQueries,
   blurActiveElement,
   expectHelpMarker,
   exportReferenceQueries,
+  generativePageMarkers,
+  generativeReferenceQueries,
+  generativeScreenTopics,
   wrongFirstResults,
 } from '../support/help';
+import { expectRendered, generativeNavIds } from '../support/levels';
 import { levelState } from '../support/preferences';
 import { openScreen, screenTopics, type ScreenId } from '../support/screens';
 import { expect, test } from '../support/ux-test';
@@ -136,6 +141,48 @@ test('the export dialog and the library carry their help markers', { tag: '@expo
   await expectHelpMarker(exportDialog.byId('export-range-start'), 'export-range');
   await library.goto();
   await expectHelpMarker(shell.root, 'library');
+});
+
+// Help topics of features 009 and 010 (009 FR-015, 010 FR-014). None needs a generator: tagged
+// @styles, so `npm run test:styles` covers them on every stack.
+test('the 009/010 reference queries return their topic first, and each topic opens', { tag: '@styles' }, async ({ help, page }) => {
+  await page.goto('/styles');
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, generativeReferenceQueries);
+});
+
+test('the style, generation, song and voice pages open their screen topic', { tag: '@styles' }, async ({ help, page, shell }) => {
+  for (const [path, topicId] of Object.entries(generativeScreenTopics)) {
+    await page.goto(path);
+    await shell.waitForShell();
+    await help.open('button');
+    await help.expectTopic(topicId);
+    await help.closeWithEscape();
+    await expect(help.panel).toBeHidden();
+  }
+});
+
+test('the rail links reach the generation, style, song, lyrics and voice pages (ui-test-ids 1.8.0, 1.9.0)', { tag: '@styles' }, async ({ page, shell }) => {
+  await page.goto('/');
+  await expectRendered(page, generativeNavIds);
+  for (const target of ['generations', 'styles', 'songs', 'lyrics', 'voices'] as const) {
+    await shell.navigate(target);
+    await expect(page).toHaveURL(navPaths[target]);
+  }
+});
+
+test('the style, generation, song and voice pages carry their help markers', { tag: '@styles' }, async ({ page, shell }) => {
+  for (const [path, topicIds] of Object.entries(generativePageMarkers)) {
+    await page.goto(path);
+    for (const topicId of topicIds) {
+      await expectHelpMarker(shell.root, topicId);
+    }
+  }
+  await page.goto('/voices');
+  await expectHelpMarker(shell.root, 'voice-profiles');
+  await page.getByTestId('voice-new').click();
+  await expect(page.getByTestId('voice-consent-text')).toBeVisible();
+  await expectHelpMarker(shell.root, 'voice-consent');
 });
 
 test.describe('at Beginner', () => {

@@ -15,6 +15,11 @@ export class TrackListPage {
     return this.page.getByTestId(`track-row-status-${trackId}`);
   }
 
+  /** "AI" text badge of a generated track's row (ui-test-ids 1.8.0). */
+  aiBadge(trackId: string): Locator {
+    return this.page.getByTestId(`track-ai-badge-${trackId}`);
+  }
+
   /** Opens `/tracks`. */
   async goto(): Promise<void> {
     await this.page.goto('/tracks');
