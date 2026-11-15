@@ -56,21 +56,32 @@ def load_f0_module(source: Path) -> ModuleType:
     return module
 
 
+def _librosa_16k(librosa: Any) -> Any:
+    """``path -> 16 kHz mono float32`` over ``librosa.load``."""
+    return lambda path: librosa.load(path, sr=16_000, mono=True)[0]
+
+
 def import_soulx() -> SoulXApi:  # pragma: no cover - needs the soulx image variant
     """Import SoulX-Singer, torch and librosa."""
     import librosa  # noqa: PLC0415
     import soulxsinger  # noqa: PLC0415
     import torch  # noqa: PLC0415
+
+    svc, load_config, load_wav, whisper = _soulx_parts()
+    source = Path(soulxsinger.__file__).resolve().parent.parent
+    f0 = load_f0_module(source)
+    return SoulXApi(
+        svc=svc, load_config=load_config, load_wav=load_wav, f0_extractor=f0.F0Extractor,
+        rmvpe=f0.RMVPE, load_16k=_librosa_16k(librosa), torch=torch, whisper=whisper,
+        config_path=source / CONFIG_FILE,
+    )  # fmt: skip
+
+
+def _soulx_parts() -> tuple[Any, Any, Any, Any]:  # pragma: no cover - soulx image variant
+    """SVC model class, config and wav loaders, whisper encoder module."""
     from soulxsinger.models.modules import whisper_encoder  # noqa: PLC0415
     from soulxsinger.models.soulxsinger_svc import SoulXSingerSVC  # noqa: PLC0415
     from soulxsinger.utils.audio_utils import load_wav  # noqa: PLC0415
     from soulxsinger.utils.file_utils import load_config  # noqa: PLC0415
 
-    source = Path(soulxsinger.__file__).resolve().parent.parent
-    f0 = load_f0_module(source)
-    return SoulXApi(
-        svc=SoulXSingerSVC, load_config=load_config, load_wav=load_wav,
-        f0_extractor=f0.F0Extractor, rmvpe=f0.RMVPE,
-        load_16k=lambda path: librosa.load(path, sr=16_000, mono=True)[0], torch=torch,
-        whisper=whisper_encoder, config_path=source / CONFIG_FILE,
-    )  # fmt: skip
+    return SoulXSingerSVC, load_config, load_wav, whisper_encoder

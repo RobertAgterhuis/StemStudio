@@ -87,7 +87,8 @@ class _Generate:
     def __init__(self, recorder: Recorder) -> None:
         self.recorder = recorder
 
-    def __call__(self, dit: Any, llm: Any, p: Params, c: Params, **kwargs: Any) -> Result:
+    def __call__(self, *args: Any, **kwargs: Any) -> Result:
+        _, _, p, c = args
         save_dir, progress = kwargs["save_dir"], kwargs["progress"]
         self.recorder.calls.append((p, c, save_dir))
         for value, desc in ((0.3, "Generating music (batch size: 1)..."), (0.9, "Decoding...")):

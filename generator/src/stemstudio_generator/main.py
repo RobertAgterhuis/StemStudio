@@ -137,10 +137,15 @@ def compose(settings: GeneratorSettings, wiring: Wiring | None = None) -> Compos
         new_id=wiring.new_id, on_start=lambda: _start(scheduler, store, wiring),
         on_stop=scheduler.stop,
     )  # fmt: skip
+    _add_voice_samples(context, settings, wiring.clock)
+    return Composition(create_app(context), scheduler, store, files, devices.gate)
+
+
+def _add_voice_samples(context: ApiContext, settings: GeneratorSettings, clock: Clock) -> None:
+    """Voice-sample checks on the singer service (``voiceSampleCheck``)."""
     if settings.voice_sample_check:
         context.analyzer = SampleAnalyzer(_pitch_tracker(settings))
-        context.samples = CheckedSamples(settings.data_dir / "samples", wiring.clock)
-    return Composition(create_app(context), scheduler, store, files, devices.gate)
+        context.samples = CheckedSamples(settings.data_dir / "samples", clock)
 
 
 def create() -> FastAPI:
@@ -185,17 +190,38 @@ def _handlers(
     settings: GeneratorSettings, wiring: Wiring, files: JobFiles
 ) -> dict[GenerationKind, JobHandler]:
     writer = wiring.writer or FlacWriter()
-    handlers: dict[GenerationKind, JobHandler] = {}
-    if {"restyle", "song"} & set(settings.kinds):
-        engine = _music_engine(settings, wiring)
-        output = TakeOutput(writer, TakeIdentity(MUSIC_TAKE_MODEL, MUSIC_GENERATOR_LABEL), files)
-        handlers["restyle"] = RestyleHandler(engine, AudioStemMixer(), output)
-        handlers["song"] = SongHandler(engine, output)
-    if "voiceConversion" in settings.kinds:
-        voice = TakeOutput(writer, TakeIdentity(VOICE_TAKE_MODEL, VOICE_GENERATOR_LABEL), files)
-        converter = _converter(settings, wiring)
-        handlers["voiceConversion"] = ConversionHandler(converter, AudioVoiceRemixer(), voice)
+    handlers = {
+        **_music_handlers(settings, wiring, TakeOutput(writer, _MUSIC, files)),
+        **_voice_handlers(settings, wiring, TakeOutput(writer, _VOICE, files)),
+    }
     return {kind: handler for kind, handler in handlers.items() if kind in settings.kinds}
+
+
+_MUSIC: Final = TakeIdentity(MUSIC_TAKE_MODEL, MUSIC_GENERATOR_LABEL)
+_VOICE: Final = TakeIdentity(VOICE_TAKE_MODEL, VOICE_GENERATOR_LABEL)
+
+
+def _music_handlers(
+    settings: GeneratorSettings, wiring: Wiring, output: TakeOutput
+) -> dict[GenerationKind, JobHandler]:
+    """Restyle and song share one ACE-Step engine (the generator service)."""
+    if not {"restyle", "song"} & set(settings.kinds):
+        return {}
+    engine = _music_engine(settings, wiring)
+    return {
+        "restyle": RestyleHandler(engine, AudioStemMixer(), output),
+        "song": SongHandler(engine, output),
+    }
+
+
+def _voice_handlers(
+    settings: GeneratorSettings, wiring: Wiring, output: TakeOutput
+) -> dict[GenerationKind, JobHandler]:
+    """Voice conversion (the singer service)."""
+    if "voiceConversion" not in settings.kinds:
+        return {}
+    converter = _converter(settings, wiring)
+    return {"voiceConversion": ConversionHandler(converter, AudioVoiceRemixer(), output)}
 
 
 def _music_engine(settings: GeneratorSettings, wiring: Wiring) -> MusicEngine:

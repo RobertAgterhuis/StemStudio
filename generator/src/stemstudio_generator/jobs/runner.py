@@ -4,8 +4,9 @@ Per job (data-model 2.4): ``waitingForGpu`` until the gate admits a ``GpuNeed``;
 ``downloadingModel`` while missing weights are fetched (else "Loading model"); ``running``
 while the kind's handler works; then ``completed``, ``failed`` or ``cancelled``. A GPU
 out-of-memory error unloads the engine and retries the step **once** with the low-memory
-needs (stage "Retrying with low memory"); a second OOM, or an OOM without a low-memory
-profile, fails with the readable ``outOfMemory`` text (ADR-018 D4). Expected failures
+needs (stage "Retrying with low memory"; the same needs when the kind has no low-memory
+profile, SoulX-SVC); a second OOM, or an OOM on a low-memory profile, fails with the readable
+``outOfMemory`` text (ADR-018 D4). Expected failures
 (``GeneratorError``) keep their code and message; anything else is logged and reported as a
 generic ``engineError`` (no internals in the message).
 """
