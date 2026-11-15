@@ -66,7 +66,7 @@ class PillowImageNormalizer:
             client: Allow-listed online client used for URL candidates; without one, URL
                 candidates fail with ``ArtworkFetchError``.
         """
-        self._client = client
+        self.client = client
 
     def normalize(self, candidate: ArtworkCandidate) -> ArtworkImages:
         """Normalise ``candidate`` (see ``ports.ImageNormalizer.normalize``).
@@ -86,10 +86,10 @@ class PillowImageNormalizer:
 
     def _download(self, url: str | None) -> bytes:
         """Download a URL candidate through the allow-listed client."""
-        if self._client is None or url is None:
+        if self.client is None or url is None:
             raise ArtworkFetchError(_FETCH_FAILED)
         try:
-            response = self._client.get(url)
+            response = self.client.get(url)
         except OnlineRequestError as exc:
             _LOG.info("Picture download failed: %s", exc)
             raise ArtworkFetchError(_FETCH_FAILED) from None

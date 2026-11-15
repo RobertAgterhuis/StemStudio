@@ -9,9 +9,14 @@ MusicBrainz core data is CC0.
 import re
 from typing import Annotated, Final
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
-from stemstudio_worker.metadata.http import OnlineClient, OnlineRequestError, OnlineResponse
+from stemstudio_worker.metadata.http import (
+    LenientModel,
+    OnlineClient,
+    OnlineResponse,
+    parse_answer,
+)
 from stemstudio_worker.metadata.matcher import (
     DURATION_WINDOW_SECONDS,
     Candidate,
@@ -23,7 +28,7 @@ from stemstudio_worker.metadata.matcher import (
 )
 from stemstudio_worker.metadata.titles import clean_title
 from stemstudio_worker.ports import MetadataQuery
-from stemstudio_worker.schemas import ArtistType, Mbid
+from stemstudio_worker.schemas import ArtistType, Mbid, ReleaseGroupInfo
 
 MB_ROOT: Final = "https://musicbrainz.org/ws/2"
 """Root of the MusicBrainz web service."""
@@ -47,69 +52,72 @@ _COUNTRY: Final = re.compile(r"[A-Z]{2}")
 _WIKIDATA_URL: Final = re.compile(r"https://www\.wikidata\.org/wiki/(Q[0-9]+)")
 
 
-class _Model(BaseModel):
-    """Lenient base: unknown fields are ignored, values are validated."""
-
-    model_config = ConfigDict(extra="ignore", frozen=True)
-
-
-class _ArtistRef(_Model):
+class _ArtistRef(LenientModel):
     id: Mbid | None = None
 
 
-class _Credit(_Model):
+class _Credit(LenientModel):
     name: str = ""
     joinphrase: str = ""
     artist: _ArtistRef | None = None
 
 
-class _ReleaseGroup(_Model):
+class _ReleaseGroup(LenientModel):
     id: Mbid
     title: Annotated[str, Field(min_length=1)]
     primary_type: str | None = Field(default=None, alias="primary-type")
-    secondary_types: list[str] = Field(default=[], alias="secondary-types")
+    secondary_types: list[str] = Field(default_factory=list, alias="secondary-types")
 
 
-class _Release(_Model):
+class _Release(LenientModel):
     status: str | None = None
     date: str | None = None
     release_group: _ReleaseGroup | None = Field(default=None, alias="release-group")
 
 
-class _Recording(_Model):
+class _Recording(LenientModel):
     id: Mbid
     title: Annotated[str, Field(min_length=1)]
     length: Annotated[int, Field(gt=0)] | None = None
     score: int = 0
-    artist_credit: list[_Credit] = Field(default=[], alias="artist-credit")
-    releases: list[_Release] = []
+    artist_credit: list[_Credit] = Field(default_factory=list, alias="artist-credit")
+    releases: list[_Release] = Field(default_factory=list)
 
 
-class _Search(_Model):
-    recordings: list[_Recording] = []
+class _Search(LenientModel):
+    recordings: list[_Recording] = Field(default_factory=list)
 
 
-class _Url(_Model):
+class _ReleaseGroupDetail(LenientModel):
+    id: Mbid
+    title: Annotated[str, Field(min_length=1)]
+    primary_type: Annotated[str, Field(max_length=50)] | None = Field(
+        default=None, alias="primary-type"
+    )
+    first_release_date: str | None = Field(default=None, alias="first-release-date")
+
+
+class _Url(LenientModel):
     resource: str
 
 
-class _Relation(_Model):
+class _Relation(LenientModel):
     type: str = ""
     url: _Url | None = None
 
 
-class _LifeSpan(_Model):
+class _LifeSpan(LenientModel):
     begin: str | None = None
     end: str | None = None
 
 
-class _Artist(_Model):
+class _Artist(LenientModel):
     id: Mbid
     name: Annotated[str, Field(min_length=1)]
     type: str | None = None
     country: str | None = None
     life_span: _LifeSpan = Field(default=_LifeSpan(), alias="life-span")
-    relations: list[_Relation] = []
+    relations: list[_Relation] = Field(default_factory=list)
 
 
 class ArtistFacts(BaseModel):
@@ -196,6 +204,23 @@ class MusicBrainz:
         params = {"query": text, "fmt": "json", "limit": str(SEARCH_LIMIT)}
         return select(self._candidates(f"{MB_ROOT}/recording", params), query, "search")
 
+    def release_group(self, mbid: str) -> ReleaseGroupInfo | None:
+        """Read release group ``mbid`` (title, primary type, first release year).
+
+        Raises:
+            OnlineRequestError: The request failed after retries or the answer was malformed.
+        """
+        response = self._client.get(f"{MB_ROOT}/release-group/{mbid}", {"fmt": "json"})
+        if response is None:
+            return None
+        raw = _parse(response, _ReleaseGroupDetail)
+        return ReleaseGroupInfo(
+            mbid=raw.id,
+            title=raw.title[:500],
+            primary_type=raw.primary_type,
+            first_release_year=year_of(raw.first_release_date),
+        )
+
     def artist(self, mbid: str) -> ArtistFacts | None:
         """Read the facts of artist ``mbid`` (None when MusicBrainz does not know it).
 
@@ -219,12 +244,8 @@ class MusicBrainz:
 
 
 def _parse[M: BaseModel](response: OnlineResponse, model: type[M]) -> M:
-    """Validate a JSON answer; anything unexpected is an ``OnlineRequestError``."""
-    try:
-        return model.model_validate_json(response.content)
-    except ValidationError:
-        msg = "MusicBrainz sent an answer that could not be read"
-        raise OnlineRequestError(msg) from None
+    """Validate a MusicBrainz JSON answer."""
+    return parse_answer(response, model, "MusicBrainz")
 
 
 def _candidate(raw: _Recording) -> Candidate:

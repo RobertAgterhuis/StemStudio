@@ -13,14 +13,14 @@ from .fakes import json_response, online_harness, routed_client
 from .reference import load, router_for
 
 
-def _summary(title: str, lang: str = "en", **changes: Any) -> dict[str, Any]:
+def _summary(name: str, lang: str = "en", **changes: Any) -> dict[str, Any]:
     body: dict[str, Any] = {
         "type": "standard",
-        "title": title,
+        "title": name,
         "lang": lang,
-        "extract": f"Placeholder summary written for the StemStudio tests about {title}.",
+        "extract": f"Placeholder summary written for the StemStudio tests about {name}.",
         "revision": 1250000009,
-        "content_urls": {"desktop": {"page": f"https://{lang}.wikipedia.org/wiki/{title}"}},
+        "content_urls": {"desktop": {"page": f"https://{lang}.wikipedia.org/wiki/{name}"}},
     }
     body.update(changes)
     return body

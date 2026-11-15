@@ -97,18 +97,12 @@ def test_caps_genres_members_and_label_ids() -> None:
 
 
 def test_dissolved_group_end_year_and_member_qualifiers() -> None:
+    since_1971 = {"P580": [{"datavalue": {"value": _time("+1971-00-00T00:00:00Z")}}]}
+    decade_only = {"P582": [{"datavalue": {"value": _time("+1980-00-00T00:00:00Z", 8)}}]}
     claims = {
         "P571": [_claim(_time("+1970-01-01T00:00:00Z", 11))],
         "P576": [_claim(_time("+1999-00-00T00:00:00Z"))],
-        "P527": [
-            _claim(
-                {"id": "Q5"}, {"P580": [{"datavalue": {"value": _time("+1971-00-00T00:00:00Z")}}]}
-            ),
-            _claim(
-                {"id": "Q6"},
-                {"P582": [{"datavalue": {"value": _time("+1980-00-00T00:00:00Z", 8)}}]},
-            ),
-        ],
+        "P527": [_claim({"id": "Q5"}, since_1971), _claim({"id": "Q6"}, decade_only)],
     }
     harness = online_harness([_entity("Q1", claims), _labels({"Q5": "A", "Q6": "B"})])
 
@@ -145,12 +139,13 @@ def test_items_without_a_label_or_an_id_are_skipped() -> None:
         ],
         "P856": [_claim("http://insecure.example/"), _claim(42)],
     }
+    claims["P527"] = [_claim({"id": "Q9"})]
     harness = online_harness([_entity("Q1", claims), _labels({"Q7": "rock"})])
 
     facts = Wikidata(harness.client).facts("Q1", LANGUAGES)
 
     assert facts.genres == ["rock"]
-    assert facts.website is None
+    assert (facts.members, facts.website) == ([], None)
 
 
 def test_long_labels_are_cut() -> None:

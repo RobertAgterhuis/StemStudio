@@ -16,6 +16,7 @@ from typing import Final
 from urllib.parse import urljoin, urlsplit
 
 import httpx
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from stemstudio_worker.config import OnlineSettings
 from stemstudio_worker.metadata.ratelimit import (
@@ -115,6 +116,30 @@ class RequestPacing:
     sleep: Callable[[float], None] = time.sleep
     now: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
     jitter: Callable[[], float] = random.random
+
+
+class LenientModel(BaseModel):
+    """Base of the response models: unknown fields are ignored, known ones validated."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+
+def parse_answer[M: BaseModel](response: OnlineResponse, model: type[M], service: str) -> M:
+    """Validate a JSON answer of ``service``; anything unexpected is an ``OnlineRequestError``.
+
+    Args:
+        response: The 200 response.
+        model: The response model.
+        service: Service name for the error message, e.g. ``"Wikidata"``.
+
+    Returns:
+        The validated answer.
+    """
+    try:
+        return model.model_validate_json(response.content)
+    except ValidationError:
+        msg = f"{service} sent an answer that could not be read"
+        raise OnlineRequestError(msg) from None
 
 
 def is_allowed_url(url: str) -> bool:

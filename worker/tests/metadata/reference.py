@@ -41,8 +41,7 @@ def router_for(reference: dict[str, Any]) -> Router:
         router.add(MB_HOST, exchange["request"]["path"], _reply(exchange["response"]))
     _add_cover_art(router, reference["coverArtArchive"])
     for exchange in reference["wikidata"]:
-        props = _props(exchange["request"]["query"])
-        router.add("www.wikidata.org", "/w/api.php", _reply(exchange["response"]), props=props)
+        router.add_wikidata(_props(exchange["request"]["query"]), _reply(exchange["response"]))
     for exchange in reference["wikipedia"]:
         request = exchange["request"]
         router.add(request["host"], request["path"], _reply(exchange["response"]))
@@ -75,8 +74,7 @@ def search_reply(
     reference: dict[str, Any], recording_mbid: str, title: str, length_ms: int
 ) -> httpx.Response:
     """A recording search answer whose only hit is the reference recording."""
-    expected = reference["expected"]
-    artist, group = expected["artist"], expected["releaseGroup"]
+    artist = reference["expected"]["artist"]
     recording = {
         "id": recording_mbid,
         "score": 100,
@@ -85,16 +83,20 @@ def search_reply(
         "artist-credit": [
             {"name": artist["name"], "artist": {"id": artist["mbid"], "name": artist["name"]}}
         ],
-        "releases": [
-            {
-                "status": "Official",
-                "date": f"{group['firstReleaseYear']}-12-31",
-                "release-group": {
-                    "id": group["mbid"],
-                    "title": group["title"],
-                    "primary-type": group["primaryType"],
-                },
-            }
-        ],
+        "releases": [_release(reference["expected"]["releaseGroup"])],
     }
     return httpx.Response(200, json={"recordings": [recording]})
+
+
+def _release(group: dict[str, Any]) -> dict[str, Any]:
+    """An official release of the reference release group (dated at the end of its year)."""
+    release_group = {
+        "id": group["mbid"],
+        "title": group["title"],
+        "primary-type": group["primaryType"],
+    }
+    return {
+        "status": "Official",
+        "date": f"{group['firstReleaseYear']}-12-31",
+        "release-group": release_group,
+    }

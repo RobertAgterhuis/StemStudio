@@ -88,8 +88,11 @@ class Router:
     routes: dict[RouteKey, list[httpx.Response]] = field(default_factory=dict)
     requests: list[httpx.Request] = field(default_factory=list)
 
-    def add(self, host: str, path: str, *replies: httpx.Response, props: str = "") -> None:
-        self.routes.setdefault((host, path, props), []).extend(replies)
+    def add(self, host: str, path: str, *replies: httpx.Response) -> None:
+        self.routes.setdefault((host, path, ""), []).extend(replies)
+
+    def add_wikidata(self, props: str, *replies: httpx.Response) -> None:
+        self.routes.setdefault(("www.wikidata.org", "/w/api.php", props), []).extend(replies)
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)

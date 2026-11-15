@@ -1,4 +1,4 @@
-"""005:T033: ``MetadataLookup`` orchestration (FR-003, FR-008, FR-010, SC-005, data-model 2.4-2.7)."""
+"""005:T033: ``MetadataLookup`` orchestration (FR-003/008/010, SC-005, data-model 2.4-2.7)."""
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -19,6 +19,7 @@ from stemstudio_worker.schemas import (
     COVER_WARNING_TEXT,
     METADATA_FAILED_TEXT,
     WIKIPEDIA_WARNING_TEXT,
+    MetadataResult,
 )
 
 from .fakes import USER_AGENT, Router, routed_client
@@ -100,6 +101,13 @@ def test_metallica_reference_flow() -> None:
     assert result.recording.mbid == HERO
     assert result.release_group is not None
     assert result.release_group.model_dump(by_alias=True) == expected["releaseGroup"]
+    _check_artist(result, expected)
+    fractions = [fraction for fraction, _ in stages.seen]
+    assert [stage for _, stage in stages.seen] == list(STAGES)
+    assert fractions == sorted(fractions)
+
+
+def _check_artist(result: MetadataResult, expected: dict[str, Any]) -> None:
     assert result.artist is not None
     artist = result.artist.model_dump(by_alias=True, exclude={"summary", "fetched_at"})
     assert artist == expected["artist"]
@@ -107,10 +115,27 @@ def test_metallica_reference_flow() -> None:
     summary = result.artist.summary.model_dump(by_alias=True)
     assert {key: summary[key] for key in expected["summary"]} == expected["summary"]
     assert result.artist.fetched_at == FETCHED_AT
-    assert [stage for _, stage in stages.seen] == list(STAGES)
-    assert [fraction for fraction, _ in stages.seen] == sorted(
-        fraction for fraction, _ in stages.seen
-    )
+
+
+def test_default_clock_is_utc_now() -> None:
+    _, router = _metallica()
+    before = datetime.now(UTC)
+
+    lookup = OnlineMetadataLookup(routed_client(router), SETTINGS)
+    result = lookup.lookup(METALLICA_QUERY, Stages()).result
+
+    assert result.artist is not None
+    assert before <= result.artist.fetched_at <= datetime.now(UTC)
+
+
+def test_missing_release_group_details_keep_the_search_release_group() -> None:
+    path = "/ws/2/release-group/e389b7df-862d-3d91-a612-acca150f6e71"
+    router = _failing(MB_HOST, path, httpx.Response(404))
+
+    result = _lookup(router).lookup(METALLICA_QUERY, Stages()).result
+
+    assert result.release_group is not None
+    assert result.release_group.title == "Load"
 
 
 def test_metallica_cover_comes_from_the_cover_art_archive() -> None:
@@ -130,20 +155,13 @@ def test_kevin_macleod_reference_flow_by_isrc() -> None:
     router = router_for(reference)
     isrc_reply = search_reply(reference, MONKEYS, "Monkeys Spinning Monkeys", 125000)
     router.add(MB_HOST, "/ws/2/isrc/USUAN1400011", isrc_reply)
-    query = MetadataQuery(
-        title="Monkeys Spinning Monkeys",
-        artist="Kevin MacLeod",
-        duration_seconds=125.0,
-        isrc="USUAN1400011",
-    )
+    query = MetadataQuery(title="Monkeys Spinning Monkeys", artist="Kevin", isrc="USUAN1400011")
 
     result = _lookup(router).lookup(query, Stages()).result
 
     assert result.recording is not None
     assert (result.recording.matched_by, result.warnings) == ("isrc", [])
-    assert result.artist is not None
-    expected = reference["expected"]["artist"]
-    assert result.artist.model_dump(by_alias=True, exclude={"summary", "fetched_at"}) == expected
+    _check_artist(result, reference["expected"])
 
 
 def test_requests_carry_the_user_agent_and_only_the_allowed_fields() -> None:

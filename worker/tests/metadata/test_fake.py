@@ -10,8 +10,17 @@ from typing import Any
 
 import pytest
 
-from stemstudio_worker.config import FakeOnlineMode, OnlineSettings, WorkerSettings
-from stemstudio_worker.metadata import create_image_normalizer, create_metadata_lookup
+from stemstudio_worker.config import (
+    FakeOnlineMode,
+    OnlineSettings,
+    SeparatorKind,
+    WorkerSettings,
+)
+from stemstudio_worker.metadata import (
+    create_image_normalizer,
+    create_metadata_lookup,
+    create_source_details,
+)
 from stemstudio_worker.metadata.fake import (
     FAKE_SOURCE_COLOUR,
     FakeImageNormalizer,
@@ -19,6 +28,7 @@ from stemstudio_worker.metadata.fake import (
 )
 from stemstudio_worker.metadata.images import PillowImageNormalizer
 from stemstudio_worker.metadata.lookup import OnlineMetadataLookup
+from stemstudio_worker.metadata.source_artwork import SourceDetailsReader
 from stemstudio_worker.ports import (
     ArtworkCandidate,
     ImageNormalizer,
@@ -97,13 +107,16 @@ def test_found_artist_is_exactly_the_listed_artist() -> None:
     artist = _run("found").result.artist
 
     assert artist is not None
-    dumped = artist.model_dump(by_alias=True, mode="json")
-    expected = FOUND["artist"]
-    assert {key: dumped[key] for key in expected if key != "summary"} == {
-        key: value for key, value in expected.items() if key != "summary"
-    }
-    summary = dumped["summary"]
-    assert {key: summary[key] for key in expected["summary"]} == expected["summary"]
+    expected = dict(FOUND["artist"])
+    expected_summary = expected.pop("summary")
+    assert _subset(artist.model_dump(by_alias=True, mode="json"), expected) == expected
+    assert artist.summary is not None
+    assert _subset(artist.summary.model_dump(by_alias=True), expected_summary) == expected_summary
+
+
+def _subset(values: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
+    """The entries of ``values`` whose keys ``expected`` lists."""
+    return {key: values.get(key) for key in expected}
 
 
 def test_found_result_names_every_listed_source() -> None:
@@ -157,10 +170,10 @@ def test_fake_normalizer_re_encodes_embedded_pictures() -> None:
     assert close_to(pixel(images.cover, (300, 300)), (10, 200, 10))
 
 
-def _settings(separator: str, **online: Any) -> WorkerSettings:
+def _settings(separator: SeparatorKind, **online: Any) -> WorkerSettings:
     return WorkerSettings(
         data_dir=Path("unused"), separator=separator, online=OnlineSettings(**online)
-    )  # type: ignore[arg-type]
+    )
 
 
 def test_factories_build_the_fakes_on_the_fake_stack() -> None:
@@ -187,5 +200,10 @@ def test_factories_build_the_online_adapters_with_one_shared_client() -> None:
 
     assert isinstance(lookup, OnlineMetadataLookup)
     assert isinstance(normalizer, PillowImageNormalizer)
-    assert lookup.client is normalizer.client
-    assert create_image_normalizer(settings).client is normalizer.client
+    again = create_image_normalizer(settings)
+    assert isinstance(again, PillowImageNormalizer)
+    assert lookup.client is normalizer.client is again.client
+
+
+def test_source_details_factory() -> None:
+    assert isinstance(create_source_details(_settings("demucs")), SourceDetailsReader)
