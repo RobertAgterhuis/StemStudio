@@ -1,8 +1,5 @@
 # Synced lyrics and the karaoke ball
 
-<span class="planned">In development</span> Feature 006. This chapter describes the
-specified behaviour.
-
 Sing along with time-synced lyrics in a banner at the bottom of the mixer.
 
 ## The karaoke banner
@@ -23,13 +20,15 @@ Instrumental songs have no banner; the track page says *"Instrumental - no lyric
 
 ## Where the lyrics come from
 
-During import StemStudio looks up synced lyrics in the free LRCLIB database. The song's
-duration must match within two seconds.
+During import StemStudio looks up synced lyrics in the free LRCLIB database, using the
+song's title, artist, album and duration. The duration must match within two seconds. When
+online lookups are switched off, no lyrics are looked up; you can still paste your own.
 
 When only plain (unsynced) lyrics are found, or when you paste your own text, StemStudio can
 **align** them to the vocal stem with a speech model:
 
-- With a GPU this happens automatically after the stems are ready (about a minute).
+- With a GPU this happens automatically after the stems are ready (on the reference
+  machine the alignment itself takes a few seconds; loading the model about 20 seconds).
 - On a CPU you press **Align lyrics**; the button shows how long it will take. You can
   cancel it.
 - The first alignment downloads the speech model (1.6 GB).

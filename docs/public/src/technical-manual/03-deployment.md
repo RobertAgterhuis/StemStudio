@@ -91,6 +91,12 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `STEMSTUDIO_LIBRARY_DIR` | worker | unset (compose: `/library`) | 007: the API data volume mounted **read-only**; unset means renders fail with *"The library is not available to the worker"* |
 | `STEMSTUDIO_RENDER_BLOCK_SECONDS` | worker | `10` | 007: render block length (> 0) |
 | `StemStudio__MinFreeDiskBytes` | api | 1073741824 (1 GiB) | 007: exports are refused (409 *"Not enough disk space"*) while less is free on the data drive |
+| `STEMSTUDIO_ALIGN_MODEL` | worker | `turbo` | 006: Whisper model for lyrics alignment, `turbo` (large-v3-turbo, 1.6 GB, downloaded into `/models/whisper` at the first alignment) or `small` |
+| `STEMSTUDIO_ALIGN_AUTO` | worker | `gpu` | 006: when plain lyrics are aligned without a click: `gpu` (only on a GPU worker), `always`, `never` |
+| `STEMSTUDIO_FAKE_LYRICS` | worker | `word` | 006, fake stack only: `word`, `line`, `plain`, `instrumental`, `not-found`, `failed` |
+| `STEMSTUDIO_TRANSCRIBER` | worker | `real` (fake with the fake separator) | 008: transcription engine |
+| `STEMSTUDIO_TRANSCRIBE_THREADS` | worker | `8` | 008: intra-op threads of the transcribe lane (1-64) |
+| `StemStudio__ScoreEstimates__*` | api | see below | 008: seconds per audio second of the estimate shown in the score dialog |
 
 Online lookups (005) identify themselves with the User-Agent
 `StemStudio/<worker version> ( <STEMSTUDIO_CONTACT_URL> )`, or
@@ -99,12 +105,17 @@ URL is set. Check the read-only library mount with `scripts/check-library-mount.
 the non-Docker path `scripts/dev.{ps1,sh}` points `STEMSTUDIO_LIBRARY_DIR` at the API data
 folder; the worker only reads it, but the file system does not enforce that there.
 
+The score estimates (008) are `duration × factor + 5 s` (+ 60 s while the piano model is not
+downloaded). The defaults were set from the reference-machine measurements of the integration
+run (RTX 5070 Ti, 8 CPU threads): `BasicPitchCpu` 0.05, `PianoCrnnCpu` 0.45, `PianoCrnnGpu` 0.2,
+`DrumOnsets` 0.02 s/s. On a slower CPU raise `StemStudio__ScoreEstimates__PianoCrnnCpu`. The
+worker image installs the Leipzig music font (OFL-1.1) for Verovio; check it with
+`scripts/check-worker-fonts.{sh,ps1}`.
+
 Planned settings of later features <span class="planned">In development</span>:
 
 | Variable | Feature | Default | Meaning |
 |---|---|---|---|
-| `STEMSTUDIO_ALIGN_MODEL`, `STEMSTUDIO_ALIGN_AUTO` | 006 | `turbo`, `gpu` | Lyrics alignment model and when it runs |
-| `STEMSTUDIO_TRANSCRIBER`, `STEMSTUDIO_TRANSCRIBE_THREADS` | 008 | `real`, `8` | Transcription engine and threads |
 | `StemStudio__GeneratorBaseUrl`, `StemStudio__SingerBaseUrl` | 009, 010 | unset | Unset means "not installed" |
 | `STEMSTUDIO_GPU_LEASE_FILE` | 009 | `/gpu-lease/gpu.lock` | Cross-container GPU lease |
 | `STEMSTUDIO_GPU_LEASE_WAIT_SECONDS` | 009 | `900` | Worker wait before CPU fallback |

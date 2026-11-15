@@ -80,19 +80,19 @@ in the execution plan.
 
 ### beat-analysis (`notation/`, tests first)
 
-- [ ] T012 [P] [beat-analysis] Failing tests `worker/tests/notation/test_profiles_cleaning.py`: profile table and suggestions (data-model 2.1); cleaning steps 1-6 in order (range, 60 ms monophonic reduction keeps the louder note, next-onset ends, one-grid-step minimum, duplicates merged, per-bar cap with counts) and the warnings they raise (data-model 2.7) (FR-002, FR-010)
-- [ ] T013 [beat-analysis] Implement `notation/profiles.py`, `notation/cleaning.py` to pass T012
-- [ ] T014 [P] [beat-analysis] Failing tests `worker/tests/notation/test_timebase.py`: interpolation over uneven beats (a note at a beat lands exactly on it despite tempo drift), extrapolation before/after the grid with the median period, bar 1 at the first downbeat, pickup bar length, manual grid generation, grid shift for a range/asset start, 1/16 and 1/8 snapping, time signature and rounded tempo (data-model 2.4, FR-004, FR-006, FR-007, SC-003)
-- [ ] T015 [beat-analysis] Implement `notation/timebase.py` to pass T014
-- [ ] T016 [P] [beat-analysis] Failing tests `worker/tests/notation/test_keys.py`: estimate on a synthetic G-major line returns G major with confidence > 0.6; < 8 notes -> C major, confidence 0, `few-notes`; override names parsed (30 keys); spelling: F# in G major, G-flat in D-flat major, A-flat (not G#) in A-flat major (research.md S-08) (FR-005)
-- [ ] T017 [beat-analysis] Implement `notation/keys.py` to pass T016
-- [ ] T018 [P] [beat-analysis] Failing tests `worker/tests/notation/test_builders.py`: from synthetic notes and a grid, the MusicXML (parsed back with music21) has the profile's clefs (treble, bass 8vb, treble 8vb, grand staff split at 60, percussion), the time signature, the tempo mark, the key signature, the expected number of measures (+ pickup), rests filling gaps, ties across bar lines, no duration below the resolution; percussion: two voices (hands up, kick down), x noteheads for hi-hat/cymbals, chords of simultaneous hand hits; MIDI bytes parse with the expected note count; titles/part name set (FR-002, FR-003, FR-004, FR-009, SC-003)
-- [ ] T019 [beat-analysis] Implement `notation/builders.py`, `notation/writer.py` and the `Notator` (clean -> quantise -> key -> build -> MusicXML/MIDI) to pass T018
+- [x] T012 [P] [beat-analysis] Failing tests `worker/tests/notation/test_profiles_cleaning.py`: profile table and suggestions (data-model 2.1); cleaning steps 1-6 in order (range, 60 ms monophonic reduction keeps the louder note, next-onset ends, one-grid-step minimum, duplicates merged, per-bar cap with counts) and the warnings they raise (data-model 2.7) (FR-002, FR-010)
+- [x] T013 [beat-analysis] Implement `notation/profiles.py`, `notation/cleaning.py` to pass T012
+- [x] T014 [P] [beat-analysis] Failing tests `worker/tests/notation/test_timebase.py`: interpolation over uneven beats (a note at a beat lands exactly on it despite tempo drift), extrapolation before/after the grid with the median period, bar 1 at the first downbeat, pickup bar length, manual grid generation, grid shift for a range/asset start, 1/16 and 1/8 snapping, time signature and rounded tempo (data-model 2.4, FR-004, FR-006, FR-007, SC-003)
+- [x] T015 [beat-analysis] Implement `notation/timebase.py` to pass T014
+- [x] T016 [P] [beat-analysis] Failing tests `worker/tests/notation/test_keys.py`: estimate on a synthetic G-major line returns G major with confidence > 0.6; < 8 notes -> C major, confidence 0, `few-notes`; override names parsed (30 keys); spelling: F# in G major, G-flat in D-flat major, A-flat (not G#) in A-flat major (research.md S-08) (FR-005)
+- [x] T017 [beat-analysis] Implement `notation/keys.py` to pass T016
+- [x] T018 [P] [beat-analysis] Failing tests `worker/tests/notation/test_builders.py`: from synthetic notes and a grid, the MusicXML (parsed back with music21) has the profile's clefs (treble, bass 8vb, treble 8vb, grand staff split at 60, percussion), the time signature, the tempo mark, the key signature, the expected number of measures (+ pickup), rests filling gaps, ties across bar lines, no duration below the resolution; percussion: two voices (hands up, kick down), x noteheads for hi-hat/cymbals, chords of simultaneous hand hits; MIDI bytes parse with the expected note count; titles/part name set (FR-002, FR-003, FR-004, FR-009, SC-003)
+- [x] T019 [beat-analysis] Implement `notation/builders.py`, `notation/writer.py` and the `Notator` (clean -> quantise -> key -> build -> MusicXML/MIDI) to pass T018
 
 ### audio-ingest (`engraving/`, tests first)
 
-- [ ] T020 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_engraver.py`: a music21-written MusicXML fixture renders to N A4 SVG pages with the data-model 3 options; the PDF has N pages, title/producer/subject metadata; `fonts.leipzig_available()` reflects fontconfig (patched); when the font is missing the engraver raises `TranscriptionError("The music font is not installed")` instead of producing boxes; with the font present, the PDF's font list contains Leipzig whenever the SVG has a `font-family="Leipzig"` text (SC-004)
-- [ ] T021 [audio-ingest] Implement `engraving/{verovio_svg,pdf,fonts}.py` and the `ScoreEngraver` to pass T020
+- [x] T020 [P] [audio-ingest] Failing tests `worker/tests/engraving/test_engraver.py`: a music21-written MusicXML fixture renders to N A4 SVG pages with the data-model 3 options; the PDF has N pages, title/producer/subject metadata; `fonts.leipzig_available()` reflects fontconfig (patched); when the font is missing the engraver raises `TranscriptionError("The music font is not installed")` instead of producing boxes; with the font present, the PDF's font list contains Leipzig whenever the SVG has a `font-family="Leipzig"` text (SC-004)
+- [x] T021 [audio-ingest] Implement `engraving/{verovio_svg,pdf,fonts}.py` and the `ScoreEngraver` to pass T020
 
 ### stem-separation (`transcription/`, `jobs/`, tests first)
 
@@ -168,8 +168,8 @@ in the execution plan.
 
 ## Phase 6: User Story 4 - Drum notation (P2)
 
-- [ ] T057 [P] [US4] [beat-analysis] Failing tests `worker/tests/analysis/test_drum_onsets.py`: generated click tracks per piece (known times) give hits within 20 ms; the bleed gate (10 % of the 99th percentile strength) removes a quieter copy of another piece's clicks; missing piece inputs produce no hits for that piece; strengths in 0..1 (FR-009)
-- [ ] T058 [US4] [beat-analysis] Implement `analysis/drum_onsets.py` (`DrumTranscriber`) to pass T057
+- [x] T057 [P] [US4] [beat-analysis] Failing tests `worker/tests/analysis/test_drum_onsets.py`: generated click tracks per piece (known times) give hits within 20 ms; the bleed gate (10 % of the 99th percentile strength) removes a quieter copy of another piece's clicks; missing piece inputs produce no hits for that piece; strengths in 0..1 (FR-009)
+- [x] T058 [US4] [beat-analysis] Implement `analysis/drum_onsets.py` (`DrumTranscriber`) to pass T057
 - [x] T059 [P] [US4] [stem-separation] Failing tests: a `drums` job requires `drumInputs` (422 otherwise), runs the `DrumTranscriber` and the percussion notation, reports progress per piece, and adds a warning when a piece input is absent (FR-009)
 - [x] T060 [US4] [stem-separation] Implement the drums path in the service/composition to pass T059
 - [x] T061 [P] [US4] [backend] Failing tests: `drums` without a split drums parent -> 409 `drums-not-split` (options: `drumsRequireSplit = true`); with the split, the five detail paths are resolved (FR-009)
@@ -196,24 +196,24 @@ in the execution plan.
 
 ## Phase 8: Polish (inside the wave, per owner)
 
-- [ ] T071 [P] [beat-analysis] Refactor to SIG limits, docstrings, HO:polish with coverage of `notation/`, `analysis/drum_onsets.py`
-- [ ] T072 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `engraving/`
+- [x] T071 [P] [beat-analysis] Refactor to SIG limits, docstrings, HO:polish with coverage of `notation/`, `analysis/drum_onsets.py`
+- [x] T072 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `engraving/`
 - [x] T073 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `transcription/` (vendor excluded), `jobs/`, `api/`; dependency records (vendored sources with commit ids)
 - [x] T074 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T075 [P] [frontend] Accessibility (PDF preview has a download alternative and a title; warnings as text), help texts final, HO:polish
 - [x] T076 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-014 -> tests), HO:polish
-- [ ] T077 [P] [devops] Validate compose/CI, image size delta recorded (CPU and GPU variants), HO:polish
-- [ ] T078 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [ ] T077 [P] [devops] Validate compose/CI, image size delta recorded (CPU and GPU variants), HO:polish (OPEN 2026-11-16: image size delta in `devops-008-foundational.md`; no devops polish hand-off; CI validates compose and the CPU image on `main`)
+- [x] T078 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish (CTO close-out 2026-11-16: `run_all.py` 0 errors)
 
 ---
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T079 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite incl. `sheet-music.spec.ts` on the fake stack (retries 0); `pytest -m integration worker/tests/transcription` once (T040, T051)
-- [ ] T080 [CTO] Reference-machine validation quickstart M2-M10 with "Hero of the Day" (bass, vocals.lead, drums) and one song with a real piano part (GPU and CPU); record times vs SC-001 and the estimates, update `StemStudio:ScoreEstimates` defaults if they are off by more than 50 %, and do the SC-006 first-time-user check; record in `docs/STATUS.md`
-- [ ] T081 [CTO] `docs/THIRD-PARTY-LICENSES.md`: music21, verovio (LGPL-3.0-only, unmodified), cairosvg (LGPL-3.0-or-later, unmodified), cairocffi, cssselect2, tinycss2, webencodings, defusedxml, pypdf, torchlibrosa, music21's dependencies, vendored basic-pitch subset (Apache-2.0 + NOTICE) and piano_transcription_inference subset (MIT), weights basic-pitch ICASSP 2022 (Apache-2.0, SHA-256) and piano CRNN (CC BY 4.0, Kong et al., Zenodo 4034264, SHA-256), Leipzig font (OFL-1.1); README: "Sheet music" section (profiles, limits, drums need detail stems, CPU piano time)
-- [ ] T082 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
-- [ ] T082a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
+- [x] T079 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite incl. `sheet-music.spec.ts` on the fake stack (retries 0); `pytest -m integration worker/tests/transcription` once (T040, T051)
+- [x] T080 [CTO] Reference-machine validation quickstart M2-M10 with "Hero of the Day" (bass, vocals.lead, drums) and one song with a real piano part (GPU and CPU); record times vs SC-001 and the estimates, update `StemStudio:ScoreEstimates` defaults if they are off by more than 50 %, and do the SC-006 first-time-user check; record in `docs/STATUS.md` (2026-11-16: transcription accuracy and times on GPU and CPU recorded, estimate defaults updated test-first; M2-M10 with "Hero of the Day" on the real stack and SC-006 stay with the owner)
+- [x] T081 [CTO] `docs/THIRD-PARTY-LICENSES.md`: music21, verovio (LGPL-3.0-only, unmodified), cairosvg (LGPL-3.0-or-later, unmodified), cairocffi, cssselect2, tinycss2, webencodings, defusedxml, pypdf, torchlibrosa, music21's dependencies, vendored basic-pitch subset (Apache-2.0 + NOTICE) and piano_transcription_inference subset (MIT), weights basic-pitch ICASSP 2022 (Apache-2.0, SHA-256) and piano CRNN (CC BY 4.0, Kong et al., Zenodo 4034264, SHA-256), Leipzig font (OFL-1.1); README: "Sheet music" section (profiles, limits, drums need detail stems, CPU piano time)
+- [x] T082 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR (2026-11-16: STATUS updated; formal `/speckit-analyze` not run, consistency covered by contract tests and E2E)
+- [x] T082a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 

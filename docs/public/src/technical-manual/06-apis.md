@@ -37,7 +37,13 @@ each folder holds a `DELTA.md` with the planned changes.
 | `GET /api/assets`, `GET /api/assets/{assetId}` | 007: library items (`limit` 1-200, `offset`, `q`) and one item |
 | `PATCH`, `DELETE /api/assets/{assetId}` | 007: rename (1-120 characters) and delete |
 | `POST /api/assets/{assetId}/retry` | 007: render a failed item again (202) |
-| `GET`, `HEAD /api/assets/{assetId}/files/{role}` | 007: the file (role `audio`; `inline=true` for the player) |
+| `GET`, `HEAD /api/assets/{assetId}/files/{role}` | 007: the file (role `audio`; `inline=true` for the player); 008 adds the roles `pdf`, `musicxml` and `midi` of a score item |
+| `GET`, `PUT`, `DELETE /api/tracks/{trackId}/lyrics` | 006: the lyrics document and state, paste own text (≤ 20,000 characters), remove; all `Cache-Control: no-store` |
+| `POST /api/tracks/{trackId}/lyrics/search` | 006: look up LRCLIB again |
+| `POST /api/tracks/{trackId}/lyrics/align`, `…/align/cancel` | 006: align plain lyrics to the vocal stem, or cancel |
+| `PUT /api/tracks/{trackId}/lyrics/offset` | 006: offset −5,000 to +5,000 ms |
+| `GET /api/scores/options` | 008: suggested profile, allowed profiles, grid status, default quality and estimates for `trackId` + `channel` or an `assetId` |
+| `POST /api/assets/scores` | 008: queue a score item (202) |
 
 Errors: 400 validation, 404, 409 conflicts (mix name taken, retry of a non-failed track or
 item, delete while processing, less than `MinFreeDiskBytes` free), 413 too large, 415
@@ -47,8 +53,6 @@ unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
 
 | Feature | Endpoints |
 |---|---|
-| 006 Lyrics | `GET/PUT/DELETE /api/tracks/{id}/lyrics`, `POST …/lyrics/search`, `POST …/lyrics/align[/cancel]`, `PUT …/lyrics/offset` (all `no-store`) |
-| 008 Sheet music | `GET /api/scores/options`, `POST /api/assets/scores` |
 | 009 Style transfer | `GET /api/generation/status`, `/api/styles` CRUD and `…/duplicate`, `POST /api/tracks/{id}/restyles`, `/api/generations` with cancel, retry, take audio and import |
 | 010 Lyrics to song | `/api/lyrics` CRUD, upload and sections, `POST /api/songs`, `/api/voice-profiles`, `GET /api/consent/voice`, `POST …/takes/{n}/voice-conversions` |
 | 011 Agent | `/api/agent/status`, `/settings` (+ `/test`), `/tools`, `/conversations` (+ messages, undo), `/runs/{runId}` with SSE `events`, `approvals/{stepId}`, `ui-results/{stepId}`, `cancel` |
@@ -67,6 +71,8 @@ unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
 | `POST /v1/metadata-jobs`, `GET /v1/metadata-jobs/{id}`, `…/result`, `…/artwork/{variant}` | 005: online lookup (network-only lane) and the Cover Art Archive picture it found |
 | `POST /v1/artwork`, `GET /v1/artwork/{artworkId}/{variant}` | 005: normalise an own picture (square, 600 px cover and 160 px thumbnail JPEG, no EXIF/ICC, 40-megapixel cap) |
 | `POST /v1/render-jobs`, `GET /v1/render-jobs/{id}`, `…/file`, `DELETE /v1/render-jobs/{id}` | 007: render lane (export) |
+| `POST /v1/lyrics-jobs`, `GET /v1/lyrics-jobs/{id}`, `…/result`, `POST …/cancel`, `DELETE /v1/lyrics-jobs/{id}` | 006: LRCLIB lookup (network lane) and alignment (GPU/CPU lane, Whisper large-v3-turbo via stable-ts) |
+| `POST /v1/transcription-jobs`, `GET /v1/transcription-jobs/{id}`, `…/files/{role}`, `DELETE /v1/transcription-jobs/{id}` | 008: transcribe lane (basic-pitch, piano CRNN, drum onsets), notation (music21) and engraving (Verovio + CairoSVG, Leipzig font) |
 
 ### Render lane (007)
 
@@ -91,8 +97,10 @@ An ISRC is looked up with `/ws/2/isrc/<isrc>?inc=artist-credits+releases`, follo
 recording lookup with `inc=artist-credits+releases+release-groups` per listed recording (at
 most five), because MusicBrainz refuses `release-groups` on the ISRC resource.
 
-Planned lanes: lyrics jobs (006) and transcription jobs (008), each as `POST /v1/<kind>-jobs`
-plus status, result or file and delete.
+LRCLIB (006) is on the same allow list (`lrclib.net`); a lyrics lookup asks at most three times
+(get with album, get, search), at least 500 ms apart, and accepts a record whose duration is within
+2 s of the track. Lyrics never appear in logs: a backend test scans the log output for the fake
+provider's words (FR-010).
 
 ## Generator API (port 8010, internal) <span class="planned">In development</span>
 

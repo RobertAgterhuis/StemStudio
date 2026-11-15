@@ -13,9 +13,11 @@ metronome so you can mute the guitar and play it yourself.
 
 > **Personal practice only.** You are responsible for complying with copyright law and with the
 > terms of service of YouTube and Spotify. StemStudio never circumvents DRM: for Spotify links it
-> only reads track metadata and fetches a matching public recording from YouTube.
+> only reads track metadata and fetches a matching public recording from YouTube. Covers, band
+> texts and lyrics belong to their rights holders: StemStudio shows them in the app only and never
+> puts them into exports or sheet music.
 
-## Features (MVP)
+## Features
 
 - **Import** from YouTube, Spotify (metadata → YouTube match) or a local file (up to 200 MiB,
   15 minutes), with progress reporting and a per-source cache.
@@ -27,6 +29,56 @@ metronome so you can mute the guitar and play it yourself.
   manual BPM / offset / beats-per-bar correction. Clicks are scheduled on the Web Audio clock.
 - **Mixes**: save, load, edit, duplicate and delete named mixes (all channel, master, metronome
   and loop settings).
+- **Detail separation** (feature 002): drums, vocals and other stems are split further where
+  the song allows it (kick/snare/toms/hi-hat/cymbals, lead/backing vocals, instrument families).
+- **GPU acceleration** (feature 003, optional): an NVIDIA GPU makes separation about 8x faster.
+- **Design system and journeys** (feature 004): Beginner, Advanced and Expert levels, in-app help
+  and tours, keyboard shortcuts, light and dark theme.
+- **Cover art and band info** (feature 005): covers and artist facts from open data services.
+- **Synced lyrics** (feature 006): a karaoke banner with a bouncing ball under the mixer.
+- **Library and exports** (feature 007): save stems, mixes and stem packs as FLAC, WAV or MP3.
+- **Sheet music** (feature 008): a PDF lead sheet plus MusicXML and MIDI per instrument.
+
+### Online lookups (feature 005, 006)
+
+After an import the worker looks the song up in MusicBrainz, the Cover Art Archive, Wikidata,
+Wikipedia and (for lyrics) LRCLIB. MusicBrainz gets only the title, artist, duration and ISRC;
+the other services get the ids found there; LRCLIB gets the title, artist, album and duration.
+No audio and no personal data is sent. Requests are throttled (about one per second per service)
+and carry a User-Agent naming StemStudio; set `STEMSTUDIO_CONTACT_URL` to a public page about your
+install to add it (never an e-mail address). Switch all lookups off with
+`STEMSTUDIO_ONLINE_LOOKUPS=off` for the worker. Pictures, band texts and lyrics are shown in the
+app only and never written into exports.
+
+### Synced lyrics and the karaoke ball (feature 006)
+
+Synced lyrics from LRCLIB play in a banner at the bottom of the mixer; a ball lands on each word
+on the audio clock, also while looping and seeking. Plain lyrics, or lyrics you paste yourself,
+are aligned to the vocal stem with Whisper large-v3-turbo (1.6 GB, downloaded at the first
+alignment): automatically on a GPU (about a minute), after a click on a CPU (the button shows the
+estimate). `STEMSTUDIO_ALIGN_AUTO=gpu|always|never` and `STEMSTUDIO_ALIGN_MODEL=turbo|small` tune
+this. Lyrics are copyrighted: StemStudio shows them inside the app only and never exports, logs
+or shares them.
+
+### Library and exports (feature 007)
+
+Save a raw stem, a stem pack or a mix ("what I hear" or selected channels) to the library as
+FLAC (default), WAV or MP3, 44.1 kHz stereo. Without a choice, stems are 16-bit (bit-identical to
+the separated stem) and mixes 24-bit; MP3 is 320 kbps and carries no tags. A mix that would clip
+is lowered just enough (peak -0.1 dBFS) and the item says by how much. The worker renders from a
+**read-only** mount of the API data volume (`/library`); on the non-Docker path point
+`STEMSTUDIO_LIBRARY_DIR` at the API data directory and keep it read-only for the worker
+(check with `scripts/check-library-mount.{sh,ps1}`).
+
+### Sheet music (feature 008)
+
+Turn a stem or a pitched detail stem into a practice lead sheet: an A4 PDF plus MusicXML and MIDI,
+on the song's beat grid. Profiles: vocals, bass, guitar, keys, piano (accurate or fast) and drums.
+Drums need split drums (detail separation); the dialog offers to split them first. The accurate
+piano profile uses a 172 MB CRNN model (CC BY 4.0, downloaded at first use); on an 8-thread CPU it
+takes about two minutes for a 4-minute song, on a GPU well under a minute. Limits: no triplets,
+swing, dynamics, articulations, lyrics, chords or tablature; the key is estimated with a
+confidence and can be overridden at Advanced level.
 
 ## Quick start (Docker)
 
@@ -167,7 +219,10 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 - **Browsers**: tested on Chromium and Firefox; Safari is best effort.
 - **Single user**, local only: no accounts, no authentication. Do not expose the ports to the
   internet.
-- Exporting a mix to an audio file is not part of the MVP (first backlog item).
+- **Lyrics** come from LRCLIB only; a song that is not there needs pasted text. Automatic
+  alignment quality varies with the vocal stem (words marked low-confidence at Expert level).
+- **Sheet music** is a practice aid: transcription misses or adds notes, detail stems leak, and
+  unreliable beat grids need a manual tempo, metre and first downbeat.
 - **Detail separation** (drums -> kick/snare/toms/hihat/cymbals, vocals -> lead/backing,
   guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
   leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
@@ -180,7 +235,9 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 > MVSep Mega 53-stem) have non-commercial, unclear or no stated licences. They are downloaded on
 > first use and are never part of this repository. Commercial use and redistributing images or
 > volumes that contain them are not covered. Detail separation credits Ultimate Vocal Remover
-> (UVR) and its developers, and ZFTurbo's Music-Source-Separation-Training.
+> (UVR) and its developers, and ZFTurbo's Music-Source-Separation-Training. The lyrics and
+> sheet-music models (Whisper large-v3-turbo MIT, basic-pitch Apache-2.0, piano CRNN CC BY 4.0 by
+> Kong et al.) have open licences and are also downloaded on first use.
 
 StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components

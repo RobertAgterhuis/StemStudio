@@ -49,8 +49,8 @@ obeyed an injected "delete" instruction):
 
 ## Privacy
 
-Audio never leaves the machine. Online lookups (005; lyrics in 006) send only title, artist,
-duration and ISRC, with a User-Agent that contains no personal data, and can be switched off
+Audio never leaves the machine. Online lookups (005) send only title, artist, duration and
+ISRC, LRCLIB lyrics lookups (006) title, artist, album and duration, with a User-Agent that contains no personal data, and can be switched off
 with `STEMSTUDIO_ONLINE_LOOKUPS=off`. Lyrics are never logged or included in list responses.
 Voice samples (010) stay local, require recorded consent and are deleted with their profile.
 The Claude backend receives text only.
