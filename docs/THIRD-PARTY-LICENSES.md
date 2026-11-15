@@ -140,6 +140,24 @@ terms of these components (offer source, keep notices).
 | eslint-plugin-playwright | 2.12.2 | MIT |
 | @redocly/cli (via npx) | 2.78.0 | MIT |
 
+### Documentation build (`tools/docs`, not shipped; builds docs/public PDFs)
+
+Pinned exactly in `tools/docs/package.json`; the lock file was resolved with
+`npm install --before=2026-11-01` so every package is at least two weeks old.
+
+| Component | Version | Licence | URL |
+|---|---|---|---|
+| markdown-it | 15.0.2 | MIT | https://github.com/markdown-it/markdown-it |
+| argparse (via markdown-it) | 3.0.4 | PSF-2.0 | https://github.com/nodeca/argparse |
+| entities (via markdown-it) | 8.1.0 | BSD-2-Clause | https://github.com/fb55/entities |
+| linkify-it, mdurl, punycode.js, uc.micro (via markdown-it) | 6.1.0 / 2.1.0 / 2.3.1 / 3.0.0 | MIT | https://github.com/markdown-it |
+| pdf-lib (puts the cover in front of the body) | 1.17.1 | MIT | https://github.com/Hopding/pdf-lib |
+| @pdf-lib/standard-fonts, @pdf-lib/upng | 1.0.0 / 1.0.1 | MIT | https://github.com/Hopding/pdf-lib |
+| pako (via pdf-lib) | 1.0.11 | MIT AND Zlib | https://github.com/nodeca/pako |
+| tslib (via pdf-lib) | 1.14.1 | 0BSD | https://github.com/microsoft/tslib |
+| playwright-core (+ Chromium headless shell, print to PDF) | 1.64.1 | Apache-2.0 | https://github.com/microsoft/playwright |
+| Archivo font (embedded in the PDFs, from the web app) | variable, Latin subset | OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
+
 ## Open licence issue: Demucs weights
 
 The Demucs code is MIT, but the pretrained weights have no clear licence and `htdemucs_6s` is
