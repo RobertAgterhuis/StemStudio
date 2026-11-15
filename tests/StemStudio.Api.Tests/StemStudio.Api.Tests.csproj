@@ -24,6 +24,8 @@
     <None Include="..\..\specs\006-synced-lyrics-karaoke\contracts\backend-api.openapi.yaml" Link="Contract\006\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\007-export-library\contracts\backend-api.openapi.yaml" Link="Contract\007\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\005-artwork-band-info\contracts\backend-api.openapi.yaml" Link="Contract\005\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 011 Phase 0 part 1: standalone agent delta (merged into backend-api 1.10.0 after 009/010); AgentContractTests. -->
+    <None Include="..\..\specs\011-ai-composer-agent\contracts\agent-api.openapi.yaml" Link="Contract\011\agent-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\007-export-library\contracts\render-vectors.json" Link="Contract\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Contract\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

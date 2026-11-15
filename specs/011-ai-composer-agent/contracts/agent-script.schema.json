@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/schemas/agent-script/1.0.0",
+  "title": "StemStudio fake-backend agent script 1.0.0",
+  "description": "Scripted model turns for ScriptedChatClient (STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_AGENT_FAKE_SCRIPT=e2e/agent-scripts/<name>.json) and for unit tests. Turn i answers the i-th model request of a run; a request beyond the last turn fails the run. Names and arguments are not validated here: the runner's registry and policy treat them exactly like a real model's output.",
+  "type": "object",
+  "required": ["version", "turns"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "description": { "type": "string", "maxLength": 500 },
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/turn" }
+    }
+  },
+  "$defs": {
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "maxLength": 16000 },
+        "calls": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/call" }
+        },
+        "usage": { "$ref": "#/$defs/usage" }
+      }
+    },
+    "call": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "arguments": { "type": "object" }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "cachedInputTokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "description": "US1: search, open the mixer, mute the drums",
+      "turns": [
+        { "calls": [{ "name": "search_library", "arguments": { "query": "hero" } }] },
+        { "calls": [{ "name": "open_mixer", "arguments": { "trackId": "6f1c2a8e-3b7d-4e2f-9a10-5c4d3e2f1a0b" } }] },
+        { "calls": [{ "name": "mixer_set_channel", "arguments": { "stem": "drums", "mute": true } }] },
+        { "text": "The drums of Hero of the Day are muted.", "usage": { "inputTokens": 1200, "outputTokens": 12 } }
+      ]
+    }
+  ]
+}

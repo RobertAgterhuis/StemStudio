@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Evaluation harness of the composer agent (feature 011, research R-09, tasks T079a). Manual tool for the reference machine:
+       never run in CI (it needs a real model). Project file: architect; code: ai-agent. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>StemStudio.AgentEval</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StemStudio.Agent\StemStudio.Agent.csproj" />
+  </ItemGroup>
+</Project>

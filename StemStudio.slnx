@@ -5,12 +5,17 @@
     <Project Path="src/StemStudio.Persistence/StemStudio.Persistence.csproj" />
     <Project Path="src/StemStudio.Api/StemStudio.Api.csproj" />
     <Project Path="src/StemStudio.Web/StemStudio.Web.csproj" />
+    <Project Path="src/StemStudio.Agent/StemStudio.Agent.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/StemStudio.Domain.Tests/StemStudio.Domain.Tests.csproj" />
     <Project Path="tests/StemStudio.Persistence.Tests/StemStudio.Persistence.Tests.csproj" />
     <Project Path="tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj" />
     <Project Path="tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj" />
+    <Project Path="tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/agent-eval/StemStudio.AgentEval.csproj" />
   </Folder>
   <Folder Name="/solution-items/">
     <File Path="Directory.Build.props" />
