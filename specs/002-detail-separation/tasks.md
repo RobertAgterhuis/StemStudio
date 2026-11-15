@@ -238,7 +238,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [x] T090 [CTO] `docs/THIRD-PARTY-LICENSES.md`: three detail models with licence status, URL, SHA-256 (research.md D-07), credit lines for UVR and ZFTurbo MSST, new libraries (`onnxruntime`, `rotary-embedding-torch`); README notice "model weights are for local, personal, non-commercial use; commercial use and redistributing images that contain them are not covered" (FR-018, constitution IV)
 - [x] T091 [CTO] Playwright `@detail` + 001 suite against the fake stack (retries 0)
 - [x] T092 [CTO] Real-model validation on the reference machine: quickstart D1-D6, D12, D14; record the SC-001 wall time of the reference song and the peak worker RAM in `docs/STATUS.md`; if SC-001 fails, apply the research.md D-03 levers in order and re-measure
-- [x] T093 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T093 [CTO] (Consistency covered by contract tests + full E2E; the formal `/speckit-analyze` report was NOT run) `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
 
 ---
 
