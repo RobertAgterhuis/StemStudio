@@ -161,8 +161,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T058 [P] [US3] [backend] Failing tests: `POST /api/styles`, `PUT`, `DELETE`, `POST .../duplicate` ("<name> (copy)", numbered when taken); presets `403`; validation `400` with field + reason incl. guard `code: "imitation"` (library artist names from the user's tracks are included); duplicate name `409`; earlier generations keep their snapshot (US3-1..4, FR-004, FR-005)
 - [ ] T059 [US3] [backend] Implement the write side of `StyleEndpoints.cs` to pass T058
-- [ ] T060 [P] [US3] [frontend] Failing bUnit tests `StyleEditorTests.cs`: create/edit form with all fields, tag inputs (max 8), field errors from the API, duplicate/edit/delete actions only on user styles, delete confirm
-- [ ] T061 [US3] [frontend] Implement `Pages/StyleEditor.razor` and help entry `help.styles.editor` to pass T060
+- [x] T060 [P] [US3] [frontend] Failing bUnit tests `StyleEditorTests.cs`: create/edit form with all fields, tag inputs (max 8), field errors from the API, duplicate/edit/delete actions only on user styles, delete confirm
+- [x] T061 [US3] [frontend] Implement `Pages/StyleEditor.razor` and help entry `help.styles.editor` to pass T060
 - [ ] T062 [US3] [qa] Author "own style" spec: duplicate a preset, edit, restyle with it (fake), take details show the user style; an artist name is refused with the reason
 
 **Checkpoint**: HO:us3.
