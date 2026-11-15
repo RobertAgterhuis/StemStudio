@@ -1,3 +1,4 @@
+using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 
@@ -61,6 +62,11 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The track with the cancelled detail phase (200); 404, 409 and 503 throw <see cref="ApiException"/>.</returns>
     Task<TrackDto> CancelDetailAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/device</c>: the worker's active processing device (backend contract 1.3.0).</summary>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The device; <c>reachable</c> is false when the API could not ask the worker.</returns>
+    Task<ProcessingDeviceDto> GetDeviceAsync(CancellationToken cancellationToken = default);
 
     /// <summary><c>GET /api/mixes[?trackId=]</c>.</summary>
     /// <param name="trackId">Optional track filter.</param>

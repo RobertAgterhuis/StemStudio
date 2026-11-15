@@ -104,8 +104,8 @@ in the execution plan.
 - [ ] T028 [US1] [stem-separation] Implement in `jobs/{runner,progress,detail_runner,detail_progress,scheduler,runtime}.py`, `api/routes.py`, `main.py` (probe once, one runner shared) to pass T027
 - [ ] T029 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sync/DeviceSyncTests.cs`: every standard poll copies `device` to `Track.Device`; every detail poll copies it to `DetailPhase.Device`; `TrackDto.Device`/`DetailPhaseDto.Device` mapped; served `GET /api/tracks/{id}` validates against backend 1.3.0 `Track` with a device (FR-006)
 - [ ] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
-- [ ] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
-- [ ] T032 [US1] [frontend] Implement `src/StemStudio.Web/Components/Shared/DeviceBadge.razor` and use it in `TrackDetail.razor` and `DetailSection.razor` to pass T031
+- [x] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
+- [x] T032 [US1] [frontend] Implement `src/StemStudio.Web/Components/Shared/DeviceBadge.razor` and use it in `TrackDetail.razor` and `DetailSection.razor` to pass T031
 - [x] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
 
 **Checkpoint**: HO:us1.
@@ -135,8 +135,8 @@ in the execution plan.
 
 - [ ] T040 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Device/DeviceEndpointTests.cs`: `GET /api/device` maps worker `deviceInfo` (gpu, cpu with reason); worker unreachable or > 2 s -> `200 {reachable: false}`; answers cached 10 s (`FakeTimeProvider`); response validates against `ProcessingDevice`; remove `getProcessingDevice` from `PendingDetailOperations` (FR-006)
 - [ ] T041 [US3] [backend] Implement `src/StemStudio.Api/Device/DeviceEndpoints.cs` (+ registration) to pass T040
-- [ ] T042 [P] [US3] [frontend] Failing tests: `IStemStudioApiClient.GetDeviceAsync`; import page shows `worker-device` with `data-device` `gpu`/`cpu`/`unknown` and `worker-device-reason` only when a reason is set (FR-006, US3-1)
-- [ ] T043 [US3] [frontend] Implement the client method and the import-page display (reusing `DeviceBadge`) to pass T042
+- [x] T042 [P] [US3] [frontend] Failing tests: `IStemStudioApiClient.GetDeviceAsync`; import page shows `worker-device` with `data-device` `gpu`/`cpu`/`unknown` and `worker-device-reason` only when a reason is set (FR-006, US3-1)
+- [x] T043 [US3] [frontend] Implement the client method and the import-page display (reusing `DeviceBadge`) to pass T042
 - [x] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
 
 **Checkpoint**: HO:us3.
@@ -147,7 +147,7 @@ in the execution plan.
 
 - [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
 - [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
+- [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [x] T048 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
 - [ ] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
