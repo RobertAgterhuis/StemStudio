@@ -76,16 +76,16 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 ### generative (tests first)
 
-- [ ] T012 [P] [generative] Failing tests `generator/tests/devices/test_probe.py`, `test_nvml.py`: probe outcomes and reason texts identical to 003 data-model 2.1 (fake torch/NVML adapters); `ready` only for kind gpu (FR-010)
-- [ ] T013 [generative] Implement `devices/{probe,nvml}.py` to pass T012
-- [ ] T014 [P] [generative] Failing tests `generator/tests/devices/test_gate.py` (tmp-path lock file, fake NVML, fake clock): `hold()` takes the `flock` lease (a second process/thread blocks; released on exception); NVML free >= standard need -> standard profile; else >= low-memory need -> low-memory profile; else release lease, report `waitingForGpu`, re-check every 10 s, fail `gpuBusy` "GPU busy: needs X GB, Y GB free" after the wait limit; memory fraction `(free - 256 MiB) / total` set before and reset after; `is_gpu_oom()` (FR-011, FR-012, ADR-018 D3/D4)
-- [ ] T015 [generative] Implement `devices/{lease,gate,memory,oom,fake}.py` to pass T014
-- [ ] T016 [P] [generative] Failing tests `generator/tests/jobs/`: JSON job store; single-thread scheduler FIFO; state machine of data-model 2.4 incl. cancel while queued/waiting/running (cancel flag polled by the progress callback), restart reconciliation (`running`/`waitingForGpu`/`downloadingModel` -> `failed interrupted`), idle hook calls `engine.unload()` when the queue is empty, 24 h retention (FR-007, FR-013, SC-006)
-- [ ] T017 [generative] Implement `jobs/{store,scheduler,runner,progress,reconcile}.py` to pass T016
-- [ ] T018 [P] [generative] Failing tests `generator/tests/audio/`: sum 1-6 stems at unity (length tolerance 1 frame, sample-rate mismatch -> `invalidInput`), clip detection, range cut, FLAC writer 24-bit 48 kHz with Vorbis tags `AI_GENERATED`, `GENERATOR`, `STEMSTUDIO_GENERATION`, `STEMSTUDIO_TAKE`, `COMMENT` (written through ffmpeg with an argument list), SHA-256 (FR-008)
-- [ ] T019 [generative] Implement `audio/{mix,flac}.py` to pass T018
-- [ ] T020 [P] [generative] Failing tests `generator/tests/engines/test_fake.py`: `FakeMusicEngine` deterministic takes (seeded noise + tone of the requested length), modes `ready`, `no-gpu`, `oom` (first attempt raises a GPU OOM, low-memory retry succeeds), `oom-twice`, `busy` (fake NVML reports too little memory), `slow` (data-model 1)
-- [ ] T021 [generative] Implement `engines/fake.py` and `engines/profiles.py` (`GpuNeed` constants from research.md S-03) to pass T020
+- [x] T012 [P] [generative] Failing tests `generator/tests/devices/test_probe.py`, `test_nvml.py`: probe outcomes and reason texts identical to 003 data-model 2.1 (fake torch/NVML adapters); `ready` only for kind gpu (FR-010)
+- [x] T013 [generative] Implement `devices/{probe,nvml}.py` to pass T012
+- [x] T014 [P] [generative] Failing tests `generator/tests/devices/test_gate.py` (tmp-path lock file, fake NVML, fake clock): `hold()` takes the `flock` lease (a second process/thread blocks; released on exception); NVML free >= standard need -> standard profile; else >= low-memory need -> low-memory profile; else release lease, report `waitingForGpu`, re-check every 10 s, fail `gpuBusy` "GPU busy: needs X GB, Y GB free" after the wait limit; memory fraction `(free - 256 MiB) / total` set before and reset after; `is_gpu_oom()` (FR-011, FR-012, ADR-018 D3/D4)
+- [x] T015 [generative] Implement `devices/{lease,gate,memory,oom,fake}.py` to pass T014
+- [x] T016 [P] [generative] Failing tests `generator/tests/jobs/`: JSON job store; single-thread scheduler FIFO; state machine of data-model 2.4 incl. cancel while queued/waiting/running (cancel flag polled by the progress callback), restart reconciliation (`running`/`waitingForGpu`/`downloadingModel` -> `failed interrupted`), idle hook calls `engine.unload()` when the queue is empty, 24 h retention (FR-007, FR-013, SC-006)
+- [x] T017 [generative] Implement `jobs/{store,scheduler,runner,progress,reconcile}.py` to pass T016
+- [x] T018 [P] [generative] Failing tests `generator/tests/audio/`: sum 1-6 stems at unity (length tolerance 1 frame, sample-rate mismatch -> `invalidInput`), clip detection, range cut, FLAC writer 24-bit 48 kHz with Vorbis tags `AI_GENERATED`, `GENERATOR`, `STEMSTUDIO_GENERATION`, `STEMSTUDIO_TAKE`, `COMMENT` (written through ffmpeg with an argument list), SHA-256 (FR-008)
+- [x] T019 [generative] Implement `audio/{mix,flac}.py` to pass T018
+- [x] T020 [P] [generative] Failing tests `generator/tests/engines/test_fake.py`: `FakeMusicEngine` deterministic takes (seeded noise + tone of the requested length), modes `ready`, `no-gpu`, `oom` (first attempt raises a GPU OOM, low-memory retry succeeds), `oom-twice`, `busy` (fake NVML reports too little memory), `slow` (data-model 1)
+- [x] T021 [generative] Implement `engines/fake.py` and `engines/profiles.py` (`GpuNeed` constants from research.md S-03) to pass T020
 
 ### stem-separation (tests first)
 

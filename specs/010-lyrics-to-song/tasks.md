@@ -68,10 +68,10 @@ unchanged through the 009 import flow).
 
 ### generative (tests first)
 
-- [ ] T010 [P] [generative] Failing tests `generator/tests/engines/test_fake_song_svc.py`: `FakeMusicEngine.song` (length, `vocal` label, instrumental), `FakeVoiceConverter` (deterministic output length = target length), `FakePitchTracker` (voiced ratio from the fixture: tone -> high, noise -> 0); fake mode `unvoiced-sample`
-- [ ] T011 [generative] Implement the fakes to pass T010
-- [ ] T012 [P] [generative] Failing tests `generator/tests/audio/test_remix.py`, `test_normalise.py`: converted vocal 24 kHz mono -> 48 kHz stereo, length aligned to the accompaniment, sum with 0-5 stems at unity + `vocalGainDb`, peak limit -1 dBFS; sample normalisation to 48 kHz mono FLAC; PCM SHA-256 (FR-008)
-- [ ] T013 [generative] Implement `audio/{remix,normalise}.py` to pass T012
+- [x] T010 [P] [generative] Failing tests `generator/tests/engines/test_fake_song_svc.py`: `FakeMusicEngine.song` (length, `vocal` label, instrumental), `FakeVoiceConverter` (deterministic output length = target length), `FakePitchTracker` (voiced ratio from the fixture: tone -> high, noise -> 0); fake mode `unvoiced-sample`
+- [x] T011 [generative] Implement the fakes to pass T010
+- [x] T012 [P] [generative] Failing tests `generator/tests/audio/test_remix.py`, `test_normalise.py`: converted vocal 24 kHz mono -> 48 kHz stereo, length aligned to the accompaniment, sum with 0-5 stems at unity + `vocalGainDb`, peak limit -1 dBFS; sample normalisation to 48 kHz mono FLAC; PCM SHA-256 (FR-008)
+- [x] T013 [generative] Implement `audio/{remix,normalise}.py` to pass T012
 
 ### backend (tests first)
 
