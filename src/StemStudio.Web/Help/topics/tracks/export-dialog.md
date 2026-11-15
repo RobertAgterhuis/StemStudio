@@ -5,7 +5,7 @@ area: tracks
 summary: "Saves a stem, a detail stem or what you hear in the mixer as an audio file in your library."
 anchors: ["export-dialog", "export-actions"]
 keywords: ["export", "save", "save to library", "what i hear", "selected channels", "raw", "stem pack", "file"]
-related: [library, export-formats]
+related: [library, export-formats, export-range, export-clipping]
 reviewed: "007"
 ---
 

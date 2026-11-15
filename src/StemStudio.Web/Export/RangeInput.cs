@@ -46,20 +46,18 @@ public sealed class RangeInput(LoopRegionDto? loop, double duration)
             return null;
         }
 
-        if (!TryParse(Start, out var start) || !TryParse(End, out var end))
-        {
-            return IncompleteMessage;
-        }
-
-        return end - start < ContractLimits.MinExportRangeSeconds ? TooShortMessage
-            : start < 0 || end > duration ? $"The range must lie inside the song (0 to {TimeText.Duration(duration)})."
-            : null;
+        return TryParse(Start, out var start) && TryParse(End, out var end) ? Check(start, end) : IncompleteMessage;
     }
 
     /// <summary>The range to send, or null for the whole song (call <see cref="Validate"/> first).</summary>
     /// <returns>The range.</returns>
     public RangeDto? ToDto() =>
         IsWholeSong ? null : new RangeDto(double.Parse(Start, CultureInfo.InvariantCulture), double.Parse(End, CultureInfo.InvariantCulture));
+
+    private string? Check(double start, double end) =>
+        end - start < ContractLimits.MinExportRangeSeconds ? TooShortMessage
+        : start < 0 || end > duration ? $"The range must lie inside the song (0 to {TimeText.Duration(duration)})."
+        : null;
 
     private bool IsWholeSong => Start.Trim().Length == 0 && End.Trim().Length == 0;
 

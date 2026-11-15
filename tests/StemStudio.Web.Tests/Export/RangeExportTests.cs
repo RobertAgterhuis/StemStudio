@@ -64,9 +64,9 @@ public sealed class RangeExportTests : MixerTestContext
         await page.Find("[data-testid=export-range-loop]").ChangeAsync(new ChangeEventArgs { Value = true });
 
         await page.Find("[data-testid=export-range-loop]").ChangeAsync(new ChangeEventArgs { Value = false });
+        page.Find("[data-testid=export-range-start]").GetAttribute("value").ShouldBeNullOrEmpty();
         await SubmitAsync(page);
 
-        page.Find("[data-testid=export-range-start]").GetAttribute("value").ShouldBeNullOrEmpty();
         await Api.Received(1).CreateAudioExportAsync(Arg.Is<CreateAudioExportRequest>(r => r.Range == null), Arg.Any<CancellationToken>());
     }
 
