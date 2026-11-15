@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTINUE=0
 [[ "${1:-}" == "--continue-on-error" ]] && CONTINUE=1
 REDOCLY=@redocly/cli@2.78.0
-CONTRACTS=specs/001-stemstudio-mvp/contracts
+CONTRACTS=specs/002-detail-separation/contracts
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
