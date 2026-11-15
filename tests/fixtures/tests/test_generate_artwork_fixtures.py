@@ -30,7 +30,7 @@ def test_audio_carries_its_tags_and_front_cover(
     assert (tag.title, tag.artist, tag.album) == tuple(facts["tags"].values())
     assert cover is not None
     assert cover.mime_type == facts["picture"]["mediaType"]
-    assert hashlib.sha256(cover.data).hexdigest() == facts["picture"]["sha256"]
+    assert gen.pixel_digest(cover.data) == facts["picture"]["sha256"]
     assert tag.duration == pytest.approx(facts["durationSeconds"], abs=0.1)
 
 
@@ -130,3 +130,14 @@ def test_audio_writers_need_tags_and_a_cover(writer: Any, tmp_path: Path) -> Non
 
 def test_media_type_follows_the_format() -> None:
     assert gen.Picture(1, 1, "JPEG", 0).media_type == "image/jpeg"
+
+
+def test_pixel_digest_ignores_how_the_png_was_compressed() -> None:
+    image = Image.open(io.BytesIO(gen.render_picture(gen.Picture(64, 48, "PNG", 7))))
+    encodings = []
+    for level in (0, 9):
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG", compress_level=level)
+        encodings.append(buffer.getvalue())
+    assert encodings[0] != encodings[1]
+    assert gen.pixel_digest(encodings[0]) == gen.pixel_digest(encodings[1])

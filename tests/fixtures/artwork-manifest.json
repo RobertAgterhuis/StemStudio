@@ -15,7 +15,7 @@
         "mediaType": "image/png",
         "width": 500,
         "height": 499,
-        "sha256": "9ce1730b7e05a901f144ff1e2a023f5436c108e2fe92a77bc176e5ea25961fa2"
+        "sha256": "f08dcf0dbedd2a537e757741bcbcdf58c146159bc2b68daba0eadd77f60fe454"
       },
       "expectedArtworkSource": "embedded",
       "uploadStatus": null
@@ -33,7 +33,7 @@
         "mediaType": "image/jpeg",
         "width": 640,
         "height": 640,
-        "sha256": "8dab306e7a251ff5b4a95e8bcb5dfb3938cffaf024f634762c10ec0f3bd12e08"
+        "sha256": "f26acac6f828cb04048b48037b53b24c18579a69c3af24ddcc638e0c20258386"
       },
       "expectedArtworkSource": "embedded",
       "uploadStatus": null
@@ -47,7 +47,7 @@
         "mediaType": "image/png",
         "width": 800,
         "height": 600,
-        "sha256": "81e5f15810b9ebab1605538971b860b82ae0b06ff1d8ad6fcefc196b90c29333"
+        "sha256": "97ff9ea9dfbf149d3c24f9e9d8c4062b620b0a3e36f687895e5f5a235e61e854"
       },
       "expectedArtworkSource": null,
       "uploadStatus": 200
@@ -61,7 +61,7 @@
         "mediaType": "image/jpeg",
         "width": 640,
         "height": 640,
-        "sha256": "27927bed319036310891604e5f585d9ed0d504502f1f58b0029dd7b5b325d445"
+        "sha256": "152e6e761aab06e324aa3945e36c3b1538ff242b764da3863481e19f28d463de"
       },
       "expectedArtworkSource": null,
       "uploadStatus": 200
@@ -84,7 +84,7 @@
         "mediaType": "image/gif",
         "width": 64,
         "height": 64,
-        "sha256": "52e61ed24c0ae70262f4cad747197661d9518b73fd58f634b8b90a27e0e23cb3"
+        "sha256": "bfe831306ea9b618cd953248f9de574fab982c3188d450b5e79dc482747b0b78"
       },
       "expectedArtworkSource": null,
       "uploadStatus": 415

@@ -17,7 +17,9 @@ facts to ``tests/fixtures/artwork-manifest.json`` (committed). Every picture is 
 * ``not_a_picture.png``: text bytes with a PNG name (400 "Not an image").
 * ``unsupported_picture.gif``: a valid GIF (415 "Unsupported picture type").
 
-Reruns are byte-identical on the same machine (fixed seeds, no timestamps in any file).
+Reruns are byte-identical on the same machine (fixed seeds, no timestamps in any file). The
+manifest ``sha256`` of a picture is taken over its decoded pixels (``pixel_digest``), because the
+PNG encoders of the Windows and Linux Pillow wheels compress the same pixels to different bytes.
 """
 
 from __future__ import annotations
@@ -155,6 +157,13 @@ def render_picture(picture: Picture) -> bytes:
     return buffer.getvalue()
 
 
+def pixel_digest(encoded: bytes) -> str:
+    """SHA-256 of the decoded picture (mode, size and raw pixels); the same on every platform."""
+    with Image.open(io.BytesIO(encoded)) as image:
+        header = f"{image.mode} {image.width}x{image.height};".encode("ascii")
+        return hashlib.sha256(header + image.tobytes()).hexdigest()
+
+
 def _not_a_picture(_fixture: ArtworkFixture) -> bytes:
     return b"This file only has a picture name; it is plain text written for StemStudio tests.\n"
 
@@ -261,7 +270,7 @@ def write_fixture(fixture: ArtworkFixture, out_dir: Path) -> Path:
 def _picture_facts(picture: Picture | None) -> dict[str, Any] | None:
     if picture is None:
         return None
-    digest = hashlib.sha256(render_picture(picture)).hexdigest()
+    digest = pixel_digest(render_picture(picture))
     return {"mediaType": picture.media_type, "width": picture.width, "height": picture.height,
             "sha256": digest}  # fmt: skip
 
