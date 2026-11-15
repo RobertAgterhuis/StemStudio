@@ -78,6 +78,8 @@ OWNERS = (
     ("src/web-interop/", "frontend"),
     ("worker/src/stemstudio_worker/ingest/", "audio-ingest"),
     ("worker/tests/ingest/", "audio-ingest"),
+    ("worker/src/stemstudio_worker/metadata/", "audio-ingest"),
+    ("worker/tests/metadata/", "audio-ingest"),
     ("worker/src/stemstudio_worker/analysis/", "beat-analysis"),
     ("worker/tests/analysis/", "beat-analysis"),
     ("worker/src/stemstudio_worker/separation/", "stem-separation"),

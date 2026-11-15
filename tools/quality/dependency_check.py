@@ -5,13 +5,19 @@
     Web -> Contracts;  Api -> {Contracts, Domain, Persistence};  Persistence -> Domain
     Domain and Contracts reference no StemStudio project.
 
+.NET feature folders (``using`` directives and qualified names in ``src/<folder>/**/*.cs``;
+comments, string/char literals and ``namespace`` declarations are ignored)::
+
+    Api/Metadata, Api/Artwork -/- Web            (feature 005)
+
 Worker (imports inside ``stemstudio_worker``)::
 
-    api -> jobs -> ports <- {ingest, separation, analysis, detail, devices};
+    api -> jobs -> ports <- {ingest, separation, analysis, detail, devices, metadata};
     everything -> schemas, config
     detail may also import its own vendor package (detail/vendor/** is third-party code and
     contributes no edges); no module imports devices (feature 003: separation and detail get
-    the DeviceRunner injected); main.py is the composition root and may import every module.
+    the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
+    ImageNormalizer injected); main.py is the composition root and may import every module.
 
 TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` files)::
 
@@ -61,6 +67,33 @@ DOTNET_ALLOWED: Mapping[str, frozenset[str]] = {
 }
 """Allowed project references per production project."""
 
+_DOTNET_PROJECTS = "Api|Contracts|Domain|Persistence|Web"
+
+DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
+    "StemStudio.Api/Metadata": frozenset({"StemStudio.Web"}),
+    "StemStudio.Api/Artwork": frozenset({"StemStudio.Web"}),
+}
+"""Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it)."""
+
+_CS_NOISE = re.compile(
+    "|".join(
+        (
+            r'"""[\s\S]*?"""',  # raw string literal
+            r'(?:\$@|@\$?)"(?:""|[^"])*"',  # verbatim (interpolated) string
+            r'"(?:\\.|[^"\\\n])*"',  # regular or interpolated string
+            r"'(?:\\.|[^'\\\n])+'",  # char literal
+            r"//[^\n]*",  # line comment
+            r"/\*[\s\S]*?\*/",  # block comment
+            r"^[ \t]*namespace\b[^\n]*",  # namespace declaration
+        )
+    ),
+    re.MULTILINE,
+)
+"""C# comments, string/char literals and namespace declarations (no references)."""
+
+_CS_REFERENCE = re.compile(rf"\bStemStudio\.(?:{_DOTNET_PROJECTS})\b")
+"""A qualified reference into a StemStudio project namespace."""
+
 _LEAVES = frozenset({"schemas", "config"})
 _ADAPTER = _LEAVES | {"ports"}
 
@@ -73,6 +106,7 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "separation": _ADAPTER,
     "analysis": _ADAPTER,
     "detail": _ADAPTER,
+    "metadata": _ADAPTER,
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
@@ -120,6 +154,46 @@ def read_dotnet_edges(src_dir: Path, root: Path) -> list[Edge]:
             target = PureWindowsPath(reference.get("Include", "")).stem
             edges.append(Edge(project.stem, target, relative(project, root), 0))
     return edges
+
+
+def read_folder_edges(src_dir: Path, root: Path, folders: Sequence[str]) -> list[Edge]:
+    """Return the StemStudio namespace references of the C# files below each folder.
+
+    ``folders`` are relative to ``src_dir`` (``StemStudio.Api/Metadata``); an edge is
+    ``folder -> StemStudio.<Project>`` at the referencing line. Excluded files (``obj/``,
+    ``*.g.cs``) contribute no edges.
+    """
+    edges: list[Edge] = []
+    for folder in folders:
+        for cs_file in sorted((src_dir / folder).rglob("*.cs")):
+            rel_path = relative(cs_file, root)
+            if not is_excluded(rel_path):
+                edges.extend(_cs_file_edges(cs_file, folder, rel_path))
+    return edges
+
+
+def _cs_file_edges(cs_file: Path, folder: str, rel_path: str) -> Iterator[Edge]:
+    text = _CS_NOISE.sub(_keep_newlines, cs_file.read_text(encoding="utf-8"))
+    for match in _CS_REFERENCE.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        yield Edge(folder, match.group(), rel_path, line)
+
+
+def check_forbidden(
+    edges: Sequence[Edge], forbidden: Mapping[str, frozenset[str]]
+) -> list[Finding]:
+    """Return an error for every edge whose target is forbidden for its source."""
+    return [
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"forbidden dependency {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+        if edge.target in forbidden.get(edge.source, frozenset())
+    ]
 
 
 def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
@@ -292,6 +366,8 @@ def _rotate(path: list[str]) -> tuple[str, ...]:
 def run(root: Path) -> list[Finding]:
     """Check the .NET project, TypeScript package and worker import graphs below ``root``."""
     findings = check_edges(read_dotnet_edges(root / "src", root), DOTNET_ALLOWED)
+    folder_edges = read_folder_edges(root / "src", root, list(DOTNET_FOLDER_FORBIDDEN))
+    findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
     package_dir = root / "worker" / "src" / PYTHON_PACKAGE
     if package_dir.is_dir():
