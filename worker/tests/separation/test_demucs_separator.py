@@ -1,11 +1,8 @@
 """Tests of the Demucs separator with an injected fake model runtime (T058)."""
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-import numpy.typing as npt
 import pytest
 import soundfile as sf
 import torch
@@ -15,61 +12,18 @@ from stemstudio_worker.ports import SeparationError
 from stemstudio_worker.separation import create_separator
 from stemstudio_worker.separation import demucs_runtime as runtime_module
 from stemstudio_worker.separation.demucs_separator import (
-    DemucsModel,
     DemucsRuntime,
     DemucsSeparator,
 )
 from stemstudio_worker.separation.fake import FakeSeparator
 
-SOURCES_6S = ["drums", "bass", "other", "vocals", "guitar", "piano"]
-SOURCES_4 = ["drums", "bass", "other", "vocals"]
-Audio = npt.NDArray[np.float32]
+from .fakes import SOURCES_6S, FakeModel, FakeRuntime, ScriptedRunner
 
 
-@dataclass
-class FakeModel:
-    sources: list[str]
-    samplerate: int = 44_100
-
-
-@dataclass
-class FakeRuntime:
-    """Records calls; ``fail_loading`` names models whose loading raises."""
-
-    fail_loading: set[str] = field(default_factory=set)
-    cuda: bool = False
-    fractions: list[float] = field(default_factory=lambda: [0.3, 0.2, 0.7, 1.4])
-    loaded: list[str] = field(default_factory=list)
-    devices: list[str] = field(default_factory=list)
-    apply_error: Exception | None = None
-
-    def load(self, name: str) -> FakeModel:
-        self.loaded.append(name)
-        if name in self.fail_loading:
-            raise RuntimeError(f"cannot download {name}")
-        return FakeModel(SOURCES_6S if name == "htdemucs_6s" else SOURCES_4)
-
-    def separated(self, model: DemucsModel, mix: Audio) -> Audio:
-        """Source ``i`` is the mix scaled by ``(i + 1) / 10``."""
-        if self.apply_error:
-            raise self.apply_error
-        scale = np.arange(1, len(model.sources) + 1, dtype=np.float32)[:, None, None] / 10
-        return (mix[None] * scale).astype(np.float32)
-
-    def as_runtime(self) -> DemucsRuntime:
-        def apply(
-            model: DemucsModel, mix: Audio, device: str, on_fraction: Callable[[float], None]
-        ) -> Audio:
-            self.devices.append(device)
-            for fraction in self.fractions:
-                on_fraction(fraction)
-            return self.separated(model, mix)
-
-        return DemucsRuntime(load=self.load, apply=apply, cuda_available=lambda: self.cuda)
-
-
-def _separator(fake: FakeRuntime, device: str = "cpu") -> DemucsSeparator:
-    return DemucsSeparator(("htdemucs_6s", "htdemucs"), device, fake.as_runtime())  # type: ignore[arg-type]
+def _separator(fake: FakeRuntime, runner: ScriptedRunner | None = None) -> DemucsSeparator:
+    return DemucsSeparator(
+        ("htdemucs_6s", "htdemucs"), fake.as_runtime(), runner or ScriptedRunner()
+    )
 
 
 def test_primary_model_writes_six_aligned_flac_stems(mix_wav: Path, tmp_path: Path) -> None:
@@ -138,18 +92,6 @@ def test_unknown_model_source_raises_separation_error(mix_wav: Path, tmp_path: P
         _separator(fake).separate(mix_wav, tmp_path, lambda f, s: None)
 
 
-@pytest.mark.parametrize(
-    ("device", "cuda", "expected"),
-    [("cpu", True, "cpu"), ("cuda", False, "cuda"), ("auto", True, "cuda"), ("auto", False, "cpu")],
-)
-def test_device_follows_settings(mix_wav: Path, device: str, cuda: bool, expected: str) -> None:
-    fake = FakeRuntime(cuda=cuda)
-
-    _separator(fake, device).separate(mix_wav, mix_wav.parent, lambda f, s: None)
-
-    assert fake.devices == [expected]
-
-
 def test_progress_is_clamped_and_non_decreasing(mix_wav: Path, tmp_path: Path) -> None:
     reports: list[tuple[float, str]] = []
 
@@ -165,7 +107,7 @@ def test_progress_is_clamped_and_non_decreasing(mix_wav: Path, tmp_path: Path) -
 def test_create_separator_selects_by_settings(tmp_path: Path, kind: str, expected: type) -> None:
     settings = WorkerSettings(data_dir=tmp_path, separator=kind)  # type: ignore[arg-type]
 
-    assert isinstance(create_separator(settings), expected)
+    assert isinstance(create_separator(settings, ScriptedRunner()), expected)
 
 
 # ---------------------------------------------------------------- real runtime adapter
@@ -212,6 +154,10 @@ def test_runtime_load_uses_demucs_get_model(monkeypatch: pytest.MonkeyPatch) -> 
     assert names == ["htdemucs_6s"]
 
 
-def test_runtime_cuda_available_matches_torch() -> None:
-    assert runtime_module.cuda_available() is torch.cuda.is_available()
-    assert isinstance(runtime_module.default_runtime(), DemucsRuntime)
+def test_default_runtime_uses_the_demucs_functions() -> None:
+    runtime = runtime_module.default_runtime()
+    assert isinstance(runtime, DemucsRuntime)
+    assert (runtime.load, runtime.apply) == (
+        runtime_module.load_pretrained,
+        runtime_module.apply_pretrained,
+    )

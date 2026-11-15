@@ -13,6 +13,7 @@ import pytest
 import soundfile as sf
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.ports import SeparationError, SeparationResult
 from stemstudio_worker.separation import create_separator
 
@@ -45,7 +46,7 @@ def test_real_demucs_separates_synthetic_clip_into_aligned_stems(tmp_path: Path)
 
 def _separate_or_fail(wav: Path, out_dir: Path, fractions: list[float]) -> SeparationResult:
     """Run the real separator; a missing model skips locally and fails when CI=true."""
-    separator = create_separator(WorkerSettings(data_dir=out_dir, separator="demucs"))
+    separator = create_separator(WorkerSettings(data_dir=out_dir, separator="demucs"), CpuRunner())
     try:
         return separator.separate(wav, out_dir, lambda f, s: fractions.append(f))
     except SeparationError as exc:
