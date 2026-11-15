@@ -14,6 +14,37 @@ instrument families such as strings, brass, woodwinds, synth, keys/organ, acoust
 guitar, as far as available models allow. [...] Limitations are shown in the UI. Models are
 downloaded on first use and never committed." (full text in the feature request of 2026-11-15)
 
+## Clarifications
+
+### Session 2026-11-15
+
+Answered autonomously by the architect during planning (operating mode: fully autonomous), based
+on the measured feasibility spike; see `docs/decisions/ADR-010-detail-separation-models-and-pipeline.md`
+and `research.md`.
+
+- Q: Which models perform the detail splits? → A: drums: MDX23C DrumSep 6-stem (kick, snare,
+  toms, hihat, cymbals); vocals: UVR MDX-Net KARA 2 (lead, backing); other/guitar/piano: MVSep
+  Mega 53-stem BS-RoFormer folded into the families strings, brass, woodwinds, keys, synth,
+  acoustic guitar, electric guitar, percussion. Organ is not a separate family (the model's
+  `keys` output already contains it).
+- Q: Is SC-001 (30 minutes for a 4-minute song) achievable on the reference machine? → A: Yes,
+  measured 20 minutes (19 min 58 s) for a 4:22 song with drums, vocals and guitar active; the instrument
+  model runs once on the sum of the active other/guitar/piano stems to stay within budget. The
+  target stays at 30 minutes; slower machines will need longer, which the UI states.
+- Q: What counts as "(almost) silent", "audible" and "reliable"? → A: Parent silent when fewer
+  than 8 % of its frames exceed -40 dBFS; sub-stem audible when its energy is at least -20 dB
+  relative to the parent and at least 5 % of its frames are above max(-50 dBFS, parent level
+  - 25 dB); a split is not reliable when the model outputs miss the parent by more than -15 dB or
+  double-count it by more than 1 dB, or when the written stems do not reconstruct the parent
+  within -30 dB. All thresholds are tunable constants.
+- Q: What happens to a queued detail phase on restart? → A: Like a running one, it is marked
+  "interrupted by restart" with Retry; finished parent steps are checkpointed and reused.
+- Q: How long may a new import wait behind a running detail phase? → A: At most until the
+  current parent step finishes (FR-011); the longest step (instruments) takes about 13.5
+  minutes for a 4-minute song on the reference machine.
+- Q: Are detail stems loaded in the browser when a track is opened? → A: No, a group's detail
+  stems are loaded the first time its parent is expanded, then kept for the session.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Automatic detail stems for a new import (Priority: P1)
