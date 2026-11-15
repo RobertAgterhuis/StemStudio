@@ -7,14 +7,14 @@ namespace StemStudio.Api.Scores;
 /// <summary>Seconds per audio second per engine and device, and the fixed overheads (data-model 4.5; configurable, refined in the integration wave).</summary>
 public sealed class ScoreEstimateOptions
 {
-    /// <summary>basic-pitch (always on the CPU).</summary>
-    public double BasicPitchCpu { get; set; } = 0.10;
+    /// <summary>basic-pitch (always on the CPU; T080: 0.011-0.019 s/s measured, margin for engraving).</summary>
+    public double BasicPitchCpu { get; set; } = 0.05;
 
-    /// <summary>Piano CRNN on the CPU.</summary>
-    public double PianoCrnnCpu { get; set; } = 1.7;
+    /// <summary>Piano CRNN on the CPU (T080: 0.367 s/s measured with 8 threads, plus ~20 %).</summary>
+    public double PianoCrnnCpu { get; set; } = 0.45;
 
-    /// <summary>Piano CRNN on the GPU (Phase 0: 0.075 s/s).</summary>
-    public double PianoCrnnGpu { get; set; } = 0.08;
+    /// <summary>Piano CRNN on the GPU (Phase 0: 0.075 s/s; T080 integration run: 0.184 s/s, rounded up).</summary>
+    public double PianoCrnnGpu { get; set; } = 0.2;
 
     /// <summary>Drum onsets (CPU).</summary>
     public double DrumOnsets { get; set; } = 0.02;
