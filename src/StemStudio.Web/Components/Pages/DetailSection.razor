@@ -11,7 +11,7 @@
         }
     </div>
 
-    @if (Active)
+    @if (Detail.Status != DetailPhaseStatusDto.None)
     {
         <RadzenProgressBar Value="Detail.Progress" Max="100" ShowValue="true" aria-label="Detail separation progress"
                            data-testid="detail-progress" />
