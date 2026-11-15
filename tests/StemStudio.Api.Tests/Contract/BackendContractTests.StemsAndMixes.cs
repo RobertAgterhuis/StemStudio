@@ -118,7 +118,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingArtworkOperations = [];
 
     // Feature 007 (backend 1.5.0): the backend removes each id per story (T035, T042, T049, T054, T059).
-    private static readonly string[] PendingAssetOperations = ["listAssets", "createStemPack", "renameAsset", "deleteAsset", "retryAsset"];
+    private static readonly string[] PendingAssetOperations = ["createStemPack"];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);
