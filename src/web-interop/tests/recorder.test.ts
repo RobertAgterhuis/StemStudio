@@ -44,9 +44,13 @@ function fakeStream(): { stream: MediaStream; track: FakeTrack } {
   return { stream: { getTracks: () => [track] } as unknown as MediaStream, track };
 }
 
-function installMicrophone(getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>): void {
-  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn(getUserMedia) } });
+function installMicrophone(getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>): ReturnType<typeof vi.fn> {
+  const open = vi.fn(getUserMedia);
+  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: open } });
+  return open;
 }
+
+const revoke = vi.fn();
 
 beforeEach(() => {
   FakeRecorder.instances = [];
@@ -54,7 +58,8 @@ beforeEach(() => {
   vi.stubGlobal('MediaRecorder', FakeRecorder);
   vi.stubGlobal('isSecureContext', true);
   URL.createObjectURL = vi.fn(() => 'blob:preview');
-  URL.revokeObjectURL = vi.fn();
+  revoke.mockReset();
+  URL.revokeObjectURL = revoke;
 });
 
 afterEach(() => {
@@ -89,13 +94,13 @@ describe('recorderUnavailableReason', () => {
 describe('startRecording', () => {
   it('records dry singing as WebM/Opus and returns the bytes on stop', async () => {
     const { stream, track } = fakeStream();
-    installMicrophone(() => Promise.resolve(stream));
+    const open = installMicrophone(() => Promise.resolve(stream));
 
     const session = await startRecording(60);
     const recorder = FakeRecorder.instances[0];
     expect(recorder?.state).toBe('recording');
     expect(session.mimeType()).toBe('audio/webm;codecs=opus');
-    const constraints = vi.mocked(navigator.mediaDevices.getUserMedia).mock.calls[0]?.[0];
+    const constraints: unknown = open.mock.calls[0]?.[0];
     expect(constraints).toEqual({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
 
     const bytes = await session.stop();
@@ -140,7 +145,7 @@ describe('startRecording', () => {
     session.dispose();
 
     expect(track.stop).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    expect(revoke).toHaveBeenCalledWith('blob:preview');
   });
 
   it('dispose while recording stops the recorder', async () => {
@@ -150,7 +155,7 @@ describe('startRecording', () => {
     session.dispose();
 
     expect(FakeRecorder.instances[0]?.state).toBe('inactive');
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(revoke).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -197,6 +202,6 @@ describe('fileUrl and revokeUrl', () => {
   it('releases a preview URL', () => {
     revokeUrl('blob:preview');
 
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    expect(revoke).toHaveBeenCalledWith('blob:preview');
   });
 });

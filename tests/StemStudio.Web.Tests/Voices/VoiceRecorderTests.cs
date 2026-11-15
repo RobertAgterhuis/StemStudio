@@ -40,7 +40,7 @@ public sealed class VoiceRecorderTests : PageTestContext
 
         Recorded!.Bytes.ShouldBe([1, 2, 3]);
         recorder.Find("[data-testid=voice-record-status]").TextContent.ShouldContain("Recorded 0:15");
-        await _recording.Received(1).DisposeAsync();
+        await _recording.DidNotReceive().DisposeAsync();
     }
 
     [Fact]

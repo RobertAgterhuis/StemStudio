@@ -176,11 +176,11 @@ public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioAp
 
     private static JsonContent JsonBody<T>(T value) => JsonContent.Create(value, options: Json);
 
-    private static MultipartFormDataContent MultipartBody(UploadFile file)
+    private static MultipartFormDataContent MultipartBody(UploadFile file, string name = "file")
     {
         var stream = new StreamContent(file.Content);
         stream.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-        return new MultipartFormDataContent { { stream, "file", file.FileName } };
+        return new MultipartFormDataContent { { stream, name, file.FileName } };
     }
 
     private async Task<T> SendAsync<T>(HttpMethod method, string uri, HttpContent? content, CancellationToken ct)

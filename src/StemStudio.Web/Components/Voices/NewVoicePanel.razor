@@ -1,0 +1,32 @@
+@* The "new voice profile" panel (010 US3, FR-005..FR-007; ui-test-ids 1.9.0 voice-*): record (default) or upload own
+   singing, listen to it, read and accept the consent statement, name it, save. Save stays disabled until everything is
+   there, and while the singer service is not installed. *@
+
+<section class="ss-panel ss-generative-form ss-new-voice" aria-labelledby="new-voice-heading">
+    <h2 id="new-voice-heading" class="ss-heading">New voice profile</h2>
+    <VoiceRecorder OnRecorded="OnRecorded" />
+    <label class="ss-field">
+        <span class="ss-small">Or upload a recording of your own singing (WAV, FLAC, MP3 or WebM, 10 to 60 seconds)</span>
+        <InputFile @ref="Input" accept="@StemStudio.Web.Voices.VoiceRules.Accept" OnChange="UploadAsync" data-testid="voice-upload" />
+    </label>
+    @if (Draft.Sample?.PreviewUrl is { } preview)
+    {
+        <audio controls src="@preview" aria-label="Listen to the sample" data-testid="voice-preview"></audio>
+    }
+
+    @if (Draft.Statement is not null)
+    {
+        <ConsentPanel Draft="Draft" OnChanged="StateHasChanged" />
+    }
+
+    @if (Problem is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="voice-error">@Problem</div>
+    }
+    <div class="ss-dialog-actions">
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" data-testid="voice-cancel" />
+        <RadzenButton Text="Save voice profile" Icon="save" IsBusy="Busy" BusyText="Checking the sample..."
+                      Disabled="@(Busy || !Draft.IsComplete || SaveBlockedReason is not null)"
+                      aria-describedby="@(SaveBlockedReason is null ? null : "generation-voice-reason")" Click="SaveAsync" data-testid="voice-save" />
+    </div>
+</section>

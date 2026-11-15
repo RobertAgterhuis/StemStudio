@@ -44,6 +44,7 @@ public static class FeatureCatalog
         new("score.range", Advanced, null, "sheet-music"),
         new("restyle.options", Advanced, null, "restyle-options"),
         new("song.options", Advanced, null, "song-options"),
+        new("voice.pitch", Advanced, null, "voice-conversion"),
         new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
         new("shell.kbd-hints", Expert, null, "shortcuts"),
         new("journey.rail", Beginner, Beginner, "journey"),

@@ -16,6 +16,11 @@
         <span class="ss-small ss-muted ss-num">@TimeText.Duration(Take.DurationSeconds)</span>
     </div>
     <audio controls preload="none" src="@Url(Take.AudioUrl)" aria-label="@($"Play take {Take.Index}")" data-testid="@($"take-play-{Key}")"></audio>
+    @if (Take.VocalAudioUrl is { } vocalUrl)
+    {
+        <audio controls preload="none" src="@Url(vocalUrl)" aria-label="@($"Play the converted vocal of take {Take.Index}")"
+               data-testid="@($"take-vocal-play-{Key}")"></audio>
+    }
     <div class="ss-take-actions">
         @if (Take.ImportedTrackId is { } trackId)
         {
@@ -26,6 +31,11 @@
             <RadzenButton Text="Import as track" Icon="library_add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" IsBusy="Importing"
                           BusyText="Importing..." Disabled="Importing" Click="ImportAsync" data-testid="@($"take-import-{Key}")" />
         }
+        @if (OffersMyVoice)
+        {
+            <RadzenButton Text="Use my voice" Icon="record_voice_over" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                          Click="() => OnUseMyVoice.InvokeAsync(Take)" data-testid="@($"take-use-my-voice-{Key}")" />
+        }
     </div>
     <TakeDetails Generation="Generation" Take="Take" />
 </li>
@@ -35,7 +45,13 @@
     [Parameter]
     public EventCallback<GenerationTakeDto> OnImport { get; set; }
 
+    /// <summary>"Use my voice" pressed (song takes with an AI voice only).</summary>
+    [Parameter]
+    public EventCallback<GenerationTakeDto> OnUseMyVoice { get; set; }
+
     private bool Importing { get; set; }
+
+    private bool OffersMyVoice => Generation.Kind == GenerationKindDto.Song && Take.Vocal == VocalLabelDto.Synthetic;
 
     private async Task ImportAsync()
     {

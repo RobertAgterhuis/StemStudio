@@ -50,12 +50,24 @@ public sealed class VoiceRecorderInteropTests : IAsyncDisposable
     [Fact]
     public async Task AFailedStart_IsAReadableRecorderException()
     {
-        _module.Setup<IJSObjectReference>("startRecording", _ => true)
-            .SetException(new JSException("Microphone permission was denied. You can upload a recording instead.\nError: at startRecording"));
+        await using var recorder = new VoiceRecorderInterop(new ThrowingRuntime(
+            new JSException("Microphone permission was denied. Allow the microphone for this page to record.\nError: at startRecording")));
 
-        var ex = await Should.ThrowAsync<VoiceRecorderException>(() => _recorder.StartAsync(60).AsTask());
+        var ex = await Should.ThrowAsync<VoiceRecorderException>(() => recorder.StartAsync(60).AsTask());
 
-        ex.Message.ShouldBe("Microphone permission was denied. You can upload a recording instead.");
+        ex.Message.ShouldBe("Microphone permission was denied. Allow the microphone for this page to record.");
+        ex.InnerException.ShouldBeOfType<JSException>();
+    }
+
+    /// <summary>A JS runtime whose module throws on every call (bUnit cannot fail an invocation that returns an object reference).</summary>
+    private sealed class ThrowingRuntime(Exception error) : IJSRuntime, IJSObjectReference
+    {
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
+            identifier == "import" ? ValueTask.FromResult((TValue)(object)this) : ValueTask.FromException<TValue>(error);
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) => InvokeAsync<TValue>(identifier, args);
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     [Fact]

@@ -30,6 +30,9 @@ public sealed partial class GenerationList
 
     private GenerationDto? Deleting { get; set; }
 
+    /// <summary>The song take of the open "Use my voice" dialog.</summary>
+    private TakeRef? Converting { get; set; }
+
     /// <inheritdoc />
     protected override bool NeedsPolling => Items?.Any(g => GenerationText.IsActive(g.Status)) == true;
 
@@ -68,6 +71,17 @@ public sealed partial class GenerationList
     private Task RetryAsync(GenerationDto generation) => RunAsync(async () => await AddAsync(await Api.RetryGenerationAsync(generation.Id, Stopping)));
 
     private void AskDelete(GenerationDto generation) => Deleting = generation;
+
+    private async Task OnConversionStartedAsync(GenerationDto conversion)
+    {
+        Converting = null;
+        await AddAsync(conversion);
+    }
+
+    /// <summary>A take of a generation.</summary>
+    /// <param name="Generation">The generation.</param>
+    /// <param name="Take">The take.</param>
+    private sealed record TakeRef(GenerationDto Generation, GenerationTakeDto Take);
 
     private Task ImportAsync(GenerationDto generation, GenerationTakeDto take) => RunAsync(async () =>
     {

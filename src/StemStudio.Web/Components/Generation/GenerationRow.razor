@@ -44,7 +44,8 @@
         <ul class="ss-takes" aria-label="Takes">
             @foreach (var take in Generation.Takes)
             {
-                <TakeItem @key="take.Index" Generation="Generation" Take="take" OnImport="t => OnImport.InvokeAsync(t)" />
+                <TakeItem @key="take.Index" Generation="Generation" Take="take" OnImport="t => OnImport.InvokeAsync(t)"
+                          OnUseMyVoice="t => OnUseMyVoice.InvokeAsync(t)" />
             }
         </ul>
     }
@@ -66,6 +67,10 @@
     /// <summary>"Import as track" pressed on a take.</summary>
     [Parameter]
     public EventCallback<GenerationTakeDto> OnImport { get; set; }
+
+    /// <summary>"Use my voice" pressed on a take.</summary>
+    [Parameter]
+    public EventCallback<GenerationTakeDto> OnUseMyVoice { get; set; }
 
     /// <summary>Delete pressed (the list asks for confirmation).</summary>
     [Parameter]

@@ -197,3 +197,26 @@
 .ss-song-page .ss-panel {
   margin-top: var(--ss-space-5);
 }
+
+/* Voice profiles (010 US3): recorder, consent statement. */
+.ss-recorder,
+.ss-new-voice {
+  display: grid;
+  gap: var(--ss-space-3);
+}
+
+.ss-record-timer {
+  min-width: 3.5rem;
+  font-size: var(--ss-type-title-size);
+}
+
+.ss-consent-text {
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-raised);
+}
+
+.ss-consent-text p {
+  margin: 0 0 var(--ss-space-2);
+}

@@ -27,9 +27,14 @@ else
         @foreach (var generation in Items)
         {
             <GenerationRow @key="generation.Id" Generation="generation" OnCancel="CancelAsync" OnRetry="RetryAsync" OnDelete="AskDelete"
-                           OnImport="t => ImportAsync(generation, t)" />
+                           OnImport="t => ImportAsync(generation, t)" OnUseMyVoice="t => Converting = new(generation, t)" />
         }
     </ul>
+}
+
+@if (Converting is { } converting)
+{
+    <UseMyVoiceDialog Generation="converting.Generation" Take="converting.Take" OnClose="() => Converting = null" OnStarted="OnConversionStartedAsync" />
 }
 
 @if (Deleting is { } deleting)

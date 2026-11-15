@@ -45,7 +45,7 @@ public sealed class VoiceProfilesTests : PageTestContext
         await page.Find("[data-testid=voice-consent-checkbox]").ChangeAsync(new() { Value = tick });
     }
 
-    private async Task RecordAsync(IRenderedComponent<VoiceProfilesPage> page)
+    private static async Task RecordAsync(IRenderedComponent<VoiceProfilesPage> page)
     {
         await page.Find("[data-testid=voice-record-start]").ClickAsync(new());
         await page.Find("[data-testid=voice-record-stop]").ClickAsync(new());
@@ -128,6 +128,7 @@ public sealed class VoiceProfilesTests : PageTestContext
     {
         Recorder.FileUrlAsync(Arg.Any<Microsoft.AspNetCore.Components.ElementReference>()).Returns("blob:file");
         var page = await OpenNewAsync();
+        page.Find("[data-testid=voice-upload]").GetAttribute("accept").ShouldBe(".wav,.flac,.mp3,.webm,audio/*");
 
         page.FindComponent<Microsoft.AspNetCore.Components.Forms.InputFile>().UploadFiles(InputFileContent.CreateFromBinary(new byte[4096], "own-voice.wav", contentType: "audio/wav"));
         page.WaitForAssertion(() => page.Find("[data-testid=voice-preview]").GetAttribute("src").ShouldBe("blob:file"));
@@ -136,7 +137,6 @@ public sealed class VoiceProfilesTests : PageTestContext
 
         var upload = SentUpload();
         (upload.Sample.FileName, upload.Sample.ContentType, upload.Source).ShouldBe(("own-voice.wav", "audio/wav", VoiceSampleSourceDto.Uploaded));
-        page.Find("[data-testid=voice-upload]").GetAttribute("accept").ShouldBe(".wav,.flac,.mp3,.webm,audio/*");
     }
 
     [Theory]

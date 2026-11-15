@@ -73,5 +73,6 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
         await using var scope = factory.Services.CreateAsyncScope();
 
         scope.ServiceProvider.GetRequiredService<StemStudio.Web.Generation.GenerationStatusSource>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<StemStudio.Web.Interop.IVoiceRecorder>().ShouldBeOfType<StemStudio.Web.Interop.VoiceRecorderInterop>();
     }
 }

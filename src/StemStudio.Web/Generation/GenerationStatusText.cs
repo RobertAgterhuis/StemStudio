@@ -27,6 +27,12 @@ public static class GenerationStatusText
     public static string? Reason(GenerationStatusDto status) =>
         status.State == GenerationAvailabilityDto.Ready ? null : status.Reason ?? DefaultReason;
 
+    /// <summary>Why the voice features (the singer service) cannot be used, or null when they are ready.</summary>
+    /// <param name="status">The status.</param>
+    /// <returns>The singer's reason, or a default text.</returns>
+    public static string? VoiceReason(GenerationStatusDto status) =>
+        status.Voice.State == GenerationAvailabilityDto.Ready ? null : status.Voice.Reason ?? "The voice features are not available on this computer.";
+
     /// <summary>"First use downloads about X of model files." while ready and models are missing.</summary>
     /// <param name="status">The status.</param>
     /// <returns>The notice, or null.</returns>
