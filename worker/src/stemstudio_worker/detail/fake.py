@@ -16,7 +16,7 @@ import numpy as np
 
 from stemstudio_worker.detail.checks import CheckPolicy
 from stemstudio_worker.detail.steps import ModelChoice
-from stemstudio_worker.ports import DetailAudio, DetailModel, ProgressCallback
+from stemstudio_worker.ports import DetailAudio, DetailModel, GpuNeed, ProgressCallback
 from stemstudio_worker.schemas import DetailModelId, DetailStemName, ParentStemName
 
 CHUNKS: Final = 4
@@ -30,6 +30,9 @@ FAKE_SCALES: Final[Mapping[ParentStemName, Mapping[DetailStemName, float]]] = {
     "other": {"brass": 0.6, "strings": 0.4},
 }
 """Output scales per parent; outputs are named with their detail stem names."""
+
+FAKE_DETAIL_NEED: Final = GpuNeed("the detail separation", 0)
+"""GPU need of a fake model step (named in the fake device's fallback reasons)."""
 
 _FAKE_POLICY: Final = CheckPolicy(model_residual=True, double_count=True)
 _PARENT_OF_MODEL: Final[Mapping[DetailModelId, ParentStemName]] = {
@@ -79,7 +82,11 @@ class FakeSource:
     def choose(self, parent: ParentStemName) -> ModelChoice:
         """Return the fake model of ``parent`` (model id ``fake-detail``)."""
         table = {name: (name,) for name in FAKE_SCALES[parent]}
-        return ModelChoice("fake-detail", self.model(parent), table, _FAKE_POLICY)
+        load = lambda _device: self.model(parent)  # noqa: E731 - fakes ignore the device
+        return ModelChoice("fake-detail", load, table, _FAKE_POLICY, FAKE_DETAIL_NEED)
+
+    def release_gpu(self) -> None:
+        """Fake models hold no GPU memory."""
 
 
 class FakeModelProvider:

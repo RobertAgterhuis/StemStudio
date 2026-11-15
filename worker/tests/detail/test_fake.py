@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.config import WorkerSettings
-from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail import create_detail_adapters, create_detail_pipeline
 from stemstudio_worker.detail.fake import CHUNKS, FAKE_SCALES, FakeModelProvider, FakeSource
 from stemstudio_worker.detail.steps import DetailPipeline
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.ports import DetailModelProvider
 from stemstudio_worker.schemas import ParentOutcomeKind, StemName
 

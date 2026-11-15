@@ -16,10 +16,10 @@ import pytest
 
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.detail import create_detail_pipeline
-from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail.audio_io import read_stem
 from stemstudio_worker.detail.gating import read_parent, relative_db, sub_stem_audible
 from stemstudio_worker.detail.names import REST
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.ports import DetailAudio, DetailModelUnavailableError
 from stemstudio_worker.schemas import DetailModelId, ParentOutcome, ParentOutcomeKind, StemName
 

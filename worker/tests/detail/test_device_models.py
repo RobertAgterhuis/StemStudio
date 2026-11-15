@@ -7,17 +7,23 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.detail import create_detail_pipeline, runtimes
 from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.fake import FAKE_DETAIL_NEED, FakeSource
-from stemstudio_worker.detail.folding import DRUMSEP_TABLE, VOCAL_TABLE
+from stemstudio_worker.detail.folding import DRUMSEP_TABLE, VOCAL_TABLE, FoldTable
 from stemstudio_worker.detail.mdx_net import Kara2Model
 from stemstudio_worker.detail.registry import GPU_NEEDS, ModelSpec
 from stemstudio_worker.detail.runtimes import ONNX_NO_CUDA, RealModelProvider
-from stemstudio_worker.detail.steps import DetailPipeline, RegistrySource
-from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.detail.steps import (
+    PARTITION,
+    DetailPipeline,
+    ModelChoice,
+    ModelLoader,
+    RegistrySource,
+)
 from stemstudio_worker.ports import DetailAudio, DetailModel, DeviceUse, GpuNeed, ProgressCallback
-from stemstudio_worker.schemas import DetailModelId
+from stemstudio_worker.schemas import DetailModelId, ParentStemName, StemName
 
 from .models import NEED, RecordingRunner, ScaledModel, Source, band, choice, write_stems
 
@@ -66,11 +72,11 @@ def test_release_gpu_drops_only_the_gpu_instances(tmp_path: Path) -> None:
 
 
 def test_the_registry_needs_are_the_measured_ones() -> None:
-    assert GPU_NEEDS == {
+    assert {
         "mdx23c-drumsep-6s": GpuNeed("MDX23C DrumSep", 4_400),
         "uvr-mdxnet-kara-2": GpuNeed("UVR MDX-Net KARA 2", 3_600),
         "mvsep-mega-53": GpuNeed("Mega 53-stem", 10_600),
-    }
+    } == GPU_NEEDS
 
 
 class _Session:
@@ -132,11 +138,22 @@ def test_kara2_on_the_cpu_needs_no_preload(tmp_path: Path, onnx: list[str]) -> N
     assert model.fallback_reason is None
 
 
-def _vocals_step(tmp_path: Path, model: object, runner: RecordingRunner) -> DeviceUse | None:
-    stems = write_stems(tmp_path / "stems", band(silent=("drums", "guitar", "piano", "other")))
-    source = Source({"vocals": choice(model, VOCAL_TABLE)})
+def _single_step(
+    tmp_path: Path, parent: StemName, source: Source, runner: RecordingRunner | None
+) -> DeviceUse | None:
+    """Plan a band where only ``parent`` is audible and run its single step."""
+    silent = tuple(n for n in ("vocals", "drums", "guitar", "piano", "other") if n != parent)
+    stems = write_stems(tmp_path / "stems", band(silent=silent))  # type: ignore[arg-type]
     (step,) = DetailPipeline(source, runner).plan(stems, tmp_path / "partial")
     return step.run(lambda f: None)
+
+
+def _source_with(parent: ParentStemName, load: ModelLoader, table: FoldTable) -> Source:
+    return Source({parent: ModelChoice("fake-detail", load, table, PARTITION, NEED)})
+
+
+def _vocals_step(tmp_path: Path, model: object, runner: RecordingRunner) -> DeviceUse | None:
+    return _single_step(tmp_path, "vocals", Source({"vocals": choice(model, VOCAL_TABLE)}), runner)
 
 
 def test_every_parent_step_runs_through_the_runner_with_its_need(tmp_path: Path) -> None:
@@ -170,14 +187,8 @@ def test_a_failing_gpu_attempt_loads_the_model_again_for_the_cpu(tmp_path: Path)
         devices.append(device)
         return _GpuOom() if device == "cuda" else cpu_model
 
-    stems = write_stems(tmp_path / "stems", band(silent=("vocals", "guitar", "piano", "other")))
-    picked = choice(None, DRUMSEP_TABLE)
-    source = Source({"drums": picked.__class__(picked.model_id, load, DRUMSEP_TABLE,
-                                               picked.policy, NEED)})  # fmt: skip
     runner = RecordingRunner()
-    (step,) = DetailPipeline(source, runner).plan(stems, tmp_path / "partial")
-
-    use = step.run(lambda f: None)
+    use = _single_step(tmp_path, "drums", _source_with("drums", load, DRUMSEP_TABLE), runner)
 
     assert devices == ["cuda", "cpu"]
     assert isinstance(runner.errors[0], MemoryError)
@@ -189,18 +200,13 @@ def test_a_failing_gpu_attempt_loads_the_model_again_for_the_cpu(tmp_path: Path)
 def test_a_pipeline_without_a_runner_runs_on_the_cpu_and_records_nothing(tmp_path: Path) -> None:
     devices: list[str] = []
     model = ScaledModel({"lead": 0.7, "backing": 0.3})
-    picked = choice(model, VOCAL_TABLE)
 
     def load(device: str) -> DetailModel:
         devices.append(device)
         return model
 
-    stems = write_stems(tmp_path / "stems", band(silent=("drums", "guitar", "piano", "other")))
-    source = Source({"vocals": picked.__class__(picked.model_id, load, VOCAL_TABLE,
-                                                picked.policy, NEED)})  # fmt: skip
-    (step,) = DetailPipeline(source).plan(stems, tmp_path / "partial")
-
-    assert step.run(lambda f: None) is None
+    source = _source_with("vocals", load, VOCAL_TABLE)
+    assert _single_step(tmp_path, "vocals", source, None) is None
     assert devices == ["cpu"]
 
 

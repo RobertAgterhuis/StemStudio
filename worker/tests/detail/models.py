@@ -11,7 +11,13 @@ from stemstudio_worker.detail.checks import to_pcm
 from stemstudio_worker.detail.folding import FoldTable
 from stemstudio_worker.detail.steps import FAMILIES, PARTITION, ModelChoice
 from stemstudio_worker.ports import DetailAudio, DeviceUse, GpuNeed, ProgressCallback
-from stemstudio_worker.schemas import DetailModelId, ParentStemName, StemName
+from stemstudio_worker.schemas import (
+    CPU_DEVICE,
+    DetailModelId,
+    DeviceInfo,
+    ParentStemName,
+    StemName,
+)
 
 from .signals import noise, silence, tone
 
@@ -79,6 +85,7 @@ class RecordingRunner:
     """A ``DeviceRunner`` running on ``first``; on any error it retries once on the CPU."""
 
     first: str = "cuda"
+    info: DeviceInfo = CPU_DEVICE
     needs: list[GpuNeed] = field(default_factory=list)
     errors: list[Exception] = field(default_factory=list)
 

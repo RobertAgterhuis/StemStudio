@@ -75,7 +75,7 @@ def _lifespan(
         runtime = WorkerRuntime.start(
             settings,
             adapters or default_adapters(settings),
-            detail_pipeline or create_detail_pipeline(settings),
+            detail_pipeline or create_detail_pipeline(settings, create_device_runner(settings)),
         )
         app.state.runtime = runtime
         try:

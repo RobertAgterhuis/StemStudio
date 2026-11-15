@@ -27,8 +27,8 @@ from stemstudio_worker.detail.gating import relative_db
 from stemstudio_worker.detail.mdx_net import COMPENSATE, Kara2Model
 from stemstudio_worker.detail.registry import ModelSpec
 from stemstudio_worker.detail.runtimes import RealModelProvider
-from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.detail.steps import DetailPipeline
+from stemstudio_worker.devices.runner import CpuRunner
 from stemstudio_worker.ports import (
     DetailAudio,
     DetailCancelledError,
