@@ -1,4 +1,7 @@
-"""One-command StemStudio quality gate: unit metrics, duplication, dependencies, raw colours.
+"""One-command StemStudio quality gate: metrics, duplication, dependencies, colours, licences.
+
+Checks: SIG unit metrics, duplication, dependency direction, raw colours and the licence records
+of vendored code.
 
 Usage::
 
@@ -18,6 +21,7 @@ import css_tokens_check
 import dependency_check
 import duplication
 import sig_check
+import vendor_check
 from common import Finding, build_parser, count_errors, format_findings, is_test
 from report import ReportInput, render
 
@@ -33,6 +37,7 @@ class GateResult:
     dup: duplication.DuplicationResult
     dependency_findings: list[Finding] = field(default_factory=list)
     token_findings: list[Finding] = field(default_factory=list)
+    vendor_findings: list[Finding] = field(default_factory=list)
 
     @property
     def findings(self) -> list[Finding]:
@@ -42,6 +47,7 @@ class GateResult:
             *self.dup.findings,
             *self.dependency_findings,
             *self.token_findings,
+            *self.vendor_findings,
         ]
 
     @property
@@ -64,6 +70,7 @@ def run(root: Path, paths: Sequence[Path], dup_run: DuplicationRun = duplication
         dup=dup_run(root, paths),
         dependency_findings=dependency_check.run(root),
         token_findings=css_tokens_check.run(root),
+        vendor_findings=vendor_check.run(root),
     )
 
 
