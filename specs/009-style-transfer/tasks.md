@@ -149,8 +149,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T052 [US6] [generative] Implement anything missing to pass T051
 - [ ] T053 [P] [US6] [backend] Failing tests `GenerationStatusTests.cs`: `GET /api/generation/status` -> `notInstalled` (no base URL, or unreachable > 2 s), `unavailable` + reason, `ready` + models + `downloadBytesNeeded`; cached 10 s (`FakeTimeProvider`); `POST .../restyles` -> `409` with `code` `notInstalled`/`gpuRequired` (FR-010)
 - [ ] T054 [US6] [backend] Implement `Generation/GenerationStatusService.cs` + endpoint to pass T053
-- [ ] T055 [P] [US6] [frontend] Failing bUnit tests: `GenerationStatusBanner` (`generation-status` `data-state`, reason, help link); `track-restyle` disabled with `aria-describedby` reason when not ready; style library still editable (US6-1/2)
-- [ ] T056 [US6] [frontend] Implement the banner, disabled states and help entry `help.generation.gpu-required` to pass T055
+- [x] T055 [P] [US6] [frontend] Failing bUnit tests: `GenerationStatusBanner` (`generation-status` `data-state`, reason, help link); `track-restyle` disabled with `aria-describedby` reason when not ready; style library still editable (US6-1/2)
+- [x] T056 [US6] [frontend] Implement the banner, disabled states and help entry `help.generation.gpu-required` to pass T055
 - [ ] T057 [US6] [qa] Author specs: default fake stack without generator -> `data-state="notInstalled"`, restyle disabled; fake generator `no-gpu` -> `unavailable` with the reason; the existing suite passes unchanged (SC-002)
 
 **Checkpoint**: HO:us6.
