@@ -111,10 +111,17 @@ public sealed class RestyleForm
 
     /// <summary>Checks the choices (the API checks them again).</summary>
     /// <returns>A readable problem, or null.</returns>
-    public string? Validate() =>
-        RangeProblem() ?? (_stems.Count == 0 ? "Choose at least one stem."
-            : Takes is < 1 or > ContractLimits.MaxTakes ? "Choose 1 or 2 takes."
-            : null);
+    public string? Validate() => ModeProblem() ?? RangeProblem() ?? ChoiceProblem();
+
+    private string? ModeProblem() =>
+        Mode == RestyleModeDto.InPlace && _track.DurationSeconds > ContractLimits.MaxGenerationSeconds
+            ? "Restyle in place works on tracks of at most 8 minutes."
+            : null;
+
+    private string? ChoiceProblem() =>
+        _stems.Count == 0 ? "Choose at least one stem."
+        : Takes is < 1 or > ContractLimits.MaxTakes ? "Choose 1 or 2 takes."
+        : null;
 
     /// <summary>The request body (call <see cref="Validate"/> first).</summary>
     /// <returns>The restyle request.</returns>

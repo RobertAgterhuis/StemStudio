@@ -1,7 +1,26 @@
 @* Advanced options of the restyle dialog (009 FR-002): range in seconds (10 s to 8 min), stems, strength (5 steps) and
-   takes. Hidden at Beginner, where the defaults of RestyleForm apply. *@
+   takes, and range or in place (US5). Hidden at Beginner, where the defaults of RestyleForm apply. *@
 @using StemStudio.Contracts
+@using StemStudio.Contracts.Generation
 @using StemStudio.Web.Generation
+
+<fieldset class="ss-fieldset">
+    <legend class="ss-label">What becomes the take</legend>
+    <label class="ss-check">
+        <input type="radio" name="restyle-mode" checked="@(Form.Mode == RestyleModeDto.Range)"
+               @onchange="() => Set(() => Form.Mode = RestyleModeDto.Range)" data-testid="restyle-mode-range" />
+        Only the range: the take is as long as the range
+    </label>
+    <label class="ss-check">
+        <input type="radio" name="restyle-mode" checked="@(Form.Mode == RestyleModeDto.InPlace)" aria-describedby="restyle-mode-inplace-help"
+               @onchange="() => Set(() => Form.Mode = RestyleModeDto.InPlace)" data-testid="restyle-mode-inplace" />
+        In place: the whole song with only the range restyled
+    </label>
+    <p id="restyle-mode-inplace-help" class="ss-help ss-small">
+        In place keeps the whole track: only the part between start and end changes, the rest of the song stays as it is.
+        It works on tracks of at most 8 minutes.
+    </p>
+</fieldset>
 
 <div class="ss-range-row">
     <label class="ss-field">

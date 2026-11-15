@@ -16,6 +16,8 @@ of the same song. It works on the stems of the track and keeps its melody and st
 2. From the Advanced level you can choose more:
    - **Start** and **End** in seconds: the take is as long as this part of the song, 10 seconds to 8 minutes. By
      default it is the whole song (at most the first 8 minutes).
+   - **In place** instead of **only the range**: the take is the whole song, and only the part between start and end
+     is restyled; the rest stays exactly as it is. This works on tracks of at most 8 minutes.
    - **Stems in the source**: which stems the new version is made from. An instrumental style leaves the vocals out.
    - **Strength**: how far the take may move away from the song ([strength](help:restyle-strength)).
    - **Takes**: one or two versions with different seeds, so you can keep the best.
