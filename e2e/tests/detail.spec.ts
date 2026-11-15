@@ -1,19 +1,19 @@
-import type { StemName } from '../support/api';
 import {
   activeStatuses,
   expectFakeOutcomesShown,
   fakeDetailOutcomes,
+  fakeStems,
   outcomesOf,
   sampleProgressUntilDone,
+  silentDb,
   uniqueBand,
 } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { expect, test } from '../support/test';
 
 // Feature 002 detail separation against the fake stack (STEMSTUDIO_SEPARATOR=fake,
-// STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5; docs/testing/TEST-STRATEGY.md section 5).
-const sixStems: readonly StemName[] = ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'];
-const silentDb = -60;
+// STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5; docs/testing/TEST-STRATEGY.md section 5). The other
+// `@detail` sections live in detail-*.spec.ts (one file per section keeps every unit small).
 
 test.describe('auto', { tag: '@detail' }, () => {
   // T057: US1 AS1-AS3, FR-001, FR-007, FR-017.
@@ -43,7 +43,7 @@ test.describe('auto', { tag: '@detail' }, () => {
     await test.step('the standard stems play in the mixer during the phase', async () => {
       await trackPage.openMixer.click();
       await page.waitForURL(`**/tracks/${trackId}/mixer**`);
-      await mixer.waitForReady(sixStems);
+      await mixer.waitForReady(fakeStems);
       await mixer.play();
       await expect.poll(() => mixer.peak('master'), { timeout: 10_000 }).toBeGreaterThan(silentDb);
       expect(activeStatuses).toContain((await api.getTrack(trackId)).detail.status);

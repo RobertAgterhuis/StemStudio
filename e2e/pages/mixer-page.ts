@@ -113,6 +113,11 @@ export class MixerPage {
     return peakDb(this.meter(target));
   }
 
+  /** Highest `data-peak-db` a meter shows during `windowMs`, sampled in the page on every frame. */
+  async maxPeakOver(target: ChannelKey | 'master', windowMs: number): Promise<number> {
+    return this.meter(target).evaluate(sampleMaxPeak, windowMs);
+  }
+
   /** Sets loop A/B (seconds) and the loop toggle. */
   async setLoop(start: number, end: number, enabled: boolean): Promise<void> {
     await fillAndCommit(this.byId('loop-start'), String(start));
@@ -195,4 +200,18 @@ export class MixerPage {
 
 function entries(record: Partial<Record<StemName, number>>): [StemName, number][] {
   return Object.entries(record) as [StemName, number][];
+}
+
+// Serialised into the page by Playwright: must not reference anything outside its own body.
+function sampleMaxPeak(meter: Element, windowMs: number): Promise<number> {
+  const start = performance.now();
+  let max = -60;
+  return new Promise((resolve) => {
+    const sample = (): void => {
+      max = Math.max(max, Number(meter.getAttribute('data-peak-db') ?? '-60'));
+      if (performance.now() - start < windowMs) requestAnimationFrame(sample);
+      else resolve(max);
+    };
+    sample();
+  });
 }

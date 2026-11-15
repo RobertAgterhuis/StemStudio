@@ -1,6 +1,6 @@
 import type { StemName, TrackDto } from '../support/api';
 import { fillAndCommit, isOn, numericValue } from '../support/controls';
-import { installEngineProbe, measureActionToEngineMs, sliderAction } from '../support/engine-probe';
+import { installEngineProbe, measureSc004 } from '../support/engine-probe';
 import { fakeJobTimeoutMs } from '../support/env';
 import { expect, test } from '../support/test';
 
@@ -67,12 +67,7 @@ test('a loop with B <= A is refused with a reason', async ({ mixer }) => {
 test('mixer controls reach the audio engine within 50 ms (SC-004)', async ({ mixer }) => {
   await mixer.play();
   await expect.poll(() => mixer.peak('master'), { timeout: 10_000 }).toBeGreaterThan(silentDb);
-  const fader = mixer.fader('vocals');
-  const timings = {
-    fader: await measureActionToEngineMs(fader, await sliderAction(fader, 50)),
-    mute: await measureActionToEngineMs(mixer.mute('guitar'), { kind: 'click' }),
-    solo: await measureActionToEngineMs(mixer.solo('drums'), { kind: 'click' }),
-  };
+  const timings = await measureSc004({ fader: mixer.fader('vocals'), mute: mixer.mute('guitar'), solo: mixer.solo('drums') });
   test.info().annotations.push({ type: 'sc-004 ms', description: JSON.stringify(timings) });
   expect(timings.fader).toBeLessThan(sc004LimitMs);
   expect(timings.mute).toBeLessThan(sc004LimitMs);

@@ -41,6 +41,12 @@ export const fakeDetailOutcomes: Readonly<Record<StemName, ExpectedOutcome>> = {
   other: { outcome: 'split', stems: ['strings', 'brass', 'rest'] },
 };
 
+/** The six stems of the fake standard separator, in display order. */
+export const fakeStems: readonly StemName[] = ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'];
+
+/** Meter floor in dBFS: a meter at or below it is silent. */
+export const silentDb = -60;
+
 /** The splittable parents (the ones with a `detail-outcome-<parent>` id). */
 export const parentStems: readonly ParentStemName[] = ['vocals', 'drums', 'guitar', 'piano', 'other'];
 

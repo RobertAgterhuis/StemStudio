@@ -173,7 +173,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### qa
 
-- [ ] T064 [US2] [qa] Author `detail.spec.ts` "mixer": expand drums, mute snare -> `meter-drums-snare` silent while others move, solo kick, collapse/expand keeps settings, 50 loop repetitions alignment check through the engine debug hook already used by the 001 suite (US2 AS1-AS5, SC-004)
+- [x] T064 [US2] [qa] Author `detail.spec.ts` "mixer": expand drums, mute snare -> `meter-drums-snare` silent while others move, solo kick, collapse/expand keeps settings, 50 loop repetitions alignment check through the engine debug hook already used by the 001 suite (US2 AS1-AS5, SC-004)
 
 **Checkpoint**: HO:us2 (audio-engine, frontend, qa).
 
