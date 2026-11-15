@@ -2,10 +2,10 @@
 id: export-range
 title: "Save part of a song"
 area: tracks
-summary: "Save only the loop region or a start and end time of at least 0.5 s. Leave both empty for the whole song."
+summary: "Export a range: only the loop region, or a start and end time of at least 0.5 s. Leave both empty for the whole song."
 feature: export.range
 anchors: ["export-range"]
-keywords: ["range", "part", "start", "end", "loop region", "section", "excerpt", "seconds"]
+keywords: ["range", "export range", "part", "start", "end", "loop region", "section", "excerpt", "seconds"]
 related: [export-dialog, mixer-loop, loop]
 reviewed: "007"
 ---

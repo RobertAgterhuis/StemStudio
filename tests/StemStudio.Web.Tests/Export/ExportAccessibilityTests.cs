@@ -113,6 +113,7 @@ public sealed class ExportAccessibilityTests : PageTestContext
     [InlineData("download", "library")]
     [InlineData("lowered", "export-clipping")]
     [InlineData("loop region", "export-range")]
+    [InlineData("export range", "export-range")]
     public void HelpSearch_FindsTheFeature007Topics(string query, string expected) =>
         new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 

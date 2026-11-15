@@ -70,7 +70,8 @@ test.describe('raw stem', { tag: '@export' }, () => {
     const id = await exportDialog.savedAssetId();
     await exportDialog.savedOpen.click();
     await library.waitForStatus(id, 'ready', renderMs);
-    await expect(library.name(id)).toHaveText(`${track.title} - bass`);
+    // data-model 4.4: a repeated default name gets " (2)", " (3)", ... (reruns, both browsers).
+    await expect(library.name(id)).toHaveText(new RegExp(`^${track.title} - bass( \\(\\d+\\))?$`));
     const asset = await readyFromConfirmation(id, assetsApi);
     expect([asset.audio?.format, asset.audio?.bitDepth]).toEqual(['flac', 16]);
     const file = await assetsApi.download(id);
