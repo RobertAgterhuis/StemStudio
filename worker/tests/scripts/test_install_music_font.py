@@ -88,23 +88,58 @@ def test_install_wraps_bad_base64(tmp_path: Path) -> None:
         font.install(_write_css(tmp_path, css), tmp_path, _to_ttf)
 
 
+class _FakeNameTable:
+    def __init__(self) -> None:
+        self.names: list[tuple[str, int, int, int, int]] = []
+
+    def setName(self, value: str, name_id: int, platform: int, encoding: int, lang: int) -> None:  # noqa: N802 - fontTools API
+        self.names.append((value, name_id, platform, encoding, lang))
+
+
 class _FakeTTFont:
-    def __init__(self, stream: io.BytesIO) -> None:
+    created: "list[_FakeTTFont]" = []
+
+    def __init__(self, stream: io.BytesIO, *, recalcTimestamp: bool = True) -> None:  # noqa: N803 - fontTools API
         self.data = stream.read()
         self.flavor: str | None = "woff2"
+        self.recalc_timestamp = recalcTimestamp
+        self.name = _FakeNameTable()
+        _FakeTTFont.created.append(self)
+
+    def __getitem__(self, tag: str) -> _FakeNameTable:
+        assert tag == "name"
+        return self.name
 
     def save(self, out: io.BytesIO) -> None:
         assert self.flavor is None
         out.write(_TTF + self.data)
 
 
-def test_fonttools_convert_drops_the_woff2_flavor(monkeypatch: pytest.MonkeyPatch) -> None:
+def _install_fake_fonttools(monkeypatch: pytest.MonkeyPatch) -> None:
+    _FakeTTFont.created = []
     tt_lib = types.ModuleType("fontTools.ttLib")
     tt_lib.TTFont = _FakeTTFont  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "fontTools", types.ModuleType("fontTools"))
     monkeypatch.setitem(sys.modules, "fontTools.ttLib", tt_lib)
 
+
+def test_fonttools_convert_drops_the_woff2_flavor(monkeypatch: pytest.MonkeyPatch) -> None:
+    _install_fake_fonttools(monkeypatch)
+
     assert font.fonttools_convert(_WOFF2) == _TTF + _WOFF2
+
+
+def test_fonttools_convert_is_deterministic_and_names_the_font(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_fake_fonttools(monkeypatch)
+
+    font.fonttools_convert(_WOFF2)
+
+    converted = _FakeTTFont.created[0]
+    assert converted.recalc_timestamp is False
+    assert ("Leipzig", 6, 3, 1, 0x409) in converted.name.names
+    assert ("Leipzig", 6, 1, 0, 0) in converted.name.names
 
 
 def test_default_css_is_inside_the_verovio_package(
