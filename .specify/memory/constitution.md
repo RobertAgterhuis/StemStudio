@@ -40,8 +40,18 @@
 
 ### IV. Open Source Only, Lawful Use
 
-- Only open-source dependencies with OSI-approved licences; no paid software or paid tiers.
-  Every dependency and its licence is recorded in `docs/THIRD-PARTY-LICENSES.md`.
+- Only open-source dependencies (code and libraries) with OSI-approved licences; no paid software
+  or paid tiers. Every dependency and its licence is recorded in `docs/THIRD-PARTY-LICENSES.md`.
+- **Model weights exception** (owner decision 2026-11-15, ADR-009): pretrained model weights MAY
+  be used when their licence is non-commercial (e.g. CC BY-NC), unclear or not stated, because
+  StemStudio is a local, single-user, non-commercial practice tool. Conditions:
+  1. every such model is listed in `docs/THIRD-PARTY-LICENSES.md` with its exact licence status,
+     source URL and SHA-256;
+  2. weights are downloaded at first use into the model cache volume and are never committed to
+     the repository;
+  3. the README and `docs/THIRD-PARTY-LICENSES.md` state that commercial use and redistributing
+     images that contain these weights are not covered;
+  4. weights whose licence explicitly forbids this use remain excluded.
 - DRM MUST never be circumvented. Spotify input is resolved to metadata via spotDL, and the audio
   comes from a matching public YouTube source.
 - The UI shows a notice that imports are for personal practice only and the user is responsible
@@ -51,7 +61,7 @@
 
 - YAGNI: build the MVP scope only; post-MVP ideas go to the backlog.
 - Limitations are documented, not hidden. In particular, separating instruments beyond the
-  model's stems is not reliably possible with current open-source models.
+  available models' stems is limited and quality varies; limitations are shown to the user.
 - Audio timing uses sample-accurate Web Audio scheduling (look-ahead scheduler on
   `AudioContext.currentTime`); `setInterval`/`setTimeout` MUST NOT determine audible timing.
 
@@ -96,4 +106,4 @@
 - Compliance is reviewed at every hand-off and by the `quality-gate` agent before the MVP is
   declared complete.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-14
+**Version**: 1.1.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15
