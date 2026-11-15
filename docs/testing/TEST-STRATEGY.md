@@ -64,10 +64,10 @@ CI (devops, `.github/workflows/ci.yml`) runs exactly these commands and fails be
 | **(002)** `DetailModel` / `DetailModelProvider` (MDX23C DrumSep, UVR KARA 2, MVSep Mega 53) | stem-separation (`detail/runtimes.py`, vendored MSST) | fake models returning scaled copies of the parent (`detail/fake.py`, T042); fake torch/onnx callables for the runtime wrappers (T048) | the detail `@pytest.mark.integration` test (T050); quickstart D1-D6 (T092) |
 | **(002)** Model download (`detail/download.py`) | stem-separation | fake opener (T018): first use, SHA-256 mismatch, offline | first real detail phase (quickstart D5) |
 | **(002)** Gating, folding, re-assignment, checks | stem-separation | none needed: pure numpy on synthetic signals generated in the tests (T012-T017) | integration test; `detail-manifest.json` fixtures (qa) |
-| **(002)** Priority scheduler, detail runner | stem-separation | fake step functions, fake clock and sleeper (T022, T044, T065) | E2E `@detail` "progress and cancel", `@worker-restart` |
+| **(002)** Priority scheduler, detail runner | stem-separation | fake step functions, fake clock and sleeper (T022, T044, T065) | E2E `@detail` `detail-progress.spec.ts`, `@worker-restart` |
 | **(002)** Worker detail API (`/v1/detail-jobs`) | stem-separation | stub `HttpMessageHandler` with the worker 1.1.0 examples (`Worker/Examples/detail-*.json`, backend T030) | E2E `@detail` (compose) |
 | **(002)** Backend detail API (`startDetail`, `cancelDetail`, `getDetailStem`, `Track.detail`, mix `expanded`/`detailChannels`) | backend | fake `IStemStudioApiClient` (frontend T034-T080) | E2E `@detail` |
-| **(002)** Engine groups (`loadTrack.groups`, `setExpanded`, `<parent>.<detail>` channels) | audio-engine | `AudioContext` mock and stubbed `fetch` (T058-T060); bUnit `JSInterop` for the Web (T062) | E2E `@detail` "mixer" (real browser) |
+| **(002)** Engine groups (`loadTrack.groups`, `setExpanded`, `<parent>.<detail>` channels) | audio-engine | `AudioContext` mock and stubbed `fetch` (T058-T060); bUnit `JSInterop` for the Web (T062) | E2E `detail-mixer.spec.ts` (real browser) |
 
 ## 4. Fake versus real separator
 
@@ -112,11 +112,11 @@ on `E2E_BASE_URL` (default `http://localhost:8080`), API on `E2E_API_URL` (defau
 | `e2e/tests/main-flow.spec.ts` | constitution main flow: import -> completed -> mixer -> change fader, pan, mute, solo, metronome BPM + offset, loop -> save "Practice" -> reload -> load -> every control restored; save-as "Practice 2", duplicate, delete (SC-001, SC-005) |
 | `e2e/tests/main-flow.real.spec.ts` (`@real`) | the main flow with real Demucs (`htdemucs_6s` or `htdemucs`) |
 | `e2e/tests/detail.spec.ts` "auto" (`@detail`, 002) | import `detail_10s_band.wav` -> standard completes -> the detail phase is queued/running with stage, progress and the long-duration notice -> the mixer plays the standard stems during the phase -> completed with the outcome of every parent equal to the fake table (drums/vocals/other split, guitar nothing-further, piano not-reliable, bass not-supported); limitation help (FR-017) |
-| `detail.spec.ts` "mixer" (`@detail`, 002) | `expand-<parent>` only for split parents; expanding drums shows the grouped strips (defaults 80 % / 0) and the parent meter falls silent; muting the snare silences only `meter-drums-snare`; solo kick silences every other channel; detail controls reach the engine within 50 ms (SC-004); collapsing brings the parent back and the next expansion keeps the detail settings; 50 loop repetitions with a group expanded mid-playback keep every running source on one transport anchor within 1 ms (SC-004) |
-| `detail.spec.ts` "progress and cancel" (`@detail`, 002) | delete refused while the phase is active (`track-delete-blocked`), cancel -> `cancelled` + Retry, then delete succeeds (FR-016); a new import's standard separation completes while another track's detail phase is still running (FR-011, SC-006) |
-| `detail.spec.ts` "split further" (`@detail`, 002) | cancel the auto phase -> start it again from the track page -> completed -> the mixer offers expand (FR-009); delete and re-import a detail-separated source -> its detail phase completes from the worker cache within 5 s (FR-010, SC-007) |
-| `detail.spec.ts` "mixes" (`@detail`, 002) | expand drums + mute snare -> save "No snare" -> reload -> load -> drums expanded, snare muted, other parents collapsed; duplicate keeps the detail settings; a mix created through the API in the 1.1.0 shape (no `expanded`/`detailChannels`) loads collapsed with its 001 settings (FR-015, SC-005) |
-| `detail.spec.ts` "worker restart" (`@detail @worker-restart`, 002) | `docker compose restart worker` while a detail phase runs -> `failed` "interrupted by restart" with Retry -> the standard stems still play -> Retry completes (FR-019, US3 AS3) |
+| `e2e/tests/detail-mixer.spec.ts` (`@detail`, 002) | `expand-<parent>` only for split parents; expanding drums shows the grouped strips (defaults 80 % / 0) and the parent meter falls silent; muting the snare silences only `meter-drums-snare`; solo kick silences every other channel; detail controls reach the engine within 50 ms (SC-004); collapsing brings the parent back and the next expansion keeps the detail settings; 50 loop repetitions with a group expanded mid-playback keep every running source on one transport anchor within 1 ms (SC-004) |
+| `detail-progress.spec.ts` (`@detail`, 002) | delete refused while the phase is active (`track-delete-blocked`), cancel -> `cancelled` + Retry, then delete succeeds (FR-016); a new import's standard separation completes while another track's detail phase is still running (FR-011, SC-006) |
+| `detail-split-further.spec.ts` (`@detail`, 002) | cancel the auto phase -> start it again from the track page -> completed -> the mixer offers expand (FR-009); delete and re-import a detail-separated source -> its detail phase completes from the worker cache within 5 s (FR-010, SC-007) |
+| `detail-mixes.spec.ts` (`@detail`, 002) | expand drums + mute snare -> save "No snare" -> reload -> load -> drums expanded, snare muted, other parents collapsed; duplicate keeps the detail settings; a mix created through the API in the 1.1.0 shape (no `expanded`/`detailChannels`) loads collapsed with its 001 settings (FR-015, SC-005) |
+| `detail-worker-restart.spec.ts` (`@detail @worker-restart`, 002) | `docker compose restart worker` while a detail phase runs -> `failed` "interrupted by restart" with Retry -> the standard stems still play -> Retry completes (FR-019, US3 AS3) |
 
 **(002) Stack and data for `@detail`.** The stack runs with `STEMSTUDIO_SEPARATOR=fake` and
 `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`, so a detail phase takes about 25 s and the specs can
@@ -257,21 +257,21 @@ shared, documented inputs for the integration test, the E2E suite and manual thr
 | US1-3 inaudible sub-stem not offered (FR-004) | `test_gating.py`, `test_steps.py`, `test_fake.py` | `detail.spec.ts` "auto" (guitar nothing-further) |
 | US1-4 sub-stems + rest = parent (FR-005, SC-002) | `test_checks.py`, `test_detail_integration.py` | manual D3 (`check_reconstruction.py`); fixtures `detail_*_sum.wav` |
 | US1-5 implausible split not offered (FR-006) | `test_checks.py`, `test_fake.py` | `detail.spec.ts` "auto" (piano not-reliable) |
-| US2-1 expand shows grouped strips, sound unchanged (FR-012) | `StemGroupTests.cs`, `MixerStateDetailTests.cs`, `groups.test.ts`, `gate.test.ts` | `detail.spec.ts` "mixer" |
-| US2-2 detail mute/solo/pan/fader, same responsiveness (SC-004) | `groups.test.ts`, `StemGroupTests.cs` | `detail.spec.ts` "mixer" (50 ms probe) |
-| US2-3 collapse keeps detail settings | `MixerStateDetailTests.cs`, `gate.test.ts` | `detail.spec.ts` "mixer" |
-| US2-4 solo across levels (FR-013) | `gate.test.ts`, `MixerStateDetailTests.cs` | `detail.spec.ts` "mixer" (solo kick) |
-| US2-5 sample-aligned play/seek/loop (FR-014, SC-004) | `groups.test.ts` (T058, T060), `transport.test.ts` | `detail.spec.ts` "mixer" (50 loops, alignment probe) |
+| US2-1 expand shows grouped strips, sound unchanged (FR-012) | `StemGroupTests.cs`, `MixerStateDetailTests.cs`, `groups.test.ts`, `gate.test.ts` | `detail-mixer.spec.ts` |
+| US2-2 detail mute/solo/pan/fader, same responsiveness (SC-004) | `groups.test.ts`, `StemGroupTests.cs` | `detail-mixer.spec.ts` (50 ms probe) |
+| US2-3 collapse keeps detail settings | `MixerStateDetailTests.cs`, `gate.test.ts` | `detail-mixer.spec.ts` |
+| US2-4 solo across levels (FR-013) | `gate.test.ts`, `MixerStateDetailTests.cs` | `detail-mixer.spec.ts` (solo kick) |
+| US2-5 sample-aligned play/seek/loop (FR-014, SC-004) | `groups.test.ts` (T058, T060), `transport.test.ts` | `detail-mixer.spec.ts` (50 loops, alignment probe) |
 | US3-1 stage, progress, long notice (FR-007) | `test_detail_runner.py`, `DetailAutoQueueTests.cs`, `TrackDetailDetailTests.cs` | `detail.spec.ts` "auto" |
-| US3-2 failed -> Retry only the detail phase (FR-008) | `test_detail_runner.py`, `DetailEndpointTests.cs`, `DetailPhaseTests.cs` | `detail.spec.ts` "worker restart" (Retry), "progress and cancel" |
-| US3-3 restart -> "interrupted by restart" (FR-019) | `test_detail_runner.py` (reconcile), `DetailAutoQueueTests.cs` (worker 404) | `detail.spec.ts` "worker restart" (`@worker-restart`) |
-| US3-4 new import not delayed (FR-011, SC-006) | `test_scheduler.py`, T065 tests | `detail.spec.ts` "progress and cancel" (priority) |
-| FR-016 delete refused while active; cancel | `DetailEndpointTests.cs`, `test_detail_service.py` | `detail.spec.ts` "progress and cancel" |
-| US4-1 Split further (FR-009) | `DetailEndpointTests.cs`, T072/T074 tests | `detail.spec.ts` "split further" |
-| US4-2 cached detail result (FR-010, SC-007) | `test_detail_service.py`, `test_detail_runner.py`, T072 tests | `detail.spec.ts` "split further" (re-import) |
-| US5-1 save/load expansion + detail settings (FR-015, SC-005) | `MixDetailEndpointTests.cs`, `MixDetailTests.cs`, `DetailPersistenceTests.cs`, T079 tests | `detail.spec.ts` "mixes" |
-| US5-2 old mixes load collapsed | `MixDetailEndpointTests.cs` (1.1.0 body), `DetailPersistenceTests.cs` (001 schema), T079 tests | `detail.spec.ts` "mixes" (API-created 1.1.0 mix) |
-| US5-3 duplicate/edit copy detail settings | `MixDetailEndpointTests.cs`, `MixDetailTests.cs` | `detail.spec.ts` "mixes" (duplicate) |
+| US3-2 failed -> Retry only the detail phase (FR-008) | `test_detail_runner.py`, `DetailEndpointTests.cs`, `DetailPhaseTests.cs` | `detail-worker-restart.spec.ts` (Retry), `detail-progress.spec.ts` |
+| US3-3 restart -> "interrupted by restart" (FR-019) | `test_detail_runner.py` (reconcile), `DetailAutoQueueTests.cs` (worker 404) | `detail-worker-restart.spec.ts` (`@worker-restart`) |
+| US3-4 new import not delayed (FR-011, SC-006) | `test_scheduler.py`, T065 tests | `detail-progress.spec.ts` (priority) |
+| FR-016 delete refused while active; cancel | `DetailEndpointTests.cs`, `test_detail_service.py` | `detail-progress.spec.ts` |
+| US4-1 Split further (FR-009) | `DetailEndpointTests.cs`, T072/T074 tests | `detail-split-further.spec.ts` |
+| US4-2 cached detail result (FR-010, SC-007) | `test_detail_service.py`, `test_detail_runner.py`, T072 tests | `detail-split-further.spec.ts` (re-import) |
+| US5-1 save/load expansion + detail settings (FR-015, SC-005) | `MixDetailEndpointTests.cs`, `MixDetailTests.cs`, `DetailPersistenceTests.cs`, T079 tests | `detail-mixes.spec.ts` |
+| US5-2 old mixes load collapsed | `MixDetailEndpointTests.cs` (1.1.0 body), `DetailPersistenceTests.cs` (001 schema), T079 tests | `detail-mixes.spec.ts` (API-created 1.1.0 mix) |
+| US5-3 duplicate/edit copy detail settings | `MixDetailEndpointTests.cs`, `MixDetailTests.cs` | `detail-mixes.spec.ts` (duplicate) |
 | FR-017 limitations in the UI | `TrackDetailDetailTests.cs` | `detail.spec.ts` "auto" (`detail-limitation-help`) |
 | FR-018 models downloaded on first use, never committed | `test_download.py`, `test_runtimes.py` | manual D5, D12 |
 
