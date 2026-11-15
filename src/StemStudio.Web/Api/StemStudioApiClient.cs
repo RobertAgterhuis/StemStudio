@@ -139,6 +139,18 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     public Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default) =>
         SendAsync<LyricsDto>(HttpMethod.Put, ApiRoutes.LyricsOffset(trackId), JsonBody(new LyricsOffsetRequest(offsetMs)), cancellationToken);
 
+    /// <inheritdoc />
+    public Task<LyricsDto> SetLyricsAsync(Guid trackId, SetLyricsRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Put, ApiRoutes.Lyrics(trackId), JsonBody(request), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> AlignLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Post, ApiRoutes.LyricsAlign(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> CancelLyricsAlignmentAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Post, ApiRoutes.LyricsAlignCancel(trackId), null, cancellationToken);
+
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;
 

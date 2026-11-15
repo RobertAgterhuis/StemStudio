@@ -5,7 +5,7 @@ area: mixer
 summary: "Shows the lyrics at the bottom of the mixer with a ball that bounces onto each word as it is sung."
 anchors: ["karaoke"]
 keywords: ["karaoke", "lyrics", "sing along", "ball", "banner", "words", "text", "countdown"]
-related: [karaoke-offset, mixer-transport]
+related: [karaoke-offset, lyrics-sources, lyrics-align, mixer-transport]
 reviewed: "006"
 ---
 
@@ -20,6 +20,6 @@ word when it starts. Play, pause, seek and the A-B loop are followed exactly.
   [offset](help:karaoke-offset). Expert also shows where the timing comes from.
 
 Without timed lyrics the banner explains why (still searching, instrumental, not found, being aligned) and links to
-the track page.
+the track page, where you can [search again or enter the lyrics yourself](help:lyrics-sources).
 
 Lyrics are copyrighted. They are shown for your personal practice only and are never exported, saved in mixes or shared.

@@ -1,0 +1,70 @@
+@* Lyrics card of the track page (feature 006, FR-004, FR-009, FR-010; ui-test-ids 1.6.0): status, credit, the static text
+   while it is not timed, alignment, search again, remove and "enter them yourself". The text is shown here and in the
+   mixer only (never logged, exported or shared). *@
+@inherits PollingComponent
+@using StemStudio.Contracts.Lyrics
+
+<section class="ss-panel ss-lyrics" aria-labelledby="lyrics-heading" data-testid="lyrics-section" data-help-id="lyrics-sources">
+    <div class="ss-label-row">
+        <h2 id="lyrics-heading" class="ss-heading">Lyrics</h2>
+        <HelpHint HelpId="lyrics-sources" />
+    </div>
+
+    @if (Lyrics is not null)
+    {
+        <div class="ss-row">
+            <span class="ss-meta-status" data-testid="lyrics-status" data-status="@LyricsText.Value(Lyrics.Status)">@LyricsText.Label(Lyrics)</span>
+            @if (Lyrics.Credit is not null)
+            {
+                <span class="ss-small ss-muted" data-testid="lyrics-credit">@Lyrics.Credit</span>
+            }
+        </div>
+        @if (Reason is not null)
+        {
+            <p class="ss-help ss-lyrics-reason">@Reason</p>
+        }
+    }
+
+    @if (ErrorText is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="lyrics-error">@ErrorText</div>
+    }
+
+    @if (Lyrics is not null)
+    {
+        @if (ShowsSplitHint)
+        {
+            <p class="ss-help ss-lyrics-split-hint">Split the vocals into detail stems and try again.</p>
+        }
+
+        <LyricsAlignment Lyrics="Lyrics" Busy="Busy" OnAlign="AlignAsync" OnCancel="CancelAlignAsync" />
+
+        <div class="ss-row ss-lyrics-actions">
+            @if (CanPaste && !PasteOpen)
+            {
+                <RadzenButton Text="Enter lyrics yourself" Icon="edit_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                              Click="OpenPaste" data-testid="lyrics-paste-open" />
+            }
+        </div>
+
+        @if (PasteOpen)
+        {
+            <LyricsPasteForm OnSubmit="PasteAsync" OnCancel="ClosePaste" />
+        }
+
+        @if (ShowsPreview)
+        {
+            <div class="ss-lyrics-preview" data-testid="lyrics-preview" aria-label="Lyrics without timing">
+                @foreach (var line in Lyrics.Lines)
+                {
+                    <p>@line.Text</p>
+                }
+            </div>
+        }
+    }
+
+    <p class="ss-help ss-small" data-testid="lyrics-copyright-notice">
+        Lyrics are shown for your personal practice only. They stay in StemStudio: they are never exported, saved in mixes
+        or shared.
+    </p>
+</section>

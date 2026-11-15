@@ -6,7 +6,7 @@ summary: "Moves the lyrics earlier or later than the music, from -5000 to +5000 
 feature: karaoke.offset
 anchors: ["karaoke-offset"]
 keywords: ["offset", "timing", "early", "late", "sync", "delay", "lyrics", "milliseconds"]
-related: [karaoke]
+related: [karaoke, lyrics-align]
 reviewed: "006"
 ---
 

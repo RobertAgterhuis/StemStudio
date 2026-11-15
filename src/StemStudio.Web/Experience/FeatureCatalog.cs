@@ -34,6 +34,8 @@ public static class FeatureCatalog
         new("karaoke.size", Advanced, null, "karaoke"),
         new("karaoke.offset", Advanced, null, "karaoke-offset"),
         new("karaoke.timing-origin", Expert, null, "karaoke"),
+        new("lyrics.align-device", Advanced, null, "lyrics-align"),
+        new("lyrics.refine", Expert, null, "lyrics-align"),
         new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
         new("shell.kbd-hints", Expert, null, "shortcuts"),
         new("journey.rail", Beginner, Beginner, "journey"),

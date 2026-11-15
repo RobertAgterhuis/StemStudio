@@ -1,0 +1,60 @@
+@* Alignment of the lyrics to the vocal stem (feature 006, FR-004, FR-014): the offer with its expected time, or the progress,
+   device and cancel while it runs. Line-timed lyrics can be refined at Expert. *@
+@using StemStudio.Contracts.Lyrics
+
+@if (Lyrics.Status == LyricsStatusDto.Aligning)
+{
+    <div class="ss-lyrics-align" data-help-id="lyrics-align">
+        <RadzenProgressBar Value="@(Lyrics.Alignment?.Progress ?? 0)" Max="100" ShowValue="true" AriaLabel="Alignment progress"
+                           data-testid="lyrics-align-progress" />
+        @Estimate
+        @if (Lyrics.Alignment?.Device is { } device)
+        {
+            <LevelGate Feature="lyrics.align-device">
+                <DeviceBadge Display="DeviceDisplay.FromJob(device)" TestId="lyrics-align-device" ReasonTestId="lyrics-align-device-fallback"
+                             Label="Aligning on" />
+            </LevelGate>
+        }
+        <RadzenButton Text="Cancel alignment" Icon="cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnCancel"
+                      IsBusy="Busy" BusyText="Cancelling..." Disabled="Busy" data-testid="lyrics-align-cancel" />
+    </div>
+}
+else if (Offered)
+{
+    <div class="ss-lyrics-align">@AlignButton @Estimate</div>
+}
+else if (Lyrics is { Status: LyricsStatusDto.Found, SyncLevel: SyncLevelDto.Line })
+{
+    <LevelGate Feature="lyrics.refine">
+        <div class="ss-lyrics-align">@AlignButton</div>
+    </LevelGate>
+}
+
+@code {
+    /// <summary>The lyrics.</summary>
+    [Parameter, EditorRequired]
+    public LyricsDto Lyrics { get; set; } = default!;
+
+    /// <summary>True while an align or cancel request runs.</summary>
+    [Parameter]
+    public bool Busy { get; set; }
+
+    /// <summary>Align (or try again) pressed.</summary>
+    [Parameter]
+    public EventCallback OnAlign { get; set; }
+
+    /// <summary>Cancel pressed.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private bool Offered => Lyrics.Status == LyricsStatusDto.AlignPending || (Lyrics.Status == LyricsStatusDto.Failed && Lyrics.Lines.Count > 0);
+
+    private RenderFragment AlignButton => @<RadzenButton Text="@(Lyrics.Status == LyricsStatusDto.Failed ? "Try again" : "Align to the vocals")" Icon="graphic_eq"
+                                                          Size="ButtonSize.Small" Click="OnAlign" IsBusy="Busy" BusyText="Starting..." Disabled="Busy"
+                                                          data-testid="lyrics-align" data-help-id="lyrics-align" />;
+
+    private RenderFragment Estimate => @<text>@if (LyricsText.Estimate(Lyrics) is { } estimate)
+    {
+        <span class="ss-small ss-muted" data-testid="lyrics-align-estimate">@estimate</span>
+    }</text>;
+}

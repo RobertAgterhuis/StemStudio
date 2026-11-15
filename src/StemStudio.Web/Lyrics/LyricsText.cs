@@ -51,6 +51,45 @@ public static class LyricsText
         _ => OtherNotice(lyrics),
     };
 
+    /// <summary>The readable status of the lyrics card (<c>lyrics-status</c>).</summary>
+    /// <param name="lyrics">The lyrics.</param>
+    /// <returns>For example "Found, timed per word".</returns>
+    public static string Label(LyricsDto lyrics) => lyrics.Status switch
+    {
+        LyricsStatusDto.Found => FoundLabel(lyrics),
+        LyricsStatusDto.None => "Not searched yet",
+        LyricsStatusDto.Searching => "Searching...",
+        LyricsStatusDto.NotFound => "Not found",
+        LyricsStatusDto.AlignPending => "Waiting for alignment",
+        _ => OtherLabel(lyrics.Status),
+    };
+
+    /// <summary>The expected alignment time (<c>lyrics-align-estimate</c>): the backend's reason while pending, else the seconds.</summary>
+    /// <param name="lyrics">The lyrics.</param>
+    /// <returns>For example "Aligning takes about 7 minutes on the CPU.", or null without an estimate.</returns>
+    public static string? Estimate(LyricsDto lyrics) =>
+        lyrics is { Status: LyricsStatusDto.AlignPending, Reason: { } reason } ? reason
+        : lyrics.Alignment?.EstimateSeconds is { } seconds ? $"Aligning takes about {Duration(seconds)}."
+        : null;
+
+    private static string FoundLabel(LyricsDto lyrics) => Sync(lyrics) switch
+    {
+        "aligned" => "Found, aligned to the vocals",
+        "line" => "Found, timed per line",
+        _ => "Found, timed per word",
+    };
+
+    private static string OtherLabel(LyricsStatusDto status) => status switch
+    {
+        LyricsStatusDto.Aligning => "Aligning to the vocals",
+        LyricsStatusDto.Disabled => "Online lookups off",
+        _ => status.ToString(),
+    };
+
+    private static string Duration(int seconds) => seconds < 90
+        ? $"{seconds.ToString(CultureInfo.InvariantCulture)} seconds"
+        : $"{((seconds + 59) / 60).ToString(CultureInfo.InvariantCulture)} minutes";
+
     private static string OtherNotice(LyricsDto lyrics) => lyrics.Status switch
     {
         LyricsStatusDto.Failed => lyrics.Reason ?? "The lyrics could not be retrieved.",

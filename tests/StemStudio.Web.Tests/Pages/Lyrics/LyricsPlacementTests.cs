@@ -25,7 +25,7 @@ public sealed class LyricsPlacementTests : TrackDetailTestContext
     [Fact]
     public void RunningTrack_HasNoLyricsCardYet()
     {
-        var page = RenderPage(TestData.Track(TrackStatusDto.Running));
+        var page = RenderPage(TestData.Track(TrackStatusDto.Separating));
 
         page.FindAll("[data-testid=lyrics-section]").ShouldBeEmpty();
     }

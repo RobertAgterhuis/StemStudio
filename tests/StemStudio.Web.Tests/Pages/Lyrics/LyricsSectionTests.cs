@@ -3,7 +3,6 @@ using Bunit;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Contracts.Lyrics;
-using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Tests.Fakes;
 
@@ -116,11 +115,14 @@ public sealed class LyricsSectionTests : LyricsTestContext
     [Fact]
     public void Aligning_WithoutDeviceOrEstimate_ShowsTheProgressOnly()
     {
-        var page = RenderSection(LyricsData.Aligning(10) with { Alignment = new LyricsAlignmentDto(null, null, null) });
+        foreach (var alignment in new LyricsAlignmentDto?[] { new(null, null, null), null })
+        {
+            var page = RenderSection(LyricsData.Aligning(10) with { Alignment = alignment });
 
-        page.Find("[data-testid=lyrics-align-progress]").GetAttribute("aria-valuenow").ShouldBe("0");
-        page.FindAll("[data-testid=lyrics-align-device]").ShouldBeEmpty();
-        page.FindAll("[data-testid=lyrics-align-estimate]").ShouldBeEmpty();
+            page.Find("[data-testid=lyrics-align-progress]").GetAttribute("aria-valuenow").ShouldBe("0");
+            page.FindAll("[data-testid=lyrics-align-device]").ShouldBeEmpty();
+            page.FindAll("[data-testid=lyrics-align-estimate]").ShouldBeEmpty();
+        }
     }
 
     [Fact]

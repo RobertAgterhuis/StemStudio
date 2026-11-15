@@ -188,4 +188,23 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The lyrics; 409 without lyrics.</returns>
     Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default);
+
+    /// <summary><c>PUT /api/tracks/{id}/lyrics</c>: replaces the lyrics with text entered by the user; it is aligned next.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="request">The text (1..20,000 characters) and an optional language hint.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (alignPending or aligning); 409 while searching or aligning, 422 for invalid text.</returns>
+    Task<LyricsDto> SetLyricsAsync(Guid trackId, SetLyricsRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/align</c>: aligns the text to the vocal stem.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (aligning); 409 without text or while busy, 503 when the worker is unavailable.</returns>
+    Task<LyricsDto> AlignLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/align/cancel</c>: stops a running alignment.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (alignPending, or found when line timing was being refined); 409 when nothing is aligning.</returns>
+    Task<LyricsDto> CancelLyricsAlignmentAsync(Guid trackId, CancellationToken cancellationToken = default);
 }
