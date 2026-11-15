@@ -145,8 +145,8 @@ in the execution plan.
 
 - [x] T046 [P] [US2] [backend] Failing tests: `keyOverride` validation (enum) and pass-through; `resolution` pass-through; unreliable grid without `tempo` -> 422 `tempo-required`, with `tempo` -> manual grid sent; options report `gridStatus` (FR-005, FR-006, FR-007)
 - [x] T047 [US2] [backend] Implement to pass T046
-- [ ] T048 [P] [US2] [frontend] Failing bUnit tests: `score-resolution` ("simplified", Beginner); `score-key-override` (Advanced) listing keys with the estimate shown after generation; `score-tempo-required` notice and the three tempo fields required for unreliable grids, prefilled from the mixer's metronome override when available; help id `sheet-music-key-tempo` (FR-005..FR-007, FR-014)
-- [ ] T049 [US2] [frontend] Implement to pass T048
+- [x] T048 [P] [US2] [frontend] Failing bUnit tests: `score-resolution` ("simplified", Beginner); `score-key-override` (Advanced) listing keys with the estimate shown after generation; `score-tempo-required` notice and the three tempo fields required for unreliable grids, prefilled from the mixer's metronome override when available; help id `sheet-music-key-tempo` (FR-005..FR-007, FR-014)
+- [x] T049 [US2] [frontend] Implement to pass T048
 - [ ] T050 [US2] [qa] Author `sheet-music.spec.ts` "key and rhythm": regenerate with key "E minor" and simplified; the MusicXML has `<fifths>1</fifths>` and no `<type>16th</type>`
 
 **Checkpoint**: HO:us2.
