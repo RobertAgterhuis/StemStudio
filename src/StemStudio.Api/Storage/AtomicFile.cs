@@ -23,6 +23,23 @@ internal static class AtomicFile
         }
     }
 
+    /// <summary>Creates the directory, writes the content through a generated temp file and returns the file size.</summary>
+    /// <param name="path">Final path (built from validated names only).</param>
+    /// <param name="write">Writes the content into the given stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The file size in bytes.</returns>
+    public static async Task<long> SaveAsync(string path, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        return await WriteAsync($"{path}.{Guid.NewGuid():N}.tmp", WriteThenMeasure, _ => path);
+
+        async Task<long> WriteThenMeasure(FileStream stream)
+        {
+            await write(stream, cancellationToken);
+            return stream.Length;
+        }
+    }
+
     private static async Task<T> WriteTempAsync<T>(string tempPath, Func<FileStream, Task<T>> write)
     {
         await using var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);

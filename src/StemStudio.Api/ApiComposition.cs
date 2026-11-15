@@ -74,6 +74,7 @@ public static class ApiComposition
     private static void AddApplicationServices(IServiceCollection services)
     {
         services.AddSingleton<IStemFileStore, StemFileStore>();
+        services.AddSingleton<IDetailStemFileStore, DetailStemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace StemStudio.Api.Storage;
 
 /// <summary>The absolute API data directory (<c>StemStudio:DataDir</c>).</summary>
@@ -15,4 +17,9 @@ public sealed record DataDirectory(string Root)
     /// <param name="name">Generated directory name (never user input).</param>
     /// <returns>The absolute path.</returns>
     public string Sub(string name) => Path.Combine(Root, name);
+
+    /// <summary>Directory of one track's files: <c>tracks/&lt;trackId&gt;</c>.</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <returns>The absolute path.</returns>
+    public string TrackDirectory(Guid trackId) => Path.Combine(Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture));
 }
