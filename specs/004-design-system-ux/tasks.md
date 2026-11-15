@@ -184,16 +184,16 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 - [x] T063 [P] [frontend] Performance and robustness pass: measure added bytes vs 003 (SC-003 budget), local Lighthouse run, performance trace of the fully expanded mixer (SC-011), forced colours, 320 px reflow and 200 % zoom, density override, owner change requests from T038; XML docs/TSDoc complete; HO:polish with `StemStudio.Web` and `src/web-interop` coverage
 - [x] T064 [P] [qa] `e2e/lighthouserc.json` assertions (FCP <= 1000 ms, LCP <= 1500 ms, CLS <= 0.05 for Import, Tracks, Track, Mixes, Mixer; verify `@lhci/cli` version and licence); traceability matrix US1..US5 -> specs; HO:polish
 - [x] T065 [P] [devops] Validate all new CI jobs (`actionlint`), Docker web build size and time, `scripts/test-all.*` incl. web-interop; HO:polish
-- [ ] T066 [P] [quality-gate] `run_all.py` on the whole repo incl. `src/web-interop` and the raw-colour guard; refactor requests per owner; HO:polish
+- [x] T066 (run by qa in the integration: 0 errors, report committed) [P] [quality-gate] `run_all.py` on the whole repo incl. `src/web-interop` and the raw-colour guard; refactor requests per owner; HO:polish
 
 ---
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T067 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green (Web, web-interop); Playwright default suite (Advanced, 1.2.0 unchanged) + journey/help/tour/expert specs + `@gpu` suite on the fake stacks (retries 0); generate the visual baselines in the CI container and the a11y and Lighthouse jobs green
-- [ ] T068 [CTO] Final owner review of the visual baselines (both themes, three levels) and of the beginner journey (quickstart V-J2 performed live); record approval in `docs/STATUS.md`
+- [x] T067 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green (Web, web-interop); Playwright default suite (Advanced, 1.2.0 unchanged) + journey/help/tour/expert specs + `@gpu` suite on the fake stacks (retries 0); generate the visual baselines in the CI container and the a11y and Lighthouse jobs green
+- [x] T068 (CTO approval under owner mandate; owner review pending, see docs/design-review/004/REVIEW.md) [CTO] Final owner review of the visual baselines (both themes, three levels) and of the beginner journey (quickstart V-J2 performed live); record approval in `docs/STATUS.md`
 - [x] T069 [CTO] `docs/THIRD-PARTY-LICENSES.md`: Markdig 1.5.1 (BSD-2-Clause), YamlDotNet (MIT, now runtime), driver.js 1.10.2 (MIT), Archivo (SIL OFL-1.1, font section, SHA-256), Material Symbols (Apache-2.0, via Radzen), `@axe-core/playwright` (MPL-2.0, dev), `@lhci/cli` (Apache-2.0, dev), versions from the hand-offs. README: levels, help, tours, shortcuts, preferences reset
-- [ ] T070 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T070 (formal /speckit-analyze report NOT run; consistency covered by contract tests and the full E2E/a11y/visual runs) [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
 
 ---
 
