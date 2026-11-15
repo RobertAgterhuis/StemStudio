@@ -168,5 +168,11 @@ async function scoreDialogReady(page: Page): Promise<void> {
   await page.getByTestId('score-stem-bass').click();
   await expect(page.getByTestId('score-dialog')).toHaveAttribute('data-source', 'channel');
   await expect(page.getByTestId('score-estimate')).toBeVisible();
+  // The click scrolled the stem row into view; a full-page capture of a scrolled page draws the
+  // fixed shell and backdrop at that offset, so the screen is captured from the top.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await movePointerAway(page);
 }
