@@ -1,0 +1,32 @@
+@* One style of the library (009 FR-003; ui-test-ids 1.8.0 style-row-*): kind as text ("Preset" / "Own style"), genre,
+   tempo feel, tags, vocals, default strength and description. Actions come from the page. *@
+@using StemStudio.Contracts.Styles
+@using StemStudio.Web.Styles
+
+<tr data-testid="@($"style-row-{Style.Id}")" data-kind="@WireName.Of(Style.Kind)">
+    <td>
+        <span class="ss-style-name">@Style.Name</span>
+        <span class="ss-small ss-muted ss-style-kind">@(Style.Kind == StyleKindDto.Preset ? "Preset" : "Own style")</span>
+        @if (Style.Description is not null)
+        {
+            <p class="ss-help ss-small">@Style.Description</p>
+        }
+    </td>
+    <td>@StyleText.Genre(Style.GenreFamily)@(Style.SubGenre is null ? null : $" ({Style.SubGenre})")</td>
+    <td>@StyleText.Tempo(Style.TempoFeel)</td>
+    <td>@string.Join(", ", Style.Moods)</td>
+    <td>@string.Join(", ", Style.Instrumentation)</td>
+    <td>@StyleText.Vocals(Style.VocalHandling)</td>
+    <td>@StyleText.Strength(Style.DefaultStrength)</td>
+    <td class="ss-cell-action">@Actions</td>
+</tr>
+
+@code {
+    /// <summary>The style.</summary>
+    [Parameter, EditorRequired]
+    public StyleDto Style { get; set; } = default!;
+
+    /// <summary>Row actions (duplicate; edit and delete for own styles).</summary>
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

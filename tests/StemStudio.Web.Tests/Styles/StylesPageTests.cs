@@ -60,11 +60,11 @@ public sealed class StylesPageTests : PageTestContext
         var page = Render<StylesPage>();
 
         await Choose(page.Find("[data-testid=style-filter-mood]"), "warm");
-        RowIds(page).ShouldBe([$"style-row-{GenerationData.JazzId}", $"style-row-{GenerationData.UserStyleId}"]);
+        RowIds(page).ShouldBe([$"style-row-{GenerationData.JazzId}"]);
+        await Choose(page.Find("[data-testid=style-filter-mood]"), "All");
         await Choose(page.Find("[data-testid=style-filter-kind]"), "Mine");
         RowIds(page).ShouldBe([$"style-row-{GenerationData.UserStyleId}"]);
         await Choose(page.Find("[data-testid=style-filter-kind]"), "Presets");
-        await Choose(page.Find("[data-testid=style-filter-mood]"), "All");
         await Choose(page.Find("[data-testid=style-filter-genre]"), "Electronic");
         RowIds(page).ShouldBe([$"style-row-{GenerationData.SynthwaveId}"]);
         await Choose(page.Find("[data-testid=style-filter-genre]"), "All");
