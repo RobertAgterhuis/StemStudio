@@ -1,5 +1,5 @@
 {
-  "about": "Self-written matcher cases (005:T031, SC-004). Responses mimic MusicBrainz WS/2 search JSON trimmed to the fields StemStudio reads; ids other than the F-01 ones are made up. 'responses' are served in order (isrc search first when the query has an ISRC); a number is an HTTP status without body.",
+  "about": "Self-written matcher cases (005:T031, SC-004). Responses mimic MusicBrainz WS/2 search JSON trimmed to the fields StemStudio reads; ids other than the F-01 ones are made up. 'responses' are served in order (with an ISRC: the /isrc answer, which lists recordings without releases, then one /recording lookup per listed recording); a number is an HTTP status without body.",
   "cases": [
     {
       "name": "metallica-hero-of-the-day-live-and-demo-decoys",
@@ -26,12 +26,18 @@
       "name": "kevin-macleod-by-isrc-prefers-the-recording-with-a-release",
       "query": {"title": "Monkeys Spinning Monkeys", "artist": "Kevin MacLeod", "durationSeconds": 125.0, "isrc": "USUAN1400011"},
       "responses": [{"recordings": [
-        {"id": "12222222-2222-4222-8222-000000000001", "score": 100, "title": "Monkeys Spinning Monkeys", "length": 125000,
+        {"id": "12222222-2222-4222-8222-000000000001", "title": "Monkeys Spinning Monkeys", "length": 125000,
          "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}]},
-        {"id": "12222222-2222-4222-8222-000000000002", "score": 100, "title": "Monkeys Spinning Monkeys", "length": 125000,
+        {"id": "12222222-2222-4222-8222-000000000002", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}]}
+      ]},
+        {"id": "12222222-2222-4222-8222-000000000001", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}],
+         "releases": []},
+        {"id": "12222222-2222-4222-8222-000000000002", "title": "Monkeys Spinning Monkeys", "length": 125000,
          "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}],
          "releases": [{"status": "Official", "date": "2024", "release-group": {"id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c", "title": "25 Years (Volume 2)", "primary-type": "Album"}}]}
-      ]}],
+      ],
       "expected": "12222222-2222-4222-8222-000000000002",
       "matchedBy": "isrc",
       "releaseGroup": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c"
@@ -274,9 +280,13 @@
       "name": "isrc-hit-with-another-duration-is-still-the-exact-recording",
       "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0, "isrc": "NLA0A2400002"},
       "responses": [{"recordings": [
-        {"id": "16666666-6666-4666-8666-000000000007", "score": 100, "title": "Example Song - Radio Edit", "length": 185000,
+        {"id": "16666666-6666-4666-8666-000000000007", "title": "Example Song - Radio Edit", "length": 185000,
          "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
-      ]}],
+      ]},
+        {"id": "16666666-6666-4666-8666-000000000007", "title": "Example Song - Radio Edit", "length": 185000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}],
+         "releases": []}
+      ],
       "expected": "16666666-6666-4666-8666-000000000007",
       "matchedBy": "isrc"
     }
