@@ -137,7 +137,7 @@ in the execution plan.
 - [ ] T041 [US3] [backend] Implement `src/StemStudio.Api/Device/DeviceEndpoints.cs` (+ registration) to pass T040
 - [ ] T042 [P] [US3] [frontend] Failing tests: `IStemStudioApiClient.GetDeviceAsync`; import page shows `worker-device` with `data-device` `gpu`/`cpu`/`unknown` and `worker-device-reason` only when a reason is set (FR-006, US3-1)
 - [ ] T043 [US3] [frontend] Implement the client method and the import-page display (reusing `DeviceBadge`) to pass T042
-- [ ] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
+- [x] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
 
 **Checkpoint**: HO:us3.
 

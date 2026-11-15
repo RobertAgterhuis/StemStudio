@@ -1,6 +1,7 @@
 import {
   expectJobDevice,
   expectJobDeviceRecord,
+  expectWorkerDevice,
   fakeGpuName,
   fakeGpuText,
   freshImportTimeoutMs,
@@ -21,6 +22,14 @@ const onFakeGpu: ExpectedJobDevice = { kind: 'gpu', fallback: false, text: fakeG
 const afterOutOfMemory: ExpectedJobDevice = { fallback: true, reason: outOfMemoryReason };
 
 test.describe('device', { tag: '@gpu' }, () => {
+  // T044: US3-1, FR-006. The fake GPU is reported in both fake GPU modes.
+  test('worker device on the import page', async ({ api, importPage }) => {
+    requireGpuStack(['gpu', 'gpu-oom']);
+    expect(await api.getDevice()).toMatchObject({ reachable: true, kind: 'gpu', name: fakeGpuName });
+    await importPage.goto();
+    await expectWorkerDevice(importPage, 'gpu', fakeGpuText);
+  });
+
   // T033: US1-1, FR-006.
   test('device on the track page', { tag: '@fake-gpu' }, async ({ api, trackPage, detail }, testInfo) => {
     requireGpuStack(['gpu']);

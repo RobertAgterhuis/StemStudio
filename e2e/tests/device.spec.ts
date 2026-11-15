@@ -1,6 +1,7 @@
 import {
   expectJobDevice,
   expectJobDeviceRecord,
+  expectWorkerDevice,
   freshImportTimeoutMs,
   importFreshBand,
   requireCpuStack,
@@ -14,6 +15,16 @@ import { expect, test } from '../support/test';
 const onCpu: ExpectedJobDevice = { kind: 'cpu', fallback: false };
 
 test.describe('device', { tag: '@device' }, () => {
+  // T044 default-suite assertion: the import page shows the CPU without a reason.
+  test('the import page shows the CPU worker', async ({ api, importPage }) => {
+    requireCpuStack();
+    const device = await api.getDevice();
+    expect(device).toMatchObject({ reachable: true, kind: 'cpu' });
+    expect(device.reason ?? null, 'no reason when the CPU was requested').toBeNull();
+    await importPage.goto();
+    await expectWorkerDevice(importPage, 'cpu');
+  });
+
   // T033 default-suite assertion: a fresh import on the CPU stack shows "CPU".
   test('the track page shows the CPU for both jobs', async ({ api, trackPage, detail }, testInfo) => {
     requireCpuStack();

@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 import { expect, type Locator } from '@playwright/test';
+import type { ImportPage } from '../pages/import-page';
 import type { JobDeviceDto, ProcessingDeviceKind, StemStudioApi, TrackDto } from './api';
 import { uniqueBand } from './detail';
 import { detailPhaseTimeoutMs, fakeDeviceMode, fakeJobTimeoutMs, type FakeDeviceMode } from './env';
@@ -89,6 +90,22 @@ export async function expectJobDevice(badge: Locator, notice: Locator, expected:
     await expect(badge).toContainText(expected.text);
   }
   await expectNotice(notice, expected.reason);
+}
+
+/**
+ * Asserts the worker device on the import page (`worker-device`, ui-test-ids 1.2.0) and that no
+ * `worker-device-reason` is shown; `text`, when given, must be contained in the badge.
+ */
+export async function expectWorkerDevice(
+  importPage: ImportPage,
+  kind: ProcessingDeviceKind,
+  text?: string,
+): Promise<void> {
+  await expect(importPage.workerDevice).toHaveAttribute('data-device', kind);
+  if (text !== undefined) {
+    await expect(importPage.workerDevice).toContainText(text);
+  }
+  await expect(importPage.workerDeviceReason).toHaveCount(0);
 }
 
 /** The notice contains `reason`, or does not exist when `reason` is undefined. */
