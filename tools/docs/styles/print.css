@@ -1,0 +1,451 @@
+/*
+ * Print style of the StemStudio manuals, built on the 004 design system: quiet paper chrome,
+ * colour only from the six stems, Archivo with its width axis (expanded titles, normal text,
+ * condensed tables). All colours are tokens (doc-tokens.css -> app tokens.css).
+ */
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 18mm 18mm;
+}
+
+@page cover {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--ss-font);
+  font-size: var(--doc-body-size);
+  line-height: var(--ss-type-body-line);
+  color: var(--doc-ink);
+  background: var(--doc-paper);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  background: var(--doc-paper);
+}
+
+/* ---- Cover ---- */
+.cover {
+  page: cover;
+  position: relative;
+  height: 297mm;
+  width: 210mm;
+  padding: 24mm 20mm;
+  background: var(--doc-cover);
+  display: flex;
+  flex-direction: column;
+  break-after: page;
+  overflow: hidden;
+}
+
+.cover-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.cover-logo svg {
+  width: 14mm;
+  height: 14mm;
+  display: block;
+}
+
+.cover-name {
+  font-size: 15pt;
+  font-weight: var(--ss-type-title-weight);
+  font-stretch: var(--ss-type-title-width);
+}
+
+.cover-title {
+  margin-top: 62mm;
+}
+
+.cover-h1 {
+  margin: 0;
+  font-size: 40pt;
+  line-height: var(--ss-type-display-line);
+  font-weight: var(--ss-type-display-weight);
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+}
+
+.cover-sub {
+  margin: var(--ss-space-4) 0 0;
+  max-width: 130mm;
+  font-size: 13pt;
+  color: var(--doc-muted);
+}
+
+.cover .strand {
+  margin: 18mm -20mm 0;
+  width: 210mm;
+  height: 34mm;
+}
+
+.cover-facts {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 26mm 1fr;
+  row-gap: var(--ss-space-1);
+  font-size: var(--doc-small-size);
+}
+
+.cover-facts dt {
+  color: var(--doc-muted);
+}
+
+.cover-facts dd {
+  margin: 0;
+}
+
+.cover-note {
+  margin: var(--ss-space-4) 0 0;
+  padding-top: var(--ss-space-3);
+  border-top: 1px solid var(--doc-rule);
+  font-size: var(--doc-small-size);
+  color: var(--doc-muted);
+}
+
+/* ---- Signature strand ---- */
+.strand {
+  display: block;
+  width: 100%;
+  height: 7mm;
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.strand path {
+  vector-effect: non-scaling-stroke;
+}
+
+.strand .strand-root {
+  stroke: var(--doc-strand-root);
+}
+
+/* ---- Contents ---- */
+.toc {
+  break-after: page;
+}
+
+.toc-title {
+  font-size: 22pt;
+  font-weight: var(--ss-type-display-weight);
+  font-stretch: var(--ss-type-display-width);
+  margin: 0 0 var(--ss-space-5);
+}
+
+.toc ol,
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc a {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  gap: var(--ss-space-2);
+}
+
+.toc-chapter {
+  margin-top: var(--ss-space-3);
+  break-inside: avoid;
+}
+
+.toc-chapter > a {
+  font-weight: var(--ss-type-heading-weight);
+  font-stretch: var(--ss-type-title-width);
+  font-size: 11pt;
+  border-bottom: 1px solid var(--doc-rule);
+  padding-bottom: var(--ss-space-1);
+}
+
+.toc-sub a {
+  font-size: var(--doc-small-size);
+  color: var(--doc-muted);
+  padding-left: 9mm;
+  line-height: 1.6;
+}
+
+.toc-no {
+  min-width: 9mm;
+  font-variant-numeric: var(--ss-num);
+}
+
+.toc-sub .toc-no {
+  min-width: 10mm;
+}
+
+.toc-page {
+  margin-left: auto;
+  font-variant-numeric: var(--ss-num);
+}
+
+/* ---- Chapters ---- */
+.chapter {
+  break-before: page;
+}
+
+.chapter > .strand {
+  width: 60mm;
+  height: 6mm;
+  margin-bottom: var(--ss-space-3);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  break-after: avoid;
+  color: var(--doc-ink);
+}
+
+h1 {
+  margin: 0 0 var(--ss-space-5);
+  font-size: 24pt;
+  line-height: var(--ss-type-display-line);
+  font-weight: var(--ss-type-display-weight);
+  font-stretch: var(--ss-type-display-width);
+}
+
+h1::before {
+  content: attr(data-number);
+  display: block;
+  font-size: 11pt;
+  font-weight: var(--ss-type-label-weight);
+  font-stretch: 100%;
+  color: var(--doc-muted);
+  margin-bottom: var(--ss-space-1);
+}
+
+h2 {
+  margin: var(--ss-space-6) 0 var(--ss-space-2);
+  font-size: 14.5pt;
+  line-height: var(--ss-type-title-line);
+  font-weight: var(--ss-type-title-weight);
+  font-stretch: var(--ss-type-title-width);
+}
+
+h2::before {
+  content: attr(data-number);
+  color: var(--doc-muted);
+  font-weight: var(--ss-type-label-weight);
+  margin-right: var(--ss-space-3);
+  font-variant-numeric: var(--ss-num);
+}
+
+h3 {
+  margin: var(--ss-space-5) 0 var(--ss-space-2);
+  font-size: 11.5pt;
+  font-weight: var(--ss-type-heading-weight);
+}
+
+h4 {
+  margin: var(--ss-space-4) 0 var(--ss-space-1);
+  font-size: 10pt;
+  font-weight: var(--ss-type-heading-weight);
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 var(--ss-space-3);
+  orphans: 3;
+  widows: 3;
+}
+
+li {
+  margin-bottom: var(--ss-space-1);
+}
+
+li > ul,
+li > ol {
+  margin-top: var(--ss-space-1);
+}
+
+a {
+  color: var(--doc-ink);
+  text-decoration-color: var(--doc-border);
+  text-underline-offset: 2px;
+}
+
+strong {
+  font-weight: 650;
+}
+
+code,
+kbd,
+pre {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: var(--doc-code-size);
+}
+
+code {
+  background: var(--doc-panel);
+  border: 1px solid var(--doc-rule);
+  border-radius: var(--ss-radius-control);
+  padding: 0 3px;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  background: var(--doc-panel);
+  border: 1px solid var(--doc-rule);
+  border-left: 3px solid var(--doc-border);
+  border-radius: var(--ss-radius-panel);
+  padding: var(--ss-space-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+  margin: 0 0 var(--ss-space-3);
+}
+
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+  padding: 0 4px;
+  border: 1px solid var(--doc-border);
+  border-bottom-width: 2px;
+  border-radius: var(--ss-radius-control);
+  background: var(--doc-paper);
+  line-height: 1.35;
+}
+
+/* ---- Tables (condensed width like dense table cells in the app) ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--ss-space-4);
+  font-size: 9pt;
+  break-inside: auto;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr {
+  break-inside: avoid;
+}
+
+th {
+  text-align: left;
+  font-weight: var(--ss-type-strip-weight);
+  font-stretch: 87.5%;
+  background: var(--doc-panel);
+  border-bottom: 1.5px solid var(--doc-border);
+  padding: var(--ss-space-1) var(--ss-space-2);
+}
+
+td code {
+  font-size: 7.5pt;
+  padding: 0 2px;
+}
+
+td {
+  vertical-align: top;
+  border-bottom: 1px solid var(--doc-rule);
+  padding: var(--ss-space-1) var(--ss-space-2);
+}
+
+/* ---- Callouts: a blockquote whose first word is bold ("Note", "Tip", "Important") ---- */
+blockquote {
+  margin: 0 0 var(--ss-space-4);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  background: var(--doc-panel);
+  border: 1px solid var(--doc-rule);
+  border-left: 4px solid var(--doc-accent);
+  border-radius: var(--ss-radius-panel);
+  break-inside: avoid;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Figures (screenshots of the app) ---- */
+figure {
+  margin: var(--ss-space-3) 0 var(--ss-space-5);
+  break-inside: avoid;
+}
+
+figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 105mm;
+  margin: 0 auto;
+  border: 1px solid var(--doc-rule);
+  border-radius: var(--ss-radius-panel);
+}
+
+figcaption {
+  margin-top: var(--ss-space-2);
+  font-size: var(--doc-small-size);
+  color: var(--doc-muted);
+  text-align: center;
+}
+
+/* ---- Status pills of the feature table ---- */
+.status {
+  display: inline-block;
+  padding: 0 var(--ss-space-2);
+  border-radius: var(--ss-radius-pill);
+  font-size: var(--doc-small-size);
+  font-weight: var(--ss-type-label-weight);
+  color: var(--doc-on-state);
+}
+
+.status-done {
+  background: var(--doc-ok);
+}
+
+.status-dev {
+  background: var(--doc-warn);
+}
+
+/* ---- Stem colour chips: <span class="stem stem-vocals">vocals</span> ---- */
+.stem {
+  display: inline-block;
+  padding: 0 var(--ss-space-2);
+  border-radius: var(--ss-radius-control);
+  font-weight: var(--ss-type-strip-weight);
+  font-stretch: var(--ss-type-strip-width);
+  color: var(--doc-on-state);
+}
+
+.stem-vocals { background: var(--ss-stem-vocals); }
+.stem-drums { background: var(--ss-stem-drums); }
+.stem-bass { background: var(--ss-stem-bass); }
+.stem-guitar { background: var(--ss-stem-guitar); }
+.stem-piano { background: var(--ss-stem-piano); }
+.stem-other { background: var(--ss-stem-other); }
+
+/* ---- Planned-feature marker used in chapter text ---- */
+.planned {
+  display: inline-block;
+  padding: 0 var(--ss-space-2);
+  border: 1px solid var(--doc-warn);
+  border-radius: var(--ss-radius-pill);
+  font-size: var(--doc-small-size);
+  color: var(--doc-ink);
+  font-weight: var(--ss-type-label-weight);
+}

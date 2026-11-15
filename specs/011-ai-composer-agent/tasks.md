@@ -237,6 +237,7 @@ clear unavailable state.
 - [ ] T082 [CTO] [amend] After ratification only: owner-run A14/A15 with Claude (paid, opt-in), result in `docs/STATUS.md`
 - [ ] T083 [CTO] Constitution amendment via `/speckit-constitution` (plan.md draft, 1.3.0) once the owner ratifies (Q1); `docs/THIRD-PARTY-LICENSES.md` (MEAI, OllamaSharp, Anthropic SDK; "Optional external services"; Qwen3.5 weights Apache-2.0 pulled by the user; Ollama host prerequisite); README agent section (prerequisites, Ollama setup, models, settings, key via shell env only, data sent to Claude, limitations)
 - [ ] T084 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [ ] T084a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -286,4 +287,5 @@ feature. US1-US3 form the MVP of the feature (all P1).
 - [ ] Only OSI libraries; Claude backend merged only after amendment 1.3.0; app and agent fully functional without `ANTHROPIC_API_KEY`; licences recorded (IV)
 - [ ] Model in use, fallbacks, unavailable tools and evaluation limits shown honestly (V)
 - [ ] Key never in files, logs, DB or responses (automated scan); injection tests green (SC-002, SC-006)
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer
