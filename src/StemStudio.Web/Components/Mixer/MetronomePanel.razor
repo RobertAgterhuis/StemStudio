@@ -1,6 +1,7 @@
 @* Metronome: on/off, click volume, manual BPM, offset and beats per bar, reset (FR-014). *@
 
-<div class="ss-metronome" role="group" aria-label="Metronome">
+<div class="ss-metronome ss-console-panel" role="group" aria-label="Metronome">
+    <h2 class="ss-panel-title">Click</h2>
     <RadzenButton Text="@(Settings.Enabled ? "Click on" : "Click off")" Icon="timer"
                   ButtonStyle="@(Settings.Enabled ? ButtonStyle.Success : ButtonStyle.Light)"
                   aria-pressed="@(Settings.Enabled ? "true" : "false")" Click="ToggleAsync" data-testid="metronome-toggle" />

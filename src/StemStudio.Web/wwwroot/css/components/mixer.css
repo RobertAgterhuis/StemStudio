@@ -1,131 +1,316 @@
-/* Mixer console (design-spec.md 4.5). Meters are written by the audio engine every frame: never transitioned. */
+/*
+ * Mixer console (design-spec.md 4.5): header, panel row, strips region (scrolls inside itself), master pinned
+ * right, transport docked at the bottom. Meters are written by the audio engine every frame: they are drawn by a
+ * transform only and never transitioned (SC-011).
+ */
 
-.ss-mixer:focus {
+.ss-main:has(.ss-console) {
+  max-width: none;
+  padding-bottom: 0;
+}
+
+/* The sticky transport never covers the focused element (WCAG 2.4.11). */
+html:has(.ss-transport-dock) {
+  scroll-padding-bottom: var(--ss-transport-height);
+}
+
+.ss-console {
+  display: grid;
+  gap: var(--ss-space-4);
+  min-width: 0;
+}
+
+.ss-console:focus {
   outline: none;
 }
 
-.ss-mixer-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ss-space-4);
-}
-
-.ss-unsaved {
-  color: var(--ss-color-warning);
-  font-weight: 600;
-}
-
-.ss-transport,
-.ss-loop,
-.ss-metronome,
-.ss-mix-actions {
+/* Header: title, mix name, unsaved chip, Save as / Save. */
+.ss-console-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: var(--ss-space-3);
-  margin-bottom: var(--ss-space-3);
+}
+
+.ss-console-head > .ss-state {
+  flex-basis: 100%;
+}
+
+.ss-console-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ss-space-2) var(--ss-space-4);
+  min-width: 0;
+}
+
+.ss-console-title h1 {
+  margin: 0;
+  font-size: var(--ss-type-title-size);
+  font-stretch: var(--ss-type-title-width);
+}
+
+.ss-mix-name {
+  padding: var(--ss-space-1) var(--ss-space-3);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-raised);
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-unsaved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  color: var(--ss-color-warning);
+  font-size: var(--ss-type-label-size);
+  font-weight: 600;
+}
+
+.ss-unsaved::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-warning);
+}
+
+.ss-mix-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+/* Panel row: loop and click. */
+.ss-console-panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-3);
+}
+
+.ss-console-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
   padding: var(--ss-space-3) var(--ss-space-4);
   border-radius: var(--ss-radius-panel);
   background: var(--ss-color-surface);
+}
+
+.ss-panel-title {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  font-stretch: 100%;
 }
 
 .ss-inline-label {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-2);
-  font-size: var(--ss-type-label-size);
   color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
 }
 
-.ss-seek {
-  flex: 1 1 16rem;
+.ss-console-panel .ss-state,
+.ss-console-panel .ss-help {
+  flex-basis: 100%;
 }
 
-.ss-position {
-  font-variant-numeric: var(--ss-num);
-}
-
-.ss-strips {
+/* Desk: strips scroll inside their own region (WCAG 1.4.10 two-dimensional exception), master pinned. */
+.ss-console-desk {
   display: flex;
+  align-items: stretch;
+  gap: var(--ss-space-3);
+  min-width: 0;
+}
+
+.ss-console-strips {
+  display: flex;
+  flex: 1;
   gap: var(--ss-space-2);
+  min-width: 0;
   overflow-x: auto;
   padding-bottom: var(--ss-space-2);
+  scroll-snap-type: x proximity;
 }
 
+.ss-console-master {
+  flex: none;
+  padding-left: var(--ss-space-3);
+  border-left: 1px solid var(--ss-color-divider);
+}
+
+/* Strip. */
 .ss-strip {
   display: grid;
-  grid-template-columns: auto auto;
-  grid-template-areas: "name name" "meter fader" "pan pan" "buttons buttons";
   justify-items: center;
-  gap: var(--ss-space-2);
-  min-width: var(--ss-strip-width);
+  align-content: start;
+  gap: var(--ss-space-3);
+  flex: none;
+  width: var(--ss-strip-width);
   padding: var(--ss-space-3) var(--ss-space-2);
   border-radius: var(--ss-radius-panel);
   background: var(--ss-color-surface);
+  scroll-snap-align: start;
+  transition: opacity var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.ss-strip .ss-stem-tab {
+  justify-self: stretch;
+  justify-content: center;
 }
 
 .ss-strip-silent {
   opacity: 0.45;
 }
 
-.ss-strip-master {
-  border: 1px solid var(--ss-color-ink);
+.ss-strip[data-expanded="true"] {
+  opacity: 0.6;
 }
 
-.ss-strip-name {
-  grid-area: name;
-  font-weight: 600;
+.ss-strip-levels {
+  display: flex;
+  align-items: stretch;
+  gap: var(--ss-space-2);
+  height: calc(11rem * var(--ss-density));
 }
 
 .ss-fader {
-  grid-area: fader;
-  height: 11rem;
+  width: 1.75rem;
+  height: 100%;
+  margin: 0;
   writing-mode: vertical-lr;
   direction: rtl;
 }
 
 .ss-pan {
-  grid-area: pan;
-  width: 5.5rem;
+  width: 100%;
+  margin: 0;
 }
 
 .ss-strip-buttons {
-  grid-area: buttons;
   display: flex;
   gap: var(--ss-space-1);
 }
 
-.ss-expand {
-  grid-column: 1 / -1;
+.ss-strip-toggle.rz-button {
+  min-width: var(--ss-target-min);
+  min-height: var(--ss-target-min);
+  padding: 0 var(--ss-space-2);
+  font-weight: 700;
 }
 
+.ss-expand {
+  width: 100%;
+}
+
+/* Master: ink tab, wider meter. */
+.ss-strip-master {
+  width: calc(var(--ss-strip-width) * 1.1);
+}
+
+.ss-master-tab {
+  justify-self: stretch;
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+  font-size: var(--ss-type-strip-size);
+  font-weight: var(--ss-type-strip-weight);
+  font-stretch: var(--ss-type-strip-width);
+  text-align: center;
+}
+
+.ss-strip-master .ss-meter {
+  width: 0.875rem;
+}
+
+/* Detail group: indented under a bracket in the parent colour. */
 .ss-group {
   display: flex;
+  flex: none;
   gap: var(--ss-space-2);
-  padding: var(--ss-space-1);
+  padding: var(--ss-space-2);
+  border-top: 3px solid var(--ss-color-divider);
   border-radius: var(--ss-radius-panel);
   background: var(--ss-color-sunken);
 }
 
+/* Meter: sunken well with three static level bands; a cover scaled by the engine's --meter-level reveals them.
+   Bands follow the engine scale (-60..0 dBFS -> 0..1): -6 dBFS = 90 %, -1 dBFS = 98.3 %. */
 .ss-meter {
-  grid-area: meter;
   position: relative;
-  width: 0.6rem;
-  height: 11rem;
+  width: 0.5rem;
+  height: 100%;
   overflow: hidden;
   border-radius: var(--ss-radius-control);
   background: var(--ss-color-sunken);
+  outline: 1px solid var(--ss-color-control-border);
+  outline-offset: -1px;
 }
 
 .ss-meter-fill {
   position: absolute;
   inset: 0;
-  background: var(--ss-color-success);
-  transform-origin: bottom;
-  transform: scaleY(var(--meter-level, 0));
+  background: linear-gradient(to top, var(--ss-color-success) 0 90%, var(--ss-color-warning) 90% 98.3%, var(--ss-color-danger) 98.3%);
+}
+
+.ss-meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ss-color-sunken);
+  transform-origin: top;
+  transform: scaleY(calc(1 - var(--meter-level, 0)));
+  will-change: transform;
 }
 
 .ss-meter[data-clip="true"] {
-  box-shadow: inset 0 3px 0 var(--ss-color-danger);
+  box-shadow: inset 0 4px 0 var(--ss-color-danger);
+}
+
+/* Transport dock: sticky at the bottom of the viewport. */
+.ss-transport-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--ss-z-transport);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-3);
+  min-height: var(--ss-transport-height);
+  margin: 0 calc(-1 * var(--ss-gutter));
+  padding: var(--ss-space-3) var(--ss-gutter);
+  border-top: 1px solid var(--ss-color-divider);
+  background: var(--ss-color-base);
+}
+
+.ss-seek {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.ss-counter {
+  font-size: var(--ss-type-counter-size);
+  line-height: var(--ss-type-counter-line);
+  font-weight: var(--ss-type-counter-weight);
+  font-stretch: var(--ss-type-counter-width);
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-transport-state {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+@media (max-width: 767.98px) {
+  .ss-transport-dock {
+    bottom: 3.5rem;
+    margin: 0 calc(-1 * var(--ss-space-4));
+    padding: var(--ss-space-2) var(--ss-space-4);
+  }
 }

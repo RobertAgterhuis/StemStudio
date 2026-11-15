@@ -6,35 +6,36 @@
 
 @if (LoadError is not null)
 {
-    <div class="ss-error" role="alert" data-testid="mixer-load-error">@LoadError</div>
+    <ErrorState TestId="mixer-load-error" Message="@LoadError" Hint="Open the track page to follow its processing."><a href="tracks">Back to tracks</a></ErrorState>
 }
 else if (State is null)
 {
-    <p class="ss-muted" role="status">Loading...</p>
+    <Skeleton Lines="6" />
 }
 else
 {
-    <div class="ss-mixer">
-        <header class="ss-mixer-header">
-            <h1>@Title</h1>
-            @if (State.MixName is not null)
-            {
-                <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>
-            }
-            @if (State.IsDirty)
-            {
-                <span class="ss-unsaved" role="status" data-testid="unsaved-indicator">Unsaved changes</span>
-            }
-        </header>
-
-        <div class="ss-mix-actions">
-            <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" />
-            <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
+    <div class="ss-console">
+        <header class="ss-console-head">
+            <div class="ss-console-title">
+                <h1>@Title</h1>
+                @if (State.MixName is not null)
+                {
+                    <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>
+                }
+                @if (State.IsDirty)
+                {
+                    <span class="ss-unsaved" role="status" data-testid="unsaved-indicator">Unsaved changes</span>
+                }
+            </div>
+            <div class="ss-mix-actions">
+                <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
+                <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" />
+            </div>
             @if (MixError is not null && !DialogOpen)
             {
-                <div class="ss-error" role="alert" data-testid="mix-error">@MixError</div>
+                <ErrorState TestId="mix-error" Message="@MixError" />
             }
-        </div>
+        </header>
 
         @if (DialogOpen)
         {
@@ -43,40 +44,46 @@ else
 
         @if (EngineError is not null)
         {
-            <div class="ss-error" role="alert" data-testid="mixer-engine-error">@EngineError</div>
+            <ErrorState TestId="mixer-engine-error" Message="@EngineError" />
         }
         @if (!EngineReady && EngineError is null)
         {
             <p class="ss-muted" role="status" data-testid="mixer-loading">Loading stems...</p>
         }
 
+        <div class="ss-console-panels">
+            <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
+                          Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
+            <MetronomePanel Settings="State.Metronome" Grid="_track?.BeatGrid" OnChange="SetMetronomeAsync" OnReset="ResetMetronomeAsync" />
+        </div>
+
+        <div class="ss-console-desk">
+            <section class="ss-strips ss-console-strips" aria-label="Channels">
+                @foreach (var channel in State.Channels)
+                {
+                    var group = State.GroupOf(channel.Stem);
+                    <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded"
+                                  OnVolume="v => SetVolumeAsync(channel.Stem, v)" OnPan="p => SetPanAsync(channel.Stem, p)"
+                                  OnMute="() => ToggleMuteAsync(channel.Stem)" OnSolo="() => ToggleSoloAsync(channel.Stem)">
+                        @if (group is not null)
+                        {
+                            <ExpandToggle Parent="@group.Parent" Expanded="group.Expanded" Busy="IsExpanding(group.Parent)"
+                                          OnToggle="() => ToggleExpandAsync(group.Parent)" />
+                        }
+                    </ChannelStrip>
+                    @if (group is { Expanded: true })
+                    {
+                        <StemGroup Group="group" IsAudible="State.IsAudible" OnVolume="c => SetVolumeAsync(c.Id, c.Value)"
+                                   OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
+                    }
+                }
+            </section>
+            <div class="ss-console-master">
+                <MasterSection Volume="State.MasterVolume" OnVolume="SetMasterAsync" />
+            </div>
+        </div>
+
         <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
                       OnStop="StopAsync" OnSeek="SeekAsync" />
-        <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
-                      Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
-
-        <MetronomePanel Settings="State.Metronome" Grid="_track?.BeatGrid" OnChange="SetMetronomeAsync" OnReset="ResetMetronomeAsync" />
-
-        <section class="ss-strips" aria-label="Channels">
-            @foreach (var channel in State.Channels)
-            {
-                var group = State.GroupOf(channel.Stem);
-                <ChannelStrip Channel="channel" Audible="State.IsAudible(channel)" Expanded="group?.Expanded"
-                              OnVolume="v => SetVolumeAsync(channel.Stem, v)" OnPan="p => SetPanAsync(channel.Stem, p)"
-                              OnMute="() => ToggleMuteAsync(channel.Stem)" OnSolo="() => ToggleSoloAsync(channel.Stem)">
-                    @if (group is not null)
-                    {
-                        <ExpandToggle Parent="@group.Parent" Expanded="group.Expanded" Busy="IsExpanding(group.Parent)"
-                                      OnToggle="() => ToggleExpandAsync(group.Parent)" />
-                    }
-                </ChannelStrip>
-                @if (group is { Expanded: true })
-                {
-                    <StemGroup Group="group" IsAudible="State.IsAudible" OnVolume="c => SetVolumeAsync(c.Id, c.Value)"
-                               OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
-                }
-            }
-            <MasterSection Volume="State.MasterVolume" OnVolume="SetMasterAsync" />
-        </section>
     </div>
 }

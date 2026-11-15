@@ -2,10 +2,11 @@
 
 <div class="ss-group" role="group" id="@($"group-{Group.Parent}")" aria-label="@($"{Group.Parent} detail stems")"
      data-testid="@($"group-{Group.Parent}")">
-    @foreach (var stem in Group.Stems)
+    @for (var i = 0; i < Group.Stems.Count; i++)
     {
+        var stem = Group.Stems[i];
         var id = stem.Id;
-        <ChannelStrip Channel="stem.Channel" Audible="IsAudible(stem.Channel)"
+        <ChannelStrip Channel="stem.Channel" Audible="IsAudible(stem.Channel)" Pattern="i"
                       OnVolume="v => OnVolume.InvokeAsync(new(id, v))" OnPan="p => OnPan.InvokeAsync(new(id, p))"
                       OnMute="() => OnMute.InvokeAsync(id)" OnSolo="() => OnSolo.InvokeAsync(id)" />
     }

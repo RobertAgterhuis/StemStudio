@@ -3,8 +3,8 @@ using NSubstitute;
 using StemStudio.Contracts;
 using StemStudio.Web.Components.Design;
 using StemStudio.Web.Components.Mixer;
-using StemStudio.Web.Tests.Fakes;
 using StemStudio.Web.Mixer;
+using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Mixer;
 
@@ -94,7 +94,7 @@ public sealed class MixerDesignTests : MixerTestContext
         }
 
         var css = RepoPaths.ReadWeb("wwwroot/css/components/mixer.css");
-        css.ShouldContain("scaleY(var(--meter-level, 0))");
+        css.ShouldContain("scaleY(calc(1 - var(--meter-level, 0)))");
         css.ShouldNotContain("height: calc(var(--meter-level");
     }
 

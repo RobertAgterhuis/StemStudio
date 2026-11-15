@@ -20,7 +20,11 @@ public sealed class TracksDesignTests : PageTestContext
     private static readonly TrackDto Older = TestData.Track() with { Id = OlderId, Title = "Apple pie", Artist = "Alpha", CreatedAt = TestData.Created };
     private static readonly TrackDto Running = TestData.Track(TrackStatusDto.Separating) with
     {
-        Id = RunningId, Title = "Middle", Artist = null, Stems = [], CreatedAt = TestData.Created.AddDays(1),
+        Id = RunningId,
+        Title = "Middle",
+        Artist = null,
+        Stems = [],
+        CreatedAt = TestData.Created.AddDays(1),
     };
 
     private IRenderedComponent<CascadingValue<ExperienceContext>> RenderAt(ExperienceLevel level, params TrackDto[] tracks)
