@@ -110,6 +110,15 @@
   max-width: 100%;
 }
 
+/* Column headings, status words and dates are short: never break inside a word ("Statu s").
+   Only the long names and titles above wrap anywhere; failure reasons wrap at spaces. */
+.ss-asset-table th,
+.ss-asset-status,
+.ss-asset-table time {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
 @media (max-width: 48rem) {
   .ss-asset-table thead {
     display: none;
