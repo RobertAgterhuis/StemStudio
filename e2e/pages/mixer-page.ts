@@ -78,7 +78,8 @@ export class MixerPage {
 
   /**
    * Expands or collapses a parent. Expanding waits until the strips of `details` are visible
-   * (the engine decodes the group lazily on the first expansion).
+   * (the engine decodes the group lazily on the first expansion; the button is disabled and shows
+   * "Loading..." meanwhile, so the wait is on `aria-expanded`, never on the strips alone).
    */
   async setExpanded(parent: ParentStemName, expanded: boolean, details: readonly DetailStemName[] = []): Promise<void> {
     if ((await this.isExpanded(parent)) !== expanded) {

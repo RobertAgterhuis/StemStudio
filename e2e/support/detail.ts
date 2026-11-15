@@ -125,6 +125,29 @@ export async function importWithLivePhase(
 }
 
 /**
+ * Polls a track every 250 ms and returns the milliseconds between the first observation of its
+ * standard separation as completed and the first observation of its detail phase as completed
+ * (SC-007). Fails if the detail phase ends in another terminal status.
+ */
+export async function msFromStandardToDetail(api: StemStudioApi, trackId: string): Promise<number> {
+  let standardAt: number | undefined;
+  let detailAt: number | undefined;
+  await expect
+    .poll(
+      async () => {
+        const track = await api.getTrack(trackId);
+        standardAt ??= track.status === 'completed' ? Date.now() : undefined;
+        detailAt ??= track.detail.status === 'completed' ? Date.now() : undefined;
+        return track.detail.status;
+      },
+      { timeout: fakeJobTimeoutMs + detailPhaseTimeoutMs, intervals: [250] },
+    )
+    .toMatch(oneOf(['completed', 'failed', 'cancelled']));
+  expect(detailAt, 'detail phase completed').toBeDefined();
+  return (detailAt ?? Number.NaN) - (standardAt ?? Number.NaN);
+}
+
+/**
  * Tries to delete the track from its detail page: clicks `track-delete` when it is enabled and
  * confirms the inline confirmation if one appears. Works whether the UI refuses before or after
  * the confirmation (ui-test-ids 1.1.0 only names the `track-delete-blocked` reason).
