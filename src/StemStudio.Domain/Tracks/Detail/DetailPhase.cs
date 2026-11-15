@@ -27,6 +27,9 @@ public sealed record DetailPhase
     /// <summary>One outcome per standard stem once completed, in standard display order; empty otherwise.</summary>
     public IReadOnlyList<ParentOutcome> Parents { get; init; } = [];
 
+    /// <summary>Where the detail steps ran (feature 003); null before the first parent step, for cached results and older phases.</summary>
+    public JobDevice? Device { get; init; }
+
     /// <summary>Time the phase was (re)started (UTC).</summary>
     public required DateTime RequestedAt { get; init; }
 

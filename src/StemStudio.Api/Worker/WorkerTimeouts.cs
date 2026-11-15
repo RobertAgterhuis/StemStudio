@@ -3,6 +3,9 @@ namespace StemStudio.Api.Worker;
 /// <summary>Per-request attempt timeouts of the worker client.</summary>
 public static class WorkerTimeouts
 {
+    /// <summary>Total time allowed for reading the worker's health, retries included (backend contract 1.3.0 <c>GET /api/device</c>).</summary>
+    public static readonly TimeSpan Health = TimeSpan.FromSeconds(2);
+
     /// <summary>Creating a job (POST) may wait for spotDL; everything else is a short poll.</summary>
     /// <param name="request">The outgoing request, if known.</param>
     /// <param name="options">API options.</param>

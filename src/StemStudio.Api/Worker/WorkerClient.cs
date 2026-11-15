@@ -13,7 +13,8 @@ namespace StemStudio.Api.Worker;
 /// <summary>Typed <see cref="HttpClient"/> for the worker API; resilience is added at registration.</summary>
 /// <param name="http">Client whose base address is the worker URL (ending with a slash).</param>
 /// <param name="logger">Logger for worker problems (messages only, no stack traces).</param>
-public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> logger) : IWorkerClient
+/// <param name="clock">Clock for the health timeout.</param>
+public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> logger, TimeProvider clock) : IWorkerClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -65,6 +66,22 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         }
 
         await DownloadAsync($"{JobPath(jobId)}/stems/{stem}", destination, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkerHealth> GetHealthAsync(CancellationToken cancellationToken)
+    {
+        using var timeout = new CancellationTokenSource(WorkerTimeouts.Health, clock);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        using var message = new HttpRequestMessage(HttpMethod.Get, "health");
+        try
+        {
+            return await SendForAsync<WorkerHealth>(message, linked.Token);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new WorkerUnavailableException("The processing service did not answer in time.", exception);
+        }
     }
 
     /// <summary>Streams a file response into the destination (headers read first, then copied).</summary>

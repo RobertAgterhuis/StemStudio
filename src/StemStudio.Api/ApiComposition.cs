@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Detail;
+using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
@@ -63,6 +64,7 @@ public static class ApiComposition
     private static void MapEndpoints(WebApplication app)
     {
         app.MapGet(ApiRoutes.Health, () => TypedResults.Ok(new HealthResponse("ok"))).WithName("getHealth").WithTags("health");
+        app.MapDeviceEndpoints();
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
         app.MapStemEndpoints();
@@ -82,11 +84,20 @@ public static class ApiComposition
         services.AddScoped<TrackDeletionService>();
         services.AddScoped<StemService>();
         services.AddScoped<MixService>();
+        AddSyncServices(services);
+        AddDetailServices(services);
+        services.AddSingleton<ProcessingDeviceCache>();
+        services.AddScoped<ProcessingDeviceService>();
+    }
+
+    private static void AddSyncServices(IServiceCollection services)
+    {
+        services.AddSingleton<TrackFiles>();
+        services.AddSingleton<JobDeviceApplier>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
         services.AddHostedService<JobSyncService>();
-        AddDetailServices(services);
     }
 
     private static void AddDetailServices(IServiceCollection services)

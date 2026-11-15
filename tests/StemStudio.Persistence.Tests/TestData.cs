@@ -19,6 +19,16 @@ internal static class TestData
         return track;
     }
 
+    /// <summary>A completed track whose detail phase runs (drums, 12 %).</summary>
+    public static Track RunningDetailTrack()
+    {
+        var track = CompletedTrack();
+        track.RequestDetail(T0.AddMinutes(7));
+        track.AssignDetailJob("7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b", T0.AddMinutes(7));
+        track.ApplyDetailProgress(new Domain.Tracks.Detail.DetailProgress(Domain.Tracks.Detail.DetailPhaseStatus.Running, "Splitting drums (1 of 3)", "drums", 12), T0.AddMinutes(8));
+        return track;
+    }
+
     public static TrackCompletion Completion() => new(
         213.04,
         "htdemucs_6s",

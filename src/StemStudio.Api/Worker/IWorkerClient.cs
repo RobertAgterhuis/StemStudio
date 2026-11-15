@@ -96,4 +96,11 @@ public interface IWorkerClient
     /// <exception cref="WorkerRequestException">Unknown job or stem, or not completed (404/409).</exception>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task DownloadDetailStemAsync(WorkerDetailStemRef stem, Stream destination, CancellationToken cancellationToken);
+
+    /// <summary>Reads the worker's <c>GET /health</c> within <see cref="WorkerTimeouts.Health"/>.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The health with the active processing device.</returns>
+    /// <exception cref="WorkerRequestException">The worker rejected the request (4xx).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached in time, failed (5xx) or sent an invalid body.</exception>
+    Task<WorkerHealth> GetHealthAsync(CancellationToken cancellationToken);
 }

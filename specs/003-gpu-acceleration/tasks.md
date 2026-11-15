@@ -80,12 +80,12 @@ in the execution plan.
 
 ### backend (tests first)
 
-- [ ] T017 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/JobDeviceTests.cs`: `JobDevice` value rules (data-model 3.1: name <= 200 and null for CPU, reason <= 500 and non-null iff fallback); `Track.ApplyDevice` while not terminal, kept after completion, reset by retry; `DetailPhase` device set by progress/completion, reset by (re)start; invalid worker data rejected without failing the track (FR-006)
-- [ ] T018 [backend] Implement `src/StemStudio.Domain/Tracks/JobDevice.cs`, `Track.Device`, `DetailPhase.Device` to pass T017
-- [ ] T019 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/JobDevicePersistenceTests.cs`: JSON round trip of `Track.Device` and `DetailPhase.Device`; a database migrated from the 002 schema loads with null devices (file-based SQLite)
-- [ ] T020 [backend] Implement the configuration and migration `AddJobDevice` (`dotnet ef migrations add AddJobDevice`) to pass T019
-- [ ] T021 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDeviceClientTests.cs` with the 1.2.0 examples: `WorkerJob.Device`, `WorkerDetailJob.Device` parsed (null when absent, 1.1.0 bodies still parse); `GetHealthAsync` parses `deviceInfo` (cpu, gpu, gpu-unavailable examples); unreachable -> `WorkerUnavailableException` within `WorkerTimeouts.Health` (2 s)
-- [ ] T022 [backend] Implement `WorkerJob`/`WorkerDetailJob` device members, `WorkerHealth`, `IWorkerClient.GetHealthAsync` to pass T021
+- [x] T017 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/JobDeviceTests.cs`: `JobDevice` value rules (data-model 3.1: name <= 200 and null for CPU, reason <= 500 and non-null iff fallback); `Track.ApplyDevice` while not terminal, kept after completion, reset by retry; `DetailPhase` device set by progress/completion, reset by (re)start; invalid worker data rejected without failing the track (FR-006)
+- [x] T018 [backend] Implement `src/StemStudio.Domain/Tracks/JobDevice.cs`, `Track.Device`, `DetailPhase.Device` to pass T017
+- [x] T019 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/JobDevicePersistenceTests.cs`: JSON round trip of `Track.Device` and `DetailPhase.Device`; a database migrated from the 002 schema loads with null devices (file-based SQLite)
+- [x] T020 [backend] Implement the configuration and migration `AddJobDevice` (`dotnet ef migrations add AddJobDevice`) to pass T019
+- [x] T021 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDeviceClientTests.cs` with the 1.2.0 examples: `WorkerJob.Device`, `WorkerDetailJob.Device` parsed (null when absent, 1.1.0 bodies still parse); `GetHealthAsync` parses `deviceInfo` (cpu, gpu, gpu-unavailable examples); unreachable -> `WorkerUnavailableException` within `WorkerTimeouts.Health` (2 s)
+- [x] T022 [backend] Implement `WorkerJob`/`WorkerDetailJob` device members, `WorkerHealth`, `IWorkerClient.GetHealthAsync` to pass T021
 
 **Checkpoint**: HO:foundational for stem-separation and backend.
 
@@ -102,8 +102,8 @@ in the execution plan.
 - [ ] T026 [US1] [stem-separation] Implement in `detail/{runtimes,steps,registry,__init__}.py` (factories receive the runner) to pass T025
 - [ ] T027 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_job_device.py` (fake runner, fake clock): `Job.device` is set when the separation starts and replaced by the result's device; cached results keep `device = null`; `DetailJob.device` is folded after every parent step and persisted in `detail-jobs/*.json`; the scheduler calls the idle hook (GPU release) when both queues are empty; `/health` returns the runner's `deviceInfo` (FR-006)
 - [ ] T028 [US1] [stem-separation] Implement in `jobs/{runner,progress,detail_runner,detail_progress,scheduler,runtime}.py`, `api/routes.py`, `main.py` (probe once, one runner shared) to pass T027
-- [ ] T029 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sync/DeviceSyncTests.cs`: every standard poll copies `device` to `Track.Device`; every detail poll copies it to `DetailPhase.Device`; `TrackDto.Device`/`DetailPhaseDto.Device` mapped; served `GET /api/tracks/{id}` validates against backend 1.3.0 `Track` with a device (FR-006)
-- [ ] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
+- [x] T029 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sync/DeviceSyncTests.cs`: every standard poll copies `device` to `Track.Device`; every detail poll copies it to `DetailPhase.Device`; `TrackDto.Device`/`DetailPhaseDto.Device` mapped; served `GET /api/tracks/{id}` validates against backend 1.3.0 `Track` with a device (FR-006)
+- [x] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
 - [x] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
 - [x] T032 [US1] [frontend] Implement `src/StemStudio.Web/Components/Shared/DeviceBadge.razor` and use it in `TrackDetail.razor` and `DetailSection.razor` to pass T031
 - [x] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
@@ -119,8 +119,8 @@ in the execution plan.
 
 - [ ] T034 [P] [US2] [stem-separation] Failing API-level tests `worker/tests/api/test_device_fallback.py` (TestClient, fake runner `gpu-oom`, injected failing probe): a standard and a detail job complete with `device.cpuFallback = true` and the OOM reason; `/health` reports `kind = cpu` and the probe reason; with `STEMSTUDIO_DEVICE=cpu` no probe runs and every job reports `CPU` without fallback (FR-003, FR-004, SC-004)
 - [ ] T035 [US2] [stem-separation] Implement anything missing to pass T034
-- [ ] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
-- [ ] T037 [US2] [backend] Implement anything missing to pass T036
+- [x] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
+- [x] T037 [US2] [backend] Implement anything missing to pass T036
 - [x] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
 - [x] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
 
@@ -133,8 +133,8 @@ in the execution plan.
 **Goal**: the processing device is visible before importing (worker health) and per job.
 **Independent test**: quickstart G7.
 
-- [ ] T040 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Device/DeviceEndpointTests.cs`: `GET /api/device` maps worker `deviceInfo` (gpu, cpu with reason); worker unreachable or > 2 s -> `200 {reachable: false}`; answers cached 10 s (`FakeTimeProvider`); response validates against `ProcessingDevice`; remove `getProcessingDevice` from `PendingDetailOperations` (FR-006)
-- [ ] T041 [US3] [backend] Implement `src/StemStudio.Api/Device/DeviceEndpoints.cs` (+ registration) to pass T040
+- [x] T040 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Device/DeviceEndpointTests.cs`: `GET /api/device` maps worker `deviceInfo` (gpu, cpu with reason); worker unreachable or > 2 s -> `200 {reachable: false}`; answers cached 10 s (`FakeTimeProvider`); response validates against `ProcessingDevice`; remove `getProcessingDevice` from `PendingDetailOperations` (FR-006)
+- [x] T041 [US3] [backend] Implement `src/StemStudio.Api/Device/DeviceEndpoints.cs` (+ registration) to pass T040
 - [x] T042 [P] [US3] [frontend] Failing tests: `IStemStudioApiClient.GetDeviceAsync`; import page shows `worker-device` with `data-device` `gpu`/`cpu`/`unknown` and `worker-device-reason` only when a reason is set (FR-006, US3-1)
 - [x] T043 [US3] [frontend] Implement the client method and the import-page display (reusing `DeviceBadge`) to pass T042
 - [x] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
@@ -146,7 +146,7 @@ in the execution plan.
 ## Phase 6: Polish (inside the wave, per owner)
 
 - [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
-- [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
+- [x] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [x] T048 [P] [qa] Traceability matrix update, HO:polish
 - [x] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish

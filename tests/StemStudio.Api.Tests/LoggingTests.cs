@@ -122,7 +122,7 @@ public sealed class LoggingTests : IDisposable
             ? throw new HttpRequestException("Connection refused")
             : Task.FromResult(StubHttpMessageHandler.Example(HttpStatusCode.BadRequest, "problem-400")));
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://worker:8000/") };
-        var client = new WorkerClient(http, loggerFactory.CreateLogger<WorkerClient>());
+        var client = new WorkerClient(http, loggerFactory.CreateLogger<WorkerClient>(), TimeProvider.System);
         var request = new WorkerUrlJobRequest(SourceType.Youtube, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 
         await Should.ThrowAsync<WorkerUnavailableException>(() => client.CreateUrlJobAsync(request, Ct));

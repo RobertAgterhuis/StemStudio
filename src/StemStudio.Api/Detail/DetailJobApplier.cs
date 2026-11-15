@@ -14,8 +14,9 @@ namespace StemStudio.Api.Detail;
 /// </summary>
 /// <param name="worker">Worker client.</param>
 /// <param name="files">Detail stem store.</param>
+/// <param name="devices">Copies the detail job's device (feature 003).</param>
 /// <param name="clock">Clock.</param>
-public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore files, TimeProvider clock)
+public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore files, JobDeviceApplier devices, TimeProvider clock)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
@@ -28,6 +29,7 @@ public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore 
     public Task ApplyAsync(Track track, WorkerDetailJob? job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
+        ApplyDevice(track, job);
         return job?.Status switch
         {
             null => Fail(track, TrackJobApplier.InterruptedByRestart),
@@ -58,6 +60,15 @@ public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore 
     {
         ArgumentNullException.ThrowIfNull(track);
         track.FailDetail(reason, Now);
+    }
+
+    /// <summary>Copies the reported device; a missing job (404) keeps the device the phase has.</summary>
+    private void ApplyDevice(Track track, WorkerDetailJob? job)
+    {
+        if (job is not null)
+        {
+            devices.ApplyDetail(track, job.Device);
+        }
     }
 
     private Task Fail(Track track, string error)

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -18,6 +19,7 @@ public static class WorkerClientRegistration
     public static IHttpClientBuilder AddWorkerClient(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<StemStudioApiOptions>().Bind(configuration.GetSection(StemStudioApiOptions.SectionName));
+        services.TryAddSingleton(TimeProvider.System);
         var builder = services.AddHttpClient<IWorkerClient, WorkerClient>(ConfigureClient);
         builder.AddStandardResilienceHandler()
             .Configure((options, provider) => ConfigureResilience(options, provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value));

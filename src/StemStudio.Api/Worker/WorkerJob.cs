@@ -51,4 +51,7 @@ public sealed record WorkerJob
 
     /// <summary>Metadata once the source is resolved.</summary>
     public WorkerSourceMetadata? Metadata { get; init; }
+
+    /// <summary>Where the separation runs or ran (1.2.0); null before it, for cached results and for 1.1.0 workers.</summary>
+    public WorkerJobDevice? Device { get; init; }
 }
