@@ -71,7 +71,7 @@ public sealed class WorkerLyricsClientTests
     [Theory]
     [InlineData("lyrics-running-align-job", WorkerLyricsJobState.Running, "Aligning lyrics", 0.4, 30.0)]
     [InlineData("lyrics-completed-lookup-job", WorkerLyricsJobState.Completed, "Completed", 1.0, null)]
-    [InlineData("lyrics-failed-align-job", WorkerLyricsJobState.Failed, "Failed", 0.1, 420.0)]
+    [InlineData("lyrics-failed-align-job", WorkerLyricsJobState.Failed, "Failed", 0.05, 30.0)]
     [InlineData("lyrics-cancelled-align-job", WorkerLyricsJobState.Cancelled, "Cancelled", 0.4, 420.0)]
     public async Task GetJob_ParsesEveryState(string example, WorkerLyricsJobState state, string stage, double progress, double? estimate)
     {
@@ -129,7 +129,7 @@ public sealed class WorkerLyricsClientTests
 
         var word = aligned.Lines[0].Words[0];
         (word.StartMs is > 0, word.EndMs > word.StartMs, word.Origin).ShouldBe((true, true, WordOrigin.Aligned));
-        (aligned.Source, aligned.Language, aligned.Instrumental).ShouldBe((LyricsSource.Lrclib, "en", false));
+        (aligned.Source, aligned.Language, aligned.Instrumental).ShouldBe((LyricsSource.User, "en", false));
     }
 
     [Theory]

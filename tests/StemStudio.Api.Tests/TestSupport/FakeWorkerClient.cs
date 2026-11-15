@@ -336,4 +336,80 @@ internal sealed class FakeWorkerClient : IWorkerClient
 
         return OnDeleteRender?.Invoke(renderJobId) ?? Task.CompletedTask;
     }
+
+    public List<WorkerLyricsLookupRequest> LyricsLookups { get; } = [];
+
+    public List<WorkerLyricsAlignRequest> LyricsAligns { get; } = [];
+
+    public List<string> LyricsCancels { get; } = [];
+
+    public List<string> LyricsDeletes { get; } = [];
+
+    public Func<WorkerLyricsLookupRequest, Task<WorkerLyricsJob>>? OnCreateLyricsLookup { get; set; }
+
+    public Func<WorkerLyricsAlignRequest, Task<WorkerLyricsJob>>? OnCreateLyricsAlign { get; set; }
+
+    public Func<string, Task<WorkerLyricsJob?>>? OnGetLyricsJob { get; set; }
+
+    public Func<string, Task<WorkerLyricsResult>>? OnGetLyricsResult { get; set; }
+
+    public Func<string, Task<WorkerLyricsJob>>? OnCancelLyrics { get; set; }
+
+    public Func<string, Task>? OnDeleteLyrics { get; set; }
+
+    public static WorkerLyricsJob LyricsJob(string lyricsJobId, WorkerLyricsJobMode mode, WorkerLyricsJobState status, double progress = 0) => new()
+    {
+        LyricsJobId = lyricsJobId,
+        Mode = mode,
+        Status = status,
+        Stage = status.ToString(),
+        Progress = progress,
+        Error = status == WorkerLyricsJobState.Failed ? "The lyrics could not be aligned to the vocals." : null,
+    };
+
+    public Task<WorkerLyricsJob> CreateLyricsLookupJobAsync(WorkerLyricsLookupRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            LyricsLookups.Add(request);
+        }
+
+        return OnCreateLyricsLookup?.Invoke(request) ?? Task.FromResult(LyricsJob(NextJobId(), WorkerLyricsJobMode.Lookup, WorkerLyricsJobState.Queued));
+    }
+
+    public Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            LyricsAligns.Add(request);
+        }
+
+        return OnCreateLyricsAlign?.Invoke(request) ?? Task.FromResult(LyricsJob(NextJobId(), WorkerLyricsJobMode.Align, WorkerLyricsJobState.Queued));
+    }
+
+    public Task<WorkerLyricsJob?> GetLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken) =>
+        OnGetLyricsJob?.Invoke(lyricsJobId) ?? Task.FromResult<WorkerLyricsJob?>(LyricsJob(lyricsJobId, WorkerLyricsJobMode.Lookup, WorkerLyricsJobState.Running));
+
+    public Task<WorkerLyricsResult> GetLyricsResultAsync(string lyricsJobId, CancellationToken cancellationToken) =>
+        OnGetLyricsResult?.Invoke(lyricsJobId) ?? Task.FromResult(new WorkerLyricsResult { Outcome = WorkerLyricsOutcome.NotFound });
+
+    public Task<WorkerLyricsJob> CancelLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            LyricsCancels.Add(lyricsJobId);
+        }
+
+        return OnCancelLyrics?.Invoke(lyricsJobId) ?? Task.FromResult(LyricsJob(lyricsJobId, WorkerLyricsJobMode.Align, WorkerLyricsJobState.Cancelled));
+    }
+
+    public Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            LyricsDeletes.Add(lyricsJobId);
+        }
+
+        return OnDeleteLyrics?.Invoke(lyricsJobId) ?? Task.CompletedTask;
+    }
 }

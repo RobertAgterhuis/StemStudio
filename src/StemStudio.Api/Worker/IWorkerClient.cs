@@ -173,4 +173,50 @@ public interface IWorkerClient
     /// <returns>A task.</returns>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken);
+
+    /// <summary>Creates a lyrics lookup job (<c>POST /v1/lyrics-jobs</c>, mode lookup, worker 1.5.0); never retried.</summary>
+    /// <param name="request">Names and duration.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">The worker rejected the request (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CreateLyricsLookupJobAsync(WorkerLyricsLookupRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Creates a lyrics alignment job (<c>POST /v1/lyrics-jobs</c>, mode align); never retried.</summary>
+    /// <param name="request">Standard job, text, language hint and the document to refine.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">Unknown standard job (404), not completed or vocal stem gone (409), invalid (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a lyrics job.</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404, e.g. after a restart or the 24 h sweep).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob?> GetLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Gets the outcome and the timed lyrics of a completed lyrics job (served <c>no-store</c>).</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    /// <exception cref="WorkerRequestException">Unknown or not completed job (404/409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsResult> GetLyricsResultAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Cancels a queued or running alignment job.</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The cancelled job.</returns>
+    /// <exception cref="WorkerRequestException">Unknown job (404), a lookup or a terminal job (409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CancelLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Removes a lyrics job and its result, cancelling it first (404 is tolerated).</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
 }

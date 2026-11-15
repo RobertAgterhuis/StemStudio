@@ -48,4 +48,7 @@ public sealed record WorkerHealth
 
     /// <summary>Worker contract version, e.g. <c>1.2.0</c>.</summary>
     public required string ContractVersion { get; init; }
+
+    /// <summary>Lyrics alignment readiness (1.5.0); null for an older worker.</summary>
+    public WorkerLyricsAlignmentHealth? LyricsAlignment { get; init; }
 }
