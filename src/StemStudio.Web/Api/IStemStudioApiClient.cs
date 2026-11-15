@@ -1,3 +1,4 @@
+using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
@@ -104,4 +105,17 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The copy, named "&lt;name&gt; (copy)".</returns>
     Task<MixDto> DuplicateMixAsync(Guid mixId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/tracks/{id}/band-info</c>: lookup state, recording, artist facts and sources (backend contract 1.4.0).</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The band information; facts only when the status is found.</returns>
+    Task<BandInfoDto> GetBandInfoAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/metadata/lookup</c>: retry the lookup, or run it with corrected names (1.4.0).</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="request">Corrected names, or null to retry with the current ones.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The track with the lookup scheduled (202); 404, 409 (searching) and 422 throw <see cref="ApiException"/>.</returns>
+    Task<TrackDto> LookupMetadataAsync(Guid trackId, MetadataLookupRequest? request, CancellationToken cancellationToken = default);
 }

@@ -24,6 +24,7 @@ public static class FeatureCatalog
         new("tracks.search", Advanced, null, "tracks-library"),
         new("mixes.search", Advanced, null, "mixes-library"),
         new("track.job-details", Expert, null, "track-job-details"),
+        new("artist.details", Advanced, null, "band-info"),
         new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
         new("shell.kbd-hints", Expert, null, "shortcuts"),
         new("journey.rail", Beginner, Beginner, "journey"),

@@ -22,9 +22,18 @@ else
                 {
                     <p class="ss-track-artist">@Track.Artist</p>
                 }
+                <div class="ss-meta-row">
+                    <span class="ss-meta-status" data-testid="metadata-status" data-status="@MetadataStatusText.Value(Track.Metadata.Status)">@MetadataStatusText.Label(Track.Metadata.Status)</span>
+                    <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
+                </div>
             </div>
             <StemRibbon Stems="StemList" TestId="track-ribbon" />
         </header>
+
+        @if (ShowBandInfo)
+        {
+            <BandInfoPanel Track="Track" OnClose="ToggleBandInfo" OnChanged="OnBandInfoChangedAsync" />
+        }
 
         <TrackProcessing Track="Track">
             @if (ActionError is not null)

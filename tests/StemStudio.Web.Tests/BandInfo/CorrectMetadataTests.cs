@@ -1,5 +1,6 @@
 using System.Net;
 using Bunit;
+using Microsoft.AspNetCore.Components.Web;
 using NSubstitute;
 using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Tracks;
@@ -47,7 +48,7 @@ public sealed class CorrectMetadataTests : PageTestContext
         await page.Find("[data-testid=metadata-correct-submit]").ClickAsync(new());
 
         page.Find("[data-testid=metadata-correct-error]").TextContent.ShouldBe(message);
-        await Api.DidNotReceiveWithAnyArgs().LookupMetadataAsync(default, default, default);
+        await Api.DidNotReceive().LookupMetadataAsync(Arg.Any<Guid>(), Arg.Any<MetadataLookupRequest?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -91,9 +92,9 @@ public sealed class CorrectMetadataTests : PageTestContext
         page.FindAll("[role=dialog]").ShouldBeEmpty();
 
         await OpenAsync(page);
-        await page.Find("[role=dialog]").KeyDownAsync(new() { Key = "Escape" });
+        await page.Find("[role=dialog]").KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
         page.FindAll("[role=dialog]").ShouldBeEmpty();
-        await Api.DidNotReceiveWithAnyArgs().LookupMetadataAsync(default, default, default);
+        await Api.DidNotReceive().LookupMetadataAsync(Arg.Any<Guid>(), Arg.Any<MetadataLookupRequest?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -105,5 +106,21 @@ public sealed class CorrectMetadataTests : PageTestContext
         await OpenAsync(page);
 
         page.Find("[data-testid=metadata-correct-artist]").GetAttribute("value").ShouldBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task EnterInAField_Submits_OtherKeysDoNot()
+    {
+        Api.LookupMetadataAsync(TestData.TrackId, Arg.Any<MetadataLookupRequest?>(), Arg.Any<CancellationToken>())
+            .Returns(ArtworkData.WithMetadata(MetadataStatusDto.Pending));
+        var page = RenderPanel(ArtworkData.Status(MetadataStatusDto.NotFound));
+        await OpenAsync(page);
+
+        await page.Find("[data-testid=metadata-correct-artist]").KeyDownAsync(new KeyboardEventArgs { Key = "a" });
+        await page.Find("[role=dialog]").KeyDownAsync(new KeyboardEventArgs { Key = "a" });
+        await Api.DidNotReceive().LookupMetadataAsync(Arg.Any<Guid>(), Arg.Any<MetadataLookupRequest?>(), Arg.Any<CancellationToken>());
+        await page.Find("[data-testid=metadata-correct-artist]").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+
+        await Api.Received(1).LookupMetadataAsync(TestData.TrackId, new MetadataLookupRequest("Never Gonna Give You Up", "Rick Astley"), Arg.Any<CancellationToken>());
     }
 }

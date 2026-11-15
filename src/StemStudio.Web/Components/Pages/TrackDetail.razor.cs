@@ -12,7 +12,7 @@ namespace StemStudio.Web.Components.Pages;
 public sealed partial class TrackDetail : IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
-    private Task? _polling;
+    private PollLoop? _loop;
     private IDisposable? _openMixer;
 
     [Inject]
@@ -40,8 +40,9 @@ public sealed partial class TrackDetail : IDisposable
     /// <summary>The stem names of the track for the ribbon.</summary>
     private IReadOnlyList<string> StemList => Track!.Stems.Select(s => s.Name).ToList();
 
-    /// <summary>True while the standard separation or the detail phase is still in progress.</summary>
-    private bool NeedsPolling => !TrackStatusText.IsTerminal(Track!.Status) || DetailPhaseText.IsActive(Track.Detail.Status);
+    /// <summary>True while the standard separation, the detail phase or the online lookup is still in progress.</summary>
+    private bool NeedsPolling =>
+        !TrackStatusText.IsTerminal(Track!.Status) || DetailPhaseText.IsActive(Track.Detail.Status) || MetadataStatusText.IsActive(Track.Metadata.Status);
 
     /// <inheritdoc />
     public void Dispose()
@@ -78,25 +79,12 @@ public sealed partial class TrackDetail : IDisposable
         }
     }
 
-    private void StartPolling()
-    {
-        if (NeedsPolling && _polling is not { IsCompleted: false })
-        {
-            _polling = PollAsync(_stop.Token);
-        }
-    }
+    private void StartPolling() => (_loop ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollOnceAsync, null, _stop.Token);
 
-    private async Task PollAsync(CancellationToken ct)
+    private async Task PollOnceAsync(CancellationToken ct)
     {
-        while (await Timer.WaitAsync(ct))
-        {
-            await RefreshAsync(ct);
-            await InvokeAsync(StateHasChanged);
-            if (!NeedsPolling)
-            {
-                return;
-            }
-        }
+        await RefreshAsync(ct);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RefreshAsync(CancellationToken ct)

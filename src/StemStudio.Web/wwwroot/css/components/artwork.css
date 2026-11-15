@@ -72,3 +72,56 @@
   font-size: var(--ss-type-small-size);
 }
 
+
+/* Band info panel (in-page complementary region). */
+.ss-band-panel {
+  margin: var(--ss-space-4) 0;
+  padding: var(--ss-space-4) var(--ss-space-5);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+  border-left: 3px solid var(--ss-color-control-border);
+}
+
+.ss-band-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin-bottom: var(--ss-space-3);
+}
+
+.ss-band-head h2 {
+  margin: 0;
+}
+
+.ss-band-close {
+  margin-left: auto;
+  min-width: var(--ss-target-min);
+  min-height: var(--ss-target-min);
+}
+
+.ss-band-status p {
+  margin: 0 0 var(--ss-space-3);
+}
+
+.ss-band-members {
+  margin: 0;
+  padding-left: var(--ss-space-4);
+}
+
+.ss-band-summary {
+  max-width: 65ch;
+  margin: var(--ss-space-3) 0 var(--ss-space-2);
+  padding-left: var(--ss-space-3);
+  border-left: 2px solid var(--ss-color-divider);
+}
+
+.ss-attribution a,
+.ss-band-facts a {
+  color: var(--ss-color-ink);
+}
+
+.ss-band-actions {
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  margin-top: var(--ss-space-3);
+}

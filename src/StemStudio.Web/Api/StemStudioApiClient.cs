@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using StemStudio.Contracts;
+using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
 using StemStudio.Contracts.Mixes;
@@ -81,6 +82,14 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<MixDto> DuplicateMixAsync(Guid mixId, CancellationToken cancellationToken = default) =>
         SendAsync<MixDto>(HttpMethod.Post, ApiRoutes.DuplicateMix(mixId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<BandInfoDto> GetBandInfoAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<BandInfoDto>(HttpMethod.Get, ApiRoutes.BandInfo(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<TrackDto> LookupMetadataAsync(Guid trackId, MetadataLookupRequest? request, CancellationToken cancellationToken = default) =>
+        SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.MetadataLookup(trackId), request is null ? JsonBody(new { }) : JsonBody(request), cancellationToken);
 
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;

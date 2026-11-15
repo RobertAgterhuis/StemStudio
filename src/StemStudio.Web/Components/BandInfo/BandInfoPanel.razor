@@ -1,0 +1,49 @@
+@* Band info panel (feature 005, US2, FR-008/FR-009/FR-015; ui-test-ids 1.4.0): an in-page complementary region on the
+   track page and in the mixer. Focus moves to its heading when it opens; Escape or the close button closes it. *@
+@using StemStudio.Contracts.Artists
+
+<aside id="band-info-panel" class="ss-panel ss-band-panel" aria-labelledby="band-info-heading" data-testid="band-info-panel"
+       data-help-id="band-info" @onkeydown="OnKeyAsync">
+    <div class="ss-band-head">
+        <h2 id="band-info-heading" class="ss-heading" tabindex="-1" @ref="_heading">Band info</h2>
+        <HelpHint HelpId="band-info" />
+        <button type="button" class="ss-text-button ss-band-close" aria-label="Close band info" data-testid="band-info-close" @onclick="OnClose">
+            <span class="rzi" aria-hidden="true">close</span>
+        </button>
+    </div>
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="band-info-error" Message="@Error" />
+    }
+
+    @if (Info is { } info)
+    {
+        <BandInfoStatus Info="info" />
+        @if (info is { Status: MetadataStatusDto.Found, Artist: not null })
+        {
+            <BandFactsView Info="info" />
+        }
+
+        <div class="ss-row ss-band-actions">
+            @if (CanRetry)
+            {
+                <RadzenButton Text="Search again" Icon="refresh" ButtonStyle="ButtonStyle.Light" Disabled="Busy" Click="RetryAsync" data-testid="band-info-retry" />
+            }
+            @if (CanCorrect)
+            {
+                <RadzenButton Text="Correct title and artist" Icon="edit" ButtonStyle="ButtonStyle.Light" Disabled="Busy" Click="OpenCorrection"
+                              data-testid="band-info-correct" />
+            }
+        </div>
+    }
+    else if (Error is null)
+    {
+        <Skeleton Lines="3" Label="Loading band information..." />
+    }
+</aside>
+
+@if (Correcting)
+{
+    <CorrectMetadataDialog Title="@Track.Title" Artist="@Track.Artist" Error="@CorrectError" Busy="Busy" OnSubmit="CorrectAsync" OnCancel="CloseCorrection" />
+}

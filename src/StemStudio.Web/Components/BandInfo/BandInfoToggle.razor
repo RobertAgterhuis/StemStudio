@@ -1,0 +1,15 @@
+@* "Band info" button of the track page and the mixer (ui-test-ids 1.4.0 band-info-open): a real button, so it is
+   reachable and operable by keyboard; aria-expanded and aria-controls tie it to the panel. *@
+
+<RadzenButton Text="Band info" Icon="groups" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnToggle"
+              aria-expanded="@(Open ? "true" : "false")" aria-controls="band-info-panel" data-testid="band-info-open" data-help-id="band-info" />
+
+@code {
+    /// <summary>True while the panel is shown.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>Pressed.</summary>
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
+}

@@ -20,6 +20,10 @@ else
             <TrackArtwork Track="_track!" TestId="mixer-cover" HelpId="artwork" />
             <div class="ss-console-title">
                 <h1>@Title</h1>
+                @if (MetadataStatusText.AlbumLine(_track!.Metadata) is { } album)
+                {
+                    <span class="ss-muted" data-testid="mixer-album">@album</span>
+                }
                 @if (State.MixName is not null)
                 {
                     <span class="ss-mix-name" data-testid="mix-name">@State.MixName</span>
@@ -30,6 +34,7 @@ else
                 }
             </div>
             <div class="ss-mix-actions">
+                <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
                 @if (!IsBeginner)
                 {
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
@@ -42,6 +47,11 @@ else
                 <ErrorState TestId="mix-error" Message="@MixError" />
             }
         </header>
+
+        @if (ShowBandInfo)
+        {
+            <BandInfoPanel Track="_track" OnClose="ToggleBandInfo" OnChanged="RefreshTrackAsync" />
+        }
 
         @if (DialogOpen)
         {

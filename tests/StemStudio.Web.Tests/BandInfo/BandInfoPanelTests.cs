@@ -2,6 +2,7 @@ using System.Net;
 using AngleSharp.Dom;
 using Bunit;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using NSubstitute;
 using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Tracks;
@@ -65,7 +66,7 @@ public sealed class BandInfoPanelTests : PageTestContext
 
         page.WaitForAssertion(() => Fact(page, "name").TextContent.ShouldBe("The Fixture Band"));
         Fact(page, "status").GetAttribute("data-status").ShouldBe("found");
-        _changes.ShouldHaveSingleItem().Status.ShouldBe(MetadataStatusDto.Found);
+        page.WaitForAssertion(() => _changes.ShouldHaveSingleItem().Status.ShouldBe(MetadataStatusDto.Found));
     }
 
     [Fact]
@@ -82,6 +83,13 @@ public sealed class BandInfoPanelTests : PageTestContext
         Fact(page, "members").TextContent.ShouldContain("Bo Waveform (2001 - 2015)");
         Fact(page, "members").TextContent.ShouldContain("Cy Decibel");
         Fact(page, "website").QuerySelector("a")!.GetAttribute("href").ShouldBe("https://example.org/the-fixture-band");
+    }
+
+    [Fact]
+    public void Found_ShowsSummaryAlbumAndOnlyTheCorrection()
+    {
+        var page = RenderPanel(ArtworkData.Found());
+
         Fact(page, "summary").TextContent.ShouldContain("fictional group invented for the StemStudio tests");
         page.Find("[data-testid=band-info-album]").TextContent.ShouldBe("Synthetic Sessions (2020)");
         Has(page, "band-info-retry").ShouldBeFalse();
@@ -255,7 +263,7 @@ public sealed class BandInfoPanelTests : PageTestContext
         await page.Find("[data-testid=band-info-close]").ClickAsync(new());
         _closed.ShouldBeTrue();
         _closed = false;
-        await page.Find("[data-testid=band-info-panel]").KeyDownAsync(new() { Key = "Escape" });
+        await page.Find("[data-testid=band-info-panel]").KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
         _closed.ShouldBeTrue();
     }
 
@@ -264,7 +272,7 @@ public sealed class BandInfoPanelTests : PageTestContext
     {
         var page = RenderPanel(ArtworkData.Found());
 
-        await page.Find("[data-testid=band-info-panel]").KeyDownAsync(new() { Key = "Enter" });
+        await page.Find("[data-testid=band-info-panel]").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
         _closed.ShouldBeFalse();
     }
