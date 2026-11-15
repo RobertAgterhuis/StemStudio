@@ -89,16 +89,16 @@ committed contract and is faked:
 
 ### backend (tests first)
 
-- [ ] T024 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/DetailPhaseTests.cs`: state machine data-model 4.1 (forward only, cancel from queued/running, start/retry from none/failed/cancelled, only when the track is completed), progress never decreases, error iff failed, parents/stems validated against the allowed names per parent with `rest` last, completed requires every split parent to have >= 2 stems + rest; detail changes never touch `Track.Status`/`Stems` (FR-001, FR-007, FR-008)
-- [ ] T025 [backend] Implement `src/StemStudio.Domain/Tracks/Detail/{DetailPhase,ParentOutcome,DetailStem,DetailPhaseStatus,ParentOutcomeKind}.cs` and `Track` members (`DetailPhase`, `RequestDetail`, `ApplyDetailProgress`, `CompleteDetail`, `FailDetail`, `CancelDetail`, `CanDelete`) to pass T024
-- [ ] T026 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/MixDetailTests.cs`: `Expanded` only parents with outcome split, unique; `DetailChannels` at most one per (parent, stem), stem must exist on the track, value ranges as `ChannelSettings`; old mixes (empty) valid; duplicate copies both (FR-015, SC-005)
-- [ ] T027 [backend] Implement `src/StemStudio.Domain/Mixes/DetailChannelSettings.cs` and the `Mix`/`MixSettings` extensions to pass T026
-- [ ] T028 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/DetailPersistenceTests.cs`: JSON round trip of `DetailPhase`, `Expanded`, `DetailChannels`; a database migrated from the 001 schema with existing rows loads with null detail and empty mix detail settings (file-based SQLite)
-- [ ] T029 [backend] Implement configurations and migrations `AddDetailPhase`, `AddMixDetailSettings` (`dotnet ef migrations add ...`) to pass T028
-- [ ] T030 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDetailClientTests.cs` with the worker 1.1.0 examples copied to `tests/StemStudio.Api.Tests/Worker/Examples/detail-*.json`: create 200/202, get, cancel 200/409, result, detail stem stream, 404/409 problems, unreachable -> `WorkerUnavailableException`
-- [ ] T031 [backend] Implement `IWorkerClient` detail methods, `WorkerDetailJob`, `WorkerDetailResult` to pass T030
-- [ ] T032 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Storage/DetailStemFileStoreTests.cs`: path `<DataDir>/tracks/<id>/detail/<parent>/<name>.flac` from enum names only, temp + rename, delete removes `detail/`, unknown names rejected
-- [ ] T033 [backend] Implement `src/StemStudio.Api/Storage/DetailStemFileStore.cs` to pass T032
+- [x] T024 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/DetailPhaseTests.cs`: state machine data-model 4.1 (forward only, cancel from queued/running, start/retry from none/failed/cancelled, only when the track is completed), progress never decreases, error iff failed, parents/stems validated against the allowed names per parent with `rest` last, completed requires every split parent to have >= 2 stems + rest; detail changes never touch `Track.Status`/`Stems` (FR-001, FR-007, FR-008)
+- [x] T025 [backend] Implement `src/StemStudio.Domain/Tracks/Detail/{DetailPhase,ParentOutcome,DetailStem,DetailPhaseStatus,ParentOutcomeKind}.cs` and `Track` members (`DetailPhase`, `RequestDetail`, `ApplyDetailProgress`, `CompleteDetail`, `FailDetail`, `CancelDetail`, `CanDelete`) to pass T024
+- [x] T026 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/MixDetailTests.cs`: `Expanded` only parents with outcome split, unique; `DetailChannels` at most one per (parent, stem), stem must exist on the track, value ranges as `ChannelSettings`; old mixes (empty) valid; duplicate copies both (FR-015, SC-005)
+- [x] T027 [backend] Implement `src/StemStudio.Domain/Mixes/DetailChannelSettings.cs` and the `Mix`/`MixSettings` extensions to pass T026
+- [x] T028 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/DetailPersistenceTests.cs`: JSON round trip of `DetailPhase`, `Expanded`, `DetailChannels`; a database migrated from the 001 schema with existing rows loads with null detail and empty mix detail settings (file-based SQLite)
+- [x] T029 [backend] Implement configurations and migrations `AddDetailPhase`, `AddMixDetailSettings` (`dotnet ef migrations add ...`) to pass T028
+- [x] T030 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDetailClientTests.cs` with the worker 1.1.0 examples copied to `tests/StemStudio.Api.Tests/Worker/Examples/detail-*.json`: create 200/202, get, cancel 200/409, result, detail stem stream, 404/409 problems, unreachable -> `WorkerUnavailableException`
+- [x] T031 [backend] Implement `IWorkerClient` detail methods, `WorkerDetailJob`, `WorkerDetailResult` to pass T030
+- [x] T032 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Storage/DetailStemFileStoreTests.cs`: path `<DataDir>/tracks/<id>/detail/<parent>/<name>.flac` from enum names only, temp + rename, delete removes `detail/`, unknown names rejected
+- [x] T033 [backend] Implement `src/StemStudio.Api/Storage/DetailStemFileStore.cs` to pass T032
 
 ### frontend (tests first)
 
