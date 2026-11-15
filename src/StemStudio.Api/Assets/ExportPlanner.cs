@@ -1,3 +1,4 @@
+using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Domain;
 using StemStudio.Domain.Rendering;
@@ -45,9 +46,20 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
 
     private async Task<(ExportDraft?, IResult?)> PlanForAsync(CreateAudioExportRequest request, Track track, CancellationToken cancellationToken)
     {
+        if (RangeError(request.Range, track.DurationSeconds ?? 0) is { } rangeError)
+        {
+            return (null, AssetProblems.Invalid([rangeError]));
+        }
+
         var (mix, problem) = await MixAsync(request, track, cancellationToken);
         return problem is null ? Draft(track, Recipe(request, mix)) : (null, problem);
     }
+
+    /// <summary>FR-006: 0 &lt;= start &lt; end &lt;= the track duration and at least 0.5 s long.</summary>
+    private static DomainError? RangeError(RangeDto? range, double duration) =>
+        range is null || (range.StartSeconds >= 0 && range.EndSeconds <= duration && range.EndSeconds - range.StartSeconds >= ContractLimits.MinExportRangeSeconds)
+            ? null
+            : new DomainError("range", FormattableString.Invariant($"The range must lie within the track (0 to {duration:0.##} s) and be at least {ContractLimits.MinExportRangeSeconds} s long."));
 
     /// <summary>Plans a stored recipe again (retry); a channel that no longer exists makes the source unavailable.</summary>
     /// <param name="track">The track, or null when it was deleted.</param>
@@ -93,6 +105,7 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
             Mode = raw ? ExportMode.Raw : ExportMode.Mix,
             Channels = request.Channels?.ToList(),
             Mix = raw ? null : mix,
+            Range = request.Range is { } range ? new ExportRange(range.StartSeconds, range.EndSeconds) : null,
             Format = ExportRequestRules.Resolve(request.Format, SingleRaw(raw, request.Channels)),
         };
     }
