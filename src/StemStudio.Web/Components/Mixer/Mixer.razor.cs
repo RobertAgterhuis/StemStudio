@@ -121,6 +121,7 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task PushStateAsync(MixerState state)
     {
+        await PushExpansionAsync(state);
         foreach (var channel in state.AllChannels)
         {
             await Engine.SetChannelAsync(channel.ToDto());

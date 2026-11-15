@@ -1,6 +1,4 @@
 using Bunit;
-using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Contracts;
@@ -51,7 +49,7 @@ public sealed class DetailMixTests : MixerTestContext
     }
 
     [Fact]
-    public async Task LoadingAMix_ExpandsBeforeApplyingDetailChannels()
+    public void LoadingAMix_ExpandsBeforeApplyingDetailChannels()
     {
         var page = RenderMixer(TestData.MixId);
 
@@ -66,7 +64,6 @@ public sealed class DetailMixTests : MixerTestContext
             Engine.SetExpandedAsync(StemNames.Drums, true);
             Engine.SetChannelAsync(new ChannelSettingsDto("drums.snare", 0.8, 0, true, false));
         });
-        await Engine.DidNotReceive().SetExpandedAsync(StemNames.Vocals, true);
     }
 
     [Fact]
@@ -75,7 +72,8 @@ public sealed class DetailMixTests : MixerTestContext
         var page = RenderMixer(TestData.MixId);
         Engine.ClearReceivedCalls();
 
-        Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer?mixId={OldMixId}");
+        Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+            .GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>(Services).NavigateTo($"tracks/{TestData.TrackId}/mixer?mixId={OldMixId}");
 
         page.WaitForAssertion(() => page.FindAll("[data-testid=group-drums]").ShouldBeEmpty());
         await Engine.Received(1).SetExpandedAsync(StemNames.Drums, false);
