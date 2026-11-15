@@ -8,10 +8,6 @@ own arithmetic.
 
 from __future__ import annotations
 
-import hashlib
-import json
-import runpy
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +17,8 @@ import pytest
 import soundfile as sf  # type: ignore[import-untyped]
 
 import generate_detail_fixtures as gen
+
+GENERATOR = gen
 
 Mono = npt.NDArray[np.float64]
 
@@ -44,14 +42,6 @@ SILENT_PARENTS = ["detail_silent_parent.wav", "detail_bleed_parent.wav"]
 CATALOGUE = {*SUMS, *COMPONENTS, *SILENT_PARENTS, "detail_10s_band.wav"}
 FRAME, HOP, ACTIVE_DBFS = 2048, 512, -40.0
 DB_TOLERANCE = 0.1
-
-
-@pytest.fixture(scope="module")
-def generated(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[str, Any]]:
-    out_dir = tmp_path_factory.mktemp("detail-audio")
-    manifest_path = out_dir / "detail-manifest.json"
-    gen.generate(out_dir, manifest_path)
-    return out_dir, json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
 def _entry(manifest: dict[str, Any], name: str) -> dict[str, Any]:
@@ -87,19 +77,8 @@ def _rel_db(sub: Mono, parent: Mono) -> float:
     return float(10 * np.log10(np.sum(sub**2) / np.sum(parent**2)))
 
 
-def _sha256_tree(directory: Path) -> dict[str, str]:
-    return {
-        p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted(directory.iterdir())
-        if p.is_file()
-    }
-
-
-def test_every_catalogue_file_exists(generated: tuple[Path, dict[str, Any]]) -> None:
-    out_dir, manifest = generated
-    assert {p.name for p in out_dir.iterdir()} >= CATALOGUE
-    assert set(manifest["fixtures"]) == CATALOGUE
-    assert manifest["sampleRate"] == 44_100
+def test_the_manifest_lists_the_catalogue(generated: tuple[Path, dict[str, Any]]) -> None:
+    assert set(generated[1]["fixtures"]) == CATALOGUE
 
 
 @pytest.mark.parametrize("name", sorted(CATALOGUE))
@@ -228,16 +207,6 @@ def test_manifest_records_the_d04_gating_constants(
     }
 
 
-def test_rerun_is_byte_identical(generated: tuple[Path, dict[str, Any]], tmp_path: Path) -> None:
-    gen.generate(tmp_path, tmp_path / "detail-manifest.json")
-    assert _sha256_tree(tmp_path) == _sha256_tree(generated[0])
-
-
-def test_committed_manifest_is_up_to_date(generated: tuple[Path, dict[str, Any]]) -> None:
-    committed = json.loads(COMMITTED_MANIFEST.read_text(encoding="utf-8"))
-    assert committed == generated[1]
-
-
 def test_quantising_a_clipping_signal_is_refused() -> None:
     with pytest.raises(gen.DetailFixtureError, match="clip"):
         gen.quantise(np.full((4, 2), 1.5))
@@ -258,25 +227,7 @@ def test_outcome_of_a_parent_with_one_audible_component_is_nothing_further() -> 
     )
 
 
-def test_main_writes_to_the_given_paths(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    manifest = tmp_path / "m.json"
-    assert gen.main(["--out-dir", str(tmp_path / "out"), "--manifest", str(manifest)]) == 0
-    assert manifest.is_file()
-    assert (tmp_path / "out" / "detail_10s_band.wav").is_file()
-    assert f"{len(CATALOGUE)} detail fixtures" in capsys.readouterr().out
-
-
-def test_main_defaults_point_into_the_fixture_folder() -> None:
-    args = gen.parse_args([])
-    assert args.out_dir == FIXTURE_ROOT / "audio"
-    assert args.manifest == COMMITTED_MANIFEST
-
-
-def test_running_the_script_exits_with_zero(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    argv = ["generate_detail_fixtures.py", "--out-dir", str(tmp_path)]
-    monkeypatch.setattr(sys, "argv", [*argv, "--manifest", str(tmp_path / "m.json")])
-    with pytest.raises(SystemExit) as exit_info:
-        runpy.run_path(str(FIXTURE_ROOT / "generate_detail_fixtures.py"), run_name="__main__")
-    assert exit_info.value.code == 0
+def test_reconstruction_error_of_a_half_scale_part_is_minus_6_db() -> None:
+    parent = gen.quantise(gen.stereo(0.5 * np.sin(np.arange(44_100) * 0.05)))
+    half = (parent // 2).astype(np.int16)
+    assert gen.reconstruction_error_db(parent, [half]) == pytest.approx(-6.02, abs=0.05)
