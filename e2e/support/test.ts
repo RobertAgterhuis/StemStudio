@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 import { test as base } from '@playwright/test';
+import { DetailSection } from '../pages/detail-section';
 import { ImportPage } from '../pages/import-page';
 import { MixLibraryPage } from '../pages/mix-library-page';
 import { MixerPage } from '../pages/mixer-page';
@@ -21,6 +22,8 @@ export interface SuiteFixtures {
   readonly trackList: TrackListPage;
   readonly mixer: MixerPage;
   readonly mixLibrary: MixLibraryPage;
+  /** Detail-phase section of the track detail page (feature 002). */
+  readonly detail: DetailSection;
 }
 
 /** Extended Playwright test. */
@@ -44,6 +47,9 @@ export const test = base.extend<SuiteFixtures>({
   },
   mixLibrary: async ({ page }, use) => {
     await use(new MixLibraryPage(page));
+  },
+  detail: async ({ page }, use) => {
+    await use(new DetailSection(page));
   },
 });
 

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import type { StemName } from '../support/api';
+import type { DetailStemName, ParentStemName, StemName } from '../support/api';
 import { fillAndCommit, isOn, numericValue, peakDb, setNumericValue, setToggle } from '../support/controls';
 
 /** Settings the suite applies and verifies; faders/master in %, pan -100..100 (UI units). */
@@ -13,7 +13,15 @@ export interface MixerSettings {
   readonly loop: { readonly start: number; readonly end: number; readonly enabled: boolean };
 }
 
-/** Mixer `/tracks/{id}/mixer` (ui-test-ids.md, "Mixer"). */
+/** A standard stem or a detail channel `<parent>-<detail>` as used in the 1.1.0 test ids. */
+export type ChannelKey = StemName | `${ParentStemName}-${DetailStemName}`;
+
+/** Test-id key of one detail channel, e.g. `drums-snare`. */
+export function detailKey(parent: ParentStemName, detail: DetailStemName): ChannelKey {
+  return `${parent}-${detail}`;
+}
+
+/** Mixer `/tracks/{id}/mixer` (ui-test-ids.md 1.1.0, "Mixer"). */
 export class MixerPage {
   /** @param page The Playwright page. */
   constructor(private readonly page: Page) {}
@@ -24,33 +32,62 @@ export class MixerPage {
   }
 
   /** Channel strip of a stem. */
-  strip(stem: StemName): Locator {
+  strip(stem: ChannelKey): Locator {
     return this.byId(`strip-${stem}`);
   }
 
   /** Volume fader of a stem (`aria-valuenow` 0-100). */
-  fader(stem: StemName): Locator {
+  fader(stem: ChannelKey): Locator {
     return this.byId(`fader-${stem}`);
   }
 
   /** Pan control of a stem (`aria-valuenow` -100..100). */
-  pan(stem: StemName): Locator {
+  pan(stem: ChannelKey): Locator {
     return this.byId(`pan-${stem}`);
   }
 
   /** Mute toggle of a stem. */
-  mute(stem: StemName): Locator {
+  mute(stem: ChannelKey): Locator {
     return this.byId(`mute-${stem}`);
   }
 
   /** Solo toggle of a stem. */
-  solo(stem: StemName): Locator {
+  solo(stem: ChannelKey): Locator {
     return this.byId(`solo-${stem}`);
   }
 
   /** Meter of a stem or of the master bus (engine writes `data-peak-db`). */
-  meter(target: StemName | 'master'): Locator {
+  meter(target: ChannelKey | 'master'): Locator {
     return this.byId(`meter-${target}`);
+  }
+
+  /** Expand/collapse button of a parent with detail stems (`aria-expanded`). */
+  expand(parent: ParentStemName): Locator {
+    return this.byId(`expand-${parent}`);
+  }
+
+  /** Container of the detail strips of a parent. */
+  group(parent: ParentStemName): Locator {
+    return this.byId(`group-${parent}`);
+  }
+
+  /** Whether the group of `parent` is expanded (`aria-expanded` of its button). */
+  async isExpanded(parent: ParentStemName): Promise<boolean> {
+    return (await this.expand(parent).getAttribute('aria-expanded')) === 'true';
+  }
+
+  /**
+   * Expands or collapses a parent. Expanding waits until the strips of `details` are visible
+   * (the engine decodes the group lazily on the first expansion).
+   */
+  async setExpanded(parent: ParentStemName, expanded: boolean, details: readonly DetailStemName[] = []): Promise<void> {
+    if ((await this.isExpanded(parent)) !== expanded) {
+      await this.expand(parent).click();
+    }
+    await expect(this.expand(parent)).toHaveAttribute('aria-expanded', String(expanded), { timeout: 30_000 });
+    for (const detail of expanded ? details : []) {
+      await expect(this.strip(detailKey(parent, detail))).toBeVisible();
+    }
   }
 
   /** Opens the mixer of a track, optionally loading a saved mix (`?mixId=`). */
@@ -72,7 +109,7 @@ export class MixerPage {
   }
 
   /** Current peak level of a meter in dBFS. */
-  async peak(target: StemName | 'master'): Promise<number> {
+  async peak(target: ChannelKey | 'master'): Promise<number> {
     return peakDb(this.meter(target));
   }
 
