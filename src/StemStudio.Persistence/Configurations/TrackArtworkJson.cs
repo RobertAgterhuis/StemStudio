@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StemStudio.Domain.Tracks;
 
@@ -11,9 +10,7 @@ namespace StemStudio.Persistence.Configurations;
 /// </summary>
 public static class TrackArtworkJson
 {
-    private static readonly JsonSerializerOptions Options = new() { Converters = { new JsonStringEnumConverter() } };
-
-    /// <summary>Converter between the record and its JSON text (EF Core never passes null to a converter).</summary>
+    /// <summary>Converts a stored picture to its JSON text and back (EF Core never passes null to a converter).</summary>
     public static ValueConverter<TrackArtwork?, string> Converter { get; } = new(artwork => Serialize(artwork!), json => Deserialize(json));
 
     /// <summary>Serializes a record.</summary>
@@ -22,7 +19,7 @@ public static class TrackArtworkJson
     public static string Serialize(TrackArtwork artwork)
     {
         ArgumentNullException.ThrowIfNull(artwork);
-        return JsonSerializer.Serialize(new Row(artwork.Source, artwork.Sha256, artwork.UpdatedAt), Options);
+        return JsonSerializer.Serialize(new Row(artwork.Source, artwork.Sha256, artwork.UpdatedAt), StoredJson.EnumsByName);
     }
 
     /// <summary>Reads a record; the domain rules are checked again by its constructor.</summary>
@@ -31,7 +28,7 @@ public static class TrackArtworkJson
     /// <exception cref="JsonException">The text is not an artwork record.</exception>
     public static TrackArtwork Deserialize(string json)
     {
-        var row = JsonSerializer.Deserialize<Row>(json, Options) ?? throw new JsonException("The stored artwork is null.");
+        var row = JsonSerializer.Deserialize<Row>(json, StoredJson.EnumsByName) ?? throw new JsonException("The stored artwork is null.");
         return new TrackArtwork(row.Source, row.Sha256, DateTime.SpecifyKind(row.UpdatedAt, DateTimeKind.Utc));
     }
 
