@@ -201,6 +201,7 @@ in the execution plan.
 - [ ] T072 [CTO] Reference-machine validation quickstart X2-X10 on the real stack with "Hero of the Day"; record timings (SC-001, SC-002 while a detail phase runs) and the X10 first-time-user check (SC-006) in `docs/STATUS.md`
 - [ ] T073 [CTO] `docs/THIRD-PARTY-LICENSES.md`: `lameenc` 1.9.0 (LGPL-3.0-or-later) moved to direct dependencies; README: "Library and exports" section (formats, raw vs mixed, clip protection, no MP3 tags, read-only mount in the non-Docker path)
 - [ ] T074 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [ ] T074a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -252,4 +253,5 @@ the asset model and the worker lanes).
 - [ ] No new library in the images; lameenc recorded as a direct dependency; no GPL library imported by our code (IV)
 - [ ] Clip protection and limitations (no MP3 tags, 44.1 kHz) shown to the user; help topics for every new area (V, FR-014)
 - [ ] No secrets; read-only mount verified; paths validated; analyzers/formatters/linters clean; public APIs documented
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

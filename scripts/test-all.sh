@@ -2,7 +2,7 @@
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
 # pytest + coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly),
-# quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E suite
+# quality gate (self-checks + SIG checks), public manuals check, fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
@@ -71,6 +71,7 @@ step "quality ruff format" tools/quality uvq ruff format --check .
 step "quality mypy" tools/quality uvq mypy
 step "quality pytest + coverage" tools/quality uvq pytest --cov --cov-branch --cov-report=term
 step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
+step "docs manuals up to date" . node tools/docs/check.mjs
 step "fixtures ruff check" . uvw ruff check tests/fixtures
 step "fixtures ruff format" . uvw ruff format --check tests/fixtures
 step "fixtures mypy" . uvw mypy --config-file "$FX" tests/fixtures

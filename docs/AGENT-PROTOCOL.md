@@ -27,6 +27,13 @@ before you start. The constitution is non-negotiable.
 10. **Commit** your work in your worktree with Conventional Commits (`feat(worker): ...`), ending
     each message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Do not edit
     `docs/STATUS.md` or `docs/THIRD-PARTY-LICENSES.md` (CTO-owned).
+11. **Public manuals (constitution 1.3.1).** Every feature that changes user-visible behaviour or
+    technical setup MUST update docs/public sources (user and/or technical manual) and
+    regenerate the PDFs before its integration wave closes. Agents describe the user-visible and
+    setup changes of their task under *Docs impact* in the hand-off note; the CTO edits
+    `docs/public/src/**`, runs `cd tools/docs && npm ci && npm run browser && npm run build` and
+    commits sources, PDFs and `build-manifest.json` together. `node tools/docs/check.mjs`
+    (part of `scripts/test-all.*` and CI) fails when they are out of date.
 
 ## Hand-off note
 
@@ -39,6 +46,7 @@ Finish every task with `docs/handoffs/<agent>-<task>.md`:
 ## Tests and coverage   (commands run + exact line/branch % + pass counts)
 ## Quality checks       (lint/analyzers/sig_check output summary)
 ## Dependencies added   (name | version | licence | url)
+## Docs impact          (user-visible or setup changes for docs/public, or "none")
 ## Open issues / requests
 ## Next owner
 ```
