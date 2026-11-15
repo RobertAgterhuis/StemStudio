@@ -77,16 +77,16 @@ in the execution plan.
 
 ### audio-ingest (`render/`, tests first)
 
-- [ ] T011 [P] [audio-ingest] Failing tests `worker/tests/render/test_mixing.py`: `pan_matrix(p)` equals every `render-vectors.json` pan case to 1e-9; `mix_block(blocks, inputs, master)` applies gain, the stereo panner law and master gain (two-sample signals, data-model 3); pan 0 is the identity (FR-003, SC-003)
-- [ ] T012 [audio-ingest] Implement `render/mixing.py` to pass T011
-- [ ] T013 [P] [audio-ingest] Failing tests `worker/tests/render/test_paths.py`: the three allow-list patterns accept valid paths and reject upper-case ids, `..`, absolute paths, backslashes, unknown stems, other extensions; a symlink that escapes the root is rejected after resolving; a missing file raises `InputNotFoundError` naming the path; an unset/unreadable root raises `RenderError("The library is not available to the worker")` (data-model 2.1, ADR-016 D5)
-- [ ] T014 [audio-ingest] Implement `render/paths.py` (`LibraryReader` implementation) to pass T013
-- [ ] T015 [P] [audio-ingest] Failing tests `worker/tests/render/test_reader.py` (FLAC fixtures written in `tmp_path`): block-wise reading of N inputs of different length pads with silence to the longest; range start/end in samples (end clamped); mono duplicated to stereo; a 48 kHz input fails with "Unsupported sample rate 48000 Hz in <path>"; concatenated blocks equal a whole-file read (research.md E-04)
-- [ ] T016 [audio-ingest] Implement `render/reader.py` to pass T015
-- [ ] T017 [P] [audio-ingest] Failing tests `worker/tests/render/test_encoders.py`: FLAC/WAV 16/24 written with the requested subtype and `title`/`artist`/`comment` tags; MP3 192/256/320 CBR decodes (soundfile/libsndfile MP3 read) to the expected length +/- one MP3 frame; TPDF dither is deterministic per seed and absent when `dither=false`; a raw 16-bit input written without dither is sample-identical to the input (FR-004, SC-004)
-- [ ] T018 [audio-ingest] Implement `render/dither.py` and `render/encoders.py` to pass T017
-- [ ] T019 [P] [audio-ingest] Failing tests `worker/tests/render/test_executor.py`: two passes with progress 0..0.5 and 0.5..1; peak > 1.0 -> output peak -0.1 dBFS and `appliedGainDb` reported; peak <= 1.0 -> `appliedGainDb = 0`; all-silent render raises "Nothing to export: the selected channels are silent"; cancellation between blocks stops and removes the partial file; `RenderResult` fields (size, SHA-256, duration, peak) match the written file (FR-005, SC-005)
-- [ ] T020 [audio-ingest] Implement `render/executor.py` and `render/__init__.py::create_render_executor` to pass T019
+- [x] T011 [P] [audio-ingest] Failing tests `worker/tests/render/test_mixing.py`: `pan_matrix(p)` equals every `render-vectors.json` pan case to 1e-9; `mix_block(blocks, inputs, master)` applies gain, the stereo panner law and master gain (two-sample signals, data-model 3); pan 0 is the identity (FR-003, SC-003)
+- [x] T012 [audio-ingest] Implement `render/mixing.py` to pass T011
+- [x] T013 [P] [audio-ingest] Failing tests `worker/tests/render/test_paths.py`: the three allow-list patterns accept valid paths and reject upper-case ids, `..`, absolute paths, backslashes, unknown stems, other extensions; a symlink that escapes the root is rejected after resolving; a missing file raises `InputNotFoundError` naming the path; an unset/unreadable root raises `RenderError("The library is not available to the worker")` (data-model 2.1, ADR-016 D5)
+- [x] T014 [audio-ingest] Implement `render/paths.py` (`LibraryReader` implementation) to pass T013
+- [x] T015 [P] [audio-ingest] Failing tests `worker/tests/render/test_reader.py` (FLAC fixtures written in `tmp_path`): block-wise reading of N inputs of different length pads with silence to the longest; range start/end in samples (end clamped); mono duplicated to stereo; a 48 kHz input fails with "Unsupported sample rate 48000 Hz in <path>"; concatenated blocks equal a whole-file read (research.md E-04)
+- [x] T016 [audio-ingest] Implement `render/reader.py` to pass T015
+- [x] T017 [P] [audio-ingest] Failing tests `worker/tests/render/test_encoders.py`: FLAC/WAV 16/24 written with the requested subtype and `title`/`artist`/`comment` tags; MP3 192/256/320 CBR decodes (soundfile/libsndfile MP3 read) to the expected length +/- one MP3 frame; TPDF dither is deterministic per seed and absent when `dither=false`; a raw 16-bit input written without dither is sample-identical to the input (FR-004, SC-004)
+- [x] T018 [audio-ingest] Implement `render/dither.py` and `render/encoders.py` to pass T017
+- [x] T019 [P] [audio-ingest] Failing tests `worker/tests/render/test_executor.py`: two passes with progress 0..0.5 and 0.5..1; peak > 1.0 -> output peak -0.1 dBFS and `appliedGainDb` reported; peak <= 1.0 -> `appliedGainDb = 0`; all-silent render raises "Nothing to export: the selected channels are silent"; cancellation between blocks stops and removes the partial file; `RenderResult` fields (size, SHA-256, duration, peak) match the written file (FR-005, SC-005)
+- [x] T020 [audio-ingest] Implement `render/executor.py` and `render/__init__.py::create_render_executor` to pass T019
 
 ### stem-separation (`jobs/`, tests first)
 
