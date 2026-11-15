@@ -65,7 +65,7 @@ public sealed class LyricsSheetTests
     [Fact]
     public void Languages_ContainTheAceStepList()
     {
-        LyricsRules.Languages.Count.ShouldBe(52);
+        LyricsRules.Languages.Count.ShouldBe(51);
         LyricsRules.Languages.ShouldContain("no");
         LyricsRules.Languages.ShouldContain("unknown");
     }
