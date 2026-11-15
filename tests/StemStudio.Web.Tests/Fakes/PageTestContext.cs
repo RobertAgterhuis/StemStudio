@@ -35,6 +35,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton<ToastService>();
         Services.AddSingleton<IHelpCatalog>(_ => RealHelp.Value);
         Services.AddSingleton<IHelpSearch, HelpSearch>();
+        Services.AddSingleton(Substitute.For<ITourLauncher>());
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();
