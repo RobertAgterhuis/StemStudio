@@ -8,7 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from stemstudio_worker.api.dependencies import Runtime
 from stemstudio_worker.api.problems import ProblemError
-from stemstudio_worker.api.responses import json_response, parse_body
+from stemstudio_worker.api.responses import artwork_response, json_response, parse_body
 from stemstudio_worker.api.uploads import create_from_upload
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.jobs.models import StoredJob
@@ -82,6 +82,15 @@ def get_job_stem(job_id: str, stem: str, runtime: Runtime) -> FileResponse:
     if stem not in {s.name for s in result.stems} or not path.is_file():
         raise _missing_stem(stem)
     return FileResponse(path, media_type="audio/flac")
+
+
+@router.get("/v1/jobs/{job_id}/artwork/{variant}")
+def get_job_artwork(job_id: str, variant: str, runtime: Runtime) -> FileResponse:
+    """The source picture of a job (``cover`` or ``thumb``) as JPEG; 404 without one."""
+    artwork = _record(runtime, job_id).job.artwork
+    if artwork is None:
+        raise ProblemError(404, "Not found", "This job has no artwork.")
+    return artwork_response(runtime.paths.job_artwork(job_id), variant, artwork.sha256)
 
 
 def _create_from_url(runtime: WorkerRuntime, body: CreateJobRequest) -> tuple[Job, bool]:

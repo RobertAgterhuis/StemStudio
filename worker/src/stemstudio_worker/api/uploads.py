@@ -16,6 +16,7 @@ from starlette.datastructures import FormData, UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 
 from stemstudio_worker.api.problems import ProblemError
+from stemstudio_worker.jobs.artwork import stage_upload_artwork
 from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import (
@@ -127,6 +128,7 @@ def _register(runtime: WorkerRuntime, file_name: str, target: Path) -> tuple[Job
         source = runtime.adapters.ingest.upload_intake.accept(file_name, target)
     except InvalidSourceError as exc:
         raise _intake_problem(exc) from exc
+    stage_upload_artwork(target.parent, source)
     job, created = runtime.service.create(
         source, job_id=target.parent.name, upload_file=target.name
     )

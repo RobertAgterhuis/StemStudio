@@ -52,7 +52,7 @@ def test_a_broken_dependency_of_a_present_package_is_not_hidden(
     def broken(name: str) -> types.ModuleType:
         raise ModuleNotFoundError("No module named 'pillow_x'", name="pillow_x")
 
-    monkeypatch.setattr(main.importlib, "import_module", broken)
+    monkeypatch.setattr("importlib.import_module", broken)
 
     with pytest.raises(ModuleNotFoundError):
         main.optional_factory(METADATA, "create_image_normalizer")

@@ -1,9 +1,15 @@
 """Request body parsing and JSON responses shared by the worker routes."""
 
+from pathlib import Path
+from typing import get_args
+
 from pydantic import BaseModel, ValidationError
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse, JSONResponse
 
 from stemstudio_worker.api.problems import ProblemError
+from stemstudio_worker.schemas import ArtworkVariant
+
+_VARIANTS: tuple[ArtworkVariant, ...] = get_args(ArtworkVariant)
 
 
 def parse_body[M: BaseModel](model: type[M], raw: bytes) -> M:
@@ -23,3 +29,15 @@ def json_response(
     """Serialise ``model`` with camelCase aliases."""
     body = model.model_dump(mode="json", by_alias=True)
     return JSONResponse(body, status_code=status, headers=headers)
+
+
+def artwork_response(directory: Path, variant: str, sha256: str) -> FileResponse:
+    """Serve ``<directory>/<variant>.jpg`` with ``ETag`` = the quoted cover hash.
+
+    Raises:
+        ProblemError: 404 for an unknown variant or a missing file.
+    """
+    path = directory / f"{variant}.jpg"
+    if variant not in _VARIANTS or not path.is_file():
+        raise ProblemError(404, "Not found", f"Artwork {variant[:64]} does not exist.")
+    return FileResponse(path, media_type="image/jpeg", headers={"ETag": f'"{sha256}"'})

@@ -25,6 +25,10 @@ class DataPaths:
         """Directory of the ``<jobId>.json`` job files."""
         return self.root / "jobs"
 
+    def job_artwork(self, job_id: str) -> Path:
+        """Source picture of a job (``cover.jpg``, ``thumb.jpg``; feature 005)."""
+        return self.jobs / job_id / "artwork"
+
     def work(self, job_id: str) -> Path:
         """Temporary download and normalised audio of a job; deleted when terminal."""
         return self.root / "work" / job_id
@@ -45,6 +49,10 @@ class DataPaths:
     def by_audio(self, audio_sha256: str) -> Path:
         """Cache entry (``result.json`` + ``stems/``) for normalised audio."""
         return self.audio_cache / audio_sha256
+
+    def cached_artwork(self, audio_sha256: str) -> Path:
+        """Source picture kept with a cached result (``info.json`` + the two JPEGs; 005)."""
+        return self.by_audio(audio_sha256) / "artwork"
 
     def stem_file(self, audio_sha256: str, stem: StemName) -> Path:
         """FLAC file of one cached stem."""

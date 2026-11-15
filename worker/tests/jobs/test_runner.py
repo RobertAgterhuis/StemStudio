@@ -310,7 +310,9 @@ def test_youtube_job_takes_title_and_artist_from_the_download(
     env.runner.process(env.add(_url_job(make_record)))
 
     record = env.final()
-    expected = SourceMetadata(title="Real Title", artist="Uploader", source_url=YOUTUBE_URL)
+    expected = SourceMetadata(
+        title="Real Title", artist="Uploader", source_url=YOUTUBE_URL, duration_seconds=12.5
+    )
     assert record.job.metadata == expected
     assert record.result is not None
     assert record.result.metadata == expected
@@ -346,7 +348,7 @@ def test_spotify_metadata_stays_authoritative(env: Env, make_record: RecordFacto
 
     record = env.final()
     assert record.job.metadata == SourceMetadata(
-        title="Track", artist="Band", source_url=YOUTUBE_URL
+        title="Track", artist="Band", source_url=YOUTUBE_URL, duration_seconds=12.5
     )
     assert record.result is not None
     assert record.result.metadata == record.job.metadata
@@ -358,7 +360,7 @@ def test_download_without_title_keeps_the_resolved_metadata(
     env.runner.process(env.add(_url_job(make_record)))
 
     assert env.final().job.metadata == SourceMetadata(
-        title="Song", artist="Artist", source_url=YOUTUBE_URL
+        title="Song", artist="Artist", source_url=YOUTUBE_URL, duration_seconds=12.5
     )
 
 

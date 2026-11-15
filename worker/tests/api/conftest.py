@@ -55,7 +55,7 @@ ApiFactory = Callable[..., Api]
 
 @pytest.fixture
 def make_api(tmp_path: Path) -> Iterator[ApiFactory]:
-    """Factory: ``make_api(separator=None, max_upload_bytes=..., overrides=None)`` -> :class:`Api`."""
+    """Factory: ``make_api(separator, max_upload_bytes, overrides)`` -> a started :class:`Api`."""
     with ExitStack() as stack:
 
         def factory(

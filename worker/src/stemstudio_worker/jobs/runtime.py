@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.jobs.artwork import ArtworkCapture
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.detail_runner import DetailRunner
 from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
@@ -16,7 +17,7 @@ from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.ports import PipelineAdapters
+from stemstudio_worker.ports import ImageNormalizer, PipelineAdapters
 from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
 _STOP_TIMEOUT_SECONDS = 5.0
@@ -45,12 +46,24 @@ class DeviceHooks:
 
 
 @dataclass(frozen=True, slots=True)
+class OnlineParts:
+    """The adapters of feature 005 (built by the composition root from ``metadata``).
+
+    Attributes:
+        normalizer: Normalises source pictures ("Saving cover"); None: jobs get no picture.
+    """
+
+    normalizer: ImageNormalizer | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerParts:
-    """What the job subsystem runs: pipeline adapters, detail pipeline and device hooks."""
+    """What the job subsystem runs: adapters, detail pipeline, device hooks, online parts."""
 
     adapters: PipelineAdapters
     pipeline: DetailPipelinePort
     devices: DeviceHooks = DeviceHooks()
+    online: OnlineParts = OnlineParts()
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:
@@ -117,7 +130,9 @@ class WorkerRuntime:
 def _scheduler(context: DetailContext, parts: WorkerParts) -> PriorityScheduler:
     """The scheduler over the standard and detail runners of ``context``."""
     job_context = JobContext(context.jobs, context.paths, context.clock, parts.devices.info)
-    runner = JobRunner(job_context, parts.adapters)
+    normalizer = parts.online.normalizer
+    capture = None if normalizer is None else ArtworkCapture(normalizer)
+    runner = JobRunner(job_context, parts.adapters, capture)
     details = DetailRunner(context, parts.pipeline)
     hooks = SchedulerHooks(on_yield=details.waiting, on_idle=parts.devices.on_idle)
     return PriorityScheduler(runner.process, details.step, hooks)

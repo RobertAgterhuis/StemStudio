@@ -5,10 +5,19 @@ Run with ``uv run uvicorn --factory stemstudio_worker.main:create_app --port 800
 At start-up (lifespan) the device runner is built once (``devices.create_device_runner``: the GPU
 probe of feature 003) and shared by the separator, the detail pipeline and ``/health``; when the
 scheduler becomes idle the GPU models are released (ADR-012 D6).
+
+The adapters of features 005 and 007 come from the ``metadata`` and ``render`` packages, looked
+up by factory name (:func:`optional_factory`): a worker without such a package runs without that
+feature (no source pictures, lookups reported as disabled, renders failing with the "library is
+not available" text) instead of failing to start.
 """
 
+import importlib
+import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from dataclasses import dataclass
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -21,19 +30,37 @@ from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
-from stemstudio_worker.jobs.runtime import DeviceHooks, WorkerParts, WorkerRuntime
-from stemstudio_worker.ports import GpuNeed, PipelineAdapters
+from stemstudio_worker.jobs.runtime import DeviceHooks, OnlineParts, WorkerParts, WorkerRuntime
+from stemstudio_worker.ports import GpuNeed, ImageNormalizer, PipelineAdapters
 from stemstudio_worker.schemas import CONTRACT_VERSION
 from stemstudio_worker.separation import create_separator
 
+_LOG = logging.getLogger(__name__)
+
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
+
+METADATA_PACKAGE = "stemstudio_worker.metadata"
+"""Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``."""
+
+
+@dataclass(frozen=True, slots=True)
+class AppOverrides:
+    """Parts the tests inject instead of the production factories (all optional).
+
+    Attributes:
+        detail_pipeline: Detail step pipeline (default ``create_detail_pipeline``).
+        image_normalizer: Source picture normaliser (default ``metadata.create_image_normalizer``).
+    """
+
+    detail_pipeline: DetailPipelinePort | None = None
+    image_normalizer: ImageNormalizer | None = None
 
 
 def create_app(
     settings: WorkerSettings | None = None,
     adapters: PipelineAdapters | None = None,
-    detail_pipeline: DetailPipelinePort | None = None,
     devices: ManagedRunner | None = None,
+    overrides: AppOverrides | None = None,
 ) -> FastAPI:
     """Create the FastAPI application.
 
@@ -44,14 +71,14 @@ def create_app(
     Args:
         settings: Settings to use; read from the environment when omitted.
         adapters: Pipeline adapters; built with the adapter factories when omitted.
-        detail_pipeline: Detail step pipeline; built with ``create_detail_pipeline`` when omitted.
         devices: Device runner; built with ``create_device_runner`` (start-up probe) when omitted.
+        overrides: Further injected parts; missing ones are built with their factories.
 
     Returns:
         The configured application.
     """
     resolved = settings or load_settings()
-    lifespan = _lifespan(resolved, _Parts(adapters, detail_pipeline, devices))
+    lifespan = _lifespan(resolved, _Parts(adapters, devices, overrides or AppOverrides()))
     app = FastAPI(title="StemStudio Worker API", version=CONTRACT_VERSION, lifespan=lifespan)
     app.state.settings = resolved
     install_problem_handlers(app)
@@ -69,27 +96,56 @@ def default_adapters(settings: WorkerSettings, devices: ManagedRunner) -> Pipeli
     )
 
 
+def optional_factory(module: str, name: str) -> Callable[..., Any] | None:
+    """Return ``module.name`` when that package is installed, else None (logged).
+
+    Only the absence of ``module`` itself (or of ``name`` in it) is tolerated; a package that
+    exists but fails to import (e.g. a missing dependency) raises.
+    """
+    try:
+        factory: Callable[..., Any] = getattr(importlib.import_module(module), name)
+    except ModuleNotFoundError as exc:
+        if exc.name != module:
+            raise
+    except AttributeError:
+        pass
+    else:
+        return factory
+    _LOG.warning("%s.%s is not available; that feature is switched off", module, name)
+    return None
+
+
+def default_online(settings: WorkerSettings, overrides: AppOverrides) -> OnlineParts:
+    """The feature 005 parts: injected ones, else built by the ``metadata`` factories."""
+    normalizer = overrides.image_normalizer
+    if normalizer is None:
+        factory = optional_factory(METADATA_PACKAGE, "create_image_normalizer")
+        normalizer = None if factory is None else factory(settings)
+    return OnlineParts(normalizer=normalizer)
+
+
 class _Parts:
     """The optional, injected parts of the app (tests); missing ones are built at start-up."""
 
     def __init__(
         self,
         adapters: PipelineAdapters | None,
-        pipeline: DetailPipelinePort | None,
         devices: ManagedRunner | None,
+        overrides: AppOverrides,
     ) -> None:
         self.adapters = adapters
-        self.pipeline = pipeline
         self.devices = devices
+        self.overrides = overrides
 
     def start(self, settings: WorkerSettings) -> WorkerRuntime:
         """Build what is missing (one device runner for everything) and start the runtime."""
         devices = self.devices or create_device_runner(settings)
-        pipeline = self.pipeline or create_detail_pipeline(settings, devices)
+        pipeline = self.overrides.detail_pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
         devices.reclaim_with(_reclaimer(pipeline))
         hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
-        return WorkerRuntime.start_with(settings, WorkerParts(adapters, pipeline, hooks))
+        online = default_online(settings, self.overrides)
+        return WorkerRuntime.start_with(settings, WorkerParts(adapters, pipeline, hooks, online))
 
 
 def _reclaimer(pipeline: DetailPipelinePort) -> Callable[[GpuNeed], None]:

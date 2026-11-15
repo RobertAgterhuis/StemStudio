@@ -5,9 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from stemstudio_worker.jobs.artwork import ArtworkCapture, stage_upload_artwork
+from stemstudio_worker.jobs.artwork import ArtworkCapture, CoverStep, stage_upload_artwork
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.paths import DataPaths
+from stemstudio_worker.jobs.progress import JobTracker
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.ports import ArtworkCandidate, ArtworkFetchError, SourceInfo
@@ -84,9 +85,9 @@ def test_saving_cover_runs_after_the_download_and_before_conversion(env: Env) ->
 def test_saving_cover_does_not_change_the_progress(env: Env) -> None:
     _youtube_with_thumbnail(env)
 
-    saving = [(s, p) for s, stage, p in env.store.history if stage == "Saving cover"]
+    saving = {(s, p) for s, stage, p in env.store.history if stage == "Saving cover"}
     downloaded = max(p for _, stage, p in env.store.history if stage == "Downloading audio")
-    assert saving == [(S.DOWNLOADING, downloaded)]
+    assert saving == {(S.DOWNLOADING, downloaded)}
 
 
 def test_the_job_artwork_is_set_and_its_files_are_written(env: Env) -> None:
@@ -305,3 +306,14 @@ def test_an_audio_cache_hit_keeps_its_own_better_picture(env: Env) -> None:
     assert job.artwork.source == "spotify"
     cached = env.paths.cached_artwork("e" * 64)
     assert (cached / "cover.jpg").read_bytes() == b"cover:spotify"
+
+
+def test_a_recorded_picture_whose_files_vanished_is_not_cached(env: Env) -> None:
+    job = _youtube_with_thumbnail(env)
+    for path in env.paths.job_artwork(job.job_id).iterdir():
+        path.unlink()
+    tracker = JobTracker(env.store, job.job_id, FakeClock())
+
+    CoverStep(env.paths, None).sync(tracker, "f" * 64)
+
+    assert not env.paths.cached_artwork("f" * 64).exists()

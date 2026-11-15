@@ -103,8 +103,8 @@ class FourStemSeparator:
 
 
 THUMBNAIL = ArtworkCandidate("youtube", url="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg")
-COVER_JPEG = b"ÿØÿà cover"
-THUMB_JPEG = b"ÿØÿà thumb"
+COVER_JPEG = b"JPEG cover bytes"
+THUMB_JPEG = b"JPEG thumb bytes"
 
 
 class StaticNormalizer:

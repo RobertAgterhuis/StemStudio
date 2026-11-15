@@ -131,7 +131,7 @@ def test_an_injected_pipeline_without_gpu_models_still_releases_the_runner(
             return []
 
     app = main.create_app(_settings(tmp_path), adapters=_fake_adapters(runner),
-                          detail_pipeline=Pipeline(), devices=runner)  # type: ignore[arg-type]  # fmt: skip
+                          devices=runner, overrides=main.AppOverrides(Pipeline()))  # type: ignore[arg-type]  # fmt: skip
     with TestClient(app) as client:
         _complete(client)
     assert runner.released >= 1

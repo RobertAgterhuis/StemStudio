@@ -4,7 +4,8 @@ import hashlib
 import threading
 from dataclasses import dataclass, field
 
-from stemstudio_worker.ports import ArtworkCandidate, ArtworkImages, ArtworkSource
+from stemstudio_worker.ports import ArtworkCandidate, ArtworkImages
+from stemstudio_worker.schemas import ArtworkSource
 
 YOUTUBE_THUMB = "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
 SPOTIFY_COVER = "https://i.scdn.co/image/ab67616d0000b273"
