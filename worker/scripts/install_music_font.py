@@ -15,7 +15,8 @@ Usage (build stage, with verovio and fontTools[woff] installed)::
 
 Prints ``<written file> sha256=<hex>``. Exit code 0 = written, 1 = font not found or not
 convertible, 2 = usage error. The output is deterministic for a given wheel (Phase 0: verovio
-6.4.1 -> 119,416 bytes, SHA-256 ``9606f129...ef08``).
+6.4.0, timestamps kept -> 119,416 bytes before the PostScript name was added; the image build
+prints the current SHA-256).
 """
 
 import base64
@@ -26,6 +27,7 @@ import re
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Final
 
 FONT_FAMILY = "Leipzig"
 """Family name Verovio's SVG uses and fontconfig must list."""
@@ -57,12 +59,23 @@ def extract_woff2(css: str) -> bytes:
     return base64.b64decode(match.group("data"), validate=True)
 
 
+POSTSCRIPT_NAME: Final = "Leipzig"
+"""PostScript name (name ID 6) written into the converted font."""
+
+
 def fonttools_convert(woff2: bytes) -> bytes:
-    """Decompress WOFF2 to plain sfnt bytes with fontTools (needs brotli)."""
+    """Decompress WOFF2 to plain sfnt bytes with fontTools (needs brotli).
+
+    Keeps the wheel's ``head`` timestamps (deterministic output) and sets the PostScript name
+    (name ID 6) so Cairo embeds the font as "Leipzig".
+    """
     from fontTools.ttLib import TTFont  # noqa: PLC0415 - build-stage dependency only
 
-    font = TTFont(io.BytesIO(woff2))
+    font = TTFont(io.BytesIO(woff2), recalcTimestamp=False)
     font.flavor = None
+    names = font["name"]
+    names.setName(POSTSCRIPT_NAME, 6, 3, 1, 0x409)
+    names.setName(POSTSCRIPT_NAME, 6, 1, 0, 0)
     out = io.BytesIO()
     font.save(out)
     return out.getvalue()
