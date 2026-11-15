@@ -32,13 +32,12 @@ for (const theme of matrixThemes) {
     test('library headings and status words do not break at desktop width', async ({ page, uxData }) => {
       await openScreen(page, 'library', uxData);
       const table = page.locator('.ss-asset-table');
-      const headings = await textLineCounts(table.locator('th'));
+      // The last heading is screen-reader only (clipped to 1 px), so it is not measured.
+      const headings = await textLineCounts(table.locator('th:not(:has(.ss-sr-only))'));
       const statuses = await textLineCounts(table.locator('.ss-asset-status'));
+      expect(headings).toHaveLength(4);
       expect(statuses.length).toBeGreaterThan(0);
-      expect({ headings, statuses }).toEqual({
-        headings: headings.map((lines) => Math.min(lines, 1)),
-        statuses: statuses.map(() => 1),
-      });
+      expect({ headings, statuses }).toEqual({ headings: [1, 1, 1, 1], statuses: statuses.map(() => 1) });
     });
   });
 
