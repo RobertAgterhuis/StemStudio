@@ -93,7 +93,9 @@ def built(monkeypatch: pytest.MonkeyPatch) -> list[RecordingRunner]:
 
     fakes = ApiFakes()
     monkeypatch.setattr(main, "create_device_runner", factory)
-    monkeypatch.setattr(main, "create_ingest_adapters", lambda s: fakes.adapters().ingest)
+    monkeypatch.setattr(
+        main, "create_ingest_adapters", lambda s, details=None: fakes.adapters().ingest
+    )
     monkeypatch.setattr(main, "create_beat_analyzer", lambda s: fakes)
     return runners
 

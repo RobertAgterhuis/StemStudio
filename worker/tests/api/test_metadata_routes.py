@@ -1,10 +1,7 @@
 """Tests of the metadata job routes, 422 problem details and ``Health.onlineLookups`` (005 T035)."""
 
 import hashlib
-import sys
 import threading
-import types
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -12,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from stemstudio_worker import main
 from stemstudio_worker.config import OnlineSettings, WorkerSettings
+from stemstudio_worker.jobs.runtime import OnlineParts
 from stemstudio_worker.main import AppOverrides
 from stemstudio_worker.ports import (
     ArtworkImages,
@@ -231,12 +229,6 @@ def test_health_reports_online_lookups_off(tmp_path: Path) -> None:
     assert response.json()["onlineLookups"] is False
 
 
-@pytest.fixture
-def no_metadata_package(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setitem(sys.modules, main.METADATA_PACKAGE, None)
-    yield
-
-
 def _run_one(tmp_path: Path) -> dict[str, object]:
     app = main.create_app(
         WorkerSettings(data_dir=tmp_path, separator="fake"), ApiFakes().adapters()
@@ -248,9 +240,16 @@ def _run_one(tmp_path: Path) -> dict[str, object]:
     return result
 
 
-@pytest.mark.usefixtures("no_metadata_package")
-def test_without_the_metadata_package_lookups_complete_as_disabled(tmp_path: Path) -> None:
+def test_without_a_lookup_metadata_jobs_complete_as_disabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "default_online", lambda settings, overrides: OnlineParts())
+
     assert _run_one(tmp_path)["outcome"] == "disabled"
+
+
+def test_the_fake_stack_lookup_finds_the_song(tmp_path: Path) -> None:
+    assert _run_one(tmp_path)["outcome"] == "found"
 
 
 def test_the_default_lookup_comes_from_the_metadata_factory(
@@ -262,9 +261,7 @@ def test_the_default_lookup_comes_from_the_metadata_factory(
         seen.append(settings)
         return lookup
 
-    module = types.ModuleType(main.METADATA_PACKAGE)
-    module.create_metadata_lookup = factory  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, main.METADATA_PACKAGE, module)
+    monkeypatch.setattr(main, "create_metadata_lookup", factory)
 
     assert _run_one(tmp_path)["outcome"] == "found"
     assert len(seen) == 1

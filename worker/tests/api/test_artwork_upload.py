@@ -1,11 +1,11 @@
 """Tests of ``POST /v1/artwork`` and ``GET /v1/artwork/{id}/{variant}`` (005 T044, FR-013)."""
 
 import hashlib
-import sys
 
 import pytest
 
 from stemstudio_worker import main
+from stemstudio_worker.jobs.runtime import OnlineParts
 from stemstudio_worker.main import AppOverrides
 from stemstudio_worker.ports import (
     ImageTooLargeError,
@@ -149,7 +149,7 @@ def test_unknown_pictures_and_variants_answer_404(art_api: Api, path: str) -> No
 def test_without_an_image_normaliser_uploads_are_refused(
     make_api: ApiFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setitem(sys.modules, main.METADATA_PACKAGE, None)
+    monkeypatch.setattr(main, "default_online", lambda settings, overrides: OnlineParts())
     api = make_api()
 
     response = api.client.post(POST, files={"file": ("a.png", PICTURE)})
