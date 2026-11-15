@@ -72,6 +72,7 @@ public sealed partial class CommandPalette
         new("go-import", "Go to Import", "Go to", () => GoAsync(string.Empty)),
         new("go-tracks", "Go to Tracks", "Go to", () => GoAsync("tracks")),
         new("go-mixes", "Go to Mixes", "Go to", () => GoAsync("mixes")),
+        new("go-library", "Go to Library", "Go to", () => GoAsync("library")),
     ];
 
     private IEnumerable<PaletteItem> Actions() => Commands.Items.Select(c => new PaletteItem(c.Id, c.Label, "Actions", c.Run));

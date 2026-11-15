@@ -26,6 +26,13 @@ public sealed class FeatureCatalogTests
         { "journey.rail", [B], "journey" },
         { "help.inline-hints", [B], "levels" },
         { "help.tour-offers", [B, A, E], "tours" },
+        { "artist.details", [A, E], "band-info" },
+        { "artwork.own-picture", [A, E], "artwork" },
+        { "export.format-details", [A, E], "export-formats" },
+        { "export.selected-channels", [A, E], "export-dialog" },
+        { "library.filters", [A, E], "library" },
+        { "export.range", [A, E], "export-range" },
+        { "export.stem-pack", [A, E], "export-dialog" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -80,7 +87,7 @@ public sealed class FeatureCatalogTests
         FeatureCatalog.All.Where(f => !FeatureCatalog.IsVisible(f.Id, B) && f.Max is null)
             .Select(f => f.Id)
             .ShouldBe(["mixer.pan", "mixer.loop.typed", "mixer.metronome.advanced", "mixer.numeric", "mixer.meter.db", "tracks.search",
-                "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints"], ignoreOrder: true);
+                "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels", "library.filters", "export.range", "export.stem-pack"], ignoreOrder: true);
     }
 
     [Fact]

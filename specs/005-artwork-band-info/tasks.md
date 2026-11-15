@@ -111,8 +111,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T025 [US1] [stem-separation] Implement in `jobs/{runner,progress}.py`, `api/routes.py`, `main.py` to pass T024
 - [x] T026 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Artwork/ArtworkSyncTests.cs`, `ArtworkEndpointTests.cs`: a standard poll with a new `artwork` hash downloads both variants atomically and offers them; the same hash is not downloaded again; `TrackDto.artwork` URLs carry `v`; `GET /api/tracks/{id}/artwork/{variant}`: JPEG, ETag/If-None-Match 304, immutable header only with matching `v`; 404 without artwork; deleting a track deletes the files (FR-005..FR-007, FR-016)
 - [x] T027 [US1] [backend] Implement `Api/Artwork/{ArtworkFileStore,ArtworkService,ArtworkEndpoints}.cs` and the sync hook in `Sync/TrackJobApplier.cs` to pass T026
-- [ ] T028 [P] [US1] [frontend] Failing bUnit tests: `TrackArtwork` renders `img` with `loading="lazy"`, `decoding="async"`, width/height and alt text "Cover of <title>", or `ArtworkPlaceholder` (initials, colour from a stable title hash, `aria-hidden` decoration + text alternative); `track-thumb-<id>`, `track-cover`, `mixer-cover` with `data-artwork-source`; broken image -> placeholder (`onerror`) (FR-006, US1-1..5)
-- [ ] T029 [US1] [frontend] Implement `Components/Shared/{TrackArtwork,ArtworkPlaceholder}.razor`, the thumbnail column in `Tracks.razor`, the cover on `TrackDetail` and in the mixer header (004 layout), help topic `artwork` to pass T028
+- [x] T028 [P] [US1] [frontend] Failing bUnit tests: `TrackArtwork` renders `img` with `loading="lazy"`, `decoding="async"`, width/height and alt text "Cover of <title>", or `ArtworkPlaceholder` (initials, colour from a stable title hash, `aria-hidden` decoration + text alternative); `track-thumb-<id>`, `track-cover`, `mixer-cover` with `data-artwork-source`; broken image -> placeholder (`onerror`) (FR-006, US1-1..5)
+- [x] T029 [US1] [frontend] Implement `Components/Shared/{TrackArtwork,ArtworkPlaceholder}.razor`, the thumbnail column in `Tracks.razor`, the cover on `TrackDetail` and in the mixer header (004 layout), help topic `artwork` to pass T028
 - [ ] T030 [US1] [qa] Author `e2e/tests/artwork.spec.ts` (fake stack `STEMSTUDIO_FAKE_ONLINE=not-found`): YouTube/Spotify/upload-with-cover/WAV sources and their `data-artwork-source`; thumbnail visible in the library; seed script `e2e/support/seed-artwork.ts` and a timing assertion for 100 rows (SC-001, SC-003)
 
 **Checkpoint**: HO:us1.
@@ -134,8 +134,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T038 [US2] [backend] Implement `Api/Metadata/{MetadataSynchronizer,MetadataJobApplier,MetadataService}.cs` (registered in `JobSyncService`) to pass T037
 - [x] T039 [P] [US2] [backend] Failing tests `BandInfoEndpointTests.cs`: `GET /api/tracks/{id}/band-info` for each status, sources list and licences, validates against the backend contract; `POST /api/tracks/{id}/metadata/lookup` with corrected names (stored, `correctedByUser`), empty body retry, 409 while searching, 422 limits (FR-008, FR-009)
 - [x] T040 [US2] [backend] Implement `Api/Metadata/BandInfoEndpoints.cs` to pass T039
-- [ ] T041 [P] [US2] [frontend] Failing bUnit tests: `BandInfoPanel` per status (searching skeleton, found facts, notFound + correct, failed + retry, disabled + help link); members row only for groups; `WikipediaAttribution` renders title link, "Wikipedia contributors" history link, "CC BY-SA 4.0" licence link and "Excerpt, unmodified"; `band-info-sources`; `CorrectMetadataDialog` validation and submit; journey levels (beginner: name, type, years, summary; advanced/expert: all facts and sources); `mixer-album` text (FR-008, FR-009, FR-015)
-- [ ] T042 [US2] [frontend] Implement `Components/BandInfo/*`, `IStemStudioApiClient.{GetBandInfoAsync, LookupMetadataAsync}`, `band-info-open` on track page and mixer, help topics `band-info` and `online-lookups`, legal notice sentence (FR-014) to pass T041
+- [x] T041 [P] [US2] [frontend] Failing bUnit tests: `BandInfoPanel` per status (searching skeleton, found facts, notFound + correct, failed + retry, disabled + help link); members row only for groups; `WikipediaAttribution` renders title link, "Wikipedia contributors" history link, "CC BY-SA 4.0" licence link and "Excerpt, unmodified"; `band-info-sources`; `CorrectMetadataDialog` validation and submit; journey levels (beginner: name, type, years, summary; advanced/expert: all facts and sources); `mixer-album` text (FR-008, FR-009, FR-015)
+- [x] T042 [US2] [frontend] Implement `Components/BandInfo/*`, `IStemStudioApiClient.{GetBandInfoAsync, LookupMetadataAsync}`, `band-info-open` on track page and mixer, help topics `band-info` and `online-lookups`, legal notice sentence (FR-014) to pass T041
 - [ ] T043 [US2] [qa] Author `e2e/tests/band-info.spec.ts` (fake stack, modes `found`, `not-found`, `failed`, `off`): panel content, attribution links, retry, correction flow updates the panel and cover, disabled notice
 
 **Checkpoint**: HO:us2.
@@ -151,8 +151,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T045 [US3] [stem-separation] Implement `api/artwork_routes.py` to pass T044
 - [x] T046 [P] [US3] [backend] Failing tests `UserArtworkEndpointTests.cs`: `PUT /api/tracks/{id}/artwork` streams to the worker (10 MiB limit enforced while streaming, 413), stores `user/` files, `Artwork.source = user`; worker errors mapped to problem details; 503 when the worker is down; `DELETE` returns to `AutoArtwork` (or none) and deletes `user/` files (FR-013)
 - [x] T047 [US3] [backend] Implement in `Api/Artwork/*` to pass T046
-- [ ] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
-- [ ] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
+- [x] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
+- [x] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
 - [ ] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
 
 **Checkpoint**: HO:us3.
@@ -164,7 +164,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T051 [P] [audio-ingest] Refactor to SIG limits, docstrings, `@pytest.mark.integration` live-service smoke `worker/tests/metadata/test_live_services.py` (one request per service, reference songs; deselected by default), HO:polish with coverage of `metadata`, `ingest`
 - [x] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
 - [x] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
+- [x] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
 - [ ] T055 [P] [qa] Traceability matrix update, HO:polish
 - [x] T056 [P] [devops] Validate compose/CI changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T057 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish

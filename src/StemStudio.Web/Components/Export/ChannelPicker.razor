@@ -1,0 +1,32 @@
+@* "Selected channels" of a mixer export (feature 007, US2): one checkbox per visible mixer channel (export-channel-<key>),
+   preset to the channels that are audible now. An empty selection cannot be submitted. *@
+
+<div class="ss-channel-grid" role="group" aria-label="Channels to save">
+    @foreach (var channel in Form.Target.Channels)
+    {
+        <label class="ss-check">
+            <input type="checkbox" checked="@Form.Selected.Contains(channel.Id)" @onchange="args => ToggleAsync(channel.Id, args)"
+                   data-testid="@($"export-channel-{channel.Key}")" /> @channel.Label
+        </label>
+    }
+</div>
+@if (Form.Selected.Count == 0)
+{
+    <p class="ss-help" role="status" data-testid="export-error-hint">Select at least one channel.</p>
+}
+
+@code {
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+
+    /// <summary>Raised after a change (the dialog re-renders its submit state).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task ToggleAsync(string channel, ChangeEventArgs args)
+    {
+        _ = args.Value is true ? Form.Selected.Add(channel) : Form.Selected.Remove(channel);
+        return OnChanged.InvokeAsync();
+    }
+}

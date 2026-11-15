@@ -48,7 +48,7 @@ public sealed partial class TrackDetail
     {
         try
         {
-            Track = await Api.RetryTrackAsync(Id, _stop.Token);
+            Track = await Api.RetryTrackAsync(Id, Stopping);
             ActionError = null;
             _retriedThisSession = true;
             StartPolling();
@@ -68,7 +68,7 @@ public sealed partial class TrackDetail
         IsDeleting = true;
         try
         {
-            await Api.DeleteTrackAsync(Id, _stop.Token);
+            await Api.DeleteTrackAsync(Id, Stopping);
             Navigation.NavigateTo(TrackListRoute);
         }
         catch (ApiException ex)
