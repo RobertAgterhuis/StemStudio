@@ -174,15 +174,9 @@ class AceStepEngine:
         self._loaded = _Loaded(profile, self._init_dit(profile), self.api.llm())
 
     def restyle(self, request: EngineRestyle, on_progress: ProgressCallback) -> list[EngineTake]:
-        """``cover`` of the range (one take per seed)."""
-        params = request.params
-        values = {
-            "task_type": "cover", "src_audio": str(request.source), "caption": params.caption,
-            "audio_cover_strength": params.audio_cover_strength,
-            "inference_steps": params.inference_steps, "shift": params.shift, "thinking": False,
-            "use_cot_metas": False, "use_cot_caption": False, "use_cot_language": False,
-        }  # fmt: skip
-        return self._generate(_Call(values, list(params.seeds), request.out_dir), on_progress)
+        """``cover`` of the range, or ``repaint`` of the range in place (one take per seed)."""
+        call = _Call(restyle_values(request), list(request.params.seeds), request.out_dir)
+        return self._generate(call, on_progress)
 
     def song(self, request: EngineSong, on_progress: ProgressCallback) -> list[EngineTake]:
         """``text2music`` (010 US1)."""
@@ -234,6 +228,24 @@ class AceStepEngine:
         if self._loaded is None:
             raise GeneratorError(NOT_LOADED_TEXT)
         return self._loaded
+
+
+def restyle_values(request: EngineRestyle) -> dict[str, Any]:
+    """``GenerationParams`` of a restyle (009 research S-05; the LM is never used)."""
+    params = request.params
+    values: dict[str, Any] = {
+        "task_type": "cover" if params.mode == "range" else "repaint",
+        "src_audio": str(request.source), "caption": params.caption,
+        "audio_cover_strength": params.audio_cover_strength,
+        "inference_steps": params.inference_steps, "shift": params.shift, "thinking": False,
+        "use_cot_metas": False, "use_cot_caption": False, "use_cot_language": False,
+    }  # fmt: skip
+    if params.mode == "inPlace":
+        values |= {
+            "repainting_start": params.range_start_seconds,
+            "repainting_end": params.range_end_seconds, "chunk_mask_mode": "explicit",
+        }  # fmt: skip
+    return values
 
 
 def _stage(takes: int) -> str:
