@@ -205,6 +205,16 @@
   gap: var(--ss-space-3);
 }
 
+/* Reflow at 320 px (WCAG 1.4.10): fieldsets and file inputs default to their min-content width. */
+.ss-new-voice :is(label, fieldset, input) {
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+.ss-new-voice input {
+  max-width: 100%;
+}
+
 .ss-record-timer {
   min-width: 3.5rem;
   font-size: var(--ss-type-title-size);
