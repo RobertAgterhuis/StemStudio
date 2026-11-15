@@ -51,12 +51,10 @@ from stemstudio_worker.jobs.transcription_pipeline import (
 )
 from stemstudio_worker.lyrics.lookup import create_lyrics_lookup
 from stemstudio_worker.metadata import (
-    _shared_client as shared_online_client,
-)
-from stemstudio_worker.metadata import (
     create_image_normalizer,
     create_metadata_lookup,
     create_source_details,
+    shared_online_client,
 )
 from stemstudio_worker.notation import create_notator
 from stemstudio_worker.notation.notices import score_warning

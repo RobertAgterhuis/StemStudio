@@ -40,7 +40,7 @@ __all__ = ["create_image_normalizer", "create_metadata_lookup", "create_source_d
 
 
 @cache
-def _shared_client(online: OnlineSettings) -> OnlineClient:
+def shared_online_client(online: OnlineSettings) -> OnlineClient:
     """One online client (and rate limiter) per process and settings."""
     return create_online_client(online)
 
@@ -56,7 +56,7 @@ def create_image_normalizer(settings: WorkerSettings) -> ImageNormalizer:
     """
     if settings.separator == "fake":
         return FakeImageNormalizer()
-    return PillowImageNormalizer(_shared_client(settings.online))
+    return PillowImageNormalizer(shared_online_client(settings.online))
 
 
 def create_metadata_lookup(settings: WorkerSettings) -> MetadataLookup:
@@ -74,7 +74,7 @@ def create_metadata_lookup(settings: WorkerSettings) -> MetadataLookup:
         return FakeMetadataLookup(
             settings.online.fake_mode if settings.online.lookups_enabled else "off"
         )
-    return OnlineMetadataLookup(_shared_client(settings.online), settings.online)
+    return OnlineMetadataLookup(shared_online_client(settings.online), settings.online)
 
 
 def create_source_details(settings: WorkerSettings) -> SourceDetailsReader:  # noqa: ARG001

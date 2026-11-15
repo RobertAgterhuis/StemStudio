@@ -6,7 +6,7 @@ from typing import Final
 import numpy as np
 import numpy.typing as npt
 import soundfile as sf
-import soxr  # type: ignore[import-untyped]  # no stubs; mypy override requested
+import soxr
 
 from stemstudio_worker.ports import TranscriptionError
 from stemstudio_worker.schemas import RenderRange

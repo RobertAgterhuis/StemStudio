@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import soundfile as sf
-import soxr  # type: ignore[import-untyped]  # no stubs; mypy override requested
+import soxr
 
 from stemstudio_worker.ports import ALIGN_SAMPLE_RATE, AlignmentError
 from stemstudio_worker.schemas import VOCAL_STEM_MISSING_TEXT, VOCAL_STEM_SILENT_TEXT
