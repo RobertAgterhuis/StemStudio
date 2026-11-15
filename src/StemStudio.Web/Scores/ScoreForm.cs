@@ -23,6 +23,15 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>Piano quality; the worker's default (accurate on a GPU, fast on the CPU) at first.</summary>
     public ScoreQualityDto Quality { get; set; } = options.DefaultQuality;
 
+    /// <summary>The key override (a name of <c>ContractLimits.KeyNames</c>), or empty for the estimate.</summary>
+    public string KeyOverride { get; set; } = string.Empty;
+
+    /// <summary>True when the chosen profile has a key (every profile but drums).</summary>
+    public bool HasKey => Profile is not (null or ScoreProfileDto.Drums);
+
+    /// <summary>The manual tempo; required when the beat grid is unreliable or absent.</summary>
+    public TempoInput Tempo { get; } = new(options.GridStatus != GridStatusDto.Reliable, target.SuggestedTempo);
+
     /// <summary>True when the chosen profile has a quality choice (piano).</summary>
     public bool HasQuality => Profile == ScoreProfileDto.Piano;
 
@@ -38,7 +47,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
 
     /// <summary>Checks the choices.</summary>
     /// <returns>A readable problem, or null.</returns>
-    public string? Validate() => Profile is null ? ProfileMessage : null;
+    public string? Validate() => Profile is null ? ProfileMessage : Tempo.Validate();
 
     /// <summary>The request (call <see cref="Validate"/> first).</summary>
     /// <returns>The request.</returns>
@@ -48,6 +57,8 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         Profile = Profile,
         Quality = HasQuality ? Quality : null,
         Resolution = Simplified ? ScoreResolutionDto.Eighth : ScoreResolutionDto.Sixteenth,
+        KeyOverride = HasKey && KeyOverride.Length > 0 ? KeyOverride : null,
+        Tempo = Tempo.ToDto(),
     };
 
     private int? EstimateOf(ScoreProfileDto? profile) =>

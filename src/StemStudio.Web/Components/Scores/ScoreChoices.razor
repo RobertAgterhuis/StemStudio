@@ -1,4 +1,5 @@
-@* The choices of the sheet music dialog (feature 008): instrument profile with its quality note and expected time. *@
+@* The choices of the sheet music dialog (feature 008): instrument profile with its quality note and expected time,
+   simplified rhythm, key override (Advanced) and the manual tempo. *@
 @using StemStudio.Contracts.Scores
 
 <div class="ss-field">
@@ -25,6 +26,30 @@
     <p class="ss-small ss-muted">Expected time: <span data-testid="score-estimate">@estimate</span></p>
 }
 
+<label class="ss-check">
+    <input type="checkbox" checked="@Form.Simplified" @onchange="OnSimplified" data-testid="score-resolution" />
+    Simplified rhythm (eighth notes)
+</label>
+
+@if (Form.HasKey)
+{
+    <LevelGate Feature="score.key-override">
+        <div class="ss-field">
+            <label class="ss-label" for="score-key">Key</label>
+            <select id="score-key" class="ss-select" value="@Form.KeyOverride" @onchange="OnKey" data-testid="score-key-override"
+                    data-help-id="sheet-music-key-tempo">
+                <option value="">Automatic (estimated from the notes)</option>
+                @foreach (var key in ContractLimits.KeyNames)
+                {
+                    <option value="@key">@ScoreText.KeyName(key)</option>
+                }
+            </select>
+        </div>
+    </LevelGate>
+}
+
+<ScoreTempoFields Tempo="Form.Tempo" />
+
 @code {
     /// <summary>The dialog's choices.</summary>
     [Parameter, EditorRequired]
@@ -33,6 +58,10 @@
     /// <summary>Raised after a choice changed, so the dialog re-renders its buttons.</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
+
+    private void OnSimplified(ChangeEventArgs args) => Form.Simplified = args.Value is true;
+
+    private void OnKey(ChangeEventArgs args) => Form.KeyOverride = args.Value?.ToString() ?? string.Empty;
 
     private Task OnProfile(ChangeEventArgs args)
     {
