@@ -37,12 +37,32 @@ Useful variants:
 
 ```bash
 STEMSTUDIO_SEPARATOR=fake docker compose up --build   # instant fake "stems" (demo / tests)
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (untested)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (see below)
 docker compose down        # stop; data stays in the named volumes
 docker compose down -v     # stop and delete all tracks, stems, mixes and the model cache
 ```
 
 Ports: web `8080`, API `8081`. The worker is internal to the compose network.
+
+### NVIDIA GPU (optional)
+
+On a machine with an NVIDIA GPU (tested: RTX 5070 Ti 16 GB, Windows 11 + Docker Desktop/WSL2,
+driver 610.88) the GPU variant separates about 8x faster (reference song 4:22: standard + detail
+separation 3.7 min instead of 31.5 min on the CPU).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+./scripts/gpu-smoke.ps1      # or scripts/gpu-smoke.sh: checks CUDA, ONNX Runtime and /health
+```
+
+- Requirements: a current NVIDIA driver on the host; on Windows nothing has to be installed inside
+  WSL. The GPU image is ~11.5 GB (CPU image ~3.4 GB).
+- The import page shows the processing device; each track shows where it was processed.
+- One GPU-heavy step runs at a time. Before each step the free GPU memory is checked (the largest
+  detail model needs ~10.6 GB); if another program (a game, Ollama) holds too much, that step runs
+  on the CPU and the track page says why. A GPU out-of-memory error retries the step on the CPU.
+- The GPU image contains NVIDIA's free but proprietary CUDA runtime libraries (system dependency,
+  constitution 1.2.0); the default CPU image is fully open source.
 
 ## Running without Docker
 
