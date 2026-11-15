@@ -1,0 +1,63 @@
+@* Advanced options of the restyle dialog (009 FR-002): range in seconds (10 s to 8 min), stems, strength (5 steps) and
+   takes. Hidden at Beginner, where the defaults of RestyleForm apply. *@
+@using StemStudio.Contracts
+@using StemStudio.Web.Generation
+
+<div class="ss-range-row">
+    <label class="ss-field">
+        <span class="ss-small">Start (s)</span>
+        <input type="number" min="0" step="0.1" class="rz-textbox" value="@InputValue.Format(Form.Start)"
+               @onchange="e => Set(() => Form.SetStart(InputValue.Parse(e)))" data-testid="restyle-range-start" />
+    </label>
+    <label class="ss-field">
+        <span class="ss-small">End (s)</span>
+        <input type="number" min="0" step="0.1" class="rz-textbox" value="@Form.EndText"
+               @onchange="e => Set(() => Form.End = InputValue.Parse(e))" data-testid="restyle-range-end" />
+    </label>
+</div>
+<p class="ss-help ss-small">The take is as long as the range: 10 seconds to 8 minutes.</p>
+
+<fieldset class="ss-fieldset">
+    <legend class="ss-label">Stems in the source</legend>
+    @foreach (var stem in Form.TrackStems)
+    {
+        <label class="ss-check">
+            <input type="checkbox" checked="@Form.IncludedStems.Contains(stem)" disabled="@Form.IsLocked(stem)"
+                   @onchange="e => Set(() => Form.SetStem(stem, e.Value is true))" data-testid="@($"restyle-stem-{stem}")" />
+            @stem
+        </label>
+    }
+    @if (Form.VocalsLocked)
+    {
+        <p class="ss-help ss-small">This style is instrumental: the vocals stay out.</p>
+    }
+</fieldset>
+
+<label class="ss-field">
+    <span class="ss-label-row"><span class="ss-label">Strength: @Form.StrengthName</span><HelpHint HelpId="restyle-strength" /></span>
+    <input type="range" min="0" max="4" step="1" value="@Form.StrengthIndex" aria-valuenow="@Form.StrengthIndex" aria-valuetext="@Form.StrengthName"
+           @oninput="e => Set(() => Form.SetStrength(InputValue.Parse(e)))" data-testid="restyle-strength" data-help-id="restyle-strength" />
+    <span class="ss-help ss-small">Subtle keeps close to the song; free moves furthest away.</span>
+</label>
+
+<label class="ss-field ss-field-narrow">
+    <span class="ss-label">Takes</span>
+    <input type="number" min="1" max="@ContractLimits.MaxTakes" step="1" class="rz-textbox" value="@Form.Takes"
+           @onchange="e => Set(() => Form.SetTakes(InputValue.Parse(e)))" data-testid="restyle-takes" />
+</label>
+
+@code {
+    /// <summary>The dialog's form.</summary>
+    [Parameter, EditorRequired]
+    public RestyleForm Form { get; set; } = default!;
+
+    /// <summary>Raised after every change (the dialog re-renders the description and the button state).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task Set(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+}

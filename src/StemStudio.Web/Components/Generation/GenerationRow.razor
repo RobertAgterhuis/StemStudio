@@ -1,0 +1,69 @@
+@* One generation (009 FR-007, ui-test-ids 1.8.0 generation-*): status as text, progress, stage, the actions its state
+   allows (cancel while active, retry after failed/cancelled, delete when terminal), the error and the takes. *@
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Generation
+
+<li class="ss-generation" data-testid="@($"generation-row-{Generation.Id}")" data-status="@WireName.Of(Generation.Status)"
+    data-kind="@WireName.Of(Generation.Kind)">
+    <div class="ss-generation-head">
+        <span class="ss-generation-title">@GenerationTitles.Of(Generation)</span>
+        <span class="ss-meta-status">@GenerationText.Label(Generation.Status)</span>
+    </div>
+    <div class="ss-progress">
+        <RadzenProgressBar Value="Generation.Progress" Max="100" ShowValue="true" AriaLabel="@($"Progress of {GenerationTitles.Of(Generation)}")"
+                           data-testid="@($"generation-progress-{Generation.Id}")" />
+        <span class="ss-stage" data-testid="@($"generation-stage-{Generation.Id}")">@(Generation.Stage ?? GenerationText.Label(Generation.Status))</span>
+    </div>
+    @if (Generation.Error is { } error)
+    {
+        <div class="ss-error" role="alert" data-testid="@($"generation-error-{Generation.Id}")">@error.Message</div>
+    }
+    @foreach (var warning in Generation.Warnings)
+    {
+        <p class="ss-help ss-small" role="note">@warning</p>
+    }
+    <div class="ss-row ss-generation-actions">
+        @if (GenerationText.IsActive(Generation.Status))
+        {
+            <RadzenButton Text="Cancel" Icon="stop" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnCancel.InvokeAsync(Generation)"
+                          data-testid="@($"generation-cancel-{Generation.Id}")" />
+        }
+        @if (GenerationText.CanRetry(Generation.Status))
+        {
+            <RadzenButton Text="Try again" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnRetry.InvokeAsync(Generation)"
+                          data-testid="@($"generation-retry-{Generation.Id}")" />
+        }
+        @if (GenerationText.IsTerminal(Generation.Status))
+        {
+            <RadzenButton Text="Delete" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                          Click="() => OnDelete.InvokeAsync(Generation)" data-testid="@($"generation-delete-{Generation.Id}")" />
+        }
+    </div>
+    @if (Generation.Takes.Count > 0)
+    {
+        <ul class="ss-takes" aria-label="Takes">
+            @foreach (var take in Generation.Takes)
+            {
+                <TakeItem @key="take.Index" Generation="Generation" Take="take" />
+            }
+        </ul>
+    }
+</li>
+
+@code {
+    /// <summary>The generation.</summary>
+    [Parameter, EditorRequired]
+    public GenerationDto Generation { get; set; } = default!;
+
+    /// <summary>Cancel pressed.</summary>
+    [Parameter]
+    public EventCallback<GenerationDto> OnCancel { get; set; }
+
+    /// <summary>Try again pressed.</summary>
+    [Parameter]
+    public EventCallback<GenerationDto> OnRetry { get; set; }
+
+    /// <summary>Delete pressed (the list asks for confirmation).</summary>
+    [Parameter]
+    public EventCallback<GenerationDto> OnDelete { get; set; }
+}

@@ -1,5 +1,6 @@
-@* Navigation rail (design-spec.md 4.1): brand mark, Import, Tracks, Mixes, Library (007); Help at the bottom. Under 768 px it
-   becomes a bottom bar. The nav-* ids stay on the links (ui-test-ids 1.3.0 adopted ids). *@
+@* Navigation rail (design-spec.md 4.1): brand mark, Import, Tracks, Mixes, Library (007), then the generative pages
+   (009/010) after a divider; Help at the bottom. Under 768 px it becomes a bottom bar that scrolls sideways. The nav-* ids
+   stay on the links (ui-test-ids 1.3.0 adopted ids, 1.8.0/1.9.0). *@
 
 <nav class="ss-rail" aria-label="Main navigation">
     <span class="ss-rail-brand"><BrandMark /><span class="ss-sr-only">StemStudio</span></span>
@@ -14,6 +15,13 @@
     </NavLink>
     <NavLink class="ss-rail-link" href="library" data-testid="nav-library">
         <span class="rzi" aria-hidden="true">inventory_2</span><span class="ss-rail-label">Library</span>
+    </NavLink>
+    <span class="ss-rail-divider" aria-hidden="true"></span>
+    <NavLink class="ss-rail-link" href="generations" data-testid="nav-generations">
+        <span class="rzi" aria-hidden="true">auto_awesome</span><span class="ss-rail-label">Generations</span>
+    </NavLink>
+    <NavLink class="ss-rail-link" href="styles" data-testid="nav-styles">
+        <span class="rzi" aria-hidden="true">palette</span><span class="ss-rail-label">Styles</span>
     </NavLink>
     <button type="button" class="ss-rail-link ss-rail-help" data-testid="nav-help" @onclick="OnHelp">
         <span class="rzi" aria-hidden="true">help</span><span class="ss-rail-label">Help</span>

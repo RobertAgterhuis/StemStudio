@@ -1,0 +1,123 @@
+/* Generative features (009/010): generations and takes, AI and vocal badges, the restyle dialog, styles, songs and voice
+   profiles. Tokens only. */
+
+.ss-generations,
+.ss-takes {
+  display: grid;
+  gap: var(--ss-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-generation {
+  display: grid;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-generation-head,
+.ss-take-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-generation-title,
+.ss-take-name {
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-take {
+  display: grid;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-left: 3px solid var(--ss-color-divider);
+}
+
+.ss-take audio {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.ss-take-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+.ss-take-details summary {
+  cursor: pointer;
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-take-details .ss-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--ss-space-1) var(--ss-space-3);
+  margin: var(--ss-space-2) 0;
+}
+
+.ss-take-details dt {
+  color: var(--ss-color-muted);
+}
+
+.ss-take-details dd {
+  margin: 0;
+}
+
+/* Text badges: the words carry the meaning, the outline only groups them (never colour alone). */
+.ss-ai-badge,
+.ss-vocal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--ss-space-2);
+  border: 1px solid var(--ss-color-ink);
+  border-radius: var(--ss-radius-pill);
+  color: var(--ss-color-ink);
+  font-size: var(--ss-type-small-size);
+  font-weight: var(--ss-type-label-weight);
+  line-height: var(--ss-type-small-line);
+  white-space: nowrap;
+}
+
+.ss-restyle-dialog .ss-field,
+.ss-generative-form .ss-field {
+  display: grid;
+  gap: var(--ss-space-1);
+}
+
+.ss-fieldset {
+  display: grid;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+}
+
+.ss-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-height: var(--ss-target-min);
+}
+
+.ss-field-narrow {
+  max-width: 8rem;
+}
+
+.ss-notice {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-left: 3px solid var(--ss-color-ink);
+  background: var(--ss-color-sunken);
+}
+
+.ss-track-generations {
+  display: grid;
+  gap: var(--ss-space-3);
+}

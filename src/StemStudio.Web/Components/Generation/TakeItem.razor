@@ -1,0 +1,29 @@
+@* One take of a completed generation (009 FR-006..FR-008; ui-test-ids 1.8.0 take-*): a plain <audio> player (not the
+   mixer engine), the AI-generated label and the details. *@
+@using Microsoft.Extensions.Options
+@using StemStudio.Contracts.Generation
+@inject IOptions<StemStudioWebOptions> Options
+
+<li class="ss-take">
+    <div class="ss-take-head">
+        <span class="ss-take-name">Take @Take.Index</span>
+        <AiBadge TestId="@($"take-ai-badge-{Key}")" />
+        <span class="ss-small ss-muted ss-num">@TimeText.Duration(Take.DurationSeconds)</span>
+    </div>
+    <audio controls preload="none" src="@Url(Take.AudioUrl)" aria-label="@($"Play take {Take.Index}")" data-testid="@($"take-play-{Key}")"></audio>
+    <TakeDetails Generation="Generation" Take="Take" />
+</li>
+
+@code {
+    /// <summary>The generation of the take.</summary>
+    [Parameter, EditorRequired]
+    public GenerationDto Generation { get; set; } = default!;
+
+    /// <summary>The take.</summary>
+    [Parameter, EditorRequired]
+    public GenerationTakeDto Take { get; set; } = default!;
+
+    private string Key => $"{Generation.Id}-{Take.Index}";
+
+    private string Url(string relative) => new Uri(Options.Value.PublicApiBaseUrl, relative).ToString();
+}

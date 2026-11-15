@@ -1,0 +1,63 @@
+@* Confirmation dialog with its own test ids (features 009/010: generation, style, lyrics and voice profile deletion,
+   ui-test-ids 1.8.0/1.9.0 `*-delete-confirm`). Extra choices such as "also delete the converted takes" go in the
+   child content. Escape and Cancel close it without confirming. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="@TitleId" aria-describedby="@MessageId"
+         @onkeydown="OnKeyAsync">
+        <h2 id="@TitleId" class="ss-title" tabindex="-1" @ref="InitialFocus">@Title</h2>
+        <p id="@MessageId" class="ss-dialog-message">@Message</p>
+        @ChildContent
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" Disabled="Busy" data-testid="@($"{TestIdPrefix}-cancel")" />
+            <RadzenButton Text="@ConfirmText" ButtonStyle="ButtonStyle.Danger" Click="ConfirmAsync" IsBusy="Busy" BusyText="Deleting..."
+                          data-testid="@($"{TestIdPrefix}-confirm")" />
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Dialog title, e.g. "Delete generation".</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>The question.</summary>
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>Text of the confirming button.</summary>
+    [Parameter]
+    public string ConfirmText { get; set; } = "Delete";
+
+    /// <summary>Prefix of the button ids: <c>&lt;prefix&gt;-confirm</c> and <c>&lt;prefix&gt;-cancel</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestIdPrefix { get; set; } = string.Empty;
+
+    /// <summary>Confirmed; the dialog shows a busy state until the task completes.</summary>
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    /// <summary>Cancel or Escape.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>Extra choices between the message and the buttons.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool Busy { get; set; }
+
+    private string TitleId => $"{TestIdPrefix}-title";
+
+    private string MessageId => $"{TestIdPrefix}-message";
+
+    private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;
+
+    private async Task ConfirmAsync()
+    {
+        Busy = true;
+        await OnConfirm.InvokeAsync();
+        Busy = false;
+    }
+}

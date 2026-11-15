@@ -1,0 +1,13 @@
+@* "AI-generated" label of takes and generated tracks (009 FR-008, 010 FR-011): a text badge, never colour alone. *@
+
+<span class="ss-ai-badge" data-testid="@TestId" data-help-id="generation-ai-label">@Text</span>
+
+@code {
+    /// <summary>The <c>data-testid</c>, e.g. <c>take-ai-badge-&lt;id&gt;-1</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>The label: "AI-generated" (default) or the short "AI" of the track list.</summary>
+    [Parameter]
+    public string Text { get; set; } = "AI-generated";
+}

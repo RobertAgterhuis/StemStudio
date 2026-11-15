@@ -1,0 +1,38 @@
+@* Generations, newest first (009 FR-007; ui-test-ids 1.8.0): used on /generations, in the track page section and, for
+   feature 010, on the song page. Active generations are polled about once per second until they are terminal. *@
+@inherits PollingComponent
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Generation
+
+@if (ActionError is not null)
+{
+    <ErrorState TestId="generation-action-error" Message="@ActionError" />
+}
+
+@if (Error is not null)
+{
+    <ErrorState TestId="generations-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+}
+else if (Items is null)
+{
+    <Skeleton Lines="2" />
+}
+else if (Items.Count == 0)
+{
+    <EmptyState TestId="generations-empty" Text="@EmptyText" />
+}
+else
+{
+    <ul class="ss-generations" aria-label="Generations">
+        @foreach (var generation in Items)
+        {
+            <GenerationRow @key="generation.Id" Generation="generation" OnCancel="CancelAsync" OnRetry="RetryAsync" OnDelete="AskDelete" />
+        }
+    </ul>
+}
+
+@if (Deleting is { } deleting)
+{
+    <ConfirmModal Title="Delete generation" TestIdPrefix="generation-delete" OnConfirm="DeleteAsync" OnCancel="() => Deleting = null"
+                  Message="@($"Delete \"{GenerationTitles.Of(deleting)}\"? Its takes and their library items are removed; imported tracks are kept.")" />
+}

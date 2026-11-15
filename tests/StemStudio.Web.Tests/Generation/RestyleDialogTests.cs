@@ -155,7 +155,7 @@ public sealed class RestyleDialogTests : GenerationTestContext
         Closed.ShouldBeTrue();
 
         var again = RenderDialog();
-        await again.Find("[data-testid=restyle-dialog]").KeyDownAsync(new() { Key = "Escape" });
+        await again.Find("[data-testid=restyle-dialog]").KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "Escape" });
         Closed.ShouldBeTrue();
     }
 

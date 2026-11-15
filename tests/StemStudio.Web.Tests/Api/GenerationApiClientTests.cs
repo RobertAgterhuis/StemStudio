@@ -3,6 +3,7 @@ using System.Text.Json;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Styles;
 using StemStudio.Web.Api;
+using StemStudio.Web.Styles;
 using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Api;

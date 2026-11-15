@@ -17,7 +17,7 @@ namespace StemStudio.Web.Api;
 /// typed client on <see cref="StemStudioWebOptions.ApiClientName"/> with the server-side API base URL.
 /// </summary>
 /// <param name="http">The configured HTTP client.</param>
-public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
+public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
 {
     /// <summary>JSON options of the backend contract (camelCase; enums carry their own converters).</summary>
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

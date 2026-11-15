@@ -18,7 +18,7 @@ public sealed record UploadFile(Stream Content, string FileName, string ContentT
 /// Typed client of the StemStudio backend API (<c>backend-api.openapi.yaml</c>), used server-side.
 /// Every method throws <see cref="ApiException"/> on a non-success response or transport failure.
 /// </summary>
-public interface IStemStudioApiClient
+public partial interface IStemStudioApiClient
 {
     /// <summary><c>POST /api/imports</c>: imports a YouTube or Spotify URL.</summary>
     /// <param name="url">The URL entered by the user.</param>

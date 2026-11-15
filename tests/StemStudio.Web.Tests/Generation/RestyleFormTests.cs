@@ -96,6 +96,22 @@ public sealed class RestyleFormTests
     }
 
     [Fact]
+    public void Inputs_FallBackWhenEmpty_AndClampTheStrength()
+    {
+        var form = Form();
+        form.SetStart(12);
+        form.SetStart(null);
+        form.SetStrength(9);
+        form.SetTakes(2);
+        form.SetTakes(null);
+
+        (form.Start, form.StrengthIndex, form.Takes, form.EndText).ShouldBe((0d, 4, 2, "213.04"));
+        form.SetStrength(null);
+        form.StrengthIndex.ShouldBe(4);
+        Form(null).EndText.ShouldBe(string.Empty);
+    }
+
+    [Fact]
     public void WithoutADuration_TheRangeIsLeftToTheServer()
     {
         var form = Form(null);
@@ -103,6 +119,8 @@ public sealed class RestyleFormTests
         form.End.ShouldBeNull();
         form.Validate().ShouldBeNull();
         form.Request().RangeEndSeconds.ShouldBeNull();
+        form.End = 20;
+        form.Validate().ShouldBeNull();
     }
 
     [Fact]

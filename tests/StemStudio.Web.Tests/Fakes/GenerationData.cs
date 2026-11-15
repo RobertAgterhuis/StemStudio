@@ -1,6 +1,5 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
-using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Styles;
 using StemStudio.Contracts.Tracks;
 

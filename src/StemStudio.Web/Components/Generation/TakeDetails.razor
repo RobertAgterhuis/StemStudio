@@ -1,0 +1,41 @@
+@* Take details disclosure (009 FR-006, ui-test-ids 1.8.0 take-details-*): what the take was made from, the model and
+   the device. A native <details> element, so it opens with the keyboard and screen readers announce its state. *@
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Generation
+@using StemStudio.Web.Styles
+
+<details class="ss-take-details" data-testid="@($"take-details-{Generation.Id}-{Take.Index}")">
+    <summary>Take details</summary>
+    <dl class="ss-facts">
+        @if (Generation.Restyle is { } restyle)
+        {
+            <dt>Style</dt><dd>@restyle.Style.Name (@(restyle.Style.Kind == StemStudio.Contracts.Styles.StyleKindDto.Preset ? "preset" : "own style"))</dd>
+            <dt>Strength</dt><dd>@StyleText.Strength(restyle.Strength)</dd>
+            <dt>Source</dt><dd>@restyle.SourceTrackTitle</dd>
+            <dt>Range</dt><dd>@RangeText(restyle.Range)</dd>
+            <dt>Stems</dt><dd>@string.Join(", ", restyle.IncludedStems)</dd>
+        }
+        <dt>Seed</dt><dd class="ss-num">@Take.Seed</dd>
+        <dt>Model</dt><dd>@Take.Model.Id, revision @Take.Model.Revision</dd>
+        @if (Generation.Device is { } device)
+        {
+            <dt>Device</dt><dd>@device.DisplayText()</dd>
+        }
+    </dl>
+    <p class="ss-small ss-take-label">
+        This take is AI-generated and is labelled as such in the library and in the file. <HelpHint HelpId="generation-ai-label" />
+    </p>
+</details>
+
+@code {
+    /// <summary>The generation of the take.</summary>
+    [Parameter, EditorRequired]
+    public GenerationDto Generation { get; set; } = default!;
+
+    /// <summary>The take.</summary>
+    [Parameter, EditorRequired]
+    public GenerationTakeDto Take { get; set; } = default!;
+
+    private static string RangeText(SourceRangeDto range) =>
+        $"{TimeText.Duration(range.StartSeconds)} to {TimeText.Duration(range.EndSeconds)}{(range.Mode == RestyleModeDto.InPlace ? ", in place" : string.Empty)}";
+}
