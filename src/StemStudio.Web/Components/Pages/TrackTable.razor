@@ -1,0 +1,56 @@
+@* Rows of the track library (design-spec.md 4.3). Ids of 1.0.0-1.3.0 stay on their elements. *@
+
+<table class="@($"ss-table ss-track-table{(Expert ? " ss-table-compact" : null)}")">
+    <thead>
+        <tr>
+            <th><span class="ss-sr-only">Stems</span></th><th>Title</th><th>Artist</th><th>Status</th><th>Duration</th>
+            @if (Expert)
+            {
+                <th>BPM</th><th>Model</th>
+            }
+            <th><span class="ss-sr-only">Actions</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var track in Tracks)
+        {
+            <tr data-testid="@($"track-row-{track.Id}")">
+                <td class="ss-cell-ribbon"><StemRibbon Stems="StemNamesOf(track)" TestId="@($"track-ribbon-{track.Id}")" /></td>
+                <td class="ss-cell-title"><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a></td>
+                <td class="ss-muted">@track.Artist</td>
+                <td>
+                    <RadzenBadge BadgeStyle="TrackStatusText.Badge(track.Status)" Text="@TrackStatusText.Label(track.Status)" IsPill="true"
+                                 data-testid="@($"track-row-status-{track.Id}")" />
+                </td>
+                <td class="ss-num">@TimeText.Duration(track.DurationSeconds)</td>
+                @if (Expert)
+                {
+                    <td class="ss-num">@TrackFacts.Bpm(track)</td>
+                    <td>@track.Model</td>
+                }
+                <td class="ss-cell-action">
+                    @if (track.Status == TrackStatusDto.Completed)
+                    {
+                        <a class="ss-row-action" href="@($"tracks/{track.Id}/mixer")" data-testid="track-mixer-link">@(Beginner ? "Practise" : "Open mixer")</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    /// <summary>The visible tracks in display order.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TrackDto> Tracks { get; set; } = [];
+
+    /// <summary>Expert: compact rows with BPM and model columns.</summary>
+    [Parameter]
+    public bool Expert { get; set; }
+
+    /// <summary>Beginner: the mixer link reads "Practise".</summary>
+    [Parameter]
+    public bool Beginner { get; set; }
+
+    private static IReadOnlyList<string> StemNamesOf(TrackDto track) => track.Stems.Select(s => s.Name).ToList();
+}

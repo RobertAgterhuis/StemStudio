@@ -2,45 +2,46 @@
 
 <PageTitle>Tracks - StemStudio</PageTitle>
 
-<h1>Tracks</h1>
+<div class="ss-page ss-page-wide ss-library">
+    <header class="ss-page-head ss-page-head-row">
+        <h1>Tracks</h1>
+        @if (Items is { Count: > 0 })
+        {
+            <LevelGate Feature="tracks.search">
+                <div class="ss-library-tools">
+                    <label class="ss-sr-only" for="tracks-search">Search tracks</label>
+                    <input id="tracks-search" type="search" class="rz-textbox ss-search" placeholder="Search tracks" value="@Search"
+                           @oninput="OnSearch" data-testid="tracks-search" />
+                    <label class="ss-inline-label" for="tracks-sort">Sort</label>
+                    <select id="tracks-sort" class="ss-select" @onchange="OnSort" data-testid="tracks-sort">
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="title">Title A-Z</option>
+                        <option value="artist">Artist A-Z</option>
+                    </select>
+                </div>
+            </LevelGate>
+        }
+    </header>
 
-@if (Error is not null)
-{
-    <div class="ss-error" role="alert" data-testid="tracks-error">@Error</div>
-}
-else if (Items is null)
-{
-    <p class="ss-muted" role="status">Loading...</p>
-}
-else if (Items.Count == 0)
-{
-    <p class="ss-muted" data-testid="tracks-empty">No tracks yet. <a href="">Import a song</a> to get started.</p>
-}
-else
-{
-    <table class="ss-table">
-        <thead>
-            <tr><th>Title</th><th>Artist</th><th>Status</th><th>Duration</th><th><span class="ss-sr-only">Actions</span></th></tr>
-        </thead>
-        <tbody>
-            @foreach (var track in Items)
-            {
-                <tr data-testid="@($"track-row-{track.Id}")">
-                    <td><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a></td>
-                    <td>@track.Artist</td>
-                    <td>
-                        <RadzenBadge BadgeStyle="TrackStatusText.Badge(track.Status)" Text="@TrackStatusText.Label(track.Status)"
-                                     data-testid="@($"track-row-status-{track.Id}")" />
-                    </td>
-                    <td>@TimeText.Duration(track.DurationSeconds)</td>
-                    <td>
-                        @if (track.Status == TrackStatusDto.Completed)
-                        {
-                            <a href="@($"tracks/{track.Id}/mixer")" data-testid="track-mixer-link">Open mixer</a>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (Error is not null)
+    {
+        <ErrorState TestId="tracks-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Items is null)
+    {
+        <Skeleton Lines="4" />
+    }
+    else if (Items.Count == 0)
+    {
+        <EmptyState TestId="tracks-empty" Text="No tracks yet."><a href="">Import a song</a> to get started.</EmptyState>
+    }
+    else if (Visible.Count == 0)
+    {
+        <p class="ss-no-results" role="status">No tracks match "@Search".</p>
+    }
+    else
+    {
+        <TrackTable Tracks="Visible" Expert="IsExpert" Beginner="IsBeginner" />
+    }
+</div>

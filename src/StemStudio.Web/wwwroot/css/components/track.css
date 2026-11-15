@@ -104,3 +104,109 @@
   margin-right: var(--ss-space-1);
   font-weight: 600;
 }
+
+/* Library tools and rows (design-spec.md 4.3, 4.6). */
+.ss-library-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-search {
+  width: min(18rem, 100%);
+}
+
+select.ss-select {
+  padding-right: var(--ss-space-5);
+}
+
+.ss-table tbody tr {
+  transition: background-color var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.ss-table tbody tr:hover {
+  background: var(--ss-color-raised);
+}
+
+.ss-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ss-cell-ribbon {
+  width: 4rem;
+}
+
+.ss-cell-title a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ss-cell-title a:hover {
+  text-decoration: underline;
+}
+
+.ss-cell-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ss-row-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+  padding: var(--ss-space-1) var(--ss-space-3);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  text-decoration: none;
+}
+
+.ss-row-action:hover {
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+}
+
+.ss-table-compact th,
+.ss-table-compact td {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-no-results {
+  color: var(--ss-color-muted);
+}
+
+/* Narrow screens: each row becomes a stacked card (WCAG 1.4.10 reflow). */
+@media (max-width: 767.98px) {
+  .ss-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .ss-table,
+  .ss-table tbody,
+  .ss-table tr,
+  .ss-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ss-table tr {
+    padding: var(--ss-space-3) var(--ss-space-4);
+    border-bottom: 1px solid var(--ss-color-divider);
+  }
+
+  .ss-table td {
+    padding: var(--ss-space-1) 0;
+    border: 0;
+  }
+
+  .ss-cell-action {
+    text-align: left;
+  }
+}
