@@ -1,5 +1,6 @@
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Audio;
+using StemStudio.Web.Mixer;
 
 namespace StemStudio.Web.Components.Mixer;
 
@@ -41,6 +42,18 @@ public sealed partial class Mixer
     private Task SetLoopEndAsync(double seconds) => SendLoopAsync(State!.SetLoopEnd(seconds));
 
     private Task ToggleLoopAsync() => SendLoopAsync(State!.ToggleLoop());
+
+    private async Task ApplyPresetAsync(PracticePreset preset)
+    {
+        var result = preset.Apply(State!);
+        foreach (var channel in result.Channels)
+        {
+            await SendChannelAsync(channel);
+        }
+
+        await (result.Metronome is { } metronome ? SendMetronomeAsync(metronome) : Task.CompletedTask);
+        Toasts.Show($"{preset.Label} applied");
+    }
 
     private Task SendChannelAsync(ChannelSettingsDto channel) => EngineAsync(e => e.SetChannelAsync(channel));
 

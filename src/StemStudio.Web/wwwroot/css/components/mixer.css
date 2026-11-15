@@ -333,3 +333,63 @@ html:has(.ss-transport-dock) {
   font-variant-numeric: var(--ss-num);
   white-space: nowrap;
 }
+
+/* Practice presets (design-spec.md 4.5): chips at Beginner, a menu at Advanced/Expert. */
+.ss-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+.ss-chip {
+  min-height: max(var(--ss-target-min), calc(2.25rem * var(--ss-density)));
+  padding: 0 var(--ss-space-4);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-surface);
+  color: var(--ss-color-ink);
+  font: inherit;
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  cursor: pointer;
+  transition: background-color var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.ss-chip:hover {
+  background: var(--ss-color-raised);
+  border-color: var(--ss-color-ink);
+}
+
+.ss-menu {
+  position: relative;
+}
+
+.ss-menu-list {
+  position: absolute;
+  top: calc(100% + var(--ss-space-1));
+  right: 0;
+  z-index: var(--ss-z-popover);
+  display: grid;
+  min-width: 14rem;
+  padding: var(--ss-space-2);
+  border-radius: var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  box-shadow: var(--ss-elev-float);
+  animation: ss-float-in var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+.ss-menu-item {
+  min-height: var(--ss-control-height);
+  padding: 0 var(--ss-space-3);
+  border: 0;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-none);
+  color: var(--ss-color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ss-menu-item:hover {
+  background: var(--ss-color-surface);
+}

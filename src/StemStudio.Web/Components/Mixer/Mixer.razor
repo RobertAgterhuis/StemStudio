@@ -29,6 +29,10 @@ else
                 }
             </div>
             <div class="ss-mix-actions">
+                @if (!IsBeginner)
+                {
+                    <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
+                }
                 <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
                 <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" />
             </div>
@@ -50,6 +54,11 @@ else
         @if (!EngineReady && EngineError is null)
         {
             <p class="ss-muted" role="status" data-testid="mixer-loading">Loading stems...</p>
+        }
+
+        @if (IsBeginner)
+        {
+            <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
         }
 
         <div class="ss-console-panels">

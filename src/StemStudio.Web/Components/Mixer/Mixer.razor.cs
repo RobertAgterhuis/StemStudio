@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Routing;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
+using StemStudio.Web.Experience;
 using StemStudio.Web.Mixer;
 using StemStudio.Web.Services;
 
@@ -31,6 +32,13 @@ public sealed partial class Mixer : IAsyncDisposable
     [Inject]
     private IKeyboardShortcuts Shortcuts { get; set; } = default!;
 
+    [Inject]
+    private ToastService Toasts { get; set; } = default!;
+
+    /// <summary>The cascaded level (Advanced without a shell).</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
     /// <summary>The track id from the route.</summary>
     [Parameter]
     public Guid Id { get; set; }
@@ -42,6 +50,10 @@ public sealed partial class Mixer : IAsyncDisposable
     private MixerState? State { get; set; }
 
     private string Title => _track?.Title ?? string.Empty;
+
+    private bool IsBeginner => (Experience ?? ExperienceContext.Default).Is(ExperienceLevel.Beginner);
+
+    private IReadOnlyList<PracticePreset> Presets => PracticePresets.Available(State!);
 
     private string? LoadError { get; set; }
 
