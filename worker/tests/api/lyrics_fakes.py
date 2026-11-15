@@ -1,4 +1,4 @@
-"""Fakes for the lyrics route tests; documents come from the contract examples (self-written text)."""
+"""Fakes for the lyrics route tests; documents are the contract examples (self-written text)."""
 
 import threading
 from dataclasses import dataclass, field

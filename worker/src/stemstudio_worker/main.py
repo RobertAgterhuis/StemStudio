@@ -8,7 +8,8 @@ scheduler becomes idle the GPU models are released (ADR-012 D6).
 
 The adapters of features 005 and 007 come from the ``metadata`` package (picture normaliser,
 song lookup, source details reader; one rate-limited online client) and the ``render`` package
-(one library reader shared by ``/health`` and the render executor).
+(one library reader shared by ``/health`` and the render executor). Feature 006 adds the lyrics
+lookup, the aligner and the vocal loader; alignments run through the shared device runner.
 """
 
 from collections.abc import AsyncIterator, Callable
@@ -18,7 +19,13 @@ from dataclasses import dataclass
 from fastapi import FastAPI
 
 from stemstudio_worker.analysis import create_beat_analyzer
-from stemstudio_worker.api import artwork_routes, detail_routes, metadata_routes, render_routes
+from stemstudio_worker.api import (
+    artwork_routes,
+    detail_routes,
+    lyrics_routes,
+    metadata_routes,
+    render_routes,
+)
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
@@ -26,6 +33,12 @@ from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.lyrics_defaults import (
+    DisabledLyricsLookup,
+    UnavailableAligner,
+    UnavailableVocals,
+)
+from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
     OnlineParts,
@@ -39,9 +52,11 @@ from stemstudio_worker.metadata import (
     create_source_details,
 )
 from stemstudio_worker.ports import (
+    Aligner,
     GpuNeed,
     ImageNormalizer,
     LibraryReader,
+    LyricsLookup,
     MetadataLookup,
     PipelineAdapters,
     RenderExecutor,
@@ -58,6 +73,7 @@ _ROUTERS = (
     metadata_routes.router,
     artwork_routes.router,
     render_routes.router,
+    lyrics_routes.router,
 )
 
 
@@ -71,6 +87,9 @@ class AppOverrides:
         metadata_lookup: Song lookup of metadata jobs (default ``metadata.create_metadata_lookup``).
         render_executor: Renderer of render jobs (default ``render.create_render_executor``).
         library: Library reader (default ``render.create_library_reader``).
+        lyrics_lookup: LRCLIB lookup of lyrics jobs (default: lookups complete ``disabled``).
+        aligner: Lyrics aligner (default: alignments fail).
+        vocal_loader: Vocal stem loader of alignments (default: alignments fail).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -78,6 +97,9 @@ class AppOverrides:
     metadata_lookup: MetadataLookup | None = None
     render_executor: RenderExecutor | None = None
     library: LibraryReader | None = None
+    lyrics_lookup: LyricsLookup | None = None
+    aligner: Aligner | None = None
+    vocal_loader: VocalLoader | None = None
 
 
 def create_app(
@@ -139,6 +161,16 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
     return RenderParts(executor=executor, library=library)
 
 
+def default_lyrics(overrides: AppOverrides, devices: ManagedRunner) -> LyricsParts:
+    """The feature 006 parts: injected ones, else stand-ins; alignments use ``devices``."""
+    return LyricsParts(
+        lookup=overrides.lyrics_lookup or DisabledLyricsLookup(),
+        aligner=overrides.aligner or UnavailableAligner(),
+        vocals=overrides.vocal_loader or UnavailableVocals(),
+        devices=devices,
+    )
+
+
 class _Parts:
     """The optional, injected parts of the app (tests); missing ones are built at start-up."""
 
@@ -161,7 +193,8 @@ class _Parts:
         hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render)
+        lyrics = default_lyrics(self.overrides, devices)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics)
         return WorkerRuntime.start_with(settings, parts)
 
 

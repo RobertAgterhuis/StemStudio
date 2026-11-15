@@ -53,7 +53,7 @@ def _post(api: Api, body: dict[str, object]) -> Response:
 
 def _created(api: Api, body: dict[str, object]) -> str:
     response = _post(api, body)
-    assert response.status_code == 202, response.text
+    assert response.status_code == 202, response.json()
     job_id: str = response.json()["lyricsJobId"]
     assert response.headers["location"] == f"{JOBS}/{job_id}"
     return job_id
