@@ -36,6 +36,26 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | FFmpeg / ffprobe (Debian package, separate executable) | distro | LGPL-2.1+ / GPL-2.0+ (Debian build) | https://ffmpeg.org/legal.html |
 | Deno (JS runtime required by yt-dlp) | 2.9.8 | MIT | https://github.com/denoland/deno |
 
+| onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
+| rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |
+| flatbuffers / protobuf (via onnxruntime) | 25.12.19 / 7.36.2 | Apache-2.0 / BSD-3-Clause | https://github.com/google/flatbuffers, https://github.com/protocolbuffers/protobuf |
+| Vendored inference code: ZFTurbo Music-Source-Separation-Training (commit 1f700c38; MDX23C, BS-RoFormer) | - | MIT (LICENSE + NOTICE in `worker/src/stemstudio_worker/detail/vendor/`) | https://github.com/ZFTurbo/Music-Source-Separation-Training |
+
+### Detail separation model weights (feature 002, ADR-009 model weights exception)
+
+Downloaded at first use into `STEMSTUDIO_MODEL_DIR/detail/<id>/` (Docker: the `model-cache`
+volume), verified by SHA-256, never committed or baked into an image.
+
+| Id | File | Bytes | SHA-256 | Source | Licence status |
+|---|---|---|---|---|---|
+| `mdx23c-drumsep-6s` | MDX23C-DrumSep-aufr33-jarredou.ckpt | 437,652,699 | `d2a4aa53eb584d21eead358a4e66d1882ad182911be018f052b5da73be9096d0` | https://github.com/nomadkaraoke/python-audio-separator/releases/download/model-configs/MDX23C-DrumSep-aufr33-jarredou.ckpt | No licence stated upstream (original release removed); a mirror of the related 5-stem model states CC BY-NC-SA 4.0. Used under the ADR-009 exception. |
+| `uvr-mdxnet-kara-2` | UVR_MDXNET_KARA_2.onnx | 52,786,726 | `bf32e15105a09c0f7dddd2b67346146334d6f3ecb399ed7638eba2ab07cbf5f4` | https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR_MDXNET_KARA_2.onnx | MIT per the UVR README statement. Credit: **Ultimate Vocal Remover (UVR) and its developers**. |
+| `mvsep-mega-53` | mvsep_mega_model_bs_roformer_53_stems_v1.ckpt | 1,368,919,887 | `c62820893bbf86d4e734f966bd142d9157cfc8bb8e79e9d8f9ea553f3ff3519f` | https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.21/mvsep_mega_model_bs_roformer_53_stems_v1.ckpt | No licence stated (repository MIT, training data undisclosed). Used under the ADR-009 exception. |
+
+**Not covered:** commercial use of StemStudio, and redistributing images or volumes that contain
+these weights or the Demucs weights. They are for local, personal, non-commercial use only
+(constitution 1.1.0, principle IV).
+
 ### Copyleft transitive dependencies (reviewed and accepted)
 
 All are OSI-approved. They are used unmodified, as separate libraries or executables, in a tool
@@ -95,8 +115,8 @@ terms of these components (offer source, keep notices).
 
 The Demucs code is MIT, but the pretrained weights have no clear licence and `htdemucs_6s` is
 likely CC BY-NC (author's statement above). This was recorded incorrectly as MIT-covered until
-2026-11-15. Non-commercial, local, single-user use is the intended use of StemStudio; a decision by
-the owner (documented exception or a different first-stage model) is pending.
+2026-11-15. Non-commercial, local, single-user use is the intended use of StemStudio. Owner decision
+2026-11-15: documented exception for model weights (constitution 1.1.0 principle IV, ADR-009).
 
 ## Rejected for licence reasons
 
