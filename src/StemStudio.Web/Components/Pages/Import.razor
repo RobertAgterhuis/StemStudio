@@ -2,46 +2,57 @@
 
 <PageTitle>Import - StemStudio</PageTitle>
 
-<h1>Import a song</h1>
+<div class="ss-page ss-import">
+    <header class="ss-page-head">
+        <h1>Import a song</h1>
+        <p class="ss-lede">Paste a link or drop a file. StemStudio splits the song into stems you can mix while you practise.</p>
+    </header>
 
-<p class="ss-notice" role="note" data-testid="legal-notice">
-    Imports are for personal practice only. You are responsible for complying with copyright and the platforms' terms of service.
-</p>
+    <section class="ss-import-panel" aria-label="Import">
+        <form class="ss-import-form" @onsubmit="ImportUrlAsync">
+            <label for="import-url" class="ss-label">YouTube video or Spotify track link</label>
+            <div class="ss-import-row">
+                <RadzenTextBox id="import-url" class="ss-import-url" @bind-Value="Url" Placeholder="https://youtu.be/..."
+                               aria-label="YouTube or Spotify link" data-testid="import-url-input" />
+                <RadzenButton ButtonType="ButtonType.Submit" Text="Import" Icon="download" Disabled="Busy" data-testid="import-url-submit" />
+            </div>
+        </form>
 
-<RadzenCard class="ss-card">
-    <DeviceBadge Display="Device" TestId="worker-device" ReasonTestId="worker-device-reason" Label="Processing device" />
-
-    <form class="ss-import-form" @onsubmit="ImportUrlAsync">
-        <label for="import-url" class="ss-label">YouTube video or Spotify track link</label>
-        <div class="ss-row">
-            <RadzenTextBox id="import-url" class="ss-grow" @bind-Value="Url" Placeholder="https://youtu.be/..."
-                           aria-label="YouTube or Spotify link" data-testid="import-url-input" />
-            <RadzenButton ButtonType="ButtonType.Submit" Text="Import" Icon="download" Disabled="Busy"
-                          data-testid="import-url-submit" />
+        <div class="ss-dropzone">
+            <span class="rzi ss-dropzone-icon" aria-hidden="true">upload_file</span>
+            <label for="import-file" class="ss-dropzone-text">
+                Drop an MP3, WAV or FLAC file here, or <span class="ss-dropzone-choose">choose a file</span>
+                <span class="ss-small ss-muted">Up to 200 MiB</span>
+            </label>
+            <InputFile id="import-file" class="ss-dropzone-input" OnChange="UploadAsync" accept="@UploadRules.Accept" disabled="@Busy"
+                       aria-label="Audio file" data-testid="import-file-input" />
         </div>
-    </form>
 
-    <div class="ss-upload">
-        <label for="import-file" class="ss-label">Or upload an MP3, WAV or FLAC file (max 200 MiB)</label>
-        <InputFile id="import-file" OnChange="UploadAsync" accept="@UploadRules.Accept" disabled="@Busy"
-                   aria-label="Audio file" data-testid="import-file-input" />
-    </div>
+        @if (Busy)
+        {
+            <p class="ss-muted" role="status">Importing...</p>
+        }
 
-    @if (Busy)
-    {
-        <p class="ss-muted" role="status">Importing...</p>
-    }
+        @if (Error is not null)
+        {
+            <ErrorState TestId="import-error" Message="@Error" />
+        }
 
-    @if (Error is not null)
-    {
-        <div class="ss-error" role="alert" data-testid="import-error">@Error</div>
-    }
-</RadzenCard>
+        <DeviceBadge Display="Device" TestId="worker-device" ReasonTestId="worker-device-reason" Label="Processing device" />
+    </section>
 
-<p class="ss-help" data-testid="stem-limitation-help">
-    StemStudio splits a song into vocals, drums, bass, guitar, piano and other (vocals, drums, bass and other
-    when the 4-stem fallback model is used). Separating every instrument individually beyond these stems is
-    not reliably possible with current open-source models. After the standard separation StemStudio also tries
-    to split drums, vocals and the other instruments further into detail stems in the background. Their
-    quality varies per song and instrument, some instruments cannot be separated, and it takes considerably longer.
-</p>
+    <p class="ss-notice" role="note" data-testid="legal-notice">
+        Imports are for personal practice only. You are responsible for complying with copyright and the platforms' terms of service.
+    </p>
+
+    <aside class="ss-limitation" aria-labelledby="limitation-title">
+        <h2 id="limitation-title" class="ss-heading">What StemStudio can separate</h2>
+        <p class="ss-help" data-testid="stem-limitation-help">
+            StemStudio splits a song into vocals, drums, bass, guitar, piano and other (vocals, drums, bass and other
+            when the 4-stem fallback model is used). Separating every instrument individually beyond these stems is
+            not reliably possible with current open-source models. After the standard separation StemStudio also tries
+            to split drums, vocals and the other instruments further into detail stems in the background. Their
+            quality varies per song and instrument, some instruments cannot be separated, and it takes considerably longer.
+        </p>
+    </aside>
+</div>
