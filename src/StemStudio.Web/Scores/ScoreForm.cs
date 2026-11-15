@@ -41,6 +41,16 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>The expected time of the chosen profile, e.g. "about 31 seconds".</summary>
     public string? Estimate => EstimateOf(Profile) is { } seconds ? TimeText.About(seconds) : null;
 
+    /// <summary>The select label of a piano quality with its expected time: "Fast: general model (about 31 seconds)".</summary>
+    /// <param name="quality">The quality.</param>
+    /// <returns>The label.</returns>
+    public string QualityLabel(ScoreQualityDto quality)
+    {
+        var name = quality == ScoreQualityDto.Accurate ? "Accurate: piano model" : "Fast: general model";
+        var seconds = Options.Estimates.FirstOrDefault(e => e.Profile == ScoreProfileDto.Piano && e.Quality == quality)?.Seconds;
+        return seconds is { } s ? $"{name} ({TimeText.About(s)})" : name;
+    }
+
     /// <summary>Chooses a profile and resets "simplified rhythm" to its default.</summary>
     /// <param name="profile">The profile, or null for none.</param>
     public void SetProfile(ScoreProfileDto? profile) => (Profile, Simplified) = (profile, profile == ScoreProfileDto.Vocals);

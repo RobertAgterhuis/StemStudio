@@ -17,6 +17,21 @@
     </select>
 </div>
 
+@if (Form.HasQuality)
+{
+    <LevelGate Feature="score.quality">
+        <div class="ss-field">
+            <label class="ss-label" for="score-quality">Quality</label>
+            <select id="score-quality" class="ss-select" value="@Form.Quality.ToString().ToLowerInvariant()" @onchange="OnQuality"
+                    data-testid="score-quality" data-help-id="sheet-music-piano">
+                @foreach (var quality in Qualities)
+                {
+                    <option value="@quality.ToString().ToLowerInvariant()">@Form.QualityLabel(quality)</option>
+                }
+            </select>
+        </div>
+    </LevelGate>
+}
 @if (Form.Limit is { } limit)
 {
     <p class="ss-help" data-testid="score-limits">@limit</p>
@@ -58,6 +73,11 @@
     /// <summary>Raised after a choice changed, so the dialog re-renders its buttons.</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
+
+    private static readonly ScoreQualityDto[] Qualities = [ScoreQualityDto.Accurate, ScoreQualityDto.Fast];
+
+    private void OnQuality(ChangeEventArgs args) =>
+        Form.Quality = args.Value?.ToString() == "accurate" ? ScoreQualityDto.Accurate : ScoreQualityDto.Fast;
 
     private void OnSimplified(ChangeEventArgs args) => Form.Simplified = args.Value is true;
 
