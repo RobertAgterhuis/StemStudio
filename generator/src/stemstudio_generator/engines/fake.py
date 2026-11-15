@@ -13,7 +13,11 @@ behaviour:
 * ``busy``: the engine is normal; ``fake_free_memory_mib`` reports less free memory than any
   ``GpuNeed``, so the gate waits and fails ``gpuBusy``.
 * ``slow``: every fake step lasts ``SLOW_FACTOR`` times longer (cancel tests).
-* ``unvoiced-sample``: the engine is normal; the fake pitch tracker hears no voice.
+* ``unvoiced-sample``: the engines are normal; ``FakePitchTracker`` (voice-sample check) hears
+  no voice.
+
+``FakeVoiceConverter`` returns the target's voice at 24 kHz mono (``unvoicedTarget`` when the
+target is noise) and ``FakePitchTracker`` (``fake_pitch.py``) stands in for RMVPE (010).
 """
 
 import time
@@ -25,9 +29,20 @@ from typing import Final
 import numpy as np
 import soundfile as sf
 
-from stemstudio_generator.config import FakeGeneratorMode, GeneratorSettings
-from stemstudio_generator.engines.profiles import ACESTEP_MODELS, model_statuses
+from stemstudio_generator.config import (
+    TARGET_MIN_VOICED_RATIO,
+    FakeGeneratorMode,
+    GeneratorSettings,
+)
+from stemstudio_generator.engines.fake_pitch import FakePitchTracker, read_mono
+from stemstudio_generator.engines.profiles import (
+    ACESTEP_MODELS,
+    SOULX_MODELS,
+    load_profile,
+    model_statuses,
+)
 from stemstudio_generator.ports import (
+    ConversionInput,
     DeviceUse,
     EngineRestyle,
     EngineSong,
@@ -37,9 +52,18 @@ from stemstudio_generator.ports import (
     GpuRequiredError,
     MemoryProfile,
     ProgressCallback,
+    PromptInvalidError,
     Signal,
+    UnvoicedTargetError,
+    voiced_ratio,
 )
-from stemstudio_generator.schemas import TAKE_SAMPLE_RATE, ModelStatus, SongProfile
+from stemstudio_generator.schemas import (
+    PLANNING_STAGE,
+    TAKE_SAMPLE_RATE,
+    UNVOICED_TARGET_TEXT,
+    ModelStatus,
+    SongProfile,
+)
 
 SLOW_FACTOR: Final = 10.0
 """Step-length multiplier of mode ``slow``."""
@@ -56,7 +80,11 @@ FAKE_FREE_MEMORY_MIB: Final = 14_960
 FAKE_BUSY_FREE_MEMORY_MIB: Final = 4_096
 """Free memory in mode ``busy``: below the smallest ``GpuNeed`` (``SVC_FP16`` 6,144 MiB)."""
 
+SVC_SAMPLE_RATE: Final = 24_000
+"""Sample rate of the SoulX-Singer-SVC output (and of ``VoiceConverter.convert``)."""
+
 LOADING_STAGE: Final = "Loading model"
+CONVERTING_STAGE: Final = "Converting voice"
 NOT_LOADED_TEXT: Final = "The engine model is not loaded."
 NO_GPU_TEXT: Final = "No usable NVIDIA GPU (fake generator mode no-gpu)."
 
@@ -106,7 +134,7 @@ class TakePlan:
 
 
 class FakeSteps:
-    """Fake model steps: progress ticks with sleeps, and the GPU behaviour of the mode."""
+    """Fake model steps: load state, progress ticks with sleeps, GPU behaviour of the mode."""
 
     def __init__(self, settings: GeneratorSettings, sleep: Sleep) -> None:
         """Create the steps for ``settings.fake_mode`` and ``settings.fake_step_seconds``."""
@@ -114,21 +142,29 @@ class FakeSteps:
         slow = SLOW_FACTOR if self.mode == "slow" else 1.0
         self._tick_seconds = settings.fake_step_seconds * slow / TICKS_PER_STEP
         self._sleep = sleep
-        self.profile: MemoryProfile | None = None
+        self.use: DeviceUse | None = None
 
     def load(self, use: DeviceUse, on_progress: ProgressCallback) -> None:
-        """Pretend to load the model for ``use.need.profile``."""
+        """Pretend to load the model for ``use.need``; mode ``no-gpu`` raises."""
         if self.mode == "no-gpu":
             raise GpuRequiredError(NO_GPU_TEXT)
         on_progress(0.0, LOADING_STAGE)
-        self.profile = use.need.profile
+        self.use = use
         on_progress(1.0, LOADING_STAGE)
 
-    def check_attempt(self) -> None:
-        """Raise like the real engine would before generating (not loaded, OOM modes)."""
-        if self.profile is None:
+    def loaded(self) -> DeviceUse:
+        """The grant of the last ``load``.
+
+        Raises:
+            GeneratorError: Nothing is loaded.
+        """
+        if self.use is None:
             raise GeneratorError(NOT_LOADED_TEXT)
-        if self.mode == "oom-twice" or (self.mode == "oom" and self.profile == "standard"):
+        return self.use
+
+    def check_memory(self, *, retry: bool) -> None:
+        """Raise ``GpuOutOfMemoryError`` in mode ``oom-twice``, and in ``oom`` unless ``retry``."""
+        if self.mode == "oom-twice" or (self.mode == "oom" and not retry):
             raise GpuOutOfMemoryError
 
     def run(self, stage: str, part: tuple[int, int], on_progress: ProgressCallback) -> None:
@@ -149,7 +185,7 @@ class FakeMusicEngine:
     @property
     def loaded_profile(self) -> MemoryProfile | None:
         """Memory profile of the last ``load`` (None when unloaded)."""
-        return self._steps.profile
+        return None if self._steps.use is None else self._steps.use.need.profile
 
     def required_models(self) -> list[ModelStatus]:
         """The ACE-Step bundle, always present."""
@@ -161,17 +197,31 @@ class FakeMusicEngine:
 
     def restyle(self, request: EngineRestyle, on_progress: ProgressCallback) -> list[EngineTake]:
         """One take per seed with the length of the summed source."""
-        self._steps.check_attempt()
+        self._attempt()
         frames = round(sf.info(request.source).duration * TAKE_SAMPLE_RATE)
         return self._takes(TakePlan(request.params.seeds, frames, request.out_dir), on_progress)
 
     def song(self, request: EngineSong, on_progress: ProgressCallback) -> list[EngineTake]:
-        """Songs are added in 010."""
-        raise NotImplementedError
+        """One take per seed of ``durationSeconds``; planned only when the LM was loaded."""
+        use = self._attempt()
+        planned = request.planned and load_profile(use.need).language_model
+        if planned:
+            on_progress(0.0, PLANNING_STAGE)
+        params = request.params
+        frames = round(params.duration_seconds * TAKE_SAMPLE_RATE)
+        plan = TakePlan(params.seeds, frames, request.out_dir, voice=not params.instrumental,
+                        profile="planned" if planned else "direct")  # fmt: skip
+        return self._takes(plan, on_progress)
 
     def unload(self) -> None:
         """Forget the loaded profile."""
-        self._steps.profile = None
+        self._steps.use = None
+
+    def _attempt(self) -> DeviceUse:
+        """Check the load and the OOM mode (the low-memory profile is the retry)."""
+        use = self._steps.loaded()
+        self._steps.check_memory(retry=use.need.profile == "lowMemory")
+        return use
 
     def _takes(self, plan: TakePlan, on_progress: ProgressCallback) -> list[EngineTake]:
         """Run one fake step per seed, then write the takes."""
@@ -179,3 +229,57 @@ class FakeMusicEngine:
         for part in range(count):
             self._steps.run(f"Generating take {part + 1} of {count}", (part, count), on_progress)
         return [plan.write(index, seed) for index, seed in enumerate(plan.seeds, start=1)]
+
+
+class FakeVoiceConverter:
+    """``VoiceConverter`` fake: the target's voice, resampled to 24 kHz mono and scaled.
+
+    Mode ``oom`` fails the first attempt for each target and lets the retry succeed (SoulX has
+    no low-memory profile); ``oom-twice`` fails every attempt.
+    """
+
+    def __init__(self, settings: GeneratorSettings, sleep: Sleep = time.sleep) -> None:
+        """Create the fake for ``settings.fake_mode``; ``sleep`` is replaced in tests."""
+        self._steps = FakeSteps(settings, sleep)
+        self._tracker = FakePitchTracker()
+        self._attempted: set[Path] = set()
+
+    def required_models(self) -> list[ModelStatus]:
+        """The singer models, always present."""
+        return model_statuses(SOULX_MODELS, lambda _: True)
+
+    def load(self, use: DeviceUse, on_progress: ProgressCallback) -> None:
+        """Pretend to load; ``no-gpu`` raises ``GpuRequiredError``."""
+        self._steps.load(use, on_progress)
+
+    def convert(self, request: ConversionInput, on_progress: ProgressCallback) -> Signal:
+        """Deterministic 'conversion' of the target (24 kHz mono float32, the target length).
+
+        Raises:
+            InvalidInputError: The target is not readable.
+            PromptInvalidError: The prompt is not readable.
+            UnvoicedTargetError: The target is less than 10 % voiced.
+        """
+        self._steps.loaded()
+        retry = request.target in self._attempted
+        self._attempted.add(request.target)
+        self._steps.check_memory(retry=retry)
+        read_mono(request.prompt, PromptInvalidError)
+        target, rate = read_mono(request.target)
+        if voiced_ratio(self._tracker.f0(request.target)) < TARGET_MIN_VOICED_RATIO:
+            raise UnvoicedTargetError(UNVOICED_TARGET_TEXT)
+        self._steps.run(CONVERTING_STAGE, (0, 1), on_progress)
+        resampled = _resample_linear(target, rate, SVC_SAMPLE_RATE)
+        converted: Signal = np.clip(0.8 * resampled, -1.0, 1.0)
+        return converted.astype(np.float32, copy=False)
+
+    def unload(self) -> None:
+        """Forget the loaded model."""
+        self._steps.use = None
+
+
+def _resample_linear(mono: Signal, rate: int, target_rate: int) -> Signal:
+    """Linear-interpolation resample (good enough for a fake) to ``round(n * target / rate)``."""
+    count = round(mono.size * target_rate / rate)
+    positions = np.arange(count, dtype=np.float64) * rate / target_rate
+    return np.interp(positions, np.arange(mono.size), mono).astype(np.float32)

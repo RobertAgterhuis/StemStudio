@@ -24,7 +24,14 @@ from stemstudio_generator.ports import (
     WHISPER_BASE_WEIGHTS,
     GpuNeed,
 )
-from stemstudio_generator.schemas import ModelId, ModelStatus, SongProfile, TakeModel
+from stemstudio_generator.schemas import (
+    ModelId,
+    ModelStatus,
+    SongParams,
+    SongProfile,
+    TakeModel,
+    VocalLabel,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +86,11 @@ def song_needs(*, thinking: bool) -> tuple[GpuNeed, ...]:
 def low_memory_needs(needs: Sequence[GpuNeed]) -> tuple[GpuNeed, ...]:
     """The ``lowMemory`` needs of ``needs``: the candidates of the one OOM retry (ADR-018 D4)."""
     return tuple(need for need in needs if need.profile == "lowMemory")
+
+
+def song_vocal_label(params: SongParams) -> VocalLabel:
+    """``synthetic`` for a song with vocals, ``none`` for an instrumental (1.1.0)."""
+    return "none" if params.instrumental else "synthetic"
 
 
 # ------------------------------------------------------------------ models
