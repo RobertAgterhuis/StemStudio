@@ -119,6 +119,13 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         });
     }
 
+    /// <summary>One pass of the generation synchroniser in a fresh scope (feature 009).</summary>
+    public Task<bool> SyncGenerationsAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Generations.GenerationSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
     private HttpClient GeneratorHttp() =>
         new(Generator.Handler) { BaseAddress = GeneratorInstalled ? new Uri("http://generator:8010/") : null };
 
