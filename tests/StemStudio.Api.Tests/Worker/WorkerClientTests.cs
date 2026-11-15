@@ -413,7 +413,7 @@ public sealed class WorkerClientTests : IDisposable
     {
         var handler = new StubHttpMessageHandler(request => Task.FromResult(respond(request)));
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://worker:8000") };
-        return (new WorkerClient(http, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkerClient>.Instance), handler);
+        return (new WorkerClient(http, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkerClient>.Instance, TimeProvider.System), handler);
     }
 
     private static ServiceProvider RegisteredProvider(HttpMessageHandler stub, Dictionary<string, string?>? settings = null)

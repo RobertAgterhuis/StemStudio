@@ -88,7 +88,7 @@ public sealed class WorkerDeviceClientTests
         var health = await client.GetHealthAsync(Ct);
 
         (health.Status, health.Separator, health.Device, health.ContractVersion).ShouldBe(("ok", "demucs", "auto", "1.2.0"));
-        health.DeviceInfo.ShouldBe(new WorkerDeviceInfo(ProcessingDeviceKind.Gpu, Gpu, "12.0", 16303, 15469, null));
+        health.DeviceInfo.ShouldBe(new WorkerDeviceInfo { Kind = ProcessingDeviceKind.Gpu, Name = Gpu, ComputeCapability = "12.0", TotalMemoryMiB = 16303, FreeMemoryMiB = 15469 });
         var request = handler.Requests.Single();
         (request.Method, request.Uri.AbsolutePath).ShouldBe((HttpMethod.Get, "/health"));
     }
@@ -100,7 +100,7 @@ public sealed class WorkerDeviceClientTests
 
         var health = await client.GetHealthAsync(Ct);
 
-        health.DeviceInfo.ShouldBe(new WorkerDeviceInfo(ProcessingDeviceKind.Cpu, null, null, null, null, null));
+        health.DeviceInfo.ShouldBe(new WorkerDeviceInfo { Kind = ProcessingDeviceKind.Cpu });
     }
 
     [Fact]
