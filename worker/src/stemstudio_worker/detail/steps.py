@@ -44,10 +44,8 @@ from stemstudio_worker.schemas import (
 )
 
 STEP_WEIGHTS: Final[Mapping[str, float]] = {"drums": 0.20, "vocals": 0.05, "instruments": 0.74}
-"""Share of the measured cost per step (research.md D-03); renormalised over the steps that run."""
-
-FINALISE_WEIGHT: Final = 0.01
-"""Share of the final step (moving the checkpoints into place, writing the result)."""
+"""Share of the measured cost per step (research.md D-03); the job runner adds the final unit
+(0.01) and renormalises over the steps that run."""
 
 PARTITION: Final = CheckPolicy(model_residual=True, double_count=False)
 """Checks for models whose outputs partition the input (drums, vocals)."""

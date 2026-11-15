@@ -11,7 +11,6 @@ from stemstudio_worker.detail.folding import DRUMSEP_TABLE, MEGA_TABLE, VOCAL_TA
 from stemstudio_worker.detail.gating import relative_db
 from stemstudio_worker.detail.steps import (
     FAMILIES,
-    FINALISE_WEIGHT,
     PARTITION,
     STEP_WEIGHTS,
     DetailPipeline,
@@ -65,7 +64,6 @@ def test_plan_checkpoints_bass_and_silent_parents_and_groups_instruments(
     assert [s.parents for s in steps] == [("drums",), ("vocals",), ("guitar", "other")]
     assert [s.weight for s in steps] == [0.20, 0.05, 0.74]
     assert STEP_WEIGHTS == {"drums": 0.20, "vocals": 0.05, "instruments": 0.74}
-    assert FINALISE_WEIGHT == 0.01
     bass = _outcome(partial, "bass")
     assert (bass.outcome, bass.model, bass.stems) == (K.NOT_SUPPORTED, None, [])
     assert bass.metrics.active_share == 1.0
