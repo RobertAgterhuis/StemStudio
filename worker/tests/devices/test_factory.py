@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from stemstudio_worker import devices
 from stemstudio_worker.config import DeviceKind, WorkerSettings
 from stemstudio_worker.devices import ManagedRunner, create_device_runner, default_probe
 from stemstudio_worker.devices.fake import FakeDeviceRunner
@@ -15,7 +16,7 @@ from stemstudio_worker.devices.runner import CpuRunner, GpuRunner
 from stemstudio_worker.ports import GpuNeed
 from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
-from .fakes import RTX
+from .fakes import RTX, FakeNvml
 
 GPU = DeviceInfo(kind="gpu", name=RTX, compute_capability="12.0", total_memory_mib=16_303)
 
@@ -70,9 +71,14 @@ def test_the_default_probe_on_this_cpu_build_reports_it() -> None:
     assert default_probe("auto") == DeviceInfo(kind="cpu", reason=NO_CUDA_BUILD)
 
 
-def test_the_gpu_runner_of_the_factory_uses_the_shared_lease() -> None:
+def test_the_gpu_runner_of_the_factory_uses_the_shared_lease(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A fake NVML: without it the result depends on the host (no libnvidia-ml on CI means "no
+    # memory check", so the step would run on the GPU path).
+    monkeypatch.setattr(devices, "_nvml", FakeNvml)
     runner = create_device_runner(_settings("cuda"), lambda preference: GPU)
-    # A need no GPU can meet keeps the real NVML/torch adapters away from CUDA.
+    # A need no GPU can meet keeps the torch adapter away from CUDA.
     held, use = runner.run(lambda device: GPU_LEASE.held, GpuNeed("huge", 10**9))
     assert held
     assert use.kind == "cpu"
