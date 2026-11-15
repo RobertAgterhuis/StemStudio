@@ -147,7 +147,7 @@ in the execution plan.
 
 - [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
 - [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
-- [ ] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
+- [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [ ] T048 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
 - [ ] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
