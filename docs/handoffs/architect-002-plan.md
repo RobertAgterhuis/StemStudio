@@ -77,4 +77,92 @@ credit required), MVSep Mega 53-stem v1 (no licence stated).
 
 ## Next owner
 
-CTO (review plan + ADR-010, decide item 1), then architect for Phase 0 (T001-T005), then the wave.
+Owner agents (the wave), per the execution plan in `specs/002-detail-separation/tasks.md`.
+
+---
+
+# Phase 0 (T001-T005), after CTO acceptance 2026-11-15
+
+CTO decisions recorded: vendored-code exception "accepted by CTO 2026-11-15" in plan.md
+Complexity Tracking and ADR-010; open points 2-6 accepted as documented.
+
+## What was built
+
+- **T001** worker contract code: `schemas.py` (`CONTRACT_VERSION = "1.1.0"`, `ParentStemName`,
+  `DetailStemName`, `DetailModelId`, `DetailJobState`, `ParentOutcomeKind`,
+  `CreateDetailJobRequest`, `DetailJob`, `DetailStemInfo`, `OutcomeMetrics`, `ParentOutcome`,
+  `DetailResult`); `ports.py` (`DetailAudio`, `DetailModel`, `DetailModelProvider`,
+  `DetailAdapters`, `DetailModelUnavailableError`, `DetailSeparationError`,
+  `DetailCancelledError`); `config.py` (`model_dir` <- `STEMSTUDIO_MODEL_DIR`, default
+  `data/models`; `fake_detail_step_seconds` <- `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS`, default 1.0,
+  validated non-negative); stub `detail/__init__.py::create_detail_adapters` (raises
+  `NotImplementedError`); skeleton tests `worker/tests/test_detail_contract.py` (round-trip of
+  every 1.1.0 example, enums vs. contract, settings, factory stub).
+- **T002** `onnxruntime==1.32.0`, `rotary-embedding-torch==0.9.2` in `worker/pyproject.toml` +
+  `uv.lock`; ruff `extend-exclude`, mypy `ignore_errors`, coverage `omit` for
+  `detail/vendor/**`; mypy `ignore_missing_imports` for onnxruntime, rotary_embedding_torch, einops.
+- **T003** Contracts DTOs: `DetailPhaseDto` (+ `DetailPhaseDto.None`), `DetailPhaseStatusDto`,
+  `ParentOutcomeDto`, `ParentOutcomeKindDto`, `DetailStemDto`, `DetailChannelSettingsDto`,
+  `TrackDto.Detail`, `MixSettingsDto.Expanded` / `.DetailChannels` (init properties, default empty),
+  `DetailNames` (parents, per-parent allowed names, `AllowedFor`), `ApiRoutes.StartDetail`,
+  `.CancelDetail`, `.DetailStem`, `ContractLimits.MaxExpandedParents/MaxDetailChannels/
+  MaxDetailStemsPerParent`; skeleton tests `tests/StemStudio.Api.Tests/Contract/DetailContractTests.cs`
+  (1.2.0 examples round-trip through the DTOs and validate against the schema). Api.Tests now link
+  `specs/002-detail-separation/contracts/backend-api.openapi.yaml`.
+- **T004** `src/audio-engine/src/types.ts` 2.0.0 (`ParentStemName`, `DetailStemName`, `ChannelId`,
+  `DetailStemSource`, `DetailGroup`, `LoadTrackRequest.groups?`, `setExpanded`, `ChannelId` in
+  `setChannel` / `MeterTarget`); `ENGINE_CONTRACT_VERSION = '2.0.0'`; `setExpanded` stub rejects
+  "not implemented".
+- **T005** verification below.
+
+## Minimal changes outside the architect lane (needed to keep the skeleton green)
+
+| File (owner) | Change | Why |
+|---|---|---|
+| `worker/tests/api/test_jobs_api.py` (stem-separation), `worker/tests/test_smoke.py` | health `contractVersion` literal `1.0.2` -> `1.1.0` | contract version bump |
+| `tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj` (skeleton) | contract link -> 002 | responses now carry `detail`, `expanded`, `detailChannels`, which the 001 schema forbids (`additionalProperties: false`) |
+| `tests/StemStudio.Api.Tests/Contract/BackendContractTests.cs` (backend) | operation list includes `startDetail`, `cancelDetail`, `getDetailStem`; summary says 1.2.0 | contract self-check |
+| `tests/StemStudio.Api.Tests/Contract/BackendContractTests.StemsAndMixes.cs` (backend) | `PendingDetailOperations` excluded from the served-operations comparison | the three operations are implemented in T054/T068; remove entries as they are served |
+| `tests/StemStudio.Api.Tests/Mixes/MixEndpointsTests.cs` (backend) | duplicate test copies `Expanded`/`DetailChannels` into the expected record like `Channels` | record equality compares list references |
+| `src/audio-engine/src/index.ts`, `src/engine.ts` (audio-engine) | version literal; `setExpanded` stub | agreed in T004 |
+| `src/audio-engine/src/mixer.ts` (audio-engine) | `analyser()` looks the target up in a `ReadonlyMap<string, Channel>` view | `MeterTarget` now includes detail ids; they resolve to "not loaded" until groups exist |
+| `src/StemStudio.Web/Audio/EngineMethods.cs` (frontend) | `ContractVersion = "2.0.0"` | `EngineContractDriftTests` guards the version against `types.ts` |
+
+`TrackDto.Detail` is **not** a C# `required` member: it defaults to `DetailPhaseDto.None` and is
+always serialized, which satisfies the JSON contract (`detail` required) without touching the
+Api `TrackMapper` or the Web/Api test builders. The backend maps the real phase in T054.
+
+## Tests and coverage (T005, all run on this commit)
+
+```text
+dotnet build StemStudio.slnx -c Release            0 Warning(s), 0 Error(s)
+dotnet format StemStudio.slnx --verify-no-changes  OK
+dotnet test StemStudio.slnx -c Release -p:CollectCoverage=true  (per-component gate 90 % line+branch)
+  Domain.Tests       173 passed   line 97.94 %  branch 97.77 %
+  Persistence.Tests   29 passed   line 99.17 %  branch 100 %
+  Web.Tests          198 passed   line 99.85 %  branch 93.78 %
+  Api.Tests          262 passed   line 99.87 %  branch 97.69 %   (gates Api + Contracts)
+worker: uv run pytest --cov      440 passed, 2 deselected; line+branch 100.00 % (gate 90 %)
+        ruff check / ruff format --check / mypy src tests (strict): clean
+audio-engine: npm test 122 passed; test:coverage 100 % statements/branches/functions/lines;
+        npm run lint, npm run typecheck: clean; npm run build OK
+Redocly 2.78.0 lint (002 worker + backend): valid, 3 warnings (operation-4xx-response, same as 001)
+uv run --project tools/quality python tools/quality/run_all.py:
+        365 files, 2644 units, 17 clones, 0 errors, 106 warnings -> exit 0
+        (new warning "detail is not in the dependency map": fixed by quality-gate T007)
+```
+
+Red -> green: `090ccf9` (failing worker skeleton test) -> `d3e7ee5` (T001); `66a114b` (T002);
+`b10337a` (T003, DTOs + skeleton tests in one commit); `83c8468` (failing engine test) -> `5ca588d` (T004);
+`EngineMethods.ContractVersion` and this note in the T005 commit.
+
+## Dependencies added
+
+| Name | Version | Licence | URL |
+|---|---|---|---|
+| onnxruntime | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
+| rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |
+| flatbuffers (transitive, onnxruntime) | 25.12.19 | Apache-2.0 | https://github.com/google/flatbuffers |
+| protobuf (transitive, onnxruntime) | 7.36.2 | BSD-3-Clause | https://github.com/protocolbuffers/protobuf |
+
+(`sympy`, `packaging`, `numpy` and `einops` were already locked.)
