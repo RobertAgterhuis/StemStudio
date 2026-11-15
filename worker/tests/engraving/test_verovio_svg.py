@@ -1,6 +1,7 @@
 """Tests of the Verovio SVG pages (data-model.md 3) with the real Verovio wheel."""
 
 import re
+import threading
 
 import pytest
 
@@ -71,3 +72,23 @@ def test_a_document_without_pages_is_a_transcription_error(monkeypatch: pytest.M
 
     with pytest.raises(TranscriptionError, match=verovio_svg.ENGRAVING_FAILED_TEXT):
         verovio_svg.render_svg_pages(bass_musicxml(1))
+
+
+def test_rendering_in_another_thread_finds_the_music_font() -> None:
+    # Verovio's resource path is thread-local; the transcribe lane renders on a worker thread.
+    pages: list[tuple[str, ...]] = []
+    errors: list[BaseException] = []
+
+    def render() -> None:
+        try:
+            pages.append(verovio_svg.render_svg_pages(bass_musicxml(bars=4)))
+        except BaseException as error:
+            errors.append(error)
+
+    worker = threading.Thread(target=render)
+    worker.start()
+    worker.join(timeout=60)
+
+    assert errors == []
+    assert len(pages) == 1
+    assert len(pages[0]) == 1
