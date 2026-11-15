@@ -59,7 +59,7 @@ public sealed partial class StyleEditor
         }
         catch (ApiException ex)
         {
-            Problem = FieldProblem.From(ex.Error);
+            Problem = FieldProblem.From(ex.Error, "name");
         }
     }
 }
