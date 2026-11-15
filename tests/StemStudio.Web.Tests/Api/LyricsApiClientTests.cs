@@ -70,4 +70,17 @@ public sealed partial class StemStudioApiClientTests
         _handler.Requests.Select(r => (r.Method, r.PathAndQuery)).ShouldBe(
             [(HttpMethod.Post, $"{LyricsPath}/align"), (HttpMethod.Post, $"{LyricsPath}/align/cancel")]);
     }
+
+    [Fact]
+    public async Task SearchAndRemove_UseTheirRoutes()
+    {
+        _handler.Respond(HttpStatusCode.Accepted, Json(LyricsData.Empty(LyricsStatusDto.Searching)))
+            .Respond(HttpStatusCode.OK, Json(LyricsData.Empty(LyricsStatusDto.Removed)));
+
+        (await _client.SearchLyricsAsync(TestData.TrackId, Ct)).Status.ShouldBe(LyricsStatusDto.Searching);
+        (await _client.RemoveLyricsAsync(TestData.TrackId, Ct)).Status.ShouldBe(LyricsStatusDto.Removed);
+
+        _handler.Requests.Select(r => (r.Method, r.PathAndQuery)).ShouldBe(
+            [(HttpMethod.Post, $"{LyricsPath}/search"), (HttpMethod.Delete, LyricsPath)]);
+    }
 }
