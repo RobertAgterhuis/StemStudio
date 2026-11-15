@@ -47,6 +47,10 @@ class Recorder:
     result: Result | None = None
     raise_in_generate: BaseException | None = None
     take_seconds: float = 2.0
+    llm_result: tuple[str, bool] | None = None
+    pretrained: list[dict[str, Any]] = field(default_factory=list)
+    moved: list[str] = field(default_factory=list)
+    pretrained_error: BaseException | None = None
 
 
 class _Handler:
@@ -58,13 +62,22 @@ class _Handler:
 
 
 class _Llm:
+    """Mirrors ``LLMHandler.initialize``: sets dtype/offload, then ``_load_pytorch_model``."""
+
     recorder: Recorder
     llm_initialized = False
 
     def initialize(self, **kwargs: Any) -> tuple[str, bool]:
         self.recorder.llm_inits.append(kwargs)
-        self.llm_initialized = True
-        return ("ok", True)
+        if self.recorder.llm_result is not None:
+            return self.recorder.llm_result
+        self.dtype, self.offload_to_cpu = kwargs["dtype"], kwargs["offload_to_cpu"]
+        path = f"{kwargs['checkpoint_dir']}/{kwargs['lm_model_path']}"
+        ok, status = self._load_pytorch_model(path, kwargs["device"])
+        return status, ok
+
+    def _load_pytorch_model(self, model_path: str, device: str) -> tuple[bool, str]:
+        raise AssertionError("the engine must override the fp32 loader")
 
     def unload(self) -> None:
         self.recorder.llm_unloads += 1

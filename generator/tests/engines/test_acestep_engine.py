@@ -343,7 +343,9 @@ def test_import_acestep_reads_the_real_module_names(monkeypatch: pytest.MonkeyPa
         "acestep.inference": ModuleType("acestep.inference"),
         "acestep.llm_inference": ModuleType("acestep.llm_inference"),
         "torch": ModuleType("torch"),
+        "transformers": ModuleType("transformers"),
     }
+    modules["transformers"].AutoModelForCausalLM = "M"  # type: ignore[attr-defined]
     modules["acestep.handler"].AceStepHandler = "H"  # type: ignore[attr-defined]
     modules["acestep.inference"].GenerationParams = "P"  # type: ignore[attr-defined]
     modules["acestep.inference"].GenerationConfig = "C"  # type: ignore[attr-defined]
@@ -355,7 +357,7 @@ def test_import_acestep_reads_the_real_module_names(monkeypatch: pytest.MonkeyPa
     api = import_acestep()
 
     assert (api.handler, api.params, api.config, api.generate, api.llm) == ("H", "P", "C", "G", "L")
-    assert api.torch is modules["torch"]
+    assert (api.torch, api.causal_lm) == (modules["torch"], "M")
 
 
 def test_in_place_maps_to_a_repaint_of_the_range_over_the_whole_source(tmp_path: Path) -> None:
