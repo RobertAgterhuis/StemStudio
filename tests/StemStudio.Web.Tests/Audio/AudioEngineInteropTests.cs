@@ -10,7 +10,7 @@ using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Audio;
 
-public sealed class AudioEngineInteropTests : IAsyncDisposable
+public sealed partial class AudioEngineInteropTests : IAsyncDisposable
 {
     private readonly BunitContext _context = new();
     private readonly BunitJSModuleInterop _module;
