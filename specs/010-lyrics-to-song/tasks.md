@@ -111,8 +111,8 @@ unchanged through the 009 import flow).
 
 - [ ] T034 [P] [US2] [backend] Failing tests `LyricsEndpointTests.cs`: CRUD, upload (`.txt`, `.lrc`, `.md`, UTF-8, <= 64 KiB; `415` other types; invalid UTF-8 `400`), search; takes keep their snapshot after edit/delete (FR-003)
 - [ ] T035 [US2] [backend] Implement `Lyrics/LyricsEndpoints.cs` to pass T034
-- [ ] T036 [P] [US2] [frontend] Failing bUnit tests `LyricsListTests.cs`: list, edit, delete confirm, "new song from these lyrics"
-- [ ] T037 [US2] [frontend] Implement `Pages/LyricsList.razor` to pass T036
+- [x] T036 [P] [US2] [frontend] Failing bUnit tests `LyricsListTests.cs`: list, edit, delete confirm, "new song from these lyrics"
+- [x] T037 [US2] [frontend] Implement `Pages/LyricsList.razor` to pass T036
 - [ ] T038 [US2] [qa] Author "lyrics list" spec: save, edit, generate twice, both takes show their own text
 
 **Checkpoint**: HO:us2.
