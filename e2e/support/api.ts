@@ -20,24 +20,16 @@ export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other
 /** Standard stems that can be split further (`ParentStemName`, 1.2.0). */
 export type ParentStemName = 'vocals' | 'drums' | 'guitar' | 'piano' | 'other';
 
-/** Detail stem names (`DetailStemName`, 1.2.0); `rest` is always last in a group. */
-export type DetailStemName =
-  | 'kick'
-  | 'snare'
-  | 'toms'
-  | 'hihat'
-  | 'cymbals'
-  | 'lead'
-  | 'backing'
-  | 'strings'
-  | 'brass'
-  | 'woodwinds'
-  | 'keys'
-  | 'synth'
-  | 'acoustic-guitar'
-  | 'electric-guitar'
-  | 'percussion'
-  | 'rest';
+/** Detail stem names of backend-api 1.2.0 in display order per family; `rest` is always last. */
+export const detailStemNames = [
+  ...['kick', 'snare', 'toms', 'hihat', 'cymbals'],
+  ...['lead', 'backing'],
+  ...['strings', 'brass', 'woodwinds', 'keys', 'synth', 'acoustic-guitar', 'electric-guitar', 'percussion'],
+  'rest',
+] as const;
+
+/** Detail stem name (`DetailStemName`, 1.2.0). */
+export type DetailStemName = (typeof detailStemNames)[number];
 
 /** Detail phase status (`DetailPhaseStatus`, 1.2.0). */
 export type DetailPhaseStatus = 'none' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
