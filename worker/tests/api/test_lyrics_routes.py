@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from stemstudio_worker.main import AppOverrides
+from stemstudio_worker.ports import estimate_alignment_seconds
 
 from .conftest import Api, ApiFactory
 from .contract import Response, assert_conforms
@@ -232,3 +233,26 @@ def test_the_default_app_runs_lookups_with_its_own_provider(api: Api) -> None:
 
     assert job["status"] == "completed"
     assert_conforms(result, RESULT)
+
+
+# ------------------------------------------------------------------ estimate and health
+
+
+def test_an_alignment_estimate_follows_the_device_formula(lyrics_api: Api) -> None:
+    standard = lyrics_api.completed_job()
+    duration = lyrics_api.client.get(f"/v1/jobs/{standard}/result").json()["durationSeconds"]
+
+    job = _post(lyrics_api, _align(standard)).json()
+    _wait(lyrics_api)
+
+    assert job["estimatedSeconds"] == estimate_alignment_seconds(duration, "cpu", model_cached=True)
+
+
+def test_health_reports_the_lyrics_alignment(lyrics_api: Api) -> None:
+    response = lyrics_api.client.get("/health")
+
+    assert_conforms(response, "/health")
+    assert response.json()["lyricsAlignment"] == {
+        "available": True, "model": "large-v3-turbo", "modelCached": True, "auto": "gpu",
+        "reason": None,
+    }  # fmt: skip
