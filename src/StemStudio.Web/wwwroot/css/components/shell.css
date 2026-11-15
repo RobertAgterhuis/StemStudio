@@ -1,0 +1,35 @@
+/* App shell (design-spec.md 4.1): rail, context bar, content area. Rebuilt in T024. */
+
+.ss-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-6);
+  padding: var(--ss-space-2) var(--ss-space-4);
+}
+
+.ss-brand {
+  font-size: var(--ss-type-heading-size);
+  font-weight: 750;
+  font-stretch: 116%;
+}
+
+.ss-nav {
+  display: flex;
+  gap: var(--ss-space-4);
+}
+
+.ss-nav-link {
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border-bottom: 2px solid var(--ss-color-none);
+  color: var(--ss-color-ink);
+  text-decoration: none;
+}
+
+.ss-nav-link.active {
+  border-bottom-color: var(--ss-color-ink);
+}
+
+.ss-main {
+  max-width: var(--ss-content-max);
+  padding: var(--ss-space-5) var(--ss-space-4) var(--ss-space-7);
+}

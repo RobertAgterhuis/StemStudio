@@ -1,0 +1,246 @@
+/*
+ * StemStudio base layer (design-spec.md 2): font, page, typography, focus and shared primitives.
+ * Colours come only from tokens.css. Component styles live in css/components/*.css.
+ */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("../fonts/archivo/Archivo-Variable-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+html {
+  background: var(--ss-color-base);
+  color: var(--ss-color-ink);
+  font-family: var(--ss-font);
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ss-color-base);
+  color: var(--ss-color-ink);
+  font-family: var(--ss-font);
+  font-size: var(--ss-type-body-size);
+  line-height: var(--ss-type-body-line);
+  font-weight: var(--ss-type-body-weight);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+.ss-display {
+  margin: 0 0 var(--ss-space-4);
+  font-size: var(--ss-type-display-size);
+  line-height: var(--ss-type-display-line);
+  font-weight: var(--ss-type-display-weight);
+  font-stretch: var(--ss-type-display-width);
+  letter-spacing: -0.01em;
+}
+
+h2,
+.ss-title {
+  margin: 0 0 var(--ss-space-3);
+  font-size: var(--ss-type-title-size);
+  line-height: var(--ss-type-title-line);
+  font-weight: var(--ss-type-title-weight);
+  font-stretch: var(--ss-type-title-width);
+}
+
+h3,
+.ss-heading {
+  margin: 0 0 var(--ss-space-2);
+  font-size: var(--ss-type-heading-size);
+  line-height: var(--ss-type-heading-line);
+  font-weight: var(--ss-type-heading-weight);
+}
+
+h1:focus {
+  outline: none;
+}
+
+h1:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+p {
+  margin: 0 0 var(--ss-space-3);
+  max-width: 72ch;
+}
+
+a {
+  color: var(--ss-color-ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* One amber focus ring for everything, always visible on keyboard focus (WCAG 2.4.7, 2.4.13). */
+:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+.rz-button:focus-visible,
+.rz-textbox:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+  box-shadow: none;
+}
+
+::selection {
+  background: var(--ss-color-focus);
+  color: var(--ss-color-on-state);
+}
+
+.ss-num,
+time,
+.ss-tabular {
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-label {
+  display: block;
+  margin-bottom: var(--ss-space-1);
+  font-size: var(--ss-type-label-size);
+  line-height: var(--ss-type-label-line);
+  font-weight: var(--ss-type-label-weight);
+  color: var(--ss-color-ink);
+}
+
+.ss-muted,
+.ss-help {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-label-size);
+}
+
+.ss-small {
+  font-size: var(--ss-type-small-size);
+  line-height: var(--ss-type-small-line);
+  font-weight: var(--ss-type-small-weight);
+}
+
+.ss-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ss-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.ss-stack {
+  display: grid;
+  gap: var(--ss-space-4);
+}
+
+.ss-grow {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.ss-wide {
+  width: 100%;
+}
+
+kbd,
+.ss-kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 var(--ss-space-1);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  font-family: var(--ss-font);
+  font-size: var(--ss-type-small-size);
+  font-variant-numeric: var(--ss-num);
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ss-color-muted);
+}
+
+/* Radzen controls: sizes follow the density token; targets never below 24 px (WCAG 2.5.8). */
+.rz-button {
+  min-height: max(var(--ss-target-min), var(--ss-control-height));
+  border-radius: var(--ss-radius-control);
+  font-family: var(--ss-font);
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  transition: transform var(--ss-dur-press) var(--ss-ease-enter), background-color var(--ss-dur-small) var(--ss-ease-enter);
+}
+
+.rz-button:active:not(.rz-state-disabled) {
+  transform: scale(0.98);
+}
+
+.rz-button.rz-button-sm {
+  min-height: var(--ss-target-min);
+}
+
+.rz-textbox,
+input.ss-number,
+select.ss-select {
+  min-height: max(var(--ss-target-min), var(--ss-control-height));
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font-family: var(--ss-font);
+  font-size: var(--ss-type-body-size);
+  padding: 0 var(--ss-space-3);
+}
+
+input.ss-number {
+  width: 6.5rem;
+  font-variant-numeric: var(--ss-num);
+}
+
+input[type="range"] {
+  accent-color: var(--ss-color-ink);
+  min-height: var(--ss-target-min);
+}
+
+.rz-badge {
+  font-family: var(--ss-font);
+  font-weight: var(--ss-type-label-weight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion]) * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0ms !important;
+}

@@ -1,0 +1,131 @@
+/* Mixer console (design-spec.md 4.5). Meters are written by the audio engine every frame: never transitioned. */
+
+.ss-mixer:focus {
+  outline: none;
+}
+
+.ss-mixer-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ss-space-4);
+}
+
+.ss-unsaved {
+  color: var(--ss-color-warning);
+  font-weight: 600;
+}
+
+.ss-transport,
+.ss-loop,
+.ss-metronome,
+.ss-mix-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-3);
+  margin-bottom: var(--ss-space-3);
+  padding: var(--ss-space-3) var(--ss-space-4);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  font-size: var(--ss-type-label-size);
+  color: var(--ss-color-muted);
+}
+
+.ss-seek {
+  flex: 1 1 16rem;
+}
+
+.ss-position {
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-strips {
+  display: flex;
+  gap: var(--ss-space-2);
+  overflow-x: auto;
+  padding-bottom: var(--ss-space-2);
+}
+
+.ss-strip {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas: "name name" "meter fader" "pan pan" "buttons buttons";
+  justify-items: center;
+  gap: var(--ss-space-2);
+  min-width: var(--ss-strip-width);
+  padding: var(--ss-space-3) var(--ss-space-2);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-strip-silent {
+  opacity: 0.45;
+}
+
+.ss-strip-master {
+  border: 1px solid var(--ss-color-ink);
+}
+
+.ss-strip-name {
+  grid-area: name;
+  font-weight: 600;
+}
+
+.ss-fader {
+  grid-area: fader;
+  height: 11rem;
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+.ss-pan {
+  grid-area: pan;
+  width: 5.5rem;
+}
+
+.ss-strip-buttons {
+  grid-area: buttons;
+  display: flex;
+  gap: var(--ss-space-1);
+}
+
+.ss-expand {
+  grid-column: 1 / -1;
+}
+
+.ss-group {
+  display: flex;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-1);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-sunken);
+}
+
+.ss-meter {
+  grid-area: meter;
+  position: relative;
+  width: 0.6rem;
+  height: 11rem;
+  overflow: hidden;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+}
+
+.ss-meter-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ss-color-success);
+  transform-origin: bottom;
+  transform: scaleY(var(--meter-level, 0));
+}
+
+.ss-meter[data-clip="true"] {
+  box-shadow: inset 0 3px 0 var(--ss-color-danger);
+}

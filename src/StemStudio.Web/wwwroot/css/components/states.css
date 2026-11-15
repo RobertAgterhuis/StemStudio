@@ -1,0 +1,30 @@
+/* Notices, errors, cards and status texts shared by every screen (design-spec.md 4.10). */
+
+.ss-card {
+  margin-bottom: var(--ss-space-4);
+}
+
+.rz-card {
+  border: 0;
+  box-shadow: var(--ss-elev-0);
+  background: var(--ss-color-surface);
+  border-radius: var(--ss-radius-panel);
+  padding: var(--ss-space-5);
+}
+
+.ss-notice {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  border-left: 3px solid var(--ss-color-warning);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-surface);
+  color: var(--ss-color-ink);
+}
+
+.ss-error {
+  margin: var(--ss-space-2) 0;
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border: 1px solid var(--ss-color-danger);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-danger);
+}
