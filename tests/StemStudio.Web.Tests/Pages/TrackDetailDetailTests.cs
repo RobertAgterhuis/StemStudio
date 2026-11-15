@@ -50,11 +50,11 @@ public sealed class TrackDetailDetailTests : TrackDetailTestContext
     }
 
     [Fact]
-    public void Completed_HidesProgressAndNotice_AndShowsEveryOutcomeText()
+    public void Completed_ShowsFullProgress_HidesNotice_AndShowsEveryOutcomeText()
     {
         var page = RenderPage(TestData.DetailTrack());
 
-        page.FindAll(Progress).ShouldBeEmpty();
+        page.Find(Progress).GetAttribute("aria-valuenow").ShouldBe("100");
         page.FindAll(LongNotice).ShouldBeEmpty();
         AssertOutcome(page, "drums", "split", "Split into kick, snare");
         AssertOutcome(page, "vocals", "split", "Split into lead, backing");
