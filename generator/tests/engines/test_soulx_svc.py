@@ -117,12 +117,12 @@ def test_load_builds_the_model_once_in_fp16_on_cuda_with_the_local_whisper(
 
     assert len(recorder.built) == 1
     [(path, kwargs)] = recorder.loads
-    assert path.endswith(SOULX_SVC_FILE)
-    assert kwargs == {"weights_only": False, "map_location": "cpu"}
+    assert Path(path).as_posix().endswith(SOULX_SVC_FILE)
+    assert kwargs == {"weights_only": True, "map_location": "cpu"}
     whisper_dir = str(tmp_path / "models" / WHISPER_BASE_DIR)
     assert recorder.whisper_names == [whisper_dir, whisper_dir]
     [f0] = recorder.f0_inits
-    assert f0["model_path"].endswith(RMVPE_FILE)
+    assert Path(f0["model_path"]).as_posix().endswith(RMVPE_FILE)
     assert (f0["device"], f0["is_half"], f0["target_sr"], f0["hop_size"]) == (
         "cuda",
         False,
@@ -238,7 +238,7 @@ def test_rmvpe_tracker_runs_on_the_cpu_at_10_ms_frames(tmp_path: Path) -> None:
     assert f0.size == 3 * 100 + 1
     [init] = recorder.rmvpe_inits
     assert (init["device"], init["is_half"]) == ("cpu", False)
-    assert init["model_path"].endswith(RMVPE_FILE)
+    assert Path(init["model_path"]).as_posix().endswith(RMVPE_FILE)
 
 
 def test_import_soulx_loads_f0_extraction_by_file_path(

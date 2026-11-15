@@ -78,12 +78,16 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def write_manifest(root: Path, revision: str) -> None:
-    """Write ``REVISION`` and ``SHA256SUMS`` (every file, hub cache folders excluded)."""
+def write_manifest(root: Path, revision: str | None) -> None:
+    """Write ``SHA256SUMS`` (every file, hub cache folders excluded) and ``REVISION``.
+
+    ``revision`` None keeps ``REVISION`` (directories shared by several pins).
+    """
     files = sorted(path for path in root.rglob("*") if _is_weight_file(path))
     lines = [f"{file_sha256(path)}  {path.relative_to(root).as_posix()}" for path in files]
     (root / SUMS_FILE).write_text("\n".join(lines) + "\n", "utf-8")
-    (root / REVISION_FILE).write_text(f"{revision}\n", "utf-8")
+    if revision is not None:
+        (root / REVISION_FILE).write_text(f"{revision}\n", "utf-8")
 
 
 def _is_weight_file(path: Path) -> bool:
@@ -100,21 +104,32 @@ def _lines(path: Path) -> list[str]:
 
 @dataclass
 class WeightsDir:
-    """One pinned weights directory."""
+    """One pinned weights directory.
+
+    Attributes:
+        root: The directory.
+        pin: Repository, revision and pinned files.
+        hub: Download source.
+        only_pinned: The directory holds only the pinned files of this repository (possibly
+            next to files of other pins, ``soulx/``): download just those and record their
+            revision per file (``<file> <repo> <revision>`` lines).
+    """
 
     root: Path
     pin: WeightsPin
     hub: Hub = field(default_factory=Hub)
+    only_pinned: bool = False
     _verified: bool = field(default=False, init=False)
 
     def present(self) -> bool:
         """Revision matches and every pinned file is listed with its pinned hash."""
+        names = [name for name, _ in self.pin.files]
         sums = self._sums()
-        return self._revision_ok() and all(self._file_ok(name, sums) for name, _ in self.pin.files)
+        return self._revision_ok(names) and all(self._file_ok(name, sums) for name in names)
 
     def file_present(self, name: str) -> bool:
         """``name`` (relative path) is in the pinned cache."""
-        return self._revision_ok() and self._file_ok(name, self._sums())
+        return self._revision_ok([name]) and self._file_ok(name, self._sums())
 
     def verify(self) -> None:
         """Hash the pinned files once per process (``ModelDownloadError`` on a mismatch)."""
@@ -135,12 +150,18 @@ class WeightsDir:
         except (OSError, RuntimeError, ValueError) as error:
             _LOG.warning("Download of %s failed: %s", self.pin.repo, error)
             raise ModelDownloadError(DOWNLOAD_FAILED_TEXT) from error
-        write_manifest(self.root, self.pin.revision)
+        write_manifest(self.root, None if self.only_pinned else self.pin.revision)
+        if self.only_pinned:
+            self._record_revisions()
         if not self.present():
             raise ModelDownloadError(CHECKSUM_TEXT)
 
     def _download(self, on_progress: ProgressCallback) -> None:
-        files = self.hub.listing(self.pin.repo, self.pin.revision)
+        files = (
+            [(name, 1) for name, _ in self.pin.files]
+            if self.only_pinned
+            else self.hub.listing(self.pin.repo, self.pin.revision)
+        )
         total = sum(size for _, size in files) or 1
         done = 0
         self.root.mkdir(parents=True, exist_ok=True)
@@ -150,9 +171,23 @@ class WeightsDir:
             done += size
         on_progress(1.0, _stage(done, total))
 
-    def _revision_ok(self) -> bool:
+    def _revision_ok(self, names: list[str]) -> bool:
+        """One revision for the directory, or the pinned revision on each file's line."""
         lines = [line.split() for line in _lines(self.root / REVISION_FILE)]
-        return bool(lines) and all(parts[-1] == self.pin.revision for parts in lines)
+        whole = {parts[0] for parts in lines if len(parts) == 1}
+        if whole:
+            return whole == {self.pin.revision}
+        by_file = {parts[0]: parts[-1] for parts in lines}
+        return bool(names) and all(by_file.get(name) == self.pin.revision for name in names)
+
+    def _record_revisions(self) -> None:
+        """Write this pin's files into the per-file ``REVISION`` (other pins' lines stay)."""
+        lines = [line.split() for line in _lines(self.root / REVISION_FILE)]
+        by_file = {parts[0]: " ".join(parts) for parts in lines if len(parts) > 1}
+        for name, _ in self.pin.files:
+            by_file[name] = f"{name} {self.pin.repo} {self.pin.revision}"
+        text = "\n".join(by_file[name] for name in sorted(by_file)) + "\n"
+        (self.root / REVISION_FILE).write_text(text, "utf-8")
 
     def _sums(self) -> dict[str, str]:
         pairs = (line.split(maxsplit=1) for line in _lines(self.root / SUMS_FILE))

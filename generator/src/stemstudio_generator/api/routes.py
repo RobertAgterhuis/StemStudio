@@ -98,6 +98,16 @@ def get_take_audio(request: Request, generation_id: str, index: str) -> FileResp
     return _flac(context.files.take(generation_id, take.index), take.sha256)
 
 
+@router.get("/v1/generations/{generation_id}/takes/{index}/vocal")
+def get_take_vocal(request: Request, generation_id: str, index: str) -> FileResponse:
+    """The converted vocal stem of a voice-conversion take (1.1.0)."""
+    context = context_of(request)
+    take = _take(context, generation_id, index)
+    if not take.has_vocal_stem:
+        raise not_found(f"Take {index} of generation {generation_id} has no vocal stem.")
+    return FileResponse(context.files.vocal(generation_id, take.index), media_type=FLAC_MEDIA_TYPE)
+
+
 def _flac(path: Path, sha256: str) -> FileResponse:
     return FileResponse(path, media_type=FLAC_MEDIA_TYPE, headers={"etag": f'"{sha256}"'})
 

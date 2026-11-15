@@ -162,8 +162,9 @@ def test_mode_oom_retries_the_conversion_once(tmp_path: Path) -> None:
 def test_the_vocal_route_is_404_for_takes_without_a_vocal_stem(
     stack: Stack, tmp_path: Path
 ) -> None:
-    body = {"kind": "song", "song": {"caption": "c", "lyrics": "[verse]\nla", "instrumental": False,
-                                      "vocalLanguage": "en", "durationSeconds": 10.0, "seeds": [1]}}  # fmt: skip
+    song = {"caption": "c", "lyrics": "[verse]\nla", "instrumental": False,
+            "vocalLanguage": "en", "durationSeconds": 10.0, "seeds": [1]}  # fmt: skip
+    body = {"kind": "song", "song": song}
     generation_id = stack.client.post("/v1/generations", json=body).json()["generationId"]
     stack.run_all()
 

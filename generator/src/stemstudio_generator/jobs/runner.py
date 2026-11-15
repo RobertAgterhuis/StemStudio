@@ -196,10 +196,15 @@ class JobRunner:
 
 
 def _retry_needs(needs: Sequence[GpuNeed], failed: DeviceUse) -> tuple[GpuNeed, ...]:
-    """Low-memory needs for the one retry; none when the failed attempt was low-memory already."""
+    """Needs of the one OOM retry (empty: no retry).
+
+    The low-memory needs, or the same needs again when there is no low-memory profile
+    (SoulX-SVC; the engine was unloaded and the CUDA cache emptied); none when the failed
+    attempt ran on a low-memory profile already.
+    """
     if failed.need.profile == "lowMemory":
         return ()
-    return tuple(need for need in needs if need.profile == "lowMemory")
+    return tuple(need for need in needs if need.profile == "lowMemory") or tuple(needs)
 
 
 def _load(engine: ModelHost, use: DeviceUse, reporter: JobReporter) -> None:

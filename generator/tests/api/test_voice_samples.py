@@ -60,17 +60,18 @@ def test_a_sung_sample_of_20_seconds_is_ok_and_downloadable_once(
 
 
 @pytest.mark.parametrize(
-    ("seconds", "reason", "message"),
+    ("seconds", "expected"),
     [
-        (6.0, "tooShort", "The recording is 6.0 s long; at least 10 s is needed."),
-        (61.0, "tooLong", "The recording is 61.0 s long; at most 60 s is allowed."),
+        (6.0, ("tooShort", "The recording is 6.0 s long; at least 10 s is needed.")),
+        (61.0, ("tooLong", "The recording is 61.0 s long; at most 60 s is allowed.")),
     ],
 )
 def test_samples_outside_10_to_60_seconds_are_refused(
-    singer: Stack, tmp_path: Path, seconds: float, reason: str, message: str
+    singer: Stack, tmp_path: Path, seconds: float, expected: tuple[str, str]
 ) -> None:
     body = _ok_body(_check(singer, _voice(tmp_path, seconds)))
 
+    reason, message = expected
     assert (body["ok"], body["reason"]) == (False, reason)
     assert body["message"].startswith(message)
     assert singer.client.get(f"/v1/voice-samples/{body['checkId']}/audio").status_code == 404
@@ -112,7 +113,7 @@ def test_formats_soundfile_cannot_read_are_decoded_with_ffmpeg(
         Path(args[-1].removeprefix("file:")).write_bytes(wav.read_bytes())
         return type("Result", (), {"returncode": 0, "stderr": ""})()
 
-    singer.composition.app.state.context.analyzer.decoder.run = run  # type: ignore[union-attr]
+    singer.composition.app.state.context.analyzer.decoder.run = run
     recording = tmp_path / "recording.webm"
     recording.write_bytes(b"\x1aE\xdf\xa3 webm/opus from the browser")
 
@@ -127,7 +128,7 @@ def test_unreadable_samples_are_400(singer: Stack, tmp_path: Path) -> None:
     def fail(args: list[str], timeout_seconds: float) -> Any:
         return type("Result", (), {"returncode": 1, "stderr": "Invalid data"})()
 
-    singer.composition.app.state.context.analyzer.decoder.run = fail  # type: ignore[union-attr]
+    singer.composition.app.state.context.analyzer.decoder.run = fail
     broken = tmp_path / "broken.wav"
     broken.write_bytes(b"not audio at all")
 

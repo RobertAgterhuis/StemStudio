@@ -3,11 +3,12 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from stemstudio_generator.api.samples import CheckedSamples
 from stemstudio_generator.api.uploads import UploadLimits
 from stemstudio_generator.config import GeneratorSettings
 from stemstudio_generator.jobs.files import JobFiles
 from stemstudio_generator.jobs.scheduler import Scheduler
-from stemstudio_generator.ports import Clock, StemMixer
+from stemstudio_generator.ports import Clock, StemMixer, VoiceSampleAnalyzer
 from stemstudio_generator.schemas import DeviceInfo, ModelStatus
 
 
@@ -31,6 +32,8 @@ class ApiContext:
         limits: Upload size limits.
         on_start: Called when the app starts (reconcile, start the queue thread).
         on_stop: Called when the app stops.
+        analyzer: Voice-sample checks (singer service only, else None).
+        samples: Checked samples kept for download (singer service only).
     """
 
     settings: GeneratorSettings
@@ -44,3 +47,5 @@ class ApiContext:
     limits: UploadLimits = field(default_factory=UploadLimits)
     on_start: Callable[[], None] = _nothing
     on_stop: Callable[[], None] = _nothing
+    analyzer: VoiceSampleAnalyzer | None = None
+    samples: CheckedSamples | None = None

@@ -116,7 +116,8 @@ class _F0Extractor:
     def process(self, audio_path: str, **kwargs: Any) -> np.ndarray:
         frames = 500
         voiced = round(frames * self.recorder.voiced)
-        return np.r_[np.full(voiced, 220.0), np.zeros(frames - voiced)].astype(np.float32)
+        f0: np.ndarray = np.r_[np.full(voiced, 220.0), np.zeros(frames - voiced)]
+        return f0.astype(np.float32)
 
 
 class _Rmvpe:
@@ -129,7 +130,8 @@ class _Rmvpe:
 
     def infer_from_audio(self, audio: np.ndarray, thred: float = 0.03) -> np.ndarray:
         frames = audio.size // 160 + 1
-        return np.where(np.arange(frames) % 2 == 0, 200.0, 0.0).astype(np.float32)
+        f0: np.ndarray = np.where(np.arange(frames) % 2 == 0, 200.0, 0.0).astype(np.float32)
+        return f0
 
 
 def fake_soulx(recorder: SoulXRecorder) -> SoulXApi:
@@ -148,10 +150,12 @@ def fake_soulx(recorder: SoulXRecorder) -> SoulXApi:
     def empty_cache() -> None:
         recorder.emptied += 1
 
+    def load(path: str, **kwargs: Any) -> dict[str, Any]:
+        recorder.loads.append((str(path), kwargs))
+        return {"state_dict": {}}
+
     torch = SimpleNamespace(
-        load=lambda path, **kwargs: (
-            recorder.loads.append((str(path), kwargs)) or {"state_dict": {}}
-        ),
+        load=load,
         from_numpy=lambda data: _Tensor(data, recorder),
         manual_seed=manual_seed,
         no_grad=_NoGrad,

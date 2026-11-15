@@ -494,6 +494,79 @@ class StemMixer(Protocol):
         ...
 
 
+SVC_SAMPLE_RATE: Final = 24_000
+"""Rate of the converted vocal returned by ``VoiceConverter.convert`` (mono)."""
+
+
+@dataclass(frozen=True, slots=True)
+class RemixedFiles:
+    """The two WAV files of a voice-conversion take, before labelling (010 US3).
+
+    Attributes:
+        mix: The converted vocal mixed into the accompaniment (48 kHz stereo).
+        vocal: The converted vocal alone (48 kHz stereo), for ``GET .../takes/1/vocal``.
+    """
+
+    mix: Path
+    vocal: Path
+
+
+@dataclass(frozen=True, slots=True)
+class RemixRequest:
+    """How to remix a converted vocal.
+
+    Attributes:
+        accompaniment: 0-5 accompaniment stems (WAV/FLAC).
+        gain_db: Gain of the converted vocal in the mix (``vocalGainDb``).
+        work_dir: Where the WAV files are written.
+    """
+
+    accompaniment: Sequence[Path]
+    gain_db: float
+    work_dir: Path
+
+
+@runtime_checkable
+class VoiceRemixer(Protocol):
+    """Mixes a converted vocal back into its accompaniment (``audio.pipeline``)."""
+
+    def remix(self, vocal: Signal, request: RemixRequest) -> RemixedFiles:
+        """Write the mix and the vocal stem as WAV files into ``request.work_dir``.
+
+        Raises:
+            InvalidInputError: Unreadable or mismatched accompaniment, more than 5 stems.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class SampleFacts:
+    """What a voice-sample check measured (1.1.0).
+
+    Attributes:
+        duration_seconds: Length of the normalised sample.
+        voiced_ratio: Share of voiced 10 ms frames.
+        pcm_sha256: SHA-256 of the int16 LE 48 kHz mono PCM.
+    """
+
+    duration_seconds: float
+    voiced_ratio: float
+    pcm_sha256: str
+
+
+@runtime_checkable
+class VoiceSampleAnalyzer(Protocol):
+    """Decodes, normalises and measures an own-voice sample (``audio.samples``)."""
+
+    def analyze(self, upload: Path, dest: Path) -> SampleFacts:
+        """Write the normalised 48 kHz mono FLAC to ``dest`` and measure it.
+
+        Raises:
+            InvalidInputError: The upload cannot be decoded as audio.
+        """
+        ...
+
+
 # ------------------------------------------------------------------ jobs and time
 
 

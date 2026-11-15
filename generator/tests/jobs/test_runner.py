@@ -153,14 +153,15 @@ def test_an_oom_on_the_low_memory_profile_is_not_retried(tmp_path: Path) -> None
     assert len(gate.requested) == 1
 
 
-def test_an_oom_without_a_low_memory_profile_is_not_retried(tmp_path: Path) -> None:
+def test_an_oom_without_a_low_memory_profile_retries_the_same_need_once(tmp_path: Path) -> None:
     handler = FakeHandler(steps=[raising(GpuOutOfMemoryError())], job_needs=(SVC_FP16,))
 
     job, _, gate = _run(tmp_path, handler)
 
     assert job.error is not None
     assert job.error.code == "outOfMemory"
-    assert gate.requested == [("SVC_FP16",)]
+    assert gate.requested == [("SVC_FP16",), ("SVC_FP16",)]
+    assert handler.engine.unloads == 2
 
 
 def test_gpu_busy_from_the_gate_fails_the_job(tmp_path: Path) -> None:

@@ -22,8 +22,10 @@ from fastapi import FastAPI
 
 from stemstudio_generator.api.app import create_app
 from stemstudio_generator.api.context import ApiContext
+from stemstudio_generator.api.samples import CheckedSamples
 from stemstudio_generator.audio.flac import FlacWriter
-from stemstudio_generator.audio.pipeline import AudioStemMixer
+from stemstudio_generator.audio.pipeline import AudioStemMixer, AudioVoiceRemixer
+from stemstudio_generator.audio.samples import SampleAnalyzer
 from stemstudio_generator.config import GeneratorSettings, load_settings
 from stemstudio_generator.devices.fake import FakeDeviceProbe, fake_gate
 from stemstudio_generator.devices.gate import GatePolicy, GpuAccess, LeaseGpuGate
@@ -35,10 +37,20 @@ from stemstudio_generator.engines.acestep_engine import AceStepEngine
 from stemstudio_generator.engines.fake import (
     FAKE_TOTAL_MEMORY_MIB,
     FakeMusicEngine,
+    FakeVoiceConverter,
     fake_free_memory_mib,
 )
-from stemstudio_generator.engines.profiles import MUSIC_GENERATOR_LABEL, MUSIC_TAKE_MODEL
+from stemstudio_generator.engines.fake_pitch import FakePitchTracker
+from stemstudio_generator.engines.profiles import (
+    MUSIC_GENERATOR_LABEL,
+    MUSIC_TAKE_MODEL,
+    VOICE_GENERATOR_LABEL,
+    VOICE_TAKE_MODEL,
+)
+from stemstudio_generator.engines.rmvpe import RmvpePitchTracker
+from stemstudio_generator.engines.soulx_svc import SoulXConverter
 from stemstudio_generator.jobs.clock import SystemClock
+from stemstudio_generator.jobs.conversion import ConversionHandler
 from stemstudio_generator.jobs.files import JobFiles
 from stemstudio_generator.jobs.reconcile import reconcile
 from stemstudio_generator.jobs.restyle import RestyleHandler, TakeIdentity, TakeOutput
@@ -46,7 +58,15 @@ from stemstudio_generator.jobs.runner import JobHandler, JobRunner
 from stemstudio_generator.jobs.scheduler import Scheduler
 from stemstudio_generator.jobs.song import SongHandler
 from stemstudio_generator.jobs.store import JsonJobStore
-from stemstudio_generator.ports import Clock, DeviceProbe, GpuGate, MusicEngine, TakeWriter
+from stemstudio_generator.ports import (
+    Clock,
+    DeviceProbe,
+    GpuGate,
+    MusicEngine,
+    PitchTracker,
+    TakeWriter,
+    VoiceConverter,
+)
 from stemstudio_generator.schemas import DeviceInfo, GenerationKind, ModelStatus
 
 PORT: Final = 8010
@@ -117,6 +137,9 @@ def compose(settings: GeneratorSettings, wiring: Wiring | None = None) -> Compos
         new_id=wiring.new_id, on_start=lambda: _start(scheduler, store, wiring),
         on_stop=scheduler.stop,
     )  # fmt: skip
+    if settings.voice_sample_check:
+        context.analyzer = SampleAnalyzer(_pitch_tracker(settings))
+        context.samples = CheckedSamples(settings.data_dir / "samples", wiring.clock)
     return Composition(create_app(context), scheduler, store, files, devices.gate)
 
 
@@ -168,6 +191,10 @@ def _handlers(
         output = TakeOutput(writer, TakeIdentity(MUSIC_TAKE_MODEL, MUSIC_GENERATOR_LABEL), files)
         handlers["restyle"] = RestyleHandler(engine, AudioStemMixer(), output)
         handlers["song"] = SongHandler(engine, output)
+    if "voiceConversion" in settings.kinds:
+        voice = TakeOutput(writer, TakeIdentity(VOICE_TAKE_MODEL, VOICE_GENERATOR_LABEL), files)
+        converter = _converter(settings, wiring)
+        handlers["voiceConversion"] = ConversionHandler(converter, AudioVoiceRemixer(), voice)
     return {kind: handler for kind, handler in handlers.items() if kind in settings.kinds}
 
 
@@ -175,6 +202,18 @@ def _music_engine(settings: GeneratorSettings, wiring: Wiring) -> MusicEngine:
     if settings.engine == "fake":
         return FakeMusicEngine(settings, wiring.sleep)
     return AceStepEngine(settings)
+
+
+def _converter(settings: GeneratorSettings, wiring: Wiring) -> VoiceConverter:
+    if settings.engine == "fake":
+        return FakeVoiceConverter(settings, wiring.sleep)
+    return SoulXConverter(settings)
+
+
+def _pitch_tracker(settings: GeneratorSettings) -> PitchTracker:
+    if settings.engine == "fake":
+        return FakePitchTracker(settings.fake_mode)
+    return RmvpePitchTracker(settings)
 
 
 def _models(handlers: dict[GenerationKind, JobHandler]) -> list[ModelStatus]:

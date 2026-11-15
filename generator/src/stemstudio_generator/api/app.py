@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from stemstudio_generator.api.context import ApiContext
 from stemstudio_generator.api.problems import install_problem_handlers
 from stemstudio_generator.api.routes import router
+from stemstudio_generator.api.voice_samples import router as voice_sample_router
 from stemstudio_generator.schemas import CONTRACT_VERSION
 
 
@@ -29,4 +30,5 @@ def create_app(context: ApiContext) -> FastAPI:
     app.state.context = context
     install_problem_handlers(app)
     app.include_router(router)
+    app.include_router(voice_sample_router)
     return app
