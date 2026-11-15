@@ -103,3 +103,30 @@ Commands: `dotnet test tests/StemStudio.{Domain,Persistence,Api,Web}.Tests -p:Co
   worker still contacts the Hugging Face Hub on every process start (unauthenticated-request
   warning in the log; blob timestamp proves no re-download). An offline start therefore depends on
   huggingface_hub's offline fallback; consider `HF_HUB_OFFLINE=1` once the weights are present.
+
+## Feature 002 wave audit (qa T086, 2026-11-15)
+
+Scope: the qa worktree of the wave (branch from `b37b7d9`). The other owners' 002 work is in
+their own worktrees; their tests, red -> green pairs and coverage are re-audited by qa on the
+merged branch after T089 (CTO), together with T091.
+
+| Check | Result |
+|---|---|
+| qa fixture generators | 86 passed; `generate_detail_fixtures.py` 237/237 lines, 20/20 branches (100 %); `generate_fixtures.py` 100 %/100 %; ruff, ruff format, mypy --strict clean |
+| qa red -> green | T009 `0497a9a` (`ModuleNotFoundError`) -> T010 `4b6ecb4` |
+| `@detail` E2E | 13 tests x 2 browsers in 6 files; lint, `tsc --noEmit`, `--list` clean; executed in T091 |
+| UI test ids in `@detail` specs | only ids of ui-test-ids 1.1.0 (`detail-*`, `track-delete-blocked`, `expand-*`, `group-*`, `*-<parent>-<detail>`, `data-expanded`); `track-action-error` and `detail-outcome-bass` (rendered by the frontend, not in the contract) are not used |
+| SIG (`tools/quality/run_all.py e2e tests/fixtures`) | 0 errors, 0 clones |
+
+Findings carried into the merged-branch audit:
+
+- **D1 (constitution I, integration tests)**: on `b37b7d9` the worker has two
+  `@pytest.mark.integration` tests: the Demucs one and 001 finding F1 (real ffmpeg,
+  `worker/tests/ingest/test_normalizer.py:245`, still open). Feature 002 adds the detail one
+  (T050). Expected after the merge: Demucs + detail (one per model family) + F1 until it is
+  resolved by audio-ingest/architect.
+- **D2 (001 suite, ui-test-ids)**: `e2e/tests/retry-delete.spec.ts` uses `tracks-empty` and
+  `track-link`, which are in neither ui-test-ids 1.0.0 nor 1.1.0. They work against the current
+  frontend; the architect should add them to the contract (1.1.1) or qa replaces them.
+- **D3 (spec vs ids)**: spec US4 says cancelled tracks offer "Split further"; ui-test-ids 1.1.0
+  and frontend T074 show `detail-retry` for cancelled. The E2E accepts either (architect to align).

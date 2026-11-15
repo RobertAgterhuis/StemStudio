@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "sampleRate": 44100,
+  "gating": {
+    "frame": 2048,
+    "hop": 512,
+    "parentActiveDbfs": -40.0,
+    "parentMinActiveShare": 0.08,
+    "subMinRelDb": -20.0,
+    "subActiveFloorDbfs": -50.0,
+    "subActiveFloorRelDb": -25.0,
+    "subMinActiveShare": 0.05,
+    "minKept": 2,
+    "maxReconstructionDb": -30.0
+  },
+  "fixtures": {
+    "detail_silent_parent.wav": {
+      "kind": "parent",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -79.97,
+      "activeShare": 0.0,
+      "parent": "piano",
+      "expectedOutcome": "skipped-silent",
+      "expectedStems": [],
+      "components": [],
+      "reconstructionErrorDb": null
+    },
+    "detail_bleed_parent.wav": {
+      "kind": "parent",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -30.04,
+      "activeShare": 0.0408,
+      "parent": "other",
+      "expectedOutcome": "skipped-silent",
+      "expectedStems": [],
+      "components": [],
+      "reconstructionErrorDb": null
+    },
+    "detail_drums_kick.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -32.07,
+      "activeShare": 0.127,
+      "parent": "drums",
+      "name": "kick"
+    },
+    "detail_drums_snare.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -32.59,
+      "activeShare": 0.1515,
+      "parent": "drums",
+      "name": "snare"
+    },
+    "detail_drums_hihat.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -34.02,
+      "activeShare": 0.2296,
+      "parent": "drums",
+      "name": "hihat"
+    },
+    "detail_drums_sum.wav": {
+      "kind": "parent",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -28.0,
+      "activeShare": 0.3951,
+      "parent": "drums",
+      "expectedOutcome": "split",
+      "expectedStems": [
+        "kick",
+        "snare",
+        "hihat",
+        "rest"
+      ],
+      "components": [
+        {
+          "name": "kick",
+          "file": "detail_drums_kick.wav",
+          "relEnergyDb": -4.07,
+          "activeShare": 0.1643
+        },
+        {
+          "name": "snare",
+          "file": "detail_drums_snare.wav",
+          "relEnergyDb": -4.59,
+          "activeShare": 0.1993
+        },
+        {
+          "name": "hihat",
+          "file": "detail_drums_hihat.wav",
+          "relEnergyDb": -6.02,
+          "activeShare": 0.2681
+        }
+      ],
+      "reconstructionErrorDb": -200.0
+    },
+    "detail_vocals_lead.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -12.99,
+      "activeShare": 1.0,
+      "parent": "vocals",
+      "name": "lead"
+    },
+    "detail_vocals_backing.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -24.04,
+      "activeShare": 0.4079,
+      "parent": "vocals",
+      "name": "backing"
+    },
+    "detail_vocals_sum.wav": {
+      "kind": "parent",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -12.66,
+      "activeShare": 1.0,
+      "parent": "vocals",
+      "expectedOutcome": "split",
+      "expectedStems": [
+        "lead",
+        "backing",
+        "rest"
+      ],
+      "components": [
+        {
+          "name": "lead",
+          "file": "detail_vocals_lead.wav",
+          "relEnergyDb": -0.33,
+          "activeShare": 1.0
+        },
+        {
+          "name": "backing",
+          "file": "detail_vocals_backing.wav",
+          "relEnergyDb": -11.38,
+          "activeShare": 0.4068
+        }
+      ],
+      "reconstructionErrorDb": -200.0
+    },
+    "detail_instruments_strings.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -16.45,
+      "activeShare": 1.0,
+      "parent": "other",
+      "name": "strings"
+    },
+    "detail_instruments_brass.wav": {
+      "kind": "component",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -25.7,
+      "activeShare": 0.2739,
+      "parent": "other",
+      "name": "brass"
+    },
+    "detail_instruments_sum.wav": {
+      "kind": "parent",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -16.0,
+      "activeShare": 1.0,
+      "parent": "other",
+      "expectedOutcome": "split",
+      "expectedStems": [
+        "strings",
+        "brass",
+        "rest"
+      ],
+      "components": [
+        {
+          "name": "strings",
+          "file": "detail_instruments_strings.wav",
+          "relEnergyDb": -0.46,
+          "activeShare": 1.0
+        },
+        {
+          "name": "brass",
+          "file": "detail_instruments_brass.wav",
+          "relEnergyDb": -9.71,
+          "activeShare": 0.2762
+        }
+      ],
+      "reconstructionErrorDb": -200.0
+    },
+    "detail_10s_band.wav": {
+      "kind": "band",
+      "durationSeconds": 10.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "levelDbfs": -19.24,
+      "activeShare": 1.0,
+      "bpm": 120,
+      "parents": [
+        "vocals",
+        "drums",
+        "bass",
+        "other"
+      ]
+    }
+  }
+}

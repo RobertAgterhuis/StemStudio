@@ -64,9 +64,9 @@ committed contract and is faked:
 - [x] T006 [P] [quality-gate] Write failing tests in `tools/quality/tests/` asserting that `sig_check.py`, `duplication.py` and `dependency_check.py` skip `worker/src/stemstudio_worker/detail/vendor/**` and that `detail` may import only `ports`, `schemas`, `config` and its own `vendor` (plan.md Complexity Tracking)
 - [x] T007 [quality-gate] Implement the exclusion and the dependency rule; re-run `tools/quality/run_all.py` and update `docs/quality/SIG-REPORT.md`
 - [x] T008 [P] [devops] `docker-compose.yml`: worker `STEMSTUDIO_MODEL_DIR=/models` (existing `model-cache` volume), comment on the ~1.9 GB first download and the >= 20 GB Docker memory need; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_MODEL_DIR` and `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS`; CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/002-detail-separation/contracts`; `.github/workflows/e2e-real.yml` also runs the detail integration test with the cached model volume and a 60 min timeout
-- [ ] T009 [P] [qa] Write failing tests `tests/fixtures/tests/test_generate_detail_fixtures.py` (files exist, 44.1 kHz stereo, manifest values reproduced within 0.1 dB, deterministic hashes)
-- [ ] T010 [qa] Implement `tests/fixtures/generate_detail_fixtures.py`: `detail_silent_parent.wav` (-80 dBFS noise), `detail_bleed_parent.wav` (4 % active frames), `detail_drums_{kick,snare,hihat}.wav` + their sum, `detail_vocals_{lead,backing}.wav` + sum, `detail_instruments_{strings,brass}.wav` + sum, `detail_10s_band.wav` (input of the integration test); `tests/fixtures/detail-manifest.json` with expected outcomes per parent (SC-002, SC-003)
-- [ ] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: detail fakes per port, second integration test, `@detail` E2E scope, traceability US1..US5 -> test files
+- [x] T009 [P] [qa] Write failing tests `tests/fixtures/tests/test_generate_detail_fixtures.py` (files exist, 44.1 kHz stereo, manifest values reproduced within 0.1 dB, deterministic hashes)
+- [x] T010 [qa] Implement `tests/fixtures/generate_detail_fixtures.py`: `detail_silent_parent.wav` (-80 dBFS noise), `detail_bleed_parent.wav` (4 % active frames), `detail_drums_{kick,snare,hihat}.wav` + their sum, `detail_vocals_{lead,backing}.wav` + sum, `detail_instruments_{strings,brass}.wav` + sum, `detail_10s_band.wav` (input of the integration test); `tests/fixtures/detail-manifest.json` with expected outcomes per parent (SC-002, SC-003)
+- [x] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: detail fakes per port, second integration test, `@detail` E2E scope, traceability US1..US5 -> test files
 
 ---
 
@@ -149,7 +149,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### qa
 
-- [ ] T057 [US1] [qa] Author `e2e/tests/detail.spec.ts` "auto" (`@detail`, fake separator): import the fixture, standard completes, detail runs to completed, outcomes match the fake table, mixer usable during the phase (US1 AS1-AS3)
+- [x] T057 [US1] [qa] Author `e2e/tests/detail.spec.ts` "auto" (`@detail`, fake separator): import the fixture, standard completes, detail runs to completed, outcomes match the fake table, mixer usable during the phase (US1 AS1-AS3)
 
 **Checkpoint**: HO:us1 (stem-separation, backend, frontend, qa).
 
@@ -173,7 +173,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### qa
 
-- [ ] T064 [US2] [qa] Author `detail.spec.ts` "mixer": expand drums, mute snare -> `meter-drums-snare` silent while others move, solo kick, collapse/expand keeps settings, 50 loop repetitions alignment check through the engine debug hook already used by the 001 suite (US2 AS1-AS5, SC-004)
+- [x] T064 [US2] [qa] Author `detail.spec.ts` "mixer": expand drums, mute snare -> `meter-drums-snare` silent while others move, solo kick, collapse/expand keeps settings, 50 loop repetitions alignment check through the engine debug hook already used by the 001 suite (US2 AS1-AS5, SC-004)
 
 **Checkpoint**: HO:us2 (audio-engine, frontend, qa).
 
@@ -190,7 +190,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
 - [x] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
 - [x] T070 [US3] [frontend] Implement the actions in `TrackDetail.Detail.razor.cs` / `TrackDetail.Actions.cs` to pass T069
-- [ ] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
+- [x] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
 
 **Checkpoint**: HO:us3.
 
@@ -202,7 +202,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T073 [US4] [backend] Implement anything missing to pass T072
 - [x] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
 - [x] T075 [US4] [frontend] Implement to pass T074
-- [ ] T076 [US4] [qa] Author `detail.spec.ts` "split further": cancel the auto phase, Split further, detail completes, mixer offers expand
+- [x] T076 [US4] [qa] Author `detail.spec.ts` "split further": cancel the auto phase, Split further, detail completes, mixer offers expand
 
 **Checkpoint**: HO:us4.
 
@@ -214,7 +214,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
 - [x] T079 [P] [US5] [frontend] Failing bUnit tests: save sends expansion + detail settings; loading a mix applies them (engine `setExpanded` before `setChannel`); loading an old mix collapses all groups and restores 001 settings exactly; dirty flag on detail changes
 - [x] T080 [US5] [frontend] Implement to pass T079
-- [ ] T081 [US5] [qa] Author `detail.spec.ts` "mixes": save "No snare", reload, load -> expanded + snare muted; an old-style mix (created through the API without the fields) loads collapsed
+- [x] T081 [US5] [qa] Author `detail.spec.ts` "mixes": save "No snare", reload, load -> expanded + snare muted; an old-style mix (created through the API without the fields) loads collapsed
 
 **Checkpoint**: HO:us5.
 
@@ -226,7 +226,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
-- [ ] T086 [P] [qa] Traceability matrix update, HO:polish
+- [x] T086 [P] [qa] Traceability matrix update, HO:polish
 - [x] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 

@@ -8,13 +8,15 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --grep-invert \"@real|@restart\"",
+    "test": "playwright test --grep-invert \"@real|@restart|@worker-restart\"",
     "test:real": "playwright test --grep @real",
     "test:restart": "playwright test --grep @restart",
+    "test:detail": "playwright test --grep @detail --grep-invert @worker-restart",
+    "test:worker-restart": "playwright test --grep @worker-restart",
     "list": "playwright test --list",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py"
+    "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_detail_fixtures.py"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
