@@ -61,7 +61,7 @@ def test_double_count_is_the_kept_sum_relative_to_the_parent() -> None:
 
 
 @pytest.mark.parametrize(
-    ("kept", "residual", "double", "policy", "expected"),
+    "case",
     [
         (1, -40.0, 0.0, PARTITION, K.NOTHING_FURTHER),
         (0, -40.0, 0.0, FAMILIES, K.NOTHING_FURTHER),
@@ -75,8 +75,9 @@ def test_double_count_is_the_kept_sum_relative_to_the_parent() -> None:
     ],
 )
 def test_pre_write_outcome_follows_the_d04_order(
-    kept: int, residual: float, double: float, policy: CheckPolicy, expected: K | None
+    case: tuple[int, float, float, CheckPolicy, K | None],
 ) -> None:
+    kept, residual, double, policy, expected = case
     assert pre_write_outcome(kept, residual, double, policy) is expected
 
 
