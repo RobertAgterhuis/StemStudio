@@ -1,9 +1,9 @@
-"""Spotify track metadata and YouTube matching through spotDL.
+"""Spotify track metadata (spotDL) and YouTube matching (flat yt-dlp search).
 
-spotDL is used for two things only: reading a track's public metadata (title, artist, duration)
-and searching YouTube (Music) for a matching public video. Spotify audio is never requested, so
-no DRM-protected content is accessed (constitution IV). spotDL is imported lazily so that the
-worker starts, and unit tests run, without touching it.
+spotDL is used for one thing only: reading a track's public metadata (title, artist, duration).
+A matching public YouTube video is then found with a flat yt-dlp search. Spotify audio is never
+requested, so no DRM-protected content is accessed (constitution IV). Both libraries are
+imported lazily so that the worker starts, and unit tests run, without touching them.
 """
 
 import logging
@@ -26,6 +26,20 @@ METADATA_FAILED_MESSAGE: Final = (
 
 SEARCH_FAILED_MESSAGE: Final = "The YouTube search for this Spotify track failed; try again later."
 """Job error text when the YouTube search itself fails (network, provider error)."""
+
+SEARCH_CANDIDATES: Final = 5
+"""Number of YouTube search results considered for a match."""
+
+DURATION_TOLERANCE_SECONDS: Final = 10.0
+DURATION_TOLERANCE_RATIO: Final = 0.1
+"""A candidate matches when its duration is within max(10 s, 10 %) of the Spotify duration."""
+
+_FLAT_SEARCH_OPTIONS: Final[dict[str, Any]] = {
+    "quiet": True,
+    "no_warnings": True,
+    "skip_download": True,
+    "extract_flat": "in_playlist",
+}
 
 _LOG = logging.getLogger(__name__)
 _CLIENT_LOCK = threading.Lock()
@@ -103,7 +117,7 @@ class SpotdlMetadataClient:
 
 
 class SpotdlYouTubeMatcher:
-    """``YouTubeMatcher`` backed by spotDL's YouTube Music / YouTube search providers."""
+    """``YouTubeMatcher`` searching YouTube (flat yt-dlp search) for a spotDL ``Song``."""
 
     def __init__(self, search: Callable[[Any], str | None] | None = None) -> None:
         """Create the matcher.
@@ -141,20 +155,42 @@ def load_spotdl_song(url: str) -> Any:
 
 
 def search_youtube_with_spotdl(song: Any) -> str | None:
-    """Search YouTube Music, then YouTube, for ``song`` and return the first match URL.
+    """Search YouTube for ``song`` with a flat yt-dlp search and return the best match URL.
+
+    spotDL's own providers run a full extraction (with JavaScript challenge solving) for every
+    candidate, which takes minutes; a flat search returns id, title and duration in seconds.
 
     Args:
-        song: A spotDL ``Song``.
+        song: A spotDL ``Song`` (``name``, ``artist``, ``duration``).
 
     Returns:
-        A YouTube video URL, or None when neither provider found a match.
+        A YouTube video URL, or None when no candidate has a plausible duration.
     """
-    from spotdl.providers.audio import YouTube, YouTubeMusic  # noqa: PLC0415 - lazy import
+    from yt_dlp import YoutubeDL  # noqa: PLC0415 - lazy: heavy import
 
-    for provider_type in (YouTubeMusic, YouTube):
-        url: str | None = provider_type().search(song)
-        if url:
-            return url
+    query = f"ytsearch{SEARCH_CANDIDATES}:{song.artist} - {song.name}"
+    with YoutubeDL(_FLAT_SEARCH_OPTIONS) as ydl:
+        result = ydl.extract_info(query, download=False) or {}
+    return pick_match(result.get("entries") or [], float(song.duration or 0))
+
+
+def pick_match(entries: list[dict[str, Any]], duration_seconds: float) -> str | None:
+    """Return the watch URL of the first entry whose duration is close to ``duration_seconds``.
+
+    Args:
+        entries: Flat yt-dlp search entries (``id``, ``duration``), best first.
+        duration_seconds: Spotify duration; 0 means unknown, so the first entry wins.
+
+    Returns:
+        ``https://www.youtube.com/watch?v=<id>``, or None when no entry qualifies.
+    """
+    tolerance = max(DURATION_TOLERANCE_SECONDS, duration_seconds * DURATION_TOLERANCE_RATIO)
+    for entry in entries:
+        length = float(entry.get("duration") or 0)
+        if entry.get("id") and (
+            duration_seconds <= 0 or abs(length - duration_seconds) <= tolerance
+        ):
+            return f"https://www.youtube.com/watch?v={entry['id']}"
     return None
 
 

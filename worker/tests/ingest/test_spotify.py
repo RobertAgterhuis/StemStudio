@@ -171,49 +171,67 @@ def test_load_spotdl_song_tolerates_a_client_initialised_elsewhere() -> None:
     assert len(_FakeSpotifyClient.init_calls) == 1
 
 
-def _provider(url: str | None, calls: list[str]) -> type:
-    class Provider:
-        def search(self, song: object) -> str | None:
-            calls.append(type(self).__name__)
-            return url
+def _fake_youtube_dl(result: dict[str, Any] | None, seen: list[Any]) -> type:
+    class FakeYoutubeDL:
+        def __init__(self, options: dict[str, Any]) -> None:
+            seen.append(options)
 
-    return Provider
+        def __enter__(self) -> "FakeYoutubeDL":
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+        def extract_info(self, query: str, download: bool) -> dict[str, Any] | None:
+            seen.append((query, download))
+            return result
+
+    return FakeYoutubeDL
 
 
-@pytest.mark.usefixtures("fake_spotdl")
-def test_search_prefers_youtube_music_then_falls_back_to_youtube(
+def test_search_runs_one_flat_yt_dlp_search_and_picks_a_match(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[str] = []
-    _install(
-        monkeypatch,
-        "spotdl.providers.audio",
-        YouTubeMusic=_provider(None, calls),
-        YouTube=_provider("https://www.youtube.com/watch?v=abcdefghijk", calls),
-    )
+    seen: list[Any] = []
+    entries = [{"id": "abcdefghijk", "duration": 199.0}]
+    _install(monkeypatch, "yt_dlp", YoutubeDL=_fake_youtube_dl({"entries": entries}, seen))
 
     url = spotify.search_youtube_with_spotdl(FakeSong())
 
     assert url == "https://www.youtube.com/watch?v=abcdefghijk"
-    assert len(calls) == 2
+    assert seen[0]["extract_flat"] == "in_playlist"
+    assert seen[1] == ("ytsearch5:Main Artist - Song Name", False)
 
 
-@pytest.mark.usefixtures("fake_spotdl")
-def test_search_returns_first_hit_and_none_without_hits(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[str] = []
-    _install(
-        monkeypatch,
-        "spotdl.providers.audio",
-        YouTubeMusic=_provider("https://music.youtube.com/watch?v=abcdefghijk", calls),
-        YouTube=_provider(None, calls),
-    )
-    assert spotify.search_youtube_with_spotdl(FakeSong()) is not None
-    assert len(calls) == 1
+@pytest.mark.parametrize("result", [None, {}, {"entries": None}, {"entries": []}])
+def test_search_without_results_returns_none(
+    monkeypatch: pytest.MonkeyPatch, result: dict[str, Any] | None
+) -> None:
+    _install(monkeypatch, "yt_dlp", YoutubeDL=_fake_youtube_dl(result, []))
 
-    _install(
-        monkeypatch,
-        "spotdl.providers.audio",
-        YouTubeMusic=_provider(None, calls),
-        YouTube=_provider(None, calls),
-    )
     assert spotify.search_youtube_with_spotdl(FakeSong()) is None
+
+
+def test_pick_match_skips_entries_with_implausible_duration_or_no_id() -> None:
+    entries: list[dict[str, Any]] = [
+        {"id": "longversion", "duration": 3750},
+        {"id": None, "duration": 200},
+        {"id": "rightlength", "duration": 190},
+    ]
+
+    assert spotify.pick_match(entries, 201.0) == "https://www.youtube.com/watch?v=rightlength"
+
+
+def test_pick_match_tolerance_is_ten_percent_for_long_tracks() -> None:
+    assert spotify.pick_match([{"id": "a", "duration": 540}], 600.0) is not None
+    assert spotify.pick_match([{"id": "a", "duration": 539}], 600.0) is None
+
+
+def test_pick_match_with_unknown_duration_takes_the_first_entry() -> None:
+    entries: list[dict[str, Any]] = [{"id": "first"}, {"id": "second", "duration": 10}]
+
+    assert spotify.pick_match(entries, 0.0) == "https://www.youtube.com/watch?v=first"
+
+
+def test_pick_match_returns_none_when_nothing_qualifies() -> None:
+    assert spotify.pick_match([{"id": "a", "duration": 100}], 201.0) is None
