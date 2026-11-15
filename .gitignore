@@ -37,3 +37,6 @@ coverage.xml
 # src/web-interop (feature 004): also covered by the generic node_modules/ and coverage/ rules above.
 src/web-interop/node_modules/
 src/web-interop/coverage/
+
+# Local-only author mapping used by scripts/publish-github.* (never committed)
+.publish.mailmap

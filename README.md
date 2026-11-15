@@ -1,5 +1,7 @@
 # StemStudio
 
+[![ci](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/ci.yml)
+
 Practise along with your favourite songs. StemStudio imports a song (YouTube link, Spotify track
 link or a local MP3/WAV/FLAC file), splits it into instrument stems with
 [Demucs](https://github.com/adefossez/demucs), and gives you a mixer with a beat-synced
@@ -111,6 +113,15 @@ checked automatically by `tools/quality`. Contracts live in
 [`specs/001-stemstudio-mvp/contracts/`](specs/001-stemstudio-mvp/contracts/) (OpenAPI 3.1 for the
 API and the worker, plus the audio-engine interop contract). Design decisions are recorded in
 [`docs/decisions/`](docs/decisions/).
+
+## Manuals
+
+- User manual: [`docs/public/StemStudio-User-Manual.pdf`](docs/public/StemStudio-User-Manual.pdf)
+- Technical manual: [`docs/public/StemStudio-Technical-Manual.pdf`](docs/public/StemStudio-Technical-Manual.pdf)
+
+Online lookups (MusicBrainz, Wikimedia) identify StemStudio with a contact URL; set
+`STEMSTUDIO_CONTACT_URL=https://github.com/RobertAgterhuis/StemStudio` (or your own public page)
+in the environment. Without it a generic User-Agent without personal data is used.
 
 ## Development and quality gates
 
