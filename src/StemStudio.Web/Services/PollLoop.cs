@@ -12,9 +12,9 @@ public sealed class PollLoop(IPollingTimer timer)
     /// <summary>Starts the loop unless it is already running or not needed.</summary>
     /// <param name="needed">Whether another poll is needed (checked before every wait).</param>
     /// <param name="tick">One poll (load and re-render).</param>
-    /// <param name="settled">Optional action after the loop ended because nothing is needed any more.</param>
+    /// <param name="settled">Action after the loop ended because nothing is needed any more.</param>
     /// <param name="ct">Stops the loop (component disposed).</param>
-    public void Start(Func<bool> needed, Func<CancellationToken, Task> tick, Func<Task>? settled, CancellationToken ct)
+    public void Start(Func<bool> needed, Func<CancellationToken, Task> tick, Func<Task> settled, CancellationToken ct)
     {
         if (needed() && _running is not { IsCompleted: false })
         {
@@ -22,14 +22,14 @@ public sealed class PollLoop(IPollingTimer timer)
         }
     }
 
-    private async Task RunAsync(Func<bool> needed, Func<CancellationToken, Task> tick, Func<Task>? settled, CancellationToken ct)
+    private async Task RunAsync(Func<bool> needed, Func<CancellationToken, Task> tick, Func<Task> settled, CancellationToken ct)
     {
         while (needed() && await timer.WaitAsync(ct))
         {
             await tick(ct);
         }
 
-        if (!ct.IsCancellationRequested && settled is not null)
+        if (!ct.IsCancellationRequested)
         {
             await settled();
         }

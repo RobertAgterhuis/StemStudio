@@ -17,7 +17,7 @@ public sealed partial class TrackDetail
     /// <summary>A lookup settled in the panel: reload the track (status, cover) and keep polling if needed.</summary>
     private async Task OnBandInfoChangedAsync(BandInfoDto info)
     {
-        await RefreshAsync(_stop.Token);
+        await RefreshAsync(Stopping);
         StartPolling();
     }
 }

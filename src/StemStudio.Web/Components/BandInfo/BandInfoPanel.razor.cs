@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Api;
-using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.BandInfo;
 
@@ -12,17 +11,12 @@ namespace StemStudio.Web.Components.BandInfo;
 /// track moves it to pending), and offers retry and correction (FR-009). Raises <see cref="OnChanged"/> when a lookup settles,
 /// so the host can refresh the track (the cover may have changed).
 /// </summary>
-public sealed partial class BandInfoPanel : IDisposable
+public sealed partial class BandInfoPanel
 {
-    private readonly CancellationTokenSource _stop = new();
-    private PollLoop? _loop;
     private ElementReference _heading;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
-
-    [Inject]
-    private IPollingTimer Timer { get; set; } = default!;
 
     /// <summary>The track (its names prefill the correction dialog).</summary>
     [Parameter, EditorRequired]
@@ -50,14 +44,8 @@ public sealed partial class BandInfoPanel : IDisposable
 
     private bool CanCorrect => Info?.Status is MetadataStatusDto.Found or MetadataStatusDto.NotFound or MetadataStatusDto.Failed;
 
-    private bool NeedsPolling => Info?.Status is MetadataStatusDto.None or MetadataStatusDto.Pending or MetadataStatusDto.Searching;
-
     /// <inheritdoc />
-    public void Dispose()
-    {
-        _stop.Cancel();
-        _stop.Dispose();
-    }
+    protected override bool NeedsPolling => Info?.Status is MetadataStatusDto.None or MetadataStatusDto.Pending or MetadataStatusDto.Searching;
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
@@ -79,7 +67,7 @@ public sealed partial class BandInfoPanel : IDisposable
     {
         try
         {
-            Info = await Api.GetBandInfoAsync(Track.Id, _stop.Token);
+            Info = await Api.GetBandInfoAsync(Track.Id, Stopping);
             Error = null;
         }
         catch (ApiException ex)
@@ -88,15 +76,11 @@ public sealed partial class BandInfoPanel : IDisposable
         }
     }
 
-    private void StartPolling() => (_loop ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollOnceAsync, SettledAsync, _stop.Token);
+    /// <inheritdoc />
+    protected override Task RefreshAsync(CancellationToken ct) => LoadAsync();
 
-    private async Task PollOnceAsync(CancellationToken ct)
-    {
-        await LoadAsync();
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private Task SettledAsync() => InvokeAsync(() => OnChanged.InvokeAsync(Info!));
+    /// <inheritdoc />
+    protected override Task OnSettledAsync() => InvokeAsync(() => OnChanged.InvokeAsync(Info!));
 
     private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
 
@@ -130,7 +114,7 @@ public sealed partial class BandInfoPanel : IDisposable
     {
         try
         {
-            await Api.LookupMetadataAsync(Track.Id, request, _stop.Token);
+            await Api.LookupMetadataAsync(Track.Id, request, Stopping);
             return null;
         }
         catch (ApiException ex)

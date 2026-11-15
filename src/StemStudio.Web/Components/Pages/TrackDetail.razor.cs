@@ -9,17 +9,12 @@ namespace StemStudio.Web.Components.Pages;
 /// Track detail (<c>/tracks/{id}</c>): polls progress about once per second until the track is terminal and its
 /// detail phase is not queued or running (FR-008, US1-4, US1-8; 002 FR-007).
 /// </summary>
-public sealed partial class TrackDetail : IDisposable
+public sealed partial class TrackDetail
 {
-    private readonly CancellationTokenSource _stop = new();
-    private PollLoop? _loop;
     private IDisposable? _openMixer;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
-
-    [Inject]
-    private IPollingTimer Timer { get; set; } = default!;
 
     [Inject]
     private PageCommands Commands { get; set; } = default!;
@@ -41,15 +36,14 @@ public sealed partial class TrackDetail : IDisposable
     private IReadOnlyList<string> StemList => Track!.Stems.Select(s => s.Name).ToList();
 
     /// <summary>True while the standard separation, the detail phase or the online lookup is still in progress.</summary>
-    private bool NeedsPolling =>
+    protected override bool NeedsPolling =>
         !TrackStatusText.IsTerminal(Track!.Status) || DetailPhaseText.IsActive(Track.Detail.Status) || MetadataStatusText.IsActive(Track.Metadata.Status);
 
     /// <inheritdoc />
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         _openMixer?.Dispose();
-        _stop.Cancel();
-        _stop.Dispose();
+        base.Dispose(disposing);
     }
 
     /// <inheritdoc />
@@ -57,7 +51,7 @@ public sealed partial class TrackDetail : IDisposable
     {
         try
         {
-            Track = await Api.GetTrackAsync(Id, _stop.Token);
+            Track = await Api.GetTrackAsync(Id, Stopping);
             StartPolling();
         }
         catch (ApiException ex)
@@ -79,15 +73,8 @@ public sealed partial class TrackDetail : IDisposable
         }
     }
 
-    private void StartPolling() => (_loop ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollOnceAsync, null, _stop.Token);
-
-    private async Task PollOnceAsync(CancellationToken ct)
-    {
-        await RefreshAsync(ct);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task RefreshAsync(CancellationToken ct)
+    /// <inheritdoc />
+    protected override async Task RefreshAsync(CancellationToken ct)
     {
         try
         {

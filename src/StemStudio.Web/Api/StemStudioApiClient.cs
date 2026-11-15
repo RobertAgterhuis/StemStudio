@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Artists;
+using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
 using StemStudio.Contracts.Mixes;
@@ -98,6 +99,36 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<TrackDto> ResetArtworkAsync(Guid trackId, CancellationToken cancellationToken = default) =>
         SendAsync<TrackDto>(HttpMethod.Delete, ApiRoutes.TrackArtworkUpload(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetListDto> ListAssetsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync<AssetListDto>(HttpMethod.Get, $"{ApiRoutes.Assets}?limit={ContractLimits.MaxAssetPageSize}", null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetDto> GetAssetAsync(Guid assetId, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Get, ApiRoutes.Asset(assetId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetDto> CreateAudioExportAsync(CreateAudioExportRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.AudioExports, JsonBody(request), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<StemPackDto> CreateStemPackAsync(CreateStemPackRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<StemPackDto>(HttpMethod.Post, ApiRoutes.StemPacks, JsonBody(request), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetDto> RenameAssetAsync(Guid assetId, string name, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Patch, ApiRoutes.Asset(assetId), JsonBody(new RenameAssetRequest(name)), cancellationToken);
+
+    /// <inheritdoc />
+    public async Task DeleteAssetAsync(Guid assetId, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendRawAsync(HttpMethod.Delete, ApiRoutes.Asset(assetId), null, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<AssetDto> RetryAssetAsync(Guid assetId, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.RetryAsset(assetId), null, cancellationToken);
 
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;

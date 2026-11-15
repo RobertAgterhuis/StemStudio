@@ -1,0 +1,110 @@
+/* Export actions, export dialog and the library page (feature 007; design-spec.md 2, 4.10). Tokens only. */
+
+.ss-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin: var(--ss-space-2) 0 var(--ss-space-4);
+}
+
+.ss-export-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  min-height: var(--ss-target-min);
+  padding: 0 var(--ss-space-2);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-pill);
+}
+
+.ss-export-dialog {
+  width: min(34rem, 100%);
+  max-height: calc(100vh - 2 * var(--ss-space-4));
+  overflow-y: auto;
+}
+
+.ss-export-dialog .ss-field {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin-bottom: var(--ss-space-3);
+}
+
+.ss-export-dialog fieldset {
+  margin: 0 0 var(--ss-space-3);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+}
+
+.ss-check {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-height: var(--ss-target-min);
+}
+
+.ss-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--ss-space-1) var(--ss-space-3);
+}
+
+.ss-range-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-3);
+}
+
+.ss-range-row input {
+  width: 7rem;
+}
+
+.ss-export-saved {
+  padding: var(--ss-space-3);
+  border-left: 3px solid var(--ss-color-success);
+  background: var(--ss-color-surface);
+}
+
+.ss-asset-name {
+  display: block;
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-asset-facts {
+  display: block;
+}
+
+.ss-asset-status {
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-asset-failed {
+  color: var(--ss-color-danger);
+}
+
+.ss-asset-table audio {
+  max-width: 14rem;
+  height: var(--ss-control-height);
+}
+
+.ss-row-highlight {
+  outline: 2px solid var(--ss-color-focus);
+  outline-offset: -2px;
+}
+
+.ss-gain-note {
+  display: block;
+  color: var(--ss-color-warning);
+}
+
+@media (max-width: 48rem) {
+  .ss-asset-table thead {
+    display: none;
+  }
+
+  .ss-asset-table tr,
+  .ss-asset-table td {
+    display: block;
+  }
+}

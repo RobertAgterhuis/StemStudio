@@ -1,0 +1,11 @@
+@* Source of a mixer export (feature 007, US2): placeholder until T045. *@
+
+@code {
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+
+    /// <summary>Raised when the choice changed (the dialog re-renders its submit state).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+}

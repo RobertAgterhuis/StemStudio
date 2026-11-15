@@ -22,6 +22,7 @@
             <li data-testid="@($"track-stem-{stem.Name}")"><StemTab Stem="@stem.Name" /></li>
         }
     </ul>
+    <ExportButtons Channels="StemIds" OnExport="OnExport" />
 
     <a class="rz-button rz-button-md rz-variant-filled rz-primary rz-shade-default ss-link-button"
        href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer" data-help-id="open-mixer">Open mixer</a>
@@ -31,4 +32,10 @@
     /// <summary>The completed track.</summary>
     [Parameter, EditorRequired]
     public TrackDto Track { get; set; } = default!;
+
+    /// <summary>Raised with a stem name to save it raw to the library (feature 007).</summary>
+    [Parameter]
+    public EventCallback<string> OnExport { get; set; }
+
+    private IReadOnlyList<string> StemIds => Track.Stems.Select(s => s.Name).ToList();
 }

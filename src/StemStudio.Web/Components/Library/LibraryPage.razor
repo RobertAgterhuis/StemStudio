@@ -1,0 +1,46 @@
+@page "/library"
+@inherits PollingComponent
+@* The library (feature 007, FR-007, FR-008; design-spec 4.x states): every saved item, newest first, with the total size;
+   items that are still rendering are polled until they are ready or failed. *@
+
+<PageTitle>Library - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-library">
+    <header class="ss-page-head ss-page-head-row" data-help-id="library">
+        <div>
+            <div class="ss-label-row"><h1>Library</h1><HelpHint HelpId="library" /></div>
+            <p class="ss-muted ss-small">Total size <span class="ss-num" data-testid="library-total-size">@ByteSize.Format(TotalSize)</span></p>
+        </div>
+    </header>
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="library-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+
+    @if (Items is null)
+    {
+        @if (Error is null)
+        {
+            <Skeleton Lines="4" />
+        }
+    }
+    else if (Visible.Count == 0)
+    {
+        <EmptyState TestId="library-empty" Text="@EmptyText" />
+    }
+    else
+    {
+        <table class="ss-table ss-asset-table">
+            <thead>
+                <tr><th>Item</th><th>Source</th><th>Status</th><th>Created</th><th><span class="ss-sr-only">Play and actions</span></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var asset in Visible)
+                {
+                    <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" />
+                }
+            </tbody>
+        </table>
+    }
+</div>

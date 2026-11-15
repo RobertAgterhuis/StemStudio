@@ -40,8 +40,8 @@ public sealed partial class StemStudioApiClientTests
         asset.Status.ShouldBe(AssetStatusDto.Queued);
         var sent = _handler.Requests.ShouldHaveSingleItem();
         (sent.Method, sent.PathAndQuery).ShouldBe((HttpMethod.Post, "/api/assets/audio-exports"));
-        sent.Body.ShouldContain("\"mode\":\"raw\"");
-        sent.Body.ShouldContain("\"channels\":[\"bass\"]");
+        sent.Body!.ShouldContain("\"mode\":\"raw\"");
+        sent.Body!.ShouldContain("\"channels\":[\"bass\"]");
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed partial class StemStudioApiClientTests
         pack.Items.Count.ShouldBe(1);
         var sent = _handler.Requests.ShouldHaveSingleItem();
         sent.PathAndQuery.ShouldBe("/api/assets/stem-packs");
-        sent.Body.ShouldContain("\"includeDetail\":true");
+        sent.Body!.ShouldContain("\"includeDetail\":true");
     }
 
     [Fact]
