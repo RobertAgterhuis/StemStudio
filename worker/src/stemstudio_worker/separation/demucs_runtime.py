@@ -18,9 +18,7 @@ _OVERLAP = 0.25
 
 def default_runtime() -> DemucsRuntime:
     """Return the runtime backed by the installed demucs and torch packages."""
-    return DemucsRuntime(
-        load=load_pretrained, apply=apply_pretrained, cuda_available=cuda_available
-    )
+    return DemucsRuntime(load=load_pretrained, apply=apply_pretrained)
 
 
 def load_pretrained(name: str) -> DemucsModel:
@@ -52,13 +50,6 @@ def apply_pretrained(
             cast(Any, model), normalised, device=device, overlap=_OVERLAP, callback=tracker
         )
     return np.asarray((out[0] * std + mean).cpu().numpy(), dtype=np.float32)
-
-
-def cuda_available() -> bool:
-    """Return whether torch can use a CUDA device."""
-    import torch  # noqa: PLC0415 - heavy, optional import
-
-    return bool(torch.cuda.is_available())
 
 
 class _SegmentTracker:

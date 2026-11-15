@@ -14,6 +14,7 @@ from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
 from stemstudio_worker.detail import create_detail_pipeline
+from stemstudio_worker.devices import create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.runtime import WorkerRuntime
@@ -59,7 +60,7 @@ def default_adapters(settings: WorkerSettings) -> PipelineAdapters:
     """Build the production adapters from the ingest, separation and analysis factories."""
     return PipelineAdapters(
         ingest=create_ingest_adapters(settings),
-        separator=create_separator(settings),
+        separator=create_separator(settings, create_device_runner(settings)),
         analyzer=create_beat_analyzer(settings),
     )
 
