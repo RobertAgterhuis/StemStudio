@@ -151,8 +151,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T045 [US3] [stem-separation] Implement `api/artwork_routes.py` to pass T044
 - [x] T046 [P] [US3] [backend] Failing tests `UserArtworkEndpointTests.cs`: `PUT /api/tracks/{id}/artwork` streams to the worker (10 MiB limit enforced while streaming, 413), stores `user/` files, `Artwork.source = user`; worker errors mapped to problem details; 503 when the worker is down; `DELETE` returns to `AutoArtwork` (or none) and deletes `user/` files (FR-013)
 - [x] T047 [US3] [backend] Implement in `Api/Artwork/*` to pass T046
-- [ ] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
-- [ ] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
+- [x] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
+- [x] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
 - [ ] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
 
 **Checkpoint**: HO:us3.
