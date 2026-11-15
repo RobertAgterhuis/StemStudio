@@ -33,7 +33,10 @@ def _read_all(inputs: list[InputFile], span: FrameRange, block: int) -> list[Sam
 
 
 def test_frames_is_the_longest_input(tmp_path: Path) -> None:
-    inputs = [_flac(tmp_path / "a.flac", _ints(100)), _flac(tmp_path / "b.flac", _ints(250, seed=1))]
+    inputs = [
+        _flac(tmp_path / "a.flac", _ints(100)),
+        _flac(tmp_path / "b.flac", _ints(250, seed=1)),
+    ]
     with open_inputs(inputs) as opened:
         assert opened.frames == 250
 
