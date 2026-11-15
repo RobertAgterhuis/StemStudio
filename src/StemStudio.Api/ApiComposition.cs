@@ -41,12 +41,17 @@ public static class ApiComposition
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
-        services.AddWorkerClient(builder.Configuration);
-        services.AddGeneratorClient(builder.Configuration);
-        services.TryAddSingleton(TimeProvider.System);
+        AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
         return builder;
+    }
+
+    private static void AddServiceClients(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddWorkerClient(configuration);
+        services.AddGeneratorClient(configuration);
+        services.TryAddSingleton(TimeProvider.System);
     }
 
     /// <summary>Creates the data directory, applies migrations and maps middleware and endpoints.</summary>

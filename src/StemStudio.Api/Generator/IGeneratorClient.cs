@@ -33,14 +33,12 @@ public interface IGeneratorClient
     Task<GeneratorJob?> CancelAsync(string generationId, CancellationToken cancellationToken);
 
     /// <summary>Streams a take into the destination and verifies its SHA-256.</summary>
-    /// <param name="generationId">Job id.</param>
-    /// <param name="index">Take number (1-2).</param>
+    /// <param name="take">The job, take number and expected hash.</param>
     /// <param name="destination">Destination stream.</param>
-    /// <param name="sha256">Expected SHA-256 (64 lower-case hex characters).</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
     /// <exception cref="GeneratorIntegrityException">The hash does not match.</exception>
-    Task DownloadTakeAsync(string generationId, int index, Stream destination, string sha256, CancellationToken cancellationToken);
+    Task DownloadTakeAsync(GeneratorTakeRef take, Stream destination, CancellationToken cancellationToken);
 
     /// <summary>Deletes a job and its files (404 counts as done).</summary>
     /// <param name="generationId">Job id.</param>

@@ -244,7 +244,7 @@ public sealed class GeneratorClientTests : IDisposable
         var (client, handler) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
         await using var destination = new MemoryStream();
 
-        await client.DownloadTakeAsync(Id, 2, destination, Sha(bytes), Ct);
+        await client.DownloadTakeAsync(new GeneratorTakeRef(Id, 2, Sha(bytes)), destination, Ct);
 
         destination.ToArray().ShouldBe(bytes);
         handler.Requests.Single().Uri.AbsolutePath.ShouldBe($"/v1/generations/{Id}/takes/2");
@@ -256,7 +256,7 @@ public sealed class GeneratorClientTests : IDisposable
         var (client, _) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1]) });
         await using var destination = new MemoryStream();
 
-        await Should.ThrowAsync<GeneratorIntegrityException>(() => client.DownloadTakeAsync(Id, 1, destination, new string('0', 64), Ct));
+        await Should.ThrowAsync<GeneratorIntegrityException>(() => client.DownloadTakeAsync(new GeneratorTakeRef(Id, 1, new string('0', 64)), destination, Ct));
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public sealed class GeneratorClientTests : IDisposable
         var (client, _) = Create(_ => GeneratorExamples.Problem(HttpStatusCode.NotFound, null, "No take"));
         await using var destination = new MemoryStream();
 
-        (await Should.ThrowAsync<GeneratorRequestException>(() => client.DownloadTakeAsync(Id, 1, destination, new string('0', 64), Ct))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await Should.ThrowAsync<GeneratorRequestException>(() => client.DownloadTakeAsync(new GeneratorTakeRef(Id, 1, new string('0', 64)), destination, Ct))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Theory]
@@ -296,7 +296,7 @@ public sealed class GeneratorClientTests : IDisposable
         var (client, handler) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK));
 
         await Should.ThrowAsync<ArgumentException>(() => client.GetAsync(id, Ct));
-        await Should.ThrowAsync<ArgumentException>(() => client.DownloadTakeAsync(Id, 0, Stream.Null, "x", Ct));
+        await Should.ThrowAsync<ArgumentException>(() => client.DownloadTakeAsync(new GeneratorTakeRef(Id, 0, "x"), Stream.Null, Ct));
         handler.Requests.ShouldBeEmpty();
     }
 

@@ -159,6 +159,12 @@ public sealed record GeneratorRestyleParams(
     double RangeStartSeconds,
     double RangeEndSeconds);
 
+/// <summary>A take to download.</summary>
+/// <param name="GenerationId">Job id.</param>
+/// <param name="Index">Take number (1-2).</param>
+/// <param name="Sha256">Expected SHA-256 (64 lower-case hex characters).</param>
+public sealed record GeneratorTakeRef(string GenerationId, int Index, string Sha256);
+
 /// <summary>A stem file sent to the generator.</summary>
 /// <param name="Name">Stem name (part file name <c>&lt;name&gt;.flac</c>).</param>
 /// <param name="FilePath">Absolute path of the FLAC file.</param>

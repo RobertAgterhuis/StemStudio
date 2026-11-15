@@ -68,18 +68,19 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
         ReadAsync<GeneratorJob>(new HttpRequestMessage(HttpMethod.Post, JobPath(generationId) + "/cancel"), true, cancellationToken);
 
     /// <inheritdoc />
-    public async Task DownloadTakeAsync(string generationId, int index, Stream destination, string sha256, CancellationToken cancellationToken)
+    public async Task DownloadTakeAsync(GeneratorTakeRef take, Stream destination, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(take);
         ArgumentNullException.ThrowIfNull(destination);
-        var path = $"{JobPath(generationId)}/takes/{TakeIndex(index)}";
+        var path = $"{JobPath(take.GenerationId)}/takes/{TakeIndex(take.Index)}";
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         using var response = await ExchangeAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await ThrowOnFailureAsync(request, response, cancellationToken);
         await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
         var copied = await HashingCopy.CopyAsync(source, destination, MaxTakeBytes, cancellationToken);
-        if (!string.Equals(copied.Sha256, sha256, StringComparison.Ordinal))
+        if (!string.Equals(copied.Sha256, take.Sha256, StringComparison.Ordinal))
         {
-            throw new GeneratorIntegrityException($"Take {index} of generation {generationId} is damaged (SHA-256 mismatch).");
+            throw new GeneratorIntegrityException($"Take {take.Index} of generation {take.GenerationId} is damaged (SHA-256 mismatch).");
         }
     }
 
@@ -134,14 +135,9 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
 
     private async Task<HttpResponseMessage> ExchangeAsync(HttpRequestMessage request, HttpCompletionOption completion, CancellationToken cancellationToken)
     {
-        if (!IsConfigured)
-        {
-            throw new GeneratorNotInstalledException();
-        }
-
         try
         {
-            return await http.SendAsync(request, completion, cancellationToken);
+            return await http.SendAsync(RequireConfigured(request), completion, cancellationToken);
         }
         catch (Exception exception) when (IsTransportFailure(exception, cancellationToken))
         {
@@ -150,6 +146,8 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
             throw new GeneratorUnavailableException("The generator service cannot be reached.", exception);
         }
     }
+
+    private HttpRequestMessage RequireConfigured(HttpRequestMessage request) => IsConfigured ? request : throw new GeneratorNotInstalledException();
 
     private static bool IsTransportFailure(Exception exception, CancellationToken cancellationToken) =>
         exception is HttpRequestException or TimeoutRejectedException or BrokenCircuitException
@@ -165,9 +163,7 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
 
         if (status >= 500)
         {
-            var failed = Describe(request);
-            LogUnreachable(logger, failed, "HTTP " + status.ToString(CultureInfo.InvariantCulture));
-            throw new GeneratorUnavailableException($"The generator service answered {status}.");
+            throw ServerFailure(request, status);
         }
 
         var problem = await ProblemAsync(response, cancellationToken);
@@ -176,13 +172,20 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
         throw new GeneratorRequestException(response.StatusCode, problem.Code, problem.Detail);
     }
 
+    private GeneratorUnavailableException ServerFailure(HttpRequestMessage request, int status)
+    {
+        var failed = Describe(request);
+        LogUnreachable(logger, failed, "HTTP " + status.ToString(CultureInfo.InvariantCulture));
+        return new GeneratorUnavailableException($"The generator service answered {status}.");
+    }
+
     private static async Task<(GeneratorProblemCode? Code, string Detail)> ProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var fallback = response.ReasonPhrase ?? response.StatusCode.ToString();
         try
         {
-            var body = await response.Content.ReadFromJsonAsync<ProblemBody>(Json, cancellationToken);
-            return (CodeOf(body?.Code), body?.Detail ?? body?.Title ?? fallback);
+            var body = await response.Content.ReadFromJsonAsync<ProblemBody>(Json, cancellationToken) ?? new ProblemBody(null, null, null);
+            return (CodeOf(body.Code), body.Text(fallback));
         }
         catch (JsonException)
         {
@@ -211,5 +214,8 @@ public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorCl
     [GeneratedRegex(@"\A[0-9a-f]{32}\z", RegexOptions.CultureInvariant)]
     private static partial Regex JobIdPattern();
 
-    private sealed record ProblemBody(string? Title, string? Detail, string? Code);
+    private sealed record ProblemBody(string? Title, string? Detail, string? Code)
+    {
+        public string Text(string fallback) => Detail ?? Title ?? fallback;
+    }
 }
