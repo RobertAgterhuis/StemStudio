@@ -55,6 +55,7 @@ public static class ApiComposition
     {
         services.AddWorkerClient(configuration);
         services.AddGeneratorClient(configuration);
+        services.AddSingerClient(configuration);
         services.TryAddSingleton(TimeProvider.System);
     }
 

@@ -15,7 +15,7 @@ namespace StemStudio.Api.Generator;
 /// <param name="http">Client whose base address is the generator URL (null when not installed).</param>
 /// <param name="logger">Logger for generator problems (messages only).</param>
 /// <param name="clock">Clock for the health timeout.</param>
-public sealed partial class GeneratorClient(HttpClient http, ILogger<GeneratorClient> logger, TimeProvider clock) : IGeneratorClient
+public partial class GeneratorClient(HttpClient http, ILogger<GeneratorClient> logger, TimeProvider clock) : IGeneratorClient
 {
     /// <summary>Total time allowed for <c>GET /health</c> (backend <c>getGenerationStatus</c>: 2 s).</summary>
     public static readonly TimeSpan HealthTimeout = TimeSpan.FromSeconds(2);

@@ -115,7 +115,8 @@ public sealed class GeneratorClientSongVoiceTests : IDisposable
         await client.DownloadCheckedSampleAsync("2e4c6a8b0d1f43a5b7c9e1d3f5a7b9c1", sample, Ct);
         await client.DownloadTakeVocalAsync(Id, 1, vocal, Ct);
 
-        (sample.ToArray(), vocal.ToArray()).ShouldBe((new byte[] { 7, 8 }, new byte[] { 7, 8 }), ignoreOrder: false);
+        sample.ToArray().ShouldBe([7, 8]);
+        vocal.ToArray().ShouldBe([7, 8]);
         handler.Requests.Select(r => r.Uri.AbsolutePath).ShouldBe(["/v1/voice-samples/2e4c6a8b0d1f43a5b7c9e1d3f5a7b9c1/audio", $"/v1/generations/{Id}/takes/1/vocal"]);
         await Should.ThrowAsync<ArgumentException>(() => client.DownloadCheckedSampleAsync("../x", sample, Ct));
     }

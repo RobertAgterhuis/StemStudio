@@ -17,6 +17,9 @@ public sealed class StemStudioApiOptions
     /// <summary>Base URL of the generator service (feature 009, <c>StemStudio__GeneratorBaseUrl</c>); unset = generation not installed.</summary>
     public Uri? GeneratorBaseUrl { get; set; }
 
+    /// <summary>Base URL of the singer service (feature 010, <c>StemStudio__SingerBaseUrl</c>); unset = voice features not installed.</summary>
+    public Uri? SingerBaseUrl { get; set; }
+
     /// <summary>Attempt timeout for creating a generator job (POST with up to six stems).</summary>
     public TimeSpan GeneratorCreateTimeout { get; set; } = TimeSpan.FromMinutes(5);
 

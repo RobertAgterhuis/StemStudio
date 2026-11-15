@@ -23,7 +23,13 @@ public sealed record GeneratorHealth(
     string? Reason,
     GeneratorDevice Device,
     IReadOnlyList<GeneratorModel> Models,
-    GeneratorQueueState Queue);
+    GeneratorQueueState Queue)
+{
+    /// <summary>Whether this instance accepts a job kind.</summary>
+    /// <param name="kind">The wire kind.</param>
+    /// <returns>True when served.</returns>
+    public bool Serves(string kind) => Kinds.Contains(kind, StringComparer.Ordinal);
+}
 
 /// <summary>The device of a service (same shape and reason texts as worker 1.2.0 <c>DeviceInfo</c>).</summary>
 /// <param name="Kind"><c>gpu</c> or <c>cpu</c>.</param>

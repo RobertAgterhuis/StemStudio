@@ -40,6 +40,40 @@ public interface IGeneratorClient
     /// <exception cref="GeneratorIntegrityException">The hash does not match.</exception>
     Task DownloadTakeAsync(GeneratorTakeRef take, Stream destination, CancellationToken cancellationToken);
 
+    /// <summary>Creates a song job (JSON, no audio; 1.1.0); never retried.</summary>
+    /// <param name="song">The parameters.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    Task<GeneratorJob> CreateSongAsync(GeneratorSongParams song, CancellationToken cancellationToken);
+
+    /// <summary>Creates a voice-conversion job (multipart <c>target</c>, <c>prompt</c>, <c>accompaniment</c>; singer, 1.1.0).</summary>
+    /// <param name="request">The request.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    Task<GeneratorJob> CreateVoiceConversionAsync(GeneratorVoiceConversionRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Checks a voice sample (duration, voiced ratio; singer, 1.1.0).</summary>
+    /// <param name="sample">The sample bytes.</param>
+    /// <param name="fileName">Its file name.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The check.</returns>
+    Task<GeneratorSampleCheck> CheckVoiceSampleAsync(Stream sample, string fileName, CancellationToken cancellationToken);
+
+    /// <summary>Downloads the normalised sample of an ok check (once, within 10 minutes).</summary>
+    /// <param name="checkId">The check id.</param>
+    /// <param name="destination">Destination stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    Task DownloadCheckedSampleAsync(string checkId, Stream destination, CancellationToken cancellationToken);
+
+    /// <summary>Downloads the converted vocal of a voice-conversion take.</summary>
+    /// <param name="generationId">Job id.</param>
+    /// <param name="index">Take number.</param>
+    /// <param name="destination">Destination stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    Task DownloadTakeVocalAsync(string generationId, int index, Stream destination, CancellationToken cancellationToken);
+
     /// <summary>Deletes a job and its files (404 counts as done).</summary>
     /// <param name="generationId">Job id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
