@@ -58,16 +58,5 @@ public sealed partial class LibraryPage
 
     private void Replace(AssetDto asset) => Items = [.. Items!.Select(a => a.Id == asset.Id ? asset : a)];
 
-    private async Task RunAsync(Func<Task> action)
-    {
-        try
-        {
-            await action();
-            ActionError = null;
-        }
-        catch (ApiException ex)
-        {
-            ActionError = ex.Error.UserMessage;
-        }
-    }
+    private async Task RunAsync(Func<Task> action) => ActionError = await ApiCall.RunAsync(action);
 }

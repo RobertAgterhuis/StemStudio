@@ -1,23 +1,11 @@
-@* Confirmation dialog with its own test ids (features 009/010: generation, style, lyrics and voice profile deletion,
-   ui-test-ids 1.8.0/1.9.0 `*-delete-confirm`). Extra choices such as "also delete the converted takes" go in the
-   child content. Escape and Cancel close it without confirming. *@
-@inherits ModalDialog
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
-<div class="ss-modal-backdrop">
-    <div class="ss-modal ss-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="@TitleId" aria-describedby="@MessageId"
-         @onkeydown="OnKeyAsync">
-        <h2 id="@TitleId" class="ss-title" tabindex="-1" @ref="InitialFocus">@Title</h2>
-        <p id="@MessageId" class="ss-dialog-message">@Message</p>
-        @ChildContent
-        <div class="ss-dialog-actions">
-            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" Disabled="Busy" data-testid="@($"{TestIdPrefix}-cancel")" />
-            <RadzenButton Text="@ConfirmText" ButtonStyle="ButtonStyle.Danger" Click="ConfirmAsync" IsBusy="Busy" BusyText="Deleting..."
-                          data-testid="@($"{TestIdPrefix}-confirm")" />
-        </div>
-    </div>
-</div>
+namespace StemStudio.Web.Components.Design;
 
-@code {
+/// <summary>A modal confirmation with <c>&lt;prefix&gt;-confirm</c> / <c>&lt;prefix&gt;-cancel</c> buttons (features 009/010).</summary>
+public sealed partial class ConfirmModal
+{
     /// <summary>Dialog title, e.g. "Delete generation".</summary>
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;
@@ -52,7 +40,7 @@
 
     private string MessageId => $"{TestIdPrefix}-message";
 
-    private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;
+    private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, OnCancel);
 
     private async Task ConfirmAsync()
     {

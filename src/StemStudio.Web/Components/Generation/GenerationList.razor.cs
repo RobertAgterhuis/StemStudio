@@ -85,16 +85,5 @@ public sealed partial class GenerationList
 
     private void Replace(GenerationDto generation) => Items = [.. Items!.Select(g => g.Id == generation.Id ? generation : g)];
 
-    private async Task RunAsync(Func<Task> action)
-    {
-        try
-        {
-            await action();
-            ActionError = null;
-        }
-        catch (ApiException ex)
-        {
-            ActionError = ex.Error.UserMessage;
-        }
-    }
+    private async Task RunAsync(Func<Task> action) => ActionError = await ApiCall.RunAsync(action);
 }

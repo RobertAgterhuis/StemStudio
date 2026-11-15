@@ -3,6 +3,7 @@
 @using Microsoft.Extensions.Options
 @using StemStudio.Contracts.Generation
 @inject IOptions<StemStudioWebOptions> Options
+@inherits TakeComponent
 
 <li class="ss-take">
     <div class="ss-take-head">
@@ -26,14 +27,6 @@
 </li>
 
 @code {
-    /// <summary>The generation of the take.</summary>
-    [Parameter, EditorRequired]
-    public GenerationDto Generation { get; set; } = default!;
-
-    /// <summary>The take.</summary>
-    [Parameter, EditorRequired]
-    public GenerationTakeDto Take { get; set; } = default!;
-
     /// <summary>"Import as track" pressed; the button is busy until the task completes.</summary>
     [Parameter]
     public EventCallback<GenerationTakeDto> OnImport { get; set; }
@@ -46,8 +39,6 @@
         await OnImport.InvokeAsync(Take);
         Importing = false;
     }
-
-    private string Key => $"{Generation.Id}-{Take.Index}";
 
     private string Url(string relative) => new Uri(Options.Value.PublicApiBaseUrl, relative).ToString();
 }

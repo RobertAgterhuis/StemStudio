@@ -35,17 +35,11 @@ public sealed partial class RestyleDialog
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        try
-        {
-            Form = new RestyleForm(Track, await Api.ListStylesAsync());
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-        }
+        (var styles, Error) = await ApiCall.TryAsync(() => Api.ListStylesAsync());
+        Form = styles is null ? null : new RestyleForm(Track, styles);
     }
 
-    private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
+    private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, OnClose);
 
     private void OnStyleChanged(ChangeEventArgs args) => Form!.SelectStyle(Guid.Parse((string)args.Value!));
 
@@ -60,15 +54,6 @@ public sealed partial class RestyleDialog
         }
     }
 
-    private async Task SendAsync()
-    {
-        try
-        {
-            await OnStarted.InvokeAsync(await Api.CreateRestyleAsync(Track.Id, Form!.Request()));
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-        }
-    }
+    private async Task SendAsync() =>
+        Error = await ApiCall.RunAsync(async () => await OnStarted.InvokeAsync(await Api.CreateRestyleAsync(Track.Id, Form!.Request())));
 }
