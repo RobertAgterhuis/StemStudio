@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from stemstudio_worker.jobs import detail_texts as texts
 from stemstudio_worker.jobs.cache import ResultCache
+from stemstudio_worker.jobs.detail_progress import DetailTracker
 from stemstudio_worker.jobs.detail_store import DetailJobStore, StoredDetailJob
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
@@ -38,6 +39,10 @@ class DetailContext:
     details: DetailJobStore
     paths: DataPaths
     clock: Clock
+
+
+def _request_cancel(record: StoredDetailJob) -> StoredDetailJob:
+    return record.model_copy(update={"cancel_requested": True})
 
 
 def _state_conflict(record: StoredDetailJob) -> DetailConflictError:
@@ -106,16 +111,9 @@ class DetailService:
             raise _state_conflict(record)
         if record.job.status is DetailJobState.CANCELLED:
             return record.job
-        return self._context.details.update(detail_id, self._cancelled).job
-
-    def _cancelled(self, record: StoredDetailJob) -> StoredDetailJob:
-        if record.job.status.is_terminal:
-            return record
-        job = record.job.model_copy(
-            update={"status": DetailJobState.CANCELLED, "stage": texts.CANCELLED,
-                    "current_parent": None, "updated_at": self._context.clock()},
-        )  # fmt: skip
-        return record.model_copy(update={"job": job, "cancel_requested": True})
+        self._context.details.update(detail_id, _request_cancel)
+        DetailTracker(self._context.details, detail_id, self._context.clock).cancel()
+        return self.get(detail_id).job
 
     def _standard_result(self, standard_job_id: str) -> JobResult:
         record = self._context.jobs.get(standard_job_id)

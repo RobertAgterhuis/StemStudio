@@ -27,14 +27,17 @@ class FakeStep:
 
     def run(self, progress: Callable[[float], None]) -> None:
         self.pipeline.runs.append(self.parents)
-        for fraction in (0.0, 0.5, 1.0):
-            progress(fraction)
-            hook = self.pipeline.during.get(self.parents[0])
-            if hook is not None and fraction == 0.5:
-                hook()
+        hook = self.pipeline.during.get(self.parents[0], lambda: None)
+        progress(0.0)
+        progress(0.5)
+        hook()
+        progress(1.0)
         error = self.pipeline.errors.get(self.parents[0])
         if error is not None:
             raise error
+        self._write()
+
+    def _write(self) -> None:
         for parent in self.parents:
             folder = self.partial / parent
             folder.mkdir(parents=True, exist_ok=True)
@@ -52,7 +55,7 @@ class FakePipeline:
     weights: list[float] = field(default_factory=lambda: [0.2, 0.05])
     separator_version: str = "1"
     errors: dict[str, BaseException] = field(default_factory=dict)
-    during: dict[str, Callable[[], None]] = field(default_factory=dict)
+    during: dict[str, Callable[[], object]] = field(default_factory=dict)
     plans: list[Mapping[StemName, Path]] = field(default_factory=list)
     runs: list[tuple[ParentStemName, ...]] = field(default_factory=list)
 

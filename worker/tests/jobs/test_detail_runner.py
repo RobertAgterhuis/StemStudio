@@ -26,6 +26,7 @@ from .detail_fakes import FakePipeline
 from .fakes import FakeClock
 
 D = DetailJobState
+OFFLINE = "Detail model could not be downloaded; try again when online."
 
 
 class HistoryStore(DetailJobStore):
@@ -170,8 +171,7 @@ def test_a_cached_result_of_another_version_is_recomputed(tmp_path: Path) -> Non
     [
         (MemoryError(), texts.NO_MEMORY),
         (OSError(errno.ENOSPC, "No space left on device"), texts.NO_DISK),
-        (DetailModelUnavailableError("Detail model could not be downloaded; try again when online."),
-         "Detail model could not be downloaded; try again when online."),
+        (DetailModelUnavailableError(OFFLINE), OFFLINE),
         (DetailSeparationError("Detail separation of drums failed."),
          "Detail separation of drums failed."),
         (OSError(errno.EACCES, "denied"), texts.UNEXPECTED),
