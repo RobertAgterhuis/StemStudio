@@ -45,19 +45,28 @@ export function measureSlots(host: HTMLElement, slots: readonly [SlotView, SlotV
   return { lineHeight: slots[1].element.getBoundingClientRect().height, lines };
 }
 
-/** Observes the host and the current word elements with a `ResizeObserver` (when available). */
+/** Host attributes whose change means a new text size (re-measure). */
+export const SIZE_ATTRIBUTES = ['class', 'data-size'];
+
+/**
+ * Observes the host and the current word elements with a `ResizeObserver` (when available)
+ * and the host's size class / `data-size` with a `MutationObserver`.
+ */
 export class LayoutWatcher {
   private readonly observer: ResizeObserver | null;
+  private readonly sizeClass: MutationObserver;
   private words: readonly HTMLElement[] = [];
 
   /**
    * @param host - Banner host (observed for its whole lifetime).
-   * @param onResize - Called from the observer callback (layout is up to date there).
+   * @param onResize - Called from the observer callbacks (after a resize or a size-class change).
    */
   public constructor(host: HTMLElement, onResize: () => void) {
     const Observer = (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
     this.observer = Observer === undefined ? null : new Observer(onResize);
     this.observer?.observe(host);
+    this.sizeClass = new MutationObserver(onResize);
+    this.sizeClass.observe(host, { attributes: true, attributeFilter: SIZE_ATTRIBUTES });
   }
 
   /** Whether resize callbacks deliver measurements (false: measure right after building). */
@@ -79,6 +88,7 @@ export class LayoutWatcher {
   /** Stops observing. */
   public dispose(): void {
     this.observer?.disconnect();
+    this.sizeClass.disconnect();
     this.words = [];
   }
 }

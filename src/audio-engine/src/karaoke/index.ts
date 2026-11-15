@@ -52,7 +52,8 @@ export class Karaoke implements TransportListener {
     const requestFrame = (): void => {
       this.deps.loop.once(this.draw);
     };
-    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame });
+    const { reducedMotion } = options;
+    this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion });
     this.follow(this.deps.playing());
   }
 

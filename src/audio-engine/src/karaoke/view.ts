@@ -9,6 +9,7 @@ import { ballAt, ballTransform, hopHeight, hopProgress, type Point } from './bal
 import { Cursor } from './cursor';
 import { buildBanner, clearBanner, fillSlot, writeData, type BannerDom, type WordState } from './dom';
 import { LayoutWatcher, NO_GEOMETRY, measureSlots, type Geometry } from './layout';
+import { MotionPreference } from './motion';
 import { phaseAt, type Timeline } from './timeline';
 
 /** Construction parameters of {@link KaraokeView}. */
@@ -23,6 +24,8 @@ export interface KaraokeViewOptions {
   readonly clock: { positionMs(): number };
   /** Requests one animation frame that calls {@link KaraokeView.draw}. */
   readonly requestFrame: () => void;
+  /** Explicit reduced-motion option; undefined follows `prefers-reduced-motion`. */
+  readonly reducedMotion?: boolean | undefined;
 }
 
 /** Located time: karaoke ms, current line (-1 before the first) and last started word (-1). */
@@ -38,6 +41,7 @@ export class KaraokeView {
   private readonly lines: Cursor;
   private readonly words: Cursor;
   private readonly watcher: LayoutWatcher;
+  private readonly motion: MotionPreference;
   private geometry: Geometry = NO_GEOMETRY;
   private base = Number.NaN;
   private currentWords: readonly HTMLElement[] = [];
@@ -49,6 +53,8 @@ export class KaraokeView {
     this.lines = new Cursor(options.timeline.lineStarts);
     this.words = new Cursor(options.timeline.wordStarts);
     this.watcher = new LayoutWatcher(options.host, this.onResize);
+    this.motion = new MotionPreference(options.reducedMotion, this.onMotion);
+    this.dom.ball.hidden = this.motion.reduced;
     this.showSlots(Math.max(this.locate(options.clock.positionMs()).line, 0));
     this.measure();
   }
@@ -66,11 +72,18 @@ export class KaraokeView {
   /** Removes the banner DOM and stops observing the layout. */
   public dispose(): void {
     this.watcher.dispose();
+    this.motion.dispose();
     clearBanner(this.options.host);
   }
 
   private readonly onResize = (): void => {
     this.measure();
+    this.placeBall(this.last);
+    this.options.requestFrame();
+  };
+
+  private readonly onMotion = (reduced: boolean): void => {
+    this.dom.ball.hidden = reduced;
     this.placeBall(this.last);
     this.options.requestFrame();
   };
@@ -148,7 +161,11 @@ export class KaraokeView {
     return word?.line === frame.line && !this.lineEnded(frame) ? word.index : -1;
   }
 
+  /** No ball with reduced motion (the current word's `data-state` is the highlight). */
   private placeBall(frame: Frame): void {
+    if (this.motion.reduced) {
+      return;
+    }
     const point = this.ballPoint(frame);
     const transform = point === null ? '' : ballTransform(point);
     if (transform !== '' && this.dom.ball.style.transform !== transform) {
