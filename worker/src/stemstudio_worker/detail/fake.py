@@ -85,7 +85,7 @@ class FakeSource:
         load = lambda _device: self.model(parent)  # noqa: E731 - fakes ignore the device
         return ModelChoice("fake-detail", load, table, _FAKE_POLICY, FAKE_DETAIL_NEED)
 
-    def release_gpu(self) -> None:
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
         """Fake models hold no GPU memory."""
 
 

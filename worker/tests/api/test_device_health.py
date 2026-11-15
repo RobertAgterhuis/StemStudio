@@ -135,6 +135,7 @@ def test_an_injected_pipeline_without_gpu_models_still_releases_the_runner(
     with TestClient(app) as client:
         _complete(client)
     assert runner.released >= 1
+    runner.reclaimers[0](GpuNeed("KARA 2", 3_600))  # nothing to release: no error
 
 
 def test_a_cpu_worker_reports_the_cpu_with_the_probe_reason(tmp_path: Path) -> None:

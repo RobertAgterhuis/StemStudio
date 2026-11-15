@@ -228,7 +228,7 @@ def test_the_registry_source_uses_the_model_needs() -> None:
         def load(self, model_id: DetailModelId, device: str) -> DetailModel:
             return ScaledModel({})
 
-        def release_gpu(self) -> None: ...
+        def release_gpu(self, keep: GpuNeed | None = None) -> None: ...
 
     source = RegistrySource(_Provider())
     needs = [source.choose(p).need for p in ("drums", "vocals", "other")]

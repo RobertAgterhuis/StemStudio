@@ -4,6 +4,10 @@
 the free GPU memory with NVML and runs the step on the CPU when it does not fit; otherwise it caps
 torch's memory at the free memory for the step (so WSL2 raises out-of-memory instead of spilling
 into shared memory) and retries the step once on the CPU when the GPU attempt runs out of memory.
+Before a step falls back for lack of free memory, the runner first lets the worker release its own
+cached GPU models (the reclaimer, except the step's own model), empties torch's cache and checks
+once more: with a continuous queue the worker never becomes idle, and its resident models would
+otherwise starve its own later steps (T052 finding).
 """
 
 import gc
@@ -26,6 +30,9 @@ HEADROOM_MIB = 256
 
 CPU_USE = DeviceUse(kind="cpu", torch_device="cpu")
 """A step that ran on the CPU of a CPU worker."""
+
+Reclaimer = Callable[[GpuNeed], None]
+"""Releases the worker's cached GPU models that the step with this need does not use."""
 
 
 class TorchMemory(Protocol):
@@ -84,6 +91,9 @@ class CpuRunner:
     def release(self) -> None:
         """Nothing to release on the CPU."""
 
+    def reclaim_with(self, reclaim: Reclaimer) -> None:
+        """A CPU worker holds no GPU models; ``reclaim`` is never called."""
+
 
 class GpuRunner:
     """Runs steps on the GPU with the ADR-012 policy (lease, memory check, OOM -> CPU retry)."""
@@ -93,6 +103,7 @@ class GpuRunner:
         self._info = info
         self._tools = tools
         self._gpu_use = DeviceUse(kind="gpu", torch_device="cuda", name=info.name)
+        self._reclaim: Reclaimer | None = None
 
     @property
     def info(self) -> DeviceInfo:
@@ -103,12 +114,28 @@ class GpuRunner:
         """Run ``work`` on the GPU when ``need`` fits, else (or after GPU OOM) on the CPU."""
         with self._tools.lease.hold():
             memory = self._memory()
+            if memory is not None and memory.free_mib < need.memory_mib:
+                memory = self._reclaimed(need)
             if memory is None:
                 return work("cuda"), self._gpu_use
             if memory.free_mib < need.memory_mib:
                 reason = not_enough_memory(need.label, need.memory_mib, memory.free_mib)
                 return work("cpu"), _fallback(reason)
             return self._attempt(work, need, memory)
+
+    def reclaim_with(self, reclaim: Reclaimer) -> None:
+        """Use ``reclaim`` to release the worker's own GPU models when a step does not fit."""
+        self._reclaim = reclaim
+
+    def _reclaimed(self, need: GpuNeed) -> GpuMemory | None:
+        """Release the worker's other GPU models and the torch cache, then read NVML again."""
+        if self._reclaim is not None:
+            try:
+                self._reclaim(need)
+            except Exception:
+                _LOG.exception("Releasing cached GPU models failed")
+        self.release()
+        return self._memory()
 
     def release(self) -> None:
         """Drop unreachable GPU tensors and return torch's cached GPU memory (idle worker)."""

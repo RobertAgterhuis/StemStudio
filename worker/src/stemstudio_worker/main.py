@@ -22,7 +22,7 @@ from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.runtime import DeviceHooks, WorkerParts, WorkerRuntime
-from stemstudio_worker.ports import PipelineAdapters
+from stemstudio_worker.ports import GpuNeed, PipelineAdapters
 from stemstudio_worker.schemas import CONTRACT_VERSION
 from stemstudio_worker.separation import create_separator
 
@@ -87,8 +87,20 @@ class _Parts:
         devices = self.devices or create_device_runner(settings)
         pipeline = self.pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
+        devices.reclaim_with(_reclaimer(pipeline))
         hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
         return WorkerRuntime.start_with(settings, WorkerParts(adapters, pipeline, hooks))
+
+
+def _reclaimer(pipeline: DetailPipelinePort) -> Callable[[GpuNeed], None]:
+    """Release the pipeline's GPU models except the one the short step needs."""
+    release_models: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
+
+    def reclaim(need: GpuNeed) -> None:
+        if release_models is not None:
+            release_models(keep=need)
+
+    return reclaim
 
 
 def _idle_release(devices: ManagedRunner, pipeline: DetailPipelinePort) -> Callable[[], None]:

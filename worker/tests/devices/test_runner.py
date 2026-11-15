@@ -202,18 +202,17 @@ def test_the_lease_is_released_when_a_step_fails() -> None:
         assert lease.held
 
 
-def _reclaiming(free: list[int]) -> tuple[GpuRunner, FakeMemory, list[str]]:
+def _reclaiming(free: list[int]) -> tuple[GpuRunner, FakeMemory]:
     """A GPU runner whose NVML reads ``free`` in turn and whose reclaimer is recorded."""
     memory = FakeMemory()
     tools = GpuTools(nvml=FakeNvml(total=16_000, free=free), memory=memory, lease=GpuLease())
     runner = GpuRunner(GPU, tools)
-    reclaimed: list[str] = []
     runner.reclaim_with(lambda need: memory.events.append(f"reclaim {need.label}"))
-    return runner, memory, reclaimed
+    return runner, memory
 
 
 def test_a_short_step_first_reclaims_the_workers_own_gpu_models_and_then_fits() -> None:
-    runner, memory, _ = _reclaiming(free=[1_835, 12_000])
+    runner, memory = _reclaiming(free=[1_835, 12_000])
     steps = Steps()
 
     result, use = runner.run(steps, MEGA)
@@ -226,7 +225,7 @@ def test_a_short_step_first_reclaims_the_workers_own_gpu_models_and_then_fits() 
 
 
 def test_a_step_that_still_does_not_fit_after_reclaiming_runs_on_the_cpu() -> None:
-    runner, memory, _ = _reclaiming(free=[1_835, 3_000])
+    runner, memory = _reclaiming(free=[1_835, 3_000])
     steps = Steps()
 
     result, use = runner.run(steps, MEGA)
@@ -240,7 +239,7 @@ def test_a_step_that_still_does_not_fit_after_reclaiming_runs_on_the_cpu() -> No
 
 
 def test_the_reclaim_is_not_needed_when_the_step_fits() -> None:
-    runner, memory, _ = _reclaiming(free=[12_000])
+    runner, memory = _reclaiming(free=[12_000])
     runner.run(Steps(), MEGA)
     assert not any(event.startswith("reclaim") for event in memory.events)
 
