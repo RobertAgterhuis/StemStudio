@@ -4,7 +4,8 @@
  * `ux-test.ts`, which extends this one).
  *
  * Fixtures are created lazily, so the 005/007 members (metadata and assets clients, artwork,
- * band info, export dialog, library page, scratch page) cost nothing in the 001-004 specs.
+ * band info, export dialog, library page, scratch page) and the 006/008 members (lyrics and score
+ * clients, karaoke banner, lyrics card, score dialog, score items) cost nothing in older specs.
  *
  * @packageDocumentation
  */
@@ -14,15 +15,21 @@ import { BandInfoPanel } from '../pages/band-info-panel';
 import { DetailSection } from '../pages/detail-section';
 import { ExportDialog } from '../pages/export-dialog';
 import { ImportPage } from '../pages/import-page';
+import { KaraokeBanner } from '../pages/karaoke-banner';
 import { LibraryPage } from '../pages/library-page';
+import { LyricsSection } from '../pages/lyrics-section';
 import { MixLibraryPage } from '../pages/mix-library-page';
 import { MixerPage } from '../pages/mixer-page';
+import { ScoreDialog } from '../pages/score-dialog';
+import { ScoreItems } from '../pages/score-items';
 import { TrackDetailPage } from '../pages/track-detail-page';
 import { TrackListPage } from '../pages/track-list-page';
 import { StemStudioApi } from './api';
 import { AssetsApi } from './assets-api';
 import { apiBaseUrl } from './env';
+import { LyricsApi } from './lyrics-api';
 import { MetadataApi } from './metadata-api';
+import { ScoreApi } from './score-api';
 
 /** Fixtures available to every spec. */
 export interface SuiteFixtures {
@@ -48,6 +55,18 @@ export interface SuiteFixtures {
   readonly library: LibraryPage;
   /** A second page at `about:blank` in the same context, for `decodeAudioData`. */
   readonly scratch: Page;
+  /** Lyrics routes `/api/tracks/{id}/lyrics/**` (feature 006). */
+  readonly lyricsApi: LyricsApi;
+  /** Score routes `/api/scores/**` (feature 008). */
+  readonly scoreApi: ScoreApi;
+  /** Karaoke banner of the mixer (feature 006). */
+  readonly karaoke: KaraokeBanner;
+  /** Lyrics card of the track page (feature 006). */
+  readonly lyrics: LyricsSection;
+  /** Sheet music dialog (feature 008). */
+  readonly scoreDialog: ScoreDialog;
+  /** Score rows of the library (feature 008). */
+  readonly scoreItems: ScoreItems;
 }
 
 /** Extended Playwright test. */
@@ -65,6 +84,16 @@ export const test = base.extend<SuiteFixtures>({
   assetsApi: async ({ playwright }, use) => {
     const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
     await use(new AssetsApi(context));
+    await context.dispose();
+  },
+  lyricsApi: async ({ playwright }, use) => {
+    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    await use(new LyricsApi(context));
+    await context.dispose();
+  },
+  scoreApi: async ({ playwright }, use) => {
+    const context = await playwright.request.newContext({ baseURL: apiBaseUrl });
+    await use(new ScoreApi(context));
     await context.dispose();
   },
   importPage: async ({ page }, use) => {
@@ -96,6 +125,18 @@ export const test = base.extend<SuiteFixtures>({
   },
   library: async ({ page }, use) => {
     await use(new LibraryPage(page));
+  },
+  karaoke: async ({ page }, use) => {
+    await use(new KaraokeBanner(page));
+  },
+  lyrics: async ({ page }, use) => {
+    await use(new LyricsSection(page));
+  },
+  scoreDialog: async ({ page }, use) => {
+    await use(new ScoreDialog(page));
+  },
+  scoreItems: async ({ page }, use) => {
+    await use(new ScoreItems(page));
   },
   scratch: async ({ context }, use) => {
     const page = await context.newPage();

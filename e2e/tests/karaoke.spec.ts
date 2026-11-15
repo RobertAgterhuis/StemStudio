@@ -7,7 +7,7 @@ import { requireChromium } from '../support/feature-skips';
 import { installKaraokeProbe, landingErrors, maxClockDriftMs, maxLandingErrorMs, recordKaraoke } from '../support/karaoke-probe';
 import { readFakeLyrics, requireLyricsMode } from '../support/lyrics';
 import type { LyricsApi } from '../support/lyrics-api';
-import { expect, test } from '../support/lyrics-test';
+import { expect, test } from '../support/test';
 import { levelState } from '../support/preferences';
 
 // Feature 006 US1 + US3 (006:T039, T055; FR-005, FR-006, FR-008, FR-009, FR-011; SC-002,
@@ -100,7 +100,7 @@ test.describe('karaoke word sync', { tag: '@karaoke' }, () => {
     test.setTimeout(seeks * 5_000 + 3 * settleMs);
     await openPlaying(page, mixer);
     for (const seconds of seededPositions(seeks, 17)) {
-      await setNumericValue(mixer.byId('transport-seek'), seconds);
+      await mixer.seek(seconds);
       const landings = landingErrors(await recordKaraoke(karaoke.host, 2_500), fake.lines, 0);
       expect(maxLandingErrorMs(landings), `after a seek to ${String(seconds)} s`).toBeLessThanOrEqual(maxErrorMs);
     }

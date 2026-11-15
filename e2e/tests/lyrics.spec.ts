@@ -4,7 +4,7 @@ import { fakeDeviceMode, fakeJobTimeoutMs, runId } from '../support/env';
 import { fixturePath } from '../support/fixtures';
 import { fakeAlignedLines, readFakeLyrics, requireFakeDevice, requireLyricsMode } from '../support/lyrics';
 import type { LyricsApi } from '../support/lyrics-api';
-import { expect, test } from '../support/lyrics-test';
+import { expect, test } from '../support/test';
 import { uniqueWavCopy } from '../support/unique-audio';
 
 // Feature 006 US2 + lookup outcomes (006:T048; FR-001, FR-004, FR-010, FR-012; SC-005;

@@ -2,7 +2,7 @@ import type { StemStudioApi, TrackDto } from '../support/api';
 import type { AssetsApi } from '../support/assets-api';
 import { ensureDetailCompleted } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
-import { expect, test } from '../support/lyrics-test';
+import { expect, test } from '../support/test';
 import { clefs, crossNoteheads, expectedFakeBars, fifths, isMidi, isPdf, measureCount, noteTypes, staves, timeSignature, voices, type GridDto } from '../support/musicxml';
 import type { ScoreApi } from '../support/score-api';
 

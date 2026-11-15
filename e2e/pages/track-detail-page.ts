@@ -86,6 +86,16 @@ export class TrackDetailPage {
     return this.page.getByTestId(`track-stem-${name}`);
   }
 
+  /** The lyrics card (feature 006; its controls are in `pages/lyrics-section.ts`). */
+  get lyricsCard(): Locator {
+    return this.page.getByTestId('lyrics-section');
+  }
+
+  /** "Sheet music" of one standard stem (feature 008; opens `pages/score-dialog.ts`). */
+  scoreStem(name: StemName): Locator {
+    return this.page.getByTestId(`score-stem-${name}`);
+  }
+
   /** Opens the inline delete confirmation, cancels it once, then deletes for real. */
   async deleteAfterCancel(): Promise<void> {
     await this.deleteButton.click();
