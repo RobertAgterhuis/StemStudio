@@ -90,10 +90,10 @@ in the execution plan.
 
 ### stem-separation (`jobs/`, tests first)
 
-- [ ] T021 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lanes.py`: `LaneScheduler` runs jobs FIFO on its own thread, one at a time; a job in the render lane starts while a fake separation blocks the `PriorityScheduler`; exceptions of one job do not stop the lane; `pending` and `running` are reported for `/health` (FR-011)
-- [ ] T022 [stem-separation] Implement `jobs/lanes.py` to pass T021
-- [ ] T023 [P] [stem-separation] Failing tests `worker/tests/jobs/test_render_store.py`: render jobs persisted as `render-jobs/<id>.json`; after a restart `queued`/`running` become `failed` "interrupted by restart"; `delete` removes JSON + output (idempotent); the sweep removes terminal jobs older than 24 h (fake clock) (data-model 2.5)
-- [ ] T024 [stem-separation] Implement `jobs/render_store.py` to pass T023
+- [x] T021 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lanes.py`: `LaneScheduler` runs jobs FIFO on its own thread, one at a time; a job in the render lane starts while a fake separation blocks the `PriorityScheduler`; exceptions of one job do not stop the lane; `pending` and `running` are reported for `/health` (FR-011)
+- [x] T022 [stem-separation] Implement `jobs/lanes.py` to pass T021
+- [x] T023 [P] [stem-separation] Failing tests `worker/tests/jobs/test_render_store.py`: render jobs persisted as `render-jobs/<id>.json`; after a restart `queued`/`running` become `failed` "interrupted by restart"; `delete` removes JSON + output (idempotent); the sweep removes terminal jobs older than 24 h (fake clock) (data-model 2.5)
+- [x] T024 [stem-separation] Implement `jobs/render_store.py` to pass T023
 
 ### backend (tests first)
 
