@@ -70,7 +70,9 @@ def test_isrc_query() -> None:
 
 def test_isrc_lookup_comes_first_with_json_and_a_limit() -> None:
     harness = online_harness([json_response({"recordings": [_recording()]})])
-    query = MetadataQuery(title="Hero", artist="Metallica", duration_seconds=262.0, isrc="USEVI9692306")
+    query = MetadataQuery(
+        title="Hero", artist="Metallica", duration_seconds=262.0, isrc="USEVI9692306"
+    )
 
     found = MusicBrainz(harness.client).find(query)
 
@@ -87,7 +89,9 @@ def test_isrc_lookup_comes_first_with_json_and_a_limit() -> None:
 
 def test_search_sends_only_title_artist_and_duration() -> None:
     harness = online_harness([json_response({"recordings": []})])
-    query = MetadataQuery(title="Hero (Official Video)", artist="Metallica", album="Load", duration_seconds=262.0)
+    query = MetadataQuery(
+        title="Hero (Official Video)", artist="Metallica", album="Load", duration_seconds=262.0
+    )
 
     assert MusicBrainz(harness.client).find(query) is None
 
@@ -154,10 +158,16 @@ def test_recordings_without_length_score_or_credits_are_parsed() -> None:
     raw = {"id": RECORDING, "title": "Hero of the Day"}
     harness = online_harness([json_response({"recordings": [raw]})])
 
-    found = MusicBrainz(harness.client).find(MetadataQuery(title="Hero of the Day", isrc="USEVI9692306"))
+    found = MusicBrainz(harness.client).find(
+        MetadataQuery(title="Hero of the Day", isrc="USEVI9692306")
+    )
 
     assert found is not None
-    assert (found.recording.score, found.recording.length_seconds, found.artist_mbid) == (0, None, None)
+    assert (found.recording.score, found.recording.length_seconds, found.artist_mbid) == (
+        0,
+        None,
+        None,
+    )
 
 
 # ------------------------------------------------------------------ artist
@@ -206,18 +216,12 @@ def test_ended_person_with_unknown_type_values() -> None:
         relations=[],
         **{"life-span": {"begin": "1950", "end": "2016-01-10", "ended": True}},
     )
-    harness = online_harness([json_response(raw)])
-
-    artist = MusicBrainz(harness.client).artist(METALLICA)
+    artist = MusicBrainz(online_harness([json_response(raw)]).client).artist(METALLICA)
 
     assert artist is not None
-    assert (artist.type, artist.country, artist.begin_year, artist.end_year) == (
-        "person",
-        None,
-        1950,
-        2016,
-    )
-    assert (artist.website, artist.wikidata_id) == (None, None)
+    facts = (artist.type, artist.country, artist.begin_year, artist.end_year, artist.website)
+    assert facts == ("person", None, 1950, 2016, None)
+    assert artist.wikidata_id is None
 
 
 @pytest.mark.parametrize(
@@ -228,7 +232,11 @@ def test_ended_person_with_unknown_type_values() -> None:
         ({"country": "usa"}, "country", None),
         ({"life-span": {}}, "begin_year", None),
         (
-            {"relations": [{"type": "official homepage", "url": {"resource": "http://x.example/"}}]},
+            {
+                "relations": [
+                    {"type": "official homepage", "url": {"resource": "http://x.example/"}}
+                ]
+            },
             "website",
             None,
         ),
