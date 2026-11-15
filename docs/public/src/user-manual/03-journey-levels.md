@@ -44,13 +44,14 @@ Everything of Advanced, plus tools for fast, precise work:
 
 ## Levels in later features
 
-Every new feature follows the same pattern. Some examples from features in development:
+Every new feature follows the same pattern (chapter numbers in brackets; karaoke, sheet music
+and the AI agent are still in development):
 
 | Feature | Beginner | Advanced | Expert |
 |---|---|---|---|
-| Band info (7) | Picture and short summary | All facts, sources, correction, own picture | As Advanced |
+| Band info (7) | Picture, name, type, active years, album, Wikipedia excerpt, search again and correction | Also country, genres, members, website, sources and your own picture | As Advanced |
 | Karaoke (8) | Banner and on/off | Offset and text size | Timing origin, alignment controls |
-| Export (9) | Save to library, format | Bit depth, bit rate, range, selected channels | As Advanced |
+| Export (9) | Save to library, format | Bit depth, bit rate, range, selected channels, all stems, library filters | As Advanced |
 | Sheet music (10) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
 | AI agent (13) | Chat, plan and approvals | Backend badge, job details, usage | Full tool log, model choice |
 

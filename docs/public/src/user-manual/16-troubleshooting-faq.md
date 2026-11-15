@@ -53,8 +53,9 @@ StemStudio cannot store preferences and stays at the Beginner level.
 ## Frequently asked questions
 
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
-the online lookups for cover art, band info and lyrics (chapters 7 and 8) send the title,
-artist, album and duration, and they can be switched off. The optional Claude backend for the
+the online lookups for cover art and band info (chapter 7) send the title, artist, duration
+and ISRC code, and they can be switched off. Lyrics lookups (chapter 8) are still in
+development. The optional Claude backend for the
 agent (chapter 13) sends text only, never audio, and only when you select it.
 
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
