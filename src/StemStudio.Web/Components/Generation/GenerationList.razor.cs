@@ -11,6 +11,9 @@ public sealed partial class GenerationList
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
 
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     /// <summary>The filters (all generations, one kind, or the restyles of one track).</summary>
     [Parameter, EditorRequired]
     public GenerationQuery Query { get; set; } = default!;
@@ -65,6 +68,12 @@ public sealed partial class GenerationList
     private Task RetryAsync(GenerationDto generation) => RunAsync(async () => await AddAsync(await Api.RetryGenerationAsync(generation.Id, Stopping)));
 
     private void AskDelete(GenerationDto generation) => Deleting = generation;
+
+    private Task ImportAsync(GenerationDto generation, GenerationTakeDto take) => RunAsync(async () =>
+    {
+        var track = await Api.ImportTakeAsync(generation.Id, take.Index, Stopping);
+        Navigation.NavigateTo($"tracks/{track.Id}");
+    });
 
     private Task DeleteAsync() => RunAsync(async () =>
     {

@@ -1,0 +1,19 @@
+@* Origin of a generated track on its page (009 FR-009, 010 FR-011/FR-013; ui-test-ids 1.8.0 track-origin-*): the
+   AI-generated label and a link to the source track while it exists. Imported tracks render nothing. *@
+
+@if (Track.Origin is { AiGenerated: true } origin)
+{
+    <div class="ss-row ss-track-origin">
+        <AiBadge TestId="track-origin-badge" />
+        @if (origin.SourceTrackId is { } sourceId)
+        {
+            <a href="@($"tracks/{sourceId}")" data-testid="track-origin-source-link">Open the source song</a>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>The track.</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
+}
