@@ -80,12 +80,12 @@ in the execution plan.
 
 ### backend (tests first)
 
-- [ ] T017 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/JobDeviceTests.cs`: `JobDevice` value rules (data-model 3.1: name <= 200 and null for CPU, reason <= 500 and non-null iff fallback); `Track.ApplyDevice` while not terminal, kept after completion, reset by retry; `DetailPhase` device set by progress/completion, reset by (re)start; invalid worker data rejected without failing the track (FR-006)
-- [ ] T018 [backend] Implement `src/StemStudio.Domain/Tracks/JobDevice.cs`, `Track.Device`, `DetailPhase.Device` to pass T017
-- [ ] T019 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/JobDevicePersistenceTests.cs`: JSON round trip of `Track.Device` and `DetailPhase.Device`; a database migrated from the 002 schema loads with null devices (file-based SQLite)
-- [ ] T020 [backend] Implement the configuration and migration `AddJobDevice` (`dotnet ef migrations add AddJobDevice`) to pass T019
-- [ ] T021 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDeviceClientTests.cs` with the 1.2.0 examples: `WorkerJob.Device`, `WorkerDetailJob.Device` parsed (null when absent, 1.1.0 bodies still parse); `GetHealthAsync` parses `deviceInfo` (cpu, gpu, gpu-unavailable examples); unreachable -> `WorkerUnavailableException` within `WorkerTimeouts.Health` (2 s)
-- [ ] T022 [backend] Implement `WorkerJob`/`WorkerDetailJob` device members, `WorkerHealth`, `IWorkerClient.GetHealthAsync` to pass T021
+- [x] T017 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/JobDeviceTests.cs`: `JobDevice` value rules (data-model 3.1: name <= 200 and null for CPU, reason <= 500 and non-null iff fallback); `Track.ApplyDevice` while not terminal, kept after completion, reset by retry; `DetailPhase` device set by progress/completion, reset by (re)start; invalid worker data rejected without failing the track (FR-006)
+- [x] T018 [backend] Implement `src/StemStudio.Domain/Tracks/JobDevice.cs`, `Track.Device`, `DetailPhase.Device` to pass T017
+- [x] T019 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/JobDevicePersistenceTests.cs`: JSON round trip of `Track.Device` and `DetailPhase.Device`; a database migrated from the 002 schema loads with null devices (file-based SQLite)
+- [x] T020 [backend] Implement the configuration and migration `AddJobDevice` (`dotnet ef migrations add AddJobDevice`) to pass T019
+- [x] T021 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerDeviceClientTests.cs` with the 1.2.0 examples: `WorkerJob.Device`, `WorkerDetailJob.Device` parsed (null when absent, 1.1.0 bodies still parse); `GetHealthAsync` parses `deviceInfo` (cpu, gpu, gpu-unavailable examples); unreachable -> `WorkerUnavailableException` within `WorkerTimeouts.Health` (2 s)
+- [x] T022 [backend] Implement `WorkerJob`/`WorkerDetailJob` device members, `WorkerHealth`, `IWorkerClient.GetHealthAsync` to pass T021
 
 **Checkpoint**: HO:foundational for stem-separation and backend.
 
