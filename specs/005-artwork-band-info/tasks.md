@@ -77,10 +77,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### audio-ingest (tests first)
 
-- [ ] T010 [P] [audio-ingest] Failing tests `worker/tests/metadata/test_user_agent.py`, `test_http.py`, `test_ratelimit.py`: UA pattern with and without a valid `STEMSTUDIO_CONTACT_URL`; invalid values (http, `mailto:`, `@`, user-info, > 200 chars, whitespace) fall back and the warning does not contain the value; the client refuses non-https and non-allow-listed hosts, re-validates each of <= 3 redirects, caps bodies at 10 MB, sets 10 s timeouts; token bucket 1/s per host family with fake clock; 503/429 `Retry-After` (seconds and HTTP date, cap 30 s) and 2/4/8 s jittered back-off, 3 retries then a typed error (FR-010, FR-011, SC-005)
-- [ ] T011 [audio-ingest] Implement `metadata/{user_agent,http,ratelimit}.py` to pass T010
-- [ ] T012 [P] [audio-ingest] Failing tests `worker/tests/metadata/test_images.py` with generated images: JPEG/PNG/WebP in, two square JPEGs out (600/160, <= 200 KB/20 KB), EXIF orientation applied then stripped, alpha flattened, first frame of animations, centre crop of 500 x 499 and 16:9, > 40 MP and truncated files rejected with typed errors, SHA-256 of the cover bytes (FR-007)
-- [ ] T013 [audio-ingest] Implement `metadata/images.py` (`PillowImageNormalizer`) to pass T012
+- [x] T010 [P] [audio-ingest] Failing tests `worker/tests/metadata/test_user_agent.py`, `test_http.py`, `test_ratelimit.py`: UA pattern with and without a valid `STEMSTUDIO_CONTACT_URL`; invalid values (http, `mailto:`, `@`, user-info, > 200 chars, whitespace) fall back and the warning does not contain the value; the client refuses non-https and non-allow-listed hosts, re-validates each of <= 3 redirects, caps bodies at 10 MB, sets 10 s timeouts; token bucket 1/s per host family with fake clock; 503/429 `Retry-After` (seconds and HTTP date, cap 30 s) and 2/4/8 s jittered back-off, 3 retries then a typed error (FR-010, FR-011, SC-005)
+- [x] T011 [audio-ingest] Implement `metadata/{user_agent,http,ratelimit}.py` to pass T010
+- [x] T012 [P] [audio-ingest] Failing tests `worker/tests/metadata/test_images.py` with generated images: JPEG/PNG/WebP in, two square JPEGs out (600/160, <= 200 KB/20 KB), EXIF orientation applied then stripped, alpha flattened, first frame of animations, centre crop of 500 x 499 and 16:9, > 40 MP and truncated files rejected with typed errors, SHA-256 of the cover bytes (FR-007)
+- [x] T013 [audio-ingest] Implement `metadata/images.py` (`PillowImageNormalizer`) to pass T012
 
 ### stem-separation (tests first)
 
