@@ -5,6 +5,8 @@ marked ``needs_cairo`` run the real CairoSVG where libcairo is installed (the Li
 ``needs_leipzig`` additionally needs the Leipzig font installed through fontconfig.
 """
 
+from xml.etree.ElementTree import ParseError
+
 import pytest
 
 from stemstudio_worker.engraving import (
@@ -104,7 +106,14 @@ def test_unreadable_musicxml_fails_with_the_engraving_text() -> None:
         _engraver(FakeConverter()).engrave(b"not musicxml", "Bass", None)
 
 
-@pytest.mark.parametrize("error", [OSError("no library called cairo"), ValueError("bad svg")])
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError("no library called cairo"),
+        ValueError("bad svg"),
+        ParseError("not well-formed (invalid token): line 1, column 0"),
+    ],
+)
 def test_a_failing_conversion_is_a_transcription_error(error: Exception) -> None:
     with pytest.raises(TranscriptionError, match=ENGRAVING_FAILED_TEXT) as raised:
         _engraver(FakeConverter(error)).engrave(bass_musicxml(), "Bass", None)
