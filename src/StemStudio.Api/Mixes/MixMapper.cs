@@ -38,7 +38,11 @@ public static class MixMapper
             settings.MasterVolume,
             settings.Channels.Select(c => new ChannelSettingsDto(c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
             new MetronomeSettingsDto(metronome.Enabled, metronome.Volume, metronome.BpmOverride, metronome.OffsetMs, metronome.BeatsPerBar),
-            settings.Loop is { } loop ? new LoopRegionDto(loop.Start, loop.End, loop.Enabled) : null);
+            settings.Loop is { } loop ? new LoopRegionDto(loop.Start, loop.End, loop.Enabled) : null)
+        {
+            Expanded = settings.Expanded.ToList(),
+            DetailChannels = settings.DetailChannels.Select(c => new DetailChannelSettingsDto(c.Parent, c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
+        };
     }
 
     /// <summary>Maps a DTO whose required parts are present (checked by <see cref="MixValidator"/>).</summary>
@@ -54,8 +58,20 @@ public static class MixMapper
             Channels = dto.Channels.Select(ToDomain).ToList(),
             Metronome = ToDomain(dto.Metronome),
             Loop = dto.Loop is { } loop ? new LoopRegion(loop.Start, loop.End, loop.Enabled) : null,
+            Expanded = (dto.Expanded ?? []).ToList(),
+            DetailChannels = (dto.DetailChannels ?? []).Select(ToDomain).ToList(),
         };
     }
+
+    private static DetailChannelSettings ToDomain(DetailChannelSettingsDto channel) => new()
+    {
+        Parent = channel.Parent,
+        Stem = channel.Stem,
+        Volume = channel.Volume,
+        Pan = channel.Pan,
+        Mute = channel.Mute,
+        Solo = channel.Solo,
+    };
 
     private static ChannelSettings ToDomain(ChannelSettingsDto channel) =>
         new() { Stem = channel.Stem, Volume = channel.Volume, Pan = channel.Pan, Mute = channel.Mute, Solo = channel.Solo };

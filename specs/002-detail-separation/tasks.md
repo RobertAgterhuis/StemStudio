@@ -210,8 +210,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ## Phase 7: User Story 5 - Mixes with detail settings (P3)
 
-- [ ] T077 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/MixDetailEndpointTests.cs`: create/update/get/duplicate round-trip `expanded` + `detailChannels` exactly; 400 with JSON paths (`settings.detailChannels[0].stem`, `settings.expanded[0]`) for unknown stems or unsplit parents; a 1.1.0-shaped body without the fields is accepted and returned with empty arrays (FR-015, SC-005)
-- [ ] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
+- [x] T077 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/MixDetailEndpointTests.cs`: create/update/get/duplicate round-trip `expanded` + `detailChannels` exactly; 400 with JSON paths (`settings.detailChannels[0].stem`, `settings.expanded[0]`) for unknown stems or unsplit parents; a 1.1.0-shaped body without the fields is accepted and returned with empty arrays (FR-015, SC-005)
+- [x] T078 [US5] [backend] Implement `MixValidator`/`MixMapper`/`MixService` extensions to pass T077
 - [ ] T079 [P] [US5] [frontend] Failing bUnit tests: save sends expansion + detail settings; loading a mix applies them (engine `setExpanded` before `setChannel`); loading an old mix collapses all groups and restores 001 settings exactly; dirty flag on detail changes
 - [ ] T080 [US5] [frontend] Implement to pass T079
 - [ ] T081 [US5] [qa] Author `detail.spec.ts` "mixes": save "No snare", reload, load -> expanded + snare muted; an old-style mix (created through the API without the fields) loads collapsed
