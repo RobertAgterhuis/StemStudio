@@ -1,4 +1,4 @@
-"""Tests of the render job store: persistence, restart, delete and sweep (007 T023, data-model 2.5)."""
+"""Tests of the render job store: persistence, restart, delete, sweep (007 T023, data-model 2.5)."""
 
 import json
 from datetime import timedelta

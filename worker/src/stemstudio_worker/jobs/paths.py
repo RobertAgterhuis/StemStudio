@@ -100,3 +100,8 @@ class DataPaths:
     def user_artwork(self, artwork_id: str) -> Path:
         """One normalised user picture (``cover.jpg``, ``thumb.jpg``, ``info.json``)."""
         return self.user_artwork_root / artwork_id
+
+    @property
+    def render_jobs(self) -> Path:
+        """Render job files ``<id>.json`` and outputs ``<id>/output.<ext>`` (feature 007)."""
+        return self.root / "render-jobs"
