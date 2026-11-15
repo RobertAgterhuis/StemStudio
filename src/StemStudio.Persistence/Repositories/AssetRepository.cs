@@ -118,12 +118,13 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     private static IQueryable<Asset> Filter(IQueryable<Asset> assets, AssetQuery query)
     {
         var pattern = query.NameContains is { } text ? $"%{Escape(text)}%" : null;
-        return assets
-            .Where(asset => query.Kind == null || asset.Kind == query.Kind)
-            .Where(asset => query.TrackId == null || asset.TrackId == query.TrackId)
-            .Where(asset => query.Status == null || asset.Status == query.Status)
-            .Where(asset => pattern == null || EF.Functions.Like(asset.Name, pattern, "\\"));
+        return FilterValues(assets, query).Where(asset => pattern == null || EF.Functions.Like(asset.Name, pattern, "\\"));
     }
+
+    private static IQueryable<Asset> FilterValues(IQueryable<Asset> assets, AssetQuery query) => assets
+        .Where(asset => query.Kind == null || asset.Kind == query.Kind)
+        .Where(asset => query.TrackId == null || asset.TrackId == query.TrackId)
+        .Where(asset => query.Status == null || asset.Status == query.Status);
 
     /// <summary>Escapes the LIKE wildcards; SQLite LIKE ignores ASCII case.</summary>
     private static string Escape(string text) => text.Replace("\\", "\\\\", StringComparison.Ordinal)

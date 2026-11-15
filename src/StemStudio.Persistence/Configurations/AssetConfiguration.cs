@@ -23,6 +23,11 @@ public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(asset => asset.Error).HasMaxLength(Asset.MaxErrorLength);
         builder.Property(asset => asset.WorkerJobId).HasMaxLength(32);
         ConfigureJson(builder);
+        ConfigureIndexes(builder);
+    }
+
+    private static void ConfigureIndexes(EntityTypeBuilder<Asset> builder)
+    {
         builder.HasIndex(asset => asset.CreatedAt);
         builder.HasIndex(asset => asset.TrackId);
         builder.HasIndex(asset => asset.Status);
