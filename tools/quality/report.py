@@ -37,6 +37,7 @@ def render(data: ReportInput) -> str:
         render_components(component_rows(data.units, data.clones)),
         _dependencies(data.findings),
         _tokens(data.findings),
+        _vendor(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -122,6 +123,12 @@ def _dependencies(findings: Sequence[Finding]) -> str:
 def _tokens(findings: Sequence[Finding]) -> str:
     return _check_section(
         findings, "raw-colour", "Design tokens", "no raw colour values outside tokens.css."
+    )
+
+
+def _vendor(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings, "vendor", "Vendored code", "every vendored package has LICENSE and NOTICE."
     )
 
 

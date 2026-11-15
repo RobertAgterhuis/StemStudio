@@ -1,3 +1,5 @@
+import pytest
+
 from common import is_test
 from components import COMPONENTS, Component, component_rows, render_components
 from duplication import Clone
@@ -120,3 +122,25 @@ def test_worker_render_component_measures_render_production_code() -> None:
     assert render.contains("worker/src/stemstudio_worker/render/mixing.py", test=False)
     assert not render.contains("worker/src/stemstudio_worker/jobs/render_lane.py", test=False)
     assert not render.contains("worker/tests/render/test_mixing.py", test=True)
+
+
+WORKER = "worker/src/stemstudio_worker"
+
+
+@pytest.mark.parametrize(
+    ("name", "inside", "outside"),
+    [
+        ("worker/lyrics", "lyrics/lrclib.py", "metadata/http.py"),
+        ("worker/alignment", "alignment/adapter.py", "jobs/lyrics_lane.py"),
+        ("worker/transcription", "transcription/piano.py", "jobs/transcription_store.py"),
+        ("worker/notation", "notation/keys.py", "analysis/drum_onsets.py"),
+        ("worker/engraving", "engraving/pdf.py", "notation/writer.py"),
+    ],
+)
+def test_006_008_components_measure_their_production_code(
+    name: str, inside: str, outside: str
+) -> None:
+    (component,) = [c for c in COMPONENTS if c.name == name]
+    assert component.contains(f"{WORKER}/{inside}", test=False)
+    assert not component.contains(f"{WORKER}/{outside}", test=False)
+    assert not component.contains(f"worker/tests/{inside}", test=True)

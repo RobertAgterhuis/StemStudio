@@ -20,7 +20,6 @@ import duplication
 import sig_check
 import sonar_args
 from common import REPO_ROOT, Severity, is_excluded, owner_of
-from components import COMPONENTS
 from dependency_check import PYTHON_ALLOWED, PYTHON_EXTERNAL_ALLOWED, read_external_edges
 
 VENDOR = f"{PACKAGE}/transcription/vendor"
@@ -281,19 +280,3 @@ def test_sonar_excludes_both_vendor_folders() -> None:
 )
 def test_score_paths_are_owned(path: str, owner: str) -> None:
     assert owner_of(path) == owner
-
-
-@pytest.mark.parametrize(
-    ("name", "inside", "outside"),
-    [
-        ("worker/transcription", "transcription/piano.py", "jobs/transcription_store.py"),
-        ("worker/notation", "notation/keys.py", "analysis/drum_onsets.py"),
-        ("worker/engraving", "engraving/pdf.py", "notation/writer.py"),
-    ],
-)
-def test_score_components_measure_their_production_code(
-    name: str, inside: str, outside: str
-) -> None:
-    (component,) = [c for c in COMPONENTS if c.name == name]
-    assert component.contains(f"{PACKAGE}/{inside}", test=False)
-    assert not component.contains(f"{PACKAGE}/{outside}", test=False)

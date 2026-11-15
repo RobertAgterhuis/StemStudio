@@ -19,7 +19,6 @@ from repo_tree import write_module as _module
 
 import dependency_check
 from common import Severity, owner_of
-from components import COMPONENTS
 from dependency_check import (
     PYTHON_ALLOWED,
     PYTHON_SUBMODULES_ALLOWED,
@@ -183,22 +182,6 @@ def test_metadata_http_importing_lyrics_is_forbidden_and_a_cycle(tmp_path: Path)
 )
 def test_lyrics_paths_are_owned(path: str, owner: str) -> None:
     assert owner_of(path) == owner
-
-
-@pytest.mark.parametrize(
-    ("name", "inside", "outside"),
-    [
-        ("worker/lyrics", "lyrics/lrclib.py", "metadata/http.py"),
-        ("worker/alignment", "alignment/adapter.py", "jobs/lyrics_lane.py"),
-    ],
-)
-def test_lyrics_components_measure_their_production_code(
-    name: str, inside: str, outside: str
-) -> None:
-    (component,) = [c for c in COMPONENTS if c.name == name]
-    assert component.contains(f"{PACKAGE}/{inside}", test=False)
-    assert not component.contains(f"{PACKAGE}/{outside}", test=False)
-    assert not component.contains(f"worker/tests/{inside}", test=True)
 
 
 # ------------------------------------------------------------------ engine karaoke module

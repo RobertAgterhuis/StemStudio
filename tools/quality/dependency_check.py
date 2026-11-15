@@ -14,11 +14,16 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
 Worker (imports inside ``stemstudio_worker``)::
 
     api -> jobs -> ports <- {ingest, separation, analysis, detail, devices, metadata,
-    render, lyrics, alignment};
-    everything -> schemas, config
+    render, lyrics, alignment, transcription};  notation, engraving -> ports
+    everything -> schemas, config (notation and engraving: schemas only)
     lyrics may also import metadata.{http, ratelimit, user_agent} (feature 006: shared egress),
     no other metadata module; nothing imports lyrics or alignment (feature 006: jobs gets the
-    LyricsLookup and the Aligner injected)
+    LyricsLookup and the Aligner injected); nothing imports transcription, notation or
+    engraving (feature 008: composed in main.py); transcription/vendor/** contributes no edges
+
+Worker third-party imports (feature 008; the standard library is always allowed)::
+
+    notation -> music21 only;  engraving -> verovio, cairosvg, pypdf only
     detail may also import its own vendor package (detail/vendor/** is third-party code and
     contributes no edges); no module imports devices (feature 003: separation and detail get
     the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
@@ -123,6 +128,9 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "render": _ADAPTER,
     "lyrics": _ADAPTER,
     "alignment": _ADAPTER,
+    "transcription": _ADAPTER,
+    "notation": frozenset({"ports", "schemas"}),
+    "engraving": frozenset({"ports", "schemas"}),
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
     "api": _ADAPTER | {"jobs"},
@@ -137,6 +145,16 @@ PYTHON_SUBMODULES_ALLOWED: Mapping[str, frozenset[str]] = {
 
 ``metadata.http`` also allows ``metadata.http.<name>``; ``metadata.httpx`` stays forbidden.
 """
+
+PYTHON_EXTERNAL_ALLOWED: Mapping[str, frozenset[str]] = {
+    "notation": frozenset({"music21"}),
+    "engraving": frozenset({"verovio", "cairosvg", "pypdf"}),
+}
+"""Third-party top-level packages a worker module may import (only modules listed here are
+restricted; the standard library and ``stemstudio_worker`` itself are never third party)."""
+
+STDLIB = frozenset(sys.stdlib_module_names) | {"__future__"}
+"""Top-level names of the standard library."""
 
 PYTHON_PACKAGE = "stemstudio_worker"
 """Name of the worker package."""
@@ -244,6 +262,61 @@ def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
         for parts, line in _imports(module.tree, module.rel)
         if parts and parts[0] != module.source
     ]
+
+
+def read_external_edges(package_dir: Path, root: Path) -> list[Edge]:
+    """Return the absolute non-worker imports of the modules in ``PYTHON_EXTERNAL_ALLOWED``.
+
+    The target is the imported top-level name (``numpy`` for ``import numpy.typing``);
+    relative imports and ``stemstudio_worker`` imports are not external.
+    """
+    return [
+        Edge(module.source, target, module.path, line)
+        for module in _python_modules(package_dir, root)
+        if module.source in PYTHON_EXTERNAL_ALLOWED
+        for target, line in _external_imports(module.tree)
+        if target != PYTHON_PACKAGE
+    ]
+
+
+def _external_imports(tree: ast.Module) -> Iterator[tuple[str, int]]:
+    for node in ast.walk(tree):
+        yield from _node_externals(node)
+
+
+def _node_externals(node: ast.AST) -> list[tuple[str, int]]:
+    """Top-level names of an absolute import (``from x.y import z`` -> ``x``)."""
+    if isinstance(node, ast.Import):
+        return [(alias.name.split(".")[0], node.lineno) for alias in node.names]
+    if isinstance(node, ast.ImportFrom):
+        return _from_external(node)
+    return []
+
+
+def _from_external(node: ast.ImportFrom) -> list[tuple[str, int]]:
+    if node.level or node.module is None:
+        return []
+    return [(node.module.split(".")[0], node.lineno)]
+
+
+def check_external(edges: Sequence[Edge]) -> list[Finding]:
+    """Return an error per third-party import outside the module's allow-list."""
+    findings = (
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"forbidden third-party dependency {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+        if not _external_allowed(edge)
+    )
+    return list(dict.fromkeys(findings))
+
+
+def _external_allowed(edge: Edge) -> bool:
+    return edge.target in STDLIB or edge.target in PYTHON_EXTERNAL_ALLOWED[edge.source]
 
 
 @dataclass(frozen=True, slots=True)
@@ -484,6 +557,7 @@ def run(root: Path) -> list[Finding]:
     package_dir = root / "worker" / "src" / PYTHON_PACKAGE
     if package_dir.is_dir():
         findings.extend(check_edges(read_python_edges(package_dir, root), PYTHON_ALLOWED))
+        findings.extend(check_external(read_external_edges(package_dir, root)))
     return findings
 
 
