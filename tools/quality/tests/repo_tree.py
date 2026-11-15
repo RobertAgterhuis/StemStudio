@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import dependency_check
+from common import Severity
+
 WORKER_PACKAGE = "worker/src/stemstudio_worker"
 """Repository-relative path of the worker package."""
 
@@ -26,3 +29,16 @@ GENERATOR_PACKAGE = "generator/src/stemstudio_generator"
 def write_generator_module(root: Path, rel: str, text: str) -> Path:
     """Write a generator module ``rel`` (relative to the generator package); return the path."""
     return write_file(root, f"{GENERATOR_PACKAGE}/{rel}", text)
+
+
+API_PROJECT = "src/StemStudio.Api"
+"""Repository-relative path of the API project."""
+
+
+def api_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, int, str]]:
+    """Write ``src/StemStudio.Api/<rel>``, run the dependency check below ``root``.
+
+    Returns (severity, message, line, owner) per finding.
+    """
+    write_file(root, f"{API_PROJECT}/{rel}", text)
+    return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]

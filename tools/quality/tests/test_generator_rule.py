@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 from repo_tree import GENERATOR_PACKAGE as GEN
-from repo_tree import WORKER_PACKAGE
+from repo_tree import WORKER_PACKAGE, api_findings
 from repo_tree import write_file as _write
 from repo_tree import write_generator_module as _gen
 from repo_tree import write_module as _worker
@@ -373,12 +373,6 @@ def test_generation_folders_forbid_web(folder: str) -> None:
     assert "StemStudio.Web" in DOTNET_FOLDER_FORBIDDEN[folder]
 
 
-def dotnet_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, int, str]]:
-    """Write ``src/StemStudio.Api/<rel>``; return (severity, message, line, owner) per finding."""
-    _write(root, f"{API}/{rel}", text)
-    return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]
-
-
 @pytest.mark.parametrize(
     ("rel", "text", "line"),
     [
@@ -392,7 +386,7 @@ def test_generation_folder_referencing_web_is_forbidden(
 ) -> None:
     edge = f"StemStudio.Api/{rel.split('/', maxsplit=1)[0]} -> StemStudio.Web"
     expected = (Severity.ERROR, f"forbidden dependency {edge}", line, "backend")
-    assert dotnet_findings(tmp_path, rel, text) == [expected]
+    assert api_findings(tmp_path, rel, text) == [expected]
 
 
 ALLOWED_GENERATION = """namespace StemStudio.Api.Generation;
