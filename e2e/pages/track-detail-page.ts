@@ -33,6 +33,26 @@ export class TrackDetailPage {
     return this.page.getByTestId('track-retry');
   }
 
+  /** Extra message shown when a retry started on this page ended in failed again. */
+  get retryFailedAgain(): Locator {
+    return this.page.getByTestId('track-retry-failed-again');
+  }
+
+  /** Delete button of a failed or completed track (opens the inline confirmation). */
+  get deleteButton(): Locator {
+    return this.page.getByTestId('track-delete');
+  }
+
+  /** Confirms the delete in the inline confirmation. */
+  get deleteConfirm(): Locator {
+    return this.page.getByTestId('track-delete-confirm');
+  }
+
+  /** Cancels the inline delete confirmation. */
+  get deleteCancel(): Locator {
+    return this.page.getByTestId('track-delete-cancel');
+  }
+
   /** Detected BPM. */
   get bpm(): Locator {
     return this.page.getByTestId('track-bpm');
@@ -51,6 +71,15 @@ export class TrackDetailPage {
   /** The entry of one stem. */
   stem(name: StemName): Locator {
     return this.page.getByTestId(`track-stem-${name}`);
+  }
+
+  /** Opens the inline delete confirmation, cancels it once, then deletes for real. */
+  async deleteAfterCancel(): Promise<void> {
+    await this.deleteButton.click();
+    await this.deleteCancel.click();
+    await expect(this.deleteConfirm).toHaveCount(0);
+    await this.deleteButton.click();
+    await this.deleteConfirm.click();
   }
 
   /** Opens `/tracks/{id}`. */
