@@ -173,8 +173,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T063 [P] [US4] [backend] Failing tests `TakeImportTests.cs`: `POST .../takes/{n}/import` runs the existing upload import with the take file (stub worker), sets `Track.Origin = generated`, returns `202` new / `200` existing (idempotent by SHA-256), `409` when the generation is not completed; `TrackDto.origin` mapped (FR-009)
 - [ ] T064 [US4] [backend] Implement `Generation/TakeImporter.cs` to pass T063
-- [ ] T065 [P] [US4] [frontend] Failing bUnit tests: `take-import-*` button and resulting navigation; `track-origin-badge` + `track-origin-source-link` on the track page and an AI badge in the track list (US4-2)
-- [ ] T066 [US4] [frontend] Implement to pass T065
+- [x] T065 [P] [US4] [frontend] Failing bUnit tests: `take-import-*` button and resulting navigation; `track-origin-badge` + `track-origin-source-link` on the track page and an AI badge in the track list (US4-2)
+- [x] T066 [US4] [frontend] Implement to pass T065
 - [ ] T067 [US4] [qa] Author "import take" spec: import -> fake separation -> mixer opens; origin badge; second import returns the same track
 
 **Checkpoint**: HO:us4.
