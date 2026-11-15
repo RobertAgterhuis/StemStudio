@@ -56,6 +56,8 @@ FAMILIES: Final = CheckPolicy(model_residual=False, double_count=True)
 _MODEL_SHARE: Final = 0.9
 _SINGLE_STEPS: Final[tuple[ParentStemName, ...]] = ("drums", "vocals")
 
+_Weighted = tuple[tuple[ParentStemName, ...], float]
+
 StepProgress = Callable[[float], None]
 """Receives the completed fraction of a step; may raise ``DetailCancelledError``."""
 
@@ -171,12 +173,8 @@ class DetailPipeline:
         """
         partial.mkdir(parents=True, exist_ok=True)
         clear_temporaries(partial)
-        pending = [n for n in stems if read_checkpoint(partial, n, self._version) is None]
-        active: list[ParentStemName] = []
-        for name in pending:
-            if self._gate(partial, name, stems[name]) and is_splittable(name):
-                active.append(name)
-        return self._steps(tuple(active), stems, partial)
+        active = [n for n in stems if self._needs_model(partial, n, stems[n])]
+        return self._steps(_splittable(active), stems, partial)
 
     def outcomes(self, names: Sequence[StemName], partial: Path) -> list[ParentOutcome]:
         """Read the checkpointed outcomes of ``names`` in that order.
@@ -184,11 +182,20 @@ class DetailPipeline:
         Raises:
             LookupError: A parent has no checkpoint of this version.
         """
-        found = [read_checkpoint(partial, name, self._version) for name in names]
-        if any(outcome is None for outcome in found):
-            msg = "A detail checkpoint is missing"
-            raise LookupError(msg)
-        return [outcome for outcome in found if outcome is not None]
+        outcomes: list[ParentOutcome] = []
+        for name in names:
+            outcome = read_checkpoint(partial, name, self._version)
+            if outcome is None:
+                msg = f"The detail checkpoint of {name} is missing"
+                raise LookupError(msg)
+            outcomes.append(outcome)
+        return outcomes
+
+    def _needs_model(self, partial: Path, name: StemName, path: Path) -> bool:
+        """True when ``name`` has no checkpoint yet and passes the gate (see :meth:`_gate`)."""
+        if read_checkpoint(partial, name, self._version) is not None:
+            return False
+        return self._gate(partial, name, path)
 
     def _gate(self, partial: Path, name: StemName, path: Path) -> bool:
         """Checkpoint ``name`` when it is not split; return True when it must be split."""
@@ -202,14 +209,16 @@ class DetailPipeline:
     def _steps(
         self, active: tuple[ParentStemName, ...], stems: Mapping[StemName, Path], partial: Path
     ) -> list[DetailStep]:
-        groups: list[tuple[tuple[ParentStemName, ...], float]] = [
-            ((p,), STEP_WEIGHTS[p]) for p in _SINGLE_STEPS if p in active
-        ]
-        instruments = tuple(p for p in active if p in INSTRUMENT_PARENTS)
-        if instruments:
-            split = [instruments] if self._source.sum_instruments else [(p,) for p in instruments]
-            groups += [(g, STEP_WEIGHTS["instruments"] / len(split)) for g in split]
+        groups = _single_groups(active) + self._instrument_groups(active)
         return [self._step(_Group(parents, stems, partial), weight) for parents, weight in groups]
+
+    def _instrument_groups(self, active: tuple[ParentStemName, ...]) -> list[_Weighted]:
+        """One summed group, or one group per parent when the source does not sum."""
+        instruments = _instruments(active)
+        if not instruments:
+            return []
+        split = [instruments] if self._source.sum_instruments else [(p,) for p in instruments]
+        return [(group, STEP_WEIGHTS["instruments"] / len(split)) for group in split]
 
     def _step(self, group: _Group, weight: float) -> DetailStep:
         return DetailStep(group.parents, weight, lambda progress: self._run(group, progress))
@@ -240,6 +249,22 @@ def _results(
     return [
         ParentResult(p, a, shares[p], _residual(a, shares[p].values())) for p, a in audios.items()
     ]
+
+
+def _instruments(active: tuple[ParentStemName, ...]) -> tuple[ParentStemName, ...]:
+    return tuple(p for p in active if p in INSTRUMENT_PARENTS)
+
+
+def _single_groups(active: tuple[ParentStemName, ...]) -> list[_Weighted]:
+    return [((p,), STEP_WEIGHTS[p]) for p in _SINGLE_STEPS if p in active]
+
+
+def _splittable(names: Sequence[StemName]) -> tuple[ParentStemName, ...]:
+    parents: list[ParentStemName] = []
+    for name in names:
+        if is_splittable(name):
+            parents.append(name)
+    return tuple(parents)
 
 
 def _residual(audio: DetailAudio, outputs: Iterable[DetailAudio]) -> float:

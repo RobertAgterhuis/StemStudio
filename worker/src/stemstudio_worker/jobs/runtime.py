@@ -25,6 +25,16 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+def _load(paths: DataPaths, clock: Clock) -> DetailContext:
+    """Load both stores and fail the jobs a restart interrupted."""
+    store, details = JobStore(paths.jobs), DetailJobStore(paths.detail_jobs)
+    store.load_all()
+    details.load_all()
+    reconcile(store, paths, clock)
+    reconcile_detail_jobs(details, paths, clock)
+    return DetailContext(store, details, paths, clock)
+
+
 @dataclass(frozen=True, slots=True)
 class WorkerRuntime:
     """Everything the HTTP layer needs while the worker runs.
@@ -51,20 +61,12 @@ class WorkerRuntime:
 
     @classmethod
     def start(
-        cls,
-        settings: WorkerSettings,
-        adapters: PipelineAdapters,
-        pipeline: DetailPipelinePort,
-        clock: Clock = utc_now,
+        cls, settings: WorkerSettings, adapters: PipelineAdapters, pipeline: DetailPipelinePort
     ) -> "WorkerRuntime":
         """Load the jobs, reconcile interrupted ones and start the worker thread."""
         paths = DataPaths(settings.data_dir)
-        store, details = JobStore(paths.jobs), DetailJobStore(paths.detail_jobs)
-        store.load_all()
-        details.load_all()
-        reconcile(store, paths, clock)
-        reconcile_detail_jobs(details, paths, clock)
-        context = DetailContext(store, details, paths, clock)
+        context = _load(paths, utc_now)
+        store, details, clock = context.jobs, context.details, context.clock
         runner = JobRunner(JobContext(store, paths, clock), adapters)
         scheduler = PriorityScheduler(runner.process, DetailRunner(context, pipeline).step)
         service = JobService(store, scheduler.submit, clock)

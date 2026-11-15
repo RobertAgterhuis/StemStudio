@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Final, get_args
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, JSONResponse
-from starlette.concurrency import run_in_threadpool
+from fastapi.concurrency import run_in_threadpool
+from starlette.responses import FileResponse, JSONResponse
 
 from stemstudio_worker.api.dependencies import Runtime
 from stemstudio_worker.api.problems import ProblemError
@@ -16,6 +16,7 @@ from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.schemas import (
     CreateDetailJobRequest,
     DetailJob,
+    DetailResult,
     DetailStemName,
     ParentStemName,
 )
@@ -77,16 +78,17 @@ def get_detail_stem(detail_job_id: str, parent: str, name: str, runtime: Runtime
 
 def _stem_path(runtime: WorkerRuntime, detail_job_id: str, parent: str, name: str) -> Path:
     result = _call(lambda: runtime.detail_service.result(detail_job_id))
-    offered = (
-        runtime.paths.detail_stem(result.audio_sha256, outcome.parent, stem.name)
-        for outcome in result.parents
-        for stem in outcome.stems
-        if (outcome.parent, stem.name) == (parent, name)
-    )
-    path = next(offered, None)
-    if path is None or not path.is_file():
+    if not _offered(result, parent, name):
+        raise _missing(parent, name)
+    path = runtime.paths.detail_final(result.audio_sha256) / parent / f"{name}.flac"
+    if not path.is_file():
         raise _missing(parent, name)
     return path
+
+
+def _offered(result: DetailResult, parent: str, name: str) -> bool:
+    """Whether ``parent``/``name`` (validated enum values) is a stem of ``result``."""
+    return any(o.parent == parent and any(s.name == name for s in o.stems) for o in result.parents)
 
 
 def _missing(parent: str, name: str) -> ProblemError:

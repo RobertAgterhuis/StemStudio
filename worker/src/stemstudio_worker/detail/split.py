@@ -1,6 +1,6 @@
 """Outcome of one parent from its model outputs: gate, checks, FLACs, checkpoint (D-04 order)."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -113,18 +113,35 @@ def split_parent(target: SplitTarget, result: ParentResult) -> None:
 def _write_split(
     temporary: Path, parent: ParentStemName, audio: DetailAudio, kept: Families
 ) -> _Written:
+    files = _write_files(temporary, parent, audio, kept)
+    error = reconstruction_db(audio, [read_stem(path) for path in files.values()])
+    if not reconstruction_ok(error):
+        _delete(files.values())
+        return _Written(ParentOutcomeKind.NOT_RELIABLE, error)
+    return _Written(ParentOutcomeKind.SPLIT, error, _infos(parent, files))
+
+
+def _write_files(
+    temporary: Path, parent: ParentStemName, audio: DetailAudio, kept: Families
+) -> dict[DetailStemName, Path]:
+    """Write the kept stems and the rest (16-bit) in display order; returns name -> file."""
     pcm: dict[DetailStemName, Pcm] = {name: to_pcm(data) for name, data in kept.items()}
     pcm[REST] = to_pcm(rest_of(audio, list(pcm.values())))
     files = {name: temporary / f"{name}.flac" for name in display_order(parent, set(pcm))}
     for name, path in files.items():
         write_stem(path, pcm[name])
-    error = reconstruction_db(audio, [read_stem(path) for path in files.values()])
-    if not reconstruction_ok(error):
-        for path in files.values():
-            path.unlink()
-        return _Written(ParentOutcomeKind.NOT_RELIABLE, error)
-    infos = tuple(
+    return files
+
+
+def _delete(paths: Iterable[Path]) -> None:
+    for path in paths:
+        path.unlink()
+
+
+def _infos(
+    parent: ParentStemName, files: Mapping[DetailStemName, Path]
+) -> tuple[DetailStemInfo, ...]:
+    return tuple(
         DetailStemInfo(name=name, path=f"{parent}/{name}", size_bytes=path.stat().st_size)
         for name, path in files.items()
     )
-    return _Written(ParentOutcomeKind.SPLIT, error, infos)

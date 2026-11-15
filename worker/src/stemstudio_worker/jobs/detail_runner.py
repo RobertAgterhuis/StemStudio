@@ -54,12 +54,19 @@ def failure_text(exc: Exception) -> str:
     """Map an exception of a detail unit to its user text (unexpected ones are logged)."""
     if isinstance(exc, WorkerError):
         return str(exc) or texts.UNEXPECTED
+    known = _resource_text(exc)
+    if known is None:
+        _LOG.error("Detail job failed unexpectedly", exc_info=exc)
+    return known or texts.UNEXPECTED
+
+
+def _resource_text(exc: Exception) -> str | None:
+    """Text for running out of memory or disk space, else None."""
     if isinstance(exc, MemoryError):
         return texts.NO_MEMORY
     if isinstance(exc, OSError) and exc.errno == errno.ENOSPC:
         return texts.NO_DISK
-    _LOG.error("Detail job failed unexpectedly", exc_info=exc)
-    return texts.UNEXPECTED
+    return None
 
 
 class _Reporter:

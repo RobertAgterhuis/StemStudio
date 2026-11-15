@@ -6,7 +6,7 @@ one. Only the selected outputs are accumulated (8 family accumulators instead of
 D-06). Progress is reported per chunk and may cancel the run.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
@@ -99,10 +99,7 @@ def demix(
     import torch  # noqa: PLC0415 - torch loads only for real models
 
     border = plan.chunk_size - plan.chunk_size // plan.overlap
-    audio = torch.from_numpy(np.ascontiguousarray(mix, dtype=np.float32))
-    padded = audio.shape[-1] > 2 * border > 0
-    if padded:
-        audio = torch.nn.functional.pad(audio[None], (border, border), mode="reflect")[0]
+    audio, padded = _pad_borders(mix, border)
     accumulator = _Accumulator(
         plan, audio.shape[-1], _window(plan.chunk_size, plan.chunk_size // 10)
     )
@@ -116,6 +113,16 @@ def demix(
     return np.nan_to_num(estimate, nan=0.0).astype(np.float32)
 
 
+def _pad_borders(mix: DetailAudio, border: int) -> tuple["torch.Tensor", bool]:
+    """Reflect-pad both ends by ``border`` when the input is long enough (MSST behaviour)."""
+    import torch  # noqa: PLC0415 - torch loads only for real models
+
+    audio = torch.from_numpy(np.ascontiguousarray(mix, dtype=np.float32))
+    if not audio.shape[-1] > 2 * border > 0:
+        return audio, False
+    return torch.nn.functional.pad(audio[None], (border, border), mode="reflect")[0], True
+
+
 def _chunk(audio: "torch.Tensor", start: int, size: int) -> "torch.Tensor":
     import torch  # noqa: PLC0415 - torch loads only for real models
 
@@ -124,17 +131,33 @@ def _chunk(audio: "torch.Tensor", start: int, size: int) -> "torch.Tensor":
     return torch.nn.functional.pad(part[None], (0, size - part.shape[-1]), mode=mode)
 
 
+@dataclass(frozen=True, slots=True)
+class OutputSelection:
+    """The outputs of a network and the ones to keep.
+
+    Attributes:
+        names: Output names in network order.
+        keep: Names to return, in the order returned.
+    """
+
+    names: tuple[str, ...]
+    keep: tuple[str, ...]
+
+    @property
+    def indices(self) -> list[int]:
+        """Network indices of :attr:`keep`."""
+        return [self.names.index(name) for name in self.keep]
+
+
 class MsstModel:
     """``DetailModel`` over an MSST network: named outputs, only ``keep`` accumulated."""
 
-    def __init__(
-        self, network: Network, plan: DemixPlan, names: Sequence[str], keep: Sequence[str]
-    ) -> None:
-        """Wrap ``network`` whose outputs are ``names``; return only the outputs in ``keep``."""
-        indices = [list(names).index(name) for name in keep]
+    def __init__(self, network: Network, plan: DemixPlan, outputs: "OutputSelection") -> None:
+        """Wrap ``network``; only the outputs selected by ``outputs`` are accumulated."""
+        indices = outputs.indices
         self._network: Network = lambda batch: network(batch)[:, indices]
         self.plan = plan
-        self._keep = tuple(keep)
+        self._keep = outputs.keep
 
     def separate(self, audio: DetailAudio, progress: ProgressCallback) -> dict[str, DetailAudio]:
         """Split ``audio`` into the kept outputs (see :func:`demix`)."""

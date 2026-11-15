@@ -20,7 +20,7 @@ from stemstudio_worker.detail import (
     runtimes,
 )
 from stemstudio_worker.detail import demix as demix_module
-from stemstudio_worker.detail.demix import DemixPlan, MsstModel, demix
+from stemstudio_worker.detail.demix import DemixPlan, MsstModel, OutputSelection, demix
 from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.folding import MEGA_OUTPUTS
 from stemstudio_worker.detail.gating import relative_db
@@ -67,7 +67,9 @@ def test_demix_overlap_adds_chunks_back_to_the_full_signal() -> None:
 
 def test_msst_model_accumulates_only_the_kept_outputs() -> None:
     mix = noise(0.3, 0.3)
-    model = MsstModel(scaled_network((0.1, 0.2, 0.3)), PLAN, ("a", "b", "c"), ("c",))
+    model = MsstModel(
+        scaled_network((0.1, 0.2, 0.3)), PLAN, OutputSelection(("a", "b", "c"), ("c",))
+    )
     out = model.separate(mix, lambda f, s: None)
     assert list(out) == ["c"]
     assert np.allclose(out["c"], 0.3 * mix, atol=1e-5)
@@ -88,7 +90,9 @@ def test_demix_stops_when_progress_cancels() -> None:
 
 
 def test_msst_model_names_the_kept_outputs() -> None:
-    model = MsstModel(scaled_network((0.1, 0.2, 0.3)), PLAN, ("a", "b", "c"), ("c", "a"))
+    model = MsstModel(
+        scaled_network((0.1, 0.2, 0.3)), PLAN, OutputSelection(("a", "b", "c"), ("c", "a"))
+    )
     outputs = model.separate(noise(0.2, 0.3), lambda f, s: None)
     assert list(outputs) == ["c", "a"]
     assert outputs["a"].dtype == np.float32
@@ -97,7 +101,7 @@ def test_msst_model_names_the_kept_outputs() -> None:
 def test_mega_keeps_eight_family_accumulators() -> None:
     names = ("bass", *MEGA_OUTPUTS, "vocal")
     scales = tuple(0.01 * (i + 1) for i in range(len(names)))
-    model = MsstModel(scaled_network(scales), PLAN, names, MEGA_OUTPUTS)
+    model = MsstModel(scaled_network(scales), PLAN, OutputSelection(names, MEGA_OUTPUTS))
     outputs = model.separate(noise(0.2, 0.3), lambda f, s: None)
     assert list(outputs) == list(MEGA_OUTPUTS)
 
@@ -114,7 +118,9 @@ def test_inference_errors_become_memory_or_separation_errors(
         raise RuntimeError(message)
 
     with pytest.raises(error):
-        MsstModel(broken, PLAN, ("a",), ("a",)).separate(noise(0.1, 0.3), lambda f, s: None)
+        MsstModel(broken, PLAN, OutputSelection(("a",), ("a",))).separate(
+            noise(0.1, 0.3), lambda f, s: None
+        )
 
 
 def test_kara2_backing_is_the_compensated_model_output_and_lead_the_difference() -> None:

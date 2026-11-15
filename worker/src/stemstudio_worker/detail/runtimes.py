@@ -11,7 +11,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, Final
 
-from stemstudio_worker.detail.demix import DemixPlan, MsstModel, Network
+from stemstudio_worker.detail.demix import DemixPlan, MsstModel, Network, OutputSelection
 from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.folding import MEGA_OUTPUTS
 from stemstudio_worker.detail.mdx_net import Kara2Model
@@ -69,15 +69,17 @@ def load_network(build: Callable[[], "torch.nn.Module"], path: Path, device: str
 def load_mdx23c(path: Path, device: str) -> DetailModel:
     """MDX23C DrumSep 6-stem: kick, snare, toms, hh, ride, crash."""
     vendor = _vendor()
-    names = vendor.DRUMSEP_INSTRUMENTS
-    return MsstModel(load_network(vendor.build_mdx23c, path, device), MDX23C_PLAN, names, names)
+    names = tuple(vendor.DRUMSEP_INSTRUMENTS)
+    network = load_network(vendor.build_mdx23c, path, device)
+    return MsstModel(network, MDX23C_PLAN, OutputSelection(names, names))
 
 
 def load_mega53(path: Path, device: str) -> DetailModel:
     """MVSep Mega 53-stem BS-RoFormer, accumulating only the eight family outputs."""
     vendor = _vendor()
     network = load_network(vendor.build_mega53, path, device)
-    return MsstModel(network, MEGA_PLAN, vendor.MEGA_INSTRUMENTS, MEGA_OUTPUTS)
+    selection = OutputSelection(tuple(vendor.MEGA_INSTRUMENTS), MEGA_OUTPUTS)
+    return MsstModel(network, MEGA_PLAN, selection)
 
 
 def load_kara2(path: Path, device: str) -> DetailModel:  # noqa: ARG001 - ONNX runs on the CPU
