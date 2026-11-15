@@ -139,9 +139,7 @@ def test_an_unusable_root_is_reported_and_fails_every_resolve(tmp_path: Path, in
     assert (type(caught.value), str(caught.value)) == (RenderError, LIBRARY_UNAVAILABLE_TEXT)
 
 
-def test_an_unlistable_root_is_unavailable(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_an_unlistable_root_is_unavailable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def deny(path: object) -> object:
         raise PermissionError(13, "Permission denied", str(path))
 
