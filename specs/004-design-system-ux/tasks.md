@@ -109,7 +109,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 - [x] T035 [P] [US1] [frontend] Failing bUnit tests for Mixes and dialogs: mix ids unchanged, `mix-ribbon-<id>`, actions inline at every level, `SaveMixDialog` and `ConfirmDialog` ids and focus handling (FR-005)
 - [x] T036 [US1] [frontend] Rebuild `Components/Pages/Mixes.razor`, `Mixer/SaveMixDialog.razor`, `Shared/ConfirmDialog.razor` to pass T035
 - [x] T037 [US1] [qa] Author `e2e/visual/screens.spec.ts` (every screen x {dark, light} x {beginner, advanced, expert}, mixer collapsed and expanded, 360 px views, welcome, help panel, a tour step; masks for meters, clock, GUIDs, dates; animations disabled) and `e2e/tests/theme-flash.spec.ts` (first frame colour via `page.screenshot` at `domcontentloaded`, 20 reloads per theme) (SC-004, SC-005)
-- [ ] T038 [US1] [CTO] **Design approval** with the owner: screenshots (dark + light) of Import, Track, Mixer at Advanced from the frontend's US1 hand-off; record approval or change requests in `docs/STATUS.md`; change requests go back to the frontend as polish items. Visual baselines are generated only after this approval.
+- [x] T038 (CTO approval under owner mandate, docs/design-review/004/REVIEW.md) [US1] [CTO] **Design approval** with the owner: screenshots (dark + light) of Import, Track, Mixer at Advanced from the frontend's US1 hand-off; record approval or change requests in `docs/STATUS.md`; change requests go back to the frontend as polish items. Visual baselines are generated only after this approval.
 
 **Checkpoint**: HO:us1; design approved.
 
@@ -192,7 +192,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 
 - [ ] T067 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green (Web, web-interop); Playwright default suite (Advanced, 1.2.0 unchanged) + journey/help/tour/expert specs + `@gpu` suite on the fake stacks (retries 0); generate the visual baselines in the CI container and the a11y and Lighthouse jobs green
 - [ ] T068 [CTO] Final owner review of the visual baselines (both themes, three levels) and of the beginner journey (quickstart V-J2 performed live); record approval in `docs/STATUS.md`
-- [ ] T069 [CTO] `docs/THIRD-PARTY-LICENSES.md`: Markdig 1.5.1 (BSD-2-Clause), YamlDotNet (MIT, now runtime), driver.js 1.10.2 (MIT), Archivo (SIL OFL-1.1, font section, SHA-256), Material Symbols (Apache-2.0, via Radzen), `@axe-core/playwright` (MPL-2.0, dev), `@lhci/cli` (Apache-2.0, dev), versions from the hand-offs. README: levels, help, tours, shortcuts, preferences reset
+- [x] T069 [CTO] `docs/THIRD-PARTY-LICENSES.md`: Markdig 1.5.1 (BSD-2-Clause), YamlDotNet (MIT, now runtime), driver.js 1.10.2 (MIT), Archivo (SIL OFL-1.1, font section, SHA-256), Material Symbols (Apache-2.0, via Radzen), `@axe-core/playwright` (MPL-2.0, dev), `@lhci/cli` (Apache-2.0, dev), versions from the hand-offs. README: levels, help, tours, shortcuts, preferences reset
 - [ ] T070 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
 
 ---
