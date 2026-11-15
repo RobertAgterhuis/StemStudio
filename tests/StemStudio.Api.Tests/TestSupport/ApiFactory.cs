@@ -7,6 +7,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+using Microsoft.Extensions.Logging.Abstractions;
+using StemStudio.Api.Generator;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -31,6 +33,14 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     public FakeWorkerClient Worker { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(Start);
+
+    /// <summary>The fake generator service behind the real generator client (feature 009).</summary>
+    public FakeGenerator Generator { get; } = new();
+
+    /// <summary>False: the generator client has no base URL (generation not installed).</summary>
+    public bool GeneratorInstalled { get; init; } = true;
+
+    public SequenceSeeds Seeds { get; } = new();
 
     public Action<IServiceCollection>? ConfigureServices { get; init; }
 
@@ -103,9 +113,21 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         {
             services.AddSingleton<IWorkerClient>(Worker);
             services.AddSingleton<TimeProvider>(Clock);
+            services.AddSingleton<IGeneratorClient>(new GeneratorClient(GeneratorHttp(), NullLogger<GeneratorClient>.Instance, Clock));
+            services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
             ConfigureServices?.Invoke(services);
         });
     }
+
+    /// <summary>One pass of the generation synchroniser in a fresh scope (feature 009).</summary>
+    public Task<bool> SyncGenerationsAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Generations.GenerationSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
+    private HttpClient GeneratorHttp() =>
+        new(Generator.Handler) { BaseAddress = GeneratorInstalled ? new Uri("http://generator:8010/") : null };
 
     protected override void Dispose(bool disposing)
     {

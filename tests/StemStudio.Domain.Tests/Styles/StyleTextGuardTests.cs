@@ -22,7 +22,33 @@ public sealed class StyleTextGuardTests
     [InlineData("a bit of Beyoncé")]
     [InlineData("magi lindstrom")]
     [InlineData("sunny the velvet folks groove")]
+    [InlineData("Warm late-night jazz in the style of a famous crooner")]
+    [InlineData("Big drums, sounds like a stadium band from the eighties")]
+    [InlineData("A soft ballad with the voice of a well-known singer")]
+    [InlineData("In The Style Of Someone")]
+    [InlineData("sounds like radio")]
+    [InlineData("Rustige piano in de stijl van een bekende zanger")]
+    [InlineData("Gitaarpop die klinkt als de hitlijst")]
+    [InlineData("Funky bass, SOUNDS   LIKE a famous band")]
+    [InlineData("Dreamy pop in the stýle of an idol")]
+    [InlineData("Upbeat pop in the style of a chart singer")]
+    [InlineData("sounds like a famous tenor")]
     public void IsImitation_Hits(string text) => Guard.IsImitation(text).ShouldBeTrue();
+
+    [Theory]
+    [InlineData("Soul ballad")]
+    [InlineData("Rock steady groove")]
+    [InlineData("Blues shuffle")]
+    [InlineData("Country waltz")]
+    [InlineData("Heavy metal riffs")]
+    [InlineData("Pop punk energy")]
+    [InlineData("Classical strings")]
+    [InlineData("Folk duo")]
+    public void IsImitation_QaGenreNamesAreAccepted(string text) => Guard.IsImitation(text).ShouldBeFalse();
+
+    [Fact]
+    public void IsImitation_QaLibraryArtistIsRefused() =>
+        StyleTextGuard.Create(["StemStudio Fixtures"]).IsImitation("Bright synth pop like StemStudio Fixtures").ShouldBeTrue();
 
     [Theory]
     [InlineData("rock")]
