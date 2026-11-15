@@ -190,9 +190,14 @@ public sealed class TrackLyrics
             return;
         }
 
-        Document = document;
+        Document = WithSourceOf(Document, document);
         Become(LyricsStatus.Found, null, nowUtc);
     }
+
+    /// <summary>Alignment times the text, it does not change where the text came from (LRCLIB credit, FR-012).</summary>
+    private static LyricsDocument WithSourceOf(LyricsDocument? text, LyricsDocument aligned) => text is null
+        ? aligned
+        : aligned with { Source = text.Source, SourceId = text.SourceId, SourceDurationSeconds = text.SourceDurationSeconds };
 
     /// <summary>Fails a search or an alignment with a readable reason; the text is kept.</summary>
     /// <param name="reason">Reason (blank becomes <see cref="FailedDefault"/>, cut to 1000 characters).</param>

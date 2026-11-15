@@ -2,6 +2,8 @@
 
 .ss-page {
   display: grid;
+  /* One shrinkable column: the implicit auto track grew to the min-content of the import row (WCAG 1.4.10). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ss-space-5);
   max-width: 52rem;
 }

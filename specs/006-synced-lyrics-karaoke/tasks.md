@@ -82,10 +82,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### audio-ingest (tests first)
 
-- [ ] T013 [P] [audio-ingest] Failing tests `worker/tests/lyrics/test_lrc.py`, `test_lyricsfile.py`, `test_normalize.py`: LRC stamps `[mm:ss]`/`.xx`/`.xxx`, several stamps per line, `[offset:]` sign, metadata tags ignored, empty lines as breaks; `lyricsfile` via `safe_load`, words with start only -> ends per research R-03 (3 s cap, line end); limits (400 lines, 40 words, 500 chars, 1 MB) -> typed "unusable" error; invariants of data-model 2.1 (FR-002, FR-003)
-- [ ] T014 [audio-ingest] Implement `lyrics/{lrc,lyricsfile,normalize}.py` to pass T013
-- [ ] T015 [P] [audio-ingest] Failing tests `worker/tests/lyrics/test_interpolate.py`: vowel-group weights (Unicode, minimum 1), CJK per character, line span capped at `60 ms * chars + 1500 ms`, last line, words contiguous and proportional, origin `interpolated` (FR-003)
-- [ ] T016 [audio-ingest] Implement `lyrics/interpolate.py` to pass T015
+- [x] T013 [P] [audio-ingest] Failing tests `worker/tests/lyrics/test_lrc.py`, `test_lyricsfile.py`, `test_normalize.py`: LRC stamps `[mm:ss]`/`.xx`/`.xxx`, several stamps per line, `[offset:]` sign, metadata tags ignored, empty lines as breaks; `lyricsfile` via `safe_load`, words with start only -> ends per research R-03 (3 s cap, line end); limits (400 lines, 40 words, 500 chars, 1 MB) -> typed "unusable" error; invariants of data-model 2.1 (FR-002, FR-003)
+- [x] T014 [audio-ingest] Implement `lyrics/{lrc,lyricsfile,normalize}.py` to pass T013
+- [x] T015 [P] [audio-ingest] Failing tests `worker/tests/lyrics/test_interpolate.py`: vowel-group weights (Unicode, minimum 1), CJK per character, line span capped at `60 ms * chars + 1500 ms`, last line, words contiguous and proportional, origin `interpolated` (FR-003)
+- [x] T016 [audio-ingest] Implement `lyrics/interpolate.py` to pass T015
 
 ### stem-separation (tests first)
 
@@ -115,8 +115,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 **Goal**: LRCLIB lookup at import, banner with the ball in the mixer, offset.
 **Independent test**: quickstart L2, L4, L5, L6, L7.
 
-- [ ] T027 [P] [US1] [audio-ingest] Failing tests `worker/tests/lyrics/test_lrclib.py`, `test_select.py`, `test_lookup.py`: request order get+album -> get -> search, at most 3 requests, >= 500 ms between them (fake clock), `Retry-After` via the 005 client, UA from 005; selection rule of data-model 2.3 over the F-01/F-02 record sets (262 s -> word-synced record; 270 s -> line-synced; 200 s -> not found; plain-only within 15 s -> `plain`); instrumental -> outcome `instrumental`; non-JSON body -> not found; lookups off -> `disabled` without requests; fake provider modes (FR-001, FR-003, FR-012)
-- [ ] T028 [US1] [audio-ingest] Implement `lyrics/{lrclib,select,lookup,fake}.py` to pass T027
+- [x] T027 [P] [US1] [audio-ingest] Failing tests `worker/tests/lyrics/test_lrclib.py`, `test_select.py`, `test_lookup.py`: request order get+album -> get -> search, at most 3 requests, >= 500 ms between them (fake clock), `Retry-After` via the 005 client, UA from 005; selection rule of data-model 2.3 over the F-01/F-02 record sets (262 s -> word-synced record; 270 s -> line-synced; 200 s -> not found; plain-only within 15 s -> `plain`); instrumental -> outcome `instrumental`; non-JSON body -> not found; lookups off -> `disabled` without requests; fake provider modes (FR-001, FR-003, FR-012)
+- [x] T028 [US1] [audio-ingest] Implement `lyrics/{lrclib,select,lookup,fake}.py` to pass T027
 - [x] T029 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_lyrics_routes.py`: create/get/result/cancel/delete per contract (202, 404, 409, 422), `Cache-Control: no-store` on results, composition with the real lookup or the fake provider (FR-001, FR-010)
 - [x] T030 [US1] [stem-separation] Implement `api/lyrics_routes.py`, `main.py` wiring to pass T029
 - [x] T031 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Lyrics/LyricsSyncTests.cs`: `none -> searching` when the standard poll reports `durationSeconds` (names from the 005 lookup fields), and on first mixer data request of an old track (FR-013); result applied (found/instrumental/notFound/disabled), worker job deleted after copy, worker 404 -> failed, unreachable keeps state (FR-001, FR-002)
@@ -127,7 +127,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T036 [US1] [audio-engine] Implement `src/karaoke/{cursor,layout,ball,dom,index}.ts` and the engine methods to pass T035
 - [x] T037 [P] [US1] [frontend] Failing bUnit tests: `KaraokeBanner` renders the empty host `karaoke-banner` with `@key` and no child content, `data-sync`, `karaoke-credit`; calls `IAudioEngine.AttachKaraokeAsync` after the track and lyrics are loaded, `DetachKaraokeAsync` on dispose; `karaoke-offset` (±5000 ms, 10 ms steps, ±50 ms keys) calls `SetKaraokeOffsetAsync` immediately and saves debounced (500 ms); `karaoke-offset-reset`; `karaoke-unavailable` texts per status; layout at the bottom of the mixer in the 004 design (banner does not cover the transport); journey levels (beginner: banner + toggle; advanced: offset, size; expert: timing origin) (FR-005, FR-007, FR-015)
 - [x] T038 [US1] [frontend] Implement `Components/Mixer/Karaoke/*`, `Audio/{IAudioEngine,AudioEngineInterop,EngineMethods}` karaoke members, `IStemStudioApiClient.{GetLyricsAsync, SetLyricsOffsetAsync}`, banner styles (004 tokens), help topics `help-karaoke`, `help-karaoke-offset` to pass T037
-- [ ] T039 [US1] [qa] Author `e2e/tests/karaoke.spec.ts` (fake stack `STEMSTUDIO_FAKE_LYRICS=word|line|instrumental`): states countdown -> singing -> ended, landing accuracy against the engine clock (quickstart L4: 30 s, 50 loops, 20 seeks), frame-rate/perf trace (L5), offset changes the landing time, instrumental has no banner (SC-002, SC-004)
+- [x] T039 [US1] [qa] Author `e2e/tests/karaoke.spec.ts` (fake stack `STEMSTUDIO_FAKE_LYRICS=word|line|instrumental`): states countdown -> singing -> ended, landing accuracy against the engine clock (quickstart L4: 30 s, 50 loops, 20 seeks), frame-rate/perf trace (L5), offset changes the landing time, instrumental has no banner (SC-002, SC-004)
 
 **Checkpoint**: HO:us1.
 
@@ -146,7 +146,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T045 [US2] [backend] Implement in `Api/Lyrics/*` to pass T044
 - [x] T046 [P] [US2] [frontend] Failing bUnit tests: track detail `lyrics-section` per status; `lyrics-preview` static text for alignPending/failed with text; `lyrics-align` with `lyrics-align-estimate`; `lyrics-align-progress`, `lyrics-align-device` (003 device badge), `lyrics-align-cancel`; paste dialog (`lyrics-paste-*`, client-side length check); `lyrics-error`; `lyrics-copyright-notice` (FR-004, FR-010)
 - [x] T047 [US2] [frontend] Implement the track-detail lyrics section (after a failed alignment of unsplit vocals: hint "Split the vocals into detail stems and try again", research.md P0-2), paste dialog, API client methods, help topics `help-lyrics-sources`, `help-lyrics-align`, legal-notice sentence on lyrics to pass T046
-- [ ] T048 [US2] [qa] Author `e2e/tests/lyrics.spec.ts` (fake stack `plain`, `not-found`, `failed`; fake CPU and fake GPU devices): auto alignment on fake GPU, click-to-align on fake CPU with estimate, paste flow, failure + retry, banner appears with `data-sync="aligned"`
+- [x] T048 [US2] [qa] Author `e2e/tests/lyrics.spec.ts` (fake stack `plain`, `not-found`, `failed`; fake CPU and fake GPU devices): auto alignment on fake GPU, click-to-align on fake CPU with estimate, paste flow, failure + retry, banner appears with `data-sync="aligned"`
 
 **Checkpoint**: HO:us2.
 
@@ -163,7 +163,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T052 [US3] [audio-engine] Implement to pass T051
 - [x] T053 [P] [US3] [frontend] Failing bUnit tests: `karaoke-toggle` (`aria-pressed`, banner removed and engine detached when hidden, remembered via `localStorage` with try/catch defaults), `karaoke-size` s/m/l, `lyrics-search`, `lyrics-remove` with confirm; contrast tokens for both 004 themes (FR-009, FR-011)
 - [x] T054 [US3] [frontend] Implement to pass T053
-- [ ] T055 [US3] [qa] Author `karaoke.spec.ts` "controls": toggle persists across reload, size change keeps landing accuracy, remove + search again, `reducedMotion: 'reduce'` emulation shows no ball
+- [x] T055 [US3] [qa] Author `karaoke.spec.ts` "controls": toggle persists across reload, size change keeps landing accuracy, remove + search again, `reducedMotion: 'reduce'` emulation shows no ball
 
 **Checkpoint**: HO:us3.
 
@@ -171,25 +171,26 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 6: Polish (inside the wave, per owner)
 
-- [ ] T056 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `lyrics`
+- [x] T056 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `lyrics` (CTO close-out 2026-11-16: worker 100 % line and branch, `audio-ingest-006-polish.md`)
 - [x] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
 - [x] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
 - [x] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
-- [ ] T061 [P] [qa] Traceability matrix update, HO:polish
-- [ ] T062 [P] [devops] Validate compose/CI changes, CPU-image guard run, HO:polish
-- [ ] T063 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [x] T061 [P] [qa] Traceability matrix update, HO:polish
+- [ ] T062 [P] [devops] Validate compose/CI changes, CPU-image guard run, HO:polish (OPEN 2026-11-16: no devops polish hand-off; the CPU-image guard runs in CI on `main` after the merge)
+- [x] T063 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish (CTO close-out 2026-11-16: `run_all.py` 0 errors in the integration run and the close-out)
 
 ---
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T064 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
-- [ ] T065 [CTO] Playwright default suite + `karaoke`/`lyrics` specs on the fake stack (retries 0), Chromium and Firefox
-- [ ] T066 [CTO] Reference-machine validation (quickstart L6-L10): reference song word sync and ball spot-check, instrumental song, GPU alignment time and device, CPU estimate, `pytest -m integration worker/tests/alignment/test_align_clip.py`; record in `docs/STATUS.md`
-- [ ] T067 [CTO] `docs/THIRD-PARTY-LICENSES.md`: stable-ts 2.19.1 (MIT), openai-whisper 20250625 (MIT), torchaudio 2.11.1 (BSD-2-Clause), tiktoken 0.14.0 (MIT), more-itertools 11.2.1 (MIT), regex (Apache-2.0 / CNRI-Python), PyYAML (MIT, direct); model weights Whisper large-v3-turbo (MIT, SHA-256, source URL, first-use download); "Online data services": LRCLIB (no stated data licence; lyrics copyrighted, local display only)
-- [ ] T068 [CTO] README: karaoke banner, lyrics sources, what is sent, alignment (GPU automatic, CPU on click, 1.6 GB model), copyright and personal-practice notice incl. lyrics
-- [ ] T069 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T064 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
+- [x] T065 [CTO] Playwright default suite + `karaoke`/`lyrics` specs on the fake stack (retries 0), Chromium and Firefox
+- [x] T066 [CTO] Reference-machine validation (quickstart L6-L10): reference song word sync and ball spot-check, instrumental song, GPU alignment time and device, CPU estimate, `pytest -m integration worker/tests/alignment/test_align_clip.py`; record in `docs/STATUS.md` (2026-11-16: SC-003 on GPU and CPU recorded in `docs/STATUS.md`; the reference-song ball spot check on the real stack stays with the owner)
+- [x] T067 [CTO] `docs/THIRD-PARTY-LICENSES.md`: stable-ts 2.19.1 (MIT), openai-whisper 20250625 (MIT), torchaudio 2.11.1 (BSD-2-Clause), tiktoken 0.14.0 (MIT), more-itertools 11.2.1 (MIT), regex (Apache-2.0 / CNRI-Python), PyYAML (MIT, direct); model weights Whisper large-v3-turbo (MIT, SHA-256, source URL, first-use download); "Online data services": LRCLIB (no stated data licence; lyrics copyrighted, local display only)
+- [x] T068 [CTO] README: karaoke banner, lyrics sources, what is sent, alignment (GPU automatic, CPU on click, 1.6 GB model), copyright and personal-practice notice incl. lyrics
+- [x] T069 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR (2026-11-16: STATUS updated; formal `/speckit-analyze` not run, consistency covered by contract tests and E2E)
+- [x] T069a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -242,4 +243,5 @@ alignment stack.
 - [ ] Ball driven by `requestAnimationFrame` on the audio clock, no timers; landing accuracy and frame rate measured; estimated/aligned timing labelled (V)
 - [ ] No secrets; analyzers/formatters/linters clean; public APIs documented
 - [ ] Help topics `help-karaoke`, `help-lyrics-sources`, `help-lyrics-align`, `help-karaoke-offset` present (004 framework)
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

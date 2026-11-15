@@ -35,7 +35,7 @@ export async function seedUxData(api: StemStudioApi): Promise<UxData> {
  * The click fixture with its auto detail phase cancelled. On a stack that already finished that
  * phase the track keeps its detail stems; the visual suite therefore runs on a fresh stack.
  */
-async function ensurePlainTrack(api: StemStudioApi): Promise<TrackDto> {
+export async function ensurePlainTrack(api: StemStudioApi): Promise<TrackDto> {
   const track = await api.ensureCompleted('click_120bpm_4-4_12s.wav', fakeJobTimeoutMs);
   if (activeStatuses.includes(track.detail.status)) {
     await api.cancelDetail(track.id);

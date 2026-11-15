@@ -5,8 +5,8 @@
 
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
-    (ruff, mypy, pytest with coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
-    quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E
+    (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+    quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
 
@@ -77,6 +77,10 @@ $Steps = @(
     @{ Name = 'quality mypy'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'mypy') }
     @{ Name = 'quality pytest + coverage'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term') }
     @{ Name = 'quality gate (run_all)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'tools/quality', '--frozen', 'python', 'tools/quality/run_all.py') }
+    @{ Name = 'docs manuals up to date'; Dir = '.'; Cmd = @('node', 'tools/docs/check.mjs') }
+    @{ Name = 'site npm ci (tools/docs markdown-it)'; Dir = 'tools/docs'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
+    @{ Name = 'site unit tests'; Dir = '.'; Cmd = @('node', '--test', 'tools/site/test/site.test.mjs') }
+    @{ Name = 'site build + check'; Dir = '.'; Cmd = @('node', 'tools/site/check.mjs') }
     @{ Name = 'fixtures ruff check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'check', 'tests/fixtures') }
     @{ Name = 'fixtures ruff format'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--check', 'tests/fixtures') }
     @{ Name = 'fixtures mypy'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $Fx, 'tests/fixtures') }

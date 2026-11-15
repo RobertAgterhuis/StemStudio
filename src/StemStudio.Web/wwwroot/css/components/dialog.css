@@ -54,6 +54,8 @@
   background: var(--ss-color-raised);
   box-shadow: var(--ss-elev-float);
   animation: ss-float-in var(--ss-dur-panel) var(--ss-ease-enter);
+  /* Long titles (file hashes, URLs) in the dialog text wrap inside the dialog (WCAG 1.4.10). */
+  overflow-wrap: anywhere;
 }
 
 @keyframes ss-float-in {

@@ -28,7 +28,11 @@ runs:
       run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
     - name: Generate audio fixtures
       shell: bash
-      run: uv run --project worker --frozen python tests/fixtures/generate_fixtures.py
+      # Every generator (detail, artwork, lyrics, scores, voices, ...) so the e2e suites find their files.
+      run: |
+        for generator in tests/fixtures/generate_*.py; do
+          uv run --project worker --frozen python "${generator}"
+        done
     - name: Start the stack (fake separator) and wait for health
       shell: bash
       env:

@@ -1,0 +1,51 @@
+{
+  "$comment": "Site-owned content that has no other source in the repository. Everything else on the page is generated from README, docs/ROADMAP.md, docs/STATUS.md, docs/decisions, docs/THIRD-PARTY-LICENSES.md and docs/public (tools/site/build.mjs).",
+  "featureFallbacks": {
+    "001": "Import a song from YouTube, Spotify or a local file, split it into six stems, mix them with a beat-synced metronome and save named mixes.",
+    "002": "After the standard separation, drums, vocals and the other instruments are split further into detail stems in the background: kick, snare, toms, hi-hat and cymbals; lead and backing vocals; instrument families."
+  },
+  "gallery": [
+    {
+      "id": "mixer",
+      "title": "Mixer with detail groups",
+      "caption": "Every stem gets a fader, pan, mute, solo and a peak meter. Expanded stems open a group with their detail stems.",
+      "light": "docs/design-review/004/mixer-light.png",
+      "dark": "docs/design-review/004/mixer-dark.png"
+    },
+    {
+      "id": "import",
+      "title": "Import",
+      "caption": "Paste a YouTube or Spotify link, or drop an MP3, WAV or FLAC file. The personal-practice notice is part of the screen.",
+      "light": "e2e/visual/__screenshots__/screens.spec.ts/import--advanced--light.png",
+      "dark": "e2e/visual/__screenshots__/screens.spec.ts/import--advanced--dark.png"
+    },
+    {
+      "id": "tracks",
+      "title": "Tracks",
+      "caption": "Your imported songs with artist, status and length.",
+      "light": "docs/design-review/004/tracks-light.png",
+      "dark": "docs/design-review/004/tracks-dark.png"
+    },
+    {
+      "id": "track",
+      "title": "Track with cover and band info",
+      "caption": "Cover art and band facts from open data, with attribution, next to the processing state and the stems.",
+      "light": "e2e/visual/__screenshots__/screens.spec.ts/band-info--advanced--light.png",
+      "dark": "e2e/visual/__screenshots__/screens.spec.ts/band-info--advanced--dark.png"
+    },
+    {
+      "id": "library",
+      "title": "Library",
+      "caption": "Exported stems and mixes, ready to download, rename or delete.",
+      "light": "e2e/visual/__screenshots__/screens.spec.ts/library--advanced--light.png",
+      "dark": "e2e/visual/__screenshots__/screens.spec.ts/library--advanced--dark.png"
+    },
+    {
+      "id": "expert",
+      "title": "Expert mixer",
+      "caption": "The expert level adds presets, keyboard shortcuts and numeric entry for gain and pan.",
+      "light": "e2e/visual/__screenshots__/screens.spec.ts/mixer-expanded--expert--light.png",
+      "dark": "docs/design-review/004/mixer-expert-playing-dark.png"
+    }
+  ]
+}

@@ -26,8 +26,11 @@ public sealed class ExportForm(ExportTarget target)
         set => (_format, BitDepth, Mp3Bitrate) = (value, null, null);
     }
 
-    /// <summary>Bit depth for FLAC/WAV, or null for the default (16).</summary>
+    /// <summary>Bit depth for FLAC/WAV, or null for the default (<see cref="DefaultBitDepth"/>).</summary>
     public int? BitDepth { get; set; }
+
+    /// <summary>The backend default bit depth (data-model 4.2): 16 for raw stems and stem packs, 24 for a mix.</summary>
+    public int DefaultBitDepth => Target.Kind == ExportKind.Mix ? 24 : 16;
 
     /// <summary>MP3 bit rate, or null for the default (320).</summary>
     public int? Mp3Bitrate { get; set; }

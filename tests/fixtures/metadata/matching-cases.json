@@ -1025,7 +1025,7 @@
     },
     {
       "id": "kevin-macleod-isrc",
-      "description": "Spotify import with ISRC USUAN1400011 (F-01): two recordings with equal length; the one with an official album release group wins",
+      "description": "Spotify import with ISRC USUAN1400011 (F-01): the ISRC lookup lists two recordings without releases (MusicBrainz refuses release-groups on /isrc), each is then looked up with its releases and release groups; equal length, the one with an official album release group wins",
       "covers": [
         "reference-song",
         "isrc"
@@ -1042,7 +1042,7 @@
           "request": {
             "kind": "isrc-lookup",
             "path": "/ws/2/isrc/USUAN1400011",
-            "query": "inc=artist-credits+releases+release-groups"
+            "query": "inc=artist-credits+releases"
           },
           "response": {
             "status": 200,
@@ -1052,57 +1052,109 @@
               "recordings": [
                 {
                   "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
-                  "score": 100,
                   "title": "Monkeys Spinning Monkeys",
                   "length": 125000,
-                  "disambiguation": null,
+                  "disambiguation": "",
+                  "video": false,
                   "artist-credit": [
                     {
                       "name": "Kevin MacLeod",
+                      "joinphrase": "",
                       "artist": {
                         "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
                         "name": "Kevin MacLeod"
-                      }
-                    }
-                  ],
-                  "isrcs": [
-                    "USUAN1400011"
-                  ],
-                  "releases": []
-                },
-                {
-                  "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
-                  "score": 100,
-                  "title": "Monkeys Spinning Monkeys",
-                  "length": 125000,
-                  "disambiguation": null,
-                  "artist-credit": [
-                    {
-                      "name": "Kevin MacLeod",
-                      "artist": {
-                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
-                        "name": "Kevin MacLeod"
-                      }
-                    }
-                  ],
-                  "isrcs": [
-                    "USUAN1400011"
-                  ],
-                  "releases": [
-                    {
-                      "id": "f854868a-1aae-5dc9-8bbe-b48eb9d29524",
-                      "title": "25 Years (Volume 2)",
-                      "status": "Official",
-                      "date": "2024-01-01",
-                      "release-group": {
-                        "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
-                        "title": "25 Years (Volume 2)",
-                        "primary-type": "Album",
-                        "secondary-types": [],
-                        "first-release-date": "2024-01-01"
                       }
                     }
                   ]
+                },
+                {
+                  "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+                  "title": "Monkeys Spinning Monkeys",
+                  "length": 125000,
+                  "disambiguation": "",
+                  "video": false,
+                  "artist-credit": [
+                    {
+                      "name": "Kevin MacLeod",
+                      "joinphrase": "",
+                      "artist": {
+                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                        "name": "Kevin MacLeod"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-lookup",
+            "path": "/ws/2/recording/da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+            "query": "inc=artist-credits+releases+release-groups"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+              "title": "Monkeys Spinning Monkeys",
+              "length": 125000,
+              "disambiguation": "",
+              "video": false,
+              "artist-credit": [
+                {
+                  "name": "Kevin MacLeod",
+                  "joinphrase": "",
+                  "artist": {
+                    "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                    "name": "Kevin MacLeod"
+                  }
+                }
+              ],
+              "releases": []
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-lookup",
+            "path": "/ws/2/recording/9667c51c-3727-5ae2-a60c-a6c844a17e61",
+            "query": "inc=artist-credits+releases+release-groups"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+              "title": "Monkeys Spinning Monkeys",
+              "length": 125000,
+              "disambiguation": "",
+              "video": false,
+              "artist-credit": [
+                {
+                  "name": "Kevin MacLeod",
+                  "joinphrase": "",
+                  "artist": {
+                    "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                    "name": "Kevin MacLeod"
+                  }
+                }
+              ],
+              "releases": [
+                {
+                  "id": "f854868a-1aae-5dc9-8bbe-b48eb9d29524",
+                  "title": "25 Years (Volume 2)",
+                  "status": "Official",
+                  "date": "2024-01-01",
+                  "release-group": {
+                    "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+                    "title": "25 Years (Volume 2)",
+                    "primary-type": "Album",
+                    "secondary-types": [],
+                    "first-release-date": "2024-01-01"
+                  }
                 }
               ]
             }
@@ -1245,7 +1297,7 @@
           "request": {
             "kind": "isrc-lookup",
             "path": "/ws/2/isrc/NLA1B1900001",
-            "query": "inc=artist-credits+releases+release-groups"
+            "query": "inc=artist-credits+releases"
           },
           "response": {
             "status": 404,

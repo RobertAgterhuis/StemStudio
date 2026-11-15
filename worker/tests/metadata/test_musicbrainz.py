@@ -8,7 +8,9 @@ import pytest
 from stemstudio_worker.metadata.http import OnlineRequestError, ServiceBusyError
 from stemstudio_worker.metadata.musicbrainz import (
     ISRC_INCLUDES,
+    ISRC_RECORDING_LIMIT,
     MB_ROOT,
+    RECORDING_INCLUDES,
     SEARCH_LIMIT,
     MusicBrainz,
     escape_lucene,
@@ -20,6 +22,7 @@ from .fakes import json_response, online_harness
 
 METALLICA = "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab"
 RECORDING = "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9"
+LOAD = "e389b7df-862d-3d91-a612-acca150f6e71"
 
 
 def _recording(**changes: Any) -> dict[str, Any]:
@@ -64,14 +67,39 @@ def test_search_query_window_never_goes_below_zero() -> None:
     assert search_query("Jingle", "Band", 2.0).endswith("dur:[0 TO 7000]")
 
 
-def test_isrc_includes() -> None:
-    assert ISRC_INCLUDES == "artist-credits+releases+release-groups"
+def test_isrc_includes_are_valid_for_the_isrc_resource() -> None:
+    # MusicBrainz answers 400 to ``release-groups`` on /isrc (live check of 005:T062).
+    assert ISRC_INCLUDES == "artist-credits+releases"
+    assert RECORDING_INCLUDES == "artist-credits+releases+release-groups"
 
 
-def test_isrc_lookup_comes_first_and_scores_100() -> None:
-    raw = _recording()
-    del raw["score"]
-    harness = online_harness([json_response({"isrc": "USEVI9692306", "recordings": [raw]})])
+def _isrc_answer(*recordings: dict[str, Any]) -> httpx.Response:
+    """An ``/isrc`` answer as MusicBrainz sends it: recordings without releases."""
+    return json_response({"isrc": "USEVI9692306", "recordings": list(recordings)})
+
+
+def _album_release(group: str = LOAD) -> dict[str, Any]:
+    return {
+        "id": "8d1b0d8f-1f7e-4d1c-9a4e-2b9e2d0d8a11",
+        "title": "Load",
+        "status": "Official",
+        "date": "1996-06-04",
+        "release-group": {
+            "id": group,
+            "title": "Load",
+            "primary-type": "Album",
+            "secondary-types": [],
+            "first-release-date": "1996-06-04",
+        },
+    }
+
+
+def test_isrc_lookup_then_recording_lookup_scores_100() -> None:
+    bare = _recording()
+    del bare["score"]
+    harness = online_harness(
+        [_isrc_answer(bare), json_response(_recording(releases=[_album_release()]))]
+    )
     query = MetadataQuery(
         title="Hero", artist="Metallica", duration_seconds=262.0, isrc="USEVI9692306"
     )
@@ -80,9 +108,58 @@ def test_isrc_lookup_comes_first_and_scores_100() -> None:
 
     assert found is not None
     assert (found.recording.matched_by, found.recording.score) == ("isrc", 100)
-    request = harness.recorder.requests[0]
-    assert str(request.url).startswith(f"{MB_ROOT}/isrc/USEVI9692306?")
-    assert dict(request.url.params) == {"inc": ISRC_INCLUDES, "fmt": "json"}
+    assert found.release_group is not None
+    assert (found.release_group.mbid, found.release_group.first_release_year) == (LOAD, 1996)
+    isrc, recording = harness.recorder.requests
+    assert str(isrc.url).startswith(f"{MB_ROOT}/isrc/USEVI9692306?")
+    assert dict(isrc.url.params) == {"inc": ISRC_INCLUDES, "fmt": "json"}
+    assert str(recording.url).startswith(f"{MB_ROOT}/recording/{RECORDING}?")
+    assert dict(recording.url.params) == {"inc": RECORDING_INCLUDES, "fmt": "json"}
+
+
+def test_isrc_recording_lookups_skip_unknown_recordings() -> None:
+    other = "0b1f3c86-38a5-5f0e-8d0e-6c2e9e4a7b21"
+    harness = online_harness(
+        [
+            _isrc_answer(_recording(id=other), _recording()),
+            httpx.Response(404),
+            json_response(_recording(releases=[_album_release()])),
+        ]
+    )
+
+    found = MusicBrainz(harness.client).find(
+        MetadataQuery(title="Hero of the Day", artist="Metallica", isrc="USEVI9692306")
+    )
+
+    assert found is not None
+    assert found.recording.mbid == RECORDING
+    assert len(harness.recorder.requests) == 3
+
+
+def test_isrc_recording_lookups_are_capped() -> None:
+    ids = [f"0b1f3c86-38a5-5f0e-8d0e-6c2e9e4a7b{n:02d}" for n in range(ISRC_RECORDING_LIMIT + 2)]
+    lookups = [json_response(_recording(id=mbid)) for mbid in ids[:ISRC_RECORDING_LIMIT]]
+    harness = online_harness([_isrc_answer(*(_recording(id=mbid) for mbid in ids)), *lookups])
+
+    found = MusicBrainz(harness.client).find(
+        MetadataQuery(title="Hero of the Day", isrc="USEVI9692306")
+    )
+
+    assert found is not None
+    assert len(harness.recorder.requests) == 1 + ISRC_RECORDING_LIMIT
+
+
+def test_isrc_without_known_recordings_falls_back_to_the_search() -> None:
+    harness = online_harness(
+        [_isrc_answer(_recording()), httpx.Response(404), json_response({"recordings": []})]
+    )
+
+    found = MusicBrainz(harness.client).find(
+        MetadataQuery(title="Hero of the Day", artist="Metallica", isrc="USEVI9692306")
+    )
+
+    assert found is None
+    assert harness.recorder.requests[2].url.path == "/ws/2/recording"
 
 
 def test_unknown_isrc_404_falls_back_to_the_search() -> None:
@@ -167,7 +244,7 @@ def test_busy_service_propagates_after_retries() -> None:
 
 def test_isrc_recordings_without_length_score_or_credits_are_parsed() -> None:
     raw = {"id": RECORDING, "title": "Hero of the Day"}
-    harness = online_harness([json_response({"recordings": [raw]})])
+    harness = online_harness([json_response({"recordings": [raw]}), json_response(raw)])
 
     found = MusicBrainz(harness.client).find(
         MetadataQuery(title="Hero of the Day", isrc="USEVI9692306")

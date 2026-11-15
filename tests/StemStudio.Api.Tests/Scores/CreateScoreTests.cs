@@ -53,8 +53,8 @@ public sealed class CreateScoreTests : IDisposable
         options.AllowedProfiles.ShouldBe([ScoreProfileDto.Vocals, ScoreProfileDto.Bass, ScoreProfileDto.Guitar, ScoreProfileDto.Keys, ScoreProfileDto.Piano]);
         options.Estimates.ShouldBe(
         [
-            new ScoreEstimateDto(ScoreProfileDto.Vocals, null, 26), new ScoreEstimateDto(ScoreProfileDto.Bass, null, 26), new ScoreEstimateDto(ScoreProfileDto.Guitar, null, 26),
-            new ScoreEstimateDto(ScoreProfileDto.Keys, null, 26), new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Accurate, 427), new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Fast, 26),
+            new ScoreEstimateDto(ScoreProfileDto.Vocals, null, 16), new ScoreEstimateDto(ScoreProfileDto.Bass, null, 16), new ScoreEstimateDto(ScoreProfileDto.Guitar, null, 16),
+            new ScoreEstimateDto(ScoreProfileDto.Keys, null, 16), new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Accurate, 161), new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Fast, 16),
         ]);
         options.Limits.Select(limit => limit.Profile).ShouldBe(options.AllowedProfiles);
         options.Attribution.ShouldBe(ProfileCatalog.PianoAttribution);
@@ -69,7 +69,7 @@ public sealed class CreateScoreTests : IDisposable
         var options = await (await GetOptionsAsync(ApiRoutes.ScoreOptionsForChannel(track.Id, "piano"))).BodyAsync<ScoreOptionsDto>();
 
         (options.SuggestedProfile, options.DefaultQuality).ShouldBe((ScoreProfileDto.Piano, ScoreQualityDto.Accurate));
-        options.Estimates.ShouldContain(new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Accurate, 22));
+        options.Estimates.ShouldContain(new ScoreEstimateDto(ScoreProfileDto.Piano, ScoreQualityDto.Accurate, 48));
     }
 
     [Fact]

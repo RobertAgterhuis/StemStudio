@@ -1,5 +1,8 @@
 """MusicBrainz WS/2 client: recording search (ISRC first) and artist facts (research F-01/F-02).
 
+An ISRC lookup names the recordings only; each is then looked up with its releases and release
+groups (``/isrc`` refuses ``inc=release-groups`` with HTTP 400).
+
 Only the song title, artist, duration and ISRC are sent (FR-010). Search queries quote the
 (Lucene-escaped) names and restrict the duration to +-5 s when it is known. Responses are
 validated before use; a malformed answer is an ``OnlineRequestError`` like a failed request.
@@ -36,8 +39,18 @@ MB_ROOT: Final = "https://musicbrainz.org/ws/2"
 SEARCH_LIMIT: Final = 25
 """Search results requested per query."""
 
-ISRC_INCLUDES: Final = "artist-credits+releases+release-groups"
-"""``inc`` of the ISRC lookup (``/isrc/{isrc}``): credits and releases with their groups."""
+ISRC_INCLUDES: Final = "artist-credits+releases"
+"""``inc`` of the ISRC lookup (``/isrc/{isrc}``).
+
+MusicBrainz refuses ``release-groups`` here (HTTP 400) and lists the recordings without their
+releases, so every recording is looked up afterwards with ``RECORDING_INCLUDES``.
+"""
+
+RECORDING_INCLUDES: Final = "artist-credits+releases+release-groups"
+"""``inc`` of the recording lookup (``/recording/{mbid}``): credits, releases and their groups."""
+
+ISRC_RECORDING_LIMIT: Final = 5
+"""Recordings of one ISRC that are looked up (one request each, 1 request/s)."""
 
 _LUCENE_SPECIAL: Final = re.compile(r'([+\-&|!(){}\[\]^"~*?:\\/])')
 _ARTIST_TYPES: Final[dict[str, ArtistType]] = {
@@ -231,16 +244,30 @@ class MusicBrainz:
         return None if response is None else _artist_facts(_parse(response, _Artist))
 
     def _isrc(self, query: MetadataQuery) -> RecordingFound | None:
-        """The recordings registered under the query's ISRC (exact; no title/artist checks)."""
-        params = {"inc": ISRC_INCLUDES, "fmt": "json"}
-        return select(self._candidates(f"{MB_ROOT}/isrc/{query.isrc}", params), query, "isrc")
+        """The recordings registered under the query's ISRC (exact; no title/artist checks).
 
-    def _candidates(self, url: str, params: dict[str, str]) -> list[Candidate]:
+        The ISRC answer only names the recordings; each (up to ``ISRC_RECORDING_LIMIT``) is
+        then looked up for its releases and release groups. Unknown recordings are skipped.
+        """
+        params = {"inc": ISRC_INCLUDES, "fmt": "json"}
+        listed = self._recordings(f"{MB_ROOT}/isrc/{query.isrc}", params)
+        candidates = [self._lookup_recording(raw.id) for raw in listed[:ISRC_RECORDING_LIMIT]]
+        return select([c for c in candidates if c is not None], query, "isrc")
+
+    def _lookup_recording(self, mbid: str) -> Candidate | None:
+        """Recording ``mbid`` with its releases and release groups (None when unknown)."""
+        params = {"inc": RECORDING_INCLUDES, "fmt": "json"}
+        response = self._client.get(f"{MB_ROOT}/recording/{mbid}", params)
+        return None if response is None else _candidate(_parse(response, _Recording))
+
+    def _recordings(self, url: str, params: dict[str, str]) -> list[_Recording]:
         """The recordings of one lookup or search (none for a 404 answer)."""
         response = self._client.get(url, params)
-        if response is None:
-            return []
-        return [_candidate(raw) for raw in _parse(response, _Search).recordings]
+        return [] if response is None else _parse(response, _Search).recordings
+
+    def _candidates(self, url: str, params: dict[str, str]) -> list[Candidate]:
+        """The matcher candidates of one search (none for a 404 answer)."""
+        return [_candidate(raw) for raw in self._recordings(url, params)]
 
 
 def _parse[M: BaseModel](response: OnlineResponse, model: type[M]) -> M:

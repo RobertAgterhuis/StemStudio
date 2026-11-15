@@ -70,7 +70,9 @@ test.describe('raw stem', { tag: '@export' }, () => {
     const id = await exportDialog.savedAssetId();
     await exportDialog.savedOpen.click();
     await library.waitForStatus(id, 'ready', renderMs);
-    await expect(library.name(id)).toHaveText(`${track.title} - bass`);
+    // Names are unique across the library (a score of the bass shares the default name), so a
+    // stack that already holds one adds " (n)".
+    await expect(library.name(id)).toHaveText(new RegExp(`^${track.title} - bass( \\(\\d+\\))?$`, 'u'));
     const asset = await readyFromConfirmation(id, assetsApi);
     expect([asset.audio?.format, asset.audio?.bitDepth]).toEqual(['flac', 16]);
     const file = await assetsApi.download(id);

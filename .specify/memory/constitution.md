@@ -122,5 +122,9 @@
   and accompanied by an ADR when they change technical direction.
 - Compliance is reviewed at every hand-off and by the `quality-gate` agent before the MVP is
   declared complete.
+- Every feature that changes user-visible behaviour or technical setup MUST update docs/public
+  sources (user and/or technical manual) and regenerate the PDFs before its integration wave
+  closes. `tools/docs/check.mjs` (in `scripts/test-all.*` and CI) fails when the sources differ
+  from `docs/public/build-manifest.json`.
 
-**Version**: 1.3.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15
+**Version**: 1.3.1 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15

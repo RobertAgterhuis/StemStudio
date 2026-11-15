@@ -206,9 +206,10 @@ the split; missing pieces are sent as silence by omitting them, with a warning).
 For a source: suggested profile, allowed profiles, whether drums need splitting, grid status
 (`reliable`, `unreliable`, `none`), default quality, and per engine an estimate
 `seconds = duration · factor(engine, device) + overhead`. Defaults (from research.md S-02/S-04,
-refined in the integration wave): basic-pitch CPU 0.10 s/s, piano CRNN CPU 1.7 s/s, piano CRNN GPU
-0.08 s/s (measured in Phase 0: 0.075 s/s), drum onsets 0.02 s/s; overhead 5 s (+ 60 s when the piano
-model is not downloaded yet).
+refined by CTO T080 from the integration-run measurements on the reference machine): basic-pitch
+CPU 0.05 s/s (measured 0.011-0.019), piano CRNN CPU 0.45 s/s (measured 0.367 with 8 threads), piano
+CRNN GPU 0.2 s/s (Phase 0: 0.075, integration run: 0.184), drum onsets 0.02 s/s; overhead 5 s (+ 60 s
+when the piano model is not downloaded yet). Phase 0 defaults were 0.10 / 1.7 / 0.08.
 
 ### 4.6 Limits (`ContractLimits` additions)
 

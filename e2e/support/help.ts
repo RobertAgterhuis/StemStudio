@@ -1,6 +1,6 @@
 /**
  * Expectations of the help suite (quickstart V-H1..V-H5, SC-009), plus the reference queries
- * and markers of the help topics added by features 005 and 007 (007 quickstart X10).
+ * and markers of the help topics added by features 005, 007, 006 and 008 (007 quickstart X10).
  *
  * @packageDocumentation
  */
@@ -50,13 +50,41 @@ export const artworkReferenceQueries: Readonly<Record<string, string>> = {
  * `export-dialog`, `export-formats`, `export-range`, `export-clipping`).
  */
 export const exportReferenceQueries: Readonly<Record<string, string>> = {
-  'save to library': 'library',
+  // "Save to library" is the label of the export buttons, so it finds the dialog topic.
+  'save to library': 'export-dialog',
+  download: 'library',
   'what I hear': 'export-dialog',
   'selected channels': 'export-dialog',
   flac: 'export-formats',
   'bit depth': 'export-formats',
   'export range': 'export-range',
   clipping: 'export-clipping',
+};
+
+/**
+ * Reference queries of the topics added by feature 006 (ui-test-ids 1.6.0: `karaoke`,
+ * `karaoke-offset`, `lyrics-sources`, `lyrics-align`).
+ */
+export const lyricsReferenceQueries: Readonly<Record<string, string>> = {
+  karaoke: 'karaoke',
+  'sing along': 'karaoke',
+  'lyrics offset': 'karaoke-offset',
+  lrclib: 'lyrics-sources',
+  'align lyrics': 'lyrics-align',
+  whisper: 'lyrics-align',
+};
+
+/**
+ * Reference queries of the topics added by feature 008 (ui-test-ids 1.7.0: `sheet-music`,
+ * `sheet-music-profiles`, `sheet-music-key-tempo`, `sheet-music-drums`, `sheet-music-piano`).
+ */
+export const scoreReferenceQueries: Readonly<Record<string, string>> = {
+  'sheet music': 'sheet-music',
+  musicxml: 'sheet-music',
+  clef: 'sheet-music-profiles',
+  'key signature': 'sheet-music-key-tempo',
+  'drum notation': 'sheet-music-drums',
+  'grand staff': 'sheet-music-piano',
 };
 
 /**

@@ -1,0 +1,7 @@
+{
+  "id": "technical-manual",
+  "title": "Technical Manual",
+  "subtitle": "Architecture, deployment, models, APIs, data, security, quality gates and operations of StemStudio.",
+  "audience": "Administrators, developers and the StemStudio agent team",
+  "output": "StemStudio-Technical-Manual.pdf"
+}

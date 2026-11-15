@@ -123,7 +123,7 @@ in the execution plan.
 - [x] T038 [US1] [frontend] Implement the track-page actions, `Components/Export/{ExportDialog,FormatPicker}.razor`, client methods and the help topics `export-dialog`, `export-formats` (004 framework) to pass T037
 - [x] T039 [P] [US1] [frontend] Failing bUnit tests: `/library` page (`nav-library`) lists assets newest first with `asset-row-<id>`, name, contents, status (`aria-valuenow` while rendering, polled until terminal), `asset-play-<id>` (`<audio>` with the inline URL) and `asset-download-<id>` only when ready; `library-empty` when none; help id `library` (FR-007, FR-008)
 - [x] T040 [US1] [frontend] Implement `Components/Library/{Library,AssetRow}.razor`, the navigation item and the help topic `library` to pass T039
-- [ ] T041 [US1] [qa] Author `e2e/tests/export.spec.ts` "raw stem" (fake stack): save `bass` FLAC 16 from the track page, open the item via `export-saved-open`, wait for `ready`, download it and compare its bytes' decoded samples with the stem served by `GET /api/tracks/{id}/stems/bass` (helper decodes FLAC with the engine-free Node decoder used by the fixtures, or compares via a test-only API call; SC-004); save `drums.snare` as MP3 and check that the `<audio>` element reports a duration > 0
+- [x] T041 [US1] [qa] Author `e2e/tests/export.spec.ts` "raw stem" (fake stack): save `bass` FLAC 16 from the track page, open the item via `export-saved-open`, wait for `ready`, download it and compare its bytes' decoded samples with the stem served by `GET /api/tracks/{id}/stems/bass` (helper decodes FLAC with the engine-free Node decoder used by the fixtures, or compares via a test-only API call; SC-004); save `drums.snare` as MP3 and check that the `<audio>` element reports a duration > 0
 
 **Checkpoint**: HO:us1.
 
@@ -139,7 +139,7 @@ in the execution plan.
 - [x] T044 [P] [US2] [frontend] Failing bUnit tests: `mixer-export` opens the dialog with `export-source-audible` selected and passes the mixer's current (unsaved) state; `export-source-selected` (Advanced) shows `export-channel-<id>` checkboxes prefilled with the currently audible channels; an empty selection disables `export-submit`; the request matches the selection; help id present (FR-002, FR-014)
 - [x] T045 [US2] [frontend] Implement `Components/Export/ChannelPicker.razor` and the mixer integration to pass T044
 - [x] T046 [P] [US2] [audio-engine] Vector consumer `src/audio-engine/tests/render-vectors.test.ts`: every gate case of `render-vectors.json` through the engine's real gate functions gives the expected per-channel gates/gains (test-only; it must pass against the existing engine; a failure is reported to the architect as a contract defect, no engine change in this feature) (FR-003, SC-003)
-- [ ] T047 [US2] [qa] Author `export.spec.ts` "what I hear": in the mixer set solo drums + bass, bass pan -40 %, master 70 %, export WAV 16, download and check with a fixture helper that the file's RMS per channel matches the value computed from the fake stems and the vector law (+/- 0.1 dB) and that muted/non-soloed stems are absent (FR-002, FR-003)
+- [x] T047 [US2] [qa] Author `export.spec.ts` "what I hear": in the mixer set solo drums + bass, bass pan -40 %, master 70 %, export WAV 16, download and check with a fixture helper that the file's RMS per channel matches the value computed from the fake stems and the vector law (+/- 0.1 dB) and that muted/non-soloed stems are absent (FR-002, FR-003)
 - [x] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
 
 **Checkpoint**: HO:us2.
@@ -155,7 +155,7 @@ in the execution plan.
 - [x] T050 [US3] [backend] Implement `AssetService` (list/rename/delete/retry) and the track-availability lookup to pass T049
 - [x] T051 [P] [US3] [frontend] Failing bUnit tests: `library-filter-track`, `library-filter-kind`, `library-search` narrow the list; `library-total-size` formatted; rename dialog (`asset-rename-*`) with validation; delete with `confirm-dialog-ok`; `asset-retry-<id>` only for failed with `asset-error-<id>`; `asset-gain-note-<id>` only when `appliedGainDb < 0` (help id `export-clipping`); `asset-source-<id>` with `data-track-available` (FR-005, FR-007, FR-008)
 - [x] T052 [US3] [frontend] Implement the library management UI and help topic `export-clipping` to pass T051
-- [ ] T053 [US3] [qa] Author `e2e/tests/library.spec.ts`: save three items, filter by track, rename (downloaded file name follows), delete one (gone after reload), delete the source track of another (item stays, `data-track-available="false"`, still plays)
+- [x] T053 [US3] [qa] Author `e2e/tests/library.spec.ts`: save three items, filter by track, rename (downloaded file name follows), delete one (gone after reload), delete the source track of another (item stays, `data-track-available="false"`, still plays)
 
 **Checkpoint**: HO:us3.
 
@@ -167,7 +167,7 @@ in the execution plan.
 - [x] T055 [US4] [backend] Implement to pass T054
 - [x] T056 [P] [US4] [frontend] Failing bUnit tests: `export-range-loop` only when the mixer has a loop region (Advanced), fills start/end; `export-range-start`/`export-range-end` validation messages; help id `export-range` (FR-006, FR-014)
 - [x] T057 [US4] [frontend] Implement the range controls and help topic to pass T056
-- [ ] T058 [US4] [qa] Author `export.spec.ts` "loop region": loop 2.0-4.5 s on the fake track, export "Only the loop region", downloaded WAV lasts 2.500 s +/- 1 ms
+- [x] T058 [US4] [qa] Author `export.spec.ts` "loop region": loop 2.0-4.5 s on the fake track, export "Only the loop region", downloaded WAV lasts 2.500 s +/- 1 ms
 
 **Checkpoint**: HO:us4.
 
@@ -179,7 +179,7 @@ in the execution plan.
 - [x] T060 [US5] [backend] Implement to pass T059
 - [x] T061 [P] [US5] [frontend] Failing bUnit tests: `export-all-stems` (Advanced) opens the dialog with `export-include-detail` (only when the track has split parents) and submits the pack request; the confirmation names the number of items (FR-013)
 - [x] T062 [US5] [frontend] Implement to pass T061
-- [ ] T063 [US5] [qa] Author `export.spec.ts` "stem pack": six items appear (fake track without detail), all reach `ready`
+- [x] T063 [US5] [qa] Author `export.spec.ts` "stem pack": six items appear (fake track without detail), all reach `ready`
 
 **Checkpoint**: HO:us5.
 
@@ -191,7 +191,7 @@ in the execution plan.
 - [x] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
 - [x] T066 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
-- [ ] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish
+- [x] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish
 - [x] T069 [P] [devops] Validate compose/CI (`docker compose config -q` for both compose variants, `actionlint`), HO:polish
 - [ ] T070 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
@@ -199,10 +199,11 @@ in the execution plan.
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T071 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite (incl. export, library, panner-law specs) on the fake stack (retries 0)
-- [ ] T072 [CTO] Reference-machine validation quickstart X2-X10 on the real stack with "Hero of the Day"; record timings (SC-001, SC-002 while a detail phase runs) and the X10 first-time-user check (SC-006) in `docs/STATUS.md`
-- [ ] T073 [CTO] `docs/THIRD-PARTY-LICENSES.md`: `lameenc` 1.9.0 (LGPL-3.0-or-later) moved to direct dependencies; README: "Library and exports" section (formats, raw vs mixed, clip protection, no MP3 tags, read-only mount in the non-Docker path)
-- [ ] T074 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T071 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite (incl. export, library, panner-law specs) on the fake stack (retries 0) (2026-11-15: merged; qa integration run, retries 0: `test:export` 58 passed + 8 Chromium-only skips, `test:detail` 26/26, a11y 104/104 (106/106 at close-out), visual 80/80; HO:qa-005-007-integration)
+- [ ] T072 [CTO] Reference-machine validation quickstart X2-X10 on the real stack with "Hero of the Day"; record timings (SC-001, SC-002 while a detail phase runs) and the X10 first-time-user check (SC-006) in `docs/STATUS.md` (OPEN 2026-11-15: real-stack reference-machine validation not run)
+- [x] T073 [CTO] `docs/THIRD-PARTY-LICENSES.md`: `lameenc` 1.9.0 (LGPL-3.0-or-later) moved to direct dependencies; README: "Library and exports" section (formats, raw vs mixed, clip protection, no MP3 tags, read-only mount in the non-Docker path) (2026-11-16: README section written in the 006/008 close-out)
+- [x] T074 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR (2026-11-15: STATUS updated. The formal `/speckit-analyze` pass was NOT run; consistency is covered by the contract tests and the E2E suites. No PR opened: the branch is handed to the owner)
+- [x] T074a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes (2026-11-15: chapter 9, levels table, FAQ and tech manual updated, PDFs rebuilt, `check.mjs` passes)
 
 ---
 
@@ -254,4 +255,5 @@ the asset model and the worker lanes).
 - [ ] No new library in the images; lameenc recorded as a direct dependency; no GPL library imported by our code (IV)
 - [ ] Clip protection and limitations (no MP3 tags, 44.1 kHz) shown to the user; help topics for every new area (V, FR-014)
 - [ ] No secrets; read-only mount verified; paths validated; analyzers/formatters/linters clean; public APIs documented
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

@@ -171,6 +171,7 @@ unchanged through the 009 import flow).
 - [ ] T060 [CTO] Real GPU validation (quickstart V3-V8): 60 s and 3 min songs (cold/warm), Dutch and English, VRAM peaks, own-voice profile from a real recording of the owner (with consent), conversion of a 60 s take, labels, deletion walk; record in `docs/STATUS.md`
 - [ ] T061 [CTO] `docs/THIRD-PARTY-LICENSES.md`: SoulX-Singer code (Apache-2.0, commit), weights `model-svc.pt`, `rmvpe.pt` (Apache-2.0, revisions + SHA-256 from research.md S-01), whisper-base (Apache-2.0, revision + SHA-256), librosa (ISC), omegaconf (BSD-3); note "VoiceStudio (AGPL-3.0) not used"; README: songs, voice profiles, consent and ethics rules
 - [ ] T062 [CTO] Owner listening checks (SC-003); `/speckit-analyze`; `docs/STATUS.md`; PR
+- [ ] T062a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -207,4 +208,5 @@ T058), CTO 4 (T059-T062). **62 task ids** (T001-T062); 68 owner assignments.
 - [ ] SoulX-Singer and whisper-base licences recorded with SHA-256; no VoiceStudio code; consent stored and enforced; no library audio as a voice sample; labels on 100 % of takes; voice data deletion verified (IV)
 - [ ] Limits of conversion quality, languages and the exact-copy guard documented in help (V)
 - [ ] Help entries present and linked; no secrets; linters clean; public APIs documented
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

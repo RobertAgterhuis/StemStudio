@@ -26,7 +26,7 @@
     {
         <div class="ss-field">
             <label class="ss-label" for="export-bit-depth">Bit depth</label>
-            <select id="export-bit-depth" class="ss-select" value="@(Form.BitDepth ?? 16)" @onchange="OnBitDepth" data-testid="export-bit-depth">
+            <select id="export-bit-depth" class="ss-select" value="@(Form.BitDepth ?? Form.DefaultBitDepth)" @onchange="OnBitDepth" data-testid="export-bit-depth">
                 <option value="16">16-bit</option>
                 <option value="24">24-bit</option>
             </select>

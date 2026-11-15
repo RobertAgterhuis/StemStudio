@@ -18,13 +18,13 @@ def bass_musicxml(bars: int = 4, *, tempo_mark: bool = True) -> bytes:
     """A one-part bass line of ``bars`` 4/4 bars in quarter notes (MusicXML 4.0 by music21)."""
     score = stream.Score()
     score.metadata = metadata.Metadata(title="Bass line", composer="Song - Artist")
-    part = stream.Part()  # type: ignore[no-untyped-call]
+    part = stream.Part()  # type: ignore[no-untyped-call]  # music21 stubs
     part.partName = "Bass"
-    part.append(meter.TimeSignature("4/4"))  # type: ignore[no-untyped-call]
+    part.append(meter.TimeSignature("4/4"))  # type: ignore[no-untyped-call]  # music21 stubs
     if tempo_mark:
-        part.append(tempo.MetronomeMark(number=120))  # type: ignore[no-untyped-call]
+        part.append(tempo.MetronomeMark(number=120))  # type: ignore[no-untyped-call]  # music21 stubs
     for index in range(bars * 4):
-        part.append(note.Note(40 + index % 12, quarterLength=1))  # type: ignore[no-untyped-call]
+        part.append(note.Note(40 + index % 12, quarterLength=1))  # type: ignore[no-untyped-call]  # music21 stubs
     score.insert(0, part)
     exported: bytes = musicxml.m21ToXml.GeneralObjectExporter(score).parse()
     return exported
@@ -73,9 +73,9 @@ def _maps_smufl(font: DictionaryObject) -> bool:
 
 def _fonts(resources: object) -> Iterator[DictionaryObject]:
     """Fonts of a resource dictionary and, recursively, of its form XObjects."""
-    yield from (cast(DictionaryObject, font.get_object()) for font in _entries(resources, "/Font"))
+    yield from (cast("DictionaryObject", _resolve(font)) for font in _entries(resources, "/Font"))
     for xobject in _entries(resources, "/XObject"):
-        yield from _fonts(cast(DictionaryObject, xobject.get_object()).get("/Resources"))
+        yield from _fonts(cast("DictionaryObject", _resolve(xobject)).get("/Resources"))
 
 
 def _entries(resources: object, key: str) -> list[DictionaryObject]:

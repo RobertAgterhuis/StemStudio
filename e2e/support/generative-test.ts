@@ -1,6 +1,6 @@
 /**
  * The `test` object of the feature 009 and 010 specs: the feature 006/008 `test`
- * (support/lyrics-test.ts) extended with the generation and voice clients and page objects.
+ * (support/test.ts, which holds the 005-008 fixtures) extended with the generation and voice clients and page objects.
  * The generation ids of the track pages live in `pages/track-detail-page.ts` and
  * `pages/track-list-page.ts` (folded in after the UI merge, TEST-STRATEGY 16.6).
  *
@@ -17,7 +17,7 @@ import { UseMyVoiceDialog } from '../pages/use-my-voice-dialog';
 import { VoiceProfilesPage } from '../pages/voice-profiles-page';
 import { apiBaseUrl } from './env';
 import { GenerationApi } from './generation-api';
-import { test as lyricsScore } from './lyrics-test';
+import { test as lyricsScore } from './test';
 import { VoiceApi } from './voice-api';
 
 /** Fixtures added by features 009 and 010. */

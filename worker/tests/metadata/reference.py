@@ -1,9 +1,10 @@
 """Routes for the qa reference artists (``tests/fixtures/metadata/reference/*.json``).
 
 The reference files hold the MusicBrainz artist and release group, the Cover Art Archive,
-Wikidata and Wikipedia exchanges and the expected facts. Image bodies are not committed: a JPEG
-of the listed size is generated in their place. The recording search is not part of the files;
-``search_reply`` builds one for the reference recording.
+Wikidata and Wikipedia exchanges and the expected facts (Kevin MacLeod also the ISRC lookup and
+the recording lookups that follow it). Image bodies are not committed: a JPEG of the listed size
+is generated in their place. The recording search is not part of the files; ``search_reply``
+builds one for the reference recording.
 """
 
 import json

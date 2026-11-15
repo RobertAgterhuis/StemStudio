@@ -66,11 +66,28 @@ def _no_answer_kind(case: dict[str, Any]) -> str | None:
 
 
 def _final_recordings(case: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
-    """Recordings of the first 200 answer and its kind; kind None = retries exhausted."""
+    """Recordings of the first 200 answer and its kind; kind None = retries exhausted.
+
+    An ISRC answer only lists recording ids (MusicBrainz refuses ``release-groups`` on
+    ``/isrc``); its recordings are the bodies of the recording lookups that follow it.
+    """
     useful = [e for e in case["exchanges"] if e["response"]["status"] == 200]
     if not useful:
         return [], _no_answer_kind(case)
-    return useful[0]["response"]["body"]["recordings"], useful[0]["request"]["kind"]
+    kind = useful[0]["request"]["kind"]
+    if kind == "isrc-lookup":
+        lookups = [e for e in useful if e["request"]["kind"] == "recording-lookup"]
+        return [e["response"]["body"] for e in lookups], kind
+    return useful[0]["response"]["body"]["recordings"], kind
+
+
+def test_isrc_answers_carry_no_release_groups() -> None:
+    for case in CASES["cases"]:
+        for exchange in case["exchanges"]:
+            if exchange["request"]["kind"] == "isrc-lookup":
+                assert "release-groups" not in exchange["request"]["query"]
+                body = exchange["response"]["body"] or {}
+                assert all("releases" not in r for r in body.get("recordings", []))
 
 
 def _matched_by(kind: str) -> str:

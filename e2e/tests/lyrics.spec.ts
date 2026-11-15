@@ -4,7 +4,7 @@ import { fakeDeviceMode, fakeJobTimeoutMs, runId } from '../support/env';
 import { fixturePath } from '../support/fixtures';
 import { fakeAlignedLines, readFakeLyrics, requireFakeDevice, requireLyricsMode } from '../support/lyrics';
 import type { LyricsApi } from '../support/lyrics-api';
-import { expect, test } from '../support/lyrics-test';
+import { expect, test } from '../support/test';
 import { uniqueWavCopy } from '../support/unique-audio';
 
 // Feature 006 US2 + lookup outcomes (006:T048; FR-001, FR-004, FR-010, FR-012; SC-005;
@@ -14,6 +14,8 @@ import { uniqueWavCopy } from '../support/unique-audio';
 const fake = readFakeLyrics();
 const settleMs = 60_000;
 const alignMs = 90_000;
+/** Status of plain fake lyrics once nothing runs: a GPU worker aligns them by itself. */
+const settledPlainStatus = fakeDeviceMode === 'gpu' ? 'found' : 'alignPending';
 
 async function freshTrack(api: StemStudioApi, lyricsApi: LyricsApi, salt: string): Promise<TrackDto> {
   const copy = uniqueWavCopy(fixturePath('click_120bpm_4-4_12s.wav'), `lyrics-${salt}-${runId()}`);
@@ -67,11 +69,15 @@ test.describe('plain lyrics', { tag: '@lyrics' }, () => {
 
   test('pasted lyrics are aligned and credited to the user (US2-3)', async ({ api, lyrics, lyricsApi }, info) => {
     const track = await freshTrack(api, lyricsApi, `paste-${info.project.name}`);
-    await lyricsApi.waitForStatus(track.id, ['alignPending', 'found'], settleMs + alignMs);
+    // Pasting is refused while the found text is still being aligned (409 lyrics-busy), so wait
+    // until the lookup settled: alignPending on a CPU worker, found after the automatic alignment on a GPU.
+    await lyricsApi.waitForStatus(track.id, [settledPlainStatus], settleMs + alignMs);
     await lyrics.goto(track.id);
     await lyrics.paste(fake.text.pastedText);
     await alignOnCpu(lyrics);
-    await lyrics.waitForStatus('found', alignMs);
+    const pastedFirst = fake.text.pastedText.split('\n')[0];
+    await expect.poll(async () => (await lyricsApi.get(track.id)).lines[0]?.text, { timeout: alignMs }).toBe(pastedFirst);
+    await lyricsApi.waitForStatus(track.id, ['found'], alignMs);
     const pasted = await lyricsApi.get(track.id);
     expect([pasted.source, pasted.origin]).toEqual(['user', 'aligned']);
     expect(pasted.credit).toBe('Lyrics: entered by you; timing: automatic alignment');

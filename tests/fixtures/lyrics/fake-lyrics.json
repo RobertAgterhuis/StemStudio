@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "about": "qa proposal (006:T012) for the worker's fake lyrics provider and fake aligner (STEMSTUDIO_FAKE_LYRICS, only with STEMSTUDIO_SEPARATOR=fake). audio-ingest 006:T028 (lyrics/fake.py) and stem-separation 006:T041 (alignment/fake.py) should return exactly these values; e2e/support/lyrics.ts reads its expectations from this file. All text is self-written. Times fit the 20 s fake-stack fixtures (music_100bpm_20s.*: 100 BPM, first beat 0.5 s).",
+  "about": "Behaviour table of the worker's fake lyrics provider (worker lyrics/fake.py, audio-ingest 006:T028) and fake aligner (alignment/fake.py, stem-separation 006:T041) for STEMSTUDIO_FAKE_LYRICS (only with STEMSTUDIO_SEPARATOR=fake). Started as the qa proposal (006:T012); the 006+008 integration run aligned it with the implementation: the four self-written FAKE_LINES are spread evenly over the track (line i of n starts at floor(durationMs / (n + 1)) * (i + 1)), words interpolated. `lines` are the values for the 20 s fake-stack fixture music_100bpm_20s.* as served by GET /api/tracks/{id}/lyrics; no gap between lines is longer than countdownGapMs, so the fake track has no gap countdown. e2e/support/lyrics.ts reads its expectations from this file. All text is self-written.",
   "text": {
-    "plainText": "Fake line one la la la\nSecond fake line for the ball\nLast fake line",
+    "plainText": "Fake line one\nLa la la\nFixture words here\nSing along now",
     "pastedText": "Pasted line one\nPasted line two for the ball"
   },
   "modes": {
@@ -11,7 +11,7 @@
       "status": "found",
       "syncLevel": "word",
       "origin": "source",
-      "sourceId": "fake-word",
+      "sourceId": "fake-1",
       "credit": "Lyrics: LRCLIB",
       "dataSync": "word"
     },
@@ -20,7 +20,7 @@
       "status": "found",
       "syncLevel": "line",
       "origin": "interpolated",
-      "sourceId": "fake-line",
+      "sourceId": "fake-1",
       "credit": "Lyrics: LRCLIB; word timing estimated",
       "dataSync": "line"
     },
@@ -29,14 +29,24 @@
       "status": "alignPending",
       "syncLevel": "plain",
       "origin": "none",
-      "sourceId": "fake-plain",
+      "sourceId": "fake-1",
       "credit": "Lyrics: LRCLIB",
       "dataSync": "aligned",
       "alignedCredit": "Lyrics: LRCLIB; timing: automatic alignment"
     },
-    "instrumental": { "outcome": "instrumental", "status": "instrumental" },
-    "not-found": { "outcome": "not-found", "status": "notFound" },
-    "failed": { "outcome": null, "status": "failed", "error": "Lyrics could not be retrieved; try again later." }
+    "instrumental": {
+      "outcome": "instrumental",
+      "status": "instrumental"
+    },
+    "not-found": {
+      "outcome": "not-found",
+      "status": "notFound"
+    },
+    "failed": {
+      "outcome": null,
+      "status": "failed",
+      "error": "Lyrics could not be retrieved; try again later."
+    }
   },
   "fakeAlignment": {
     "rule": "word k (counted over the whole text, line breaks kept) starts at firstWordMs + k * wordMs and ends wordMs later; a line spans its words",
@@ -46,40 +56,48 @@
   "countdownGapMs": 5000,
   "lines": [
     {
-      "startMs": 2000,
-      "endMs": 5600,
-      "text": "Fake line one la la la",
+      "startMs": 4000,
+      "endMs": 6280,
+      "text": "Fake line one",
       "words": [
-        { "text": "Fake", "startMs": 2000, "endMs": 2600 },
-        { "text": "line", "startMs": 2600, "endMs": 3200 },
-        { "text": "one", "startMs": 3200, "endMs": 3800 },
-        { "text": "la", "startMs": 3800, "endMs": 4400 },
-        { "text": "la", "startMs": 4400, "endMs": 5000 },
-        { "text": "la", "startMs": 5000, "endMs": 5600 }
+        { "text": "Fake", "startMs": 4000, "endMs": 4760 },
+        { "text": "line", "startMs": 4760, "endMs": 5520 },
+        { "text": "one", "startMs": 5520, "endMs": 6280 }
       ]
     },
     {
-      "startMs": 6200,
-      "endMs": 9800,
-      "text": "Second fake line for the ball",
+      "startMs": 8000,
+      "endMs": 9980,
+      "text": "La la la",
       "words": [
-        { "text": "Second", "startMs": 6200, "endMs": 6800 },
-        { "text": "fake", "startMs": 6800, "endMs": 7400 },
-        { "text": "line", "startMs": 7400, "endMs": 8000 },
-        { "text": "for", "startMs": 8000, "endMs": 8600 },
-        { "text": "the", "startMs": 8600, "endMs": 9200 },
-        { "text": "ball", "startMs": 9200, "endMs": 9800 }
+        { "text": "La", "startMs": 8000, "endMs": 8660 },
+        { "text": "la", "startMs": 8660, "endMs": 9320 },
+        { "text": "la", "startMs": 9320, "endMs": 9980 }
+      ]
+    },
+    {
+      "startMs": 12000,
+      "endMs": 14580,
+      "text": "Fixture words here",
+      "words": [
+        { "text": "Fixture", "startMs": 12000, "endMs": 13290 },
+        { "text": "words", "startMs": 13290, "endMs": 13720 },
+        { "text": "here", "startMs": 13720, "endMs": 14580 }
       ]
     },
     {
       "startMs": 16000,
-      "endMs": 17800,
-      "text": "Last fake line",
+      "endMs": 18340,
+      "text": "Sing along now",
       "words": [
-        { "text": "Last", "startMs": 16000, "endMs": 16600 },
-        { "text": "fake", "startMs": 16600, "endMs": 17200 },
-        { "text": "line", "startMs": 17200, "endMs": 17800 }
+        { "text": "Sing", "startMs": 16000, "endMs": 16585 },
+        { "text": "along", "startMs": 16585, "endMs": 17755 },
+        { "text": "now", "startMs": 17755, "endMs": 18340 }
       ]
     }
-  ]
+  ],
+  "spread": {
+    "rule": "line i (0-based) of n starts at floor(durationMs / (n + 1)) * (i + 1); words interpolated",
+    "durationMs": 20000
+  }
 }

@@ -1,6 +1,6 @@
 /**
  * Level visibility rules R7-R9 of ui-test-ids 1.3.0, with the Beginner exceptions of 1.4.0
- * (feature 005) and 1.5.0 (feature 007), as id lists, plus helpers to assert them and to time a
+ * (feature 005), 1.5.0 (feature 007), 1.6.0 (feature 006) and 1.7.0 (feature 008), as id lists, plus helpers to assert them and to time a
  * level switch (SC-010).
  *
  * @packageDocumentation
@@ -169,6 +169,59 @@ export async function expectNoIdWithPrefix(page: Page, prefix: string): Promise<
   await expect(page.locator(`[data-testid^="${prefix}"]`), `${prefix}*`).toHaveCount(0);
 }
 
+// Feature 006 (ui-test-ids 1.6.0) and 008 (1.7.0): R7 again; the "Beginner" columns list the
+// exceptions below. State-bound ids (`lyrics-align-device` while aligning, `score-quality` for
+// piano, `score-detail-*` with detail stems, `score-tempo-*` without `score-tempo-required`) are
+// in the hidden lists only.
+
+/** 1.6.0 mixer ids rendered at every level while word-synced lyrics are found. */
+export const everyLevelKaraokeIds: readonly string[] = ['karaoke-banner', 'karaoke-credit', 'karaoke-toggle'];
+
+/** 1.6.0 mixer ids that Beginner does not render. */
+export const beginnerHiddenKaraokeIds: readonly string[] = ['karaoke-size', 'karaoke-offset', 'karaoke-offset-reset'];
+
+/** 1.6.0 track detail ids rendered at every level while lyrics are found. */
+export const everyLevelLyricsIds: readonly string[] = [
+  'lyrics-section',
+  'lyrics-status',
+  'lyrics-credit',
+  'lyrics-search',
+  'lyrics-paste-open',
+  'lyrics-copyright-notice',
+];
+
+/** 1.6.0 track detail ids that Beginner does not render. */
+export const beginnerHiddenLyricsIds: readonly string[] = ['lyrics-remove', 'lyrics-align-device'];
+
+/** 1.7.0 track detail ids rendered at every level, for the given standard stems. */
+export function everyLevelScoreTrackIds(stems: readonly string[]): string[] {
+  return stems.map((stem) => `score-stem-${stem}`);
+}
+
+/** 1.7.0 dialog ids rendered at every level for a pitched stem on a reliable grid. */
+export const everyLevelScoreDialogIds: readonly string[] = [
+  'score-dialog',
+  'score-profile',
+  'score-estimate',
+  'score-limits',
+  'score-resolution',
+  'score-submit',
+  'score-cancel',
+];
+
+/** 1.7.0 dialog ids that Beginner does not render (reliable grid: no tempo fields). */
+export const beginnerHiddenScoreDialogIds: readonly string[] = [
+  'score-quality',
+  'score-key-override',
+  'score-range-start',
+  'score-range-end',
+  'score-tempo-bpm',
+  'score-tempo-beats-per-bar',
+  'score-tempo-first-downbeat',
+];
+
+/** 1.7.0 dialog ids added at Advanced for a non-piano pitched stem on a reliable grid. */
+export const advancedScoreDialogIds: readonly string[] = ['score-key-override', 'score-range-start', 'score-range-end'];
 // Features 009 (ui-test-ids 1.8.0) and 010 (1.9.0): R7 again; the Beginner columns list the ids
 // below as "not rendered" (the defaults apply). `restyle-stem-<stem>` is per stem of the track.
 

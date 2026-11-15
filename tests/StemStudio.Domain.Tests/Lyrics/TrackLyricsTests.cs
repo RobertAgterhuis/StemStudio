@@ -298,6 +298,19 @@ public sealed class TrackLyricsTests
     }
 
     [Fact]
+    public void CompleteAlign_KeepsTheSourceOfTheAlignedText()
+    {
+        var lyrics = TrackWith(LyricsStatus.Aligning).Lyrics!;
+        var before = (lyrics.Document!.Source, lyrics.Document.SourceId, lyrics.Document.SourceDurationSeconds);
+
+        lyrics.CompleteAlign(Aligned() with { Source = LyricsSource.User, SourceId = null, SourceDurationSeconds = null }, T1);
+
+        before.Source.ShouldBe(LyricsSource.Lrclib);
+        (lyrics.Document!.Source, lyrics.Document.SourceId, lyrics.Document.SourceDurationSeconds).ShouldBe(before);
+        LyricsCredit.For(lyrics.Document).ShouldBe("Lyrics: LRCLIB; timing: automatic alignment");
+    }
+
+    [Fact]
     public void CompleteAlign_WithInvalidOrPlainDataFails()
     {
         var invalid = TrackWith(LyricsStatus.Aligning).Lyrics!;

@@ -45,6 +45,32 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | spotDL | 4.6.0 | MIT | https://github.com/spotDL/spotify-downloader |
 | FFmpeg / ffprobe (Debian package, separate executable) | distro | LGPL-2.1+ / GPL-2.0+ (Debian build) | https://ffmpeg.org/legal.html |
 | Deno (JS runtime required by yt-dlp) | 2.9.8 | MIT | https://github.com/denoland/deno |
+| tinytag (embedded cover and tags of uploads; feature 005) | 2.3.2 | MIT | https://github.com/tinytag/tinytag |
+| Pillow (artwork normalisation; feature 005, was transitive) | 13.0.0 | MIT-CMU | https://github.com/python-pillow/Pillow |
+| httpx (online lookups; feature 005, was a dev dependency; pulls in httpcore 1.0.9 BSD-3-Clause, h11 0.16.0 MIT, anyio 4.16.0 MIT, idna 3.20 BSD-3-Clause, certifi MPL-2.0) | 0.28.1 | BSD-3-Clause | https://github.com/encode/httpx |
+| rapidfuzz (recording matcher; feature 005, was transitive) | 3.14.6 | MIT | https://github.com/rapidfuzz/RapidFuzz |
+| lameenc (MP3 encoding of exports; feature 007, ADR-016; was transitive via demucs) | 1.9.0 | **LGPL-3.0-or-later** (bundles LAME, LGPL) | https://github.com/chrisstaite/lameenc |
+| nvidia-ml-py (NVML bindings, GPU memory checks; both images) | 13.615.71 | BSD-3-Clause | https://pypi.org/project/nvidia-ml-py/ |
+| stable-ts (lyrics alignment; feature 006, ADR-015) | 2.19.1 | MIT | https://github.com/jianfch/stable-ts |
+| openai-whisper (alignment model code; triton dropped from the CPU lock) | 20250625 | MIT | https://github.com/openai/whisper |
+| torchaudio | 2.11.1 | BSD-2-Clause | https://github.com/pytorch/audio |
+| tiktoken (Whisper tokenizer) | 0.14.0 | MIT | https://github.com/openai/tiktoken |
+| more-itertools | 11.2.1 | MIT | https://github.com/more-itertools/more-itertools |
+| regex (via tiktoken) | 2026.9.29 | Apache-2.0 AND CNRI-Python | https://github.com/mrabarnett/mrab-regex |
+| PyYAML (lyricsfile parsing, `safe_load` only; was a dev dependency) | 6.0.3 | MIT | https://github.com/yaml/pyyaml |
+| music21 (notation, MusicXML/MIDI; feature 008, ADR-017; matplotlib excluded) | 10.5.2 | BSD-3-Clause | https://github.com/cuthbertLab/music21 |
+| music21 dependencies: chardet / joblib / jsonpickle / webcolors | 7.7.0 / 1.6.0 / 4.1.4 / 25.10.0 | 0BSD / BSD-3-Clause / BSD-3-Clause / BSD-3-Clause | https://pypi.org/project/music21/ |
+| verovio (engraving to SVG; unmodified wheel) | 6.4.0 | **LGPL-3.0-only** | https://github.com/rism-digital/verovio |
+| cairosvg (SVG to PDF; unmodified) + libcairo2 (Debian) | 2.9.1 | **LGPL-3.0-or-later** (libcairo LGPL-2.1 / MPL-1.1) | https://github.com/Kozea/CairoSVG |
+| cairocffi / cssselect2 / tinycss2 / webencodings (via cairosvg) | 1.7.1 / 0.10.1 / 1.5.1 / 0.6.1 | BSD-3-Clause | https://github.com/Kozea |
+| defusedxml (via cairosvg) | 0.7.1 | PSF-2.0 | https://github.com/tiran/defusedxml |
+| pypdf (PDF assembly) | 6.21.4 | BSD-3-Clause | https://github.com/py-pdf/pypdf |
+| torchlibrosa (piano CRNN feature layers) | 0.1.0 | MIT | https://github.com/qiuqiangkong/torchlibrosa |
+| soxr (resampling for alignment and transcription; direct pin, was transitive via librosa) | 1.1.0 | **LGPL-2.1-or-later** | https://github.com/dofuuz/python-soxr |
+| Vendored inference code: Spotify basic-pitch subset (v0.4.0) | - | Apache-2.0 (LICENSE + NOTICE in `worker/src/stemstudio_worker/transcription/vendor/basic_pitch/`) | https://github.com/spotify/basic-pitch |
+| Vendored inference code: piano_transcription_inference subset (ByteDance, Kong et al.) | - | MIT (LICENSE + NOTICE in `worker/src/stemstudio_worker/transcription/vendor/piano_transcription/`) | https://github.com/qiuqiangkong/piano_transcription_inference |
+| Leipzig music font (shipped with verovio; converted to `Leipzig.ttf` at image build) | from verovio 6.4.0 | **OFL-1.1** | https://github.com/rism-digital/leipzig |
+| fontTools[woff] + brotli (**build stage only**, converts the font; not in the runtime image) | 4.68.0 | MIT | https://github.com/fonttools/fonttools |
 
 | onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
 | rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |
@@ -66,7 +92,16 @@ volume), verified by SHA-256, never committed or baked into an image.
 these weights or the Demucs weights. They are for local, personal, non-commercial use only
 (constitution 1.1.0, principle IV).
 
-| nvidia-ml-py (NVML bindings, GPU memory checks; both images) | 13.615.71 | BSD-3-Clause | https://pypi.org/project/nvidia-ml-py/ |
+### Lyrics and sheet-music model weights (features 006 and 008)
+
+Downloaded at first use into `STEMSTUDIO_MODEL_DIR` (Docker: the `model-cache` volume), verified
+by SHA-256, never committed or baked into an image. All three have a stated, open licence.
+
+| Model | File | Bytes | SHA-256 | Source | Licence |
+|---|---|---|---|---|---|
+| Whisper large-v3-turbo (lyrics alignment, 006) | large-v3-turbo.pt | 1,617,941,637 | `aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a` | https://openaipublic.azureedge.net/main/whisper/models/aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a/large-v3-turbo.pt | MIT (OpenAI) |
+| basic-pitch ICASSP 2022 (bass, vocal and guitar notes, 008) | nmp.onnx | 230,444 | `2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec` | https://raw.githubusercontent.com/spotify/basic-pitch/v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx | Apache-2.0 (Spotify) |
+| High-resolution piano transcription CRNN (note + pedal, 008) | CRNN_note_F1=0.9677_pedal_F1=0.9186.pth | 171,966,578 | `c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141` | https://zenodo.org/records/4034264 | **CC BY 4.0**. Attribution: Q. Kong, B. Li, X. Song, Y. Wan, Y. Wang, "High-resolution Piano Transcription with Pedals by Regressing Onset and Offset Times", Zenodo record 4034264 |
 
 ### System dependencies: GPU image variant only (constitution 1.2.0, ADR-011)
 
@@ -89,8 +124,8 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 
 | Component | Licence | Pulled in by |
 |---|---|---|
-| lameenc 1.9.0 | LGPL-3.0+ | demucs |
-| soxr 1.1.0 | LGPL-2.1+ | librosa |
+| lameenc 1.9.0 | LGPL-3.0+ | **direct** since feature 007 (MP3 export, used unmodified through its Python API as a separate library; no GPL library is imported by StemStudio code); also demucs |
+| soxr 1.1.0 | LGPL-2.1+ | librosa; direct dependency since 006/008 (resampling for alignment and transcription) |
 | mutagen 1.48.1 | GPL-2.0+ | spotdl |
 | unidecode 1.4.0 | GPL-2.0+ | spotdl |
 | text-unidecode 1.3 | Artistic-1.0 / GPL | spotdl |
@@ -100,6 +135,22 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 
 **Distribution note:** anyone who redistributes the worker image must comply with the GPL/LGPL
 terms of these components (offer source, keep notices).
+
+## Online data services (feature 005, FR-014)
+
+The worker queries these services only when online lookups are on (`STEMSTUDIO_ONLINE_LOOKUPS`,
+default `on`) and sends only the song title, artist, duration and ISRC (MusicBrainz) or the ids
+found there (LRCLIB, feature 006: title, artist, album and the rounded duration); the User-Agent names StemStudio and, when set, `STEMSTUDIO_CONTACT_URL` (never an
+e-mail address). Nothing they return is bundled with StemStudio, and pictures and band texts are
+never written into exports.
+
+| Service | Data used | Licence / terms | How StemStudio complies |
+|---|---|---|---|
+| MusicBrainz WS/2 (https://musicbrainz.org/doc/MusicBrainz_API) | core data: recordings, releases, release groups, artists, URL relations | **CC0 1.0** (core data; supplementary data such as tags and annotations is not used) | 1 request/s, descriptive User-Agent, stored with the track |
+| Cover Art Archive (https://coverartarchive.org) | front cover of a release group | **No licence stated**; images belong to their rights holders | images are shown **in the app only** (cover, thumbnails), never exported or redistributed; personal-practice notice |
+| Wikidata (https://www.wikidata.org) | genres, members, founding year, country, website, Wikipedia site links | **CC0 1.0** (structured data) | ids and facts only |
+| Wikipedia REST `page/summary` (https://en.wikipedia.org/api/rest_v1/) | the summary excerpt of the artist article (`STEMSTUDIO_WIKIPEDIA_LANGUAGES`) | **CC BY-SA 4.0** (text) | excerpt shown unmodified with **in-app attribution** (article link, "Wikipedia contributors" history link, licence link, "Excerpt, unmodified"; `band-info-attribution`); never exported |
+| LRCLIB (https://lrclib.net, feature 006) | synced or plain lyrics of the recording (`/api/get`, `/api/search`) | **No data licence stated**; lyrics are copyrighted by their rights holders | lyrics are shown **in the app only** (karaoke banner, lyrics card), never exported, logged or bundled; at most 3 requests per lookup, >= 500 ms apart; personal-practice notice |
 
 ## Frontend audio engine (build-time only; the shipped bundle contains only StemStudio code)
 
@@ -139,6 +190,37 @@ terms of these components (offer source, keep notices).
 | Playwright container image `mcr.microsoft.com/playwright:v1.65.1-noble` (CI visual/a11y only) | 1.65.1 | Apache-2.0 |
 | eslint-plugin-playwright | 2.12.2 | MIT |
 | @redocly/cli (via npx) | 2.78.0 | MIT |
+
+### Documentation build (`tools/docs`, not shipped; builds docs/public PDFs)
+
+Pinned exactly in `tools/docs/package.json`; the lock file was resolved with
+`npm install --before=2026-11-01` so every package is at least two weeks old.
+
+| Component | Version | Licence | URL |
+|---|---|---|---|
+| markdown-it | 15.0.2 | MIT | https://github.com/markdown-it/markdown-it |
+| argparse (via markdown-it) | 3.0.4 | PSF-2.0 | https://github.com/nodeca/argparse |
+| entities (via markdown-it) | 8.1.0 | BSD-2-Clause | https://github.com/fb55/entities |
+| linkify-it, mdurl, punycode.js, uc.micro (via markdown-it) | 6.1.0 / 2.1.0 / 2.3.1 / 3.0.0 | MIT | https://github.com/markdown-it |
+| pdf-lib (puts the cover in front of the body) | 1.17.1 | MIT | https://github.com/Hopding/pdf-lib |
+| @pdf-lib/standard-fonts, @pdf-lib/upng | 1.0.0 / 1.0.1 | MIT | https://github.com/Hopding/pdf-lib |
+| pako (via pdf-lib) | 1.0.11 | MIT AND Zlib | https://github.com/nodeca/pako |
+| tslib (via pdf-lib) | 1.14.1 | 0BSD | https://github.com/microsoft/tslib |
+| playwright-core (+ Chromium headless shell, print to PDF) | 1.64.1 | Apache-2.0 | https://github.com/microsoft/playwright |
+| Archivo font (embedded in the PDFs, from the web app) | variable, Latin subset | OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
+
+The website generator (`tools/site`, not shipped with the app; builds `site/dist` for GitHub Pages)
+adds **no dependencies**: it loads the markdown-it above from `tools/docs/node_modules`, and its
+local review script (`tools/site/review.mjs`) reuses the e2e suite's `@playwright/test` 1.65.1 and
+`@axe-core/playwright` 4.14.0 (listed under test tooling). The published site contains only
+StemStudio files plus the self-hosted Archivo font (OFL-1.1, licence text published next to it as
+`assets/archivo-OFL.txt`). Deployment uses GitHub's own actions (`.github/workflows/pages.yml`):
+
+| Component | Version | Licence | URL |
+|---|---|---|---|
+| actions/configure-pages | 6.0.0 | MIT | https://github.com/actions/configure-pages |
+| actions/upload-pages-artifact | 5.0.0 | MIT | https://github.com/actions/upload-pages-artifact |
+| actions/deploy-pages | 5.0.1 | MIT | https://github.com/actions/deploy-pages |
 
 ## Open licence issue: Demucs weights
 

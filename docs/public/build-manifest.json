@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "builtAt": "2026-11-15",
+  "sourceHash": "8b96c775fa265445bd82bc2c78c5ec18bf600e4320aaeff727fea0332943ef24",
+  "outputs": [
+    {
+      "path": "docs/public/StemStudio-Technical-Manual.pdf",
+      "pages": 31,
+      "bytes": 1025443
+    },
+    {
+      "path": "docs/public/StemStudio-User-Manual.pdf",
+      "pages": 40,
+      "bytes": 1507683
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/ROADMAP.md",
+      "sha256": "0e2eab30b103f293e65671e828d9268aba8c6bef4c85c21b54810dd9e258f05c"
+    },
+    {
+      "path": "docs/STATUS.md",
+      "sha256": "68fca38cc937a1de683e519335394069aa28fe556e5a4a6aeb9271a615bc0171"
+    },
+    {
+      "path": "docs/design-review/004/help-panel-dark.png",
+      "sha256": "24ad2cb97292b69a141e8bb550b8b35e57491df1b835124232870c4635bb1995"
+    },
+    {
+      "path": "docs/design-review/004/import-light.png",
+      "sha256": "9616c99fe41b05413670e4825ec96aba99e7e90f97ebd491e11a6d571641ad18"
+    },
+    {
+      "path": "docs/design-review/004/mixer-expert-playing-dark.png",
+      "sha256": "d035eb32c3f6e127e434941d52d0e6c1be30794b10853cfd856b8b3a70f2585a"
+    },
+    {
+      "path": "docs/design-review/004/mixer-light.png",
+      "sha256": "2f04a81276048d49ba6df206c1f93501eb160ad3a363884781b15f7a87edb15e"
+    },
+    {
+      "path": "docs/design-review/004/mixes-light.png",
+      "sha256": "e4c0017d23387b32e978a82c3a74d4c720db018e2b2f6bd719a980c1af26dca3"
+    },
+    {
+      "path": "docs/design-review/004/tour-step-dark.png",
+      "sha256": "70fbb34ffddb0ba7e69a6675ade8ecfc15ece9840f4c37da1ac81d757962af2b"
+    },
+    {
+      "path": "docs/design-review/004/track-light.png",
+      "sha256": "bcbb70f01be0ed5b61b14f9dae0ff9184248fdaba6e3ea0683c9250333db7317"
+    },
+    {
+      "path": "docs/design-review/004/tracks-light.png",
+      "sha256": "b29a5d0844e314cc82e0662e3729310486bfe354b7b15dbae4abe805152cae40"
+    },
+    {
+      "path": "docs/public/src/technical-manual/01-about.md",
+      "sha256": "67584d4292bec83ee64fc92d2810a28e9782577ad8af9f3434a18e5ad369a558"
+    },
+    {
+      "path": "docs/public/src/technical-manual/02-architecture.md",
+      "sha256": "9db190e7e5f2096f66b6822b67a93ddba84f937349ccddbc1fbe5a9beda5b05c"
+    },
+    {
+      "path": "docs/public/src/technical-manual/03-deployment.md",
+      "sha256": "54d4013916a79161405fca486ef0f99ac5669f4d774e34e5746cbc6a71d57c42"
+    },
+    {
+      "path": "docs/public/src/technical-manual/04-gpu-policy.md",
+      "sha256": "aa9d253137ae8b5f90b6fbabb04489ca607ab0850dfcfa7ab406a92793b14be6"
+    },
+    {
+      "path": "docs/public/src/technical-manual/05-models-licences.md",
+      "sha256": "af9b57d73aa379c25ceaf951ada9b1318ccd301e5a6c98e99cee86115f706f33"
+    },
+    {
+      "path": "docs/public/src/technical-manual/06-apis.md",
+      "sha256": "8bd8cd00d771c0527920d6b898799a28602946f018116f6c553ed5cf5fbb54f4"
+    },
+    {
+      "path": "docs/public/src/technical-manual/07-data-model.md",
+      "sha256": "40f4a1dead26de5994943a2796581e6641abf23bcc04ac3b8145e746f039e167"
+    },
+    {
+      "path": "docs/public/src/technical-manual/08-security.md",
+      "sha256": "ab491d082ea4608ebca7121da70a6f96ceedc1b56d07d8865e91bfb7c1b31d2d"
+    },
+    {
+      "path": "docs/public/src/technical-manual/09-quality-gates.md",
+      "sha256": "390969a8c67427a32dd2b97e36cdff6f94218f12c30cb1f844070d5726c2000f"
+    },
+    {
+      "path": "docs/public/src/technical-manual/10-development-workflow.md",
+      "sha256": "f11dcdafedd62eb486eb3dc33edc22481c9c3d4687b9180ad1215c79e66125c5"
+    },
+    {
+      "path": "docs/public/src/technical-manual/11-operations.md",
+      "sha256": "a4938cf8b0918cfdf54e71688d6b3da14bbcf4625ae520de0e2a38af3f57473c"
+    },
+    {
+      "path": "docs/public/src/technical-manual/12-documentation.md",
+      "sha256": "30516e70d2ff73a87468318241f6d649a34e6756fdf5dacb28b0c15275c90f9d"
+    },
+    {
+      "path": "docs/public/src/technical-manual/manual.json",
+      "sha256": "4bacc1a2c044b8e702df2728bb6f7594be86583b38414b4cb4e2d52af12e3e23"
+    },
+    {
+      "path": "docs/public/src/user-manual/01-about.md",
+      "sha256": "9d4c0b86644a39a58ec7f3a2017b0e3183e32d62410f309511de67ab25b79b22"
+    },
+    {
+      "path": "docs/public/src/user-manual/02-getting-started.md",
+      "sha256": "77f2c154c2abc3cc0c1596999cceb92295a7e2f710193a72bbcc38c2d672e3fc"
+    },
+    {
+      "path": "docs/public/src/user-manual/03-journey-levels.md",
+      "sha256": "65503665fdf97e9c6010e947d775e9db66bc02a632413b7c8f9719029c959b74"
+    },
+    {
+      "path": "docs/public/src/user-manual/04-importing.md",
+      "sha256": "979c33c5e3444112c424f07b84475942f23363ae84867e0111a430c326d93634"
+    },
+    {
+      "path": "docs/public/src/user-manual/05-stems-and-mixer.md",
+      "sha256": "e1dc263abb3b8b3632347624017326cf188627c8aba5a3161bab21f434fef519"
+    },
+    {
+      "path": "docs/public/src/user-manual/06-mixes.md",
+      "sha256": "12238870f7d44c09ee32abc16197e7f44933db9850324a793eec13a7d92347e6"
+    },
+    {
+      "path": "docs/public/src/user-manual/07-cover-art-band-info.md",
+      "sha256": "3b0f7657013caae0a0b1ce9fd70c74e7ba6690cb79ac77a494a98800947eab5e"
+    },
+    {
+      "path": "docs/public/src/user-manual/08-lyrics-karaoke.md",
+      "sha256": "96808637fc5bb50d4c0d3f25d28fd8f939ff2e845f4aee255a9cd0a606682529"
+    },
+    {
+      "path": "docs/public/src/user-manual/09-export-library.md",
+      "sha256": "7b72815599d2603b2df73410adad74d671e3b780078154bf2c1ec452c5863297"
+    },
+    {
+      "path": "docs/public/src/user-manual/10-sheet-music.md",
+      "sha256": "ac883b72f1af891be16198cd959d395006a2c5ef8ed14613dcec61a97de05e9d"
+    },
+    {
+      "path": "docs/public/src/user-manual/11-style-transfer.md",
+      "sha256": "eca840c18c1240189f049befcb1822c8e2764eb6ddbca2eff764e77b34b3ae27"
+    },
+    {
+      "path": "docs/public/src/user-manual/12-lyrics-to-song.md",
+      "sha256": "ae997833fb10e0ad0cd078aef0c9db157725edb21c993b7a5497198abf4fb966"
+    },
+    {
+      "path": "docs/public/src/user-manual/13-ai-composer-agent.md",
+      "sha256": "bd9025b80f11bf1ce87af94ac8680430da65e8a49e54b29f2b0425604918f073"
+    },
+    {
+      "path": "docs/public/src/user-manual/14-keyboard-shortcuts.md",
+      "sha256": "ed02b59c3d8e23403b626384f6d96a356dafa8cb45c359a26f2eb6f5acd6e6c3"
+    },
+    {
+      "path": "docs/public/src/user-manual/15-help-and-tours.md",
+      "sha256": "9b8dd4faef6df92e58eab9fe48953f4f9499ea324a1dd147ba00667c892df235"
+    },
+    {
+      "path": "docs/public/src/user-manual/16-troubleshooting-faq.md",
+      "sha256": "73f5b34ddcaf0bc4f4454ca1fef196cbb272dd9538f8421c58c29183ef541002"
+    },
+    {
+      "path": "docs/public/src/user-manual/17-legal-notice.md",
+      "sha256": "9bec7068dba08c23d4a785cf8f9f111d8cf7540c3298ad81190843bba124856a"
+    },
+    {
+      "path": "docs/public/src/user-manual/manual.json",
+      "sha256": "d1e799aebad04dcefb2815991321c4c0a1f028e89eda8deb9dd6c4a4e42162dc"
+    },
+    {
+      "path": "src/StemStudio.Web/wwwroot/css/tokens.css",
+      "sha256": "543867685b654db9e8c01e081d8761c7fc8d2119a276b62aad0b3c013c4df807"
+    },
+    {
+      "path": "src/StemStudio.Web/wwwroot/favicon.svg",
+      "sha256": "18a66155a8c859fc55ceec3e7e7aa6140a26230324aab9e5c512e0ad68cabfe8"
+    },
+    {
+      "path": "src/StemStudio.Web/wwwroot/fonts/archivo/Archivo-Variable-latin.woff2",
+      "sha256": "e6fc4127b49ae0474c97ed3d7814e2ce745faca44055718039ef8a5948b7ead1"
+    },
+    {
+      "path": "tools/docs/build.mjs",
+      "sha256": "084952cfabc97f235b1f52a90e61908534cc9d2e93ec2cecbf56682b8a64c989"
+    },
+    {
+      "path": "tools/docs/lib/html.mjs",
+      "sha256": "3642c9d42d38a0059b8cbbce2b4f015ff39b9be6f82e18349a9d466f4c0f1c17"
+    },
+    {
+      "path": "tools/docs/lib/inputs.mjs",
+      "sha256": "b296553392de9bd022e936de4e8feec9cfea768ce2bb361233a5c71588a3943d"
+    },
+    {
+      "path": "tools/docs/lib/markdown.mjs",
+      "sha256": "70a6544adfec4bcd960ccef3b581126cdf49c90dec685680da2b79056e306dcb"
+    },
+    {
+      "path": "tools/docs/lib/pdf.mjs",
+      "sha256": "5eab7611687753cf70868151fd85597b9dffd9ce3237f73363ccc4c133087bb1"
+    },
+    {
+      "path": "tools/docs/lib/status.mjs",
+      "sha256": "19c092b70df5a1b8566a455dd174e276a40650493fbcaad52fdddb9fdac7504d"
+    },
+    {
+      "path": "tools/docs/package-lock.json",
+      "sha256": "694480aaf40f0be20695396d5bdb37237d184c7b3e6a41a78df8ce5e73294362"
+    },
+    {
+      "path": "tools/docs/package.json",
+      "sha256": "96110d63bae818338d2c163238bbbd5d19086e910126493a52a922caa13f9311"
+    },
+    {
+      "path": "tools/docs/styles/doc-tokens.css",
+      "sha256": "dbe9beea8f5e8dc4c0906b49b37356f3a331f685671574b1eff79cbf12d61821"
+    },
+    {
+      "path": "tools/docs/styles/print.css",
+      "sha256": "7a63bfee026d0254220c0e769a33d29f9fea0fa8c14d5f1bf4cbc8f2c67b8cfd"
+    }
+  ]
+}

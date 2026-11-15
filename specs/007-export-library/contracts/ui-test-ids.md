@@ -1,4 +1,4 @@
-# Contract: UI test ids (v1.5.0)
+# Contract: UI test ids (v1.5.1)
 
 Binding for the **frontend** agent (renders the attributes) and the **qa** agent (Playwright
 selectors use `page.getByTestId(...)` only). Changing, renaming or removing an id is a breaking
@@ -14,7 +14,9 @@ visibility rules R7-R9. All 1.2.0 ids keep their name, element and meaning. 1.4.
 feature 005) - song artwork (cover, thumbnails, own picture) and the band info panel; ids may be
 placed inside 004's layout, their names and meaning are binding. All 1.3.0 ids are unchanged.
 1.5.0 (additive, feature 007) - export actions, the export dialog and the library page
-(`/library`). All 1.4.0 ids are unchanged.
+(`/library`). All 1.4.0 ids are unchanged. 1.5.1 (patch, 005/007 integration, 2026-11-15) -
+ids the frontend already rendered for 005 and 007 are adopted as binding (see "Patch note
+1.5.1"); no id was renamed or removed.
 
 ## Rules
 
@@ -79,7 +81,7 @@ Device texts are exactly `GPU (<name>)` (name from the record) and `CPU`; tests 
   tour id; `<presetId>` one of `play-along-drums`, `play-along-bass`, `play-along-guitar`,
   `play-along-piano`, `karaoke`, `focus-vocals`, `reset`; `<key>` a channel key as in
   `strip-<key>` (`<stem>` or `<parent>-<detail>`); `<commandId>` a palette command id
-  (`go-import`, `go-tracks`, `go-mixes`, `track-<trackId>`, `mix-<mixId>`, `help-<topicId>`, or an
+  (`go-import`, `go-tracks`, `go-mixes`, `go-library` (1.5.1), `track-<trackId>`, `mix-<mixId>`, `help-<topicId>`, or an
   action id of the current screen such as `mixer-save`).
 
 ### Adopted ids (already rendered by 001-003 code, now binding, unchanged)
@@ -238,3 +240,26 @@ library page header: what the library is, later use, sizes, the personal-practic
 `export-formats` (on `export-format`; Advanced), `export-range` (on `export-range-start`;
 Advanced), `export-clipping` (on `asset-gain-note-<assetId>`).
 
+## Patch note 1.5.1 (adopted ids, 005/007 integration)
+
+Found by the 005/007 integration run (`docs/handoffs/qa-005-007-integration.md`): the frontend
+renders these ids in addition to 1.4.0/1.5.0. They are adopted as binding with the element and
+meaning they have in code; no existing id changes, so this is a patch (additive, no new
+behaviour). The E2E suite does not depend on them yet. Level visibility follows R7-R9 (every id
+renders where its surrounding element renders).
+
+| Feature | Screen | `data-testid` | Element and meaning |
+|---|---|---|---|
+| 005 | Band info panel | `band-info-close` | button "Close band info" in the panel header |
+| 005 | Band info panel | `band-info-album` | `dd` with "<album> (<year>)" (or "<album>"); exists only when the recording has an album |
+| 005 | Band info panel | `band-info-error` | readable reason when loading or retrying the lookup failed (`*-error` rule) |
+| 005 | Correction dialog | `metadata-correct-cancel` | cancel button |
+| 005 | Correction dialog | `metadata-correct-error` | readable validation or request error (`role="alert"`) |
+| 005 | Artwork actions (track detail) | `artwork-progress` | status text "Uploading picture..." while an own picture uploads (`role="status"`) |
+| 007 | Export dialog | `export-close` | "Close" button shown with `export-saved` after a successful submit |
+| 007 | Export dialog | `export-error-hint` | hint "Select at least one channel." while "Selected channels" has no channel ticked (`role="status"`) |
+| 007 | Library (`/library`) | `library-error` | readable reason when the library could not be loaded, with a reload hint |
+| 007 | Library | `library-action-error` | readable reason when rename, delete or retry of an item failed |
+| 007 | Library rename dialog | `asset-rename-cancel` | cancel button |
+| 007 | Library rename dialog | `asset-rename-error` | readable validation or request error (`role="alert"`) |
+| 007 | Command palette | `command-go-library` | command id `go-library` ("Go to Library"), added to the `<commandId>` list next to `go-import`, `go-tracks` and `go-mixes` |

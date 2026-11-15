@@ -1,0 +1,11 @@
+name: Feature request
+description: Suggest a new capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: Problem, description: What do you want to achieve while practising? }
+    validations: { required: true }
+  - type: textarea
+    id: idea
+    attributes: { label: Idea }

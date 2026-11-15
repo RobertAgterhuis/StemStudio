@@ -1,0 +1,41 @@
+/*
+ * Website tokens. Every colour maps onto an app design token from
+ * src/StemStudio.Web/wwwroot/css/tokens.css (copied into the site unchanged and loaded first),
+ * so the site follows the app's "night session" / "day session" themes. No literal colours here
+ * or in site.css (guard: tools/site/check.mjs).
+ */
+:root {
+  --site-bg: var(--ss-color-base);
+  --site-panel: var(--ss-color-surface);
+  --site-raised: var(--ss-color-raised);
+  --site-well: var(--ss-color-sunken);
+  --site-ink: var(--ss-color-ink);
+  --site-muted: var(--ss-color-muted);
+  --site-rule: var(--ss-color-divider);
+  --site-border: var(--ss-color-control-border);
+  --site-focus: var(--ss-color-focus);
+  --site-ok: var(--ss-color-success);
+  --site-warn: var(--ss-color-warning);
+  --site-on-state: var(--ss-color-on-state);
+  --site-primary: var(--ss-color-primary);
+  --site-on-primary: var(--ss-color-on-primary);
+  --site-strand: var(--ss-stem-none);
+
+  /* Type: one family (Archivo); the width axis carries the voice. */
+  --site-font: var(--ss-font);
+  --site-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+  --site-hero-size: clamp(2.6rem, 1.2rem + 6.4vw, 6.75rem);
+  --site-hero-width: 125%;
+  --site-h2-size: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  --site-h2-width: 118%;
+  --site-lede-size: clamp(1.0625rem, 1rem + 0.4vw, 1.3rem);
+  --site-strip-width: var(--ss-type-strip-width);
+
+  /* Layout. */
+  --site-max: 76rem;
+  --site-narrow: 48rem;
+  --site-gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+  --site-block: clamp(4rem, 2.5rem + 6vw, 8rem);
+  --site-strand-width: 3px;
+  --site-signal-height: clamp(10rem, 6rem + 14vw, 19rem);
+}

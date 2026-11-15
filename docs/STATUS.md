@@ -118,3 +118,61 @@ Next: feature 003 GPU acceleration (docs/ROADMAP.md).
 | Judgement call | Lighthouse uses `throttlingMethod: devtools`: the simulator mis-models Blazor Server's first render (prerendering off); documented in TEST-STRATEGY 10.4 |
 | Design review | CTO approval under the owner mandate, owner review pending (docs/design-review/004/REVIEW.md) |
 | Backlog | Radzen CSS/JS served uncompressed (812 KB vs 64 KB brotli); Material Symbols font (1 MB) on every page; level click before stored level loads is overwritten; mixer shortcut commands not serialised |
+
+## Feature 005 artwork and band info (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0 (shared with 007), audio-ingest, stem-separation, backend, frontend, qa, devops, quality-gate merged on `005-007-artwork-export`; integration run by qa on an isolated fake stack (`docs/handoffs/qa-005-007-integration.md`) |
+| `scripts/test-all.ps1` | 35/35 steps passed; Domain 389, Persistence 66, Web 1004, Api 672 tests (Web 99.44 % / 92.47 %, Api 99.51 / 95.88, Domain 98.63 / 96.39, Persistence 98.35 / 92.85, Contracts 100 / 100); worker 1596 tests 100 % line and branch |
+| Playwright, isolated fake stack (retries 0) | legacy 001-003 66/66, `@ux` 74/74; `test:artwork` per fake online mode: `found` 32 passed, `not-found`/`failed`/`off` 28 passed each (skips = other modes, `@online`, `@perf`) |
+| Accessibility | axe matrix incl. `band-info` 104/104, 0 violations; CTO close-out after the library column fix 106/106 |
+| Lighthouse (SC-003) | all budgets met, medians FCP 171-201 ms, LCP 304-401 ms, CLS <= 0.023 |
+| Visual (SC-005) | 80 baselines (60 of 004 regenerated for the covers, 20 new: `band-info`, `export-dialog`, `library`); 80/80 in the Playwright container on a fresh stack |
+| Live services (T062, generic User-Agent, `STEMSTUDIO_CONTACT_URL` unset) | integration run: 3 passed, 1 failed (`test_full_lookup_of_kevin_macleod_by_isrc`, HTTP 400 below; a first MusicBrainz 503 "busy" passed on the retry). After the fix: **4/4 passed** on the first run |
+| Bug fixed in close-out | the ISRC lookup asked MusicBrainz `/ws/2/isrc/<isrc>?inc=artist-credits+releases+release-groups`, which answers 400 ("release-groups is not a valid inc parameter for the isrc resource"), so every song with an ISRC failed with "Band information could not be retrieved". Now `/isrc` with `inc=artist-credits+releases`, then one `/recording/<mbid>?inc=artist-credits+releases+release-groups` per listed recording (at most 5); fixtures corrected to the real response shape (test-first; worker 1599 tests, 100 %) |
+| Integration app fixes | help query "export range", library reflow at 320 px (WCAG 1.4.10) |
+| Licences | tinytag (MIT), Pillow (MIT-CMU), httpx (BSD-3), rapidfuzz (MIT) direct; new "Online data services" section (MusicBrainz CC0, Cover Art Archive images in-app only, Wikidata CC0, Wikipedia CC BY-SA 4.0 with in-app attribution) |
+| Contracts | ui-test-ids 1.5.1 patch note adopts the extra ids the frontend renders (`band-info-close`, `band-info-album`, `band-info-error`, `metadata-correct-cancel`, `metadata-correct-error`, `artwork-progress`) |
+| Not done | quickstart A4, A5, A7, A8, A10 on the real stack (reference machine, owner); formal `/speckit-analyze` pass (consistency covered by the contract tests and the E2E suites) |
+
+## Feature 007 export library (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0 (shared with 005), audio-engine, audio-ingest, stem-separation, backend, frontend, qa, devops, quality-gate merged on `005-007-artwork-export`; same integration run as 005 |
+| `scripts/test-all.ps1` | 35/35 steps passed (numbers as for 005); engine vitest 204 tests 100 %; web-interop 232 tests 99.62 % lines / 97.7 % branches |
+| Playwright, isolated fake stack (retries 0) | `test:export` 58 passed, 8 skipped (Firefox: `panner-law` is Chromium-only); `test:detail` incl. the `@detail` export case 26/26 |
+| Accessibility | axe matrix incl. `export-dialog` and `library` (+ 320 px reflow) 104/104, 0 violations; close-out 106/106 with the new desktop column check |
+| Visual (SC-005) | `export-dialog` and `library` (6 cells each) plus `library` at 360 px; after the close-out column fix the 8 `library--*` baselines were regenerated on a fresh isolated stack (compose project `stemstudio-e2e3`) and the whole set compared: **80/80** |
+| UI polish in close-out | desktop library Status column no longer breaks words ("Statu s", "Rea dy"): headings, status words and dates use `white-space: nowrap`; names and titles still wrap anywhere, so the 320 px reflow stays green |
+| Quality gate | `run_all.py` 0 errors (integration: 1 010 files, 8 033 units, 74 clones, 259 warnings) |
+| Licences | `lameenc` 1.9.0 (LGPL-3.0-or-later) recorded as a direct dependency |
+| Contracts | ui-test-ids 1.5.1 patch note adopts `export-close`, `export-error-hint`, `library-error`, `library-action-error`, `asset-rename-cancel`, `asset-rename-error` and command id `go-library` |
+| Not done | reference-machine validation X2-X10 on the real stack with "Hero of the Day" (T072: SC-001/SC-002 timings, X10 first-time-user check); formal `/speckit-analyze` pass; the 80 baselines still need the owner review |
+
+## Feature 006 synced lyrics and karaoke ball (2026-11-16)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0 (shared with 008), audio-ingest, stem-separation, audio-engine, backend, frontend, qa, devops, quality-gate merged on `006-008-lyrics-sheet-music`; integration run by qa on an isolated fake stack (`docs/handoffs/qa-006-008-integration.md`); CTO close-out merged `main` (005/007, CI fixes, site) into the branch |
+| `scripts/test-all.ps1` | integration run 33/35 (the 2 red steps were the worker test mypy errors in `tests/engraving` and a ruff import order in `tools/quality`, both fixed in close-out). **Close-out run: 39/39 steps passed**; Domain 556, Persistence 77, Web 1245, Api 927 tests (Domain 99.06 % line / 95.96 % branch, Persistence 98.59 / 92.85, Web 99.53 / 92.89, Api 99.49 / 95.26, Contracts 100 / 100); worker 2360 tests 100 % line and branch; engine 100 %; web-interop 99.62 % lines / 97.7 % branches; `run_all.py` 0 errors (1312 files, 10 954 units, 373 warnings) |
+| Playwright, isolated fake stack (retries 0) | `test:lyrics` per fake mode: `word` 35 passed, `line` 4, `instrumental` 4, `plain`/cpu 6, `plain`/gpu 6, `not-found` 4, `failed` 4 (the rest skipped as other modes); `@ux` 74/74, legacy 84/84 |
+| Landing accuracy (SC-002) and frame rate (SC-004) | every word landing within 50 ms over 30 s of looped playback, 50 A-B loops and 20 seeded seeks, also with an offset and a size change (Chromium, Firefox landing cases green); 60.0 fps, per-frame work p95 0.4 ms, max 2.4 ms |
+| SC-003 alignment (T066, Whisper large-v3-turbo, 22-word clip) | **GPU** (RTX 5070 Ti) 20/22 = 90.9 % of the words within 300 ms (target 80 %), align phase 1.4 s for 29 s of audio; **CPU** 20/22, align phase 7.5 s |
+| Accessibility, Lighthouse, visual | axe 110/110 with the karaoke banner and lyrics card, 0 violations; Lighthouse all budgets (Mixer LCP 458 ms, CLS 0.039); 86 visual baselines regenerated in the Playwright container and 86/86 on a second fresh stack |
+| Integration app fixes | mixer crash before the first lyrics answer (`KaraokeBanner`), lyrics card polling stopped before the estimate arrived, long titles overflowing dialogs; domain: an aligned LRCLIB text keeps its source credit (`TrackLyrics.CompleteAlign`, reviewed and accepted by the CTO) |
+| Licences | stable-ts, openai-whisper, torchaudio, tiktoken, more-itertools, regex, PyYAML recorded; Whisper large-v3-turbo weights (MIT, SHA-256); LRCLIB in "Online data services" (no stated data licence, lyrics in-app only) |
+| Not done | the gap countdown (US1-6) and x noteheads have unit coverage only (the fake lyrics have no gap > 5 s, the fake detail split no hi-hat); reference-song spot check of the ball on the real stack (owner); formal `/speckit-analyze` pass (consistency covered by the contract tests and the E2E suites) |
+
+## Feature 008 sheet music (2026-11-16)
+
+| Check | Result |
+|---|---|
+| Wave | same branch and integration run as 006 |
+| Playwright, isolated fake stack (retries 0) | `test:sheet-music` 18/18 (also on `plain`/gpu and `failed`/cpu stacks), drums `@detail` 4/4, `test:export` 58 passed / 8 skipped, `test:artwork` 32 |
+| Transcription accuracy (T080, `pytest -m integration`) | **GPU**: bass line F1 1.000 (0.019 s per audio second), piano texture F1 0.933 (target 0.85), 0.184 s/s warm (2.39 s/s on the first run incl. the 172 MB download); **CPU** (8 threads): bass F1 1.000 (0.011 s/s), piano F1 0.933, 0.367 s/s |
+| Estimates | `StemStudio:ScoreEstimates` defaults were more than 50 % off; set from the measurements (test-first): piano CPU 1.7 → 0.45, piano GPU 0.08 → 0.2, basic-pitch 0.10 → 0.05 s/s (a 4-minute piano song on the CPU now shows about 2 minutes instead of 7) |
+| Close-out fixes | test typing for mypy (`tests/engraving`), the export bit-depth select shows the backend default (24-bit for a mix, 16-bit for stems), help `online-lookups` and `export-formats` corrected to match the code; after merging `main`, the 8 `library--*` baselines were regenerated (main's nowrap Status column) and the whole set compared on a fresh isolated stack (`stemstudio-e2e5`): **visual 86/86, a11y 112/112** |
+| Licences | music21 (+ chardet, joblib, jsonpickle, webcolors), verovio (LGPL-3.0-only, unmodified), cairosvg (LGPL-3.0+, unmodified) with cairocffi, cssselect2, tinycss2, webencodings, defusedxml, pypdf, torchlibrosa, soxr (direct), vendored basic-pitch (Apache-2.0 + NOTICE) and piano_transcription (MIT) subsets, Leipzig font (OFL-1.1), fontTools (build stage only); weights basic-pitch (Apache-2.0) and piano CRNN (CC BY 4.0, Kong et al.) with SHA-256 |
+| Not done | quickstart M2-M10 with "Hero of the Day" on the real stack and the SC-006 first-time-user check (owner); a library score row has no row-level Download (files are in the facts panel); formal `/speckit-analyze` pass |

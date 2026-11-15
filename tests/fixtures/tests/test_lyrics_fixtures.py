@@ -188,10 +188,12 @@ def test_fake_lyrics_satisfy_the_timed_lyrics_invariants() -> None:
     assert words[-1]["endMs"] < 20_000
 
 
-def test_fake_lyrics_have_a_countdown_gap_and_match_the_plain_text() -> None:
+def test_fake_lyrics_follow_the_worker_spread_rule_and_match_the_plain_text() -> None:
     fake = _json("fake-lyrics.json")
     lines = fake["lines"]
+    step = fake["spread"]["durationMs"] // (len(lines) + 1)
+    assert [line["startMs"] for line in lines] == [step * (i + 1) for i in range(len(lines))]
     gaps = [b["startMs"] - a["endMs"] for a, b in itertools.pairwise(lines)]
-    assert max(gaps) > fake["countdownGapMs"]
+    assert max(gaps) <= fake["countdownGapMs"]
     assert fake["text"]["plainText"] == "\n".join(line["text"] for line in lines)
     assert set(fake["modes"]) == {"word", "line", "plain", "instrumental", "not-found", "failed"}
