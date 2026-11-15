@@ -44,11 +44,13 @@ from stemstudio_worker.jobs.runtime import (
 )
 from stemstudio_worker.lyrics.lookup import create_lyrics_lookup
 from stemstudio_worker.metadata import (
+    _shared_client as shared_online_client,
+)
+from stemstudio_worker.metadata import (
     create_image_normalizer,
     create_metadata_lookup,
     create_source_details,
 )
-from stemstudio_worker.metadata.http import create_online_client
 from stemstudio_worker.ports import (
     WHISPER_GPU_NEED,
     Aligner,
@@ -163,9 +165,12 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
 def default_lyrics(
     settings: WorkerSettings, overrides: AppOverrides, devices: ManagedRunner
 ) -> LyricsParts:
-    """The feature 006 parts: injected ones, else the ``lyrics``/``alignment`` factories."""
+    """The feature 006 parts: injected ones, else the ``lyrics``/``alignment`` factories.
+
+    The LRCLIB lookup uses the process-wide 005 online client (one shared rate limiter).
+    """
     lookup = overrides.lyrics_lookup or create_lyrics_lookup(
-        settings, create_online_client(settings.online)
+        settings, shared_online_client(settings.online)
     )
     status = alignment_status(settings)
     return LyricsParts(
