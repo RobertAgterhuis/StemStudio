@@ -24,7 +24,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Redocly = '@redocly/cli@2.78.0'
-$Contracts = 'specs/001-stemstudio-mvp/contracts'
+$Contracts = 'specs/002-detail-separation/contracts'
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.

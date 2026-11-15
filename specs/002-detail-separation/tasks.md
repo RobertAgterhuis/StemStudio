@@ -63,7 +63,7 @@ committed contract and is faked:
 
 - [ ] T006 [P] [quality-gate] Write failing tests in `tools/quality/tests/` asserting that `sig_check.py`, `duplication.py` and `dependency_check.py` skip `worker/src/stemstudio_worker/detail/vendor/**` and that `detail` may import only `ports`, `schemas`, `config` and its own `vendor` (plan.md Complexity Tracking)
 - [ ] T007 [quality-gate] Implement the exclusion and the dependency rule; re-run `tools/quality/run_all.py` and update `docs/quality/SIG-REPORT.md`
-- [ ] T008 [P] [devops] `docker-compose.yml`: worker `STEMSTUDIO_MODEL_DIR=/models` (existing `model-cache` volume), comment on the ~1.9 GB first download and the >= 20 GB Docker memory need; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_MODEL_DIR` and `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS`; CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/002-detail-separation/contracts`; `.github/workflows/e2e-real.yml` also runs the detail integration test with the cached model volume and a 60 min timeout
+- [x] T008 [P] [devops] `docker-compose.yml`: worker `STEMSTUDIO_MODEL_DIR=/models` (existing `model-cache` volume), comment on the ~1.9 GB first download and the >= 20 GB Docker memory need; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_MODEL_DIR` and `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS`; CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/002-detail-separation/contracts`; `.github/workflows/e2e-real.yml` also runs the detail integration test with the cached model volume and a 60 min timeout
 - [ ] T009 [P] [qa] Write failing tests `tests/fixtures/tests/test_generate_detail_fixtures.py` (files exist, 44.1 kHz stereo, manifest values reproduced within 0.1 dB, deterministic hashes)
 - [ ] T010 [qa] Implement `tests/fixtures/generate_detail_fixtures.py`: `detail_silent_parent.wav` (-80 dBFS noise), `detail_bleed_parent.wav` (4 % active frames), `detail_drums_{kick,snare,hihat}.wav` + their sum, `detail_vocals_{lead,backing}.wav` + sum, `detail_instruments_{strings,brass}.wav` + sum, `detail_10s_band.wav` (input of the integration test); `tests/fixtures/detail-manifest.json` with expected outcomes per parent (SC-002, SC-003)
 - [ ] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: detail fakes per port, second integration test, `@detail` E2E scope, traceability US1..US5 -> test files
@@ -227,7 +227,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [ ] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [ ] T086 [P] [qa] Traceability matrix update, HO:polish
-- [ ] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
+- [x] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---

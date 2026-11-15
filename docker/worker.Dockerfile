@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
-# StemStudio worker: FastAPI + yt-dlp/spotDL + Demucs (CPU torch) + librosa.
+# StemStudio worker: FastAPI + yt-dlp/spotDL + Demucs (CPU torch) + librosa, plus the detail
+# models' runtimes (onnxruntime CPU, rotary-embedding-torch). No model weights are baked in: they
+# download at first use into /models (STEMSTUDIO_MODEL_DIR, HF_HOME, TORCH_HOME; a volume).
 # Build context: repository root.  docker build -f docker/worker.Dockerfile .
 #
 # TORCH_VARIANT=cpu (default) installs exactly what worker/uv.lock pins (torch 2.15.0+cpu).
@@ -59,6 +61,7 @@ ENV HOME=/home/stemstudio \
     STEMSTUDIO_DEVICE=cpu \
     HF_HOME=/models/hf \
     TORCH_HOME=/models/torch \
+    STEMSTUDIO_MODEL_DIR=/models \
     NUMBA_CACHE_DIR=/tmp/numba-cache
 USER stemstudio
 WORKDIR /home/stemstudio

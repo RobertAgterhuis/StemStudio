@@ -4,7 +4,13 @@
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (optional)
 #
 # The worker has no host port (internal network only). The first real separation downloads the
-# Demucs weights (~300 MB) into the model-cache volume; later starts reuse them.
+# Demucs weights (~300 MB) into the model-cache volume; the first real detail phase downloads about
+# 1.9 GB more (MDX23C DrumSep, UVR KARA 2, MVSep Mega 53-stem) into the same volume
+# (STEMSTUDIO_MODEL_DIR=/models). Later starts reuse them; weights are never in the image or repo.
+# Memory: real detail separation of a 4-minute song needs about 16 GB in the worker, so Docker
+# Desktop must allow at least 20 GB (check: docker info --format "{{.MemTotal}}").
+# STEMSTUDIO_SEPARATOR=fake also fakes the detail phase (STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS per
+# parent step, default 1; set 0 for the fastest runs).
 # No secrets are used or needed. Kestrel serves directly (no reverse proxy), so the API's own
 # upload limit (200 MiB) applies; a proxy added later must allow >= 200 MiB + multipart overhead.
 
@@ -22,6 +28,8 @@ services:
       STEMSTUDIO_DATA_DIR: /data
       HF_HOME: /models/hf
       TORCH_HOME: /models/torch
+      STEMSTUDIO_MODEL_DIR: /models
+      STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: ${STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS:-1}
     expose:
       - "8000"
     volumes:
