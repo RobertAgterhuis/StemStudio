@@ -10,6 +10,7 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
 
     Api/Metadata, Api/Artwork -/- Web            (feature 005)
     Api/Assets -/- Web;  Domain/Rendering -/- {Api, Persistence, Web, Contracts}   (feature 007)
+    Api/Generation, Api/Generator -/- Web                                          (feature 009)
 
 Worker (imports inside ``stemstudio_worker``)::
 
@@ -29,6 +30,15 @@ Worker third-party imports (feature 008; the standard library is always allowed)
     the DeviceRunner injected); no module imports metadata (feature 005: ingest gets the
     ImageNormalizer injected); no module imports render (feature 007: jobs gets the
     RenderExecutor injected); main.py is the composition root and may import every module.
+
+Generator (imports inside ``stemstudio_generator``, features 009/010)::
+
+    api -> jobs -> ports <- {engines, devices, audio};  everything -> schemas, config
+    engines, devices and audio import only ports, schemas, config; nothing but main.py imports
+    an adapter (main.py composes); ports, schemas, config are leaves
+
+Worker and generator never import each other (separate services; they share only the GPU lease
+file): ``stemstudio_worker -/- stemstudio_generator`` in both directions, ``main.py`` included.
 
 TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` files)::
 
@@ -90,6 +100,8 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "StemStudio.Domain/Rendering": frozenset(
         {"StemStudio.Api", "StemStudio.Persistence", "StemStudio.Web", "StemStudio.Contracts"}
     ),
+    "StemStudio.Api/Generation": frozenset({"StemStudio.Web"}),
+    "StemStudio.Api/Generator": frozenset({"StemStudio.Web"}),
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it)."""
 
@@ -158,6 +170,47 @@ STDLIB = frozenset(sys.stdlib_module_names) | {"__future__"}
 
 PYTHON_PACKAGE = "stemstudio_worker"
 """Name of the worker package."""
+
+GENERATOR_ALLOWED: Mapping[str, frozenset[str] | None] = {
+    "__init__": _LEAVES,
+    "schemas": _LEAVES,
+    "config": _LEAVES,
+    "ports": _LEAVES,
+    "engines": _ADAPTER,
+    "devices": _ADAPTER,
+    "audio": _ADAPTER,
+    "jobs": _ADAPTER,
+    "api": _ADAPTER | {"jobs"},
+    "main": None,
+}
+"""Allowed imported top-level modules per generator module; ``None`` = unrestricted."""
+
+GENERATOR_PACKAGE = "stemstudio_generator"
+"""Name of the generator package (features 009/010)."""
+
+
+@dataclass(frozen=True, slots=True)
+class PythonPackage:
+    """A Python service package checked by its own layer map.
+
+    ``path`` is repository-relative; ``foreign`` is the other service's package, which no module
+    of this package may import.
+    """
+
+    name: str
+    path: str
+    allowed: Mapping[str, frozenset[str] | None]
+    foreign: str
+
+
+WORKER = PythonPackage(
+    PYTHON_PACKAGE, "worker/src/stemstudio_worker", PYTHON_ALLOWED, GENERATOR_PACKAGE
+)
+GENERATOR = PythonPackage(
+    GENERATOR_PACKAGE, "generator/src/stemstudio_generator", GENERATOR_ALLOWED, PYTHON_PACKAGE
+)
+PYTHON_PACKAGES = (WORKER, GENERATOR)
+"""The Python service packages and their layer maps."""
 
 TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "web-interop": frozenset(),
@@ -251,17 +304,43 @@ def check_forbidden(
     ]
 
 
-def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
-    """Return the internal import edges between top-level modules of the worker package.
+def read_python_edges(package_dir: Path, root: Path, package: str = PYTHON_PACKAGE) -> list[Edge]:
+    """Return the internal import edges between top-level modules of the package ``package``.
 
-    Excluded files (vendored third-party code) contribute no edges.
+    ``package_dir`` is the package's folder (worker by default). Excluded files (vendored
+    third-party code) contribute no edges.
     """
     return [
         Edge(module.source, parts[0], module.path, line, ".".join(parts))
         for module in _python_modules(package_dir, root)
-        for parts, line in _imports(module.tree, module.rel)
+        for parts, line in _imports(module.tree, module.rel, package)
         if parts and parts[0] != module.source
     ]
+
+
+def read_foreign_edges(package_dir: Path, root: Path, foreign: str) -> list[Edge]:
+    """Return the absolute imports of the package ``foreign`` (top-level module -> ``foreign``)."""
+    return [
+        Edge(module.source, target, module.path, line)
+        for module in _python_modules(package_dir, root)
+        for target, line in _external_imports(module.tree)
+        if target == foreign
+    ]
+
+
+def check_foreign(edges: Sequence[Edge]) -> list[Finding]:
+    """Return an error per import of the other service's package."""
+    findings = (
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"forbidden dependency {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+    )
+    return list(dict.fromkeys(findings))
 
 
 def read_external_edges(package_dir: Path, root: Path) -> list[Edge]:
@@ -438,26 +517,26 @@ def _top_module(rel: Path) -> str:
     return rel.parts[0].removesuffix(".py")
 
 
-def _imports(tree: ast.Module, rel: Path) -> Iterator[tuple[list[str], int]]:
+def _imports(tree: ast.Module, rel: Path, package: str) -> Iterator[tuple[list[str], int]]:
     """Yield the imported module parts below the package (``["metadata", "http"]``) per name."""
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                yield from _absolute_target(alias.name, node.lineno)
+                yield from _absolute_target(alias.name, node.lineno, package)
         elif isinstance(node, ast.ImportFrom):
-            yield from _from_targets(node, rel)
+            yield from _from_targets(node, rel, package)
 
 
-def _absolute_target(dotted: str, line: int) -> Iterator[tuple[list[str], int]]:
+def _absolute_target(dotted: str, line: int, package: str) -> Iterator[tuple[list[str], int]]:
     parts = dotted.split(".")
-    if parts[0] == PYTHON_PACKAGE:
+    if parts[0] == package:
         yield parts[1:], line
 
 
-def _from_targets(node: ast.ImportFrom, rel: Path) -> Iterator[tuple[list[str], int]]:
+def _from_targets(node: ast.ImportFrom, rel: Path, package: str) -> Iterator[tuple[list[str], int]]:
     """Targets of ``from X import a, b``: ``[*X, a]`` and ``[*X, b]`` below the package."""
     dotted = _resolve_from(node, rel)
-    if dotted[:1] == [PYTHON_PACKAGE]:
+    if dotted[:1] == [package]:
         dotted = dotted[1:]
     elif node.level == 0:
         return
@@ -547,17 +626,29 @@ def _rotate(path: list[str]) -> tuple[str, ...]:
 
 
 def run(root: Path) -> list[Finding]:
-    """Check the .NET project, TypeScript package and worker import graphs below ``root``."""
+    """Check the .NET, TypeScript, worker and generator dependency graphs below ``root``."""
     findings = check_edges(read_dotnet_edges(root / "src", root), DOTNET_ALLOWED)
     folder_edges = read_folder_edges(root / "src", root, list(DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
     module_edges = read_ts_module_edges(root / "src", root)
     findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))
-    package_dir = root / "worker" / "src" / PYTHON_PACKAGE
-    if package_dir.is_dir():
-        findings.extend(check_edges(read_python_edges(package_dir, root), PYTHON_ALLOWED))
-        findings.extend(check_external(read_external_edges(package_dir, root)))
+    for package in PYTHON_PACKAGES:
+        findings.extend(check_package(root, package))
+    worker_dir = root / WORKER.path
+    if worker_dir.is_dir():
+        findings.extend(check_external(read_external_edges(worker_dir, root)))
+    return findings
+
+
+def check_package(root: Path, package: PythonPackage) -> list[Finding]:
+    """Check one Python service package: its layer map and imports of the other service."""
+    package_dir = root / package.path
+    if not package_dir.is_dir():
+        return []
+    edges = read_python_edges(package_dir, root, package.name)
+    findings = check_edges(edges, package.allowed)
+    findings.extend(check_foreign(read_foreign_edges(package_dir, root, package.foreign)))
     return findings
 
 

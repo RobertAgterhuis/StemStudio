@@ -9,7 +9,8 @@ other (they share only the GPU lease file).
 The generator is measured like the worker: it is a default root of ``sig_check`` and
 ``duplication``, its ``src/`` is production code, it has component rows, owners (``generative``
 for the service code and the tests, the architect for the Phase 0 skeleton), Sonar sources, tests
-and a coverage report. It has no vendored code.
+and a coverage report. It has no vendored code. A clone between worker and generator production
+code is a warning (the services may not share code), every other production clone an error.
 
 .NET: ``Api/Generation`` and the generator client ``Api/Generator`` never reference
 ``StemStudio.Web``.
@@ -26,6 +27,7 @@ from repo_tree import write_generator_module as _gen
 from repo_tree import write_module as _worker
 
 import dependency_check
+import duplication
 import sig_check
 import sonar_args
 from common import (
@@ -129,10 +131,12 @@ def test_generator_importing_allowed_modules_is_clean(tmp_path: Path) -> None:
 def test_generator_forbidden_edges(tmp_path: Path, rel: str, text: str, edge: str) -> None:
     _generator_tree(tmp_path)
     _gen(tmp_path, rel, text)
-    (finding,) = dependency_check.run(tmp_path)
+    findings = dependency_check.run(tmp_path)
+    (finding,) = [f for f in findings if not f.message.startswith("cycle: ")]
     assert finding.severity is Severity.ERROR
     assert finding.message == f"forbidden dependency {edge}"
     assert finding.path == f"{GEN}/{rel}"
+    assert all(f.severity is Severity.ERROR for f in findings)
 
 
 def test_generator_module_missing_from_the_map_is_a_warning(tmp_path: Path) -> None:
@@ -239,6 +243,44 @@ def test_sig_check_measures_the_generator_by_default(tmp_path: Path) -> None:
 def test_generator_clone_is_a_production_clone() -> None:
     clone = Clone(f"{GEN}/engines/fake.py", 1, "generator/tests/test_x.py", 1, 6)
     assert clone.in_production
+    assert not clone.cross_service
+    (finding,) = duplication.evaluate([clone])
+    assert finding.severity is Severity.ERROR
+
+
+CROSS_SERVICE = "(cross-service: worker and generator may not share code)"
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        (f"{GEN}/config.py", f"{WORKER_PACKAGE}/config.py"),
+        (f"{WORKER_PACKAGE}/schemas.py", f"{GEN}/schemas.py"),
+    ],
+)
+def test_worker_generator_clone_is_a_cross_service_warning(first: str, second: str) -> None:
+    clone = Clone(first, 104, second, 165, 13)
+    assert clone.in_production
+    assert clone.cross_service
+    (finding,) = duplication.evaluate([clone])
+    assert finding.severity is Severity.WARNING
+    assert finding.message == f"13 duplicated lines, also in {second}:165 {CROSS_SERVICE}"
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        (f"{GEN}/config.py", f"{GEN}/ports.py"),
+        (f"{WORKER_PACKAGE}/config.py", "src/StemStudio.Api/Program.cs"),
+        (f"{GEN}/config.py", "worker/tests/test_config.py"),
+    ],
+)
+def test_other_production_clones_stay_errors(first: str, second: str) -> None:
+    clone = Clone(first, 1, second, 1, 6)
+    assert not clone.cross_service
+    (finding,) = duplication.evaluate([clone])
+    assert finding.severity is Severity.ERROR
+    assert "cross-service" not in finding.message
 
 
 @pytest.mark.parametrize(
@@ -331,6 +373,12 @@ def test_generation_folders_forbid_web(folder: str) -> None:
     assert "StemStudio.Web" in DOTNET_FOLDER_FORBIDDEN[folder]
 
 
+def dotnet_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, int, str]]:
+    """Write ``src/StemStudio.Api/<rel>``; return (severity, message, line, owner) per finding."""
+    _write(root, f"{API}/{rel}", text)
+    return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]
+
+
 @pytest.mark.parametrize(
     ("rel", "text", "line"),
     [
@@ -342,12 +390,9 @@ def test_generation_folders_forbid_web(folder: str) -> None:
 def test_generation_folder_referencing_web_is_forbidden(
     tmp_path: Path, rel: str, text: str, line: int
 ) -> None:
-    _write(tmp_path, f"{API}/{rel}", text)
-    (finding,) = dependency_check.run(tmp_path)
-    folder = "StemStudio.Api/" + rel.split("/", maxsplit=1)[0]
-    assert finding.severity is Severity.ERROR
-    assert finding.message == f"forbidden dependency {folder} -> StemStudio.Web"
-    assert (finding.path, finding.line, finding.owner) == (f"{API}/{rel}", line, "backend")
+    edge = f"StemStudio.Api/{rel.split('/', maxsplit=1)[0]} -> StemStudio.Web"
+    expected = (Severity.ERROR, f"forbidden dependency {edge}", line, "backend")
+    assert dotnet_findings(tmp_path, rel, text) == [expected]
 
 
 ALLOWED_GENERATION = """namespace StemStudio.Api.Generation;

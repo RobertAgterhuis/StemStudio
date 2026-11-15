@@ -5,8 +5,8 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 | Script | Checks | Fails (exit 1) on | Warns on |
 |---|---|---|---|
 | `sig_check.py` | lizard unit metrics on C#, Python, TypeScript and Razor `@code` | NLOC > 30 (production code), CCN > 10, > 4 parameters | NLOC > 15, CCN > 5, test units > 30 NLOC, `@code` block > 30 lines |
-| `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/` or `worker/src/` production code | clones only between test files |
-| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, worker import graph, worker third-party imports (`notation`, `engraving`) | forbidden edge, cycle | module or package not in the dependency map |
+| `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/`, `worker/src/` or `generator/src/` production code | clones only between test files; worker <-> generator production clones (cross-service) |
+| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, worker import graph, worker third-party imports (`notation`, `engraving`), generator import graph, worker <-> generator imports | forbidden edge, cycle | module or package not in the dependency map |
 | `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
 | `vendor_check.py` | licence records of every package below `detail/vendor/` and `transcription/vendor/` | a package without a `LICENSE`/`LICENCE`/`COPYING` file or without a `NOTICE` file | |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
@@ -92,6 +92,26 @@ Feature 005: `StemStudio.Api/Metadata` and `StemStudio.Api/Artwork` -/- `StemStu
 Feature 007: `StemStudio.Api/Assets` -/- `StemStudio.Web`; `StemStudio.Domain/Rendering` -/-
 `StemStudio.{Api, Persistence, Web, Contracts}` (the planner only knows Domain types and the
 library layout strings it produces).
+Feature 009: `StemStudio.Api/Generation` and the generator client `StemStudio.Api/Generator` -/-
+`StemStudio.Web`.
+
+Generator (features 009/010, `GENERATOR_ALLOWED`): `generator/src/stemstudio_generator` follows
+`api -> jobs -> ports <- {engines, devices, audio}`; `engines`, `devices` and `audio` import only
+`ports`, `schemas` and `config`, `jobs` the same, `api` additionally `jobs`; `ports`, `schemas`
+and `config` are leaves; nothing but `main.py` (the composition root) imports an adapter. The
+generator is a default root of `sig_check` and `duplication`, `generator/src/` is production code
+(hard limits apply), it has component rows `generator/{engines,devices,audio,jobs,api,core}`,
+and its service code and tests belong to the `generative` agent (`ports`, `schemas`, `config` and
+`__init__` stay with the architect). It has no vendored code (SoulX-Singer is path-installed in
+the singer image, ADR-019), so nothing below `generator/` is excluded. Sonar analyses
+`generator/src` and `generator/tests` and reads `generator/coverage.xml`.
+
+Service separation (`PythonPackage.foreign`): no worker module imports `stemstudio_generator`
+and no generator module imports `stemstudio_worker` (`main.py` included); the services share only
+the GPU lease file. Because they cannot share code, a jscpd clone between worker and generator
+production code (environment parsing, contract mirrors such as `DeviceInfo` and `Problem`) is a
+**warning** marked `(cross-service: ...)`, not an error; every other production clone, including
+one inside the generator, stays an error.
 
 ## Commands (repository root)
 

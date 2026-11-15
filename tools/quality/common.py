@@ -18,10 +18,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_SUFFIXES = frozenset({".cs", ".py", ".ts", ".tsx", ".razor"})
 """File types measured by the gate (C#, Python, TypeScript, Razor ``@code`` blocks)."""
 
-DEFAULT_ROOTS = ("src", "tests", "worker", "e2e", "tools/quality")
-"""Source roots scanned when no paths are given."""
+DEFAULT_ROOTS = ("src", "tests", "worker", "generator", "e2e", "tools/quality")
+"""Source roots scanned when no paths are given (``generator``: features 009/010)."""
 
-PRODUCTION_ROOTS = ("src/", "worker/src/")
+PRODUCTION_ROOTS = ("src/", "worker/src/", "generator/src/")
 """Prefixes of production code; duplication there fails the gate."""
 
 EXCLUDED_DIRS = frozenset(
@@ -110,11 +110,22 @@ OWNERS = (
     ("worker/tests/api/", "stem-separation"),
     ("worker/tests/alignment/", "stem-separation"),
     ("worker/tests/transcription/", "stem-separation"),
+    ("generator/src/stemstudio_generator/api/", "generative"),
+    ("generator/src/stemstudio_generator/jobs/", "generative"),
+    ("generator/src/stemstudio_generator/devices/", "generative"),
+    ("generator/src/stemstudio_generator/engines/", "generative"),
+    ("generator/src/stemstudio_generator/audio/", "generative"),
+    ("generator/src/stemstudio_generator/main.py", "generative"),
+    ("generator/tests/", "generative"),
     ("e2e/", "qa"),
     ("tests/fixtures/", "qa"),
     ("tools/quality/", "quality-gate"),
 )
-"""Path prefix -> owning agent (plan.md ownership map); first match wins."""
+"""Path prefix -> owning agent (plan.md ownership map); first match wins.
+
+The generator's ``ports``, ``schemas``, ``config`` and ``__init__`` are the architect's Phase 0
+skeleton (009 plan.md ownership map) and fall through to ``DEFAULT_OWNER``.
+"""
 
 DEFAULT_OWNER = "architect"
 """Owner of everything not listed (skeleton files, ports, schemas, config)."""
