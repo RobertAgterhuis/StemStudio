@@ -1,0 +1,109 @@
+"""A fake of the ACE-Step 1.5 Python API (``AceStepHandler``, ``LLMHandler``, ``generate_music``)."""
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from stemstudio_generator.engines.acestep_engine import AceStepApi
+
+from ..signals import stereo, tone, write
+
+
+@dataclass
+class Params:
+    """``GenerationParams`` stand-in (keyword arguments kept as attributes)."""
+
+    values: dict[str, Any]
+
+    def __getattr__(self, name: str) -> Any:
+        return self.values[name]
+
+
+def params(**values: Any) -> Params:
+    return Params(values)
+
+
+def config(**values: Any) -> Params:
+    return Params(values)
+
+
+@dataclass
+class Result:
+    success: bool
+    audios: list[dict[str, Any]]
+    error: str | None = None
+
+
+@dataclass
+class Recorder:
+    """Shared record of every call the engine makes."""
+
+    inits: list[dict[str, Any]] = field(default_factory=list)
+    llm_inits: list[dict[str, Any]] = field(default_factory=list)
+    calls: list[tuple[Params, Params, str]] = field(default_factory=list)
+    llm_unloads: int = 0
+    progress: list[tuple[float, str]] = field(default_factory=list)
+    init_result: tuple[str, bool] = ("ok", True)
+    result: Result | None = None
+    raise_in_generate: BaseException | None = None
+    take_seconds: float = 2.0
+
+
+def fake_api(recorder: Recorder) -> AceStepApi:
+    """An ``AceStepApi`` over fakes that write short FLAC takes into ``save_dir``."""
+
+    class Handler:
+        def initialize_service(self, **kwargs: Any) -> tuple[str, bool]:
+            recorder.inits.append(kwargs)
+            return recorder.init_result
+
+    class Llm:
+        llm_initialized = False
+
+        def initialize(self, **kwargs: Any) -> tuple[str, bool]:
+            recorder.llm_inits.append(kwargs)
+            self.llm_initialized = True
+            return ("ok", True)
+
+        def unload(self) -> None:
+            recorder.llm_unloads += 1
+
+    def generate(
+        dit: Any, llm: Any, p: Params, c: Params, save_dir: str | None = None, progress: Any = None
+    ) -> Result:
+        assert save_dir is not None
+        recorder.calls.append((p, c, save_dir))
+        for value, desc in ((0.3, "Generating music (batch size: 1)..."), (0.9, "Decoding...")):
+            try:  # ACE-Step calls progress from a thread that swallows exceptions
+                progress(value, desc=desc)
+            except Exception:  # noqa: S112, BLE001 - mirrors ACE-Step
+                continue
+        if recorder.raise_in_generate is not None:
+            raise recorder.raise_in_generate
+        return recorder.result or _audios(c, Path(save_dir), recorder.take_seconds)
+
+    return AceStepApi(
+        handler=Handler, llm=Llm, params=params, config=config, generate=generate, torch=_Torch()
+    )
+
+
+def _audios(c: Params, save_dir: Path, seconds: float) -> Result:
+    audios = []
+    for number, seed in enumerate(c.seeds):
+        path = write(save_dir / f"key{number}.flac", stereo(tone(seconds)), 48_000)
+        audios.append({"path": str(path), "key": f"key{number}", "params": {"seed": seed}})
+    return Result(success=True, audios=audios)
+
+
+class _Cuda:
+    def __init__(self) -> None:
+        self.emptied = 0
+
+    def empty_cache(self) -> None:
+        self.emptied += 1
+
+
+class _Torch:
+    def __init__(self) -> None:
+        self.cuda = _Cuda()
+        self.bfloat16 = "bfloat16"
