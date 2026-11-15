@@ -157,7 +157,7 @@ test.describe('import a take', { tag: '@generative' }, () => {
     await generations.delete(done.id);
     expect(await generationApi.find(done.id)).toBeUndefined();
     expect((await generationApi.fetch(take.audioUrl)).status()).toBe(404);
-    expect((await generationApi.libraryItem(present(take.libraryAssetId, 'library item'))).status).toBe(404);
+    expect((await generationApi.libraryItem(present(take.libraryAssetId, 'library item'))).httpStatus).toBe(404);
     expect((await api.getTrack(imported.track.id)).id).toBe(imported.track.id);
   });
 });

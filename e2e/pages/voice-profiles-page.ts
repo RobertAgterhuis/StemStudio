@@ -1,5 +1,6 @@
 import { expect, type Locator } from '@playwright/test';
 import { TestIdPage } from './test-id-page';
+import { setBlazorInputFiles } from '../support/input-file';
 
 /** Recorder timer text `m:ss`. */
 const timerPattern = /(\d+):(\d\d)/u;
@@ -60,7 +61,7 @@ export class VoiceProfilesPage extends TestIdPage {
 
   /** Uploads a sample file. */
   async upload(file: string): Promise<void> {
-    await this.byId('voice-upload').setInputFiles(file);
+    await setBlazorInputFiles(this.byId('voice-upload'), file);
     await expect(this.byId('voice-preview')).toBeVisible();
   }
 

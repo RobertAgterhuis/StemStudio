@@ -74,6 +74,8 @@ test.describe('helpers', { tag: '@self-test' }, () => {
 
   test('the fake microphone uses the file in Chromium and the built-in fake stream in Firefox', () => {
     expect(fakeMicrophoneLaunchOptions('chromium', '/x/own.wav').args).toContain('--use-file-for-fake-audio-capture=/x/own.wav');
+    // The headless shell cannot capture audio, so the full Chromium build is used.
+    expect(fakeMicrophoneLaunchOptions('chromium', '/x/own.wav').channel).toBe('chromium');
     expect(fakeMicrophoneLaunchOptions('firefox', '/x/own.wav').firefoxUserPrefs).toMatchObject({ 'media.navigator.streams.fake': true });
     expect([microphonePermissions('chromium'), microphonePermissions('firefox')]).toEqual([['microphone'], []]);
   });

@@ -224,7 +224,7 @@ test.describe('deleting a voice profile', { tag: '@generative' }, () => {
     await voices.gotoNew();
     await voices.delete(profile.id, true);
     expect((await generationApi.fetch(take.audioUrl)).status()).toBe(404);
-    expect((await generationApi.libraryItem(present(take.libraryAssetId, 'library item'))).status).toBe(404);
+    expect((await generationApi.libraryItem(present(take.libraryAssetId, 'library item'))).httpStatus).toBe(404);
     expect((await generationApi.fetch(takeOf(song).audioUrl)).status()).toBe(200);
   });
 

@@ -282,10 +282,13 @@ export class GenerationApi {
     return okJson<GeneratedTrackDto>(await this.request.get(`/api/tracks/${id}`));
   }
 
-  /** `GET /api/assets/{id}` as loose JSON (provenance origin and generation link). */
-  async libraryItem(assetId: string): Promise<{ readonly status: number; readonly provenance?: { readonly origin: string; readonly generation?: { readonly generationId: string } } }> {
+  /**
+   * `GET /api/assets/{id}` as loose JSON (provenance origin and generation link) plus the HTTP
+   * status as `httpStatus` (the asset's own `status` member is its `ready`/`pending` state).
+   */
+  async libraryItem(assetId: string): Promise<{ readonly httpStatus: number; readonly provenance?: { readonly origin: string; readonly generation?: { readonly generationId: string } } }> {
     const response = await this.request.get(`/api/assets/${assetId}`);
     const body = response.ok() ? ((await response.json()) as object) : {};
-    return { status: response.status(), ...body };
+    return { ...body, httpStatus: response.status() };
   }
 }

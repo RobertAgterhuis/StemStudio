@@ -1,6 +1,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { setNumericValue } from '../support/controls';
 import { applySteps, TestIdPage } from './test-id-page';
+import { setBlazorInputFiles } from '../support/input-file';
 
 /** Choices of the song page; unset fields keep the page's defaults. */
 export interface SongChoices {
@@ -79,7 +80,7 @@ export class SongPage extends TestIdPage {
 
   /** Uploads a lyrics file into the editor. */
   async upload(file: string): Promise<void> {
-    await this.byId('song-lyrics-upload').setInputFiles(file);
+    await setBlazorInputFiles(this.byId('song-lyrics-upload'), file);
   }
 
   /** Clicks "Generate". */

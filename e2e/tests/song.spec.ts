@@ -17,6 +17,9 @@ import { expect, test } from '../support/generative-test';
 const english = readOwnLyrics('sample-en.txt');
 const expected = readOwnLyricsExpected();
 const ethics = readEthicsCases();
+// 010 spec US1 names a "Pop rock" preset, but the 009 catalogue (presets.v1.json) has none; the
+// suite uses an existing preset with vocals until the catalogue or the spec changes (reported).
+const songStyle = 'Classic soul';
 
 test.beforeEach(async ({ generationApi }) => {
   test.setTimeout(fakeJobTimeoutMs + 3 * generationTimeoutMs);
@@ -25,12 +28,12 @@ test.beforeEach(async ({ generationApi }) => {
 });
 
 test.describe('song from own lyrics', { tag: '@generative' }, () => {
-  test('paste, add sections, "Pop rock", generate: a playable take with an AI voice (US1-1, US1-2, FR-001, FR-002, FR-016)', async ({ generationApi, generations, song }, info) => {
+  test('paste, add sections, a preset style, generate: a playable take with an AI voice (US1-1, US1-2, FR-001, FR-002, FR-016)', async ({ generationApi, generations, song }, info) => {
     await song.goto();
     await song.fill({ lyrics: english });
     await expect(song.lyricsCount).toContainText(new RegExp(`^\\s*(${String(english.length)}|${String(english.trimEnd().length)}) / 4096`, 'u'));
     await song.proposeSections();
-    await song.fill({ title: uniqueName('Paper boats', info.project.name, runId()), language: 'English', style: 'Pop rock', leadVoice: 'female', durationSeconds: 30 });
+    await song.fill({ title: uniqueName('Paper boats', info.project.name, runId()), language: 'English', style: songStyle, leadVoice: 'female', durationSeconds: 30 });
     await expect(song.notice).toContainText(/personal use/iu);
     await expect(song.densityWarning).toHaveCount(0);
     const before = (await generationApi.list({ kind: 'song' })).map((g) => g.id);
@@ -53,11 +56,11 @@ test.describe('song from own lyrics', { tag: '@generative' }, () => {
   });
 
   test('the take details show lyrics, style, voice options, seed and model (US1-4)', async ({ generationApi, generations, voiceApi }) => {
-    const done = await songTake(voiceApi, generationApi, { lyricsText: english, language: 'en', styleId: (await generationApi.preset('Pop rock')).id, leadVoice: 'male', durationSeconds: 20 });
+    const done = await songTake(voiceApi, generationApi, { lyricsText: english, language: 'en', styleId: (await generationApi.preset(songStyle)).id, leadVoice: 'male', durationSeconds: 20 });
     const take = takeOf(done);
     await generations.goto();
     const details = await generations.openDetails(done.id);
-    for (const text of ['Paper boats along the gutter', 'Pop rock', String(take.seed), take.model.id]) await expect(details).toContainText(text);
+    for (const text of ['Paper boats along the gutter', songStyle, String(take.seed), take.model.id]) await expect(details).toContainText(text);
     await expect(details).toContainText(/male/iu);
   });
 
@@ -67,7 +70,8 @@ test.describe('song: limits, guards and formats', { tag: '@generative' }, () => 
   test('empty, too long and unsupported lyrics are refused with the limit or reason (US1-3, FR-001)', async ({ song, voiceApi }) => {
     await expectProblem(await voiceApi.createSong({ lyricsText: '', language: 'en', leadVoice: 'any' }), 400);
     const tooLong = await expectProblem(await voiceApi.createSong({ lyricsText: placeholderLyrics(expected.maxCharacters + 1), language: 'en', leadVoice: 'any' }), 400);
-    expect(JSON.stringify(tooLong)).toContain('4096');
+    // The limit may be written with a thousands separator ("4,096").
+    expect(JSON.stringify(tooLong)).toMatch(/4,?096/u);
     const pdf = path.resolve(__dirname, '..', '.state', 'not-lyrics.pdf');
     mkdirSync(path.dirname(pdf), { recursive: true });
     writeFileSync(pdf, '%PDF-1.4\n');
@@ -76,7 +80,7 @@ test.describe('song: limits, guards and formats', { tag: '@generative' }, () => 
     await song.fill({ lyrics: placeholderLyrics(expected.maxCharacters + 1) });
     await expect(song.lyricsCount).toContainText('4097 / 4096');
     await song.generate();
-    await expect(song.error).toContainText('4096');
+    await expect(song.error).toContainText(/4,?096/u);
   });
 
   test('a dense text warns before generating but may continue (edge case, FR-001)', async ({ song, voiceApi }) => {
@@ -166,7 +170,7 @@ test.describe('song to practice and instrumental', { tag: '@generative' }, () =>
 
   test('instrumental: no voice label, no "Use my voice", no AI_VOICE tag (US5-1, FR-004)', async ({ generationApi, generations, song }) => {
     await song.goto();
-    await song.fill({ lyrics: english, style: 'Pop rock', instrumental: true, durationSeconds: 20 });
+    await song.fill({ lyrics: english, style: songStyle, instrumental: true, durationSeconds: 20 });
     const before = (await generationApi.list({ kind: 'song' })).map((g) => g.id);
     await song.generate();
     const queued = await generationApi.waitForNewest({ kind: 'song' }, before);

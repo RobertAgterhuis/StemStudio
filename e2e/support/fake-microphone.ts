@@ -20,7 +20,9 @@ export function fakeMicrophoneLaunchOptions(browserName: BrowserName, file: stri
       firefoxUserPrefs: { 'media.navigator.streams.fake': true, 'media.navigator.permission.disabled': true },
     };
   }
-  return { args: ['--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${file}`] };
+  // The default headless shell has no audio capture (getUserMedia: NotSupportedError, even for the
+  // fake device); the full Chromium build in new headless mode has it.
+  return { channel: 'chromium', args: ['--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${file}`] };
 }
 
 /** Context permissions that let the page use the fake microphone (Chromium only; Firefox needs none). */

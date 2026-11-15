@@ -50,7 +50,7 @@ export async function expectAiLabels(generationApi: GenerationApi, take: TakeDto
   expect(take.aiGenerated).toBe(true);
   expectFileLabels(readVorbisComments(await generationApi.takeBytes(take)), take);
   const item = await generationApi.libraryItem(present(take.libraryAssetId, 'library item of the take'));
-  expect([item.status, item.provenance?.origin]).toEqual([200, 'generation']);
+  expect([item.httpStatus, item.provenance?.origin]).toEqual([200, 'generation']);
 }
 
 function expectFileLabels(tags: VorbisComments, take: TakeDto): void {
