@@ -72,6 +72,8 @@ export class MockAudioBuffer {
     public readonly numberOfChannels: number,
     public readonly length: number,
     public readonly sampleRate: number,
+    /** Byte length of the encoded data it was decoded from (0 when created directly). */
+    public readonly sourceBytes = 0,
   ) {
     this.channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
   }
@@ -207,7 +209,9 @@ export class MockAudioContext {
       return Promise.reject(this.decodeError);
     }
     const seconds = this.decodeDurations.get(data.byteLength) ?? 10;
-    return Promise.resolve(new MockAudioBuffer(2, Math.round(seconds * this.sampleRate), this.sampleRate));
+    return Promise.resolve(
+      new MockAudioBuffer(2, Math.round(seconds * this.sampleRate), this.sampleRate, data.byteLength),
+    );
   }
 
   public resume(): Promise<void> {
