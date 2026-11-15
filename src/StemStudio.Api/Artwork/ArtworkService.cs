@@ -47,24 +47,10 @@ public sealed class ArtworkService(ITrackRepository tracks, IArtworkFileStore fi
         return artwork.Source == ArtworkSource.User ? ArtworkSlot.User : ArtworkSlot.Auto;
     }
 
-    private static CacheControlledResult Serve(FileInfo file, TrackArtwork artwork, string? version)
+    private static HeaderResult Serve(FileInfo file, TrackArtwork artwork, string? version)
     {
         var tag = new EntityTagHeaderValue($"\"{artwork.Version}\"");
         var result = TypedResults.PhysicalFile(file.FullName, ContentType, lastModified: file.LastWriteTimeUtc, entityTag: tag);
-        return new CacheControlledResult(result, version == artwork.Version ? ImmutableCache : NoCache);
-    }
-}
-
-/// <summary>Sets <c>Cache-Control</c>, then executes the inner result.</summary>
-/// <param name="Inner">The result.</param>
-/// <param name="CacheControl">Header value.</param>
-public sealed record CacheControlledResult(IResult Inner, string CacheControl) : IResult
-{
-    /// <inheritdoc />
-    public Task ExecuteAsync(HttpContext httpContext)
-    {
-        ArgumentNullException.ThrowIfNull(httpContext);
-        httpContext.Response.Headers.CacheControl = CacheControl;
-        return Inner.ExecuteAsync(httpContext);
+        return new HeaderResult(result, HeaderNames.CacheControl, version == artwork.Version ? ImmutableCache : NoCache);
     }
 }

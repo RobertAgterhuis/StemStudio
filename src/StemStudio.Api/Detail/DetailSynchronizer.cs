@@ -24,7 +24,7 @@ public sealed partial class DetailSynchronizer(
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
         await TrackPass.RunAsync(
-            await tracks.ListDetailActiveAsync(cancellationToken), track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
+            await tracks.ListDetailActiveAsync(cancellationToken), track => track.Id, track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)

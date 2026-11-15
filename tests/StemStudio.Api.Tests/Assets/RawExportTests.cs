@@ -351,7 +351,7 @@ public sealed class RawExportTests : IDisposable
 
     [Theory]
     [InlineData("Song - drums", "flac", "attachment; filename=\"Song - drums.flac\"; filename*=UTF-8''Song%20-%20drums.flac")]
-    [InlineData("Ünï \"q\"", "mp3", "attachment; filename=\"__ _q_.mp3\"; filename*=UTF-8''%C3%9Cn%C3%AF%20_q_.mp3")]
+    [InlineData("Ünï \"q\"", "mp3", "attachment; filename=\"_n_ _q_.mp3\"; filename*=UTF-8''%C3%9Cn%C3%AF%20_q_.mp3")]
     public void ContentDisposition_HasAnAsciiFallbackAndTheUtf8Name(string name, string extension, string expected)
     {
         ContentDisposition.Attachment(AssetNaming.DownloadFileName(name, extension), inline: false).ShouldBe(expected);

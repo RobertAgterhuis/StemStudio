@@ -16,7 +16,7 @@ public sealed partial class TrackSynchronizer(
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
         await TrackPass.RunAsync(
-            await tracks.ListActiveAsync(cancellationToken), track => SyncAsync(track, cancellationToken), (trackId, exception) => LogTrackSyncFailed(logger, trackId, exception));
+            await tracks.ListActiveAsync(cancellationToken), track => track.Id, track => SyncAsync(track, cancellationToken), (trackId, exception) => LogTrackSyncFailed(logger, trackId, exception));
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)

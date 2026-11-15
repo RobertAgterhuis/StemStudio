@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Artwork;
+using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
@@ -74,6 +75,7 @@ public static class ApiComposition
         app.MapMixEndpoints();
         app.MapArtworkEndpoints();
         app.MapBandInfoEndpoints();
+        app.MapAssetEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -89,8 +91,7 @@ public static class ApiComposition
         services.AddScoped<StemService>();
         services.AddScoped<MixService>();
         AddSyncServices(services);
-        AddDetailServices(services);
-        AddArtworkServices(services);
+        AddFeatureServices(services);
         services.AddSingleton<ProcessingDeviceCache>();
         services.AddScoped<ProcessingDeviceService>();
     }
@@ -114,6 +115,13 @@ public static class ApiComposition
         services.AddScoped<DetailService>();
     }
 
+    private static void AddFeatureServices(IServiceCollection services)
+    {
+        AddDetailServices(services);
+        AddArtworkServices(services);
+        AddAssetServices(services);
+    }
+
     private static void AddArtworkServices(IServiceCollection services)
     {
         services.AddSingleton<IArtworkFileStore, ArtworkFileStore>();
@@ -123,6 +131,19 @@ public static class ApiComposition
         services.AddScoped<MetadataJobApplier>();
         services.AddScoped<MetadataSynchronizer>();
         services.AddScoped<MetadataService>();
+    }
+
+    private static void AddAssetServices(IServiceCollection services)
+    {
+        services.AddSingleton<IAssetFileStore, AssetFileStore>();
+        services.TryAddSingleton<IDiskSpace, DriveDiskSpace>();
+        services.AddSingleton<DiskSpaceGuard>();
+        services.AddScoped<ExportPlanner>();
+        services.AddScoped<AssetSubmitter>();
+        services.AddScoped<ExportService>();
+        services.AddScoped<AssetJobApplier>();
+        services.AddScoped<AssetSynchronizer>();
+        services.AddScoped<AssetService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

@@ -46,6 +46,12 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken);
 
+    /// <summary>Which of the given track IDs still exist (feature 007: <c>Provenance.trackAvailable</c>).</summary>
+    /// <param name="ids">Track IDs.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The existing IDs.</returns>
+    Task<IReadOnlySet<Guid>> ExistingIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>Adds a track and saves.</summary>
     /// <param name="track">New track.</param>
     /// <param name="cancellationToken">Cancellation.</param>

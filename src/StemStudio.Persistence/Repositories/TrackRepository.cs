@@ -51,6 +51,10 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
             .ToListAsync(cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlySet<Guid>> ExistingIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        (await context.Tracks.Where(track => ids.Contains(track.Id)).Select(track => track.Id).ToListAsync(cancellationToken)).ToHashSet();
+
+    /// <inheritdoc />
     public async Task AddAsync(Track track, CancellationToken cancellationToken)
     {
         context.Tracks.Add(track);

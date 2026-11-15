@@ -1,26 +1,26 @@
-using StemStudio.Domain.Tracks;
-
 namespace StemStudio.Api.Sync;
 
-/// <summary>One synchronisation pass over a list of tracks where one broken track never stops the others.</summary>
+/// <summary>One synchronisation pass over a list of items where one broken item never stops the others.</summary>
 internal static class TrackPass
 {
-    /// <summary>Runs <paramref name="sync"/> for each track; an unexpected failure is logged and the pass continues.</summary>
-    /// <param name="tracks">The tracks.</param>
-    /// <param name="sync">Synchronises one track.</param>
-    /// <param name="logFailure">Logs an unexpected failure of one track.</param>
+    /// <summary>Runs <paramref name="sync"/> for each item; an unexpected failure is logged and the pass continues.</summary>
+    /// <typeparam name="T">Item type (track or library item).</typeparam>
+    /// <param name="items">The items.</param>
+    /// <param name="idOf">The item's ID for the log.</param>
+    /// <param name="sync">Synchronises one item.</param>
+    /// <param name="logFailure">Logs an unexpected failure of one item.</param>
     /// <returns>A task.</returns>
-    public static async Task RunAsync(IEnumerable<Track> tracks, Func<Track, Task> sync, Action<Guid, Exception> logFailure)
+    public static async Task RunAsync<T>(IEnumerable<T> items, Func<T, Guid> idOf, Func<T, Task> sync, Action<Guid, Exception> logFailure)
     {
-        foreach (var track in tracks)
+        foreach (var item in items)
         {
             try
             {
-                await sync(track);
+                await sync(item);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                logFailure(track.Id, exception);
+                logFailure(idOf(item), exception);
             }
         }
     }

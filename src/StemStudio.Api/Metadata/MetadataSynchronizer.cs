@@ -22,7 +22,7 @@ public sealed partial class MetadataSynchronizer(
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
         await TrackPass.RunAsync(
-            await tracks.ListLookupActiveAsync(cancellationToken), track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
+            await tracks.ListLookupActiveAsync(cancellationToken), track => track.Id, track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
