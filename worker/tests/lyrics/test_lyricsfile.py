@@ -108,6 +108,15 @@ class TestWordTimes:
         )
         assert spans(text) == [[("a", 300, 900)]]
 
+    def test_a_timed_line_without_words_is_interpolated_from_its_text(self) -> None:
+        text = song_with_line("  - {text: a b, start_ms: 0, end_ms: 1000}")
+        line = parse_lyricsfile(text).lines[0]
+        assert [(w.text, w.start_ms, w.end_ms) for w in line.words] == [
+            ("a", 0, 500),
+            ("b", 500, 1000),
+        ]
+        assert {word.origin for word in line.words} == {"interpolated"}
+
     def test_the_document_is_word_synced_from_the_source(self) -> None:
         document = parse_lyricsfile(SONG)
         assert (document.sync_level, document.origin, document.source) == (
