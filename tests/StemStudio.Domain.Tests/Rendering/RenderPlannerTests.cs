@@ -2,7 +2,6 @@ using System.Text.Json;
 using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Rendering;
 using StemStudio.Domain.Tests.Tracks;
-using StemStudio.Domain.Tracks.Detail;
 
 namespace StemStudio.Domain.Tests.Rendering;
 

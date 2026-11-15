@@ -76,23 +76,19 @@ public sealed partial class Asset
     /// <exception cref="DomainValidationException">The name breaks a rule.</exception>
     public static Asset Create(Guid id, string name, Provenance provenance, DateTime nowUtc)
     {
+        RequireTitle(provenance);
+        var asset = new Asset { Id = id, Kind = AssetKind.Audio, Name = AssetNaming.Validate(name), Status = AssetStatus.Queued };
+        (asset.Provenance, asset.TrackId, asset.CreatedAt, asset.UpdatedAt) = (provenance, provenance.TrackId, nowUtc, nowUtc);
+        return asset;
+    }
+
+    private static void RequireTitle(Provenance provenance)
+    {
         ArgumentNullException.ThrowIfNull(provenance);
         if (string.IsNullOrWhiteSpace(provenance.TrackTitle))
         {
             throw new ArgumentException("The provenance needs a track title.", nameof(provenance));
         }
-
-        return new Asset
-        {
-            Id = id,
-            Kind = AssetKind.Audio,
-            Name = AssetNaming.Validate(name),
-            Status = AssetStatus.Queued,
-            Provenance = provenance,
-            TrackId = provenance.TrackId,
-            CreatedAt = nowUtc,
-            UpdatedAt = nowUtc,
-        };
     }
 
     /// <summary>Renames the item.</summary>
