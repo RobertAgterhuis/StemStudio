@@ -89,12 +89,12 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### backend (tests first)
 
-- [ ] T016 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/ArtworkPrecedenceTests.cs`, `TrackMetadataTests.cs`, `Artists/ArtistTests.cs`: precedence (data-model 3.1) incl. equal rank with a new hash, user picture kept over automatic offers, reset to automatic; metadata state machine 3.4 incl. retry/correction and invalid transitions; artist value limits (genres <= 8, members <= 12, summary fields) (FR-005, FR-009)
-- [ ] T017 [backend] Implement `Domain/Tracks/{TrackArtwork,ArtworkSource,ArtworkPrecedence,TrackMetadata}.cs`, `Track` members, `Domain/Artists/Artist.cs` to pass T016
-- [ ] T018 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/ArtworkPersistenceTests.cs`: JSON round trips, `Artists` table, FK `SET NULL`, orphaned artist deleted with the last track, a database migrated from the 003 schema loads with `Metadata.Status = none`
-- [ ] T019 [backend] Implement configuration, `ArtistRepository` and migration `AddArtworkAndArtists` to pass T018
-- [ ] T020 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerMetadataClientTests.cs` with the worker examples: `Job.artwork` and new `SourceMetadata` fields parsed (absent in 1.2.0 bodies -> null); create/get/result of metadata jobs; artwork downloads (`image/jpeg`, 404 -> null); `POST /v1/artwork` streaming and its 400/413/415/422 mapping
-- [ ] T021 [backend] Implement the worker client additions to pass T020
+- [x] T016 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Tracks/ArtworkPrecedenceTests.cs`, `TrackMetadataTests.cs`, `Artists/ArtistTests.cs`: precedence (data-model 3.1) incl. equal rank with a new hash, user picture kept over automatic offers, reset to automatic; metadata state machine 3.4 incl. retry/correction and invalid transitions; artist value limits (genres <= 8, members <= 12, summary fields) (FR-005, FR-009)
+- [x] T017 [backend] Implement `Domain/Tracks/{TrackArtwork,ArtworkSource,ArtworkPrecedence,TrackMetadata}.cs`, `Track` members, `Domain/Artists/Artist.cs` to pass T016
+- [x] T018 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/ArtworkPersistenceTests.cs`: JSON round trips, `Artists` table, FK `SET NULL`, orphaned artist deleted with the last track, a database migrated from the 003 schema loads with `Metadata.Status = none`
+- [x] T019 [backend] Implement configuration, `ArtistRepository` and migration `AddArtworkAndArtists` to pass T018
+- [x] T020 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerMetadataClientTests.cs` with the worker examples: `Job.artwork` and new `SourceMetadata` fields parsed (absent in 1.2.0 bodies -> null); create/get/result of metadata jobs; artwork downloads (`image/jpeg`, 404 -> null); `POST /v1/artwork` streaming and its 400/413/415/422 mapping
+- [x] T021 [backend] Implement the worker client additions to pass T020
 
 **Checkpoint**: HO:foundational for audio-ingest, stem-separation and backend.
 
