@@ -102,6 +102,18 @@ def _lines(path: Path) -> list[str]:
     return [line for line in path.read_text("utf-8").splitlines() if line.strip()]
 
 
+def _revisions(path: Path) -> tuple[set[str], dict[str, str]]:
+    """Directory-wide revisions (one-token lines) and per-file lines by file name."""
+    whole: set[str] = set()
+    by_file: dict[str, str] = {}
+    for parts in (line.split() for line in _lines(path)):
+        if len(parts) == 1:
+            whole.add(parts[0])
+        else:
+            by_file[parts[0]] = " ".join(parts)
+    return whole, by_file
+
+
 @dataclass
 class WeightsDir:
     """One pinned weights directory.
@@ -150,19 +162,27 @@ class WeightsDir:
         except (OSError, RuntimeError, ValueError) as error:
             _LOG.warning("Download of %s failed: %s", self.pin.repo, error)
             raise ModelDownloadError(DOWNLOAD_FAILED_TEXT) from error
-        write_manifest(self.root, None if self.only_pinned else self.pin.revision)
-        if self.only_pinned:
-            self._record_revisions()
+        self._record()
         if not self.present():
             raise ModelDownloadError(CHECKSUM_TEXT)
 
+    def _record(self) -> None:
+        """Write the manifest after a download (per-file revisions for shared directories)."""
+        if self.only_pinned:
+            write_manifest(self.root, None)
+            self._record_revisions()
+        else:
+            write_manifest(self.root, self.pin.revision)
+
+    def _files(self) -> list[tuple[str, int]]:
+        """What to download: the pinned files only, or the whole revision."""
+        if self.only_pinned:
+            return [(name, 1) for name, _ in self.pin.files]
+        return self.hub.listing(self.pin.repo, self.pin.revision)
+
     def _download(self, on_progress: ProgressCallback) -> None:
-        files = (
-            [(name, 1) for name, _ in self.pin.files]
-            if self.only_pinned
-            else self.hub.listing(self.pin.repo, self.pin.revision)
-        )
-        total = sum(size for _, size in files) or 1
+        files = self._files()
+        total = max(sum(size for _, size in files), 1)
         done = 0
         self.root.mkdir(parents=True, exist_ok=True)
         for name, size in files:
@@ -173,17 +193,15 @@ class WeightsDir:
 
     def _revision_ok(self, names: list[str]) -> bool:
         """One revision for the directory, or the pinned revision on each file's line."""
-        lines = [line.split() for line in _lines(self.root / REVISION_FILE)]
-        whole = {parts[0] for parts in lines if len(parts) == 1}
+        whole, by_file = _revisions(self.root / REVISION_FILE)
         if whole:
             return whole == {self.pin.revision}
-        by_file = {parts[0]: parts[-1] for parts in lines}
-        return bool(names) and all(by_file.get(name) == self.pin.revision for name in names)
+        revisions = {name: line.split()[-1] for name, line in by_file.items()}
+        return bool(names) and all(revisions.get(name) == self.pin.revision for name in names)
 
     def _record_revisions(self) -> None:
         """Write this pin's files into the per-file ``REVISION`` (other pins' lines stay)."""
-        lines = [line.split() for line in _lines(self.root / REVISION_FILE)]
-        by_file = {parts[0]: " ".join(parts) for parts in lines if len(parts) > 1}
+        _, by_file = _revisions(self.root / REVISION_FILE)
         for name, _ in self.pin.files:
             by_file[name] = f"{name} {self.pin.repo} {self.pin.revision}"
         text = "\n".join(by_file[name] for name in sorted(by_file)) + "\n"

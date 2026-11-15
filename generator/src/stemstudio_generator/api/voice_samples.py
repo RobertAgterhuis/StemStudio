@@ -124,12 +124,16 @@ def judge(check_id: str, facts: SampleFacts) -> VoiceSampleCheck:
         "voiced_ratio": ratio,
         "pcm_sha256": facts.pcm_sha256,
     }
+    issue = _issue(seconds, ratio)
+    return VoiceSampleCheck.model_validate({**base, "ok": issue is None, **(issue or {})})
+
+
+def _issue(seconds: float, ratio: float) -> dict[str, str] | None:
+    """The first problem of a sample (duration before voicing), or None."""
     if seconds < SAMPLE_MIN_SECONDS:
-        issue = {"reason": "tooShort", "message": TOO_SHORT_TEXT.format(seconds=seconds)}
-    elif seconds > SAMPLE_MAX_SECONDS:
-        issue = {"reason": "tooLong", "message": TOO_LONG_TEXT.format(seconds=seconds)}
-    elif ratio < SAMPLE_MIN_VOICED_RATIO:
-        issue = {"reason": "unvoiced", "message": UNVOICED_TEXT.format(percent=round(ratio * 100))}
-    else:
-        return VoiceSampleCheck.model_validate({**base, "ok": True})
-    return VoiceSampleCheck.model_validate({**base, "ok": False, **issue})
+        return {"reason": "tooShort", "message": TOO_SHORT_TEXT.format(seconds=seconds)}
+    if seconds > SAMPLE_MAX_SECONDS:
+        return {"reason": "tooLong", "message": TOO_LONG_TEXT.format(seconds=seconds)}
+    if ratio < SAMPLE_MIN_VOICED_RATIO:
+        return {"reason": "unvoiced", "message": UNVOICED_TEXT.format(percent=round(ratio * 100))}
+    return None

@@ -64,8 +64,11 @@ async def conversion_intake(
     saved = {
         name: await save_audio_parts(found, inputs, name, limit) for name, found in parts.items()
     }
-    seconds = await _measure(context, saved["target"])
     await _measure(context, saved["prompt"])
+    _check_target_length(context, await _measure(context, saved["target"]))
+
+
+def _check_target_length(context: ApiContext, seconds: float) -> None:
     maximum = context.settings.svc_max_target_seconds
     if seconds > maximum:
         raise invalid_input(TARGET_TOO_LONG_TEXT.format(limit=maximum, seconds=seconds))

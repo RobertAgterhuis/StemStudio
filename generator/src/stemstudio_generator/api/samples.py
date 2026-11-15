@@ -45,12 +45,15 @@ class CheckedSamples:
 
     def purge(self) -> None:
         """Delete expired and unregistered sample files."""
-        now = self._clock.now()
+        live = self._expire(self._clock.now())
+        if not self._directory.is_dir():
+            return
+        for path in self._directory.glob("*.flac"):
+            if path.stem not in live:
+                path.unlink(missing_ok=True)
+
+    def _expire(self, now: datetime) -> set[str]:
+        """Forget expired checks; return the live ones."""
         with self._lock:
-            for check_id in [key for key, until in self._expiry.items() if until < now]:
-                del self._expiry[check_id]
-            live = set(self._expiry)
-        if self._directory.is_dir():
-            for path in self._directory.glob("*.flac"):
-                if path.stem not in live:
-                    path.unlink(missing_ok=True)
+            self._expiry = {key: until for key, until in self._expiry.items() if until >= now}
+            return set(self._expiry)

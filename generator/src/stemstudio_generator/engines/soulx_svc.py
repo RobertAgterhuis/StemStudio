@@ -206,24 +206,28 @@ class SoulXConverter:
         )  # fmt: skip
 
     def _infer(self, model: Any, request: ConversionInput, f0s: tuple[Any, Any]) -> Signal:
-        api, params = self.api, request.params
-        torch = api.torch
+        params, torch = request.params, self.api.torch
         torch.manual_seed(0)
-        tensors = [
+        inputs = self._tensors(request, f0s)
+        with torch.no_grad():
+            audio, _ = model.infer(
+                **inputs, auto_shift=params.auto_shift, pitch_shift=params.pitch_shift,
+                n_steps=params.steps, cfg=params.cfg, use_fp16=True,
+            )  # fmt: skip
+        return np.asarray(audio.squeeze().float().cpu().numpy(), dtype=np.float32).reshape(-1)
+
+    def _tensors(self, request: ConversionInput, f0s: tuple[Any, Any]) -> dict[str, Any]:
+        """Prompt/target waveforms (24 kHz) and F0 curves as CUDA tensors."""
+        api, torch = self.api, self.api.torch
+        pt_wav, gt_wav = (
             api.load_wav(str(path), SVC_SAMPLE_RATE).to("cuda")
             for path in (request.prompt, request.target)
-        ]
+        )
         pt_f0, gt_f0 = (
             torch.from_numpy(np.asarray(f0, np.float32)).float().unsqueeze(0).to("cuda")
             for f0 in f0s
         )
-        with torch.no_grad():
-            audio, _ = model.infer(
-                pt_wav=tensors[0], gt_wav=tensors[1], pt_f0=pt_f0, gt_f0=gt_f0,
-                auto_shift=params.auto_shift, pitch_shift=params.pitch_shift,
-                n_steps=params.steps, cfg=params.cfg, use_fp16=True,
-            )  # fmt: skip
-        return np.asarray(audio.squeeze().float().cpu().numpy(), dtype=np.float32).reshape(-1)
+        return {"pt_wav": pt_wav, "gt_wav": gt_wav, "pt_f0": pt_f0, "gt_f0": gt_f0}
 
     def _check_target(self, target: Path) -> None:
         seconds = _duration(target, InvalidInputError)
