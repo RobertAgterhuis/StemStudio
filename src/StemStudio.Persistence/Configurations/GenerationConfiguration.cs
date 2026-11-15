@@ -22,6 +22,7 @@ public sealed class GenerationConfiguration : IEntityTypeConfiguration<Generatio
         builder.Property(generation => generation.Stage).HasMaxLength(Generation.MaxStageLength);
         builder.Property(generation => generation.GeneratorJobId).HasMaxLength(32);
         builder.HasIndex(generation => generation.SourceTrackId);
+        builder.HasIndex(generation => generation.VoiceProfileId);
         builder.HasIndex(generation => generation.Status);
         builder.HasIndex(generation => generation.CreatedAt);
         ConfigureJson(builder);
@@ -30,6 +31,8 @@ public sealed class GenerationConfiguration : IEntityTypeConfiguration<Generatio
     private static void ConfigureJson(EntityTypeBuilder<Generation> builder)
     {
         builder.Property(generation => generation.Restyle).HasConversion(JsonColumn<RestyleDetails>.Converter!, JsonColumn<RestyleDetails>.Comparer!);
+        builder.Property(generation => generation.Song).HasConversion(JsonColumn<SongDetails>.Converter!, JsonColumn<SongDetails>.Comparer!);
+        builder.Property(generation => generation.VoiceConversion).HasConversion(JsonColumn<VoiceConversionDetails>.Converter!, JsonColumn<VoiceConversionDetails>.Comparer!);
         builder.Property(generation => generation.Error).HasConversion(JsonColumn<GenerationError>.Converter!, JsonColumn<GenerationError>.Comparer!);
         builder.Property(generation => generation.Device).HasConversion(JobDeviceJson.Converter);
         builder.Ignore(generation => generation.Seeds).Ignore(generation => generation.Takes).Ignore(generation => generation.Warnings);

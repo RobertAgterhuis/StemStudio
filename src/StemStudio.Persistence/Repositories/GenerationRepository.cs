@@ -30,6 +30,12 @@ public interface IGenerationRepository
     /// <returns>The generations.</returns>
     Task<IReadOnlyList<Generation>> ListBySourceTrackAsync(Guid trackId, CancellationToken cancellationToken);
 
+    /// <summary>Voice conversions with a profile (tracked), for profile deletion (010).</summary>
+    /// <param name="profileId">The profile.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The generations.</returns>
+    Task<IReadOnlyList<Generation>> ListByVoiceProfileAsync(Guid profileId, CancellationToken cancellationToken);
+
     /// <summary>Inserts a generation.</summary>
     /// <param name="generation">The generation.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -72,6 +78,10 @@ public sealed class GenerationRepository(StemStudioDbContext context) : IGenerat
     /// <inheritdoc />
     public async Task<IReadOnlyList<Generation>> ListBySourceTrackAsync(Guid trackId, CancellationToken cancellationToken) =>
         await context.Generations.Where(generation => generation.SourceTrackId == trackId).ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Generation>> ListByVoiceProfileAsync(Guid profileId, CancellationToken cancellationToken) =>
+        await context.Generations.Where(generation => generation.VoiceProfileId == profileId).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task AddAsync(Generation generation, CancellationToken cancellationToken)

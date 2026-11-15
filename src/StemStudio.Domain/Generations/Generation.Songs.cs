@@ -12,6 +12,9 @@ public sealed partial class Generation
     /// <summary>Voice-conversion details (kind voice conversion).</summary>
     public VoiceConversionDetails? VoiceConversion { get; private set; }
 
+    /// <summary>The voice profile of a conversion (copied for queries); null after it was deleted.</summary>
+    public Guid? VoiceProfileId { get; private set; }
+
     /// <summary>Creates a queued song.</summary>
     /// <param name="id">New identifier.</param>
     /// <param name="details">Lyrics, style, voice and options.</param>
@@ -35,7 +38,7 @@ public sealed partial class Generation
     {
         ArgumentNullException.ThrowIfNull(details);
         var generation = New(id, GenerationKind.VoiceConversion, [0], nowUtc);
-        generation.VoiceConversion = details;
+        (generation.VoiceConversion, generation.VoiceProfileId) = (details, details.VoiceProfileId);
         return generation;
     }
 
@@ -61,7 +64,7 @@ public sealed partial class Generation
         }
 
         var name = VoiceConversion.VoiceProfileName + ProfileDeletedSuffix;
-        VoiceConversion = VoiceConversion with { VoiceProfileId = null, VoiceProfileName = name };
+        (VoiceConversion, VoiceProfileId) = (VoiceConversion with { VoiceProfileId = null, VoiceProfileName = name }, null);
         _takes = _takes.Select(take => take with { VoiceProfileName = take.VoiceProfileName is null ? null : name }).ToList();
         UpdatedAt = nowUtc;
         return true;

@@ -204,6 +204,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<string>("Restyle")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Song")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("SourceTrackId")
                         .HasColumnType("TEXT");
 
@@ -217,6 +220,12 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VoiceConversion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("VoiceProfileId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("_seeds")
@@ -242,7 +251,42 @@ namespace StemStudio.Persistence.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("VoiceProfileId");
+
                     b.ToTable("Generations", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.LyricsSheet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.ToTable("LyricsSheets", (string)null);
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>
@@ -658,6 +702,83 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("UpdatedAt");
 
                     b.ToTable("Tracks", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Voices.AudioHash", b =>
+                {
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Sha256");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("AudioHashes", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Voices.VoiceProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Consent")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("DurationSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SampleFileSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SamplePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SamplePcmSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SampleSource")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("VoicedRatio")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("VoiceProfiles", (string)null);
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>

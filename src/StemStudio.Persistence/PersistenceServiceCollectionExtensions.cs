@@ -20,6 +20,9 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IAssetRepository, AssetRepository>();
         services.AddScoped<IStyleRepository, StyleRepository>();
         services.AddScoped<IGenerationRepository, GenerationRepository>();
+        services.AddScoped<ILyricsSheetRepository, LyricsSheetRepository>();
+        services.AddScoped<IVoiceProfileRepository, VoiceProfileRepository>();
+        services.AddScoped<IAudioHashRepository, AudioHashRepository>();
         return services;
     }
 }

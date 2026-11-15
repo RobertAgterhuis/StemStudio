@@ -135,5 +135,5 @@ public sealed partial class Generation
     }
 
     private void CopyDetailsTo(Generation copy) =>
-        (copy.Restyle, copy.SourceTrackId, copy.Song, copy.VoiceConversion) = (Restyle, SourceTrackId, Song, VoiceConversion);
+        (copy.Restyle, copy.SourceTrackId, copy.Song, copy.VoiceConversion, copy.VoiceProfileId) = (Restyle, SourceTrackId, Song, VoiceConversion, VoiceProfileId);
 }

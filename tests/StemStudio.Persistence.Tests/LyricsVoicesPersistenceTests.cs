@@ -100,7 +100,11 @@ public sealed class LyricsVoicesPersistenceTests
         }, [42], T0);
         var conversion = Generation.CreateVoiceConversion(Guid.NewGuid(), new VoiceConversionDetails
         {
-            SourceGenerationId = song.Id, SourceTakeIndex = 1, VoiceProfileId = Guid.NewGuid(), VoiceProfileName = "My voice", PitchShift = -2,
+            SourceGenerationId = song.Id,
+            SourceTakeIndex = 1,
+            VoiceProfileId = Guid.NewGuid(),
+            VoiceProfileName = "My voice",
+            PitchShift = -2,
         }, T0);
         conversion.WaitForStems(Guid.NewGuid(), T0);
         await using (var write = db.NewContext())
