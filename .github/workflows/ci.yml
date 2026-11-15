@@ -28,8 +28,10 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  # Feature 007 documents (worker 1.4.0, backend 1.5.0); they contain feature 005's unchanged.
-  CONTRACTS_DIR: specs/007-export-library/contracts
+  # Feature 008 documents (worker 1.6.0, backend 1.7.0); they contain features 006 and 007
+  # unchanged. The render vectors (007 render-vectors 1.0.0) have no 008 copy and keep 007's path.
+  CONTRACTS_DIR: specs/008-sheet-music/contracts
+  RENDER_VECTORS: specs/007-export-library/contracts/generate_render_vectors.py
 
 jobs:
   dotnet:
@@ -236,7 +238,7 @@ jobs:
           npx --yes "$REDOCLY_CLI" lint --config "$CONTRACTS_DIR/redocly.yaml"
           "$CONTRACTS_DIR/worker-api.openapi.yaml" "$CONTRACTS_DIR/backend-api.openapi.yaml"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
-        run: python3 "$CONTRACTS_DIR/generate_render_vectors.py" --check
+        run: python3 "$RENDER_VECTORS" --check
 
   quality:
     name: Quality gate (SIG checks) and its own tests
@@ -291,13 +293,15 @@ jobs:
         run: npx playwright test --list
 
   cpu-image-guard:
-    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011), no contact URL (005 FR-010)
+    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011), no contact URL (005 FR-010), Leipzig font (008)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build the default (CPU) worker image and run the guard (scripts/cpu_image_guard.py)
         run: scripts/check-cpu-image.sh --build stemstudio/worker:ci-cpu
+      - name: The worker image lists the Leipzig font and imports verovio, cairosvg, music21 (008 SC-004)
+        run: scripts/check-worker-fonts.sh stemstudio/worker:ci-cpu
       - name: The worker image does not set STEMSTUDIO_CONTACT_URL (005 FR-010; only the user's own env may)
         run: |
           image_env="$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' stemstudio/worker:ci-cpu)"
