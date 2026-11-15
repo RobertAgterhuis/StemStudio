@@ -136,7 +136,7 @@ public sealed class WorkerDetailClientTests
         var (client, handler) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
         using var destination = new MemoryStream();
 
-        await client.DownloadDetailStemAsync(DetailJobId, "drums", "kick", destination, Ct);
+        await client.DownloadDetailStemAsync(new WorkerDetailStemRef(DetailJobId, "drums", "kick"), destination, Ct);
 
         destination.ToArray().ShouldBe([1, 2, 3]);
         handler.Requests.Single().Uri.AbsolutePath.ShouldBe($"/v1/detail-jobs/{DetailJobId}/stems/drums/kick");
@@ -150,7 +150,7 @@ public sealed class WorkerDetailClientTests
         var (client, _) = Create(_ => StubHttpMessageHandler.Example(status, example));
         using var destination = new MemoryStream();
 
-        var error = await Should.ThrowAsync<WorkerRequestException>(() => client.DownloadDetailStemAsync(DetailJobId, "drums", "kick", destination, Ct));
+        var error = await Should.ThrowAsync<WorkerRequestException>(() => client.DownloadDetailStemAsync(new WorkerDetailStemRef(DetailJobId, "drums", "kick"), destination, Ct));
 
         error.StatusCode.ShouldBe(status);
     }
@@ -165,7 +165,7 @@ public sealed class WorkerDetailClientTests
         var (client, handler) = Create(_ => new HttpResponseMessage(HttpStatusCode.OK));
         using var destination = new MemoryStream();
 
-        await Should.ThrowAsync<ArgumentException>(() => client.DownloadDetailStemAsync(DetailJobId, parent, name, destination, Ct));
+        await Should.ThrowAsync<ArgumentException>(() => client.DownloadDetailStemAsync(new WorkerDetailStemRef(DetailJobId, parent, name), destination, Ct));
 
         handler.Requests.ShouldBeEmpty();
     }
@@ -191,7 +191,7 @@ public sealed class WorkerDetailClientTests
         await Should.ThrowAsync<WorkerUnavailableException>(() => client.GetDetailJobAsync(DetailJobId, Ct));
         await Should.ThrowAsync<WorkerUnavailableException>(() => client.CancelDetailJobAsync(DetailJobId, Ct));
         await Should.ThrowAsync<WorkerUnavailableException>(() => client.GetDetailResultAsync(DetailJobId, Ct));
-        await Should.ThrowAsync<WorkerUnavailableException>(() => client.DownloadDetailStemAsync(DetailJobId, "drums", "kick", destination, Ct));
+        await Should.ThrowAsync<WorkerUnavailableException>(() => client.DownloadDetailStemAsync(new WorkerDetailStemRef(DetailJobId, "drums", "kick"), destination, Ct));
     }
 
     [Fact]

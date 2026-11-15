@@ -77,9 +77,7 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
         _ => throw new ArgumentException("Uploads are sent with CreateUploadJobAsync.", nameof(type)),
     };
 
-    private static string JobPath(string jobId) => JobIdPattern().IsMatch(jobId)
-        ? $"v1/jobs/{jobId}"
-        : throw new ArgumentException($"'{jobId}' is not a worker job ID.", nameof(jobId));
+    private static string JobPath(string jobId) => $"v1/jobs/{ValidJobId(jobId)}";
 
     private async Task<T> SendForAsync<T>(HttpRequestMessage message, CancellationToken cancellationToken)
     {
