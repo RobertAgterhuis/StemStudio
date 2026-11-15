@@ -1,0 +1,2484 @@
+{
+  "version": 1,
+  "description": "Matching test set of feature 005 (research.md R-05, ADR-014 D4, SC-004). Each case: the lookup input, the MusicBrainz exchanges in the order the client makes them (replay them in order with httpx.MockTransport) and the expected outcome.",
+  "provenance": "Self-written by the qa agent in the MusicBrainz WS/2 JSON shape, trimmed to the fields StemStudio reads. Identifiers c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9, e389b7df-862d-3d91-a612-acca150f6e71, 8292bf44-2dd1-4bad-8019-276ec38f28e7, 057247bb-7a93-4654-9a7d-4cb9abaf5c5c, ISRCs USEVI9692306/USUAN1400011 and the lengths 258.1/261.9/125.0 s come from the 2026-11-15 feasibility check (research.md F-01/F-02; MusicBrainz core data is CC0). Every other id is synthetic (UUIDv5 in namespace 5a1d3c1e-0c5e-4d9b-9a57-57e3575701d0) and every artist other than Metallica and Kevin MacLeod is fictional. Not a recording of live traffic; see README.md.",
+  "rules": {
+    "titleEquality": "NFKC, casefold, '&' -> 'and', punctuation removed, whitespace collapsed (research.md R-04)",
+    "artistSimilarity": ">= 0.9 on the normalised names (rapidfuzz ratio / 100); every case is far from the threshold (either equal after normalisation or < 0.6)",
+    "selection": "closest duration; ties prefer an official Album release group (no secondary types) with the earliest date",
+    "queryMatching": "request.query is the expected Lucene query (escaping per case 'lucene-special-characters'); a replaying transport may match by kind and order only"
+  },
+  "cases": [
+    {
+      "id": "metallica-hero-studio",
+      "description": "F-01: live, demo and remaster decoys around the 4:22 studio take; closest duration wins (Load, not Cunning Stunts)",
+      "covers": [
+        "reference-song",
+        "live-decoys",
+        "demo-decoys"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "Metallica",
+        "album": null,
+        "durationSeconds": 261.9,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"Metallica\" AND dur:[256900 TO 266900]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 4,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "ec6d2f36-1930-5569-88ac-7f32b79d046b",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 258133,
+                  "disambiguation": "live, 1997-05-09: Fort Worth",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "21578f72-6bd6-51cb-925c-0b24224aef63",
+                      "title": "Cunning Stunts",
+                      "status": "Official",
+                      "date": "1998-11-23",
+                      "release-group": {
+                        "id": "bc638915-5ca3-5b7d-9220-749a0ece82b8",
+                        "title": "Cunning Stunts",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1998-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 99,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USEVI9692306"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+        "releaseGroupMbid": "e389b7df-862d-3d91-a612-acca150f6e71",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "metallica-hero-503-then-200",
+      "description": "F-01: the first search answers 503 without Retry-After; the retry succeeds",
+      "covers": [
+        "reference-song",
+        "busy-then-ok"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "Metallica",
+        "album": null,
+        "durationSeconds": 261.9,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"Metallica\" AND dur:[256900 TO 266900]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {},
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"Metallica\" AND dur:[256900 TO 266900]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 4,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "ec6d2f36-1930-5569-88ac-7f32b79d046b",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 258133,
+                  "disambiguation": "live, 1997-05-09: Fort Worth",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "21578f72-6bd6-51cb-925c-0b24224aef63",
+                      "title": "Cunning Stunts",
+                      "status": "Official",
+                      "date": "1998-11-23",
+                      "release-group": {
+                        "id": "bc638915-5ca3-5b7d-9220-749a0ece82b8",
+                        "title": "Cunning Stunts",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1998-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 99,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USEVI9692306"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+        "releaseGroupMbid": "e389b7df-862d-3d91-a612-acca150f6e71",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "metallica-hero-official-video",
+      "description": "YouTube title with \"(Official Music Video)\" is cleaned before the search",
+      "covers": [
+        "youtube-title",
+        "official-video-suffix"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "Metallica",
+        "album": null,
+        "durationSeconds": 261.9,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "Metallica - Hero Of The Day (Official Music Video)",
+        "uploader": "Metallica",
+        "track": null,
+        "artist": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"Metallica\" AND dur:[256900 TO 266900]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 4,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "ec6d2f36-1930-5569-88ac-7f32b79d046b",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 258133,
+                  "disambiguation": "live, 1997-05-09: Fort Worth",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "21578f72-6bd6-51cb-925c-0b24224aef63",
+                      "title": "Cunning Stunts",
+                      "status": "Official",
+                      "date": "1998-11-23",
+                      "release-group": {
+                        "id": "bc638915-5ca3-5b7d-9220-749a0ece82b8",
+                        "title": "Cunning Stunts",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1998-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 99,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USEVI9692306"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+        "releaseGroupMbid": "e389b7df-862d-3d91-a612-acca150f6e71",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "metallica-hero-no-duration",
+      "description": "No duration known: no dur filter; studio and live takes tie, the official album release group with the earliest date wins (Load 1996)",
+      "covers": [
+        "missing-duration",
+        "live-decoys"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "Metallica",
+        "album": null,
+        "durationSeconds": null,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"Metallica\""
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 5,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "b6a41f85-07aa-53d1-85a0-647ad5afd88e",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 285000,
+                  "disambiguation": "live, with the San Francisco Symphony",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "8b341ccd-6dc4-5f2c-ab32-7b0e1600c805",
+                      "title": "S&M",
+                      "status": "Official",
+                      "date": "1999-11-23",
+                      "release-group": {
+                        "id": "31e3a8a1-4ff3-5365-a8f6-d4d8c5fe8b82",
+                        "title": "S&M",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1999-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "ec6d2f36-1930-5569-88ac-7f32b79d046b",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 258133,
+                  "disambiguation": "live, 1997-05-09: Fort Worth",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "21578f72-6bd6-51cb-925c-0b24224aef63",
+                      "title": "Cunning Stunts",
+                      "status": "Official",
+                      "date": "1998-11-23",
+                      "release-group": {
+                        "id": "bc638915-5ca3-5b7d-9220-749a0ece82b8",
+                        "title": "Cunning Stunts",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1998-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 99,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USEVI9692306"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+        "releaseGroupMbid": "e389b7df-862d-3d91-a612-acca150f6e71",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "metallica-fan-channel",
+      "description": "Fan upload without \"Artist - Title\": the uploader becomes the artist and does not match Metallica",
+      "covers": [
+        "youtube-title",
+        "fan-channel"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "metalfan1987",
+        "album": null,
+        "durationSeconds": 261.9,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "Hero of the Day",
+        "uploader": "metalfan1987",
+        "track": null,
+        "artist": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"metalfan1987\" AND dur:[256900 TO 266900]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 4,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "ec6d2f36-1930-5569-88ac-7f32b79d046b",
+                  "score": 100,
+                  "title": "Hero of the Day",
+                  "length": 258133,
+                  "disambiguation": "live, 1997-05-09: Fort Worth",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "21578f72-6bd6-51cb-925c-0b24224aef63",
+                      "title": "Cunning Stunts",
+                      "status": "Official",
+                      "date": "1998-11-23",
+                      "release-group": {
+                        "id": "bc638915-5ca3-5b7d-9220-749a0ece82b8",
+                        "title": "Cunning Stunts",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Live"
+                        ],
+                        "first-release-date": "1998-11-23"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 99,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USEVI9692306"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "not-found",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null
+      }
+    },
+    {
+      "id": "metallica-cover-by-other-artist",
+      "description": "A cover version by another (fictional) act: the search engine still returns Metallica, artist similarity < 0.9",
+      "covers": [
+        "cover-version"
+      ],
+      "input": {
+        "title": "Hero of the Day",
+        "artist": "The Lullaby Players",
+        "album": null,
+        "durationSeconds": 262.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Hero of the Day\" AND artist:\"The Lullaby Players\" AND dur:[257000 TO 267000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+                  "score": 64,
+                  "title": "Hero of the Day",
+                  "length": 261906,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "f967cf81-57a0-5cc1-8d6b-a4cea12f35b8",
+                      "title": "Load",
+                      "status": "Official",
+                      "date": "1996-05-04",
+                      "release-group": {
+                        "id": "e389b7df-862d-3d91-a612-acca150f6e71",
+                        "title": "Load",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "1996-05-04"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "not-found",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null
+      }
+    },
+    {
+      "id": "kevin-macleod-isrc",
+      "description": "Spotify import with ISRC USUAN1400011 (F-01): two recordings with equal length; the one with an official album release group wins",
+      "covers": [
+        "reference-song",
+        "isrc"
+      ],
+      "input": {
+        "title": "Monkeys Spinning Monkeys",
+        "artist": "Kevin MacLeod",
+        "album": null,
+        "durationSeconds": 125.0,
+        "isrc": "USUAN1400011"
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "isrc-lookup",
+            "path": "/ws/2/isrc/USUAN1400011",
+            "query": "inc=artist-credits+releases+release-groups"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "isrc": "USUAN1400011",
+              "recordings": [
+                {
+                  "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+                  "score": 100,
+                  "title": "Monkeys Spinning Monkeys",
+                  "length": 125000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Kevin MacLeod",
+                      "artist": {
+                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                        "name": "Kevin MacLeod"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USUAN1400011"
+                  ],
+                  "releases": []
+                },
+                {
+                  "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+                  "score": 100,
+                  "title": "Monkeys Spinning Monkeys",
+                  "length": 125000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Kevin MacLeod",
+                      "artist": {
+                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                        "name": "Kevin MacLeod"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USUAN1400011"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f854868a-1aae-5dc9-8bbe-b48eb9d29524",
+                      "title": "25 Years (Volume 2)",
+                      "status": "Official",
+                      "date": "2024-01-01",
+                      "release-group": {
+                        "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+                        "title": "25 Years (Volume 2)",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2024-01-01"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+        "releaseGroupMbid": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+        "matchedBy": "isrc"
+      }
+    },
+    {
+      "id": "kevin-macleod-search-503",
+      "description": "Upload without ISRC: the search answers 503 with Retry-After 2, then 200",
+      "covers": [
+        "reference-song",
+        "busy-then-ok"
+      ],
+      "input": {
+        "title": "Monkeys Spinning Monkeys",
+        "artist": "Kevin MacLeod",
+        "album": null,
+        "durationSeconds": 125.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Monkeys Spinning Monkeys\" AND artist:\"Kevin MacLeod\" AND dur:[120000 TO 130000]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {
+              "Retry-After": "2"
+            },
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Monkeys Spinning Monkeys\" AND artist:\"Kevin MacLeod\" AND dur:[120000 TO 130000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 2,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+                  "score": 100,
+                  "title": "Monkeys Spinning Monkeys",
+                  "length": 125000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Kevin MacLeod",
+                      "artist": {
+                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                        "name": "Kevin MacLeod"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USUAN1400011"
+                  ],
+                  "releases": []
+                },
+                {
+                  "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+                  "score": 100,
+                  "title": "Monkeys Spinning Monkeys",
+                  "length": 125000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Kevin MacLeod",
+                      "artist": {
+                        "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                        "name": "Kevin MacLeod"
+                      }
+                    }
+                  ],
+                  "isrcs": [
+                    "USUAN1400011"
+                  ],
+                  "releases": [
+                    {
+                      "id": "f854868a-1aae-5dc9-8bbe-b48eb9d29524",
+                      "title": "25 Years (Volume 2)",
+                      "status": "Official",
+                      "date": "2024-01-01",
+                      "release-group": {
+                        "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+                        "title": "25 Years (Volume 2)",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2024-01-01"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+        "releaseGroupMbid": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "isrc-unknown-falls-back-to-search",
+      "description": "ISRC lookup answers 404; the title/artist search finds the recording",
+      "covers": [
+        "isrc",
+        "fallback"
+      ],
+      "input": {
+        "title": "Glass Rivers",
+        "artist": "Nora Fieldings",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": "NLA1B1900001"
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "isrc-lookup",
+            "path": "/ws/2/isrc/NLA1B1900001",
+            "query": "inc=artist-credits+releases+release-groups"
+          },
+          "response": {
+            "status": 404,
+            "headers": {},
+            "body": {
+              "error": "Not Found"
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings",
+                      "artist": {
+                        "id": "20458765-12bc-50db-894a-424da823529e",
+                        "name": "Nora Fieldings"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "27d7a4f6-35ec-57a0-a1e2-48a6ad51ae12",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2019-03-01",
+                      "release-group": {
+                        "id": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+                        "title": "Glass Rivers",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2019-03-01"
+                      }
+                    },
+                    {
+                      "id": "ffaa571c-8bfc-5281-8726-b8db32f1611b",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2018-11-09",
+                      "release-group": {
+                        "id": "0d13c453-1615-5303-b94c-1e312b065a18",
+                        "title": "Glass Rivers",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2018-11-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+        "releaseGroupMbid": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "same-title-other-artist",
+      "description": "Only a same-title song by another artist exists: not found",
+      "covers": [
+        "same-title-other-artist"
+      ],
+      "input": {
+        "title": "Glass Rivers",
+        "artist": "Harbour Lights Ensemble",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Harbour Lights Ensemble\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings",
+                      "artist": {
+                        "id": "20458765-12bc-50db-894a-424da823529e",
+                        "name": "Nora Fieldings"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "27d7a4f6-35ec-57a0-a1e2-48a6ad51ae12",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2019-03-01",
+                      "release-group": {
+                        "id": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+                        "title": "Glass Rivers",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2019-03-01"
+                      }
+                    },
+                    {
+                      "id": "ffaa571c-8bfc-5281-8726-b8db32f1611b",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2018-11-09",
+                      "release-group": {
+                        "id": "0d13c453-1615-5303-b94c-1e312b065a18",
+                        "title": "Glass Rivers",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2018-11-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "not-found",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null
+      }
+    },
+    {
+      "id": "same-title-two-artists",
+      "description": "Two same-title songs by different artists; the one by the requested artist wins although its score is lower",
+      "covers": [
+        "same-title-other-artist",
+        "score-ignored"
+      ],
+      "input": {
+        "title": "Paper Lanterns",
+        "artist": "The Quiet Meters",
+        "album": null,
+        "durationSeconds": 201.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Paper Lanterns\" AND artist:\"The Quiet Meters\" AND dur:[196000 TO 206000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 2,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "3843dbfb-baa4-5306-8201-15e5bf80460e",
+                  "score": 100,
+                  "title": "Paper Lanterns",
+                  "length": 199000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Harbour Lights Ensemble",
+                      "artist": {
+                        "id": "909b96cb-512a-5060-b4c0-953578c023ad",
+                        "name": "Harbour Lights Ensemble"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "1848736f-9cfe-5bb4-98b9-5d194171e456",
+                      "title": "Harbour",
+                      "status": "Official",
+                      "date": "2015-01-01",
+                      "release-group": {
+                        "id": "485c018c-e546-5793-ab7d-8dd14b9da7cf",
+                        "title": "Harbour",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2015-01-01"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+                  "score": 72,
+                  "title": "Paper Lanterns",
+                  "length": 201300,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "f290f42a-5a50-51c3-94ec-1d513119baba",
+                      "title": "Lantern Season",
+                      "status": "Official",
+                      "date": "2004-06-14",
+                      "release-group": {
+                        "id": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+                        "title": "Lantern Season",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2004-06-14"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+        "releaseGroupMbid": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "feat-in-title",
+      "description": "\"feat.\" part is moved out of the title before the search",
+      "covers": [
+        "youtube-title",
+        "feat"
+      ],
+      "input": {
+        "title": "Glass Rivers",
+        "artist": "Nora Fieldings",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "Nora Fieldings - Glass Rivers (feat. The Quiet Meters)",
+        "uploader": "Nora Fieldings Music",
+        "track": null,
+        "artist": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings",
+                      "artist": {
+                        "id": "20458765-12bc-50db-894a-424da823529e",
+                        "name": "Nora Fieldings"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "27d7a4f6-35ec-57a0-a1e2-48a6ad51ae12",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2019-03-01",
+                      "release-group": {
+                        "id": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+                        "title": "Glass Rivers",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2019-03-01"
+                      }
+                    },
+                    {
+                      "id": "ffaa571c-8bfc-5281-8726-b8db32f1611b",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2018-11-09",
+                      "release-group": {
+                        "id": "0d13c453-1615-5303-b94c-1e312b065a18",
+                        "title": "Glass Rivers",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2018-11-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+        "releaseGroupMbid": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "lyric-video-suffix",
+      "description": "\"(Lyric Video)\" suffix removed",
+      "covers": [
+        "youtube-title",
+        "lyrics-suffix"
+      ],
+      "input": {
+        "title": "Glass Rivers",
+        "artist": "Nora Fieldings",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "Nora Fieldings - Glass Rivers (Lyric Video)",
+        "uploader": "Nora Fieldings - Topic",
+        "track": null,
+        "artist": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings",
+                      "artist": {
+                        "id": "20458765-12bc-50db-894a-424da823529e",
+                        "name": "Nora Fieldings"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "27d7a4f6-35ec-57a0-a1e2-48a6ad51ae12",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2019-03-01",
+                      "release-group": {
+                        "id": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+                        "title": "Glass Rivers",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2019-03-01"
+                      }
+                    },
+                    {
+                      "id": "ffaa571c-8bfc-5281-8726-b8db32f1611b",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2018-11-09",
+                      "release-group": {
+                        "id": "0d13c453-1615-5303-b94c-1e312b065a18",
+                        "title": "Glass Rivers",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2018-11-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+        "releaseGroupMbid": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "hd-and-remaster-suffix",
+      "description": "\"[HD]\" and \"Remastered 2021\" removed; the album take wins over the 3.5 s shorter single version by duration",
+      "covers": [
+        "youtube-title",
+        "remaster-suffix",
+        "closest-duration"
+      ],
+      "input": {
+        "title": "Paper Lanterns",
+        "artist": "The Quiet Meters",
+        "album": null,
+        "durationSeconds": 201.0,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "The Quiet Meters - Paper Lanterns (Remastered 2021) [HD]",
+        "uploader": "QuietMetersVEVO",
+        "track": null,
+        "artist": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Paper Lanterns\" AND artist:\"The Quiet Meters\" AND dur:[196000 TO 206000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 2,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "2e06da64-8d69-5d66-9c73-ce721ec275f7",
+                  "score": 100,
+                  "title": "Paper Lanterns",
+                  "length": 197500,
+                  "disambiguation": "single version",
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "612b7f71-a816-57a9-b842-97ea1794ac35",
+                      "title": "Paper Lanterns",
+                      "status": "Official",
+                      "date": "2004-05-01",
+                      "release-group": {
+                        "id": "739f351c-0030-5fd9-9797-9d4aa2dcefe9",
+                        "title": "Paper Lanterns",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2004-05-01"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+                  "score": 100,
+                  "title": "Paper Lanterns",
+                  "length": 201300,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "f290f42a-5a50-51c3-94ec-1d513119baba",
+                      "title": "Lantern Season",
+                      "status": "Official",
+                      "date": "2004-06-14",
+                      "release-group": {
+                        "id": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+                        "title": "Lantern Season",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2004-06-14"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+        "releaseGroupMbid": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "radio-edit-by-duration",
+      "description": "The 3:02 radio edit is requested; closest duration picks the edit",
+      "covers": [
+        "closest-duration"
+      ],
+      "input": {
+        "title": "Paper Lanterns",
+        "artist": "The Quiet Meters",
+        "album": null,
+        "durationSeconds": 181.5,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Paper Lanterns\" AND artist:\"The Quiet Meters\" AND dur:[176500 TO 186500]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "ced95bd1-0aef-5b7b-bdb5-279ada20ea3f",
+                  "score": 100,
+                  "title": "Paper Lanterns",
+                  "length": 182000,
+                  "disambiguation": "radio edit",
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "d1bd86b0-7c02-5ab8-a48f-54fbf5002ef3",
+                      "title": "Paper Lanterns",
+                      "status": "Official",
+                      "date": "2004-05-01",
+                      "release-group": {
+                        "id": "10f1e2b0-94b3-5e76-9d84-787d3c1662e2",
+                        "title": "Paper Lanterns",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2004-05-01"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "ced95bd1-0aef-5b7b-bdb5-279ada20ea3f",
+        "releaseGroupMbid": "10f1e2b0-94b3-5e76-9d84-787d3c1662e2",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "youtube-music-fields",
+      "description": "yt-dlp track/artist fields (YouTube Music) take precedence over the raw title",
+      "covers": [
+        "youtube-title"
+      ],
+      "input": {
+        "title": "Paper Lanterns",
+        "artist": "The Quiet Meters",
+        "album": null,
+        "durationSeconds": 201.0,
+        "isrc": null
+      },
+      "source": {
+        "kind": "youtube",
+        "rawTitle": "Paper Lanterns (Live at the Harbour) - full concert",
+        "uploader": "Harbour TV",
+        "track": "Paper Lanterns",
+        "artist": "The Quiet Meters"
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Paper Lanterns\" AND artist:\"The Quiet Meters\" AND dur:[196000 TO 206000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+                  "score": 100,
+                  "title": "Paper Lanterns",
+                  "length": 201300,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "f290f42a-5a50-51c3-94ec-1d513119baba",
+                      "title": "Lantern Season",
+                      "status": "Official",
+                      "date": "2004-06-14",
+                      "release-group": {
+                        "id": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+                        "title": "Lantern Season",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2004-06-14"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "0b6b3d55-dfcc-5baa-b4b0-4c4868144da3",
+        "releaseGroupMbid": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "non-latin-title",
+      "description": "Cyrillic title and artist (fictional), compared after NFKC + casefold",
+      "covers": [
+        "non-latin"
+      ],
+      "input": {
+        "title": "Белые ночи",
+        "artist": "Северный ветер",
+        "album": null,
+        "durationSeconds": 233.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Белые ночи\" AND artist:\"Северный ветер\" AND dur:[228000 TO 238000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "381b9ebf-8b94-541c-a4ee-9c99b1ce1932",
+                  "score": 100,
+                  "title": "Белые Ночи",
+                  "length": 232600,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Северный Ветер",
+                      "artist": {
+                        "id": "599ab50c-cfb1-59e8-b66c-35ff01c3b6a5",
+                        "name": "Северный Ветер"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "5f6a8e73-ceef-54ad-83cf-e224a8462c43",
+                      "title": "Северное сияние",
+                      "status": "Official",
+                      "date": "2011-02-20",
+                      "release-group": {
+                        "id": "adf725a5-88e3-5d0b-8434-8dba0593da49",
+                        "title": "Северное сияние",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2011-02-20"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "381b9ebf-8b94-541c-a4ee-9c99b1ce1932",
+        "releaseGroupMbid": "adf725a5-88e3-5d0b-8434-8dba0593da49",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "full-width-title",
+      "description": "Full-width Latin letters normalise (NFKC) to the plain title",
+      "covers": [
+        "non-latin",
+        "normalisation"
+      ],
+      "input": {
+        "title": "ＧＬＡＳＳ ＲＩＶＥＲＳ",
+        "artist": "Nora Fieldings",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"ＧＬＡＳＳ ＲＩＶＥＲＳ\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214000,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings",
+                      "artist": {
+                        "id": "20458765-12bc-50db-894a-424da823529e",
+                        "name": "Nora Fieldings"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "27d7a4f6-35ec-57a0-a1e2-48a6ad51ae12",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2019-03-01",
+                      "release-group": {
+                        "id": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+                        "title": "Glass Rivers",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2019-03-01"
+                      }
+                    },
+                    {
+                      "id": "ffaa571c-8bfc-5281-8726-b8db32f1611b",
+                      "title": "Glass Rivers",
+                      "status": "Official",
+                      "date": "2018-11-09",
+                      "release-group": {
+                        "id": "0d13c453-1615-5303-b94c-1e312b065a18",
+                        "title": "Glass Rivers",
+                        "primary-type": "Single",
+                        "secondary-types": [],
+                        "first-release-date": "2018-11-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "e9d3258f-fa64-52e3-8375-af3a9afbc503",
+        "releaseGroupMbid": "5a7b642e-16a8-5919-8f13-262f543b5b37",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "ampersand-and",
+      "description": "\"&\" in the artist credit equals \"and\" after normalisation; punctuation in the title is ignored",
+      "covers": [
+        "normalisation"
+      ],
+      "input": {
+        "title": "Glass Rivers!",
+        "artist": "Nora Fieldings & The Quiet Meters",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers!\" AND artist:\"Nora Fieldings & The Quiet Meters\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "60b47b63-133f-58a8-8bb4-aea48dffe0ae",
+                  "score": 100,
+                  "title": "Glass Rivers",
+                  "length": 214500,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "Nora Fieldings and The Quiet Meters",
+                      "artist": {
+                        "id": "405e4792-44bf-5e4a-816b-b500c2d484ca",
+                        "name": "Nora Fieldings and The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "fd35775a-de18-5dad-855c-ca46561fbd2e",
+                      "title": "Duets",
+                      "status": "Official",
+                      "date": "2021-09-09",
+                      "release-group": {
+                        "id": "d25844a8-cf30-5ec3-b73f-ba7379182453",
+                        "title": "Duets",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2021-09-09"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "60b47b63-133f-58a8-8bb4-aea48dffe0ae",
+        "releaseGroupMbid": "d25844a8-cf30-5ec3-b73f-ba7379182453",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "lucene-special-characters",
+      "description": "Title with Lucene special characters (quotes, colon, slash) is escaped in the query and still matches",
+      "covers": [
+        "escaping"
+      ],
+      "input": {
+        "title": "Signal: \"AC/DC\" Blues",
+        "artist": "The Quiet Meters",
+        "album": null,
+        "durationSeconds": 190.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Signal\\: \\\"AC\\/DC\\\" Blues\" AND artist:\"The Quiet Meters\" AND dur:[185000 TO 195000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 1,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "7bd4ca3d-4df7-581a-b842-25ea6d830a08",
+                  "score": 100,
+                  "title": "Signal: \"AC/DC\" Blues",
+                  "length": 190200,
+                  "disambiguation": null,
+                  "artist-credit": [
+                    {
+                      "name": "The Quiet Meters",
+                      "artist": {
+                        "id": "f101242e-c297-5cad-9fd4-7f08ad3df5ef",
+                        "name": "The Quiet Meters"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "701b3968-8c15-5096-8111-821df5b41afc",
+                      "title": "Lantern Season",
+                      "status": "Official",
+                      "date": "2004-06-14",
+                      "release-group": {
+                        "id": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+                        "title": "Lantern Season",
+                        "primary-type": "Album",
+                        "secondary-types": [],
+                        "first-release-date": "2004-06-14"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "found",
+        "recordingMbid": "7bd4ca3d-4df7-581a-b842-25ea6d830a08",
+        "releaseGroupMbid": "3de3bf1f-bc79-56e8-8a31-64602bc76261",
+        "matchedBy": "search"
+      }
+    },
+    {
+      "id": "no-results",
+      "description": "The search returns no recordings",
+      "covers": [
+        "empty"
+      ],
+      "input": {
+        "title": "A Song Nobody Recorded",
+        "artist": "Nobody In Particular",
+        "album": null,
+        "durationSeconds": 180.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"A Song Nobody Recorded\" AND artist:\"Nobody In Particular\" AND dur:[175000 TO 185000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 0,
+              "offset": 0,
+              "recordings": []
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "not-found",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null
+      }
+    },
+    {
+      "id": "title-differs",
+      "description": "Only recordings with a different title (a demo named after the song) qualify on artist: not found",
+      "covers": [
+        "demo-decoys"
+      ],
+      "input": {
+        "title": "Mouldy",
+        "artist": "Metallica",
+        "album": null,
+        "durationSeconds": 262.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Mouldy\" AND artist:\"Metallica\" AND dur:[257000 TO 267000]"
+          },
+          "response": {
+            "status": 200,
+            "headers": {},
+            "body": {
+              "count": 2,
+              "offset": 0,
+              "recordings": [
+                {
+                  "id": "4410bbef-06e6-55de-a1e0-9b4b8fb7ff10",
+                  "score": 85,
+                  "title": "Mouldy (Hero of the Day take 1)",
+                  "length": 262400,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "bd79cf0f-d20f-5602-af87-ada9aefe6454",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "6a676c76-43b0-5d4a-8574-ad1663de8371",
+                  "score": 79,
+                  "title": "Mouldy (Hero of the Day take 2)",
+                  "length": 259800,
+                  "disambiguation": "demo",
+                  "artist-credit": [
+                    {
+                      "name": "Metallica",
+                      "artist": {
+                        "id": "847be904-7fc1-5a75-8c97-1b9818ca88cf",
+                        "name": "Metallica"
+                      }
+                    }
+                  ],
+                  "isrcs": [],
+                  "releases": [
+                    {
+                      "id": "34b0d163-b0b6-5b26-ab2d-731e2351b34a",
+                      "title": "Load (Remastered Deluxe Box Set)",
+                      "status": "Official",
+                      "date": "2023-11-03",
+                      "release-group": {
+                        "id": "33129edc-1c7c-558f-b7fb-ba952ce0cb0b",
+                        "title": "Load (Remastered Deluxe Box Set)",
+                        "primary-type": "Album",
+                        "secondary-types": [
+                          "Compilation"
+                        ],
+                        "first-release-date": "2023-11-03"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "not-found",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null
+      }
+    },
+    {
+      "id": "busy-until-retries-exhausted",
+      "description": "Four 503 answers (first try + 3 retries): the lookup fails with the fixed text",
+      "covers": [
+        "busy-failed"
+      ],
+      "input": {
+        "title": "Glass Rivers",
+        "artist": "Nora Fieldings",
+        "album": null,
+        "durationSeconds": 214.0,
+        "isrc": null
+      },
+      "exchanges": [
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {},
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {},
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {},
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        },
+        {
+          "request": {
+            "kind": "recording-search",
+            "path": "/ws/2/recording",
+            "query": "recording:\"Glass Rivers\" AND artist:\"Nora Fieldings\" AND dur:[209000 TO 219000]"
+          },
+          "response": {
+            "status": 503,
+            "headers": {},
+            "body": {
+              "error": "Your requests are exceeding the allowable rate limit."
+            }
+          }
+        }
+      ],
+      "expected": {
+        "outcome": "failed",
+        "recordingMbid": null,
+        "releaseGroupMbid": null,
+        "matchedBy": null,
+        "error": "Band information could not be retrieved; try again later."
+      }
+    }
+  ]
+}
