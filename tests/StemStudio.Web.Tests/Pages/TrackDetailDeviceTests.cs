@@ -60,6 +60,16 @@ public sealed class TrackDetailDeviceTests : TrackDetailTestContext
     }
 
     [Fact]
+    public void Badges_AreLabelledPerJob()
+    {
+        var detail = TestData.CompletedDetail() with { Device = GpuDevice };
+        var page = RenderPage(TestData.Track() with { Device = GpuDevice, Detail = detail });
+
+        var labels = page.FindAll(".ss-device-label").Select(l => l.TextContent).ToList();
+        labels.ShouldBe(["Processed on:", "Detail stems processed on:"]);
+    }
+
+    [Fact]
     public void DetailDevice_WithoutFallback_HasNoReason()
     {
         var detail = TestData.Phase(DetailPhaseStatusDto.Running, 30, "Splitting drums") with { Device = GpuDevice };

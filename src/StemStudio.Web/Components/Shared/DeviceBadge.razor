@@ -22,6 +22,10 @@
     [Parameter, EditorRequired]
     public string ReasonTestId { get; set; } = string.Empty;
 
+    /// <summary>Visible label in front of the device text.</summary>
+    [Parameter]
+    public string Label { get; set; } = "Device";
+
     // A null attribute value makes Blazor leave the attribute out.
     private string? FallbackAttribute => Display.Fallback is { } fallback ? (fallback ? "true" : "false") : null;
 }

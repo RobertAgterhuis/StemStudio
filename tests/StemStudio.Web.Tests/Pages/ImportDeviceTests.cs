@@ -31,6 +31,7 @@ public sealed class ImportDeviceTests : PageTestContext
         device.GetAttribute("data-device").ShouldBe("gpu");
         device.TextContent.ShouldBe("GPU (NVIDIA GeForce RTX 5070 Ti)");
         page.FindAll(Reason).ShouldBeEmpty();
+        page.Find(".ss-device-label").TextContent.ShouldBe("Processing device:");
     }
 
     [Fact]

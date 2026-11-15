@@ -95,8 +95,47 @@ public sealed class DeviceBadgeTests : PageTestContext
         badge.Find("[data-testid=x-device]").HasAttribute("data-fallback").ShouldBeFalse();
     }
 
-    private IRenderedComponent<DeviceBadge> RenderBadge(DeviceDisplay display) => Render<DeviceBadge>(p => p
-        .Add(c => c.Display, display)
-        .Add(c => c.TestId, "x-device")
-        .Add(c => c.ReasonTestId, "x-reason"));
+    [Fact]
+    public void Badge_HasAVisibleLabel_SoTheDeviceIsNotConveyedByColour()
+    {
+        var badge = RenderBadge(new DeviceDisplay("gpu", $"GPU ({Gpu})", false, null));
+
+        badge.Find(".ss-device-label").TextContent.ShouldBe("Device:");
+        badge.Find(".ss-device").TextContent.Trim().ShouldStartWith($"Device: GPU ({Gpu})");
+    }
+
+    [Fact]
+    public void Badge_CustomLabel_IsShown()
+    {
+        var badge = RenderBadge(new DeviceDisplay("cpu", "CPU", false, null), "Processed on");
+
+        badge.Find(".ss-device-label").TextContent.ShouldBe("Processed on:");
+    }
+
+    [Fact]
+    public void JobFallback_IsSpelledOut_AndTheReasonStaysVerbatim()
+    {
+        var badge = RenderBadge(new DeviceDisplay("cpu", "CPU", true, Reason));
+
+        badge.Find(".ss-device-reason-label").TextContent.ShouldBe("CPU fallback:");
+        badge.Find("[data-testid=x-reason]").TextContent.ShouldBe(Reason);
+        badge.Find(".ss-device-reason").GetAttribute("role").ShouldBe("note");
+    }
+
+    [Fact]
+    public void WorkerReason_SaysTheGpuIsNotUsed()
+    {
+        var badge = RenderBadge(new DeviceDisplay("cpu", "CPU", null, Reason));
+
+        badge.Find(".ss-device-reason-label").TextContent.ShouldBe("GPU not used:");
+    }
+
+    private IRenderedComponent<DeviceBadge> RenderBadge(DeviceDisplay display, string? label = null) => Render<DeviceBadge>(p =>
+    {
+        p.Add(c => c.Display, display).Add(c => c.TestId, "x-device").Add(c => c.ReasonTestId, "x-reason");
+        if (label is not null)
+        {
+            p.Add(c => c.Label, label);
+        }
+    });
 }
