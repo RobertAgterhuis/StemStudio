@@ -1,0 +1,64 @@
+@* Shortcut overlay (FR-017, design-spec.md 4.8): the keys of the current screen, grouped. Escape or Close. *@
+@implements IAsyncDisposable
+@inject ShellOverlays Overlays
+@inject NavigationManager Navigation
+@inject StemStudio.Web.Interop.IWebInterop Web
+
+<div class="ss-palette-backdrop" @onclick="Overlays.Close">
+    <div class="ss-palette ss-shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" data-testid="shortcut-overlay"
+         tabindex="-1" @ref="_dialog" @onclick:stopPropagation="true" @onkeydown="Key">
+        <header class="ss-help-head">
+            <h2 id="shortcuts-title" class="ss-title">Keyboard shortcuts</h2>
+            <button type="button" class="ss-bar-button" aria-label="Close shortcuts" data-testid="shortcut-overlay-close" @onclick="Overlays.Close">
+                <span class="rzi" aria-hidden="true">close</span>
+            </button>
+        </header>
+        <p class="ss-muted">Mod is Ctrl, or Cmd on a Mac. Shortcuts do not work while you type in a field.</p>
+        @foreach (var (title, rows) in Groups)
+        {
+            <table class="ss-shortcut-table">
+                <caption>@title</caption>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr><th scope="row"><kbd>@row.Keys</kbd></th><td>@row.Action</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private ElementReference _dialog;
+    private IAsyncDisposable? _focus;
+
+    private IEnumerable<(string Title, IReadOnlyList<ShortcutRow> Rows)> Groups
+    {
+        get
+        {
+            yield return ("Everywhere", ShortcutCatalog.Global);
+            if (AppRoutes.Matches("/tracks/{id}/mixer", AppRoutes.CurrentPath(Navigation)))
+            {
+                yield return ("Mixer", ShortcutCatalog.Mixer);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync() => await (_focus?.DisposeAsync() ?? ValueTask.CompletedTask);
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync() => _focus = await Web.CaptureFocusAsync();
+
+    /// <inheritdoc />
+    protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? _dialog.FocusAsync().AsTask() : Task.CompletedTask;
+
+    private void Key(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            Overlays.Close();
+        }
+    }
+}

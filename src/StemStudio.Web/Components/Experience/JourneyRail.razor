@@ -1,0 +1,38 @@
+@* Beginner journey rail (FR-015, design-spec.md 4.1): the four steps with the current one marked. Pages place it in
+   the context bar through the "journey" section. *@
+
+<LevelGate Feature="journey.rail">
+    <nav class="ss-journey" aria-label="Your progress" data-testid="journey-rail" data-help-id="journey">
+        <ol>
+            @for (var i = 0; i < Steps.Length; i++)
+            {
+                var state = StateOf(i);
+                <li class="@($"ss-journey-step ss-journey-{state}")" data-testid="@($"journey-step-{Steps[i].Id}")" data-state="@state"
+                    aria-current="@(state == "current" ? "step" : null)">
+                    <span class="ss-journey-marker" aria-hidden="true">@(state == "done" ? "✓" : (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))</span>
+                    <span class="ss-journey-label">@Steps[i].Label</span>
+                    @if (state == "done")
+                    {
+                        <span class="ss-sr-only">(done)</span>
+                    }
+                </li>
+            }
+        </ol>
+    </nav>
+</LevelGate>
+
+@code {
+    private static readonly (string Id, string Label)[] Steps = [("import", "Import"), ("separate", "Separate"), ("mix", "Mix"), ("save", "Save")];
+
+    /// <summary>The stage of the screen showing the rail.</summary>
+    [Parameter]
+    public JourneyStage Stage { get; set; }
+
+    private string StateOf(int step) => step.CompareTo((int)Stage) switch
+    {
+        < 0 => "done",
+        0 when Stage != JourneyStage.Saved => "current",
+        0 => "done",
+        _ => "todo",
+    };
+}

@@ -1,0 +1,45 @@
+@* Expert job details (FR-017, design-spec.md 4.4): model, status, stage, progress, device and fallback reason of the
+   standard and the detail job, behind a disclosure button. *@
+
+<LevelGate Feature="track.job-details">
+    <section class="ss-panel ss-job-details" aria-label="Job details">
+        <button type="button" class="ss-text-button" aria-expanded="@(Open ? "true" : "false")" aria-controls="job-details-content"
+                data-testid="job-details" data-help-id="track-job-details" @onclick="() => Open = !Open">Job details</button>
+        @if (Open)
+        {
+            <div id="job-details-content" class="ss-job-grid">
+                <dl class="ss-facts" data-testid="job-details-standard">
+                    <dt>Standard job</dt><dd>@Track.Model</dd>
+                    <dt>Status</dt><dd>@TrackStatusText.Label(Track.Status)</dd>
+                    <dt>Stage</dt><dd>@Track.Stage</dd>
+                    <dt>Progress</dt><dd class="ss-num">@Track.Progress %</dd>
+                    <dt>Device</dt><dd>@DeviceText(Track.Device)</dd>
+                    <dt>CPU fallback</dt><dd>@(Track.Device?.FallbackReason ?? "none")</dd>
+                    <dt>Created</dt><dd><time datetime="@Iso(Track.CreatedAt)">@Iso(Track.CreatedAt)</time></dd>
+                    <dt>Updated</dt><dd><time datetime="@Iso(Track.UpdatedAt)">@Iso(Track.UpdatedAt)</time></dd>
+                </dl>
+                <dl class="ss-facts" data-testid="job-details-detail">
+                    <dt>Detail job</dt><dd>@DetailPhaseText.Status(Track.Detail.Status)</dd>
+                    <dt>Stage</dt><dd>@(Track.Detail.Stage ?? "none")</dd>
+                    <dt>Current stem</dt><dd>@(Track.Detail.CurrentParent ?? "none")</dd>
+                    <dt>Progress</dt><dd class="ss-num">@Track.Detail.Progress %</dd>
+                    <dt>Device</dt><dd>@DeviceText(Track.Detail.Device)</dd>
+                    <dt>CPU fallback</dt><dd>@(Track.Detail.Device?.FallbackReason ?? "none")</dd>
+                </dl>
+            </div>
+        }
+    </section>
+</LevelGate>
+
+@code {
+    /// <summary>The track whose jobs are shown.</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
+
+    private bool Open { get; set; }
+
+    private static string DeviceText(JobDeviceDto? device) => device is null ? "not recorded" : DeviceDisplay.FromJob(device).Text;
+
+    private static string Iso(DateTimeOffset time) =>
+        time.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture);
+}

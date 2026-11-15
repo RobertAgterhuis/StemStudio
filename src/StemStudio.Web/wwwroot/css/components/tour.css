@@ -1,0 +1,205 @@
+/*
+ * Guided tour popover and overlay (design-spec.md 4.9), themed with the tokens. The structural rules follow
+ * driver.js 1.10.2's own stylesheet (MIT), which StemStudio does not load: driver.js positions the popover
+ * inline and draws the overlay as an SVG cut-out.
+ */
+
+.driver-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ss-z-tour);
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: var(--ss-color-none);
+  color: inherit;
+  pointer-events: none;
+}
+
+.driver-layer::backdrop {
+  display: none;
+}
+
+.driver-overlay path {
+  fill: var(--ss-color-scrim);
+}
+
+.driver-active .driver-overlay,
+.driver-active * {
+  pointer-events: none;
+}
+
+.driver-active .driver-active-element,
+.driver-active .driver-active-element *,
+.driver-popover,
+.driver-popover * {
+  pointer-events: auto;
+}
+
+.driver-active.driver-no-scroll {
+  overflow: hidden;
+}
+
+.driver-popover {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: var(--ss-z-tour);
+  box-sizing: border-box;
+  min-width: 16rem;
+  max-width: 20rem;
+  margin: 0;
+  padding: var(--ss-space-4) var(--ss-space-5);
+  border-radius: var(--ss-radius-float);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font-family: var(--ss-font);
+  box-shadow: var(--ss-elev-float);
+}
+
+.driver-popover-title {
+  display: block;
+  margin: 0 var(--ss-space-6) 0 0;
+  font-size: var(--ss-type-heading-size);
+  font-weight: var(--ss-type-heading-weight);
+  line-height: var(--ss-type-heading-line);
+}
+
+.driver-popover-description {
+  margin: var(--ss-space-2) 0 0;
+  color: var(--ss-color-ink);
+  font-size: var(--ss-type-body-size);
+  line-height: var(--ss-type-body-line);
+}
+
+.driver-popover-close-btn {
+  position: absolute;
+  top: var(--ss-space-2);
+  right: var(--ss-space-2);
+  width: var(--ss-target-min);
+  height: var(--ss-target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-none);
+  color: var(--ss-color-muted);
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.driver-popover-close-btn:hover {
+  color: var(--ss-color-ink);
+}
+
+.driver-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+  margin-top: var(--ss-space-4);
+}
+
+.driver-popover-progress-text {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-small-size);
+  font-variant-numeric: var(--ss-num);
+}
+
+.driver-popover-navigation-btns {
+  display: flex;
+  flex-grow: 1;
+  justify-content: flex-end;
+  gap: var(--ss-space-2);
+}
+
+.driver-popover-footer-btn {
+  min-height: var(--ss-target-min);
+  padding: var(--ss-space-1) var(--ss-space-3);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font: inherit;
+  font-size: var(--ss-type-label-size);
+  font-weight: var(--ss-type-label-weight);
+  cursor: pointer;
+}
+
+.driver-popover-next-btn {
+  border-color: var(--ss-color-primary);
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+}
+
+.driver-popover-footer .driver-popover-btn-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.driver-popover-arrow {
+  position: absolute;
+  border: 6px solid var(--ss-color-raised);
+}
+
+.driver-popover-arrow-side-over,
+.driver-popover-arrow-side-center,
+.driver-popover-arrow-none {
+  display: none;
+}
+
+.driver-popover-arrow-side-left {
+  left: 100%;
+  border-top-color: var(--ss-color-none);
+  border-right-color: var(--ss-color-none);
+  border-bottom-color: var(--ss-color-none);
+}
+
+.driver-popover-arrow-side-right {
+  right: 100%;
+  border-top-color: var(--ss-color-none);
+  border-bottom-color: var(--ss-color-none);
+  border-left-color: var(--ss-color-none);
+}
+
+.driver-popover-arrow-side-top {
+  top: 100%;
+  border-right-color: var(--ss-color-none);
+  border-bottom-color: var(--ss-color-none);
+  border-left-color: var(--ss-color-none);
+}
+
+.driver-popover-arrow-side-bottom {
+  bottom: 100%;
+  border-top-color: var(--ss-color-none);
+  border-right-color: var(--ss-color-none);
+  border-left-color: var(--ss-color-none);
+}
+
+.driver-fade .driver-overlay,
+.driver-fade .driver-popover {
+  animation: ss-tour-fade var(--ss-dur-panel) var(--ss-ease-enter);
+}
+
+@keyframes ss-tour-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.driver-active-element-parent-no-scroll {
+  overflow: hidden !important;
+}
+
+.driver-no-interaction,
+.driver-no-interaction * {
+  pointer-events: none !important;
+}

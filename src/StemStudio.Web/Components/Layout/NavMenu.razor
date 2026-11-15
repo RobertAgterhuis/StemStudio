@@ -1,5 +1,24 @@
-<nav class="ss-nav" aria-label="Main navigation">
-    <NavLink class="ss-nav-link" href="" Match="NavLinkMatch.All" data-testid="nav-import">Import</NavLink>
-    <NavLink class="ss-nav-link" href="tracks" data-testid="nav-tracks">Tracks</NavLink>
-    <NavLink class="ss-nav-link" href="mixes" data-testid="nav-mixes">Mixes</NavLink>
+@* Navigation rail (design-spec.md 4.1): brand mark, Import, Tracks, Mixes; Help at the bottom. Under 768 px it
+   becomes a bottom bar. The nav-* ids stay on the links (ui-test-ids 1.3.0 adopted ids). *@
+
+<nav class="ss-rail" aria-label="Main navigation">
+    <span class="ss-rail-brand"><BrandMark /><span class="ss-sr-only">StemStudio</span></span>
+    <NavLink class="ss-rail-link" href="" Match="NavLinkMatch.All" data-testid="nav-import">
+        <span class="rzi" aria-hidden="true">download</span><span class="ss-rail-label">Import</span>
+    </NavLink>
+    <NavLink class="ss-rail-link" href="tracks" data-testid="nav-tracks">
+        <span class="rzi" aria-hidden="true">library_music</span><span class="ss-rail-label">Tracks</span>
+    </NavLink>
+    <NavLink class="ss-rail-link" href="mixes" data-testid="nav-mixes">
+        <span class="rzi" aria-hidden="true">tune</span><span class="ss-rail-label">Mixes</span>
+    </NavLink>
+    <button type="button" class="ss-rail-link ss-rail-help" data-testid="nav-help" @onclick="OnHelp">
+        <span class="rzi" aria-hidden="true">help</span><span class="ss-rail-label">Help</span>
+    </button>
 </nav>
+
+@code {
+    /// <summary>Rail Help item pressed (opens the help panel).</summary>
+    [Parameter]
+    public EventCallback OnHelp { get; set; }
+}

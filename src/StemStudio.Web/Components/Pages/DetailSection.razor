@@ -1,9 +1,9 @@
 @* Detail phase of a completed track: status, progress, per-parent outcomes, detail stems and limitations (FR-007, FR-017). *@
 
-<RadzenCard class="ss-card ss-detail" aria-labelledby="detail-heading" data-testid="detail-section">
-    <h2 class="ss-subtitle" id="detail-heading">Detail stems</h2>
+<section class="ss-panel ss-detail" aria-labelledby="detail-heading" data-testid="detail-section" data-help-id="detail-stems">
+    <h2 class="ss-heading" id="detail-heading">Detail stems</h2>
     <div class="ss-row">
-        <RadzenBadge BadgeStyle="DetailPhaseText.Badge(Detail.Status)" Text="@DetailPhaseText.Status(Detail.Status)"
+        <RadzenBadge BadgeStyle="DetailPhaseText.Badge(Detail.Status)" Text="@DetailPhaseText.Status(Detail.Status)" IsPill="true"
                      data-testid="detail-status" />
         @if (Active && Detail.Stage is not null)
         {
@@ -13,6 +13,7 @@
 
     @if (Detail.Status != DetailPhaseStatusDto.None)
     {
+        <SplitProgress State="SplitStates.Of(Detail.Status)" Progress="Detail.Progress" TestId="detail-split-progress" />
         <RadzenProgressBar Value="Detail.Progress" Max="100" ShowValue="true" aria-label="Detail separation progress"
                            data-testid="detail-progress" />
     }
@@ -25,10 +26,10 @@
 
     @if (Detail.Status == DetailPhaseStatusDto.Failed)
     {
-        <div class="ss-error" role="alert" data-testid="detail-error">@Detail.Error</div>
+        <ErrorState TestId="detail-error" Message="@(Detail.Error ?? string.Empty)" />
     }
 
-    <div class="ss-row">
+    <div class="ss-row" data-help-id="detail-cancel-retry">
         @if (Detail.Status == DetailPhaseStatusDto.None)
         {
             <RadzenButton Text="Split further" Icon="call_split" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
@@ -53,7 +54,7 @@
 
     @if (Detail.Status == DetailPhaseStatusDto.Completed)
     {
-        <ul class="ss-outcomes">
+        <ul class="ss-outcomes" data-help-id="detail-outcomes">
             @foreach (var outcome in Detail.Parents)
             {
                 <li class="ss-outcome">
@@ -65,5 +66,5 @@
         </ul>
     }
 
-    <p class="ss-help" data-testid="detail-limitation-help">@DetailPhaseText.LimitationHelp</p>
-</RadzenCard>
+    <p class="ss-help ss-limitation-note" data-testid="detail-limitation-help" data-help-id="detail-limitations">@DetailPhaseText.LimitationHelp</p>
+</section>

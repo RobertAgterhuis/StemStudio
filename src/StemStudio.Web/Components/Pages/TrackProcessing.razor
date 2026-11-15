@@ -1,0 +1,32 @@
+@* Processing card of the track page (design-spec.md 4.4): status chip, stage, the split signature next to the
+   accessible progress bar, the device, then the actions passed in by the page. *@
+
+<section class="ss-panel ss-processing" aria-labelledby="processing-heading">
+    <h2 id="processing-heading" class="ss-heading">Processing</h2>
+    <div class="ss-row">
+        <RadzenBadge BadgeStyle="TrackStatusText.Badge(Track.Status)" Text="@TrackStatusText.Label(Track.Status)" IsPill="true"
+                     data-testid="track-status" data-help-id="track-status" />
+        <span class="ss-stage" data-testid="track-stage">@Track.Stage</span>
+    </div>
+    <div class="ss-progress">
+        <SplitProgress State="SplitStates.Of(Track.Status)" Progress="Track.Progress" TestId="split-progress" />
+        <RadzenProgressBar Value="Track.Progress" Max="100" ShowValue="true" aria-label="Processing progress"
+                           data-testid="track-progress" data-help-id="track-progress" />
+    </div>
+    @if (Track.Device is not null)
+    {
+        <DeviceBadge Display="DeviceDisplay.FromJob(Track.Device)" TestId="track-device" ReasonTestId="track-device-fallback"
+                     Label="Processed on" />
+    }
+    @ChildContent
+</section>
+
+@code {
+    /// <summary>The track.</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
+
+    /// <summary>Errors and actions (retry, delete).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

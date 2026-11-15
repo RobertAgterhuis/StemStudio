@@ -1,0 +1,30 @@
+{
+  "id": "track-basics",
+  "version": 1,
+  "title": "Track basics",
+  "route": "/tracks/{id}",
+  "levels": [
+    "beginner",
+    "advanced"
+  ],
+  "steps": [
+    {
+      "target": "track-progress",
+      "topic": "track-progress"
+    },
+    {
+      "target": "track-facts",
+      "topic": "track-facts"
+    },
+    {
+      "target": "detail-stems",
+      "topic": "detail-stems"
+    },
+    {
+      "target": "open-mixer",
+      "topic": "mixer-screen",
+      "title": "Open the mixer",
+      "text": "When the stems are ready, open the mixer to practise."
+    }
+  ]
+}
