@@ -103,8 +103,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### audio-engine (tests first)
 
-- [ ] T025 [P] [audio-engine] Failing Vitest tests `tests/frame-loop.test.ts`, `tests/karaoke/clock.test.ts`: one shared rAF loop for meters and karaoke (starts with the first subscriber, stops with the last, pauses while `document.visibilityState` is hidden; existing meter tests unchanged); karaoke clock = transport position from `getOutputTimestamp()` extrapolated with `performance.now()`, fallback `currentTime`, minus `outputLatency` when defined, minus the offset; wrapped into the loop; paused/stopped -> stored position; no accumulation (1,000 simulated frames with jittered rAF intervals give zero drift against the mock clock) (FR-006, SC-002)
-- [ ] T026 [audio-engine] Implement `src/frame-loop.ts` (meters migrated onto it) and `src/karaoke/clock.ts` to pass T025
+- [x] T025 [P] [audio-engine] Failing Vitest tests `tests/frame-loop.test.ts`, `tests/karaoke/clock.test.ts`: one shared rAF loop for meters and karaoke (starts with the first subscriber, stops with the last, pauses while `document.visibilityState` is hidden; existing meter tests unchanged); karaoke clock = transport position from `getOutputTimestamp()` extrapolated with `performance.now()`, fallback `currentTime`, minus `outputLatency` when defined, minus the offset; wrapped into the loop; paused/stopped -> stored position; no accumulation (1,000 simulated frames with jittered rAF intervals give zero drift against the mock clock) (FR-006, SC-002)
+- [x] T026 [audio-engine] Implement `src/frame-loop.ts` (meters migrated onto it) and `src/karaoke/clock.ts` to pass T025
 
 **Checkpoint**: HO:foundational for audio-ingest, stem-separation, backend and audio-engine.
 
