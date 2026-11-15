@@ -3,7 +3,7 @@
 import threading
 from collections.abc import Callable
 
-from stemstudio_worker.jobs.models import StoredJob, metadata_of
+from stemstudio_worker.jobs.models import StoredJob, metadata_of, pending_artwork
 from stemstudio_worker.jobs.progress import QUEUED, Clock
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import SourceInfo
@@ -56,4 +56,6 @@ class JobService:
             status=JobState.QUEUED, stage=QUEUED, progress=0, metadata=metadata_of(source),
             created_at=now, updated_at=now,
         )  # fmt: skip
-        return StoredJob(job=job, upload_file=upload_file)
+        return StoredJob(
+            job=job, upload_file=upload_file, artwork_candidate=pending_artwork(source)
+        )

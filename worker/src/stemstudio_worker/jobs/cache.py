@@ -46,11 +46,12 @@ def rebind(canonical: JobResult, job: Job, completed_at: datetime) -> JobResult:
 
 
 def _metadata(canonical: JobResult, job: Job) -> SourceMetadata:
-    """Metadata of a job completed from ``canonical`` (see :func:`rebind`)."""
+    """Metadata of a job completed from ``canonical`` (see :func:`rebind`), with its duration."""
     same_video = job.source_type is SourceType.YOUTUBE and canonical.source_key == job.source_key
-    if same_video or job.metadata is None:
-        return canonical.metadata
-    return job.metadata
+    metadata = canonical.metadata if same_video or job.metadata is None else job.metadata
+    if metadata.duration_seconds is not None:
+        return metadata
+    return metadata.model_copy(update={"duration_seconds": canonical.duration_seconds})
 
 
 def stem_infos(job_id: str, stems: dict[StemName, Path]) -> list[StemInfo]:

@@ -8,13 +8,21 @@ from typing import Any
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import ProgressCallback
-from stemstudio_worker.schemas import Job, JobDevice, JobResult, JobState, SourceMetadata
+from stemstudio_worker.schemas import (
+    ArtworkInfo,
+    Job,
+    JobDevice,
+    JobResult,
+    JobState,
+    SourceMetadata,
+)
 
 Clock = Callable[[], datetime]
 """Returns the current UTC time."""
 
 QUEUED = "Queued"
 DOWNLOADING = "Downloading audio"
+SAVING_COVER = "Saving cover"
 PREPARING = "Preparing audio"
 SEPARATING = "Separating stems"
 ANALYSING = "Analysing beats"
@@ -61,6 +69,10 @@ class JobTracker:
     def set_metadata(self, metadata: SourceMetadata) -> None:
         """Replace the job metadata (e.g. with the title reported by the download)."""
         self._save_job(metadata=metadata)
+
+    def set_artwork(self, artwork: ArtworkInfo) -> None:
+        """Record the job's source picture (feature 005)."""
+        self._save_job(artwork=artwork)
 
     def set_device(self, device: JobDevice) -> None:
         """Record where the job's separation runs (or ran); saves only when it changed."""

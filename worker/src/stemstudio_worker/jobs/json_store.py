@@ -48,6 +48,14 @@ class JsonStore[R: BaseModel]:
             temp.replace(target)
             self._records[self._key(record)] = record
 
+    def delete(self, record_id: str) -> bool:
+        """Remove the record and its file; returns False when it was not known."""
+        with self._lock:
+            if self._records.pop(record_id, None) is None:
+                return False
+            (self._dir / f"{record_id}.json").unlink(missing_ok=True)
+            return True
+
     def get(self, record_id: str) -> R | None:
         """Return the record with ``record_id``, or None when unknown or not a valid id."""
         if not _ID.fullmatch(record_id):

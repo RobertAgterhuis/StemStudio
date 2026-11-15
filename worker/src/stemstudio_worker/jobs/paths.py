@@ -25,6 +25,10 @@ class DataPaths:
         """Directory of the ``<jobId>.json`` job files."""
         return self.root / "jobs"
 
+    def job_artwork(self, job_id: str) -> Path:
+        """Source picture of a job (``cover.jpg``, ``thumb.jpg``; feature 005)."""
+        return self.jobs / job_id / "artwork"
+
     def work(self, job_id: str) -> Path:
         """Temporary download and normalised audio of a job; deleted when terminal."""
         return self.root / "work" / job_id
@@ -46,6 +50,10 @@ class DataPaths:
         """Cache entry (``result.json`` + ``stems/``) for normalised audio."""
         return self.audio_cache / audio_sha256
 
+    def cached_artwork(self, audio_sha256: str) -> Path:
+        """Source picture kept with a cached result (``info.json`` + the two JPEGs; 005)."""
+        return self.by_audio(audio_sha256) / "artwork"
+
     def stem_file(self, audio_sha256: str, stem: StemName) -> Path:
         """FLAC file of one cached stem."""
         return self.by_audio(audio_sha256) / "stems" / f"{stem}.flac"
@@ -66,3 +74,34 @@ class DataPaths:
     def detail_stem(self, audio_sha256: str, parent: StemName, name: DetailStemName) -> Path:
         """FLAC file of one cached detail stem."""
         return self.detail_final(audio_sha256) / parent / f"{name}.flac"
+
+    @property
+    def metadata_jobs(self) -> Path:
+        """Directory of the ``<metadataJobId>.json`` metadata job files (feature 005)."""
+        return self.root / "metadata-jobs"
+
+    def metadata_job_dir(self, job_id: str) -> Path:
+        """Files of one metadata job (``result.json``, ``artwork/``); swept with the job."""
+        return self.metadata_jobs / job_id
+
+    def metadata_result(self, job_id: str) -> Path:
+        """Result of a completed metadata job."""
+        return self.metadata_job_dir(job_id) / "result.json"
+
+    def metadata_artwork(self, job_id: str) -> Path:
+        """Cover Art Archive picture (``cover.jpg``, ``thumb.jpg``) of a metadata job."""
+        return self.metadata_job_dir(job_id) / "artwork"
+
+    @property
+    def user_artwork_root(self) -> Path:
+        """Directory of the normalised user pictures (``POST /v1/artwork``, kept 1 h; 005)."""
+        return self.root / "artwork"
+
+    def user_artwork(self, artwork_id: str) -> Path:
+        """One normalised user picture (``cover.jpg``, ``thumb.jpg``, ``info.json``)."""
+        return self.user_artwork_root / artwork_id
+
+    @property
+    def render_jobs(self) -> Path:
+        """Render job files ``<id>.json`` and outputs ``<id>/output.<ext>`` (feature 007)."""
+        return self.root / "render-jobs"

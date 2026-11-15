@@ -1,4 +1,4 @@
-"""Pipeline runner: fetch or accept -> normalise -> separate -> analyse -> cache -> complete."""
+"""Pipeline runner: fetch or accept -> save cover -> normalise -> separate -> analyse -> cache."""
 
 import logging
 import shutil
@@ -6,11 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from stemstudio_worker.jobs import progress as p
+from stemstudio_worker.jobs.artwork import ArtworkCapture, CoverStep
 from stemstudio_worker.jobs.cache import ResultCache, rebind, stem_infos
 from stemstudio_worker.jobs.models import StoredJob, fetched_metadata, source_of
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import (
+    ArtworkCandidate,
     NormalizedAudio,
     PipelineAdapters,
     SeparationResult,
@@ -48,14 +50,24 @@ class JobContext:
 class JobRunner:
     """Processes one job at a time through the adapters (called by the queue thread)."""
 
-    def __init__(self, context: JobContext, adapters: PipelineAdapters) -> None:
-        """Create a runner over ``context`` (store, paths, clock) using ``adapters``."""
+    def __init__(
+        self,
+        context: JobContext,
+        adapters: PipelineAdapters,
+        artwork: ArtworkCapture | None = None,
+    ) -> None:
+        """Create a runner over ``context`` (store, paths, clock) using ``adapters``.
+
+        ``artwork`` captures source pictures ("Saving cover", feature 005); without it jobs get
+        no picture of their own (cached pictures are still restored).
+        """
         self._store = context.store
         self._adapters = adapters
         self._paths = context.paths
         self._clock = context.clock
         self._planned = JobDevice(kind=context.device.kind, name=context.device.name)
         self._cache = ResultCache(context.paths)
+        self._cover = CoverStep(context.paths, artwork)
 
     def process(self, job_id: str) -> None:
         """Run the job to a terminal state; unknown and terminal jobs are ignored.
@@ -85,6 +97,7 @@ class JobRunner:
         key = record.job.source_key
         result = self._cache.lookup_source(key) or self._from_audio(record, tracker)
         self._cache.link_source(key, result.audio_sha256)
+        self._cover.sync(tracker, result.audio_sha256)
         tracker.complete(rebind(result, tracker.job, self._clock()))
 
     def _from_audio(self, record: StoredJob, tracker: p.JobTracker) -> JobResult:
@@ -110,20 +123,29 @@ class JobRunner:
     def _prepare(self, record: StoredJob, tracker: p.JobTracker) -> NormalizedAudio:
         work = self._paths.work(record.job.job_id)
         work.mkdir(parents=True, exist_ok=True)
-        source_file = self._input_file(record, work, tracker)
+        source_file, offered = self._input_file(record, work, tracker)
+        self._cover.save(record, offered, tracker)
         tracker.update(JobState.DOWNLOADING, p.PREPARING, 0)
-        return self._adapters.ingest.normalizer.normalize(source_file, work / "audio.wav")
+        audio = self._adapters.ingest.normalizer.normalize(source_file, work / "audio.wav")
+        metadata = tracker.job.metadata or SourceMetadata(title="Untitled")
+        tracker.set_metadata(
+            metadata.model_copy(update={"duration_seconds": audio.duration_seconds})
+        )
+        return audio
 
-    def _input_file(self, record: StoredJob, work: Path, tracker: p.JobTracker) -> Path:
+    def _input_file(
+        self, record: StoredJob, work: Path, tracker: p.JobTracker
+    ) -> tuple[Path, ArtworkCandidate | None]:
+        """The audio to normalise and the picture the download offered (uploads: none)."""
         if record.upload_file is not None:
-            return self._paths.uploads(record.job.job_id) / record.upload_file
+            return self._paths.uploads(record.job.job_id) / record.upload_file, None
         tracker.update(JobState.DOWNLOADING, p.DOWNLOADING, 0)
         report = tracker.callback(JobState.DOWNLOADING, p.DOWNLOADING, p.download_percent)
         fetched = self._adapters.ingest.fetcher.fetch(source_of(record.job), work, report)
         metadata = fetched_metadata(record.job, fetched)
         if metadata is not None:
             tracker.set_metadata(metadata)
-        return fetched.path
+        return fetched.path, fetched.artwork
 
     def _separate(
         self, job_id: str, audio: NormalizedAudio, tracker: p.JobTracker

@@ -90,10 +90,10 @@ in the execution plan.
 
 ### stem-separation (`jobs/`, tests first)
 
-- [ ] T021 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lanes.py`: `LaneScheduler` runs jobs FIFO on its own thread, one at a time; a job in the render lane starts while a fake separation blocks the `PriorityScheduler`; exceptions of one job do not stop the lane; `pending` and `running` are reported for `/health` (FR-011)
-- [ ] T022 [stem-separation] Implement `jobs/lanes.py` to pass T021
-- [ ] T023 [P] [stem-separation] Failing tests `worker/tests/jobs/test_render_store.py`: render jobs persisted as `render-jobs/<id>.json`; after a restart `queued`/`running` become `failed` "interrupted by restart"; `delete` removes JSON + output (idempotent); the sweep removes terminal jobs older than 24 h (fake clock) (data-model 2.5)
-- [ ] T024 [stem-separation] Implement `jobs/render_store.py` to pass T023
+- [x] T021 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lanes.py`: `LaneScheduler` runs jobs FIFO on its own thread, one at a time; a job in the render lane starts while a fake separation blocks the `PriorityScheduler`; exceptions of one job do not stop the lane; `pending` and `running` are reported for `/health` (FR-011)
+- [x] T022 [stem-separation] Implement `jobs/lanes.py` to pass T021
+- [x] T023 [P] [stem-separation] Failing tests `worker/tests/jobs/test_render_store.py`: render jobs persisted as `render-jobs/<id>.json`; after a restart `queued`/`running` become `failed` "interrupted by restart"; `delete` removes JSON + output (idempotent); the sweep removes terminal jobs older than 24 h (fake clock) (data-model 2.5)
+- [x] T024 [stem-separation] Implement `jobs/render_store.py` to pass T023
 
 ### backend (tests first)
 
@@ -115,8 +115,8 @@ in the execution plan.
 **Goal**: raw single stem / detail stem -> library item that plays and downloads.
 **Independent test**: quickstart X2, X3; E2E `export.spec.ts` "raw stem".
 
-- [ ] T033 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_render_routes.py` (TestClient, fake executor, real store in `tmp_path`): `POST /v1/render-jobs` -> 202 queued and the job runs in the render lane; invalid paths -> 400 `invalid-input-path`, missing input -> 404 `input-not-found`, bad ranges/formats -> 422; `GET` reflects progress and result; `GET .../file` 409 until completed then the bytes with `Content-Length`; `DELETE` cancels/removes (204); `/health` reports `library` and `lanes`; responses validate against the 007 worker contract (FR-001, FR-011)
-- [ ] T034 [US1] [stem-separation] Implement `jobs/render_service.py`, `api/render_routes.py`, `/health` additions and the composition in `main.py` (lane, store, `create_render_executor`, restart reconciliation, sweep timer) to pass T033
+- [x] T033 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_render_routes.py` (TestClient, fake executor, real store in `tmp_path`): `POST /v1/render-jobs` -> 202 queued and the job runs in the render lane; invalid paths -> 400 `invalid-input-path`, missing input -> 404 `input-not-found`, bad ranges/formats -> 422; `GET` reflects progress and result; `GET .../file` 409 until completed then the bytes with `Content-Length`; `DELETE` cancels/removes (204); `/health` reports `library` and `lanes`; responses validate against the 007 worker contract (FR-001, FR-011)
+- [x] T034 [US1] [stem-separation] Implement `jobs/render_service.py`, `api/render_routes.py`, `/health` additions and the composition in `main.py` (lane, store, `create_render_executor`, restart reconciliation, sweep timer) to pass T033
 - [ ] T035 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Assets/RawExportTests.cs`: `POST /api/assets/audio-exports` mode `raw` for a stem and a detail stem -> 202 `Asset` (queued, default name, contents, recipe with `bitDepth` 16 and `dither=false` sent to the worker); track not completed -> 409; free space below `MinFreeDiskBytes` (fake `IDiskSpace`) -> 409 `insufficient-disk-space`; sync: worker running -> `rendering` + progress, completed -> hashing copy to `assets/<id>/audio.flac`, SHA-256 verified, `ready`, worker job deleted; `GET /api/assets/{id}/files/audio` serves Range/ETag/`Content-Disposition` (RFC 6266 `filename*`, sanitised) and `inline=true`; un-stage `createAudioExport`, `getAsset`, `getAssetFile` (FR-001, FR-004, FR-015, SC-004)
 - [ ] T036 [US1] [backend] Implement `Assets/{ExportService,AssetFileStore,AssetJobApplier,AssetSyncService,DiskSpaceGuard,ContentDisposition,AssetEndpoints}.cs` (+ registration) to pass T035
 - [ ] T037 [P] [US1] [frontend] Failing bUnit tests: track page shows `export-stem-<stem>` for each stem and `export-detail-<parent>-<detail>` only for kept detail stems of split parents; `ExportDialog` (source fixed) shows `export-format` with FLAC preselected, hides `export-bit-depth`/`export-mp3-bitrate` below Advanced (004 level context, faked), submits the raw request through `IStemStudioApiClient`, shows `export-saved` with `export-saved-open` or `export-error` with the problem detail; help ids `export-dialog`, `export-formats` present (FR-001, FR-014)
@@ -188,7 +188,7 @@ in the execution plan.
 ## Phase 8: Polish (inside the wave, per owner)
 
 - [x] T064 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `render/`
-- [ ] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
+- [x] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
 - [ ] T066 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
 - [ ] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish

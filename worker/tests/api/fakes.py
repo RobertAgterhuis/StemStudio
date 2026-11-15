@@ -8,6 +8,8 @@ import numpy as np
 import soundfile as sf
 
 from stemstudio_worker.ports import (
+    ArtworkCandidate,
+    ArtworkImages,
     FetchedAudio,
     IngestAdapters,
     InvalidSourceError,
@@ -36,12 +38,14 @@ class ApiFakes:
     Attributes:
         gate: Downloads wait until it is set (set by default).
         normalize_error: Raised by ``normalize`` when not None.
+        artwork: Picture candidate the download reports (005), None by default.
     """
 
     def __init__(self) -> None:
         self.gate = threading.Event()
         self.gate.set()
         self.normalize_error: Exception | None = None
+        self.artwork: ArtworkCandidate | None = None
 
     def resolve(self, url: str) -> SourceInfo:
         if "nomatch" in url:
@@ -67,7 +71,7 @@ class ApiFakes:
         assert self.gate.wait(10), "gate never opened"
         target = work_dir / "download.m4a"
         target.write_bytes(source.source_key.encode())
-        return FetchedAudio(target, FETCHED_TITLE, FETCHED_ARTIST)
+        return FetchedAudio(target, FETCHED_TITLE, FETCHED_ARTIST, artwork=self.artwork)
 
     def normalize(self, input_path: Path, output_wav: Path) -> NormalizedAudio:
         if self.normalize_error:
@@ -96,3 +100,23 @@ class FourStemSeparator:
         six = FakeSeparator().separate(wav_path, out_dir, progress)
         stems = {n: p for n, p in six.stems.items() if n not in ("guitar", "piano")}
         return SeparationResult(model="htdemucs", stems=stems)
+
+
+THUMBNAIL = ArtworkCandidate("youtube", url="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg")
+COVER_JPEG = b"JPEG cover bytes"
+THUMB_JPEG = b"JPEG thumb bytes"
+
+
+class StaticNormalizer:
+    """Image normaliser that returns two fixed JPEGs, or raises ``error``."""
+
+    def __init__(self) -> None:
+        self.error: Exception | None = None
+        self.seen: list[ArtworkCandidate] = []
+
+    def normalize(self, candidate: ArtworkCandidate) -> ArtworkImages:
+        self.seen.append(candidate)
+        if self.error is not None:
+            raise self.error
+        digest = hashlib.sha256(COVER_JPEG).hexdigest()
+        return ArtworkImages(cover=COVER_JPEG, thumb=THUMB_JPEG, sha256=digest)

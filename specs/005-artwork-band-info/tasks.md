@@ -84,8 +84,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### stem-separation (tests first)
 
-- [ ] T014 [P] [stem-separation] Failing tests `worker/tests/jobs/test_metadata_lane.py` (fake lookup, fake clock): a single-thread lane separate from the separation scheduler; queued -> running -> completed/failed; persisted in `metadata-jobs/*.json`; restart re-runs queued/running jobs; a long fake separation does not delay a metadata job; results and artwork swept after 24 h (ADR-014 D3)
-- [ ] T015 [stem-separation] Implement `jobs/{metadata_lane,metadata_store}.py` to pass T014
+- [x] T014 [P] [stem-separation] Failing tests `worker/tests/jobs/test_metadata_lane.py` (fake lookup, fake clock): a single-thread lane separate from the separation scheduler; queued -> running -> completed/failed; persisted in `metadata-jobs/*.json`; restart re-runs queued/running jobs; a long fake separation does not delay a metadata job; results and artwork swept after 24 h (ADR-014 D3)
+- [x] T015 [stem-separation] Implement `jobs/{metadata_lane,metadata_store}.py` to pass T014
 
 ### backend (tests first)
 
@@ -107,8 +107,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [x] T022 [P] [US1] [audio-ingest] Failing tests `worker/tests/metadata/test_source_artwork.py` and ingest tests: YouTube thumbnail choice from an `info["thumbnails"]` fixture (largest `i.ytimg.com` >= 300 px, maxres > sd > hq); Spotify `Song.cover_url`, `isrc`, `album_name` read from a stub `Song`; upload `tinytag` front cover then `any` image, tag title/artist/album; WAV -> no candidate; `SourceInfo`/`FetchedAudio` carry candidate, album, ISRC, cleaned lookup names (research R-04 title cleaning cases) (FR-001)
 - [x] T023 [US1] [audio-ingest] Implement `metadata/{source_artwork,titles}.py` and the hand-over in `ingest/{fetcher,spotify,upload,resolver}.py` to pass T022
-- [ ] T024 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_artwork_step.py`, `worker/tests/api/test_artwork_routes.py`: the standard job runs "Saving cover" after the download with the injected normaliser; any error (network, decode, timeout > 15 s) is logged and the job continues with `artwork = null`; `Job.artwork` set; `SourceMetadata.durationSeconds` set after normalisation; `GET /v1/jobs/{id}/artwork/{variant}` serves JPEG with ETag, 404 without; cached results keep their artwork (FR-001, FR-002, SC-006)
-- [ ] T025 [US1] [stem-separation] Implement in `jobs/{runner,progress}.py`, `api/routes.py`, `main.py` to pass T024
+- [x] T024 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_artwork_step.py`, `worker/tests/api/test_artwork_routes.py`: the standard job runs "Saving cover" after the download with the injected normaliser; any error (network, decode, timeout > 15 s) is logged and the job continues with `artwork = null`; `Job.artwork` set; `SourceMetadata.durationSeconds` set after normalisation; `GET /v1/jobs/{id}/artwork/{variant}` serves JPEG with ETag, 404 without; cached results keep their artwork (FR-001, FR-002, SC-006)
+- [x] T025 [US1] [stem-separation] Implement in `jobs/{runner,progress}.py`, `api/routes.py`, `main.py` to pass T024
 - [ ] T026 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Artwork/ArtworkSyncTests.cs`, `ArtworkEndpointTests.cs`: a standard poll with a new `artwork` hash downloads both variants atomically and offers them; the same hash is not downloaded again; `TrackDto.artwork` URLs carry `v`; `GET /api/tracks/{id}/artwork/{variant}`: JPEG, ETag/If-None-Match 304, immutable header only with matching `v`; 404 without artwork; deleting a track deletes the files (FR-005..FR-007, FR-016)
 - [ ] T027 [US1] [backend] Implement `Api/Artwork/{ArtworkFileStore,ArtworkService,ArtworkEndpoints}.cs` and the sync hook in `Sync/TrackJobApplier.cs` to pass T026
 - [ ] T028 [P] [US1] [frontend] Failing bUnit tests: `TrackArtwork` renders `img` with `loading="lazy"`, `decoding="async"`, width/height and alt text "Cover of <title>", or `ArtworkPlaceholder` (initials, colour from a stable title hash, `aria-hidden` decoration + text alternative); `track-thumb-<id>`, `track-cover`, `mixer-cover` with `data-artwork-source`; broken image -> placeholder (`onerror`) (FR-006, US1-1..5)
@@ -128,8 +128,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T032 [US2] [audio-ingest] Implement `metadata/{musicbrainz,matcher}.py` to pass T031
 - [x] T033 [P] [US2] [audio-ingest] Failing tests `test_coverart.py`, `test_wikidata.py`, `test_wikipedia.py`, `test_lookup.py`: CAA `front-500` redirect to archive.org followed and normalised (`source=coverartarchive`), 404 -> no artwork + no warning; Wikidata claims P136/P527 (+ P580/P582)/P571/P576/P495/P856 and a labels call for <= 50 ids; Wikipedia summary in the configured language order, `type != standard` dropped, attribution fields built (history URL, licence); `MetadataLookup` orchestration: partial failures become warnings, recording failure fails, lookups off -> `disabled` without requests, requests recorded by the fake transport contain only the allowed query fields and the UA (FR-008, FR-010, SC-005)
 - [x] T034 [US2] [audio-ingest] Implement `metadata/{coverart,wikidata,wikipedia,lookup,fake}.py` (fake provider per `STEMSTUDIO_FAKE_ONLINE`) to pass T033
-- [ ] T035 [P] [US2] [stem-separation] Failing tests `worker/tests/api/test_metadata_routes.py`: create/get/result/artwork routes per contract (422, 404, 409), `Health.onlineLookups`, composition with the real lookup or the fake provider (FR-003, FR-011)
-- [ ] T036 [US2] [stem-separation] Implement `api/metadata_routes.py`, `main.py` wiring to pass T035
+- [x] T035 [P] [US2] [stem-separation] Failing tests `worker/tests/api/test_metadata_routes.py`: create/get/result/artwork routes per contract (422, 404, 409), `Health.onlineLookups`, composition with the real lookup or the fake provider (FR-003, FR-011)
+- [x] T036 [US2] [stem-separation] Implement `api/metadata_routes.py`, `main.py` wiring to pass T035
 - [ ] T037 [P] [US2] [backend] Failing tests `tests/StemStudio.Api.Tests/Metadata/MetadataSyncTests.cs`: `none -> pending` when the standard poll reports `durationSeconds` and on first `GET` of an old completed track (FR-012); synchronizer creates the job with the lookup names, polls, applies the result (artist upsert, 30-day refresh, `coverartarchive` artwork offered), maps failures/404 to `failed`, keeps state while the worker is unreachable (FR-003, FR-009)
 - [ ] T038 [US2] [backend] Implement `Api/Metadata/{MetadataSynchronizer,MetadataJobApplier,MetadataService}.cs` (registered in `JobSyncService`) to pass T037
 - [ ] T039 [P] [US2] [backend] Failing tests `BandInfoEndpointTests.cs`: `GET /api/tracks/{id}/band-info` for each status, sources list and licences, validates against the backend contract; `POST /api/tracks/{id}/metadata/lookup` with corrected names (stored, `correctedByUser`), empty body retry, 409 while searching, 422 limits (FR-008, FR-009)
@@ -147,8 +147,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 **Goal**: user image upload and reset.
 **Independent test**: spec US3.
 
-- [ ] T044 [P] [US3] [stem-separation] Failing tests `worker/tests/api/test_artwork_upload.py`: `POST /v1/artwork` normalises via the injected normaliser, 400/413/415/422 per contract, files kept 1 h, `GET /v1/artwork/{id}/{variant}` (FR-013)
-- [ ] T045 [US3] [stem-separation] Implement `api/artwork_routes.py` to pass T044
+- [x] T044 [P] [US3] [stem-separation] Failing tests `worker/tests/api/test_artwork_upload.py`: `POST /v1/artwork` normalises via the injected normaliser, 400/413/415/422 per contract, files kept 1 h, `GET /v1/artwork/{id}/{variant}` (FR-013)
+- [x] T045 [US3] [stem-separation] Implement `api/artwork_routes.py` to pass T044
 - [ ] T046 [P] [US3] [backend] Failing tests `UserArtworkEndpointTests.cs`: `PUT /api/tracks/{id}/artwork` streams to the worker (10 MiB limit enforced while streaming, 413), stores `user/` files, `Artwork.source = user`; worker errors mapped to problem details; 503 when the worker is down; `DELETE` returns to `AutoArtwork` (or none) and deletes `user/` files (FR-013)
 - [ ] T047 [US3] [backend] Implement in `Api/Artwork/*` to pass T046
 - [ ] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
@@ -162,7 +162,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 ## Phase 6: Polish (inside the wave, per owner)
 
 - [x] T051 [P] [audio-ingest] Refactor to SIG limits, docstrings, `@pytest.mark.integration` live-service smoke `worker/tests/metadata/test_live_services.py` (one request per service, reference songs; deselected by default), HO:polish with coverage of `metadata`, `ingest`
-- [ ] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
+- [x] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
 - [ ] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
 - [ ] T055 [P] [qa] Traceability matrix update, HO:polish

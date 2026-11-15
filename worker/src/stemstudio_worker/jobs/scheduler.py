@@ -7,10 +7,11 @@ runs before the scheduler reports idle (feature 003: GPU models are released, AD
 """
 
 import logging
-import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
+
+from stemstudio_worker.jobs.threads import QueueThread
 
 _LOG = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class SchedulerHooks:
     on_idle: Callable[[], None] | None = None
 
 
-class PriorityScheduler:
+class PriorityScheduler(QueueThread):
     """Runs ``standard(job_id)`` and ``detail_step(detail_id) -> more`` on a single thread."""
 
     def __init__(
@@ -45,33 +46,18 @@ class PriorityScheduler:
             detail_step: Runs the next unit of a detail job; returns True while units remain.
             hooks: Optional yield and idle callbacks.
         """
+        super().__init__("stemstudio-jobs")
         self._standard = standard
         self._detail_step = detail_step
         self._hooks = hooks
         self._standard_queue: deque[str] = deque()
         self._detail_queue: deque[str] = deque()
-        self._busy = False
-        self._stopping = False
-        self._changed = threading.Condition()
-        self._thread: threading.Thread | None = None
-
-    @property
-    def running(self) -> bool:
-        """Whether the worker thread is alive."""
-        return self._thread is not None and self._thread.is_alive()
 
     @property
     def pending(self) -> tuple[int, int]:
         """Numbers of waiting standard jobs and of active detail jobs."""
         with self._changed:
             return len(self._standard_queue), len(self._detail_queue)
-
-    def start(self) -> None:
-        """Start the worker thread (no-op when already started)."""
-        if self._thread is None:
-            self._stopping = False
-            self._thread = threading.Thread(target=self._loop, name="stemstudio-jobs", daemon=True)
-            self._thread.start()
 
     def submit(self, job_id: str) -> None:
         """Queue a standard job (FIFO, ahead of every detail unit)."""
@@ -80,20 +66,6 @@ class PriorityScheduler:
     def submit_detail(self, detail_id: str) -> None:
         """Queue a detail job behind the active ones."""
         self._enqueue(self._detail_queue, detail_id)
-
-    def join(self, timeout: float | None = None) -> bool:
-        """Block until nothing is queued or running; returns False on timeout."""
-        with self._changed:
-            return self._changed.wait_for(self._idle, timeout)
-
-    def stop(self, timeout: float | None = None) -> None:
-        """Stop after the current unit; waits at most ``timeout`` seconds (daemon thread)."""
-        thread, self._thread = self._thread, None
-        if thread is not None:
-            with self._changed:
-                self._stopping = True
-                self._changed.notify_all()
-            thread.join(timeout)
 
     def _enqueue(self, queue: deque[str], item: str) -> None:
         with self._changed:
@@ -156,9 +128,7 @@ class PriorityScheduler:
                 self._hooks.on_idle()
             except Exception:
                 _LOG.exception("Releasing idle GPU memory failed")
-        with self._changed:
-            self._busy = False
-            self._changed.notify_all()
+        self._finished_unit()
 
     def _nothing_queued(self) -> bool:
         with self._changed:

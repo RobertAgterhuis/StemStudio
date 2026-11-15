@@ -4,6 +4,7 @@ import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
@@ -58,7 +59,8 @@ class Calls:
 class FakeIngest:
     """Resolver, intake, fetcher and normalizer; ``fail`` maps a method name to an exception.
 
-    ``fetched_title``/``fetched_artist`` are what ``fetch`` reports (None by default).
+    ``fetched_title``/``fetched_artist`` are what ``fetch`` reports (None by default);
+    ``fetched_extra`` holds further ``FetchedAudio`` fields (artwork, album, lookup names).
     """
 
     def __init__(self, calls: Calls, sha: str = "e" * 64) -> None:
@@ -67,6 +69,7 @@ class FakeIngest:
         self.fail: dict[str, Exception] = {}
         self.fetched_title: str | None = None
         self.fetched_artist: str | None = None
+        self.fetched_extra: dict[str, Any] = {}
 
     def _enter(self, name: str, path: Path) -> None:
         self.calls.names.append(name)
@@ -86,7 +89,7 @@ class FakeIngest:
             progress(fraction, "Downloading")
         target = work_dir / "download.webm"
         target.write_bytes(b"webm")
-        return FetchedAudio(target, self.fetched_title, self.fetched_artist)
+        return FetchedAudio(target, self.fetched_title, self.fetched_artist, **self.fetched_extra)
 
     def normalize(self, input_path: Path, output_wav: Path) -> NormalizedAudio:
         self._enter("normalize", input_path)

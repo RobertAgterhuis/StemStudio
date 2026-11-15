@@ -77,7 +77,7 @@ def test_default_adapters_come_from_the_factories(
     fakes = ApiFakes()
     seen: list[WorkerSettings] = []
 
-    def ingest(settings: WorkerSettings) -> IngestAdapters:
+    def ingest(settings: WorkerSettings, details: object = None) -> IngestAdapters:
         seen.append(settings)
         return fakes.adapters().ingest
 

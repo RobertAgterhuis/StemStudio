@@ -29,7 +29,9 @@ CPU_RECORD = {"kind": "cpu", "name": None, "cpuFallback": False, "fallbackReason
 def fake_models(monkeypatch: pytest.MonkeyPatch) -> None:
     """Fake ingest/analysis; fake separator and detail models built on main's device runner."""
     fakes = ApiFakes()
-    monkeypatch.setattr(main, "create_ingest_adapters", lambda s: fakes.adapters().ingest)
+    monkeypatch.setattr(
+        main, "create_ingest_adapters", lambda s, details=None: fakes.adapters().ingest
+    )
     monkeypatch.setattr(main, "create_beat_analyzer", lambda s: fakes)
     monkeypatch.setattr(main, "create_separator", lambda s, runner: FakeSeparator(runner))
     monkeypatch.setattr(

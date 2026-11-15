@@ -8,19 +8,19 @@ from starlette.concurrency import run_in_threadpool
 
 from stemstudio_worker.api.dependencies import Runtime
 from stemstudio_worker.api.problems import ProblemError
-from stemstudio_worker.api.responses import json_response, parse_body
+from stemstudio_worker.api.responses import artwork_response, json_response, parse_body
 from stemstudio_worker.api.uploads import create_from_upload
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.ports import SourceInfo, SourceUnavailableError, WorkerError
 from stemstudio_worker.schemas import (
-    CPU_DEVICE,
     CreateJobRequest,
     Health,
     Job,
     JobResult,
     JobState,
+    LanesHealth,
     StemName,
 )
 
@@ -30,15 +30,24 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    """Liveness probe with the configured separator, device preference and active device.
+    """Liveness probe: separator, device preference, active device, lookups, library, lanes.
 
-    The active device comes from the start-up probe of the running worker; before the lifespan
-    started (no runtime yet) it is reported as the CPU.
+    The active device comes from the start-up probe, the library state from the library reader
+    (checked on every call) and the lane state from the render lane; before the lifespan started
+    (no runtime yet) they are reported with their defaults (CPU, library not readable, idle).
     """
     settings: WorkerSettings = request.app.state.settings
     runtime: WorkerRuntime | None = getattr(request.app.state, "runtime", None)
-    info = CPU_DEVICE if runtime is None else runtime.device
-    health = Health(separator=settings.separator, device=settings.device, device_info=info)
+    health = Health(
+        separator=settings.separator, device=settings.device,
+        online_lookups=settings.online.lookups_enabled,
+    )  # fmt: skip
+    if runtime is not None:
+        lanes = LanesHealth(render=runtime.lanes.render.health())
+        library = runtime.lanes.library.status()
+        health = health.model_copy(
+            update={"device_info": runtime.device, "library": library, "lanes": lanes}
+        )
     return json_response(health)
 
 
@@ -82,6 +91,15 @@ def get_job_stem(job_id: str, stem: str, runtime: Runtime) -> FileResponse:
     if stem not in {s.name for s in result.stems} or not path.is_file():
         raise _missing_stem(stem)
     return FileResponse(path, media_type="audio/flac")
+
+
+@router.get("/v1/jobs/{job_id}/artwork/{variant}")
+def get_job_artwork(job_id: str, variant: str, runtime: Runtime) -> FileResponse:
+    """The source picture of a job (``cover`` or ``thumb``) as JPEG; 404 without one."""
+    artwork = _record(runtime, job_id).job.artwork
+    if artwork is None:
+        raise ProblemError(404, "Not found", "This job has no artwork.")
+    return artwork_response(runtime.paths.job_artwork(job_id), variant, artwork.sha256)
 
 
 def _create_from_url(runtime: WorkerRuntime, body: CreateJobRequest) -> tuple[Job, bool]:
