@@ -45,3 +45,18 @@ export async function computedColours(locator: Locator): Promise<ComputedColours
     return { color: style.color, background: style.backgroundColor };
   });
 }
+
+/** Desktop viewport of the visual matrix (the library columns must not break words here). */
+export const desktopViewport = { width: 1440, height: 900 } as const;
+
+/** Number of text lines of each element behind a locator (1 = the text did not wrap). */
+export async function textLineCounts(locator: Locator): Promise<number[]> {
+  return locator.evaluateAll((elements) =>
+    elements.map((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const tops = new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top)));
+      return tops.size;
+    }),
+  );
+}
