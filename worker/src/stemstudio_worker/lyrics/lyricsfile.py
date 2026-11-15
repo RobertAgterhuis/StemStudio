@@ -12,6 +12,7 @@ from typing import Final
 import yaml
 from pydantic import ConfigDict, Field, ValidationError
 
+from stemstudio_worker.lyrics.interpolate import interpolate_line
 from stemstudio_worker.lyrics.normalize import (
     DocumentMeta,
     WordSpan,
@@ -91,12 +92,18 @@ def _refuse_aliases(text: str) -> None:
 
 
 def _line(line: _Line) -> LyricsLine:
-    """One timed line from its word starts."""
+    """One timed line from its word starts (interpolated from its text when it has no words)."""
     words = [word for word in line.words if word.text.strip()]
+    if not words:
+        return interpolate_line(line.text, line.start_ms, line.end_ms)
     spans = _spans(words, line.end_ms)
+    return timed_line(line.text.strip(), _bounds(line, spans), spans, "source")
+
+
+def _bounds(line: _Line, spans: list[WordSpan]) -> tuple[int, int]:
+    """The line times, widened to hold every word."""
     start = min([line.start_ms, *(span[1] for span in spans)])
-    end = max([line.end_ms, *(span[2] for span in spans)])
-    return timed_line(line.text.strip(), (start, end), spans, "source")
+    return start, max([line.end_ms, *(span[2] for span in spans)])
 
 
 def _spans(words: list[_Word], line_end: int) -> list[WordSpan]:
