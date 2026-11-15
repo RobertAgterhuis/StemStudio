@@ -42,6 +42,12 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
 
     public SequenceSeeds Seeds { get; } = new();
 
+    /// <summary>The fake singer service (feature 010).</summary>
+    public FakeGenerator Singer { get; } = new() { HealthExample = "SingerReadyHealth" };
+
+    /// <summary>False: the singer client has no base URL (voice features not installed).</summary>
+    public bool SingerInstalled { get; init; } = true;
+
     public Action<IServiceCollection>? ConfigureServices { get; init; }
 
     public ListLoggerProvider Logs { get; } = new();
@@ -114,6 +120,8 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IWorkerClient>(Worker);
             services.AddSingleton<TimeProvider>(Clock);
             services.AddSingleton<IGeneratorClient>(new GeneratorClient(GeneratorHttp(), NullLogger<GeneratorClient>.Instance, Clock));
+            services.AddSingleton<ISingerClient>(new SingerClient(
+                new HttpClient(Singer.Handler) { BaseAddress = SingerInstalled ? new Uri("http://singer:8010/") : null }, NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
             ConfigureServices?.Invoke(services);
         });

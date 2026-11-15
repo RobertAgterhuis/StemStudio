@@ -34,6 +34,28 @@ internal sealed class FakeGenerator
 
     public int HealthCalls { get; private set; }
 
+    /// <summary>The voice-sample check example (<c>VoiceSampleOk</c>, <c>VoiceSampleUnvoiced</c>, ...).</summary>
+    public string SampleCheckExample { get; set; } = "VoiceSampleOk";
+
+    /// <summary>Changes the check before it is answered (other reasons, durations).</summary>
+    public Action<JsonObject>? ChangeCheck { get; set; }
+
+    /// <summary>The bytes of the normalised sample served after an ok check.</summary>
+    public byte[] NormalisedSample { get; set; } = [0x66, 0x4C, 0x61, 0x43, 1];
+
+    /// <summary>Uploaded sample bytes, in order.</summary>
+    public List<byte[]> Samples { get; } = [];
+
+    private static byte[] Vocal(string id) => System.Text.Encoding.UTF8.GetBytes("vocal:" + id);
+
+    private HttpResponseMessage Check(HttpRequestMessage request)
+    {
+        Samples.Add(request.Content.ShouldBeOfType<MultipartFormDataContent>().Single().ReadAsByteArrayAsync().GetAwaiter().GetResult());
+        var check = JsonNode.Parse(GeneratorExamples.Read(SampleCheckExample))!.AsObject();
+        ChangeCheck?.Invoke(check);
+        return StubHttpMessageHandler.Json(HttpStatusCode.OK, check.ToJsonString());
+    }
+
     public JsonObject Job(string id)
     {
         lock (_lock)
@@ -117,6 +139,9 @@ internal sealed class FakeGenerator
             ("POST", ["v1", "generations", var id, "cancel"]) => Cancel(id),
             ("GET", ["v1", "generations", var id, "takes", var index]) => Take(id, int.Parse(index, CultureInfo.InvariantCulture)),
             ("DELETE", ["v1", "generations", var id]) => Delete(id),
+            ("POST", ["v1", "voice-samples", "check"]) => Check(request),
+            ("GET", ["v1", "voice-samples", _, "audio"]) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(NormalisedSample) },
+            ("GET", ["v1", "generations", var id, "takes", _, "vocal"]) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Vocal(id)) },
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
     }
