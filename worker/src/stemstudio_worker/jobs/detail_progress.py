@@ -41,6 +41,10 @@ class DetailTracker:
         self._change(status=DetailJobState.FAILED, stage=texts.FAILED, current_parent=None,
                      error=error[:_MAX_ERROR])  # fmt: skip
 
+    def waiting(self) -> None:
+        """Report that the job waits for standard separations (status and progress kept)."""
+        self._change(stage=texts.WAITING, current_parent=None)
+
     def cancel(self) -> None:
         """Mark the job cancelled (no-op when it already ended)."""
         self._change(status=DetailJobState.CANCELLED, stage=texts.CANCELLED, current_parent=None)

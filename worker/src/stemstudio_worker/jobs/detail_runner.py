@@ -109,6 +109,12 @@ class DetailRunner:
             self._active.pop(detail_id, None)
         return more
 
+    def waiting(self, detail_ids: list[str]) -> None:
+        """Mark the active ``detail_ids`` as waiting while a standard job runs (FR-011)."""
+        for detail_id in detail_ids:
+            if self._context.details.get(detail_id) is not None:
+                DetailTracker(self._context.details, detail_id, self._context.clock).waiting()
+
     def _unit(self, record: StoredDetailJob, tracker: DetailTracker) -> bool:
         active = self._active.get(record.job.detail_job_id)
         if active is None:

@@ -3,6 +3,7 @@
 from typing import Final
 
 QUEUED: Final = "Queued"
+WAITING: Final = "Waiting for standard separations"
 STARTING: Final = "Preparing detail separation"
 FINALISING: Final = "Finishing detail stems"
 COMPLETED: Final = "Completed"

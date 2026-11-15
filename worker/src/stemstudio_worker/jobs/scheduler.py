@@ -16,15 +16,23 @@ _LOG = logging.getLogger(__name__)
 class PriorityScheduler:
     """Runs ``standard(job_id)`` and ``detail_step(detail_id) -> more`` on a single thread."""
 
-    def __init__(self, standard: Callable[[str], None], detail_step: Callable[[str], bool]) -> None:
+    def __init__(
+        self,
+        standard: Callable[[str], None],
+        detail_step: Callable[[str], bool],
+        on_yield: Callable[[list[str]], None] | None = None,
+    ) -> None:
         """Create a stopped scheduler.
 
         Args:
             standard: Processes one standard job to a terminal state.
             detail_step: Runs the next unit of a detail job; returns True while units remain.
+            on_yield: Told the active detail job ids right before a standard job runs ahead of
+                them (e.g. to report "Waiting for standard separations").
         """
         self._standard = standard
         self._detail_step = detail_step
+        self._on_yield = on_yield
         self._standard_queue: deque[str] = deque()
         self._detail_queue: deque[str] = deque()
         self._busy = False
@@ -91,9 +99,17 @@ class PriorityScheduler:
                 return None
             self._busy = True
             if self._standard_queue:
-                job_id = self._standard_queue.popleft()
-                return lambda: self._standard(job_id)
+                job_id, waiting = self._standard_queue.popleft(), list(self._detail_queue)
+                return lambda: self._standard_unit(job_id, waiting)
             return self._detail_unit(self._detail_queue[0])
+
+    def _standard_unit(self, job_id: str, waiting: list[str]) -> None:
+        if waiting and self._on_yield is not None:
+            try:
+                self._on_yield(waiting)
+            except Exception:
+                _LOG.exception("Reporting the waiting detail jobs failed")
+        self._standard(job_id)
 
     def _detail_unit(self, detail_id: str) -> Callable[[], None]:
         def unit() -> None:

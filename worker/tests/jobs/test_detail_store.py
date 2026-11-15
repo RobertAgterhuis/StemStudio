@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+import pytest
+
 from stemstudio_worker.jobs.detail_store import DetailJobStore, StoredDetailJob
 from stemstudio_worker.schemas import DetailJob, DetailJobState
 
@@ -77,3 +79,8 @@ def test_find_reusable_returns_the_newest_queued_running_or_completed(tmp_path: 
     assert found is not None
     assert found.job.detail_job_id == "2" * 32
     assert store.find_reusable("7" * 64) is None
+
+
+def test_update_of_an_unknown_job_raises(tmp_path: Path) -> None:
+    with pytest.raises(LookupError, match="does not exist"):
+        DetailJobStore(tmp_path).update("e" * 32, lambda record: record)

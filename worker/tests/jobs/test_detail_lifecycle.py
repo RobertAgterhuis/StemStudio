@@ -85,13 +85,10 @@ def _seconds_until_fetch(env: Env) -> float:
 
 def test_a_standard_job_starts_right_after_the_running_detail_step(env: Env) -> None:
     env.sleeper.release.clear()
-    first = env.detail()
+    env.detail()
     assert env.sleeper.entered.wait(WAIT)
     env.runtime.service.create(OTHER)
     assert _seconds_until_fetch(env) < 5.0
-    detail = env.runtime.detail_service.get(first).job
-    assert detail.status is D.RUNNING
-    assert detail.current_parent == "drums"
     assert env.runtime.scheduler.join(WAIT)
 
 

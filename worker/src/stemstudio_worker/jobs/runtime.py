@@ -68,7 +68,8 @@ class WorkerRuntime:
         context = _load(paths, utc_now)
         store, details, clock = context.jobs, context.details, context.clock
         runner = JobRunner(JobContext(store, paths, clock), adapters)
-        scheduler = PriorityScheduler(runner.process, DetailRunner(context, pipeline).step)
+        details_runner = DetailRunner(context, pipeline)
+        scheduler = PriorityScheduler(runner.process, details_runner.step, details_runner.waiting)
         service = JobService(store, scheduler.submit, clock)
         detail_service = DetailService(context, scheduler.submit_detail)
         scheduler.start()

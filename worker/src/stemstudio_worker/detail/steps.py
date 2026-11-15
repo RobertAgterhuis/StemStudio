@@ -11,7 +11,7 @@ plans only what is still missing.
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Protocol
+from typing import Final, Protocol, TypeGuard
 
 from stemstudio_worker.detail.audio_io import read_stem
 from stemstudio_worker.detail.checkpoint import (
@@ -173,8 +173,8 @@ class DetailPipeline:
         """
         partial.mkdir(parents=True, exist_ok=True)
         clear_temporaries(partial)
-        active = [n for n in stems if self._needs_model(partial, n, stems[n])]
-        return self._steps(_splittable(active), stems, partial)
+        active = tuple(n for n in stems if self._needs_model(n, stems[n], partial))
+        return self._steps(active, stems, partial)
 
     def outcomes(self, names: Sequence[StemName], partial: Path) -> list[ParentOutcome]:
         """Read the checkpointed outcomes of ``names`` in that order.
@@ -191,7 +191,7 @@ class DetailPipeline:
             outcomes.append(outcome)
         return outcomes
 
-    def _needs_model(self, partial: Path, name: StemName, path: Path) -> bool:
+    def _needs_model(self, name: StemName, path: Path, partial: Path) -> TypeGuard[ParentStemName]:
         """True when ``name`` has no checkpoint yet and passes the gate (see :meth:`_gate`)."""
         if read_checkpoint(partial, name, self._version) is not None:
             return False
@@ -257,14 +257,6 @@ def _instruments(active: tuple[ParentStemName, ...]) -> tuple[ParentStemName, ..
 
 def _single_groups(active: tuple[ParentStemName, ...]) -> list[_Weighted]:
     return [((p,), STEP_WEIGHTS[p]) for p in _SINGLE_STEPS if p in active]
-
-
-def _splittable(names: Sequence[StemName]) -> tuple[ParentStemName, ...]:
-    parents: list[ParentStemName] = []
-    for name in names:
-        if is_splittable(name):
-            parents.append(name)
-    return tuple(parents)
 
 
 def _residual(audio: DetailAudio, outputs: Iterable[DetailAudio]) -> float:

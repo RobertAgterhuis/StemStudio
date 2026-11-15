@@ -157,6 +157,24 @@ def test_pending_reports_waiting_work(make: Factory) -> None:
     assert scheduler.pending == (1, 1)
 
 
+def test_a_failing_yield_hook_does_not_stop_the_standard_job(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    recorder = Recorder({"a": 1})
+
+    def broken(ids: list[str]) -> None:
+        raise RuntimeError("hook")
+
+    scheduler = PriorityScheduler(recorder.standard, recorder.detail, broken)
+    scheduler.submit_detail("a")
+    scheduler.submit("s1")
+    with caplog.at_level(logging.ERROR):
+        _started(scheduler).join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["s1", "a:1"]
+    assert "waiting detail jobs failed" in caplog.text
+
+
 def _started(scheduler: PriorityScheduler) -> PriorityScheduler:
     scheduler.start()
     return scheduler
