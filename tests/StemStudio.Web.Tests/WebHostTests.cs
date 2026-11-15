@@ -66,4 +66,12 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
         services.GetRequiredService<StemStudio.Web.Help.HelpContext>().IsOpen.ShouldBeFalse();
         services.GetRequiredService<StemStudio.Web.Help.ITourLauncher>().ShouldBeOfType<StemStudio.Web.Help.TourService>();
     }
+
+    [Fact]
+    public async Task Services_RegisterTheGenerativeServices_Features009And010()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+
+        scope.ServiceProvider.GetRequiredService<StemStudio.Web.Generation.GenerationStatusSource>().ShouldNotBeNull();
+    }
 }
