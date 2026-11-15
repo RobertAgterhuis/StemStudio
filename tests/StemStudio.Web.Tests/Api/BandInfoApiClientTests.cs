@@ -75,4 +75,32 @@ public sealed partial class StemStudioApiClientTests
         error.IsConflict.ShouldBeTrue();
         error.UserMessage.ShouldBe("A lookup is already running.");
     }
+
+    [Fact]
+    public async Task SetArtwork_PutsTheFileAsMultipart_AndReturnsTheTrack()
+    {
+        _handler.Respond(HttpStatusCode.OK, TestData.CompletedTrackJson);
+        await using var stream = new MemoryStream(new byte[4096]);
+
+        var track = await _client.SetArtworkAsync(TestData.TrackId, new UploadFile(stream, "own.png", "image/png"), Ct);
+
+        track.Id.ShouldBe(TestData.TrackId);
+        var request = _handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Put);
+        request.PathAndQuery.ShouldBe($"/api/tracks/{TestData.TrackId}/artwork");
+        var part = request.Parts.ShouldHaveSingleItem();
+        (part.Name, part.FileName, part.Length).ShouldBe(("file", "own.png", 4096L));
+    }
+
+    [Fact]
+    public async Task ResetArtwork_DeletesTheOwnPicture()
+    {
+        _handler.Respond(HttpStatusCode.OK, TestData.CompletedTrackJson);
+
+        await _client.ResetArtworkAsync(TestData.TrackId, Ct);
+
+        var request = _handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Delete);
+        request.PathAndQuery.ShouldBe($"/api/tracks/{TestData.TrackId}/artwork");
+    }
 }
