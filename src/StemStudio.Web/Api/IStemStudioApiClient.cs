@@ -3,6 +3,7 @@ using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Api;
@@ -219,4 +220,16 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The lyrics (removed).</returns>
     Task<LyricsDto> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/scores/options</c>: profiles, defaults, estimates and limits for sheet music of one source.</summary>
+    /// <param name="source">A channel of a completed track or a ready audio item.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The options; 409 when the track is not ready, 422 for an unusable source.</returns>
+    Task<ScoreOptionsDto> GetScoreOptionsAsync(AudioSourceDto source, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/assets/scores</c>: creates a score item; it is transcribed in the background.</summary>
+    /// <param name="request">The source and the choices; null members take the defaults.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued item; 409, 422 or 503 as problem details.</returns>
+    Task<AssetDto> CreateScoreAsync(CreateScoreRequest request, CancellationToken cancellationToken = default);
 }

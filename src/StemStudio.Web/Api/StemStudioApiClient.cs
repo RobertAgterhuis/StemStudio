@@ -7,6 +7,7 @@ using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Api;
@@ -158,6 +159,17 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<LyricsDto> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
         SendAsync<LyricsDto>(HttpMethod.Delete, ApiRoutes.Lyrics(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<ScoreOptionsDto> GetScoreOptionsAsync(AudioSourceDto source, CancellationToken cancellationToken = default) =>
+        SendAsync<ScoreOptionsDto>(HttpMethod.Get, ScoreOptionsQuery(source), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetDto> CreateScoreAsync(CreateScoreRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.Scores, JsonBody(request), cancellationToken);
+
+    private static string ScoreOptionsQuery(AudioSourceDto source) =>
+        source.AssetId is { } assetId ? ApiRoutes.ScoreOptionsForAsset(assetId) : ApiRoutes.ScoreOptionsForChannel(source.TrackId!.Value, source.Channel!);
 
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;

@@ -1,0 +1,42 @@
+@* The choices of the sheet music dialog (feature 008): instrument profile with its quality note and expected time. *@
+@using StemStudio.Contracts.Scores
+
+<div class="ss-field">
+    <label class="ss-label" for="score-profile">Instrument</label>
+    <select id="score-profile" class="ss-select" value="@(Form.Profile is { } p ? ScoreText.Value(p) : string.Empty)" @onchange="OnProfile"
+            data-testid="score-profile" data-help-id="sheet-music-profiles">
+        @if (Form.Options.SuggestedProfile is null)
+        {
+            <option value="">Choose an instrument</option>
+        }
+        @foreach (var profile in Form.Options.AllowedProfiles)
+        {
+            <option value="@ScoreText.Value(profile)">@ScoreText.Label(profile)</option>
+        }
+    </select>
+</div>
+
+@if (Form.Limit is { } limit)
+{
+    <p class="ss-help" data-testid="score-limits">@limit</p>
+}
+@if (Form.Estimate is { } estimate)
+{
+    <p class="ss-small ss-muted">Expected time: <span data-testid="score-estimate">@estimate</span></p>
+}
+
+@code {
+    /// <summary>The dialog's choices.</summary>
+    [Parameter, EditorRequired]
+    public ScoreForm Form { get; set; } = default!;
+
+    /// <summary>Raised after a choice changed, so the dialog re-renders its buttons.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task OnProfile(ChangeEventArgs args)
+    {
+        Form.SetProfile(Enum.TryParse<ScoreProfileDto>(args.Value?.ToString(), ignoreCase: true, out var profile) ? profile : null);
+        return OnChanged.InvokeAsync();
+    }
+}

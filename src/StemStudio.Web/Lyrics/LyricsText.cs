@@ -1,5 +1,6 @@
 using System.Globalization;
 using StemStudio.Contracts.Lyrics;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Lyrics;
 
@@ -69,7 +70,7 @@ public static class LyricsText
     /// <returns>For example "Aligning takes about 7 minutes on the CPU.", or null without an estimate.</returns>
     public static string? Estimate(LyricsDto lyrics) =>
         lyrics is { Status: LyricsStatusDto.AlignPending, Reason: { } reason } ? reason
-        : lyrics.Alignment?.EstimateSeconds is { } seconds ? $"Aligning takes about {Duration(seconds)}."
+        : lyrics.Alignment?.EstimateSeconds is { } seconds ? $"Aligning takes {TimeText.About(seconds)}."
         : null;
 
     private static string FoundLabel(LyricsDto lyrics) => Sync(lyrics) switch
@@ -85,10 +86,6 @@ public static class LyricsText
         LyricsStatusDto.Disabled => "Online lookups off",
         _ => status.ToString(),
     };
-
-    private static string Duration(int seconds) => seconds < 90
-        ? $"{seconds.ToString(CultureInfo.InvariantCulture)} seconds"
-        : $"{((seconds + 59) / 60).ToString(CultureInfo.InvariantCulture)} minutes";
 
     private static string OtherNotice(LyricsDto lyrics) => lyrics.Status switch
     {

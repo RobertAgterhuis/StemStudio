@@ -37,6 +37,7 @@ public static class FeatureCatalog
         new("lyrics.align-device", Advanced, null, "lyrics-align"),
         new("lyrics.refine", Expert, null, "lyrics-align"),
         new("lyrics.remove", Advanced, null, "lyrics-sources"),
+        new("score.detail-stems", Advanced, null, "sheet-music"),
         new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
         new("shell.kbd-hints", Expert, null, "shortcuts"),
         new("journey.rail", Beginner, Beginner, "journey"),

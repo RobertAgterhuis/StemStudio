@@ -1,0 +1,48 @@
+@* Sheet music dialog (feature 008, FR-002..FR-010, FR-014; ui-test-ids 1.7.0): a channel of a track or a library item is
+   transcribed into a score item (PDF, MusicXML, MIDI) in the background; the dialog confirms with a link to the item. *@
+@using StemStudio.Contracts.Scores
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-score-dialog" role="dialog" aria-modal="true" aria-labelledby="score-title" data-testid="score-dialog"
+         data-source="@Target.SourceKind" data-help-id="sheet-music" @onkeydown="OnKeyAsync">
+        <div class="ss-label-row">
+            <h2 id="score-title" class="ss-title" tabindex="-1" @ref="_title">Sheet music</h2>
+            <HelpHint HelpId="sheet-music" />
+        </div>
+        <p class="ss-help">Notation of @Target.Subject. It is made in the background and saved to your library.</p>
+
+        @if (Saved is { } saved)
+        {
+            <div class="ss-export-saved" role="status" data-testid="score-saved">
+                <p>Saved "@saved.Name" to the library. The sheet music is being made in the background.</p>
+                <a href="@($"library?asset={saved.Id}")" data-testid="score-saved-open">Open in library</a>
+            </div>
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Close" Click="OnClose" data-testid="score-close" />
+            </div>
+        }
+        else
+        {
+            @if (Form is { } form)
+            {
+                <ScoreChoices Form="form" OnChanged="StateHasChanged" />
+            }
+            else if (Error is null)
+            {
+                <Skeleton Lines="3" />
+            }
+            @if (Error is not null)
+            {
+                <div class="ss-error" role="alert" data-testid="score-error">@Error</div>
+            }
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="score-cancel" />
+                @if (Form is not null)
+                {
+                    <RadzenButton Text="Make sheet music" Icon="music_note" Disabled="Busy" IsBusy="Busy" BusyText="Saving..." Click="SubmitAsync"
+                                  data-testid="score-submit" />
+                }
+            </div>
+        }
+    </div>
+</div>

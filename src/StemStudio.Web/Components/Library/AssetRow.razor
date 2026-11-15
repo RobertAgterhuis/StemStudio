@@ -42,7 +42,7 @@
     <td class="ss-num"><time datetime="@Asset.CreatedAt.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture)">@Asset.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</time></td>
     <td class="ss-cell-action">
         <div class="ss-row-actions">
-            @if (Asset.Status == AssetStatusDto.Ready)
+            @if (IsReadyAudio)
             {
                 <audio controls preload="none" src="@FileUrl(true)" aria-label="@($"Play {Asset.Name}")" data-testid="@($"asset-play-{Asset.Id}")"></audio>
                 <a class="ss-row-action" href="@FileUrl(false)" download aria-label="@($"Download {Asset.Name}")" data-testid="@($"asset-download-{Asset.Id}")">Download</a>
@@ -59,3 +59,14 @@
         </div>
     </td>
 </tr>
+@if (Asset is { Kind: AssetKindDto.Score, Status: AssetStatusDto.Ready, Score: { } facts })
+{
+    <tr class="ss-score-row">
+        <td colspan="5">
+            <div class="ss-score-item">
+                <ScoreFactsPanel Asset="Asset" Facts="facts" FileUrl="FileUrl" />
+                <PdfPreview Asset="Asset" Url="@FileUrl(ApiRoutes.AssetFilePdf, true)" />
+            </div>
+        </td>
+    </tr>
+}
