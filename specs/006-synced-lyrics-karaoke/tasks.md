@@ -175,7 +175,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
 - [x] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
-- [ ] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
+- [x] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish
 - [ ] T061 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T062 [P] [devops] Validate compose/CI changes, CPU-image guard run, HO:polish
 - [ ] T063 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
