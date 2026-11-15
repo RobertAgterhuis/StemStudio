@@ -1,7 +1,6 @@
 """Tests of the library path guard (data-model.md 2.1, ADR-016 D5)."""
 
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -53,7 +52,7 @@ def _link_directory(link: Path, target: Path) -> None:
     try:
         link.symlink_to(target, target_is_directory=True)
     except OSError:
-        if sys.platform != "win32":
+        if os.name != "nt":  # os.name keeps both branches reachable for mypy on every platform
             raise
         import _winapi  # noqa: PLC0415  (Windows only)
 
