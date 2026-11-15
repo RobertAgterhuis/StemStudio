@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Artists;
+using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Configurations;
 
-/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted.</summary>
+/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted; the lyrics row (feature 006) is deleted with the track.</summary>
 public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
 {
     /// <inheritdoc />
@@ -23,6 +24,14 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         ConfigureArtworkAndMetadata(builder);
+        ConfigureLyrics(builder);
+    }
+
+    /// <summary>The status column mirrors the row (read through the property, which prefers the loaded row); the row is deleted with the track.</summary>
+    private static void ConfigureLyrics(EntityTypeBuilder<Track> builder)
+    {
+        builder.Property(track => track.LyricsStatus).HasConversion<string>().HasMaxLength(16).UsePropertyAccessMode(PropertyAccessMode.Property);
+        builder.HasOne(track => track.Lyrics).WithOne().HasForeignKey<TrackLyrics>(lyrics => lyrics.TrackId).OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureArtworkAndMetadata(EntityTypeBuilder<Track> builder)

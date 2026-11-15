@@ -1,7 +1,5 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Rendering;
@@ -122,7 +120,7 @@ public sealed class AssetPersistenceTests
         var connectionString = $"Data Source={path};Pooling=False";
         try
         {
-            await MigrateToAsync(connectionString, LastMigrationOf005);
+            await SqliteTestDatabase.MigrateLegacyAsync(connectionString, LastMigrationOf005);
 
             await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
             (await db.ScalarAsync("SELECT COUNT(*) FROM Assets")).ShouldBe("0");
@@ -137,17 +135,6 @@ public sealed class AssetPersistenceTests
         }
     }
 
-    private static async Task MigrateToAsync(string connectionString, string migration)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync(Ct);
-        await using (var context = new StemStudioDbContext(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(connection).Options))
-        {
-            await context.GetService<IMigrator>().MigrateAsync(migration, Ct);
-            context.Tracks.Add(TestData.CompletedTrack());
-            await context.SaveChangesAsync(Ct);
-        }
-    }
 
     private static async Task AddAsync(SqliteTestDatabase db, params Asset[] assets)
     {

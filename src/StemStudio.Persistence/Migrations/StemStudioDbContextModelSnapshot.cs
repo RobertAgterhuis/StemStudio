@@ -169,6 +169,50 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Assets", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>
+                {
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AlignDevice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("AlignEstimateSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AlignProgress")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoAlign")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Document")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LyricsJobId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OffsetMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TrackId");
+
+                    b.ToTable("TrackLyrics", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Mixes.Mix", b =>
                 {
                     b.Property<Guid>("Id")
@@ -326,6 +370,11 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("SourceKey");
 
+                    b.Property<string>("LyricsStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Model")
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
@@ -456,6 +505,15 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Tracks", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithOne("Lyrics")
+                        .HasForeignKey("StemStudio.Domain.Lyrics.TrackLyrics", "TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Mixes.Mix", b =>
                 {
                     b.HasOne("StemStudio.Domain.Tracks.Track", null)
@@ -471,6 +529,11 @@ namespace StemStudio.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ArtistId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Tracks.Track", b =>
+                {
+                    b.Navigation("Lyrics");
                 });
 #pragma warning restore 612, 618
         }

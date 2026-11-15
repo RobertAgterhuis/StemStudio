@@ -5,7 +5,7 @@ namespace StemStudio.Persistence.Repositories;
 /// <summary>Storage of <see cref="Track"/> aggregates (one unit of work per scope).</summary>
 public interface ITrackRepository
 {
-    /// <summary>Finds a track by ID.</summary>
+    /// <summary>Finds a track by ID, with its lyrics row (feature 006).</summary>
     /// <param name="id">Track ID.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked track, or null.</returns>
@@ -36,6 +36,14 @@ public interface ITrackRepository
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListLookupActiveAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Tracks whose lyrics are searching, aligning, or waiting for the automatic alignment rule, with their lyrics row, for
+    /// the lyrics synchroniser (oldest first, feature 006).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListLyricsActiveAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Queued tracks that never got a worker job and were last changed before <paramref name="updatedBeforeUtc"/>: the

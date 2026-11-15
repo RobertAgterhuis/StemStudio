@@ -1,8 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -141,7 +139,7 @@ public sealed class LyricsPersistenceTests
         var connectionString = $"Data Source={path};Pooling=False";
         try
         {
-            await MigrateToAsync(connectionString, LastMigrationOf007);
+            await SqliteTestDatabase.MigrateLegacyAsync(connectionString, LastMigrationOf007);
 
             await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
             (await db.ScalarAsync("SELECT LyricsStatus FROM Tracks")).ShouldBe("None");
@@ -158,19 +156,6 @@ public sealed class LyricsPersistenceTests
         }
     }
 
-    private static async Task MigrateToAsync(string connectionString, string migration)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync(Ct);
-        await using var context = new StemStudioDbContext(new DbContextOptionsBuilder<StemStudioDbContext>().UseSqlite(connection).Options);
-        await context.GetService<IMigrator>().MigrateAsync(migration, Ct);
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO Tracks (Id, SourceType, SourceKey, Title, Status, Progress, CreatedAt, UpdatedAt, Stems, DetailPhase, Metadata)
-            VALUES ('0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a', 'Youtube', 'youtube:dQw4w9WgXcQ', 'Song', 'Completed', 100, '2026-11-14 12:00:00', '2026-11-14 12:00:00', '[]', NULL, '{"Status":"None","CorrectedByUser":false}')
-            """;
-        await command.ExecuteNonQueryAsync(Ct);
-    }
 
     private static Track WithLyrics(LyricsStatus status, string videoId = "dQw4w9WgXcQ")
     {

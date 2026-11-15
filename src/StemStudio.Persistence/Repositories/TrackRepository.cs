@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Repositories;
@@ -9,7 +10,7 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
 {
     /// <inheritdoc />
     public async Task<Track?> FindAsync(Guid id, CancellationToken cancellationToken) =>
-        await context.Tracks.FirstOrDefaultAsync(track => track.Id == id, cancellationToken);
+        await context.Tracks.Include(track => track.Lyrics).FirstOrDefaultAsync(track => track.Id == id, cancellationToken);
 
     /// <inheritdoc />
     public async Task<Track?> FindByKeyAsync(SourceKey key, CancellationToken cancellationToken) =>
@@ -41,6 +42,15 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     public async Task<IReadOnlyList<Track>> ListLookupActiveAsync(CancellationToken cancellationToken) =>
         await context.Tracks
             .Where(track => track.Metadata.Status == MetadataStatus.Pending || track.Metadata.Status == MetadataStatus.Searching)
+            .OrderBy(track => track.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListLyricsActiveAsync(CancellationToken cancellationToken) =>
+        await context.Tracks
+            .Include(track => track.Lyrics)
+            .Where(track => track.Lyrics != null && (track.Lyrics.Status == LyricsStatus.Searching || track.Lyrics.Status == LyricsStatus.Aligning
+                || (track.Lyrics.Status == LyricsStatus.AlignPending && track.Lyrics.AutoAlign)))
             .OrderBy(track => track.CreatedAt)
             .ToListAsync(cancellationToken);
 
