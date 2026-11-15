@@ -144,8 +144,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### frontend (tests first)
 
-- [ ] T055 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Pages/TrackDetailDetailTests.cs`: `detail-section` per status, stage and progress (`aria-valuenow`), outcome texts per kind (data-model 2.2), `detail-stem-<parent>-<detail>` list, `detail-long-notice`, `detail-limitation-help` text (FR-017), polling continues while the detail phase is active even though the track is completed (FR-007, US3 AS1)
-- [ ] T056 [US1] [frontend] Implement `src/StemStudio.Web/Components/Pages/TrackDetail.Detail.razor(.cs)` and the polling change to pass T055
+- [x] T055 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Pages/TrackDetailDetailTests.cs`: `detail-section` per status, stage and progress (`aria-valuenow`), outcome texts per kind (data-model 2.2), `detail-stem-<parent>-<detail>` list, `detail-long-notice`, `detail-limitation-help` text (FR-017), polling continues while the detail phase is active even though the track is completed (FR-007, US3 AS1)
+- [x] T056 [US1] [frontend] Implement `src/StemStudio.Web/Components/Pages/TrackDetail.Detail.razor(.cs)` and the polling change to pass T055
 
 ### qa
 

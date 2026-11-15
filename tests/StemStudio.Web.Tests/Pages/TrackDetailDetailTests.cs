@@ -94,6 +94,17 @@ public sealed class TrackDetailDetailTests : PageTestContext
     }
 
     [Fact]
+    public void LongSong_WhileRunning_ShowsBothNotices()
+    {
+        var track = TestData.WithDetail(TestData.Phase(DetailPhaseStatusDto.Running, 5)) with { DurationSeconds = 840 };
+
+        var notice = RenderPage(track).Find(LongNotice).TextContent;
+
+        notice.ShouldContain("considerably longer");
+        notice.ShouldContain("longer than 10 minutes");
+    }
+
+    [Fact]
     public void ShortSong_WithoutActivePhase_ShowsNoNotice()
     {
         var page = RenderPage(TestData.Track());

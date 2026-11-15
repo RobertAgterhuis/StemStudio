@@ -1,6 +1,6 @@
-using StemStudio.Contracts;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Mixer;
 
@@ -21,12 +21,8 @@ public sealed class StemGroupState(string parent, IReadOnlyList<DetailChannelSta
     /// <summary>Builds the group of a split parent; only names allowed for the parent are kept, in display order.</summary>
     /// <param name="outcome">A parent outcome with kind split.</param>
     /// <returns>The group (possibly without stems).</returns>
-    public static StemGroupState From(ParentOutcomeDto outcome)
-    {
-        var names = outcome.Stems.Select(s => s.Name).ToHashSet(StringComparer.Ordinal);
-        var stems = DetailNames.AllowedFor(outcome.Parent).Where(names.Contains).Select(n => new DetailChannelState(outcome.Parent, n));
-        return new StemGroupState(outcome.Parent, stems.ToList());
-    }
+    public static StemGroupState From(ParentOutcomeDto outcome) =>
+        new(outcome.Parent, DetailPhaseText.OrderedStems(outcome).Select(s => new DetailChannelState(outcome.Parent, s.Name)).ToList());
 
     /// <summary>True when the channel is one of this group's detail channels.</summary>
     /// <param name="channel">The channel.</param>
