@@ -28,3 +28,16 @@
   background: var(--ss-color-raised);
   color: var(--ss-color-danger);
 }
+
+/* In-flow panel: surface colour separates it, no shadow (design-spec.md 2.4). */
+.ss-panel {
+  display: grid;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-5);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+}
+
+.ss-panel > .ss-heading {
+  margin: 0;
+}

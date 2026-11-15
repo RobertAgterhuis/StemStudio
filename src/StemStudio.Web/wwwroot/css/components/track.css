@@ -210,3 +210,80 @@ select.ss-select {
     text-align: left;
   }
 }
+
+/* Track page (design-spec.md 4.4). */
+.ss-track {
+  max-width: 60rem;
+}
+
+.ss-track-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ss-space-4);
+}
+
+.ss-track-head .ss-ribbon {
+  width: 7rem;
+  height: auto;
+}
+
+.ss-track-names h1 {
+  margin-bottom: var(--ss-space-1);
+}
+
+.ss-track-artist {
+  margin: 0;
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-heading-size);
+}
+
+.ss-stage {
+  color: var(--ss-color-muted);
+}
+
+.ss-progress {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-facts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-5);
+}
+
+.ss-facts-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.ss-facts-row dd {
+  font-size: var(--ss-type-heading-size);
+  font-weight: 600;
+}
+
+.ss-delete {
+  padding-top: var(--ss-space-2);
+  border-top: 1px solid var(--ss-color-divider);
+}
+
+.ss-limitation-note {
+  padding-left: var(--ss-space-3);
+  border-left: 2px solid var(--ss-color-divider);
+}
+
+/* Device line: icon from the Material Symbols font via CSS, so the text stays exactly the device text. */
+.ss-device::before {
+  content: "memory";
+  font-family: "Material Symbols";
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--ss-color-muted);
+  align-self: center;
+}
+
+.ss-device:has([data-device="gpu"])::before {
+  content: "developer_board";
+}
