@@ -159,8 +159,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T049 [P] [US3] [backend] Failing tests: `DELETE .../lyrics` -> `removed` (document cleared, no automatic lookup on later polls or opens), `POST .../lyrics/search` from removed/notFound/failed/disabled (409 while searching/aligning) (FR-009)
 - [ ] T050 [US3] [backend] Implement to pass T049
-- [ ] T051 [P] [US3] [audio-engine] Failing tests: reduced motion (option and `matchMedia` change at runtime) hides the ball and highlights the current word; text-size class change triggers a re-measure (FR-011)
-- [ ] T052 [US3] [audio-engine] Implement to pass T051
+- [x] T051 [P] [US3] [audio-engine] Failing tests: reduced motion (option and `matchMedia` change at runtime) hides the ball and highlights the current word; text-size class change triggers a re-measure (FR-011)
+- [x] T052 [US3] [audio-engine] Implement to pass T051
 - [ ] T053 [P] [US3] [frontend] Failing bUnit tests: `karaoke-toggle` (`aria-pressed`, banner removed and engine detached when hidden, remembered via `localStorage` with try/catch defaults), `karaoke-size` s/m/l, `lyrics-search`, `lyrics-remove` with confirm; contrast tokens for both 004 themes (FR-009, FR-011)
 - [ ] T054 [US3] [frontend] Implement to pass T053
 - [ ] T055 [US3] [qa] Author `karaoke.spec.ts` "controls": toggle persists across reload, size change keeps landing accuracy, remove + search again, `reducedMotion: 'reduce'` emulation shows no ball
