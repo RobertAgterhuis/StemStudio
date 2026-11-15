@@ -1,19 +1,54 @@
 namespace StemStudio.Web.Experience;
 
-/// <summary>Feature catalogue. Red stub (T017).</summary>
+/// <summary>
+/// The feature catalogue (design-spec.md 5, FR-013/FR-014): every level-dependent control group or aid with
+/// the levels that show it and the help topic that explains it. Data, not branching: components ask
+/// <see cref="IsVisible"/> through <c>LevelGate</c>. Everything not listed is shown at every level.
+/// Later features add entries here (FR-028).
+/// </summary>
 public static class FeatureCatalog
 {
-    /// <summary>All.</summary>
-    public static IReadOnlyList<UiFeature> All { get; } = [];
+    private const ExperienceLevel Beginner = ExperienceLevel.Beginner;
+    private const ExperienceLevel Advanced = ExperienceLevel.Advanced;
+    private const ExperienceLevel Expert = ExperienceLevel.Expert;
 
-    /// <summary>Get.</summary>
-    /// <param name="id">Id.</param>
-    /// <returns>Feature.</returns>
-    public static UiFeature Get(string id) => throw new NotImplementedException(id);
+    private static readonly Dictionary<string, UiFeature> ById = new UiFeature[]
+    {
+        new("mixer.pan", Advanced, null, "mixer-pan"),
+        new("mixer.pan-marker", Beginner, Beginner, "mixer-pan"),
+        new("mixer.loop.typed", Advanced, null, "mixer-loop"),
+        new("mixer.metronome.advanced", Advanced, null, "mixer-metronome"),
+        new("mixer.numeric", Expert, null, "mixer-numeric-entry"),
+        new("mixer.meter.db", Expert, null, "mixer-meters"),
+        new("mixer.presets", Beginner, null, "mixer-presets"),
+        new("tracks.search", Advanced, null, "tracks-library"),
+        new("mixes.search", Advanced, null, "mixes-library"),
+        new("track.job-details", Expert, null, "track-job-details"),
+        new("shell.shortcut-overlay-key", Expert, null, "shortcuts"),
+        new("shell.kbd-hints", Expert, null, "shortcuts"),
+        new("journey.rail", Beginner, Beginner, "journey"),
+        new("help.inline-hints", Beginner, Beginner, "levels"),
+        new("help.tour-offers", Beginner, Expert, "tours"),
+    }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
-    /// <summary>Visible.</summary>
-    /// <param name="id">Id.</param>
-    /// <param name="level">Level.</param>
-    /// <returns>Visible.</returns>
-    public static bool IsVisible(string id, ExperienceLevel level) => Get(id).Min <= level;
+    /// <summary>Every entry in catalogue order.</summary>
+    public static IReadOnlyList<UiFeature> All { get; } = [.. ById.Values];
+
+    /// <summary>Gets an entry.</summary>
+    /// <param name="id">Catalogue id, e.g. <c>mixer.pan</c>.</param>
+    /// <returns>The entry.</returns>
+    /// <exception cref="ArgumentException">The id is not in the catalogue.</exception>
+    public static UiFeature Get(string id) =>
+        ById.TryGetValue(id, out var feature) ? feature : throw new ArgumentException($"Unknown UI feature '{id}'.", nameof(id));
+
+    /// <summary>True iff <c>Min &lt;= level &lt;= (Max ?? Expert)</c>.</summary>
+    /// <param name="id">Catalogue id.</param>
+    /// <param name="level">The level.</param>
+    /// <returns>Whether the feature is shown at that level.</returns>
+    /// <exception cref="ArgumentException">The id is not in the catalogue.</exception>
+    public static bool IsVisible(string id, ExperienceLevel level)
+    {
+        var feature = Get(id);
+        return feature.Min <= level && level <= (feature.Max ?? Expert);
+    }
 }
