@@ -138,6 +138,18 @@ describe('transport', () => {
     expect(transport.anchor()).toBeNull();
   });
 
+  it('dispose releases every decoded buffer, detail buffers included (T085)', async () => {
+    const { ctx, transport } = await makeRig();
+    transport.addBuffers(new Map([['drums.kick', ctx.createBuffer(2, 441, 44100) as unknown as AudioBuffer]]), 0);
+    await transport.play();
+    transport.dispose();
+    expect(transport.duration).toBe(0);
+    expect(ctx.sources.every((s) => s.buffer === null)).toBe(true);
+    const count = ctx.sources.length;
+    await transport.play();
+    expect(ctx.sources).toHaveLength(count);
+  });
+
   it('play resumes the context and starts every stem with the same when and offset', async () => {
     const { ctx, transport, outputs } = await makeRig();
     ctx.currentTime = 3;

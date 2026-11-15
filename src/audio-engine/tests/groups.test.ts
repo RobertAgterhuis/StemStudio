@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RAMP_TIME_CONSTANT } from '../src/channel';
-import { SWAP_DELAY_SECONDS } from '../src/groups';
+import { SWAP_DELAY_SECONDS, StemGroups } from '../src/groups';
 import { createEngine, type AudioEngine, type DetailGroup, type LoadTrackRequest } from '../src/index';
 import { MockAudioContext, type MockAudioBufferSourceNode, type MockGainNode } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
@@ -361,5 +361,37 @@ describe('sample lock with groups (SC-004)', () => {
     const time = ctx.currentTime + 25 * LENGTH;
     const heads = started.map((s) => playhead(s, time));
     expect(Math.max(...heads) - Math.min(...heads)).toBeLessThan(0.001);
+  });
+});
+
+describe('memory release on dispose (T085)', () => {
+  it('disconnects every standard and detail channel', async () => {
+    const { engine, ctx } = await loaded();
+    await engine.play();
+    await engine.setExpanded('drums', true);
+    const gains = ctx.startedSources().map((s) => s.connections[0] as MockGainNode);
+    expect(gains).toHaveLength(5);
+    await engine.dispose();
+    expect(gains.every((g) => g.disconnected)).toBe(true);
+    expect(ctx.panners.every((p) => p.disconnected)).toBe(true);
+  });
+
+  it('StemGroups.dispose forgets every group, loaded buffer and pending load', async () => {
+    const attached: number[] = [];
+    const host = {
+      load: () => Promise.resolve(new Map()),
+      swapTime: () => 1,
+      attach: (_buffers: unknown, at: number) => {
+        attached.push(at);
+      },
+      swap: () => undefined,
+    };
+    const groups = new StemGroups(host);
+    groups.reset([DRUMS]);
+    const pending = groups.setExpanded('drums', true);
+    groups.dispose();
+    await expect(pending).rejects.toThrow('Track changed while loading the detail stems of "drums"');
+    await expect(groups.setExpanded('drums', true)).rejects.toThrow('No detail group for "drums"');
+    expect(attached).toEqual([]);
   });
 });
