@@ -1,0 +1,43 @@
+{
+  "generationId": "4a6c8e0b2d3f45a7b9c1d3e5f7a9b1c2",
+  "kind": "voiceConversion",
+  "status": "completed",
+  "progress": 100,
+  "stage": "Completed",
+  "voiceConversion": {
+    "pitchShift": 0,
+    "autoShift": true,
+    "steps": 32,
+    "cfg": 3,
+    "vocalGainDb": 0,
+    "profileName": "My voice"
+  },
+  "takes": [
+    {
+      "index": 1,
+      "seed": 0,
+      "durationSeconds": 60,
+      "sampleRate": 48000,
+      "sha256": "3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a",
+      "bytes": 11876543,
+      "peakDbfs": -1,
+      "model": {
+        "id": "soulx-singer-svc",
+        "revision": "40493ad90286056c7a9095035164434a79daa8c9"
+      },
+      "vocal": "converted",
+      "hasVocalStem": true,
+      "profile": null
+    }
+  ],
+  "warnings": [],
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "createdAt": "2026-11-15T13:05:00Z",
+  "updatedAt": "2026-11-15T13:05:31Z"
+}

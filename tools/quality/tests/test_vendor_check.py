@@ -9,11 +9,11 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-import vendor_check
 from repo_tree import WORKER_PACKAGE as PACKAGE
 from repo_tree import write_file, write_module
 
 import run_all
+import vendor_check
 from common import REPO_ROOT, Severity
 from duplication import DuplicationResult
 

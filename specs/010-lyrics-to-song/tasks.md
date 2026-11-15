@@ -15,7 +15,11 @@ CTO validation T060: SVC, RMVPE and the song engine are faked (`FakeVoiceConvert
 `FakePitchTracker`, `FakeMusicEngine.song`); E2E uses the fake generator and Chromium's fake
 microphone (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<fixture>`).
 
-**Status**: Phase 0 is **listed, not executed** (feature starts after 009's T084).
+**Status**: Phase 0 **executed** (architect, 2026-11-15) together with 009's Phase 0; the CTO runs
+009 and 010 in one combined wave (`docs/handoffs/architect-009-010-phase0.md`), so "009 complete
+(T084) -> Phase 0" below no longer applies. SoulX-Singer packaging: path install in the singer
+image (ADR-019 Phase 0 outcome); `SONG_PLANNED` re-measured (research.md S-07). T005's hand-off is
+`architect-009-010-phase0.md`.
 
 ## Format: `[ID] [P?] [Story?] [owner] Description (FR/SC refs)`
 
@@ -41,11 +45,11 @@ unchanged through the 009 import flow).
 
 ## Phase 0: Contract code and skeleton (architect, BEFORE the wave)
 
-- [ ] T001 [architect] ADR-019 -> Accepted; confirm the consent statement `consent.v1` (EN + NL text, data-model 3.3) with the CTO (owner wording check, not blocking the plan)
-- [ ] T002 [architect] Full contracts in `specs/010-lyrics-to-song/contracts/`: `generator-api.openapi.yaml` 1.1.0, `backend-api.openapi.yaml` (B9+0.1), `ui-test-ids.md` (U9+0.1), `redocly.yaml`; Redocly lint clean (DELTA.md)
-- [ ] T003 [architect] Generator skeleton: `pyproject.toml` new extra `soulx` (conflicting with `acestep` via `[tool.uv] conflicts`: torch 2.10.0+cu128, transformers 4.41.2, tokenizers 0.19.1) with the SoulX-Singer code pin (`81aeb3ae772c70093c3de74dc23c92d983801ae4`; upstream has no packaging, so Phase 0 decides between a git dependency with a minimal build shim kept in `generator/third_party/soulx-singer-shim/` or a path install in the Dockerfile; the choice is recorded in ADR-019), `librosa`, `omegaconf`; `uv.lock`; `ports.py` (`VoiceConverter`, `PitchTracker`, `MusicEngine.song`, new `GpuNeed`s), `schemas.py` 1.1.0, `config.py` (`STEMSTUDIO_GENERATOR_KINDS`, `STEMSTUDIO_SVC_MAX_TARGET_SECONDS`, fake mode `unvoiced-sample`); re-measure the planned song profile with an explicit bf16 LM dtype and update `GpuNeed`; skeleton tests
-- [ ] T004 [P] [architect] .NET contract code: `Contracts/Lyrics/*`, `Contracts/Voices/*` (incl. `VoiceConsentDto`, `ConsentStatementDto`), `Generation/*` additions (`SongRequestDto`, `VoiceConversionRequestDto`, `VocalLabelDto`), `TrackOriginDto` additions, `ApiRoutes`, `ContractLimits` (lyrics 4,096, title 80, sample 10-60 s, sample upload 20 MiB, lyrics upload 64 KiB); skeleton tests; example copies; operationIds staged
-- [ ] T005 [architect] Verify the skeleton (build 0 warnings, all tests + coverage gates, ruff/mypy, `run_all.py`); hand-off `docs/handoffs/architect-010-plan.md` (dependencies + licences)
+- [x] T001 [architect] ADR-019 -> Accepted; confirm the consent statement `consent.v1` (EN + NL text, data-model 3.3) with the CTO (owner wording check, not blocking the plan)
+- [x] T002 [architect] Full contracts in `specs/010-lyrics-to-song/contracts/`: `generator-api.openapi.yaml` 1.1.0, `backend-api.openapi.yaml` (B9+0.1), `ui-test-ids.md` (U9+0.1), `redocly.yaml`; Redocly lint clean (DELTA.md)
+- [x] T003 [architect] Generator skeleton: `pyproject.toml` new extra `soulx` (conflicting with `acestep` via `[tool.uv] conflicts`: torch 2.10.0+cu128, transformers 4.41.2, tokenizers 0.19.1) with the SoulX-Singer code pin (`81aeb3ae772c70093c3de74dc23c92d983801ae4`; upstream has no packaging, so Phase 0 decides between a git dependency with a minimal build shim kept in `generator/third_party/soulx-singer-shim/` or a path install in the Dockerfile; the choice is recorded in ADR-019), `librosa`, `omegaconf`; `uv.lock`; `ports.py` (`VoiceConverter`, `PitchTracker`, `MusicEngine.song`, new `GpuNeed`s), `schemas.py` 1.1.0, `config.py` (`STEMSTUDIO_GENERATOR_KINDS`, `STEMSTUDIO_SVC_MAX_TARGET_SECONDS`, fake mode `unvoiced-sample`); re-measure the planned song profile with an explicit bf16 LM dtype and update `GpuNeed`; skeleton tests
+- [x] T004 [P] [architect] .NET contract code: `Contracts/Lyrics/*`, `Contracts/Voices/*` (incl. `VoiceConsentDto`, `ConsentStatementDto`), `Generation/*` additions (`SongRequestDto`, `VoiceConversionRequestDto`, `VocalLabelDto`), `TrackOriginDto` additions, `ApiRoutes`, `ContractLimits` (lyrics 4,096, title 80, sample 10-60 s, sample upload 20 MiB, lyrics upload 64 KiB); skeleton tests; example copies; operationIds staged
+- [x] T005 [architect] Verify the skeleton (build 0 warnings, all tests + coverage gates, ruff/mypy, `run_all.py`); hand-off `docs/handoffs/architect-010-plan.md` (dependencies + licences)
 
 **Checkpoint**: skeleton green; wave may start.
 

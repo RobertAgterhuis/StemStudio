@@ -1,0 +1,11 @@
+{
+  "kind": "voiceConversion",
+  "voiceConversion": {
+    "pitchShift": 0,
+    "autoShift": true,
+    "steps": 32,
+    "cfg": 3,
+    "vocalGainDb": 0,
+    "profileName": "My voice"
+  }
+}

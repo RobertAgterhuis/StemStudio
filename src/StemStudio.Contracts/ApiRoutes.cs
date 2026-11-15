@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace StemStudio.Contracts;
 
 /// <summary>Relative routes of the backend HTTP API (see backend-api.openapi.yaml).</summary>
@@ -173,4 +175,106 @@ public static class ApiRoutes
     /// <param name="assetId">Item id.</param>
     /// <returns>The route with the query.</returns>
     public static string ScoreOptionsForAsset(Guid assetId) => $"{ScoreOptions}?assetId={assetId}";
+
+    /// <summary>Generation availability: <c>GET /api/generation/status</c> (1.8.0).</summary>
+    public const string GenerationStatus = "/api/generation/status";
+
+    /// <summary>The style library: <c>GET</c> (filters), <c>POST</c> (create) (1.8.0).</summary>
+    public const string Styles = "/api/styles";
+
+    /// <summary>One style: <c>GET</c>, <c>PUT</c>, <c>DELETE</c> (1.8.0).</summary>
+    /// <param name="styleId">Style id.</param>
+    /// <returns>The route.</returns>
+    public static string Style(Guid styleId) => $"{Styles}/{styleId}";
+
+    /// <summary>Copy a style into a user style: <c>POST</c> (1.8.0).</summary>
+    /// <param name="styleId">Style id.</param>
+    /// <returns>The route.</returns>
+    public static string DuplicateStyle(Guid styleId) => $"{Style(styleId)}/duplicate";
+
+    /// <summary>Restyle a completed track: <c>POST /api/tracks/{id}/restyles</c> (1.8.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string Restyles(Guid trackId) => $"{Track(trackId)}/restyles";
+
+    /// <summary>Generations, newest first: <c>GET</c> (<c>?kind=</c>, <c>?sourceTrackId=</c>) (1.8.0).</summary>
+    public const string Generations = "/api/generations";
+
+    /// <summary>One generation: <c>GET</c>, <c>DELETE</c> (1.8.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <returns>The route.</returns>
+    public static string Generation(Guid generationId) => $"{Generations}/{generationId}";
+
+    /// <summary>Cancel a generation: <c>POST</c> (1.8.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <returns>The route.</returns>
+    public static string CancelGeneration(Guid generationId) => $"{Generation(generationId)}/cancel";
+
+    /// <summary>Retry a failed or cancelled generation: <c>POST</c> (1.8.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <returns>The route.</returns>
+    public static string RetryGeneration(Guid generationId) => $"{Generation(generationId)}/retry";
+
+    /// <summary>One take of a generation (base of the take routes).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <param name="index">Take number from 1.</param>
+    /// <returns>The route.</returns>
+    public static string Take(Guid generationId, int index) => string.Create(CultureInfo.InvariantCulture, $"{Generation(generationId)}/takes/{index}");
+
+    /// <summary>Take audio with Range support: <c>GET</c> (1.8.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <param name="index">Take number from 1.</param>
+    /// <returns>The route.</returns>
+    public static string TakeAudio(Guid generationId, int index) => $"{Take(generationId, index)}/audio";
+
+    /// <summary>Import a take as a track: <c>POST</c> (1.8.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <param name="index">Take number from 1.</param>
+    /// <returns>The route.</returns>
+    public static string ImportTake(Guid generationId, int index) => $"{Take(generationId, index)}/import";
+
+    /// <summary>"Use my voice" on a song take: <c>POST</c> (1.9.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <param name="index">Take number from 1.</param>
+    /// <returns>The route.</returns>
+    public static string VoiceConversions(Guid generationId, int index) => $"{Take(generationId, index)}/voice-conversions";
+
+    /// <summary>The converted vocal of a voice-conversion take: <c>GET</c> (1.9.0).</summary>
+    /// <param name="generationId">Generation id.</param>
+    /// <param name="index">Take number from 1.</param>
+    /// <returns>The route.</returns>
+    public static string TakeVocal(Guid generationId, int index) => $"{Take(generationId, index)}/vocal";
+
+    /// <summary>Saved lyrics sheets: <c>GET</c> (<c>?q=</c>), <c>POST</c> (1.9.0). Not the synced lyrics of a track (<see cref="Lyrics(Guid)"/>).</summary>
+    public const string LyricsSheets = "/api/lyrics";
+
+    /// <summary>Upload a lyrics file: <c>POST</c> multipart (1.9.0).</summary>
+    public const string LyricsSheetUpload = "/api/lyrics/upload";
+
+    /// <summary>Propose section markers: <c>POST</c> (1.9.0).</summary>
+    public const string LyricsSections = "/api/lyrics/sections";
+
+    /// <summary>One lyrics sheet: <c>GET</c>, <c>PUT</c>, <c>DELETE</c> (1.9.0).</summary>
+    /// <param name="lyricsId">Sheet id.</param>
+    /// <returns>The route.</returns>
+    public static string LyricsSheet(Guid lyricsId) => $"{LyricsSheets}/{lyricsId}";
+
+    /// <summary>Generate a song: <c>POST /api/songs</c> (1.9.0).</summary>
+    public const string Songs = "/api/songs";
+
+    /// <summary>Voice profiles: <c>GET</c>, <c>POST</c> multipart (1.9.0).</summary>
+    public const string VoiceProfiles = "/api/voice-profiles";
+
+    /// <summary>One voice profile: <c>GET</c>, <c>DELETE</c> (<c>?deleteTakes=</c>) (1.9.0).</summary>
+    /// <param name="profileId">Profile id.</param>
+    /// <returns>The route.</returns>
+    public static string VoiceProfile(Guid profileId) => $"{VoiceProfiles}/{profileId}";
+
+    /// <summary>The normalised sample of a profile: <c>GET</c> with Range (1.9.0).</summary>
+    /// <param name="profileId">Profile id.</param>
+    /// <returns>The route.</returns>
+    public static string VoiceSample(Guid profileId) => $"{VoiceProfile(profileId)}/sample";
+
+    /// <summary>The current consent statement: <c>GET</c> (1.9.0).</summary>
+    public const string VoiceConsent = "/api/consent/voice";
 }

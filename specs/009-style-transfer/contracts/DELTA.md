@@ -1,5 +1,33 @@
 # Contract delta: feature 009 (style transfer)
 
+## Phase 0 outcome (architect, 2026-11-15)
+
+Bound versions (docs/ROADMAP.md): **generator-api 1.0.0** (new), **backend-api 1.8.0** = 008's
+1.7.0 + this delta, **ui-test-ids 1.8.0** = 1.7.0 + section 4; worker-api stays 1.6.0 and the
+audio engine 2.1.0. Full documents in this folder (`generator-api.openapi.yaml`,
+`backend-api.openapi.yaml`, `ui-test-ids.md`, `redocly.yaml`; Redocly 2.78.0 valid). Feature 010
+extends them (`specs/010-lyrics-to-song/contracts/`); the code follows the 010 documents.
+Refinements against the text below (binding; details in ADR-018 "Phase 0 outcome"):
+
+- Progress is an integer 0-100 (generator and backend). Takes are numbered from 1.
+- Generator: `GeneratorHealth` has `status`, `engine` (`acestep`/`fake`); `Generation` carries the
+  parameters in the member named by `kind` (`restyle`) and `warnings[]`; `GeneratedTake.peakDbfs`;
+  problems have `code` (`invalidInput`, `gpuRequired`, `sourceTooShort`); the multipart examples
+  are `RangeRestyleUpload` / `InPlaceRestyleUpload` (their `params` part is the JSON).
+- Backend: `Generation.restyle` (`RestyleDetails`: source track snapshot, `range`, stems, style
+  snapshot, strength, caption) instead of top-level members; `Generation.warnings[]`;
+  `GenerationTake.model`; `Track.origin.sourceTrackId` (for the source link); library items of
+  takes have origin `generation`, `Provenance.generation` and 48 kHz `AudioFacts`; problem
+  `type` values are kebab-case (`not-installed`, `gpu-required`, `track-not-ready`,
+  `imitation`, `style-name-taken`, `preset-read-only`, `generation-not-completed`,
+  `generation-not-retryable`, `generator-unavailable`); `GET /api/generation/status` reports
+  the generator's device as `ProcessingDevice`.
+- Enum names: `GenerationState` (status of a generation) and `GenerationAvailability`
+  (`notInstalled`/`unavailable`/`ready`); `GenerationStatus` is the body of the status endpoint.
+- UI ids: also `nav-generations`, `nav-styles`, `generation-download-notice`,
+  `track-ai-badge-<trackId>`, `restyle-dialog`, `style-delete-confirm`, `style-empty`,
+  `style-cancel`, `generation-delete-confirm`, `track-generations`; Beginner visibility per id.
+- Help topics use ids without the `help.` prefix (`generation-gpu-required`, ...).
 Final version numbers are assigned at feature start (tasks.md T003), on top of whatever versions
 003, 004 and 007 have released by then. Below, `B` = the backend API version current at feature
 start, `U` = the UI test ids version current at feature start. All backend and UI changes are

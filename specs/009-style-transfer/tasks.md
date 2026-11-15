@@ -16,8 +16,11 @@ test (skipped in CI) and the CTO validation T082: the generator is tested with `
 fake NVML, fake lease and fake clock; .NET with a stub generator `HttpMessageHandler` using the
 contract examples; E2E with the fake generator (`STEMSTUDIO_GENERATOR=fake`).
 
-**Status**: Phase 0 is **listed, not executed** (feature starts after 003 and 007 are merged and
-004's UI framework is available).
+**Status**: Phase 0 **executed** (architect, 2026-11-15) together with 010's Phase 0 in one skeleton;
+see `docs/handoffs/architect-009-010-phase0.md` (combined 009 + 010 wave plan, which replaces the
+"010 starts only after T084" rule below: both features run in one wave on the shared skeleton).
+T001: constitution 1.3.0 by the CTO; ADR-018 Accepted and `.claude/agents/generative.md` added by
+the architect on the CTO's instruction. T006's hand-off is `architect-009-010-phase0.md`.
 
 ## Format: `[ID] [P?] [Story?] [owner] Description (FR/SC refs)`
 
@@ -48,12 +51,12 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 ## Phase 0: Decisions, contract code and skeleton (CTO + architect, BEFORE the wave)
 
-- [ ] T001 [CTO] Constitution amendment 1.3.0 (MINOR) with `/speckit-constitution`: GPU-only exception for optional generative services (text in ADR-018 D9); ADR-018 status -> Accepted; add `.claude/agents/generative.md` from the plan.md draft
-- [ ] T002 [architect] Bind versions on top of the merged 003/004/007 contracts and write full documents in `specs/009-style-transfer/contracts/`: `generator-api.openapi.yaml` 1.0.0 (new, examples per DELTA.md 1), `backend-api.openapi.yaml` (B+0.1), `ui-test-ids.md` (U+0.1), `redocly.yaml`; Redocly lint clean (FR-001..FR-010)
-- [ ] T003 [architect] Generator skeleton `generator/`: `pyproject.toml` (Python 3.12; runtime: fastapi, uvicorn, pydantic, python-multipart, soundfile, numpy, nvidia-ml-py; optional extra `acestep` = `ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866`; dev: pytest, pytest-cov, ruff, mypy, httpx), `uv.lock`; verify the ACE-Step lock resolves on 3.12 and whether `gradio` can be excluded (fallback 3.11, recorded in an ADR-018 note); `ports.py` (`MusicEngine`, `GpuGate`, `GpuNeed`, `JobStore`, `Clock`, `DeviceUse`), `schemas.py` (`CONTRACT_VERSION = "1.0.0"`, all generator schemas), `config.py` (data-model 1); skeleton tests `generator/tests/test_contract_skeleton.py` (schemas validate the contract examples); mypy `ignore_missing_imports` for `acestep`, `pynvml`
-- [ ] T004 [P] [architect] Worker `config.py`: `gpu_lease_file` (`STEMSTUDIO_GPU_LEASE_FILE`, optional) and `gpu_lease_wait_seconds` (default 900) with tests in `worker/tests/test_config.py`
-- [ ] T005 [P] [architect] .NET contract code: `StemStudio.Contracts/Styles/*` (DTOs, enums), `Generation/*` (`GenerationDto`, `GenerationTakeDto`, `RestyleRequestDto`, `GenerationStatusDto`, `GenerationErrorDto`), `Tracks/TrackOriginDto` + `TrackDto.Origin`, `ApiRoutes` additions, `ContractLimits` (range 10-480 s, name 60, description 300, tags 8, caption 512); skeleton contract tests; generator example copies; new operationIds staged as pending in the backend contract test (agreed one-time edit)
-- [ ] T006 [architect] Verify the skeleton: `dotnet build` 0 warnings, all .NET tests + coverage gates, worker and generator `pytest --cov`/ruff/mypy, `tools/quality/run_all.py` 0 errors; hand-off `docs/handoffs/architect-009-plan.md` (dependencies + licences)
+- [x] T001 [CTO] Constitution amendment 1.3.0 (MINOR) with `/speckit-constitution`: GPU-only exception for optional generative services (text in ADR-018 D9); ADR-018 status -> Accepted; add `.claude/agents/generative.md` from the plan.md draft
+- [x] T002 [architect] Bind versions on top of the merged 003/004/007 contracts and write full documents in `specs/009-style-transfer/contracts/`: `generator-api.openapi.yaml` 1.0.0 (new, examples per DELTA.md 1), `backend-api.openapi.yaml` (B+0.1), `ui-test-ids.md` (U+0.1), `redocly.yaml`; Redocly lint clean (FR-001..FR-010)
+- [x] T003 [architect] Generator skeleton `generator/`: `pyproject.toml` (Python 3.12; runtime: fastapi, uvicorn, pydantic, python-multipart, soundfile, numpy, nvidia-ml-py; optional extra `acestep` = `ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866`; dev: pytest, pytest-cov, ruff, mypy, httpx), `uv.lock`; verify the ACE-Step lock resolves on 3.12 and whether `gradio` can be excluded (fallback 3.11, recorded in an ADR-018 note); `ports.py` (`MusicEngine`, `GpuGate`, `GpuNeed`, `JobStore`, `Clock`, `DeviceUse`), `schemas.py` (`CONTRACT_VERSION = "1.0.0"`, all generator schemas), `config.py` (data-model 1); skeleton tests `generator/tests/test_contract_skeleton.py` (schemas validate the contract examples); mypy `ignore_missing_imports` for `acestep`, `pynvml`
+- [x] T004 [P] [architect] Worker `config.py`: `gpu_lease_file` (`STEMSTUDIO_GPU_LEASE_FILE`, optional) and `gpu_lease_wait_seconds` (default 900) with tests in `worker/tests/test_config.py`
+- [x] T005 [P] [architect] .NET contract code: `StemStudio.Contracts/Styles/*` (DTOs, enums), `Generation/*` (`GenerationDto`, `GenerationTakeDto`, `RestyleRequestDto`, `GenerationStatusDto`, `GenerationErrorDto`), `Tracks/TrackOriginDto` + `TrackDto.Origin`, `ApiRoutes` additions, `ContractLimits` (range 10-480 s, name 60, description 300, tags 8, caption 512); skeleton contract tests; generator example copies; new operationIds staged as pending in the backend contract test (agreed one-time edit)
+- [x] T006 [architect] Verify the skeleton: `dotnet build` 0 warnings, all .NET tests + coverage gates, worker and generator `pytest --cov`/ruff/mypy, `tools/quality/run_all.py` 0 errors; hand-off `docs/handoffs/architect-009-plan.md` (dependencies + licences)
 
 **Checkpoint**: skeleton green; wave may start.
 

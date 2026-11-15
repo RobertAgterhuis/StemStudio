@@ -30,8 +30,10 @@ class FakeRun:
 @pytest.fixture
 def fc_list(monkeypatch: pytest.MonkeyPatch) -> FakeRun:
     run = FakeRun()
-    monkeypatch.setattr(fonts.shutil, "which", lambda name: FC_LIST if name == "fc-list" else None)
-    monkeypatch.setattr(fonts.subprocess, "run", run)
+    monkeypatch.setattr(
+        f"{fonts.__name__}.shutil.which", lambda name: FC_LIST if name == "fc-list" else None
+    )
+    monkeypatch.setattr(f"{fonts.__name__}.subprocess.run", run)
     return run
 
 
@@ -72,7 +74,7 @@ def test_an_fc_list_that_cannot_run_lists_nothing(fc_list: FakeRun, error: Excep
 def test_without_fontconfig_nothing_is_listed_and_nothing_runs(
     monkeypatch: pytest.MonkeyPatch, fc_list: FakeRun
 ) -> None:
-    monkeypatch.setattr(fonts.shutil, "which", lambda name: None)
+    monkeypatch.setattr(f"{fonts.__name__}.shutil.which", lambda name: None)
 
     assert fonts.fontconfig_families() == frozenset()
     assert fc_list.calls == []

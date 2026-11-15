@@ -1,0 +1,51 @@
+{
+  "generationId": "6c8e0a2b4d5f47a9b1c3d5e7f9a1b3c4",
+  "kind": "song",
+  "status": "completed",
+  "progress": 100,
+  "stage": "Completed",
+  "song": {
+    "caption": "Bossa nova, laidback feel, nylon guitar, soft percussion, flute, breezy, instrumental",
+    "lyrics": "[Instrumental]",
+    "instrumental": true,
+    "vocalLanguage": "unknown",
+    "bpm": 96,
+    "keyScale": "D minor",
+    "timeSignature": "4",
+    "durationSeconds": 30,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      7
+    ],
+    "thinking": true
+  },
+  "takes": [
+    {
+      "index": 1,
+      "seed": 7,
+      "durationSeconds": 30,
+      "sampleRate": 48000,
+      "sha256": "2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f70819",
+      "bytes": 6012345,
+      "peakDbfs": -2.4,
+      "model": {
+        "id": "acestep-v15-turbo",
+        "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+      },
+      "vocal": "none",
+      "hasVocalStem": false,
+      "profile": "direct"
+    }
+  ],
+  "warnings": [],
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "createdAt": "2026-11-15T13:10:00Z",
+  "updatedAt": "2026-11-15T13:10:09Z"
+}

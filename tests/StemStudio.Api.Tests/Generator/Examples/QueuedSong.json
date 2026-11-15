@@ -1,0 +1,29 @@
+{
+  "generationId": "8d2a4c6e0f1b43d5a7c9e1f3b5d7a9c2",
+  "kind": "song",
+  "status": "queued",
+  "progress": 0,
+  "stage": "Queued",
+  "song": {
+    "caption": "Pop rock, driving feel, electric guitars, bass, drums, upbeat, female lead vocal, warm",
+    "lyrics": "[verse]\nSing it loud, sing it free\nEvery note is part of me\n\n[chorus]\nThis little song belongs to me",
+    "instrumental": false,
+    "vocalLanguage": "en",
+    "bpm": null,
+    "keyScale": null,
+    "timeSignature": null,
+    "durationSeconds": 60,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      42
+    ],
+    "thinking": true
+  },
+  "takes": [],
+  "warnings": [],
+  "device": null,
+  "error": null,
+  "createdAt": "2026-11-15T13:00:00Z",
+  "updatedAt": "2026-11-15T13:00:00Z"
+}

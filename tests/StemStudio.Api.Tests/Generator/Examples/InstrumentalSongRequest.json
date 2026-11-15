@@ -1,0 +1,19 @@
+{
+  "kind": "song",
+  "song": {
+    "caption": "Bossa nova, laidback feel, nylon guitar, soft percussion, flute, breezy, instrumental",
+    "lyrics": "[Instrumental]",
+    "instrumental": true,
+    "vocalLanguage": "unknown",
+    "bpm": 96,
+    "keyScale": "D minor",
+    "timeSignature": "4",
+    "durationSeconds": 30,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      7
+    ],
+    "thinking": true
+  }
+}
