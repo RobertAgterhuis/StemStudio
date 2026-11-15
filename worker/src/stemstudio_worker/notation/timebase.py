@@ -6,13 +6,14 @@ starts at the beat nearest to the first downbeat; positions are quarter notes fr
 snapped to sixteenths or eighths. A manual tempo generates constant beats over the input.
 """
 
+import bisect
+import itertools
 import math
+import statistics
 from collections.abc import Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Final
-
-import numpy as np
 
 from stemstudio_worker.schemas import BeatGridTempo, ManualTempo, ScoreResolution
 
@@ -152,7 +153,7 @@ class TimeBase:
     @property
     def period(self) -> float:
         """Median beat period in seconds."""
-        return float(np.median(np.diff(self.beats)))
+        return statistics.median(b - a for a, b in itertools.pairwise(self.beats))
 
     @property
     def time_signature(self) -> str:
@@ -173,9 +174,11 @@ class TimeBase:
             return (seconds - first) / self.period
         if seconds > last:
             return len(self.beats) - 1 + (seconds - last) / self.period
-        return float(np.interp(seconds, self.beats, np.arange(len(self.beats))))
+        upper = min(bisect.bisect_right(self.beats, seconds), len(self.beats) - 1)
+        left, right = self.beats[upper - 1], self.beats[upper]
+        return upper - 1 + (seconds - left) / (right - left)
 
 
 def _nearest(beats: Sequence[float], seconds: float) -> int:
     """Return the index of the beat nearest to ``seconds``."""
-    return int(np.argmin(np.abs(np.asarray(beats) - seconds)))
+    return min(range(len(beats)), key=lambda i: abs(beats[i] - seconds))
