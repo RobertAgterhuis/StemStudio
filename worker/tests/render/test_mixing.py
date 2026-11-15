@@ -49,7 +49,8 @@ def test_pan_zero_is_exactly_the_identity() -> None:
 def test_pan_matrix_is_a_fresh_float64_array() -> None:
     matrix = pan_matrix(-0.4)
     matrix[0, 0] = 9.0
-    assert (matrix.dtype, pan_matrix(-0.4)[0, 0]) == (np.float64, 1.0)
+    assert matrix.dtype == np.dtype(np.float64)
+    assert pan_matrix(-0.4)[0, 0] == 1.0
 
 
 @pytest.mark.parametrize("case", _pan_cases(), ids=lambda case: f"pan {case['pan']}")
@@ -74,7 +75,8 @@ def test_mix_block_applies_gain_pan_and_master_gain_and_sums_inputs() -> None:
 def test_mix_block_with_unity_settings_is_bit_identical() -> None:
     block = np.arange(-6, 6, dtype=np.float32).reshape(6, 2) / np.float32(32768)
     mixed = mix_block([block], [_input()], 1.0)
-    assert (mixed.dtype, mixed.shape, np.array_equal(mixed, block)) == (np.float32, (6, 2), True)
+    assert mixed.dtype == np.dtype(np.float32)
+    assert np.array_equal(mixed, block)
 
 
 def test_mix_block_returns_float32_and_does_not_change_its_input() -> None:
@@ -85,9 +87,15 @@ def test_mix_block_returns_float32_and_does_not_change_its_input() -> None:
 
 def test_mix_block_of_zero_frames_is_empty() -> None:
     mixed = mix_block([np.zeros((0, 2), dtype=np.float32)], [_input()], 1.0)
-    assert (mixed.shape, mixed.dtype) == ((0, 2), np.float32)
+    assert mixed.shape == (0, 2)
+    assert mixed.dtype == np.dtype(np.float32)
 
 
 def test_mix_block_needs_one_block_per_input() -> None:
     with pytest.raises(ValueError, match="one block per input"):
         mix_block([_signal((0.0, 0.0))], [_input(), _input()], 1.0)
+
+
+def test_mix_block_needs_at_least_one_block() -> None:
+    with pytest.raises(ValueError, match="one block per input"):
+        mix_block([], [], 1.0)
