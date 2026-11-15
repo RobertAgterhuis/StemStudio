@@ -7,11 +7,11 @@ from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
-from starlette.concurrency import run_in_threadpool
 
+from stemstudio_worker.api import problems
 from stemstudio_worker.api.dependencies import Runtime
-from stemstudio_worker.api.problems import ProblemError, ProblemKind, TypedProblemError
 from stemstudio_worker.api.responses import json_response
 from stemstudio_worker.jobs.detail_service import UnknownJobError
 from stemstudio_worker.jobs.lyrics_lane import LyricsConflictError, LyricsService
@@ -33,10 +33,10 @@ def _call[T](action: Callable[[], T]) -> T:
     try:
         return action()
     except UnknownJobError as exc:
-        raise ProblemError(404, "Not found", str(exc)) from exc
+        raise problems.ProblemError(404, "Not found", str(exc)) from exc
     except LyricsConflictError as exc:
-        kind = ProblemKind(exc.kind, 409, _TITLES.get(exc.kind, "Conflict"))
-        raise TypedProblemError(kind, str(exc)) from exc
+        kind = problems.ProblemKind(exc.kind, 409, _TITLES.get(exc.kind, "Conflict"))
+        raise problems.TypedProblemError(kind, str(exc)) from exc
 
 
 def _service(runtime: Runtime) -> LyricsService:

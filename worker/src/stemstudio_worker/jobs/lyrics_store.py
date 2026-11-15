@@ -7,11 +7,11 @@ the result is ever logged.
 """
 
 import shutil
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from pydantic import ValidationError
 
-from stemstudio_worker.jobs.json_store import JsonStore
+from stemstudio_worker.jobs.job_records import JobRecordStore
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.schemas import (
     ContractModel,
@@ -35,7 +35,7 @@ def _job_id(record: StoredLyricsJob) -> str:
     return record.job.lyrics_job_id
 
 
-class LyricsJobStore(JsonStore[StoredLyricsJob]):
+class LyricsJobStore(JobRecordStore[StoredLyricsJob]):
     """Persists lyrics jobs below ``paths.lyrics_jobs``."""
 
     def __init__(self, paths: DataPaths) -> None:
@@ -58,19 +58,6 @@ class LyricsJobStore(JsonStore[StoredLyricsJob]):
             return LyricsResult.model_validate_json(raw)
         except (OSError, ValidationError):
             return None
-
-    def unfinished(self) -> list[StoredLyricsJob]:
-        """Every queued or running job, oldest first (run again after a restart)."""
-        pending = [r for r in self.all() if not r.job.status.is_terminal]
-        return sorted(pending, key=lambda r: r.job.created_at)
-
-    def expired(self, cutoff: datetime) -> list[str]:
-        """Ids of terminal jobs last updated before ``cutoff``."""
-        return [
-            r.job.lyrics_job_id
-            for r in self.all()
-            if r.job.status.is_terminal and r.job.updated_at < cutoff
-        ]
 
     def remove(self, job_id: str) -> bool:
         """Delete the record and the job's files; False when the job was not known."""

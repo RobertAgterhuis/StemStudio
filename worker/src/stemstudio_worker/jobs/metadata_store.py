@@ -5,13 +5,12 @@ and ``metadata-jobs/<id>/artwork/{cover,thumb}.jpg`` hold what a completed job f
 """
 
 import shutil
-from datetime import datetime
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from stemstudio_worker.jobs.artwork_files import artwork_file, write_artwork
-from stemstudio_worker.jobs.json_store import JsonStore
+from stemstudio_worker.jobs.job_records import JobRecordStore
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.ports import MetadataFindings
 from stemstudio_worker.schemas import (
@@ -35,7 +34,7 @@ def _job_id(record: StoredMetadataJob) -> str:
     return record.job.metadata_job_id
 
 
-class MetadataJobStore(JsonStore[StoredMetadataJob]):
+class MetadataJobStore(JobRecordStore[StoredMetadataJob]):
     """Persists metadata jobs below ``paths.metadata_jobs``."""
 
     def __init__(self, paths: DataPaths) -> None:
@@ -71,19 +70,6 @@ class MetadataJobStore(JsonStore[StoredMetadataJob]):
             return None
         path = artwork_file(self._paths.metadata_artwork(job_id), variant)
         return path if path.is_file() else None
-
-    def unfinished(self) -> list[StoredMetadataJob]:
-        """Every queued or running job, oldest first (re-run after a restart)."""
-        pending = [r for r in self.all() if not r.job.status.is_terminal]
-        return sorted(pending, key=lambda r: r.job.created_at)
-
-    def expired(self, cutoff: datetime) -> list[str]:
-        """Ids of terminal jobs last updated before ``cutoff``."""
-        return [
-            r.job.metadata_job_id
-            for r in self.all()
-            if r.job.status.is_terminal and r.job.updated_at < cutoff
-        ]
 
     def remove(self, job_id: str) -> None:
         """Delete the record and the job's files."""
