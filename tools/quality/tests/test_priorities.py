@@ -1,5 +1,5 @@
 from common import Finding, Severity
-from priorities import impact, render_top, top_warnings
+from priorities import CHECK_WEIGHTS, REMEDIES, impact, render_top, top_warnings
 
 
 def _warning(check: str, path: str, excess: int, line: int = 1) -> Finding:
@@ -43,3 +43,8 @@ def test_render_top_lists_owner_and_remedy() -> None:
 
 def test_render_top_without_warnings() -> None:
     assert render_top([]).endswith("None.")
+
+
+def test_raw_colour_has_a_weight_and_a_remedy() -> None:
+    assert CHECK_WEIGHTS["raw-colour"] > 0
+    assert "token" in REMEDIES["raw-colour"]

@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import css_tokens_check
 import pytest
-from css_tokens_check import ColourHit, find_css_colours, find_razor_colours
 
+import css_tokens_check
 from common import Severity
+from css_tokens_check import ColourHit, find_css_colours, find_razor_colours
 
 WEB = "src/StemStudio.Web"
 
@@ -80,7 +80,7 @@ def test_css_ignores_invalid_hex_lengths_and_hex_like_words() -> None:
 
 def test_css_keeps_line_numbers_after_multi_line_comments_and_strings() -> None:
     css = '/* one\ntwo */\n.a { content: "x\\\ny"; }\n.b { color: blue; }'
-    assert [(hit.line, hit.literal) for hit in find_css_colours(css)] == [(4, "blue")]
+    assert [(hit.line, hit.literal) for hit in find_css_colours(css)] == [(5, "blue")]
 
 
 def test_css_last_declaration_without_semicolon_is_checked() -> None:

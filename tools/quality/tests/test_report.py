@@ -122,3 +122,14 @@ def test_render_estimated_rating_and_clean_sections() -> None:
     assert "check of that unit.\n\nNone.\n\n## Clones" in empty
     assert "## Clones (0, 0 in production code)\n\nNone." in empty
     assert "Estimated maintainability: **n/a**" in render(_input([], dup=None))
+
+
+def test_render_design_token_section() -> None:
+    clean = render(_input([]))
+    assert "## Design tokens\n\n**PASS** - no raw colour values outside tokens.css." in clean
+    raw = Finding("raw-colour", Severity.ERROR, "src/StemStudio.Web/wwwroot/css/a.css", 2, "#fff")
+    legacy = Finding("raw-colour", Severity.WARNING, "src/StemStudio.Web/wwwroot/app.css", 1, "x")
+    text = render(_input([raw, legacy]))
+    assert "## Design tokens\n\n**FAIL** - 1 errors, 1 warnings (see Findings)." in text
+    assert text.index("## Dependency direction") < text.index("## Design tokens")
+    assert text.index("## Design tokens") < text.index("## Exemptions")

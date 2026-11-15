@@ -67,6 +67,7 @@ def test_audio_engine_importing_web_interop_is_an_edge(tmp_path: Path) -> None:
         "import 'driver.js/dist/driver.css';",
         "import type { A } from './types';",
         "import { b } from '../src/focus';",
+        "import { c } from '../../../../outside/repo';",
         "// import { x } from '@stemstudio/audio-engine';",
         "const s = 'import x from \"../../audio-engine/src/engine\"';",
     ],

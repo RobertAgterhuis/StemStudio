@@ -6,7 +6,8 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 |---|---|---|---|
 | `sig_check.py` | lizard unit metrics on C#, Python, TypeScript and Razor `@code` | NLOC > 30 (production code), CCN > 10, > 4 parameters | NLOC > 15, CCN > 5, test units > 30 NLOC, `@code` block > 30 lines |
 | `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/` or `worker/src/` production code | clones only between test files |
-| `dependency_check.py` | .NET `ProjectReference` graph, worker import graph | forbidden edge, cycle | module not in the dependency map |
+| `dependency_check.py` | .NET `ProjectReference` graph, TS package imports (`src/*/package.json`), worker import graph | forbidden edge, cycle | module or package not in the dependency map |
+| `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
 | `sonar_args.py` | `sonar-project.properties` -> `/d:` args for `dotnet sonarscanner begin` | | |
 
@@ -33,10 +34,20 @@ public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Except
 
 Excluded everywhere: `bin/`, `obj/`, `node_modules/`, `.venv/`, `Migrations/`, `TestResults/`,
 `coverage/`, `dist/`, `*.g.cs`, `*.generated.cs`, `*.Designer.cs`, `*.d.ts`,
-`wwwroot/js/audio-engine.js`, the deliberate samples in `tests/samples/` and the vendored
+`wwwroot/js/{audio-engine,web-interop,first-paint}.js` (build output), the deliberate samples in `tests/samples/` and the vendored
 third-party MSST code in `worker/src/stemstudio_worker/detail/vendor/` (feature 002 plan.md
 Complexity Tracking, accepted by the CTO; it is covered by the marked integration test instead).
 Vendored files contribute no edges to the dependency graph.
+
+TypeScript package rule (feature 004): `src/web-interop` and `src/audio-engine` never import
+each other (`@stemstudio/<name>` or a relative path into the other package); npm packages such as
+`driver.js` are not edges. A new package below `src/` with a `package.json` is a warning until it
+is added to `TS_ALLOWED`.
+
+Raw-colour guard (feature 004, FR-003): values are checked per declaration, so selectors (`#id`,
+`.red`), comments, strings, `url()` and custom-property names are ignored; `var()`,
+`transparent`, `currentColor`, CSS-wide keywords and `color-mix()` over tokens are allowed.
+Findings are owned by frontend.
 
 Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail, devices}`,
 every module may import `schemas` and `config`, `detail` may additionally import its own `vendor`,
@@ -60,4 +71,5 @@ uv run --directory tools/quality pytest --cov --cov-branch --cov-report=xml
 ```
 
 Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
-`python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`.
+`python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
+`python tools/quality/css_tokens_check.py`.

@@ -13,6 +13,13 @@ Worker (imports inside ``stemstudio_worker``)::
     contributes no edges); no module imports devices (feature 003: separation and detail get
     the DeviceRunner injected); main.py is the composition root and may import every module.
 
+TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` files)::
+
+    web-interop -/- audio-engine   (feature 004: neither package imports the other)
+
+    An import is an edge when its specifier is ``@stemstudio/<name>[/...]`` or a relative path
+    that leaves the package into ``src/<name>/``; npm packages (``driver.js``) are not edges.
+
 Forbidden edges and cycles fail the gate; modules missing from the map are warnings.
 
 Usage::
@@ -23,6 +30,7 @@ Exit code 0 = clean, 1 = forbidden edge or cycle.
 """
 
 import ast
+import re
 import sys
 
 # Project files are trusted repository content; Python 3.12's expat does not expand external
@@ -33,13 +41,13 @@ from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 
 from common import (
+    EXCLUDED_DIRS,
     Finding,
     Severity,
     build_parser,
-    count_errors,
-    format_findings,
     is_excluded,
     relative,
+    report_findings,
 )
 
 DOTNET_ALLOWED: Mapping[str, frozenset[str]] = {
@@ -74,6 +82,23 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
 
 PYTHON_PACKAGE = "stemstudio_worker"
 """Name of the worker package."""
+
+TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
+    "web-interop": frozenset(),
+    "audio-engine": frozenset(),
+}
+"""Allowed sibling packages per TypeScript package below ``src/`` (none: they are independent)."""
+
+TS_SCOPE = "@stemstudio/"
+"""npm scope of the StemStudio TypeScript packages."""
+
+_TS_COMMENT = re.compile(r"/\*.*?\*/|^[ \t]*//[^\n]*", re.DOTALL | re.MULTILINE)
+_TS_IMPORTS = (
+    re.compile(r"^[ \t]*(?:import|export)\b[^;'\"]*?\bfrom\s*(['\"])(?P<spec>[^'\"]+)\1", re.M),
+    re.compile(r"^[ \t]*import\s*(['\"])(?P<spec>[^'\"]+)\1", re.M),
+    re.compile(r"\bimport\s*\(\s*(['\"])(?P<spec>[^'\"]+)\1"),
+)
+"""Static ``import``/``export ... from``, side-effect ``import '...'`` and dynamic ``import()``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +140,56 @@ def read_python_edges(package_dir: Path, root: Path) -> list[Edge]:
             if target != source
         )
     return edges
+
+
+def read_ts_edges(src_dir: Path, root: Path) -> list[Edge]:
+    """Return the cross-package import edges of the TypeScript packages directly below ``src_dir``.
+
+    Excluded files (``node_modules/``, ``dist/``, ``*.d.ts``) contribute no edges.
+    """
+    edges: list[Edge] = []
+    for package in sorted(manifest.parent for manifest in src_dir.glob("*/package.json")):
+        for ts_file in _ts_files(package, root):
+            edges.extend(_ts_file_edges(ts_file, package, root))
+    return edges
+
+
+def _ts_files(package: Path, root: Path) -> Iterator[Path]:
+    for folder, dirs, files in package.walk():
+        dirs[:] = sorted(name for name in dirs if name not in EXCLUDED_DIRS)
+        yield from _ts_in(folder, files, root)
+
+
+def _ts_in(folder: Path, files: Sequence[str], root: Path) -> list[Path]:
+    paths = (folder / name for name in sorted(files) if name.endswith((".ts", ".tsx")))
+    return [path for path in paths if not is_excluded(relative(path, root))]
+
+
+def _ts_file_edges(ts_file: Path, package: Path, root: Path) -> Iterator[Edge]:
+    text = _TS_COMMENT.sub(_keep_newlines, ts_file.read_text(encoding="utf-8"))
+    rel_path = relative(ts_file, root)
+    for pattern in _TS_IMPORTS:
+        for match in pattern.finditer(text):
+            target = _ts_target(match.group("spec"), ts_file, package.parent)
+            if target is not None and target != package.name:
+                line = text.count("\n", 0, match.start()) + 1
+                yield Edge(package.name, target, rel_path, line)
+
+
+def _keep_newlines(match: re.Match[str]) -> str:
+    return "\n" * match.group().count("\n")
+
+
+def _ts_target(spec: str, ts_file: Path, src_dir: Path) -> str | None:
+    """Return the package a specifier points into (None: npm package or outside ``src``)."""
+    if spec.startswith(TS_SCOPE):
+        return spec.removeprefix(TS_SCOPE).split("/")[0]
+    if not spec.startswith("."):
+        return None
+    try:
+        return (ts_file.parent / spec).resolve().relative_to(src_dir.resolve()).parts[0]
+    except ValueError:
+        return None
 
 
 def _top_module(rel: Path) -> str:
@@ -215,8 +290,9 @@ def _rotate(path: list[str]) -> tuple[str, ...]:
 
 
 def run(root: Path) -> list[Finding]:
-    """Check the .NET project graph and the worker import graph below ``root``."""
+    """Check the .NET project, TypeScript package and worker import graphs below ``root``."""
     findings = check_edges(read_dotnet_edges(root / "src", root), DOTNET_ALLOWED)
+    findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
     package_dir = root / "worker" / "src" / PYTHON_PACKAGE
     if package_dir.is_dir():
         findings.extend(check_edges(read_python_edges(package_dir, root), PYTHON_ALLOWED))
@@ -226,12 +302,7 @@ def run(root: Path) -> list[Finding]:
 def main(argv: Sequence[str] | None = None) -> int:
     """Command-line entry point; returns the exit code."""
     args = build_parser(__doc__, with_paths=False).parse_args(argv)
-    findings = run(args.root)
-    errors = count_errors(findings)
-    lines = [format_findings(findings)] if findings else []
-    lines.append(f"dependency_check: {errors} errors, {len(findings) - errors} warnings")
-    sys.stdout.write("\n".join(lines) + "\n")
-    return 1 if errors else 0
+    return report_findings("dependency_check", run(args.root))
 
 
 if __name__ == "__main__":
