@@ -1,0 +1,12 @@
+@* Red stub (T048). *@
+<span class="ss-helptip">@ChildContent</span>
+
+@code {
+    /// <summary>Marker.</summary>
+    [Parameter, EditorRequired]
+    public string HelpId { get; set; } = string.Empty;
+
+    /// <summary>Content.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
