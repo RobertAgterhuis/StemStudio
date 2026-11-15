@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from stemstudio_worker.analysis import LibrosaDrumTranscriber
-from stemstudio_worker.analysis.drum_onsets import BLEED_GATE, SILENCE_PEAK
+from stemstudio_worker.analysis.drum_onsets import BLEED_GATE, SILENCE_PEAK, gate_hits
 from stemstudio_worker.ports import DrumHit, DrumTranscriber, TranscriptionCancelledError
 from stemstudio_worker.schemas import DrumPiece, RenderRange
 
@@ -151,7 +151,8 @@ def test_a_window_gives_times_relative_to_its_start(all_pieces: dict[DrumPiece, 
 
 def test_progress_is_reported_once_per_piece(all_pieces: dict[DrumPiece, Path]) -> None:
     seen: list[float] = []
-    inputs = {piece: all_pieces[piece] for piece in ("kick", "snare", "toms", "hihat")}
+    pieces: tuple[DrumPiece, ...] = ("kick", "snare", "toms", "hihat")
+    inputs = {piece: all_pieces[piece] for piece in pieces}
     LibrosaDrumTranscriber().transcribe(inputs, None, seen.append)
     assert seen == [0.25, 0.5, 0.75, 1.0]
 
@@ -167,3 +168,14 @@ def test_cancellation_from_progress_propagates(all_pieces: dict[DrumPiece, Path]
 def test_it_satisfies_the_port() -> None:
     transcriber: DrumTranscriber = LibrosaDrumTranscriber()
     assert transcriber is not None
+
+
+def test_an_undecodable_stem_produces_no_hits(tmp_path: Path) -> None:
+    broken = tmp_path / "snare.flac"
+    broken.write_bytes(b"not audio")
+    assert transcribe({"snare": broken}) == ()
+
+
+def test_the_gate_ignores_onsets_below_the_silence_floor() -> None:
+    peaks = np.array([SILENCE_PEAK / 2, SILENCE_PEAK / 3])
+    assert gate_hits("kick", np.array([0.5, 1.0]), peaks) == []
