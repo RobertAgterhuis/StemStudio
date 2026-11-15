@@ -38,7 +38,15 @@ async function loaded(): Promise<Rig> {
 
 describe('module exports', () => {
   it('exposes the contract version', () => {
-    expect(ENGINE_CONTRACT_VERSION).toBe('1.0.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.0.0');
+  });
+});
+
+describe('stem groups (contract 2.0.0 skeleton)', () => {
+  it('setExpanded rejects until the audio-engine agent implements groups', async () => {
+    const { engine } = makeRig();
+
+    await expect(engine.setExpanded('drums', true)).rejects.toThrow('not implemented');
   });
 });
 
