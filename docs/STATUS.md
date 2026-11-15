@@ -13,7 +13,7 @@ _Owner: CTO (orchestrator). Updated after every reviewed hand-off._
 | 5 | Tasks (`/speckit-tasks`) | architect | Done (142 tasks, Phase 0 T001-T003 + T129-T133 done) |
 | 6 | Analyze (`/speckit-analyze`) | CTO | Done (38 findings, 0 critical, all resolved; ADR-008) |
 | 7 | Implementation (`/speckit-implement`) | 9 agents in parallel worktrees | Done (all merged, all gates green) |
-| 8 | E2E verification + MVP report | qa / CTO | Done (see docs/MVP-REPORT.md); T124 partial, T125 open (no remote) |
+| 8 | E2E verification + MVP report | qa / CTO | Done (see docs/MVP-REPORT.md); T124 done (V3/V5 by hand), T125 open (no remote) |
 
 ## Blockers
 

@@ -9,8 +9,8 @@ A local web application for practising along with songs, startable with one comm
 
 | Capability | Status | Spec |
 |---|---|---|
-| Import from YouTube URL (yt-dlp + ffmpeg) | Delivered; unit/contract-tested with fakes (live download not exercised in automated tests) | US1, FR-001 |
-| Import from Spotify track URL (spotDL metadata → YouTube match, no DRM circumvention) | Delivered; tested with fakes; a track without a match is rejected at import | US1, FR-002 |
+| Import from YouTube URL (yt-dlp + ffmpeg) | Delivered; unit/contract-tested with fakes and verified live by hand (V3) | US1, FR-001 |
+| Import from Spotify track URL (spotDL metadata → YouTube match, no DRM circumvention) | Delivered; tested with fakes and verified live by hand (V3); a track without a match is rejected at import | US1, FR-002 |
 | Local upload MP3/WAV/FLAC up to 200 MiB, streamed, with 400/413/415 errors | Delivered; E2E-verified (incl. 4 MiB upload) | US1, FR-003/004 |
 | Personal-practice / copyright notice and stem-limitation help | Delivered; E2E-verified | FR-005, FR-010 |
 | Demucs `htdemucs_6s` (6 stems) with fallback `htdemucs`, FLAC 44.1 kHz stereo | Delivered; real model verified E2E | FR-006, FR-009b |
@@ -29,6 +29,8 @@ A local web application for practising along with songs, startable with one comm
 | `docker compose restart api web` + restart specs (SC-005) | 2/2 passed |
 | `docker compose up` (default: real Demucs, CPU) + `@real` main flow import → separate → mix → save → reload | 2/2 passed (Chromium 34.4 s incl. separation; Firefox reused the cached track) |
 | QA measurements (T123) | 20 s clip 25–33 s; 4-minute song 159.6 s on CPU; 6 playable FLAC stems |
+| Manual V3 (live links, real stack) | YouTube link: title/channel from source metadata, 6 stems. Spotify track link: accepted in 8.7 s, title "Monkeys Spinning Monkeys" / artist "Kevin MacLeod" from Spotify metadata, audio from a YouTube match, 6 stems. Test material: a CC BY-licensed track |
+| Manual V5 (worker stopped, browser) | Import shows "The processing service is unavailable. Existing tracks and mixes remain usable."; an existing track opens in the mixer and plays |
 
 ## 2. Coverage per component (line / branch)
 
@@ -83,17 +85,22 @@ Open-source only; full list in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.
   override exists but is not built or tested.
 - Beat detection was tuned on synthetic material; songs with tempo changes or strong backbeats may
   need manual BPM/offset correction or show downbeats on the wrong beat.
-- YouTube and Spotify imports are verified with fakes and contract tests only; no automated test
-  downloads from the live platforms (by design: network, terms of service). spotDL relies on
-  unofficial Spotify clients; yt-dlp needs regular updates.
+- YouTube and Spotify imports are verified live by hand (V3) and otherwise with fakes and contract
+  tests; no automated test downloads from the live platforms (by design: network, terms of
+  service). spotDL relies on unofficial Spotify clients; yt-dlp needs regular updates.
+- The live V3 check found that spotDL's own YouTube matching runs a full yt-dlp extraction per
+  candidate (minutes on current YouTube), so Spotify imports hit the API's 90 s worker timeout and
+  returned 503. Fixed: the worker now matches with one flat yt-dlp search (artist - title, five
+  candidates, duration within max(10 s, 10 %)). The match is less sophisticated than spotDL's
+  scoring; a wrong version (live, cover) can be picked when the duration happens to fit.
 - The worker contacts the Hugging Face Hub at start-up even with cached weights (QA R8).
 - No prerendering: pages show "Loading…" until the Blazor circuit is connected.
 - Single local user; no authentication; ports must not be exposed publicly.
 - **CI on GitHub has not run**: the repository has no remote. The workflow is validated with
   actionlint and its exact steps pass locally via `scripts/test-all.ps1`; the first push will be
   the first real CI run (T125).
-- Manual quickstart scenarios V1–V10 (T124) are covered by automated E2E where possible; the live
-  link imports (V3) and the worker-down scenario in the browser (V5) were not checked by hand.
+- Manual quickstart scenarios V1–V10 (T124) are covered by automated E2E where possible, with V3
+  and V5 checked by hand on the real stack. Cosmetic: the web app has no favicon (404 in the console).
 
 ## 6. Prioritised backlog (next iteration)
 

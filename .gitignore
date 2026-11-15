@@ -32,3 +32,4 @@ test-results/
 # Agent worktrees
 .claude/worktrees/
 coverage.xml
+.playwright-mcp/
