@@ -1161,7 +1161,10 @@ which broke every 006-010 spec at load time). (6) kept `GeneratedTrackDto` in
 `support/generation-api.ts` (`api.ts` stays free of generative types). (7) screens
 `style-library`, `song`, `voices` (consent panel open) and `restyle-dialog` in `support/screens.ts`
 (a11y + visual matrices; the restyle dialog skips unless the generator is `ready`), and the three
-pages in the 320 px reflow list. (8) `@generative` stays in `npm test`: every case skips with a
+pages in the 320 px reflow list. The 6 `restyle-dialog--*` baselines are generated on a FRESH fake
+`ready` stack in the container (`--project=visual --grep restyle-dialog`) and captured as the
+viewport, not full page (a full-page capture stitched the fixed shell around the scrolled dialog
+differently per run); every other baseline comes from the fresh default stack. (8) `@generative` stays in `npm test`: every case skips with a
 reason unless the stack has a ready (or `no-gpu`) generator, so the default run stays green and
 the fake stack runs everything. `test:legacy` also excludes the 006-010 tags and the stack-free
 self-tests (tag `@self-test`), so it is again exactly the 33 + 33 tests of 1.0.0-1.2.0.
