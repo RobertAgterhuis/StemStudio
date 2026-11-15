@@ -1,7 +1,7 @@
 import type { TrackDto } from '../support/api';
 import type { AssetDto, AssetsApi, AudioFileFormat } from '../support/assets-api';
 import { fakeJobTimeoutMs, runId } from '../support/env';
-import { expect, test } from '../support/feature-test';
+import { expect, test } from '../support/test';
 import { fixturePath } from '../support/fixtures';
 import { uniqueWavCopy } from '../support/unique-audio';
 

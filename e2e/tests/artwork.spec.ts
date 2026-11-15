@@ -2,7 +2,7 @@ import type { Locator } from '@playwright/test';
 import type { ShownArtworkSource } from '../pages/artwork-view';
 import { artworkFacts, artworkFixturePath, type ArtworkFixtureName } from '../support/artwork-fixtures';
 import { fakeJobTimeoutMs } from '../support/env';
-import { expect, test } from '../support/feature-test';
+import { expect, test } from '../support/test';
 import { requireEnv, requireNetwork, requireOnlineMode, requirePerf } from '../support/feature-skips';
 import type { ArtworkDto, TrackWithArtworkDto } from '../support/metadata-api';
 import { levelState } from '../support/preferences';

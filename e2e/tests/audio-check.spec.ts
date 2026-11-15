@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { dbDifference, mixRms, samplesEqual, wavFacts, type MixInput } from '../support/audio-check';
-import { expect, test } from '../support/feature-test';
+import { expect, test } from '../support/test';
 import { fixturePath } from '../support/fixtures';
 import { panMatrix, type PanMatrix } from '../support/render-vectors';
 
