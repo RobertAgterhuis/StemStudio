@@ -38,7 +38,10 @@ def get_health(request: Request) -> JSONResponse:
     settings: WorkerSettings = request.app.state.settings
     runtime: WorkerRuntime | None = getattr(request.app.state, "runtime", None)
     info = CPU_DEVICE if runtime is None else runtime.device
-    health = Health(separator=settings.separator, device=settings.device, device_info=info)
+    health = Health(
+        separator=settings.separator, device=settings.device, device_info=info,
+        online_lookups=settings.online.lookups_enabled,
+    )  # fmt: skip
     return json_response(health)
 
 

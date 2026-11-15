@@ -10,6 +10,7 @@ from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.detail_runner import DetailRunner
 from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
 from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.metadata_lane import DisabledLookup, MetadataLane
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
@@ -17,7 +18,8 @@ from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.ports import ImageNormalizer, PipelineAdapters
+from stemstudio_worker.jobs.sweeper import SWEEP_INTERVAL_SECONDS, Sweeper
+from stemstudio_worker.ports import ImageNormalizer, MetadataLookup, PipelineAdapters
 from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
 _STOP_TIMEOUT_SECONDS = 5.0
@@ -51,9 +53,37 @@ class OnlineParts:
 
     Attributes:
         normalizer: Normalises source pictures ("Saving cover"); None: jobs get no picture.
+        lookup: Looks songs up for metadata jobs; None: every metadata job is ``disabled``.
     """
 
     normalizer: ImageNormalizer | None = None
+    lookup: MetadataLookup | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Lanes:
+    """The light lanes beside the separation scheduler and the sweep timer.
+
+    Attributes:
+        metadata: The metadata job lane (feature 005).
+        sweeper: Hourly removal of expired job files.
+    """
+
+    metadata: MetadataLane
+    sweeper: Sweeper
+
+    @classmethod
+    def start(cls, paths: DataPaths, online: OnlineParts, clock: Clock) -> "Lanes":
+        """Start the metadata lane (re-running unfinished jobs) and the sweep timer."""
+        metadata = MetadataLane.start(paths, online.lookup or DisabledLookup(), clock)
+        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, [metadata.sweep])
+        sweeper.start()
+        return cls(metadata, sweeper)
+
+    def stop(self, timeout: float) -> None:
+        """Stop the sweep timer and the lane threads."""
+        self.sweeper.stop(timeout)
+        self.metadata.stop(timeout)
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +119,7 @@ class WorkerRuntime:
         scheduler: The priority scheduler with its worker thread.
         service: Creates (or reuses) jobs.
         detail_service: Creates, reads and cancels detail jobs.
+        lanes: The metadata lane and the sweep timer.
         device: The worker's device from the start-up probe.
     """
 
@@ -100,6 +131,7 @@ class WorkerRuntime:
     scheduler: PriorityScheduler
     service: JobService
     detail_service: DetailService
+    lanes: Lanes
     device: DeviceInfo = CPU_DEVICE
 
     @classmethod
@@ -119,11 +151,13 @@ class WorkerRuntime:
         service = JobService(store, scheduler.submit, clock)
         detail_service = DetailService(context, scheduler.submit_detail)
         scheduler.start()
+        lanes = Lanes.start(paths, parts.online, clock)
         return cls(settings, parts.adapters, paths, store, context.details, scheduler, service,
-                   detail_service, parts.devices.info)  # fmt: skip
+                   detail_service, lanes, parts.devices.info)  # fmt: skip
 
     def stop(self) -> None:
         """Stop the worker thread; a job still running is reconciled at the next start."""
+        self.lanes.stop(_STOP_TIMEOUT_SECONDS)
         self.scheduler.stop(_STOP_TIMEOUT_SECONDS)
 
 

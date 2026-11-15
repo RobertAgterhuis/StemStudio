@@ -22,7 +22,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from stemstudio_worker.analysis import create_beat_analyzer
-from stemstudio_worker.api import detail_routes
+from stemstudio_worker.api import detail_routes, metadata_routes
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
@@ -31,7 +31,7 @@ from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.runtime import DeviceHooks, OnlineParts, WorkerParts, WorkerRuntime
-from stemstudio_worker.ports import GpuNeed, ImageNormalizer, PipelineAdapters
+from stemstudio_worker.ports import GpuNeed, ImageNormalizer, MetadataLookup, PipelineAdapters
 from stemstudio_worker.schemas import CONTRACT_VERSION
 from stemstudio_worker.separation import create_separator
 
@@ -40,7 +40,8 @@ _LOG = logging.getLogger(__name__)
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
 METADATA_PACKAGE = "stemstudio_worker.metadata"
-"""Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``."""
+"""Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``
+and ``create_metadata_lookup(settings)``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,10 +51,12 @@ class AppOverrides:
     Attributes:
         detail_pipeline: Detail step pipeline (default ``create_detail_pipeline``).
         image_normalizer: Source picture normaliser (default ``metadata.create_image_normalizer``).
+        metadata_lookup: Song lookup of metadata jobs (default ``metadata.create_metadata_lookup``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
     image_normalizer: ImageNormalizer | None = None
+    metadata_lookup: MetadataLookup | None = None
 
 
 def create_app(
@@ -84,6 +87,7 @@ def create_app(
     install_problem_handlers(app)
     app.include_router(router)
     app.include_router(detail_routes.router)
+    app.include_router(metadata_routes.router)
     return app
 
 
@@ -117,11 +121,15 @@ def optional_factory(module: str, name: str) -> Callable[..., Any] | None:
 
 def default_online(settings: WorkerSettings, overrides: AppOverrides) -> OnlineParts:
     """The feature 005 parts: injected ones, else built by the ``metadata`` factories."""
-    normalizer = overrides.image_normalizer
-    if normalizer is None:
-        factory = optional_factory(METADATA_PACKAGE, "create_image_normalizer")
-        normalizer = None if factory is None else factory(settings)
-    return OnlineParts(normalizer=normalizer)
+    normalizer = overrides.image_normalizer or _built(settings, "create_image_normalizer")
+    lookup = overrides.metadata_lookup or _built(settings, "create_metadata_lookup")
+    return OnlineParts(normalizer=normalizer, lookup=lookup)
+
+
+def _built(settings: WorkerSettings, name: str) -> Any:
+    """``METADATA_PACKAGE.<name>(settings)``, or None without that factory."""
+    factory = optional_factory(METADATA_PACKAGE, name)
+    return None if factory is None else factory(settings)
 
 
 class _Parts:

@@ -16,7 +16,13 @@ from stemstudio_worker.jobs.lanes import LaneScheduler
 from stemstudio_worker.jobs.metadata_store import MetadataJobStore, StoredMetadataJob
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
-from stemstudio_worker.ports import MetadataLookup, MetadataLookupError, MetadataQuery
+from stemstudio_worker.ports import (
+    MetadataFindings,
+    MetadataLookup,
+    MetadataLookupError,
+    MetadataQuery,
+    ProgressCallback,
+)
 from stemstudio_worker.schemas import (
     METADATA_FAILED_TEXT,
     ArtworkVariant,
@@ -45,6 +51,14 @@ def query_of(request: CreateMetadataJobRequest) -> MetadataQuery:
         title=request.title, artist=request.artist, album=request.album,
         duration_seconds=request.duration_seconds, isrc=request.isrc,
     )  # fmt: skip
+
+
+class DisabledLookup:
+    """Lookup used when no ``metadata`` package is installed: every job is ``disabled``."""
+
+    def lookup(self, query: MetadataQuery, progress: ProgressCallback) -> MetadataFindings:  # noqa: ARG002 - port signature
+        """Complete without any request (outcome ``disabled``)."""
+        return MetadataFindings(MetadataResult(outcome="disabled"))
 
 
 class _Tracker:
