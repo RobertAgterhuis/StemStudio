@@ -1,8 +1,10 @@
 """LRCLIB ``lyricsfile`` parser: word-timed lyrics as YAML (research F-03, R-03).
 
-Read with ``yaml.safe_load`` only. Words carry only ``start_ms``: a word ends where the next word
-of its line starts, the last word at the line's ``end_ms``; every word lasts at most 3000 ms and
-at least 1 ms, and a line grows to hold its words. ``metadata.language`` gives the language.
+Read with ``yaml.safe_load`` only, after a scan of the parse events that rejects every anchor and
+alias (no "billion laughs" amplification past the 1 MB input cap). Words carry only
+``start_ms``: a word ends where the next word of its line starts, the last word at the line's
+``end_ms``; every word lasts at most 3000 ms and at least 1 ms, and a line grows to hold its
+words. ``metadata.language`` gives the language.
 """
 
 from typing import Final
@@ -73,11 +75,19 @@ def parse_lyricsfile(text: str, meta: DocumentMeta) -> TimedLyrics:
 
 
 def _read(text: str) -> _Lyricsfile:
-    """Load and validate the YAML structure."""
+    """Load and validate the YAML structure (anchors and aliases are refused first)."""
     try:
+        _refuse_aliases(text)
         return _Lyricsfile.model_validate(yaml.safe_load(text))
     except (yaml.YAMLError, ValidationError):
         raise LyricsUnusableError from None
+
+
+def _refuse_aliases(text: str) -> None:
+    """Raise ``LyricsUnusableError`` when the YAML uses an anchor or an alias."""
+    for event in yaml.parse(text, Loader=yaml.SafeLoader):
+        if isinstance(event, yaml.AliasEvent) or getattr(event, "anchor", None) is not None:
+            raise LyricsUnusableError
 
 
 def _line(line: _Line) -> LyricsLine:

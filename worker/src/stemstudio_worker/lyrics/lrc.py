@@ -2,8 +2,9 @@
 
 Stamps ``[mm:ss]``, ``[mm:ss.x]``, ``[mm:ss.xx]``, ``[mm:ss.xxx]`` (also ``:`` before the
 fraction); several stamps in front of one text repeat it; ``[offset:+/-ms]`` is applied (positive
-= lyrics earlier, never below 0); other tags (``[ar:]``, ``[ti:]``, ...) and unstamped rows are
-ignored; a stamp without text is a break (it ends the previous line).
+= lyrics earlier, never below 0; at most 7 digits, otherwise ignored; clamped to +-10 minutes);
+other tags (``[ar:]``, ``[ti:]``, ...) and unstamped rows are ignored; a stamp without text is a
+break (it ends the previous line).
 """
 
 import re
@@ -14,7 +15,10 @@ from typing import Final
 from stemstudio_worker.lyrics.normalize import check_input, check_line_count
 
 _STAMP: Final = re.compile(r"\[(\d{1,3}):([0-5]\d)(?:[.:](\d{1,3}))?\]")
-_OFFSET: Final = re.compile(r"\[offset:\s*([+-]?\d+)\s*\]", re.IGNORECASE)
+_OFFSET: Final = re.compile(r"\[offset:\s*([+-]?\d{1,7})\s*\]", re.IGNORECASE)
+
+MAX_OFFSET_MS: Final = 600_000
+"""Largest ``[offset:]`` magnitude applied (10 minutes); larger values are clamped."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,11 +48,11 @@ def parse_lrc(text: str) -> list[LrcLine]:
 
 
 def _offset(rows: list[str]) -> int:
-    """The ``[offset:]`` value in ms (0 when absent or unreadable)."""
+    """The ``[offset:]`` value in ms, clamped (0 when absent or unreadable)."""
     for row in rows:
         match = _OFFSET.search(row)
         if match:
-            return int(match.group(1))
+            return max(-MAX_OFFSET_MS, min(MAX_OFFSET_MS, int(match.group(1))))
     return 0
 
 
