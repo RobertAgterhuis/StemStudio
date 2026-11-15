@@ -22,7 +22,6 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.ComplexProperty(track => track.BeatGrid, grid => grid.ToJson());
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
-        builder.HasIndex(track => track.UpdatedAt);
         ConfigureArtworkAndMetadata(builder);
     }
 
@@ -43,6 +42,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.Key).HasColumnName("SourceKey").HasMaxLength(80)
             .HasConversion(key => key.Value, value => SourceKey.FromStored(value));
         builder.HasIndex(track => track.Key).IsUnique();
+        builder.HasIndex(track => track.UpdatedAt);
         builder.Property(track => track.SourceType).HasConversion<string>().HasMaxLength(16);
         builder.Property(track => track.Status).HasConversion<string>().HasMaxLength(16);
     }

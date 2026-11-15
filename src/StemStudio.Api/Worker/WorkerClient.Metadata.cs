@@ -79,16 +79,20 @@ public sealed partial class WorkerClient
         await using var source = await content.ReadAsStreamAsync(cancellationToken);
         using var buffer = new MemoryStream();
         var chunk = new byte[81920];
-        int read;
-        while ((read = await source.ReadAsync(chunk, cancellationToken)) > 0)
+        while (await source.ReadAsync(chunk, cancellationToken) is var read and > 0)
         {
             buffer.Write(chunk, 0, read);
-            if (buffer.Length > MaxArtworkBytes)
-            {
-                throw new WorkerUnavailableException("The processing service sent an oversized picture.");
-            }
+            ThrowIfOversized(buffer.Length);
         }
 
         return buffer.ToArray();
+    }
+
+    private static void ThrowIfOversized(long length)
+    {
+        if (length > MaxArtworkBytes)
+        {
+            throw new WorkerUnavailableException("The processing service sent an oversized picture.");
+        }
     }
 }
