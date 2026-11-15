@@ -207,4 +207,16 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The lyrics (alignPending, or found when line timing was being refined); 409 when nothing is aligning.</returns>
     Task<LyricsDto> CancelLyricsAlignmentAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>POST /api/tracks/{id}/lyrics/search</c>: searches LRCLIB again.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (searching); 409 while searching or aligning.</returns>
+    Task<LyricsDto> SearchLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>DELETE /api/tracks/{id}/lyrics</c>: removes the lyrics; no automatic lookup follows.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics (removed).</returns>
+    Task<LyricsDto> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
 }

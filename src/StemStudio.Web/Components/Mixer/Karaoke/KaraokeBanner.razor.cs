@@ -4,6 +4,7 @@ using StemStudio.Contracts.Lyrics;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Lyrics;
+using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Mixer.Karaoke;
@@ -44,9 +45,7 @@ public sealed partial class KaraokeBanner : IAsyncDisposable
 
     private string? LoadError { get; set; }
 
-    private bool Visible { get; set; } = true;
-
-    private bool ShowsBanner => Karaoke is not null;
+    private bool ShowsBanner => Visible && Karaoke is not null;
 
     private string UnavailableStatus => Lyrics is null ? LyricsText.Value(LyricsStatusDto.Failed) : LyricsText.Value(Lyrics.Status);
 
@@ -67,6 +66,7 @@ public sealed partial class KaraokeBanner : IAsyncDisposable
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
+        Settings = await Choices.LoadAsync();
         await LoadAsync();
         (_poll ??= new PollLoop(Timer)).Start(() => NeedsPolling, PollAsync, () => Task.CompletedTask, _stop.Token);
     }
@@ -125,7 +125,7 @@ public sealed partial class KaraokeBanner : IAsyncDisposable
         }
     }
 
-    private KaraokeOptions Options() => new(Offset);
+    private KaraokeOptions Options() => new(Offset, Motion.Current.Motion == MotionPreference.Reduced ? true : null);
 
     private async Task DetachQuietlyAsync()
     {

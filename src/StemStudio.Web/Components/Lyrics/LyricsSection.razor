@@ -40,10 +40,22 @@
         <LyricsAlignment Lyrics="Lyrics" Busy="Busy" OnAlign="AlignAsync" OnCancel="CancelAlignAsync" />
 
         <div class="ss-row ss-lyrics-actions">
+            @if (CanSearch)
+            {
+                <RadzenButton Text="Search again" Icon="search" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="SearchAsync"
+                              IsBusy="Busy" BusyText="Searching..." Disabled="Busy" data-testid="lyrics-search" />
+            }
             @if (CanPaste && !PasteOpen)
             {
                 <RadzenButton Text="Enter lyrics yourself" Icon="edit_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
                               Click="OpenPaste" data-testid="lyrics-paste-open" />
+            }
+            @if (CanRemove)
+            {
+                <LevelGate Feature="lyrics.remove">
+                    <RadzenButton Text="Remove lyrics" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                                  Click="RemoveAsync" Disabled="Busy" data-testid="lyrics-remove" />
+                </LevelGate>
             }
         </div>
 

@@ -1,13 +1,36 @@
+using Microsoft.AspNetCore.Components;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Web.Api;
 using StemStudio.Web.Lyrics;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Lyrics;
 
-/// <summary>Align, cancel and "enter lyrics yourself" of the lyrics card (feature 006, US2).</summary>
+/// <summary>Align, cancel, "enter lyrics yourself", search again and remove of the lyrics card (feature 006, US2, US3).</summary>
 public sealed partial class LyricsSection
 {
+    private const string RemoveMessage =
+        "Remove the lyrics of this song? StemStudio will not search for them again by itself; you can search again or enter them yourself later.";
+
+    [Inject]
+    private IConfirmService Confirm { get; set; } = default!;
+
     private bool PasteOpen { get; set; }
+
+    private bool CanSearch => Lyrics!.Status is LyricsStatusDto.Removed or LyricsStatusDto.NotFound or LyricsStatusDto.Failed
+        or LyricsStatusDto.Disabled or LyricsStatusDto.Found;
+
+    private bool CanRemove => Lyrics!.Status is not (LyricsStatusDto.None or LyricsStatusDto.Removed) && !IsBusyState;
+
+    private Task SearchAsync() => RunAsync(ct => Api.SearchLyricsAsync(Track.Id, ct));
+
+    private async Task RemoveAsync()
+    {
+        if (await Confirm.ConfirmAsync("Remove lyrics", RemoveMessage, "Remove"))
+        {
+            await RunAsync(ct => Api.RemoveLyricsAsync(Track.Id, ct));
+        }
+    }
 
     private Task AlignAsync() => RunAsync(ct => Api.AlignLyricsAsync(Track.Id, ct));
 

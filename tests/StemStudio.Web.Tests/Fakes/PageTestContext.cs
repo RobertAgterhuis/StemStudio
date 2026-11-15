@@ -8,6 +8,7 @@ using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
@@ -45,6 +46,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<PageCommands>();
         Services.AddScoped<ShellOverlays>();
         Services.AddScoped<HelpContext>();
+        Services.AddScoped<KaraokePreferences>();
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();

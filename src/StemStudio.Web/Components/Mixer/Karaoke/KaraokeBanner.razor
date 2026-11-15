@@ -4,15 +4,15 @@
 <section class="ss-karaoke" aria-label="Lyrics">
     <div class="ss-karaoke-bar">
         <RadzenButton Text="Lyrics" Icon="lyrics" Size="ButtonSize.Small" ButtonStyle="@(Visible ? ButtonStyle.Secondary : ButtonStyle.Light)"
-                      aria-pressed="@(Visible ? "true" : "false")" data-testid="karaoke-toggle" />
+                      aria-pressed="@(Visible ? "true" : "false")" Click="ToggleAsync" data-testid="karaoke-toggle" />
         @if (ShowsBanner)
         {
             <LevelGate Feature="karaoke.size">
                 <label class="ss-inline-label">
                     Size
-                    <select class="ss-select" data-testid="karaoke-size" aria-label="Lyrics text size">
+                    <select class="ss-select" value="@Size" @onchange="OnSizeAsync" data-testid="karaoke-size" aria-label="Lyrics text size">
                         <option value="s">Small</option>
-                        <option value="m" selected>Medium</option>
+                        <option value="m">Medium</option>
                         <option value="l">Large</option>
                     </select>
                 </label>
@@ -44,7 +44,7 @@
         @if (ShowsBanner)
         {
             <div id="@HostId" @key="Karaoke" class="ss-karaoke-host" aria-live="off" aria-label="Lyrics banner" role="group"
-                 data-sync="@LyricsText.Sync(Lyrics!)" data-testid="karaoke-banner" data-help-id="karaoke"></div>
+                 data-size="@Size" data-sync="@LyricsText.Sync(Lyrics!)" data-testid="karaoke-banner" data-help-id="karaoke"></div>
             <p class="ss-small ss-muted ss-karaoke-credit" data-testid="karaoke-credit">@Lyrics!.Credit</p>
         }
         else

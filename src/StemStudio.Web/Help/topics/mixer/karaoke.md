@@ -15,7 +15,8 @@ word when it starts. Play, pause, seek and the A-B loop are followed exactly.
 
 - Before the first line, and in instrumental gaps longer than 5 seconds, a **countdown** of three dots shows when the
   singing starts again.
-- **Lyrics** in the banner bar shows or hides the banner.
+- **Lyrics** in the banner bar shows or hides the banner; StemStudio remembers your choice in this browser.
+- With reduced motion (system setting or Preferences) the ball does not bounce; the current word is underlined.
 - From the Advanced level you can choose the text **size** and correct the timing with the
   [offset](help:karaoke-offset). Expert also shows where the timing comes from.
 
