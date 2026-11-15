@@ -90,12 +90,12 @@ describe('applyAttributes / applyAppearance', () => {
 describe('watchSystemAppearance', () => {
   it('calls OnSystemAppearanceChanged when the colour scheme or reduced motion changes', () => {
     const media = installMedia();
-    const dotnet: DotNetRef = { invokeMethodAsync: vi.fn(() => Promise.resolve(undefined)) };
-    const watch = watchSystemAppearance(dotnet);
+    const calls = vi.fn(() => Promise.resolve(undefined));
+    const watch = watchSystemAppearance({ invokeMethodAsync: calls });
     media.set(DARK, true);
     media.set(REDUCED, true);
-    expect(dotnet.invokeMethodAsync).toHaveBeenCalledTimes(2);
-    expect(dotnet.invokeMethodAsync).toHaveBeenCalledWith('OnSystemAppearanceChanged');
+    expect(calls).toHaveBeenCalledTimes(2);
+    expect(calls).toHaveBeenCalledWith('OnSystemAppearanceChanged');
     watch.dispose();
     watch.dispose();
     expect(media.listeners()).toBe(0);

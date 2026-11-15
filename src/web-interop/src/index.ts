@@ -8,69 +8,20 @@
 import type {
   Disposable,
   DotNetRef,
-  PreferencesRead,
   ShortcutScope,
-  StoredPreferences,
   TourRuntime,
   WebInteropContractVersion,
 } from './types';
 
 export type * from './types';
+export { readPreferences, writePreferences, watchPreferences } from './preferences';
+export { applyAppearance, watchSystemAppearance } from './theme';
 
 /** Version of the web-interop contract implemented by this module. */
 export const WEB_INTEROP_CONTRACT_VERSION: WebInteropContractVersion = '1.0.0';
 
 function notImplemented(name: string, args: readonly unknown[]): never {
   throw new Error(`not implemented: ${name} (${String(args.length)} argument(s))`);
-}
-
-/**
- * Reads and validates the stored record; never throws once implemented.
- *
- * @returns The validated record and whether storage works.
- */
-export function readPreferences(): PreferencesRead {
-  return notImplemented('readPreferences', []);
-}
-
-/**
- * Writes the record (validated, at most 16 KB) and sets `updatedAt`.
- *
- * @param preferences - The whole record.
- * @returns False when storage is unavailable, full or the record is too large.
- */
-export function writePreferences(preferences: StoredPreferences): boolean {
-  return notImplemented('writePreferences', [preferences]);
-}
-
-/**
- * Calls `dotnet.invokeMethodAsync("OnPreferencesChanged", json)` when another tab changes the record.
- *
- * @param dotnet - Receiver of the callback.
- * @returns Handle that removes the `storage` listener.
- */
-export function watchPreferences(dotnet: DotNetRef): Disposable {
-  return notImplemented('watchPreferences', [dotnet]);
-}
-
-/**
- * Applies the theme, density, motion and level attributes (same rules as first-paint.js).
- *
- * @param preferences - The record to apply.
- */
-export function applyAppearance(preferences: StoredPreferences): void {
-  notImplemented('applyAppearance', [preferences]);
-}
-
-/**
- * Calls `dotnet.invokeMethodAsync("OnSystemAppearanceChanged")` when the OS colour scheme or the
- * reduced-motion setting changes.
- *
- * @param dotnet - Receiver of the callback.
- * @returns Handle that removes the media-query listeners.
- */
-export function watchSystemAppearance(dotnet: DotNetRef): Disposable {
-  return notImplemented('watchSystemAppearance', [dotnet]);
 }
 
 /**

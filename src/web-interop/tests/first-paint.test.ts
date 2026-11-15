@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyFirstPaint } from '../src/first-paint';
+import { applyFirstPaint } from '../src/theme';
 import { PREFERENCES_KEY } from '../src/preferences';
 import { DARK, REDUCED, installMedia } from './media';
 
@@ -17,6 +17,15 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('first-paint entry', () => {
+  it('applies the stored appearance to the document element when loaded', async () => {
+    installMedia();
+    store({ theme: 'dark', level: 'expert' });
+    await import('../src/first-paint');
+    expect(document.documentElement.dataset).toMatchObject({ theme: 'dark', density: 'compact', level: 'expert' });
+  });
 });
 
 describe('applyFirstPaint (web-interop.md 1)', () => {

@@ -25,8 +25,9 @@ const full: StoredPreferences = {
   updatedAt: '2026-11-15T10:12:00Z',
 };
 
-function dotnet(): DotNetRef & { invokeMethodAsync: ReturnType<typeof vi.fn> } {
-  return { invokeMethodAsync: vi.fn(() => Promise.resolve(undefined)) };
+function dotnet(): DotNetRef & { calls: ReturnType<typeof vi.fn> } {
+  const calls = vi.fn(() => Promise.resolve(undefined));
+  return { invokeMethodAsync: calls, calls };
 }
 
 function breakStorage(): void {
@@ -205,7 +206,7 @@ describe('watchPreferences', () => {
     const ref = dotnet();
     const watch = watchPreferences(ref);
     window.dispatchEvent(storageEvent(PREFERENCES_KEY, JSON.stringify({ ...full, theme: 'neon' })));
-    expect(ref.invokeMethodAsync).toHaveBeenCalledWith('OnPreferencesChanged', JSON.stringify({ ...full, theme: 'system' }));
+    expect(ref.calls).toHaveBeenCalledWith('OnPreferencesChanged', JSON.stringify({ ...full, theme: 'system' }));
     watch.dispose();
   });
 
@@ -213,7 +214,7 @@ describe('watchPreferences', () => {
     const ref = dotnet();
     const watch = watchPreferences(ref);
     window.dispatchEvent(storageEvent(PREFERENCES_KEY, null));
-    expect(ref.invokeMethodAsync).toHaveBeenCalledWith('OnPreferencesChanged', JSON.stringify(defaultPreferences()));
+    expect(ref.calls).toHaveBeenCalledWith('OnPreferencesChanged', JSON.stringify(defaultPreferences()));
     watch.dispose();
   });
 
@@ -221,7 +222,7 @@ describe('watchPreferences', () => {
     const ref = dotnet();
     const watch = watchPreferences(ref);
     window.dispatchEvent(storageEvent('other', '{}'));
-    expect(ref.invokeMethodAsync).not.toHaveBeenCalled();
+    expect(ref.calls).not.toHaveBeenCalled();
     watch.dispose();
   });
 
@@ -231,6 +232,6 @@ describe('watchPreferences', () => {
     watch.dispose();
     watch.dispose();
     window.dispatchEvent(storageEvent(PREFERENCES_KEY, '{}'));
-    expect(ref.invokeMethodAsync).not.toHaveBeenCalled();
+    expect(ref.calls).not.toHaveBeenCalled();
   });
 });
