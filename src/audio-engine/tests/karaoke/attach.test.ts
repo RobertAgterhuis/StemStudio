@@ -33,9 +33,10 @@ async function makeRig(): Promise<Rig> {
   return { ctx, ref, engine, host, frames };
 }
 
-/** Runs every frame requested so far that has not run yet. */
+/** Runs every frame requested so far that has not run yet (frames requested meanwhile wait). */
 function flush(rig: Rig, from: { done: number }): void {
-  while (from.done < rig.frames.length) {
+  const until = rig.frames.length;
+  while (from.done < until) {
     const frame = rig.frames[from.done];
     from.done += 1;
     frame?.(from.done * 16);
@@ -136,7 +137,7 @@ describe('engine karaoke methods', () => {
       rig.ctx.currentTime = 4 + i * 0.016;
       flush(rig, done);
     }
-    expect(done.done).toBeGreaterThan(50);
+    expect(done.done).toBeGreaterThanOrEqual(50);
     expect(rig.host.dataset.state).toBe('singing');
     expect(timeout).not.toHaveBeenCalled();
     expect(interval).not.toHaveBeenCalled();

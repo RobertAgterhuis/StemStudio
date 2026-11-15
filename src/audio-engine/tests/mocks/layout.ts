@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, type MockInstance } from 'vitest';
 
 /** Recording `ResizeObserver` double; tests fire its callback with {@link FakeResizeObserver.trigger}. */
 export class FakeResizeObserver {
@@ -35,7 +35,7 @@ export class FakeResizeObserver {
   /** Delivers one callback for every observed element. */
   public trigger(): void {
     const entries = [...this.observed].map((target) => ({ target }) as ResizeObserverEntry);
-    this.callback(entries, this as unknown as ResizeObserver);
+    this.callback(entries, this);
   }
 }
 
@@ -58,17 +58,23 @@ function rect(left: number, top: number, width: number, height: number): DOMRect
   return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top } as DOMRect;
 }
 
-function rectOf(element: Element): DOMRect {
+function rowTop(element: Element): number {
   const slot = element.closest('.karaoke-line')?.getAttribute('data-slot') ?? '';
-  const row = ROWS[slot] ?? 0;
-  const top = LAYOUT.hostTop + row * LAYOUT.rowHeight;
+  return LAYOUT.hostTop + (ROWS[slot] ?? 0) * LAYOUT.rowHeight;
+}
+
+function wordRect(element: Element): DOMRect {
+  const index = [...(element.parentElement?.children ?? [])].indexOf(element);
+  const left = LAYOUT.hostLeft + layoutShift.x + index * LAYOUT.wordPitch;
+  return rect(left, rowTop(element), LAYOUT.wordWidth, LAYOUT.wordHeight);
+}
+
+function rectOf(element: Element): DOMRect {
   if (element.classList.contains('karaoke-word')) {
-    const index = [...(element.parentElement?.children ?? [])].indexOf(element);
-    const left = LAYOUT.hostLeft + layoutShift.x + index * LAYOUT.wordPitch;
-    return rect(left, top, LAYOUT.wordWidth, LAYOUT.wordHeight);
+    return wordRect(element);
   }
   return element.classList.contains('karaoke-line')
-    ? rect(LAYOUT.hostLeft, top, 600, LAYOUT.rowHeight)
+    ? rect(LAYOUT.hostLeft, rowTop(element), 600, LAYOUT.rowHeight)
     : rect(LAYOUT.hostLeft, LAYOUT.hostTop, 600, 3 * LAYOUT.rowHeight);
 }
 
@@ -78,7 +84,7 @@ function rectOf(element: Element): DOMRect {
  *
  * @returns The spy, to count layout reads.
  */
-export function stubLayout(): ReturnType<typeof vi.spyOn> {
+export function stubLayout(): MockInstance<() => DOMRect> {
   layoutShift.x = 0;
   return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     return rectOf(this);

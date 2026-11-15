@@ -33,12 +33,12 @@ describe('ball math', () => {
   });
 
   it('ballTransform writes translate3d in px', () => {
-    expect(ballTransform({ x: 12.5, y: -3 })).toBe('translate3d(12.5px, -3px, 0)');
+    expect(ballTransform({ x: 12.5, y: -3 })).toBe('translate3d(12.5px, -3px, 0px)');
   });
 });
 
 function ball(rig: KaraokeRig): { x: number; y: number } {
-  const match = /^translate3d\((-?[\d.e-]+)px, (-?[\d.e-]+)px, 0\)$/.exec(part(rig, '.karaoke-ball').style.transform);
+  const match = /^translate3d\((-?[\d.e-]+)px, (-?[\d.e-]+)px, 0px\)$/.exec(part(rig, '.karaoke-ball').style.transform);
   if (match === null) {
     throw new Error(`no ball transform: "${part(rig, '.karaoke-ball').style.transform}"`);
   }
@@ -57,6 +57,20 @@ function settle(): void {
 }
 
 const H = HOP_HEIGHT_RATIO * LAYOUT.rowHeight;
+
+/** `line:word` of the host indices. */
+function frameKey(rig: KaraokeRig): string {
+  return `${attr(rig, 'data-line-index') ?? ''}:${attr(rig, 'data-word-index') ?? ''}`;
+}
+
+/** Deterministic 60 Hz frame intervals with +-5 ms jitter (ms). */
+function jittered(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return 16.7 + ((state / 2_147_483_648) * 10 - 5);
+  };
+}
 
 describe('karaoke ball', () => {
   beforeEach(() => {
@@ -118,27 +132,24 @@ describe('karaoke ball', () => {
   it('with jittered 60 Hz frames every word becomes current within one frame of its start', async () => {
     const rig = attached();
     await play(rig);
-    const starts = LYRICS.lines.flatMap((line, l) => line.words.map((w, i) => ({ key: `${String(l)}:${String(i)}`, at: w.startMs })));
-    const seen = new Map<string, number>();
-    let seed = 7;
-    let previous = 3500;
+    const starts = new Map<string, number>(LYRICS.lines.flatMap((line, l) => line.words.map((w, i) => [`${String(l)}:${String(i)}`, w.startMs] as const)));
+    const delays = new Map<string, { delay: number; step: number }>();
+    const jitter = jittered(7);
     for (let t = 3500; t < 17_500; ) {
-      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
-      const step = 16.7 + ((seed / 2_147_483_648) * 10 - 5);
-      previous = t;
+      const step = jitter();
       t += step;
       frameAt(rig, t);
       settle();
-      const key = `${attr(rig, 'data-line-index') ?? ''}:${attr(rig, 'data-word-index') ?? ''}`;
-      if (!seen.has(key)) {
-        seen.set(key, t - previous);
-        const start = starts.find((s) => s.key === key);
-        if (start !== undefined) {
-          expect(Number(attr(rig, 'data-position-ms')) - start.at).toBeGreaterThanOrEqual(0);
-          expect(Number(attr(rig, 'data-position-ms')) - start.at).toBeLessThanOrEqual(step + 0.5);
-        }
+      const key = frameKey(rig);
+      const start = starts.get(key);
+      if (start !== undefined && !delays.has(key)) {
+        delays.set(key, { delay: Number(attr(rig, 'data-position-ms')) - start, step });
       }
     }
-    expect(starts.every((s) => seen.has(s.key))).toBe(true);
+    expect([...delays.keys()].sort()).toEqual([...starts.keys()].sort());
+    delays.forEach(({ delay, step }) => {
+      expect(delay).toBeGreaterThanOrEqual(0);
+      expect(delay).toBeLessThanOrEqual(step + 0.5);
+    });
   });
 });

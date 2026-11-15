@@ -18,11 +18,11 @@ describe('measureSlots', () => {
 
   it('returns word centres and tops relative to the host and the current line height', () => {
     const rig = attached();
-    const slots = (['previous', 'current', 'next'] as const).map((slot, i) => ({
-      line: i - 1,
-      element: part(rig, `.karaoke-line[data-slot="${slot}"]`),
-    }));
-    const geometry = measureSlots(rig.host, slots);
+    const slot = (name: string, line: number): { line: number; element: HTMLElement } => ({
+      line,
+      element: part(rig, `.karaoke-line[data-slot="${name}"]`),
+    });
+    const geometry = measureSlots(rig.host, [slot('previous', -1), slot('current', 0), slot('next', 1)]);
     expect(geometry.lineHeight).toBe(LAYOUT.rowHeight);
     expect(geometry.lines.get(-1)).toEqual([]);
     expect(geometry.lines.get(0)).toEqual([0, 1, 2].map((i) => ({ x: wordX(i), y: rowY('current') })));
@@ -71,7 +71,7 @@ describe('karaoke layout', () => {
     showAt(rig, 6000);
     expect(transform(rig)).toBe(stale);
     FakeResizeObserver.latest().trigger();
-    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0)`);
+    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0px)`);
   });
 
   it('re-measures on a resize, redraws the ball at once and draws one frame', () => {
@@ -80,7 +80,7 @@ describe('karaoke layout', () => {
     showAt(rig, 4000);
     layoutShift.x = 30;
     FakeResizeObserver.latest().trigger();
-    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0)`);
+    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0px)`);
     expect(wordX(0)).toBe(55);
     expect(rig.frames.size).toBe(1);
   });
@@ -90,7 +90,7 @@ describe('karaoke layout', () => {
     stubLayout();
     const rig = attached();
     showAt(rig, 6000);
-    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0)`);
+    expect(transform(rig)).toBe(`translate3d(${String(wordX(0))}px, ${String(rowY('current'))}px, 0px)`);
   });
 
   it('detach disconnects the observer', () => {

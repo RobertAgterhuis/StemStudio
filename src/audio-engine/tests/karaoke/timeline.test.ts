@@ -53,7 +53,7 @@ describe('buildTimeline', () => {
     invalid({ lines: [line(0, 900, [word(800, 950)])] }, 'word 0.0 lies outside its line');
     invalid({ lines: [line(0, 900, [word(300), word(200)])] }, 'word 0.1 starts before the previous word');
     invalid({ lines: [line(0, 900, [word(500)]), line(100, 900, [word(400)])] }, 'word 1.0 starts before the previous word');
-    invalid({ lines: [line(0, 900, [{ startMs: 0, endMs: 10 }])] }, 'word 0.0 has no text');
+    invalid({ lines: [line(0, 900, [{ startMs: 0, endMs: 10 } as unknown as KaraokeWord])] }, 'word 0.0 has no text');
   });
 });
 

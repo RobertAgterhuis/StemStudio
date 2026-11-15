@@ -1,5 +1,5 @@
 /**
- * Composition root: one AudioContext shared by transport, mixer, stem groups, meters and metronome, exposed
+ * Composition root: one AudioContext shared by transport, mixer, stem groups, meters, metronome and karaoke, exposed
  * as the {@link AudioEngine} object Blazor holds as an `IJSObjectReference`.
  *
  * @packageDocumentation
@@ -7,6 +7,8 @@
 import { DotNetNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
+import { Karaoke } from './karaoke/index';
+import { KaraokeClock } from './karaoke/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
 import { Meters } from './meters';
@@ -33,9 +35,6 @@ import type {
   PlaybackState,
 } from './types';
 
-/** Message of the karaoke methods until the karaoke module exists (contract 2.1.0 skeleton). */
-export const KARAOKE_NOT_IMPLEMENTED = 'Karaoke is not implemented yet';
-
 /** Default delay of the shared `when` (s). */
 export const DEFAULT_START_DELAY_SECONDS = 0.1;
 /** Default metronome look-ahead window (s). */
@@ -51,6 +50,7 @@ interface Parts {
   readonly frames: FrameLoop;
   readonly meters: Meters;
   readonly metronome: MetronomeScheduler;
+  readonly karaoke: Karaoke;
 }
 
 function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
@@ -66,7 +66,15 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   const frames = new FrameLoop();
   const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
   const metronome = createMetronome(context, transport, options);
-  return { context, mixer, transport, notifier, frames, meters, metronome };
+  const karaoke = createKaraoke(context, transport, frames);
+  return { context, mixer, transport, notifier, frames, meters, metronome, karaoke };
+}
+
+function createKaraoke(context: AudioContext, transport: Transport, loop: FrameLoop): Karaoke {
+  const clock = new KaraokeClock({ context, transport });
+  const karaoke = new Karaoke({ loop, clock, playing: () => transport.state === 'playing' });
+  transport.addListener(karaoke);
+  return karaoke;
 }
 
 function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
@@ -199,6 +207,7 @@ export class Engine implements AudioEngine {
   public setLoop(loop: LoopRegion): void {
     this.alive();
     setLoopChecked(this.parts.transport, loop);
+    this.parts.karaoke.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -222,17 +231,20 @@ export class Engine implements AudioEngine {
 
   /** {@inheritDoc AudioEngine.attachKaraoke} */
   public attachKaraoke(elementId: string, lyrics: KaraokeLyrics, options: KaraokeOptions): void {
-    this.karaokeStub([elementId, lyrics, options]);
+    this.alive();
+    this.parts.karaoke.attach(elementId, lyrics, options);
   }
 
   /** {@inheritDoc AudioEngine.setKaraokeOffset} */
   public setKaraokeOffset(offsetMs: number): void {
-    this.karaokeStub([offsetMs]);
+    this.alive();
+    this.parts.karaoke.setOffset(offsetMs);
   }
 
   /** {@inheritDoc AudioEngine.detachKaraoke} */
   public detachKaraoke(): void {
-    this.karaokeStub([]);
+    this.alive();
+    this.parts.karaoke.detach();
   }
 
   /** {@inheritDoc AudioEngine.dispose} */
@@ -246,6 +258,7 @@ export class Engine implements AudioEngine {
     this.parts.mixer.dispose();
     this.parts.notifier.dispose();
     this.parts.meters.dispose();
+    this.parts.karaoke.detach();
     this.parts.frames.dispose();
     this.parts.metronome.dispose();
     await this.parts.context.close();
@@ -257,12 +270,6 @@ export class Engine implements AudioEngine {
     this.alive();
     return buffers;
   };
-
-  /** Contract stub of the 2.1.0 karaoke methods (006 T026/T036 replace it); the arguments are ignored. */
-  private karaokeStub(args: readonly unknown[]): never {
-    this.alive();
-    throw new Error(`${KARAOKE_NOT_IMPLEMENTED} (${String(args.length)} argument(s))`);
-  }
 
   private alive(): void {
     if (this.disposed) {
