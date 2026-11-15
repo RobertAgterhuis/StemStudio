@@ -156,6 +156,7 @@ public static class ApiComposition
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
         services.AddScoped<SongService>();
+        services.AddScoped<LyricsSheetService>();
         services.AddScoped<StyleService>();
         services.AddScoped<LibraryStyleGuard>();
         services.AddScoped<StyleEditingService>();

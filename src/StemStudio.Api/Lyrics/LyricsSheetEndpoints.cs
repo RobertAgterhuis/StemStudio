@@ -43,5 +43,29 @@ public static partial class LyricsSheetEndpoints
     private static LyricsSectionDto ToDto(LyricsSection section) =>
         new() { Marker = StyleMapper.Map<SectionMarkerDto>(section.Marker), Number = section.Number, LineCount = section.LineCount };
 
-    private static IEndpointRouteBuilder MapSheetEndpoints(this IEndpointRouteBuilder app) => app;
+    private const string SheetRoute = ApiRoutes.LyricsSheets + "/{lyricsId:guid}";
+
+    private static IEndpointRouteBuilder MapSheetEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(ApiRoutes.LyricsSheets, (string? q, LyricsSheetService sheets, CancellationToken ct) => sheets.ListAsync(q, ct))
+            .WithName("listLyricsSheets").WithTags("songs").Produces<List<LyricsSheetDto>>().ProducesValidationProblem();
+        app.MapPost(ApiRoutes.LyricsSheets, (LyricsInput? input, LyricsSheetService sheets, CancellationToken ct) => sheets.CreateAsync(input, ct))
+            .WithName("createLyricsSheet").WithTags("songs").Produces<LyricsSheetDto>(StatusCodes.Status201Created).ProducesValidationProblem();
+        app.MapPost(ApiRoutes.LyricsSheetUpload, async (HttpRequest request, LyricsSheetService sheets, CancellationToken ct) =>
+                request.HasFormContentType ? await sheets.UploadAsync(await request.ReadFormAsync(ct), ct) : ApiProblems.Validation("file", "Send the file as multipart/form-data."))
+            .WithName("uploadLyricsSheet").WithTags("songs").DisableAntiforgery().Produces<LyricsSheetDto>(StatusCodes.Status201Created).ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge).ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
+        return app.MapSheetItemEndpoints();
+    }
+
+    private static IEndpointRouteBuilder MapSheetItemEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(SheetRoute, (Guid lyricsId, LyricsSheetService sheets, CancellationToken ct) => sheets.GetAsync(lyricsId, ct))
+            .WithName("getLyricsSheet").WithTags("songs").Produces<LyricsSheetDto>().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPut(SheetRoute, (Guid lyricsId, LyricsInput? input, LyricsSheetService sheets, CancellationToken ct) => sheets.UpdateAsync(lyricsId, input, ct))
+            .WithName("updateLyricsSheet").WithTags("songs").Produces<LyricsSheetDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapDelete(SheetRoute, (Guid lyricsId, LyricsSheetService sheets, CancellationToken ct) => sheets.DeleteAsync(lyricsId, ct))
+            .WithName("deleteLyricsSheet").WithTags("songs").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+        return app;
+    }
 }
