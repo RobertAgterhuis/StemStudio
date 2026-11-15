@@ -1,12 +1,13 @@
 /**
- * Sample-locked transport: every stem gets a fresh source started with the same `when` and the
- * same offset; the position is derived from `AudioContext.currentTime` only.
+ * Sample-locked transport: every stem (standard and decoded detail stems) gets a fresh source
+ * started with the same `when` and the same offset; the position is derived from
+ * `AudioContext.currentTime` only.
  *
  * @packageDocumentation
  */
 import { NO_LOOP, applyLoop, isInside, wrapPosition } from './loop';
-import { trackDuration, type StemBuffers } from './stem-loader';
-import type { LoopRegion, PlaybackState, StemName } from './types';
+import { trackDuration, type ChannelBuffers } from './stem-loader';
+import type { ChannelId, LoopRegion, PlaybackState } from './types';
 
 /** Shared start of the running sources: context time `when` plays track time `offset`. */
 export interface TransportAnchor {
@@ -40,13 +41,13 @@ export interface TransportOptions {
   readonly context: AudioContext;
   /** Delay between the call and the shared `when` (s). */
   readonly startDelaySeconds: number;
-  /** Mixer input node of a stem. */
-  readonly output: (name: StemName) => AudioNode;
+  /** Mixer input node of a channel. */
+  readonly output: (id: ChannelId) => AudioNode;
 }
 
 /** Play/pause/stop/seek/loop over the loaded stems. */
 export class Transport implements TransportClock {
-  private buffers: StemBuffers = new Map();
+  private buffers: ChannelBuffers = new Map();
   private sources: AudioBufferSourceNode[] = [];
   private current: TransportAnchor = { when: 0, offset: 0 };
   private pausedAt = 0;
@@ -83,8 +84,11 @@ export class Transport implements TransportClock {
     return this.playState === 'playing' ? this.current : null;
   }
 
-  /** @param buffers - Decoded stems replacing the current track (playback stops, loop cleared). */
-  public load(buffers: StemBuffers): void {
+  /**
+   * @param buffers - Decoded standard stems replacing the current track (playback stops, loop
+   *   cleared, detail buffers dropped); the duration is the longest of them.
+   */
+  public load(buffers: ChannelBuffers): void {
     this.halt();
     this.buffers = buffers;
     this.length = trackDuration(buffers);
@@ -131,12 +135,34 @@ export class Transport implements TransportClock {
 
   /** @returns Current position (s), derived from `currentTime` and wrapped into an active loop. */
   public position(): number {
+    return this.playState === 'playing' ? this.offsetAt(this.options.context.currentTime) : this.pausedAt;
+  }
+
+  /**
+   * Adds decoded buffers (a detail group) to the track; while playing they are started at once
+   * on the shared anchor with `start(at, offsetAt(at))` and the loop properties.
+   *
+   * @param buffers - Buffers keyed by channel id; the duration is unchanged.
+   * @param at - Context time of the start, not before the shared `when` (see {@link Transport.startTimeAfter}).
+   */
+  public addBuffers(buffers: ChannelBuffers, at: number): void {
+    this.buffers = new Map([...this.buffers, ...buffers]);
     if (this.playState !== 'playing') {
-      return this.pausedAt;
+      return;
     }
-    const { when, offset } = this.current;
-    const raw = offset + Math.max(0, this.options.context.currentTime - when);
-    return Math.min(wrapPosition(raw, this.region), this.length);
+    const anchor = { when: at, offset: this.offsetAt(at) };
+    buffers.forEach((buffer, id) => {
+      this.sources.push(this.startSource(id, buffer, anchor));
+    });
+  }
+
+  /**
+   * @param delay - Minimum delay from now (s).
+   * @returns `currentTime + delay`, or the shared `when` while it is still in the future.
+   */
+  public startTimeAfter(delay: number): number {
+    const soon = this.options.context.currentTime + delay;
+    return this.playState === 'playing' ? Math.max(soon, this.current.when) : soon;
   }
 
   /** @param region - Validated loop region applied to the running sources. */
@@ -148,10 +174,15 @@ export class Transport implements TransportClock {
     }
   }
 
-  /** Stops all sources without notifying anyone (engine disposal). */
+  /** Stops all sources without notifying anyone and releases every decoded buffer (engine disposal). */
   public dispose(): void {
     this.listeners.length = 0;
+    this.sources.forEach((source) => {
+      source.buffer = null;
+    });
     this.halt();
+    this.buffers = new Map();
+    this.length = 0;
   }
 
   private applyRunningLoop(position: number, region: LoopRegion): void {
@@ -196,7 +227,12 @@ export class Transport implements TransportClock {
     this.watchEnd(started.reduce((a, b) => (b.duration > a.duration ? b : a)).source);
   }
 
-  private startSource(name: StemName, buffer: AudioBuffer, anchor: TransportAnchor): AudioBufferSourceNode {
+  private offsetAt(time: number): number {
+    const { when, offset } = this.current;
+    return Math.min(wrapPosition(offset + Math.max(0, time - when), this.region), this.length);
+  }
+
+  private startSource(name: ChannelId, buffer: AudioBuffer, anchor: TransportAnchor): AudioBufferSourceNode {
     const source = this.options.context.createBufferSource();
     source.buffer = buffer;
     applyLoop(source, this.region);

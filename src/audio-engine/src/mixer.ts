@@ -1,16 +1,19 @@
 /**
- * Mixer: one {@link Channel} per stem into `master Gain -> master Analyser -> destination`.
+ * Mixer: one {@link Channel} per standard or detail stem into
+ * `master Gain -> master Analyser -> destination`, gated by the audible-level rule (`gate.ts`).
  *
  * @packageDocumentation
  */
 import { Channel, checkedVolume, rampTo } from './channel';
-import type { ChannelSettings, MeterTarget, StemName } from './types';
+import { anyAudibleSolo, isHidden, levelGate } from './gate';
+import type { ChannelId, ChannelSettings, MeterTarget, ParentStemName } from './types';
 
 /** Channels of the loaded track plus the master bus. */
 export class Mixer {
   private readonly master: GainNode;
   private readonly masterAnalyser: AnalyserNode;
-  private channels = new Map<StemName, Channel>();
+  private channels = new Map<ChannelId, Channel>();
+  private readonly expanded = new Set<ParentStemName>();
 
   /** @param context - The engine's AudioContext. */
   public constructor(private readonly context: BaseAudioContext) {
@@ -19,36 +22,63 @@ export class Mixer {
     this.master.connect(this.masterAnalyser).connect(context.destination);
   }
 
-  /** @param names - Stems of the new track; replaces (disconnects) all existing channels. */
-  public build(names: readonly StemName[]): void {
-    this.channels.forEach((channel) => {
-      channel.dispose();
-    });
-    this.channels = new Map(names.map((name) => [name, new Channel(this.context, this.master)]));
-  }
-
   /**
-   * @param name - Stem name.
-   * @returns The node the stem's sources connect to.
-   * @throws Error for an unknown stem.
-   */
-  public input(name: StemName): AudioNode {
-    return this.channel(name).input;
-  }
-
-  /**
-   * Applies channel settings and re-evaluates the solo gate of every channel.
+   * Replaces (disconnects) all existing channels; every parent starts collapsed, so detail
+   * channels start silent.
    *
-   * @param name - Stem name.
-   * @param settings - Volume, pan, mute, solo.
-   * @throws Error for an unknown stem or a non-finite value.
+   * @param ids - Standard and detail channels of the new track.
    */
-  public setChannel(name: StemName, settings: ChannelSettings): void {
-    this.channel(name).configure(settings);
-    const anySolo = [...this.channels.values()].some((c) => c.settings.solo);
-    this.channels.forEach((channel) => {
-      channel.apply(anySolo);
+  public build(ids: readonly ChannelId[]): void {
+    this.dispose();
+    this.channels = new Map(ids.map((id) => [id, new Channel(this.context, this.master)]));
+    this.channels.forEach((channel, id) => {
+      channel.initGate(isHidden(id, this.expanded) ? 0 : 1);
     });
+  }
+
+  /**
+   * @param id - Channel id.
+   * @returns The node the channel's sources connect to.
+   * @throws Error for an unknown channel.
+   */
+  public input(id: ChannelId): AudioNode {
+    return this.channel(id).input;
+  }
+
+  /**
+   * Applies channel settings and re-evaluates the gate of every channel.
+   *
+   * @param id - Channel id (standard stem or `<parent>.<detail>`).
+   * @param settings - Volume, pan, mute, solo.
+   * @throws Error for an unknown channel or a non-finite value.
+   */
+  public setChannel(id: ChannelId, settings: ChannelSettings): void {
+    this.channel(id).configure(settings);
+    this.applyGates(this.context.currentTime);
+  }
+
+  /**
+   * Expands or collapses a parent: a pure gate change of every channel at one context time.
+   *
+   * @param parent - Parent stem (the caller checks that it has a group).
+   * @param expanded - New state.
+   * @param at - Context time at which all ramps start.
+   */
+  public setExpanded(parent: ParentStemName, expanded: boolean, at: number): void {
+    if (expanded) {
+      this.expanded.add(parent);
+    } else {
+      this.expanded.delete(parent);
+    }
+    this.applyGates(at);
+  }
+
+  /**
+   * @param parent - Parent stem.
+   * @returns Whether its detail channels currently replace it.
+   */
+  public isExpanded(parent: ParentStemName): boolean {
+    return this.expanded.has(parent);
   }
 
   /** @param volume - Master gain 0..1 (clamped). */
@@ -57,27 +87,46 @@ export class Mixer {
   }
 
   /**
-   * @param target - Stem name or `"master"`.
-   * @returns The meter tap of the target, or undefined when the stem is not loaded.
+   * @param target - Channel id or `"master"`.
+   * @returns The meter tap of the target, or undefined when the channel is not loaded.
    */
   public analyser(target: MeterTarget): AnalyserNode | undefined {
-    // Detail channel ids (`<parent>.<detail>`, contract 2.0.0) are not loaded until groups exist.
-    const channels: ReadonlyMap<string, Channel> = this.channels;
-    return target === 'master' ? this.masterAnalyser : channels.get(target)?.analyser;
+    return target === 'master' ? this.masterAnalyser : this.channels.get(target)?.analyser;
   }
 
   /**
-   * @param target - Stem name or `"master"`.
+   * @param target - Channel id or `"master"`.
    * @returns Whether the target exists in the current track.
    */
   public has(target: MeterTarget): boolean {
     return this.analyser(target) !== undefined;
   }
 
-  private channel(name: StemName): Channel {
-    const channel = this.channels.get(name);
+  /** Disconnects every channel and collapses all parents (the master bus stays). */
+  public dispose(): void {
+    this.channels.forEach((channel) => {
+      channel.dispose();
+    });
+    this.channels = new Map();
+    this.expanded.clear();
+  }
+
+  private applyGates(at: number): void {
+    const views = [...this.channels].map(([id, channel]) => ({
+      channel,
+      settings: channel.settings,
+      hidden: isHidden(id, this.expanded),
+    }));
+    const anySolo = anyAudibleSolo(views);
+    views.forEach((view) => {
+      view.channel.apply(levelGate(view, anySolo), at);
+    });
+  }
+
+  private channel(id: ChannelId): Channel {
+    const channel = this.channels.get(id);
     if (channel === undefined) {
-      throw new Error(`Unknown stem "${name}"`);
+      throw new Error(`Unknown stem "${id}"`);
     }
     return channel;
   }

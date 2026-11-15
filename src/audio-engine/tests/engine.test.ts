@@ -42,14 +42,6 @@ describe('module exports', () => {
   });
 });
 
-describe('stem groups (contract 2.0.0 skeleton)', () => {
-  it('setExpanded rejects until the audio-engine agent implements groups', async () => {
-    const { engine } = makeRig();
-
-    await expect(engine.setExpanded('drums', true)).rejects.toThrow('not implemented');
-  });
-});
-
 describe('createEngine', () => {
   const frames: FrameRequestCallback[] = [];
 

@@ -1,30 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { RAMP_TIME_CONSTANT, gateOf } from '../src/channel';
-import { Mixer } from '../src/mixer';
-import type { ChannelSettings, StemName } from '../src/types';
-import { MockAudioContext, type MockAudioParam } from './mocks/audio-context';
+import type { Mixer } from '../src/mixer';
+import type { StemName } from '../src/types';
+import type { MockAudioContext, MockAudioParam } from './mocks/audio-context';
+import { channelGain, makeMixer as makeRigMixer, settings } from './mocks/mixer-rig';
 
 const STEMS: StemName[] = ['vocals', 'drums', 'bass', 'other'];
 
-function settings(partial: Partial<ChannelSettings> = {}): ChannelSettings {
-  return { volume: 1, pan: 0, mute: false, solo: false, ...partial };
-}
-
 function makeMixer(): { ctx: MockAudioContext; mixer: Mixer } {
-  const ctx = new MockAudioContext();
-  const mixer = new Mixer(ctx.asAudioContext());
-  mixer.build(STEMS);
-  return { ctx, mixer };
-}
-
-/** Gain node of a stem's channel: the node its input is. */
-function channelGain(ctx: MockAudioContext, mixer: Mixer, name: StemName): MockAudioParam {
-  const input = mixer.input(name) as unknown;
-  const node = ctx.gains.find((g) => g === input);
-  if (node === undefined) {
-    throw new Error(`no gain for ${name}`);
-  }
-  return node.gain;
+  return makeRigMixer(STEMS);
 }
 
 function lastTarget(param: MockAudioParam): readonly number[] {

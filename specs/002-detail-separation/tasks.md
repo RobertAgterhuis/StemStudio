@@ -109,8 +109,8 @@ committed contract and is faked:
 
 ### audio-engine (tests first)
 
-- [ ] T038 [P] [audio-engine] Failing tests `src/audio-engine/tests/gate.test.ts`: audible-level gate (contract 2.0.0 table) for collapsed/expanded parents, solo across levels, mute, hidden flags ignored
-- [ ] T039 [audio-engine] Implement `src/audio-engine/src/gate.ts` and use it from `mixer.ts` (v1 behaviour unchanged without groups) to pass T038
+- [x] T038 [P] [audio-engine] Failing tests `src/audio-engine/tests/gate.test.ts`: audible-level gate (contract 2.0.0 table) for collapsed/expanded parents, solo across levels, mute, hidden flags ignored
+- [x] T039 [audio-engine] Implement `src/audio-engine/src/gate.ts` and use it from `mixer.ts` (v1 behaviour unchanged without groups) to pass T038
 
 **Checkpoint**: HO:foundational for every owner.
 
@@ -161,10 +161,10 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ### audio-engine (tests first)
 
-- [ ] T058 [P] [US2] [audio-engine] Failing tests `src/audio-engine/tests/groups.test.ts`: `loadTrack` with groups creates hidden channels without fetching; first `setExpanded(true)` fetches/decodes the group once, starts its sources with `start(t, offsetAt(t))` on the shared anchor (also inside a running loop), swaps gates at one time with <= 10 ms ramps; collapse is immediate; play/seek/stop/loop include detail sources; `setChannel`/`attachMeter` accept `<parent>.<detail>`; unknown ids and parents without group throw; failed group load rejects and keeps the parent audible (FR-012..FR-014, SC-004)
-- [ ] T059 [US2] [audio-engine] Implement `src/audio-engine/src/groups.ts`, extend `engine.ts`, `transport.ts`, `meters.ts`, `stem-loader.ts` to pass T058
-- [ ] T060 [P] [US2] [audio-engine] Failing test: after 50 loop repetitions with a group expanded mid-playback all `start(when, offset)` pairs of audible channels map to the same transport position within 1 ms; v1 suite still green
-- [ ] T061 [US2] [audio-engine] Fix/refine to pass T060; `npm run test:coverage` >= 90 %
+- [x] T058 [P] [US2] [audio-engine] Failing tests `src/audio-engine/tests/groups.test.ts`: `loadTrack` with groups creates hidden channels without fetching; first `setExpanded(true)` fetches/decodes the group once, starts its sources with `start(t, offsetAt(t))` on the shared anchor (also inside a running loop), swaps gates at one time with <= 10 ms ramps; collapse is immediate; play/seek/stop/loop include detail sources; `setChannel`/`attachMeter` accept `<parent>.<detail>`; unknown ids and parents without group throw; failed group load rejects and keeps the parent audible (FR-012..FR-014, SC-004)
+- [x] T059 [US2] [audio-engine] Implement `src/audio-engine/src/groups.ts`, extend `engine.ts`, `transport.ts`, `meters.ts`, `stem-loader.ts` to pass T058
+- [x] T060 [P] [US2] [audio-engine] Failing test: after 50 loop repetitions with a group expanded mid-playback all `start(when, offset)` pairs of audible channels map to the same transport position within 1 ms; v1 suite still green
+- [x] T061 [US2] [audio-engine] Fix/refine to pass T060; `npm run test:coverage` >= 90 %
 
 ### frontend (tests first)
 
@@ -225,7 +225,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
 - [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
-- [ ] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
+- [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [ ] T086 [P] [qa] Traceability matrix update, HO:polish
 - [x] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish

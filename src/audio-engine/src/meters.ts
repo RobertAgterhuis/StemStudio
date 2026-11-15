@@ -88,7 +88,7 @@ export class Meters {
   /**
    * Binds a meter to an element id and starts the frame loop if needed.
    *
-   * @param target - Stem name or `"master"`.
+   * @param target - Channel id (stem or `<parent>.<detail>`) or `"master"`.
    * @param elementId - Id of the element receiving `--meter-level`, `data-peak-db`, `data-clip`.
    * @throws Error when the target has no analyser.
    */
