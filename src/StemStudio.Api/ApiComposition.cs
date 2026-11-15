@@ -7,6 +7,7 @@ using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
+using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
@@ -41,6 +42,7 @@ public static class ApiComposition
         services.AddSingleton(dataDirectory);
         services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
         services.AddWorkerClient(builder.Configuration);
+        services.AddGeneratorClient(builder.Configuration);
         services.TryAddSingleton(TimeProvider.System);
         AddApplicationServices(services);
         AddHttpServices(services, options);

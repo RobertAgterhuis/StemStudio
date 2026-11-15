@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
-using Polly;
 
 namespace StemStudio.Api.Worker;
 
@@ -33,16 +32,6 @@ public static class WorkerClientRegistration
         client.Timeout = Timeout.InfiniteTimeSpan;
     }
 
-    private static void ConfigureResilience(HttpStandardResilienceOptions options, StemStudioApiOptions api)
-    {
-        // The static attempt timeout bounds every generated one; the total and sampling windows must cover it.
-        var longest = api.WorkerCreateJobTimeout + api.WorkerPollTimeout;
-        options.Retry.DisableForUnsafeHttpMethods();
-        options.Retry.MaxRetryAttempts = 3;
-        options.Retry.Delay = TimeSpan.FromMilliseconds(200);
-        options.AttemptTimeout.Timeout = longest;
-        options.AttemptTimeout.TimeoutGenerator = args => ValueTask.FromResult(WorkerTimeouts.For(args.Context.GetRequestMessage(), api));
-        options.TotalRequestTimeout.Timeout = longest * 2;
-        options.CircuitBreaker.SamplingDuration = longest * 3;
-    }
+    private static void ConfigureResilience(HttpStandardResilienceOptions options, StemStudioApiOptions api) =>
+        ServiceResilience.Apply(options, api.WorkerCreateJobTimeout, api.WorkerPollTimeout);
 }

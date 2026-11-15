@@ -14,6 +14,18 @@ public sealed class StemStudioApiOptions
     /// <summary>Base URL of the processing worker.</summary>
     public Uri WorkerBaseUrl { get; set; } = new("http://localhost:8000");
 
+    /// <summary>Base URL of the generator service (feature 009, <c>StemStudio__GeneratorBaseUrl</c>); unset = generation not installed.</summary>
+    public Uri? GeneratorBaseUrl { get; set; }
+
+    /// <summary>Attempt timeout for creating a generator job (POST with up to six stems).</summary>
+    public TimeSpan GeneratorCreateTimeout { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Attempt timeout for every other generator call (status polls, take downloads' headers, cancel, delete).</summary>
+    public TimeSpan GeneratorPollTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>Interval of the generation synchroniser (009 T039: 2 s).</summary>
+    public TimeSpan GenerationPollInterval { get; set; } = TimeSpan.FromSeconds(2);
+
     /// <summary>Browser origin of the Blazor app, allowed by CORS to GET tracks and stems.</summary>
     public string WebOrigin { get; set; } = "http://localhost:8080";
 

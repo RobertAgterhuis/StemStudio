@@ -108,8 +108,10 @@ public sealed class GeneratorClientTests : IDisposable
         parts.Select(p => p.Name).ShouldBe(["params", "stem", "stem"]);
         parts[0].Type.ShouldBe("application/json");
         JsonNode.DeepEquals(JsonNode.Parse(parts[0].Bytes), JsonNode.Parse(GeneratorExamples.Read("RangeRestyleParams"))).ShouldBeTrue();
-        (parts[1].FileName, parts[1].Bytes, parts[1].Type).ShouldBe(("drums.flac", new byte[] { 1, 2 }, "audio/flac"));
-        (parts[2].FileName, parts[2].Bytes).ShouldBe(("bass.flac", new byte[] { 3 }));
+        (parts[1].FileName, parts[1].Type).ShouldBe(("drums.flac", "audio/flac"));
+        parts[1].Bytes.ShouldBe([1, 2]);
+        parts[2].FileName.ShouldBe("bass.flac");
+        parts[2].Bytes.ShouldBe([3]);
     }
 
     [Fact]
