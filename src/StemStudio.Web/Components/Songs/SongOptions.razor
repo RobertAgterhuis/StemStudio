@@ -1,0 +1,89 @@
+@* Options of the song page (010 FR-001, FR-004; ui-test-ids 1.9.0): title, language, style or free description, voice,
+   instrumental and length for everyone; free description, delivery, tempo, key, beats per bar and takes from Advanced. *@
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Songs
+
+<div class="ss-range-row">
+    <label class="ss-field">
+        <span class="ss-label">Song title (optional)</span>
+        <input type="text" class="rz-textbox" maxlength="80" value="@Form.Title" @oninput="e => Form.Title = (string)e.Value!" data-testid="song-title-input" />
+    </label>
+    <label class="ss-field">
+        <span class="ss-label-row"><span class="ss-label">Language</span><HelpHint HelpId="song-language" /></span>
+        <select class="rz-dropdown ss-select" @onchange="e => Form.Language = (string)e.Value!" data-testid="song-language-select" data-help-id="song-language">
+            @foreach (var language in LanguageNames.Codes)
+            {
+                <option value="@language" selected="@(Form.Language == language)">@LanguageNames.Of(language)</option>
+            }
+        </select>
+    </label>
+</div>
+<div class="ss-range-row">
+    <label class="ss-field">
+        <span class="ss-label">Style</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Set(() => Form.StyleId = Guid.TryParse((string)e.Value!, out var id) ? id : null)"
+                data-testid="song-style-select">
+            @foreach (var style in Form.Styles)
+            {
+                <option value="@style.Id" selected="@(Form.StyleId == style.Id)">@style.Name</option>
+            }
+            <LevelGate Feature="song.options">
+                <option value="" selected="@(Form.StyleId is null)">Free description</option>
+            </LevelGate>
+        </select>
+    </label>
+    <LevelGate Feature="song.options">
+        <label class="ss-field">
+            <span class="ss-label">Free description</span>
+            <input type="text" class="rz-textbox" maxlength="300" value="@Form.FreeCaption" disabled="@(Form.StyleId is not null)"
+                   placeholder="For example: warm acoustic guitar, brushed drums" @oninput="e => Form.FreeCaption = (string)e.Value!" data-testid="song-free-caption" />
+        </label>
+    </LevelGate>
+</div>
+<div class="ss-range-row">
+    <label class="ss-field">
+        <span class="ss-label">Lead voice</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Form.LeadVoice = Enum.Parse<LeadVoiceDto>((string)e.Value!, true)" data-testid="song-lead-voice">
+            @foreach (var voice in Enum.GetValues<LeadVoiceDto>())
+            {
+                <option value="@WireName.Of(voice)" selected="@(Form.LeadVoice == voice)">@SongText.LeadVoice(voice)</option>
+            }
+        </select>
+    </label>
+    <LevelGate Feature="song.options">
+        <label class="ss-field">
+            <span class="ss-label">Delivery (optional)</span>
+            <input type="text" class="rz-textbox" maxlength="40" value="@Form.Delivery" placeholder="For example: breathy, soft"
+                   @oninput="e => Form.Delivery = (string)e.Value!" data-testid="song-delivery-input" />
+        </label>
+    </LevelGate>
+    <label class="ss-check">
+        <input type="checkbox" checked="@Form.Instrumental" @onchange="e => Form.Instrumental = e.Value is true" data-testid="song-instrumental" />
+        Instrumental (no vocals)
+    </label>
+</div>
+<LevelGate Feature="song.options">
+    <SongMusicOptions Form="Form" />
+</LevelGate>
+<label class="ss-field">
+    <span class="ss-label">Length: @TimeText.Duration(Form.Duration)</span>
+    <input type="range" min="10" max="480" step="1" value="@InputValue.Format(Form.Duration)" aria-valuenow="@InputValue.Format(Form.Duration)"
+           aria-valuetext="@TimeText.Duration(Form.Duration)" @oninput="e => Set(() => Form.SetDuration(InputValue.Parse(e)))"
+           data-testid="song-duration" />
+</label>
+
+@code {
+    /// <summary>The page's form.</summary>
+    [Parameter, EditorRequired]
+    public SongForm Form { get; set; } = default!;
+
+    /// <summary>Raised after changes that affect other parts of the page (density warning, free description).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task Set(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+}

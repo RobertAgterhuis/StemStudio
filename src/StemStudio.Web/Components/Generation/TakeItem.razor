@@ -9,6 +9,10 @@
     <div class="ss-take-head">
         <span class="ss-take-name">Take @Take.Index</span>
         <AiBadge TestId="@($"take-ai-badge-{Key}")" />
+        @if (Take.Vocal is { } vocal)
+        {
+            <VocalBadge TestId="@($"take-vocal-badge-{Key}")" Vocal="vocal" ProfileName="@Take.VoiceProfileName" />
+        }
         <span class="ss-small ss-muted ss-num">@TimeText.Duration(Take.DurationSeconds)</span>
     </div>
     <audio controls preload="none" src="@Url(Take.AudioUrl)" aria-label="@($"Play take {Take.Index}")" data-testid="@($"take-play-{Key}")"></audio>

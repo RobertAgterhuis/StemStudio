@@ -45,6 +45,7 @@ public sealed class FeatureCatalogTests
         { "score.quality", [A, E], "sheet-music-piano" },
         { "score.range", [A, E], "sheet-music" },
         { "restyle.options", [A, E], "restyle-options" },
+        { "song.options", [A, E], "song-options" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -102,7 +103,7 @@ public sealed class FeatureCatalogTests
                 "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels", "library.filters", "export.range", "export.stem-pack",
                 "karaoke.size", "karaoke.offset", "karaoke.timing-origin", "lyrics.align-device", "lyrics.refine", "lyrics.remove",
                 "score.detail-stems", "score.key-override", "score.manual-tempo", "score.quality", "score.range",
-                "restyle.options"], ignoreOrder: true);
+                "restyle.options", "song.options"], ignoreOrder: true);
     }
 
     [Fact]

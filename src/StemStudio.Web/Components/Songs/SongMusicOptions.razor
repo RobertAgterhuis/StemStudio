@@ -1,0 +1,39 @@
+@* Advanced music options of the song page (010 FR-001; ui-test-ids 1.9.0 song-bpm, song-key, song-time-signature,
+   song-takes): empty or "Automatic" leaves the choice to the model. *@
+@using StemStudio.Contracts
+@using StemStudio.Web.Songs
+
+<div class="ss-range-row">
+    <label class="ss-field ss-field-narrow">
+        <span class="ss-label">Tempo (BPM)</span>
+        <input type="number" min="@ContractLimits.MinSongBpm" max="@ContractLimits.MaxSongBpm" step="1" class="rz-textbox" placeholder="Automatic"
+               value="@Form.Bpm" @onchange="e => Form.SetBpm(InputValue.Parse(e))" data-testid="song-bpm" />
+    </label>
+    <label class="ss-field">
+        <span class="ss-label">Key</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Form.Key = (string)e.Value!" data-testid="song-key">
+            <option value="">Automatic</option>
+            @foreach (var key in SongText.Keys)
+            {
+                <option value="@key" selected="@(Form.Key == key)">@key</option>
+            }
+        </select>
+    </label>
+    <label class="ss-field">
+        <span class="ss-label">Beats per bar</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Form.TimeSignature = (string)e.Value!" data-testid="song-time-signature">
+            <option value="">Automatic</option>
+            @foreach (var (beats, label) in SongText.TimeSignatures)
+            {
+                <option value="@beats" selected="@(Form.TimeSignature == beats)">@label</option>
+            }
+        </select>
+    </label>
+    <TakesInput Value="Form.Takes" OnChange="v => Form.SetTakes(v)" TestId="song-takes" />
+</div>
+
+@code {
+    /// <summary>The page's form.</summary>
+    [Parameter, EditorRequired]
+    public SongForm Form { get; set; } = default!;
+}

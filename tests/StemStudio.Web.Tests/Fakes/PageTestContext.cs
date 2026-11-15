@@ -58,6 +58,7 @@ public abstract class PageTestContext : BunitContext
         Api.GetGenerationStatusAsync(Arg.Any<CancellationToken>()).Returns(GenerationData.NotInstalled());
         Api.ListStylesAsync(Arg.Any<CancellationToken>()).Returns(GenerationData.Styles());
         Api.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([]);
+        Api.ListLyricsSheetsAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns([]);
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();

@@ -181,3 +181,19 @@
 .ss-style-kind {
   margin-left: var(--ss-space-2);
 }
+
+/* Song page (010 US1). */
+.ss-lyrics-text {
+  width: 100%;
+  font-family: var(--ss-font);
+}
+
+.ss-take-lyrics {
+  max-height: 12rem;
+  overflow-y: auto;
+  white-space: pre-line;
+}
+
+.ss-song-page .ss-panel {
+  margin-top: var(--ss-space-5);
+}

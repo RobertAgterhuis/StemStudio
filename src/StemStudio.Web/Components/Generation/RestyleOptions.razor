@@ -59,11 +59,7 @@
     <span class="ss-help ss-small">Subtle keeps close to the song; free moves furthest away.</span>
 </label>
 
-<label class="ss-field ss-field-narrow">
-    <span class="ss-label">Takes</span>
-    <input type="number" min="1" max="@ContractLimits.MaxTakes" step="1" class="rz-textbox" value="@Form.Takes"
-           @onchange="e => Set(() => Form.SetTakes(InputValue.Parse(e)))" data-testid="restyle-takes" />
-</label>
+<TakesInput Value="Form.Takes" OnChange="v => Set(() => Form.SetTakes(v))" TestId="restyle-takes" />
 
 @code {
     /// <summary>The dialog's form.</summary>
