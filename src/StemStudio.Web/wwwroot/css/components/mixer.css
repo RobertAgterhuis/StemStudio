@@ -393,3 +393,10 @@ html:has(.ss-transport-dock) {
 .ss-menu-item:hover {
   background: var(--ss-color-surface);
 }
+
+/* Long detail names (electric-guitar) on narrow strips end in an ellipsis; the full name is the strip's label. */
+.ss-strip .ss-stem-tab {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

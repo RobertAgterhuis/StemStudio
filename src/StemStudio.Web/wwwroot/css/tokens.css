@@ -191,5 +191,7 @@ html[data-motion="reduced"] {
     --ss-stem-piano: CanvasText;
     --ss-stem-other: CanvasText;
     --ss-stem-none: GrayText;
+    --ss-forced-accent: Highlight;
+    --ss-forced-on-accent: HighlightText;
   }
 }

@@ -322,3 +322,23 @@ select.ss-select {
   transform: translateX(-50%);
   pointer-events: none;
 }
+
+/* Reflow at 320 CSS px (WCAG 1.4.10): long titles (file hashes, URLs) wrap instead of widening the page. */
+.ss-page,
+.ss-table td,
+.ss-cell-title a,
+.ss-track-names h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  .ss-library-tools,
+  .ss-search {
+    width: 100%;
+  }
+
+  .ss-row-actions {
+    justify-content: flex-start;
+  }
+}

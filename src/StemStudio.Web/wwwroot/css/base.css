@@ -244,3 +244,20 @@ html[data-motion="reduced"] *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0ms !important;
 }
+
+/* Forced colours (WCAG 1.4.11, design-spec.md 9): filled controls keep a visible label in system colours. */
+@media (forced-colors: active) {
+  .ss-segment[aria-checked="true"],
+  .rz-button.rz-primary,
+  .ss-toast,
+  .ss-master-tab {
+    forced-color-adjust: none;
+    background: var(--ss-forced-accent);
+    color: var(--ss-forced-on-accent);
+  }
+
+  .ss-stem-tab,
+  .ss-meter {
+    border: 1px solid;
+  }
+}
