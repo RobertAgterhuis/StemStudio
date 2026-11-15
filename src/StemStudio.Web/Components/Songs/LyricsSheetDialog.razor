@@ -1,0 +1,41 @@
+@* Editor of a saved lyrics sheet (010 FR-003; ui-test-ids 1.9.0 lyrics-title-input, lyrics-language-select,
+   lyrics-text-input, lyrics-save, lyrics-error). *@
+@using StemStudio.Web.Songs
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-generative-form" role="dialog" aria-modal="true" aria-labelledby="lyrics-dialog-title" data-help-id="lyrics-format"
+         @onkeydown="OnKeyAsync">
+        <div class="ss-label-row">
+            <h2 id="lyrics-dialog-title" class="ss-title" tabindex="-1" @ref="InitialFocus">@(Sheet is null ? "New lyrics" : "Edit lyrics")</h2>
+            <HelpHint HelpId="lyrics-format" />
+        </div>
+        <div class="ss-range-row">
+            <label class="ss-field">
+                <span class="ss-label">Title</span>
+                <input type="text" class="rz-textbox" maxlength="80" value="@Title" @oninput="e => Title = (string)e.Value!" data-testid="lyrics-title-input" />
+            </label>
+            <label class="ss-field">
+                <span class="ss-label">Language</span>
+                <select class="rz-dropdown ss-select" @onchange="e => Language = (string)e.Value!" data-testid="lyrics-language-select">
+                    @foreach (var language in LanguageNames.Codes)
+                    {
+                        <option value="@language" selected="@(Language == language)">@LanguageNames.Of(language)</option>
+                    }
+                </select>
+            </label>
+        </div>
+        <label class="ss-field">
+            <span class="ss-label">Lyrics (up to 4096 characters)</span>
+            <textarea class="rz-textarea ss-lyrics-text" rows="12" value="@Text" @oninput="e => Text = (string)e.Value!" data-testid="lyrics-text-input"></textarea>
+        </label>
+        @if (Problem is { } problem)
+        {
+            <div class="ss-error" role="alert" data-testid="lyrics-error" data-field="@problem.Field">@problem.Message</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="lyrics-cancel" />
+            <RadzenButton Text="Save" Icon="save" IsBusy="Busy" BusyText="Saving..." Disabled="Busy" Click="SaveAsync" data-testid="lyrics-save" />
+        </div>
+    </div>
+</div>

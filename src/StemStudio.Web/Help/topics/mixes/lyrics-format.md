@@ -5,7 +5,7 @@ area: mixes
 summary: "Up to 4,096 characters of your own lyrics, with optional markers such as [verse] and [chorus]; .lrc times are dropped."
 anchors: ["lyrics-format"]
 keywords: ["lyrics format", "markers", "verse", "chorus", "lrc", "txt", "characters", "own lyrics"]
-related: [lyrics-sections, song-options]
+related: [lyrics-sections, song-options, lyrics-library]
 reviewed: "010"
 ---
 
