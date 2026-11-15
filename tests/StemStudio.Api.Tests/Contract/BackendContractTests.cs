@@ -211,7 +211,7 @@ public sealed partial class BackendContractTests : IDisposable
     {
         var queued = SyncTestData.UrlTrack("aaaaaaaaaaa");
         var separating = SyncTestData.UrlTrack("bbbbbbbbbbb");
-        separating.ApplyMetadata(new TrackMetadata("Some Song", "Some Artist"), SyncTestData.T0);
+        separating.ApplyMetadata(new SourceMetadata("Some Song", "Some Artist"), SyncTestData.T0);
         separating.ApplyProgress(new TrackProgress(TrackStatus.Separating, "Separating stems", 47), SyncTestData.T0);
         var tracks = new List<Track> { queued, separating, SyncTestData.CompletedTrack("ccccccccccc"), SyncTestData.FailedTrack("ddddddddddd") };
         foreach (var track in tracks)

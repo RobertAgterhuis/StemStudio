@@ -32,4 +32,7 @@ public sealed class StemStudioApiOptions
     /// <see cref="WorkerCreateJobTimeout"/>, so an import that is still waiting for the worker is never swept.
     /// </summary>
     public TimeSpan OrphanedImportTimeout { get; set; } = TimeSpan.FromSeconds(120);
+
+    /// <summary>Exports are refused (409 <c>insufficient-disk-space</c>) below this many free bytes on the data drive (feature 007).</summary>
+    public long MinFreeDiskBytes { get; set; } = StemStudio.Contracts.ContractLimits.MinFreeDiskBytesDefault;
 }

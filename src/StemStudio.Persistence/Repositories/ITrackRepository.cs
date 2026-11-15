@@ -32,6 +32,11 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>Tracks whose online lookup is pending or searching, for the metadata synchroniser (oldest first, feature 005).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListLookupActiveAsync(CancellationToken cancellationToken);
+
     /// <summary>
     /// Queued tracks that never got a worker job and were last changed before <paramref name="updatedBeforeUtc"/>: the
     /// import was interrupted between the insert and the worker call.
@@ -40,6 +45,12 @@ public interface ITrackRepository
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken);
+
+    /// <summary>Which of the given track IDs still exist (feature 007: <c>Provenance.trackAvailable</c>).</summary>
+    /// <param name="ids">Track IDs.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The existing IDs.</returns>
+    Task<IReadOnlySet<Guid>> ExistingIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
     /// <summary>Adds a track and saves.</summary>
     /// <param name="track">New track.</param>
@@ -54,7 +65,10 @@ public interface ITrackRepository
     /// <returns>A task.</returns>
     Task RemoveAsync(Track track, CancellationToken cancellationToken);
 
-    /// <summary>Removes a track together with all of its mixes in one unit of work (the mix foreign key is restrict).</summary>
+    /// <summary>
+    /// Removes a track together with all of its mixes in one unit of work (the mix foreign key is restrict); its artist is
+    /// removed in the same save when no other track references it (feature 005, FR-016).
+    /// </summary>
     /// <param name="track">Tracked track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>

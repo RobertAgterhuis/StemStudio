@@ -45,6 +45,33 @@ internal sealed class FakeWorkerClient : IWorkerClient
 
     public int HealthCalls { get; private set; }
 
+    public List<WorkerMetadataJobRequest> MetadataCreates { get; } = [];
+
+    public List<WorkerArtworkRef> ArtworkDownloads { get; } = [];
+
+    public List<(string FileName, string? ContentType, byte[] Bytes)> ArtworkUploads { get; } = [];
+
+    public Func<WorkerMetadataJobRequest, Task<WorkerMetadataJob>>? OnCreateMetadata { get; set; }
+
+    public Func<string, Task<WorkerMetadataJob?>>? OnGetMetadataJob { get; set; }
+
+    public Func<string, Task<WorkerMetadataResult>>? OnGetMetadataResult { get; set; }
+
+    public Func<WorkerArtworkRef, Task<byte[]?>>? OnGetArtwork { get; set; }
+
+    public Func<WorkerArtworkFile, Task<WorkerArtworkUpload>>? OnNormalizeArtwork { get; set; }
+
+    public static WorkerMetadataJob MetadataJob(string metadataJobId, WorkerMetadataJobState status, string? error = null) => new()
+    {
+        MetadataJobId = metadataJobId,
+        Status = status,
+        Stage = status.ToString(),
+        Error = error,
+    };
+
+    /// <summary>Deterministic fake JPEG bytes of a picture variant: the variant name and the reference id.</summary>
+    public static byte[] ArtworkBytes(WorkerArtworkRef artwork) => System.Text.Encoding.UTF8.GetBytes($"jpeg:{artwork.Variant}:{artwork.Id}");
+
     public static WorkerHealth Health(WorkerDeviceInfo deviceInfo) => new()
     {
         Status = "ok",
@@ -214,5 +241,99 @@ internal sealed class FakeWorkerClient : IWorkerClient
         }
 
         return OnGetHealth?.Invoke() ?? Task.FromResult(Health(new WorkerDeviceInfo { Kind = ProcessingDeviceKind.Cpu }));
+    }
+
+    public Task<WorkerMetadataJob> CreateMetadataJobAsync(WorkerMetadataJobRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            MetadataCreates.Add(request);
+        }
+
+        return OnCreateMetadata?.Invoke(request) ?? Task.FromResult(MetadataJob(NextJobId(), WorkerMetadataJobState.Queued));
+    }
+
+    public Task<WorkerMetadataJob?> GetMetadataJobAsync(string metadataJobId, CancellationToken cancellationToken) =>
+        OnGetMetadataJob?.Invoke(metadataJobId) ?? Task.FromResult<WorkerMetadataJob?>(MetadataJob(metadataJobId, WorkerMetadataJobState.Running));
+
+    public Task<WorkerMetadataResult> GetMetadataResultAsync(string metadataJobId, CancellationToken cancellationToken) =>
+        OnGetMetadataResult?.Invoke(metadataJobId) ?? Task.FromResult(new WorkerMetadataResult { Outcome = WorkerMetadataOutcome.NotFound });
+
+    public Task<byte[]?> GetArtworkAsync(WorkerArtworkRef artwork, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            ArtworkDownloads.Add(artwork);
+        }
+
+        return OnGetArtwork?.Invoke(artwork) ?? Task.FromResult<byte[]?>(ArtworkBytes(artwork));
+    }
+
+    public async Task<WorkerArtworkUpload> NormalizeArtworkAsync(WorkerArtworkFile file, CancellationToken cancellationToken)
+    {
+        using var copy = new MemoryStream();
+        await file.Content.CopyToAsync(copy, cancellationToken);
+        lock (_lock)
+        {
+            ArtworkUploads.Add((file.FileName, file.ContentType, copy.ToArray()));
+        }
+
+        return await (OnNormalizeArtwork?.Invoke(file)
+            ?? Task.FromResult(new WorkerArtworkUpload("8e4f2a6c0b1d4e3f9a7c5b3d1e0f2a4c", new WorkerArtworkInfo(WorkerArtworkSource.User, new string('e', 64), 100, 10))));
+    }
+
+    public List<WorkerRenderJobRequest> RenderCreates { get; } = [];
+
+    public List<string> RenderDeletes { get; } = [];
+
+    public Func<WorkerRenderJobRequest, Task<WorkerRenderJob>>? OnCreateRender { get; set; }
+
+    public Func<string, Task<WorkerRenderJob?>>? OnGetRender { get; set; }
+
+    public Func<string, Stream, Task>? OnDownloadRender { get; set; }
+
+    public Func<string, Task>? OnDeleteRender { get; set; }
+
+    public static WorkerRenderJob RenderJob(string renderJobId, WorkerRenderJobState status, double progress = 0, WorkerRenderResult? result = null) => new()
+    {
+        RenderJobId = renderJobId,
+        Status = status,
+        Progress = progress,
+        Error = status is WorkerRenderJobState.Failed or WorkerRenderJobState.Cancelled ? "interrupted by restart" : null,
+        Result = result,
+    };
+
+    public Task<WorkerRenderJob> CreateRenderJobAsync(WorkerRenderJobRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            RenderCreates.Add(request);
+        }
+
+        return OnCreateRender?.Invoke(request) ?? Task.FromResult(RenderJob(NextJobId(), WorkerRenderJobState.Queued));
+    }
+
+    public Task<WorkerRenderJob?> GetRenderJobAsync(string renderJobId, CancellationToken cancellationToken) =>
+        OnGetRender?.Invoke(renderJobId) ?? Task.FromResult<WorkerRenderJob?>(RenderJob(renderJobId, WorkerRenderJobState.Running, 0.5));
+
+    public async Task DownloadRenderFileAsync(string renderJobId, Stream destination, CancellationToken cancellationToken)
+    {
+        if (OnDownloadRender is not null)
+        {
+            await OnDownloadRender(renderJobId, destination);
+            return;
+        }
+
+        await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes("fLaC:render:" + renderJobId), cancellationToken);
+    }
+
+    public Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            RenderDeletes.Add(renderJobId);
+        }
+
+        return OnDeleteRender?.Invoke(renderJobId) ?? Task.CompletedTask;
     }
 }

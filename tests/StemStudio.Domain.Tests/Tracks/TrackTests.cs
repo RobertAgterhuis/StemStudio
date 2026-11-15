@@ -173,7 +173,7 @@ public sealed class TrackTests
     {
         var track = NewTrack();
 
-        track.ApplyMetadata(new TrackMetadata(" Never Gonna Give You Up ", "Rick Astley"), T0.AddSeconds(2));
+        track.ApplyMetadata(new SourceMetadata(" Never Gonna Give You Up ", "Rick Astley"), T0.AddSeconds(2));
 
         track.Title.ShouldBe("Never Gonna Give You Up");
         track.Artist.ShouldBe("Rick Astley");
@@ -185,7 +185,7 @@ public sealed class TrackTests
     {
         var track = NewTrack();
 
-        track.ApplyMetadata(new TrackMetadata("  ", new string('a', 600)), T0);
+        track.ApplyMetadata(new SourceMetadata("  ", new string('a', 600)), T0);
 
         track.Title.ShouldBe("https://youtu.be/dQw4w9WgXcQ");
         track.Artist!.Length.ShouldBe(Track.MaxArtistLength);
@@ -195,9 +195,9 @@ public sealed class TrackTests
     public void ApplyMetadata_UnchangedDoesNotTouchUpdatedAt()
     {
         var track = NewTrack();
-        track.ApplyMetadata(new TrackMetadata("Song", null), T0);
+        track.ApplyMetadata(new SourceMetadata("Song", null), T0);
 
-        track.ApplyMetadata(new TrackMetadata("Song", " "), T0.AddMinutes(1));
+        track.ApplyMetadata(new SourceMetadata("Song", " "), T0.AddMinutes(1));
 
         track.UpdatedAt.ShouldBe(T0);
         track.Artist.ShouldBeNull();
@@ -208,7 +208,7 @@ public sealed class TrackTests
     {
         var track = FailedTrack();
 
-        track.ApplyMetadata(new TrackMetadata("Other", null), T0);
+        track.ApplyMetadata(new SourceMetadata("Other", null), T0);
 
         track.Title.ShouldNotBe("Other");
     }

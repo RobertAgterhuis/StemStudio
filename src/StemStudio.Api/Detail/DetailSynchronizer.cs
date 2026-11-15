@@ -1,3 +1,4 @@
+using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
 using StemStudio.Domain.Tracks.Detail;
@@ -22,17 +23,8 @@ public sealed partial class DetailSynchronizer(
     /// <returns>A task.</returns>
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
-        foreach (var track in await tracks.ListDetailActiveAsync(cancellationToken))
-        {
-            try
-            {
-                await SyncAsync(track, cancellationToken);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                LogSyncFailed(logger, track.Id, exception);
-            }
-        }
+        await TrackPass.RunAsync(
+            await tracks.ListDetailActiveAsync(cancellationToken), track => track.Id, track => SyncAsync(track, cancellationToken), (trackId, exception) => LogSyncFailed(logger, trackId, exception));
     }
 
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
