@@ -92,11 +92,16 @@ def pre_write_outcome(
     """
     if kept < MIN_KEPT:
         return ParentOutcomeKind.NOTHING_FURTHER
-    if policy.model_residual and residual_db > MAX_MODEL_RESIDUAL_DB:
-        return ParentOutcomeKind.NOT_RELIABLE
-    if policy.double_count and double_db > MAX_DOUBLE_COUNT_DB:
-        return ParentOutcomeKind.NOT_RELIABLE
-    return None
+    failed = _residual_failed(residual_db, policy) or _double_count_failed(double_db, policy)
+    return ParentOutcomeKind.NOT_RELIABLE if failed else None
+
+
+def _residual_failed(residual_db: float, policy: CheckPolicy) -> bool:
+    return policy.model_residual and residual_db > MAX_MODEL_RESIDUAL_DB
+
+
+def _double_count_failed(double_db: float, policy: CheckPolicy) -> bool:
+    return policy.double_count and double_db > MAX_DOUBLE_COUNT_DB
 
 
 def reconstruction_db(parent: DetailAudio, written: Sequence[DetailAudio]) -> float:

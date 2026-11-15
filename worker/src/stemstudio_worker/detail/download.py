@@ -70,16 +70,19 @@ class ModelDownloader:
         target.unlink(missing_ok=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         part = target.with_name(target.name + ".part")
-        try:
-            digest = self._fetch(spec.url, part)
-        except (OSError, HTTPException) as exc:
-            part.unlink(missing_ok=True)
-            raise DetailModelUnavailableError(DOWNLOAD_FAILED) from exc
-        if digest != spec.sha256:
+        if self._download(spec.url, part) != spec.sha256:
             part.unlink(missing_ok=True)
             raise DetailModelUnavailableError(DOWNLOAD_CORRUPT)
         part.replace(target)
         return target
+
+    def _download(self, url: str, part: Path) -> str:
+        """Stream ``url`` into ``part`` and return its SHA-256; failures remove ``part``."""
+        try:
+            return self._fetch(url, part)
+        except (OSError, HTTPException) as exc:
+            part.unlink(missing_ok=True)
+            raise DetailModelUnavailableError(DOWNLOAD_FAILED) from exc
 
     def _fetch(self, url: str, part: Path) -> str:
         digest = hashlib.sha256()

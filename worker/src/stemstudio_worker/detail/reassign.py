@@ -83,11 +83,12 @@ def reassign(
     names = list(parents)
     if len(names) == 1:
         return {names[0]: family}
-    per_channel = [
-        _channel_shares(family[ch], [parents[name][ch] for name in names])
-        for ch in range(family.shape[0])
-    ]
+    per_channel = [_channel_shares(family[ch], _channel(parents, ch)) for ch in range(len(family))]
     return {name: np.stack([shares[i] for shares in per_channel]) for i, name in enumerate(names)}
+
+
+def _channel(parents: Mapping[ParentStemName, DetailAudio], channel: int) -> list[Signal]:
+    return [audio[channel] for audio in parents.values()]
 
 
 def reassign_families(
