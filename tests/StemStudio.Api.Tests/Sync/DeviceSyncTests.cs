@@ -11,7 +11,7 @@ using StemStudio.Domain.Tracks.Detail;
 namespace StemStudio.Api.Tests.Sync;
 
 /// <summary>Worker job devices copied to tracks and detail phases and served (feature 003, T029; FR-006).</summary>
-public sealed class DeviceSyncTests : IDisposable
+public sealed class DeviceSyncTests : ApiTestBase
 {
     private const string Gpu = "NVIDIA GeForce RTX 5070 Ti";
     private const string Oom = "The GPU ran out of memory during Mega 53-stem; the step was repeated on the CPU.";
@@ -20,80 +20,70 @@ public sealed class DeviceSyncTests : IDisposable
     private static readonly WorkerJobDevice WithFallback = new(ProcessingDeviceKind.Gpu, Gpu, true, Oom);
     private static readonly WorkerJobDevice Invalid = new(ProcessingDeviceKind.Cpu, Gpu, false, null);
 
-    private readonly ApiFactory _factory = new();
-
-    public DeviceSyncTests() => _factory.CreateClient().Dispose();
-
-    private FakeWorkerClient Worker => _factory.Worker;
-
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    public void Dispose() => _factory.Dispose();
-
     [Fact]
     public async Task EveryStandardPoll_CopiesTheDevice()
     {
-        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Separating, OnGpu);
-        await _factory.SyncTracksAsync();
-        (await _factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, null));
+        await Factory.SyncTracksAsync();
+        (await Factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, null));
 
         ReportJob(WorkerJobState.Analysing, WithFallback);
-        await _factory.SyncTracksAsync();
+        await Factory.SyncTracksAsync();
 
-        (await _factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, Oom));
+        (await Factory.FindTrackAsync(track.Id))!.Device.ShouldBe(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, Oom));
     }
 
     [Fact]
     public async Task TheCompletedJobsDevice_IsKeptOnTheCompletedTrack()
     {
-        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Completed, WithFallback);
 
-        await _factory.SyncTracksAsync();
+        await Factory.SyncTracksAsync();
 
-        var synced = (await _factory.FindTrackAsync(track.Id))!;
+        var synced = (await Factory.FindTrackAsync(track.Id))!;
         (synced.Status, synced.Device!.FallbackReason).ShouldBe((TrackStatus.Completed, Oom));
     }
 
     [Fact]
     public async Task InvalidWorkerDevice_IsLoggedAndIgnoredWithoutFailingTheTrack()
     {
-        var track = await _factory.SeedAsync(SyncTestData.UrlTrack());
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
         ReportJob(WorkerJobState.Separating, OnGpu);
-        await _factory.SyncTracksAsync();
+        await Factory.SyncTracksAsync();
 
         ReportJob(WorkerJobState.Analysing, Invalid);
-        await _factory.SyncTracksAsync();
+        await Factory.SyncTracksAsync();
 
-        var synced = (await _factory.FindTrackAsync(track.Id))!;
+        var synced = (await Factory.FindTrackAsync(track.Id))!;
         (synced.Status, synced.Device!.Name).ShouldBe((TrackStatus.Analysing, Gpu));
-        _factory.Logs.Entries.ShouldContain(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("device", StringComparison.OrdinalIgnoreCase));
+        Factory.Logs.Entries.ShouldContain(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("device", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     public async Task EveryDetailPoll_CopiesTheDeviceToTheDetailPhase()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
         ReportDetailJob(WorkerDetailJobState.Running, OnGpu);
-        await _factory.SyncDetailAsync();
+        await Factory.SyncDetailAsync();
         (await DetailPhaseAsync(track)).Device!.CpuFallback.ShouldBeFalse();
 
         ReportDetailJob(WorkerDetailJobState.Completed, WithFallback);
-        await _factory.SyncDetailAsync();
+        await Factory.SyncDetailAsync();
 
         var phase = await DetailPhaseAsync(track);
         (phase.Status, phase.Device!.FallbackReason).ShouldBe((DetailPhaseStatus.Completed, Oom));
-        (await _factory.FindTrackAsync(track.Id))!.Device.ShouldBeNull();
+        (await Factory.FindTrackAsync(track.Id))!.Device.ShouldBeNull();
     }
 
     [Fact]
     public async Task InvalidWorkerDetailDevice_IsIgnored()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
         ReportDetailJob(WorkerDetailJobState.Running, Invalid);
 
-        await _factory.SyncDetailAsync();
+        await Factory.SyncDetailAsync();
 
         var phase = await DetailPhaseAsync(track);
         (phase.Status, phase.Device).ShouldBe((DetailPhaseStatus.Running, null));
@@ -102,8 +92,8 @@ public sealed class DeviceSyncTests : IDisposable
     [Fact]
     public async Task ServedTrack_CarriesBothDevicesAndMatchesTheContract()
     {
-        var track = await _factory.SeedAsync(SyncTestData.DetailQueued());
-        await _factory.UpdateTrackAsync(track.Id, t =>
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued());
+        await Factory.UpdateTrackAsync(track.Id, t =>
         {
             t.ApplyDetailProgress(new DetailProgress(DetailPhaseStatus.Running, "Splitting drums (1 of 3)", "drums", 12), SyncTestData.T0);
             t.ApplyDetailDevice(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, Oom), SyncTestData.T0);
@@ -120,7 +110,7 @@ public sealed class DeviceSyncTests : IDisposable
     {
         var track = SyncTestData.UrlTrack();
         track.ApplyDevice(new JobDevice(ProcessingDeviceKind.Cpu, null, false, null), SyncTestData.T0);
-        await _factory.SeedAsync(track);
+        await Factory.SeedAsync(track);
 
         var dto = await GetServedTrackAsync(track.Id);
 
@@ -130,8 +120,7 @@ public sealed class DeviceSyncTests : IDisposable
     /// <summary>GET /api/tracks/{id}, asserted against the backend 1.3.0 contract.</summary>
     private async Task<TrackDto> GetServedTrackAsync(Guid trackId)
     {
-        using var client = _factory.CreateClient();
-        using var response = await client.GetAsync(new Uri(ApiRoutes.Track(trackId), UriKind.Relative), Ct);
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.Track(trackId), UriKind.Relative), Ct);
         await ContractAssert.MatchesAsync(response, "getTrack");
         return (await response.Content.ReadFromJsonAsync<TrackDto>(ApiFactory.Json, Ct))!;
     }
@@ -142,5 +131,5 @@ public sealed class DeviceSyncTests : IDisposable
     private void ReportDetailJob(WorkerDetailJobState state, WorkerJobDevice device) =>
         Worker.OnGetDetailJob = id => Task.FromResult<WorkerDetailJob?>(FakeWorkerClient.DetailJob(id, state, 40, "drums") with { Device = device });
 
-    private async Task<DetailPhase> DetailPhaseAsync(Track track) => (await _factory.FindTrackAsync(track.Id))!.DetailPhase!;
+    private async Task<DetailPhase> DetailPhaseAsync(Track track) => (await Factory.FindTrackAsync(track.Id))!.DetailPhase!;
 }

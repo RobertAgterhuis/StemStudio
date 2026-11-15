@@ -11,7 +11,7 @@ using StemStudio.Domain.Tracks;
 namespace StemStudio.Api.Tests.Device;
 
 /// <summary><c>GET /api/device</c> (backend contract 1.3.0 <c>getProcessingDevice</c>; feature 003, T040, FR-006).</summary>
-public sealed class DeviceEndpointTests : IDisposable
+public sealed class DeviceEndpointTests : ApiTestBase
 {
     private const string Gpu = "NVIDIA GeForce RTX 5070 Ti";
     private const string NoCuda = "No usable NVIDIA GPU: CUDA is not available in this container (is the GPU option enabled and the driver current?).";
@@ -24,21 +24,6 @@ public sealed class DeviceEndpointTests : IDisposable
         TotalMemoryMiB = 16303,
         FreeMemoryMiB = 15469,
     };
-
-    private readonly ApiFactory _factory = new();
-    private readonly HttpClient _client;
-
-    public DeviceEndpointTests() => _client = _factory.CreateClient();
-
-    private FakeWorkerClient Worker => _factory.Worker;
-
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    public void Dispose()
-    {
-        _client.Dispose();
-        _factory.Dispose();
-    }
 
     [Fact]
     public async Task GpuWorker_IsMappedFromTheWorkerDeviceInfo()
@@ -91,11 +76,11 @@ public sealed class DeviceEndpointTests : IDisposable
     {
         Worker.OnGetHealth = () => Task.FromResult(FakeWorkerClient.Health(GpuInfo));
         await GetDeviceAsync();
-        _factory.Clock.Advance(TimeSpan.FromSeconds(10) - TimeSpan.FromMilliseconds(1));
+        Factory.Clock.Advance(TimeSpan.FromSeconds(10) - TimeSpan.FromMilliseconds(1));
         await GetDeviceAsync();
         Worker.HealthCalls.ShouldBe(1);
 
-        _factory.Clock.Advance(TimeSpan.FromMilliseconds(1));
+        Factory.Clock.Advance(TimeSpan.FromMilliseconds(1));
         Worker.OnGetHealth = () => throw new WorkerUnavailableException();
 
         (await GetDeviceAsync()).Reachable.ShouldBeFalse();
@@ -109,7 +94,7 @@ public sealed class DeviceEndpointTests : IDisposable
     {
         Worker.OnGetHealth = () => reachable ? Task.FromResult(FakeWorkerClient.Health(GpuInfo)) : throw new WorkerUnavailableException();
 
-        using var response = await _client.GetAsync(new Uri(ApiRoutes.Device, UriKind.Relative), Ct);
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.Device, UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         await ContractAssert.MatchesAsync(response, "getProcessingDevice");
@@ -117,7 +102,7 @@ public sealed class DeviceEndpointTests : IDisposable
 
     private async Task<ProcessingDeviceDto> GetDeviceAsync()
     {
-        using var response = await _client.GetAsync(new Uri(ApiRoutes.Device, UriKind.Relative), Ct);
+        using var response = await Client.GetAsync(new Uri(ApiRoutes.Device, UriKind.Relative), Ct);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return (await response.Content.ReadFromJsonAsync<ProcessingDeviceDto>(ApiFactory.Json, Ct))!;
     }

@@ -63,18 +63,22 @@ public sealed class JobDevicePersistenceTests
         var track = TestData.QueuedTrack();
         track.AssignJob("3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c", TestData.T0);
         await db.SeedAsync(track);
-        await using (var context = db.NewContext())
-        {
-            var repository = new TrackRepository(context);
-            var tracked = (await repository.FindAsync(track.Id, Ct))!;
-            tracked.ApplyDevice(OnCpu, TestData.T0.AddMinutes(1));
-            await repository.SaveAsync(Ct);
-            tracked.ApplyDevice(WithFallback, TestData.T0.AddMinutes(2));
-            await repository.SaveAsync(Ct);
-        }
+
+        await ApplyAndSaveTwiceAsync(db, track.Id, OnCpu, WithFallback);
 
         await using var read = db.NewContext();
         (await new TrackRepository(read).FindAsync(track.Id, Ct))!.Device.ShouldBe(WithFallback);
+    }
+
+    private static async Task ApplyAndSaveTwiceAsync(SqliteTestDatabase db, Guid trackId, JobDevice first, JobDevice second)
+    {
+        await using var context = db.NewContext();
+        var repository = new TrackRepository(context);
+        var tracked = (await repository.FindAsync(trackId, Ct))!;
+        tracked.ApplyDevice(first, TestData.T0.AddMinutes(1));
+        await repository.SaveAsync(Ct);
+        tracked.ApplyDevice(second, TestData.T0.AddMinutes(2));
+        await repository.SaveAsync(Ct);
     }
 
     [Fact]
@@ -86,19 +90,24 @@ public sealed class JobDevicePersistenceTests
         {
             var trackId = await Create002DatabaseAsync(connectionString);
 
-            await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
-            await using var read = db.NewContext();
-            var track = (await new TrackRepository(read).FindAsync(trackId, Ct))!;
-
-            track.Device.ShouldBeNull();
-            (track.DetailPhase!.Status, track.DetailPhase.Device).ShouldBe((DetailPhaseStatus.Running, null));
-            read.Database.GetPendingMigrations().ShouldBeEmpty();
+            await AssertLoadsWithNullDevicesAsync(connectionString, trackId);
         }
         finally
         {
             SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
+    }
+
+    private static async Task AssertLoadsWithNullDevicesAsync(string connectionString, Guid trackId)
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
+        await using var read = db.NewContext();
+        var track = (await new TrackRepository(read).FindAsync(trackId, Ct))!;
+
+        track.Device.ShouldBeNull();
+        (track.DetailPhase!.Status, track.DetailPhase.Device).ShouldBe((DetailPhaseStatus.Running, null));
+        read.Database.GetPendingMigrations().ShouldBeEmpty();
     }
 
     private static async Task<Guid> Create002DatabaseAsync(string connectionString)
