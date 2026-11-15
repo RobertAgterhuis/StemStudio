@@ -1,6 +1,6 @@
 import type { TrackDto } from '../support/api';
 import type { AssetDto, AssetsApi, AudioFileFormat } from '../support/assets-api';
-import { fakeJobTimeoutMs, runId } from '../support/env';
+import { detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from '../support/env';
 import { expect, test } from '../support/test';
 import { fixturePath } from '../support/fixtures';
 import { uniqueWavCopy } from '../support/unique-audio';
@@ -53,6 +53,8 @@ test.describe('library management', { tag: '@library' }, () => {
     const copy = uniqueWavCopy(fixturePath('click_90bpm_3-4_12s.wav'), `${runId()}-library-${testInfo.project.name}`);
     const track = await api.ensureFileCompleted(copy, fakeJobTimeoutMs);
     const item = await saveRaw(assetsApi, track, 'drums', 'flac');
+    // A new import starts its detail phase (002); a track cannot be deleted while it is active.
+    await api.stopDetail(track.id, detailPhaseTimeoutMs);
     expect(await api.deleteTrack(track.id)).toBe(204);
 
     await library.goto();

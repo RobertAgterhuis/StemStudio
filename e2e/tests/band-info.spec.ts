@@ -59,9 +59,13 @@ test.describe('band info found', { tag: '@band-info' }, () => {
     await page.goto(`/tracks/${track.id}`);
     await bandInfo.show();
     await bandInfo.submitCorrection('Corrected Title', fake.found.artist.name);
+    // The panel already said "found" before the correction; wait for the corrected lookup itself.
+    const correction = async (): Promise<[string, boolean]> => {
+      const t = await metadataApi.getTrack(track.id);
+      return [t.metadata.status, t.metadata.correctedByUser];
+    };
+    await expect.poll(correction, { timeout: settleMs }).toEqual(['found', true]);
     await expect(bandInfo.status).toHaveAttribute('data-status', 'found', { timeout: settleMs });
-    const corrected = await metadataApi.waitForMetadata(track.id, settleMs);
-    expect([corrected.metadata.status, corrected.metadata.correctedByUser]).toEqual(['found', true]);
     await expect(artwork.trackCover).toHaveAttribute('data-artwork-source', fake.modes.found.artworkSource ?? 'none');
     expect((await metadataApi.getBandInfo(track.id)).recording?.title).toBe('Corrected Title');
   });
