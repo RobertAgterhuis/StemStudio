@@ -6,8 +6,9 @@ The weights are downloaded into ``STEMSTUDIO_MODEL_DIR/whisper`` on first use (s
 ``LYRICS_STAGE_DOWNLOADING``). Alignment uses the default stable-ts options with
 ``original_split=True`` (our line breaks are kept); a collapsed run (``mapping.is_collapsed``) is
 retried once with ``vad=True``, and a second collapse fails with ``ALIGNMENT_FAILED_TEXT``. With
-``refine`` the words are aligned inside the given line times (``align_words``). Loaded models are
-kept per device until :meth:`StableTsAligner.release` (idle hook).
+``refine`` the words are aligned inside the given line times (``align_words``). Word starts are
+then moved to the nearest vocal onset (``onsets.snap_starts``; the qa sung clip showed starts
+inside held vowels). Loaded models are kept per device until :meth:`StableTsAligner.release`.
 """
 
 import re
@@ -19,6 +20,7 @@ import numpy as np
 import numpy.typing as npt
 
 from stemstudio_worker.alignment.mapping import AlignedWord, build_document, is_collapsed
+from stemstudio_worker.alignment.onsets import snap_starts, vocal_onsets
 from stemstudio_worker.alignment.weights import WhisperWeights
 from stemstudio_worker.ports import AlignmentError, AlignRequest, ProgressCallback
 from stemstudio_worker.schemas import (
@@ -77,12 +79,13 @@ def _segments(refine: TimedLyrics) -> list[dict[str, Any]]:
 
 @dataclass(frozen=True, slots=True)
 class _Run:
-    """One alignment: the model, the request, the language and the progress callback."""
+    """One alignment: the model, the request, the language, progress and the vocal onsets."""
 
     model: Any
     request: AlignRequest
     language: str
     callback: _Callback
+    onsets: npt.NDArray[np.float64]
 
     def attempt(self, *, vad: bool) -> TimedLyrics | None:
         """One stable-ts run; None when stable-ts gave up."""
@@ -99,6 +102,7 @@ class _Run:
         if result is None:
             return None
         words = [AlignedWord(w.word, w.start, w.end, w.probability) for w in result.all_words()]
+        words = snap_starts(words, self.onsets)
         found = _language(getattr(result, "language", None), self.language)
         return build_document(request.text, words, found, request.refine)
 
@@ -122,7 +126,7 @@ class StableTsAligner:
         model = self._model(device, progress)
         progress(0.0, LYRICS_STAGE_ALIGNING)
         language = request.language or self._runtime.detect_language(model, request.audio)
-        run = _Run(model, request, language, _Callback(progress))
+        run = _Run(model, request, language, _Callback(progress), vocal_onsets(request.audio))
         for vad in (False, True):
             document = run.attempt(vad=vad)
             if document is not None and not is_collapsed(document):

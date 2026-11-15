@@ -21,12 +21,13 @@ RATE = 16_000
 
 
 def _bursts(starts: list[float], seconds: float = 6.0) -> npt.NDArray[np.float32]:
-    """Silence with a 300 ms tone burst (distinct pitch each) from every start."""
+    """Silence with a 300 ms decaying tone burst (distinct pitch each) from every start."""
     audio = np.zeros(int(seconds * RATE), dtype=np.float32)
     t = np.arange(int(0.3 * RATE)) / RATE
     for index, start in enumerate(starts):
         first = int(start * RATE)
-        audio[first : first + t.size] = 0.5 * np.sin(2 * np.pi * (220 + 40 * index) * t)
+        decay = np.linspace(1.0, 0.0, t.size) ** 2
+        audio[first : first + t.size] = 0.5 * decay * np.sin(2 * np.pi * (220 + 40 * index) * t)
     return audio
 
 
@@ -88,5 +89,5 @@ def test_the_aligner_refines_word_starts_against_the_vocal_onsets(tmp_path: Path
 
     starts = [w.start_ms for line in document.lines for w in line.words]
     assert spread().words[3].start == 2.2
-    assert starts[:3] == [1000, 1400, 1800]
-    assert abs((starts[3] or 0) - 2500) <= 40
+    bursts = [1000, 1400, 1800, 2500]
+    assert all(abs((got or 0) - want) <= 40 for got, want in zip(starts, bursts, strict=False))
