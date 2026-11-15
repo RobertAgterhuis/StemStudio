@@ -85,7 +85,7 @@ else
 
         @if (Track.Status == TrackStatusDto.Completed)
         {
-            <TrackSummary Track="Track" OnExport="OpenExport" />
+            <TrackSummary Track="Track" OnExport="OpenExport" OnExportAll="OpenStemPack" />
             <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" OnExport="OpenExport" />
         }
     </div>

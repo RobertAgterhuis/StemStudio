@@ -10,5 +10,7 @@ public sealed partial class TrackDetail
 
     private void OpenExport(string channel) => Exporting = ExportTarget.ForStem(Track!, channel);
 
+    private void OpenStemPack() => Exporting = ExportTarget.ForStemPack(Track!);
+
     private void CloseExport() => Exporting = null;
 }
