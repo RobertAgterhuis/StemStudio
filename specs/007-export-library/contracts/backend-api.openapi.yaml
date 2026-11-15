@@ -2467,8 +2467,9 @@ components:
                 - The title must be 1 to 500 characters long.
     ExportConflict:
       description: |
-        `track-not-ready` (the track is not completed) or `insufficient-disk-space` (less than
-        `StemStudio:MinFreeDiskBytes` free on the data drive).
+        `track-not-ready` (the track is not completed), `insufficient-disk-space` (less than
+        `StemStudio:MinFreeDiskBytes` free on the data drive) or `source-unavailable` (a stem
+        file of the source is missing; the worker rejected the input).
       content:
         application/problem+json:
           schema:
@@ -2486,6 +2487,12 @@ components:
                 title: Not enough disk space
                 status: 409
                 detail: Less than 1 GiB is free on the data drive; delete items or free space first.
+            sourceUnavailable:
+              value:
+                type: source-unavailable
+                title: Source unavailable
+                status: 409
+                detail: A stem file of this track is missing; separate the track again and retry.
     ExportUnprocessable:
       description: |
         A value is outside its limits (`errors` names the field, e.g. `channels[2]`, `range`,
