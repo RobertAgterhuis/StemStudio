@@ -154,10 +154,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 **Goal**: five tours, offered never forced, keyboard-operable, versioned progress.
 **Independent test**: quickstart V-T1..V-T4.
 
-- [ ] T053 [P] [US4] [frontend] Failing Vitest tests `src/web-interop/tests/tour.test.ts` (fake driver factory): missing/hidden targets skipped; no visible step -> immediate `dismissed` with step 0; popover `data-testid`s and attributes; focus trapped and restored; arrow/Enter/Escape mapping; reduced motion disables animation; `OnTourEnded` completed/dismissed with last step; `dispose` destroys the driver (FR-027)
-- [ ] T054 [US4] [frontend] Implement `src/web-interop/src/{tour,focus}.ts` (driver.js 1.10.2; verify version/licence; driver CSS themed with tokens in `css/components/tour.css`) to pass T053
-- [ ] T055 [P] [US4] [frontend] Failing bUnit tests `Help/TourOfferTests.cs`, `TourServiceTests.cs`: offer shown for route + level when no record or an older version; never auto-start; start resolves texts from topics; result recorded; navigation closes a running tour; help panel tour list `help-tour-start-<id>` (FR-027)
-- [ ] T056 [US4] [frontend] Implement `Help/TourService.cs`, `Components/Help/TourOffer.razor` and the five tour files of design-spec.md 7 to pass T055 (and T050's tour checks)
+- [x] T053 [P] [US4] [frontend] Failing Vitest tests `src/web-interop/tests/tour.test.ts` (fake driver factory): missing/hidden targets skipped; no visible step -> immediate `dismissed` with step 0; popover `data-testid`s and attributes; focus trapped and restored; arrow/Enter/Escape mapping; reduced motion disables animation; `OnTourEnded` completed/dismissed with last step; `dispose` destroys the driver (FR-027)
+- [x] T054 [US4] [frontend] Implement `src/web-interop/src/{tour,focus}.ts` (driver.js 1.10.2; verify version/licence; driver CSS themed with tokens in `css/components/tour.css`) to pass T053
+- [x] T055 [P] [US4] [frontend] Failing bUnit tests `Help/TourOfferTests.cs`, `TourServiceTests.cs`: offer shown for route + level when no record or an older version; never auto-start; start resolves texts from topics; result recorded; navigation closes a running tour; help panel tour list `help-tour-start-<id>` (FR-027)
+- [x] T056 [US4] [frontend] Implement `Help/TourService.cs`, `Components/Help/TourOffer.razor` and the five tour files of design-spec.md 7 to pass T055 (and T050's tour checks)
 - [ ] T057 [US4] [qa] Author `e2e/tests/tours.spec.ts`: each tour keyboard-only to the end and with Escape midway; offer gone after completion and reload; skipped step on a song without detail stems (V-T1..V-T4)
 
 **Checkpoint**: HO:us4.
