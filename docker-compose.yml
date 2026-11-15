@@ -3,6 +3,11 @@
 #   STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait   # fast stack for E2E / smoke tests
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (optional)
 #
+# GPU option (feature 003): the override builds stemstudio/worker:local-gpu (CUDA torch +
+# onnxruntime-gpu, ~11.6 GB) and lets the worker use the GPU when one is usable; prerequisites are
+# in docker-compose.gpu.yml. Without it everything runs on the CPU, as before.
+# STEMSTUDIO_FAKE_DEVICE=gpu|gpu-oom (only with STEMSTUDIO_SEPARATOR=fake) fakes a GPU for E2E.
+#
 # The worker has no host port (internal network only). The first real separation downloads the
 # Demucs weights (~300 MB) into the model-cache volume; the first real detail phase downloads about
 # 1.9 GB more (MDX23C DrumSep, UVR KARA 2, MVSep Mega 53-stem) into the same volume
@@ -30,6 +35,7 @@ services:
       TORCH_HOME: /models/torch
       STEMSTUDIO_MODEL_DIR: /models
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: ${STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS:-1}
+      STEMSTUDIO_FAKE_DEVICE: ${STEMSTUDIO_FAKE_DEVICE:-cpu}
     expose:
       - "8000"
     volumes:
