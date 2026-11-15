@@ -165,7 +165,7 @@ public sealed class LyricsAlignTests : ApiTestBase
         var lyrics = (await Factory.FindTrackAsync(track.Id))!.Lyrics!;
         (lyrics.Status, lyrics.Document!.Origin, lyrics.Document.SyncLevel).ShouldBe((LyricsStatus.Found, LyricsOrigin.Aligned, SyncLevel.Word));
         Worker.LyricsDeletes.ShouldBe([AlignJobId]);
-        (await (await Client.GetAsync(new Uri(ApiRoutes.Lyrics(track.Id), UriKind.Relative), Ct)).BodyAsync<LyricsDto>()).Credit.ShouldBe("Lyrics: entered by you; timing: automatic alignment");
+        (await (await Client.GetAsync(new Uri(ApiRoutes.Lyrics(track.Id), UriKind.Relative), Ct)).BodyAsync<LyricsDto>()).Credit.ShouldBe("Lyrics: LRCLIB; timing: automatic alignment");
     }
 
     [Theory]
