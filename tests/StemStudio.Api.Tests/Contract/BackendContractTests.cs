@@ -153,6 +153,25 @@ public sealed partial class BackendContractTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteTrack_EveryStatusMatchesContract()
+    {
+        var completed = await _factory.SeedAsync(SyncTestData.CompletedTrack("aaaaaaaaaaa"));
+        var queued = await _factory.SeedAsync(SyncTestData.UrlTrack("bbbbbbbbbbb"));
+
+        using var noContent = await DeleteAsync(ApiRoutes.Track(completed.Id));
+        using var conflict = await DeleteAsync(ApiRoutes.Track(queued.Id));
+        using var notFound = await DeleteAsync(ApiRoutes.Track(Guid.NewGuid()));
+
+        noContent.StatusCode.ShouldBe(System.Net.HttpStatusCode.NoContent);
+        conflict.StatusCode.ShouldBe(System.Net.HttpStatusCode.Conflict);
+        notFound.StatusCode.ShouldBe(System.Net.HttpStatusCode.NotFound);
+        foreach (var response in new[] { noContent, conflict, notFound })
+        {
+            await ContractAssert.MatchesAsync(response, "deleteTrack");
+        }
+    }
+
+    [Fact]
     public void Validator_RejectsNonConformingTracks()
     {
         var contract = OpenApiContract.Backend;
@@ -176,7 +195,7 @@ public sealed partial class BackendContractTests : IDisposable
     public void Contract_EveryOperationHasAnOperationId()
     {
         OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
-            .ShouldBe(["getHealth", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "retryTrack", "getStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix"], ignoreOrder: true);
+            .ShouldBe(["getHealth", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix"], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)
@@ -202,6 +221,8 @@ public sealed partial class BackendContractTests : IDisposable
     }
 
     private Task<HttpResponseMessage> GetAsync(string path) => _client.GetAsync(new Uri(path, UriKind.Relative), Ct);
+
+    private Task<HttpResponseMessage> DeleteAsync(string path) => _client.DeleteAsync(new Uri(path, UriKind.Relative), Ct);
 
     private Task<HttpResponseMessage> PostAsync(string path) => _client.PostAsync(new Uri(path, UriKind.Relative), null, Ct);
 

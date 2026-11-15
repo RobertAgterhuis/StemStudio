@@ -77,6 +77,7 @@ public static class ApiComposition
         services.AddSingleton<IUploadStore, UploadStore>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
+        services.AddScoped<TrackDeletionService>();
         services.AddScoped<StemService>();
         services.AddScoped<MixService>();
         services.AddScoped<TrackJobApplier>();

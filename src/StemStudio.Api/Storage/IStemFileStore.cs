@@ -23,4 +23,10 @@ public interface IStemFileStore
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The file size in bytes.</returns>
     Task<long> SaveStemAsync(Guid trackId, string stem, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the track directory (<c>tracks/&lt;trackId&gt;</c>) with all stems, if present.</summary>
+    /// <param name="trackId">Track ID.</param>
+    /// <exception cref="IOException">A file could not be deleted.</exception>
+    /// <exception cref="UnauthorizedAccessException">Access to a file was denied.</exception>
+    void DeleteTrackFiles(Guid trackId);
 }

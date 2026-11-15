@@ -68,6 +68,29 @@ public sealed class StemFileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteTrackFiles_RemovesTheTrackDirectoryOnly()
+    {
+        var store = new StemFileStore(new DataDirectory(_root));
+        var trackId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        await store.SaveStemAsync(trackId, "vocals", (s, ct) => s.WriteAsync(new byte[4], ct).AsTask(), Ct);
+        await store.SaveStemAsync(otherId, "vocals", (s, ct) => s.WriteAsync(new byte[4], ct).AsTask(), Ct);
+
+        store.DeleteTrackFiles(trackId);
+
+        Directory.Exists(Path.Combine(_root, "tracks", trackId.ToString())).ShouldBeFalse();
+        store.FindStem(otherId, "vocals").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void DeleteTrackFiles_MissingDirectoryIsANoOp()
+    {
+        var store = new StemFileStore(new DataDirectory(_root));
+
+        Should.NotThrow(() => store.DeleteTrackFiles(Guid.NewGuid()));
+    }
+
+    [Fact]
     public async Task SaveStem_ReplacesExistingFile()
     {
         var store = new StemFileStore(new DataDirectory(_root));
