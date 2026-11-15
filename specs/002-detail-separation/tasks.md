@@ -200,8 +200,8 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 - [ ] T072 [P] [US4] [backend] Failing tests: tracks created before the migration expose `detail.status = none`; `POST .../detail` on them queues the phase; a second track with the same audio completes from the worker cache (fake worker returns completed on create) (FR-009, FR-010, SC-007)
 - [ ] T073 [US4] [backend] Implement anything missing to pass T072
-- [ ] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
-- [ ] T075 [US4] [frontend] Implement to pass T074
+- [x] T074 [P] [US4] [frontend] Failing bUnit test: `detail-split-further` visible only for status none on a completed track, click queues and shows progress
+- [x] T075 [US4] [frontend] Implement to pass T074
 - [ ] T076 [US4] [qa] Author `detail.spec.ts` "split further": cancel the auto phase, Split further, detail completes, mixer offers expand
 
 **Checkpoint**: HO:us4.

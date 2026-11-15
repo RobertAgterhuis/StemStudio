@@ -15,7 +15,7 @@ public sealed partial class DetailSection
     [Parameter]
     public bool Busy { get; set; }
 
-    /// <summary>Raised by Retry (failed, cancelled): queue the detail phase again.</summary>
+    /// <summary>Raised by Split further (none) and Retry (failed, cancelled): queue the detail phase.</summary>
     [Parameter]
     public EventCallback OnStart { get; set; }
 

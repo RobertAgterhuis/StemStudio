@@ -23,6 +23,11 @@
     }
 
     <div class="ss-row">
+        @if (Detail.Status == DetailPhaseStatusDto.None)
+        {
+            <RadzenButton Text="Split further" Icon="call_split" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
+                          Disabled="Busy" data-testid="detail-split-further" />
+        }
         @if (CanRetry)
         {
             <RadzenButton Text="Retry detail separation" Icon="refresh" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
