@@ -1,6 +1,6 @@
 /**
- * Thin client for the backend HTTP API (`specs/002-detail-separation/contracts/backend-api.openapi.yaml`
- * 1.2.0), used only for test set-up (a completed fixture track, an old-style mix) and for asserting
+ * Thin client for the backend HTTP API (`specs/003-gpu-acceleration/contracts/backend-api.openapi.yaml`
+ * 1.3.0), used only for test set-up (a completed fixture track, an old-style mix) and for asserting
  * server state the UI cannot show (for example "no track was created").
  *
  * @packageDocumentation
@@ -44,6 +44,26 @@ export interface ParentOutcomeDto {
   readonly stems: readonly { readonly name: DetailStemName; readonly url: string }[];
 }
 
+/** Processing device kind (`ProcessingDeviceKind`, 1.3.0). */
+export type ProcessingDeviceKind = 'cpu' | 'gpu';
+
+/** Contract `JobDevice` (1.3.0): where a standard or detail job ran. */
+export interface JobDeviceDto {
+  readonly kind: ProcessingDeviceKind;
+  readonly name?: string | null;
+  readonly cpuFallback: boolean;
+  readonly fallbackReason?: string | null;
+}
+
+/** Contract `ProcessingDevice` (1.3.0, `GET /api/device`). */
+export interface ProcessingDeviceDto {
+  readonly reachable: boolean;
+  readonly kind?: ProcessingDeviceKind | null;
+  readonly name?: string | null;
+  readonly totalMemoryMiB?: number | null;
+  readonly reason?: string | null;
+}
+
 /** Contract `DetailPhase`. */
 export interface DetailPhaseDto {
   readonly status: DetailPhaseStatus;
@@ -52,6 +72,7 @@ export interface DetailPhaseDto {
   readonly progress: number;
   readonly error?: string | null;
   readonly parents: readonly ParentOutcomeDto[];
+  readonly device?: JobDeviceDto | null;
 }
 
 /** Subset of the contract `Track` the suite reads. */
@@ -66,6 +87,7 @@ export interface TrackDto {
   readonly stems: readonly { readonly name: StemName; readonly url: string }[];
   readonly beatGrid?: { readonly bpm: number; readonly beatsPerBar: number } | null;
   readonly detail: DetailPhaseDto;
+  readonly device?: JobDeviceDto | null;
   readonly updatedAt: string;
 }
 
@@ -128,6 +150,11 @@ const pollIntervals = [500, 1000];
 export class StemStudioApi {
   /** @param request Context created with `baseURL` = `E2E_API_URL`. */
   constructor(private readonly request: APIRequestContext) {}
+
+  /** `GET /api/device` (1.3.0): the worker's active processing device. */
+  async getDevice(): Promise<ProcessingDeviceDto> {
+    return json<ProcessingDeviceDto>(await this.request.get('/api/device'));
+  }
 
   /** `GET /api/tracks`. */
   async listTracks(): Promise<TrackDto[]> {

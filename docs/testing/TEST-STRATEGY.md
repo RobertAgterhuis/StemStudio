@@ -2,11 +2,17 @@
 
 Owner: qa. Binding inputs: constitution I (test-first, >= 90 % line AND branch per component),
 ADR-006 (tooling), ADR-008 (checkpoint hand-offs, SC-004 method, browsers), ADR-010 (detail
-separation), `specs/001-stemstudio-mvp/tasks.md` and `specs/002-detail-separation/tasks.md`.
+separation), ADR-011/ADR-012 (GPU runtime exception, device policy),
+`specs/001-stemstudio-mvp/tasks.md`, `specs/002-detail-separation/tasks.md` and
+`specs/003-gpu-acceleration/tasks.md`.
 
 Feature 002 (detail separation) extends every section; its additions are marked **(002)**. The
 binding contracts are now those in `specs/002-detail-separation/contracts/` (worker 1.1.0,
 backend 1.2.0, engine 2.0.0, UI test ids 1.1.0).
+
+Feature 003 (GPU acceleration) adds the processing device; its additions are marked **(003)**.
+The binding contracts are now those in `specs/003-gpu-acceleration/contracts/` (worker 1.2.0,
+backend 1.3.0, engine 2.0.0 unchanged, UI test ids 1.2.0, all additive).
 
 ## 1. Test pyramid
 
@@ -67,6 +73,13 @@ CI (devops, `.github/workflows/ci.yml`) runs exactly these commands and fails be
 | **(002)** Priority scheduler, detail runner | stem-separation | fake step functions, fake clock and sleeper (T022, T044, T065) | E2E `@detail` `detail-progress.spec.ts`, `@worker-restart` |
 | **(002)** Worker detail API (`/v1/detail-jobs`) | stem-separation | stub `HttpMessageHandler` with the worker 1.1.0 examples (`Worker/Examples/detail-*.json`, backend T030) | E2E `@detail` (compose) |
 | **(002)** Backend detail API (`startDetail`, `cancelDetail`, `getDetailStem`, `Track.detail`, mix `expanded`/`detailChannels`) | backend | fake `IStemStudioApiClient` (frontend T034-T080) | E2E `@detail` |
+| **(003)** Device probe (`devices/probe.py`: torch CUDA build, `is_available`, arch list, test kernel) | stem-separation | fake torch adapter (T011) raising or returning per probe step of data-model 2.1 | `scripts/gpu-smoke.*` and quickstart G3/G4 on the reference machine (CTO, T052) |
+| **(003)** NVML (`devices/nvml.py`, `nvidia-ml-py`) | stem-separation | fake NVML reader with scripted total/free MiB (T011, T013) | quickstart G3, G9 (busy GPU) |
+| **(003)** `DeviceRunner` (lease, free-memory check, memory fraction, OOM retry on the CPU) | stem-separation (`devices/{lease,oom,runner}.py`) | fake torch memory hooks and fake step functions (T013); consumers (`separation/`, `detail/`, `jobs/`) get a fake runner returning `DeviceUse`s or raising (T023-T027) | quickstart G5-G10 (CTO) |
+| **(003)** `FakeDeviceRunner` (`STEMSTUDIO_FAKE_DEVICE` = `cpu`, `gpu`, `gpu-oom`; only with `STEMSTUDIO_SEPARATOR=fake`) | stem-separation (`devices/fake.py`) | is itself the fake; unit-tested in T015 | E2E `@gpu` (`gpu.spec.ts`) and the default-suite `device.spec.ts` |
+| **(003)** `merge_device` fold | architect (`ports.py`, Phase 0) | none needed: pure function, `worker/tests/test_device_contract.py` | every job record |
+| **(003)** Worker device fields and health (`Job.device`, `DetailJob.device`, `deviceInfo`) | stem-separation | stub `HttpMessageHandler` with the worker 1.2.0 examples (backend T021) | E2E (compose) |
+| **(003)** `GET /api/device`, `Track.device`, `DetailPhase.device` | backend | fake `IStemStudioApiClient` (frontend T031, T042) | E2E `device.spec.ts`, `gpu.spec.ts` |
 | **(002)** Engine groups (`loadTrack.groups`, `setExpanded`, `<parent>.<detail>` channels) | audio-engine | `AudioContext` mock and stubbed `fetch` (T058-T060); bUnit `JSInterop` for the Web (T062) | E2E `detail-mixer.spec.ts` (real browser) |
 
 ## 4. Fake versus real separator
@@ -97,12 +110,20 @@ CI (devops, `.github/workflows/ci.yml`) runs exactly these commands and fails be
   test with the cached model volume and a 60 min timeout (devops T008); the CTO measures SC-001
   (detail phase of a 4-minute song <= 30 min) on the reference machine (T092).
 
+- **(003) GPU path.** No test in the repository needs a GPU and CI has none. Every torch, NVML
+  and onnxruntime call sits behind a small injectable adapter and is unit-tested with fakes
+  (table in section 3); no new real-model test is added. The real GPU path (torch `+cu132`,
+  onnxruntime CUDA provider, speed SC-001, outcome equality SC-003, peak VRAM, busy GPU) is
+  validated by the CTO on the reference machine (RTX 5070 Ti) in T052 with quickstart G3-G10, and
+  the CPU image is guarded against NVIDIA runtime wheels by `scripts/check-cpu-image.*` (CI job
+  `cpu-image-guard`, quickstart G2).
+
 ## 5. E2E scope (Playwright)
 
 Runs against the real stack (`STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait`), web
 on `E2E_BASE_URL` (default `http://localhost:8080`), API on `E2E_API_URL` (default
 `http://localhost:8081`). Selectors use `page.getByTestId(...)` with the ids of
-`specs/002-detail-separation/contracts/ui-test-ids.md` (1.1.0, a superset of 1.0.0) only, wrapped in page objects (`e2e/pages/`).
+`specs/003-gpu-acceleration/contracts/ui-test-ids.md` (1.2.0, a superset of 1.1.0 and 1.0.0) only, wrapped in page objects (`e2e/pages/`).
 
 | Spec | Covers |
 |---|---|
@@ -117,6 +138,23 @@ on `E2E_BASE_URL` (default `http://localhost:8080`), API on `E2E_API_URL` (defau
 | `detail-split-further.spec.ts` (`@detail`, 002) | cancel the auto phase -> start it again from the track page -> completed -> the mixer offers expand (FR-009); delete and re-import a detail-separated source -> its detail phase completes from the worker cache within 5 s (FR-010, SC-007) |
 | `detail-mixes.spec.ts` (`@detail`, 002) | expand drums + mute snare -> save "No snare" -> reload -> load -> drums expanded, snare muted, other parents collapsed; duplicate keeps the detail settings; a mix created through the API in the 1.1.0 shape (no `expanded`/`detailChannels`) loads collapsed with its 001 settings (FR-015, SC-005) |
 | `detail-worker-restart.spec.ts` (`@detail @worker-restart`, 002) | `docker compose restart worker` while a detail phase runs -> `failed` "interrupted by restart" with Retry -> the standard stems still play -> Retry completes (FR-019, US3 AS3) |
+| `device.spec.ts` (`@device`, 003, default suite) | default CPU stack: `GET /api/device` is reachable with `kind=cpu` and no reason, and the import page shows `worker-device` `data-device="cpu"` without `worker-device-reason`; a fresh import shows `track-device` and `detail-device` with `data-device="cpu"`, `data-fallback="false"` and no fallback notice (US2-1, US3-1, FR-006) |
+| `gpu.spec.ts` (`@gpu`, 003, own run) | fake GPU stack: `GET /api/device` and `worker-device` report `gpu` "GPU (Fake GPU)" without a reason, in both fake GPU modes (US3-1); with `STEMSTUDIO_FAKE_DEVICE=gpu` `track-device` / `detail-device` `data-device="gpu"` "GPU (Fake GPU)" without a fallback (US1-1); with `gpu-oom` the job completes and `track-device-fallback` / `detail-device-fallback` contain "ran out of memory" (US2-3, SC-004) |
+
+**(003) Device mode for `@gpu`.** The `@gpu` specs need a stack started with
+`STEMSTUDIO_SEPARATOR=fake`, `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5` and
+`STEMSTUDIO_FAKE_DEVICE=gpu` or `gpu-oom` (worker environment, passed through by
+`docker-compose.yml`, devops T008). The suite reads the same mode from `E2E_FAKE_DEVICE` (falling
+back to `STEMSTUDIO_FAKE_DEVICE`, default `cpu`; `e2e/support/env.ts`) so every test runs only in
+the mode it asserts: tests tagged `@fake-gpu` need `gpu`, tests tagged `@fake-gpu-oom` need
+`gpu-oom` and are skipped with the reason as annotation in the other mode; the import-page test
+runs in both. In mode `cpu` every `@gpu` test fails fast with a hint instead of passing vacuously.
+`npm test` excludes `@gpu` (`--grep-invert`), so the default suite on the CPU stack is unchanged
+apart from the new `@device` spec. A complete device run is two stack starts, each followed by
+`npm run test:gpu`: one with `gpu`, one with `gpu-oom`. Results from the worker cache carry no
+device (data-model 2.2), so every device spec uploads a per-run copy of `detail_10s_band.wav`
+(`uniqueBand`) instead of reusing a fixture the stack may have seen.
+
 
 **(002) Stack and data for `@detail`.** The stack runs with `STEMSTUDIO_SEPARATOR=fake` and
 `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`, so a detail phase takes about 25 s and the specs can
@@ -248,6 +286,20 @@ shared, documented inputs for the integration test, the E2E suite and manual thr
 | US4-6 name taken | `MixEndpointsTests.cs`, `MixTests.cs`, `SaveMixTests.cs` | manual V10 |
 | FR-011a unsaved indicator | `MixerStateTests.cs`, `MixerPageTests.cs` | `main-flow.spec.ts` (`unsaved-indicator`) |
 
+### (003) GPU acceleration: acceptance scenario -> tests
+
+| Scenario | Unit / component / contract tests | E2E / manual |
+|---|---|---|
+| US1-1 GPU mode runs on the GPU and the track page shows it (FR-002, FR-006) | `worker/tests/devices/test_probe.py`, `test_runner.py`, `test_factory.py`, `test_fake.py`; `worker/tests/separation/test_demucs_device.py`; `worker/tests/detail/test_device_models.py`; `worker/tests/jobs/test_job_device.py`; `JobDeviceTests.cs`, `JobDevicePersistenceTests.cs`, `WorkerDeviceClientTests.cs`, `DeviceSyncTests.cs`, `DeviceContractTests.cs`; `DeviceBadgeTests.cs` + track-page tests | `gpu.spec.ts` "device on the track page" (`@gpu @fake-gpu`); quickstart G3, G7 (CTO) |
+| US1-2 >= 5x faster than the CPU baseline (SC-001) | none (measurement) | quickstart G5 on the reference machine (CTO, T052) |
+| US1-3 same outcomes per parent, reconstruction passes (FR-007, SC-003) | 002 gating/check tests unchanged; `test_device_models.py` (same steps, only the device differs) | quickstart G6 (CTO, T052; `check_reconstruction.py`) |
+| US2-1 default start unchanged on the CPU (FR-001, SC-002) | every 001/002 test unchanged; `worker/tests/api/test_device_fallback.py` (`STEMSTUDIO_DEVICE=cpu`: no probe, `CPU` without fallback); `scripts/check-cpu-image.*` (FR-008) | the whole default suite; `device.spec.ts` (`@device`, `data-device="cpu"`); quickstart G1, G2 |
+| US2-2 GPU option without a usable GPU -> CPU with a reason (FR-003) | `test_probe.py` (each reason text), `test_factory.py`, `test_device_fallback.py` (`/health` reason), `DeviceEndpointTests.cs` | quickstart G4 (CTO); `worker-device-reason` is not reachable with the fake device (the fake GPU is always usable) |
+| US2-3 out of GPU memory -> step retried once on the CPU, notice shown (FR-004, SC-004) | `test_runner.py` (torch and onnxruntime OOM, one CPU retry, non-OOM propagates), `test_fake.py` (`gpu-oom`), `test_device_fallback.py`; backend fallback-reason tests (T036); `DeviceBadgeTests.cs` (fallback) | `gpu.spec.ts` "fallback notice" (`@gpu @fake-gpu-oom`); quickstart G8, G9 |
+| US3-1 device shown before importing and per job (FR-006) | `DeviceEndpointTests.cs`, frontend import-page device tests (T042); `DeviceBadgeTests.cs` | `gpu.spec.ts` "worker device on the import page" (`@gpu`) and "device on the track page" (`@fake-gpu`); `device.spec.ts` "the import page shows the CPU worker", "the track page shows the CPU for both jobs" (`@device`); quickstart G7 |
+| FR-005 one GPU step at a time | `test_runner.py` (lease, two threads) | quickstart G10 (CTO) |
+| FR-009 GPU compose override builds and starts | none (build) | `scripts/gpu-smoke.*`, quickstart G3 (CTO) |
+
 ### (002) Detail separation: acceptance scenario -> tests
 
 | Scenario | Unit / component / contract tests | E2E |
@@ -292,7 +344,15 @@ npm ci && npx playwright install --with-deps chromium firefox
 npm run lint && npm run typecheck
 npx playwright test --list
 npm run fixtures         # both generators
-npm test                 # all but @real, @restart, @worker-restart; Chromium + Firefox, retries 0
+npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium + Firefox, retries 0
+npm run test:gpu         # (003) only @gpu; stack with STEMSTUDIO_FAKE_DEVICE=gpu, then again with gpu-oom
+
+# (003) the two @gpu runs (from the repository root; the same variable drives stack and suite)
+export STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5
+STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
+(cd e2e && STEMSTUDIO_FAKE_DEVICE=gpu npm run test:gpu)
+STEMSTUDIO_FAKE_DEVICE=gpu-oom docker compose up -d --wait    # recreates the worker
+(cd e2e && STEMSTUDIO_FAKE_DEVICE=gpu-oom npm run test:gpu)
 npm run test:detail      # (002) only @detail, without @worker-restart
 npm run test:worker-restart  # (002) needs Docker on the host (docker compose restart worker)
 npm run test:restart     # after `docker compose restart api web` (T122)

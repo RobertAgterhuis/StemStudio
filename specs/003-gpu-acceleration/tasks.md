@@ -63,7 +63,7 @@ in the execution plan.
 - [x] T007 [quality-gate] Implement the rule in `tools/quality/dependency_check.py`; re-run `tools/quality/run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T008 [P] [devops] `docker/worker.Dockerfile`: build arg `ORT_VARIANT` (`cpu` default; `gpu` uninstalls `onnxruntime` and installs `onnxruntime-gpu==1.32.0` without extras plus `cuda-toolkit[curand]==13.2.2`, research.md G-01) next to `TORCH_VARIANT`; header comment updated. `docker-compose.gpu.yml`: `TORCH_VARIANT` default **`cu132`** (fixes the broken `cu128`, FR-009), `ORT_VARIANT: gpu`, image `stemstudio/worker:local-gpu`, `STEMSTUDIO_DEVICE` default `auto`, keep the `deploy.resources.reservations.devices` block, comments (prerequisites, ~11.3 GB image, no Linux driver inside WSL). `docker-compose.yml`: comment line for the GPU option; pass `STEMSTUDIO_FAKE_DEVICE` (default `cpu`) to the worker. CI `CONTRACTS_DIR` and `scripts/test-all.{ps1,sh}` -> `specs/003-gpu-acceleration/contracts`; `scripts/dev.{ps1,sh}` pass `STEMSTUDIO_FAKE_DEVICE` (FR-001, FR-009)
 - [ ] T009 [devops] Write the CPU-image guard first and show it fail on a GPU-variant image, then wire it: `scripts/check-cpu-image.{ps1,sh}` (no distribution named `nvidia-*` other than `nvidia-ml-py`, no `cuda-*`, `triton` or `onnxruntime-gpu`, and `torch.version.cuda is None`; quickstart G2) and CI job `cpu-image-guard`; `scripts/gpu-smoke.{ps1,sh}` (build `stemstudio/worker:local-gpu`, run with `--gpus all`: torch `+cu132`, `sm_<cc>` in arch list, matmul, onnxruntime CUDA EP after `preload_dlls()`, `/health` `deviceInfo.kind == gpu`; and without `--gpus`: `kind == cpu` with a reason; quickstart G3/G4) (FR-003, FR-008)
-- [ ] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: GPU path tested with fakes (device runner, probe, NVML), `STEMSTUDIO_FAKE_DEVICE` for E2E, reference-machine validation by the CTO, traceability US1..US3 -> test files
+- [x] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: GPU path tested with fakes (device runner, probe, NVML), `STEMSTUDIO_FAKE_DEVICE` for E2E, reference-machine validation by the CTO, traceability US1..US3 -> test files
 
 ---
 
@@ -106,7 +106,7 @@ in the execution plan.
 - [ ] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
 - [ ] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
 - [ ] T032 [US1] [frontend] Implement `src/StemStudio.Web/Components/Shared/DeviceBadge.razor` and use it in `TrackDetail.razor` and `DetailSection.razor` to pass T031
-- [ ] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
+- [x] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
 
 **Checkpoint**: HO:us1.
 
@@ -121,7 +121,7 @@ in the execution plan.
 - [ ] T035 [US2] [stem-separation] Implement anything missing to pass T034
 - [ ] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
 - [ ] T037 [US2] [backend] Implement anything missing to pass T036
-- [ ] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
+- [x] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
 - [ ] T039 [US2] [devops] CI `e2e` job: after the default fake-stack run, restart the fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu-oom` and run `--grep @gpu`; same in `scripts/test-all.*` (optional flag `-Gpu`/`--gpu-e2e`)
 
 **Checkpoint**: HO:us2.
@@ -137,7 +137,7 @@ in the execution plan.
 - [ ] T041 [US3] [backend] Implement `src/StemStudio.Api/Device/DeviceEndpoints.cs` (+ registration) to pass T040
 - [ ] T042 [P] [US3] [frontend] Failing tests: `IStemStudioApiClient.GetDeviceAsync`; import page shows `worker-device` with `data-device` `gpu`/`cpu`/`unknown` and `worker-device-reason` only when a reason is set (FR-006, US3-1)
 - [ ] T043 [US3] [frontend] Implement the client method and the import-page display (reusing `DeviceBadge`) to pass T042
-- [ ] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
+- [x] T044 [US3] [qa] Author `gpu.spec.ts` "worker device on the import page" (`@gpu`: `data-device="gpu"`) and a default-suite assertion `data-device="cpu"` on the import page
 
 **Checkpoint**: HO:us3.
 
@@ -148,7 +148,7 @@ in the execution plan.
 - [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
 - [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
-- [ ] T048 [P] [qa] Traceability matrix update, HO:polish
+- [x] T048 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
 - [ ] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
