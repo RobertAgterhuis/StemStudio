@@ -222,7 +222,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 
 ## Phase 8: Polish (inside the wave, per owner)
 
-- [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
+- [x] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
 - [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
 - [ ] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
