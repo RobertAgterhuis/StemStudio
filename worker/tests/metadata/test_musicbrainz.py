@@ -11,7 +11,7 @@ from stemstudio_worker.metadata.musicbrainz import (
     SEARCH_LIMIT,
     MusicBrainz,
     escape_lucene,
-    isrc_query,
+    ISRC_INCLUDES,
     search_query,
 )
 from stemstudio_worker.ports import MetadataQuery
@@ -64,12 +64,14 @@ def test_search_query_window_never_goes_below_zero() -> None:
     assert search_query("Jingle", "Band", 2.0).endswith("dur:[0 TO 7000]")
 
 
-def test_isrc_query() -> None:
-    assert isrc_query("USUAN1400011") == "isrc:USUAN1400011"
+def test_isrc_includes() -> None:
+    assert ISRC_INCLUDES == "artist-credits+releases+release-groups"
 
 
-def test_isrc_lookup_comes_first_with_json_and_a_limit() -> None:
-    harness = online_harness([json_response({"recordings": [_recording()]})])
+def test_isrc_lookup_comes_first_and_scores_100() -> None:
+    raw = _recording()
+    del raw["score"]
+    harness = online_harness([json_response({"isrc": "USEVI9692306", "recordings": [raw]})])
     query = MetadataQuery(
         title="Hero", artist="Metallica", duration_seconds=262.0, isrc="USEVI9692306"
     )
@@ -77,14 +79,23 @@ def test_isrc_lookup_comes_first_with_json_and_a_limit() -> None:
     found = MusicBrainz(harness.client).find(query)
 
     assert found is not None
-    assert found.recording.matched_by == "isrc"
+    assert (found.recording.matched_by, found.recording.score) == ("isrc", 100)
     request = harness.recorder.requests[0]
-    assert str(request.url).startswith(f"{MB_ROOT}/recording?")
-    assert dict(request.url.params) == {
-        "query": "isrc:USEVI9692306",
-        "fmt": "json",
-        "limit": str(SEARCH_LIMIT),
-    }
+    assert str(request.url).startswith(f"{MB_ROOT}/isrc/USEVI9692306?")
+    assert dict(request.url.params) == {"inc": ISRC_INCLUDES, "fmt": "json"}
+
+
+def test_unknown_isrc_404_falls_back_to_the_search() -> None:
+    harness = online_harness([httpx.Response(404), json_response({"recordings": [_recording()]})])
+    query = MetadataQuery(
+        title="Hero of the Day", artist="Metallica", duration_seconds=262.0, isrc="USEVI9692306"
+    )
+
+    found = MusicBrainz(harness.client).find(query)
+
+    assert found is not None
+    assert found.recording.matched_by == "search"
+    assert dict(harness.recorder.requests[1].url.params)["limit"] == str(SEARCH_LIMIT)
 
 
 def test_search_sends_only_title_artist_and_duration() -> None:
