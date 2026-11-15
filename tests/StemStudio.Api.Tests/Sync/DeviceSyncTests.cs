@@ -111,12 +111,9 @@ public sealed class DeviceSyncTests : IDisposable
             t.ApplyDetailProgress(new DetailProgress(DetailPhaseStatus.Running, "Splitting drums (1 of 3)", "drums", 12), SyncTestData.T0);
             t.ApplyDetailDevice(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, Oom), SyncTestData.T0);
         });
-        using var client = _factory.CreateClient();
 
-        using var response = await client.GetAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+        var dto = await GetServedTrackAsync(track.Id);
 
-        await ContractAssert.MatchesAsync(response, "getTrack");
-        var dto = (await response.Content.ReadFromJsonAsync<TrackDto>(ApiFactory.Json, Ct))!;
         dto.Detail.Device.ShouldBe(new JobDeviceDto(ProcessingDeviceKindDto.Gpu, Gpu, true, Oom));
         dto.Device.ShouldBeNull();
     }
@@ -127,13 +124,19 @@ public sealed class DeviceSyncTests : IDisposable
         var track = SyncTestData.UrlTrack();
         track.ApplyDevice(new JobDevice(ProcessingDeviceKind.Cpu, null, false, null), SyncTestData.T0);
         await _factory.SeedAsync(track);
-        using var client = _factory.CreateClient();
 
-        using var response = await client.GetAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+        var dto = await GetServedTrackAsync(track.Id);
 
-        await ContractAssert.MatchesAsync(response, "getTrack");
-        var dto = (await response.Content.ReadFromJsonAsync<TrackDto>(ApiFactory.Json, Ct))!;
         (dto.Device!.DisplayText(), dto.Device.CpuFallback).ShouldBe(("CPU", false));
+    }
+
+    /// <summary>GET /api/tracks/{id}, asserted against the backend 1.3.0 contract.</summary>
+    private async Task<TrackDto> GetServedTrackAsync(Guid trackId)
+    {
+        using var client = _factory.CreateClient();
+        using var response = await client.GetAsync(new Uri(ApiRoutes.Track(trackId), UriKind.Relative), Ct);
+        await ContractAssert.MatchesAsync(response, "getTrack");
+        return (await response.Content.ReadFromJsonAsync<TrackDto>(ApiFactory.Json, Ct))!;
     }
 
     private void ReportJob(WorkerJobState state, WorkerJobDevice device) =>

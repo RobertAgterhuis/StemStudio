@@ -34,14 +34,20 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobD
             return Fail(track, InterruptedByRestart);
         }
 
-        devices.ApplyStandard(track, job.Device);
-        ApplyMetadata(track, job.Metadata);
+        ApplyReported(track, job);
         return job.Status switch
         {
             WorkerJobState.Completed => CompleteAsync(track, job.JobId, cancellationToken),
             WorkerJobState.Failed => Fail(track, job.Error ?? "Processing failed."),
             _ => Progress(track, job),
         };
+    }
+
+    /// <summary>Copies the device and the metadata the worker reported with any state.</summary>
+    private void ApplyReported(Track track, WorkerJob job)
+    {
+        devices.ApplyStandard(track, job.Device);
+        ApplyMetadata(track, job.Metadata);
     }
 
     private void ApplyMetadata(Track track, WorkerSourceMetadata? metadata)

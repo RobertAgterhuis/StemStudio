@@ -82,13 +82,18 @@ public static class ApiComposition
         services.AddScoped<TrackDeletionService>();
         services.AddScoped<StemService>();
         services.AddScoped<MixService>();
+        AddSyncServices(services);
+        AddDetailServices(services);
+    }
+
+    private static void AddSyncServices(IServiceCollection services)
+    {
         services.AddSingleton<TrackFiles>();
         services.AddSingleton<JobDeviceApplier>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
         services.AddHostedService<JobSyncService>();
-        AddDetailServices(services);
     }
 
     private static void AddDetailServices(IServiceCollection services)
