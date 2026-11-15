@@ -289,11 +289,6 @@ def test_health_reports_the_transcription_models_font_and_lane(score_api: Api) -
 # ------------------------------------------------------------------ real notation + engraving
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="engraving: Verovio's resource path is thread-local; new_toolkit must set it "
-    "(request to audio-ingest, 008 T072 follow-up)",
-)
 def test_the_real_notation_and_engraving_run_on_the_fake_notes(make_api: ApiFactory) -> None:
     engraver = VerovioScoreEngraver(font_check=lambda: True, svg_to_pdf=blank_pdf_page)
     api = make_api(overrides=AppOverrides(score_engraver=engraver))
@@ -316,3 +311,13 @@ def test_inputs_are_read_from_the_library(score_api: Api, notator: FakeNotator) 
 
     assert (library / BASS).is_file()
     assert notator.calls[0][1].duration_seconds == pytest.approx(4.5, abs=0.01)
+
+
+def test_a_score_file_that_vanished_answers_404(score_api: Api) -> None:
+    job_id = _completed(score_api)["transcriptionJobId"]
+    (score_api.settings.data_dir / "transcription-jobs" / job_id / "score.pdf").unlink()
+
+    response = score_api.client.get(f"{JOBS}/{job_id}/files/pdf")
+
+    assert_conforms(response, FILE)
+    assert response.status_code == 404

@@ -185,8 +185,10 @@ class Pipeline:
             done.document.musicxml, self._request.titles.title, done.attribution
         )
         finished(1.0)
-        files: dict[ScoreFileRole, bytes] = {"pdf": engraved.pdf, "musicxml": done.document.musicxml,
-                                             "midi": done.document.midi}  # fmt: skip
+        document = done.document
+        files: dict[ScoreFileRole, bytes] = {
+            "pdf": engraved.pdf, "musicxml": document.musicxml, "midi": document.midi,
+        }  # fmt: skip
         device = _CPU if done.use is None else merge_device(None, done.use)
         return Outcome(files, self._summary(done, engraved.pages, settings, inputs), device)
 
