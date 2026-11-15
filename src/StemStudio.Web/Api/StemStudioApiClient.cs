@@ -179,7 +179,10 @@ public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioAp
     private static MultipartFormDataContent MultipartBody(UploadFile file, string name = "file")
     {
         var stream = new StreamContent(file.Content);
-        stream.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        // The recorder's type carries parameters ("audio/webm;codecs=opus"); browsers give "" for unknown extensions (.lrc).
+        stream.Headers.ContentType = MediaTypeHeaderValue.TryParse(file.ContentType, out var type)
+            ? type
+            : new MediaTypeHeaderValue("application/octet-stream");
         return new MultipartFormDataContent { { stream, name, file.FileName } };
     }
 

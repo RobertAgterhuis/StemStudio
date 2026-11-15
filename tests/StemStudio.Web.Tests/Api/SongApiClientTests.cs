@@ -58,6 +58,21 @@ public sealed partial class StemStudioApiClientTests
         sent.Parts.Select(p => (p.Name, p.FileName)).ShouldBe([("file", "sample.lrc"), ("title", null), ("language", null)]);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a media type")]
+    public async Task UploadLyricsSheet_SendsAFileTheBrowserGaveNoTypeAsOctetStream(string browserType)
+    {
+        // Browsers report "" for extensions they do not know, such as .lrc.
+        _handler.Respond(HttpStatusCode.Created, Body(SongData.Sheet()));
+        await using var stream = new MemoryStream("[00:01.00]Paper boats"u8.ToArray());
+
+        await _client.UploadLyricsSheetAsync(new UploadFile(stream, "sample.lrc", browserType), null, "en", Ct);
+
+        var file = _handler.Requests.ShouldHaveSingleItem().Parts.Single(p => p.Name == "file");
+        (file.FileName, file.MediaType!.MediaType).ShouldBe(("sample.lrc", "application/octet-stream"));
+    }
+
     [Fact]
     public async Task UploadLyricsSheet_LeavesOutEmptyFields()
     {

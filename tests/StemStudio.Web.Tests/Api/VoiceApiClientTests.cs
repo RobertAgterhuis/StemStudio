@@ -43,6 +43,21 @@ public sealed partial class StemStudioApiClientTests
     }
 
     [Theory]
+    [InlineData("audio/webm;codecs=opus", "audio/webm", "opus")]
+    [InlineData("audio/ogg; codecs=opus", "audio/ogg", "opus")]
+    public async Task CreateVoiceProfile_AcceptsTheRecordersMimeTypeWithParameters(string recorded, string mediaType, string codecs)
+    {
+        _handler.Respond(HttpStatusCode.Created, Body(VoiceData.Profile()));
+        await using var stream = new MemoryStream(new byte[16]);
+        var upload = new VoiceProfileUpload(new UploadFile(stream, "recording.webm", recorded), "My voice", "Sam Example", true, "consent.v1", VoiceSampleSourceDto.Recorded);
+
+        await _client.CreateVoiceProfileAsync(upload, Ct);
+
+        var type = _handler.Requests.ShouldHaveSingleItem().Parts.Single(p => p.Name == "sample").MediaType!;
+        (type.MediaType, type.Parameters.Single(p => p.Name == "codecs").Value).ShouldBe((mediaType, codecs));
+    }
+
+    [Theory]
     [InlineData(false, "/api/voice-profiles/6b1a3f2e-0d9c-4b8a-9f7e-d6c5b4a3f2e1?deleteTakes=false")]
     [InlineData(true, "/api/voice-profiles/6b1a3f2e-0d9c-4b8a-9f7e-d6c5b4a3f2e1?deleteTakes=true")]
     public async Task DeleteVoiceProfile_SaysWhetherTheTakesGoToo(bool deleteTakes, string expected)

@@ -12,8 +12,8 @@ public sealed record CapturedRequest(
     string? Body,
     IReadOnlyList<CapturedPart> Parts);
 
-/// <summary>One multipart part: its content class, form name, file name and size.</summary>
-public sealed record CapturedPart(Type ContentType, string? Name, string? FileName, long Length);
+/// <summary>One multipart part: its content class, form name, file name, size and Content-Type header.</summary>
+public sealed record CapturedPart(Type ContentType, string? Name, string? FileName, long Length, MediaTypeHeaderValue? MediaType = null);
 
 /// <summary>Stub handler that answers with queued responses and records every request.</summary>
 public sealed class StubHttpMessageHandler : HttpMessageHandler
@@ -68,7 +68,7 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
             {
                 var bytes = await part.ReadAsByteArrayAsync(ct);
                 var disposition = part.Headers.ContentDisposition ?? new ContentDispositionHeaderValue("form-data");
-                parts.Add(new CapturedPart(part.GetType(), disposition.Name?.Trim('"'), disposition.FileName?.Trim('"'), bytes.LongLength));
+                parts.Add(new CapturedPart(part.GetType(), disposition.Name?.Trim('"'), disposition.FileName?.Trim('"'), bytes.LongLength, part.Headers.ContentType));
             }
         }
         else if (request.Content is not null)
