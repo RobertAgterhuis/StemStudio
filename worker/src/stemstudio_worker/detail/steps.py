@@ -97,8 +97,8 @@ class DeviceModelProvider(Protocol):
         """Return ``model_id`` on ``device``, loading it on first use."""
         ...
 
-    def release_gpu(self) -> None:
-        """Drop the GPU instances."""
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
+        """Drop the GPU instances, except those of the model with the need ``keep``."""
         ...
 
 
@@ -114,8 +114,8 @@ class ModelSource(Protocol):
         """Return the model choice for ``parent`` (nothing is loaded yet)."""
         ...
 
-    def release_gpu(self) -> None:
-        """Drop models held in GPU memory (the worker is idle)."""
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
+        """Drop models held in GPU memory, except the model with the need ``keep``."""
         ...
 
 
@@ -134,9 +134,9 @@ class RegistrySource:
         load = lambda device: self._provider.load(model_id, device)  # noqa: E731 - adapter
         return ModelChoice(model_id, load, table, policy, GPU_NEEDS[model_id])
 
-    def release_gpu(self) -> None:
-        """Drop the provider's GPU instances."""
-        self._provider.release_gpu()
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
+        """Drop the provider's GPU instances, except those of the model with the need ``keep``."""
+        self._provider.release_gpu(keep)
 
 
 _INSTRUMENT_CHOICE: Final[tuple[DetailModelId, FoldTable, CheckPolicy]] = (
@@ -213,9 +213,14 @@ class DetailPipeline:
         """Version of the pipeline (models + thresholds)."""
         return self._version
 
-    def release_gpu(self) -> None:
-        """Drop the models held in GPU memory (called when the worker is idle, ADR-012 D6)."""
-        self._source.release_gpu()
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
+        """Drop the models held in GPU memory (ADR-012 D6).
+
+        Args:
+            keep: Keep the model with this need (the next step's model); None drops every GPU
+                model (the worker is idle).
+        """
+        self._source.release_gpu(keep)
 
     def plan(self, stems: Mapping[StemName, Path], partial: Path) -> list[DetailStep]:
         """Checkpoint the trivial outcomes and return the steps still to run.

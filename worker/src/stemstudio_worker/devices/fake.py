@@ -51,3 +51,6 @@ class FakeDeviceRunner:
     def release(self) -> None:
         """The worker became idle: the next step starts a new job context."""
         self._fresh_context = True
+
+    def reclaim_with(self, reclaim: Callable[[GpuNeed], None]) -> None:
+        """The fake GPU never runs short of memory; ``reclaim`` is never called."""

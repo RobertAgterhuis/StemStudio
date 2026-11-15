@@ -14,7 +14,7 @@ from stemstudio_worker.devices.lease import GPU_LEASE
 from stemstudio_worker.devices.nvml import NvmlReader, PynvmlReader
 from stemstudio_worker.devices.probe import load_torch_probe, probe_device
 from stemstudio_worker.devices.runner import CpuRunner, GpuRunner, GpuTools, TorchCudaMemory
-from stemstudio_worker.ports import DeviceRunner
+from stemstudio_worker.ports import DeviceRunner, GpuNeed
 from stemstudio_worker.schemas import DeviceInfo
 
 __all__ = ["ManagedRunner", "create_device_runner", "default_probe"]
@@ -29,6 +29,10 @@ class ManagedRunner(DeviceRunner, Protocol):
 
     def release(self) -> None:
         """Release cached GPU memory (ADR-012 D6); called when no work is queued."""
+        ...
+
+    def reclaim_with(self, reclaim: Callable[[GpuNeed], None]) -> None:
+        """Set how the worker's own cached GPU models are released when a step does not fit."""
         ...
 
 

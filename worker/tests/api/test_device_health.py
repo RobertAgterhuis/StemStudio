@@ -29,6 +29,10 @@ class RecordingRunner:
     def __init__(self) -> None:
         self.needs: list[GpuNeed] = []
         self.released = 0
+        self.reclaimers: list[Callable[[GpuNeed], None]] = []
+
+    def reclaim_with(self, reclaim: Callable[[GpuNeed], None]) -> None:
+        self.reclaimers.append(reclaim)
 
     def run[T](self, work: Callable[[str], T], need: GpuNeed) -> tuple[T, DeviceUse]:
         self.needs.append(need)
@@ -104,6 +108,8 @@ def test_the_default_composition_builds_one_runner_for_every_consumer(
         status = client.get(f"/v1/detail-jobs/{detail['detailJobId']}").json()
 
     assert len(built) == 1
+    (reclaim,) = built[0].reclaimers
+    reclaim(GpuNeed("UVR MDX-Net KARA 2", 3_600))  # the fake pipeline has no GPU models
     assert {need.label for need in built[0].needs} == {
         "the standard separation", "the detail separation",
     }  # fmt: skip
@@ -129,6 +135,7 @@ def test_an_injected_pipeline_without_gpu_models_still_releases_the_runner(
     with TestClient(app) as client:
         _complete(client)
     assert runner.released >= 1
+    runner.reclaimers[0](GpuNeed("KARA 2", 3_600))  # nothing to release: no error
 
 
 def test_a_cpu_worker_reports_the_cpu_with_the_probe_reason(tmp_path: Path) -> None:

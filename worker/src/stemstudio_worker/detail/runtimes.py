@@ -18,7 +18,7 @@ from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.folding import MEGA_OUTPUTS
 from stemstudio_worker.detail.mdx_net import Kara2Model
 from stemstudio_worker.detail.registry import GPU_NEEDS, spec_of
-from stemstudio_worker.ports import DetailModel
+from stemstudio_worker.ports import DetailModel, GpuNeed
 from stemstudio_worker.schemas import DetailModelId
 
 if TYPE_CHECKING:
@@ -146,8 +146,17 @@ class RealModelProvider:
                 self._models[key] = self.loaders[model_id](path, device)
             return self._models[key]
 
-    def release_gpu(self) -> None:
-        """Drop the GPU instances; the CPU instances stay loaded."""
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
+        """Drop the GPU instances; the CPU instances stay loaded.
+
+        Args:
+            keep: Keep the GPU instance of the model with this need (the step about to run).
+        """
         with self._lock:
-            for key in [k for k in self._models if k[1] != "cpu"]:
+            for key in [k for k in self._models if _releasable(k, keep)]:
                 del self._models[key]
+
+
+def _releasable(key: tuple[DetailModelId, str], keep: GpuNeed | None) -> bool:
+    model_id, device = key
+    return device != "cpu" and (keep is None or GPU_NEEDS.get(model_id) != keep)

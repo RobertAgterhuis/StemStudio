@@ -16,7 +16,7 @@ from stemstudio_worker.detail.steps import (
     DetailPipeline,
     RegistrySource,
 )
-from stemstudio_worker.ports import DetailCancelledError, DetailModel
+from stemstudio_worker.ports import DetailCancelledError, DetailModel, GpuNeed
 from stemstudio_worker.schemas import DetailModelId, ParentOutcome, ParentOutcomeKind, StemName
 
 from .models import ScaledModel, Source, TransformModel, band, choice, identity_table, write_stems
@@ -272,7 +272,7 @@ class _Provider:
         self.requested.append((model_id, device))
         return ScaledModel({})
 
-    def release_gpu(self) -> None:
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
         self.released += 1
 
 

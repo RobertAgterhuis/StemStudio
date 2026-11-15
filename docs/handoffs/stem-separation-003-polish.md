@@ -72,6 +72,27 @@ GPU-variant packages already listed in `architect-003-plan.md`.
   cosmetic.
 - No contract problems found; worker 1.2.0 was implemented as written.
 
+## Addendum: self-starvation fix (T052 finding)
+
+The CTO found this on the real GPU stack with continuous imports: a detail job fell back with "Not
+enough free GPU memory for UVR MDX-Net KARA 2 (needs 3600 MiB, 1835 MiB free)" while no other GPU
+program ran. The worker's own cached GPU models (Mega 53, DrumSep) were still resident, because
+models are released only on idle and a continuous queue never goes idle.
+
+The fix is on branch `stem-separation-003-self-release`, red `53aadc3` -> green `039cab1`:
+- When the NVML check of a GPU step fails, `GpuRunner` first calls its reclaimer
+  (`reclaim_with`). `main` wires it to `DetailPipeline.release_gpu(keep=<the step's GpuNeed>)`, so
+  `RealModelProvider` drops every cached GPU instance except the step's own model.
+- It then runs `gc.collect()` + `torch.cuda.empty_cache()` and re-reads NVML once. Only if the step
+  still does not fit does it run on the CPU, and the reason names the re-read free memory.
+- Reclaimer errors are logged and do not fail the step.
+- `CpuRunner` and `FakeDeviceRunner` accept a reclaimer and never call it.
+- The lease, memory fraction, OOM retry and device records are unchanged.
+
+After the fix: worker 765 passed, 3569 statements, 0 missed, 400 branches, 1 partial (the old
+scheduler arc) -> line 100 %, branch 99.75 %. ruff, ruff format and mypy are clean, and
+`run_all.py` has 0 errors. The fix was not re-run on the real GPU; it is covered by fakes only.
+
 ## Next owner
 
 CTO integration wave (T051-T054).
