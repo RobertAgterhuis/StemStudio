@@ -24,7 +24,6 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         ConfigureArtworkAndMetadata(builder);
-        ConfigureLyrics(builder);
     }
 
     /// <summary>The status column mirrors the row (read through the property, which prefers the loaded row); the row is deleted with the track.</summary>
@@ -44,6 +43,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
             metadata.Property(value => value.Status).HasConversion<string>();
         });
         builder.HasOne<Artist>().WithMany().HasForeignKey(track => track.ArtistId).OnDelete(DeleteBehavior.SetNull);
+        ConfigureLyrics(builder);
     }
 
     private static void ConfigureKeyAndEnums(EntityTypeBuilder<Track> builder)
