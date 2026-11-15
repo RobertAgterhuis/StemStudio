@@ -154,14 +154,24 @@ start of the track).
   `next`, each holding `.karaoke-word` elements with `data-state` = `past` | `current` | `future`;
   one `.karaoke-ball`; one `.karaoke-countdown` (three dots). Host attributes written by the
   engine: `data-state` (`KaraokeState`), `data-line-index`, `data-word-index` (-1 when none),
-  `data-position-ms` (rounded karaoke clock, for tests). Styling comes from the app's CSS (004
-  tokens); the engine sets no colours or fonts.
-- **Clock**: `positionMs = round(1000 * (transportPosition(audioNow) - outputLatency)) - offsetMs`
+  `data-position-ms` (rounded karaoke clock with the offset applied, for tests). Styling comes
+  from the app's CSS (004 tokens); the engine sets no colours or fonts.
+- **Slots**: `previous` = line L-1 (all words `past`), `current` = line max(L, 0), `next` = L+1
+  (all `future`). Before the first line the `current` slot already shows line 0 (all `future`)
+  and the host has `data-line-index="-1"`. The last started word of the current line stays
+  `current` until the next word starts or the line's `endMs` passes (then all its words are
+  `past` and `data-word-index="-1"`). `detachKaraoke` also removes the engine's host attributes
+  (`data-state`, `data-line-index`, `data-word-index`, `data-position-ms`); attributes written
+  by Blazor stay.
+- **Clock**: `positionMs = round(1000 * transportPosition(audioNow - outputLatency)) - offsetMs`
   where `audioNow = ts.contextTime + (performance.now() - ts.performanceTime) / 1000` from
   `ctx.getOutputTimestamp()` (fallback `ctx.currentTime` when the method is missing or returns
   zeros), `outputLatency` = `ctx.outputLatency` when defined (else `ctx.baseLatency`, else 0), and
-  `transportPosition` is the ADR-005 formula `offset + (audioNow - when)` wrapped into the loop.
-  Paused or stopped: the stored transport position. Never accumulated from frame deltas (no
+  `transportPosition(t)` is the ADR-005 formula `offset + (t - when)` wrapped into the loop. The
+  latency is subtracted **before** the loop wrap, so the banner wraps when the wrap is heard
+  (subtracting after the wrap would show `loopStart - latency` while the loop end is still
+  audible). Paused or stopped: the stored transport position minus `offsetMs` (no latency).
+  Never accumulated from frame deltas (no
   drift, SC-002). Positive `offsetMs` makes the lyrics come later.
 - **Frame loop**: one shared `requestAnimationFrame` loop per engine serves the meters and the
   karaoke (`frame-loop.ts`; the meters move onto it with unchanged behaviour). Karaoke is drawn
@@ -171,30 +181,44 @@ start of the track).
 - **Cursor**: current line and word advance forward in O(1) per frame; binary search after a
   seek, a loop wrap or an offset change.
 - **Layout**: word centres are measured once after the DOM is built
-  (`getBoundingClientRect`, relative to the host) and again on `ResizeObserver` callbacks and
-  size-class changes. Per frame the engine writes only `style.transform` of the ball and
+  (`getBoundingClientRect`, relative to the host's border box) and again on `ResizeObserver`
+  callbacks (host and the words in the slots; after a line change the new words are observed and
+  measured in the same rendering step, before paint) and on size changes (a `MutationObserver` on
+  the host's `class` and `data-size`). Without `ResizeObserver` the slots are measured right
+  after they are filled. Per frame the engine writes only `style.transform` of the ball and
   `data-state` of at most two words and two lines (no layout reads in the frame callback; SC-004).
 - **Ball**: lands on word *i* exactly at `startMs(i)`. Between word *i* and *i+1*:
   `p = clamp((t - start_i) / (start_{i+1} - start_i), 0, 1)`, `x = lerp(x_i, x_{i+1}, p)`,
   `y = -h * 4p(1 - p)` with `h` = 0.6 x line height (scaled by `duration / 150 ms` for words
-  shorter than 150 ms). Across a line change the ball arcs to the first word of the next line
-  (shown in the `next` slot until that line becomes current). Written as
-  `translate3d(x, y, 0)`.
-- **States**: `hidden` when `lines` is empty; `countdown` from `firstLine.startMs - 3000` until
-  the first line, and inside gaps longer than `countdownGapMs` (default 5000) from 3 s before the
-  next line (one dot per second); `singing` otherwise while inside the lyrics; `ended` after the
+  shorter than 150 ms; the duration is the hop from the start of word *i* to the start of word
+  *i+1*). Across a line change the ball arcs to the first word of the next line (shown in the
+  `next` slot until that line becomes current). `x` is the word centre and `y` the word top
+  (relative to the host's border box) minus the arc, written as
+  `style.transform = translate3d(<x>px, <y>px, 0px)`. The engine owns `transform`: the app's CSS
+  places the ball at `left: 0; top: 0` (absolute; host `position: relative`) and centres it with
+  negative margins, never with `transform`.
+- **States**: `hidden` when `lines` is empty; `countdown` for the whole time before the first
+  line, and inside gaps (`next.startMs - line.endMs`) longer than `countdownGapMs` (default 5000)
+  from 3 s before the next line; `singing` otherwise while inside the lyrics; `ended` after the
   last line's `endMs`.
+- **Countdown**: `.karaoke-countdown` has `data-count` and three `.karaoke-dot` children; the app's
+  CSS lights the first `data-count` dots. Before the first line `data-count` is `0` until 3 s
+  before it, then `3`, `2`, `1` (one per second); in a long gap it counts `3`, `2`, `1` likewise.
 - **Reduced motion**: `options.reducedMotion`, default
   `matchMedia('(prefers-reduced-motion: reduce)').matches` (a runtime change of the media query is
   followed): no ball; the current word gets `data-state="current"` (styled as a fill).
 - **Validation and errors**: unknown element id -> `Error("Karaoke host not found: <id>")`;
-  invalid lyrics (line or word starts decreasing, `endMs <= startMs`, a word outside its line,
-  more than 400 lines or 40 words per line) -> `Error("Invalid karaoke lyrics: <reason>")`;
-  `offsetMs` outside -5000..5000 -> `Error("Karaoke offset out of range: <value>")`; calls after
-  `dispose()` throw `Error("Audio engine has been disposed")` like every other method.
-- **Skeleton (Phase 0)**: until 006 T026/T036 the three methods throw
-  `Error("Karaoke is not implemented yet ...")` (`KARAOKE_NOT_IMPLEMENTED` in `engine.ts`); the
-  Blazor wrapper does not call them before the frontend's 006 tasks.
+  invalid lyrics (`lines` not an array, more than 400 lines, a line with no words or more than
+  40 words, non-finite times, `endMs <= startMs`, line starts decreasing, word starts decreasing
+  (also across lines), a word outside its line, a word without string text) ->
+  `Error("Invalid karaoke lyrics: <reason>")`; a negative `countdownGapMs` ->
+  `Error("Invalid karaoke options: <reason>")`; `offsetMs` outside -5000..5000 ->
+  `Error("Karaoke offset out of range: <value>")`; calls after `dispose()` throw
+  `Error("Audio engine has been disposed")` like every other method. Everything is validated
+  before an attached banner is replaced (a failing `attachKaraoke` keeps the old banner).
+  `setKaraokeOffset` without an attached banner validates and stores the offset (the next
+  `attachKaraoke` sets its own). Loading a new track does not redraw the banner; call
+  `attachKaraoke` after `loadTrack`.
 - **Testing**: Vitest with the `AudioContext` mock extended by `getOutputTimestamp` and
   `outputLatency`, a fake `requestAnimationFrame`, a stubbed `getBoundingClientRect` and
   `ResizeObserver`; coverage >= 90 % (lines, branches, functions, statements).

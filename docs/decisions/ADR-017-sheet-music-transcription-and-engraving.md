@@ -166,7 +166,7 @@ real, so E2E tests download real PDF/MusicXML/MIDI files.
   10.5.2 imports it lazily; key analysis, MusicXML and MIDI writing work without it (one
   informational message at import). Saves ~40 MB and its dependency tree.
 - Leipzig: the wheel embeds one WOFF2 `@font-face` in `verovio/data/Leipzig.css`; fontTools
-  (with brotli) converts it to a 119,416-byte **TrueType** file (SHA-256 `9606f129...ef08`,
+  (with brotli) converts it to a 119,356-byte **TrueType** file (SHA-256 `773c72dc...584a4b` with the PostScript name set and the wheel's timestamps kept; the image build prints the current value;
   family "Leipzig"), so the installed file is `Leipzig.ttf` (`worker/scripts/install_music_font.py`
   names it by outline format). The wheel has no OFL text: the OFL-1.1 attribution comes from the
   upstream Leipzig repository and is recorded by the CTO.

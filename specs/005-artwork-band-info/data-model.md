@@ -109,6 +109,8 @@ obtained plus a warning; only a failure of the recording search itself fails the
 | Lookups disabled | (no error; outcome `disabled`) |
 | Wikipedia step failed | warning "Wikipedia could not be reached." |
 | Cover download/decoding failed | warning "The album cover could not be loaded." |
+| Wikidata step failed | warning "Wikidata could not be reached." |
+| MusicBrainz artist step failed | warning "The artist details could not be loaded." |
 
 ## 3. Backend entities
 

@@ -696,6 +696,18 @@ paths:
                 title: Picture too large
                 status: 422
                 detail: The picture has more than 40 megapixels.
+        '503':
+          description: |
+            This worker has no image normaliser (a partial build without the `metadata`
+            package); nothing was stored. The backend answers its own 503.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Pictures unavailable
+                status: 503
+                detail: This worker cannot process pictures.
   /v1/artwork/{artworkId}/{variant}:
     parameters:
       - name: artworkId
