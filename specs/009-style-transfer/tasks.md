@@ -135,8 +135,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T046 [P] [US2] [backend] Failing tests `StyleEndpointTests.cs`: `GET /api/styles` order (presets first, then name), filters `kind`, `genreFamily`, `mood`, `instrument`, `q` (name/description/tags, case-insensitive); `GET /api/styles/{id}`; contract validation (FR-004)
 - [ ] T047 [US2] [backend] Implement `Styles/StyleEndpoints.cs` (read side) to pass T046
-- [ ] T048 [P] [US2] [frontend] Failing bUnit tests `StylesPageTests.cs`: list with genre-family grouping, preset marker (`data-kind`), filters and search, empty state; restyle dialog shows the picked style's description and default strength (US2-1..3)
-- [ ] T049 [US2] [frontend] Implement `Pages/Styles.razor` and help entry `help.styles.library` to pass T048
+- [x] T048 [P] [US2] [frontend] Failing bUnit tests `StylesPageTests.cs`: list with genre-family grouping, preset marker (`data-kind`), filters and search, empty state; restyle dialog shows the picked style's description and default strength (US2-1..3)
+- [x] T049 [US2] [frontend] Implement `Pages/Styles.razor` and help entry `help.styles.library` to pass T048
 - [ ] T050 [US2] [qa] Author "style library" spec (`@generative` not required: runs on the default fake stack): >= 24 presets, filter by mood narrows the list, search by name (SC-003, SC-007)
 
 **Checkpoint**: HO:us2.
