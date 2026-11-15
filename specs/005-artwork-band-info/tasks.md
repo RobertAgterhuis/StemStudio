@@ -113,7 +113,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T027 [US1] [backend] Implement `Api/Artwork/{ArtworkFileStore,ArtworkService,ArtworkEndpoints}.cs` and the sync hook in `Sync/TrackJobApplier.cs` to pass T026
 - [x] T028 [P] [US1] [frontend] Failing bUnit tests: `TrackArtwork` renders `img` with `loading="lazy"`, `decoding="async"`, width/height and alt text "Cover of <title>", or `ArtworkPlaceholder` (initials, colour from a stable title hash, `aria-hidden` decoration + text alternative); `track-thumb-<id>`, `track-cover`, `mixer-cover` with `data-artwork-source`; broken image -> placeholder (`onerror`) (FR-006, US1-1..5)
 - [x] T029 [US1] [frontend] Implement `Components/Shared/{TrackArtwork,ArtworkPlaceholder}.razor`, the thumbnail column in `Tracks.razor`, the cover on `TrackDetail` and in the mixer header (004 layout), help topic `artwork` to pass T028
-- [ ] T030 [US1] [qa] Author `e2e/tests/artwork.spec.ts` (fake stack `STEMSTUDIO_FAKE_ONLINE=not-found`): YouTube/Spotify/upload-with-cover/WAV sources and their `data-artwork-source`; thumbnail visible in the library; seed script `e2e/support/seed-artwork.ts` and a timing assertion for 100 rows (SC-001, SC-003)
+- [x] T030 [US1] [qa] Author `e2e/tests/artwork.spec.ts` (fake stack `STEMSTUDIO_FAKE_ONLINE=not-found`): YouTube/Spotify/upload-with-cover/WAV sources and their `data-artwork-source`; thumbnail visible in the library; seed script `e2e/support/seed-artwork.ts` and a timing assertion for 100 rows (SC-001, SC-003)
 
 **Checkpoint**: HO:us1.
 
@@ -136,7 +136,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T040 [US2] [backend] Implement `Api/Metadata/BandInfoEndpoints.cs` to pass T039
 - [x] T041 [P] [US2] [frontend] Failing bUnit tests: `BandInfoPanel` per status (searching skeleton, found facts, notFound + correct, failed + retry, disabled + help link); members row only for groups; `WikipediaAttribution` renders title link, "Wikipedia contributors" history link, "CC BY-SA 4.0" licence link and "Excerpt, unmodified"; `band-info-sources`; `CorrectMetadataDialog` validation and submit; journey levels (beginner: name, type, years, summary; advanced/expert: all facts and sources); `mixer-album` text (FR-008, FR-009, FR-015)
 - [x] T042 [US2] [frontend] Implement `Components/BandInfo/*`, `IStemStudioApiClient.{GetBandInfoAsync, LookupMetadataAsync}`, `band-info-open` on track page and mixer, help topics `band-info` and `online-lookups`, legal notice sentence (FR-014) to pass T041
-- [ ] T043 [US2] [qa] Author `e2e/tests/band-info.spec.ts` (fake stack, modes `found`, `not-found`, `failed`, `off`): panel content, attribution links, retry, correction flow updates the panel and cover, disabled notice
+- [x] T043 [US2] [qa] Author `e2e/tests/band-info.spec.ts` (fake stack, modes `found`, `not-found`, `failed`, `off`): panel content, attribution links, retry, correction flow updates the panel and cover, disabled notice
 
 **Checkpoint**: HO:us2.
 
@@ -153,7 +153,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T047 [US3] [backend] Implement in `Api/Artwork/*` to pass T046
 - [x] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
 - [x] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
-- [ ] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
+- [x] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
 
 **Checkpoint**: HO:us3.
 
@@ -165,7 +165,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
 - [x] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
-- [ ] T055 [P] [qa] Traceability matrix update, HO:polish
+- [x] T055 [P] [qa] Traceability matrix update, HO:polish
 - [x] T056 [P] [devops] Validate compose/CI changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T057 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
