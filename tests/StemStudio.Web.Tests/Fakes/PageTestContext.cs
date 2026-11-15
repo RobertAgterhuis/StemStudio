@@ -6,11 +6,11 @@ using NSubstitute;
 using Radzen;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
+using StemStudio.Web.Generation;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
-using StemStudio.Web.Generation;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Tests.Fakes;
