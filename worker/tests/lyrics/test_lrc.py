@@ -1,9 +1,9 @@
 """LRC parsing (research R-03): stamps, several stamps per line, offset, tags, breaks."""
 
 import pytest
+
 from stemstudio_worker.lyrics.lrc import LrcLine, parse_lrc
 from stemstudio_worker.lyrics.normalize import MAX_INPUT_BYTES
-
 from stemstudio_worker.ports import LyricsUnusableError
 from stemstudio_worker.schemas import MAX_LYRICS_LINES
 

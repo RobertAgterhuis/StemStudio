@@ -1,6 +1,7 @@
 """Shared normalisation: input limits, word splitting, plain documents (research R-03)."""
 
 import pytest
+
 from stemstudio_worker.lyrics.normalize import (
     MAX_INPUT_BYTES,
     MAX_LINE_CHARS,
@@ -14,7 +15,6 @@ from stemstudio_worker.lyrics.normalize import (
     plain_lines,
     split_words,
 )
-
 from stemstudio_worker.ports import LyricsUnusableError
 from stemstudio_worker.schemas import (
     LYRICS_UNUSABLE_TEXT,

@@ -1,9 +1,9 @@
 """``lyricsfile`` YAML parsing (research F-03, R-03): word starts -> word ends."""
 
 import pytest
+
 from stemstudio_worker.lyrics.lyricsfile import parse_lyricsfile as parse
 from stemstudio_worker.lyrics.normalize import MAX_INPUT_BYTES, MAX_WORDS_PER_LINE, DocumentMeta
-
 from stemstudio_worker.ports import LyricsUnusableError
 from stemstudio_worker.schemas import MAX_LYRICS_LINES, MAX_WORD_MS, TimedLyrics
 
@@ -144,6 +144,7 @@ class TestUnusable:
             "lines:\n  - {text: a, start_ms: x, end_ms: 9, words: []}",
             "lines:\n  - {text: a, end_ms: 9, words: []}",
             "lines:\n  - {text: a, start_ms: -5, end_ms: 9, words: [{text: a, start_ms: -5}]}",
+            "lines:\n  - {text: a, start_ms: -5, end_ms: 9, words: [{text: a, start_ms: 0}]}",
             "!!python/object/apply:os.system ['echo unsafe']",
             "version: '1.0'\nmetadata: {instrumental: true}\nlines: []",
         ],
@@ -153,7 +154,8 @@ class TestUnusable:
             "lines-type",
             "start-type",
             "missing-start",
-            "negative",
+            "negative-word",
+            "negative-line",
             "unsafe-tag",
             "no-lines",
         ],
