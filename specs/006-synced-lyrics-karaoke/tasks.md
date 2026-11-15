@@ -94,12 +94,12 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### backend (tests first)
 
-- [ ] T019 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/TrackLyricsTests.cs`: state machine data-model 3.2 incl. removed (no automatic lookup), paste from every allowed state, auto-align rule (GPU worker and standard completed), offset limits (±5000, multiple of 10), document invariants re-validated (invalid worker data -> `failed` with a reason), credit text per source/origin (FR-002, FR-007)
-- [ ] T020 [backend] Implement `Domain/Lyrics/*` to pass T019
-- [ ] T021 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/LyricsPersistenceTests.cs`: JSON document round trip, cascade delete with the track, `Tracks.LyricsStatus` column, a 005-schema database loads with `none`
-- [ ] T022 [backend] Implement configuration and migration `AddTrackLyrics` to pass T021
-- [ ] T023 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerLyricsClientTests.cs` with the worker examples: create (lookup/align), get, result (`no-store`), cancel, delete; 404/409/422 mapping; `Health.lyricsAlignment` parsed
-- [ ] T024 [backend] Implement the worker client additions to pass T023
+- [x] T019 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/TrackLyricsTests.cs`: state machine data-model 3.2 incl. removed (no automatic lookup), paste from every allowed state, auto-align rule (GPU worker and standard completed), offset limits (±5000, multiple of 10), document invariants re-validated (invalid worker data -> `failed` with a reason), credit text per source/origin (FR-002, FR-007)
+- [x] T020 [backend] Implement `Domain/Lyrics/*` to pass T019
+- [x] T021 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/LyricsPersistenceTests.cs`: JSON document round trip, cascade delete with the track, `Tracks.LyricsStatus` column, a 005-schema database loads with `none`
+- [x] T022 [backend] Implement configuration and migration `AddTrackLyrics` to pass T021
+- [x] T023 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerLyricsClientTests.cs` with the worker examples: create (lookup/align), get, result (`no-store`), cancel, delete; 404/409/422 mapping; `Health.lyricsAlignment` parsed
+- [x] T024 [backend] Implement the worker client additions to pass T023
 
 ### audio-engine (tests first)
 
