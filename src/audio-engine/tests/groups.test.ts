@@ -298,3 +298,68 @@ describe('setExpanded', () => {
     await expect(engine.setExpanded('drums', false)).rejects.toThrow('Audio engine has been disposed');
   });
 });
+
+/** Track time a browser plays from a source at context time `time` (loop semantics of Web Audio). */
+function playhead(source: MockAudioBufferSourceNode, time: number): number {
+  const start = source.startCalls[0];
+  if (start === undefined) {
+    throw new Error('source not started');
+  }
+  const raw = (start.offset ?? 0) + (time - start.when);
+  if (!source.loop || raw < source.loopEnd) {
+    return raw;
+  }
+  return source.loopStart + ((raw - source.loopStart) % (source.loopEnd - source.loopStart));
+}
+
+describe('sample lock with groups (SC-004)', () => {
+  const LOOP = { start: 1.37, end: 3.91, enabled: true };
+  const LENGTH = LOOP.end - LOOP.start;
+
+  async function expandedMidLoop(): Promise<Rig & { t: number }> {
+    const rig = await loaded();
+    rig.engine.setLoop(LOOP);
+    rig.ctx.currentTime = 0.123;
+    await rig.engine.play();
+    rig.ctx.currentTime = 0.123 + 7.777;
+    await rig.engine.setExpanded('drums', true);
+    return { ...rig, t: rig.ctx.currentTime + SWAP_DELAY_SECONDS };
+  }
+
+  it('after 50 loop repetitions every audible channel plays the same track time within 1 ms', async () => {
+    const { engine, ctx, t } = await expandedMidLoop();
+    const audible: Part[] = ['vocals', ...DETAILS];
+    for (let k = 1; k <= 50; k += 1) {
+      const time = t + k * LENGTH + 0.3;
+      ctx.currentTime = time;
+      const heads = audible.map((part) => playhead(sourceOf(ctx, part), time));
+      expect(Math.max(...heads) - Math.min(...heads)).toBeLessThan(0.001);
+      expect(Math.abs((heads[0] ?? 0) - engine.getPosition())).toBeLessThan(0.001);
+      expect(Math.abs(playhead(sourceOf(ctx, 'drums'), time) - engine.getPosition())).toBeLessThan(0.001);
+    }
+  });
+
+  it('collapsing and re-expanding during the repetitions only moves gates, never restarts sources', async () => {
+    const { engine, ctx, t } = await expandedMidLoop();
+    const sources = ctx.sources.length;
+    ctx.currentTime = t + 20 * LENGTH;
+    await engine.setExpanded('drums', false);
+    ctx.currentTime = t + 30 * LENGTH;
+    await engine.setExpanded('drums', true);
+    expect(ctx.sources).toHaveLength(sources);
+    expect(ctx.sources.every((s) => s.stopCalls.length === 0)).toBe(true);
+  });
+
+  it('a seek inside the loop after the expansion restarts all channels on one fresh anchor', async () => {
+    const { engine, ctx, t } = await expandedMidLoop();
+    ctx.currentTime = t + 25 * LENGTH;
+    const from = ctx.sources.length;
+    engine.seek(2);
+    const started = ctx.sources.slice(from);
+    expect(started).toHaveLength(5);
+    expect(new Set(started.map((s) => JSON.stringify(s.startCalls))).size).toBe(1);
+    const time = ctx.currentTime + 25 * LENGTH;
+    const heads = started.map((s) => playhead(s, time));
+    expect(Math.max(...heads) - Math.min(...heads)).toBeLessThan(0.001);
+  });
+});
