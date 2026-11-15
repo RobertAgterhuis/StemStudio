@@ -8,9 +8,11 @@ from typing import Literal, cast
 
 SeparatorKind = Literal["demucs", "fake"]
 DeviceKind = Literal["cpu", "cuda", "auto"]
+FakeDeviceKind = Literal["cpu", "gpu", "gpu-oom"]
 
 _SEPARATORS: tuple[SeparatorKind, ...] = ("demucs", "fake")
 _DEVICES: tuple[DeviceKind, ...] = ("cpu", "cuda", "auto")
+_FAKE_DEVICES: tuple[FakeDeviceKind, ...] = ("cpu", "gpu", "gpu-oom")
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,7 +23,9 @@ class WorkerSettings:
         data_dir: Root of jobs, cache and temporary files (``STEMSTUDIO_DATA_DIR``).
         separator: ``demucs`` (real model) or ``fake`` (copies the mix into stems; for CI/E2E)
             (``STEMSTUDIO_SEPARATOR``).
-        device: Torch device preference (``STEMSTUDIO_DEVICE``); ``auto`` picks CUDA if present.
+        device: Torch device preference (``STEMSTUDIO_DEVICE``). ``cuda`` and ``auto`` both use
+            the GPU when the start-up probe finds a usable one and otherwise run on the CPU with
+            a reason in ``/health`` (feature 003, FR-003); ``cpu`` never touches CUDA.
         max_duration_seconds: Longest accepted audio (15 minutes).
         max_upload_bytes: Largest accepted upload (200 MiB).
         primary_model: Demucs model tried first.
@@ -30,6 +34,10 @@ class WorkerSettings:
             inside the repository (constitution IV).
         fake_detail_step_seconds: Delay per parent step of the fake detail models
             (``STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS``), so E2E tests can observe progress.
+        fake_device: Device the fake separator pretends to use (``STEMSTUDIO_FAKE_DEVICE``):
+            ``cpu`` (default), ``gpu`` (a fake GPU) or ``gpu-oom`` (a fake GPU whose first model
+            step of every job runs out of memory and is retried on the CPU); only with
+            ``separator=fake``, for E2E tests of the device display (feature 003).
     """
 
     data_dir: Path
@@ -41,6 +49,7 @@ class WorkerSettings:
     fallback_model: str = "htdemucs"
     model_dir: Path = Path("data/models")
     fake_detail_step_seconds: float = 1.0
+    fake_device: FakeDeviceKind = "cpu"
 
 
 def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
@@ -62,6 +71,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         device=cast(DeviceKind, _choice(env, "STEMSTUDIO_DEVICE", _DEVICES)),
         model_dir=Path(env.get("STEMSTUDIO_MODEL_DIR", "data/models")),
         fake_detail_step_seconds=_seconds(env, "STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS", 1.0),
+        fake_device=cast(FakeDeviceKind, _choice(env, "STEMSTUDIO_FAKE_DEVICE", _FAKE_DEVICES)),
     )
 
 

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- HTTP contract DTOs shared by StemStudio.Api and StemStudio.Web. No dependencies (ADR-002).
-       Mirrors specs/002-detail-separation/contracts/backend-api.openapi.yaml exactly. -->
+       Mirrors specs/003-gpu-acceleration/contracts/backend-api.openapi.yaml exactly. -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Contracts</RootNamespace>
   </PropertyGroup>

@@ -1,6 +1,6 @@
 """Pydantic v2 models of the worker HTTP contract.
 
-These models mirror ``specs/002-detail-separation/contracts/worker-api.openapi.yaml`` exactly and
+These models mirror ``specs/003-gpu-acceleration/contracts/worker-api.openapi.yaml`` exactly and
 are the single source of truth for JSON on the wire (camelCase aliases) and for ``result.json``
 on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive new states.
 """
@@ -12,7 +12,7 @@ from typing import Annotated, Final, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.1.0"
+CONTRACT_VERSION = "1.2.0"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -38,6 +38,9 @@ DetailStemName = Literal[
 
 DetailModelId = Literal["mdx23c-drumsep-6s", "uvr-mdxnet-kara-2", "mvsep-mega-53", "fake-detail"]
 """Detail models recorded per parent outcome (ADR-010)."""
+
+ProcessingDeviceKind = Literal["cpu", "gpu"]
+"""Device a model step ran on (feature 003): the CPU or the NVIDIA GPU (CUDA)."""
 
 Progress = Annotated[int, Field(ge=0, le=100)]
 """Overall job progress in percent."""
@@ -123,6 +126,24 @@ class SourceMetadata(ContractModel):
     )
 
 
+class JobDevice(ContractModel):
+    """Device record of one standard or detail job (feature 003, data-model.md 2.2).
+
+    ``kind`` is ``gpu`` when at least one model step of the job ran on the GPU, else ``cpu``.
+    ``cpu_fallback`` is True when at least one model step ran on the CPU although the worker's
+    active device is the GPU (too little free GPU memory, or out of GPU memory and retried).
+    """
+
+    kind: ProcessingDeviceKind
+    name: Annotated[str | None, Field(max_length=200)] = Field(
+        default=None, description="GPU name when kind is gpu, else null."
+    )
+    cpu_fallback: bool = False
+    fallback_reason: Annotated[str | None, Field(max_length=500)] = Field(
+        default=None, description="Readable reason of the last CPU fallback; null without one."
+    )
+
+
 class Job(ContractModel):
     """Status of a job: body of ``POST /v1/jobs`` and ``GET /v1/jobs/{jobId}``."""
 
@@ -134,6 +155,10 @@ class Job(ContractModel):
     progress: Progress
     error: Annotated[str | None, Field(max_length=1000)] = None
     metadata: SourceMetadata | None = None
+    device: JobDevice | None = Field(
+        default=None,
+        description="Set when the separation starts; null before and for cached results (1.2.0).",
+    )
     created_at: datetime
     updated_at: datetime
 
@@ -197,6 +222,10 @@ class DetailJob(ContractModel):
     current_parent: ParentStemName | None = None
     progress: Progress
     error: Annotated[str | None, Field(max_length=1000)] = None
+    device: JobDevice | None = Field(
+        default=None,
+        description="Set when the first parent step starts; null before and for cached results.",
+    )
     created_at: datetime
     updated_at: datetime
 
@@ -238,6 +267,30 @@ class DetailResult(ContractModel):
     completed_at: datetime
 
 
+class DeviceInfo(ContractModel):
+    """The worker's active processing device, detected once at start-up (feature 003).
+
+    ``kind`` is ``gpu`` only when a GPU was requested (``STEMSTUDIO_DEVICE`` ``cuda``/``auto``)
+    and passed the start-up probe; otherwise ``cpu`` with ``reason`` explaining why the GPU is not
+    used (null when the CPU was chosen on purpose).
+    """
+
+    kind: ProcessingDeviceKind
+    name: Annotated[str | None, Field(max_length=200)] = None
+    compute_capability: Annotated[str | None, Field(pattern=r"^[0-9]{1,2}\.[0-9]{1,2}$")] = None
+    total_memory_mib: Annotated[int | None, Field(ge=0)] = Field(
+        default=None, alias="totalMemoryMiB"
+    )
+    free_memory_mib: Annotated[int | None, Field(ge=0)] = Field(
+        default=None, alias="freeMemoryMiB", description="Free GPU memory at start-up (NVML)."
+    )
+    reason: Annotated[str | None, Field(max_length=500)] = None
+
+
+CPU_DEVICE: Final = DeviceInfo(kind="cpu")
+"""Device info of a worker that runs on the CPU on purpose (``STEMSTUDIO_DEVICE=cpu``)."""
+
+
 class Health(ContractModel):
     """Body of ``GET /health``."""
 
@@ -245,6 +298,9 @@ class Health(ContractModel):
     separator: Literal["demucs", "fake"]
     device: Literal["cpu", "cuda", "auto"] = Field(
         description="Configured torch device preference."
+    )
+    device_info: DeviceInfo = Field(
+        default=CPU_DEVICE, description="Active device detected at start-up (1.2.0)."
     )
     contract_version: str = CONTRACT_VERSION
 

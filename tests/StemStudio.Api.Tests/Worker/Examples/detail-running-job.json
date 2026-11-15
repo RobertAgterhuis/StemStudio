@@ -7,6 +7,12 @@
   "currentParent": "drums",
   "progress": 12,
   "error": null,
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": true,
+    "fallbackReason": "The GPU ran out of memory while splitting vocals; the step was repeated on the CPU."
+  },
   "createdAt": "2026-11-15T12:06:31Z",
   "updatedAt": "2026-11-15T12:08:02Z"
 }

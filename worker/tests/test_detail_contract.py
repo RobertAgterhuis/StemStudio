@@ -1,4 +1,4 @@
-"""Skeleton tests for the detail-separation contract code (worker API 1.1.0, ports, settings)."""
+"""Skeleton tests for the detail-separation contract code (worker API 1.1.0+, ports, settings)."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -36,7 +36,7 @@ from stemstudio_worker.schemas import (
 _SPEC = (
     Path(__file__).resolve().parents[2]
     / "specs"
-    / "002-detail-separation"
+    / "003-gpu-acceleration"
     / "contracts"
     / "worker-api.openapi.yaml"
 )
@@ -56,8 +56,8 @@ def _example(name: str) -> Any:
     return _spec()["components"]["examples"][name]["value"]
 
 
-def test_contract_version_matches_the_002_document() -> None:
-    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.1.0"
+def test_contract_version_matches_the_binding_document() -> None:
+    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.2.0"
 
 
 @pytest.mark.parametrize(

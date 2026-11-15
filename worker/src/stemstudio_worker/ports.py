@@ -8,6 +8,9 @@ Each protocol is implemented by a different agent and faked in unit tests:
 * ``BeatAnalyzer``: beat-analysis (``analysis/``, factory ``create_beat_analyzer``)
 * ``DetailModelProvider`` / ``DetailModel``: stem-separation (``detail/``, factory
   ``create_detail_adapters``), used by the detail jobs of feature 002
+* ``DeviceRunner``: stem-separation (``devices/``, factory ``create_device_runner``), feature 003:
+  start-up GPU probe, one-GPU-step lease, free-memory check and the CPU retry on GPU
+  out-of-memory, shared by the separator and the detail models (ADR-012)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -16,6 +19,7 @@ Adapters signal expected failures by raising a ``WorkerError`` subclass; its mes
 the user verbatim as the job ``error`` text, so it must be readable and free of secrets.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -23,7 +27,16 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 import numpy.typing as npt
 
-from stemstudio_worker.schemas import BeatGrid, DetailModelId, ModelName, SourceType, StemName
+from stemstudio_worker.schemas import (
+    BeatGrid,
+    DetailModelId,
+    DeviceInfo,
+    JobDevice,
+    ModelName,
+    ProcessingDeviceKind,
+    SourceType,
+    StemName,
+)
 
 DetailAudio = npt.NDArray[np.float32]
 """Float audio ``(channels, frames)`` at 44.1 kHz handed to and returned by detail models."""
@@ -151,10 +164,12 @@ class SeparationResult:
     Attributes:
         model: Model that produced the stems (``htdemucs_6s``, ``htdemucs`` or ``fake``).
         stems: Stem name -> FLAC file (44.1 kHz, stereo, 16-bit), sample-aligned with the input.
+        device: Where the separation ran (feature 003); None for separators without a device.
     """
 
     model: ModelName
     stems: dict[StemName, Path]
+    device: JobDevice | None = None
 
 
 class SourceResolver(Protocol):
@@ -373,3 +388,92 @@ class DetailAdapters:
     """
 
     models: DetailModelProvider
+
+
+@dataclass(frozen=True, slots=True)
+class GpuNeed:
+    """What a model step needs from the GPU (ADR-012).
+
+    Attributes:
+        label: Readable step name used in fallback reasons, e.g. ``"Mega 53-stem"``.
+        memory_mib: Free GPU memory the step needs (measured peak plus margin); when less is
+            free the step runs on the CPU instead.
+    """
+
+    label: str
+    memory_mib: int
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceUse:
+    """Where one model step actually ran.
+
+    Attributes:
+        kind: ``gpu`` or ``cpu``.
+        torch_device: The torch device string the step was given (``cuda`` or ``cpu``).
+        name: GPU name when ``kind`` is ``gpu``.
+        fallback_reason: Why the step ran on the CPU although the worker's device is the GPU
+            (too little free memory, out of GPU memory); None otherwise.
+    """
+
+    kind: ProcessingDeviceKind
+    torch_device: str
+    name: str | None = None
+    fallback_reason: str | None = None
+
+
+@runtime_checkable
+class DeviceRunner(Protocol):
+    """Runs model steps on the worker's device with the GPU policy of ADR-012.
+
+    The active device is probed once at start-up (CPU when no usable GPU, with a reason). On a
+    GPU worker every step holds the GPU lease (one GPU step at a time), runs on the CPU when the
+    free GPU memory is below ``need.memory_mib``, and is retried once on the CPU when it raises a
+    GPU out-of-memory error. Other errors propagate unchanged.
+    """
+
+    @property
+    def info(self) -> DeviceInfo:
+        """The active device detected at start-up (reported by ``GET /health``)."""
+        ...
+
+    def run[T](self, work: Callable[[str], T], need: GpuNeed) -> tuple[T, DeviceUse]:
+        """Run ``work`` on the GPU or the CPU and report where it ran.
+
+        Args:
+            work: The step; called with ``"cuda"`` or ``"cpu"`` (twice at most: GPU, then CPU).
+            need: Free GPU memory the step needs.
+
+        Returns:
+            The step's result and where it ran.
+
+        Raises:
+            Exception: Whatever ``work`` raises, except a GPU out-of-memory error on the first
+                (GPU) attempt, which triggers the single CPU retry.
+        """
+        ...
+
+
+def merge_device(record: JobDevice | None, use: DeviceUse) -> JobDevice:
+    """Fold one step's ``use`` into a job's device record (data-model.md 2.2).
+
+    Args:
+        record: The job's record so far (None before its first model step).
+        use: Where the step ran.
+
+    Returns:
+        The updated record: ``gpu`` once any step ran on the GPU; ``cpu_fallback`` once any step
+        fell back to the CPU, with the latest reason.
+    """
+    base = record or JobDevice(kind="cpu")
+    return JobDevice(
+        kind=_merged_kind(base.kind, use.kind),
+        name=base.name or use.name,
+        cpu_fallback=base.cpu_fallback or use.fallback_reason is not None,
+        fallback_reason=use.fallback_reason or base.fallback_reason,
+    )
+
+
+def _merged_kind(first: ProcessingDeviceKind, second: ProcessingDeviceKind) -> ProcessingDeviceKind:
+    """``gpu`` when either step ran on the GPU, else ``cpu``."""
+    return "gpu" if "gpu" in (first, second) else "cpu"

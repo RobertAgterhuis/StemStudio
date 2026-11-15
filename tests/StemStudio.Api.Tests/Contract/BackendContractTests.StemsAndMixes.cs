@@ -113,8 +113,9 @@ public sealed partial class BackendContractTests
         served.ShouldBe(contract, ignoreOrder: true);
     }
 
-    // Contract 1.2.0 operations not served yet; empty since T068 (kept so a future contract addition is staged the same way).
-    private static readonly string[] PendingDetailOperations = [];
+    // Contract operations not served yet: 1.3.0 getProcessingDevice is staged by the architect (feature 003 Phase 0)
+    // until the backend serves it (feature 003 tasks); empty the list again then.
+    private static readonly string[] PendingDetailOperations = ["getProcessingDevice"];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);
