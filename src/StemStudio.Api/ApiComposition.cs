@@ -161,6 +161,7 @@ public static class ApiComposition
         services.AddScoped<GeneratorRouter>();
         services.AddScoped<ConversionStemWaiter>();
         services.AddScoped<VoiceConversionService>();
+        services.AddScoped<VoiceProfileDeletion>();
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
