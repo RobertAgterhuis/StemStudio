@@ -76,7 +76,6 @@ public sealed class SongGenerationTests
         var generation = Generation.CreateSong(Guid.NewGuid(), details, [42], T0);
 
         (generation.Kind, generation.Status, generation.Song, generation.Restyle, generation.SourceTrackId).ShouldBe((GenerationKind.Song, GenerationState.Queued, details, null, null));
-        generation.Retry(Guid.NewGuid(), [7], T0).Song.ShouldBeNull();
     }
 
     [Fact]

@@ -5,6 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Versioned text resources (feature 009 style library and imitation guard, 010 consent statement); logical name = file name. -->
-    <EmbeddedResource Include="Styles\*.json;Styles\*.txt;Voices\*.txt" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Styles\*.json" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Styles\*.txt" LogicalName="%(Filename)%(Extension)" />
+    <!-- WithCulture=false: ".en"/".nl" in the names are not satellite-assembly cultures. -->
+    <EmbeddedResource Include="Voices\*.txt" LogicalName="%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
 </Project>

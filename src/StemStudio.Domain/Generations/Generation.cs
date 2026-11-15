@@ -134,5 +134,6 @@ public sealed partial class Generation
         return new Generation { Id = id, Kind = kind, Status = GenerationState.Queued, Stage = "Queued", _seeds = seeds.ToList(), CreatedAt = nowUtc, UpdatedAt = nowUtc };
     }
 
-    private void CopyDetailsTo(Generation copy) => (copy.Restyle, copy.SourceTrackId) = (Restyle, SourceTrackId);
+    private void CopyDetailsTo(Generation copy) =>
+        (copy.Restyle, copy.SourceTrackId, copy.Song, copy.VoiceConversion) = (Restyle, SourceTrackId, Song, VoiceConversion);
 }

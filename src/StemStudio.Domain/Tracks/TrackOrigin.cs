@@ -29,6 +29,15 @@ public sealed record TrackOrigin
     /// <summary>The source track of a restyle.</summary>
     public Guid? SourceTrackId { get; init; }
 
+    /// <summary>AI voice label of the take (010); null for restyles.</summary>
+    public VocalLabel? Vocal { get; init; }
+
+    /// <summary>Voice profile of a converted take (010).</summary>
+    public string? VoiceProfileName { get; init; }
+
+    /// <summary>The lyrics sheet of a song (010).</summary>
+    public Guid? LyricsSheetId { get; init; }
+
     /// <summary>Always true.</summary>
     public bool AiGenerated { get; } = true;
 }
