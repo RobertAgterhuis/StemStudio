@@ -137,17 +137,10 @@ def fake_spotdl(monkeypatch: pytest.MonkeyPatch) -> None:
     for package in ("spotdl", "spotdl.types", "spotdl.utils", "spotdl.providers"):
         _install(monkeypatch, package)
     _install(monkeypatch, "spotdl.types.song", Song=_FakeSongType)
-    _install(
-        monkeypatch,
-        "spotdl.utils.spotify",
-        SpotifyClient=_FakeSpotifyClient,
-        SpotifyError=_FakeSpotifyError,
-    )
-    _install(
-        monkeypatch,
-        "spotdl.utils.config",
-        DEFAULT_CONFIG={"client_id": "public-id", "client_secret": "public-app-value"},
-    )
+    spotify_module = {"SpotifyClient": _FakeSpotifyClient, "SpotifyError": _FakeSpotifyError}
+    _install(monkeypatch, "spotdl.utils.spotify", **spotify_module)
+    config = {"client_id": "public-id", "client_secret": "public-app-value"}
+    _install(monkeypatch, "spotdl.utils.config", DEFAULT_CONFIG=config)
 
 
 @pytest.mark.usefixtures("fake_spotdl")
