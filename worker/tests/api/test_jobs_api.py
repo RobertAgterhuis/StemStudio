@@ -463,7 +463,8 @@ def test_youtube_job_and_result_carry_the_downloaded_title(api: Api) -> None:
         "title": FETCHED_TITLE,
         "artist": FETCHED_ARTIST,
         "sourceUrl": YOUTUBE,
-        **dict.fromkeys(("album", "isrc", "durationSeconds", "lookupTitle", "lookupArtist")),
+        "durationSeconds": 0.2,
+        **dict.fromkeys(("album", "isrc", "lookupTitle", "lookupArtist")),
     }
     assert job["metadata"] == result["metadata"] == expected
 
