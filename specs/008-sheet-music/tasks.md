@@ -174,8 +174,8 @@ in the execution plan.
 - [x] T060 [US4] [stem-separation] Implement the drums path in the service/composition to pass T059
 - [x] T061 [P] [US4] [backend] Failing tests: `drums` without a split drums parent -> 409 `drums-not-split` (options: `drumsRequireSplit = true`); with the split, the five detail paths are resolved (FR-009)
 - [x] T062 [US4] [backend] Implement to pass T061
-- [ ] T063 [P] [US4] [frontend] Failing bUnit tests: `score-drums-split-required` notice with `score-drums-split-start` starting the detail phase (existing client call); help id `sheet-music-drums` (FR-009, FR-014)
-- [ ] T064 [US4] [frontend] Implement to pass T063
+- [x] T063 [P] [US4] [frontend] Failing bUnit tests: `score-drums-split-required` notice with `score-drums-split-start` starting the detail phase (existing client call); help id `sheet-music-drums` (FR-009, FR-014)
+- [x] T064 [US4] [frontend] Implement to pass T063
 - [ ] T065 [US4] [qa] Author `sheet-music.spec.ts` "drums": on the fake stack split the drums (fake detail), generate drums; the MusicXML has a percussion clef, two voices and `<notehead>x</notehead>` elements
 
 **Checkpoint**: HO:us4.
@@ -186,8 +186,8 @@ in the execution plan.
 
 - [x] T066 [P] [US5] [backend] Failing tests: `source = {assetId}` for a ready audio asset uses its path and the provenance track's grid shifted by the asset's range start; an asset without a track requires `tempo`; `range` (>= 2 s) shifts the grid; provenance records `sourceAssetIds` and `trackId` (FR-001, FR-012, FR-013)
 - [x] T067 [US5] [backend] Implement to pass T066
-- [ ] T068 [P] [US5] [frontend] Failing bUnit tests: `asset-score-<id>` on audio library items opens the dialog with that source; `score-range-start`/`score-range-end` (Advanced) with validation (FR-013, FR-014)
-- [ ] T069 [US5] [frontend] Implement to pass T068
+- [x] T068 [P] [US5] [frontend] Failing bUnit tests: `asset-score-<id>` on audio library items opens the dialog with that source; `score-range-start`/`score-range-end` (Advanced) with validation (FR-013, FR-014)
+- [x] T069 [US5] [frontend] Implement to pass T068
 - [ ] T070 [US5] [qa] Author `sheet-music.spec.ts` "from a library item": export a loop region (007), generate sheet music from that item; the score item's source shows both the audio item and the track
 
 **Checkpoint**: HO:us5.
