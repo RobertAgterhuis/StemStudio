@@ -30,7 +30,7 @@ from stemstudio_worker.notation.profiles import (
 from stemstudio_worker.ports import DrumHit
 from stemstudio_worker.schemas import SCORE_WARNING_TEXTS
 
-from .conftest import ConstantQuantiser, at_quarters, note
+from .conftest import ConstantQuantiser, at_quarters, note, rows
 
 Q = ConstantQuantiser()
 SIXTEENTH = Fraction(1, 4)
@@ -39,20 +39,19 @@ SIXTEENTH = Fraction(1, 4)
 # ------------------------------------------------------------------ profiles (data-model 2.1)
 
 
-@pytest.mark.parametrize(
-    ("name", "clefs", "low", "high", "single", "resolution"),
-    [
-        ("vocals", ("treble",), 40, 84, True, "eighth"),
-        ("bass", ("bass-8vb",), 28, 67, True, "sixteenth"),
-        ("guitar", ("treble-8vb",), 40, 88, False, "sixteenth"),
-        ("keys", ("treble", "bass"), 21, 108, False, "sixteenth"),
-        ("piano", ("treble", "bass"), 21, 108, False, "sixteenth"),
-        ("drums", ("percussion",), 0, 127, False, "sixteenth"),
-    ],
-)
-def test_profile_table(
-    name: str, clefs: tuple[str, ...], low: int, high: int, single: bool, resolution: str
-) -> None:
+PROFILE_TABLE = [
+    ("vocals", ("treble",), 40, 84, True, "eighth"),
+    ("bass", ("bass-8vb",), 28, 67, True, "sixteenth"),
+    ("guitar", ("treble-8vb",), 40, 88, False, "sixteenth"),
+    ("keys", ("treble", "bass"), 21, 108, False, "sixteenth"),
+    ("piano", ("treble", "bass"), 21, 108, False, "sixteenth"),
+    ("drums", ("percussion",), 0, 127, False, "sixteenth"),
+]
+
+
+@pytest.mark.parametrize("row", PROFILE_TABLE, ids=[row[0] for row in PROFILE_TABLE])
+def test_profile_table(row: tuple[str, tuple[str, ...], int, int, bool, str]) -> None:
+    name, clefs, low, high, single, resolution = row
     profile = get_profile(name)  # type: ignore[arg-type]
     assert profile.name == name
     assert profile.clefs == clefs
@@ -125,7 +124,7 @@ def test_profile_contains_its_range() -> None:
     assert not bass.contains(68)
 
 
-# ------------------------------------------------------------------ cleaning steps (2.3)
+# ------------------------------------------------------------------ cleaning steps, data-model 2.3
 
 
 def test_step1_drops_pitches_outside_the_range() -> None:
@@ -157,7 +156,7 @@ def test_step3_single_voice_notes_end_at_the_next_onset() -> None:
         PlacedNote(Fraction(1), Fraction(3, 2), 42, 0.5),
         PlacedNote(Fraction(3), Fraction(4), 43, 0.5),
     ]
-    assert [(n.onset, n.end) for n in end_at_next_onset(placed)] == [
+    assert rows((n.onset, n.end) for n in end_at_next_onset(placed)) == [
         (0, 1),
         (1, Fraction(3, 2)),
         (3, 4),
@@ -170,7 +169,7 @@ def test_step3_single_voice_keeps_the_loudest_note_per_slot() -> None:
         PlacedNote(Fraction(0), Fraction(1), 45, 0.9),
         PlacedNote(Fraction(1), Fraction(2), 47, 0.5),
     ]
-    assert [(n.onset, n.pitch, n.end) for n in end_at_next_onset(placed)] == [
+    assert rows((n.onset, n.pitch, n.end) for n in end_at_next_onset(placed)) == [
         (0, 45, 1),
         (1, 47, 2),
     ]
@@ -191,7 +190,7 @@ def test_step4_merges_duplicates_of_the_same_pitch_and_slot() -> None:
         PlacedNote(Fraction(0), Fraction(1), 64, 0.9),
     ]
     merged = merge_duplicates(placed)
-    assert [(n.pitch, n.end, n.velocity) for n in merged] == [(60, 2, 0.4), (64, 1, 0.9)]
+    assert rows((n.pitch, n.end, n.velocity) for n in merged) == [(60, 2, 0.4), (64, 1, 0.9)]
 
 
 def test_step5_caps_each_voice_per_bar_keeping_the_loudest() -> None:
@@ -221,7 +220,7 @@ def test_clean_notes_runs_the_steps_in_order() -> None:
         note(1.5, 2.0, 47, 0.6),
     ]
     cleaned = clean_notes(notes, get_profile("bass"), Q)
-    assert [(n.onset, n.end, n.pitch) for n in cleaned.notes] == [
+    assert rows((n.onset, n.end, n.pitch) for n in cleaned.notes) == [
         (0, 1, 40),
         (1, 2, 43),
         (3, 4, 47),
@@ -232,7 +231,7 @@ def test_clean_notes_runs_the_steps_in_order() -> None:
 def test_clean_notes_polyphonic_keeps_chords_and_merges_duplicates() -> None:
     notes = [note(0, 0.5, 60), note(0, 0.5, 64), note(0.02, 0.5, 64), note(0, 1.0, 67)]
     cleaned = clean_notes(notes, get_profile("guitar"), Q)
-    assert [(n.pitch, n.end) for n in cleaned.notes] == [(60, 1), (64, 1), (67, 2)]
+    assert rows((n.pitch, n.end) for n in cleaned.notes) == [(60, 1), (64, 1), (67, 2)]
 
 
 def test_clean_notes_caps_busy_bars() -> None:
@@ -255,7 +254,7 @@ def test_clean_notes_of_nothing_is_empty() -> None:
     assert (cleaned.notes, cleaned.total, cleaned.removed, cleaned.capped) == ((), 0, 0, 0)
 
 
-# ------------------------------------------------------------------ warnings (2.7)
+# ------------------------------------------------------------------ warnings, data-model 2.7
 
 
 def test_no_warnings_for_a_clean_line() -> None:
@@ -288,7 +287,7 @@ def test_score_warning_formats_every_text() -> None:
     )
 
 
-# ------------------------------------------------------------------ drums (2.3)
+# ------------------------------------------------------------------ drums, data-model 2.3
 
 
 def hit(time: float, piece: str = "snare", strength: float = 0.8) -> DrumHit:
@@ -298,7 +297,7 @@ def hit(time: float, piece: str = "snare", strength: float = 0.8) -> DrumHit:
 def test_clean_hits_quantises_and_merges_per_piece() -> None:
     hits = [hit(0.0, "kick", 0.4), hit(0.02, "kick", 0.9), hit(0.01, "hihat"), hit(0.5)]
     cleaned = clean_hits(hits, Q)
-    assert [(h.onset, h.piece, h.strength) for h in cleaned.hits] == [
+    assert rows((h.onset, h.piece, h.strength) for h in cleaned.hits) == [
         (0, "kick", 0.9),
         (0, "hihat", 0.8),
         (1, "snare", 0.8),
@@ -311,7 +310,7 @@ def test_clean_hits_caps_the_hands_and_feet_separately() -> None:
     feet = [hit(i * 0.125, "kick", 0.5) for i in range(16)]
     cleaned = clean_hits([*hands, *feet], Q)
     assert cleaned.capped == 16
-    assert sum(1 for h in cleaned.hits if h.piece == "kick") == 16
+    assert [h.piece for h in cleaned.hits].count("kick") == 16
 
 
 def test_placed_values_expose_their_voice() -> None:

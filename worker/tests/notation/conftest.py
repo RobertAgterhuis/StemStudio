@@ -1,5 +1,6 @@
 """Synthetic note lists and a constant-tempo quantiser for the notation tests."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -33,3 +34,8 @@ def at_quarters(
     return [
         note(q * QUARTER_SECONDS, (q + length) * QUARTER_SECONDS, pitch, velocity) for q in quarters
     ]
+
+
+def rows(items: Iterable[tuple[object, ...]]) -> list[tuple[object, ...]]:
+    """Return ``items`` as a list (lets exact Fractions be compared with int/float literals)."""
+    return list(items)
