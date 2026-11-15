@@ -158,7 +158,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 - [ ] T054 [US4] [frontend] Implement `src/web-interop/src/{tour,focus}.ts` (driver.js 1.10.2; verify version/licence; driver CSS themed with tokens in `css/components/tour.css`) to pass T053
 - [ ] T055 [P] [US4] [frontend] Failing bUnit tests `Help/TourOfferTests.cs`, `TourServiceTests.cs`: offer shown for route + level when no record or an older version; never auto-start; start resolves texts from topics; result recorded; navigation closes a running tour; help panel tour list `help-tour-start-<id>` (FR-027)
 - [ ] T056 [US4] [frontend] Implement `Help/TourService.cs`, `Components/Help/TourOffer.razor` and the five tour files of design-spec.md 7 to pass T055 (and T050's tour checks)
-- [ ] T057 [US4] [qa] Author `e2e/tests/tours.spec.ts`: each tour keyboard-only to the end and with Escape midway; offer gone after completion and reload; skipped step on a song without detail stems (V-T1..V-T4)
+- [x] T057 [US4] [qa] Author `e2e/tests/tours.spec.ts`: each tour keyboard-only to the end and with Escape midway; offer gone after completion and reload; skipped step on a song without detail stems (V-T1..V-T4)
 
 **Checkpoint**: HO:us4.
 
