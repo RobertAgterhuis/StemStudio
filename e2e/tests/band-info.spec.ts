@@ -63,7 +63,8 @@ test.describe('band info found', { tag: '@band-info' }, () => {
     const corrected = await metadataApi.waitForMetadata(track.id, settleMs);
     expect([corrected.metadata.status, corrected.metadata.correctedByUser]).toEqual(['found', true]);
     await expect(artwork.trackCover).toHaveAttribute('data-artwork-source', fake.modes.found.artworkSource ?? 'none');
-    expect((await metadataApi.getBandInfo(track.id)).recording?.title).toBe('Corrected Title');
+    // The same track's correction from the other browser already reads "found": poll for this one's result.
+    await expect.poll(async () => (await metadataApi.getBandInfo(track.id)).recording?.title, { timeout: settleMs }).toBe('Corrected Title');
   });
 });
 
