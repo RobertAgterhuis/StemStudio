@@ -1,8 +1,11 @@
 """005:T010: allow-listed https client with redirects, caps, timeouts and retries (FR-010/011)."""
 
+from collections.abc import Iterator
+
 import httpx
 import pytest
 
+from stemstudio_worker.config import OnlineSettings
 from stemstudio_worker.metadata.http import (
     ALLOWED_HOSTS,
     MAX_REDIRECTS,
@@ -16,9 +19,8 @@ from stemstudio_worker.metadata.http import (
     create_online_client,
     is_allowed_url,
 )
-from stemstudio_worker.metadata.ratelimit import RateLimiter
 
-from .fakes import USER_AGENT, FakeClock, json_response, online_harness
+from .fakes import USER_AGENT, json_response, online_harness
 
 MB = "https://musicbrainz.org/ws/2/recording"
 CAA = "https://coverartarchive.org/release-group/e389b7df-862d-3d91-a612-acca150f6e71/front-500"
@@ -52,6 +54,7 @@ def test_allow_listed_https_urls(url: str) -> None:
         "https://example.org/",
         "https://user@musicbrainz.org/",
         "https://musicbrainz.org:8443/",
+        "https://musicbrainz.org:99999/",
         "ftp://archive.org/x",
         "https://wikipedia.org/x",
         "not a url",
@@ -75,19 +78,15 @@ def test_get_sends_the_user_agent_params_and_a_10_second_timeout() -> None:
     assert response.json() == {"recordings": []}
     request = harness.recorder.requests[0]
     assert request.headers["User-Agent"] == USER_AGENT
-    assert request.url.params["query"] == 'isrc:"USEVI9692306"'
-    assert request.url.params["fmt"] == "json"
-    assert request.extensions["timeout"] == {
-        "connect": TIMEOUT_SECONDS,
-        "read": TIMEOUT_SECONDS,
-        "write": TIMEOUT_SECONDS,
-        "pool": TIMEOUT_SECONDS,
-    }
+    assert dict(request.url.params) == {"query": 'isrc:"USEVI9692306"', "fmt": "json"}
+    assert set(request.extensions["timeout"].values()) == {TIMEOUT_SECONDS}
     assert TIMEOUT_SECONDS == 10.0
 
 
 def test_response_carries_content_type_and_final_url() -> None:
-    harness = online_harness([httpx.Response(200, content=b"jpeg", headers={"content-type": "image/jpeg"})])
+    harness = online_harness(
+        [httpx.Response(200, content=b"jpeg", headers={"content-type": "image/jpeg"})]
+    )
 
     response = harness.client.get(ARCHIVE)
 
@@ -233,9 +232,7 @@ def test_busy_then_ok_is_retried_with_backoff(status: int) -> None:
 
 
 def test_retry_after_seconds_is_honoured() -> None:
-    harness = online_harness(
-        [httpx.Response(503, headers={"retry-after": "5"}), json_response({})]
-    )
+    harness = online_harness([httpx.Response(503, headers={"retry-after": "5"}), json_response({})])
 
     harness.client.get(MB)
 
@@ -254,7 +251,9 @@ def test_retry_after_is_capped_at_30_seconds() -> None:
 
 def test_retry_after_http_date_is_honoured() -> None:
     date = "Sun, 15 Nov 2026 12:00:04 GMT"
-    harness = online_harness([httpx.Response(503, headers={"retry-after": date}), json_response({})])
+    harness = online_harness(
+        [httpx.Response(503, headers={"retry-after": date}), json_response({})]
+    )
 
     harness.client.get(MB)
 
@@ -288,8 +287,7 @@ def test_service_busy_error_is_an_online_request_error() -> None:
 
 
 def test_close_closes_the_http_client() -> None:
-    clock = FakeClock()
-    client = OnlineClient(USER_AGENT, RateLimiter(clock=clock, sleep=clock.sleep))
+    client = OnlineClient(USER_AGENT)
 
     assert not client.closed
 
@@ -299,8 +297,6 @@ def test_close_closes_the_http_client() -> None:
 
 
 def test_factory_builds_a_client_with_the_settings_user_agent() -> None:
-    from stemstudio_worker.config import OnlineSettings
-
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -314,3 +310,42 @@ def test_factory_builds_a_client_with_the_settings_user_agent() -> None:
     client.get(MB)
 
     assert seen[0].headers["User-Agent"].endswith("( https://stemstudio.example/ )")
+
+
+class ChunkStream(httpx.SyncByteStream):
+    """A streamed body without Content-Length; optionally fails after the chunks."""
+
+    def __init__(self, chunks: list[bytes], fail: bool = False) -> None:
+        self._chunks = chunks
+        self._fail = fail
+
+    def __iter__(self) -> Iterator[bytes]:
+        yield from self._chunks
+        if self._fail:
+            raise httpx.ReadError("connection reset")
+
+
+def test_streamed_body_over_the_cap_is_refused_while_reading() -> None:
+    chunk = b"x" * (1024 * 1024)
+    stream = ChunkStream([chunk] * 11)
+    harness = online_harness([httpx.Response(200, stream=stream)])
+
+    with pytest.raises(ResponseTooLargeError):
+        harness.client.get(ARCHIVE)
+
+
+def test_read_error_while_streaming_fails_with_a_typed_error() -> None:
+    harness = online_harness([httpx.Response(200, stream=ChunkStream([b"abc"], fail=True))])
+
+    with pytest.raises(OnlineRequestError, match="ReadError"):
+        harness.client.get(ARCHIVE)
+
+
+def test_success_on_the_last_retry_is_returned() -> None:
+    harness = online_harness([httpx.Response(503)] * 3 + [json_response({"late": 1})])
+
+    response = harness.client.get(MB)
+
+    assert response is not None
+    assert response.json() == {"late": 1}
+    assert len(harness.recorder.requests) == 4

@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from stemstudio_worker.metadata.http import OnlineClient, RetryTiming
+from stemstudio_worker.metadata.http import OnlineClient, RequestPacing
 from stemstudio_worker.metadata.ratelimit import RateLimiter
 
 USER_AGENT = "StemStudio/0.1.0 ( local-practice-tool; contact not configured )"
@@ -63,9 +63,9 @@ def online_harness(
     """Build a client whose clock, sleeper and jitter are fakes (tests run instantly)."""
     recorder = Recorder(list(responses))
     clock = FakeClock()
-    timing = RetryTiming(sleep=clock.sleep, now=lambda: NOW, jitter=lambda: jitter)
     limiter = RateLimiter(clock=clock, sleep=clock.sleep)
-    client = OnlineClient(USER_AGENT, limiter, recorder.transport(), timing)
+    pacing = RequestPacing(limiter, sleep=clock.sleep, now=lambda: NOW, jitter=lambda: jitter)
+    client = OnlineClient(USER_AGENT, recorder.transport(), pacing)
     return OnlineHarness(recorder, clock, client)
 
 

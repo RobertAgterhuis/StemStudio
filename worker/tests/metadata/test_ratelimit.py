@@ -99,7 +99,9 @@ def test_concurrent_callers_reserve_distinct_slots() -> None:
             reserved.append(seconds)
 
     limiter = RateLimiter(clock=clock, sleep=sleep)
-    threads = [threading.Thread(target=limiter.acquire, args=("musicbrainz.org",)) for _ in range(4)]
+    threads = [
+        threading.Thread(target=limiter.acquire, args=("musicbrainz.org",)) for _ in range(4)
+    ]
     for thread in threads:
         thread.start()
     for thread in threads:

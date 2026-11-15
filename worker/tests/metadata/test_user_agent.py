@@ -2,6 +2,7 @@
 
 import logging
 import re
+from importlib import metadata
 
 import pytest
 
@@ -12,7 +13,9 @@ from stemstudio_worker.metadata.user_agent import (
     worker_version,
 )
 
-DEFAULT_PATTERN = re.compile(r"^StemStudio/[0-9.]+ \( local-practice-tool; contact not configured \)$")
+DEFAULT_PATTERN = re.compile(
+    r"^StemStudio/[0-9.]+ \( local-practice-tool; contact not configured \)$"
+)
 
 INVALID_CONTACTS = [
     "http://stemstudio.example/",
@@ -87,13 +90,9 @@ def test_no_warning_without_a_contact_url(caplog: pytest.LogCaptureFixture) -> N
 def test_missing_package_metadata_gives_a_fallback_version(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from importlib import metadata
-
-    from stemstudio_worker.metadata import user_agent
-
     def missing(name: str) -> str:
         raise metadata.PackageNotFoundError(name)
 
-    monkeypatch.setattr(user_agent.metadata, "version", missing)
+    monkeypatch.setattr(metadata, "version", missing)
 
-    assert user_agent.worker_version() == "0.0.0"
+    assert worker_version() == "0.0.0"
