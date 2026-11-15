@@ -15,7 +15,8 @@ stem (Advanced) or at an audio item in the [library](help:library).
 1. The dialog suggests an instrument; you can [choose another](help:sheet-music-profiles). It shows what the
    notation can and cannot do, and how long it takes.
 2. **Make sheet music** saves a new item to the library. The notes are detected and engraved in the background.
-3. In the library the item shows a preview of the PDF, the key, the tempo and time signature, and any warnings. You
+3. In the library the item shows a preview of the PDF (**Open the PDF** shows it in a new tab when your browser has
+   no viewer in the page), the key, the tempo and time signature, and any warnings. You
    can download the **PDF**, the **MusicXML** file (open it in MuseScore or another notation program to edit it) and
    the **MIDI** file.
 

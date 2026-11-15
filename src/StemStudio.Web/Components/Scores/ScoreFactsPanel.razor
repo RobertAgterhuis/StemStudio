@@ -14,7 +14,8 @@
     <p class="ss-help ss-small" data-testid="@($"asset-score-limits-{Asset.Id}")">@ScoreText.Limit(Facts.Profile)</p>
     @if (Facts.Warnings.Count > 0)
     {
-        <ul class="ss-score-warnings" aria-label="Warnings" data-testid="@($"asset-score-warnings-{Asset.Id}")">
+        <p class="ss-label" id="@($"score-warnings-{Asset.Id}")">Warnings</p>
+        <ul class="ss-score-warnings" aria-labelledby="@($"score-warnings-{Asset.Id}")" data-testid="@($"asset-score-warnings-{Asset.Id}")">
             @foreach (var warning in Facts.Warnings)
             {
                 <li>@warning.Text</li>

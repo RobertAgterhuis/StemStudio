@@ -2,8 +2,11 @@
    download link next to it is the alternative for readers without a viewer. *@
 @using StemStudio.Contracts.Assets
 
-<iframe class="ss-pdf-preview" src="@Url" title="@($"Sheet music preview: {Asset.Name}")" loading="lazy"
-        data-testid="@($"asset-preview-{Asset.Id}")"></iframe>
+<div class="ss-pdf">
+    <iframe class="ss-pdf-preview" src="@Url" title="@($"Sheet music preview: {Asset.Name}")" loading="lazy"
+            data-testid="@($"asset-preview-{Asset.Id}")"></iframe>
+    <a class="ss-small ss-pdf-open" href="@Url" target="_blank" rel="noopener">Open the PDF in a new tab</a>
+</div>
 
 @code {
     /// <summary>The score item.</summary>
