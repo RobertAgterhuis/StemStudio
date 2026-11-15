@@ -1,7 +1,7 @@
 namespace StemStudio.Contracts;
 
 /// <summary>Relative routes of the backend HTTP API (see backend-api.openapi.yaml).</summary>
-public static class ApiRoutes
+public static partial class ApiRoutes
 {
     /// <summary>Liveness endpoint.</summary>
     public const string Health = "/health";
