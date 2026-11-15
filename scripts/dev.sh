@@ -60,7 +60,10 @@ init_library_environment() {
   export STEMSTUDIO_LIBRARY_DIR="$1"
   # Feature 005: STEMSTUDIO_ONLINE_LOOKUPS, STEMSTUDIO_CONTACT_URL, STEMSTUDIO_WIKIPEDIA_LANGUAGES and
   # STEMSTUDIO_FAKE_ONLINE pass through from your shell unchanged (worker defaults: on, generic
-  # User-Agent token, en, found); no value is set here.
+  # User-Agent token, en, found); no value is set here. Features 006/008 likewise:
+  # STEMSTUDIO_ALIGN_MODEL, STEMSTUDIO_ALIGN_AUTO, STEMSTUDIO_FAKE_LYRICS, STEMSTUDIO_TRANSCRIBER and
+  # STEMSTUDIO_TRANSCRIBE_THREADS (worker defaults: turbo, gpu, word, automatic, 8). Sheet-music
+  # PDFs need libcairo2 and the Leipzig font on the host (the Docker image has both).
   echo "Library (read-only for the worker): $STEMSTUDIO_LIBRARY_DIR; online lookups: ${STEMSTUDIO_ONLINE_LOOKUPS:-on}"
 }
 

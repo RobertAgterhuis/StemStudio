@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # CPU-image guard (feature 003, FR-008, ADR-011; quickstart G2): fails when the worker image holds
 # any NVIDIA/CUDA runtime (nvidia-* except nvidia-ml-py, cuda-*, triton, onnxruntime-gpu) or a
-# CUDA torch build. The check itself is scripts/cpu_image_guard.py, run inside the image.
+# CUDA torch build; also fails on matplotlib (excluded by the lock, 008) and when torchaudio or
+# stable_whisper (006) do not import. The check itself is scripts/cpu_image_guard.py, run inside
+# the image.
 # Used by the CI job cpu-image-guard. No secrets are read or needed.
 #
 # Usage: scripts/check-cpu-image.sh [--build] [image]
@@ -16,7 +18,7 @@ BUILD=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --build) BUILD=1 ;;
-    -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; exit 2 ;;
     *) IMAGE="$1" ;;
   esac

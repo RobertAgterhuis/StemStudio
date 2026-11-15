@@ -31,6 +31,18 @@
 # /library (STEMSTUDIO_LIBRARY_DIR) to render exports from stems; the API is the only writer.
 # Check it with scripts/check-library-mount.{sh,ps1}. STEMSTUDIO_RENDER_BLOCK_SECONDS (default 10)
 # sets the render block length.
+# Synced lyrics (feature 006; specs/006-synced-lyrics-karaoke/quickstart.md), worker only, optional:
+#   STEMSTUDIO_ALIGN_MODEL=turbo|small      Whisper model; turbo downloads 1.6 GB into
+#                                           /models/whisper (model-cache volume) at first alignment
+#   STEMSTUDIO_ALIGN_AUTO=gpu|always|never  when plain lyrics are aligned without a click
+#   STEMSTUDIO_FAKE_LYRICS=word|line|plain|instrumental|not-found|failed   (fake separator only)
+#   Lyrics lookups use LRCLIB and honour STEMSTUDIO_ONLINE_LOOKUPS=off.
+# Sheet music (feature 008; specs/008-sheet-music/quickstart.md), worker only, optional:
+#   STEMSTUDIO_TRANSCRIBER=real|fake        empty (default) = fake with the fake separator, else real;
+#                                           the piano model downloads into the model-cache volume
+#                                           at first use
+#   STEMSTUDIO_TRANSCRIBE_THREADS=1..64     intra-op threads of the transcribe lane (default 8)
+#   The image installs the Leipzig music font (check: scripts/check-worker-fonts.{sh,ps1}).
 
 name: stemstudio
 
@@ -57,6 +69,13 @@ services:
       # Feature 007 (render lane): the read-only API library and the render block length.
       STEMSTUDIO_LIBRARY_DIR: /library
       STEMSTUDIO_RENDER_BLOCK_SECONDS: ${STEMSTUDIO_RENDER_BLOCK_SECONDS:-10}
+      # Feature 006 (synced lyrics): alignment model and auto-start, fake LRCLIB results.
+      STEMSTUDIO_ALIGN_MODEL: ${STEMSTUDIO_ALIGN_MODEL:-turbo}
+      STEMSTUDIO_ALIGN_AUTO: ${STEMSTUDIO_ALIGN_AUTO:-gpu}
+      STEMSTUDIO_FAKE_LYRICS: ${STEMSTUDIO_FAKE_LYRICS:-word}
+      # Feature 008 (sheet music): empty = automatic (fake with the fake separator, else real).
+      STEMSTUDIO_TRANSCRIBER: ${STEMSTUDIO_TRANSCRIBER:-}
+      STEMSTUDIO_TRANSCRIBE_THREADS: ${STEMSTUDIO_TRANSCRIBE_THREADS:-8}
     expose:
       - "8000"
     volumes:

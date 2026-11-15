@@ -1,15 +1,20 @@
 # syntax=docker/dockerfile:1
 # StemStudio worker: FastAPI + yt-dlp/spotDL + Demucs (CPU torch) + librosa, plus the detail
-# models' runtimes (onnxruntime CPU, rotary-embedding-torch). No model weights are baked in: they
-# download at first use into /models (STEMSTUDIO_MODEL_DIR, HF_HOME, TORCH_HOME; a volume).
+# models' runtimes (onnxruntime CPU, rotary-embedding-torch), lyrics alignment (006: stable-ts,
+# openai-whisper, torchaudio) and sheet music (008: music21, verovio, cairosvg + libcairo2, pypdf,
+# the Leipzig music font as a system font). No model weights are baked in: they download at first
+# use into /models (STEMSTUDIO_MODEL_DIR, HF_HOME, TORCH_HOME; a volume), e.g. Whisper turbo into
+# /models/whisper (1.6 GB) and the piano/basic-pitch weights (008) below /models.
 # Build context: repository root.  docker build -f docker/worker.Dockerfile .
 #
 # Two image variants from one Dockerfile (ADR-011, ADR-012 D1; research.md G-01):
 #   CPU (default, CI): TORCH_VARIANT=cpu ORT_VARIANT=cpu installs exactly what worker/uv.lock pins
-#     (torch 2.15.0+cpu, onnxruntime 1.32.0). Contains no NVIDIA runtime library; guarded by
+#     (torch 2.15.0+cpu, torchaudio 2.11.1+cpu, onnxruntime 1.32.0; triton and matplotlib are
+#     excluded by uv overrides). Contains no NVIDIA runtime library; guarded by
 #     scripts/check-cpu-image.{ps1,sh} (CI job cpu-image-guard).
-#   GPU (optional, docker-compose.gpu.yml): TORCH_VARIANT=cu132 replaces torch with the CUDA 13.2
-#     wheel of the same version; ORT_VARIANT=gpu replaces onnxruntime with onnxruntime-gpu 1.32.0
+#   GPU (optional, docker-compose.gpu.yml): TORCH_VARIANT=cu132 replaces torch and torchaudio with
+#     the CUDA 13.2 wheels of the same versions (torch 2.15.0+cu132, torchaudio 2.11.1+cu132; 006
+#     Phase 0 P0-1); ORT_VARIANT=gpu replaces onnxruntime with onnxruntime-gpu 1.32.0
 #     (no extras: it reuses torch's CUDA libraries via onnxruntime.preload_dlls()) plus
 #     cuda-toolkit[curand] 13.2.2 (libcurand, which torch does not ship). About 11.6 GB on disk;
 #     the NVIDIA CUDA runtime libraries are proprietary system dependencies of this variant only.
@@ -46,8 +51,10 @@ ARG TORCH_VARIANT=cpu
 RUN --mount=type=cache,target=/root/.cache/uv \
     case "$TORCH_VARIANT" in \
       cpu) ;; \
-      cu[0-9][0-9]*) uv pip install --python /app/.venv/bin/python --reinstall-package torch \
-          "torch==2.15.0" --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" ;; \
+      cu[0-9][0-9]*) uv pip install --python /app/.venv/bin/python \
+          --reinstall-package torch --reinstall-package torchaudio \
+          "torch==2.15.0" "torchaudio==2.11.1" \
+          --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" ;; \
       *) echo "TORCH_VARIANT must be cpu or cuNNN, got '$TORCH_VARIANT'" >&2; exit 1 ;; \
     esac
 # onnxruntime-gpu and onnxruntime both provide the 'onnxruntime' package: remove the CPU one first.
@@ -61,18 +68,40 @@ RUN --mount=type=cache,target=/root/.cache/uv \
       *) echo "ORT_VARIANT must be cpu or gpu, got '$ORT_VARIANT'" >&2; exit 1 ;; \
     esac
 
+# ---------------------------------------------------------------- font: Leipzig (008, SC-004)
+# Verovio's SVG text glyphs use font-family "Leipzig"; Cairo renders them only when fontconfig
+# knows the font. worker/scripts/install_music_font.py converts the WOFF2 embedded in the pinned
+# verovio wheel to Leipzig.ttf (OFL-1.1). fontTools[woff] (MIT, with brotli) is installed into
+# /opt/fonttools of this stage only and never reaches the runtime image.
+# fontTools stamps head.modified with the current time unless SOURCE_DATE_EPOCH is set; the value
+# below is the wheel font's own head.modified (Mac epoch 3869993456), so the output is reproducible
+# and keeps the upstream timestamp: verovio 6.4.0 -> 119,416 B, SHA-256 1dcb5a73...81f5.
+FROM build AS font
+ARG FONTTOOLS_VERSION=4.68.0
+ARG LEIPZIG_SOURCE_DATE_EPOCH=1787148656
+COPY worker/scripts/install_music_font.py /opt/font-script/install_music_font.py
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --python /app/.venv/bin/python --target /opt/fonttools \
+      "fonttools[woff]==${FONTTOOLS_VERSION}" \
+ && SOURCE_DATE_EPOCH="${LEIPZIG_SOURCE_DATE_EPOCH}" PYTHONPATH=/opt/fonttools \
+      /app/.venv/bin/python /opt/font-script/install_music_font.py /opt/fonts \
+ && test -f /opt/fonts/Leipzig.ttf
+
 # ---------------------------------------------------------------- runtime
 FROM ${PYTHON_IMAGE} AS runtime
 # Default STEMSTUDIO_DEVICE of the image: cpu (CPU variant) or auto (GPU variant).
 ARG WORKER_DEVICE=cpu
-# ffmpeg provides both ffmpeg and ffprobe on PATH.
+# ffmpeg provides both ffmpeg and ffprobe on PATH; libcairo2 is cairosvg's native library and
+# fontconfig makes the Leipzig font visible to Cairo (scripts/check-worker-fonts.* checks fc-list).
 COPY --from=deno /deno /usr/local/bin/deno
+COPY --from=font /opt/fonts/Leipzig.ttf /usr/local/share/fonts/verovio/Leipzig.ttf
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg libsndfile1 \
+ && apt-get install -y --no-install-recommends ffmpeg libsndfile1 libcairo2 fontconfig \
  && rm -rf /var/lib/apt/lists/* \
+ && fc-cache -f /usr/local/share/fonts \
  && groupadd --gid 10001 stemstudio \
  && useradd --uid 10001 --gid stemstudio --no-log-init --create-home --home-dir /home/stemstudio stemstudio \
- && mkdir -p /data /models/hf /models/torch \
+ && mkdir -p /data /models/hf /models/torch /models/whisper \
  && chown -R stemstudio:stemstudio /data /models
 COPY --from=build --chown=stemstudio:stemstudio /app/.venv /app/.venv
 # HOME must be writable for the non-root user: spotDL keeps ~/.spotdl, yt-dlp and deno their caches.
