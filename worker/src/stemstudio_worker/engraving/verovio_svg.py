@@ -30,7 +30,7 @@ VEROVIO_OPTIONS: Final[Mapping[str, object]] = {
 class Toolkit(Protocol):
     """The part of ``verovio.toolkit`` the engraver uses."""
 
-    def setResourcePath(self, path: str) -> bool:  # noqa: N802 - Verovio API
+    def setResourcePath(self, path: str) -> None:  # noqa: N802 - Verovio API
         """Point the toolkit at its font and resource folder."""
         ...
 
