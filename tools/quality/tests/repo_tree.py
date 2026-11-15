@@ -17,3 +17,12 @@ def write_file(root: Path, rel: str, text: str) -> Path:
 def write_module(root: Path, rel: str, text: str) -> Path:
     """Write a worker module ``rel`` (relative to the worker package) and return the path."""
     return write_file(root, f"{WORKER_PACKAGE}/{rel}", text)
+
+
+GENERATOR_PACKAGE = "generator/src/stemstudio_generator"
+"""Repository-relative path of the generator package (features 009/010)."""
+
+
+def write_generator_module(root: Path, rel: str, text: str) -> Path:
+    """Write a generator module ``rel`` (relative to the generator package); return the path."""
+    return write_file(root, f"{GENERATOR_PACKAGE}/{rel}", text)
