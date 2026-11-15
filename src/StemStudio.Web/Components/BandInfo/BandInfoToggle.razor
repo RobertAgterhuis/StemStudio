@@ -1,10 +1,14 @@
 @* "Band info" button of the track page and the mixer (ui-test-ids 1.4.0 band-info-open): a real button, so it is
-   reachable and operable by keyboard; aria-expanded and aria-controls tie it to the panel. *@
+   reachable and operable by keyboard; aria-expanded and aria-controls tie it to the panel. When the panel closes,
+   focus returns here (the panel's heading took it on open). *@
 
-<RadzenButton Text="Band info" Icon="groups" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnToggle"
+<RadzenButton @ref="_button" Text="Band info" Icon="groups" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="OnToggle"
               aria-expanded="@(Open ? "true" : "false")" aria-controls="band-info-panel" data-testid="band-info-open" data-help-id="band-info" />
 
 @code {
+    private RadzenButton? _button;
+    private bool _wasOpen;
+
     /// <summary>True while the panel is shown.</summary>
     [Parameter]
     public bool Open { get; set; }
@@ -12,4 +16,15 @@
     /// <summary>Pressed.</summary>
     [Parameter]
     public EventCallback OnToggle { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var closed = _wasOpen && !Open;
+        _wasOpen = Open;
+        if (closed)
+        {
+            await _button!.Element.FocusAsync();
+        }
+    }
 }
