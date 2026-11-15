@@ -228,17 +228,17 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [x] T086 [P] [qa] Traceability matrix update, HO:polish
 - [x] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
-- [ ] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [x] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T089 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
-- [ ] T090 [CTO] `docs/THIRD-PARTY-LICENSES.md`: three detail models with licence status, URL, SHA-256 (research.md D-07), credit lines for UVR and ZFTurbo MSST, new libraries (`onnxruntime`, `rotary-embedding-torch`); README notice "model weights are for local, personal, non-commercial use; commercial use and redistributing images that contain them are not covered" (FR-018, constitution IV)
-- [ ] T091 [CTO] Playwright `@detail` + 001 suite against the fake stack (retries 0)
-- [ ] T092 [CTO] Real-model validation on the reference machine: quickstart D1-D6, D12, D14; record the SC-001 wall time of the reference song and the peak worker RAM in `docs/STATUS.md`; if SC-001 fails, apply the research.md D-03 levers in order and re-measure
-- [ ] T093 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T089 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
+- [x] T090 [CTO] `docs/THIRD-PARTY-LICENSES.md`: three detail models with licence status, URL, SHA-256 (research.md D-07), credit lines for UVR and ZFTurbo MSST, new libraries (`onnxruntime`, `rotary-embedding-torch`); README notice "model weights are for local, personal, non-commercial use; commercial use and redistributing images that contain them are not covered" (FR-018, constitution IV)
+- [x] T091 [CTO] Playwright `@detail` + 001 suite against the fake stack (retries 0)
+- [x] T092 [CTO] Real-model validation on the reference machine: quickstart D1-D6, D12, D14; record the SC-001 wall time of the reference song and the peak worker RAM in `docs/STATUS.md`; if SC-001 fails, apply the research.md D-03 levers in order and re-measure
+- [x] T093 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
 
 ---
 
