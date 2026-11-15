@@ -132,6 +132,12 @@ class WorkerSettings:
         render: Render job settings (feature 007).
         lyrics: Lyrics alignment settings (feature 006).
         transcription: Transcription settings (feature 008).
+        gpu_lease_file: Shared cross-container GPU lock file (``STEMSTUDIO_GPU_LEASE_FILE``,
+            feature 009, ADR-018 D3); None (unset) keeps the 003 in-process lease only. Set in
+            the GPU image together with the optional generator service.
+        gpu_lease_wait_seconds: Longest wait for the file lease before a GPU step runs on the
+            CPU with the reason "GPU busy with another StemStudio job"
+            (``STEMSTUDIO_GPU_LEASE_WAIT_SECONDS``, default 900).
     """
 
     data_dir: Path
@@ -148,6 +154,12 @@ class WorkerSettings:
     render: RenderSettings = RenderSettings()
     lyrics: LyricsSettings = LyricsSettings()
     transcription: TranscriptionSettings = TranscriptionSettings()
+    gpu_lease_file: Path | None = None
+    gpu_lease_wait_seconds: float = 900.0
+
+
+GPU_LEASE_BUSY_REASON = "GPU busy with another StemStudio job"
+"""CPU fallback reason after waiting ``gpu_lease_wait_seconds`` for the file lease (009 DELTA 3)."""
 
 
 def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
@@ -175,7 +187,15 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         render=_render_settings(env),
         lyrics=_lyrics_settings(env),
         transcription=_transcription_settings(env, separator),
+        gpu_lease_file=_optional_path(env, "STEMSTUDIO_GPU_LEASE_FILE"),
+        gpu_lease_wait_seconds=_seconds(env, "STEMSTUDIO_GPU_LEASE_WAIT_SECONDS", 900.0),
     )
+
+
+def _optional_path(env: Mapping[str, str], name: str) -> Path | None:
+    """Read ``name`` as a path; unset or blank -> None."""
+    raw = env.get(name, "").strip()
+    return Path(raw) if raw else None
 
 
 def _online_settings(env: Mapping[str, str]) -> OnlineSettings:

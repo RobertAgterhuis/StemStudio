@@ -1,0 +1,188 @@
+[project]
+name = "stemstudio-generator"
+version = "0.1.0"
+description = "StemStudio generator service: optional, GPU-only style transfer and songs (ACE-Step 1.5) and own-voice conversion (SoulX-Singer-SVC) behind a FastAPI job API."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+# The base install is what CI, E2E and the `fake` image variant use: no torch, no NVIDIA wheels,
+# OSI licences only (ADR-018 D9, constitution 1.3.0). The real engines come from the mutually
+# exclusive extras `acestep` (image `generator`) and `soulx` (image `singer`, ADR-019 D2).
+dependencies = [
+    "fastapi>=0.120,<1",
+    "uvicorn>=0.30,<1",
+    "python-multipart>=0.0.20,<0.1",
+    "pydantic>=2.10,<3",
+    "soundfile>=0.13,<1",
+    "numpy>=2.0,<3",
+    "nvidia-ml-py==13.615.71",     # NVML free-memory reads (ADR-018 D4), BSD-3, pure Python
+]
+
+[project.optional-dependencies]
+# ACE-Step 1.5 (MIT code and weights), git pin = the commit measured in the 009 spike.
+# Its own dependency list brings torch 2.10.0+cu128, transformers <4.58, diffusers, ...
+acestep = [
+    "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    # Restated from ACE-Step's own list so the cu128 index applies (uv sources need the name here).
+    "torch==2.10.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torchvision==0.25.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torchaudio==2.10.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+# SoulX-Singer-SVC (Apache-2.0). Upstream has no packaging: the singer image fetches the source
+# at commit 81aeb3ae772c70093c3de74dc23c92d983801ae4 and puts it on the path (ADR-019 Phase 0
+# outcome); this extra holds the runtime dependencies of its SVC inference path and RMVPE.
+soulx = [
+    "torch==2.10.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torchaudio==2.10.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "transformers==4.41.2 ; sys_platform == 'linux' and platform_machine == 'x86_64'",        # SoulX-SVC fails with 4.57 (010 research S-05)
+    "tokenizers==0.19.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "accelerate==1.11.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "librosa==0.11.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "omegaconf==2.3.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "scipy>=1.14,<2 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "tqdm>=4.66,<5 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[project.scripts]
+stemstudio-generator = "stemstudio_generator.main:run"
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+    "pytest-cov>=7,<8",
+    "ruff>=0.17,<0.18",
+    "mypy>=2.4,<3",
+    "httpx>=0.28,<0.29",
+    "jsonschema>=4.25,<5",
+    "pyyaml>=6.0.2,<7",
+    "types-pyyaml>=6.0.12,<7",
+    "types-jsonschema>=4.25,<5",
+    "pytest-timeout>=2.4,<2.5",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stemstudio_generator"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# CUDA 12.8 torch wheels (sm_120 included); only the GPU extras use them.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", extra = "acestep" },
+    { index = "pytorch-cu128", extra = "soulx" },
+]
+torchaudio = [
+    { index = "pytorch-cu128", extra = "acestep" },
+    { index = "pytorch-cu128", extra = "soulx" },
+]
+torchvision = [
+    { index = "pytorch-cu128", extra = "acestep" },
+]
+# ACE-Step's vendored nano-vllm is a path source inside its repository; uv does not read the
+# sources of a git dependency, so it is pinned here to the same commit.
+nano-vllm = { git = "https://github.com/ace-step/ACE-Step-1.5", rev = "ca1e85fe9430179831e6bc6be790c332190a3866", subdirectory = "acestep/third_parts/nano-vllm" }
+
+[tool.uv]
+# Windows (local dev, base + dev only) and Linux x86_64 (Docker, CI).
+environments = [
+    "sys_platform == 'win32'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+# transformers 4.41 (SoulX) and >=4.51 (ACE-Step) cannot share an environment (010 research S-05).
+conflicts = [
+    [{ extra = "acestep" }, { extra = "soulx" }],
+]
+# gradio (ACE-Step's web UI) is never imported by the handler/inference API the generator uses
+# (009 Phase 0): dropped from the lock, which also removes its large dependency tree.
+override-dependencies = [
+    "gradio ; sys_platform == 'never'",
+]
+# Supply-chain rule: every resolved package was published at least two weeks before Phase 0.
+exclude-newer = "2026-11-01T00:00:00Z"
+
+# ------------------------------------------------------------------ pytest / coverage
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--import-mode=importlib", "-m", "not integration"]
+markers = [
+    "integration: runs a real model (ACE-Step, SoulX-Singer); deselected by default",
+    "gpu: needs an NVIDIA GPU; never runs in CI",
+]
+
+[tool.coverage.run]
+source = ["stemstudio_generator"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = false
+exclude_also = [
+    "\\.\\.\\.$",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+# ------------------------------------------------------------------ lint / types (as the worker)
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PTH", "RET", "ARG", "PL", "S",
+    "D", "C90", "T20", "ERA", "RUF",
+]
+ignore = [
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5
+
+[tool.ruff.lint.pylint]
+max-args = 4
+max-statements = 15
+max-branches = 5
+max-returns = 4
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004", "ARG"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["stemstudio_generator"]
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+# Model packages exist only in the GPU image variants (lazy imports in the engine adapters).
+module = [
+    "acestep.*", "soulxsinger.*", "torch.*", "torchaudio.*", "pynvml.*", "soundfile.*",
+    "librosa.*", "omegaconf.*", "transformers.*",
+]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
