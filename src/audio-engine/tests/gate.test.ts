@@ -1,35 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { RAMP_TIME_CONSTANT } from '../src/channel';
 import { gatesOf, isHidden, parentOf } from '../src/gate';
-import { Mixer } from '../src/mixer';
-import type { ChannelId, ChannelSettings, ParentStemName } from '../src/types';
-import { MockAudioContext, type MockAudioParam } from './mocks/audio-context';
+import type { Mixer } from '../src/mixer';
+import type { ChannelId, ParentStemName } from '../src/types';
+import type { MockAudioContext } from './mocks/audio-context';
+import { channelGain, makeMixer as makeRigMixer, settings } from './mocks/mixer-rig';
 
 const CHANNELS: ChannelId[] = ['vocals', 'drums', 'bass', 'drums.kick', 'drums.snare', 'drums.rest'];
 
-function settings(partial: Partial<ChannelSettings> = {}): ChannelSettings {
-  return { volume: 1, pan: 0, mute: false, solo: false, ...partial };
-}
-
 function makeMixer(): { ctx: MockAudioContext; mixer: Mixer } {
-  const ctx = new MockAudioContext();
-  const mixer = new Mixer(ctx.asAudioContext());
-  mixer.build(CHANNELS);
-  return { ctx, mixer };
-}
-
-function gainOf(ctx: MockAudioContext, mixer: Mixer, id: ChannelId): MockAudioParam {
-  const input = mixer.input(id) as unknown;
-  const node = ctx.gains.find((g) => g === input);
-  if (node === undefined) {
-    throw new Error(`no gain for ${id}`);
-  }
-  return node.gain;
+  return makeRigMixer(CHANNELS);
 }
 
 /** Gate value per channel id as heard through the mixer (volume 1 everywhere). */
 function heard(ctx: MockAudioContext, mixer: Mixer): Record<string, number> {
-  return Object.fromEntries(CHANNELS.map((id) => [id, gainOf(ctx, mixer, id).value]));
+  return Object.fromEntries(CHANNELS.map((id) => [id, channelGain(ctx, mixer, id).value]));
 }
 
 describe('channel levels', () => {
@@ -80,7 +65,7 @@ describe('mixer with detail channels', () => {
   it('collapsed by default: standard stems audible, detail channels hidden', () => {
     const { ctx, mixer } = makeMixer();
     expect(heard(ctx, mixer)).toEqual({ vocals: 1, drums: 1, bass: 1, 'drums.kick': 0, 'drums.snare': 0, 'drums.rest': 0 });
-    expect(gainOf(ctx, mixer, 'drums.kick').calls).toEqual([]);
+    expect(channelGain(ctx, mixer, 'drums.kick').calls).toEqual([]);
   });
 
   it('expanding replaces the parent by its detail channels (no doubling)', () => {
@@ -96,7 +81,7 @@ describe('mixer with detail channels', () => {
     ctx.currentTime = 2;
     mixer.setExpanded('drums', true, 2.01);
     for (const id of CHANNELS) {
-      const calls = gainOf(ctx, mixer, id).calls;
+      const calls = channelGain(ctx, mixer, id).calls;
       expect(calls.at(-2)).toEqual({ method: 'cancelScheduledValues', args: [2.01] });
       expect(calls.at(-1)?.args.slice(1)).toEqual([2.01, RAMP_TIME_CONSTANT]);
     }
@@ -142,7 +127,7 @@ describe('mixer with detail channels', () => {
     const { ctx, mixer } = makeMixer();
     mixer.setExpanded('drums', true, 0);
     mixer.setChannel('drums.kick', settings({ volume: 0.4, pan: 0.5 }));
-    expect(gainOf(ctx, mixer, 'drums.kick').value).toBe(0.4);
+    expect(channelGain(ctx, mixer, 'drums.kick').value).toBe(0.4);
     expect(ctx.panners[3]?.pan.value).toBe(0.5);
     expect(mixer.has('drums.kick')).toBe(true);
     expect(mixer.analyser('drums.kick')).toBe(ctx.analysers[4]);

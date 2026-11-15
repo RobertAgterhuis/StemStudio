@@ -109,8 +109,8 @@ committed contract and is faked:
 
 ### audio-engine (tests first)
 
-- [ ] T038 [P] [audio-engine] Failing tests `src/audio-engine/tests/gate.test.ts`: audible-level gate (contract 2.0.0 table) for collapsed/expanded parents, solo across levels, mute, hidden flags ignored
-- [ ] T039 [audio-engine] Implement `src/audio-engine/src/gate.ts` and use it from `mixer.ts` (v1 behaviour unchanged without groups) to pass T038
+- [x] T038 [P] [audio-engine] Failing tests `src/audio-engine/tests/gate.test.ts`: audible-level gate (contract 2.0.0 table) for collapsed/expanded parents, solo across levels, mute, hidden flags ignored
+- [x] T039 [audio-engine] Implement `src/audio-engine/src/gate.ts` and use it from `mixer.ts` (v1 behaviour unchanged without groups) to pass T038
 
 **Checkpoint**: HO:foundational for every owner.
 
