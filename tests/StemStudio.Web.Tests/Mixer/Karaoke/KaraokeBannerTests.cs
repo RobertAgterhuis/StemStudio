@@ -3,6 +3,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Web.Audio;
+using StemStudio.Web.Components.Mixer.Karaoke;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Tests.Fakes;
 
@@ -25,6 +26,21 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
         host.GetAttribute("aria-live").ShouldBe("off");
         page.Find("[data-testid=karaoke-credit]").TextContent.ShouldBe("Lyrics: LRCLIB");
         page.FindAll("[data-testid=karaoke-unavailable]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void WhileTheLyricsLoad_NeitherTheBannerNorTheNoticeIsRendered()
+    {
+        var pending = new TaskCompletionSource<LyricsDto>();
+        Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(pending.Task);
+
+        var page = Render<KaraokeBanner>(p => p.Add(c => c.TrackId, TestData.TrackId).Add(c => c.EngineReady, true));
+
+        page.FindAll("[data-testid=karaoke-unavailable]").ShouldBeEmpty();
+        page.FindAll("[data-testid=karaoke-banner]").ShouldBeEmpty();
+        page.Find("[data-testid=karaoke-toggle]");
+        pending.SetResult(LyricsData.Found());
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-banner]").GetAttribute("data-sync").ShouldBe("word"));
     }
 
     [Theory]
