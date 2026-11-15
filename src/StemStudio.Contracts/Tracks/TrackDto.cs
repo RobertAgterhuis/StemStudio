@@ -45,6 +45,9 @@ public sealed record TrackDto
     /// <summary>Beat analysis (null until completed).</summary>
     public BeatGridDto? BeatGrid { get; init; }
 
+    /// <summary>Detail phase (status <c>none</c> when never requested); always present on the wire.</summary>
+    public DetailPhaseDto Detail { get; init; } = DetailPhaseDto.None;
+
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 

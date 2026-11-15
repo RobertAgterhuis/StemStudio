@@ -107,10 +107,14 @@ public sealed partial class BackendContractTests
         var served = document["paths"]!.AsObject()
             .SelectMany(path => path.Value!.AsObject().Select(operation => operation.Value!["operationId"]?.GetValue<string>()))
             .ToList();
-        var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>()).ToList();
+        var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
+            .Except(PendingDetailOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
+
+    // Contract 1.2.0 operations that the backend implements in feature 002 (tasks T054, T068); remove an entry once it is served.
+    private static readonly string[] PendingDetailOperations = ["startDetail", "cancelDetail", "getDetailStem"];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

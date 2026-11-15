@@ -34,6 +34,23 @@ public static class ApiRoutes
     /// <returns>The relative URL.</returns>
     public static string Stem(Guid trackId, string stemName) => $"{Track(trackId)}/stems/{stemName}";
 
+    /// <summary>Start, "Split further" or retry the detail phase: <c>POST /api/tracks/{id}/detail</c>.</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string StartDetail(Guid trackId) => $"{Track(trackId)}/detail";
+
+    /// <summary>Cancel the detail phase: <c>POST /api/tracks/{id}/detail/cancel</c>.</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string CancelDetail(Guid trackId) => $"{StartDetail(trackId)}/cancel";
+
+    /// <summary>One detail stem file: <c>GET /api/tracks/{id}/detail-stems/{parent}/{name}</c>.</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <param name="parent">Parent stem name.</param>
+    /// <param name="name">Detail stem name.</param>
+    /// <returns>The route.</returns>
+    public static string DetailStem(Guid trackId, string parent, string name) => $"{Track(trackId)}/detail-stems/{parent}/{name}";
+
     /// <summary>Route of a single mix.</summary>
     /// <param name="mixId">Mix identifier.</param>
     /// <returns>The relative URL.</returns>

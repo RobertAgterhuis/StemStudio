@@ -44,4 +44,13 @@ public static class ContractLimits
 
     /// <summary>Highest beats per bar.</summary>
     public const int MaxBeatsPerBar = 12;
+
+    /// <summary>Maximum entries of <c>MixSettings.expanded</c> (one per splittable parent).</summary>
+    public const int MaxExpandedParents = 5;
+
+    /// <summary>Maximum entries of <c>MixSettings.detailChannels</c>.</summary>
+    public const int MaxDetailChannels = 50;
+
+    /// <summary>Maximum detail stems of one split parent (including <c>rest</c>).</summary>
+    public const int MaxDetailStemsPerParent = 10;
 }
