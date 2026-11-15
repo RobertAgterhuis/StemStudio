@@ -80,6 +80,16 @@ describe('applyAttributes / applyAppearance', () => {
     expect(document.documentElement.dataset).toMatchObject({ theme: 'dark', density: 'comfortable', motion: 'reduced', level: 'advanced' });
   });
 
+  it('mirrors the resolved attributes on the app shell root (ui-test-ids 1.3.0)', () => {
+    installMedia({ [DARK]: true });
+    const shell = document.createElement('div');
+    shell.dataset.testid = 'app-shell';
+    document.body.appendChild(shell);
+    applyAppearance({ ...defaultPreferences(), motion: 'reduced' });
+    expect(shell.dataset).toMatchObject({ theme: 'dark', density: 'comfortable', motion: 'reduced', level: 'beginner' });
+    shell.remove();
+  });
+
   it('treats a missing matchMedia as "no match"', () => {
     vi.stubGlobal('matchMedia', undefined);
     applyAppearance(defaultPreferences());
