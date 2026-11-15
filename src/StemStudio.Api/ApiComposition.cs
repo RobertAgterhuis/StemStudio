@@ -7,18 +7,24 @@ using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
+using StemStudio.Api.Generations;
+using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Storage;
+using StemStudio.Api.Styles;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tracks;
+using StemStudio.Api.Voices;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Health;
+using StemStudio.Domain.Styles;
 using StemStudio.Persistence;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api;
 
@@ -40,11 +46,18 @@ public static class ApiComposition
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
-        services.AddWorkerClient(builder.Configuration);
-        services.TryAddSingleton(TimeProvider.System);
+        AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
         return builder;
+    }
+
+    private static void AddServiceClients(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddWorkerClient(configuration);
+        services.AddGeneratorClient(configuration);
+        services.AddSingerClient(configuration);
+        services.TryAddSingleton(TimeProvider.System);
     }
 
     /// <summary>Creates the data directory, applies migrations and maps middleware and endpoints.</summary>
@@ -57,6 +70,8 @@ public static class ApiComposition
         await using (var scope = app.Services.CreateAsyncScope())
         {
             await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
+            await SeedPresetsAsync(scope.ServiceProvider);
+            await scope.ServiceProvider.GetRequiredService<AudioHashIndex>().RefreshAsync(CancellationToken.None);
         }
 
         app.UseExceptionHandler();
@@ -65,6 +80,10 @@ public static class ApiComposition
         app.MapOpenApi();
         MapEndpoints(app);
     }
+
+    private static Task<int> SeedPresetsAsync(IServiceProvider services) =>
+        services.GetRequiredService<IStyleRepository>().SeedPresetsAsync(
+            PresetCatalog.Load().Presets, services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime, CancellationToken.None);
 
     private static void MapEndpoints(WebApplication app)
     {
@@ -80,6 +99,10 @@ public static class ApiComposition
         app.MapAssetEndpoints();
         app.MapLyricsEndpoints();
         app.MapScoreEndpoints();
+        app.MapGenerationEndpoints();
+        app.MapStyleEndpoints();
+        app.MapLyricsSheetEndpoints();
+        app.MapVoiceEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -126,6 +149,36 @@ public static class ApiComposition
         AddAssetServices(services);
         AddLyricsServices(services);
         AddScoreServices(services);
+        AddGenerationServices(services);
+    }
+
+    private static void AddGenerationServices(IServiceCollection services)
+    {
+        services.AddSingleton<GenerationAvailability>();
+        services.AddSingleton<SingerAvailability>();
+        services.AddScoped<AudioHashIndex>();
+        services.AddScoped<VoiceProfileService>();
+        services.AddScoped<GeneratorRouter>();
+        services.AddScoped<ConversionStemWaiter>();
+        services.AddScoped<VoiceConversionService>();
+        services.AddScoped<VoiceProfileDeletion>();
+        services.TryAddSingleton<ISeedSource, RandomSeedSource>();
+        services.AddScoped<GenerationSubmitter>();
+        services.AddScoped<RestyleService>();
+        services.AddScoped<SongService>();
+        services.AddScoped<LyricsSheetService>();
+        services.AddScoped<StyleService>();
+        services.AddScoped<LibraryStyleGuard>();
+        services.AddScoped<StyleEditingService>();
+        services.AddScoped<GenerationStatusService>();
+        services.AddScoped<RetryService>();
+        services.AddScoped<GenerationService>();
+        services.AddScoped<TakeImporter>();
+        services.AddSingleton<TakeStorage>();
+        services.AddScoped<IGeneratedAudioLibrary, GeneratedAudioLibraryAdapter>();
+        services.AddScoped<TakeCollector>();
+        services.AddScoped<GenerationSynchronizer>();
+        services.AddHostedService<GenerationSyncService>();
     }
 
     private static void AddScoreServices(IServiceCollection services)

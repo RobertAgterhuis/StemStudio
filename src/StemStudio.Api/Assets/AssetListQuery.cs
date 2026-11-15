@@ -44,17 +44,7 @@ public sealed record AssetListQuery(string? Kind, Guid? TrackId, string? Status,
     }
 
     private static T? Parse<T>(string? value, string field, List<DomainError> errors)
-        where T : struct, Enum
-    {
-        if (value is null)
-        {
-            return null;
-        }
-
-        var valid = Enum.TryParse<T>(value, ignoreCase: true, out var parsed) && !int.TryParse(value, out _);
-        Check(errors, valid, field, $"'{value}' is not a valid {field}.");
-        return valid ? parsed : null;
-    }
+        where T : struct, Enum => QueryParsing.Enum<T>(value, field, errors);
 
     private static void Check(List<DomainError> errors, bool valid, string field, string message)
     {

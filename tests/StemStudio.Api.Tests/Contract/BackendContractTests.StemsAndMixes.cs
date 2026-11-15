@@ -128,19 +128,10 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingScoreOperations = [];
 
     // Feature 009 (backend 1.8.0, staged in the 009/010 Phase 0): the backend removes each id per story (T042, T047, T054, T059, T064).
-    private static readonly string[] PendingGenerationOperations =
-    [
-        "getGenerationStatus", "listStyles", "createStyle", "getStyle", "updateStyle", "deleteStyle", "duplicateStyle", "createRestyle",
-        "listGenerations", "getGeneration", "deleteGeneration", "cancelGeneration", "retryGeneration", "getTakeAudio", "importTake",
-    ];
+    private static readonly string[] PendingGenerationOperations = [];
 
     // Feature 010 (backend 1.9.0, staged in the 009/010 Phase 0): the backend removes each id per story (T028, T030, T035, T045, T047, T049).
-    private static readonly string[] PendingSongVoiceOperations =
-    [
-        "listLyricsSheets", "createLyricsSheet", "uploadLyricsSheet", "proposeSections", "getLyricsSheet", "updateLyricsSheet", "deleteLyricsSheet",
-        "createSong", "listVoiceProfiles", "createVoiceProfile", "getVoiceProfile", "deleteVoiceProfile", "getVoiceSample",
-        "getVoiceConsentStatement", "createVoiceConversion", "getTakeVocal",
-    ];
+    private static readonly string[] PendingSongVoiceOperations = [];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

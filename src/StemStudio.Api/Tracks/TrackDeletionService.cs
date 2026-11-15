@@ -11,9 +11,10 @@ namespace StemStudio.Api.Tracks;
 /// <param name="tracks">Track repository.</param>
 /// <param name="stems">Stem file store.</param>
 /// <param name="uploads">Upload store.</param>
+/// <param name="generations">Generations (their source track is detached, feature 009).</param>
 /// <param name="logger">Logger for file clean-up failures.</param>
 public sealed partial class TrackDeletionService(
-    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, ILogger<TrackDeletionService> logger)
+    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, IGenerationRepository generations, ILogger<TrackDeletionService> logger)
 {
     /// <summary>Title of the 409 problem for a track that is still queued or processing.</summary>
     public const string StillProcessingTitle = "Track is still being processed";
@@ -45,8 +46,19 @@ public sealed partial class TrackDeletionService(
         }
 
         await tracks.RemoveWithMixesAsync(track, cancellationToken);
+        await DetachGenerationsAsync(id, cancellationToken);
         DeleteFiles(track);
         return TypedResults.NoContent();
+    }
+
+    private async Task DetachGenerationsAsync(Guid trackId, CancellationToken cancellationToken)
+    {
+        foreach (var generation in await generations.ListBySourceTrackAsync(trackId, cancellationToken))
+        {
+            generation.DetachSourceTrack(trackId);
+        }
+
+        await generations.SaveAsync(cancellationToken);
     }
 
     private static IResult? DeleteBlocker(Track track) => track switch
