@@ -120,18 +120,27 @@ internal sealed class FakeGenerator
 
     private HttpResponseMessage Create(HttpRequestMessage request)
     {
-        var parts = request.Content.ShouldBeOfType<MultipartFormDataContent>().ToList();
         string id;
         lock (_lock)
         {
             id = (++_counter).ToString("x32", CultureInfo.InvariantCulture);
         }
 
-        var stems = parts.Skip(1).Select(part => (part.Headers.ContentDisposition!.FileName!.Trim('"'), part.ReadAsByteArrayAsync().GetAwaiter().GetResult())).ToList();
-        Created.Add(new CreatedJob(id, JsonNode.Parse(parts[0].ReadAsStringAsync().GetAwaiter().GetResult())!.AsObject(), stems));
-        SetJob(id, "QueuedRestyle");
+        var created = request.Content is MultipartFormDataContent multipart ? FromMultipart(id, multipart.ToList()) : FromJson(id, request.Content!);
+        Created.Add(created);
+        SetJob(id, created.Params["kind"]!.GetValue<string>() == "song" ? "QueuedSong" : "QueuedRestyle");
         return Get(id, HttpStatusCode.Accepted);
     }
+
+    private static CreatedJob FromMultipart(string id, List<HttpContent> parts)
+    {
+        var files = parts.Skip(1).Select(part => (part.Headers.ContentDisposition!.FileName!.Trim('"'), part.ReadAsByteArrayAsync().GetAwaiter().GetResult())).ToList();
+        var names = parts.Skip(1).Select(part => part.Headers.ContentDisposition!.Name!.Trim('"')).ToList();
+        return new CreatedJob(id, JsonNode.Parse(parts[0].ReadAsStringAsync().GetAwaiter().GetResult())!.AsObject(), files) { PartNames = names };
+    }
+
+    private static CreatedJob FromJson(string id, HttpContent content) =>
+        new(id, JsonNode.Parse(content.ReadAsStringAsync().GetAwaiter().GetResult())!.AsObject(), []);
 
     private HttpResponseMessage Get(string id, HttpStatusCode status = HttpStatusCode.OK)
     {
@@ -179,7 +188,10 @@ internal sealed class FakeGenerator
     }
 }
 
-internal sealed record CreatedJob(string Id, JsonObject Params, IReadOnlyList<(string FileName, byte[] Bytes)> Stems);
+internal sealed record CreatedJob(string Id, JsonObject Params, IReadOnlyList<(string FileName, byte[] Bytes)> Stems)
+{
+    public IReadOnlyList<string> PartNames { get; init; } = [];
+}
 
 /// <summary>Seeds 1000, 2000, ... so generator requests are predictable.</summary>
 internal sealed class SequenceSeeds : StemStudio.Api.Generations.ISeedSource
