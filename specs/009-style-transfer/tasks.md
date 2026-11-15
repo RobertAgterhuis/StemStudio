@@ -199,7 +199,7 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T074 [P] [generative] Refactor to SIG limits, docstrings, HO:polish with coverage of `api`, `jobs`, `devices`, `engines`, `audio`
 - [x] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
 - [ ] T076 [P] [backend] Refactor, XML docs, HO:polish
-- [ ] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
+- [x] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
 - [ ] T078 [P] [qa] Traceability matrix, HO:polish
 - [ ] T079 [P] [devops] `docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml config -q`, actionlint, HO:polish
 - [ ] T080 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests; HO:polish
