@@ -177,6 +177,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T061 [CTO] README: online lookups (what is sent, User-Agent, `STEMSTUDIO_CONTACT_URL`, how to switch off), personal-practice notice incl. pictures and band texts
 - [ ] T062 [CTO] Real-service validation on the reference machine (quickstart A4, A5, A7, A8, A10; `pytest -m integration tests/metadata/test_live_services.py`); record in `docs/STATUS.md`
 - [ ] T063 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [ ] T063a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -226,4 +227,5 @@ can ship alone.
 - [ ] No personal data in requests (test over recorded requests); lookups can be switched off; failures shown with reasons; nothing guessed (V)
 - [ ] No secrets; analyzers/formatters/linters clean; public APIs documented
 - [ ] Help topics `help-artwork`, `help-band-info`, `help-online-lookups` present (004 framework)
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

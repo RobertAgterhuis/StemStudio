@@ -211,6 +211,7 @@ in the execution plan.
 - [ ] T080 [CTO] Reference-machine validation quickstart M2-M10 with "Hero of the Day" (bass, vocals.lead, drums) and one song with a real piano part (GPU and CPU); record times vs SC-001 and the estimates, update `StemStudio:ScoreEstimates` defaults if they are off by more than 50 %, and do the SC-006 first-time-user check; record in `docs/STATUS.md`
 - [ ] T081 [CTO] `docs/THIRD-PARTY-LICENSES.md`: music21, verovio (LGPL-3.0-only, unmodified), cairosvg (LGPL-3.0-or-later, unmodified), cairocffi, cssselect2, tinycss2, webencodings, defusedxml, pypdf, torchlibrosa, music21's dependencies, vendored basic-pitch subset (Apache-2.0 + NOTICE) and piano_transcription_inference subset (MIT), weights basic-pitch ICASSP 2022 (Apache-2.0, SHA-256) and piano CRNN (CC BY 4.0, Kong et al., Zenodo 4034264, SHA-256), Leipzig font (OFL-1.1); README: "Sheet music" section (profiles, limits, drums need detail stems, CPU piano time)
 - [ ] T082 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [ ] T082a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -261,4 +262,5 @@ independent at the contract level (fakes).
 - [ ] Only OSI code; LGPL libraries unmodified; no GPL import; vendored code with LICENSE/NOTICE; weights downloaded with SHA-256 and attributed (CC BY 4.0) (IV)
 - [ ] Quality limits and warnings shown per profile and item; CPU piano time estimated and shown (V)
 - [ ] No secrets; no shell/subprocess for downloads; inputs validated; analyzers/formatters/linters clean; public APIs documented
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer
