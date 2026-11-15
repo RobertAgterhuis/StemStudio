@@ -506,3 +506,11 @@ completed band track and measures palette -> track -> mixer -> `→` `[` `→` `
 | US4 tours (FR-027) | Vitest `tour.test.ts`, `TourOfferTests`, `TourServiceTests` | `tests/tours.spec.ts` |
 | US5 palette, shortcuts, overlay, Expert controls (FR-017..FR-019, SC-008) | Vitest `shortcuts.test.ts`, `CommandPaletteTests`, `ShortcutOverlayTests`, mixer command tests | `tests/expert-keyboard.spec.ts` |
 | Accessibility (SC-001) | bUnit roles and labels | `a11y/screens.a11y.spec.ts`; the keyboard-only flows above |
+
+Suite inventory after T064 (`npx playwright test --list`): `chromium` + `firefox` 78 tests of
+1.0.0-1.2.0 (unchanged) + 37 `@ux` tests each; `visual` 60; `a11y` 62; `lighthouse-setup` 1 (then
+`lhci autorun` over 5 URLs x 3 runs). Success criteria -> evidence: SC-001 `a11y/`; SC-003
+`lighthouserc.json`; SC-004 `theme-flash.spec.ts`; SC-005 `visual/`; SC-006 `npm run test:legacy`;
+SC-007 `journey-beginner.spec.ts`; SC-008 `expert-keyboard.spec.ts`; SC-009 `help.spec.ts` +
+`HelpCoverageTests.cs`; SC-010 `journey-levels.spec.ts`; SC-002 and SC-011 frontend (token
+contrast test, T063 trace).

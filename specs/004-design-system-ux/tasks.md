@@ -182,7 +182,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. The fro
 ## Phase 8: Polish (inside the wave, per owner)
 
 - [ ] T063 [P] [frontend] Performance and robustness pass: measure added bytes vs 003 (SC-003 budget), local Lighthouse run, performance trace of the fully expanded mixer (SC-011), forced colours, 320 px reflow and 200 % zoom, density override, owner change requests from T038; XML docs/TSDoc complete; HO:polish with `StemStudio.Web` and `src/web-interop` coverage
-- [ ] T064 [P] [qa] `e2e/lighthouserc.json` assertions (FCP <= 1000 ms, LCP <= 1500 ms, CLS <= 0.05 for Import, Tracks, Track, Mixes, Mixer; verify `@lhci/cli` version and licence); traceability matrix US1..US5 -> specs; HO:polish
+- [x] T064 [P] [qa] `e2e/lighthouserc.json` assertions (FCP <= 1000 ms, LCP <= 1500 ms, CLS <= 0.05 for Import, Tracks, Track, Mixes, Mixer; verify `@lhci/cli` version and licence); traceability matrix US1..US5 -> specs; HO:polish
 - [ ] T065 [P] [devops] Validate all new CI jobs (`actionlint`), Docker web build size and time, `scripts/test-all.*` incl. web-interop; HO:polish
 - [ ] T066 [P] [quality-gate] `run_all.py` on the whole repo incl. `src/web-interop` and the raw-colour guard; refactor requests per owner; HO:polish
 
