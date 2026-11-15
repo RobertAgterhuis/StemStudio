@@ -97,14 +97,14 @@ in the execution plan.
 
 ### backend (tests first)
 
-- [ ] T025 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Assets/AssetTests.cs`: status transitions (queued -> rendering -> ready / failed; retry only from failed), progress clamping, `Files`/`Audio` only when ready, name rules (trim, 1..120, no control characters), default name with " (2)" suffix, contents text (data-model 4.1-4.4)
-- [ ] T026 [backend] Implement `src/StemStudio.Domain/Assets/*` to pass T025
-- [ ] T027 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Rendering/RenderPlannerTests.cs`: every gate case of `render-vectors.json` (loaded from the linked contracts folder) yields the expected plan; unknown channel ids, detail stems of non-split parents, duplicates and > 56 channels are validation errors naming `channels[i]`; empty plan -> `nothing-to-export`; paths per data-model 4.3 rule 7 (FR-002, FR-003, SC-003)
-- [ ] T028 [backend] Implement `src/StemStudio.Domain/Rendering/*` to pass T027
-- [ ] T029 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/AssetPersistenceTests.cs`: JSON round trip of `Files`, `Audio`, `Provenance` (incl. recipe); `TrackId` filter column; a database migrated from the previous schema loads with an empty `Assets` table (file SQLite)
-- [ ] T030 [backend] Implement the configuration and migration `AddAssets` to pass T029
-- [ ] T031 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerRenderClientTests.cs` with the worker examples: create (202), get (each status), file download stream, delete (204, 404 tolerated), 400/404/422 problems mapped to typed exceptions with the worker `detail`; unreachable -> `WorkerUnavailableException`
-- [ ] T032 [backend] Implement `src/StemStudio.Api/Worker/WorkerClient.Render.cs`, `WorkerRenderJob.cs` to pass T031
+- [x] T025 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Assets/AssetTests.cs`: status transitions (queued -> rendering -> ready / failed; retry only from failed), progress clamping, `Files`/`Audio` only when ready, name rules (trim, 1..120, no control characters), default name with " (2)" suffix, contents text (data-model 4.1-4.4)
+- [x] T026 [backend] Implement `src/StemStudio.Domain/Assets/*` to pass T025
+- [x] T027 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Rendering/RenderPlannerTests.cs`: every gate case of `render-vectors.json` (loaded from the linked contracts folder) yields the expected plan; unknown channel ids, detail stems of non-split parents, duplicates and > 56 channels are validation errors naming `channels[i]`; empty plan -> `nothing-to-export`; paths per data-model 4.3 rule 7 (FR-002, FR-003, SC-003)
+- [x] T028 [backend] Implement `src/StemStudio.Domain/Rendering/*` to pass T027
+- [x] T029 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/AssetPersistenceTests.cs`: JSON round trip of `Files`, `Audio`, `Provenance` (incl. recipe); `TrackId` filter column; a database migrated from the previous schema loads with an empty `Assets` table (file SQLite)
+- [x] T030 [backend] Implement the configuration and migration `AddAssets` to pass T029
+- [x] T031 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerRenderClientTests.cs` with the worker examples: create (202), get (each status), file download stream, delete (204, 404 tolerated), 400/404/422 problems mapped to typed exceptions with the worker `detail`; unreachable -> `WorkerUnavailableException`
+- [x] T032 [backend] Implement `src/StemStudio.Api/Worker/WorkerClient.Render.cs`, `WorkerRenderJob.cs` to pass T031
 
 **Checkpoint**: HO:foundational for audio-ingest, stem-separation and backend.
 
