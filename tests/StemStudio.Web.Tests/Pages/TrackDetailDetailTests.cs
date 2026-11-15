@@ -1,5 +1,4 @@
 using Bunit;
-using NSubstitute;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Components.Pages;
 using StemStudio.Web.Tests.Fakes;
@@ -7,19 +6,13 @@ using StemStudio.Web.Tests.Fakes;
 namespace StemStudio.Web.Tests.Pages;
 
 /// <summary>Detail phase section of the track detail page (FR-007, FR-017, US1, US3 AS1).</summary>
-public sealed class TrackDetailDetailTests : PageTestContext
+public sealed class TrackDetailDetailTests : TrackDetailTestContext
 {
     private const string Section = "[data-testid=detail-section]";
     private const string Status = "[data-testid=detail-status]";
     private const string Stage = "[data-testid=detail-stage]";
     private const string Progress = "[data-testid=detail-progress]";
     private const string LongNotice = "[data-testid=detail-long-notice]";
-
-    private IRenderedComponent<TrackDetail> RenderPage(TrackDto first, params TrackDto[] next)
-    {
-        Api.GetTrackAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(first, next);
-        return Render<TrackDetail>(p => p.Add(c => c.Id, TestData.TrackId));
-    }
 
     [Theory]
     [InlineData(DetailPhaseStatusDto.None, "none")]

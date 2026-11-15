@@ -3,13 +3,12 @@ using Bunit;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Contracts.Tracks;
-using StemStudio.Web.Components.Pages;
 using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Pages;
 
 /// <summary>Retry, cancel and failure reason of the detail phase; delete refused while it runs (FR-007, FR-008, FR-016).</summary>
-public sealed class TrackDetailDetailActionsTests : PageTestContext
+public sealed class TrackDetailDetailActionsTests : TrackDetailTestContext
 {
     private const string Retry = "[data-testid=detail-retry]";
     private const string Cancel = "[data-testid=detail-cancel]";
@@ -22,12 +21,6 @@ public sealed class TrackDetailDetailActionsTests : PageTestContext
 
     private static TrackDto Detail(DetailPhaseStatusDto status, int progress = 0, string? error = null) =>
         TestData.WithDetail(TestData.Phase(status, progress, status.ToString(), error));
-
-    private IRenderedComponent<TrackDetail> RenderPage(TrackDto first, params TrackDto[] next)
-    {
-        Api.GetTrackAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(first, next);
-        return Render<TrackDetail>(p => p.Add(c => c.Id, TestData.TrackId));
-    }
 
     [Theory]
     [InlineData(DetailPhaseStatusDto.None, false, false)]
@@ -138,12 +131,24 @@ public sealed class TrackDetailDetailActionsTests : PageTestContext
             .ThrowsAsync(Problem(HttpStatusCode.Conflict, "Detail phase active", "The detail phase of this track is still running."));
         var page = RenderPage(Running);
 
-        await page.Find("[data-testid=track-delete]").ClickAsync(new());
-        await page.Find("[data-testid=track-delete-confirm]").ClickAsync(new());
+        await ConfirmDeleteAsync(page);
 
         page.Find("[data-testid=track-delete-blocked]").TextContent.ShouldContain("The detail phase of this track is still running.");
         page.Find("[data-testid=track-delete-blocked]").TextContent.ShouldContain("Cancel the detail phase");
         page.FindAll(ActionError).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task DeleteUnavailable_WhileActive_IsAnOrdinaryActionError()
+    {
+        Api.DeleteTrackAsync(TestData.TrackId, Arg.Any<CancellationToken>())
+            .ThrowsAsync(Problem(HttpStatusCode.ServiceUnavailable, "The StemStudio API cannot be reached. Is it running?"));
+        var page = RenderPage(Running);
+
+        await ConfirmDeleteAsync(page);
+
+        page.Find(ActionError).TextContent.ShouldContain("cannot be reached");
+        page.FindAll("[data-testid=track-delete-blocked]").ShouldBeEmpty();
     }
 
     [Fact]
@@ -153,8 +158,7 @@ public sealed class TrackDetailDetailActionsTests : PageTestContext
             .ThrowsAsync(Problem(HttpStatusCode.Conflict, "Detail phase active", "Still running."));
         Api.CancelDetailAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(Detail(DetailPhaseStatusDto.Cancelled));
         var page = RenderPage(Queued);
-        await page.Find("[data-testid=track-delete]").ClickAsync(new());
-        await page.Find("[data-testid=track-delete-confirm]").ClickAsync(new());
+        await ConfirmDeleteAsync(page);
 
         await page.Find(Cancel).ClickAsync(new());
 
