@@ -119,13 +119,19 @@ async def save_audio_parts(
 
 def audio_suffix(part: UploadFile) -> str:
     """``.flac`` or ``.wav`` from the file name or the content type (``415`` otherwise)."""
-    content_type = (part.content_type or "application/octet-stream").split(";")[0].strip().lower()
+    content_type = _media_type(part)
     if content_type not in _AUDIO_TYPES:
         raise unsupported(AUDIO_TYPE_TEXT)
     name_suffix = Path(part.filename or "").suffix.lower()
     if name_suffix in _SUFFIXES:
         return name_suffix
     return _AUDIO_TYPES[content_type] or ".wav"
+
+
+def _media_type(part: UploadFile) -> str:
+    """The part's media type without parameters, lower case (octet-stream when unset)."""
+    raw = part.content_type or "application/octet-stream"
+    return raw.split(";")[0].strip().lower()
 
 
 def size_text(limit: int) -> str:

@@ -1,4 +1,4 @@
-"""ACE-Step 1.5 engine adapter over a fake ``acestep`` API (009 T034, FR-013, FR-017, ADR-018 D5/D6)."""
+"""ACE-Step 1.5 engine adapter over a fake ``acestep`` API (009 T034, FR-013, ADR-018 D5/D6)."""
 
 import hashlib
 import sys
@@ -59,7 +59,10 @@ def _pin_files(root: Path) -> WeightsPin:
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_bytes(data)
         files.append((name, hashlib.sha256(data).hexdigest()))
-    for name in ("vae/diffusion_pytorch_model.safetensors", "Qwen3-Embedding-0.6B/model.safetensors"):
+    for name in (
+        "vae/diffusion_pytorch_model.safetensors",
+        "Qwen3-Embedding-0.6B/model.safetensors",
+    ):
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_bytes(b"w")
     write_manifest(root, ACESTEP_WEIGHTS.revision)
@@ -173,7 +176,10 @@ def test_restyle_maps_a_range_to_a_cover_with_one_take_per_seed(tmp_path: Path) 
     }  # fmt: skip
     assert save_dir == str(request.out_dir / "acestep")
     assert [(t.index, t.seed) for t in takes] == [(1, 11), (2, 22)]
-    assert [t.path for t in takes] == [request.out_dir / "take-1.flac", request.out_dir / "take-2.flac"]
+    assert [t.path for t in takes] == [
+        request.out_dir / "take-1.flac",
+        request.out_dir / "take-2.flac",
+    ]
     assert all(t.path.is_file() for t in takes)
     assert takes[0].duration_seconds == pytest.approx(2.0)
     assert recorder.llm_inits == []

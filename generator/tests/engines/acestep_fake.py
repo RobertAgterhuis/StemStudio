@@ -1,4 +1,4 @@
-"""A fake of the ACE-Step 1.5 Python API (``AceStepHandler``, ``LLMHandler``, ``generate_music``)."""
+"""A fake of the ACE-Step 1.5 Python API (handler, LM handler, ``generate_music``)."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -49,41 +49,55 @@ class Recorder:
     take_seconds: float = 2.0
 
 
-def fake_api(recorder: Recorder) -> AceStepApi:
-    """An ``AceStepApi`` over fakes that write short FLAC takes into ``save_dir``."""
+class _Handler:
+    recorder: Recorder
 
-    class Handler:
-        def initialize_service(self, **kwargs: Any) -> tuple[str, bool]:
-            recorder.inits.append(kwargs)
-            return recorder.init_result
+    def initialize_service(self, **kwargs: Any) -> tuple[str, bool]:
+        self.recorder.inits.append(kwargs)
+        return self.recorder.init_result
 
-    class Llm:
-        llm_initialized = False
 
-        def initialize(self, **kwargs: Any) -> tuple[str, bool]:
-            recorder.llm_inits.append(kwargs)
-            self.llm_initialized = True
-            return ("ok", True)
+class _Llm:
+    recorder: Recorder
+    llm_initialized = False
 
-        def unload(self) -> None:
-            recorder.llm_unloads += 1
+    def initialize(self, **kwargs: Any) -> tuple[str, bool]:
+        self.recorder.llm_inits.append(kwargs)
+        self.llm_initialized = True
+        return ("ok", True)
 
-    def generate(
-        dit: Any, llm: Any, p: Params, c: Params, save_dir: str | None = None, progress: Any = None
-    ) -> Result:
-        assert save_dir is not None
-        recorder.calls.append((p, c, save_dir))
+    def unload(self) -> None:
+        self.recorder.llm_unloads += 1
+
+
+class _Generate:
+    def __init__(self, recorder: Recorder) -> None:
+        self.recorder = recorder
+
+    def __call__(self, dit: Any, llm: Any, p: Params, c: Params, **kwargs: Any) -> Result:
+        save_dir, progress = kwargs["save_dir"], kwargs["progress"]
+        self.recorder.calls.append((p, c, save_dir))
         for value, desc in ((0.3, "Generating music (batch size: 1)..."), (0.9, "Decoding...")):
             try:  # ACE-Step calls progress from a thread that swallows exceptions
                 progress(value, desc=desc)
-            except Exception:  # noqa: S112, BLE001 - mirrors ACE-Step
+            except Exception:  # noqa: S112 - mirrors ACE-Step
                 continue
-        if recorder.raise_in_generate is not None:
-            raise recorder.raise_in_generate
-        return recorder.result or _audios(c, Path(save_dir), recorder.take_seconds)
+        if self.recorder.raise_in_generate is not None:
+            raise self.recorder.raise_in_generate
+        return self.recorder.result or _audios(c, Path(save_dir), self.recorder.take_seconds)
 
+
+def fake_api(recorder: Recorder) -> AceStepApi:
+    """An ``AceStepApi`` over fakes that write short FLAC takes into ``save_dir``."""
+    handler = type("Handler", (_Handler,), {"recorder": recorder})
+    llm = type("Llm", (_Llm,), {"recorder": recorder})
     return AceStepApi(
-        handler=Handler, llm=Llm, params=params, config=config, generate=generate, torch=_Torch()
+        handler=handler,
+        llm=llm,
+        params=params,
+        config=config,
+        generate=_Generate(recorder),
+        torch=_Torch(),
     )
 
 

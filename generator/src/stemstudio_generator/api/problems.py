@@ -28,22 +28,27 @@ _KIND_ACTIONS: Final[dict[str, str]] = {
 class ProblemError(Exception):
     """Raised by routes; rendered as a problem response."""
 
-    def __init__(
-        self, status: int, title: str, detail: str, code: GeneratorProblemCode | None = None
-    ) -> None:
-        """Create the problem ``status`` with ``title``, ``detail`` and the optional ``code``."""
-        super().__init__(detail)
-        self.problem = Problem(title=title, status=status, detail=detail, code=code)
+    def __init__(self, problem: Problem) -> None:
+        """Raise ``problem``."""
+        super().__init__(problem.detail)
+        self.problem = problem
+
+
+def problem_error(
+    status: int, title: str, detail: str, code: GeneratorProblemCode | None = None
+) -> ProblemError:
+    """A ``ProblemError`` with ``status``, ``title``, ``detail`` and the optional ``code``."""
+    return ProblemError(Problem(title=title, status=status, detail=detail, code=code))
 
 
 def invalid_input(detail: str) -> ProblemError:
     """``400 invalidInput``."""
-    return ProblemError(400, "Invalid input", detail, "invalidInput")
+    return problem_error(400, "Invalid input", detail, "invalidInput")
 
 
 def not_found(detail: str) -> ProblemError:
     """``404`` (no code)."""
-    return ProblemError(404, "Not found", detail)
+    return problem_error(404, "Not found", detail)
 
 
 def generation_not_found(generation_id: str) -> ProblemError:
@@ -53,29 +58,29 @@ def generation_not_found(generation_id: str) -> ProblemError:
 
 def gpu_required(reason: str | None) -> ProblemError:
     """``409 gpuRequired`` with the probe reason."""
-    return ProblemError(409, GPU_REQUIRED_TITLE, reason or "No usable GPU.", "gpuRequired")
+    return problem_error(409, GPU_REQUIRED_TITLE, reason or "No usable GPU.", "gpuRequired")
 
 
 def kind_not_served(kind: GenerationKind, served: tuple[GenerationKind, ...]) -> ProblemError:
     """``409 kindNotServed``: e.g. a song sent to the singer service."""
     detail = f"This service does not {_KIND_ACTIONS[kind]}; it serves {', '.join(served)}."
-    return ProblemError(409, KIND_NOT_SERVED_TITLE, detail, "kindNotServed")
+    return problem_error(409, KIND_NOT_SERVED_TITLE, detail, "kindNotServed")
 
 
 def too_large(detail: str) -> ProblemError:
     """``413`` for an oversized part."""
-    return ProblemError(413, "File too large", detail, "invalidInput")
+    return problem_error(413, "File too large", detail, "invalidInput")
 
 
 def unsupported(detail: str) -> ProblemError:
     """``415`` for a body or part of the wrong type."""
-    return ProblemError(415, "Unsupported file type", detail, "invalidInput")
+    return problem_error(415, "Unsupported file type", detail, "invalidInput")
 
 
 def source_too_short(end_seconds: float, source_seconds: float) -> ProblemError:
     """``422 sourceTooShort``."""
     detail = f"The range ends at {end_seconds:.1f} s but the source is {source_seconds:.1f} s long."
-    return ProblemError(422, "Source too short", detail, "sourceTooShort")
+    return problem_error(422, "Source too short", detail, "sourceTooShort")
 
 
 def problem_response(problem: Problem, headers: dict[str, str] | None = None) -> JSONResponse:

@@ -8,6 +8,7 @@ import pytest
 
 from stemstudio_generator.engines.weights import (
     DOWNLOAD_STAGE,
+    Hub,
     WeightsDir,
     file_sha256,
     hub_fetch,
@@ -95,7 +96,7 @@ def test_ensure_downloads_a_missing_cache_with_byte_progress(tmp_path: Path) -> 
         (dest / filename).write_bytes(_A if filename == "a/model.bin" else _B)
 
     listing = [("a/model.bin", len(_A)), ("b.bin", len(_B))]
-    cache = WeightsDir(root, PIN, fetch=fetch, listing=lambda repo, revision: listing)
+    cache = WeightsDir(root, PIN, Hub(fetch, lambda repo, revision: listing))
     progress: list[tuple[float, str]] = []
 
     cache.ensure(lambda fraction, stage: progress.append((fraction, stage)))
@@ -111,7 +112,7 @@ def test_ensure_does_nothing_when_present(tmp_path: Path) -> None:
         pytest.fail("must not download")
 
     cache = _cache(tmp_path)
-    cache = WeightsDir(tmp_path, PIN, fetch=fetch, listing=lambda repo, revision: [])
+    cache = WeightsDir(tmp_path, PIN, Hub(fetch, lambda repo, revision: []))
 
     cache.ensure(lambda fraction, stage: None)
 
@@ -120,9 +121,7 @@ def test_a_failed_download_is_a_model_download_error(tmp_path: Path) -> None:
     def fetch(repo: str, revision: str, filename: str, dest: Path) -> None:
         raise OSError("connection reset")
 
-    cache = WeightsDir(
-        tmp_path / "c", PIN, fetch=fetch, listing=lambda repo, revision: [("b.bin", 1)]
-    )
+    cache = WeightsDir(tmp_path / "c", PIN, Hub(fetch, lambda repo, revision: [("b.bin", 1)]))
 
     with pytest.raises(ModelDownloadError, match="could not be downloaded"):
         cache.ensure(lambda fraction, stage: None)
@@ -134,7 +133,7 @@ def test_a_download_with_wrong_hashes_fails_verification(tmp_path: Path) -> None
         (dest / filename).write_bytes(b"wrong")
 
     listing = [("a/model.bin", 5), ("b.bin", 5)]
-    cache = WeightsDir(tmp_path / "c", PIN, fetch=fetch, listing=lambda repo, revision: listing)
+    cache = WeightsDir(tmp_path / "c", PIN, Hub(fetch, lambda repo, revision: listing))
 
     with pytest.raises(ModelDownloadError, match="checksum"):
         cache.ensure(lambda fraction, stage: None)

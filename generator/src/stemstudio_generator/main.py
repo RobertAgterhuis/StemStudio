@@ -31,6 +31,7 @@ from stemstudio_generator.devices.lease import open_lease
 from stemstudio_generator.devices.memory import MemoryCap, NoMemoryCap, load_torch_cap
 from stemstudio_generator.devices.nvml import GpuMemory, PynvmlReader
 from stemstudio_generator.devices.probe import GpuProbe, load_torch_probe
+from stemstudio_generator.engines.acestep_engine import AceStepEngine
 from stemstudio_generator.engines.fake import (
     FAKE_TOTAL_MEMORY_MIB,
     FakeMusicEngine,
@@ -172,8 +173,7 @@ def _handlers(
 def _music_engine(settings: GeneratorSettings, wiring: Wiring) -> MusicEngine:
     if settings.engine == "fake":
         return FakeMusicEngine(settings, wiring.sleep)
-    msg = "The ACE-Step engine adapter arrives with 009 T035."
-    raise NotImplementedError(msg)
+    return AceStepEngine(settings)
 
 
 def _models(handlers: dict[GenerationKind, JobHandler]) -> list[ModelStatus]:
