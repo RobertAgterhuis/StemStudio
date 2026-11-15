@@ -84,8 +84,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### stem-separation (tests first)
 
-- [ ] T014 [P] [stem-separation] Failing tests `worker/tests/jobs/test_metadata_lane.py` (fake lookup, fake clock): a single-thread lane separate from the separation scheduler; queued -> running -> completed/failed; persisted in `metadata-jobs/*.json`; restart re-runs queued/running jobs; a long fake separation does not delay a metadata job; results and artwork swept after 24 h (ADR-014 D3)
-- [ ] T015 [stem-separation] Implement `jobs/{metadata_lane,metadata_store}.py` to pass T014
+- [x] T014 [P] [stem-separation] Failing tests `worker/tests/jobs/test_metadata_lane.py` (fake lookup, fake clock): a single-thread lane separate from the separation scheduler; queued -> running -> completed/failed; persisted in `metadata-jobs/*.json`; restart re-runs queued/running jobs; a long fake separation does not delay a metadata job; results and artwork swept after 24 h (ADR-014 D3)
+- [x] T015 [stem-separation] Implement `jobs/{metadata_lane,metadata_store}.py` to pass T014
 
 ### backend (tests first)
 
