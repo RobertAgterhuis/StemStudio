@@ -44,6 +44,12 @@ public interface IStemStudioApiClient
     /// <returns>The track, back in status queued.</returns>
     Task<TrackDto> RetryTrackAsync(Guid trackId, CancellationToken cancellationToken = default);
 
+    /// <summary><c>DELETE /api/tracks/{id}</c>: deletes a failed or completed track with its stems and mixes.</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>A task that completes when the track is deleted (204); 404 and 409 throw <see cref="ApiException"/>.</returns>
+    Task DeleteTrackAsync(Guid trackId, CancellationToken cancellationToken = default);
+
     /// <summary><c>GET /api/mixes[?trackId=]</c>.</summary>
     /// <param name="trackId">Optional track filter.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
