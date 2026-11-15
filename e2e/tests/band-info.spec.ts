@@ -1,8 +1,9 @@
 import { HelpPanel } from '../pages/help-panel';
 import type { TrackDto } from '../support/api';
 import { fakeJobTimeoutMs } from '../support/env';
-import { expect, test } from '../support/feature-test';
+import { expect, test } from '../support/test';
 import { requireOnlineMode } from '../support/feature-skips';
+import { beginnerHiddenBandInfoIds, expectNotRendered } from '../support/levels';
 import { readFakeProvider } from '../support/online';
 import { levelState } from '../support/preferences';
 
@@ -76,9 +77,7 @@ test.describe('band info found at Beginner', { tag: '@band-info' }, () => {
     await expect(bandInfo.fact('name')).toBeVisible();
     await expect(bandInfo.fact('summary')).toBeVisible();
     await expect(bandInfo.attribution).toBeVisible();
-    for (const hidden of ['country', 'genres', 'members', 'website', 'sources'] as const) {
-      await expect(bandInfo.fact(hidden)).toHaveCount(0);
-    }
+    await expectNotRendered(page, beginnerHiddenBandInfoIds);
   });
 });
 

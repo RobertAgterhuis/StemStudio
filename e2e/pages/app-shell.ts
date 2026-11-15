@@ -4,6 +4,16 @@ import type { Level, ThemePreference } from '../support/preferences';
 /** Resolved theme on `app-shell[data-theme]`. */
 export type ResolvedTheme = 'light' | 'dark';
 
+/** Top-level screens reachable from the rail (`nav-<target>`). */
+export type NavTarget = 'import' | 'tracks' | 'mixes' | 'library';
+
+const navPaths: Readonly<Record<NavTarget, RegExp>> = {
+  import: /\/$/,
+  tracks: /\/tracks$/,
+  mixes: /\/mixes$/,
+  library: /\/library$/,
+};
+
 /** App shell of feature 004 (ui-test-ids 1.3.0 "Shell", "Preferences", "Welcome", "Journey"). */
 export class AppShell {
   /** @param page The Playwright page. */
@@ -39,6 +49,17 @@ export class AppShell {
     await this.byId(`level-${level}`).click();
     await expect(this.byId(`level-${level}`)).toHaveAttribute('aria-checked', 'true');
     await this.expectLevel(level);
+  }
+
+  /** Rail link (bottom bar under 768 px) of a top-level screen (`nav-library`: ui-test-ids 1.5.0). */
+  navLink(target: NavTarget): Locator {
+    return this.byId(`nav-${target}`);
+  }
+
+  /** Follows a rail link and waits for the screen's URL. */
+  async navigate(target: NavTarget): Promise<void> {
+    await this.navLink(target).click();
+    await this.page.waitForURL(navPaths[target]);
   }
 
   /** Opens the preferences panel. */

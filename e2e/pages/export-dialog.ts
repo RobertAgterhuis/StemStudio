@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { AudioFileFormat } from '../support/assets-api';
+import { fillAndCommit } from '../support/controls';
 
 /** `data-mode` of the export dialog. */
 export type ExportDialogMode = 'stem' | 'mix' | 'stem-pack';
@@ -16,6 +17,8 @@ export interface ExportChoices {
   readonly selectedChannels?: readonly string[];
   /** Stem pack only. */
   readonly includeDetail?: boolean;
+  /** Start and end in seconds, typed into `export-range-start`/`export-range-end` (Advanced). */
+  readonly range?: { readonly start: number; readonly end: number };
 }
 
 /**
@@ -78,6 +81,16 @@ export class ExportDialog {
     await expect(this.saved).toBeVisible({ timeout: 30_000 });
   }
 
+  /**
+   * Applies `choices` and submits when the dialog allows it (a dialog that validates on input
+   * may disable `export-submit`); does not wait for a confirmation. For refused exports.
+   */
+  async attempt(choices: ExportChoices): Promise<void> {
+    await this.choose(choices);
+    const submit = this.byId('export-submit');
+    if (await submit.isEnabled()) await submit.click();
+  }
+
   /** The asset id the confirmation links to (from the `href` of `export-saved-open`). */
   async savedAssetId(): Promise<string> {
     const href = (await this.savedOpen.getAttribute('href')) ?? '';
@@ -103,6 +116,12 @@ export class ExportDialog {
     if (choices.loopOnly !== undefined) await this.byId('export-range-loop').setChecked(choices.loopOnly);
     if (choices.includeDetail !== undefined) await this.byId('export-include-detail').setChecked(choices.includeDetail);
     if (choices.name !== undefined) await this.byId('export-name').fill(choices.name);
+    if (choices.range !== undefined) await this.typeRange(choices.range.start, choices.range.end);
+  }
+
+  private async typeRange(start: number, end: number): Promise<void> {
+    await fillAndCommit(this.byId('export-range-start'), String(start));
+    await fillAndCommit(this.byId('export-range-end'), String(end));
   }
 
   private async selectChannels(keys: readonly string[]): Promise<void> {
