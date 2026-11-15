@@ -1,0 +1,93 @@
+{
+  "request": "GET /api/get?track_name=Hero of the Day&artist_name=Metallica&duration=<d> (no album)",
+  "responses": {
+    "262": {
+      "status": 200,
+      "body": {
+        "id": 546388,
+        "name": "Hero of the Day",
+        "trackName": "Hero of the Day",
+        "artistName": "Metallica",
+        "albumName": "Load",
+        "duration": 262.0,
+        "instrumental": false,
+        "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+        "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+        "hasWordSync": true,
+        "lyricsfile": "version: '1.0'\nmetadata:\n  title: Hero of the Day\n  artist: Metallica\n  album: Load\n  duration_ms: 262000\n  instrumental: false\n  language: en\nlines:\n- text: Fake line one\n  start_ms: 10950\n  end_ms: 13200\n  words:\n  - text: Fake\n    start_ms: 10950\n  - text: line\n    start_ms: 11400\n  - text: one\n    start_ms: 11900\n- text: La la la\n  start_ms: 14000\n  end_ms: 16000\n  words:\n  - text: La\n    start_ms: 14000\n  - text: la\n    start_ms: 14500\n  - text: la\n    start_ms: 15000\n"
+      }
+    },
+    "265": {
+      "status": 200,
+      "body": {
+        "id": 10422352,
+        "name": "Hero of the Day",
+        "trackName": "Hero of the Day",
+        "artistName": "Metallica",
+        "albumName": "Hero of the Day (single)",
+        "duration": 263.0,
+        "instrumental": false,
+        "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+        "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+        "hasWordSync": true,
+        "lyricsfile": "version: '1.0'\nmetadata:\n  title: Hero of the Day\n  artist: Metallica\n  album: Load\n  duration_ms: 262000\n  instrumental: false\n  language: en\nlines:\n- text: Fake line one\n  start_ms: 10950\n  end_ms: 13200\n  words:\n  - text: Fake\n    start_ms: 10950\n  - text: line\n    start_ms: 11400\n  - text: one\n    start_ms: 11900\n- text: La la la\n  start_ms: 14000\n  end_ms: 16000\n  words:\n  - text: La\n    start_ms: 14000\n  - text: la\n    start_ms: 14500\n  - text: la\n    start_ms: 15000\n"
+      }
+    },
+    "258": {
+      "status": 200,
+      "body": {
+        "id": 16019288,
+        "name": "Hero of the Day",
+        "trackName": "Hero of the Day",
+        "artistName": "Metallica",
+        "albumName": "Fixture Compilation",
+        "duration": 260.0,
+        "instrumental": false,
+        "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+        "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+        "hasWordSync": true,
+        "lyricsfile": "version: '1.0'\nmetadata:\n  title: Hero of the Day\n  artist: Metallica\n  album: Load\n  duration_ms: 262000\n  instrumental: false\n  language: en\nlines:\n- text: Fake line one\n  start_ms: 10950\n  end_ms: 13200\n  words:\n  - text: Fake\n    start_ms: 10950\n  - text: line\n    start_ms: 11400\n  - text: one\n    start_ms: 11900\n- text: La la la\n  start_ms: 14000\n  end_ms: 16000\n  words:\n  - text: La\n    start_ms: 14000\n  - text: la\n    start_ms: 14500\n  - text: la\n    start_ms: 15000\n"
+      }
+    },
+    "270": {
+      "status": 200,
+      "body": {
+        "id": 13446363,
+        "name": "Hero of the Day",
+        "trackName": "Hero of the Day",
+        "artistName": "Metallica",
+        "albumName": "Load",
+        "duration": 271.0,
+        "instrumental": false,
+        "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+        "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+        "hasWordSync": false,
+        "lyricsfile": null
+      }
+    },
+    "285": {
+      "status": 200,
+      "body": {
+        "id": 3780737,
+        "name": "Hero of the Day",
+        "trackName": "Hero of the Day",
+        "artistName": "Metallica",
+        "albumName": "S&M",
+        "duration": 285.0,
+        "instrumental": false,
+        "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+        "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+        "hasWordSync": false,
+        "lyricsfile": null
+      }
+    },
+    "200": {
+      "status": 404,
+      "body": {
+        "code": 404,
+        "name": "TrackNotFound",
+        "message": "Failed to find specified track"
+      }
+    }
+  }
+}

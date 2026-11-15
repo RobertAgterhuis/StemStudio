@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "file": "align_clip_sung_29s.wav",
+  "licence": "CC0-1.0",
+  "provenance": "self-written lyrics and melody; formant synthesiser tests/fixtures/sung_voice.py",
+  "language": "en",
+  "bpm": 100,
+  "sampleRate": 44100,
+  "durationSeconds": 28.97,
+  "plainText": "Morning light is on the water\nevery boat is rolling home\nI will sing a little song\nwaiting for the summer rain",
+  "sc003": {
+    "toleranceMs": 300,
+    "minWithinShare": 0.8
+  },
+  "lines": [
+    {
+      "text": "Morning light is on the water",
+      "startMs": 1000,
+      "endMs": 6370,
+      "words": [
+        {
+          "text": "Morning",
+          "startMs": 1000,
+          "endMs": 2170
+        },
+        {
+          "text": "light",
+          "startMs": 2200,
+          "endMs": 3370
+        },
+        {
+          "text": "is",
+          "startMs": 3400,
+          "endMs": 3670
+        },
+        {
+          "text": "on",
+          "startMs": 3700,
+          "endMs": 3970
+        },
+        {
+          "text": "the",
+          "startMs": 4000,
+          "endMs": 4570
+        },
+        {
+          "text": "water",
+          "startMs": 4600,
+          "endMs": 6370
+        }
+      ]
+    },
+    {
+      "text": "every boat is rolling home",
+      "startMs": 7000,
+      "endMs": 12970,
+      "words": [
+        {
+          "text": "every",
+          "startMs": 7000,
+          "endMs": 8170
+        },
+        {
+          "text": "boat",
+          "startMs": 8200,
+          "endMs": 9370
+        },
+        {
+          "text": "is",
+          "startMs": 9400,
+          "endMs": 9970
+        },
+        {
+          "text": "rolling",
+          "startMs": 10000,
+          "endMs": 11170
+        },
+        {
+          "text": "home",
+          "startMs": 11200,
+          "endMs": 12970
+        }
+      ]
+    },
+    {
+      "text": "I will sing a little song",
+      "startMs": 15400,
+      "endMs": 21370,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 15400,
+          "endMs": 15970
+        },
+        {
+          "text": "will",
+          "startMs": 16000,
+          "endMs": 16570
+        },
+        {
+          "text": "sing",
+          "startMs": 16600,
+          "endMs": 17770
+        },
+        {
+          "text": "a",
+          "startMs": 17800,
+          "endMs": 18370
+        },
+        {
+          "text": "little",
+          "startMs": 18400,
+          "endMs": 19570
+        },
+        {
+          "text": "song",
+          "startMs": 19600,
+          "endMs": 21370
+        }
+      ]
+    },
+    {
+      "text": "waiting for the summer rain",
+      "startMs": 22000,
+      "endMs": 27970,
+      "words": [
+        {
+          "text": "waiting",
+          "startMs": 22000,
+          "endMs": 23170
+        },
+        {
+          "text": "for",
+          "startMs": 23200,
+          "endMs": 23770
+        },
+        {
+          "text": "the",
+          "startMs": 23800,
+          "endMs": 24370
+        },
+        {
+          "text": "summer",
+          "startMs": 24400,
+          "endMs": 25570
+        },
+        {
+          "text": "rain",
+          "startMs": 25600,
+          "endMs": 27970
+        }
+      ]
+    }
+  ]
+}
