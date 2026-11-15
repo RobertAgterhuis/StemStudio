@@ -19,6 +19,11 @@ public sealed partial class KaraokeBanner
 
     private string Size => Settings.Size;
 
+    /// <summary>True while the plain-text list of every line is shown (the banner itself is not announced).</summary>
+    private bool ShowFullText { get; set; }
+
+    private void ToggleFullText() => ShowFullText = !ShowFullText;
+
     private Task ToggleAsync() => ChangeAsync(Settings with { Visible = !Visible });
 
     private Task OnSizeAsync(ChangeEventArgs args) =>

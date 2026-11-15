@@ -213,3 +213,12 @@ html[data-motion="reduced"] .ss-karaoke-host .karaoke-word[data-state="current"]
     background: var(--ss-forced-accent);
   }
 }
+
+.ss-karaoke-full-text {
+  max-height: 14rem;
+  margin: 0;
+  padding: var(--ss-space-2) var(--ss-space-4) var(--ss-space-2) var(--ss-space-6);
+  overflow-y: auto;
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-sunken);
+}

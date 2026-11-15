@@ -66,7 +66,7 @@
 
         @if (ShowsPreview)
         {
-            <div class="ss-lyrics-preview" data-testid="lyrics-preview" aria-label="Lyrics without timing">
+            <div class="ss-lyrics-preview" role="region" tabindex="0" data-testid="lyrics-preview" aria-label="Lyrics without timing">
                 @foreach (var line in Lyrics.Lines)
                 {
                     <p>@line.Text</p>

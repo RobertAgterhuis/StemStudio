@@ -32,6 +32,8 @@
             <LevelGate Feature="karaoke.timing-origin">
                 <span class="ss-small ss-muted ss-karaoke-origin">@LyricsText.Origin(Lyrics!)</span>
             </LevelGate>
+            <button type="button" class="ss-text-button" aria-expanded="@(ShowFullText ? "true" : "false")" aria-controls="karaoke-full-text"
+                    @onclick="ToggleFullText" data-testid="karaoke-full-lyrics">@(ShowFullText ? "Hide full lyrics" : "Show full lyrics")</button>
         }
         @if (Error is not null)
         {
@@ -46,6 +48,15 @@
             <div id="@HostId" @key="Karaoke" class="ss-karaoke-host" aria-live="off" aria-label="Lyrics banner" role="group"
                  data-size="@Size" data-sync="@LyricsText.Sync(Lyrics!)" data-testid="karaoke-banner" data-help-id="karaoke"></div>
             <p class="ss-small ss-muted ss-karaoke-credit" data-testid="karaoke-credit">@Lyrics!.Credit</p>
+            @if (ShowFullText)
+            {
+                <ol id="karaoke-full-text" class="ss-karaoke-full-text" aria-label="Full lyrics" data-testid="karaoke-full-lyrics-text">
+                    @foreach (var line in Lyrics.Lines)
+                    {
+                        <li>@line.Text</li>
+                    }
+                </ol>
+            }
         }
         else
         {

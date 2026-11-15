@@ -68,5 +68,13 @@ public abstract class PageTestContext : BunitContext
     protected static ApiException Problem(System.Net.HttpStatusCode status, string title, string? detail = null) =>
         new(new ApiError(status, title, detail, new Dictionary<string, string[]>()));
 
+    /// <summary>Renders a component under a cascaded experience level.</summary>
+    protected IRenderedComponent<Microsoft.AspNetCore.Components.CascadingValue<StemStudio.Web.Experience.ExperienceContext>> RenderAtLevel<TComponent>(
+        StemStudio.Web.Experience.ExperienceLevel level, Action<ComponentParameterCollectionBuilder<TComponent>> parameters)
+        where TComponent : Microsoft.AspNetCore.Components.IComponent =>
+        Render<Microsoft.AspNetCore.Components.CascadingValue<StemStudio.Web.Experience.ExperienceContext>>(p => p
+            .Add(c => c.Value, new StemStudio.Web.Experience.ExperienceContext(level, DensityPreference.Comfortable))
+            .AddChildContent(parameters));
+
     protected string NavigatedTo => Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri;
 }

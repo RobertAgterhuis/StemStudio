@@ -5,7 +5,6 @@ using StemStudio.Contracts.Lyrics;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components.Mixer.Karaoke;
 using StemStudio.Web.Experience;
-using StemStudio.Web.Preferences;
 using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Mixer.Karaoke;
@@ -25,9 +24,7 @@ public abstract class KaraokeTestContext : PageTestContext
     protected IRenderedComponent<CascadingValue<ExperienceContext>> RenderAt(ExperienceLevel level, LyricsDto lyrics)
     {
         Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(lyrics);
-        return Render<CascadingValue<ExperienceContext>>(p => p
-            .Add(c => c.Value, new ExperienceContext(level, DensityPreference.Comfortable))
-            .AddChildContent<KaraokeBanner>(b => b.Add(x => x.TrackId, TestData.TrackId).Add(x => x.EngineReady, true)));
+        return RenderAtLevel<KaraokeBanner>(level, b => b.Add(x => x.TrackId, TestData.TrackId).Add(x => x.EngineReady, true));
     }
 
     protected KaraokeLyrics AttachedLyrics() =>

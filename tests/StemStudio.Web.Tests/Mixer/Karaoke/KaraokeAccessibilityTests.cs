@@ -37,7 +37,7 @@ public sealed class KaraokeAccessibilityTests : KaraokeTestContext
 
         var controls = page.FindAll(".ss-karaoke input, .ss-karaoke button, .ss-karaoke select");
         controls.Select(c => c.GetAttribute("data-testid")).Where(id => id is not null)
-            .ShouldBe(["karaoke-toggle", "karaoke-size", "karaoke-offset", "karaoke-offset-reset", "karaoke-full-lyrics"]);
+            .ShouldBe(["karaoke-toggle", "karaoke-size", "karaoke-offset", "karaoke-offset-reset", "help-hint-karaoke-offset", "karaoke-full-lyrics"]);
         foreach (var control in controls)
         {
             (control.GetAttribute("aria-label") ?? control.TextContent.Trim()).ShouldNotBeNullOrWhiteSpace(control.OuterHtml);
