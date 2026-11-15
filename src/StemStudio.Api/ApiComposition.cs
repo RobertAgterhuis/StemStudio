@@ -73,6 +73,7 @@ public static class ApiComposition
         app.MapDetailEndpoints();
         app.MapMixEndpoints();
         app.MapArtworkEndpoints();
+        app.MapBandInfoEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -120,6 +121,7 @@ public static class ApiComposition
         services.AddScoped<ArtworkService>();
         services.AddScoped<MetadataJobApplier>();
         services.AddScoped<MetadataSynchronizer>();
+        services.AddScoped<MetadataService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)
