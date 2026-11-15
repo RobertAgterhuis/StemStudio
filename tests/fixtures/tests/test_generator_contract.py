@@ -17,6 +17,7 @@ import generate_artwork_fixtures
 import generate_detail_fixtures
 import generate_fixtures
 import generate_score_fixtures
+import generate_voice_fixtures
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,6 +62,15 @@ GENERATORS = [
             "7 score fixtures",
         ),
         id="score",
+    ),
+    pytest.param(
+        Spec(
+            generate_voice_fixtures,
+            "voice-manifest.json",
+            "own-voice-20s.wav",
+            "5 voice fixtures",
+        ),
+        id="voice",
     ),
 ]
 

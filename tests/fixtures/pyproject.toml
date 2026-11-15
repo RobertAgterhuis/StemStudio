@@ -12,6 +12,7 @@ addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 source = [
     "generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures",
     "generate_lyrics_fixtures", "sung_voice", "generate_score_fixtures",
+    "generate_voice_fixtures",
 ]
 branch = true
 
@@ -34,6 +35,7 @@ ignore = ["D203", "D213"]
 known-first-party = [
     "generate_fixtures", "generate_detail_fixtures", "generate_artwork_fixtures",
     "generate_lyrics_fixtures", "sung_voice", "generate_score_fixtures",
+    "generate_voice_fixtures",
 ]
 
 [tool.ruff.lint.mccabe]

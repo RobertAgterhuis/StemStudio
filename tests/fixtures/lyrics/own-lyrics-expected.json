@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "licence": "CC0-1.0",
+  "provenance": "self-written by qa for features 009/010; no third-party lyrics",
+  "maxCharacters": 4096,
+  "densityWarningWordsPerSecond": 4.0,
+  "sample-en.txt": {
+    "language": "en",
+    "words": 93,
+    "blocks": 4,
+    "repeatedBlocks": [2, 4],
+    "proposedMarkers": ["verse", "chorus", "verse", "chorus"],
+    "wordsPerSecondAt120s": 0.775,
+    "densityWarningBelowSeconds": 23.25
+  },
+  "sample-nl.txt": {
+    "language": "nl",
+    "markers": ["verse", "chorus"]
+  },
+  "sample.lrc": {
+    "normalisedText": "Paper boats along the gutter\nracing past the corner shop\nevery puddle is an ocean\nand the rain will never stop\n\nSing it loud and sing it slow\nlet the little rivers go"
+  }
+}
