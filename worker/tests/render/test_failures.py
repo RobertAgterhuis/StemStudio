@@ -55,8 +55,10 @@ def _setup(tmp_path: Path) -> tuple[BlockRenderExecutor, RenderJobRequest, Path]
     return BlockRenderExecutor(MountedLibrary(tmp_path), 400 / 44100), request, out_dir
 
 
-def _install(monkeypatch: pytest.MonkeyPatch, fail_on: str, error: BaseException) -> list[Any]:
-    made: list[Any] = []
+def _install(
+    monkeypatch: pytest.MonkeyPatch, fail_on: str, error: BaseException
+) -> list[_BrokenEncoder]:
+    made: list[_BrokenEncoder] = []
 
     def factory(output: RenderOutput, metadata: RenderMetadata, path: Path) -> _BrokenEncoder:
         made.append(_BrokenEncoder(path, fail_on, error))

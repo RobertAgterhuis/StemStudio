@@ -74,14 +74,14 @@ def frame_range(render_range: RenderRange | None, total_frames: int) -> FrameRan
 class OpenInputs:
     """The opened input files of one render pass."""
 
-    def __init__(self, files: Sequence[Any]) -> None:
-        """Wrap already opened ``soundfile.SoundFile`` objects (see ``open_inputs``)."""
+    def __init__(self, files: Sequence[tuple[str, Any]]) -> None:
+        """Wrap ``(name, soundfile.SoundFile)`` pairs that are already open (``open_inputs``)."""
         self._files = files
 
     @property
     def frames(self) -> int:
         """Length of the longest input in frames."""
-        return max(int(file.frames) for file in self._files)
+        return max(int(file.frames) for _, file in self._files)
 
     def blocks(self, span: FrameRange, block_frames: int) -> Iterator[list[Block]]:
         """Yield one list of float32 ``(n, 2)`` blocks (one per input) per block of ``span``.
@@ -89,13 +89,16 @@ class OpenInputs:
         Args:
             span: Frames to read.
             block_frames: Frames per block; the last block may be shorter.
+
+        Raises:
+            RenderError: A file fails while it is read ("Cannot read <path>").
         """
-        for file in self._files:
+        for _, file in self._files:
             if span.start < file.frames:
                 file.seek(span.start)
         for position in range(span.start, span.end, block_frames):
             count = min(block_frames, span.end - position)
-            yield [_read_block(file, position, count) for file in self._files]
+            yield [_read_block(name, file, position, count) for name, file in self._files]
 
 
 @contextmanager
@@ -112,7 +115,7 @@ def open_inputs(inputs: Sequence[InputFile]) -> Iterator[OpenInputs]:
         RenderError: A file cannot be read, is not 44.1 kHz, or has more than two channels.
     """
     with ExitStack() as stack:
-        files = [stack.enter_context(_open(item)) for item in inputs]
+        files = [(item.name, stack.enter_context(_open(item))) for item in inputs]
         yield OpenInputs(files)
 
 
@@ -135,11 +138,14 @@ def _format_problem(name: str, rate: int, channels: int) -> str:
     return f"Unsupported channel count {channels} in {name}"
 
 
-def _read_block(file: Any, position: int, count: int) -> Block:
+def _read_block(name: str, file: Any, position: int, count: int) -> Block:
     """Read ``count`` frames at ``position`` as stereo float32, padded with silence."""
     if position >= file.frames:
         return np.zeros((count, 2), dtype=np.float32)
-    data = file.read(count, dtype="float32", always_2d=True)
+    try:
+        data = file.read(count, dtype="float32", always_2d=True)
+    except RuntimeError:
+        raise RenderError(f"Cannot read {name}") from None
     if data.shape[1] == 1:
         data = np.repeat(data, 2, axis=1)
     if data.shape[0] < count:

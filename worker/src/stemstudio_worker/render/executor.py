@@ -6,6 +6,7 @@ and encodes block by block (progress 0.5..1). Both passes compute identical bloc
 measured peak is the peak of what is written.
 """
 
+import contextlib
 import hashlib
 import math
 from collections.abc import Iterator
@@ -165,19 +166,32 @@ def _target(request: RenderJobRequest, out_dir: Path, gain: float) -> _Target:
 
 
 def _write(job: _Pass, target: _Target, progress: RenderProgress) -> _Written:
-    """Pass 2: encode the file; on any failure (also cancellation) remove the partial file."""
+    """Pass 2: encode the file; on any failure (also cancellation) remove the partial file.
+
+    I/O failures of the encoder (``OSError``, libsndfile's ``RuntimeError``) become
+    ``RenderError(WRITE_FAILED_TEXT)``; every other exception keeps its type.
+    """
     try:
         encoder = open_encoder(job.request.output, job.request.metadata, target.path)
     except (OSError, RuntimeError):
         raise RenderError(WRITE_FAILED_TEXT) from None
     try:
         peak = _encode(job, target, encoder, progress)
-    except BaseException:
         encoder.close()
-        target.path.unlink(missing_ok=True)
+    except (OSError, RuntimeError):
+        _discard(encoder, target.path)
+        raise RenderError(WRITE_FAILED_TEXT) from None
+    except BaseException:
+        _discard(encoder, target.path)
         raise
-    encoder.close()
     return _Written(peak, encoder.bits)
+
+
+def _discard(encoder: Encoder, path: Path) -> None:
+    """Close the encoder (ignoring its I/O errors) and delete the partial file."""
+    with contextlib.suppress(OSError, RuntimeError):
+        encoder.close()
+    path.unlink(missing_ok=True)
 
 
 def _encode(job: _Pass, target: _Target, encoder: Encoder, progress: RenderProgress) -> int:
