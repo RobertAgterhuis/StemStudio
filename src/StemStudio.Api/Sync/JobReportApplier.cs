@@ -1,4 +1,5 @@
 using StemStudio.Api.Artwork;
+using StemStudio.Api.Metadata;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
 
@@ -6,7 +7,7 @@ namespace StemStudio.Api.Sync;
 
 /// <summary>
 /// Applies what a standard job reports with any state: the device (feature 003), title and artist, and the source
-/// picture (feature 005). Never fails the track.
+/// picture and the scheduling of the online lookup (feature 005). Never fails the track.
 /// </summary>
 /// <param name="devices">Copies the job's device.</param>
 /// <param name="artwork">Downloads and offers the source picture.</param>
@@ -25,12 +26,23 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
         devices.ApplyStandard(track, job.Device);
         if (job.Metadata is { } metadata)
         {
-            track.ApplyMetadata(new SourceMetadata(metadata.Title, metadata.Artist), clock.GetUtcNow().UtcDateTime);
+            ApplyMetadata(track, metadata);
         }
 
         if (job.Artwork is { } info)
         {
             await artwork.OfferAsync(track, new ArtworkOffer(WorkerArtworkOwner.Job, job.JobId, info), cancellationToken);
+        }
+    }
+
+    /// <summary>Copies title and artist; once the duration is known the online lookup is scheduled (FR-003, ADR-014 D3).</summary>
+    private void ApplyMetadata(Track track, WorkerSourceMetadata metadata)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        track.ApplyMetadata(new SourceMetadata(metadata.Title, metadata.Artist), now);
+        if (metadata.DurationSeconds is not null)
+        {
+            track.ScheduleLookup(MetadataMapper.ToQuery(metadata), now);
         }
     }
 }

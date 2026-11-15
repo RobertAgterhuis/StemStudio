@@ -7,6 +7,7 @@ using StemStudio.Api.Artwork;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
@@ -117,6 +118,8 @@ public static class ApiComposition
         services.AddSingleton<IArtworkFileStore, ArtworkFileStore>();
         services.AddScoped<ArtworkDownloader>();
         services.AddScoped<ArtworkService>();
+        services.AddScoped<MetadataJobApplier>();
+        services.AddScoped<MetadataSynchronizer>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

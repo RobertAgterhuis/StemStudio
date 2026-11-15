@@ -196,21 +196,19 @@ public sealed class MetadataSyncTests : ApiTestBase
         (await Factory.FindTrackAsync(track.Id))!.Metadata.Reason.ShouldBe("Wikipedia could not be reached. The album cover could not be loaded.");
     }
 
-    [Fact]
-    public async Task AFreshStoredArtist_IsKeptAndAStaleOneIsRefreshed()
+    [Theory]
+    [InlineData(-29, "Stored Name")]
+    [InlineData(-30, "The Example Band")]
+    public async Task AStoredArtist_IsReplacedOnlyOnceItIs30DaysOld(int fetchedDaysAgo, string name)
     {
-        await SeedArtistAsync("Stored Name", SyncTestData.T0.AddDays(-1));
-        var first = await SeedSearchingAsync("aaaaaaaaaaa");
+        await SeedArtistAsync("Stored Name", SyncTestData.T0.AddDays(fetchedDaysAgo));
+        var track = await SeedSearchingAsync();
         Completed(FoundResult());
-        await Factory.SyncMetadataAsync();
-        (await FindArtistAsync(ArtistMbid))!.Name.ShouldBe("Stored Name");
 
-        Factory.Clock.Advance(TimeSpan.FromDays(31));
-        await SeedSearchingAsync("bbbbbbbbbbb");
         await Factory.SyncMetadataAsync();
 
-        (await FindArtistAsync(ArtistMbid))!.Name.ShouldBe("The Example Band");
-        (await Factory.FindTrackAsync(first.Id))!.ArtistId.ShouldBe(ArtistMbid);
+        (await FindArtistAsync(ArtistMbid))!.Name.ShouldBe(name);
+        (await Factory.FindTrackAsync(track.Id))!.ArtistId.ShouldBe(ArtistMbid);
     }
 
     [Fact]

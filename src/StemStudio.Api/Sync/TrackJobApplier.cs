@@ -1,3 +1,4 @@
+using StemStudio.Api.Metadata;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Worker;
 using StemStudio.Domain;
@@ -71,12 +72,13 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobR
         }
     }
 
-    /// <summary>Completes the track, queues its detail phase (FR-001) and drops the API copy of the upload.</summary>
+    /// <summary>Completes the track, queues its detail phase (FR-001), schedules a lookup not started yet (005) and drops the API copy of the upload.</summary>
     private void Finish(Track track, WorkerJobResult result, List<Stem> stored)
     {
         track.ApplyMetadata(new SourceMetadata(result.Metadata.Title, result.Metadata.Artist), Now);
         track.Complete(new TrackCompletion(result.DurationSeconds, result.Model, stored, ToBeatGrid(result.BeatGrid)), Now);
         track.RequestDetail(Now);
+        track.ScheduleLookup(MetadataMapper.ToQuery(result.Metadata, result.DurationSeconds), Now);
         DeleteUpload(track);
     }
 
