@@ -12,7 +12,7 @@ Un-staged `listStyles`, `getStyle`.
 
 | Pair | Red | Green |
 |---|---|---|
-| T046/T047 | 9a7b837 | see `git log --grep "009 T047"` |
+| T046/T047 | 9a7b837 | e89f06e |
 
 ## Tests and coverage
 
