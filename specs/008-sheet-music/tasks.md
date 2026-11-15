@@ -125,9 +125,9 @@ in the execution plan.
 **Goal**: stem -> PDF + MusicXML + MIDI library item with limits shown.
 **Independent test**: quickstart M3, M6; E2E "bass".
 
-- [ ] T038 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_transcription_routes.py` (TestClient; fake transcriber, fake notator/engraver for most cases, one case with the real notation + engraving on fake notes): `POST /v1/transcription-jobs` 202 in the `transcribe` lane (does not wait for a blocked render lane or separation); profile/input mismatches 422; stages and progress ranges (data-model 2.9); result files per role with content types; `409` before completion; "No notes were detected" failure; `/health` `transcription` and `lanes.transcribe`; responses validate against the 008 worker contract (FR-001, FR-003, FR-011)
-- [ ] T039 [US1] [stem-separation] Implement `jobs/transcription_service.py`, `api/transcription_routes.py`, the pipeline composition and the lane in `main.py` (threads capped by `transcribe_threads`) to pass T038
-- [ ] T040 [US1] [stem-separation] Integration test `worker/tests/transcription/test_accuracy_integration.py` (`@pytest.mark.integration`, downloads basic-pitch): the synthetic single-voice fixture (generator in the test, as research.md S-03) through the real basic-pitch + the beat-analysis cleaning/quantisation reaches note F1 >= 0.90 (SC-002); a failure becomes a tuning request to beat-analysis/stem-separation in the hand-off
+- [x] T038 [P] [US1] [stem-separation] Failing API tests `worker/tests/api/test_transcription_routes.py` (TestClient; fake transcriber, fake notator/engraver for most cases, one case with the real notation + engraving on fake notes): `POST /v1/transcription-jobs` 202 in the `transcribe` lane (does not wait for a blocked render lane or separation); profile/input mismatches 422; stages and progress ranges (data-model 2.9); result files per role with content types; `409` before completion; "No notes were detected" failure; `/health` `transcription` and `lanes.transcribe`; responses validate against the 008 worker contract (FR-001, FR-003, FR-011)
+- [x] T039 [US1] [stem-separation] Implement `jobs/transcription_service.py`, `api/transcription_routes.py`, the pipeline composition and the lane in `main.py` (threads capped by `transcribe_threads`) to pass T038
+- [x] T040 [US1] [stem-separation] Integration test `worker/tests/transcription/test_accuracy_integration.py` (`@pytest.mark.integration`, downloads basic-pitch): the synthetic single-voice fixture (generator in the test, as research.md S-03) through the real basic-pitch + the beat-analysis cleaning/quantisation reaches note F1 >= 0.90 (SC-002); a failure becomes a tuning request to beat-analysis/stem-separation in the hand-off
 - [ ] T041 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Scores/CreateScoreTests.cs`: `GET /api/scores/options` (suggested profile, grid status, estimates, limits); `POST /api/assets/scores` for `bass` -> 202 `Asset(kind score)` with recipe, the worker request carries the input path, the grid and titles; sync copies `pdf`, `musicxml`, `midi` with SHA-256 checks and fills `score`; `getAssetFile` serves PDF inline by default and MusicXML/MIDI as attachments; un-stage `getScoreOptions`, `createScore` (FR-001, FR-003, FR-010, FR-012)
 - [ ] T042 [US1] [backend] Implement `Scores/{ScoreEndpoints,ScoreService,ScoreOptionsService,ScoreJobApplier}.cs` and the job-kind switch in the 007 `AssetSyncService` to pass T041
 - [ ] T043 [P] [US1] [frontend] Failing bUnit tests: `score-stem-<stem>` and `score-detail-<parent>-<detail>` (pitched only) on the track page; `ScoreDialog` loads options, preselects the suggested `score-profile`, shows `score-limits` and `score-estimate`, submits, shows `score-saved`/`score-error`; library rows of kind score show `asset-preview-<id>` (PDF), the three download links, key (with confidence), tempo, warnings, limits; help ids `sheet-music`, `sheet-music-profiles` (FR-002, FR-003, FR-010, FR-014)
@@ -155,7 +155,7 @@ in the execution plan.
 
 ## Phase 5: User Story 3 - Piano on two staves (P2)
 
-- [ ] T051 [US3] [stem-separation] Integration test (`@pytest.mark.integration`, downloads the piano checkpoint): the synthetic polyphonic fixture (research.md S-04) through the real piano CRNN + cleaning reaches note F1 >= 0.85 (SC-002); records the time per audio second on the test machine in the output
+- [x] T051 [US3] [stem-separation] Integration test (`@pytest.mark.integration`, downloads the piano checkpoint): the synthetic polyphonic fixture (research.md S-04) through the real piano CRNN + cleaning reaches note F1 >= 0.85 (SC-002); records the time per audio second on the test machine in the output
 - [ ] T052 [P] [US3] [backend] Failing tests: piano options list `accurate` and `fast` with estimates from `StemStudio:ScoreEstimates` and the device (`GET /api/device` faked); default `accurate` on a GPU worker, `fast` on CPU; `attribution` set for the piano engine; the `cpu-piano` warning surfaces in `score.warnings` (FR-008)
 - [ ] T053 [US3] [backend] Implement to pass T052
 - [ ] T054 [P] [US3] [frontend] Failing bUnit tests: `score-quality` (Advanced) for piano with both estimates; `asset-attribution-<id>` for piano items; help id `sheet-music-piano` (FR-008, FR-014)
@@ -170,8 +170,8 @@ in the execution plan.
 
 - [ ] T057 [P] [US4] [beat-analysis] Failing tests `worker/tests/analysis/test_drum_onsets.py`: generated click tracks per piece (known times) give hits within 20 ms; the bleed gate (10 % of the 99th percentile strength) removes a quieter copy of another piece's clicks; missing piece inputs produce no hits for that piece; strengths in 0..1 (FR-009)
 - [ ] T058 [US4] [beat-analysis] Implement `analysis/drum_onsets.py` (`DrumTranscriber`) to pass T057
-- [ ] T059 [P] [US4] [stem-separation] Failing tests: a `drums` job requires `drumInputs` (422 otherwise), runs the `DrumTranscriber` and the percussion notation, reports progress per piece, and adds a warning when a piece input is absent (FR-009)
-- [ ] T060 [US4] [stem-separation] Implement the drums path in the service/composition to pass T059
+- [x] T059 [P] [US4] [stem-separation] Failing tests: a `drums` job requires `drumInputs` (422 otherwise), runs the `DrumTranscriber` and the percussion notation, reports progress per piece, and adds a warning when a piece input is absent (FR-009)
+- [x] T060 [US4] [stem-separation] Implement the drums path in the service/composition to pass T059
 - [ ] T061 [P] [US4] [backend] Failing tests: `drums` without a split drums parent -> 409 `drums-not-split` (options: `drumsRequireSplit = true`); with the split, the five detail paths are resolved (FR-009)
 - [ ] T062 [US4] [backend] Implement to pass T061
 - [ ] T063 [P] [US4] [frontend] Failing bUnit tests: `score-drums-split-required` notice with `score-drums-split-start` starting the detail phase (existing client call); help id `sheet-music-drums` (FR-009, FR-014)
@@ -198,7 +198,7 @@ in the execution plan.
 
 - [ ] T071 [P] [beat-analysis] Refactor to SIG limits, docstrings, HO:polish with coverage of `notation/`, `analysis/drum_onsets.py`
 - [ ] T072 [P] [audio-ingest] Refactor, docstrings, HO:polish with coverage of `engraving/`
-- [ ] T073 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `transcription/` (vendor excluded), `jobs/`, `api/`; dependency records (vendored sources with commit ids)
+- [x] T073 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `transcription/` (vendor excluded), `jobs/`, `api/`; dependency records (vendored sources with commit ids)
 - [ ] T074 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T075 [P] [frontend] Accessibility (PDF preview has a download alternative and a title; warnings as text), help texts final, HO:polish
 - [ ] T076 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-014 -> tests), HO:polish
