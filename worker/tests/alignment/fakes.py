@@ -65,16 +65,13 @@ class FakeModel:
                 callback(seek, total)
         return self.results.pop(0)
 
-    def align(
-        self, audio: npt.NDArray[np.float32], text: str, language: str, **options: Any
-    ) -> Result | None:
-        return self._next("align", {"text": text, "language": language, **options})
+    def align(self, audio: npt.NDArray[np.float32], text: str, **options: Any) -> Result | None:
+        return self._next("align", {"text": text, **options})
 
     def align_words(
-        self, audio: npt.NDArray[np.float32], result: list[dict[str, Any]], language: str,
-        **options: Any,
-    ) -> Result | None:  # fmt: skip
-        return self._next("align_words", {"segments": result, "language": language, **options})
+        self, audio: npt.NDArray[np.float32], result: list[dict[str, Any]], **options: Any
+    ) -> Result | None:
+        return self._next("align_words", {"segments": result, **options})
 
 
 @dataclass

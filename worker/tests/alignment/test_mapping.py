@@ -28,7 +28,11 @@ def test_words_are_mapped_back_to_our_tokens_by_order() -> None:
         [("La", 2200, 2600), ("la", 2600, 3000), ("la", 3000, 3400)],
     ]
     assert [(line.start_ms, line.end_ms) for line in document.lines] == [(1000, 2200), (2200, 3400)]
-    assert all(w.origin == "aligned" and not w.low_confidence for line in document.lines for w in line.words)
+    assert all(
+        w.origin == "aligned" and not w.low_confidence
+        for line in document.lines
+        for w in line.words
+    )
 
 
 def test_split_tokens_are_merged_and_blank_lines_dropped() -> None:
@@ -77,8 +81,11 @@ def test_a_document_over_the_limits_fails_the_alignment() -> None:
 
 def test_a_refined_document_keeps_the_given_line_times() -> None:
     refine = build_document(TEXT, _words(spread()), "en").model_copy(update={"sync_level": "line"})
-    lines = [line.model_copy(update={"start_ms": s, "end_ms": e})
-             for line, (s, e) in zip(refine.lines, [(900, 2000), (2500, 3200)], strict=True)]  # fmt: skip
+    spans = [(900, 2000), (2500, 3200)]
+    lines = [
+        line.model_copy(update={"start_ms": s, "end_ms": e})
+        for line, (s, e) in zip(refine.lines, spans, strict=True)
+    ]
     refine = refine.model_copy(update={"lines": lines})
 
     document = build_document(TEXT, _words(spread()), "en", refine)
@@ -107,7 +114,9 @@ def test_overlapping_lines_are_a_collapse() -> None:
     text = "\n".join(["la la"] * 4)
     words = [AlignedWord(" la", 1.0 + 0.3 * i, 1.0 + 0.3 * i + 0.25, 0.9) for i in range(8)]
     overlapping = build_document(text, words, "en")
-    lines = [line.model_copy(update={"end_ms": (line.end_ms or 0) + 700}) for line in overlapping.lines]
+    lines = [
+        line.model_copy(update={"end_ms": (line.end_ms or 0) + 700}) for line in overlapping.lines
+    ]
 
     assert not is_collapsed(overlapping)
     assert is_collapsed(overlapping.model_copy(update={"lines": lines}))

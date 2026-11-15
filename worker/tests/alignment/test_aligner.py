@@ -70,7 +70,9 @@ def test_missing_weights_are_downloaded_into_the_model_dir_first(tmp_path: Path)
     runtime = FakeRuntime()
     progress = Progress()
 
-    _aligner(tmp_path, runtime, cached=False).align(AlignRequest(AUDIO, TEXT, "en"), "cpu", progress)
+    _aligner(tmp_path, runtime, cached=False).align(
+        AlignRequest(AUDIO, TEXT, "en"), "cpu", progress
+    )
 
     assert runtime.downloads == [("turbo", tmp_path / "whisper")]
     assert progress.reports[0] == (0.0, LYRICS_STAGE_DOWNLOADING)
@@ -133,7 +135,9 @@ def test_a_second_collapse_fails_the_alignment(tmp_path: Path, results: list[obj
 
 
 def test_a_refine_aligns_words_inside_the_given_lines(tmp_path: Path) -> None:
-    first = _aligner(tmp_path, FakeRuntime()).align(AlignRequest(AUDIO, TEXT, "en"), "cpu", Progress())
+    first = _aligner(tmp_path, FakeRuntime()).align(
+        AlignRequest(AUDIO, TEXT, "en"), "cpu", Progress()
+    )
     refine = first.model_copy(update={"sync_level": "line", "origin": "interpolated"})
     runtime = FakeRuntime()
 
@@ -168,3 +172,13 @@ def test_weights_report_whether_they_are_cached(tmp_path: Path) -> None:
     assert weights.cached()
     unsized = WhisperWeights("small", weights.root, "large-v3-turbo.pt", None)
     assert unsized.cached()
+
+
+def test_an_unusable_language_is_dropped(tmp_path: Path) -> None:
+    result = spread()
+    result.language = None
+    runtime = FakeRuntime(results=[result], detected="english")
+
+    document = _aligner(tmp_path, runtime).align(AlignRequest(AUDIO, TEXT), "cpu", Progress())
+
+    assert document.language is None

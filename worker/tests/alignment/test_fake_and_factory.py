@@ -110,13 +110,22 @@ class _Mel:
 @pytest.fixture
 def modules(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
     calls: dict[str, list[Any]] = {"download": [], "load": []}
-    whisper = types.ModuleType("whisper")
-    whisper._MODELS = {"turbo": "https://example.invalid/large-v3-turbo.pt"}  # type: ignore[attr-defined]
-    whisper._download = lambda url, root, in_memory: calls["download"].append((url, root, in_memory)) or f"{root}/x.pt"  # type: ignore[attr-defined]  # noqa: E501
-    whisper.pad_or_trim = lambda audio: audio  # type: ignore[attr-defined]
-    whisper.log_mel_spectrogram = lambda audio, n_mels: _Mel(n_mels)  # type: ignore[attr-defined]
-    stable = types.ModuleType("stable_whisper")
-    stable.load_model = lambda name, device, download_root: calls["load"].append((name, device, download_root)) or _Model()  # type: ignore[attr-defined]  # noqa: E501
+
+    def download(url: str, root: str, in_memory: bool) -> str:
+        calls["download"].append((url, root, in_memory))
+        return f"{root}/x.pt"
+
+    def load_model(name: str, device: str, download_root: str) -> _Model:
+        calls["load"].append((name, device, download_root))
+        return _Model()
+
+    whisper: Any = types.ModuleType("whisper")
+    whisper._MODELS = {"turbo": "https://example.invalid/large-v3-turbo.pt"}
+    whisper._download = download
+    whisper.pad_or_trim = lambda audio: audio
+    whisper.log_mel_spectrogram = lambda audio, n_mels: _Mel(n_mels)
+    stable: Any = types.ModuleType("stable_whisper")
+    stable.load_model = load_model
     monkeypatch.setitem(sys.modules, "whisper", whisper)
     monkeypatch.setitem(sys.modules, "stable_whisper", stable)
     return calls
@@ -131,6 +140,8 @@ def test_the_runtime_downloads_with_whisper_and_loads_with_stable_ts(
     model = runtime.load("turbo", "cuda", tmp_path)
 
     assert path == tmp_path / "x.pt"
-    assert modules["download"] == [("https://example.invalid/large-v3-turbo.pt", str(tmp_path), False)]
+    assert modules["download"] == [
+        ("https://example.invalid/large-v3-turbo.pt", str(tmp_path), False)
+    ]
     assert modules["load"] == [("turbo", "cuda", str(tmp_path))]
     assert runtime.detect_language(model, np.zeros(16, dtype=np.float32)) == "nl"

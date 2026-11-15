@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
+from stemstudio_worker.alignment import create_aligner, create_vocal_loader, whisper_weights
 from stemstudio_worker.analysis import create_beat_analyzer
 from stemstudio_worker.api import (
     artwork_routes,
@@ -33,11 +34,7 @@ from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
-from stemstudio_worker.jobs.lyrics_defaults import (
-    DisabledLyricsLookup,
-    UnavailableAligner,
-    UnavailableVocals,
-)
+from stemstudio_worker.jobs.lyrics_defaults import DisabledLyricsLookup
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
@@ -52,6 +49,7 @@ from stemstudio_worker.metadata import (
     create_source_details,
 )
 from stemstudio_worker.ports import (
+    WHISPER_GPU_NEED,
     Aligner,
     GpuNeed,
     ImageNormalizer,
@@ -88,8 +86,8 @@ class AppOverrides:
         render_executor: Renderer of render jobs (default ``render.create_render_executor``).
         library: Library reader (default ``render.create_library_reader``).
         lyrics_lookup: LRCLIB lookup of lyrics jobs (default: lookups complete ``disabled``).
-        aligner: Lyrics aligner (default: alignments fail).
-        vocal_loader: Vocal stem loader of alignments (default: alignments fail).
+        aligner: Lyrics aligner (default ``alignment.create_aligner``).
+        vocal_loader: Vocal stem loader of alignments (default ``alignment.create_vocal_loader``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -161,13 +159,16 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
     return RenderParts(executor=executor, library=library)
 
 
-def default_lyrics(overrides: AppOverrides, devices: ManagedRunner) -> LyricsParts:
-    """The feature 006 parts: injected ones, else stand-ins; alignments use ``devices``."""
+def default_lyrics(
+    settings: WorkerSettings, overrides: AppOverrides, devices: ManagedRunner
+) -> LyricsParts:
+    """The feature 006 parts: injected ones, else the ``alignment`` factories; one device runner."""
     return LyricsParts(
         lookup=overrides.lyrics_lookup or DisabledLyricsLookup(),
-        aligner=overrides.aligner or UnavailableAligner(),
-        vocals=overrides.vocal_loader or UnavailableVocals(),
+        aligner=overrides.aligner or create_aligner(settings),
+        vocals=overrides.vocal_loader or create_vocal_loader(),
         devices=devices,
+        model_cached=whisper_weights(settings).cached,
     )
 
 
@@ -189,36 +190,40 @@ class _Parts:
         devices = self.devices or create_device_runner(settings)
         pipeline = self.overrides.detail_pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
-        devices.reclaim_with(_reclaimer(pipeline))
-        hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
+        lyrics = default_lyrics(settings, self.overrides, devices)
+        models = _GpuModels(pipeline, lyrics.aligner)
+        devices.reclaim_with(models.reclaim)
+        hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
-        lyrics = default_lyrics(self.overrides, devices)
         parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics)
         return WorkerRuntime.start_with(settings, parts)
 
 
-def _reclaimer(pipeline: DetailPipelinePort) -> Callable[[GpuNeed], None]:
-    """Release the pipeline's GPU models except the one the short step needs."""
-    release_models: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
+class _GpuModels:
+    """The worker's cached models: the detail pipeline's (``release_gpu``) and the aligner's."""
 
-    def reclaim(need: GpuNeed) -> None:
-        if release_models is not None:
-            release_models(keep=need)
+    def __init__(self, pipeline: object, aligner: object) -> None:
+        self._pipeline: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
+        self._aligner: Callable[[], None] | None = getattr(aligner, "release", None)
 
-    return reclaim
+    def reclaim(self, need: GpuNeed) -> None:
+        """Release the models a step that does not fit does not need (keeps its own)."""
+        if self._pipeline is not None:
+            self._pipeline(keep=need)
+        if self._aligner is not None and need != WHISPER_GPU_NEED:
+            self._aligner()
 
+    def idle_release(self, devices: ManagedRunner) -> Callable[[], None]:
+        """Idle hook: drop every cached model, then return the GPU memory."""
 
-def _idle_release(devices: ManagedRunner, pipeline: DetailPipelinePort) -> Callable[[], None]:
-    """Drop the pipeline's GPU models (when it has any), then return the GPU memory."""
-    release_models: Callable[[], None] | None = getattr(pipeline, "release_gpu", None)
+        def release() -> None:
+            for drop in (self._pipeline, self._aligner):
+                if drop is not None:
+                    drop()
+            devices.release()
 
-    def release() -> None:
-        if release_models is not None:
-            release_models()
-        devices.release()
-
-    return release
+        return release
 
 
 def _lifespan(settings: WorkerSettings, parts: _Parts) -> Lifespan:
