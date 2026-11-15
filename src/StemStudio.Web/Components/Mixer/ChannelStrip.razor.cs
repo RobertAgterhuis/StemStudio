@@ -18,6 +18,10 @@ public sealed partial class ChannelStrip
     [Parameter]
     public bool? Expanded { get; set; }
 
+    /// <summary>Detail index for the tab pattern (detail strips); null for standard strips.</summary>
+    [Parameter]
+    public int? Pattern { get; set; }
+
     /// <summary>Extra content at the bottom of the strip (the expand toggle of a split parent).</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
