@@ -72,6 +72,20 @@ public sealed class ShortcutOverlayTests : PageTestContext
     }
 
     [Fact]
+    public async Task HelpShortcuts_UnderAShownTopic_OpensIt()
+    {
+        // design-spec.md 4.7: the shortcut link stays below the topic, so it is reachable from every screen topic (T067).
+        var shell = RenderShell(ExperienceLevel.Advanced);
+        await Services.GetRequiredService<HelpContext>().OpenAsync("welcome");
+        shell.Render();
+        Id(shell, "help-topic").ShouldNotBeNull();
+
+        await Id(shell, "help-shortcuts").ClickAsync(new MouseEventArgs());
+
+        Id(shell, "shortcut-overlay").ShouldNotBeNull();
+    }
+
+    [Fact]
     public async Task Close_AndEscape_CloseIt()
     {
         var shell = RenderShell(ExperienceLevel.Expert);

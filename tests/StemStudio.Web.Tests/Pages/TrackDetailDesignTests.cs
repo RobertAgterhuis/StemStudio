@@ -36,6 +36,7 @@ public sealed class TrackDetailDesignTests : TrackDetailTestContext
         split.GetAttribute("data-state").ShouldBe(state);
         split.GetAttribute("aria-hidden").ShouldBe("true");
         page.Find("[data-testid=track-progress]").GetAttribute("aria-valuenow").ShouldBe("47");
+        page.Find("[data-testid=track-progress]").GetAttribute("aria-label").ShouldBe("Processing progress");
     }
 
     [Fact]
@@ -89,6 +90,7 @@ public sealed class TrackDetailDesignTests : TrackDetailTestContext
         var split = page.Find("[data-testid=detail-section] [data-testid=detail-split-progress]");
         split.GetAttribute("data-state").ShouldBe(state);
         page.Find("[data-testid=detail-progress]").GetAttribute("aria-valuenow").ShouldBe("40");
+        page.Find("[data-testid=detail-progress]").GetAttribute("aria-label").ShouldBe("Detail separation progress");
     }
 
     [Fact]

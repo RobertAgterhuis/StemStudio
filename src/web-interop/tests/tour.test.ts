@@ -139,6 +139,37 @@ describe('startTour (web-interop.md 2-3, FR-027)', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('started from an offer chip (removed once the tour is recorded), focus goes to the page heading', () => {
+    page('a');
+    document.body.insertAdjacentHTML('afterbegin', '<h1>Import</h1><div data-testid="tour-offer-import-basics"><button>Take the tour</button></div>');
+    must(document.querySelector<HTMLElement>('[data-testid="tour-offer-import-basics"] button')).focus();
+    start(tour(['a']));
+    key('Escape');
+    const heading = must(document.querySelector<HTMLElement>('h1'));
+    expect(document.activeElement).toBe(heading);
+    expect(heading.tabIndex).toBe(-1);
+  });
+
+  it('started from an offer chip on a page without a heading, focus returns to the chip', () => {
+    page('a');
+    document.body.insertAdjacentHTML('afterbegin', '<div data-testid="tour-offer-import-basics"><button>Take the tour</button></div>');
+    const opener = must(document.querySelector<HTMLElement>('[data-testid="tour-offer-import-basics"] button'));
+    opener.focus();
+    start(tour(['a']));
+    key('Escape');
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('keeps the ARIA semantics of the highlighted control (no popup attributes on a slider)', () => {
+    document.body.innerHTML = '<input type="range" data-help-id="pan"><button data-help-id="expand" aria-expanded="false" aria-controls="group-drums">Expand</button>';
+    start(tour(['pan', 'expand']));
+    const slider = must(document.querySelector<HTMLElement>('[data-help-id="pan"]'));
+    expect(['aria-haspopup', 'aria-expanded', 'aria-controls'].map((name) => slider.getAttribute(name))).toEqual([null, null, null]);
+    key('ArrowRight');
+    const expand = must(document.querySelector<HTMLElement>('[data-help-id="expand"]'));
+    expect(['aria-haspopup', 'aria-expanded', 'aria-controls'].map((name) => expand.getAttribute(name))).toEqual([null, 'false', 'group-drums']);
+  });
+
   it('the popover buttons drive the tour too', () => {
     page('a', 'b');
     const calls = start(tour(['a', 'b']));

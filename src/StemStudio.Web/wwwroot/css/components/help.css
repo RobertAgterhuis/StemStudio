@@ -143,7 +143,9 @@
   font-size: var(--ss-type-label-size);
 }
 
-/* Tooltip of a marked control. */
+/* Tooltip of a marked control. It starts at the control's left edge (not centred on it): the mixer's
+   strip lane scrolls horizontally and would clip a centred tooltip of the first strip, hiding
+   "Learn more" under the rail. */
 .ss-helptip {
   position: relative;
   display: inline-flex;
@@ -152,7 +154,7 @@
 .ss-tooltip {
   position: absolute;
   bottom: calc(100% + var(--ss-space-2));
-  left: 50%;
+  left: 0;
   z-index: var(--ss-z-popover);
   display: grid;
   gap: var(--ss-space-1);
@@ -165,7 +167,6 @@
   font-size: var(--ss-type-small-size);
   line-height: var(--ss-type-small-line);
   text-align: left;
-  transform: translateX(-50%);
   box-shadow: var(--ss-elev-float);
 }
 
