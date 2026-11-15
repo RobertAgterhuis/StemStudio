@@ -6,9 +6,27 @@
  */
 import { expect, type Page } from '@playwright/test';
 import type { UxData } from './ux-data';
+import { ensureLibraryItem } from './ux-library';
 
-/** Screen states covered by the visual and accessibility matrices. */
-export type ScreenId = 'import' | 'tracks' | 'track' | 'track-no-detail' | 'mixer' | 'mixer-expanded' | 'mixes';
+/** Terminal `BandInfo.status` values (no skeleton left on screen). */
+const settledMetadata = /^(found|notFound|failed|disabled)$/;
+
+/**
+ * Screen states covered by the visual and accessibility matrices. `band-info`, `export-dialog`
+ * and `library` are the 005/007 states (ui-test-ids 1.4.0/1.5.0); the covers and thumbnails of
+ * 005 appear on the 004 screens themselves.
+ */
+export type ScreenId =
+  | 'import'
+  | 'tracks'
+  | 'track'
+  | 'track-no-detail'
+  | 'mixer'
+  | 'mixer-expanded'
+  | 'mixes'
+  | 'band-info'
+  | 'export-dialog'
+  | 'library';
 
 /** Every screen of the matrices, in report order. */
 export const screenIds: readonly ScreenId[] = [
@@ -19,6 +37,9 @@ export const screenIds: readonly ScreenId[] = [
   'mixer',
   'mixer-expanded',
   'mixes',
+  'band-info',
+  'export-dialog',
+  'library',
 ];
 
 /** Help screen topic per screen (design-spec.md 7; V-H1). */
@@ -30,11 +51,16 @@ export const screenTopics: Readonly<Record<ScreenId, string>> = {
   mixer: 'mixer-screen',
   'mixer-expanded': 'mixer-screen',
   mixes: 'mixes-library',
+  'band-info': 'track-screen',
+  'export-dialog': 'mixer-screen',
+  library: 'library',
 };
 
 interface ScreenDefinition {
   readonly path: (data: UxData) => string;
   readonly ready: (page: Page, data: UxData) => Promise<void>;
+  /** Data the screen needs beyond {@link UxData}, created before navigating. */
+  readonly prepare?: (data: UxData) => Promise<unknown>;
 }
 
 const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
@@ -45,11 +71,18 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   mixer: { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: mixerReady },
   'mixer-expanded': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: mixerExpandedReady },
   mixes: { path: () => '/mixes', ready: (p, d) => expect(p.getByTestId(`mix-row-${d.mixId}`)).toBeVisible() },
+  'band-info': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: bandInfoReady },
+  'export-dialog': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: exportDialogReady },
+  library: { path: () => '/library', ready: libraryReady, prepare: (d) => ensureLibraryItem(d.detailTrack.id) },
 };
 
-/** Opens a screen, waits for the shell and the screen's content, then for the web fonts. */
+/**
+ * Opens a screen (after creating the data it needs), waits for the shell and the screen's
+ * content, then for the web fonts.
+ */
 export async function openScreen(page: Page, id: ScreenId, data: UxData): Promise<void> {
   const screen = screens[id];
+  await screen.prepare?.(data);
   await page.goto(screen.path(data));
   await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', /^(beginner|advanced|expert)$/);
   await screen.ready(page, data);
@@ -82,6 +115,33 @@ async function mixerExpandedReady(page: Page): Promise<void> {
   await expect(page.getByTestId('expand-drums')).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 });
   await expect(page.getByTestId('strip-drums-kick')).toBeVisible();
   // The re-layout leaves the pointer over the drums Mute/Solo, whose help tooltip would then be captured.
+  await movePointerAway(page);
+}
+
+async function movePointerAway(page: Page): Promise<void> {
   await page.mouse.move(0, 0);
   await expect(page.getByTestId(/^help-tooltip-/)).toHaveCount(0);
+}
+
+/** Track page with the band info panel open and its lookup settled (any online mode). */
+async function bandInfoReady(page: Page): Promise<void> {
+  await trackReady(page, 'completed');
+  await page.getByTestId('band-info-open').click();
+  await expect(page.getByTestId('band-info-panel')).toBeVisible();
+  await expect(page.getByTestId('band-info-status')).toHaveAttribute('data-status', settledMetadata, { timeout: 60_000 });
+  await movePointerAway(page);
+}
+
+/** Mixer with the export dialog open in mode `mix`. */
+async function exportDialogReady(page: Page): Promise<void> {
+  await mixerReady(page);
+  await page.getByTestId('mixer-export').click();
+  await expect(page.getByTestId('export-dialog')).toHaveAttribute('data-mode', 'mix');
+  await movePointerAway(page);
+}
+
+/** Library with the seeded item ready. */
+async function libraryReady(page: Page): Promise<void> {
+  await expect(page.getByTestId('library-total-size')).toBeVisible();
+  await expect(page.getByTestId(/^asset-row-/).first()).toHaveAttribute('data-status', 'ready', { timeout: 60_000 });
 }

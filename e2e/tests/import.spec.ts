@@ -2,6 +2,7 @@ import type { ImportPage } from '../pages/import-page';
 import type { StemName } from '../support/api';
 import { fakeJobTimeoutMs } from '../support/env';
 import { fixtureFacts, fixturePath, type FixtureName } from '../support/fixtures';
+import { expectHelpMarker } from '../support/help';
 import { expect, test } from '../support/test';
 
 // US1 import against the fake-separator stack (T081; SC-006, SC-007, G1, G6).
@@ -13,6 +14,20 @@ test('shows the personal-practice notice and the stem limitation help', async ({
   await expect(importPage.legalNotice).toContainText(/personal practice/i);
   await expect(importPage.legalNotice).toContainText(/copyright/i);
   await expect(importPage.stemLimitationHelp).toBeVisible();
+});
+
+// Feature 005 FR-014 (ui-test-ids 1.4.0): the notice gains one sentence on online lookups and is
+// the anchor of help topic `online-lookups`. Tagged, so `test:legacy` keeps its 1.2.0 scope.
+test('the notice says pictures and band information come from open data services, in-app only', { tag: '@artwork' }, async ({
+  importPage,
+}) => {
+  await importPage.goto();
+  await expect(importPage.legalNotice).toContainText(/personal practice/i);
+  await expect(importPage.legalNotice).toContainText(/pictures/i);
+  await expect(importPage.legalNotice).toContainText(/band information/i);
+  await expect(importPage.legalNotice).toContainText(/open data/i);
+  await expect(importPage.legalNotice).toContainText(/(never|not) exported/i);
+  await expectHelpMarker(importPage.legalNotice, 'online-lookups');
 });
 
 test('upload reaches completed with six fake stems and the fixture tempo', async ({
