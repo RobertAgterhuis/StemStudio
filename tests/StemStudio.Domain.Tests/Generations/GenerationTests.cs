@@ -74,7 +74,7 @@ public sealed class GenerationTests
         var generation = Queued();
         generation.ApplyReport(new GenerationReport(GenerationState.DownloadingModel, 80, null, null, []), T0);
 
-        generation.ApplyReport(new GenerationReport(GenerationState.Running, 150, new string('s', 300), null, Enumerable.Repeat("w", 9).ToList()), T0);
+        generation.ApplyReport(new GenerationReport(GenerationState.Running, 150, new string('s', 300), null, Enumerable.Range(0, 9).Select(i => "w" + i).ToList()), T0);
 
         generation.Progress.ShouldBe(100);
         generation.Stage!.Length.ShouldBe(Generation.MaxStageLength);

@@ -14,12 +14,10 @@ public sealed record StyleFilter(StyleKind? Kind, GenreFamily? Family, string? M
     public bool Matches(Style style)
     {
         ArgumentNullException.ThrowIfNull(style);
-        return (Kind is null || style.Kind == Kind)
-            && (Family is null || style.GenreFamily == Family)
-            && HasTag(style.Moods, Mood)
-            && HasTag(style.Instrumentation, Instrument)
-            && MatchesQuery(style);
+        return MatchesKinds(style) && HasTag(style.Moods, Mood) && HasTag(style.Instrumentation, Instrument) && MatchesQuery(style);
     }
+
+    private bool MatchesKinds(Style style) => (Kind is null || style.Kind == Kind) && (Family is null || style.GenreFamily == Family);
 
     /// <summary>Presets first, then by name (case-insensitive).</summary>
     /// <param name="styles">The styles.</param>

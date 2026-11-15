@@ -118,12 +118,7 @@ public sealed class Style
     public bool ApplyPreset(PresetDefinition preset, DateTime nowUtc)
     {
         ArgumentNullException.ThrowIfNull(preset);
-        if (!IsPreset)
-        {
-            throw new StyleReadOnlyException($"Style {Id} is not a preset.");
-        }
-
-        var fields = Valid(preset.Fields);
+        var fields = IsPreset ? Valid(preset.Fields) : throw new StyleReadOnlyException($"Style {Id} is not a preset.");
         if (fields.Equals(Fields) && preset.Key == PresetKey)
         {
             return false;
