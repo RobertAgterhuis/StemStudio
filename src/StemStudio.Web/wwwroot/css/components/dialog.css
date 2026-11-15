@@ -46,6 +46,9 @@
 
 .ss-modal {
   width: min(28rem, 100%);
+  /* A dialog taller than the viewport (restyle options at 720 px) scrolls instead of hiding its buttons. */
+  max-height: calc(100vh - 2 * var(--ss-space-4));
+  overflow-y: auto;
   padding: var(--ss-space-5);
   border-radius: var(--ss-radius-float);
   background: var(--ss-color-raised);
