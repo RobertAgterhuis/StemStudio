@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DotNetNotifier } from '../src/callbacks';
 import { loadStems, trackDuration } from '../src/stem-loader';
 import { Transport, type TransportListener } from '../src/transport';
-import type { LoopRegion, StemName } from '../src/types';
+import type { ChannelId, LoopRegion, StemName } from '../src/types';
 import { MockAudioContext, type MockAudioBufferSourceNode, type MockGainNode, type StartCall } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 import { FetchStub } from './mocks/fetch';
@@ -14,12 +14,12 @@ interface Rig {
   readonly ctx: MockAudioContext;
   readonly transport: Transport;
   readonly ref: FakeDotNetRef;
-  readonly outputs: Map<StemName, MockGainNode>;
+  readonly outputs: Map<ChannelId, MockGainNode>;
 }
 
 async function makeRig(durations: readonly number[] = [10, 10, 10, 12]): Promise<Rig> {
   const ctx = new MockAudioContext();
-  const outputs = new Map<StemName, MockGainNode>();
+  const outputs = new Map<ChannelId, MockGainNode>();
   const ref = new FakeDotNetRef();
   const transport = new Transport({
     context: ctx.asAudioContext(),

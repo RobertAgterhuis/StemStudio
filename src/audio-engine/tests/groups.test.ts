@@ -74,7 +74,7 @@ function gainOf(ctx: MockAudioContext, part: Part): MockGainNode {
 
 /** Sources created since index `from`, by part. */
 function startsSince(ctx: MockAudioContext, from: number): Record<string, unknown> {
-  return Object.fromEntries(ctx.sources.slice(from).map((s) => [partOf(s), s.startCalls]));
+  return Object.fromEntries(ctx.sources.slice(from).map((s) => [String(partOf(s)), s.startCalls]));
 }
 
 describe('loadTrack with groups', () => {
@@ -215,20 +215,26 @@ describe('setExpanded', () => {
     expect(gainOf(ctx, 'snare').gain.value).toBe(1);
   });
 
-  it('seek, loop changes, pause and stop treat detail sources like standard sources', async () => {
+  it('seek and loop changes treat detail sources like standard sources', async () => {
     const { engine, ctx } = await loaded();
     await engine.play();
     await engine.setExpanded('drums', true);
     ctx.currentTime = 2;
-    let from = ctx.sources.length;
+    const from = ctx.sources.length;
     engine.seek(5);
     const seekStart = [{ when: 2.1, offset: 5 }];
     expect(startsSince(ctx, from)).toEqual({ vocals: seekStart, drums: seekStart, kick: seekStart, snare: seekStart, rest: seekStart });
     engine.setLoop({ start: 4, end: 8, enabled: true });
     expect(ctx.sources.slice(from).every((s) => s.loop && s.loopStart === 4 && s.loopEnd === 8)).toBe(true);
+  });
+
+  it('pause, play and stop include detail sources', async () => {
+    const { engine, ctx } = await loaded();
+    await engine.play();
+    await engine.setExpanded('drums', true);
     engine.pause();
     expect(ctx.sources.every((s) => s.stopCalls.length === 1)).toBe(true);
-    from = ctx.sources.length;
+    const from = ctx.sources.length;
     await engine.play();
     expect(ctx.sources.slice(from)).toHaveLength(5);
     engine.stop();
