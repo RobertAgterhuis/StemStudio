@@ -25,6 +25,51 @@ internal sealed class FakeWorkerClient : IWorkerClient
 
     public Func<string, string, Stream, Task>? OnDownloadStem { get; set; }
 
+    public List<string> DetailCreates { get; } = [];
+
+    public List<string> DetailCancels { get; } = [];
+
+    public List<string> DetailStemDownloads { get; } = [];
+
+    public Func<string, Task<WorkerDetailJob>>? OnCreateDetail { get; set; }
+
+    public Func<string, Task<WorkerDetailJob?>>? OnGetDetailJob { get; set; }
+
+    public Func<string, Task<WorkerDetailJob>>? OnCancelDetail { get; set; }
+
+    public Func<string, Task<WorkerDetailResult>>? OnGetDetailResult { get; set; }
+
+    public Func<WorkerDetailStemRef, Stream, Task>? OnDownloadDetailStem { get; set; }
+
+    public static WorkerDetailJob DetailJob(string detailJobId, WorkerDetailJobState status, int progress = 0, string? parent = null) => new()
+    {
+        DetailJobId = detailJobId,
+        StandardJobId = "0123456789abcdef0123456789abcdef",
+        Status = status,
+        Stage = status.ToString(),
+        CurrentParent = parent,
+        Progress = progress,
+        Error = status == WorkerDetailJobState.Failed ? "Not enough memory for detail separation." : null,
+    };
+
+    /// <summary>Six-stem result: vocals (lead, backing, rest) and drums (kick, snare, rest) split, the others not.</summary>
+    public static WorkerDetailResult DetailResult(string detailJobId) => new()
+    {
+        DetailJobId = detailJobId,
+        Parents =
+        [
+            DetailSplit(detailJobId, "vocals", "lead", "backing", "rest"),
+            DetailSplit(detailJobId, "drums", "kick", "snare", "rest"),
+            new WorkerParentOutcome("bass", WorkerParentOutcomeKind.NotSupported, []),
+            new WorkerParentOutcome("guitar", WorkerParentOutcomeKind.NothingFurther, []),
+            new WorkerParentOutcome("piano", WorkerParentOutcomeKind.SkippedSilent, []),
+            new WorkerParentOutcome("other", WorkerParentOutcomeKind.NotReliable, []),
+        ],
+    };
+
+    public static WorkerParentOutcome DetailSplit(string detailJobId, string parent, params string[] names) =>
+        new(parent, WorkerParentOutcomeKind.Split, names.Select(name => new WorkerDetailStemInfo(name, $"/v1/detail-jobs/{detailJobId}/stems/{parent}/{name}", 100)).ToList());
+
     public int CreateCalls
     {
         get
@@ -104,5 +149,47 @@ internal sealed class FakeWorkerClient : IWorkerClient
         }
 
         await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes("fLaC:" + stem), cancellationToken);
+    }
+
+    public Task<WorkerDetailJob> CreateDetailJobAsync(string standardJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            DetailCreates.Add(standardJobId);
+        }
+
+        return OnCreateDetail?.Invoke(standardJobId) ?? Task.FromResult(DetailJob(NextJobId(), WorkerDetailJobState.Queued));
+    }
+
+    public Task<WorkerDetailJob?> GetDetailJobAsync(string detailJobId, CancellationToken cancellationToken) =>
+        OnGetDetailJob?.Invoke(detailJobId) ?? Task.FromResult<WorkerDetailJob?>(DetailJob(detailJobId, WorkerDetailJobState.Queued));
+
+    public Task<WorkerDetailJob> CancelDetailJobAsync(string detailJobId, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            DetailCancels.Add(detailJobId);
+        }
+
+        return OnCancelDetail?.Invoke(detailJobId) ?? Task.FromResult(DetailJob(detailJobId, WorkerDetailJobState.Cancelled));
+    }
+
+    public Task<WorkerDetailResult> GetDetailResultAsync(string detailJobId, CancellationToken cancellationToken) =>
+        OnGetDetailResult?.Invoke(detailJobId) ?? Task.FromResult(DetailResult(detailJobId));
+
+    public async Task DownloadDetailStemAsync(WorkerDetailStemRef stem, Stream destination, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            DetailStemDownloads.Add($"{stem.Parent}/{stem.Name}");
+        }
+
+        if (OnDownloadDetailStem is not null)
+        {
+            await OnDownloadDetailStem(stem, destination);
+            return;
+        }
+
+        await destination.WriteAsync(System.Text.Encoding.UTF8.GetBytes($"fLaC:{stem.Parent}/{stem.Name}"), cancellationToken);
     }
 }

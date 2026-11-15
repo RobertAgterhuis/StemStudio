@@ -73,7 +73,7 @@ public sealed partial class TrackDetail
         }
         catch (ApiException ex)
         {
-            ActionError = ex.Error.UserMessage;
+            ReportDeleteError(ex.Error);
             ConfirmingDelete = false;
             IsDeleting = false;
         }

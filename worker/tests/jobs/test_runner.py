@@ -1,4 +1,4 @@
-"""Tests of the pipeline runner and the FIFO job queue (T061)."""
+"""Tests of the pipeline runner and the FIFO order of standard jobs (T061, T023)."""
 
 import logging
 import threading
@@ -9,8 +9,8 @@ import pytest
 
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.jobs.queue import JobQueue
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
+from stemstudio_worker.jobs.scheduler import PriorityScheduler
 from stemstudio_worker.ports import AudioTooLongError, SourceUnavailableError
 from stemstudio_worker.schemas import Job, JobState, SourceMetadata, SourceType
 
@@ -242,9 +242,13 @@ class _ConcurrencyProbe:
             self._active -= 1
 
 
+def _no_detail(detail_id: str) -> bool:
+    raise AssertionError("no detail jobs in these tests")
+
+
 def test_queue_processes_fifo_one_at_a_time() -> None:
     probe = _ConcurrencyProbe()
-    queue = JobQueue(probe)
+    queue = PriorityScheduler(probe, _no_detail)
     for job_id in ("1", "2", "3", "4"):
         queue.submit(job_id)
 
@@ -264,7 +268,7 @@ def test_queue_survives_a_failing_job(caplog: pytest.LogCaptureFixture) -> None:
             raise RuntimeError("boom")
         done.append(job_id)
 
-    queue = JobQueue(process)
+    queue = PriorityScheduler(process, _no_detail)
     queue.start()
     queue.submit("bad")
     queue.submit("good")
@@ -276,7 +280,7 @@ def test_queue_survives_a_failing_job(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_queue_stop_is_idempotent_and_ends_the_thread() -> None:
-    queue = JobQueue(lambda job_id: None)
+    queue = PriorityScheduler(lambda job_id: None, _no_detail)
     queue.start()
     queue.start()
     assert queue.running

@@ -93,7 +93,7 @@ public sealed class StemStudioDbContextTests
         active.AssignJob("0123456789abcdef0123456789abcdef", TestData.T0);
         var withoutJob = TestData.QueuedTrack("bbbbbbbbbbb");
         var completed = TestData.CompletedTrack("ccccccccccc");
-        await SeedTracksAsync(db, active, withoutJob, completed);
+        await db.SeedAsync(active, withoutJob, completed);
 
         await using var read = db.NewContext();
         (await new TrackRepository(read).ListActiveAsync(Ct)).Select(t => t.Id).ShouldBe([active.Id]);
@@ -109,7 +109,7 @@ public sealed class StemStudioDbContextTests
         withJob.AssignJob("0123456789abcdef0123456789abcdef", TestData.T0);
         var failed = TestData.QueuedTrack("ddddddddddd");
         failed.Fail("Import interrupted", TestData.T0);
-        await SeedTracksAsync(db, orphan, recent, withJob, failed);
+        await db.SeedAsync(orphan, recent, withJob, failed);
 
         await using var read = db.NewContext();
         var orphaned = await new TrackRepository(read).ListOrphanedAsync(TestData.T0.AddMinutes(5), Ct);
@@ -277,7 +277,7 @@ public sealed class StemStudioDbContextTests
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
         var track = TestData.CompletedTrack();
-        await SeedTracksAsync(db, track);
+        await db.SeedAsync(track);
         for (var i = 0; i < mixCount; i++)
         {
             await SeedMixAsync(db, TestData.Settings($"Mix {i}"), track);
@@ -371,15 +371,6 @@ public sealed class StemStudioDbContextTests
         await repository.RemoveWithMixesAsync((await repository.FindAsync(trackId, Ct))!, Ct);
     }
 
-    private static async Task SeedTracksAsync(SqliteTestDatabase db, params Track[] tracks)
-    {
-        await using var context = db.NewContext();
-        var repository = new TrackRepository(context);
-        foreach (var track in tracks)
-        {
-            await repository.AddAsync(track, Ct);
-        }
-    }
 
     private static void AssertSameTrack(Track loaded, Track expected)
     {

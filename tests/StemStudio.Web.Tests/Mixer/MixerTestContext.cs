@@ -27,6 +27,15 @@ public abstract class MixerTestContext : PageTestContext
         return Render<MixerPage>(p => p.Add(c => c.Id, TestData.TrackId));
     }
 
+    protected static void AssertEveryControlIsNamed(IRenderedComponent<MixerPage> page)
+    {
+        foreach (var control in page.FindAll("input, button"))
+        {
+            var name = control.GetAttribute("aria-label") ?? control.TextContent.Trim();
+            name.ShouldNotBeNullOrWhiteSpace($"{control.GetAttribute("data-testid")} has no accessible name");
+        }
+    }
+
     protected static void SetValue(AngleSharp.Dom.IElement input, double value) =>
         input.Input(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
 }

@@ -1,0 +1,12 @@
+{
+  "detailJobId": "7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b",
+  "standardJobId": "3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c",
+  "audioSha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  "status": "running",
+  "stage": "Splitting drums (1 of 3)",
+  "currentParent": "drums",
+  "progress": 12,
+  "error": null,
+  "createdAt": "2026-11-15T12:06:31Z",
+  "updatedAt": "2026-11-15T12:08:02Z"
+}

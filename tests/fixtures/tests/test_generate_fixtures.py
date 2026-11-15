@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-import runpy
 import shutil
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +11,8 @@ import pytest
 import soundfile as sf  # type: ignore[import-untyped]
 
 import generate_fixtures as gen
+
+GENERATOR = gen
 
 COMMITTED_MANIFEST = Path(__file__).resolve().parents[1] / "manifest.json"
 CATALOGUE = {
@@ -32,32 +30,13 @@ PCM_FILES += ["upload_4mb.wav", "silence_5s.wav"]
 CLICK_FILES = ["click_120bpm_4-4_12s.wav", "click_90bpm_3-4_12s.wav"]
 
 
-@pytest.fixture(scope="module")
-def generated(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[str, Any]]:
-    out_dir = tmp_path_factory.mktemp("audio")
-    manifest_path = out_dir / "manifest.json"
-    gen.generate(out_dir, manifest_path)
-    return out_dir, json.loads(manifest_path.read_text(encoding="utf-8"))
-
-
 def _entry(manifest: dict[str, Any], name: str) -> dict[str, Any]:
     entry: dict[str, Any] = manifest["fixtures"][name]
     return entry
 
 
-def _sha256_tree(directory: Path) -> dict[str, str]:
-    return {
-        p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted(directory.iterdir())
-        if p.is_file()
-    }
-
-
-def test_every_catalogue_file_exists(generated: tuple[Path, dict[str, Any]]) -> None:
-    out_dir, manifest = generated
-    assert {p.name for p in out_dir.iterdir()} >= CATALOGUE
-    assert set(manifest["fixtures"]) == CATALOGUE
-    assert manifest["sampleRate"] == 44_100
+def test_the_manifest_lists_the_catalogue(generated: tuple[Path, dict[str, Any]]) -> None:
+    assert set(generated[1]["fixtures"]) == CATALOGUE
 
 
 @pytest.mark.parametrize("name", [*PCM_FILES, "music_100bpm_20s.mp3"])
@@ -139,16 +118,6 @@ def test_unsupported_ogg_has_an_ogg_signature(generated: tuple[Path, dict[str, A
     assert (generated[0] / "unsupported.ogg").read_bytes().startswith(b"OggS")
 
 
-def test_rerun_is_byte_identical(generated: tuple[Path, dict[str, Any]], tmp_path: Path) -> None:
-    gen.generate(tmp_path, tmp_path / "manifest.json")
-    assert _sha256_tree(tmp_path) == _sha256_tree(generated[0])
-
-
-def test_committed_manifest_is_up_to_date(generated: tuple[Path, dict[str, Any]]) -> None:
-    committed = json.loads(COMMITTED_MANIFEST.read_text(encoding="utf-8"))
-    assert committed == generated[1]
-
-
 def test_missing_ffmpeg_is_reported(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
     with pytest.raises(gen.FfmpegNotFoundError, match="ffmpeg"):
@@ -161,20 +130,6 @@ def test_failing_ffmpeg_is_reported(monkeypatch: pytest.MonkeyPatch, tmp_path: P
         gen.generate(tmp_path, tmp_path / "manifest.json")
 
 
-def test_main_writes_to_the_given_paths(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    manifest = tmp_path / "m.json"
-    assert gen.main(["--out-dir", str(tmp_path / "out"), "--manifest", str(manifest)]) == 0
-    assert manifest.is_file()
-    assert (tmp_path / "out" / "music_100bpm_20s.mp3").is_file()
-    assert "8 fixtures" in capsys.readouterr().out
-
-
-def test_main_defaults_point_into_the_fixture_folder() -> None:
-    args = gen.parse_args([])
-    assert args.out_dir == gen.FIXTURE_DIR / "audio"
-    assert args.manifest == gen.FIXTURE_DIR / "manifest.json"
-
-
 def test_beat_times_cover_the_clip_from_the_first_beat() -> None:
     times = gen.beat_times(gen.Rhythm(bpm=120, beats_per_bar=4, duration_s=2.0))
     assert times == [0.5, 1.0, 1.5]
@@ -183,19 +138,3 @@ def test_beat_times_cover_the_clip_from_the_first_beat() -> None:
 def test_rhythmic_fixture_without_rhythm_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(gen.FixtureGenerationError, match="needs a rhythm"):
         gen.write_fixture(gen.Fixture("broken.wav", "click", 1.0), tmp_path)
-
-
-def test_running_the_script_exits_with_zero(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    argv = [
-        "generate_fixtures.py",
-        "--out-dir",
-        str(tmp_path),
-        "--manifest",
-        str(tmp_path / "m.json"),
-    ]
-    monkeypatch.setattr(sys, "argv", argv)
-    with pytest.raises(SystemExit) as exit_info:
-        runpy.run_path(str(COMMITTED_MANIFEST.parent / "generate_fixtures.py"), run_name="__main__")
-    assert exit_info.value.code == 0

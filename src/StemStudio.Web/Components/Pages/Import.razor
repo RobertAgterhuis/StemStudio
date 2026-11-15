@@ -39,5 +39,7 @@
 <p class="ss-help" data-testid="stem-limitation-help">
     StemStudio splits a song into vocals, drums, bass, guitar, piano and other (vocals, drums, bass and other
     when the 4-stem fallback model is used). Separating every instrument individually beyond these stems is
-    not reliably possible with current open-source models.
+    not reliably possible with current open-source models. After the standard separation StemStudio also tries
+    to split drums, vocals and the other instruments further into detail stems in the background. Their
+    quality varies per song and instrument, some instruments cannot be separated, and it takes considerably longer.
 </p>

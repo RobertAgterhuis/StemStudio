@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DotNetNotifier } from '../src/callbacks';
 import { loadStems, trackDuration } from '../src/stem-loader';
 import { Transport, type TransportListener } from '../src/transport';
-import type { LoopRegion, StemName } from '../src/types';
+import type { ChannelId, LoopRegion, StemName } from '../src/types';
 import { MockAudioContext, type MockAudioBufferSourceNode, type MockGainNode, type StartCall } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 import { FetchStub } from './mocks/fetch';
@@ -14,12 +14,12 @@ interface Rig {
   readonly ctx: MockAudioContext;
   readonly transport: Transport;
   readonly ref: FakeDotNetRef;
-  readonly outputs: Map<StemName, MockGainNode>;
+  readonly outputs: Map<ChannelId, MockGainNode>;
 }
 
 async function makeRig(durations: readonly number[] = [10, 10, 10, 12]): Promise<Rig> {
   const ctx = new MockAudioContext();
-  const outputs = new Map<StemName, MockGainNode>();
+  const outputs = new Map<ChannelId, MockGainNode>();
   const ref = new FakeDotNetRef();
   const transport = new Transport({
     context: ctx.asAudioContext(),
@@ -136,6 +136,18 @@ describe('transport', () => {
     expect(transport.state).toBe('stopped');
     expect(transport.position()).toBe(0);
     expect(transport.anchor()).toBeNull();
+  });
+
+  it('dispose releases every decoded buffer, detail buffers included (T085)', async () => {
+    const { ctx, transport } = await makeRig();
+    transport.addBuffers(new Map([['drums.kick', ctx.createBuffer(2, 441, 44100) as unknown as AudioBuffer]]), 0);
+    await transport.play();
+    transport.dispose();
+    expect(transport.duration).toBe(0);
+    expect(ctx.sources.every((s) => s.buffer === null)).toBe(true);
+    const count = ctx.sources.length;
+    await transport.play();
+    expect(ctx.sources).toHaveLength(count);
   });
 
   it('play resumes the context and starts every stem with the same when and offset', async () => {

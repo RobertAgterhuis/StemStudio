@@ -1,4 +1,5 @@
 using StemStudio.Domain.Tracks;
+using StemStudio.Domain.Tracks.Detail;
 
 namespace StemStudio.Api.Tests.TestSupport;
 
@@ -27,6 +28,38 @@ internal static class SyncTestData
     {
         var track = UrlTrack(videoId);
         track.Complete(Completion(), at ?? T0);
+        return track;
+    }
+
+    public const string DetailJobId = "7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b";
+
+    /// <summary>A completed track whose detail phase is queued; with a worker detail job unless <paramref name="detailJobId"/> is null.</summary>
+    public static Track DetailQueued(string videoId = "dQw4w9WgXcQ", string? detailJobId = DetailJobId)
+    {
+        var track = CompletedTrack(videoId);
+        track.RequestDetail(T0);
+        if (detailJobId is not null)
+        {
+            track.AssignDetailJob(detailJobId, T0);
+        }
+
+        return track;
+    }
+
+    /// <summary>A completed track whose detail phase completed with drums (kick, snare, rest) and vocals (lead, backing, rest) split.</summary>
+    public static Track DetailCompleted(string videoId = "dQw4w9WgXcQ")
+    {
+        var track = DetailQueued(videoId);
+        track.CompleteDetail(
+        [
+            new ParentOutcome("vocals", ParentOutcomeKind.Split, [new("lead", 8), new("backing", 8), new("rest", 8)]),
+            new ParentOutcome("drums", ParentOutcomeKind.Split, [new("kick", 8), new("snare", 8), new("rest", 8)]),
+            new ParentOutcome("bass", ParentOutcomeKind.NotSupported, []),
+            new ParentOutcome("guitar", ParentOutcomeKind.NothingFurther, []),
+            new ParentOutcome("piano", ParentOutcomeKind.SkippedSilent, []),
+            new ParentOutcome("other", ParentOutcomeKind.NotReliable, []),
+        ],
+            T0.AddMinutes(30));
         return track;
     }
 

@@ -145,6 +145,31 @@ h1 {
   padding: 0.2rem 0.75rem;
 }
 
+/* Detail phase section (feature 002) */
+.ss-outcomes {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ss-outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.ss-outcome-parent {
+  font-weight: 600;
+  min-width: 5rem;
+}
+
+.ss-detail-stems {
+  margin: 0;
+}
+
 .ss-link-button {
   text-decoration: none;
   display: inline-flex;
@@ -239,6 +264,27 @@ h1 {
 
 .ss-strip-master {
   border: 2px solid var(--ss-ink);
+}
+
+.ss-expand {
+  grid-column: 1 / -1;
+}
+
+.ss-strip[data-expanded="true"] {
+  outline: 2px solid var(--ss-accent);
+}
+
+/* Detail strips of an expanded parent (feature 002) */
+.ss-group {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: var(--ss-radius);
+  background: color-mix(in srgb, var(--ss-accent) 12%, transparent);
+}
+
+.ss-group .ss-strip {
+  min-width: 6rem;
 }
 
 .ss-strip-silent {

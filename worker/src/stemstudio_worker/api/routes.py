@@ -4,11 +4,11 @@ from typing import get_args
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from stemstudio_worker.api.dependencies import Runtime
 from stemstudio_worker.api.problems import ProblemError
+from stemstudio_worker.api.responses import json_response, parse_body
 from stemstudio_worker.api.uploads import create_from_upload
 from stemstudio_worker.config import WorkerSettings
 from stemstudio_worker.jobs.models import StoredJob
@@ -31,7 +31,7 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 def get_health(request: Request) -> JSONResponse:
     """Liveness probe with the configured separator and device."""
     settings: WorkerSettings = request.app.state.settings
-    return _json(Health(separator=settings.separator, device=settings.device))
+    return json_response(Health(separator=settings.separator, device=settings.device))
 
 
 @router.post("/v1/jobs")
@@ -39,7 +39,7 @@ async def create_job(request: Request, runtime: Runtime) -> JSONResponse:
     """Create a job from a JSON URL request or a multipart upload (200 if it already exists)."""
     media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
     if media_type == "application/json":
-        body = _parse_create_request(await request.body())
+        body = parse_body(CreateJobRequest, await request.body())
         job, created = await run_in_threadpool(_create_from_url, runtime, body)
     elif media_type == "multipart/form-data":
         job, created = await create_from_upload(request, runtime)
@@ -47,20 +47,20 @@ async def create_job(request: Request, runtime: Runtime) -> JSONResponse:
         detail = "Send JSON for URLs or multipart/form-data with a part 'file' for uploads."
         raise ProblemError(415, "Unsupported media type", detail)
     if not created:
-        return _json(job)
-    return _json(job, status=202, headers={"Location": f"/v1/jobs/{job.job_id}"})
+        return json_response(job)
+    return json_response(job, status=202, headers={"Location": f"/v1/jobs/{job.job_id}"})
 
 
 @router.get("/v1/jobs/{job_id}")
 def get_job(job_id: str, runtime: Runtime) -> JSONResponse:
     """Status, stage and progress of a job."""
-    return _json(_record(runtime, job_id).job)
+    return json_response(_record(runtime, job_id).job)
 
 
 @router.get("/v1/jobs/{job_id}/result")
 def get_job_result(job_id: str, runtime: Runtime) -> JSONResponse:
     """Result of a completed job."""
-    return _json(_completed(_record(runtime, job_id)))
+    return json_response(_completed(_record(runtime, job_id)))
 
 
 @router.get("/v1/jobs/{job_id}/stems/{stem}")
@@ -74,16 +74,6 @@ def get_job_stem(job_id: str, stem: str, runtime: Runtime) -> FileResponse:
     if stem not in {s.name for s in result.stems} or not path.is_file():
         raise _missing_stem(stem)
     return FileResponse(path, media_type="audio/flac")
-
-
-def _parse_create_request(raw: bytes) -> CreateJobRequest:
-    try:
-        return CreateJobRequest.model_validate_json(raw)
-    except ValidationError as exc:
-        error = exc.errors()[0]
-        location = ".".join(str(part) for part in error["loc"])
-        detail = f"{location}: {error['msg']}" if location else str(error["msg"])
-        raise ProblemError(400, "Invalid request", detail) from exc
 
 
 def _create_from_url(runtime: WorkerRuntime, body: CreateJobRequest) -> tuple[Job, bool]:
@@ -120,10 +110,3 @@ def _completed(record: StoredJob) -> JobResult:
 
 def _missing_stem(stem: str) -> ProblemError:
     return ProblemError(404, "Not found", f"Stem {stem[:64]} does not exist for this job.")
-
-
-def _json(
-    model: BaseModel, status: int = 200, headers: dict[str, str] | None = None
-) -> JSONResponse:
-    body = model.model_dump(mode="json", by_alias=True)
-    return JSONResponse(body, status_code=status, headers=headers)

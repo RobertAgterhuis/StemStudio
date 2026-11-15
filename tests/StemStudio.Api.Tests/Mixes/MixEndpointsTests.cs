@@ -255,7 +255,7 @@ public sealed class MixEndpointsTests : IDisposable
         first.StatusCode.ShouldBe(HttpStatusCode.Created);
         var copy = await first.BodyAsync<MixDto>();
         first.Headers.Location!.ToString().ShouldBe(ApiRoutes.Mix(copy.Id));
-        copy.Settings.ShouldBe(mix.Settings with { Name = "Guitar practice (copy)", Channels = copy.Settings.Channels });
+        copy.Settings.ShouldBe(mix.Settings with { Name = "Guitar practice (copy)", Channels = copy.Settings.Channels, Expanded = copy.Settings.Expanded, DetailChannels = copy.Settings.DetailChannels });
         copy.Settings.Channels.ShouldBe(mix.Settings.Channels);
         (await second.BodyAsync<MixDto>()).Settings.Name.ShouldBe("Guitar practice (copy 2)");
         missing.StatusCode.ShouldBe(HttpStatusCode.NotFound);

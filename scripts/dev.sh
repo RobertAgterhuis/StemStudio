@@ -4,7 +4,7 @@
 # No secrets are read or needed.
 #
 # Usage: scripts/dev.sh [--fake] [--skip-engine-build] [--smoke-test] [--timeout <seconds>]
-#   --fake               STEMSTUDIO_SEPARATOR=fake (stems are copies of the mix; no model download)
+#   --fake               STEMSTUDIO_SEPARATOR=fake (stems are copies of the mix; detail faked; no download)
 #   --skip-engine-build  reuse the existing wwwroot/js/audio-engine.js
 #   --smoke-test         wait for the three /health endpoints, print them, stop; exit 0 when all are 200
 #   --timeout <s>        how long to wait per /health endpoint (default 180)
@@ -41,12 +41,15 @@ init_environment() {
   mkdir -p "$data_dir/worker" "$data_dir/api"
   export STEMSTUDIO_DATA_DIR="$data_dir/worker"
   if [[ $FAKE -eq 1 ]]; then export STEMSTUDIO_SEPARATOR=fake; else export STEMSTUDIO_SEPARATOR="${STEMSTUDIO_SEPARATOR:-demucs}"; fi
+  # Detail model weights (~1.9 GB, first real detail phase); data/ is git-ignored; existing values win.
+  export STEMSTUDIO_MODEL_DIR="${STEMSTUDIO_MODEL_DIR:-$data_dir/models}"
+  export STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS="${STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS:-1}"
   export StemStudio__DataDir="$data_dir/api"
   export StemStudio__WorkerBaseUrl=http://localhost:8000
   export StemStudio__WebOrigin=http://localhost:8080
   export StemStudio__ApiBaseUrl=http://localhost:8081
   export StemStudio__PublicApiBaseUrl=http://localhost:8081
-  echo "Separator: $STEMSTUDIO_SEPARATOR; data under $data_dir"
+  echo "Separator: $STEMSTUDIO_SEPARATOR; data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
 }
 
 build_engine() {

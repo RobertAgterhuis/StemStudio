@@ -1,0 +1,1034 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API
+  version: 1.1.0
+  summary: Internal job API of the Python processing worker (ingest, Demucs separation, beat analysis, detail separation).
+  description: |
+    Called only by the StemStudio backend (never by the browser). Jobs run one at a time in a FIFO
+    queue. The backend polls `GET /v1/jobs/{jobId}` about once per second and, when the job is
+    `completed`, downloads the result and every stem.
+
+    * JSON uses camelCase. Pydantic models: `worker/src/stemstudio_worker/schemas.py`.
+    * Errors are RFC 9457 problem details (`application/problem+json`).
+    * Job states and progress ranges: see `specs/001-stemstudio-mvp/data-model.md`.
+    * Changelog: 1.0.1 (non-breaking) - explicit field limits, model -> stem set, URL vectors,
+      200 MiB in bytes. 1.1.0 (additive, feature 002) - detail jobs (`/v1/detail-jobs/...`):
+      second-stage separation of the standard stems of a completed job, with cancel, per-parent
+      outcomes and detail stem files. Standard jobs always run before detail work (priority
+      queue); a running detail job yields to a waiting standard job after its current parent step.
+    * Jobs are persisted as JSON files; after a restart, jobs that were not terminal are reported
+      as `failed` with error "interrupted by restart".
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: docker compose (internal network)
+  - url: http://localhost:8000
+    description: local development
+security: []  # internal service on a private network; no authentication (spec Assumptions)
+tags:
+  - name: jobs
+    description: Processing jobs, their results and stem files.
+  - name: detail
+    description: Detail (second-stage) separation of the standard stems of a completed job.
+  - name: health
+    description: Liveness.
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: Worker is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+                separator: demucs
+                device: cpu
+                contractVersion: 1.0.0
+  /v1/jobs:
+    post:
+      tags: [jobs]
+      operationId: createJob
+      summary: Create a processing job for a URL or an uploaded file.
+      description: |
+        URL sources are sent as JSON, uploads as `multipart/form-data` with one part `file`
+        (`.mp3`, `.wav` or `.flac`, at most 200 MiB = 209,715,200 bytes).
+
+        Idempotency by source key: if a non-failed job for the same source key exists (queued,
+        running or completed), that job is returned with `200`. If the audio was separated
+        before (same source key or same audio SHA-256 in the cache), the new job completes
+        without running Demucs again. Otherwise a new job is queued and `202` is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+            examples:
+              youtube:
+                value:
+                  sourceType: youtube
+                  url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+              spotify:
+                value:
+                  sourceType: spotify
+                  url: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadJobRequest'
+            encoding:
+              file:
+                contentType: audio/mpeg, audio/wav, audio/x-wav, audio/flac, application/octet-stream
+      responses:
+        '200':
+          description: An existing job for the same source key is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedJob'
+        '202':
+          description: Job accepted and queued.
+          headers:
+            Location:
+              description: URL of the job status resource.
+              schema:
+                type: string
+              example: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                queued:
+                  $ref: '#/components/examples/QueuedJob'
+        '400':
+          description: |
+            Invalid or unsupported source. Spotify tracks are resolved synchronously, so a Spotify
+            track without a matching public YouTube recording is also rejected here
+            (title "Source unavailable") instead of becoming a failed job.
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /v1/jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [jobs]
+      operationId: getJob
+      summary: Get status, stage and progress of a job.
+      responses:
+        '200':
+          description: Current job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              examples:
+                separating:
+                  $ref: '#/components/examples/SeparatingJob'
+                failed:
+                  $ref: '#/components/examples/FailedJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/jobs/{jobId}/result:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [jobs]
+      operationId: getJobResult
+      summary: Get the result of a completed job (also stored as result.json).
+      responses:
+        '200':
+          description: Result of the completed job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResult'
+              example:
+                jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+                sourceKey: youtube:dQw4w9WgXcQ
+                metadata:
+                  title: Never Gonna Give You Up
+                  artist: Rick Astley
+                  sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+                durationSeconds: 213.04
+                sampleRate: 44100
+                channels: 2
+                audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                model: htdemucs_6s
+                stems:
+                  - name: vocals
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/vocals
+                    sizeBytes: 21456789
+                  - name: drums
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/drums
+                    sizeBytes: 23456789
+                  - name: bass
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/bass
+                    sizeBytes: 22345678
+                  - name: guitar
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/guitar
+                    sizeBytes: 22456789
+                  - name: piano
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/piano
+                    sizeBytes: 21987654
+                  - name: other
+                    path: /v1/jobs/3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c/stems/other
+                    sizeBytes: 23123456
+                beatGrid:
+                  bpm: 113.5
+                  beats: [0.52, 1.05, 1.58, 2.11]
+                  downbeats: [0.52]
+                  beatsPerBar: 4
+                  confidence: 0.87
+                  reliable: true
+                completedAt: '2026-11-14T12:06:30Z'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+  /v1/jobs/{jobId}/stems/{stem}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+      - name: stem
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/StemName'
+    get:
+      tags: [jobs]
+      operationId: getJobStem
+      summary: Download one stem as FLAC (44.1 kHz, stereo, 16-bit).
+      responses:
+        '200':
+          description: The stem file.
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+  /v1/detail-jobs:
+    post:
+      tags: [detail]
+      operationId: createDetailJob
+      summary: Create (or reuse) a detail job for the standard stems of a completed job.
+      description: |
+        Idempotent per audio: if a `queued`, `running` or `completed` detail job exists for the
+        same `audioSha256` as the referenced standard job, it is returned with `200`. A
+        `completed` result in the per-audio cache makes a new job complete immediately (SC-007).
+        Otherwise a new job is queued with lower priority than every standard job and `202` is
+        returned. Detail models are downloaded on first use into the model cache.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDetailJobRequest'
+            example:
+              standardJobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+      responses:
+        '200':
+          description: An existing detail job for the same audio is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedDetailJob'
+        '202':
+          description: Detail job accepted and queued.
+          headers:
+            Location:
+              description: URL of the detail job status resource.
+              schema:
+                type: string
+              example: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailJob'
+              examples:
+                queued:
+                  $ref: '#/components/examples/QueuedDetailJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/DetailConflict'
+  /v1/detail-jobs/{detailJobId}:
+    parameters:
+      - $ref: '#/components/parameters/DetailJobId'
+    get:
+      tags: [detail]
+      operationId: getDetailJob
+      summary: Get status, current parent stem and progress of a detail job.
+      responses:
+        '200':
+          description: Current detail job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailJob'
+              examples:
+                running:
+                  $ref: '#/components/examples/RunningDetailJob'
+                failed:
+                  $ref: '#/components/examples/FailedDetailJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/detail-jobs/{detailJobId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/DetailJobId'
+    post:
+      tags: [detail]
+      operationId: cancelDetailJob
+      summary: Cancel a queued or running detail job.
+      description: |
+        A queued job becomes `cancelled` at once. A running job is stopped cooperatively before
+        its next inference chunk (within a few seconds) and then reported as `cancelled`; the
+        response already shows `cancelled`. Checkpoints of finished parent steps are kept, so a
+        later detail job for the same audio resumes from them. Cancelling a `cancelled` job is a
+        no-op (`200`); a `completed` or `failed` job returns `409`.
+      responses:
+        '200':
+          description: The cancelled job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/DetailConflict'
+  /v1/detail-jobs/{detailJobId}/result:
+    parameters:
+      - $ref: '#/components/parameters/DetailJobId'
+    get:
+      tags: [detail]
+      operationId: getDetailResult
+      summary: Get the per-parent outcomes and detail stems of a completed detail job.
+      responses:
+        '200':
+          description: Result of the completed detail job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResult'
+              examples:
+                completed:
+                  $ref: '#/components/examples/DetailResultExample'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/DetailConflict'
+  /v1/detail-jobs/{detailJobId}/stems/{parent}/{name}:
+    parameters:
+      - $ref: '#/components/parameters/DetailJobId'
+      - $ref: '#/components/parameters/ParentStem'
+      - $ref: '#/components/parameters/DetailStem'
+    get:
+      tags: [detail]
+      operationId: getDetailStem
+      summary: Download one detail stem as FLAC (44.1 kHz, stereo, 16-bit).
+      responses:
+        '200':
+          description: The detail stem file.
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/DetailConflict'
+components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: Job identifier (32 lower-case hex characters, a UUID without dashes).
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
+      example: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+    DetailJobId:
+      name: detailJobId
+      in: path
+      required: true
+      description: Detail job identifier (32 lower-case hex characters).
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
+      example: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+    ParentStem:
+      name: parent
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ParentStemName'
+    DetailStem:
+      name: name
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/DetailStemName'
+  schemas:
+    SourceType:
+      type: string
+      enum: [youtube, spotify, upload]
+    JobState:
+      type: string
+      description: '`completed` and `failed` are terminal.'
+      enum: [queued, downloading, separating, analysing, completed, failed]
+    StemName:
+      type: string
+      enum: [vocals, drums, bass, guitar, piano, other]
+    ModelName:
+      type: string
+      description: |
+        `fake` only when STEMSTUDIO_SEPARATOR=fake (tests, CI). Stem set by model:
+        `htdemucs_6s` and `fake` = vocals, drums, bass, guitar, piano, other (6);
+        `htdemucs` = vocals, drums, bass, other (4).
+      enum: [htdemucs_6s, htdemucs, fake]
+    CreateJobRequest:
+      type: object
+      additionalProperties: false
+      required: [sourceType, url]
+      properties:
+        sourceType:
+          type: string
+          enum: [youtube, spotify]
+        url:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: |
+            YouTube video URL (hosts youtube.com, www.youtube.com, m.youtube.com,
+            music.youtube.com, youtu.be) or Spotify track URL (open.spotify.com/track/...).
+            Playlists, albums and other hosts are rejected with 400. The backend sends the
+            canonical form (`https://www.youtube.com/watch?v=<id>`,
+            `https://open.spotify.com/track/<id>`), but the worker accepts every form listed as
+            accepted in `source-url-vectors.json` and rejects every rejected one.
+    UploadJobRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: Audio file; the file name extension must be .mp3, .wav or .flac.
+    SourceMetadata:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        sourceUrl:
+          type: [string, 'null']
+          description: YouTube URL the audio was fetched from; null for uploads.
+    Job:
+      type: object
+      additionalProperties: false
+      required: [jobId, sourceKey, sourceType, status, stage, progress, createdAt, updatedAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        sourceKey:
+          type: string
+          pattern: '^(youtube|spotify|upload):[A-Za-z0-9_-]{1,64}$'
+          description: '`youtube:<videoId>`, `spotify:<trackId>` or `upload:<sha256 of the uploaded bytes>`.'
+        sourceType:
+          $ref: '#/components/schemas/SourceType'
+        status:
+          $ref: '#/components/schemas/JobState'
+        stage:
+          type: string
+          maxLength: 200
+          description: Human-readable stage, e.g. "Downloading audio", "Separating stems".
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 1000
+          description: Readable failure reason when status is failed.
+        metadata:
+          oneOf:
+            - $ref: '#/components/schemas/SourceMetadata'
+            - type: 'null'
+          description: Known once the source is resolved (title/artist for display while processing).
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BeatGrid:
+      type: object
+      additionalProperties: false
+      required: [bpm, beats, downbeats, beatsPerBar, confidence, reliable]
+      properties:
+        bpm:
+          type: number
+          minimum: 0
+          maximum: 400
+          description: Global tempo estimate; 0 when detection failed.
+        beats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+          description: Beat times in seconds, ascending.
+        downbeats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+          description: Beat-1 times in seconds; a subset of beats.
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 4
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reliable:
+          type: boolean
+          description: False when there is no clear pulse; the metronome then starts disabled.
+    StemInfo:
+      type: object
+      additionalProperties: false
+      required: [name, path, sizeBytes]
+      properties:
+        name:
+          $ref: '#/components/schemas/StemName'
+        path:
+          type: string
+          description: Relative URL of the stem, /v1/jobs/{jobId}/stems/{name}.
+        sizeBytes:
+          type: integer
+          minimum: 0
+    JobResult:
+      type: object
+      additionalProperties: false
+      required: [jobId, sourceKey, metadata, durationSeconds, sampleRate, channels, audioSha256, model, stems, beatGrid, completedAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        sourceKey:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/SourceMetadata'
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 900
+        sampleRate:
+          type: integer
+          const: 44100
+        channels:
+          type: integer
+          const: 2
+        audioSha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 of the normalised WAV (second cache key).
+        model:
+          $ref: '#/components/schemas/ModelName'
+        stems:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/StemInfo'
+        beatGrid:
+          $ref: '#/components/schemas/BeatGrid'
+        completedAt:
+          type: string
+          format: date-time
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, separator, device, contractVersion]
+      properties:
+        status:
+          type: string
+          const: ok
+        separator:
+          type: string
+          enum: [demucs, fake]
+        device:
+          type: string
+          enum: [cpu, cuda, auto]
+          description: Configured torch device preference (STEMSTUDIO_DEVICE).
+        contractVersion:
+          type: string
+          example: 1.0.0
+    ParentStemName:
+      type: string
+      description: A standard stem that can be split further (`bass` is never split).
+      enum: [vocals, drums, guitar, piano, other]
+    DetailStemName:
+      type: string
+      description: |
+        Detail stem names (closed set). `drums`: kick, snare, toms, hihat, cymbals.
+        `vocals`: lead, backing. `other`, `guitar`, `piano`: strings, brass, woodwinds, keys,
+        synth, acoustic-guitar, electric-guitar, percussion. Every split parent also has
+        `rest` (= parent minus the kept sub-stems), listed last.
+      enum: [kick, snare, toms, hihat, cymbals, lead, backing, strings, brass, woodwinds, keys, synth, acoustic-guitar, electric-guitar, percussion, rest]
+    DetailJobState:
+      type: string
+      description: '`completed`, `failed` and `cancelled` are terminal.'
+      enum: [queued, running, completed, failed, cancelled]
+    ParentOutcomeKind:
+      type: string
+      description: |
+        `split`: at least two meaningful sub-stems plus `rest`. `skipped-silent`: the parent is
+        (almost) silent. `nothing-further`: fewer than two sub-stems are audible.
+        `not-reliable`: the model residual or the reconstruction check failed.
+        `not-supported`: no detail model for this parent (bass).
+      enum: [split, skipped-silent, nothing-further, not-reliable, not-supported]
+    CreateDetailJobRequest:
+      type: object
+      additionalProperties: false
+      required: [standardJobId]
+      properties:
+        standardJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+          description: A completed standard job; its stems in the per-audio cache are split.
+    DetailJob:
+      type: object
+      additionalProperties: false
+      required: [detailJobId, standardJobId, audioSha256, status, stage, progress, createdAt, updatedAt]
+      properties:
+        detailJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        standardJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        audioSha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        status:
+          $ref: '#/components/schemas/DetailJobState'
+        stage:
+          type: string
+          maxLength: 200
+          description: e.g. "Queued", "Waiting for standard separations", "Downloading detail model", "Splitting drums (1 of 3)".
+        currentParent:
+          oneOf:
+            - $ref: '#/components/schemas/ParentStemName'
+            - type: 'null'
+          description: The parent stem being split while running; null otherwise.
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Overall progress of the detail job; never decreases.
+        error:
+          type: [string, 'null']
+          maxLength: 1000
+          description: Readable failure reason when status is failed.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DetailStemInfo:
+      type: object
+      additionalProperties: false
+      required: [name, path, sizeBytes]
+      properties:
+        name:
+          $ref: '#/components/schemas/DetailStemName'
+        path:
+          type: string
+          description: Relative URL /v1/detail-jobs/{detailJobId}/stems/{parent}/{name}.
+        sizeBytes:
+          type: integer
+          minimum: 0
+    OutcomeMetrics:
+      type: object
+      additionalProperties: false
+      required: [parentLevelDbfs, activeShare]
+      description: Gate and check measurements (diagnostics; thresholds in research.md D-04).
+      properties:
+        parentLevelDbfs:
+          type: number
+          maximum: 0
+        activeShare:
+          type: number
+          minimum: 0
+          maximum: 1
+        modelResidualDb:
+          type: [number, 'null']
+          description: Energy of parent minus the sum of all model outputs, relative to the parent (dB).
+        reconstructionErrorDb:
+          type: [number, 'null']
+          description: Energy of parent minus (kept sub-stems + rest) as written, relative to the parent (dB); <= -30 for split parents.
+    ParentOutcome:
+      type: object
+      additionalProperties: false
+      required: [parent, outcome, model, stems, metrics]
+      properties:
+        parent:
+          $ref: '#/components/schemas/StemName'
+        outcome:
+          $ref: '#/components/schemas/ParentOutcomeKind'
+        model:
+          type: [string, 'null']
+          enum: [mdx23c-drumsep-6s, uvr-mdxnet-kara-2, mvsep-mega-53, fake-detail, null]
+          description: Detail model that ran for this parent; null when none ran.
+        stems:
+          type: array
+          maxItems: 10
+          description: Kept sub-stems in display order, `rest` last; empty unless outcome is split.
+          items:
+            $ref: '#/components/schemas/DetailStemInfo'
+        metrics:
+          $ref: '#/components/schemas/OutcomeMetrics'
+    DetailResult:
+      type: object
+      additionalProperties: false
+      required: [detailJobId, audioSha256, separatorVersion, parents, completedAt]
+      properties:
+        detailJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        audioSha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        separatorVersion:
+          type: string
+          description: Version of the detail pipeline (models + thresholds); a change invalidates cached results.
+          example: '1'
+        parents:
+          type: array
+          minItems: 1
+          maxItems: 6
+          description: One outcome per standard stem of the job, in standard display order.
+          items:
+            $ref: '#/components/schemas/ParentOutcome'
+        completedAt:
+          type: string
+          format: date-time
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+  responses:
+    BadRequest:
+      description: Invalid URL, unsupported host, playlist/album, or malformed request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: about:blank
+            title: Invalid source
+            status: 400
+            detail: Only YouTube video and Spotify track URLs are supported; playlists and albums are not.
+    PayloadTooLarge:
+      description: Upload larger than 200 MiB (209,715,200 bytes).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: File too large
+            status: 413
+            detail: The file is larger than 200 MiB (209,715,200 bytes).
+    UnsupportedMediaType:
+      description: Upload is not .mp3, .wav or .flac, or the request body type is neither JSON nor multipart.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Unsupported file type
+            status: 415
+            detail: Only MP3, WAV and FLAC files are supported.
+    NotFound:
+      description: Unknown job or stem.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Job 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c does not exist.
+    NotCompleted:
+      description: The job is not completed (yet), so no result or stems exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Job not completed
+            status: 409
+            detail: Job is in state separating.
+    DetailConflict:
+      description: |
+        The request conflicts with the current state: the standard job is not completed or its
+        stems are no longer in the worker cache (create), the detail job is not completed
+        (result, stems), or it is already completed or failed (cancel).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Conflict
+            status: 409
+            detail: Detail job is in state running.
+  examples:
+    QueuedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: queued
+        stage: Queued
+        progress: 0
+        error: null
+        metadata: null
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:00Z'
+    SeparatingJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: separating
+        stage: Separating stems
+        progress: 47
+        error: null
+        metadata:
+          title: Never Gonna Give You Up
+          artist: Rick Astley
+          sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:03:10Z'
+    CompletedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceType: youtube
+        status: completed
+        stage: Completed
+        progress: 100
+        error: null
+        metadata:
+          title: Never Gonna Give You Up
+          artist: Rick Astley
+          sourceUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:06:30Z'
+    FailedJob:
+      value:
+        jobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        sourceKey: spotify:4cOdK2wGLETKBW3PvgPWqT
+        sourceType: spotify
+        status: failed
+        stage: Failed
+        progress: 5
+        error: No matching YouTube audio was found for this Spotify track.
+        metadata:
+          title: Some Song
+          artist: Some Artist
+          sourceUrl: null
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:20Z'
+    QueuedDetailJob:
+      value:
+        detailJobId: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+        standardJobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        status: queued
+        stage: Queued
+        currentParent: null
+        progress: 0
+        error: null
+        createdAt: '2026-11-15T12:06:31Z'
+        updatedAt: '2026-11-15T12:06:31Z'
+    RunningDetailJob:
+      value:
+        detailJobId: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+        standardJobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        status: running
+        stage: Splitting drums (1 of 3)
+        currentParent: drums
+        progress: 12
+        error: null
+        createdAt: '2026-11-15T12:06:31Z'
+        updatedAt: '2026-11-15T12:08:02Z'
+    FailedDetailJob:
+      value:
+        detailJobId: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+        standardJobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        status: failed
+        stage: Failed
+        currentParent: null
+        progress: 3
+        error: Detail model could not be downloaded; try again when online.
+        createdAt: '2026-11-15T12:06:31Z'
+        updatedAt: '2026-11-15T12:06:40Z'
+    CompletedDetailJob:
+      value:
+        detailJobId: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+        standardJobId: 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c
+        audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        status: completed
+        stage: Completed
+        currentParent: null
+        progress: 100
+        error: null
+        createdAt: '2026-11-15T12:06:31Z'
+        updatedAt: '2026-11-15T12:31:10Z'
+    DetailResultExample:
+      value:
+        detailJobId: 7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b
+        audioSha256: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+        separatorVersion: '1'
+        parents:
+          - parent: vocals
+            outcome: split
+            model: uvr-mdxnet-kara-2
+            stems:
+              - name: lead
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/lead
+                sizeBytes: 19456789
+              - name: backing
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/backing
+                sizeBytes: 9456789
+              - name: rest
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/vocals/rest
+                sizeBytes: 1456789
+            metrics:
+              parentLevelDbfs: -24.6
+              activeShare: 0.67
+              modelResidualDb: -160.0
+              reconstructionErrorDb: -71.2
+          - parent: drums
+            outcome: split
+            model: mdx23c-drumsep-6s
+            stems:
+              - name: kick
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/kick
+                sizeBytes: 12456789
+              - name: snare
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/snare
+                sizeBytes: 13456789
+              - name: toms
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/toms
+                sizeBytes: 9456789
+              - name: hihat
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/hihat
+                sizeBytes: 10456789
+              - name: cymbals
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/cymbals
+                sizeBytes: 11456789
+              - name: rest
+                path: /v1/detail-jobs/7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b/stems/drums/rest
+                sizeBytes: 8456789
+            metrics:
+              parentLevelDbfs: -23.1
+              activeShare: 0.68
+              modelResidualDb: -25.9
+              reconstructionErrorDb: -68.4
+          - parent: bass
+            outcome: not-supported
+            model: null
+            stems: []
+            metrics:
+              parentLevelDbfs: -21.4
+              activeShare: 0.91
+              modelResidualDb: null
+              reconstructionErrorDb: null
+          - parent: guitar
+            outcome: nothing-further
+            model: mvsep-mega-53
+            stems: []
+            metrics:
+              parentLevelDbfs: -23.1
+              activeShare: 0.98
+              modelResidualDb: -9.1
+              reconstructionErrorDb: null
+          - parent: piano
+            outcome: skipped-silent
+            model: null
+            stems: []
+            metrics:
+              parentLevelDbfs: -69.5
+              activeShare: 0.0
+              modelResidualDb: null
+              reconstructionErrorDb: null
+          - parent: other
+            outcome: skipped-silent
+            model: null
+            stems: []
+            metrics:
+              parentLevelDbfs: -46.3
+              activeShare: 0.05
+              modelResidualDb: null
+              reconstructionErrorDb: null
+        completedAt: '2026-11-15T12:31:10Z'

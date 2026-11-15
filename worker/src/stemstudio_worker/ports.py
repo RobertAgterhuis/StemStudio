@@ -6,6 +6,8 @@ Each protocol is implemented by a different agent and faked in unit tests:
   (``ingest/``, factory ``create_ingest_adapters``)
 * ``Separator``: stem-separation (``separation/``, factory ``create_separator``)
 * ``BeatAnalyzer``: beat-analysis (``analysis/``, factory ``create_beat_analyzer``)
+* ``DetailModelProvider`` / ``DetailModel``: stem-separation (``detail/``, factory
+  ``create_detail_adapters``), used by the detail jobs of feature 002
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -18,7 +20,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from stemstudio_worker.schemas import BeatGrid, ModelName, SourceType, StemName
+import numpy as np
+import numpy.typing as npt
+
+from stemstudio_worker.schemas import BeatGrid, DetailModelId, ModelName, SourceType, StemName
+
+DetailAudio = npt.NDArray[np.float32]
+"""Float audio ``(channels, frames)`` at 44.1 kHz handed to and returned by detail models."""
 
 
 class WorkerError(Exception):
@@ -58,6 +66,18 @@ class AudioDecodeError(WorkerError):
 
 class SeparationError(WorkerError):
     """Neither the primary nor the fallback separation model could process the audio."""
+
+
+class DetailModelUnavailableError(WorkerError):
+    """A detail model could not be downloaded or failed its SHA-256 verification."""
+
+
+class DetailSeparationError(WorkerError):
+    """A detail model could not process a parent stem (inference, memory or disk failure)."""
+
+
+class DetailCancelledError(WorkerError):
+    """The running detail job was cancelled; raised from a progress callback between chunks."""
 
 
 @runtime_checkable
@@ -299,3 +319,57 @@ class PipelineAdapters:
     ingest: IngestAdapters
     separator: Separator
     analyzer: BeatAnalyzer
+
+
+class DetailModel(Protocol):
+    """A loaded detail separation model (MDX23C DrumSep, UVR KARA 2, MVSep Mega 53 or a fake)."""
+
+    def separate(self, audio: DetailAudio, progress: ProgressCallback) -> dict[str, DetailAudio]:
+        """Split one parent stem (or the sum of several) into the model's raw outputs.
+
+        Output names are the model's own (e.g. ``hh``, ``bowed_strings``); folding them into
+        ``DetailStemName`` values is done by the caller. Every output has the input's shape.
+
+        Args:
+            audio: Parent audio ``(channels, frames)``.
+            progress: Receives the fraction of inference chunks done; it may raise
+                ``DetailCancelledError`` to stop the model between chunks.
+
+        Returns:
+            Model output name -> audio of the same shape as ``audio``.
+
+        Raises:
+            DetailSeparationError: Inference failed (including out of memory).
+            DetailCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+@runtime_checkable
+class DetailModelProvider(Protocol):
+    """Loads detail models, downloading and verifying their weights on first use."""
+
+    def get(self, model_id: DetailModelId) -> DetailModel:
+        """Return the model ``model_id``, loading it once and reusing it afterwards.
+
+        Args:
+            model_id: Registry id, e.g. ``mdx23c-drumsep-6s``.
+
+        Returns:
+            The ready model.
+
+        Raises:
+            DetailModelUnavailableError: Download failed (offline) or the file is corrupt.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class DetailAdapters:
+    """Adapters of the detail pipeline (``detail.create_detail_adapters``).
+
+    Attributes:
+        models: Provides the detail models (real or fake).
+    """
+
+    models: DetailModelProvider

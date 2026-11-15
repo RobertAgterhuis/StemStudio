@@ -97,11 +97,20 @@ export class Channel {
     };
   }
 
-  /** @param anySolo - Whether any channel is soloed; ramps gain and pan to the new values. */
-  public apply(anySolo: boolean): void {
-    const now = this.context.currentTime;
-    rampTo(this.input.gain, this.current.volume * gateOf(this.current, anySolo), now);
-    rampTo(this.panner.pan, this.current.pan, now);
+  /**
+   * Ramps gain (`volume x gate`) and pan to the current settings.
+   *
+   * @param gate - 0 or 1 from the solo/mute gate.
+   * @param at - Context time the ramps start; defaults to `currentTime`.
+   */
+  public apply(gate: number, at: number = this.context.currentTime): void {
+    rampTo(this.input.gain, this.current.volume * gate, at);
+    rampTo(this.panner.pan, this.current.pan, at);
+  }
+
+  /** @param gate - Initial gate of a freshly built channel, set without automation. */
+  public initGate(gate: number): void {
+    this.input.gain.value = gate;
   }
 
   /** Disconnects all nodes of the channel. */

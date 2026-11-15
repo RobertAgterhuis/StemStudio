@@ -1,14 +1,18 @@
-"""The running job subsystem: store, reconciliation, runner thread and job service."""
+"""The running job subsystem: stores, reconciliation, scheduler thread and services."""
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.detail_runner import DetailRunner
+from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
+from stemstudio_worker.jobs.detail_store import DetailJobStore
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
-from stemstudio_worker.jobs.queue import JobQueue
-from stemstudio_worker.jobs.reconcile import reconcile
+from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
+from stemstudio_worker.jobs.scheduler import PriorityScheduler
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import PipelineAdapters
@@ -21,6 +25,16 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+def _load(paths: DataPaths, clock: Clock) -> DetailContext:
+    """Load both stores and fail the jobs a restart interrupted."""
+    store, details = JobStore(paths.jobs), DetailJobStore(paths.detail_jobs)
+    store.load_all()
+    details.load_all()
+    reconcile(store, paths, clock)
+    reconcile_detail_jobs(details, paths, clock)
+    return DetailContext(store, details, paths, clock)
+
+
 @dataclass(frozen=True, slots=True)
 class WorkerRuntime:
     """Everything the HTTP layer needs while the worker runs.
@@ -30,31 +44,37 @@ class WorkerRuntime:
         adapters: The pipeline adapters (used directly for resolving URLs and accepting uploads).
         paths: Data directory layout.
         store: The job store.
-        queue: The FIFO queue with its worker thread.
+        details: The detail job store.
+        scheduler: The priority scheduler with its worker thread.
         service: Creates (or reuses) jobs.
+        detail_service: Creates, reads and cancels detail jobs.
     """
 
     settings: WorkerSettings
     adapters: PipelineAdapters
     paths: DataPaths
     store: JobStore
-    queue: JobQueue
+    details: DetailJobStore
+    scheduler: PriorityScheduler
     service: JobService
+    detail_service: DetailService
 
     @classmethod
     def start(
-        cls, settings: WorkerSettings, adapters: PipelineAdapters, clock: Clock = utc_now
+        cls, settings: WorkerSettings, adapters: PipelineAdapters, pipeline: DetailPipelinePort
     ) -> "WorkerRuntime":
         """Load the jobs, reconcile interrupted ones and start the worker thread."""
         paths = DataPaths(settings.data_dir)
-        store = JobStore(paths.jobs)
-        store.load_all()
-        reconcile(store, paths, clock)
-        queue = JobQueue(JobRunner(JobContext(store, paths, clock), adapters).process)
-        service = JobService(store, queue.submit, clock)
-        queue.start()
-        return cls(settings, adapters, paths, store, queue, service)
+        context = _load(paths, utc_now)
+        store, details, clock = context.jobs, context.details, context.clock
+        runner = JobRunner(JobContext(store, paths, clock), adapters)
+        details_runner = DetailRunner(context, pipeline)
+        scheduler = PriorityScheduler(runner.process, details_runner.step, details_runner.waiting)
+        service = JobService(store, scheduler.submit, clock)
+        detail_service = DetailService(context, scheduler.submit_detail)
+        scheduler.start()
+        return cls(settings, adapters, paths, store, details, scheduler, service, detail_service)
 
     def stop(self) -> None:
         """Stop the worker thread; a job still running is reconciled at the next start."""
-        self.queue.stop(_STOP_TIMEOUT_SECONDS)
+        self.scheduler.stop(_STOP_TIMEOUT_SECONDS)

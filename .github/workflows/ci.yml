@@ -23,7 +23,7 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  CONTRACTS_DIR: specs/001-stemstudio-mvp/contracts
+  CONTRACTS_DIR: specs/002-detail-separation/contracts
 
 jobs:
   dotnet:

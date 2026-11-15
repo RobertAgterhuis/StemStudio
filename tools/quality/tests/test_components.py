@@ -70,6 +70,7 @@ REQUESTED = [
     "Web",
     "worker/ingest",
     "worker/separation",
+    "worker/detail",
     "worker/analysis",
     "worker/jobs",
     "worker/api",
@@ -83,3 +84,9 @@ REQUESTED = [
 def test_default_components_cover_every_requested_area() -> None:
     names = [c.name for c in COMPONENTS]
     assert names == [*REQUESTED, "Test code (all)"]
+
+
+def test_worker_detail_component_measures_detail_production_code() -> None:
+    (detail,) = [c for c in COMPONENTS if c.name == "worker/detail"]
+    assert detail.contains("worker/src/stemstudio_worker/detail/steps.py", test=False)
+    assert not detail.contains("worker/src/stemstudio_worker/jobs/scheduler.py", test=False)

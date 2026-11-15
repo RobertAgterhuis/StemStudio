@@ -36,7 +36,7 @@ public interface IAudioEngine : IAsyncDisposable
     /// <returns>A task that completes when the engine exists.</returns>
     Task InitializeAsync();
 
-    /// <summary>Downloads and decodes all stems of a completed track from the public API URL.</summary>
+    /// <summary>Downloads and decodes all stems of a completed track and registers its detail groups (loaded lazily).</summary>
     /// <param name="track">A completed track.</param>
     /// <returns>The duration in seconds.</returns>
     Task<double> LoadTrackAsync(TrackDto track);
@@ -59,9 +59,18 @@ public interface IAudioEngine : IAsyncDisposable
     Task SeekAsync(double seconds);
 
     /// <summary>Applies one channel's volume, pan, mute and solo.</summary>
-    /// <param name="channel">The channel settings including the stem name.</param>
+    /// <param name="channel">The channel settings; <c>Stem</c> is the channel id (stem name or <c>&lt;parent&gt;.&lt;detail&gt;</c>).</param>
     /// <returns>A task that completes when the call is delivered.</returns>
     Task SetChannelAsync(ChannelSettingsDto channel);
+
+    /// <summary>
+    /// Expands (detail stems replace the parent; the group is loaded on first use) or collapses a split parent
+    /// (engine contract 2.0.0). A failing group load throws and the parent stays collapsed.
+    /// </summary>
+    /// <param name="parent">A parent with a detail group.</param>
+    /// <param name="expanded">The new state.</param>
+    /// <returns>A task that completes when the swap is scheduled.</returns>
+    Task SetExpandedAsync(string parent, bool expanded);
 
     /// <summary>Sets the master gain 0..1.</summary>
     /// <param name="volume">The gain.</param>
@@ -79,7 +88,7 @@ public interface IAudioEngine : IAsyncDisposable
     Task SetMetronomeAsync(MetronomeSettingsDto settings);
 
     /// <summary>Binds a peak meter to a DOM element.</summary>
-    /// <param name="target">A stem name or <c>master</c>.</param>
+    /// <param name="target">A channel id (stem name or <c>&lt;parent&gt;.&lt;detail&gt;</c>) or <c>master</c>.</param>
     /// <param name="elementId">The element id.</param>
     /// <returns>A task that completes when the call is delivered.</returns>
     Task AttachMeterAsync(string target, string elementId);

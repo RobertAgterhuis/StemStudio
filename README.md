@@ -130,9 +130,20 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 - **Single user**, local only: no accounts, no authentication. Do not expose the ports to the
   internet.
 - Exporting a mix to an audio file is not part of the MVP (first backlog item).
+- **Detail separation** (drums -> kick/snare/toms/hihat/cymbals, vocals -> lead/backing,
+  guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
+  leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
+  4-minute song (first use downloads ~1.9 GB of models; Docker needs >= 20 GB memory).
 
 ## Licences
 
-StemStudio uses open-source components only; see
+> **Model weights: local, personal, non-commercial use only.** The pretrained separation models
+> (Demucs `htdemucs_6s`/`htdemucs` and the detail models MDX23C DrumSep, UVR MDX-Net KARA 2 and
+> MVSep Mega 53-stem) have non-commercial, unclear or no stated licences. They are downloaded on
+> first use and are never part of this repository. Commercial use and redistributing images or
+> volumes that contain them are not covered. Detail separation credits Ultimate Vocal Remover
+> (UVR) and its developers, and ZFTurbo's Music-Source-Separation-Training.
+
+StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components
 pulled in by spotDL, Demucs and librosa.

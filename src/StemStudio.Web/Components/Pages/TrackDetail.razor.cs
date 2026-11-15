@@ -5,7 +5,10 @@ using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Pages;
 
-/// <summary>Track detail (<c>/tracks/{id}</c>): polls progress about once per second until terminal (FR-008, US1-4, US1-8).</summary>
+/// <summary>
+/// Track detail (<c>/tracks/{id}</c>): polls progress about once per second until the track is terminal and its
+/// detail phase is not queued or running (FR-008, US1-4, US1-8; 002 FR-007).
+/// </summary>
 public sealed partial class TrackDetail : IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
@@ -30,6 +33,9 @@ public sealed partial class TrackDetail : IDisposable
     /// <summary>Error of the last poll, retry or delete, cleared by the next successful poll or retry.</summary>
     private string? ActionError { get; set; }
 
+    /// <summary>True while the standard separation or the detail phase is still in progress.</summary>
+    private bool NeedsPolling => !TrackStatusText.IsTerminal(Track!.Status) || DetailPhaseText.IsActive(Track.Detail.Status);
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -53,7 +59,7 @@ public sealed partial class TrackDetail : IDisposable
 
     private void StartPolling()
     {
-        if (!TrackStatusText.IsTerminal(Track!.Status) && _polling is not { IsCompleted: false })
+        if (NeedsPolling && _polling is not { IsCompleted: false })
         {
             _polling = PollAsync(_stop.Token);
         }
@@ -65,7 +71,7 @@ public sealed partial class TrackDetail : IDisposable
         {
             await RefreshAsync(ct);
             await InvokeAsync(StateHasChanged);
-            if (TrackStatusText.IsTerminal(Track!.Status))
+            if (!NeedsPolling)
             {
                 return;
             }

@@ -21,6 +21,7 @@
     "**/*.Designer.cs",
     "**/*.d.ts",
     "**/wwwroot/js/audio-engine.js",
-    "**/tools/quality/tests/samples/**"
+    "**/tools/quality/tests/samples/**",
+    "**/stemstudio_worker/detail/vendor/**"
   ]
 }

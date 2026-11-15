@@ -11,4 +11,11 @@ public sealed record MixSettingsDto(
     double MasterVolume,
     IReadOnlyList<ChannelSettingsDto> Channels,
     MetronomeSettingsDto Metronome,
-    LoopRegionDto? Loop);
+    LoopRegionDto? Loop)
+{
+    /// <summary>Parents shown expanded (each must be split on the track); empty = all collapsed (mixes saved before 1.2.0).</summary>
+    public IReadOnlyList<string> Expanded { get; init; } = [];
+
+    /// <summary>At most one entry per (parent, detail stem); detail stems without an entry use defaults.</summary>
+    public IReadOnlyList<DetailChannelSettingsDto> DetailChannels { get; init; } = [];
+}

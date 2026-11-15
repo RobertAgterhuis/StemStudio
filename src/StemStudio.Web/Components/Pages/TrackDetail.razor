@@ -43,6 +43,13 @@ else
                           Disabled="IsRetrying" data-testid="track-retry" />
         }
 
+        @if (DeleteBlockedReason is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="track-delete-blocked">
+                @DeleteBlockedReason Cancel the detail phase or wait until it has finished, then delete the track.
+            </div>
+        }
+
         @if (CanDelete)
         {
             <div class="ss-row ss-delete">
@@ -66,5 +73,6 @@ else
     @if (Track.Status == TrackStatusDto.Completed)
     {
         <TrackSummary Track="Track" />
+        <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" />
     }
 }

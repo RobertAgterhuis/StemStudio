@@ -1,5 +1,5 @@
 /**
- * Access to the generated audio fixtures and their committed manifest (`tests/fixtures/`).
+ * Access to the generated audio fixtures and their committed manifests (`tests/fixtures/`).
  *
  * @packageDocumentation
  */
@@ -16,6 +16,9 @@ export type FixtureName =
   | 'silence_5s.wav'
   | 'corrupt.mp3'
   | 'unsupported.ogg';
+
+/** Detail fixtures the E2E suite imports (feature 002, `detail-manifest.json`). */
+export type DetailFixtureName = 'detail_10s_band.wav';
 
 /** Known facts of one fixture, as written by `generate_fixtures.py`. */
 export interface FixtureFacts {
@@ -54,12 +57,11 @@ export function fixtureFacts(name: FixtureName): FixtureFacts {
  * Absolute path of a generated fixture file.
  * @throws Error naming the generator command when the audio has not been generated yet.
  */
-export function fixturePath(name: FixtureName): string {
+export function fixturePath(name: FixtureName | DetailFixtureName): string {
   const file = path.join(fixtureRoot, 'audio', name);
   if (!existsSync(file)) {
-    throw new Error(
-      `Fixture ${name} is missing; run: uv run --project worker python tests/fixtures/generate_fixtures.py`,
-    );
+    const generator = name.startsWith('detail_') ? 'generate_detail_fixtures.py' : 'generate_fixtures.py';
+    throw new Error(`Fixture ${name} is missing; run: uv run --project worker python tests/fixtures/${generator}`);
   }
   return file;
 }

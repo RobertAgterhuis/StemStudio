@@ -1,6 +1,8 @@
-# Real-model checks (slow): the single real-Demucs integration test and the @real Playwright flow
-# against compose with STEMSTUDIO_SEPARATOR=demucs. Manual, plus a weekly run to catch upstream
-# breakage (yt-dlp, model hosting). The Demucs weights are cached with actions/cache.
+# Real-model checks (slow): the marked integration tests (Demucs, and the detail models of feature
+# 002: MDX23C DrumSep, UVR KARA 2, MVSep Mega 53-stem) and the @real Playwright flow against compose
+# with STEMSTUDIO_SEPARATOR=demucs. Manual, plus a weekly run to catch upstream breakage (yt-dlp,
+# model hosting). All weights (~2.2 GB) are cached with actions/cache in .model-cache, whose layout
+# equals the worker's /models volume (hf/, torch/, detail weights via STEMSTUDIO_MODEL_DIR).
 # CI=true makes a missing model or network FAIL the integration test instead of skipping it (K5).
 name: e2e-real
 
@@ -20,16 +22,17 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   CI: "true"
-  MODEL_CACHE_KEY: demucs-models-htdemucs_6s-htdemucs-v1
+  MODEL_CACHE_KEY: models-htdemucs_6s-htdemucs-detail-drumsep-kara2-mega53-v2
 
 jobs:
   worker-integration:
-    name: Worker integration test (real Demucs)
+    name: Worker integration tests (real Demucs, real detail models)
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 110
     env:
       HF_HOME: ${{ github.workspace }}/.model-cache/hf
       TORCH_HOME: ${{ github.workspace }}/.model-cache/torch
+      STEMSTUDIO_MODEL_DIR: ${{ github.workspace }}/.model-cache
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -47,9 +50,16 @@ jobs:
       - name: Sync (frozen lock)
         working-directory: worker
         run: uv sync --frozen
-      - name: pytest -m integration
+      - name: Generate the detail fixtures (10 s band input of the detail integration test)
+        run: uv run --project worker --frozen python tests/fixtures/generate_detail_fixtures.py
+      - name: pytest -m integration (Demucs and the other real tools, without the detail models)
         working-directory: worker
-        run: uv run --frozen pytest -m integration -v --timeout=2400
+        timeout-minutes: 45
+        run: uv run --frozen pytest -m integration -v --timeout=2400 --ignore=tests/detail
+      - name: pytest -m integration tests/detail (real detail models; ~1.9 GB download when not cached)
+        working-directory: worker
+        timeout-minutes: 60
+        run: uv run --frozen pytest -m integration -v --timeout=3600 tests/detail
 
   e2e-real:
     name: Playwright @real (compose, real Demucs)

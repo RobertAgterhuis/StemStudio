@@ -26,6 +26,10 @@ class WorkerSettings:
         max_upload_bytes: Largest accepted upload (200 MiB).
         primary_model: Demucs model tried first.
         fallback_model: Demucs model used when the primary cannot be loaded.
+        model_dir: Root of downloaded detail model weights (``STEMSTUDIO_MODEL_DIR``); never
+            inside the repository (constitution IV).
+        fake_detail_step_seconds: Delay per parent step of the fake detail models
+            (``STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS``), so E2E tests can observe progress.
     """
 
     data_dir: Path
@@ -35,6 +39,8 @@ class WorkerSettings:
     max_upload_bytes: int = 200 * 1024 * 1024
     primary_model: str = "htdemucs_6s"
     fallback_model: str = "htdemucs"
+    model_dir: Path = Path("data/models")
+    fake_detail_step_seconds: float = 1.0
 
 
 def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
@@ -54,6 +60,8 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         data_dir=Path(env.get("STEMSTUDIO_DATA_DIR", "data/worker")),
         separator=cast(SeparatorKind, _choice(env, "STEMSTUDIO_SEPARATOR", _SEPARATORS)),
         device=cast(DeviceKind, _choice(env, "STEMSTUDIO_DEVICE", _DEVICES)),
+        model_dir=Path(env.get("STEMSTUDIO_MODEL_DIR", "data/models")),
+        fake_detail_step_seconds=_seconds(env, "STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS", 1.0),
     )
 
 
@@ -62,5 +70,20 @@ def _choice(env: Mapping[str, str], name: str, allowed: tuple[str, ...]) -> str:
     value = env.get(name, allowed[0]).strip().lower()
     if value not in allowed:
         msg = f"{name} must be one of {', '.join(allowed)}; got {value!r}"
+        raise ValueError(msg)
+    return value
+
+
+def _seconds(env: Mapping[str, str], name: str, default: float) -> float:
+    """Read ``name`` as a non-negative number of seconds; ``default`` when unset."""
+    raw = env.get(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        value = -1.0
+    if value < 0:
+        msg = f"{name} must be a non-negative number of seconds; got {raw!r}"
         raise ValueError(msg)
     return value

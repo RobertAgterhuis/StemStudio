@@ -44,6 +44,14 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     }
 
     /// <inheritdoc />
+    public Task<TrackDto> StartDetailAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.StartDetail(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<TrackDto> CancelDetailAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.CancelDetail(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MixSummaryDto>> ListMixesAsync(Guid? trackId = null, CancellationToken cancellationToken = default) =>
         SendAsync<IReadOnlyList<MixSummaryDto>>(HttpMethod.Get, MixesQuery(trackId), null, cancellationToken);
 

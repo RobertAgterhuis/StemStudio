@@ -23,7 +23,8 @@ public sealed partial class MixerState
         DetectedBeatsPerBar = track.BeatGrid?.BeatsPerBar ?? 4;
         var present = track.Stems.Select(s => s.Name).ToHashSet(StringComparer.Ordinal);
         Channels = StemNames.SixStem.Where(present.Contains).Select(name => new ChannelState(name)).ToList();
-        _byStem = Channels.ToDictionary(c => c.Stem, StringComparer.Ordinal);
+        Groups = BuildGroups(track);
+        _byStem = AllChannels.ToDictionary(c => c.Stem, StringComparer.Ordinal);
         Metronome = new MetronomeSettingsDto(track.BeatGrid?.Reliable ?? false, ContractLimits.DefaultMetronomeVolume, null, 0, DetectedBeatsPerBar);
     }
 
@@ -36,7 +37,7 @@ public sealed partial class MixerState
     /// <summary>Beats per bar of the detected grid (4 when unknown); restored by the metronome reset.</summary>
     public int DetectedBeatsPerBar { get; }
 
-    /// <summary>One channel per available stem.</summary>
+    /// <summary>One channel per available standard stem.</summary>
     public IReadOnlyList<ChannelState> Channels { get; }
 
     /// <summary>Master gain 0..1 (default 1).</summary>
@@ -69,16 +70,19 @@ public sealed partial class MixerState
     /// <summary>True after any change since the last load or save (FR-011a).</summary>
     public bool IsDirty { get; private set; }
 
-    /// <summary>True when at least one channel is soloed.</summary>
-    public bool AnySolo => Channels.Any(c => c.Solo);
+    /// <summary>True when at least one audible-level channel is soloed (solo flags of hidden channels are ignored).</summary>
+    public bool AnySolo => AllChannels.Any(c => c.Solo && !IsHidden(c));
 
-    /// <summary>Mirror of the engine's gate: muted channels are silent; with any solo only soloed channels play.</summary>
+    /// <summary>
+    /// Mirror of the engine's gate (contract 2.0.0): hidden and muted channels are silent; with any audible-level
+    /// solo only soloed channels play.
+    /// </summary>
     /// <param name="channel">The channel.</param>
     /// <returns>Whether the channel is audible.</returns>
-    public bool IsAudible(ChannelState channel) => !channel.Mute && (!AnySolo || channel.Solo);
+    public bool IsAudible(ChannelState channel) => !IsHidden(channel) && !channel.Mute && (!AnySolo || channel.Solo);
 
-    /// <summary>Gets a channel by stem name.</summary>
-    /// <param name="stem">The stem.</param>
+    /// <summary>Gets a channel by engine id (stem name or <c>&lt;parent&gt;.&lt;detail&gt;</c>).</summary>
+    /// <param name="stem">The channel id.</param>
     /// <returns>The channel.</returns>
     public ChannelState Channel(string stem) =>
         _byStem.TryGetValue(stem, out var channel) ? channel : throw new ArgumentException($"Unknown stem '{stem}'.", nameof(stem));

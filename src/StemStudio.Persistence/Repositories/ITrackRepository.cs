@@ -27,6 +27,11 @@ public interface ITrackRepository
     /// <returns>The tracked tracks.</returns>
     Task<IReadOnlyList<Track>> ListActiveAsync(CancellationToken cancellationToken);
 
+    /// <summary>Completed tracks whose detail phase is queued or running, for the detail synchroniser (oldest first).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The tracked tracks.</returns>
+    Task<IReadOnlyList<Track>> ListDetailActiveAsync(CancellationToken cancellationToken);
+
     /// <summary>
     /// Queued tracks that never got a worker job and were last changed before <paramref name="updatedBeforeUtc"/>: the
     /// import was interrupted between the insert and the worker call.

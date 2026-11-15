@@ -8,13 +8,38 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '1.0.0';
+export type EngineContractVersion = '2.0.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
 
-/** Meter target name: a stem or the master bus. */
-export type MeterTarget = StemName | 'master';
+/** Standard stems that can be split into detail stems (`bass` is never split). */
+export type ParentStemName = 'vocals' | 'drums' | 'guitar' | 'piano' | 'other';
+
+/** Detail stem names (closed set); `rest` is the last stem of every split parent. */
+export type DetailStemName =
+  | 'kick'
+  | 'snare'
+  | 'toms'
+  | 'hihat'
+  | 'cymbals'
+  | 'lead'
+  | 'backing'
+  | 'strings'
+  | 'brass'
+  | 'woodwinds'
+  | 'keys'
+  | 'synth'
+  | 'acoustic-guitar'
+  | 'electric-guitar'
+  | 'percussion'
+  | 'rest';
+
+/** Channel address: a standard stem, or `<parent>.<detail>` for a detail stem (e.g. `drums.snare`). */
+export type ChannelId = StemName | `${ParentStemName}.${DetailStemName}`;
+
+/** Meter target name: a channel or the master bus. */
+export type MeterTarget = ChannelId | 'master';
 
 /** Transport state reported to .NET via {@link DotNetCallbacks.OnPlaybackStateChanged}. */
 export type PlaybackState = 'stopped' | 'playing' | 'paused';
@@ -67,6 +92,27 @@ export interface LoadTrackRequest {
   readonly stems: readonly StemSource[];
   /** Beat grid used by the metronome; null when the track has none. */
   readonly beatGrid: BeatGrid | null;
+  /**
+   * Detail stem groups of split parents (contract 2.0.0); default none. Their files are fetched
+   * lazily on the first {@link AudioEngine.setExpanded} of the parent.
+   */
+  readonly groups?: readonly DetailGroup[];
+}
+
+/** One detail stem file of a group. */
+export interface DetailStemSource {
+  /** Detail stem name. */
+  readonly name: DetailStemName;
+  /** Absolute or API-relative URL of the FLAC file (`/api/tracks/{id}/detail-stems/{parent}/{name}`). */
+  readonly url: string;
+}
+
+/** The detail stems of one split parent, in display order with `rest` last. */
+export interface DetailGroup {
+  /** The parent stem whose audio the group replaces when expanded. */
+  readonly parent: ParentStemName;
+  /** Detail stems; together they sum to the parent. */
+  readonly stems: readonly DetailStemSource[];
 }
 
 /** Per-channel mixer state; mirrors `ChannelSettingsDto` without the stem name. */
@@ -142,8 +188,14 @@ export interface AudioEngine {
   getPosition(): number;
   /** Current transport state. */
   getState(): PlaybackState;
-  /** Applies channel settings; gain changes are ramped (<= 10 ms) to avoid clicks. */
-  setChannel(name: StemName, settings: ChannelSettings): void;
+  /** Applies channel settings (standard or detail channel); gain changes are ramped (<= 10 ms). */
+  setChannel(name: ChannelId, settings: ChannelSettings): void;
+  /**
+   * Expands (detail stems replace the parent's audio) or collapses a parent with a group. The first
+   * expansion fetches and decodes the group; the swap is a gate change at one context time.
+   * Rejects for a parent without a group or when the group cannot be loaded (parent stays collapsed).
+   */
+  setExpanded(parent: ParentStemName, expanded: boolean): Promise<void>;
   /** Sets the master gain 0..1. */
   setMaster(volume: number): void;
   /** Sets or clears looping; rejects B <= A or a region outside the track. */

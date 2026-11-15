@@ -11,6 +11,8 @@ export interface FetchReply {
 export class FetchStub {
   public readonly requested: string[] = [];
   private readonly replies = new Map<string, FetchReply>();
+  private gate: Promise<void> | null = null;
+  private heldPrefix = '';
 
   /** Registers the reply for `url`. */
   public reply(url: string, reply: FetchReply): this {
@@ -18,12 +20,27 @@ export class FetchStub {
     return this;
   }
 
+  /** Makes later requests whose URL starts with `prefix` wait until the returned function is called. */
+  public hold(prefix = ''): () => void {
+    this.heldPrefix = prefix;
+    let release: () => void = () => undefined;
+    this.gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return () => {
+      this.gate = null;
+      release();
+    };
+  }
+
   /** The `fetch` function to inject into the engine. */
   public readonly fetch = (input: RequestInfo | URL): Promise<Response> => {
     const url = input instanceof Request ? input.url : String(input);
     this.requested.push(url);
     const reply = this.replies.get(url) ?? { status: 404 };
-    return reply.error === undefined ? Promise.resolve(makeResponse(reply)) : Promise.reject(reply.error);
+    const respond = (): Promise<Response> =>
+      reply.error === undefined ? Promise.resolve(makeResponse(reply)) : Promise.reject(reply.error);
+    return this.gate === null || !url.startsWith(this.heldPrefix) ? respond() : this.gate.then(respond);
   };
 }
 

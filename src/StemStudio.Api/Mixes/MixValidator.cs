@@ -25,6 +25,7 @@ public static class MixValidator
         Require(errors, dto.Metronome is not null, "metronome");
         Require(errors, dto.Channels is not null, "channels");
         RequireChannels(errors, dto.Channels ?? []);
+        RequireDetail(errors, dto);
         return errors.Count == 0 ? (MixMapper.ToDomain(dto), errors) : (null, errors);
     }
 
@@ -42,6 +43,23 @@ public static class MixValidator
             var field = string.Create(CultureInfo.InvariantCulture, $"channels[{i}]");
             Require(errors, channels[i] is not null, field);
             Require(errors, channels[i] is null || channels[i].Stem is not null, field + ".stem");
+        }
+    }
+
+    /// <summary>Absent or null detail lists mean "empty" (mixes saved with 1.1.0); null entries are missing values.</summary>
+    private static void RequireDetail(List<DomainError> errors, MixSettingsDto dto)
+    {
+        var expanded = dto.Expanded ?? [];
+        for (var i = 0; i < expanded.Count; i++)
+        {
+            Require(errors, expanded[i] is not null, string.Create(CultureInfo.InvariantCulture, $"expanded[{i}]"));
+        }
+
+        var channels = dto.DetailChannels ?? [];
+        for (var i = 0; i < channels.Count; i++)
+        {
+            var field = string.Create(CultureInfo.InvariantCulture, $"detailChannels[{i}]");
+            Require(errors, channels[i] is { Parent: not null, Stem: not null }, field);
         }
     }
 

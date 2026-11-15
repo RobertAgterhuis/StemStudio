@@ -9,6 +9,7 @@
 
 .PARAMETER Fake
     Uses the fake separator (STEMSTUDIO_SEPARATOR=fake): stems are copies of the mix, no model download.
+    The detail phase is faked too (STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS per parent step, default 1).
 
 .PARAMETER SkipEngineBuild
     Does not run 'npm ci' / 'npm run build' in src/audio-engine (reuse the existing bundle).
@@ -63,12 +64,15 @@ function Initialize-Environment {
     New-Item -ItemType Directory -Force -Path (Join-Path $dataDir 'worker'), (Join-Path $dataDir 'api') | Out-Null
     $env:STEMSTUDIO_DATA_DIR = Join-Path $dataDir 'worker'
     $env:STEMSTUDIO_SEPARATOR = if ($Fake) { 'fake' } elseif ($env:STEMSTUDIO_SEPARATOR) { $env:STEMSTUDIO_SEPARATOR } else { 'demucs' }
+    # Detail model weights (~1.9 GB, first real detail phase); data/ is git-ignored; existing values win.
+    if (-not $env:STEMSTUDIO_MODEL_DIR) { $env:STEMSTUDIO_MODEL_DIR = Join-Path $dataDir 'models' }
+    if (-not $env:STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS) { $env:STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS = '1' }
     $env:StemStudio__DataDir = Join-Path $dataDir 'api'
     $env:StemStudio__WorkerBaseUrl = 'http://localhost:8000'
     $env:StemStudio__WebOrigin = 'http://localhost:8080'
     $env:StemStudio__ApiBaseUrl = 'http://localhost:8081'
     $env:StemStudio__PublicApiBaseUrl = 'http://localhost:8081'
-    Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR; data under $dataDir"
+    Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR; data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
 }
 
 function Build-Engine {

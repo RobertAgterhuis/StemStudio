@@ -28,6 +28,7 @@ from common import (
     count_errors,
     default_paths,
     format_findings,
+    is_excluded,
     is_production,
     relative,
 )
@@ -89,8 +90,13 @@ def build_command(npx: str, output_dir: Path, paths: Sequence[Path]) -> list[str
 
 
 def parse_report(report: dict[str, Any], root: Path) -> tuple[list[Clone], float]:
-    """Return the clones and the total duplicated-lines percentage of a jscpd JSON report."""
+    """Return the clones and the total duplicated-lines percentage of a jscpd JSON report.
+
+    Clones touching an excluded path (e.g. vendored code) are dropped, in case jscpd's own
+    ``ignore`` list missed them.
+    """
     clones = [_to_clone(entry, root) for entry in report.get("duplicates", [])]
+    clones = [c for c in clones if not (is_excluded(c.first) or is_excluded(c.second))]
     total = report.get("statistics", {}).get("total", {})
     return clones, float(total.get("percentage", 0.0))
 

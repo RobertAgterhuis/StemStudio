@@ -85,6 +85,22 @@ export async function sliderAction(control: Locator, value: number): Promise<Pro
   return isInput ? { kind: 'value', value } : { kind: 'key', key: 'ArrowLeft' };
 }
 
+/** Controls of one SC-004 measurement: a fader moved to 50 %, a mute and a solo toggle. */
+export interface Sc004Controls {
+  readonly fader: Locator;
+  readonly mute: Locator;
+  readonly solo: Locator;
+}
+
+/** Milliseconds from user action to the engine's first AudioParam call, per control. */
+export async function measureSc004(controls: Sc004Controls): Promise<Record<keyof Sc004Controls, number>> {
+  return {
+    fader: await measureActionToEngineMs(controls.fader, await sliderAction(controls.fader, 50)),
+    mute: await measureActionToEngineMs(controls.mute, { kind: 'click' }),
+    solo: await measureActionToEngineMs(controls.solo, { kind: 'click' }),
+  };
+}
+
 // markAndAct and waitForEngineCall are serialised into the page by Playwright: they must not
 // reference anything outside their own bodies.
 function markAndAct(el: Element, action: ProbeAction): void {

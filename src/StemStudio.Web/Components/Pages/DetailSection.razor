@@ -1,0 +1,63 @@
+@* Detail phase of a completed track: status, progress, per-parent outcomes, detail stems and limitations (FR-007, FR-017). *@
+
+<RadzenCard class="ss-card ss-detail" aria-labelledby="detail-heading" data-testid="detail-section">
+    <h2 class="ss-subtitle" id="detail-heading">Detail stems</h2>
+    <div class="ss-row">
+        <RadzenBadge BadgeStyle="DetailPhaseText.Badge(Detail.Status)" Text="@DetailPhaseText.Status(Detail.Status)"
+                     data-testid="detail-status" />
+        @if (Active && Detail.Stage is not null)
+        {
+            <span class="ss-stage" data-testid="detail-stage">@Detail.Stage</span>
+        }
+    </div>
+
+    @if (Detail.Status != DetailPhaseStatusDto.None)
+    {
+        <RadzenProgressBar Value="Detail.Progress" Max="100" ShowValue="true" aria-label="Detail separation progress"
+                           data-testid="detail-progress" />
+    }
+
+    @if (Detail.Status == DetailPhaseStatusDto.Failed)
+    {
+        <div class="ss-error" role="alert" data-testid="detail-error">@Detail.Error</div>
+    }
+
+    <div class="ss-row">
+        @if (Detail.Status == DetailPhaseStatusDto.None)
+        {
+            <RadzenButton Text="Split further" Icon="call_split" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
+                          Disabled="Busy" data-testid="detail-split-further" />
+        }
+        @if (CanRetry)
+        {
+            <RadzenButton Text="Retry detail separation" Icon="refresh" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
+                          Disabled="Busy" data-testid="detail-retry" />
+        }
+        @if (Active)
+        {
+            <RadzenButton Text="Cancel detail separation" Icon="cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel"
+                          IsBusy="Busy" BusyText="Cancelling..." Disabled="Busy" data-testid="detail-cancel" />
+        }
+    </div>
+
+    @if (Notice is not null)
+    {
+        <p class="ss-notice" role="note" data-testid="detail-long-notice">@Notice</p>
+    }
+
+    @if (Detail.Status == DetailPhaseStatusDto.Completed)
+    {
+        <ul class="ss-outcomes">
+            @foreach (var outcome in Detail.Parents)
+            {
+                <li class="ss-outcome">
+                    <span class="ss-outcome-parent">@outcome.Parent</span>
+                    <span data-testid="@($"detail-outcome-{outcome.Parent}")" data-outcome="@DetailPhaseText.Kind(outcome.Outcome)">@DetailPhaseText.Outcome(outcome)</span>
+                    <DetailStemList Outcome="outcome" />
+                </li>
+            }
+        </ul>
+    }
+
+    <p class="ss-help" data-testid="detail-limitation-help">@DetailPhaseText.LimitationHelp</p>
+</RadzenCard>

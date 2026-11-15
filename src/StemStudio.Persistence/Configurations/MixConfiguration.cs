@@ -29,5 +29,9 @@ public sealed class MixConfiguration : IEntityTypeConfiguration<Mix>
         builder.ComplexCollection<List<ChannelSettings>, ChannelSettings>("_channels", collection => collection.ToJson("Channels"));
         builder.ComplexProperty(mix => mix.Metronome, metronome => metronome.ToJson());
         builder.ComplexProperty(mix => mix.Loop, loop => loop.ToJson());
+        builder.Ignore(mix => mix.Expanded);
+        builder.PrimitiveCollection<List<string>>("_expanded").HasColumnName("Expanded");
+        builder.Ignore(mix => mix.DetailChannels);
+        builder.ComplexCollection<List<DetailChannelSettings>, DetailChannelSettings>("_detailChannels", collection => collection.ToJson("DetailChannels"));
     }
 }

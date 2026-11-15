@@ -77,3 +77,20 @@ _Owner: CTO (orchestrator). Updated after every reviewed hand-off._
 - Fake stack: Playwright 36/36 (Chromium + Firefox), restart specs 2/2.
 - `docker compose up` (real Demucs): `@real` main flow 2/2.
 - SIG gate: 0 errors, 1 exemption, 103 soft warnings.
+
+
+## Feature 002 detail separation (2026-11-15)
+
+| Check | Result |
+|---|---|
+| Wave | 7 owners merged (architect Phase 0, stem-separation, backend, frontend, audio-engine, qa, devops, quality-gate) |
+| `scripts/test-all.ps1` | 29/29 steps passed |
+| .NET tests | Domain 239, Persistence 40, Web 284, Api 369; all >= 90 % line and branch (lowest Web branch 94.84 %) |
+| Worker | 650 tests, line 100 %, branch 99.71 %; integration test with the 3 real detail models passed (42 s, 10 s fixture) |
+| Audio engine | 160 tests, 100 % |
+| SIG gate | 0 errors (`detail/vendor/**` excluded per ADR-010) |
+| Playwright, fake stack (isolated compose project) | 001 suite + 24 `@detail` + 2 `@worker-restart` passed on Chromium and Firefox; one finding fixed (progress bar hidden after completion) |
+| T092 real models, "Hero of the Day" (4:22), CPU | 30 min 51 s wall clock incl. ~2 min deliberately waiting for a newly imported track's standard separation (priority rule observed live); ~28.8 min of detail work = ~26.4 min per 4 minutes of audio: **SC-001 (<= 30 min for 4 min) met**, slower than the spike (20 min). Peak worker RAM 15.2 GiB. Outcome identical to the spike: drums 5 + rest, vocals lead/backing + rest, guitar electric/acoustic + rest, piano and other skipped (silent), bass not supported |
+| Migration | Existing library (7 tracks) migrated; mixes intact |
+
+Next: feature 003 GPU acceleration (docs/ROADMAP.md).

@@ -107,10 +107,14 @@ public sealed partial class BackendContractTests
         var served = document["paths"]!.AsObject()
             .SelectMany(path => path.Value!.AsObject().Select(operation => operation.Value!["operationId"]?.GetValue<string>()))
             .ToList();
-        var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>()).ToList();
+        var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
+            .Except(PendingDetailOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
+
+    // Contract 1.2.0 operations not served yet; empty since T068 (kept so a future contract addition is staged the same way).
+    private static readonly string[] PendingDetailOperations = [];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

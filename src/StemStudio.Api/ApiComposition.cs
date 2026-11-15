@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Api.Detail;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
@@ -65,6 +66,7 @@ public static class ApiComposition
         app.MapImportEndpoints();
         app.MapTrackEndpoints();
         app.MapStemEndpoints();
+        app.MapDetailEndpoints();
         app.MapMixEndpoints();
     }
 
@@ -84,6 +86,15 @@ public static class ApiComposition
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
         services.AddHostedService<JobSyncService>();
+        AddDetailServices(services);
+    }
+
+    private static void AddDetailServices(IServiceCollection services)
+    {
+        services.AddSingleton<IDetailStemFileStore, DetailStemFileStore>();
+        services.AddScoped<DetailJobApplier>();
+        services.AddScoped<DetailSynchronizer>();
+        services.AddScoped<DetailService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)
