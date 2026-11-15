@@ -29,6 +29,7 @@ public sealed class FeatureCatalogTests
         { "artist.details", [A, E], "band-info" },
         { "artwork.own-picture", [A, E], "artwork" },
         { "export.format-details", [A, E], "export-formats" },
+        { "export.selected-channels", [A, E], "export-dialog" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -83,7 +84,7 @@ public sealed class FeatureCatalogTests
         FeatureCatalog.All.Where(f => !FeatureCatalog.IsVisible(f.Id, B) && f.Max is null)
             .Select(f => f.Id)
             .ShouldBe(["mixer.pan", "mixer.loop.typed", "mixer.metronome.advanced", "mixer.numeric", "mixer.meter.db", "tracks.search",
-                "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details"], ignoreOrder: true);
+                "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels"], ignoreOrder: true);
     }
 
     [Fact]

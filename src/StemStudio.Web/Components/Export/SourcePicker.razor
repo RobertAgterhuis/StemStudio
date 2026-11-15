@@ -1,4 +1,23 @@
-@* Source of a mixer export (feature 007, US2): placeholder until T045. *@
+@* Source of a mixer export (feature 007, US2, FR-002): "What I hear" at every level (preselected); "Selected channels"
+   with one checkbox per visible channel from Advanced (feature export.selected-channels). *@
+
+<fieldset data-help-id="export-dialog">
+    <legend class="ss-label">What to save</legend>
+    <label class="ss-check">
+        <input type="radio" name="export-source" value="audible" checked="@(!Form.SelectedChannels)" @onchange="() => ChooseAsync(false)"
+               data-testid="export-source-audible" /> What I hear
+    </label>
+    <LevelGate Feature="export.selected-channels">
+        <label class="ss-check">
+            <input type="radio" name="export-source" value="selected" checked="@Form.SelectedChannels" @onchange="() => ChooseAsync(true)"
+                   data-testid="export-source-selected" /> Selected channels
+        </label>
+        @if (Form.SelectedChannels)
+        {
+            <ChannelPicker Form="Form" OnChanged="OnChanged" />
+        }
+    </LevelGate>
+</fieldset>
 
 @code {
     /// <summary>The dialog's choices.</summary>
@@ -8,4 +27,10 @@
     /// <summary>Raised when the choice changed (the dialog re-renders its submit state).</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
+
+    private Task ChooseAsync(bool selected)
+    {
+        Form.SelectedChannels = selected;
+        return OnChanged.InvokeAsync();
+    }
 }

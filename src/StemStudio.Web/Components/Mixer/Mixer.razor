@@ -39,6 +39,8 @@ else
                 {
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
                 }
+                <RadzenButton Text="Save to library" Icon="library_add" ButtonStyle="ButtonStyle.Light" Click="OpenExport" data-testid="mixer-export"
+                              data-help-id="export-dialog" />
                 <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
                 <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" data-help-id="mixer-save" />
             </div>
@@ -51,6 +53,11 @@ else
         @if (ShowBandInfo)
         {
             <BandInfoPanel Track="_track" OnClose="ToggleBandInfo" OnChanged="RefreshTrackAsync" />
+        }
+
+        @if (Exporting is not null)
+        {
+            <ExportDialog Target="Exporting" OnClose="CloseExport" />
         }
 
         @if (DialogOpen)
