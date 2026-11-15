@@ -23,18 +23,13 @@ public sealed class ScoreService(ScorePlanner planner, ScoreSubmitter submitter,
     public async Task<IResult> CreateAsync(CreateScoreRequest request, CancellationToken cancellationToken)
     {
         var (draft, problem) = await planner.PlanAsync(request, cancellationToken);
-        if (problem is not null)
-        {
-            return problem;
-        }
+        return problem ?? (disk.HasRoom() ? await CreateAsync(request.Name, draft!, cancellationToken) : AssetProblems.InsufficientDiskSpace());
+    }
 
-        if (!disk.HasRoom())
-        {
-            return AssetProblems.InsufficientDiskSpace();
-        }
-
-        var name = request.Name ?? AssetNaming.DefaultName(draft!.Source.TrackTitle, ScoreRecipeRules.NameSuffix(Label(draft)), await assets.NamesAsync(cancellationToken));
-        return New(name, draft!, out var asset) ?? await SubmitAsync(asset!, draft!, true, cancellationToken);
+    private async Task<IResult> CreateAsync(string? requestedName, ScoreDraft draft, CancellationToken cancellationToken)
+    {
+        var name = requestedName ?? AssetNaming.DefaultName(draft.Source.TrackTitle, ScoreRecipeRules.NameSuffix(Label(draft)), await assets.NamesAsync(cancellationToken));
+        return New(name, draft, out var asset) ?? await SubmitAsync(asset!, draft, true, cancellationToken);
     }
 
     /// <summary>Plans the stored recipe of a failed score item again and resubmits it.</summary>

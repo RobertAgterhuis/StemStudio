@@ -30,50 +30,25 @@ public sealed class ScoreJobApplier(IWorkerClient worker, IAssetFileStore files,
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    /// <summary>Applies the job state (not saved).</summary>
+    /// <summary>Applies the transcription job state to the score item (not saved).</summary>
     /// <param name="asset">An active score item.</param>
-    /// <param name="job">The job, or null when the worker answered 404.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>A task.</returns>
+    /// <param name="job">The transcription job, or null when the worker no longer knows it.</param>
+    /// <param name="cancellationToken">Cancellation of the file copies.</param>
+    /// <returns>A task that completes when the state is applied.</returns>
     /// <exception cref="WorkerUnavailableException">The worker became unreachable while the files were copied.</exception>
-    public Task ApplyAsync(Asset asset, WorkerTranscriptionJob? job, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(asset);
-        return job?.Status switch
-        {
-            null => Fail(asset, AssetJobApplier.LostJob),
-            WorkerRenderJobState.Queued => Task.CompletedTask,
-            WorkerRenderJobState.Running => Progress(asset, job.Progress),
-            WorkerRenderJobState.Completed => CompleteAsync(asset, job, cancellationToken),
-            _ => Fail(asset, job.Error ?? string.Empty),
-        };
-    }
+    public Task ApplyAsync(Asset asset, WorkerTranscriptionJob? job, CancellationToken cancellationToken) =>
+        AssetJobState.ApplyAsync(asset, job is null ? null : new(job.Status, job.Progress, job.Error), () => CompleteAsync(asset, job!, cancellationToken), Now);
 
-    private Task Fail(Asset asset, string error)
-    {
-        asset.Fail(error, Now);
-        return Task.CompletedTask;
-    }
+    private Task CompleteAsync(Asset asset, WorkerTranscriptionJob job, CancellationToken cancellationToken) => AssetJobState.StoreAsync(
+        () => CompleteScoreAsync(asset, job, cancellationToken),
+        FailureReason,
+        AssetJobState.Discard(asset, files, Now));
 
-    private Task Progress(Asset asset, double progress)
+    private async Task CompleteScoreAsync(Asset asset, WorkerTranscriptionJob job, CancellationToken cancellationToken)
     {
-        asset.ApplyProgress(progress, Now);
-        return Task.CompletedTask;
-    }
-
-    private async Task CompleteAsync(Asset asset, WorkerTranscriptionJob job, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = job.Result ?? throw new InvalidDataException("The completed job has no result.");
-            var facts = Facts(asset, result.Summary, job.Device);
-            asset.CompleteScore(await StoreAsync(asset, job.TranscriptionJobId, result.Files, cancellationToken), facts, Now);
-        }
-        catch (Exception exception) when (FailureReason(exception) is { } reason)
-        {
-            files.DeleteAll(asset.Id);
-            asset.Fail(reason, Now);
-        }
+        var result = job.Result ?? throw new InvalidDataException("The completed job has no result.");
+        var facts = Facts(asset, result.Summary, job.Device);
+        asset.CompleteScore(await StoreAsync(asset, job.TranscriptionJobId, result.Files, cancellationToken), facts, Now);
     }
 
     /// <summary>The validated facts: the summary, the device, and the piano model credit when the worker gave none (CC BY 4.0).</summary>

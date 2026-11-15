@@ -52,23 +52,27 @@ public static class ScoreMapper
     public static ScoreFactsDto ToDto(ScoreFacts facts)
     {
         ArgumentNullException.ThrowIfNull(facts);
-        return new ScoreFactsDto
+        return Counts(facts, new ScoreFactsDto
         {
             Profile = Map<ScoreProfileDto>(facts.Profile),
             Engine = Map<ScoreEngineDto>(facts.Engine),
-            Quality = MapOrNull<ScoreQualityDto>(facts.Quality),
-            Key = facts.Key is { } key ? new KeyInfoDto(key.Tonic, Map<KeyModeDto>(key.Mode), key.Confidence, Map<KeySourceDto>(key.Source)) : null,
             Bpm = facts.Bpm,
             TimeSignature = facts.TimeSignature,
             Bars = facts.Bars,
             Notes = facts.Notes,
             Pages = facts.Pages,
             Resolution = Map<ScoreResolutionDto>(facts.Resolution),
-            Warnings = facts.Warnings.Select(warning => new ScoreWarningDto(Map<ScoreWarningCodeDto>(warning.Code), warning.Text)).ToList(),
-            Attribution = facts.Attribution,
-            Device = TrackMapper.ToDto(facts.Device),
-        };
+        });
     }
+
+    private static ScoreFactsDto Counts(ScoreFacts facts, ScoreFactsDto dto) => dto with
+    {
+        Quality = MapOrNull<ScoreQualityDto>(facts.Quality),
+        Key = facts.Key is { } key ? new KeyInfoDto(key.Tonic, Map<KeyModeDto>(key.Mode), key.Confidence, Map<KeySourceDto>(key.Source)) : null,
+        Warnings = facts.Warnings.Select(warning => new ScoreWarningDto(Map<ScoreWarningCodeDto>(warning.Code), warning.Text)).ToList(),
+        Attribution = facts.Attribution,
+        Device = TrackMapper.ToDto(facts.Device),
+    };
 
     /// <summary>The facts of a worker summary (no device, attribution as sent).</summary>
     /// <param name="summary">The summary.</param>
@@ -76,21 +80,25 @@ public static class ScoreMapper
     public static ScoreFacts ToFacts(WorkerScoreSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
-        return new ScoreFacts
+        return WithKey(summary, new ScoreFacts
         {
             Profile = summary.Profile,
             Engine = summary.Engine,
-            Quality = summary.Quality,
-            Key = summary.Key,
             Bpm = summary.Bpm,
             TimeSignature = summary.TimeSignature,
             Bars = summary.Bars,
             Notes = summary.Notes,
             Pages = summary.Pages,
             Resolution = summary.Resolution,
-            Warnings = summary.Warnings,
-        };
+        });
     }
+
+    private static ScoreFacts WithKey(WorkerScoreSummary summary, ScoreFacts facts) => facts with
+    {
+        Quality = summary.Quality,
+        Key = summary.Key,
+        Warnings = summary.Warnings,
+    };
 
     /// <summary>Maps a source.</summary>
     /// <param name="source">The source.</param>

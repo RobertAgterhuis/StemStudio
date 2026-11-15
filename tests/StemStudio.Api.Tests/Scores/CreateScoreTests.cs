@@ -243,14 +243,15 @@ public sealed class CreateScoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData("pdf", null, "attachment", "application/pdf", ".pdf")]
-    [InlineData("pdf", "true", "inline", "application/pdf", ".pdf")]
-    [InlineData("musicxml", null, "attachment", "application/vnd.recordare.musicxml+xml", ".musicxml")]
-    [InlineData("midi", null, "attachment", "audio/midi", ".mid")]
-    public async Task Files_AreServedPerRole(string role, string? inline, string disposition, string contentType, string extension)
+    [InlineData("pdf", null, "attachment", ".pdf")]
+    [InlineData("pdf", "true", "inline", ".pdf")]
+    [InlineData("musicxml", null, "attachment", ".musicxml")]
+    [InlineData("midi", null, "attachment", ".mid")]
+    public async Task Files_AreServedPerRole(string role, string? inline, string disposition, string extension)
     {
         var asset = await ReadyBassAsync();
         var path = ApiRoutes.AssetFile(asset.Id, role) + (inline is null ? string.Empty : $"?inline={inline}");
+        var contentType = Result().Files.Single(file => file.Role == role).ContentType;
 
         using var response = await _client.GetAsync(new Uri(path, UriKind.Relative), Ct);
 
@@ -297,6 +298,41 @@ public sealed class CreateScoreTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         Worker.TranscriptionDeletes.ShouldBe([JobId]);
         Worker.RenderDeletes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Options_WithAnUnreachableWorkerAssumeTheCpu()
+    {
+        var track = await _factory.SeedAsync(AssetTestData.NamedTrack());
+        Worker.OnGetHealth = () => throw new WorkerUnavailableException();
+
+        var options = await (await GetOptionsAsync(ApiRoutes.ScoreOptionsForChannel(track.Id, "piano"))).BodyAsync<ScoreOptionsDto>();
+
+        options.DefaultQuality.ShouldBe(ScoreQualityDto.Fast);
+    }
+
+    [Fact]
+    public async Task Create_AnInvalidNameIs422()
+    {
+        var track = await _factory.SeedAsync(AssetTestData.NamedTrack());
+
+        using var response = await _client.PostScoreAsync(Request(track.Id, "bass") with { Name = new string('x', 121) });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.FieldErrorsAsync("name")).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Retry_OfAScoreWhoseTrackIsGoneIs404()
+    {
+        var asset = await CreateBassAsync();
+        Fail("failed");
+        await _factory.SyncAssetsAsync();
+        (await _client.DeleteAsync(new Uri(ApiRoutes.Track(asset.Provenance.TrackId!.Value), UriKind.Relative), Ct)).Dispose();
+
+        using var response = await _client.PostAsync(new Uri(ApiRoutes.RetryAsset(asset.Id), UriKind.Relative), null, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     private void Fail(string failure)

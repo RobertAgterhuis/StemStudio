@@ -31,41 +31,14 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
     /// <exception cref="WorkerUnavailableException">The worker became unreachable while the file was copied.</exception>
     public Task ApplyAsync(Asset asset, WorkerRenderJob? job, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(asset);
-        return job?.Status switch
-        {
-            null => Fail(asset, LostJob),
-            WorkerRenderJobState.Queued => Task.CompletedTask,
-            WorkerRenderJobState.Running => Progress(asset, job.Progress),
-            WorkerRenderJobState.Completed => CompleteAsync(asset, job, cancellationToken),
-            _ => Fail(asset, job.Error ?? string.Empty),
-        };
+        var state = job is null ? null : new AssetJobState(job.Status, job.Progress, job.Error);
+        return AssetJobState.ApplyAsync(asset, state, () => CompleteAsync(asset, job!, cancellationToken), Now);
     }
 
-    private Task Fail(Asset asset, string error)
-    {
-        asset.Fail(error, Now);
-        return Task.CompletedTask;
-    }
-
-    private Task Progress(Asset asset, double progress)
-    {
-        asset.ApplyProgress(progress, Now);
-        return Task.CompletedTask;
-    }
-
-    private async Task CompleteAsync(Asset asset, WorkerRenderJob job, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await StoreAsync(asset, job.RenderJobId, job.Result ?? throw new InvalidDataException("The completed job has no result."), cancellationToken);
-        }
-        catch (Exception exception) when (FailureReason(exception) is { } reason)
-        {
-            files.DeleteAll(asset.Id);
-            asset.Fail(reason, Now);
-        }
-    }
+    private Task CompleteAsync(Asset asset, WorkerRenderJob job, CancellationToken cancellationToken) => AssetJobState.StoreAsync(
+        () => StoreAsync(asset, job.RenderJobId, job.Result ?? throw new InvalidDataException("The completed job has no result."), cancellationToken),
+        FailureReason,
+        AssetJobState.Discard(asset, files, Now));
 
     private async Task StoreAsync(Asset asset, string renderJobId, WorkerRenderResult result, CancellationToken cancellationToken)
     {

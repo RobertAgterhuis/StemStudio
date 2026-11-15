@@ -41,21 +41,26 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
     public static WorkerTranscriptionJobRequest Request(string name, ScoreDraft draft)
     {
         ArgumentNullException.ThrowIfNull(draft);
-        var (recipe, source) = (draft.Recipe, draft.Source);
-        var drums = recipe.Profile == ScoreProfile.Drums;
-        return new WorkerTranscriptionJobRequest
+        var recipe = draft.Recipe;
+        return WithInputs(draft, new WorkerTranscriptionJobRequest
         {
             Profile = recipe.Profile,
             Quality = recipe.Quality ?? ScoreQuality.Accurate,
-            Input = drums ? null : new WorkerTranscriptionInput(source.InputPath),
-            DrumInputs = drums ? DrumInputs(source.DrumPieces) : null,
             Range = recipe.Range is { } range ? new WorkerRenderRange(range.StartSeconds, range.EndSeconds) : null,
             Grid = Grid(draft.Grid),
             Resolution = recipe.Resolution,
             KeyOverride = recipe.KeyOverride,
-            Titles = new WorkerScoreTitles(Cut(name)!, Cut(source.TrackArtist is { } artist ? $"{source.TrackTitle} - {artist}" : source.TrackTitle), ProfileCatalog.InstrumentName(recipe.Profile)),
-        };
+            Titles = Titles(name, draft.Source, recipe.Profile),
+        });
     }
+
+    /// <summary>Pitched profiles read one input, drums the kept drum pieces (data-model 4.4).</summary>
+    private static WorkerTranscriptionJobRequest WithInputs(ScoreDraft draft, WorkerTranscriptionJobRequest request) => draft.Recipe.Profile == ScoreProfile.Drums
+        ? request with { DrumInputs = DrumInputs(draft.Source.DrumPieces) }
+        : request with { Input = new WorkerTranscriptionInput(draft.Source.InputPath) };
+
+    private static WorkerScoreTitles Titles(string name, ResolvedSource source, ScoreProfile profile) =>
+        new(Cut(name)!, Cut(source.TrackArtist is { } artist ? $"{source.TrackTitle} - {artist}" : source.TrackTitle), ProfileCatalog.InstrumentName(profile));
 
     private static WorkerDrumInputs DrumInputs(IReadOnlyDictionary<string, string> pieces) =>
         new(pieces.GetValueOrDefault("kick"), pieces.GetValueOrDefault("snare"), pieces.GetValueOrDefault("toms"), pieces.GetValueOrDefault("hihat"), pieces.GetValueOrDefault("cymbals"));

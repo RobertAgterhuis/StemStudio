@@ -29,21 +29,25 @@ public sealed class ScoreOptionsService(ScoreSourceResolver sources, ScoreEstima
         return TypedResults.Ok(Options(source!, await estimator.EnvironmentAsync(cancellationToken)));
     }
 
-    private ScoreOptionsDto Options(ResolvedSource source, ScoreEnvironment environment)
+    private ScoreOptionsDto Options(ResolvedSource source, ScoreEnvironment environment) => WithProfiles(source, environment, new ScoreOptionsDto
+    {
+        Source = ScoreMapper.ToDto(source.Source),
+        DurationSeconds = source.DurationSeconds,
+        DrumsRequireSplit = source.Channel == "drums" && source.DrumPieces.Count == 0,
+        GridStatus = ScoreMapper.Map<GridStatusDto>(TempoGridResolver.StatusOf(source.Track?.BeatGrid)),
+        DefaultQuality = environment.Gpu ? ScoreQualityDto.Accurate : ScoreQualityDto.Fast,
+        Attribution = ProfileCatalog.PianoAttribution,
+    });
+
+    private ScoreOptionsDto WithProfiles(ResolvedSource source, ScoreEnvironment environment, ScoreOptionsDto options)
     {
         var allowed = ProfileCatalog.Allowed(source.Channel);
-        return new ScoreOptionsDto
+        return options with
         {
-            Source = ScoreMapper.ToDto(source.Source),
-            DurationSeconds = source.DurationSeconds,
             SuggestedProfile = source.Channel is { } channel ? Dto(ProfileCatalog.Suggest(channel)) : Dto(source.AssetSuggestion),
             AllowedProfiles = allowed.Select(profile => ScoreMapper.Map<ScoreProfileDto>(profile)).ToList(),
-            DrumsRequireSplit = source.Channel == "drums" && source.DrumPieces.Count == 0,
-            GridStatus = ScoreMapper.Map<GridStatusDto>(TempoGridResolver.StatusOf(source.Track?.BeatGrid)),
-            DefaultQuality = environment.Gpu ? ScoreQualityDto.Accurate : ScoreQualityDto.Fast,
             Estimates = allowed.SelectMany(profile => Estimates(profile, source.DurationSeconds, environment)).ToList(),
             Limits = allowed.Select(profile => new ProfileLimitDto(ScoreMapper.Map<ScoreProfileDto>(profile), ProfileCatalog.Limit(profile))).ToList(),
-            Attribution = ProfileCatalog.PianoAttribution,
         };
     }
 

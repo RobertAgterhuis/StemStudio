@@ -25,11 +25,11 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
             return asset is null ? AssetProblems.NotFound(id) : AssetProblems.NotFailed();
         }
 
-        if (asset.Kind == AssetKind.Score)
-        {
-            return await scores.RetryAsync(asset, cancellationToken);
-        }
+        return asset.Kind == AssetKind.Score ? await scores.RetryAsync(asset, cancellationToken) : await RetryExportAsync(asset, cancellationToken);
+    }
 
+    private async Task<IResult> RetryExportAsync(Asset asset, CancellationToken cancellationToken)
+    {
         var track = await tracks.FindAsync(asset.Provenance.Recipe!.TrackId, cancellationToken);
         var (draft, problem) = ExportPlanner.Replan(track, asset.Provenance.Recipe);
         return problem ?? await ResubmitAsync(asset, draft!, cancellationToken);
