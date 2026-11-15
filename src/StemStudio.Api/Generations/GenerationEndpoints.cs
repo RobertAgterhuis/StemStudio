@@ -26,6 +26,9 @@ public static class GenerationEndpoints
             .WithName("createRestyle").WithTags("generation").Produces<GenerationDto>(StatusCodes.Status202Accepted)
             .ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapPost(ApiRoutes.Songs, (SongRequest? request, SongService songs, CancellationToken ct) => songs.CreateAsync(request, ct))
+            .WithName("createSong").WithTags("songs").Produces<GenerationDto>(StatusCodes.Status202Accepted).ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app.MapGenerationReadEndpoints();
     }
 

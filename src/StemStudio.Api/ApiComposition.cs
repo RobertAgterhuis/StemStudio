@@ -154,6 +154,7 @@ public static class ApiComposition
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
+        services.AddScoped<SongService>();
         services.AddScoped<StyleService>();
         services.AddScoped<LibraryStyleGuard>();
         services.AddScoped<StyleEditingService>();

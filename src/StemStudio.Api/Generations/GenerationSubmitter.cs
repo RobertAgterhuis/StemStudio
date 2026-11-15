@@ -24,7 +24,7 @@ public sealed class GenerationSubmitter(
         await generations.AddAsync(generation, cancellationToken);
         try
         {
-            var job = await generator.CreateRestyleAsync(Request(generation), cancellationToken);
+            var job = await SubmitJobAsync(generation, cancellationToken);
             generation.AssignJob(job.GenerationId, clock.GetUtcNow().UtcDateTime);
             await generations.SaveAsync(cancellationToken);
             return null;
@@ -43,6 +43,20 @@ public sealed class GenerationSubmitter(
         {
             availability.Invalidate();
         }
+    }
+
+    private Task<GeneratorJob> SubmitJobAsync(Generation generation, CancellationToken cancellationToken) => generation.Kind switch
+    {
+        GenerationKind.Song => generator.CreateSongAsync(SongParams(generation), cancellationToken),
+        _ => generator.CreateRestyleAsync(Request(generation), cancellationToken),
+    };
+
+    private static GeneratorSongParams SongParams(Generation generation)
+    {
+        var song = generation.Song!;
+        var lyrics = song.Instrumental ? "[Instrumental]" : song.Lyrics.Text;
+        return new GeneratorSongParams(
+            song.Caption, lyrics, song.Instrumental, song.Lyrics.Language, song.Bpm, song.KeyScale, song.TimeSignature, song.DurationSeconds, generation.Seeds);
     }
 
     private GeneratorRestyleRequest Request(Generation generation)

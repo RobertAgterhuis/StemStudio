@@ -42,6 +42,11 @@ public sealed partial class Generation
         return generation;
     }
 
+    /// <summary>Adds warnings (merged, at most 5), e.g. a lyrics-density warning at creation.</summary>
+    /// <param name="warnings">The warnings.</param>
+    public void AddWarnings(IEnumerable<string> warnings) =>
+        _warnings = _warnings.Union(warnings, StringComparer.Ordinal).Take(MaxWarnings).ToList();
+
     /// <summary>The conversion waits until the imported take is separated (API-only status).</summary>
     /// <param name="importedTrackId">The imported track.</param>
     /// <param name="nowUtc">Current time (UTC).</param>

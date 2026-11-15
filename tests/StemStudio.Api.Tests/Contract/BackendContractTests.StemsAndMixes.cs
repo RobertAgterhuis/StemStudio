@@ -134,7 +134,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingSongVoiceOperations =
     [
         "listLyricsSheets", "createLyricsSheet", "uploadLyricsSheet", "proposeSections", "getLyricsSheet", "updateLyricsSheet", "deleteLyricsSheet",
-        "createSong", "listVoiceProfiles", "createVoiceProfile", "getVoiceProfile", "deleteVoiceProfile", "getVoiceSample",
+        "listVoiceProfiles", "createVoiceProfile", "getVoiceProfile", "deleteVoiceProfile", "getVoiceSample",
         "getVoiceConsentStatement", "createVoiceConversion", "getTakeVocal",
     ];
 

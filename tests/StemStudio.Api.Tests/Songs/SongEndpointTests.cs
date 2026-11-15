@@ -40,8 +40,15 @@ public sealed class SongEndpointTests : ApiTestBase
     {
         using var response = await PostAsync(new SongRequest
         {
-            LyricsText = "[00:01.00]la la la\r\n", Title = "Mine", Language = "nl", FreeCaption = "pop rock, electric guitars, drums", LeadVoice = LeadVoiceDto.Male,
-            Bpm = 120, KeyScale = "F# major", TimeSignature = "3", Takes = 2,
+            LyricsText = "[00:01.00]la la la\r\n",
+            Title = "Mine",
+            Language = "nl",
+            FreeCaption = "pop rock, electric guitars, drums",
+            LeadVoice = LeadVoiceDto.Male,
+            Bpm = 120,
+            KeyScale = "F# major",
+            TimeSignature = "3",
+            Takes = 2,
         });
 
         var song = (await response.BodyAsync<GenerationDto>()).Song!;
@@ -55,7 +62,13 @@ public sealed class SongEndpointTests : ApiTestBase
     {
         using var response = await PostAsync(new SongRequest
         {
-            LyricsText = string.Empty, Title = "Bossa backing", Language = "unknown", FreeCaption = "bossa nova, nylon guitar", LeadVoice = LeadVoiceDto.Any, Instrumental = true, DurationSeconds = 30,
+            LyricsText = string.Empty,
+            Title = "Bossa backing",
+            Language = "unknown",
+            FreeCaption = "bossa nova, nylon guitar",
+            LeadVoice = LeadVoiceDto.Any,
+            Instrumental = true,
+            DurationSeconds = 30,
         });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
@@ -82,7 +95,10 @@ public sealed class SongEndpointTests : ApiTestBase
     {
         var request = new SongRequest
         {
-            LyricsText = "la", Title = "t", Language = "en", LeadVoice = LeadVoiceDto.Any,
+            LyricsText = "la",
+            Title = "t",
+            Language = "en",
+            LeadVoice = LeadVoiceDto.Any,
             FreeCaption = field == "freeCaption" ? "Upbeat pop in the style of a chart singer" : null,
             Delivery = field == "delivery" ? "sounds like a famous tenor" : null,
         };
@@ -104,7 +120,7 @@ public sealed class SongEndpointTests : ApiTestBase
         var request = new SongRequest
         {
             LyricsId = lyrics == "both" ? Guid.NewGuid() : null,
-            LyricsText = lyrics switch { "both" => "x", "long" => new string('a', 5000), _ => null },
+            LyricsText = lyrics switch { "both" => "x", "long" => new string('a', 5000), _ => language is null ? null : "la" },
             Language = language ?? "en",
             LeadVoice = LeadVoiceDto.Any,
         };

@@ -23,6 +23,8 @@ public static class GenerationMapper
             Progress = generation.Progress,
             Stage = generation.Stage,
             Restyle = generation.Restyle is { } restyle ? ToDto(restyle) : null,
+            Song = generation.Song is { } song ? SongMapper.ToDto(song) : null,
+            VoiceConversion = generation.VoiceConversion is { } conversion ? SongMapper.ToDto(conversion) : null,
             Takes = generation.Takes.Select(take => ToDto(generation.Id, take)).ToList(),
             Warnings = generation.Warnings,
             Device = TrackMapper.ToDto(generation.Device),
@@ -54,5 +56,8 @@ public static class GenerationMapper
         ImportedTrackId = take.ImportedTrackId,
         Model = new GenerationTakeModelDto { Id = take.Model.Id, Revision = take.Model.Revision },
         AiGenerated = take.AiGenerated,
+        Vocal = take.Vocal is { } vocal ? StyleMapper.Map<VocalLabelDto>(vocal) : null,
+        VoiceProfileName = take.VoiceProfileName,
+        VocalAudioUrl = take.VocalFilePath is null ? null : ApiRoutes.TakeVocal(generationId, take.Index),
     };
 }
