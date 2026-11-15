@@ -133,3 +133,14 @@ def test_render_design_token_section() -> None:
     assert "## Design tokens\n\n**FAIL** - 1 errors, 1 warnings (see Findings)." in text
     assert text.index("## Dependency direction") < text.index("## Design tokens")
     assert text.index("## Design tokens") < text.index("## Exemptions")
+
+
+def test_render_vendored_code_section() -> None:
+    clean = render(_input([]))
+    expected = "## Vendored code\n\n**PASS** - every vendored package has LICENSE and NOTICE."
+    assert expected in clean
+    missing = Finding("vendor", Severity.ERROR, "worker/src/x/vendor/y", 0, "no NOTICE file")
+    text = render(_input([missing]))
+    assert "## Vendored code\n\n**FAIL** - 1 errors, 0 warnings (see Findings)." in text
+    assert text.index("## Design tokens") < text.index("## Vendored code")
+    assert text.index("## Vendored code") < text.index("## Exemptions")

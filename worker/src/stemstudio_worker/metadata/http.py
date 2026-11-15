@@ -35,9 +35,10 @@ ALLOWED_HOSTS: Final = frozenset(
         "www.wikidata.org",
         "i.ytimg.com",
         "i.scdn.co",
+        "lrclib.net",
     }
 )
-"""Hosts the worker may contact (research R-02)."""
+"""Hosts the worker may contact (005 research R-02; lrclib.net added for 006)."""
 
 ALLOWED_DOMAINS: Final = (".archive.org", ".wikipedia.org")
 """Domains whose sub-domains are allowed (``ia*.us.archive.org``, ``<lang>.wikipedia.org``)."""

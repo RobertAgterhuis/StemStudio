@@ -10,7 +10,7 @@ Builds on the 001-003 data models and on [007's data model](../007-export-librar
 |---|---|---|---|
 | worker | `STEMSTUDIO_TRANSCRIBER` | `real` (`fake` when `STEMSTUDIO_SEPARATOR=fake`) | `fake` = deterministic notes per profile (2.6); notation and engraving stay real |
 | worker | `STEMSTUDIO_TRANSCRIBE_THREADS` | `8` | torch/onnxruntime intra-op threads in the `transcribe` lane |
-| worker image | Leipzig font | installed | `/usr/local/share/fonts/verovio/Leipzig.otf` (OFL-1.1), converted at build from the pinned Verovio wheel (research.md S-08); `fc-list` must list "Leipzig" |
+| worker image | Leipzig font | installed | `/usr/local/share/fonts/verovio/Leipzig.ttf` (OFL-1.1; TrueType outlines, 119,356 B, SHA-256 `773c72dc...584a4b` for verovio 6.4.0 + fontTools 4.68.0; the image build prints the current value), converted at build from the pinned Verovio wheel by `worker/scripts/install_music_font.py` (research.md S-08, P0); `fc-list` must list "Leipzig" |
 | API | `StemStudio:ScoreEstimates` | see 4.5 | seconds per audio second per (profile engine, device), used for the shown estimate |
 
 ## 2. Worker
@@ -47,13 +47,17 @@ for drums. Times are relative to the input's start (range start subtracted).
 2. Single-voice profiles: sort by `(start, -velocity)`; within 60 ms of the previous kept onset keep
    only the louder note.
 3. Quantise (2.4); for single-voice profiles each note ends at the next note's onset at most.
+   Polyphonic staves (guitar, keys, piano) are written as one chord per staff and onset: a chord
+   lasts until its longest note ends or until the next onset on that staff, whichever comes
+   first (a note held under a later onset is cut; no voice splitting in 008, ADR-017 D5).
 4. Drop notes shorter than one grid step after quantisation; merge duplicates (same pitch and
    onset slot).
 5. Cap: per voice per bar keep the `max` loudest onsets; the rest is dropped and counted.
 6. Warnings (2.7) from the counts.
 
-Drums: per piece, drop hits whose onset strength is below 10 % of the piece's 99th-percentile
-strength (bleed gate, tuned in Phase 0), then quantise; simultaneous hits of the hands voice form
+Drums: per piece, drop hits whose linear onset peak (the absolute sample peak of the stem from
+25 ms before to 30 ms after the onset) is below 10 % of the piece's 99th-percentile peak (bleed
+gate, tuned in Phase 0; `strength` = peak / that percentile, clamped to 0..1), then quantise; simultaneous hits of the hands voice form
 one chord; kick is voice 2.
 
 ### 2.4 Time base (binding)
@@ -71,6 +75,9 @@ that time 0 is the input's start (beats before 0 are kept for interpolation).
 - Snap: `round(q·d)/d` with `d = 4` (1/16) or `2` (1/8).
 - Bar `m` (1-based) starts at `q = (m-1)·beatsPerBar`; notes with `q < 0` go to a pickup bar of
   `ceil(-min q / beatsPerBar)·beatsPerBar` beats, shortened to the used length.
+  When the notes reach back more than one bar, the meter phase is kept: the pickup (measure 0)
+  is only the partial bar, the whole bars before the first downbeat stay whole and measure 1 is
+  the first whole bar (`bar_layout`). With at most one bar of lead-in both readings agree.
 - Time signature `"<beatsPerBar>/4"`; tempo mark `round(bpm)` quarter = BPM.
 
 ### 2.5 Key and spelling
@@ -113,7 +120,7 @@ No notes at all -> the job fails with "No notes were detected in this audio."
 | `input` | `{path}` | 007 path rules; required for pitched profiles |
 | `drumInputs` | `{kick, snare, toms, hihat, cymbals}` paths | required for `drums` (each a `tracks/<id>/detail/drums/<piece>.flac` path) |
 | `range` | `{startSeconds, endSeconds}` \| null | as 007 |
-| `grid` | `TempoGrid` (2.4) | required; beats 1..10,000, ascending, >= 0 |
+| `grid` | `TempoGrid` (2.4) | required; beats 2..10,000 and downbeats 1..10,000, strictly ascending, each -900..900 s (negative = before the input start, kept for interpolation, 2.4) |
 | `resolution` | `sixteenth`, `eighth` | default per profile |
 | `keyOverride` | key name \| null | 2.5 |
 | `titles` | `{title, subtitle, instrumentName}` | each <= 200 chars; title = asset name, subtitle = track title/artist |
@@ -142,7 +149,8 @@ sweep rules as 007 render jobs; `GET /v1/transcription-jobs/{id}/files/{role}`.
 | `basic-pitch-icassp2022` | `https://github.com/spotify/basic-pitch/raw/v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx` (Phase 0 verifies the tag URL) | `2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec` | 230,444 B | Apache-2.0 |
 | `piano-crnn-note-pedal` | `https://zenodo.org/records/4034264/files/CRNN_note_F1%3D0.9677_pedal_F1%3D0.9186.pth` | `c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141` | 171,966,578 B | CC BY 4.0 |
 
-`GpuNeed("piano-crnn", <MiB measured in Phase 0>)`; basic-pitch and drum onsets: CPU only.
+`PIANO_GPU_NEED = GpuNeed("Piano transcription", 1280)` (measured NVML peak 952 MiB + 20 %, Phase 0);
+basic-pitch and drum onsets: CPU only. Weights constants: `ports.BASIC_PITCH_WEIGHTS`, `ports.PIANO_WEIGHTS`.
 
 ## 3. Engraving (binding)
 
@@ -198,9 +206,10 @@ the split; missing pieces are sent as silence by omitting them, with a warning).
 For a source: suggested profile, allowed profiles, whether drums need splitting, grid status
 (`reliable`, `unreliable`, `none`), default quality, and per engine an estimate
 `seconds = duration · factor(engine, device) + overhead`. Defaults (from research.md S-02/S-04,
-refined in the integration wave): basic-pitch CPU 0.10 s/s, piano CRNN CPU 1.7 s/s, piano CRNN GPU
-0.05 s/s (estimate until measured), drum onsets 0.02 s/s; overhead 5 s (+ 60 s when the piano
-model is not downloaded yet).
+refined by CTO T080 from the integration-run measurements on the reference machine): basic-pitch
+CPU 0.05 s/s (measured 0.011-0.019), piano CRNN CPU 0.45 s/s (measured 0.367 with 8 threads), piano
+CRNN GPU 0.2 s/s (Phase 0: 0.075, integration run: 0.184), drum onsets 0.02 s/s; overhead 5 s (+ 60 s
+when the piano model is not downloaded yet). Phase 0 defaults were 0.10 / 1.7 / 0.08.
 
 ### 4.6 Limits (`ContractLimits` additions)
 

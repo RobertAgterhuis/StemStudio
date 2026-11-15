@@ -31,12 +31,8 @@ public sealed class ArtworkContractTests
     [InlineData("components/headers")]
     public void Feature007Contract_ContainsEveryFeature005EntryUnchanged(string section)
     {
-        var older = Section(Feature005.Value.Root, section);
-        var newer = Section(OpenApiContract.Backend.Root, section);
-
-        var changed = older.Where(entry => !JsonNode.DeepEquals(entry.Value, newer[entry.Key])).Select(entry => entry.Key);
-
-        changed.ShouldBeEmpty();
+        // 006/008 Phase 0: the 007 document is linked as Contract/007; LyricsContractTests proves 007 -> 006 -> 008.
+        ChangedEntries(Feature005.Value, Backend007, section).ShouldBeEmpty();
     }
 
     [Theory]
@@ -168,7 +164,4 @@ public sealed class ArtworkContractTests
         IsCopyOf("job-result", result).ShouldBeTrue();
         IsCopyOf("artwork-upload", upload).ShouldBeTrue();
     }
-
-    private static JsonObject Section(JsonObject root, string section) =>
-        section.Split('/').Aggregate((JsonNode)root, (node, part) => node[part]!).AsObject();
 }

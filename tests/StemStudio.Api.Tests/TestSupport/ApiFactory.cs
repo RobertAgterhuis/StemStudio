@@ -86,6 +86,13 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         return true;
     });
 
+    /// <summary>One pass of the lyrics synchroniser in a fresh scope (feature 006).</summary>
+    public Task<bool> SyncLyricsAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Lyrics.LyricsSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");

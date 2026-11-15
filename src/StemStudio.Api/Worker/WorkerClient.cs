@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Polly.CircuitBreaker;
 using Polly.Timeout;
+using StemStudio.Domain.Scores;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Worker;
@@ -18,7 +19,8 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        // Score engines and warning codes are kebab-case on the wire (worker 1.6.0); every other enum is camelCase.
+        Converters = { new JsonStringEnumConverter<ScoreEngine>(JsonNamingPolicy.KebabCaseLower), new JsonStringEnumConverter<ScoreWarningCode>(JsonNamingPolicy.KebabCaseLower), new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     /// <inheritdoc />

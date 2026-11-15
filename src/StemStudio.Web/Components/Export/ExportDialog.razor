@@ -1,11 +1,12 @@
 @* "Save to library" dialog (feature 007, US1-US5; ui-test-ids 1.5.0): a raw stem, the mixer (what I hear or selected
    channels) or a stem pack. After submit it confirms with a link to the item; the render runs in the background. *@
+@inherits ModalDialog
 
 <div class="ss-modal-backdrop">
     <div class="ss-modal ss-export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-title" data-testid="export-dialog"
          data-mode="@Target.ModeName" data-help-id="export-dialog" @onkeydown="OnKeyAsync">
         <div class="ss-label-row">
-            <h2 id="export-title" class="ss-title" tabindex="-1" @ref="_title">Save to library</h2>
+            <h2 id="export-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Save to library</h2>
             <HelpHint HelpId="export-dialog" />
         </div>
         <p class="ss-help">@Subject</p>

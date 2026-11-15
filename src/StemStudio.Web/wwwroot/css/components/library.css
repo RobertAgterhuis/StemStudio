@@ -120,6 +120,12 @@
 }
 
 @media (max-width: 48rem) {
+  /* Reflow at 320 CSS px (WCAG 1.4.10): a long track title in the filter must not widen the page. */
+  .ss-library-tools .ss-select {
+    width: 100%;
+    min-width: 0;
+  }
+
   .ss-asset-table thead {
     display: none;
   }

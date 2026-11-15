@@ -1,0 +1,9 @@
+{
+  "request": "GET /api/get?...&duration=200",
+  "status": 404,
+  "body": {
+    "code": 404,
+    "name": "TrackNotFound",
+    "message": "Failed to find specified track"
+  }
+}

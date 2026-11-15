@@ -44,8 +44,8 @@ their provenance when the track is deleted; the API then reports `trackAvailable
 | `20261115115115_AddJobDevice` | 003 | Processing device per track and detail phase |
 | `20261115143937_AddArtworkAndArtists` | 005 | `Tracks.ArtistId` (FK, indexed), `Artwork`, `AutoArtwork`, `Metadata` (JSON); table `Artists` (MBID key, name, type, country, years, website, Wikidata id, genres, members, summary, `FetchedAt` for the 30-day refresh) |
 | `20261115152313_AddAssets` | 007 | Table `Assets` (export library: kind, name, status, progress, error, worker job, audio facts, provenance, nullable `TrackId`, size, files; indexes on `CreatedAt`, `Status`, `TrackId`) |
-| `AddTrackLyrics` (planned) | 006 | `TrackLyrics` table, `Tracks.LyricsStatus` |
-| `AddScoreFacts` (planned) | 008 | `Assets.Score` |
+| `20261115163349_AddTrackLyrics` | 006 | `TrackLyrics` table (document, state, offset, alignment job and estimate), `Tracks.LyricsStatus` |
+| `20261115171827_AddScoreFacts` | 008 | `Assets.Score` (profile, quality, key, grid, warnings, page count) |
 | `AddGenerativeStyles` (planned) | 009 | `Styles`, `Generations`, `GenerationTakes`, `Tracks.Origin` |
 | `AddLyricsAndVoices` (planned) | 010 | `LyricsSheets`, `VoiceProfiles`, `AudioHashes` |
 | `AddAgent` (planned) | 011 | Agent settings, conversations, runs, steps, approvals, undo, events |

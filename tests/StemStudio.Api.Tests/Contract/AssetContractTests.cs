@@ -21,8 +21,7 @@ public sealed class AssetContractTests
     [Fact]
     public void Contracts_HaveTheVersionsOfFeature007()
     {
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.5.0");
-        WorkerContract.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.4.0");
+        Backend007.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.5.0");
         Vectors.Value["version"]!.GetValue<string>().ShouldBe("1.0.0");
     }
 
@@ -60,7 +59,7 @@ public sealed class AssetContractTests
 
         dto.Audio!.AppliedGainDb.ShouldBe(-1.8);
         dto.Provenance.TrackAvailable.ShouldBeFalse();
-        dto.Provenance.Recipe.Mix!.Expanded.ShouldBe(["drums"]);
+        dto.Provenance.Recipe!.Mix!.Expanded.ShouldBe(["drums"]);
         dto.Files.Single().Url.ShouldBe(ApiRoutes.AssetFile(dto.Id, ApiRoutes.AssetFileAudio));
     }
 
@@ -168,15 +167,6 @@ public sealed class AssetContractTests
         var zero = Vectors.Value["pan"]!.AsArray().Single(p => p!["pan"]!.GetValue<double>() == 0)!;
 
         JsonNode.DeepEquals(zero["matrix"], JsonNode.Parse("[[1.0, 0.0], [0.0, 1.0]]")).ShouldBeTrue();
-    }
-
-    // DateTimeOffset writes "Z" as "+00:00" (same instant); the schema check covers the time format.
-    private static JsonObject WithoutTimes(JsonNode node)
-    {
-        var copy = node.DeepClone().AsObject();
-        copy.Remove("createdAt");
-        copy.Remove("updatedAt");
-        return copy;
     }
 
     private static void Valid<T>(string schema, T body) =>

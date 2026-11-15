@@ -49,7 +49,7 @@ test.describe('library management', { tag: '@library' }, () => {
   });
 
   test('items of a deleted track stay, are marked and still play', async ({ api, assetsApi, library }, testInfo) => {
-    test.setTimeout(fakeJobTimeoutMs + 2 * renderMs);
+    test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 2 * renderMs);
     const copy = uniqueWavCopy(fixturePath('click_90bpm_3-4_12s.wav'), `${runId()}-library-${testInfo.project.name}`);
     const track = await api.ensureFileCompleted(copy, fakeJobTimeoutMs);
     const item = await saveRaw(assetsApi, track, 'drums', 'flac');

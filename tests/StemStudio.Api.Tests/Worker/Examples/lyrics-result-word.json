@@ -1,0 +1,71 @@
+{
+  "outcome": "found",
+  "lyrics": {
+    "syncLevel": "word",
+    "origin": "source",
+    "language": "en",
+    "source": "lrclib",
+    "sourceId": "1000001",
+    "sourceDurationSeconds": 262.0,
+    "instrumental": false,
+    "lines": [
+      {
+        "startMs": 10950,
+        "endMs": 13200,
+        "text": "Fake line one",
+        "words": [
+          {
+            "text": "Fake",
+            "startMs": 10950,
+            "endMs": 11400,
+            "origin": "source",
+            "lowConfidence": false
+          },
+          {
+            "text": "line",
+            "startMs": 11400,
+            "endMs": 11900,
+            "origin": "source",
+            "lowConfidence": false
+          },
+          {
+            "text": "one",
+            "startMs": 11900,
+            "endMs": 13200,
+            "origin": "source",
+            "lowConfidence": false
+          }
+        ]
+      },
+      {
+        "startMs": 14000,
+        "endMs": 16000,
+        "text": "La la la",
+        "words": [
+          {
+            "text": "La",
+            "startMs": 14000,
+            "endMs": 14500,
+            "origin": "source",
+            "lowConfidence": false
+          },
+          {
+            "text": "la",
+            "startMs": 14500,
+            "endMs": 15000,
+            "origin": "source",
+            "lowConfidence": false
+          },
+          {
+            "text": "la",
+            "startMs": 15000,
+            "endMs": 16000,
+            "origin": "source",
+            "lowConfidence": false
+          }
+        ]
+      }
+    ],
+    "plainText": "Fake line one\nLa la la"
+  }
+}

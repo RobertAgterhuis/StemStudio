@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- HTTP contract DTOs shared by StemStudio.Api and StemStudio.Web. No dependencies (ADR-002).
-       Mirrors specs/007-export-library/contracts/backend-api.openapi.yaml (1.5.0 = 005's 1.4.0 + 007) exactly. -->
+       Mirrors specs/008-sheet-music/contracts/backend-api.openapi.yaml (1.7.0 = 007's 1.5.0 + 006 + 008) exactly. -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Contracts</RootNamespace>
   </PropertyGroup>

@@ -5,7 +5,9 @@ using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
+using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Api;
@@ -129,6 +131,45 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<AssetDto> RetryAssetAsync(Guid assetId, CancellationToken cancellationToken = default) =>
         SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.RetryAsset(assetId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> GetLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Get, ApiRoutes.Lyrics(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Put, ApiRoutes.LyricsOffset(trackId), JsonBody(new LyricsOffsetRequest(offsetMs)), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> SetLyricsAsync(Guid trackId, SetLyricsRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Put, ApiRoutes.Lyrics(trackId), JsonBody(request), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> AlignLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Post, ApiRoutes.LyricsAlign(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> CancelLyricsAlignmentAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Post, ApiRoutes.LyricsAlignCancel(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> SearchLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Post, ApiRoutes.LyricsSearch(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Delete, ApiRoutes.Lyrics(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<ScoreOptionsDto> GetScoreOptionsAsync(AudioSourceDto source, CancellationToken cancellationToken = default) =>
+        SendAsync<ScoreOptionsDto>(HttpMethod.Get, ScoreOptionsQuery(source), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AssetDto> CreateScoreAsync(CreateScoreRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.Scores, JsonBody(request), cancellationToken);
+
+    private static string ScoreOptionsQuery(AudioSourceDto source) =>
+        source.AssetId is { } assetId ? ApiRoutes.ScoreOptionsForAsset(assetId) : ApiRoutes.ScoreOptionsForChannel(source.TrackId!.Value, source.Channel!);
 
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;

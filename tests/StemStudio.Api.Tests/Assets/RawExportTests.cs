@@ -51,7 +51,7 @@ public sealed class RawExportTests : IDisposable
         var provenance = asset.Provenance;
         (provenance.Contents, provenance.TrackId, provenance.TrackTitle, provenance.TrackArtist, provenance.TrackAvailable)
             .ShouldBe(("drums, raw", (Guid?)track.Id, "Never Gonna Give You Up", "Rick Astley", true));
-        provenance.Recipe.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Flac, 16, null));
+        provenance.Recipe!.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Flac, 16, null));
         var render = Worker.RenderCreates.Single();
         render.Inputs.ShouldBe([new WorkerRenderInput($"tracks/{track.Id:D}/stems/drums.flac", 1, 0)]);
         (render.MasterGain, render.Range, render.Output).ShouldBe((1, null, new WorkerRenderOutput(WorkerRenderFormat.Flac) { BitDepth = 16, Dither = false }));
@@ -91,7 +91,7 @@ public sealed class RawExportTests : IDisposable
 
         asset.Name.ShouldBe("Drums for practice");
         Worker.RenderCreates.Single().Output.ShouldBe(new WorkerRenderOutput(WorkerRenderFormat.Mp3) { Mp3BitrateKbps = 320, Dither = false });
-        asset.Provenance.Recipe.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Mp3, null, 320));
+        asset.Provenance.Recipe!.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Mp3, null, 320));
     }
 
     [Fact]

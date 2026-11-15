@@ -1,6 +1,7 @@
 using StemStudio.Api.Storage;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
+using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 
@@ -38,8 +39,8 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
     }
 
     /// <summary>
-    /// Schedules the lookup of a completed track that was never looked up (FR-012: tracks imported before feature 005
-    /// get their lookup the first time they are opened) and saves.
+    /// Schedules the lookup and the lyrics search of a completed track that never had them (005 FR-012, 006 FR-013:
+    /// tracks imported before those features get them the first time they are opened) and saves.
     /// </summary>
     /// <param name="track">The track.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -47,9 +48,10 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
     public async Task ScheduleOwnLookupAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        if (track.Status == TrackStatus.Completed && track.Metadata.Status == MetadataStatus.None)
+        if (track.Status == TrackStatus.Completed && (track.Metadata.Status == MetadataStatus.None || track.LyricsStatus == LyricsStatus.None))
         {
             track.ScheduleOwnLookup(Now);
+            track.ScheduleLyricsLookup(Now);
             await tracks.SaveAsync(cancellationToken);
         }
     }

@@ -108,7 +108,7 @@ public sealed partial class BackendContractTests
             .SelectMany(path => path.Value!.AsObject().Select(operation => operation.Value!["operationId"]?.GetValue<string>()))
             .ToList();
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
-            .Except(PendingArtworkOperations).Except(PendingAssetOperations).ToList();
+            .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
@@ -119,6 +119,12 @@ public sealed partial class BackendContractTests
 
     // Feature 007 (backend 1.5.0): the backend removes each id per story (T035, T042, T049, T054, T059).
     private static readonly string[] PendingAssetOperations = [];
+
+    // Feature 006 (backend 1.6.0, staged in the 006/008 Phase 0): the backend removes each id per story (T033, T044, T049).
+    private static readonly string[] PendingLyricsOperations = [];
+
+    // Feature 008 (backend 1.7.0, staged in the 006/008 Phase 0): the backend removes both ids in T041.
+    private static readonly string[] PendingScoreOperations = [];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

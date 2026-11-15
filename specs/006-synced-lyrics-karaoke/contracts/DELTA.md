@@ -6,6 +6,67 @@ starts: every contract gets the next **minor** version over the version current 
 `specs/006-synced-lyrics-karaoke/contracts/` (worker-api, backend-api, audio-engine.md,
 ui-test-ids.md, redocly.yaml), Redocly-lint clean (OpenAPI 3.1), and `types.ts`.
 
+## Phase 0 outcome (2026-11-15, combined 006 + 008 Phase 0)
+
+Final documents in this folder: `worker-api.openapi.yaml` **1.5.0**, `backend-api.openapi.yaml`
+**1.6.0**, `audio-engine.md` **2.1.0**, `ui-test-ids.md` **1.6.0**, `redocly.yaml` (Redocly 2.78.0:
+valid, 6 warnings, the same 6 as 007). Each contains the 007 document unchanged except `/health`
++ `Health` (worker) and `Track` + the six track examples (`lyricsStatus`) (backend); proven by
+`worker/tests/test_lyrics_contract.py` and `LyricsContractTests`. Code (worker schemas, Contracts
+DTOs) follows the **008** documents, which contain these unchanged except `/health`, `Health`,
+`LanesHealth` and the asset entries. Refinements against the delta above:
+
+- **Worker request**: `CreateLyricsJobRequest` is a `oneOf` `LookupLyricsRequest | AlignLyricsRequest`
+  with discriminator `mode` (Python: `schemas.LYRICS_REQUEST` TypeAdapter). Lookup requires `title`
+  and `durationSeconds`; align requires `standardJobId` and `text` (1..20,000, control characters
+  other than tab/CR/LF rejected -> 422), `language` (`^[a-z]{2,3}$` or null) and `refine` (a
+  `syncLevel: line` document whose line times are kept: the P3 "refine" of data-model 3.2).
+- **Documents**: every `TimedLyrics` member is present on the wire; `LyricsWord.origin` is null in
+  plain documents; `lowConfidence` always present. Invariants are a Pydantic validator
+  (`TimedLyrics._check_invariants`). Instrumental results carry an **empty document**
+  (`instrumental: true`, `lines: []`, `plainText: ""`) that names the LRCLIB record; `not-found`
+  and `disabled` carry `lyrics: null` (`LyricsResult` validator).
+- **Jobs**: `LyricsJob.{stage, progress 0..1, device, estimatedSeconds, error}`; stage texts are
+  constants (`LYRICS_STAGE_*`); fixed errors `LYRICS_UNREACHABLE_TEXT` ... `ALIGNMENT_FAILED_TEXT`.
+  `deleteLyricsJob` answers 404 for unknown ids (not idempotent, as in the delta); cancel of a
+  lookup or a terminal job is 409 (`LyricsConflict`, types `standard-job-not-completed`,
+  `lyrics-job-not-cancellable`); result before completion 409 `lyrics-not-completed`.
+- **Health**: `lyricsAlignment` is required: `{available, model: large-v3-turbo|small, modelCached,
+  auto: gpu|always|never, reason}`; the Python default is `ALIGNMENT_NOT_CHECKED` (available
+  false, reason "The lyrics alignment has not been checked yet.") until stem-separation reports
+  the real state.
+- **Settings**: `WorkerSettings.lyrics = LyricsSettings(align_model, align_auto, fake_mode)` from
+  `STEMSTUDIO_ALIGN_MODEL` (turbo|small), `STEMSTUDIO_ALIGN_AUTO` (gpu|always|never),
+  `STEMSTUDIO_FAKE_LYRICS` (word|line|plain|instrumental|not-found|failed).
+- **Ports**: `LyricsQuery(title, duration_seconds, artist, album)`, `LyricsLookup.lookup(query,
+  progress) -> LyricsResult`, `AlignRequest(audio, text, language, refine)`,
+  `Aligner.align(request, device, progress) -> TimedLyrics`, `ALIGN_SAMPLE_RATE = 16000`,
+  `WHISPER_GPU_NEED = GpuNeed(..., 5120)`, `WHISPER_TURBO_WEIGHTS`, `estimate_alignment_seconds`
+  (GPU 0.03 s/s + 20 s, CPU 0.8 s/s + 15 s, + 140 s while the weights are downloaded), errors
+  `LyricsError` > `LyricsUnavailableError`, `LyricsUnusableError`, `AlignmentError`,
+  `AlignmentCancelledError`; shared `WeightsFile`.
+- **Backend**: all lyrics responses use the `LyricsDocument` response with the `NoStore` header
+  (`Cache-Control: no-store`); `Lyrics` has every member required (nullable); `LyricsAlignment`
+  `{estimateSeconds, device, progress}` all required and nullable; `cancelLyricsAlignment` returns
+  to `found` when a line-synced document was being refined; 409 problem types `lyrics-busy`,
+  `lyrics-no-text`, `lyrics-none`. `GET .../lyrics` of a completed track with status `none`
+  starts the lookup (FR-013).
+- **.NET**: `Contracts/Lyrics/{LyricsDto, LyricsLineDto, LyricsWordDto, LyricsStatusDto,
+  SyncLevelDto, WordOriginDto, LyricsOriginDto, LyricsSourceDto, LyricsAlignmentDto,
+  SetLyricsRequest, LyricsOffsetRequest}`, `TrackDto.LyricsStatus` (default `None`),
+  `ApiRoutes.{Lyrics, LyricsSearch, LyricsAlign, LyricsAlignCancel, LyricsOffset}`,
+  `ContractLimits.{MaxLyricsChars, MaxLyricsLines, MaxLyricsOffsetMs, LyricsOffsetStepMs,
+  LyricsLanguagePattern}`; the seven operation ids are staged in `PendingLyricsOperations`.
+- **Engine 2.1.0**: as section 3, plus: `data-word-index` -1 when there is no current word;
+  `baseLatency` fallback when `outputLatency` is undefined; `offsetMs` out of range throws
+  `Error("Karaoke offset out of range: <value>")`. The Phase 0 skeleton threw
+  `KARAOKE_NOT_IMPLEMENTED` until 006 T026/T036 (removed; see Reconciliation); `EngineMethods.ContractVersion` (Web) is `2.1.0`.
+- **UI ids / help**: topic ids without the `help-` prefix (as in 005): `karaoke`, `karaoke-offset`,
+  `lyrics-sources`, `lyrics-align`.
+- **P0-1/P0-2**: torchaudio 2.11.1 imports and runs next to torch 2.15.0 in both images (CPU:
+  `+cpu` wheel, GPU: `+cu132` from the cu132 index) -> **same worker image** (no aligner image).
+  Whisper turbo on the GPU: 2.7-6.7 s per 4:22 song, NVML peak 4,118 MiB (research.md P0).
+
 ## 1. Worker API (005 version -> next minor)
 
 ### 1.1 New paths
@@ -139,3 +200,17 @@ Worker env: `STEMSTUDIO_ALIGN_MODEL` (`turbo`), `STEMSTUDIO_ALIGN_AUTO` (`gpu`),
 `STEMSTUDIO_MODEL_DIR/whisper` (existing model-cache volume; `XDG_CACHE_HOME` not used: the
 adapter passes `download_root`). CPU image: built from `uv.lock` (triton excluded by the
 override); GPU image: unchanged build arguments. CI `CONTRACTS_DIR` -> 006.
+
+## Reconciliation (architect, 2026-11, after the 006 implementation wave)
+
+- Backend 1.6.0 `LyricsConflict` lists every 409 type the backend answers: `lyrics-busy`,
+  `lyrics-no-text`, `lyrics-timed`, `lyrics-not-aligning`, `lyrics-align-rejected`,
+  `track-not-ready` and `lyrics-none` (examples carry the implemented texts). `searchLyrics`
+  with lookups off answers `searching`; the next `GET` reports `disabled`. Mirrored unchanged
+  into backend 1.7.0 (008). No version bump (documentation of implemented behaviour).
+- Contracts lyrics records (`LyricsDto`, `LyricsLineDto`, `LyricsWordDto`, `SetLyricsRequest`)
+  print no lyric text in `ToString()` (FR-010).
+- Engine 2.1.0 (`audio-engine.md`): the Phase 0 skeleton paragraph and `KARAOKE_NOT_IMPLEMENTED`
+  are gone (the methods are implemented); latency is subtracted before the loop wrap; slots,
+  countdown (`data-count`, three `.karaoke-dot`), `translate3d(<x>px, <y>px, 0px)`, validation
+  and resize details are documented as implemented.

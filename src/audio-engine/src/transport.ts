@@ -135,7 +135,16 @@ export class Transport implements TransportClock {
 
   /** @returns Current position (s), derived from `currentTime` and wrapped into an active loop. */
   public position(): number {
-    return this.playState === 'playing' ? this.offsetAt(this.options.context.currentTime) : this.pausedAt;
+    return this.positionAt(this.options.context.currentTime);
+  }
+
+  /**
+   * @param time - Context time (s), e.g. the time currently heard at the output (karaoke clock).
+   * @returns Track time heard at `time` while playing (the ADR-005 formula, wrapped into an
+   *   active loop, never before the start offset), else the stored position.
+   */
+  public positionAt(time: number): number {
+    return this.playState === 'playing' ? this.offsetAt(time) : this.pausedAt;
   }
 
   /**

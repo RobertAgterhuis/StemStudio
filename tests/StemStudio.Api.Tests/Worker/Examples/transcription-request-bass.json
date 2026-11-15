@@ -1,0 +1,35 @@
+{
+  "profile": "bass",
+  "quality": "accurate",
+  "input": {
+    "path": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac"
+  },
+  "drumInputs": null,
+  "range": null,
+  "grid": {
+    "kind": "beat-grid",
+    "bpm": 120.0,
+    "beatsPerBar": 4,
+    "beats": [
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0
+    ],
+    "downbeats": [
+      0.5,
+      2.5
+    ]
+  },
+  "resolution": null,
+  "keyOverride": null,
+  "titles": {
+    "title": "Fake Song - bass (sheet music)",
+    "subtitle": "Fake Song - The Fixture Band",
+    "instrumentName": "Bass"
+  }
+}

@@ -53,7 +53,8 @@ claims: genres P136, members P527, inception P571, dissolved P576, country P495,
 
 ### D4 Matching rules (precision over recall)
 
-- Spotify ISRC first (`isrc:<code>`), then `recording:"<title>" AND artist:"<artist>"` with
+- Spotify ISRC first (the exact lookup `/ws/2/isrc/<code>`, amended 2026-11 from the search
+  syntax `isrc:<code>`; same intent, exact), then `recording:"<title>" AND artist:"<artist>"` with
   `dur:[d-5000 TO d+5000]` when the duration is known.
 - YouTube titles are cleaned first (yt-dlp `track`/`artist` fields when present, else
   "Artist - Title" split, bracketed suffixes such as "(Official Music Video)", "[HD]",

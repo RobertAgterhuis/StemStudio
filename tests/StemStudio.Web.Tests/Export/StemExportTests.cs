@@ -141,6 +141,15 @@ public sealed class StemExportTests : PageTestContext
     }
 
     [Fact]
+    public async Task ARawStem_ShowsTheBackendDefaultOf16Bit()
+    {
+        var page = RenderAt(ExperienceLevel.Advanced);
+        await OpenAsync(page);
+
+        page.Find("[data-testid=export-bit-depth]").GetAttribute("value").ShouldBe("16");
+    }
+
+    [Fact]
     public async Task BitDepth_IsSentForFlac()
     {
         ExportReturns(AssetData.Asset(status: AssetStatusDto.Queued));

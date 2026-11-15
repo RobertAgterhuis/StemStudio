@@ -3,22 +3,16 @@ using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Assets;
 using StemStudio.Web.Api;
 using StemStudio.Web.Export;
-using StemStudio.Web.Interop;
 
 namespace StemStudio.Web.Components.Export;
 
 /// <summary>Submits the export of an <see cref="ExportTarget"/> and confirms it (feature 007).</summary>
-public sealed partial class ExportDialog : IAsyncDisposable
+public sealed partial class ExportDialog
 {
     private ExportForm _form = default!;
-    private ElementReference _title;
-    private IAsyncDisposable? _returnFocus;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
-
-    [Inject]
-    private IWebInterop Web { get; set; } = default!;
 
     /// <summary>What is exported.</summary>
     [Parameter, EditorRequired]
@@ -42,28 +36,10 @@ public sealed partial class ExportDialog : IAsyncDisposable
     };
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_returnFocus is not null)
-        {
-            await _returnFocus.DisposeAsync();
-        }
-    }
-
-    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _form = new ExportForm(Target);
-        _returnFocus = await Web.CaptureFocusAsync();
-    }
-
-    /// <inheritdoc />
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await _title.FocusAsync();
-        }
+        await base.OnInitializedAsync();
     }
 
     private static string ChannelLabel(string channel) =>

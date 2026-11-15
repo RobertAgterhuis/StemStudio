@@ -62,8 +62,9 @@ Per input: `x * gain`, then the Web Audio stereo-input panner (pan <= 0: `L' = L
 `R' = R*sin(θ)` with `θ = (pan+1)·π/2`; pan > 0: `L' = L*cos(θ)`, `R' = R + L*sin(θ)` with
 `θ = pan·π/2`), summed in float32, times `masterGain`. No ramps (static settings). If the peak
 of the rendered range exceeds 1.0, the whole render is scaled to a peak of -0.1 dBFS and the
-applied gain is recorded on the asset and shown (never silent clipping). 16-bit output of a
-processed render gets TPDF dither (seeded per job); a `raw` single-input render with the source's
+applied gain is recorded on the asset and shown (never silent clipping). Every integer output
+of a processed render (16- and 24-bit, and the 16-bit PCM fed to LAME) gets TPDF dither (seeded
+per job); a `raw` single-input render with the source's
 16-bit depth is written without dither and is bit-identical to the stored stem.
 
 ### D5 Inputs: read-only library mount, relative paths

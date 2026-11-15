@@ -6,7 +6,9 @@
 .DESCRIPTION
     Runs scripts/cpu_image_guard.py inside the image (quickstart G2, ADR-011): no distribution named
     nvidia-* other than nvidia-ml-py, no cuda-*, triton or onnxruntime-gpu, and torch.version.cuda
-    is None. Exit code 0 when the image is CPU only, 1 otherwise. No secrets are read or needed.
+    is None. It also fails on matplotlib (excluded by the lock, 008) and when torchaudio or
+    stable_whisper (006) do not import. Exit code 0 when the image passes, 1 otherwise. No secrets
+    are read or needed.
 
 .PARAMETER Image
     The image to check (default stemstudio/worker:local).

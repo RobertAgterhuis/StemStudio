@@ -26,6 +26,12 @@ sections 11 and 12. Binding contracts: `specs/005-artwork-band-info/contracts/` 
 backend 1.4.0, UI test ids 1.4.0) and `specs/007-export-library/contracts/` (worker 1.4.0,
 backend 1.5.0, UI test ids 1.5.0, render vectors 1.0.0), each a superset of the previous.
 
+Features 006 (synced lyrics with karaoke ball) and 008 (sheet music per instrument) are built in
+one combined wave; their additions are marked **(006)** / **(008)** and collected in sections 13
+and 14. Binding contracts: `specs/006-synced-lyrics-karaoke/contracts/` (worker 1.5.0, backend
+1.6.0, engine 2.1.0, UI test ids 1.6.0) and `specs/008-sheet-music/contracts/` (worker 1.6.0,
+backend 1.7.0, UI test ids 1.7.0).
+
 ## 1. Test pyramid
 
 ```text
@@ -373,7 +379,7 @@ npm run test:restart     # after `docker compose restart api web` (T122)
 npm run test:real        # real Demucs stack only
 
 # (004) design system and UX (section 10); fake CPU stack unless stated
-npm run test:legacy      # only the 1.0.0-1.2.0 specs (SC-006 evidence: the same set as before 004)
+npm run test:legacy      # only the 1.0.0-1.2.0 specs (SC-006 evidence; excludes the 005-008 tags, keeps the stack-free self-tests)
 npm run test:ux          # only the @ux specs (journeys, levels, help, tours, keyboard, theme flash)
 npm run test:a11y        # axe matrix, project "a11y" (Chromium)
 npm run test:lighthouse  # project lighthouse-setup writes the URLs, then lhci autorun (lighthouserc.json)
@@ -731,3 +737,206 @@ STEMSTUDIO_FAKE_ONLINE=not-found docker compose up -d --build --wait
   (`preload = "metadata"`, `load()`) the way pressing play would.
 - **Server-rendered option lists** (the "Selected channels" boxes) are awaited before they are
   listed with `locator.all()`.
+
+## 13. (006) Synced lyrics with karaoke ball
+
+Binding contracts: `specs/006-synced-lyrics-karaoke/contracts/` (worker 1.5.0, backend 1.6.0,
+engine 2.1.0, UI test ids 1.6.0); the code links the 008 documents, which contain them unchanged
+(architect Phase 0). Design: ADR-015. Lyrics are copyrighted: no test, fixture or log contains
+the text of a real song (ADR-015 D6, CTO-DECISIONS-2026-11-15).
+
+### 13.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Worker unit (audio-ingest) | LRC and `lyricsfile` readers, normalisation and limits, interpolation (R-03), LRCLIB client, selection (data-model 2.3), lookup orchestration, fake provider | `tests/fixtures/lyrics/{lrc,lyricsfile,lrclib}/` replayed with `httpx.MockTransport`; fake clock; `lrc/expected.json` is the oracle of the LRC reader |
+| Worker unit (stem-separation) | lyrics job store and lanes, scheduler priority, routes, alignment adapter (stem choice, collapse check, retry, mapping, low confidence), estimate, `/health.lyricsAlignment` | fake `LyricsLookup`, fake stable-ts module, fake `DeviceRunner`, fake clock |
+| Worker integration (stem-separation T042, run by the CTO in T066) | SC-003 on real Whisper turbo | `tests/fixtures/audio/align_clip_sung_29s.wav` + `lyrics/align-clip.json` (13.3) |
+| Backend | lyrics state machine, persistence, worker client, sync, endpoints, offset, paste, align/cancel, search/remove, log guard (FR-010) | worker examples, SQLite, the fake-provider words for the log scan |
+| Engine (Vitest) | frame loop, karaoke clock (no drift over 1,000 jittered frames), cursor, layout, ball, DOM, reduced motion | `AudioContext` mock with `getOutputTimestamp`/`outputLatency`, fake rAF, stubbed layout |
+| Frontend (bUnit) | banner host, controls, unavailable texts, track-page lyrics section, paste dialog, levels, help ids | fake `IStemStudioApiClient`, fake `IAudioEngine` |
+| E2E (qa) | `karaoke.spec.ts` (`@karaoke`), `lyrics.spec.ts` (`@lyrics`) on the fake stack | `STEMSTUDIO_FAKE_LYRICS`, `STEMSTUDIO_FAKE_DEVICE`, `tests/fixtures/lyrics/fake-lyrics.json` |
+| Stack-free self-test | landing maths, fake-alignment rule, fake-mode parsing | `e2e/tests/lyrics-score-support.spec.ts` (green without docker) |
+
+**Landing accuracy (SC-002, quickstart L4).** `e2e/support/karaoke-probe.ts` wraps
+`AudioBufferSourceNode.start/stop` before the page loads and computes an **independent reference
+position** with the audio-engine.md clock formula (`offset + (audioNow - start)` wrapped into the
+loop, `audioNow` from `getOutputTimestamp()` extrapolated with `performance.now()`, minus
+`outputLatency`). A `MutationObserver` on `karaoke-banner` records every change of
+`data-line-index` / `data-word-index` / `data-state` with that reference; the landing error of a
+word change is `reference - offsetMs - word.startMs` and must be within 50 ms (30 s of looped
+playback, 50 loops of the 8 s region 1.5-9.5 s, 20 seeded seeks, an offset of +500 ms, a size
+change). `data-position-ms` must stay within 50 ms of the reference. `E2E_KARAOKE_LOOPS` /
+`E2E_KARAOKE_SEEKS` lower the counts for a quick local run; the CTO run uses the defaults (50/20).
+
+**Frame rate (SC-004, L5).** Chromium only: rAF frames over 20 s of playback >= 55 fps, and the
+95th percentile of the time spent in every `requestAnimationFrame` callback (timed by an init
+script; the engine emits no `performance.measure` entries, so this is the whole engine frame loop
+including the meters, stricter than the karaoke work alone) stays below 2 ms. On the reference
+machine the Chrome DevTools trace is the binding measurement (CTO T066).
+
+### 13.2 Fake stack modes and run matrix
+
+`STEMSTUDIO_FAKE_LYRICS` (only with `STEMSTUDIO_SEPARATOR=fake`) selects a row of
+`tests/fixtures/lyrics/fake-lyrics.json`. The table started as the qa proposal and was aligned with
+the implementation in the 006+008 integration run: the worker's fake provider spreads four
+self-written lines evenly over the track (line i of n at `floor(durationMs / (n + 1)) * (i + 1)`,
+words interpolated: 4, 8, 12 and 16 s on the 20 s fixture); the fake aligner follows the
+`fakeAlignment` rule (word k at 2000 + 500 k ms). No gap is longer than 5 s, so the gap countdown
+(US1-6) is covered by the engine's `dom`/`timeline` unit tests only. The suite reads `E2E_FAKE_LYRICS`, else
+`STEMSTUDIO_FAKE_LYRICS`, else `word`, and skips cases of other modes (`support/lyrics.ts`). While
+the stack has no 006 backend (`GET .../lyrics` 404/405) every case skips with that reason.
+
+| Stack (`STEMSTUDIO_FAKE_LYRICS`, `STEMSTUDIO_FAKE_DEVICE`) | Runs |
+|---|---|
+| `word`, `cpu` (compose default) | `karaoke.spec.ts` word sync, landing, loops, seeks, offset, frame rate, controls, reduced motion, Beginner; `lyrics.spec.ts` FR-010 privacy; `lyrics-score-levels.spec.ts` (banner and lyrics card per level); `help.spec.ts` 006 queries and markers |
+| `line`, `cpu` | karaoke line sync (`data-sync="line"`, "word timing estimated") |
+| `instrumental`, `cpu` | no banner, `karaoke-unavailable` `instrumental` |
+| `plain`, `cpu` | click-to-align with the CPU estimate, paste flow (click) |
+| `plain`, `gpu` | automatic alignment, banner `data-sync="aligned"`, paste flow (automatic) |
+| `not-found`, `cpu` | `notFound`, search again + paste offered, mixer notice |
+| `failed`, `cpu` | `lyrics-error` with the fixed text, search again ends in `failed` again |
+
+`npm run test:lyrics` (`@karaoke|@lyrics`) once per row (CTO 006:T065), like the 005 modes.
+
+### 13.3 Fixtures
+
+`tests/fixtures/lyrics/` (committed, README with provenance): LRC files with the T012 edge cases
+and their expected parse (`lrc/expected.json`), `lyricsfile` YAML (F-03 shape; instrumental; an
+unsafe tag that `safe_load` must refuse), LRCLIB get/search responses in the F-01/F-02 shape with
+placeholder text and the expected selection per duration, and `fake-lyrics.json`. Checked by
+`tests/fixtures/tests/test_lyrics_fixtures.py` (reference LRC reader, reference selection, fake
+table invariants, placeholder-only text).
+
+**Alignment clip** (owner question O-2, decided by CTO-DECISIONS-2026-11-15). Generated by
+`uv run --project worker python tests/fixtures/generate_lyrics_fixtures.py` into the git-ignored
+`tests/fixtures/audio/`; the exact annotation `tests/fixtures/lyrics/align-clip.json` is
+committed.
+
+| File | Content | Known facts | Used by |
+|---|---|---|---|
+| `align_clip_sung_29s.wav` | isolated lead vocal, 28.97 s, 44.1 kHz stereo PCM16: a self-written 4-line song (22 words, D major, 100 BPM, a 2.4 s rest) sung by the formant synthesiser `tests/fixtures/sung_voice.py`; CC0 | per word the exact start/end (first/last sample of its phones), `plainText`, `language: en`, SC-003 target 80 % within 300 ms | `worker/tests/alignment/test_align_clip.py` (`-m integration`) |
+
+qa measurement on 2026-11-15 before the fix (CPU, stable-ts 2.19.1 `align`, default options):
+Whisper turbo 63.6 % of word starts within 300 ms (median 170 ms), base 59.1 %; the misses were
+words after held notes. After stem-separation's onset refinement (006 US2) the integration run
+measured `worker/tests/alignment/test_align_clip.py` with Whisper turbo at **20 / 22 = 90.9 %**
+on the GPU image (`STEMSTUDIO_DEVICE=cuda`, RTX 5070 Ti, align phase 1.4 s for 29 s of audio) and
+the same 20 / 22 on the CPU image (align phase 7.5 s); SC-003 (>= 80 %) is met. The fixture was
+never tuned to pass.
+
+### 13.4 (006) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 word-synced lyrics found at import, ball on each word (FR-001, FR-003, FR-005, SC-001) | `test_lookup.py`, `test_select.py`, `LyricsSyncTests.cs`, karaoke `ball`/`dom` tests | `karaoke.spec.ts` word sync (L2) and landing (L4); SC-001 on the real song: CTO T066 (L6) |
+| US1-2 line sync, words interpolated (FR-003) | `test_interpolate.py` | `karaoke.spec.ts` line sync |
+| US1-3 pause, seek, loop keep the ball in time (FR-006, SC-002) | engine `clock` / `cursor` tests | `karaoke.spec.ts` loops and seeks |
+| US1-4 offset (FR-007) | `TrackLyricsTests.cs`, `LyricsEndpointTests.cs`, `KaraokeBanner` bUnit | `karaoke.spec.ts` offset (+500 ms, stored, reset) |
+| US1-5 instrumental, no banner | `test_select.py`, `LyricsSyncTests.cs` | `karaoke.spec.ts` instrumental |
+| US1-6 countdown in gaps > 5 s (FR-008) | engine `dom` / `timeline` tests | `karaoke.spec.ts` L2 covers the countdown before the first line only (the fake document has no gap > 5 s) |
+| US2-1 automatic alignment on a GPU worker (FR-004, FR-014) | `LyricsAlignTests.cs`, `test_aligner.py` | `lyrics.spec.ts` plain + gpu |
+| US2-2 click to align on a CPU worker with the estimate (SC-005) | estimate tests (stem-separation T042), `LyricsAlignTests.cs` | `lyrics.spec.ts` plain + cpu |
+| US2-3 paste and align | `LyricsAlignTests.cs`, paste dialog bUnit | `lyrics.spec.ts` paste |
+| US2-4 lead vocal used when split (SC-003) | `test_audio_prep.py` | - (integration test on the clip, CTO T066) |
+| US2-5 alignment failure readable, retry | `test_aligner.py` (collapse, retry), `LyricsAlignTests.cs` | `lyrics.spec.ts` failed (lookup failure + search again) |
+| US3-1 hide/show remembered (FR-009) | toggle bUnit | `karaoke.spec.ts` controls |
+| US3-2 remove / search again / paste others (FR-009) | backend 006:T049 | `karaoke.spec.ts` remove + search again |
+| US3-3 reduced motion (FR-011) | engine 006:T051 | `karaoke.spec.ts` reduced motion |
+| FR-010 lyrics never leave the app (SC-006) | `LyricsEndpointTests.cs` (log scan) | `lyrics.spec.ts` no-store + track list without text |
+| FR-012 rate limits and identification | `test_lrclib.py` | - |
+| FR-013 old tracks looked up on first mixer open | `LyricsSyncTests.cs` | - |
+| FR-015 levels (Beginner: banner + toggle) | bUnit levels | `karaoke.spec.ts` Beginner, `lyrics-score-levels.spec.ts` |
+| help topics `karaoke`, `karaoke-offset`, `lyrics-sources`, `lyrics-align` | help coverage bUnit | `help.spec.ts` 006 queries and markers |
+| SC-004 frame rate | engine layout tests (no layout reads per frame) | `karaoke.spec.ts` frame rate (Chromium); CTO T066 trace |
+
+## 14. (008) Sheet music per instrument
+
+Binding contracts: `specs/008-sheet-music/contracts/` (worker 1.6.0, backend 1.7.0, UI test ids
+1.7.0; engine unchanged). Design: ADR-017.
+
+### 14.1 What is tested where
+
+- **Notation (beat-analysis) and engraving (audio-ingest)** are pure and tested on **synthetic note
+  lists**: cleaning, time base (bars on downbeats, pickup, snapping), key estimate and spelling,
+  builders. The MusicXML is parsed back with music21 and asserted (clefs, time signature, tempo,
+  key, measure count, ties, rests, no duration below the resolution, percussion voices and x
+  noteheads); the PDF is checked for page count, metadata and the Leipzig font (SC-003, SC-004).
+- **Transcription runtimes (stem-separation)** run with fake ONNX sessions / fake torch modules;
+  real models only in `@pytest.mark.integration` tests on **synthetic audio with exact ground
+  truth** (`tests/fixtures/generate_score_fixtures.py`, 14.3): single voice F1 >= 0.90, piano
+  F1 >= 0.85 (SC-002). The reference metric is `onset_f_measure` in that generator (onset within
+  50 ms, same pitch, offsets ignored, greedy matching). A miss becomes a tuning request in the
+  owner's hand-off, not a lowered target.
+- **E2E (qa)** uses the **fake transcriber** (data-model 2.6: one note per beat of the track's real
+  grid; piano adds a bass triad per bar; drums kick 1+3, snare 2+4, hi-hat eighths) with **real
+  notation and engraving**, so the specs assert real files: `%PDF`, `MThd`, and MusicXML facts read
+  by `e2e/support/musicxml.ts` (measure count = `expectedFakeBars(grid)` from the track's beat
+  grid, `<fifths>`, `<beats>`/`<beat-type>`, clefs with octave change, `<staves>`, `<type>`,
+  `<voice>`, `<notehead>x</notehead>`). The readers are self-tested in
+  `lyrics-score-support.spec.ts`. While the stack has no 008 backend (`/api/scores/options`
+  404/405) every case skips with that reason.
+- **Design-quality matrices**: the `score-dialog` screen (track page, dialog open for the bass) and
+  a ready score item on `library` (`support/ux-library.ts` `ensureScoreItem`, the PDF preview frame
+  is masked in screenshots) join the visual and a11y matrices; the karaoke banner and the lyrics
+  card appear on the existing `mixer` and `track` screens (fake lyrics mode `word`).
+
+### 14.2 Run matrix
+
+| Stack | Runs |
+|---|---|
+| fake (default), `npm run test:sheet-music` | bass (generate, preview, files, bars), downloads are attachments, key + simplified, piano grand staff, drums before the split, from a library item |
+| fake, `npm run test:detail` | drums after the split (`@sheet-music` + `@detail`, needs the detail phase) |
+| reference machine (CTO 008:T079/T080) | M2-M10 timings and real-model quality (quickstart) |
+
+### 14.3 Fixtures
+
+`uv run --project worker python tests/fixtures/generate_score_fixtures.py` -> `tests/fixtures/audio/`
+(git-ignored) and `tests/fixtures/score-manifest.json` (committed: per file every note
+`{start, end, pitch, velocity}` or hit `{time, piece, strength}`, the shared grid as a worker
+`TempoGrid` of kind `beatGrid`, and the F1 target). All 44.1 kHz stereo PCM16, 120 BPM, 4/4,
+first downbeat 0.5 s, every onset on the 1/16 grid.
+
+| File | Content | Ground truth | Used by |
+|---|---|---|---|
+| `score_bass_line_120bpm.wav` | research.md S-03: 78 notes of MIDI 40/43/45/47/50/52, eighths and quarters, ~15 % rests, five harmonics with decay | 78 notes, target F1 0.90 | basic-pitch integration (stem-separation 008:T040), bass notation |
+| `score_piano_texture_20s.wav` | S-04: a treble melody note every 0.5 s (38) over a bass-staff triad every second (19 x 3), inharmonic partials | 95 notes (38 >= MIDI 60, 57 < 60), target F1 0.85 | piano CRNN integration, grand-staff split |
+| `score_drums_{kick,snare,toms,hihat,cymbals}.wav` | the five `drumInputs` of one 8-bar groove: kick 1+3, snare 2+4, hi-hat eighths, crashes on bars 1 and 5, a 16th tom fill in bar 8 | 16 / 16 / 8 / 64 / 2 hits | drum onsets (beat-analysis 008:T057), percussion builder |
+
+### 14.4 (008) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 bass part: PDF + MusicXML + MIDI in the library (FR-001, FR-003, SC-001) | `test_transcription_routes.py`, `CreateScoreTests.cs`, `ScoreDialog` bUnit | `sheet-music.spec.ts` bass |
+| US1-2 bass clef 8vb, bars, tempo (FR-004, SC-003) | `test_builders.py`, `test_timebase.py` | `sheet-music.spec.ts` bass (F clef, octave -1, measure count, time signature) |
+| US1-3 limits and estimate before generating (FR-010) | `CreateScoreTests.cs` (options), dialog bUnit | - (bUnit; CTO SC-006 check) |
+| US2-1 bar lines on downbeats (SC-003) | `test_timebase.py` | `sheet-music.spec.ts` bass (bars = grid) |
+| US2-2 key with confidence, override (FR-005) | `test_keys.py` | `sheet-music.spec.ts` key + simplified (`<fifths>1</fifths>`) |
+| US2-3 simplified rhythm (FR-006) | `test_builders.py` | `sheet-music.spec.ts` key + simplified (no `16th`) |
+| US2-4 unreliable grid -> manual tempo (FR-007) | `TempoGridResolverTests.cs`, dialog bUnit | - (no unreliable-grid fake track in this wave) |
+| US3-1/2 piano grand staff (FR-008, SC-002 piano) | `test_piano.py`, `test_builders.py`, piano integration on `score_piano_texture_20s.wav` | `sheet-music.spec.ts` piano (`<staves>2</staves>`, G and F clefs) |
+| US3-3 CPU path with progress | `test_piano.py`, route tests | - (CTO M9) |
+| US4-1 drums after the split (FR-009) | drum-onset tests on `score_drums_*.wav`, `test_builders.py` | `sheet-music.spec.ts` drums after the split (`@detail`) |
+| US4-2 drums not split -> notice + start the split | `ScoreRecipeTests.cs`, dialog bUnit | `sheet-music.spec.ts` drums before the split |
+| US5-1 from a library item with a range (FR-012, FR-013) | `TempoGridResolverTests.cs`, `CreateScoreTests.cs` | `sheet-music.spec.ts` from a library item (provenance track + source asset) |
+| US5-2 item without a source track -> manual tempo | `TempoGridResolverTests.cs` | - |
+| FR-011 not blocking (SC-005) | lane scheduler tests | CTO M10 |
+| FR-014 help topics | help coverage tests | `help.spec.ts` 008 queries and score dialog markers |
+| levels (Beginner: profile, rhythm, estimate, limits) | dialog bUnit | `lyrics-score-levels.spec.ts` |
+| SC-002 synthetic accuracy | integration tests on 14.3: integration run 2026-11-15 bass F1 1.000, piano F1 0.933 (GPU and CPU) | - |
+| SC-004 PDF glyphs | `test_engraver.py`, `scripts/check-worker-fonts.*` | `sheet-music.spec.ts` bass (`%PDF`) |
+
+### 14.5 Commands (006 + 008)
+
+```bash
+# fixtures: lyrics clip + annotation, score material (the lyrics text fixtures are hand-maintained)
+uv run --project worker python tests/fixtures/generate_lyrics_fixtures.py
+uv run --project worker python tests/fixtures/generate_score_fixtures.py
+# (006) per fake lyrics mode (CTO 006:T065), e.g. plain on a fake GPU
+STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
+(cd e2e && STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gpu npm run test:lyrics)
+# (008) sheet music, then the drums case with the detail phase
+(cd e2e && npm run test:sheet-music && npx playwright test --project=chromium --project=firefox tests/sheet-music.spec.ts -g drums)
+# stack-free self-test of the 006/008 helpers (pass without docker)
+(cd e2e && npx playwright test tests/lyrics-score-support.spec.ts)
+```

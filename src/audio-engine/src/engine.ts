@@ -1,11 +1,14 @@
 /**
- * Composition root: one AudioContext shared by transport, mixer, stem groups, meters and metronome, exposed
+ * Composition root: one AudioContext shared by transport, mixer, stem groups, meters, metronome and karaoke, exposed
  * as the {@link AudioEngine} object Blazor holds as an `IJSObjectReference`.
  *
  * @packageDocumentation
  */
 import { DotNetNotifier } from './callbacks';
 import { clampChecked } from './channel';
+import { FrameLoop } from './frame-loop';
+import { Karaoke } from './karaoke/index';
+import { KaraokeClock } from './karaoke/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
 import { Meters } from './meters';
@@ -22,6 +25,8 @@ import type {
   ChannelSettings,
   DotNetObjectReference,
   EngineOptions,
+  KaraokeLyrics,
+  KaraokeOptions,
   LoadTrackRequest,
   LoopRegion,
   MeterTarget,
@@ -42,8 +47,10 @@ interface Parts {
   readonly mixer: Mixer;
   readonly transport: Transport;
   readonly notifier: DotNetNotifier;
+  readonly frames: FrameLoop;
   readonly meters: Meters;
   readonly metronome: MetronomeScheduler;
+  readonly karaoke: Karaoke;
 }
 
 function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
@@ -56,9 +63,18 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   });
   const notifier = new DotNetNotifier(ref, () => transport.position());
   transport.addListener(notifier);
-  const meters = new Meters({ source: (target) => mixer.analyser(target) });
+  const frames = new FrameLoop();
+  const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
   const metronome = createMetronome(context, transport, options);
-  return { context, mixer, transport, notifier, meters, metronome };
+  const karaoke = createKaraoke(context, transport, frames);
+  return { context, mixer, transport, notifier, frames, meters, metronome, karaoke };
+}
+
+function createKaraoke(context: AudioContext, transport: Transport, loop: FrameLoop): Karaoke {
+  const clock = new KaraokeClock({ context, transport });
+  const karaoke = new Karaoke({ loop, clock, playing: () => transport.state === 'playing' });
+  transport.addListener(karaoke);
+  return karaoke;
 }
 
 function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
@@ -191,6 +207,7 @@ export class Engine implements AudioEngine {
   public setLoop(loop: LoopRegion): void {
     this.alive();
     setLoopChecked(this.parts.transport, loop);
+    this.parts.karaoke.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -212,6 +229,24 @@ export class Engine implements AudioEngine {
     this.parts.meters.detach(target);
   }
 
+  /** {@inheritDoc AudioEngine.attachKaraoke} */
+  public attachKaraoke(elementId: string, lyrics: KaraokeLyrics, options: KaraokeOptions): void {
+    this.alive();
+    this.parts.karaoke.attach(elementId, lyrics, options);
+  }
+
+  /** {@inheritDoc AudioEngine.setKaraokeOffset} */
+  public setKaraokeOffset(offsetMs: number): void {
+    this.alive();
+    this.parts.karaoke.setOffset(offsetMs);
+  }
+
+  /** {@inheritDoc AudioEngine.detachKaraoke} */
+  public detachKaraoke(): void {
+    this.alive();
+    this.parts.karaoke.detach();
+  }
+
   /** {@inheritDoc AudioEngine.dispose} */
   public async dispose(): Promise<void> {
     if (this.disposed) {
@@ -223,6 +258,8 @@ export class Engine implements AudioEngine {
     this.parts.mixer.dispose();
     this.parts.notifier.dispose();
     this.parts.meters.dispose();
+    this.parts.karaoke.detach();
+    this.parts.frames.dispose();
     this.parts.metronome.dispose();
     await this.parts.context.close();
   }

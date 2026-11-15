@@ -1,3 +1,5 @@
+using StemStudio.Contracts.Scores;
+
 namespace StemStudio.Contracts.Assets;
 
 /// <summary>Where a library item came from; snapshots survive deletion of the track.</summary>
@@ -24,6 +26,9 @@ public sealed record ProvenanceDto
     /// <summary>Short human text, e.g. "drums, raw" (&lt;= 200 characters).</summary>
     public required string Contents { get; init; }
 
-    /// <summary>How the item was made.</summary>
-    public required ExportRecipeDto Recipe { get; init; }
+    /// <summary>How an export was made (origin export); null for score items (1.7.0).</summary>
+    public ExportRecipeDto? Recipe { get; init; }
+
+    /// <summary>How a score item was made (origin transcription, 1.7.0); null for exports.</summary>
+    public ScoreRecipeDto? ScoreRecipe { get; init; }
 }

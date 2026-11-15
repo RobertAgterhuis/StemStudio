@@ -1,0 +1,16 @@
+{
+  "transcriptionJobId": "c4e6a8b0d2f4416385a7c9e1b3d5f7a9",
+  "status": "running",
+  "stage": "transcribing",
+  "progress": 0.42,
+  "device": {
+    "kind": "cpu",
+    "name": null,
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "result": null,
+  "createdAt": "2026-11-15T11:00:00Z",
+  "updatedAt": "2026-11-15T11:00:09Z"
+}

@@ -1,22 +1,16 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Tracks;
-using StemStudio.Web.Interop;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.BandInfo;
 
 /// <summary>Validation, focus and keys of the correction dialog (feature 005, FR-009).</summary>
-public sealed partial class CorrectMetadataDialog : IAsyncDisposable
+public sealed partial class CorrectMetadataDialog
 {
-    [Inject]
-    private IWebInterop Web { get; set; } = default!;
-
     private string _title = string.Empty;
     private string _artist = string.Empty;
     private string? _problem;
-    private ElementReference _first;
-    private IAsyncDisposable? _returnFocus;
 
     /// <summary>The current title (prefilled).</summary>
     [Parameter]
@@ -43,28 +37,10 @@ public sealed partial class CorrectMetadataDialog : IAsyncDisposable
     public EventCallback OnCancel { get; set; }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_returnFocus is not null)
-        {
-            await _returnFocus.DisposeAsync();
-        }
-    }
-
-    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         (_title, _artist) = (Title, Artist ?? string.Empty);
-        _returnFocus = await Web.CaptureFocusAsync();
-    }
-
-    /// <inheritdoc />
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await _first.FocusAsync();
-        }
+        await base.OnInitializedAsync();
     }
 
     private Task OnDialogKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;

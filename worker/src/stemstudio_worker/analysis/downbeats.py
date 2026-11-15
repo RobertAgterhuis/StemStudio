@@ -45,14 +45,17 @@ def detect_meter(strengths: FloatArray) -> Meter:
     Returns:
         The best meter, or 4/4 at phase 0 when no clear accent pattern exists.
     """
-    candidates = [
-        Meter(m, p) for m in CANDIDATE_METERS if len(strengths) >= 2 * m for p in range(m)
-    ]
-    scored = [(_contrast(strengths, c), c) for c in candidates]
+    scored = [(_contrast(strengths, c), c) for c in _candidates(len(strengths))]
     best_score, best = max(scored, key=lambda item: item[0], default=(0.0, None))
     if best is None or best_score < MIN_ACCENT_CONTRAST:
         return Meter(DEFAULT_BEATS_PER_BAR, 0)
     return best
+
+
+def _candidates(beat_count: int) -> list[Meter]:
+    """Return every (meter, phase) with at least two bars of ``beat_count`` beats."""
+    meters = [m for m in CANDIDATE_METERS if beat_count >= 2 * m]
+    return [Meter(m, phase) for m in meters for phase in range(m)]
 
 
 def downbeat_times(beats: FloatArray, meter: Meter) -> list[float]:

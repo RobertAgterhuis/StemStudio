@@ -126,8 +126,9 @@ export class ExportDialog {
 
   private async selectChannels(keys: readonly string[]): Promise<void> {
     await this.byId('export-source-selected').check();
+    await expect(this.byId('export-source-selected')).toBeChecked();
+    // The channel boxes render after the server round trip of the radio change.
     const boxes = this.page.locator('[data-testid^="export-channel-"]');
-    // The channel list is rendered by the server after the choice; wait before listing it.
     await expect(boxes.first()).toBeVisible();
     for (const box of await boxes.all()) {
       const key = ((await box.getAttribute('data-testid')) ?? '').replace('export-channel-', '');

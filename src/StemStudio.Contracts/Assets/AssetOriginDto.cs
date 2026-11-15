@@ -9,4 +9,8 @@ public enum AssetOriginDto
     /// <summary>Exported from a track (feature 007).</summary>
     [JsonStringEnumMemberName("export")]
     Export,
+
+    /// <summary>Transcribed to sheet music (feature 008).</summary>
+    [JsonStringEnumMemberName("transcription")]
+    Transcription,
 }

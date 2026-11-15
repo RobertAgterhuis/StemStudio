@@ -1,0 +1,6 @@
+{
+  "type": "transcription-not-completed",
+  "title": "Transcription not completed",
+  "status": 409,
+  "detail": "Transcription job is in state running."
+}

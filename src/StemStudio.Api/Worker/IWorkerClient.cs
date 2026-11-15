@@ -173,4 +173,83 @@ public interface IWorkerClient
     /// <returns>A task.</returns>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task DeleteRenderJobAsync(string renderJobId, CancellationToken cancellationToken);
+
+    /// <summary>Creates a lyrics lookup job (<c>POST /v1/lyrics-jobs</c>, mode lookup, worker 1.5.0); never retried.</summary>
+    /// <param name="request">Names and duration.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">The worker rejected the request (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CreateLyricsLookupJobAsync(WorkerLyricsLookupRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Creates a lyrics alignment job (<c>POST /v1/lyrics-jobs</c>, mode align); never retried.</summary>
+    /// <param name="request">Standard job, text, language hint and the document to refine.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">Unknown standard job (404), not completed or vocal stem gone (409), invalid (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a lyrics job.</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404, e.g. after a restart or the 24 h sweep).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob?> GetLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Gets the outcome and the timed lyrics of a completed lyrics job (served <c>no-store</c>).</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    /// <exception cref="WorkerRequestException">Unknown or not completed job (404/409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsResult> GetLyricsResultAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Cancels a queued or running alignment job.</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The cancelled job.</returns>
+    /// <exception cref="WorkerRequestException">Unknown job (404), a lookup or a terminal job (409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerLyricsJob> CancelLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Removes a lyrics job and its result, cancelling it first (404 is tolerated).</summary>
+    /// <param name="lyricsJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DeleteLyricsJobAsync(string lyricsJobId, CancellationToken cancellationToken);
+
+    /// <summary>Creates a transcription job (<c>POST /v1/transcription-jobs</c>, worker 1.6.0); never retried.</summary>
+    /// <param name="request">Profile, inputs, grid and titles.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">Invalid input path (400), input not found (404) or invalid values (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a transcription job with its result.</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerTranscriptionJob?> GetTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken);
+
+    /// <summary>Streams one file (<c>pdf</c>, <c>musicxml</c>, <c>midi</c>) of a completed transcription job.</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="role">File role.</param>
+    /// <param name="destination">Destination stream.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="ArgumentException">The role is not a score file role (no request is sent).</exception>
+    /// <exception cref="WorkerRequestException">Unknown job (404) or not completed (409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DownloadTranscriptionFileAsync(string transcriptionJobId, string role, Stream destination, CancellationToken cancellationToken);
+
+    /// <summary>Cancels and removes a transcription job (idempotent).</summary>
+    /// <param name="transcriptionJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task DeleteTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken);
 }

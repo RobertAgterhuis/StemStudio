@@ -111,7 +111,10 @@ else
             </div>
         </div>
 
-        <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
-                      OnStop="StopAsync" OnSeek="SeekAsync" />
+        <div class="ss-mixer-dock">
+            <KaraokeBanner TrackId="Id" EngineReady="EngineReady" />
+            <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
+                          OnStop="StopAsync" OnSeek="SeekAsync" />
+        </div>
     </div>
 }

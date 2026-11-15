@@ -44,7 +44,7 @@ public sealed class StemPackTests : IDisposable
         await ContractAssert.MatchesAsync(response, "createStemPack");
         var pack = await response.BodyAsync<StemPackDto>();
         pack.Items.Select(item => item.Provenance.Contents).ShouldBe(["vocals, raw", "drums, raw", "bass, raw", "guitar, raw", "piano, raw", "other, raw"]);
-        pack.Items.ShouldAllBe(item => item.Status == AssetStatusDto.Queued && item.Provenance.Recipe.Format.BitDepth == 16);
+        pack.Items.ShouldAllBe(item => item.Status == AssetStatusDto.Queued && item.Provenance.Recipe!.Format.BitDepth == 16);
         pack.Items[0].Name.ShouldBe("Never Gonna Give You Up - vocals");
         _factory.Worker.RenderCreates.Select(render => render.Inputs.Single().Path[^11..]).ShouldBe(["vocals.flac", "/drums.flac", "s/bass.flac", "guitar.flac", "/piano.flac", "/other.flac"]);
     }
@@ -56,7 +56,7 @@ public sealed class StemPackTests : IDisposable
 
         var pack = await (await PostAsync(new CreateStemPackRequest(track.Id, Flac, IncludeDetail: true))).BodyAsync<StemPackDto>();
 
-        pack.Items.Select(item => item.Provenance.Recipe.Channels!.Single()).ShouldBe(
+        pack.Items.Select(item => item.Provenance.Recipe!.Channels!.Single()).ShouldBe(
             ["vocals", "drums", "bass", "guitar", "piano", "other", "vocals.lead", "vocals.backing", "vocals.rest", "drums.kick", "drums.snare", "drums.rest"]);
     }
 
@@ -68,7 +68,7 @@ public sealed class StemPackTests : IDisposable
         var pack = await (await PostAsync(new CreateStemPackRequest(track.Id, new ExportFormatDto(AudioFileFormatDto.Mp3)))).BodyAsync<StemPackDto>();
 
         pack.Items.Count.ShouldBe(6);
-        pack.Items[0].Provenance.Recipe.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Mp3, null, 320));
+        pack.Items[0].Provenance.Recipe!.Format.ShouldBe(new ExportFormatDto(AudioFileFormatDto.Mp3, null, 320));
     }
 
     [Fact]

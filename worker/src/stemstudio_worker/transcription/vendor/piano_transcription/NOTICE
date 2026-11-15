@@ -1,0 +1,23 @@
+piano_transcription_inference (ByteDance high-resolution piano transcription inference)
+Copyright Qiuqiang Kong (MIT License, LICENSE in this directory)
+
+--- StemStudio vendoring record ---
+
+Origin:   piano_transcription_inference 0.0.6, PyPI sdist piano_transcription_inference-0.0.6.tar.gz
+          (SHA-256 b6dd00f9b4bcacb6140725f03b4139a5e0f4acd35a69e492a5d1f734ecfbd231). The sdist
+          has no licence file; LICENSE is the upstream file of
+          https://github.com/qiuqiangkong/piano_transcription_inference at commit
+          566057930a8423aa31b91296e7002c513269446d (MIT, as the package metadata states).
+Files:    config.py        <- config.py (unchanged)
+          piano_vad.py     <- piano_vad.py (unchanged)
+          models.py        <- models.py (unused os/sys/time/matplotlib/pytorch_utils imports removed)
+          post_processing.py <- utilities.py (RegressionPostProcessor only; no audioread, librosa
+                              or mido imports)
+          segments.py      <- inference.py (PianoTranscription.enframe/deframe as functions)
+Not vendored: PianoTranscription itself (it downloads with os.system("wget ...") and prints),
+          pytorch_utils.forward (StemStudio runs the segments itself to report progress),
+          load_audio (audioread), the MIDI writer (mido).
+Weights:  CRNN_note_F1=0.9677_pedal_F1=0.9186.pth (Zenodo record 4034264, CC BY 4.0) is not
+          vendored: downloaded at first use and verified by SHA-256 (ports.PIANO_WEIGHTS).
+          Attribution shown with every piano score: schemas.PIANO_ATTRIBUTION.
+Runtime:  torch and torchlibrosa 0.1.0 (MIT) from the worker lock.

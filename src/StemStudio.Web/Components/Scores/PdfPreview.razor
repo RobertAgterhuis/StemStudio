@@ -1,0 +1,19 @@
+@* PDF preview of a ready score item (feature 008, FR-010): the browser's PDF viewer in an iframe with a title; the PDF
+   download link next to it is the alternative for readers without a viewer. *@
+@using StemStudio.Contracts.Assets
+
+<div class="ss-pdf">
+    <iframe class="ss-pdf-preview" src="@Url" title="@($"Sheet music preview: {Asset.Name}")" loading="lazy"
+            data-testid="@($"asset-preview-{Asset.Id}")"></iframe>
+    <a class="ss-small ss-pdf-open" href="@Url" target="_blank" rel="noopener">Open the PDF in a new tab</a>
+</div>
+
+@code {
+    /// <summary>The score item.</summary>
+    [Parameter, EditorRequired]
+    public AssetDto Asset { get; set; } = default!;
+
+    /// <summary>The PDF URL with <c>inline=true</c>.</summary>
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = string.Empty;
+}

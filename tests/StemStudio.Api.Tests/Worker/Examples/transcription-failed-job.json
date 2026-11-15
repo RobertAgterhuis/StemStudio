@@ -1,0 +1,16 @@
+{
+  "transcriptionJobId": "c4e6a8b0d2f4416385a7c9e1b3d5f7a9",
+  "status": "failed",
+  "stage": null,
+  "progress": 0.8,
+  "device": {
+    "kind": "cpu",
+    "name": null,
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": "No notes were detected in this audio.",
+  "result": null,
+  "createdAt": "2026-11-15T11:00:00Z",
+  "updatedAt": "2026-11-15T11:00:11Z"
+}

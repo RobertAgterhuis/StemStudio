@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "about": "Behaviour table of the worker's fake lyrics provider (worker lyrics/fake.py, audio-ingest 006:T028) and fake aligner (alignment/fake.py, stem-separation 006:T041) for STEMSTUDIO_FAKE_LYRICS (only with STEMSTUDIO_SEPARATOR=fake). Started as the qa proposal (006:T012); the 006+008 integration run aligned it with the implementation: the four self-written FAKE_LINES are spread evenly over the track (line i of n starts at floor(durationMs / (n + 1)) * (i + 1)), words interpolated. `lines` are the values for the 20 s fake-stack fixture music_100bpm_20s.* as served by GET /api/tracks/{id}/lyrics; no gap between lines is longer than countdownGapMs, so the fake track has no gap countdown. e2e/support/lyrics.ts reads its expectations from this file. All text is self-written.",
+  "text": {
+    "plainText": "Fake line one\nLa la la\nFixture words here\nSing along now",
+    "pastedText": "Pasted line one\nPasted line two for the ball"
+  },
+  "modes": {
+    "word": {
+      "outcome": "found",
+      "status": "found",
+      "syncLevel": "word",
+      "origin": "source",
+      "sourceId": "fake-1",
+      "credit": "Lyrics: LRCLIB",
+      "dataSync": "word"
+    },
+    "line": {
+      "outcome": "found",
+      "status": "found",
+      "syncLevel": "line",
+      "origin": "interpolated",
+      "sourceId": "fake-1",
+      "credit": "Lyrics: LRCLIB; word timing estimated",
+      "dataSync": "line"
+    },
+    "plain": {
+      "outcome": "found",
+      "status": "alignPending",
+      "syncLevel": "plain",
+      "origin": "none",
+      "sourceId": "fake-1",
+      "credit": "Lyrics: LRCLIB",
+      "dataSync": "aligned",
+      "alignedCredit": "Lyrics: LRCLIB; timing: automatic alignment"
+    },
+    "instrumental": {
+      "outcome": "instrumental",
+      "status": "instrumental"
+    },
+    "not-found": {
+      "outcome": "not-found",
+      "status": "notFound"
+    },
+    "failed": {
+      "outcome": null,
+      "status": "failed",
+      "error": "Lyrics could not be retrieved; try again later."
+    }
+  },
+  "fakeAlignment": {
+    "rule": "word k (counted over the whole text, line breaks kept) starts at firstWordMs + k * wordMs and ends wordMs later; a line spans its words",
+    "firstWordMs": 2000,
+    "wordMs": 500
+  },
+  "countdownGapMs": 5000,
+  "lines": [
+    {
+      "startMs": 4000,
+      "endMs": 6280,
+      "text": "Fake line one",
+      "words": [
+        { "text": "Fake", "startMs": 4000, "endMs": 4760 },
+        { "text": "line", "startMs": 4760, "endMs": 5520 },
+        { "text": "one", "startMs": 5520, "endMs": 6280 }
+      ]
+    },
+    {
+      "startMs": 8000,
+      "endMs": 9980,
+      "text": "La la la",
+      "words": [
+        { "text": "La", "startMs": 8000, "endMs": 8660 },
+        { "text": "la", "startMs": 8660, "endMs": 9320 },
+        { "text": "la", "startMs": 9320, "endMs": 9980 }
+      ]
+    },
+    {
+      "startMs": 12000,
+      "endMs": 14580,
+      "text": "Fixture words here",
+      "words": [
+        { "text": "Fixture", "startMs": 12000, "endMs": 13290 },
+        { "text": "words", "startMs": 13290, "endMs": 13720 },
+        { "text": "here", "startMs": 13720, "endMs": 14580 }
+      ]
+    },
+    {
+      "startMs": 16000,
+      "endMs": 18340,
+      "text": "Sing along now",
+      "words": [
+        { "text": "Sing", "startMs": 16000, "endMs": 16585 },
+        { "text": "along", "startMs": 16585, "endMs": 17755 },
+        { "text": "now", "startMs": 17755, "endMs": 18340 }
+      ]
+    }
+  ],
+  "spread": {
+    "rule": "line i (0-based) of n starts at floor(durationMs / (n + 1)) * (i + 1); words interpolated",
+    "durationMs": 20000
+  }
+}

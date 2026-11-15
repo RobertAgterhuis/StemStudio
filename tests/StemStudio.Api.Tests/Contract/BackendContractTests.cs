@@ -197,7 +197,9 @@ public sealed partial class BackendContractTests : IDisposable
         OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .ShouldBe(["getHealth", "getProcessingDevice", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "startDetail", "cancelDetail", "getDetailStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix",
                 "getTrackArtwork", "setTrackArtwork", "resetTrackArtwork", "getBandInfo", "lookupTrackMetadata",
-                "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile"], ignoreOrder: true);
+                "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile",
+                "getLyrics", "setLyrics", "removeLyrics", "searchLyrics", "alignLyrics", "cancelLyricsAlignment", "setLyricsOffset",
+                "getScoreOptions", "createScore"], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

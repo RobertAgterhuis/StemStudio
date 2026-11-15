@@ -89,4 +89,37 @@ public static class ContractLimits
 
     /// <summary>Channel id of an export: a standard stem or <c>&lt;parent&gt;.&lt;detail&gt;</c> (same as the engine's ChannelId).</summary>
     public const string ChannelIdPattern = @"^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$";
+
+    /// <summary>Longest lyrics text in characters (feature 006).</summary>
+    public const int MaxLyricsChars = 20_000;
+
+    /// <summary>Most lines of a lyrics document (feature 006).</summary>
+    public const int MaxLyricsLines = 400;
+
+    /// <summary>Largest absolute lyrics offset in milliseconds (feature 006).</summary>
+    public const int MaxLyricsOffsetMs = 5000;
+
+    /// <summary>Step of the lyrics offset in milliseconds (feature 006).</summary>
+    public const int LyricsOffsetStepMs = 10;
+
+    /// <summary>ISO 639 language code of lyrics (feature 006).</summary>
+    public const string LyricsLanguagePattern = "^[a-z]{2,3}$";
+
+    /// <summary>Shortest score range in seconds (feature 008).</summary>
+    public const double MinScoreRangeSeconds = 2;
+
+    /// <summary>Instrument profiles of sheet music (feature 008).</summary>
+    public static readonly IReadOnlyList<string> ScoreProfiles = ["vocals", "bass", "guitar", "keys", "piano", "drums"];
+
+    /// <summary>Score resolutions (feature 008).</summary>
+    public static readonly IReadOnlyList<string> ScoreResolutions = ["sixteenth", "eighth"];
+
+    /// <summary>The 30 key names of a key override in music21 spelling, <c>-</c> = flat (feature 008).</summary>
+    public static readonly IReadOnlyList<string> KeyNames =
+    [
+        "C major", "G major", "D major", "A major", "E major", "B major", "F# major", "C# major",
+        "F major", "B- major", "E- major", "A- major", "D- major", "G- major", "C- major",
+        "A minor", "E minor", "B minor", "F# minor", "C# minor", "G# minor", "D# minor", "A# minor",
+        "D minor", "G minor", "C minor", "F minor", "B- minor", "E- minor", "A- minor",
+    ];
 }

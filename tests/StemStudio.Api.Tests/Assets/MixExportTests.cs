@@ -31,8 +31,8 @@ public sealed class MixExportTests : ApiTestBase
         render.Output.ShouldBe(new WorkerRenderOutput(WorkerRenderFormat.Flac) { BitDepth = 24, Dither = true });
         var asset = await response.BodyAsync<AssetDto>();
         (asset.Name, asset.Provenance.Contents).ShouldBe(("Never Gonna Give You Up - bass", "bass, mixed"));
-        asset.Provenance.Recipe.Mix.ShouldNotBeNull().Channels.Count.ShouldBe(2);
-        asset.Provenance.Recipe.Channels.ShouldBeNull();
+        asset.Provenance.Recipe!.Mix.ShouldNotBeNull().Channels.Count.ShouldBe(2);
+        asset.Provenance.Recipe!.Channels.ShouldBeNull();
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class MixExportTests : ApiTestBase
 
         var asset = await (await Client.PostExportAsync(Mix(track.Id, null) with { MixId = mix.Id })).BodyAsync<AssetDto>();
 
-        asset.Provenance.Recipe.Mix!.MasterVolume.ShouldBe(0.5);
+        asset.Provenance.Recipe!.Mix!.MasterVolume.ShouldBe(0.5);
         Worker.RenderCreates.Single().MasterGain.ShouldBe(0.5);
     }
 

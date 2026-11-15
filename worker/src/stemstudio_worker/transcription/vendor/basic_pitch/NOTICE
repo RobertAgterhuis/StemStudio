@@ -1,0 +1,34 @@
+Basic Pitch
+Copyright 2022 Spotify AB
+
+This product includes software developed at
+Spotify AB (http://www.spotify.com/).
+
+This product includes software from Librosa (ISC).
+* Copyright (C) 2013--2017, librosa development team.
+
+This product includes software from numpy (BSD)
+* Copyright (C) 2005-2022, NumPy Developers.
+
+This product includes software from scipy (BSD)
+* Copyright (C) 2001-2002 Enthought, Inc. 2003-2022, SciPy Developers
+
+--- StemStudio vendoring record ---
+
+Origin:   basic-pitch 0.4.0 (tag v0.4.0, https://github.com/spotify/basic-pitch), taken from the
+          PyPI sdist basic_pitch-0.4.0.tar.gz (SHA-256
+          6f48ac4b909c990fd59460622137a03b857c829bb1f3e65c71708da576ab68e5).
+Licence:  Apache License 2.0 (LICENSE in this directory, unchanged). The original NOTICE above is
+          kept; its entries for packages whose code is not part of this subset (mir_eval,
+          pretty-midi, resampy, tensorflow, the Vocadito test audio) are omitted.
+Files:    constants.py   <- basic_pitch/constants.py (the window and frame constants only)
+          note_creation.py <- basic_pitch/note_creation.py (get_infered_onsets,
+                            output_to_notes_polyphonic, model_frames_to_time) and
+                            basic_pitch/inference.py (window_audio_file, unwrap_output)
+Changes:  no TensorFlow, CoreML, TFLite, resampy, pretty_midi or mir_eval imports;
+          model_frames_to_time computes frame times without librosa (same formula);
+          constrain_frequency (min/max frequency) removed (StemStudio filters by pitch range
+          in its notation step); windowing works on an in-memory array instead of a file;
+          type hints adjusted. The decoding logic is otherwise unchanged.
+Model:    nmp.onnx (ICASSP 2022, Apache-2.0) is not vendored: downloaded at first use and
+          verified by SHA-256 (ports.BASIC_PITCH_WEIGHTS).

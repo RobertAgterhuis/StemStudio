@@ -16,6 +16,12 @@ Each protocol is implemented by a different agent and faked in unit tests:
   Wikipedia lookup of a metadata job (ADR-014)
 * ``LibraryReader``, ``RenderExecutor``: audio-ingest (``render/``), feature 007: the path guard
   over the read-only library mount and the two-pass renderer of render jobs (ADR-016)
+* ``LyricsLookup``: audio-ingest (``lyrics/``), feature 006: LRCLIB lookup and normalisation;
+  ``Aligner``: stem-separation (``alignment/``): stable-ts + Whisper through the ``DeviceRunner``
+  (ADR-015)
+* ``PitchTranscriber``: stem-separation (``transcription/``), ``DrumTranscriber`` and ``Notator``:
+  beat-analysis (``analysis/drum_onsets.py``, ``notation/``), ``ScoreEngraver``: audio-ingest
+  (``engraving/``), feature 008: sheet music (ADR-017)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -24,8 +30,9 @@ Adapters signal expected failures by raising a ``WorkerError`` subclass; its mes
 the user verbatim as the job ``error`` text, so it must be readable and free of secrets.
 """
 
+import math
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
@@ -34,20 +41,38 @@ import numpy as np
 import numpy.typing as npt
 
 from stemstudio_worker.schemas import (
+    BASIC_PITCH_MODEL_ID,
+    LYRICS_UNREACHABLE_TEXT,
+    LYRICS_UNUSABLE_TEXT,
+    NO_NOTES_TEXT,
+    PIANO_MODEL_ID,
     ArtworkInfo,
     ArtworkSource,
     BeatGrid,
+    BeatGridTempo,
     DetailModelId,
     DeviceInfo,
+    DrumPiece,
     JobDevice,
+    KeyInfo,
+    KeyName,
     LibraryHealth,
+    LyricsResult,
+    ManualTempo,
     MetadataResult,
     ModelName,
     ProcessingDeviceKind,
     RenderJobRequest,
+    RenderRange,
     RenderResult,
+    ScoreEngine,
+    ScoreProfile,
+    ScoreResolution,
+    ScoreTitles,
+    ScoreWarning,
     SourceType,
     StemName,
+    TimedLyrics,
 )
 
 DetailAudio = npt.NDArray[np.float32]
@@ -796,5 +821,453 @@ class RenderExecutor(Protocol):
             RenderError: Inputs unreadable, unsupported sample rate, silent result
                 (``SILENT_RENDER_TEXT``) or encoder failure.
             RenderCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+# ------------------------------------------------------------------ shared: downloadable weights
+
+
+@dataclass(frozen=True, slots=True)
+class WeightsFile:
+    """A model weights file downloaded at first use into ``STEMSTUDIO_MODEL_DIR`` (never committed).
+
+    Attributes:
+        model_id: Stable id (cache file name stem, ``Health`` key).
+        url: HTTPS source.
+        sha256: Expected digest; a mismatch deletes the file and fails the download.
+        size_bytes: Expected size (shown before the first download).
+        licence: SPDX id of the weights licence.
+    """
+
+    model_id: str
+    url: str
+    sha256: str
+    size_bytes: int
+    licence: str
+
+
+# ------------------------------------------------------------------ feature 006: lyrics
+
+ALIGN_SAMPLE_RATE: Final = 16_000
+"""Sample rate (Hz) of the mono float32 audio handed to the aligner."""
+
+WHISPER_GPU_NEED: Final = GpuNeed("Lyrics alignment (Whisper large-v3-turbo)", 5120)
+"""Free GPU memory an alignment needs: measured NVML peak 4,118 MiB + 20 %, rounded up to 256
+(006 research.md P0-2, RTX 5070 Ti, 4:22 song)."""
+
+WHISPER_TURBO_WEIGHTS: Final = WeightsFile(
+    model_id="large-v3-turbo",
+    url=(
+        "https://openaipublic.azureedge.net/main/whisper/models/"
+        "aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a/large-v3-turbo.pt"
+    ),
+    sha256="aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a",
+    size_bytes=1_617_941_637,
+    licence="MIT",
+)
+"""Whisper large-v3-turbo weights (``STEMSTUDIO_MODEL_DIR/whisper/large-v3-turbo.pt``)."""
+
+ALIGN_SECONDS_PER_AUDIO_SECOND: Final[dict[ProcessingDeviceKind, float]] = {"gpu": 0.03, "cpu": 0.8}
+"""Alignment wall time per audio second (P0-2: GPU 0.010-0.026, CPU 8 threads 0.79)."""
+
+ALIGN_OVERHEAD_SECONDS: Final[dict[ProcessingDeviceKind, float]] = {"gpu": 20.0, "cpu": 15.0}
+"""Fixed alignment time per job: model load (P0-2: GPU 17-19 s, CPU 12-14 s)."""
+
+COLLAPSE_SHORT_WORD_MS: Final = 20
+"""Aligned words shorter than this count towards a collapse (006 research.md P0-2)."""
+
+COLLAPSE_SHORT_WORD_SHARE: Final = 0.35
+"""An alignment has collapsed when more than this share of its words is shorter than
+``COLLAPSE_SHORT_WORD_MS`` (P0-2: good runs 9-16 %, collapsed runs 69-98 %). The adapter then
+retries once with ``vad=True`` and fails with ``ALIGNMENT_FAILED_TEXT`` if that collapses too."""
+
+COLLAPSE_OVERLAP_SHARE: Final = 0.25
+"""An alignment has also collapsed when more than this share of its lines starts before the
+previous line ends."""
+
+ALIGN_DOWNLOAD_SECONDS: Final = 140.0
+"""Extra time of the first alignment while the 1.6 GB weights are downloaded (P0-1: 136 s)."""
+
+
+def estimate_alignment_seconds(
+    duration_seconds: float, device: ProcessingDeviceKind, *, model_cached: bool
+) -> float:
+    """Expected wall time of an alignment (``LyricsJob.estimatedSeconds``, research.md R-04).
+
+    Args:
+        duration_seconds: Length of the vocal stem.
+        device: Device the alignment will run on.
+        model_cached: False adds the weights download.
+
+    Returns:
+        Seconds, rounded up to whole seconds.
+    """
+    seconds = duration_seconds * ALIGN_SECONDS_PER_AUDIO_SECOND[device]
+    seconds += ALIGN_OVERHEAD_SECONDS[device] + (0.0 if model_cached else ALIGN_DOWNLOAD_SECONDS)
+    return float(math.ceil(seconds))
+
+
+class LyricsError(WorkerError):
+    """A lyrics job failed; the message is one of the fixed texts of data-model.md 2.4."""
+
+
+class LyricsUnavailableError(LyricsError):
+    """LRCLIB could not be reached after retries (``LYRICS_UNREACHABLE_TEXT``)."""
+
+    def __init__(self) -> None:
+        """Use the fixed text."""
+        super().__init__(LYRICS_UNREACHABLE_TEXT)
+
+
+class LyricsUnusableError(LyricsError):
+    """The chosen record cannot be parsed or exceeds the limits (``LYRICS_UNUSABLE_TEXT``)."""
+
+    def __init__(self) -> None:
+        """Use the fixed text."""
+        super().__init__(LYRICS_UNUSABLE_TEXT)
+
+
+class AlignmentError(LyricsError):
+    """An alignment failed; the message is a fixed text (missing/silent stem, download, other)."""
+
+
+class AlignmentCancelledError(LyricsError):
+    """The alignment was cancelled (raised from the progress callback)."""
+
+
+@dataclass(frozen=True, slots=True)
+class LyricsQuery:
+    """What a lookup searches (the body of a ``mode: lookup`` lyrics job).
+
+    Attributes:
+        title: Cleaned title (005 ``lookupTitle``).
+        duration_seconds: Duration of the normalised audio (records within +-2 s match).
+        artist: Cleaned artist, when known.
+        album: Album, when known (tried first).
+    """
+
+    title: str
+    duration_seconds: float
+    artist: str | None = None
+    album: str | None = None
+
+
+class LyricsLookup(Protocol):
+    """Finds time-synced lyrics on LRCLIB and normalises them (audio-ingest, ``lyrics/``)."""
+
+    def lookup(self, query: LyricsQuery, progress: ProgressCallback) -> LyricsResult:
+        """Search LRCLIB (get with album, get, search) and build one ``TimedLyrics`` document.
+
+        At most 3 requests, >= 500 ms apart, ``Retry-After`` honoured, the 005 User-Agent; lookups
+        switched off give outcome ``disabled`` without any request.
+
+        Args:
+            query: What to search.
+            progress: Receives the stage ``LYRICS_STAGE_SEARCHING``.
+
+        Returns:
+            The result (``found`` word/line/plain, ``instrumental``, ``not-found``, ``disabled``).
+
+        Raises:
+            LyricsUnavailableError: LRCLIB stayed unreachable.
+            LyricsUnusableError: The chosen record could not be read.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class AlignRequest:
+    """Input of one alignment.
+
+    Attributes:
+        audio: The vocal stem as mono float32 at ``ALIGN_SAMPLE_RATE`` (``vocals.lead`` when the
+            detail split exists, else ``vocals``; P0-2 showed ``vocals.lead`` aligns far better).
+        text: Plain lyrics, one line per line break.
+        language: ISO 639 hint; None = detect.
+        refine: A line-synced document whose line times are kept (only words are aligned).
+    """
+
+    audio: npt.NDArray[np.float32]
+    text: str
+    language: str | None = None
+    refine: TimedLyrics | None = None
+
+
+class Aligner(Protocol):
+    """Aligns lyrics text to a vocal stem (stable-ts + Whisper, stem-separation ``alignment/``)."""
+
+    def align(self, request: AlignRequest, device: str, progress: ProgressCallback) -> TimedLyrics:
+        """Align ``request.text`` to ``request.audio``.
+
+        Called inside ``DeviceRunner.run(work, WHISPER_GPU_NEED)``; ``device`` is the torch device
+        the runner chose. The weights are downloaded on first use (stage
+        ``LYRICS_STAGE_DOWNLOADING``), then aligned with ``original_split=True`` (stage
+        ``LYRICS_STAGE_ALIGNING``).
+
+        Args:
+            request: Audio, text, language hint and optional line constraints.
+            device: ``"cuda"`` or ``"cpu"``.
+            progress: Receives fraction and stage; may raise ``AlignmentCancelledError``.
+
+        Returns:
+            A word-synced document with ``origin = aligned`` (the caller sets ``source``).
+
+        Raises:
+            AlignmentError: Download failed or the alignment failed (fixed texts).
+            AlignmentCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+# ------------------------------------------------------------------ feature 008: sheet music
+
+PIANO_GPU_NEED: Final = GpuNeed("Piano transcription", 1280)
+"""Free GPU memory of the piano CRNN: measured NVML peak 952 MiB + 20 %, rounded up to 256
+(008 research.md S-04, RTX 5070 Ti, 60 s)."""
+
+BASIC_PITCH_WEIGHTS: Final = WeightsFile(
+    model_id=BASIC_PITCH_MODEL_ID,
+    url=(
+        "https://raw.githubusercontent.com/spotify/basic-pitch/v0.4.0/"
+        "basic_pitch/saved_models/icassp_2022/nmp.onnx"
+    ),
+    sha256="2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+    size_bytes=230_444,
+    licence="Apache-2.0",
+)
+"""basic-pitch ICASSP 2022 ONNX model (tag v0.4.0, verified in Phase 0)."""
+
+PIANO_WEIGHTS: Final = WeightsFile(
+    model_id=PIANO_MODEL_ID,
+    url=("https://zenodo.org/records/4034264/files/CRNN_note_F1%3D0.9677_pedal_F1%3D0.9186.pth"),
+    sha256="c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141",
+    size_bytes=171_966_578,
+    licence="CC-BY-4.0",
+)
+"""ByteDance high-resolution piano transcription CRNN (note + pedal), Zenodo record 4034264."""
+
+TranscriptionProgress = RenderProgress
+"""Receives the progress of a transcription step (0..1 of that step); may raise
+``TranscriptionCancelledError``."""
+
+
+class TranscriptionError(WorkerError):
+    """A transcription failed; the message is shown to the user."""
+
+
+class NoNotesError(TranscriptionError):
+    """No notes (or drum hits) at all were detected (``NO_NOTES_TEXT``)."""
+
+    def __init__(self) -> None:
+        """Use the fixed text."""
+        super().__init__(NO_NOTES_TEXT)
+
+
+class TranscriptionCancelledError(TranscriptionError):
+    """The job was deleted while running (raised from the progress callback)."""
+
+
+@dataclass(frozen=True, slots=True)
+class NoteEvent:
+    """One transcribed note; times in seconds relative to the input (range) start.
+
+    Attributes:
+        start: Onset (s, >= 0).
+        end: Offset (s, > start).
+        pitch: MIDI pitch 0..127.
+        velocity: Loudness 0..1.
+    """
+
+    start: float
+    end: float
+    pitch: int
+    velocity: float
+
+
+@dataclass(frozen=True, slots=True)
+class DrumHit:
+    """One drum onset; time in seconds relative to the input (range) start.
+
+    Attributes:
+        time: Onset (s, >= 0).
+        piece: Detail stem it came from.
+        strength: Onset strength 0..1 (relative to the piece's 99th percentile).
+    """
+
+    time: float
+    piece: DrumPiece
+    strength: float
+
+
+@dataclass(frozen=True, slots=True)
+class Transcription:
+    """Output of a pitched transcriber.
+
+    Attributes:
+        notes: Notes in onset order.
+        device: Where the model ran (the piano CRNN through the ``DeviceRunner``); None for the
+            CPU-only engines.
+    """
+
+    notes: tuple[NoteEvent, ...]
+    device: DeviceUse | None = None
+
+
+class PitchTranscriber(Protocol):
+    """Audio -> notes for pitched profiles (basic-pitch ONNX or the piano CRNN)."""
+
+    @property
+    def engine(self) -> ScoreEngine:
+        """Engine name recorded in ``ScoreSummary.engine``."""
+        ...
+
+    @property
+    def attribution(self) -> str | None:
+        """Model credit (``PIANO_ATTRIBUTION`` for the piano CRNN), else None."""
+        ...
+
+    def transcribe(
+        self, audio_path: Path, window: RenderRange | None, progress: TranscriptionProgress
+    ) -> Transcription:
+        """Transcribe ``audio_path`` (or its ``window``) to notes.
+
+        Args:
+            audio_path: Resolved library file (44.1 kHz FLAC/WAV/MP3).
+            window: Part to transcribe; times in the result are relative to its start.
+            progress: Receives 0..1 of the transcription step.
+
+        Returns:
+            The raw notes (cleaning is the notator's job).
+
+        Raises:
+            TranscriptionError: The model could not be loaded or run.
+            TranscriptionCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+class DrumTranscriber(Protocol):
+    """Drum detail stems -> drum hits (onset detection; beat-analysis, ``analysis/``)."""
+
+    def transcribe(
+        self,
+        inputs: Mapping[DrumPiece, Path],
+        window: RenderRange | None,
+        progress: TranscriptionProgress,
+    ) -> tuple[DrumHit, ...]:
+        """Detect the onsets of every given piece (missing pieces give no hits).
+
+        Args:
+            inputs: Resolved detail stem file per piece.
+            window: Part to transcribe; times in the result are relative to its start.
+            progress: Receives 0..1, one step per piece.
+
+        Returns:
+            Hits in time order, after the per-piece bleed gate (data-model.md 2.3).
+
+        Raises:
+            TranscriptionCancelledError: Propagated from ``progress``.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class NotationSettings:
+    """How notes become a score (the request fields the notator needs).
+
+    Attributes:
+        profile: Instrument profile (clefs, range, voices, caps).
+        grid: Time base, already shifted to the input start.
+        resolution: Grid resolution (``None`` in the request is resolved by the caller to the
+            profile default).
+        key_override: Key to use instead of the estimate (ignored for drums).
+        titles: Title, subtitle and part name.
+        duration_seconds: Length of the input (manual grids generate beats over it).
+    """
+
+    profile: ScoreProfile
+    grid: BeatGridTempo | ManualTempo
+    resolution: ScoreResolution
+    key_override: KeyName | None
+    titles: ScoreTitles
+    duration_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreDocument:
+    """Output of the notator: the files without the PDF, plus the facts for the summary.
+
+    Attributes:
+        musicxml: MusicXML 4.0 bytes (engraving input and download).
+        midi: Standard MIDI file bytes.
+        key: Estimated or overridden key; None for drums.
+        bpm: Rounded tempo of the tempo mark.
+        time_signature: ``"<beatsPerBar>/4"``.
+        bars: Measures including a pickup bar.
+        notes: Notes (hits) in the score after cleaning.
+        warnings: Cleaning and key warnings (data-model.md 2.7).
+    """
+
+    musicxml: bytes
+    midi: bytes
+    key: KeyInfo | None
+    bpm: int
+    time_signature: str
+    bars: int
+    notes: int
+    warnings: tuple[ScoreWarning, ...] = ()
+
+
+class Notator(Protocol):
+    """Notes -> score (clean, quantise, key and spelling, music21; beat-analysis ``notation/``)."""
+
+    def notate(self, notes: Sequence[NoteEvent], settings: NotationSettings) -> ScoreDocument:
+        """Build the score of a pitched profile.
+
+        Raises:
+            NoNotesError: Nothing is left after cleaning.
+        """
+        ...
+
+    def notate_drums(self, hits: Sequence[DrumHit], settings: NotationSettings) -> ScoreDocument:
+        """Build the two-voice percussion score of the ``drums`` profile.
+
+        Raises:
+            NoNotesError: No hits.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class EngravedScore:
+    """Output of the engraver.
+
+    Attributes:
+        pdf: The A4 PDF bytes.
+        pages: Page count.
+    """
+
+    pdf: bytes
+    pages: int
+
+
+class ScoreEngraver(Protocol):
+    """MusicXML -> PDF (Verovio SVG pages, CairoSVG, pypdf; audio-ingest ``engraving/``)."""
+
+    def engrave(self, musicxml: bytes, title: str, subject: str | None) -> EngravedScore:
+        """Render the score to an A4 PDF with the options of data-model.md 3.
+
+        Args:
+            musicxml: The notator's MusicXML.
+            title: PDF document title (the asset name).
+            subject: PDF subject (the attribution), or None.
+
+        Returns:
+            The PDF and its page count.
+
+        Raises:
+            TranscriptionError: The Leipzig font is missing (``MUSIC_FONT_MISSING_TEXT``) or
+                engraving failed.
         """
         ...

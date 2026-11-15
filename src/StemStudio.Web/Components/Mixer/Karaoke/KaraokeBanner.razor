@@ -1,0 +1,69 @@
+@* Karaoke banner at the bottom of the mixer (feature 006, FR-005..FR-009, FR-015; ui-test-ids 1.6.0). The host element is
+   rendered empty and is owned by the audio engine (engine contract 2.1.0): Blazor only sets data-sync and the size. *@
+
+<section class="ss-karaoke" aria-label="Lyrics">
+    <div class="ss-karaoke-bar">
+        <RadzenButton Text="Lyrics" Icon="lyrics" Size="ButtonSize.Small" ButtonStyle="@(Visible ? ButtonStyle.Secondary : ButtonStyle.Light)"
+                      aria-pressed="@(Visible ? "true" : "false")" Click="ToggleAsync" data-testid="karaoke-toggle" />
+        @if (ShowsBanner)
+        {
+            <LevelGate Feature="karaoke.size">
+                <label class="ss-inline-label">
+                    Size
+                    <select class="ss-select" value="@Size" @onchange="OnSizeAsync" data-testid="karaoke-size" aria-label="Lyrics text size">
+                        <option value="s">Small</option>
+                        <option value="m">Medium</option>
+                        <option value="l">Large</option>
+                    </select>
+                </label>
+            </LevelGate>
+            <LevelGate Feature="karaoke.offset">
+                <label class="ss-inline-label ss-karaoke-offset">
+                    Offset
+                    <input type="range" min="@(-ContractLimits.MaxLyricsOffsetMs)" max="@ContractLimits.MaxLyricsOffsetMs" step="@ContractLimits.LyricsOffsetStepMs"
+                           value="@Offset" aria-valuenow="@Offset" aria-valuetext="@OffsetInput.Text(Offset)" aria-label="Lyrics offset in milliseconds"
+                           @onkeydown="OnOffsetKey" @oninput="OnOffsetInputAsync" data-testid="karaoke-offset" data-help-id="karaoke-offset" />
+                    <span class="ss-counter ss-karaoke-offset-value" aria-hidden="true">@OffsetInput.Text(Offset)</span>
+                </label>
+                <RadzenButton Text="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="Reset the lyrics offset to 0 ms"
+                              Click="ResetOffsetAsync" data-testid="karaoke-offset-reset" />
+                <HelpHint HelpId="karaoke-offset" />
+            </LevelGate>
+            <LevelGate Feature="karaoke.timing-origin">
+                <span class="ss-small ss-muted ss-karaoke-origin">@LyricsText.Origin(Lyrics!)</span>
+            </LevelGate>
+            <button type="button" class="ss-text-button" aria-expanded="@(ShowFullText ? "true" : "false")" aria-controls="karaoke-full-text"
+                    @onclick="ToggleFullText" data-testid="karaoke-full-lyrics">@(ShowFullText ? "Hide full lyrics" : "Show full lyrics")</button>
+        }
+        @if (Error is not null)
+        {
+            <span class="ss-small ss-karaoke-error" role="alert">@Error</span>
+        }
+    </div>
+
+    @if (Visible)
+    {
+        @if (ShowsBanner)
+        {
+            <div id="@HostId" @key="Karaoke" class="ss-karaoke-host" aria-live="off" aria-label="Lyrics banner" role="group"
+                 data-size="@Size" data-sync="@LyricsText.Sync(Lyrics!)" data-testid="karaoke-banner" data-help-id="karaoke"></div>
+            <p class="ss-small ss-muted ss-karaoke-credit" data-testid="karaoke-credit">@Lyrics!.Credit</p>
+            @if (ShowFullText)
+            {
+                <ol id="karaoke-full-text" class="ss-karaoke-full-text" aria-label="Full lyrics" data-testid="karaoke-full-lyrics-text">
+                    @foreach (var line in Lyrics.Lines)
+                    {
+                        <li>@line.Text</li>
+                    }
+                </ol>
+            }
+        }
+        else if (HasLoaded)
+        {
+            <p class="ss-karaoke-unavailable" role="status" data-testid="karaoke-unavailable" data-status="@UnavailableStatus">
+                <span>@UnavailableText</span>
+                <a href="@($"tracks/{TrackId}")">Open the track page</a>
+            </p>
+        }
+    }
+</section>

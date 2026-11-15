@@ -1,8 +1,11 @@
 """The running job subsystem: stores, reconciliation, scheduler, lanes and services.
 
-Besides the priority scheduler it runs the light lanes (metadata, render) and the sweep timer.
+Besides the priority scheduler it runs the light lanes (metadata, render), the lyrics jobs
+(lookups on the network lane of the metadata jobs, alignments as scheduler units; feature 006)
+and the sweep timer.
 """
 
+import functools
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -13,6 +16,10 @@ from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.detail_runner import DetailRunner
 from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
 from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.lyrics_defaults import default_lyrics_parts
+from stemstudio_worker.jobs.lyrics_lane import LyricsQueues, LyricsService
+from stemstudio_worker.jobs.lyrics_runner import LyricsContext, LyricsParts, LyricsRunner
+from stemstudio_worker.jobs.lyrics_store import LyricsJobStore
 from stemstudio_worker.jobs.metadata_lane import DisabledLookup, MetadataLane
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
@@ -23,6 +30,9 @@ from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.jobs.sweeper import SWEEP_INTERVAL_SECONDS, Sweeper
+from stemstudio_worker.jobs.transcription_defaults import default_transcription_parts
+from stemstudio_worker.jobs.transcription_pipeline import TranscriptionParts
+from stemstudio_worker.jobs.transcription_service import TranscriptionService
 from stemstudio_worker.jobs.user_artwork import UserArtworkStore
 from stemstudio_worker.ports import (
     ImageNormalizer,
@@ -85,6 +95,23 @@ class RenderParts:
 
 
 @dataclass(frozen=True, slots=True)
+class LaneWiring:
+    """What the lanes take from the runtime.
+
+    Attributes:
+        paths: Data directory layout.
+        clock: Current UTC time.
+        lyrics: Runs lyrics jobs (lookups on the network lane, alignments on the scheduler).
+        align: Queues an alignment on the priority scheduler.
+    """
+
+    paths: DataPaths
+    clock: Clock
+    lyrics: LyricsRunner
+    align: Callable[[str], None]
+
+
+@dataclass(frozen=True, slots=True)
 class Lanes:
     """The light lanes beside the separation scheduler, their stores and the sweep timer.
 
@@ -95,6 +122,8 @@ class Lanes:
         render: The render job lane (feature 007).
         library: The library reader (``Health.library``).
         sweeper: Hourly removal of expired job files.
+        lyrics: The lyrics jobs (feature 006).
+        transcription: The transcription jobs on the ``transcribe`` lane (feature 008).
     """
 
     metadata: MetadataLane
@@ -103,34 +132,59 @@ class Lanes:
     render: RenderService
     library: LibraryReader
     sweeper: Sweeper
+    lyrics: LyricsService
+    transcription: TranscriptionService
 
     @classmethod
-    def start(cls, paths: DataPaths, parts: "WorkerParts", clock: Clock) -> "Lanes":
-        """Start the metadata and render lanes (after their restart handling) and the sweeper."""
+    def start(cls, parts: "WorkerParts", wiring: LaneWiring) -> "Lanes":
+        """Start the lanes and the lyrics jobs (after their restart handling) and the sweeper."""
         online, render_parts = parts.online, parts.render
+        paths, clock = wiring.paths, wiring.clock
         metadata = MetadataLane.start(paths, online.lookup or DisabledLookup(), clock)
+        lyrics = LyricsService.start(wiring.lyrics, _lyrics_queues(metadata, wiring))
         render = RenderService.start(paths, render_parts.executor, clock)
+        transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
         artwork = UserArtworkStore(paths, clock)
-        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, [metadata.sweep, artwork.sweep, render.sweep])
+        sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep]
+        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, sweeps)
         sweeper.start()
-        return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper)
+        return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
+                   lyrics, transcription)  # fmt: skip
 
     def stop(self, timeout: float) -> None:
         """Stop the sweep timer and the lane threads."""
         self.sweeper.stop(timeout)
         self.metadata.stop(timeout)
         self.render.stop(timeout)
+        self.transcription.stop(timeout)
+
+
+def _transcription_parts(parts: "WorkerParts") -> TranscriptionParts:
+    """The composed transcription parts, else stand-ins over the render parts' library."""
+    return parts.transcription or default_transcription_parts(parts.render.library)
+
+
+def _lyrics_queues(metadata: MetadataLane, wiring: LaneWiring) -> LyricsQueues:
+    """Lookups on the metadata jobs' network lane, alignments on the priority scheduler."""
+    lookup = functools.partial(metadata.lane.submit_call, wiring.lyrics.lookup)
+    return LyricsQueues(lookup=lookup, align=wiring.align)
 
 
 @dataclass(frozen=True, slots=True)
 class WorkerParts:
-    """What the job subsystem runs: adapters, detail pipeline, device hooks, online parts."""
+    """What the job subsystem runs: adapters, detail pipeline, device hooks, online parts.
+
+    ``lyrics`` defaults to stand-ins (lookups ``disabled``, alignments failing, CPU only);
+    ``transcription`` None runs every transcription job into a failure.
+    """
 
     adapters: PipelineAdapters
     pipeline: DetailPipelinePort
     devices: DeviceHooks = DeviceHooks()
     online: OnlineParts = OnlineParts()
     render: RenderParts = RenderParts()
+    lyrics: LyricsParts = field(default_factory=default_lyrics_parts)
+    transcription: TranscriptionParts | None = None
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:
@@ -183,12 +237,13 @@ class WorkerRuntime:
         """Load the jobs, reconcile interrupted ones and start the worker thread."""
         paths = DataPaths(settings.data_dir)
         context = _load(paths, utc_now)
-        scheduler = _scheduler(context, parts)
+        lyrics = _lyrics_runner(context, parts.lyrics)
+        scheduler = _scheduler(context, parts, lyrics.align)
         store, clock = context.jobs, context.clock
         service = JobService(store, scheduler.submit, clock)
         detail_service = DetailService(context, scheduler.submit_detail)
         scheduler.start()
-        lanes = Lanes.start(paths, parts, clock)
+        lanes = Lanes.start(parts, LaneWiring(paths, clock, lyrics, scheduler.submit_align))
         return cls(settings, parts.adapters, paths, store, context.details, scheduler, service,
                    detail_service, lanes, parts.devices.info)  # fmt: skip
 
@@ -198,12 +253,21 @@ class WorkerRuntime:
         self.scheduler.stop(_STOP_TIMEOUT_SECONDS)
 
 
-def _scheduler(context: DetailContext, parts: WorkerParts) -> PriorityScheduler:
-    """The scheduler over the standard and detail runners of ``context``."""
+def _lyrics_runner(context: DetailContext, parts: LyricsParts) -> LyricsRunner:
+    """Load the lyrics jobs and build their runner."""
+    store = LyricsJobStore(context.paths)
+    store.load_all()
+    return LyricsRunner(LyricsContext(store, context.jobs, context.paths, context.clock), parts)
+
+
+def _scheduler(
+    context: DetailContext, parts: WorkerParts, align: Callable[[str], None]
+) -> PriorityScheduler:
+    """The scheduler over the standard, align and detail runners of ``context``."""
     job_context = JobContext(context.jobs, context.paths, context.clock, parts.devices.info)
     normalizer = parts.online.normalizer
     capture = None if normalizer is None else ArtworkCapture(normalizer)
     runner = JobRunner(job_context, parts.adapters, capture)
     details = DetailRunner(context, parts.pipeline)
-    hooks = SchedulerHooks(on_yield=details.waiting, on_idle=parts.devices.on_idle)
+    hooks = SchedulerHooks(on_yield=details.waiting, on_idle=parts.devices.on_idle, align=align)
     return PriorityScheduler(runner.process, details.step, hooks)

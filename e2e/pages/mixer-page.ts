@@ -104,6 +104,16 @@ export class MixerPage {
     await expect(this.byId('transport-play')).toBeEnabled({ timeout: 60_000 });
   }
 
+  /** Seeks the transport to `seconds` through `transport-seek` (which takes seconds). */
+  async seek(seconds: number): Promise<void> {
+    await setNumericValue(this.byId('transport-seek'), seconds);
+  }
+
+  /** The karaoke banner host (feature 006; its controls are in `pages/karaoke-banner.ts`). */
+  get karaokeBanner(): Locator {
+    return this.byId('karaoke-banner');
+  }
+
   /** Presses play (the user gesture that unlocks audio). */
   async play(): Promise<void> {
     await this.byId('transport-play').click();

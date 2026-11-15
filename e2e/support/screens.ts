@@ -6,7 +6,7 @@
  */
 import { expect, type Page } from '@playwright/test';
 import type { UxData } from './ux-data';
-import { ensureLibraryItem } from './ux-library';
+import { ensureLibraryItem, ensureScoreItem, uxLibraryItemName, uxScoreItemName } from './ux-library';
 
 /** Terminal `BandInfo.status` values (no skeleton left on screen). */
 const settledMetadata = /^(found|notFound|failed|disabled)$/;
@@ -14,7 +14,9 @@ const settledMetadata = /^(found|notFound|failed|disabled)$/;
 /**
  * Screen states covered by the visual and accessibility matrices. `band-info`, `export-dialog`
  * and `library` are the 005/007 states (ui-test-ids 1.4.0/1.5.0); the covers and thumbnails of
- * 005 appear on the 004 screens themselves.
+ * 005 appear on the 004 screens themselves. Feature 006 adds the karaoke banner to `mixer` and
+ * the lyrics card to `track` (fake lyrics mode `word`); feature 008 adds `score-dialog`, the
+ * `score-stem-*` row to `track` and a ready score item to `library`.
  */
 export type ScreenId =
   | 'import'
@@ -26,7 +28,8 @@ export type ScreenId =
   | 'mixes'
   | 'band-info'
   | 'export-dialog'
-  | 'library';
+  | 'library'
+  | 'score-dialog';
 
 /** Every screen of the matrices, in report order. */
 export const screenIds: readonly ScreenId[] = [
@@ -40,6 +43,7 @@ export const screenIds: readonly ScreenId[] = [
   'band-info',
   'export-dialog',
   'library',
+  'score-dialog',
 ];
 
 /** Help screen topic per screen (design-spec.md 7; V-H1). */
@@ -54,6 +58,7 @@ export const screenTopics: Readonly<Record<ScreenId, string>> = {
   'band-info': 'track-screen',
   'export-dialog': 'mixer-screen',
   library: 'library',
+  'score-dialog': 'track-screen',
 };
 
 interface ScreenDefinition {
@@ -73,8 +78,14 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   mixes: { path: () => '/mixes', ready: (p, d) => expect(p.getByTestId(`mix-row-${d.mixId}`)).toBeVisible() },
   'band-info': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: bandInfoReady },
   'export-dialog': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: exportDialogReady },
-  library: { path: () => '/library', ready: libraryReady, prepare: (d) => ensureLibraryItem(d.detailTrack.id) },
+  library: { path: () => '/library', ready: libraryReady, prepare: prepareLibrary },
+  'score-dialog': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: scoreDialogReady },
 };
+
+async function prepareLibrary(data: UxData): Promise<void> {
+  await ensureLibraryItem(data.detailTrack.id);
+  await ensureScoreItem(data.detailTrack.id);
+}
 
 /**
  * Opens a screen (after creating the data it needs), waits for the shell and the screen's
@@ -140,8 +151,28 @@ async function exportDialogReady(page: Page): Promise<void> {
   await movePointerAway(page);
 }
 
-/** Library with the seeded item ready. */
+/** Library with the seeded audio and score items ready (the score row shows its PDF preview). */
 async function libraryReady(page: Page): Promise<void> {
   await expect(page.getByTestId('library-total-size')).toBeVisible();
-  await expect(page.getByTestId(/^asset-row-/).first()).toHaveAttribute('data-status', 'ready', { timeout: 60_000 });
+  const rows = page.getByTestId(/^asset-row-/);
+  const audio = rows.filter({ hasText: uxLibraryItemName, hasNotText: uxScoreItemName });
+  for (const row of [audio, rows.filter({ hasText: uxScoreItemName })]) {
+    await expect(row.first()).toHaveAttribute('data-status', 'ready', { timeout: 60_000 });
+  }
+  await expect(page.getByTestId(/^asset-preview-/).first()).toBeVisible();
+}
+
+/** Track page with the sheet music dialog open for the bass. */
+async function scoreDialogReady(page: Page): Promise<void> {
+  await trackReady(page, 'completed');
+  await page.getByTestId('score-stem-bass').click();
+  await expect(page.getByTestId('score-dialog')).toHaveAttribute('data-source', 'channel');
+  await expect(page.getByTestId('score-estimate')).toBeVisible();
+  // The click scrolled the stem row into view; a full-page capture of a scrolled page draws the
+  // fixed shell and backdrop at that offset, so the screen is captured from the top.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await movePointerAway(page);
 }

@@ -1,8 +1,5 @@
 # Sheet music
 
-<span class="planned">In development</span> Feature 008. This chapter describes the
-specified behaviour.
-
 Turn a stem into a practice lead sheet: a PDF to print, plus MusicXML and MIDI files for
 your notation program.
 
@@ -45,8 +42,9 @@ corrections are filled in for you.
 ## Timing and messages
 
 A melodic stem or drums take at most about two minutes for a five-minute song. The accurate
-piano profile on a CPU takes longer (about 7 minutes for a 4-minute song). The first piano
-transcription downloads a 172 MB model.
+piano profile on a CPU takes longer (about two minutes for a 4-minute song on an 8-thread
+CPU; the dialog shows the estimate). The first piano transcription downloads a 172 MB model,
+which adds about a minute.
 
 Typical notes on the result: *"The key is uncertain (confidence 52 %)."*, *"Very few notes
 were detected."*, *"Detail stems can contain other instruments; expect extra notes."* When no

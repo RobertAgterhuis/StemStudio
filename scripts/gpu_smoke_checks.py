@@ -3,7 +3,8 @@
 Modes (``python -I - <mode> [arg]`` with this file on stdin, see ``scripts/gpu-smoke.{sh,ps1}``):
 
 * ``runtime`` - with ``--gpus all``: torch is a ``+cu132`` build, CUDA is available, the GPU's
-  ``sm_<cc>`` is in the arch list, a matmul runs, and onnxruntime uses the CUDA execution
+  ``sm_<cc>`` is in the arch list, a matmul runs, torchaudio is a ``+cu132`` build that resamples
+  on cuda (006), and onnxruntime uses the CUDA execution
   provider after ``onnxruntime.preload_dlls()`` (a one-node ONNX model, encoded here without the
   onnx package).
 * ``health <gpu|cpu>`` - polls the worker's ``/health`` until it answers and checks
@@ -127,9 +128,22 @@ def check_health(expected: str) -> bool:
     return expected == "gpu" or report(bool(info.get("reason")), f"reason: {info.get('reason')}")
 
 
+def check_torchaudio() -> bool:
+    """Check the torchaudio build (006: ``+cu132`` next to torch) and a resample on cuda."""
+    import torch  # noqa: PLC0415
+    import torchaudio  # noqa: PLC0415
+
+    version = torchaudio.__version__
+    if not report(version.endswith(TORCH_SUFFIX), f"torchaudio {version}"):
+        return False
+    wave = torch.randn(1, 16000, device="cuda")
+    resampled = torchaudio.functional.resample(wave, 16000, 8000)
+    return report(tuple(resampled.shape) == (1, 8000), "torchaudio resample on cuda")
+
+
 def check_runtime() -> bool:
-    """Run the torch and onnxruntime checks (stops at the first failure)."""
-    return check_torch() and check_onnxruntime()
+    """Run the torch, torchaudio and onnxruntime checks (stops at the first failure)."""
+    return check_torch() and check_torchaudio() and check_onnxruntime()
 
 
 MODES: dict[tuple[str, ...], Callable[[], bool]] = {

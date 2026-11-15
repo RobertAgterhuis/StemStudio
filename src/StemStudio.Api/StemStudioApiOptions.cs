@@ -1,3 +1,5 @@
+using StemStudio.Api.Scores;
+
 namespace StemStudio.Api;
 
 /// <summary>API settings, bound from the <c>StemStudio</c> configuration section (environment: <c>StemStudio__DataDir</c>, ...).</summary>
@@ -35,4 +37,7 @@ public sealed class StemStudioApiOptions
 
     /// <summary>Exports are refused (409 <c>insufficient-disk-space</c>) below this many free bytes on the data drive (feature 007).</summary>
     public long MinFreeDiskBytes { get; set; } = StemStudio.Contracts.ContractLimits.MinFreeDiskBytesDefault;
+
+    /// <summary>Factors of the score estimates (feature 008, section <c>StemStudio:ScoreEstimates</c>, data-model 4.5).</summary>
+    public ScoreEstimateOptions ScoreEstimates { get; set; } = new();
 }

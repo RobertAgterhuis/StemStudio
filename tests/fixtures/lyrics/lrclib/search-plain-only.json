@@ -1,0 +1,49 @@
+{
+  "request": "GET /api/search?track_name=Fixture Song&artist_name=The Fixture Band",
+  "status": 200,
+  "expected": {
+    "120": "plain:9000402",
+    "100": null
+  },
+  "body": [
+    {
+      "id": 9000401,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Album",
+      "duration": 140.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": null,
+      "hasWordSync": false,
+      "lyricsfile": null
+    },
+    {
+      "id": 9000402,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Album",
+      "duration": 128.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": null,
+      "hasWordSync": false,
+      "lyricsfile": null
+    },
+    {
+      "id": 9000403,
+      "name": "Fixture Song",
+      "trackName": "Fixture Song",
+      "artistName": "The Fixture Band",
+      "albumName": "Fixture Live",
+      "duration": 160.0,
+      "instrumental": false,
+      "plainLyrics": "Fake line one\nLa la la\nSecond fake line for the ball\nLast fake line",
+      "syncedLyrics": "[00:10.95] Fake line one\n[00:14.00] La la la\n[00:17.50] Second fake line for the ball\n[00:22.25] Last fake line",
+      "hasWordSync": false,
+      "lyricsfile": null
+    }
+  ]
+}

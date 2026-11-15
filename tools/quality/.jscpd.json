@@ -22,6 +22,7 @@
     "**/*.d.ts",
     "**/wwwroot/js/audio-engine.js",
     "**/tools/quality/tests/samples/**",
-    "**/stemstudio_worker/detail/vendor/**"
+    "**/stemstudio_worker/detail/vendor/**",
+    "**/stemstudio_worker/transcription/vendor/**"
   ]
 }

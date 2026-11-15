@@ -37,7 +37,7 @@ export function cellState(level: Level, theme: MatrixTheme): StorageState {
   return levelState(level, { theme, motion: 'reduced' });
 }
 
-/** Regions whose pixels change on their own: meters, clock, transport state, toasts, players, dates. */
+/** Regions whose pixels change on their own: meters, clock, transport state, toasts, players, PDF previews, dates. */
 export function dynamicMasks(page: Page): Locator[] {
   return [
     page.getByTestId(/^meter-/),
@@ -46,6 +46,8 @@ export function dynamicMasks(page: Page): Locator[] {
     page.getByTestId('toast'),
     // Native <audio> controls of library items show the duration once metadata has loaded (007).
     page.getByTestId(/^asset-play-/),
+    // The browser's PDF viewer of a score item (008) renders asynchronously, inside its own frame.
+    page.getByTestId(/^asset-preview-/),
     // The only non-test-id selector of the suite: dates are rendered in <time> (cosmetic mask).
     page.locator('time'),
   ];
