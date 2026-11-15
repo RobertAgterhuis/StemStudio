@@ -1,0 +1,75 @@
+@page "/styles"
+@* The style library (009 US2/US3, FR-003, FR-004; ui-test-ids 1.8.0): curated presets and own styles in the library
+   order (presets first, then by name) with filters and search; presets can be duplicated, own styles also edited and
+   deleted. Styles stay usable without a GPU. *@
+@using StemStudio.Contracts.Styles
+
+<PageTitle>Styles - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-styles-page">
+    <header class="ss-page-head ss-page-head-row" data-help-id="styles-library">
+        <div>
+            <div class="ss-label-row"><h1>Styles</h1><HelpHint HelpId="styles-library" /></div>
+            <p class="ss-help">Styles describe music: genre, instruments, mood and tempo feel. Use them to restyle a track.</p>
+        </div>
+        <a class="rz-button rz-primary ss-link-button" href="styles/new" data-testid="style-new">New style</a>
+    </header>
+    <GenerationStatusBanner />
+
+    @if (ActionError is not null)
+    {
+        <ErrorState TestId="styles-action-error" Message="@ActionError" />
+    }
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="styles-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Items is null)
+    {
+        <Skeleton Lines="4" />
+    }
+    else
+    {
+        <StyleFilters Styles="Items" Filter="Filter" OnChanged="StateHasChanged" />
+        @if (Visible.Count == 0)
+        {
+            <EmptyState TestId="style-empty" Text="No styles match the filters." />
+        }
+        else
+        {
+            <table class="ss-table ss-style-table">
+                <thead>
+                    <tr>
+                        <th>Style</th><th>Genre</th><th>Tempo feel</th><th>Moods</th><th>Instruments</th><th>Vocals</th><th>Strength</th>
+                        <th><span class="ss-sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var style in Visible)
+                    {
+                        <StyleRow @key="style.Id" Style="style">
+                            <Actions>
+                                <button type="button" class="ss-text-button" aria-label="@($"Duplicate {style.Name}")" @onclick="() => DuplicateAsync(style)"
+                                        data-testid="@($"style-duplicate-{style.Id}")">Duplicate</button>
+                                @if (style.Kind == StyleKindDto.User)
+                                {
+                                    <a class="ss-row-action" href="@($"styles/{style.Id}/edit")" aria-label="@($"Edit {style.Name}")"
+                                       data-testid="@($"style-edit-{style.Id}")">Edit</a>
+                                    <button type="button" class="ss-text-button" aria-label="@($"Delete {style.Name}")" @onclick="() => Deleting = style"
+                                            data-testid="@($"style-delete-{style.Id}")">Delete</button>
+                                }
+                            </Actions>
+                        </StyleRow>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@if (Deleting is { } deleting)
+{
+    <ConfirmModal Title="Delete style" TestIdPrefix="style-delete" OnConfirm="DeleteAsync" OnCancel="() => Deleting = null"
+                  Message="@($"Delete the style \"{deleting.Name}\"? Takes made with it keep their copy of the style.")" />
+}

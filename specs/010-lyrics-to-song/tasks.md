@@ -99,8 +99,8 @@ unchanged through the 009 import flow).
 - [ ] T028 [US1] [backend] Implement `Generation/SongService.cs` + endpoint to pass T027
 - [ ] T029 [P] [US1] [backend] Failing tests: `POST /api/lyrics/sections` helper endpoint; sync maps `vocal` to `GenerationTake.Vocal`; library title rule for songs ("<lyrics title> - <style> (take n)") (FR-002, FR-011)
 - [ ] T030 [US1] [backend] Implement to pass T029
-- [ ] T031 [P] [US1] [frontend] Failing bUnit tests `NewSongPageTests.cs`: lyrics editor (paste, upload, char counter, "Add sections"), language, style select (009 library) or free caption, lead voice, delivery, instrumental, bpm/key/duration/takes, density warning, generate, errors, personal-use + responsibility notice, help links; take list reuses 009 components with `take-vocal-badge-*` (FR-001, FR-002, FR-014, FR-016)
-- [ ] T032 [US1] [frontend] Implement `Pages/NewSong.razor`, `Shared/{LyricsEditor,VocalBadge}.razor`, help entries `help.lyrics.*`, `help.song.*` to pass T031
+- [x] T031 [P] [US1] [frontend] Failing bUnit tests `NewSongPageTests.cs`: lyrics editor (paste, upload, char counter, "Add sections"), language, style select (009 library) or free caption, lead voice, delivery, instrumental, bpm/key/duration/takes, density warning, generate, errors, personal-use + responsibility notice, help links; take list reuses 009 components with `take-vocal-badge-*` (FR-001, FR-002, FR-014, FR-016)
+- [x] T032 [US1] [frontend] Implement `Pages/NewSong.razor`, `Shared/{LyricsEditor,VocalBadge}.razor`, help entries `help.lyrics.*`, `help.song.*` to pass T031
 - [ ] T033 [US1] [qa] Author `e2e/tests/song.spec.ts` (`@generative`, fake stack): paste sample lyrics -> add sections -> pick "Pop rock" -> generate -> take with `data-vocal="synthetic"` plays; invalid lyrics (empty, too long) refused
 
 **Checkpoint**: HO:us1.
@@ -111,8 +111,8 @@ unchanged through the 009 import flow).
 
 - [ ] T034 [P] [US2] [backend] Failing tests `LyricsEndpointTests.cs`: CRUD, upload (`.txt`, `.lrc`, `.md`, UTF-8, <= 64 KiB; `415` other types; invalid UTF-8 `400`), search; takes keep their snapshot after edit/delete (FR-003)
 - [ ] T035 [US2] [backend] Implement `Lyrics/LyricsEndpoints.cs` to pass T034
-- [ ] T036 [P] [US2] [frontend] Failing bUnit tests `LyricsListTests.cs`: list, edit, delete confirm, "new song from these lyrics"
-- [ ] T037 [US2] [frontend] Implement `Pages/LyricsList.razor` to pass T036
+- [x] T036 [P] [US2] [frontend] Failing bUnit tests `LyricsListTests.cs`: list, edit, delete confirm, "new song from these lyrics"
+- [x] T037 [US2] [frontend] Implement `Pages/LyricsList.razor` to pass T036
 - [ ] T038 [US2] [qa] Author "lyrics list" spec: save, edit, generate twice, both takes show their own text
 
 **Checkpoint**: HO:us2.
@@ -132,8 +132,8 @@ unchanged through the 009 import flow).
 - [ ] T047 [US3] [backend] Implement `Generation/{VoiceConversionService,ConversionStemWaiter}.cs` to pass T046
 - [ ] T048 [P] [US3] [backend] Failing tests `VoiceProfileDeletionTests.cs`: delete cancels queued/running conversions with the profile (stub generator `DELETE`), removes `voices/<id>/`, optionally deletes conversion takes (files + library entries), nulls the profile id and keeps the name snapshot "(deleted)"; a walk over the API data directory finds no file derived from the sample (SC-006, FR-009)
 - [ ] T049 [US3] [backend] Implement `Voices/VoiceProfileService.DeleteAsync` to pass T048
-- [ ] T050 [P] [US3] [frontend] Failing bUnit tests: `VoiceRecorder` (JS interop mocked: start/stop, timer, 60 s auto-stop, permission denied -> `voice-record-unavailable` with upload still possible), `ConsentPanel` (statement from `GET /api/consent/voice` in EN + NL, checkbox + person name required before `voice-save` enables), `VoiceProfiles` page (list, play, consent details, delete with "also delete converted takes" checkbox), `UseMyVoiceDialog` on song takes with vocals only (FR-005, FR-006, FR-009, FR-014)
-- [ ] T051 [US3] [frontend] Implement `wwwroot/js/voice-recorder.js` (MediaRecorder, WebM/Opus, typed JSDoc), `Shared/{VoiceRecorder,ConsentPanel,UseMyVoiceDialog}.razor`, `Pages/VoiceProfiles.razor`, help entries `help.voice.*` to pass T050
+- [x] T050 [P] [US3] [frontend] Failing bUnit tests: `VoiceRecorder` (JS interop mocked: start/stop, timer, 60 s auto-stop, permission denied -> `voice-record-unavailable` with upload still possible), `ConsentPanel` (statement from `GET /api/consent/voice` in EN + NL, checkbox + person name required before `voice-save` enables), `VoiceProfiles` page (list, play, consent details, delete with "also delete converted takes" checkbox), `UseMyVoiceDialog` on song takes with vocals only (FR-005, FR-006, FR-009, FR-014)
+- [x] T051 [US3] [frontend] Implement `wwwroot/js/voice-recorder.js` (MediaRecorder, WebM/Opus, typed JSDoc), `Shared/{VoiceRecorder,ConsentPanel,UseMyVoiceDialog}.razor`, `Pages/VoiceProfiles.razor`, help entries `help.voice.*` to pass T050
 - [ ] T052 [US3] [qa] Author `e2e/tests/voice.spec.ts` (`@generative`, fake stack, fake microphone with the own-voice fixture): record 20 s -> consent -> save; save without consent impossible; upload of a downloaded stem refused (`libraryAudio`); "Use my voice" on a song take -> waiting for stems -> converted take with `data-vocal="converted"`; delete profile with "delete takes" -> takes gone
 
 **Checkpoint**: HO:us3.
@@ -144,7 +144,7 @@ unchanged through the 009 import flow).
 
 - [ ] T053 [P] [US4] [backend] Failing tests: importing song and conversion takes sets `Track.Origin` with `vocal`, `voiceProfileName`, `lyricsId`; `TrackDto.origin` mapped (FR-013)
 - [ ] T054 [US4] [backend] Implement to pass T053
-- [ ] T055 [P] [US4] [frontend] Failing bUnit test + implementation of `track-lyrics-link` and the vocal badge on generated tracks (combined red -> green pair inside the frontend sequence: test commit first)
+- [x] T055 [P] [US4] [frontend] Failing bUnit test + implementation of `track-lyrics-link` and the vocal badge on generated tracks (combined red -> green pair inside the frontend sequence: test commit first)
 - [ ] T056 [US4] [qa] Author "song to practice" spec: import a song take -> fake separation -> mixer; lyrics link present
 
 **Checkpoint**: HO:us4.

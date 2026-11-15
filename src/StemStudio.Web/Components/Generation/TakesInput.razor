@@ -1,0 +1,22 @@
+@* Number of takes, 1-2 (009 FR-002, 010 FR-001; ui-test-ids restyle-takes, song-takes). *@
+@using StemStudio.Contracts
+
+<label class="ss-field ss-field-narrow">
+    <span class="ss-label">Takes</span>
+    <input type="number" min="1" max="@ContractLimits.MaxTakes" step="1" class="rz-textbox" value="@Value"
+           @onchange="e => OnChange.InvokeAsync(InputValue.Parse(e))" data-testid="@TestId" />
+</label>
+
+@code {
+    /// <summary>The current number.</summary>
+    [Parameter]
+    public int Value { get; set; }
+
+    /// <summary>Raised with the parsed input (null when empty).</summary>
+    [Parameter]
+    public EventCallback<double?> OnChange { get; set; }
+
+    /// <summary>The <c>data-testid</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+}

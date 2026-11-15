@@ -1,0 +1,43 @@
+@* Lyrics editor of the song page (010 FR-001..FR-003; ui-test-ids 1.9.0 song-lyrics-*): a saved sheet or new lyrics,
+   the text with its counter, upload of a .txt/.lrc/.md file, "Add sections" and save. Own lyrics only. *@
+@using StemStudio.Web.Songs
+
+<fieldset class="ss-fieldset ss-lyrics-editor">
+    <legend class="ss-label-row"><span class="ss-label">Lyrics</span><HelpHint HelpId="lyrics-format" /></legend>
+    <div class="ss-range-row">
+        <label class="ss-field">
+            <span class="ss-small">Saved lyrics</span>
+            <select class="rz-dropdown ss-select" @onchange="e => OnSelect.InvokeAsync(ParseId(e))" data-testid="song-lyrics-select">
+                <option value="">New lyrics</option>
+                @foreach (var sheet in Form.Sheets)
+                {
+                    <option value="@sheet.Id" selected="@(Form.Sheet?.Id == sheet.Id)">@sheet.Title</option>
+                }
+            </select>
+        </label>
+        <label class="ss-field">
+            <span class="ss-small">Upload a file (.txt, .lrc, .md)</span>
+            <InputFile accept="@LyricsFileRules.Accept" OnChange="e => OnUpload.InvokeAsync(e)" data-testid="song-lyrics-upload" />
+        </label>
+    </div>
+    <label class="ss-field">
+        <span class="ss-small">Text, with markers such as [verse] and [chorus] if you like</span>
+        <textarea class="rz-textarea ss-lyrics-text" rows="12" value="@Form.Text" @oninput="OnTextAsync" aria-describedby="song-lyrics-count"
+                  data-testid="song-lyrics-text" data-help-id="lyrics-format"></textarea>
+    </label>
+    <span id="song-lyrics-count" class="ss-small ss-num" data-testid="song-lyrics-count">@Form.CountText</span>
+    @if (Form.DensityWarning is { } warning)
+    {
+        <p class="ss-notice ss-small" role="note" data-testid="song-density-warning">@warning</p>
+    }
+    <div class="ss-row">
+        <RadzenButton Text="Add sections" Icon="format_list_numbered" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                      Click="OnPropose" data-testid="song-sections-propose" data-help-id="lyrics-sections" />
+        <RadzenButton Text="Save lyrics" Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy" Click="OnSave"
+                      data-testid="song-lyrics-save" />
+        @if (SavedTitle is not null)
+        {
+            <span class="ss-small" role="status" data-testid="song-lyrics-saved">Saved as "@SavedTitle".</span>
+        }
+    </div>
+</fieldset>

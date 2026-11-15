@@ -123,8 +123,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T040 [US1] [backend] Implement `Generation/{GenerationSyncService,TakeStorage}.cs` and the 007 adapter `GeneratedAudioLibraryAdapter` to pass T039
 - [ ] T041 [P] [US1] [backend] Failing tests for `GET /api/generations[?kind&sourceTrackId]`, `GET/{id}`, `cancel`, `retry`, `DELETE` (files + library entries removed, imported tracks kept), take audio with range requests; served bodies validate against the backend contract
 - [ ] T042 [US1] [backend] Implement the remaining generation endpoints to pass T041
-- [ ] T043 [P] [US1] [frontend] Failing bUnit tests: `RestyleDialog` (style select with description, range inputs with limits, stem checkboxes, 5-step strength, takes 1-2, personal-use notice, error display), track page generation section (`generation-row-*` with status/progress/stage, cancel, retry, delete), `TakePlayer` (`<audio>` with the take URL), `AiBadge`, take details panel (style, strength, seed, source, range, model, device), help links (ui-test-ids, FR-015, FR-016)
-- [ ] T044 [US1] [frontend] Implement `Shared/{RestyleDialog,TakeList,TakePlayer,AiBadge}.razor`, the track-page section, `Pages/Generations.razor`, API client methods, help entries (`help.restyle.*`, `help.generation.ai-label`, `help.generation.personal-use`, `help.generation.limits`) to pass T043
+- [x] T043 [P] [US1] [frontend] Failing bUnit tests: `RestyleDialog` (style select with description, range inputs with limits, stem checkboxes, 5-step strength, takes 1-2, personal-use notice, error display), track page generation section (`generation-row-*` with status/progress/stage, cancel, retry, delete), `TakePlayer` (`<audio>` with the take URL), `AiBadge`, take details panel (style, strength, seed, source, range, model, device), help links (ui-test-ids, FR-015, FR-016)
+- [x] T044 [US1] [frontend] Implement `Shared/{RestyleDialog,TakeList,TakePlayer,AiBadge}.razor`, the track-page section, `Pages/Generations.razor`, API client methods, help entries (`help.restyle.*`, `help.generation.ai-label`, `help.generation.personal-use`, `help.generation.limits`) to pass T043
 - [ ] T045 [US1] [qa] Author `e2e/tests/generative.spec.ts` "restyle a track" (`@generative`, fake stack): restyle with "Jazz trio" -> progress -> completed -> take plays (audio element `readyState >= 2`) -> AI badge -> take details; cancel flow; `oom-twice` mode shows the readable failure and retry
 
 **Checkpoint**: HO:us1.
@@ -135,8 +135,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T046 [P] [US2] [backend] Failing tests `StyleEndpointTests.cs`: `GET /api/styles` order (presets first, then name), filters `kind`, `genreFamily`, `mood`, `instrument`, `q` (name/description/tags, case-insensitive); `GET /api/styles/{id}`; contract validation (FR-004)
 - [ ] T047 [US2] [backend] Implement `Styles/StyleEndpoints.cs` (read side) to pass T046
-- [ ] T048 [P] [US2] [frontend] Failing bUnit tests `StylesPageTests.cs`: list with genre-family grouping, preset marker (`data-kind`), filters and search, empty state; restyle dialog shows the picked style's description and default strength (US2-1..3)
-- [ ] T049 [US2] [frontend] Implement `Pages/Styles.razor` and help entry `help.styles.library` to pass T048
+- [x] T048 [P] [US2] [frontend] Failing bUnit tests `StylesPageTests.cs`: list with genre-family grouping, preset marker (`data-kind`), filters and search, empty state; restyle dialog shows the picked style's description and default strength (US2-1..3)
+- [x] T049 [US2] [frontend] Implement `Pages/Styles.razor` and help entry `help.styles.library` to pass T048
 - [ ] T050 [US2] [qa] Author "style library" spec (`@generative` not required: runs on the default fake stack): >= 24 presets, filter by mood narrows the list, search by name (SC-003, SC-007)
 
 **Checkpoint**: HO:us2.
@@ -149,8 +149,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T052 [US6] [generative] Implement anything missing to pass T051
 - [ ] T053 [P] [US6] [backend] Failing tests `GenerationStatusTests.cs`: `GET /api/generation/status` -> `notInstalled` (no base URL, or unreachable > 2 s), `unavailable` + reason, `ready` + models + `downloadBytesNeeded`; cached 10 s (`FakeTimeProvider`); `POST .../restyles` -> `409` with `code` `notInstalled`/`gpuRequired` (FR-010)
 - [ ] T054 [US6] [backend] Implement `Generation/GenerationStatusService.cs` + endpoint to pass T053
-- [ ] T055 [P] [US6] [frontend] Failing bUnit tests: `GenerationStatusBanner` (`generation-status` `data-state`, reason, help link); `track-restyle` disabled with `aria-describedby` reason when not ready; style library still editable (US6-1/2)
-- [ ] T056 [US6] [frontend] Implement the banner, disabled states and help entry `help.generation.gpu-required` to pass T055
+- [x] T055 [P] [US6] [frontend] Failing bUnit tests: `GenerationStatusBanner` (`generation-status` `data-state`, reason, help link); `track-restyle` disabled with `aria-describedby` reason when not ready; style library still editable (US6-1/2)
+- [x] T056 [US6] [frontend] Implement the banner, disabled states and help entry `help.generation.gpu-required` to pass T055
 - [ ] T057 [US6] [qa] Author specs: default fake stack without generator -> `data-state="notInstalled"`, restyle disabled; fake generator `no-gpu` -> `unavailable` with the reason; the existing suite passes unchanged (SC-002)
 
 **Checkpoint**: HO:us6.
@@ -161,8 +161,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T058 [P] [US3] [backend] Failing tests: `POST /api/styles`, `PUT`, `DELETE`, `POST .../duplicate` ("<name> (copy)", numbered when taken); presets `403`; validation `400` with field + reason incl. guard `code: "imitation"` (library artist names from the user's tracks are included); duplicate name `409`; earlier generations keep their snapshot (US3-1..4, FR-004, FR-005)
 - [ ] T059 [US3] [backend] Implement the write side of `StyleEndpoints.cs` to pass T058
-- [ ] T060 [P] [US3] [frontend] Failing bUnit tests `StyleEditorTests.cs`: create/edit form with all fields, tag inputs (max 8), field errors from the API, duplicate/edit/delete actions only on user styles, delete confirm
-- [ ] T061 [US3] [frontend] Implement `Pages/StyleEditor.razor` and help entry `help.styles.editor` to pass T060
+- [x] T060 [P] [US3] [frontend] Failing bUnit tests `StyleEditorTests.cs`: create/edit form with all fields, tag inputs (max 8), field errors from the API, duplicate/edit/delete actions only on user styles, delete confirm
+- [x] T061 [US3] [frontend] Implement `Pages/StyleEditor.razor` and help entry `help.styles.editor` to pass T060
 - [ ] T062 [US3] [qa] Author "own style" spec: duplicate a preset, edit, restyle with it (fake), take details show the user style; an artist name is refused with the reason
 
 **Checkpoint**: HO:us3.
@@ -173,8 +173,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 
 - [ ] T063 [P] [US4] [backend] Failing tests `TakeImportTests.cs`: `POST .../takes/{n}/import` runs the existing upload import with the take file (stub worker), sets `Track.Origin = generated`, returns `202` new / `200` existing (idempotent by SHA-256), `409` when the generation is not completed; `TrackDto.origin` mapped (FR-009)
 - [ ] T064 [US4] [backend] Implement `Generation/TakeImporter.cs` to pass T063
-- [ ] T065 [P] [US4] [frontend] Failing bUnit tests: `take-import-*` button and resulting navigation; `track-origin-badge` + `track-origin-source-link` on the track page and an AI badge in the track list (US4-2)
-- [ ] T066 [US4] [frontend] Implement to pass T065
+- [x] T065 [P] [US4] [frontend] Failing bUnit tests: `take-import-*` button and resulting navigation; `track-origin-badge` + `track-origin-source-link` on the track page and an AI badge in the track list (US4-2)
+- [x] T066 [US4] [frontend] Implement to pass T065
 - [ ] T067 [US4] [qa] Author "import take" spec: import -> fake separation -> mixer opens; origin badge; second import returns the same track
 
 **Checkpoint**: HO:us4.
@@ -187,8 +187,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T069 [US5] [generative] Implement in `engines/acestep_engine.py`, `engines/fake.py`, `jobs/runner.py` to pass T068
 - [ ] T070 [P] [US5] [backend] Failing tests: `mode=inPlace` validation (range inside the track, whole track <= 480 s), stored mode, take duration = track duration (FR-014)
 - [ ] T071 [US5] [backend] Implement to pass T070
-- [ ] T072 [P] [US5] [frontend] Failing bUnit test: in-place option `restyle-mode-inplace` in `RestyleDialog` with its explanation and range inputs (US5-1)
-- [ ] T073 [US5] [frontend] Implement to pass T072
+- [x] T072 [P] [US5] [frontend] Failing bUnit test: in-place option `restyle-mode-inplace` in `RestyleDialog` with its explanation and range inputs (US5-1)
+- [x] T073 [US5] [frontend] Implement to pass T072
 
 **Checkpoint**: HO:us5 (generative, backend, frontend).
 
@@ -199,7 +199,7 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T074 [P] [generative] Refactor to SIG limits, docstrings, HO:polish with coverage of `api`, `jobs`, `devices`, `engines`, `audio`
 - [x] T075 [P] [stem-separation] HO:polish for the lease change (coverage of `devices`)
 - [ ] T076 [P] [backend] Refactor, XML docs, HO:polish
-- [ ] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
+- [x] T077 [P] [frontend] Accessibility (disabled reasons readable by screen readers, badges as text, not colour only), HO:polish
 - [ ] T078 [P] [qa] Traceability matrix, HO:polish
 - [ ] T079 [P] [devops] `docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml config -q`, actionlint, HO:polish
 - [ ] T080 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests; HO:polish

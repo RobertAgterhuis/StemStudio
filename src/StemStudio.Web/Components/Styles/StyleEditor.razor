@@ -1,0 +1,79 @@
+@* Style editor form (009 US3, FR-004, FR-005; ui-test-ids 1.8.0 style editor ids): every field is a native control;
+   the readable problem names its field in data-field, including the imitation guard of the API. *@
+@using StemStudio.Contracts.Styles
+@using StemStudio.Web.Styles
+
+<div class="ss-page ss-generative-form ss-style-editor">
+    <header class="ss-page-head" data-help-id="styles-editor">
+        <div class="ss-label-row"><h1>@Title</h1><HelpHint HelpId="styles-editor" /></div>
+        <p class="ss-help">Describe the music: genre, instruments, mood and tempo feel. Never name an artist or ask to sound like one.</p>
+    </header>
+
+    <label class="ss-field">
+        <span class="ss-label">Name</span>
+        <input type="text" class="rz-textbox" maxlength="60" value="@Form.Name" @oninput="e => Form.Name = (string)e.Value!" data-testid="style-name-input" />
+    </label>
+    <div class="ss-range-row">
+        <label class="ss-field">
+            <span class="ss-label">Genre</span>
+            <select class="rz-dropdown ss-select" @onchange="e => Form.Genre = Enum.Parse<GenreFamilyDto>((string)e.Value!)" data-testid="style-genre-select">
+                @foreach (var genre in StyleText.Genres)
+                {
+                    <option value="@genre" selected="@(Form.Genre == genre)">@StyleText.Genre(genre)</option>
+                }
+            </select>
+        </label>
+        <label class="ss-field">
+            <span class="ss-label">Sub-genre (optional)</span>
+            <input type="text" class="rz-textbox" maxlength="40" value="@Form.SubGenre" @oninput="e => Form.SubGenre = (string)e.Value!" data-testid="style-subgenre-input" />
+        </label>
+        <label class="ss-field">
+            <span class="ss-label">Tempo feel</span>
+            <select class="rz-dropdown ss-select" @onchange="e => Form.Tempo = Enum.Parse<TempoFeelDto>((string)e.Value!)" data-testid="style-tempo-select">
+                @foreach (var tempo in StyleText.Tempos)
+                {
+                    <option value="@tempo" selected="@(Form.Tempo == tempo)">@StyleText.Tempo(tempo)</option>
+                }
+            </select>
+        </label>
+    </div>
+    <TagInput Label="Instruments" TestId="style-instrument-tags" ListTestId="style-instrument-tag-list" Tags="Form.Instruments"
+              TryAdd="t => TryAddTag(Form.Instruments, StyleEditorForm.InstrumentsField, t)" OnChanged="StateHasChanged"
+              OnRemove="t => Form.Instruments.Remove(t)" />
+    <TagInput Label="Moods" TestId="style-mood-tags" ListTestId="style-mood-tag-list" Tags="Form.Moods"
+              TryAdd="t => TryAddTag(Form.Moods, StyleEditorForm.MoodsField, t)" OnChanged="StateHasChanged" OnRemove="t => Form.Moods.Remove(t)" />
+    <div class="ss-range-row">
+        <label class="ss-field">
+            <span class="ss-label">Vocals</span>
+            <select class="rz-dropdown ss-select" @onchange="e => Form.Vocals = Enum.Parse<VocalHandlingDto>((string)e.Value!)" data-testid="style-vocal-select">
+                @foreach (var vocals in Enum.GetValues<VocalHandlingDto>())
+                {
+                    <option value="@vocals" selected="@(Form.Vocals == vocals)">@StyleText.Vocals(vocals)</option>
+                }
+            </select>
+        </label>
+        <label class="ss-field">
+            <span class="ss-label">Default strength</span>
+            <select class="rz-dropdown ss-select" @onchange="e => Form.Strength = Enum.Parse<StrengthDto>((string)e.Value!)" data-testid="style-strength-select">
+                @foreach (var strength in StyleText.Strengths)
+                {
+                    <option value="@strength" selected="@(Form.Strength == strength)">@StyleText.Strength(strength)</option>
+                }
+            </select>
+        </label>
+    </div>
+    <label class="ss-field">
+        <span class="ss-label">Description (optional, up to 300 characters)</span>
+        <textarea class="rz-textarea" rows="3" maxlength="300" value="@Form.Description" @oninput="e => Form.Description = (string)e.Value!"
+                  data-testid="style-description-input"></textarea>
+    </label>
+
+    @if (Problem is { } problem)
+    {
+        <div class="ss-error" role="alert" data-testid="style-error" data-field="@problem.Field">@problem.Message</div>
+    }
+    <div class="ss-dialog-actions">
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="Cancel" data-testid="style-cancel" />
+        <RadzenButton Text="Save" Icon="save" IsBusy="Busy" BusyText="Saving..." Disabled="Busy" Click="SaveAsync" data-testid="style-save" />
+    </div>
+</div>

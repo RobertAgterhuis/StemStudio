@@ -103,6 +103,13 @@
   margin-top: auto;
 }
 
+/* Divider between the practice pages and the generative pages (009/010). */
+.ss-rail-divider {
+  height: 1px;
+  margin: var(--ss-space-1) var(--ss-space-4);
+  background: var(--ss-color-divider);
+}
+
 /* Brand mark: one strand becomes six. */
 .ss-mark path {
   fill: none;
@@ -324,9 +331,21 @@
   }
 
   .ss-rail-link {
-    flex: 1;
+    flex: 1 0 4rem;
     min-height: 3rem;
     margin: 0;
+  }
+
+  .ss-rail {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .ss-rail-divider {
+    flex: 0 0 1px;
+    width: 1px;
+    height: auto;
+    margin: var(--ss-space-2) 0;
   }
 
   .ss-rail-link.active::before {

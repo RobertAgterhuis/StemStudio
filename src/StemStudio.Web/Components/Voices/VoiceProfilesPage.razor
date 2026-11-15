@@ -1,0 +1,79 @@
+@page "/voices"
+@* Own-voice profiles (010 US3, FR-005, FR-006, FR-009, FR-015; ui-test-ids 1.9.0 voice-*): each profile with its sample
+   and its consent record; new profiles only with consent; deleting asks whether the converted takes go too. *@
+@using StemStudio.Web.Voices
+
+<PageTitle>Voice profiles - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-voices-page">
+    <header class="ss-page-head ss-page-head-row" data-help-id="voice-profiles">
+        <div>
+            <div class="ss-label-row"><h1>Voice profiles</h1><HelpHint HelpId="voice-profiles" /></div>
+            <p class="ss-help">Your own singing voice, to sing generated songs with. Only your own voice, and it stays on this computer.</p>
+        </div>
+        @if (!Creating)
+        {
+            <RadzenButton Text="New voice profile" Icon="mic" Click="() => Creating = true" data-testid="voice-new" />
+        }
+    </header>
+    <GenerationStatusBanner ShowVoice="true" />
+
+    @if (Creating)
+    {
+        <NewVoicePanel SaveBlockedReason="@SaveBlocked" OnSaved="OnSaved" OnCancel="() => Creating = false" />
+    }
+
+    @if (ActionError is not null)
+    {
+        <ErrorState TestId="voices-action-error" Message="@ActionError" />
+    }
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="voices-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Items is null)
+    {
+        <Skeleton Lines="3" />
+    }
+    else if (Items.Count == 0)
+    {
+        <EmptyState TestId="voices-empty" Text="No voice profiles yet. Record your own singing with New voice profile." />
+    }
+    else
+    {
+        <table class="ss-table">
+            <thead><tr><th>Profile</th><th>Sample</th><th>Consent</th><th><span class="ss-sr-only">Actions</span></th></tr></thead>
+            <tbody>
+                @foreach (var profile in Items)
+                {
+                    <tr @key="profile.Id" data-testid="@($"voice-row-{profile.Id}")">
+                        <td>
+                            <span class="ss-style-name">@profile.DisplayName</span>
+                            <span class="ss-small ss-muted">@profile.Source, @TimeText.Duration(profile.DurationSeconds)</span>
+                        </td>
+                        <td><audio controls preload="none" src="@Url(profile.SampleUrl)" aria-label="@($"Play the sample of {profile.DisplayName}")"
+                                   data-testid="@($"voice-play-{profile.Id}")"></audio></td>
+                        <td class="ss-small" data-testid="@($"voice-consent-{profile.Id}")">@VoiceRules.ConsentLine(profile.Consent)</td>
+                        <td class="ss-cell-action">
+                            <button type="button" class="ss-text-button" aria-label="@($"Delete {profile.DisplayName}")" @onclick="() => AskDelete(profile)"
+                                    data-testid="@($"voice-delete-{profile.Id}")">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (Deleting is { } deleting)
+{
+    <ConfirmModal Title="Delete voice profile" TestIdPrefix="voice-delete" OnConfirm="DeleteAsync" OnCancel="() => Deleting = null"
+                  Message="@($"Delete \"{deleting.DisplayName}\"? Its sample and everything derived from it are removed from this computer.")">
+        <label class="ss-check" for="@($"voice-delete-takes-{deleting.Id}")">
+            <input id="@($"voice-delete-takes-{deleting.Id}")" type="checkbox" checked="@DeleteTakes" @onchange="e => DeleteTakes = e.Value is true"
+                   data-testid="@($"voice-delete-takes-{deleting.Id}")" />
+            @TakesLabel(deleting)
+        </label>
+    </ConfirmModal>
+}
