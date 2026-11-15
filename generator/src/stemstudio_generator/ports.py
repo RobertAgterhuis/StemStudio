@@ -264,6 +264,18 @@ WHISPER_BASE_WEIGHTS: Final = WeightsPin(
 )
 """whisper-base content encoder of SoulX-SVC (Apache-2.0); must be loaded by this revision."""
 
+ACESTEP_CHECKPOINT_DIR: Final = "acestep/checkpoints"
+"""Bundle directory under ``model_dir`` (ACE-Step ``checkpoint_dir``; has REVISION, SHA256SUMS)."""
+
+SOULX_SVC_FILE: Final = "soulx/model-svc.pt"
+"""SoulX-Singer-SVC checkpoint under ``model_dir`` (``soulx/REVISION`` + ``soulx/SHA256SUMS``)."""
+
+RMVPE_FILE: Final = "soulx/rmvpe/rmvpe.pt"
+"""RMVPE checkpoint under ``model_dir``."""
+
+WHISPER_BASE_DIR: Final = "soulx/whisper-base"
+"""whisper-base snapshot under ``model_dir`` (REVISION, SHA256SUMS); loaded from this path."""
+
 # ------------------------------------------------------------------ engines
 
 

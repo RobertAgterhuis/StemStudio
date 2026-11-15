@@ -1,6 +1,7 @@
 # ADR-019: Lyrics to song, own-voice conversion and consent (feature 010)
 
-- **Status**: Proposed (architect, 2026-11-15). Becomes Accepted at the start of feature 010.
+- **Status**: Accepted (2026-11-15, 009/010 Phase 0; the fourth container `singer` and the consent
+  wording are CTO decisions in `docs/decisions/CTO-DECISIONS-2026-11-15.md`).
 - **Context documents**: `specs/010-lyrics-to-song/{spec.md, plan.md, research.md, data-model.md}`,
   ADR-018 (generator service, GPU lease, style library, guardrail), `docs/research/roadmap-003-011.md`
   sections 8-9, CTO brief 2026-11-15.
@@ -108,3 +109,17 @@ under the same lease.
 | SoulX-Singer SVS (score-driven) now | needs aligned score/MIDI editing and extra preprocessing models; 3 languages; SVC covers "my voice" |
 | RVC voice models | requires training a per-user model; licences of community models unclear |
 | Voice cloning of any uploaded voice | consent cannot be verified for other people; only own-voice profiles with stored consent |
+
+## Phase 0 outcome (architect, 2026-11-15, combined 009 + 010 skeleton)
+
+Contracts: `specs/010-lyrics-to-song/contracts/` generator-api **1.1.0**, backend-api **1.9.0**,
+ui-test-ids **1.9.0**, each the 009 document plus additions (subset rules tested in Python and .NET).
+
+| Topic | Decision |
+|---|---|
+| SoulX-Singer packaging | **Path install in the singer image, no build shim.** Upstream has no packaging; the `soulx` extra of `generator/pyproject.toml` holds only the runtime dependencies of the SVC path (torch/torchaudio `2.10.0+cu128`, transformers `4.41.2`, tokenizers `0.19.1`, accelerate `1.11.0`, librosa `0.11.0`, omegaconf `2.3.0`, scipy, tqdm). The image fetches the source at commit `81aeb3ae772c70093c3de74dc23c92d983801ae4` (git fetch of that commit; the commit hash is the integrity check), copies `soulxsinger/` and `preprocess/tools/f0_extraction.py` (self-contained RMVPE) to `/opt/soulx-singer` and puts it on `PYTHONPATH`. The adapter loads `f0_extraction.py` by file path, because `preprocess/tools/__init__.py` imports the heavy preprocessing tools. Nothing of SoulX is vendored in the repository; nothing AGPL is used. |
+| `SONG_PLANNED` re-measure | The language model already runs in **bf16** with ACE-Step's default init; the 15.7 GB of the spike came from its loader (`from_pretrained` in fp32 on the CPU, then `.to(cuda).to(bf16)`; the fp32 blocks stay reserved). Loading the LM **directly in bf16** (the engine adapter overrides `LLMHandler._load_pytorch_model` to pass `torch_dtype=bfloat16`, no upstream change): NVML peak 12,347 MiB over 1,539 MiB idle -> **`SONG_PLANNED` = 12,288 MiB** (11,832 rounded up); 60 s song 13.3 s cold / 11.4 s warm (pt backend, `thinking=True`). Without the override the load peak needs 15,360 MiB. `SONG_DIRECT` 9,830, `SONG_DIRECT_LOWMEM` 7,578, `SVC_FP16` 6,144 MiB unchanged. |
+| Two services | One document, two deployments: `/health.kinds` + `voiceSampleCheck`; a kind not served -> `409 code: kindNotServed`. Settings default by engine (`acestep` -> `restyle,song`; `soulx` -> `voiceConversion`). |
+| Names | Backend lyrics-sheet operations are `listLyricsSheets`, `getLyricsSheet`, `createLyricsSheet`, `uploadLyricsSheet`, `updateLyricsSheet`, `deleteLyricsSheet` (006 already has `getLyrics` for a track's synced lyrics); the DTOs are `LyricsSheetDto`, `LyricsInput`, ... in `StemStudio.Contracts.Lyrics`. |
+| Consent | `consent.v1` English text of data-model 3.3 plus the Dutch translation in the contract example `ConsentStatementV1` (CTO accepted the draft; the owner may edit it before release, which then means `consent.v2`). |
+| Problem types | Kebab-case `type` values: `consent-required`, `consent-outdated`, `voice-name-taken`, `voice-not-installed`, `voice-unavailable`, `no-vocals`, `too-short`, `too-long`, `unvoiced`, `library-audio`. |

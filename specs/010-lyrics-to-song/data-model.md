@@ -68,7 +68,7 @@ first download or the timeout); otherwise nothing is kept.
 | `MusicEngine` | `+ song(request: EngineSong, on_progress) -> list[EngineTake]` | `AceStepEngine`, `FakeMusicEngine` |
 | `VoiceConverter` | `load(on_progress)`, `convert(target: Path, prompt: Path, opts) -> np.ndarray`, `unload()` | `SoulXSvcConverter` (lazy import), `FakeVoiceConverter` |
 | `PitchTracker` | `f0(path) -> np.ndarray` (Hz, 0 = unvoiced) | `RmvpePitchTracker`, `FakePitchTracker` |
-| `GpuNeed` | `+ SONG_PLANNED` (DiT + pt LM, 15.7 GB), `SONG_DIRECT` (DiT only, 9.6 GB), `SONG_DIRECT_LOWMEM` (offload, 7.4 GB), `SVC_FP16` (6.0 GB) | research.md S-04/S-05 |
+| `GpuNeed` | `+ SONG_PLANNED` (DiT + pt LM loaded in bf16, 12,288 MiB; Phase 0 re-measure, research.md S-07), `SONG_DIRECT` (DiT only, 9,830 MiB), `SONG_DIRECT_LOWMEM` (offload, 7,578 MiB), `SVC_FP16` (6,144 MiB) | research.md S-04/S-05/S-07 |
 
 Model statuses add `acestep-5hz-lm-1.7b` (already in the bundle), `soulx-singer-svc`,
 `rmvpe`, `whisper-base`.

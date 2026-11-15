@@ -1,5 +1,32 @@
 # Contract delta: feature 010 (own lyrics to song)
 
+## Phase 0 outcome (architect, 2026-11-15)
+
+Bound versions: **generator-api 1.1.0** = 009's 1.0.0 + section 1, **backend-api 1.9.0** = 1.8.0 +
+section 2, **ui-test-ids 1.9.0** = 1.8.0 + section 3; worker-api 1.6.0 and the engine 2.1.0
+unchanged. Full documents in this folder (Redocly 2.78.0 valid); the code (`schemas.py`
+`CONTRACT_VERSION = "1.1.0"`, `StemStudio.Contracts`) follows them. Refinements (binding; details
+in ADR-019 "Phase 0 outcome"):
+
+- Lyrics-sheet operation ids: `listLyricsSheets`, `getLyricsSheet`, `createLyricsSheet`,
+  `uploadLyricsSheet`, `updateLyricsSheet`, `deleteLyricsSheet` (006 owns `getLyrics`).
+- Generator: `VoiceSampleCheck` has `reason` as a code (`tooShort`/`tooLong`/`unvoiced`) plus a
+  readable `message`; song takes `profile`, conversion takes `hasVocalStem`; restyle takes
+  `vocal: null`; `NotServable` (409 `gpuRequired` / `kindNotServed`); the singer example health is
+  `SingerReadyHealth`.
+- Backend: `Generation.song` (`SongDetails`) and `Generation.voiceConversion`
+  (`VoiceConversionDetails`); `LyricsSection.number`; `SongRequest.timeSignature` is a string
+  (`"2"`, `"3"`, `"4"`, `"6"`); `VoiceProfile.convertedTakeCount`; problem `type` values
+  `consent-required`, `consent-outdated`, `voice-name-taken`, `voice-not-installed`,
+  `voice-unavailable`, `no-vocals`, `too-short`, `too-long`, `unvoiced`, `library-audio`.
+- `GPU need SONG_PLANNED` = 12,288 MiB with the LM loaded directly in bf16 (re-measured).
+- UI ids: also `nav-songs`, `nav-lyrics`, `nav-voices`, `song-lyrics-count`,
+  `song-time-signature`, `song-generations`, `lyrics-song-<lyricsId>`, `lyrics-search`,
+  `lyrics-empty`, `lyrics-delete-confirm`, the lyrics editor ids, `voice-record-timer`,
+  `voice-preview`, `voice-delete-confirm`, `take-voice-convert-cancel`, `take-voice-pitch-shift`,
+  `take-voice-auto-shift`, `take-vocal-play-*`, `track-vocal-badge`, and `data-voice-state` on
+  `generation-status`. Help topic ids without the `help.` prefix.
+
 On top of the 009 contracts (`specs/009-style-transfer/contracts/`). Final versions are assigned at
 feature start (tasks.md T002): generator `G` (1.0.0 after 009) -> `G+0.1`; backend `B9` (after
 009) -> `B9+0.1`; UI ids `U9` -> `U9+0.1`. All changes are **additive**. Worker API and audio

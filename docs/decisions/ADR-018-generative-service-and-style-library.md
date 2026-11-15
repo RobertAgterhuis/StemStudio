@@ -1,7 +1,7 @@
 # ADR-018: Generative service, cross-container GPU lease and style library (feature 009)
 
-- **Status**: Proposed (architect, 2026-11-15). Becomes Accepted at the start of feature 009,
-  together with the constitution amendment in D9 (CTO/owner).
+- **Status**: Accepted (2026-11-15, 009/010 Phase 0). Constitution 1.3.0 contains the D9 exception
+  (CTO decision under the owner's mandate, `docs/decisions/CTO-DECISIONS-2026-11-15.md`).
 - **Context documents**: `specs/009-style-transfer/{spec.md, plan.md, research.md, data-model.md}`,
   `docs/research/roadmap-003-011.md` section 8, ADR-009 (model weights), ADR-011 (GPU vendor
   runtime), ADR-012 (GPU device policy), CTO brief 2026-11-15.
@@ -169,3 +169,23 @@ gets `Origin = generated` with the generation and take ids.
 | Styles inside the generator | library logic would sit in a GPU-only service that is often not installed; the library must be browsable and editable on CPU-only installs |
 | Free-text prompts only, no library | the owner asked for a library to apply |
 | Artist presets ("in the style of X") | ethics rule (research 8.3); also legally sensitive |
+
+## Phase 0 outcome (architect, 2026-11-15, combined 009 + 010 skeleton)
+
+Contracts: `specs/009-style-transfer/contracts/` generator-api **1.0.0**, backend-api **1.8.0**,
+ui-test-ids **1.8.0** (feature 010 builds 1.1.0 / 1.9.0 / 1.9.0 on top, ADR-019). Refinements that
+are now binding:
+
+| Topic | Decision |
+|---|---|
+| Python | 3.12 confirmed. ACE-Step's own lock installs on `python:3.12-slim` (410 s, 7.6 GB venv, torch `2.10.0+cu128` with `sm_120`; flash-attn has only a 3.11 wheel, so attention is SDPA as in the spike). The generator's own `uv.lock` resolves 172 packages with `exclude-newer = 2026-11-01` (every package >= 2 weeks old). |
+| gradio | Dropped by `override-dependencies` (`gradio ; sys_platform == 'never'`). Measured: `import acestep.handler, acestep.inference, acestep.llm_inference` succeeds without gradio. The training packages (lightning, peft, ...) stay: `acestep.handler` imports `acestep.training.trainer`. |
+| nano-vllm | uv ignores the sources of a git dependency, so the generator pins ACE-Step's vendored `nano-vllm` itself (git source, same commit, `subdirectory = acestep/third_parts/nano-vllm`). |
+| Base install | Without extras the generator has no torch and no NVIDIA wheel (fake variant, CI); extras `acestep` and `soulx` conflict (`[tool.uv] conflicts`) and are Linux x86_64 only. |
+| Progress | Integer percentage 0-100 in the generator and the backend (like `Job.progress` / `Track.progress`), not a float 0-1. |
+| Gate | `GpuGate.hold(needs, on_wait)` takes the lease and admits the **first** `GpuNeed` of an ordered tuple that fits (`RESTYLE_NEEDS = (COVER_TURBO 13,926 MiB, COVER_TURBO_LOWMEM 8,602 MiB)`); `GpuNeed.profile` (`standard` / `lowMemory`) tells the engine how to load (`ports.py`). |
+| Takes and library | Takes are FLAC 24-bit stereo **48 kHz**; no 44.1 kHz copy is stored (the take import goes through the worker upload path, which resamples). Generator takes report `peakDbfs`, so the library item (kind `audio`, origin `generation`, `Provenance.generation`) has full `AudioFacts`; `AudioFacts.sampleRate` allows 48000 from 1.8.0. |
+| Wire shapes | Generator `Generation` and backend `Generation` carry the kind's details in a member named by the kind (`restyle`; 010 adds `song`, `voiceConversion`); the other members are absent. `Track.origin` is absent on imported tracks (never null). Generator problems use the extension member `code`; backend problems use kebab-case `type` values (`not-installed`, `gpu-required`, `track-not-ready`, `imitation`, `style-name-taken`, `preset-read-only`, `generation-not-completed`, `generation-not-retryable`, `generator-unavailable`) like 007/008. |
+| Help topics | Topic ids without the `help.` prefix (`generation-gpu-required`, `styles-library`, ... in ui-test-ids 1.8.0), as in 005/008. |
+| Worker | `WorkerSettings.gpu_lease_file` (`STEMSTUDIO_GPU_LEASE_FILE`, unset = 003 behaviour) and `gpu_lease_wait_seconds` (900); fallback text `config.GPU_LEASE_BUSY_REASON`. |
+| Fake generator | `STEMSTUDIO_GENERATOR=fake` + `STEMSTUDIO_FAKE_GENERATOR_MODE` are parsed by `config.py`; the fake engine itself is the generative agent's (009 T020/T021), the fake stacks are devops' (T009). |

@@ -147,3 +147,25 @@ ACE-Step accepts lyrics up to 4,096 characters with bracketed section markers (`
 |---|---|---|
 | 1 | Consent statement wording EN/NL (data-model 3.3) | as drafted; CTO/owner may edit before T001 |
 | 2 | Score-driven singing (SoulX SVS) later? | backlog item after 010 |
+
+## S-07 Phase 0 re-measure: language model in bf16 (architect, 2026-11-15)
+
+Throw-away `python:3.12-slim` container with ACE-Step's own lock (`uv sync --frozen --no-dev
+--no-install-package gradio`: 410 s, 7.6 GB venv, torch `2.10.0+cu128` with `sm_120`, no
+flash-attn on 3.12), weights revision `19671f4` in a throw-away volume (9.4 GB, 159 s), RTX 5070
+Ti with 14.1-14.8 GB free; image and volume deleted afterwards, `stemstudio` untouched. 60 s song,
+turbo DiT, 8 steps, shift 3.0, seed 42, `thinking=True`, pt backend:
+
+| Variant | Idle NVML | NVML peak | Reserved peak | Cold / warm | Need (peak - idle + 1 GiB) |
+|---|---|---|---|---|---|
+| Default init (LM already bf16) | 2,181 MiB | 15,903 | 14,112 | 13.3 / 12.1 s | 14,746 MiB |
+| Explicit `dtype=torch.bfloat16` | 1,700 | 15,842 | 14,112 | 15.0 / 12.9 s | 15,166 MiB |
+| bf16 + `empty_cache()` after LM init | 1,639 | 15,820 (load) / 13,756 (songs) | 11,924 | 12.8 / 11.6 s | 15,205 MiB (load) |
+| **LM loaded directly in bf16** (`from_pretrained(..., torch_dtype=bfloat16)`) | 1,539 | **12,347** | 10,516 | 13.3 / 11.4 s | **11,832 MiB** |
+
+Cause: `LLMHandler._load_pytorch_model` loads fp32 on the CPU, moves it to the GPU and casts
+afterwards; the fp32 blocks stay reserved. Decision: the engine adapter overrides that loader
+(no upstream change) and `SONG_PLANNED` = **12,288 MiB** (`ports.py`); with the default loader it
+would need 15,360 MiB. The import `acestep.handler, acestep.inference, acestep.llm_inference`
+works without gradio (dropped from the generator lock); `acestep.handler` imports
+`acestep.training.trainer`, so the training packages stay.
