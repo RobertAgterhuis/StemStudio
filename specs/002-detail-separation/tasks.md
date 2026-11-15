@@ -225,7 +225,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T082 [P] [stem-separation] Add `worker/scripts/check_reconstruction.py` (quickstart D3); refactor to SIG limits; HO:polish with coverage of `detail`, `jobs`, `api`
 - [ ] T083 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T084 [P] [frontend] Accessibility of group strips (labels, keyboard expand), HO:polish
-- [ ] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
+- [x] T085 [P] [audio-engine] TSDoc, memory release of groups on `dispose()`, HO:polish
 - [ ] T086 [P] [qa] Traceability matrix update, HO:polish
 - [ ] T087 [P] [devops] Validate compose/CI/e2e-real changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T088 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
