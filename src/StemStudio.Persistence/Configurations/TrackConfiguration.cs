@@ -4,7 +4,7 @@ using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Configurations;
 
-/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems and beat grid as JSON columns.</summary>
+/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid and detail phase as JSON columns.</summary>
 public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
 {
     /// <inheritdoc />
@@ -19,6 +19,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Ignore(track => track.Stems);
         builder.ComplexCollection<List<Stem>, Stem>("_stems", collection => collection.ToJson("Stems"));
         builder.ComplexProperty(track => track.BeatGrid, grid => grid.ToJson());
+        builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.HasIndex(track => track.UpdatedAt);
     }
 

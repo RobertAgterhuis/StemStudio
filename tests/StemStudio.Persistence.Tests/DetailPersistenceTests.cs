@@ -157,7 +157,8 @@ public sealed class DetailPersistenceTests
 
             track.DetailPhase.ShouldBeNull();
             track.Stems.Count.ShouldBe(6);
-            (mix.Expanded, mix.DetailChannels).ShouldBe(([], []));
+            mix.Expanded.ShouldBeEmpty();
+            mix.DetailChannels.ShouldBeEmpty();
             mix.Channels.Single().Stem.ShouldBe("guitar");
             read.Database.GetPendingMigrations().ShouldBeEmpty();
         }
