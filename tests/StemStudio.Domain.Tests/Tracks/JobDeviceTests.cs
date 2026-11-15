@@ -31,21 +31,16 @@ public sealed class JobDeviceTests
         WithFallback.ShouldNotBe(OnGpu);
     }
 
-    public static TheoryData<ProcessingDeviceKind, string?, bool, string?, string> InvalidDevices => new()
-    {
-        { ProcessingDeviceKind.Cpu, Gpu, false, null, "name" },
-        { ProcessingDeviceKind.Gpu, new string('n', JobDevice.MaxNameLength + 1), false, null, "name" },
-        { ProcessingDeviceKind.Gpu, Gpu, true, new string('r', JobDevice.MaxFallbackReasonLength + 1), "fallbackReason" },
-        { ProcessingDeviceKind.Gpu, Gpu, true, null, "fallbackReason" },
-        { ProcessingDeviceKind.Gpu, Gpu, false, Oom, "fallbackReason" },
-        { (ProcessingDeviceKind)7, null, false, null, "kind" },
-    };
-
     [Theory]
-    [MemberData(nameof(InvalidDevices))]
-    public void InvalidDevices_AreRejected(ProcessingDeviceKind kind, string? name, bool cpuFallback, string? reason, string field)
+    [InlineData("cpu with a name", "name")]
+    [InlineData("name too long", "name")]
+    [InlineData("reason too long", "fallbackReason")]
+    [InlineData("fallback without reason", "fallbackReason")]
+    [InlineData("reason without fallback", "fallbackReason")]
+    [InlineData("unknown kind", "kind")]
+    public void InvalidDevices_AreRejected(string invalidCase, string field)
     {
-        var error = Should.Throw<DomainValidationException>(() => new JobDevice(kind, name, cpuFallback, reason));
+        var error = Should.Throw<DomainValidationException>(() => Invalid(invalidCase));
 
         error.Errors.Select(e => e.Field).ShouldContain(field);
     }
@@ -209,6 +204,16 @@ public sealed class JobDeviceTests
 
         (track.Device, track.Status, track.Error).ShouldBe((OnGpu, TrackStatus.Queued, null));
     }
+
+    private static JobDevice Invalid(string invalidCase) => invalidCase switch
+    {
+        "cpu with a name" => new JobDevice(ProcessingDeviceKind.Cpu, Gpu, false, null),
+        "name too long" => new JobDevice(ProcessingDeviceKind.Gpu, new string('n', JobDevice.MaxNameLength + 1), false, null),
+        "reason too long" => new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, new string('r', JobDevice.MaxFallbackReasonLength + 1)),
+        "fallback without reason" => new JobDevice(ProcessingDeviceKind.Gpu, Gpu, true, null),
+        "reason without fallback" => new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, Oom),
+        _ => new JobDevice((ProcessingDeviceKind)7, null, false, null),
+    };
 
     private static Track ActiveTrack()
     {

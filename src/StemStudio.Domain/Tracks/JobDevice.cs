@@ -40,10 +40,20 @@ public sealed record JobDevice
     {
         var errors = new ValidationErrors();
         errors.Check(Enum.IsDefined(kind), "kind", "Must be cpu or gpu.");
+        CheckName(errors, kind, name);
+        CheckReason(errors, cpuFallback, fallbackReason);
+        errors.ThrowIfAny();
+    }
+
+    private static void CheckName(ValidationErrors errors, ProcessingDeviceKind kind, string? name)
+    {
         errors.Check(kind == ProcessingDeviceKind.Gpu || name is null, "name", "Must be null for the CPU.");
         errors.Check((name?.Length ?? 0) <= MaxNameLength, "name", $"Must be at most {MaxNameLength} characters.");
+    }
+
+    private static void CheckReason(ValidationErrors errors, bool cpuFallback, string? fallbackReason)
+    {
         errors.Check((fallbackReason is not null) == cpuFallback, "fallbackReason", "Must be set exactly when the job fell back to the CPU.");
         errors.Check((fallbackReason?.Length ?? 0) <= MaxFallbackReasonLength, "fallbackReason", $"Must be at most {MaxFallbackReasonLength} characters.");
-        errors.ThrowIfAny();
     }
 }

@@ -12,7 +12,6 @@ namespace StemStudio.Persistence.Tests;
 public sealed class JobDevicePersistenceTests
 {
     private const string LastMigrationOf002 = "20261115091608_AddMixDetailSettings";
-    private const string DetailJobId = "7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b";
     private const string Oom = "The GPU ran out of memory during Mega 53-stem; the step was repeated on the CPU.";
 
     private static readonly JobDevice WithFallback = new(ProcessingDeviceKind.Gpu, "NVIDIA GeForce RTX 5070 Ti", true, Oom);
@@ -27,7 +26,7 @@ public sealed class JobDevicePersistenceTests
         var track = TestData.QueuedTrack();
         track.ApplyDevice(WithFallback, TestData.T0);
 
-        var loaded = await SaveAndReloadAsync(db, track);
+        var loaded = await db.SaveAndReloadAsync(track);
 
         loaded.Device.ShouldBe(WithFallback);
         (await db.ScalarAsync("SELECT Device FROM Tracks"))!.ShouldContain("\"Gpu\"");
@@ -38,7 +37,7 @@ public sealed class JobDevicePersistenceTests
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
 
-        var loaded = await SaveAndReloadAsync(db, TestData.QueuedTrack());
+        var loaded = await db.SaveAndReloadAsync(TestData.QueuedTrack());
 
         loaded.Device.ShouldBeNull();
         (await db.ScalarAsync("SELECT Device IS NULL FROM Tracks")).ShouldBe("1");
@@ -48,13 +47,10 @@ public sealed class JobDevicePersistenceTests
     public async Task DetailPhaseDevice_RoundTrips()
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
-        var track = TestData.CompletedTrack();
-        track.RequestDetail(TestData.T0.AddMinutes(7));
-        track.AssignDetailJob(DetailJobId, TestData.T0.AddMinutes(7));
-        track.ApplyDetailProgress(new DetailProgress(DetailPhaseStatus.Running, "Splitting drums (1 of 3)", "drums", 12), TestData.T0.AddMinutes(8));
+        var track = TestData.RunningDetailTrack();
         track.ApplyDetailDevice(WithFallback, TestData.T0.AddMinutes(8));
 
-        var loaded = await SaveAndReloadAsync(db, track);
+        var loaded = await db.SaveAndReloadAsync(track);
 
         loaded.DetailPhase!.Device.ShouldBe(WithFallback);
         loaded.Device.ShouldBeNull();
@@ -132,10 +128,4 @@ public sealed class JobDevicePersistenceTests
             '{"Status":"Running","Stage":"Splitting drums (1 of 3)","CurrentParent":"drums","Progress":12,"Error":null,"WorkerDetailJobId":"7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b","Parents":[],"RequestedAt":"2026-11-14T12:06:00Z","UpdatedAt":"2026-11-14T12:08:00Z"}');
         """;
 
-    private static async Task<Track> SaveAndReloadAsync(SqliteTestDatabase db, Track track)
-    {
-        await db.SeedAsync(track);
-        await using var read = db.NewContext();
-        return (await new TrackRepository(read).FindAsync(track.Id, Ct))!;
-    }
 }
