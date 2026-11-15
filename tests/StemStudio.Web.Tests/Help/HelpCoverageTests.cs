@@ -158,6 +158,20 @@ public sealed partial class HelpCoverageTests : PageTestContext
     public void ReferenceQueries_ReturnTheExpectedTopicFirst(string query, string expected) =>
         new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 
+    /// <summary>The feature 006/007/008 reference queries of the E2E help spec (e2e/support/help.ts).</summary>
+    [Theory]
+    [InlineData("save to library", "export-dialog")]
+    [InlineData("export range", "export-range")]
+    [InlineData("karaoke", "karaoke")]
+    [InlineData("lyrics offset", "karaoke-offset")]
+    [InlineData("lrclib", "lyrics-sources")]
+    [InlineData("align lyrics", "lyrics-align")]
+    [InlineData("sheet music", "sheet-music")]
+    [InlineData("drum notation", "sheet-music-drums")]
+    [InlineData("grand staff", "sheet-music-piano")]
+    public void FeatureReferenceQueries_ReturnTheExpectedTopicFirst(string query, string expected) =>
+        new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
+
     [Fact]
     public async Task TourTargets_RenderOnTheirRoute_AtEachOfTheirLevels()
     {
