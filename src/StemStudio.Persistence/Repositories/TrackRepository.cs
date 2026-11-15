@@ -38,6 +38,13 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Track>> ListLookupActiveAsync(CancellationToken cancellationToken) =>
+        await context.Tracks
+            .Where(track => track.Metadata.Status == MetadataStatus.Pending || track.Metadata.Status == MetadataStatus.Searching)
+            .OrderBy(track => track.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Track>> ListOrphanedAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken) =>
         await context.Tracks
             .Where(track => track.WorkerJobId == null && track.Status == TrackStatus.Queued && track.UpdatedAt < updatedBeforeUtc)
@@ -61,8 +68,20 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
     public async Task RemoveWithMixesAsync(Track track, CancellationToken cancellationToken)
     {
         context.Mixes.RemoveRange(await context.Mixes.Where(mix => mix.TrackId == track.Id).ToListAsync(cancellationToken));
+        await RemoveOrphanedArtistAsync(track, cancellationToken);
         context.Tracks.Remove(track);
         await UnitOfWork.SaveAsync(context, cancellationToken);
+    }
+
+    private async Task RemoveOrphanedArtistAsync(Track track, CancellationToken cancellationToken)
+    {
+        if (track.ArtistId is not { } artistId
+            || await context.Tracks.AnyAsync(other => other.ArtistId == artistId && other.Id != track.Id, cancellationToken))
+        {
+            return;
+        }
+
+        context.Artists.RemoveRange(await context.Artists.Where(artist => artist.Mbid == artistId).ToListAsync(cancellationToken));
     }
 
     /// <inheritdoc />

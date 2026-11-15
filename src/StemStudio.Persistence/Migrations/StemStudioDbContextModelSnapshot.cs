@@ -18,6 +18,91 @@ namespace StemStudio.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
+            modelBuilder.Entity("StemStudio.Domain.Artists.Artist", b =>
+                {
+                    b.Property<Guid>("Mbid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BeginYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("EndYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WikidataId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.PrimitiveCollection<string>("_genres")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Genres");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Summary", "StemStudio.Domain.Artists.Artist.Summary#WikipediaSummary", b1 =>
+                        {
+                            b1.Property<string>("Extract")
+                                .IsRequired();
+
+                            b1.Property<string>("HistoryUrl")
+                                .IsRequired();
+
+                            b1.Property<string>("Language")
+                                .IsRequired();
+
+                            b1.Property<string>("PageUrl")
+                                .IsRequired();
+
+                            b1.Property<string>("RevisionId");
+
+                            b1.Property<string>("Title")
+                                .IsRequired();
+
+                            b1
+                                .ToJson("Summary")
+                                .HasColumnType("TEXT");
+                        });
+
+                    b.ComplexCollection(typeof(List<Dictionary<string, object>>), "_members", "StemStudio.Domain.Artists.Artist._members#ArtistMember", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<int?>("FromYear");
+
+                            b1.Property<string>("Name")
+                                .IsRequired();
+
+                            b1.Property<int?>("ToYear");
+
+                            b1
+                                .ToJson("Members")
+                                .HasColumnType("TEXT");
+                        });
+
+                    b.HasKey("Mbid");
+
+                    b.ToTable("Artists", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Mixes.Mix", b =>
                 {
                     b.Property<Guid>("Id")
@@ -144,6 +229,15 @@ namespace StemStudio.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ArtistId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Artwork")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AutoArtwork")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -228,6 +322,48 @@ namespace StemStudio.Persistence.Migrations
                                 .HasColumnType("TEXT");
                         });
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Metadata", "StemStudio.Domain.Tracks.Track.Metadata#TrackMetadata", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Album");
+
+                            b1.Property<string>("ArtistName");
+
+                            b1.Property<bool>("CorrectedByUser");
+
+                            b1.Property<string>("Isrc");
+
+                            b1.Property<string>("LookupAlbum");
+
+                            b1.Property<string>("LookupArtist");
+
+                            b1.Property<double?>("LookupDurationSeconds");
+
+                            b1.Property<string>("LookupTitle");
+
+                            b1.Property<string>("MetadataJobId");
+
+                            b1.Property<string>("Reason");
+
+                            b1.Property<Guid?>("RecordingMbid");
+
+                            b1.Property<string>("RecordingTitle");
+
+                            b1.Property<Guid?>("ReleaseGroupMbid");
+
+                            b1.Property<string>("Status")
+                                .IsRequired();
+
+                            b1.Property<DateTime?>("UpdatedAt");
+
+                            b1.Property<int?>("Year");
+
+                            b1
+                                .ToJson("Metadata")
+                                .HasColumnType("TEXT");
+                        });
+
                     b.ComplexCollection(typeof(List<Dictionary<string, object>>), "_stems", "StemStudio.Domain.Tracks.Track._stems#Stem", b1 =>
                         {
                             b1.IsRequired();
@@ -244,6 +380,8 @@ namespace StemStudio.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ArtistId");
+
                     b.HasIndex("Key")
                         .IsUnique();
 
@@ -259,6 +397,14 @@ namespace StemStudio.Persistence.Migrations
                         .HasForeignKey("TrackId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Tracks.Track", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Artists.Artist", null)
+                        .WithMany()
+                        .HasForeignKey("ArtistId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

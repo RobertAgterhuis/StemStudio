@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using StemStudio.Domain.Artists;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Configurations;
 
-/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase and device as JSON columns.</summary>
+/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted.</summary>
 public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
 {
     /// <inheritdoc />
@@ -22,6 +23,19 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         builder.HasIndex(track => track.UpdatedAt);
+        ConfigureArtworkAndMetadata(builder);
+    }
+
+    private static void ConfigureArtworkAndMetadata(EntityTypeBuilder<Track> builder)
+    {
+        builder.Property(track => track.Artwork).HasConversion(TrackArtworkJson.Converter);
+        builder.Property(track => track.AutoArtwork).HasConversion(TrackArtworkJson.Converter);
+        builder.ComplexProperty(track => track.Metadata, metadata =>
+        {
+            metadata.ToJson();
+            metadata.Property(value => value.Status).HasConversion<string>();
+        });
+        builder.HasOne<Artist>().WithMany().HasForeignKey(track => track.ArtistId).OnDelete(DeleteBehavior.SetNull);
     }
 
     private static void ConfigureKeyAndEnums(EntityTypeBuilder<Track> builder)
