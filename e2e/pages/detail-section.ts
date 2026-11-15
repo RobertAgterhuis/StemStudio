@@ -62,6 +62,16 @@ export class DetailSection {
     return this.page.getByTestId('track-delete-blocked');
   }
 
+  /** Device of the detail phase inside `detail-section` (1.2.0; same rules as `track-device`). */
+  get device(): Locator {
+    return this.section.getByTestId('detail-device');
+  }
+
+  /** Fallback notice of the detail phase; exists only when `track.detail.device.cpuFallback`. */
+  get deviceFallback(): Locator {
+    return this.section.getByTestId('detail-device-fallback');
+  }
+
   /** Outcome of one parent (`data-outcome` = kind, text = user text). */
   outcome(parent: ParentStemName): Locator {
     return this.page.getByTestId(`detail-outcome-${parent}`);

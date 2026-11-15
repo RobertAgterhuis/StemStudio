@@ -8,7 +8,8 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --grep-invert \"@real|@restart|@worker-restart\"",
+    "test": "playwright test --grep-invert \"@real|@restart|@worker-restart|@gpu\"",
+    "test:gpu": "playwright test --grep @gpu",
     "test:real": "playwright test --grep @real",
     "test:restart": "playwright test --grep @restart",
     "test:detail": "playwright test --grep @detail --grep-invert @worker-restart",

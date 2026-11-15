@@ -106,7 +106,7 @@ in the execution plan.
 - [ ] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
 - [ ] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
 - [ ] T032 [US1] [frontend] Implement `src/StemStudio.Web/Components/Shared/DeviceBadge.razor` and use it in `TrackDetail.razor` and `DetailSection.razor` to pass T031
-- [ ] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
+- [x] T033 [US1] [qa] Author `e2e/tests/gpu.spec.ts` "device on the track page" (`@gpu`, fake stack with `STEMSTUDIO_FAKE_DEVICE=gpu`): `track-device` and `detail-device` have `data-device="gpu"` and text "GPU (Fake GPU)"; on the default fake stack the existing suite sees `data-device="cpu"` (one assertion added to the main-flow spec)
 
 **Checkpoint**: HO:us1.
 
