@@ -9,19 +9,11 @@
  * @packageDocumentation
  */
 import type { BrowserContextOptions, Page } from '@playwright/test';
+// The stored choice types are the web-interop module's own (one definition, no copy).
+import type { DensityPreference, Level, MotionPreference, ThemePreference } from '../../src/web-interop/src/types';
 import { webBaseUrl } from './env';
 
-/** Experience level (ui-test-ids 1.3.0 `app-shell[data-level]`). */
-export type Level = 'beginner' | 'advanced' | 'expert';
-
-/** Stored theme choice; `system` follows `prefers-color-scheme`. */
-export type ThemePreference = 'system' | 'light' | 'dark';
-
-/** Stored density choice; `auto` = compact at Expert, comfortable otherwise. */
-export type DensityPreference = 'auto' | 'comfortable' | 'compact';
-
-/** Stored motion choice; `system` follows `prefers-reduced-motion`. */
-export type MotionPreference = 'system' | 'reduced';
+export type { DensityPreference, Level, MotionPreference, ThemePreference };
 
 /** Ids of the five tours of design-spec.md 7. */
 export type TourId = 'import-basics' | 'track-basics' | 'mixer-basics' | 'mixer-advanced' | 'expert-keyboard';
