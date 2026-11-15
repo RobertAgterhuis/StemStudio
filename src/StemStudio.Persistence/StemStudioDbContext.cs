@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using StemStudio.Domain.Artists;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Generations;
 using StemStudio.Domain.Mixes;
+using StemStudio.Domain.Styles;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Configurations;
 
@@ -25,6 +27,12 @@ public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> op
 
     /// <summary>Library items (feature 007).</summary>
     public DbSet<Asset> Assets => Set<Asset>();
+
+    /// <summary>The style library (feature 009).</summary>
+    public DbSet<Style> Styles => Set<Style>();
+
+    /// <summary>Generations: restyles (feature 009), songs and voice conversions (010).</summary>
+    public DbSet<Generation> Generations => Set<Generation>();
 
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

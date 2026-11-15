@@ -172,6 +172,79 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Assets", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Generations.Generation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Device")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GeneratorJobId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Restyle")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SourceTrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Stage")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("_seeds")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Seeds");
+
+                    b.Property<string>("_takes")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Takes");
+
+                    b.Property<string>("_warnings")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Warnings");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SourceTrackId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Generations", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>
                 {
                     b.Property<Guid>("TrackId")
@@ -333,6 +406,82 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Mixes", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Styles.Style", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DefaultStrength")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GenreFamily")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PresetKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubGenre")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TempoFeel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VocalHandling")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("_instrumentation")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Instrumentation");
+
+                    b.Property<string>("_moods")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Moods");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Styles", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Tracks.Track", b =>
                 {
                     b.Property<Guid>("Id")
@@ -380,6 +529,9 @@ namespace StemStudio.Persistence.Migrations
 
                     b.Property<string>("Model")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Progress")

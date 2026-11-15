@@ -18,6 +18,8 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IMixRepository, MixRepository>();
         services.AddScoped<IArtistRepository, ArtistRepository>();
         services.AddScoped<IAssetRepository, AssetRepository>();
+        services.AddScoped<IStyleRepository, StyleRepository>();
+        services.AddScoped<IGenerationRepository, GenerationRepository>();
         return services;
     }
 }
