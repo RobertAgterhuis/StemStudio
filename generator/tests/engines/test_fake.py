@@ -25,6 +25,7 @@ from stemstudio_generator.ports import (
     GpuRequiredError,
     MusicEngine,
 )
+from stemstudio_generator.schemas import RestyleParams
 
 from ..signals import stereo, tone, write
 from .fakes import Recorder, fake_settings, out_dir, restyle_params, use
@@ -203,3 +204,40 @@ def test_fake_nvml_reports_too_little_memory_only_in_busy_mode() -> None:
     assert fake_free_memory_mib("ready") == FAKE_FREE_MEMORY_MIB
     assert fake_free_memory_mib("oom") == FAKE_FREE_MEMORY_MIB > 13_926
     assert FAKE_FREE_MEMORY_MIB < FAKE_TOTAL_MEMORY_MIB
+
+
+def test_fake_in_place_keeps_the_samples_outside_the_range(tmp_path: Path) -> None:
+    source = tmp_path / "source.wav"
+    rate = 48_000
+    original = np.column_stack([np.linspace(-0.5, 0.5, 30 * rate)] * 2).astype(np.float32)
+    sf.write(source, original, rate, subtype="FLOAT")
+    engine = FakeMusicEngine(fake_settings(step=0.0), sleep=lambda _: None)
+    engine.load(use(), lambda fraction, stage: None)
+    params = RestyleParams(
+        caption="c", audio_cover_strength=0.5, seeds=[3], mode="inPlace",
+        range_start_seconds=10.0, range_end_seconds=20.0,
+    )  # fmt: skip
+    request = EngineRestyle(source, params, out_dir(tmp_path, "out"))
+
+    [take] = engine.restyle(request, lambda fraction, stage: None)
+
+    data, take_rate = sf.read(take.path, dtype="float32", always_2d=True)
+    assert (take_rate, data.shape) == (rate, original.shape)
+    outside = np.r_[0 : 10 * rate, 20 * rate : 30 * rate]
+    assert np.allclose(data[outside], original[outside], atol=1e-6)
+    assert not np.allclose(data[10 * rate : 20 * rate], original[10 * rate : 20 * rate], atol=1e-3)
+
+
+def test_fake_in_place_resamples_a_44k_source_to_48k(tmp_path: Path) -> None:
+    source = tmp_path / "source.wav"
+    sf.write(source, np.zeros((441_000, 2), np.float32), 44_100, subtype="FLOAT")
+    engine = FakeMusicEngine(fake_settings(step=0.0), sleep=lambda _: None)
+    engine.load(use(), lambda fraction, stage: None)
+    params = RestyleParams(
+        caption="c", audio_cover_strength=0.5, seeds=[3], mode="inPlace",
+        range_start_seconds=0.0, range_end_seconds=10.0,
+    )  # fmt: skip
+
+    [take] = engine.restyle(EngineRestyle(source, params, tmp_path), lambda fraction, stage: None)
+
+    assert sf.info(take.path).frames == 480_000

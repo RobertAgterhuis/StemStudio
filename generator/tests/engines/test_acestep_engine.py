@@ -356,3 +356,22 @@ def test_import_acestep_reads_the_real_module_names(monkeypatch: pytest.MonkeyPa
 
     assert (api.handler, api.params, api.config, api.generate, api.llm) == ("H", "P", "C", "G", "L")
     assert api.torch is modules["torch"]
+
+
+def test_in_place_maps_to_a_repaint_of_the_range_over_the_whole_source(tmp_path: Path) -> None:
+    recorder = Recorder()
+    engine = _engine(tmp_path, recorder)
+    engine.load(_use(), lambda fraction, stage: None)
+    params = RESTYLE.model_copy(
+        update={"mode": "inPlace", "range_start_seconds": 15.0, "range_end_seconds": 30.0}
+    )
+    request = _request(tmp_path, params)
+
+    engine.restyle(request, lambda fraction, stage: None)
+
+    values = recorder.calls[0][0].values
+    assert values["task_type"] == "repaint"
+    assert values["src_audio"] == str(request.source)
+    assert (values["repainting_start"], values["repainting_end"]) == (15.0, 30.0)
+    assert values["chunk_mask_mode"] == "explicit"
+    assert values["audio_cover_strength"] == 0.55

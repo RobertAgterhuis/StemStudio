@@ -170,3 +170,17 @@ def test_a_restart_fails_running_jobs_and_resumes_queued_ones(tmp_path: Path) ->
 
         assert stack.get(running)["error"] == {"code": "interrupted", "message": INTERRUPTED_TEXT}
         assert stack.get(queued)["status"] == "completed"
+
+
+def test_an_in_place_restyle_returns_takes_of_the_whole_source_length(
+    stack: Stack, tmp_path: Path
+) -> None:
+    generation_id = _create(
+        stack, tmp_path, mode="inPlace", rangeStartSeconds=10.0, rangeEndSeconds=25.0
+    )
+
+    stack.run_all()
+
+    job = stack.get(generation_id)
+    assert job["status"] == "completed"
+    assert job["takes"][0]["durationSeconds"] == pytest.approx(30.0)
