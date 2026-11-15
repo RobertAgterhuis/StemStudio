@@ -21,8 +21,16 @@ public static class TrackMapper
             Model = track.Model,
             BeatGrid = ToDto(track.BeatGrid),
             Detail = DetailMapper.ToDto(track.Id, track.DetailPhase),
+            Device = ToDto(track.Device),
         };
     }
+
+    /// <summary>Maps a job device record (feature 003).</summary>
+    /// <param name="device">The record, or null.</param>
+    /// <returns>The DTO, or null.</returns>
+    public static JobDeviceDto? ToDto(JobDevice? device) => device is null
+        ? null
+        : new JobDeviceDto(Enum.Parse<ProcessingDeviceKindDto>(device.Kind.ToString()), device.Name, device.CpuFallback, device.FallbackReason);
 
     /// <summary>A stored UTC timestamp as an offset-0 <see cref="DateTimeOffset"/>.</summary>
     /// <param name="value">UTC time.</param>
