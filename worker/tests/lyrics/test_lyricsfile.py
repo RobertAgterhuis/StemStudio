@@ -1,5 +1,7 @@
 """``lyricsfile`` YAML parsing (research F-03, R-03): word starts -> word ends."""
 
+import time
+
 import pytest
 
 from stemstudio_worker.lyrics.lyricsfile import parse_lyricsfile as parse
@@ -172,6 +174,28 @@ class TestUnusable:
     def test_malformed_input_is_unusable(self, text: str) -> None:
         with pytest.raises(LyricsUnusableError):
             parse_lyricsfile(text)
+
+    def test_an_alias_is_unusable(self) -> None:
+        text = (
+            "word: &w {text: a, start_ms: 0}\n"
+            "lines:\n  - {text: a, start_ms: 0, end_ms: 9, words: [*w]}"
+        )
+        with pytest.raises(LyricsUnusableError):
+            parse_lyricsfile(text)
+
+    def test_an_anchor_without_alias_is_unusable(self) -> None:
+        text = "lines:\n  - &l {text: a, start_ms: 0, end_ms: 9, words: [{text: a, start_ms: 0}]}"
+        with pytest.raises(LyricsUnusableError):
+            parse_lyricsfile(text)
+
+    def test_an_alias_bomb_fails_fast(self) -> None:
+        levels = ["l0: &l0 [{text: a, start_ms: 0}, {text: a, start_ms: 0}]"]
+        levels += [f"l{i}: &l{i} [{', '.join([f'*l{i - 1}'] * 9)}]" for i in range(1, 10)]
+        text = "\n".join(levels) + "\nlines:\n  - {text: a, start_ms: 0, end_ms: 9, words: *l9}"
+        started = time.perf_counter()
+        with pytest.raises(LyricsUnusableError):
+            parse_lyricsfile(text)
+        assert time.perf_counter() - started < 1.0
 
     def test_more_than_400_lines_is_unusable(self) -> None:
         line = "  - {text: a, start_ms: 0, end_ms: 9, words: [{text: a, start_ms: 0}]}\n"

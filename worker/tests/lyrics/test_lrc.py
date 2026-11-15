@@ -87,6 +87,17 @@ class TestOffset:
     def test_offset_never_goes_below_zero(self) -> None:
         assert parse_lrc("[offset:+5000]\n[00:01.00]Fake") == [LrcLine(0, "Fake")]
 
+    def test_a_very_long_offset_is_ignored(self) -> None:
+        text = "[offset:+" + "9" * 5000 + "]\n[00:01.00]Fake"
+        assert parse_lrc(text) == [LrcLine(1000, "Fake")]
+
+    def test_a_large_negative_offset_is_clamped_to_ten_minutes(self) -> None:
+        assert parse_lrc("[offset:-9999999]\n[00:01.00]Fake") == [LrcLine(601_000, "Fake")]
+
+    def test_a_large_positive_offset_is_clamped_to_ten_minutes(self) -> None:
+        text = "[offset:+9999999]\n[10:01.00]Fake\n[20:00.00]Late"
+        assert parse_lrc(text) == [LrcLine(1000, "Fake"), LrcLine(600_000, "Late")]
+
     def test_an_unreadable_offset_is_ignored(self) -> None:
         assert parse_lrc("[offset:soon]\n[00:01.00]Fake") == [LrcLine(1000, "Fake")]
 
