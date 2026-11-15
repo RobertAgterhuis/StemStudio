@@ -164,7 +164,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [x] T058 [P] [US2] [audio-engine] Failing tests `src/audio-engine/tests/groups.test.ts`: `loadTrack` with groups creates hidden channels without fetching; first `setExpanded(true)` fetches/decodes the group once, starts its sources with `start(t, offsetAt(t))` on the shared anchor (also inside a running loop), swaps gates at one time with <= 10 ms ramps; collapse is immediate; play/seek/stop/loop include detail sources; `setChannel`/`attachMeter` accept `<parent>.<detail>`; unknown ids and parents without group throw; failed group load rejects and keeps the parent audible (FR-012..FR-014, SC-004)
 - [x] T059 [US2] [audio-engine] Implement `src/audio-engine/src/groups.ts`, extend `engine.ts`, `transport.ts`, `meters.ts`, `stem-loader.ts` to pass T058
 - [x] T060 [P] [US2] [audio-engine] Failing test: after 50 loop repetitions with a group expanded mid-playback all `start(when, offset)` pairs of audible channels map to the same transport position within 1 ms; v1 suite still green
-- [ ] T061 [US2] [audio-engine] Fix/refine to pass T060; `npm run test:coverage` >= 90 %
+- [x] T061 [US2] [audio-engine] Fix/refine to pass T060; `npm run test:coverage` >= 90 %
 
 ### frontend (tests first)
 
