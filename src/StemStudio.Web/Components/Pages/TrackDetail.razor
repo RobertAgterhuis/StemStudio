@@ -15,6 +15,7 @@ else
     <SectionContent SectionName="@ContextBar.JourneySection"><JourneyRail Stage="JourneyStages.ForTrack(Track.Status)" /></SectionContent>
     <div class="ss-page ss-track">
         <header class="ss-track-head">
+            <TrackArtwork Track="Track" TestId="track-cover" HelpId="artwork" />
             <div class="ss-track-names">
                 <h1 data-testid="track-title">@Track.Title</h1>
                 @if (Track.Artist is not null)

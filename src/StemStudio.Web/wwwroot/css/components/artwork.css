@@ -1,0 +1,74 @@
+/* Track pictures, placeholder, band info panel and picture actions (feature 005; design-spec.md 2, 4.3-4.5).
+   Colours only from tokens; the placeholder takes a stem colour so pictures stay "colour belongs to the music". */
+
+.ss-art {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-sunken);
+}
+
+.ss-art-cover {
+  width: clamp(5rem, 18vw, 9rem);
+  height: auto;
+}
+
+.ss-art-thumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--ss-radius-control);
+}
+
+.ss-console-head .ss-art-cover {
+  width: 3.5rem;
+}
+
+.ss-art-placeholder {
+  --ss-art-tone: var(--ss-color-muted);
+  border: 2px solid var(--ss-art-tone);
+  color: var(--ss-art-tone);
+  font-weight: var(--ss-type-title-weight);
+  font-stretch: var(--ss-type-title-width);
+}
+
+.ss-art-cover.ss-art-placeholder {
+  font-size: var(--ss-type-title-size);
+}
+
+.ss-art-thumb.ss-art-placeholder {
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-art-tone-vocals { --ss-art-tone: var(--ss-stem-vocals); }
+.ss-art-tone-drums { --ss-art-tone: var(--ss-stem-drums); }
+.ss-art-tone-bass { --ss-art-tone: var(--ss-stem-bass); }
+.ss-art-tone-guitar { --ss-art-tone: var(--ss-stem-guitar); }
+.ss-art-tone-piano { --ss-art-tone: var(--ss-stem-piano); }
+.ss-art-tone-other { --ss-art-tone: var(--ss-stem-other); }
+
+.ss-cell-thumb {
+  width: 3rem;
+}
+
+.ss-track-head .ss-track-names {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.ss-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  margin-top: var(--ss-space-2);
+}
+
+.ss-meta-status {
+  color: var(--ss-color-muted);
+  font-size: var(--ss-type-small-size);
+}
+

@@ -3,7 +3,7 @@
 <table class="@($"ss-table ss-track-table{(Expert ? " ss-table-compact" : null)}")">
     <thead>
         <tr>
-            <th><span class="ss-sr-only">Stems</span></th><th>Title</th><th>Artist</th><th>Status</th><th>Duration</th>
+            <th><span class="ss-sr-only">Stems</span></th><th><span class="ss-sr-only">Picture</span></th><th>Title</th><th>Artist</th><th>Status</th><th>Duration</th>
             @if (Expert)
             {
                 <th>BPM</th><th>Model</th>
@@ -16,6 +16,7 @@
         {
             <tr data-testid="@($"track-row-{track.Id}")">
                 <td class="ss-cell-ribbon"><StemRibbon Stems="StemNamesOf(track)" TestId="@($"track-ribbon-{track.Id}")" /></td>
+                <td class="ss-cell-thumb"><TrackArtwork Track="track" Variant="ArtworkVariant.Thumb" TestId="@($"track-thumb-{track.Id}")" /></td>
                 <td class="ss-cell-title"><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a></td>
                 <td class="ss-muted">@track.Artist</td>
                 <td>

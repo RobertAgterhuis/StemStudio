@@ -1,9 +1,9 @@
 using Bunit;
-using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Components.Shared;
 using StemStudio.Web.Services;
 using StemStudio.Web.Tests.Fakes;
+using ErrorEventArgs = Microsoft.AspNetCore.Components.Web.ErrorEventArgs;
 
 namespace StemStudio.Web.Tests.Artwork;
 
