@@ -22,7 +22,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from stemstudio_worker.analysis import create_beat_analyzer
-from stemstudio_worker.api import detail_routes, metadata_routes
+from stemstudio_worker.api import artwork_routes, detail_routes, metadata_routes
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
@@ -38,6 +38,8 @@ from stemstudio_worker.separation import create_separator
 _LOG = logging.getLogger(__name__)
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
+
+_ROUTERS = (router, detail_routes.router, metadata_routes.router, artwork_routes.router)
 
 METADATA_PACKAGE = "stemstudio_worker.metadata"
 """Package of the feature 005 adapters (audio-ingest): ``create_image_normalizer(settings)``
@@ -85,9 +87,8 @@ def create_app(
     app = FastAPI(title="StemStudio Worker API", version=CONTRACT_VERSION, lifespan=lifespan)
     app.state.settings = resolved
     install_problem_handlers(app)
-    app.include_router(router)
-    app.include_router(detail_routes.router)
-    app.include_router(metadata_routes.router)
+    for routes in _ROUTERS:
+        app.include_router(routes)
     return app
 
 

@@ -91,3 +91,12 @@ class DataPaths:
     def metadata_artwork(self, job_id: str) -> Path:
         """Cover Art Archive picture (``cover.jpg``, ``thumb.jpg``) of a metadata job."""
         return self.metadata_job_dir(job_id) / "artwork"
+
+    @property
+    def user_artwork_root(self) -> Path:
+        """Directory of the normalised user pictures (``POST /v1/artwork``, kept 1 h; 005)."""
+        return self.root / "artwork"
+
+    def user_artwork(self, artwork_id: str) -> Path:
+        """One normalised user picture (``cover.jpg``, ``thumb.jpg``, ``info.json``)."""
+        return self.user_artwork_root / artwork_id

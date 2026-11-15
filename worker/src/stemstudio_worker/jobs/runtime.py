@@ -19,6 +19,7 @@ from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.jobs.sweeper import SWEEP_INTERVAL_SECONDS, Sweeper
+from stemstudio_worker.jobs.user_artwork import UserArtworkStore
 from stemstudio_worker.ports import ImageNormalizer, MetadataLookup, PipelineAdapters
 from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
@@ -62,23 +63,28 @@ class OnlineParts:
 
 @dataclass(frozen=True, slots=True)
 class Lanes:
-    """The light lanes beside the separation scheduler and the sweep timer.
+    """The light lanes beside the separation scheduler, their stores and the sweep timer.
 
     Attributes:
         metadata: The metadata job lane (feature 005).
+        artwork: Normalised user pictures, kept for one hour (feature 005).
+        normalizer: The picture normaliser of ``POST /v1/artwork``; None when unavailable.
         sweeper: Hourly removal of expired job files.
     """
 
     metadata: MetadataLane
+    artwork: UserArtworkStore
+    normalizer: ImageNormalizer | None
     sweeper: Sweeper
 
     @classmethod
     def start(cls, paths: DataPaths, online: OnlineParts, clock: Clock) -> "Lanes":
         """Start the metadata lane (re-running unfinished jobs) and the sweep timer."""
         metadata = MetadataLane.start(paths, online.lookup or DisabledLookup(), clock)
-        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, [metadata.sweep])
+        artwork = UserArtworkStore(paths, clock)
+        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, [metadata.sweep, artwork.sweep])
         sweeper.start()
-        return cls(metadata, sweeper)
+        return cls(metadata, artwork, online.normalizer, sweeper)
 
     def stop(self, timeout: float) -> None:
         """Stop the sweep timer and the lane threads."""

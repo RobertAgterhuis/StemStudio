@@ -146,6 +146,5 @@ def _copy(source: Path, target: Path, info: ArtworkInfo) -> bool:
     if not all(path.is_file() for path in files):
         return False
     images = ArtworkImages(files[0].read_bytes(), files[1].read_bytes(), info.sha256)
-    write_artwork(target, images)
-    (target / _INFO).write_text(info.model_dump_json(by_alias=True), encoding="utf-8")
+    write_artwork(target, images, {_INFO: info.model_dump_json(by_alias=True)})
     return True

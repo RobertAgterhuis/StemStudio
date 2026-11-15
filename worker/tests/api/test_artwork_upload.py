@@ -1,4 +1,4 @@
-"""Tests of ``POST /v1/artwork`` and ``GET /v1/artwork/{artworkId}/{variant}`` (005 T044, FR-013)."""
+"""Tests of ``POST /v1/artwork`` and ``GET /v1/artwork/{id}/{variant}`` (005 T044, FR-013)."""
 
 import hashlib
 import sys
@@ -62,7 +62,7 @@ def test_the_normalised_variants_are_served(art_api: Api, variant: str, content:
 
 
 @pytest.mark.parametrize(
-    ("error", "status", "title"),
+    "case",
     [
         (NotAnImageError("The file could not be read as a picture."), 400, "Not an image"),
         (
@@ -74,8 +74,9 @@ def test_the_normalised_variants_are_served(art_api: Api, variant: str, content:
     ],
 )
 def test_normaliser_rejections_map_to_their_contract_status(
-    art_api: Api, normalizer: StaticNormalizer, error: Exception, status: int, title: str
+    art_api: Api, normalizer: StaticNormalizer, case: tuple[Exception, int, str]
 ) -> None:
+    error, status, title = case
     normalizer.error = error
 
     response = art_api.client.post(POST, files={"file": ("x.png", PICTURE, "image/png")})
