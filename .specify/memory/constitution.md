@@ -52,6 +52,11 @@
   3. the README and `docs/THIRD-PARTY-LICENSES.md` state that commercial use and redistributing
      images that contain these weights are not covered;
   4. weights whose licence explicitly forbids this use remain excluded.
+- **GPU vendor runtime exception** (owner decision 2026-11-15, ADR-011): the proprietary but free
+  NVIDIA CUDA runtime libraries (e.g. cuDNN, cuBLAS, NCCL as shipped in CUDA-enabled PyTorch or
+  onnxruntime wheels) MAY be used as a system dependency, like the GPU driver, only in the optional
+  GPU image variant. The default CPU image stays fully open source, and every feature MUST keep
+  working on the CPU.
 - DRM MUST never be circumvented. Spotify input is resolved to metadata via spotDL, and the audio
   comes from a matching public YouTube source.
 - The UI shows a notice that imports are for personal practice only and the user is responsible
@@ -106,4 +111,4 @@
 - Compliance is reviewed at every hand-off and by the `quality-gate` agent before the MVP is
   declared complete.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15
+**Version**: 1.2.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15
