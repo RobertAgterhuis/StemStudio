@@ -9,31 +9,12 @@ from stemstudio_worker.lyrics.normalize import MAX_INPUT_BYTES, MAX_WORDS_PER_LI
 from stemstudio_worker.ports import LyricsUnusableError
 from stemstudio_worker.schemas import MAX_LYRICS_LINES, MAX_WORD_MS, TimedLyrics
 
-# Shape of research F-03 with self-written text (no third-party lyrics in the repository).
-SONG = """version: '1.0'
-metadata:
-  title: Fake Song
-  artist: The Fixture Band
-  album: Synthetic Sessions
-  duration_ms: 262000
-  instrumental: false
-  language: en
-lines:
-  - text: Fake line one
-    start_ms: 10950
-    end_ms: 13200
-    words:
-      - {text: 'Fake ', start_ms: 10950}
-      - {text: 'line ', start_ms: 11400}
-      - {text: one, start_ms: 11900}
-  - text: La la la
-    start_ms: 14000
-    end_ms: 16000
-    words:
-      - {text: La, start_ms: 14000}
-      - {text: la, start_ms: 14500}
-      - {text: la, start_ms: 15000}
-"""
+from .records import LYRICSFILE
+
+# The F-03 shape of ``records.LYRICSFILE``, with trailing spaces in two words (stripped).
+SONG = LYRICSFILE.replace("{text: Fake,", "{text: 'Fake ',").replace(
+    "{text: line,", "{text: 'line ',"
+)
 
 
 META = DocumentMeta(source="lrclib", source_id="1000001", source_duration_seconds=262.0)

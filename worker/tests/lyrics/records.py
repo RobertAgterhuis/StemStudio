@@ -103,16 +103,16 @@ class FakeGetter:
         return reply
 
 
-@dataclass
 class FakeClock:
-    """Monotonic clock that advances only when the fake sleeper sleeps."""
+    """Monotonic clock for a ``RateLimiter``: time passes only through ``sleep``."""
 
-    now: float = 50.0
-    sleeps: list[float] = field(default_factory=list)
+    def __init__(self, start: float = 50.0) -> None:
+        self.now = start
+        self.sleeps: list[float] = []
 
     def __call__(self) -> float:
         return self.now
 
     def sleep(self, seconds: float) -> None:
-        self.sleeps.append(seconds)
         self.now += seconds
+        self.sleeps.append(seconds)
