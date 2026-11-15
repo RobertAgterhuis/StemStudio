@@ -93,6 +93,14 @@ class JobHandler(Protocol):
         """GPU needs of the job in order of preference."""
         ...
 
+    def prepare(self, job: Generation) -> None:
+        """CPU work before the GPU is requested (decode and check the inputs)."""
+        ...
+
+    def cleanup(self, job: Generation) -> None:
+        """Delete the job's inputs and scratch files (called whatever the outcome)."""
+        ...
+
     def execute(self, job: Generation, use: DeviceUse, on_progress: ProgressCallback) -> JobOutcome:
         """Run the step on the admitted device and return the takes."""
         ...
@@ -121,8 +129,7 @@ class JobRunner:
     def run(self, reporter: JobReporter) -> Generation:
         """Process the reporter's job to a terminal state and return it."""
         try:
-            run = _Run(self._handler(reporter.job), reporter)
-            reporter.complete(self._attempts(run))
+            self._process(self._handler(reporter.job), reporter)
         except Cancelled:
             reporter.cancelled()
         except GeneratorError as error:
@@ -137,6 +144,13 @@ class JobRunner:
         engines = {id(handler.engine): handler.engine for handler in self.handlers.values()}
         for engine in engines.values():
             engine.unload()
+
+    def _process(self, handler: JobHandler, reporter: JobReporter) -> None:
+        try:
+            handler.prepare(reporter.job)
+            reporter.complete(self._attempts(_Run(handler, reporter)))
+        finally:
+            handler.cleanup(reporter.job)
 
     def _handler(self, job: Generation) -> JobHandler:
         handler = self.handlers.get(job.kind)

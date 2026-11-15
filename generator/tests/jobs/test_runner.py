@@ -281,3 +281,25 @@ def test_a_non_oom_failure_of_the_retry_keeps_its_code(tmp_path: Path) -> None:
 
     assert job.error is not None
     assert job.error.code == "invalidInput"
+
+
+def test_prepare_runs_before_the_gate_and_cleanup_always(tmp_path: Path) -> None:
+    handler = FakeHandler(steps=[raising(InvalidInputError("bad"))])
+
+    _, _, gate = _run(tmp_path, handler)
+
+    assert handler.events == ["prepare", "cleanup"]
+    assert gate.events == ["acquire", "release"]
+
+
+def test_a_failing_prepare_never_requests_the_gpu(tmp_path: Path) -> None:
+    class BadInputs(FakeHandler):
+        def prepare(self, job: Generation) -> None:
+            raise InvalidInputError("An uploaded file could not be read as WAV or FLAC audio.")
+
+    handler = BadInputs()
+    job, _, gate = _run(tmp_path, handler)
+
+    assert job.error is not None
+    assert job.error.code == "invalidInput"
+    assert gate.requested == []

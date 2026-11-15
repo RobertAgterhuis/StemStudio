@@ -1,4 +1,4 @@
-"""Completed restyles, take audio with ranges, fault modes and restart (009 T032, FR-012, SC-006)."""
+"""Completed restyles, take audio, fault modes and restart (009 T032, FR-012, SC-006)."""
 
 from pathlib import Path
 from typing import Any
@@ -34,15 +34,15 @@ def test_a_range_restyle_completes_with_labelled_takes_of_the_range_length(
     stack.run_all()
 
     job = stack.get(generation_id)
-    assert job["status"] == "completed"
-    assert job["progress"] == 100
-    assert job["device"]["kind"] == "gpu"
-    assert [take["index"] for take in job["takes"]] == [1, 2]
-    assert [take["seed"] for take in job["takes"]] == [1, 2]
-    assert job["takes"][0]["durationSeconds"] == pytest.approx(15.0)
-    assert job["takes"][0]["model"]["id"] == "acestep-v15-turbo"
-    assert job["takes"][0]["vocal"] is None
-    assert job["warnings"] == []
+    assert (job["status"], job["progress"], job["device"]["kind"]) == ("completed", 100, "gpu")
+    assert [(take["index"], take["seed"]) for take in job["takes"]] == [(1, 1), (2, 2)]
+    first = job["takes"][0]
+    assert first["durationSeconds"] == pytest.approx(15.0)
+    assert (first["model"]["id"], first["vocal"], job["warnings"]) == (
+        "acestep-v15-turbo",
+        None,
+        [],
+    )
     assert [label.take_index for label in stack.writer.labels] == [1, 2]
     assert stack.writer.labels[0].generator.startswith("ACE-Step 1.5 (")
     assert stack.writer.labels[0].generation_id == generation_id
@@ -68,27 +68,39 @@ def test_clipping_stems_add_the_clipped_warning(stack: Stack, tmp_path: Path) ->
     assert stack.get(generation_id)["warnings"] == [CLIPPED_WARNING]
 
 
-def test_take_audio_is_flac_with_etag_and_byte_ranges(stack: Stack, tmp_path: Path) -> None:
+def _completed_take(stack: Stack, tmp_path: Path) -> tuple[str, dict[str, Any]]:
     generation_id = _create(stack, tmp_path)
     stack.run_all()
-    take = stack.get(generation_id)["takes"][0]
-    url = f"/v1/generations/{generation_id}/takes/1"
+    take: dict[str, Any] = stack.get(generation_id)["takes"][0]
+    return f"/v1/generations/{generation_id}/takes/1", take
+
+
+def test_take_audio_is_flac_with_etag(stack: Stack, tmp_path: Path) -> None:
+    url, take = _completed_take(stack, tmp_path)
 
     whole = stack.client.get(url)
-    part = stack.client.get(url, headers={"range": "bytes=0-9"})
-    outside = stack.client.get(url, headers={"range": f"bytes={take['bytes'] + 10}-"})
 
     assert whole.status_code == 200
     assert whole.headers["content-type"] == "audio/flac"
     assert whole.headers["etag"] == f'"{take["sha256"]}"'
     assert whole.headers["accept-ranges"] == "bytes"
     assert len(whole.content) == take["bytes"]
+    generation_id = url.split("/")[3]
+    assert sf.info(stack.composition.files.take(generation_id, 1)).samplerate == 48_000
+
+
+def test_take_audio_serves_single_byte_ranges(stack: Stack, tmp_path: Path) -> None:
+    url, take = _completed_take(stack, tmp_path)
+    whole = stack.client.get(url)
+
+    part = stack.client.get(url, headers={"range": "bytes=0-9"})
+    outside = stack.client.get(url, headers={"range": f"bytes={take['bytes'] + 10}-"})
+
     assert part.status_code == 206
     assert part.content == whole.content[:10]
     assert part.headers["content-range"] == f"bytes 0-9/{take['bytes']}"
     assert outside.status_code == 416
     assert outside.headers["content-range"] == f"bytes */{take['bytes']}"
-    assert sf.info(stack.composition.files.take(generation_id, 1)).samplerate == 48_000
 
 
 @pytest.mark.parametrize("index", ["2", "3", "0", "x"])

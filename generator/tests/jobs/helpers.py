@@ -133,9 +133,16 @@ class FakeHandler:
     steps: list[Step] = field(default_factory=lambda: [_complete])
     uses: list[DeviceUse] = field(default_factory=list)
     job_needs: tuple[GpuNeed, ...] = RESTYLE_NEEDS
+    events: list[str] = field(default_factory=list)
 
     def needs(self, job: Generation) -> Sequence[GpuNeed]:
         return self.job_needs
+
+    def prepare(self, job: Generation) -> None:
+        self.events.append("prepare")
+
+    def cleanup(self, job: Generation) -> None:
+        self.events.append("cleanup")
 
     def execute(self, job: Generation, use: DeviceUse, on_progress: ProgressCallback) -> JobOutcome:
         self.uses.append(use)
