@@ -5,8 +5,9 @@ import pytest
 
 from stemstudio_worker.detail.gating import relative_db
 from stemstudio_worker.detail.reassign import HOP, N_FFT, reassign, reassign_families
+from stemstudio_worker.schemas import DetailStemName, ParentStemName
 
-from .signals import noise, silence, tone
+from .signals import Audio, noise, silence, tone
 
 
 def test_stft_parameters_follow_research() -> None:
@@ -22,8 +23,8 @@ def test_single_parent_receives_the_whole_family() -> None:
 
 @pytest.mark.parametrize("count", [2, 3])
 def test_shares_sum_to_the_family(count: int) -> None:
-    parents = {name: noise(1.3, 0.1 * (i + 1), seed=i) for i, name in
-               enumerate(("guitar", "piano", "other")[:count])}  # fmt: skip
+    names: tuple[ParentStemName, ...] = ("guitar", "piano", "other")
+    parents = {name: noise(1.3, 0.1 * (i + 1), seed=i) for i, name in enumerate(names[:count])}
     family = noise(1.3, 0.25, seed=9)
     shares = reassign(family, parents)
     assert list(shares) == list(parents)
@@ -54,8 +55,10 @@ def test_short_input_is_handled() -> None:
 
 
 def test_reassign_families_maps_every_family_to_every_parent() -> None:
-    parents = {"guitar": noise(0.5, 0.2, 1), "other": noise(0.5, 0.1, 2)}
-    families = {"strings": noise(0.5, 0.2, 3), "brass": noise(0.5, 0.1, 4)}
+    parents: dict[ParentStemName, Audio] = {"guitar": noise(0.5, 0.2, 1)}
+    parents["other"] = noise(0.5, 0.1, 2)
+    families: dict[DetailStemName, Audio] = {"strings": noise(0.5, 0.2, 3)}
+    families["brass"] = noise(0.5, 0.1, 4)
     result = reassign_families(families, parents)
     assert list(result) == ["guitar", "other"]
     assert list(result["guitar"]) == ["strings", "brass"]
