@@ -138,8 +138,8 @@ on `E2E_BASE_URL` (default `http://localhost:8080`), API on `E2E_API_URL` (defau
 | `detail-split-further.spec.ts` (`@detail`, 002) | cancel the auto phase -> start it again from the track page -> completed -> the mixer offers expand (FR-009); delete and re-import a detail-separated source -> its detail phase completes from the worker cache within 5 s (FR-010, SC-007) |
 | `detail-mixes.spec.ts` (`@detail`, 002) | expand drums + mute snare -> save "No snare" -> reload -> load -> drums expanded, snare muted, other parents collapsed; duplicate keeps the detail settings; a mix created through the API in the 1.1.0 shape (no `expanded`/`detailChannels`) loads collapsed with its 001 settings (FR-015, SC-005) |
 | `detail-worker-restart.spec.ts` (`@detail @worker-restart`, 002) | `docker compose restart worker` while a detail phase runs -> `failed` "interrupted by restart" with Retry -> the standard stems still play -> Retry completes (FR-019, US3 AS3) |
-| `device.spec.ts` (`@device`, 003, default suite) | default CPU stack: the import page shows `worker-device` `data-device="cpu"` without `worker-device-reason`; a fresh import shows `track-device` and `detail-device` with `data-device="cpu"`, `data-fallback="false"` and no fallback notice (US2-1, US3-1, FR-006) |
-| `gpu.spec.ts` (`@gpu`, 003, own run) | fake GPU stack: `worker-device` `data-device="gpu"` "GPU (Fake GPU)" (US3-1); with `STEMSTUDIO_FAKE_DEVICE=gpu` `track-device` / `detail-device` `data-device="gpu"` "GPU (Fake GPU)" without a fallback (US1-1); with `gpu-oom` the job completes and `track-device-fallback` / `detail-device-fallback` contain "ran out of memory" (US2-3, SC-004) |
+| `device.spec.ts` (`@device`, 003, default suite) | default CPU stack: `GET /api/device` is reachable with `kind=cpu` and no reason, and the import page shows `worker-device` `data-device="cpu"` without `worker-device-reason`; a fresh import shows `track-device` and `detail-device` with `data-device="cpu"`, `data-fallback="false"` and no fallback notice (US2-1, US3-1, FR-006) |
+| `gpu.spec.ts` (`@gpu`, 003, own run) | fake GPU stack: `GET /api/device` and `worker-device` report `gpu` "GPU (Fake GPU)" without a reason, in both fake GPU modes (US3-1); with `STEMSTUDIO_FAKE_DEVICE=gpu` `track-device` / `detail-device` `data-device="gpu"` "GPU (Fake GPU)" without a fallback (US1-1); with `gpu-oom` the job completes and `track-device-fallback` / `detail-device-fallback` contain "ran out of memory" (US2-3, SC-004) |
 
 **(003) Device mode for `@gpu`.** The `@gpu` specs need a stack started with
 `STEMSTUDIO_SEPARATOR=fake`, `STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5` and
@@ -296,7 +296,7 @@ shared, documented inputs for the integration test, the E2E suite and manual thr
 | US2-1 default start unchanged on the CPU (FR-001, SC-002) | every 001/002 test unchanged; `worker/tests/api/test_device_fallback.py` (`STEMSTUDIO_DEVICE=cpu`: no probe, `CPU` without fallback); `scripts/check-cpu-image.*` (FR-008) | the whole default suite; `device.spec.ts` (`@device`, `data-device="cpu"`); quickstart G1, G2 |
 | US2-2 GPU option without a usable GPU -> CPU with a reason (FR-003) | `test_probe.py` (each reason text), `test_factory.py`, `test_device_fallback.py` (`/health` reason), `DeviceEndpointTests.cs` | quickstart G4 (CTO); `worker-device-reason` is not reachable with the fake device (the fake GPU is always usable) |
 | US2-3 out of GPU memory -> step retried once on the CPU, notice shown (FR-004, SC-004) | `test_runner.py` (torch and onnxruntime OOM, one CPU retry, non-OOM propagates), `test_fake.py` (`gpu-oom`), `test_device_fallback.py`; backend fallback-reason tests (T036); `DeviceBadgeTests.cs` (fallback) | `gpu.spec.ts` "fallback notice" (`@gpu @fake-gpu-oom`); quickstart G8, G9 |
-| US3-1 device shown before importing and per job (FR-006) | `DeviceEndpointTests.cs`, frontend import-page device tests (T042); `DeviceBadgeTests.cs` | `gpu.spec.ts` "worker device on the import page" (`@gpu`); `device.spec.ts` (CPU); quickstart G7 |
+| US3-1 device shown before importing and per job (FR-006) | `DeviceEndpointTests.cs`, frontend import-page device tests (T042); `DeviceBadgeTests.cs` | `gpu.spec.ts` "worker device on the import page" (`@gpu`) and "device on the track page" (`@fake-gpu`); `device.spec.ts` "the import page shows the CPU worker", "the track page shows the CPU for both jobs" (`@device`); quickstart G7 |
 | FR-005 one GPU step at a time | `test_runner.py` (lease, two threads) | quickstart G10 (CTO) |
 | FR-009 GPU compose override builds and starts | none (build) | `scripts/gpu-smoke.*`, quickstart G3 (CTO) |
 
@@ -346,6 +346,13 @@ npx playwright test --list
 npm run fixtures         # both generators
 npm test                 # all but @real, @restart, @worker-restart, @gpu; Chromium + Firefox, retries 0
 npm run test:gpu         # (003) only @gpu; stack with STEMSTUDIO_FAKE_DEVICE=gpu, then again with gpu-oom
+
+# (003) the two @gpu runs (from the repository root; the same variable drives stack and suite)
+export STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5
+STEMSTUDIO_FAKE_DEVICE=gpu docker compose up -d --build --wait
+(cd e2e && STEMSTUDIO_FAKE_DEVICE=gpu npm run test:gpu)
+STEMSTUDIO_FAKE_DEVICE=gpu-oom docker compose up -d --wait    # recreates the worker
+(cd e2e && STEMSTUDIO_FAKE_DEVICE=gpu-oom npm run test:gpu)
 npm run test:detail      # (002) only @detail, without @worker-restart
 npm run test:worker-restart  # (002) needs Docker on the host (docker compose restart worker)
 npm run test:restart     # after `docker compose restart api web` (T122)
