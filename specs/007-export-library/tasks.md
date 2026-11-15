@@ -65,11 +65,11 @@ in the execution plan.
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/render` may import only `ports`, `schemas`, `config`; `jobs` and `api` must not import `render` (only `main.py` composes it); `StemStudio.Domain.Rendering` must not reference `StemStudio.Api` or `StemStudio.Persistence`
-- [ ] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T008 [P] [devops] `docker-compose.yml`: worker gets `api-data:/library:ro` and `STEMSTUDIO_LIBRARY_DIR: /library` (comment: read-only, the API is the only writer); `scripts/dev.{ps1,sh}` set `STEMSTUDIO_LIBRARY_DIR` to the API data dir; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (FR-012, ADR-016 D5)
+- [x] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/render` may import only `ports`, `schemas`, `config`; `jobs` and `api` must not import `render` (only `main.py` composes it); `StemStudio.Domain.Rendering` must not reference `StemStudio.Api` or `StemStudio.Persistence`
+- [x] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
+- [x] T008 [P] [devops] `docker-compose.yml`: worker gets `api-data:/library:ro` and `STEMSTUDIO_LIBRARY_DIR: /library` (comment: read-only, the API is the only writer); `scripts/dev.{ps1,sh}` set `STEMSTUDIO_LIBRARY_DIR` to the API data dir; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (FR-012, ADR-016 D5)
 - [ ] T009 [devops] Write the mount check first and show it fail on the current compose file, then make it pass: `scripts/check-library-mount.{ps1,sh}` (worker `/health` reports `library.readable: true`; a write attempt as the worker user inside `/library` fails with "Read-only file system"); run it in the CI `e2e` job after the fake stack is up
-- [ ] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: render tested with generated FLAC fixtures, shared vectors (three consumers + browser check), fake stack exports are real files, traceability US1..US5 -> test files
+- [x] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: render tested with generated FLAC fixtures, shared vectors (three consumers + browser check), fake stack exports are real files, traceability US1..US5 -> test files
 
 ---
 
@@ -77,16 +77,16 @@ in the execution plan.
 
 ### audio-ingest (`render/`, tests first)
 
-- [ ] T011 [P] [audio-ingest] Failing tests `worker/tests/render/test_mixing.py`: `pan_matrix(p)` equals every `render-vectors.json` pan case to 1e-9; `mix_block(blocks, inputs, master)` applies gain, the stereo panner law and master gain (two-sample signals, data-model 3); pan 0 is the identity (FR-003, SC-003)
-- [ ] T012 [audio-ingest] Implement `render/mixing.py` to pass T011
-- [ ] T013 [P] [audio-ingest] Failing tests `worker/tests/render/test_paths.py`: the three allow-list patterns accept valid paths and reject upper-case ids, `..`, absolute paths, backslashes, unknown stems, other extensions; a symlink that escapes the root is rejected after resolving; a missing file raises `InputNotFoundError` naming the path; an unset/unreadable root raises `RenderError("The library is not available to the worker")` (data-model 2.1, ADR-016 D5)
-- [ ] T014 [audio-ingest] Implement `render/paths.py` (`LibraryReader` implementation) to pass T013
-- [ ] T015 [P] [audio-ingest] Failing tests `worker/tests/render/test_reader.py` (FLAC fixtures written in `tmp_path`): block-wise reading of N inputs of different length pads with silence to the longest; range start/end in samples (end clamped); mono duplicated to stereo; a 48 kHz input fails with "Unsupported sample rate 48000 Hz in <path>"; concatenated blocks equal a whole-file read (research.md E-04)
-- [ ] T016 [audio-ingest] Implement `render/reader.py` to pass T015
-- [ ] T017 [P] [audio-ingest] Failing tests `worker/tests/render/test_encoders.py`: FLAC/WAV 16/24 written with the requested subtype and `title`/`artist`/`comment` tags; MP3 192/256/320 CBR decodes (soundfile/libsndfile MP3 read) to the expected length +/- one MP3 frame; TPDF dither is deterministic per seed and absent when `dither=false`; a raw 16-bit input written without dither is sample-identical to the input (FR-004, SC-004)
-- [ ] T018 [audio-ingest] Implement `render/dither.py` and `render/encoders.py` to pass T017
-- [ ] T019 [P] [audio-ingest] Failing tests `worker/tests/render/test_executor.py`: two passes with progress 0..0.5 and 0.5..1; peak > 1.0 -> output peak -0.1 dBFS and `appliedGainDb` reported; peak <= 1.0 -> `appliedGainDb = 0`; all-silent render raises "Nothing to export: the selected channels are silent"; cancellation between blocks stops and removes the partial file; `RenderResult` fields (size, SHA-256, duration, peak) match the written file (FR-005, SC-005)
-- [ ] T020 [audio-ingest] Implement `render/executor.py` and `render/__init__.py::create_render_executor` to pass T019
+- [x] T011 [P] [audio-ingest] Failing tests `worker/tests/render/test_mixing.py`: `pan_matrix(p)` equals every `render-vectors.json` pan case to 1e-9; `mix_block(blocks, inputs, master)` applies gain, the stereo panner law and master gain (two-sample signals, data-model 3); pan 0 is the identity (FR-003, SC-003)
+- [x] T012 [audio-ingest] Implement `render/mixing.py` to pass T011
+- [x] T013 [P] [audio-ingest] Failing tests `worker/tests/render/test_paths.py`: the three allow-list patterns accept valid paths and reject upper-case ids, `..`, absolute paths, backslashes, unknown stems, other extensions; a symlink that escapes the root is rejected after resolving; a missing file raises `InputNotFoundError` naming the path; an unset/unreadable root raises `RenderError("The library is not available to the worker")` (data-model 2.1, ADR-016 D5)
+- [x] T014 [audio-ingest] Implement `render/paths.py` (`LibraryReader` implementation) to pass T013
+- [x] T015 [P] [audio-ingest] Failing tests `worker/tests/render/test_reader.py` (FLAC fixtures written in `tmp_path`): block-wise reading of N inputs of different length pads with silence to the longest; range start/end in samples (end clamped); mono duplicated to stereo; a 48 kHz input fails with "Unsupported sample rate 48000 Hz in <path>"; concatenated blocks equal a whole-file read (research.md E-04)
+- [x] T016 [audio-ingest] Implement `render/reader.py` to pass T015
+- [x] T017 [P] [audio-ingest] Failing tests `worker/tests/render/test_encoders.py`: FLAC/WAV 16/24 written with the requested subtype and `title`/`artist`/`comment` tags; MP3 192/256/320 CBR decodes (soundfile/libsndfile MP3 read) to the expected length +/- one MP3 frame; TPDF dither is deterministic per seed and absent when `dither=false`; a raw 16-bit input written without dither is sample-identical to the input (FR-004, SC-004)
+- [x] T018 [audio-ingest] Implement `render/dither.py` and `render/encoders.py` to pass T017
+- [x] T019 [P] [audio-ingest] Failing tests `worker/tests/render/test_executor.py`: two passes with progress 0..0.5 and 0.5..1; peak > 1.0 -> output peak -0.1 dBFS and `appliedGainDb` reported; peak <= 1.0 -> `appliedGainDb = 0`; all-silent render raises "Nothing to export: the selected channels are silent"; cancellation between blocks stops and removes the partial file; `RenderResult` fields (size, SHA-256, duration, peak) match the written file (FR-005, SC-005)
+- [x] T020 [audio-ingest] Implement `render/executor.py` and `render/__init__.py::create_render_executor` to pass T019
 
 ### stem-separation (`jobs/`, tests first)
 
@@ -138,9 +138,9 @@ in the execution plan.
 - [ ] T043 [US2] [backend] Implement anything missing in `ExportService`/mapping to pass T042
 - [ ] T044 [P] [US2] [frontend] Failing bUnit tests: `mixer-export` opens the dialog with `export-source-audible` selected and passes the mixer's current (unsaved) state; `export-source-selected` (Advanced) shows `export-channel-<id>` checkboxes prefilled with the currently audible channels; an empty selection disables `export-submit`; the request matches the selection; help id present (FR-002, FR-014)
 - [ ] T045 [US2] [frontend] Implement `Components/Export/ChannelPicker.razor` and the mixer integration to pass T044
-- [ ] T046 [P] [US2] [audio-engine] Vector consumer `src/audio-engine/tests/render-vectors.test.ts`: every gate case of `render-vectors.json` through the engine's real gate functions gives the expected per-channel gates/gains (test-only; it must pass against the existing engine; a failure is reported to the architect as a contract defect, no engine change in this feature) (FR-003, SC-003)
+- [x] T046 [P] [US2] [audio-engine] Vector consumer `src/audio-engine/tests/render-vectors.test.ts`: every gate case of `render-vectors.json` through the engine's real gate functions gives the expected per-channel gates/gains (test-only; it must pass against the existing engine; a failure is reported to the architect as a contract defect, no engine change in this feature) (FR-003, SC-003)
 - [ ] T047 [US2] [qa] Author `export.spec.ts` "what I hear": in the mixer set solo drums + bass, bass pan -40 %, master 70 %, export WAV 16, download and check with a fixture helper that the file's RMS per channel matches the value computed from the fake stems and the vector law (+/- 0.1 dB) and that muted/non-soloed stems are absent (FR-002, FR-003)
-- [ ] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
+- [x] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
 
 **Checkpoint**: HO:us2.
 
@@ -187,12 +187,12 @@ in the execution plan.
 
 ## Phase 8: Polish (inside the wave, per owner)
 
-- [ ] T064 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `render/`
+- [x] T064 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `render/`
 - [ ] T065 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs/`, `api/`
 - [ ] T066 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T067 [P] [frontend] Accessibility (status text not colour-only, keyboard use of dialogs, `<audio>` labels), help texts final, HO:polish
 - [ ] T068 [P] [qa] Traceability matrix (US1..US5, FR-001..FR-015 -> tests), HO:polish
-- [ ] T069 [P] [devops] Validate compose/CI (`docker compose config -q` for both compose variants, `actionlint`), HO:polish
+- [x] T069 [P] [devops] Validate compose/CI (`docker compose config -q` for both compose variants, `actionlint`), HO:polish
 - [ ] T070 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---

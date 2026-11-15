@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from repo_tree import write_file as _write
 
 import css_tokens_check
 from common import Severity
@@ -107,12 +108,6 @@ def test_razor_style_blocks_are_checked_as_css() -> None:
 def test_razor_text_and_code_outside_style_are_ignored() -> None:
     razor = '<p class="red">white</p>\n@code { private string c = "#fff"; }\n'
     assert find_razor_colours(razor) == []
-
-
-def _write(root: Path, rel: str, text: str) -> None:
-    path = root / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
 
 
 def _tree(root: Path) -> None:

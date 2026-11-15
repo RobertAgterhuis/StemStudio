@@ -66,10 +66,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/metadata` imports only `ports`, `schemas`, `config`; `ingest`, `jobs`, `api` do not import `metadata` (only `main.py` composes it); `StemStudio.Api/Metadata` and `/Artwork` do not reference `StemStudio.Web` (plan.md dependency direction)
-- [ ] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T008 [P] [devops] `docker-compose.yml`: worker env `STEMSTUDIO_ONLINE_LOOKUPS`, `STEMSTUDIO_CONTACT_URL`, `STEMSTUDIO_WIKIPEDIA_LANGUAGES`, `STEMSTUDIO_FAKE_ONLINE` (pass-through, documented defaults; no value baked in); `scripts/dev.*` likewise; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (combined 005+007 wave: the 007 documents contain 005's; one switch, done once in the 007 T008); CI asserts the worker image does not set `STEMSTUDIO_CONTACT_URL` (FR-010)
-- [ ] T009 [P] [qa] `tests/fixtures/metadata/`: `matching-cases.json` (>= 20 cases, research R-05; recorded CC0 MusicBrainz responses trimmed to the read fields), recorded Wikidata/Wikipedia/CAA JSON for the two reference artists (Wikipedia extracts replaced by self-written placeholder text so no CC BY-SA text is committed), README with provenance; update `docs/testing/TEST-STRATEGY.md` (traceability US1..US3)
+- [x] T006 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `worker/src/stemstudio_worker/metadata` imports only `ports`, `schemas`, `config`; `ingest`, `jobs`, `api` do not import `metadata` (only `main.py` composes it); `StemStudio.Api/Metadata` and `/Artwork` do not reference `StemStudio.Web` (plan.md dependency direction)
+- [x] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
+- [x] T008 [P] [devops] `docker-compose.yml`: worker env `STEMSTUDIO_ONLINE_LOOKUPS`, `STEMSTUDIO_CONTACT_URL`, `STEMSTUDIO_WIKIPEDIA_LANGUAGES`, `STEMSTUDIO_FAKE_ONLINE` (pass-through, documented defaults; no value baked in); `scripts/dev.*` likewise; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (combined 005+007 wave: the 007 documents contain 005's; one switch, done once in the 007 T008); CI asserts the worker image does not set `STEMSTUDIO_CONTACT_URL` (FR-010)
+- [x] T009 [P] [qa] `tests/fixtures/metadata/`: `matching-cases.json` (>= 20 cases, research R-05; recorded CC0 MusicBrainz responses trimmed to the read fields), recorded Wikidata/Wikipedia/CAA JSON for the two reference artists (Wikipedia extracts replaced by self-written placeholder text so no CC BY-SA text is committed), README with provenance; update `docs/testing/TEST-STRATEGY.md` (traceability US1..US3)
 
 ---
 
@@ -166,7 +166,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
 - [ ] T055 [P] [qa] Traceability matrix update, HO:polish
-- [ ] T056 [P] [devops] Validate compose/CI changes (`docker compose config -q`, `actionlint`), HO:polish
+- [x] T056 [P] [devops] Validate compose/CI changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T057 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---
