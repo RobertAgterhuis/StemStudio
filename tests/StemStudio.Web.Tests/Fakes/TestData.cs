@@ -24,6 +24,57 @@ public static class TestData
         }
         """;
 
+    /// <summary>Six-stem completed track whose detail phase is explicitly <c>none</c> (contract 1.2.0 wire shape).</summary>
+    public const string DetailNoneTrackJson = """
+        {
+          "id": "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a", "title": "Never Gonna Give You Up", "artist": "Rick Astley",
+          "sourceType": "youtube", "sourceKey": "youtube:dQw4w9WgXcQ", "sourceUrl": "https://youtu.be/dQw4w9WgXcQ",
+          "status": "completed", "stage": "Completed", "progress": 100, "error": null, "durationSeconds": 213.04,
+          "model": "htdemucs", "stems": [], "beatGrid": null,
+          "detail": { "status": "none", "stage": null, "currentParent": null, "progress": 0, "error": null, "parents": [], "updatedAt": null },
+          "createdAt": "2026-11-14T12:00:00Z", "updatedAt": "2026-11-14T12:00:20Z"
+        }
+        """;
+
+    /// <summary>The <c>DetailQueuedTrack</c> example of backend-api.openapi.yaml 1.2.0.</summary>
+    public const string DetailQueuedTrackJson = """
+        {
+          "id": "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a", "title": "Never Gonna Give You Up", "artist": "Rick Astley",
+          "sourceType": "youtube", "sourceKey": "youtube:dQw4w9WgXcQ", "sourceUrl": "https://youtu.be/dQw4w9WgXcQ",
+          "status": "completed", "stage": "Completed", "progress": 100, "error": null, "durationSeconds": 213.04,
+          "model": "htdemucs", "stems": [], "beatGrid": null,
+          "detail": { "status": "queued", "stage": "Queued", "currentParent": null, "progress": 0, "error": null, "parents": [], "updatedAt": "2026-11-15T12:06:31Z" },
+          "createdAt": "2026-11-15T12:00:00Z", "updatedAt": "2026-11-15T12:06:31Z"
+        }
+        """;
+
+    /// <summary>The <c>DetailCompletedTrack</c> example of backend-api.openapi.yaml 1.2.0 (detail block).</summary>
+    public const string DetailCompletedTrackJson = """
+        {
+          "id": "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a", "title": "Never Gonna Give You Up", "artist": "Rick Astley",
+          "sourceType": "youtube", "sourceKey": "youtube:dQw4w9WgXcQ", "sourceUrl": "https://youtu.be/dQw4w9WgXcQ",
+          "status": "completed", "stage": "Completed", "progress": 100, "error": null, "durationSeconds": 213.04,
+          "model": "htdemucs", "stems": [], "beatGrid": null,
+          "detail": {
+            "status": "completed", "stage": "Completed", "currentParent": null, "progress": 100, "error": null,
+            "parents": [
+              { "parent": "vocals", "outcome": "split", "stems": [
+                { "name": "lead", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/lead" },
+                { "name": "backing", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/backing" },
+                { "name": "rest", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/rest" } ] },
+              { "parent": "drums", "outcome": "split", "stems": [
+                { "name": "kick", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/kick" },
+                { "name": "snare", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/snare" },
+                { "name": "rest", "url": "/api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/rest" } ] },
+              { "parent": "bass", "outcome": "not-supported", "stems": [] },
+              { "parent": "other", "outcome": "skipped-silent", "stems": [] }
+            ],
+            "updatedAt": "2026-11-15T12:31:10Z"
+          },
+          "createdAt": "2026-11-15T12:00:00Z", "updatedAt": "2026-11-15T12:31:10Z"
+        }
+        """;
+
     public const string MixJson = """
         {
           "id": "6a1f0c9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b", "trackId": "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a",
