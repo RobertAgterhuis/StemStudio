@@ -15,6 +15,16 @@ public static class LyricsProblems
     /// <returns>The wrapped result.</returns>
     public static IResult NotStored(IResult result) => new HeaderResult(result, "Cache-Control", NoStore);
 
+    /// <summary>The problem of a refused lyrics transition: 409 for a conflict, 422 for a broken rule.</summary>
+    /// <param name="exception">The exception.</param>
+    /// <returns>The result, or null for any other exception.</returns>
+    public static IResult? For(Exception exception) => exception switch
+    {
+        LyricsConflictException conflict => Conflict(conflict.Conflict),
+        DomainValidationException invalid => Invalid(invalid),
+        _ => null,
+    };
+
     /// <summary>The 409 problem of a conflict.</summary>
     /// <param name="conflict">The conflict.</param>
     /// <returns>The result.</returns>

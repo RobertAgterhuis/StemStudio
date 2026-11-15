@@ -1,6 +1,5 @@
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Lyrics;
-using StemStudio.Domain;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -70,13 +69,9 @@ public sealed class LyricsService(ITrackRepository tracks, TrackService trackSer
             change(track.EnsureLyrics(Now));
             return null;
         }
-        catch (LyricsConflictException conflict)
+        catch (Exception exception) when (LyricsProblems.For(exception) is { } problem)
         {
-            return LyricsProblems.Conflict(conflict.Conflict);
-        }
-        catch (DomainValidationException invalid)
-        {
-            return LyricsProblems.Invalid(invalid);
+            return problem;
         }
     }
 

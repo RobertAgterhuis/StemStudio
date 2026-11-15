@@ -32,14 +32,8 @@ public sealed partial class LyricsSynchronizer(
     private async Task SyncAsync(Track track, CancellationToken cancellationToken)
     {
         var (before, jobId) = (track.LyricsStatus, track.Lyrics!.LyricsJobId);
-        bool copied;
-        try
+        if (await TryStepAsync(track, cancellationToken) is not { } copied)
         {
-            copied = await StepAsync(track, cancellationToken);
-        }
-        catch (WorkerUnavailableException)
-        {
-            LogWorkerUnavailable(logger, track.Id);
             return;
         }
 
@@ -48,6 +42,20 @@ public sealed partial class LyricsSynchronizer(
         if (copied)
         {
             await applier.DeleteQuietlyAsync(jobId!, cancellationToken);
+        }
+    }
+
+    /// <summary>Advances one track; null when the worker is unreachable (nothing is saved).</summary>
+    private async Task<bool?> TryStepAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await StepAsync(track, cancellationToken);
+        }
+        catch (WorkerUnavailableException)
+        {
+            LogWorkerUnavailable(logger, track.Id);
+            return null;
         }
     }
 

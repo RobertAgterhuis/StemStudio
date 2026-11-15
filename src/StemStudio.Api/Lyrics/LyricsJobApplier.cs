@@ -51,19 +51,14 @@ public sealed class LyricsJobApplier(IWorkerClient worker, JobDeviceApplier devi
     public async Task<bool> ApplyAsync(Track track, WorkerLyricsJob? job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        var lyrics = track.Lyrics!;
-        switch (job?.Status)
+        if (job?.Status == WorkerLyricsJobState.Completed)
         {
-            case WorkerLyricsJobState.Completed:
-                await CompleteAsync(lyrics, job.LyricsJobId, cancellationToken);
-                return true;
-            case WorkerLyricsJobState.Queued or WorkerLyricsJobState.Running:
-                Progress(track, lyrics, job);
-                return false;
-            default:
-                lyrics.Fail(FailureOf(job), Now);
-                return false;
+            await CompleteAsync(track.Lyrics!, job.LyricsJobId, cancellationToken);
+            return true;
         }
+
+        ApplyState(track, track.Lyrics!, job);
+        return false;
     }
 
     /// <summary>Deletes the worker copy of a job; an unreachable worker sweeps it after 24 h.</summary>
@@ -88,6 +83,18 @@ public sealed class LyricsJobApplier(IWorkerClient worker, JobDeviceApplier devi
         WorkerLyricsJobState.Cancelled => CancelledReason,
         _ => job.Error,
     };
+
+    private void ApplyState(Track track, TrackLyrics lyrics, WorkerLyricsJob? job)
+    {
+        if (job?.Status is WorkerLyricsJobState.Queued or WorkerLyricsJobState.Running)
+        {
+            Progress(track, lyrics, job);
+        }
+        else
+        {
+            lyrics.Fail(FailureOf(job), Now);
+        }
+    }
 
     private void Progress(Track track, TrackLyrics lyrics, WorkerLyricsJob job)
     {
