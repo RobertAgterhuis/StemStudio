@@ -1,4 +1,4 @@
-"""One-command StemStudio quality gate: unit metrics, duplication and dependency direction.
+"""One-command StemStudio quality gate: unit metrics, duplication, dependencies, raw colours.
 
 Usage::
 
@@ -14,6 +14,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import css_tokens_check
 import dependency_check
 import duplication
 import sig_check
@@ -31,11 +32,17 @@ class GateResult:
     sig: sig_check.SigResult
     dup: duplication.DuplicationResult
     dependency_findings: list[Finding] = field(default_factory=list)
+    token_findings: list[Finding] = field(default_factory=list)
 
     @property
     def findings(self) -> list[Finding]:
         """All findings of all checks."""
-        return [*self.sig.findings, *self.dup.findings, *self.dependency_findings]
+        return [
+            *self.sig.findings,
+            *self.dup.findings,
+            *self.dependency_findings,
+            *self.token_findings,
+        ]
 
     @property
     def tool_errors(self) -> list[str]:
@@ -56,6 +63,7 @@ def run(root: Path, paths: Sequence[Path], dup_run: DuplicationRun = duplication
         sig=sig_check.run(root, paths),
         dup=dup_run(root, paths),
         dependency_findings=dependency_check.run(root),
+        token_findings=css_tokens_check.run(root),
     )
 
 

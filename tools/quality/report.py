@@ -36,6 +36,7 @@ def render(data: ReportInput) -> str:
         _profiles(data),
         render_components(component_rows(data.units, data.clones)),
         _dependencies(data.findings),
+        _tokens(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -113,13 +114,26 @@ def _duplication_row(percentage: float | None) -> str:
 
 
 def _dependencies(findings: Sequence[Finding]) -> str:
-    own = [f for f in findings if f.check == "dependency"]
-    title = "## Dependency direction\n\n"
+    return _check_section(
+        findings, "dependency", "Dependency direction", "no forbidden edges or cycles."
+    )
+
+
+def _tokens(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings, "raw-colour", "Design tokens", "no raw colour values outside tokens.css."
+    )
+
+
+def _check_section(findings: Sequence[Finding], check: str, title: str, clean: str) -> str:
+    """A section with the verdict of one graph-like check (no per-unit metrics)."""
+    own = [f for f in findings if f.check == check]
+    heading = f"## {title}\n\n"
     if not own:
-        return title + "**PASS** - no forbidden edges or cycles."
+        return f"{heading}**PASS** - {clean}"
     errors = count_errors(own)
     verdict = "FAIL" if errors else "PASS"
-    return f"{title}**{verdict}** - {errors} errors, {len(own) - errors} warnings (see Findings)."
+    return f"{heading}**{verdict}** - {errors} errors, {len(own) - errors} warnings (see Findings)."
 
 
 def _exemptions(exemptions: Sequence[Exemption]) -> str:

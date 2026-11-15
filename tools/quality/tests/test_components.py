@@ -77,6 +77,7 @@ REQUESTED = [
     "worker/api",
     "worker/core",
     "audio-engine",
+    "web-interop",
     "e2e",
     "tools/quality",
 ]

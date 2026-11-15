@@ -55,6 +55,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("worker/api", (WORKER + "api/",)),
     Component("worker/core", tuple(WORKER + name for name in WORKER_CORE)),
     Component("audio-engine", ("src/audio-engine/",)),
+    Component("web-interop", ("src/web-interop/",)),
     Component("e2e", ("e2e/",), scope="all"),
     Component("tools/quality", ("tools/quality/",), scope="all"),
     Component("Test code (all)", ("",), scope="tests"),
