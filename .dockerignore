@@ -41,6 +41,10 @@ worker/tests
 # Built inside the web image; never copy a stale local bundle
 src/StemStudio.Web/wwwroot/js/audio-engine.js
 src/StemStudio.Web/wwwroot/js/audio-engine.js.map
+src/StemStudio.Web/wwwroot/js/web-interop.js
+src/StemStudio.Web/wwwroot/js/web-interop.js.map
+src/StemStudio.Web/wwwroot/js/first-paint.js
+src/StemStudio.Web/wwwroot/js/first-paint.js.map
 
 # Runtime data
 data

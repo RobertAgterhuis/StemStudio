@@ -1,0 +1,39 @@
+# Starts the compose stack with the fake separator for the browser suites (feature 004: visual,
+# a11y, lighthouse): uv + Node, ffmpeg, the generated audio fixtures, then `docker compose up --wait`.
+# The caller checks out the repository first and stops the stack with `docker compose down -v`.
+name: Fake stack
+description: Generate the audio fixtures and start worker, api and web with STEMSTUDIO_SEPARATOR=fake.
+inputs:
+  uv-version:
+    description: uv version (the workflow's UV_VERSION)
+    required: true
+  node-version:
+    description: Node.js major version (the workflow's NODE_VERSION)
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      with:
+        version: ${{ inputs.uv-version }}
+        enable-cache: true
+        cache-dependency-glob: worker/uv.lock
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: e2e/package-lock.json
+    - name: Install ffmpeg (MP3 fixture encoder)
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+    - name: Generate audio fixtures
+      shell: bash
+      run: uv run --project worker --frozen python tests/fixtures/generate_fixtures.py
+    - name: Start the stack (fake separator) and wait for health
+      shell: bash
+      env:
+        STEMSTUDIO_SEPARATOR: fake
+      run: |
+        docker compose up -d --build --wait --wait-timeout 300
+        curl --fail --silent --show-error http://localhost:8081/health
+        curl --fail --silent --show-error http://localhost:8080/health

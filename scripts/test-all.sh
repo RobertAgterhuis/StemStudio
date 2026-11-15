@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-# pytest + coverage), audio engine (lint, typecheck, coverage, build), contracts (Redocly),
+# pytest + coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly),
 # quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
@@ -59,6 +59,11 @@ step "engine lint" src/audio-engine npm run lint
 step "engine typecheck" src/audio-engine npm run typecheck
 step "engine test:coverage" src/audio-engine npm run test:coverage
 step "engine build" src/audio-engine npm run build
+step "web-interop npm ci" src/web-interop npm ci --no-audit --no-fund
+step "web-interop lint" src/web-interop npm run lint
+step "web-interop typecheck" src/web-interop npm run typecheck
+step "web-interop test:coverage" src/web-interop npm run test:coverage
+step "web-interop build" src/web-interop npm run build
 step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
 step "quality ruff check" tools/quality uvq ruff check .
