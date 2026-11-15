@@ -120,6 +120,15 @@ describe('mixer key map (design-spec.md 6)', () => {
     expect(event.defaultPrevented).toBe(command !== null);
   });
 
+  it('a global G sequence wins over the mixer letters', () => {
+    const global = register('global');
+    const mixer = register('mixer');
+    press('g');
+    press('m');
+    expect(commands(global)).toEqual(['go.mixes']);
+    expect(mixer).not.toHaveBeenCalled();
+  });
+
   it('never handles Space', () => {
     const calls = register('mixer');
     const global = register('global');
