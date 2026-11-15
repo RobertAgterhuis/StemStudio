@@ -1,9 +1,9 @@
 """Detail (second-stage) separation of the standard stems (stem-separation agent, feature 002).
 
-Contract (binding for the parallel wave): the composition root calls
-``create_detail_adapters(settings)``; the signature is fixed. Models, gating, folding,
+``create_detail_adapters(settings)`` builds the model provider (002 contract).
+``create_detail_pipeline(settings, devices)`` builds the step pipeline the detail jobs run; every
+parent step runs through the shared ``DeviceRunner`` (feature 003). Models, gating, folding,
 re-assignment and checks follow ``specs/002-detail-separation/research.md`` (D-02..D-05).
-``create_detail_pipeline(settings)`` builds the step pipeline the detail jobs run.
 """
 
 from stemstudio_worker.config import WorkerSettings
@@ -11,7 +11,7 @@ from stemstudio_worker.detail.download import ModelDownloader
 from stemstudio_worker.detail.fake import FakeModelProvider, FakeSource
 from stemstudio_worker.detail.runtimes import RealModelProvider
 from stemstudio_worker.detail.steps import DetailPipeline, RegistrySource
-from stemstudio_worker.ports import DetailAdapters
+from stemstudio_worker.ports import DetailAdapters, DeviceRunner
 
 __all__ = ["create_detail_adapters", "create_detail_pipeline"]
 
@@ -23,7 +23,7 @@ def create_detail_adapters(settings: WorkerSettings) -> DetailAdapters:
     ``settings.model_dir``.
 
     Args:
-        settings: Worker settings (separator kind, device, model directory, fake step delay).
+        settings: Worker settings (separator kind, model directory, fake step delay).
 
     Returns:
         The detail adapters.
@@ -32,19 +32,23 @@ def create_detail_adapters(settings: WorkerSettings) -> DetailAdapters:
         return DetailAdapters(
             models=FakeModelProvider(FakeSource(settings.fake_detail_step_seconds))
         )
-    downloader = ModelDownloader(settings.model_dir)
-    return DetailAdapters(models=RealModelProvider(downloader, settings.device))
+    return DetailAdapters(models=_real_provider(settings))
 
 
-def create_detail_pipeline(settings: WorkerSettings) -> DetailPipeline:
+def _real_provider(settings: WorkerSettings) -> RealModelProvider:
+    return RealModelProvider(ModelDownloader(settings.model_dir))
+
+
+def create_detail_pipeline(settings: WorkerSettings, devices: DeviceRunner) -> DetailPipeline:
     """Build the detail step pipeline: fake models per parent, or the ADR-010 registry models.
 
     Args:
         settings: Worker settings.
+        devices: Runs every parent step on the worker's device.
 
     Returns:
         The pipeline the detail runner executes.
     """
     if settings.separator == "fake":
-        return DetailPipeline(FakeSource(settings.fake_detail_step_seconds))
-    return DetailPipeline(RegistrySource(create_detail_adapters(settings).models))
+        return DetailPipeline(FakeSource(settings.fake_detail_step_seconds), devices)
+    return DetailPipeline(RegistrySource(_real_provider(settings)), devices)

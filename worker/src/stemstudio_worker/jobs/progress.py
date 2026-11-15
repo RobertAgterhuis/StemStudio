@@ -8,7 +8,7 @@ from typing import Any
 from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import ProgressCallback
-from stemstudio_worker.schemas import Job, JobResult, JobState, SourceMetadata
+from stemstudio_worker.schemas import Job, JobDevice, JobResult, JobState, SourceMetadata
 
 Clock = Callable[[], datetime]
 """Returns the current UTC time."""
@@ -61,6 +61,11 @@ class JobTracker:
     def set_metadata(self, metadata: SourceMetadata) -> None:
         """Replace the job metadata (e.g. with the title reported by the download)."""
         self._save_job(metadata=metadata)
+
+    def set_device(self, device: JobDevice) -> None:
+        """Record where the job's separation runs (or ran); saves only when it changed."""
+        if self._record().job.device != device:
+            self._save_job(device=device)
 
     def update(self, status: JobState, stage: str, progress: int) -> None:
         """Move to ``status``/``stage``; saves only when something changed."""

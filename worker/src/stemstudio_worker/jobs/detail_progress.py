@@ -5,6 +5,7 @@ from typing import Any
 from stemstudio_worker.jobs import detail_texts as texts
 from stemstudio_worker.jobs.detail_store import DetailJobStore, StoredDetailJob
 from stemstudio_worker.jobs.progress import Clock
+from stemstudio_worker.ports import DeviceUse, merge_device
 from stemstudio_worker.schemas import DetailJobState, DetailResult, ParentStemName
 
 _MAX_ERROR = 1000
@@ -49,9 +50,24 @@ class DetailTracker:
         """Mark the job cancelled (no-op when it already ended)."""
         self._change(status=DetailJobState.CANCELLED, stage=texts.CANCELLED, current_parent=None)
 
+    def fold_device(self, use: DeviceUse) -> None:
+        """Fold where a parent step ran into the job's device record (data-model.md 2.2)."""
+        now = self._clock()
+        self._store.update(self._detail_id, lambda r: _fold(r, use, now))
+
     def _change(self, **changes: Any) -> None:
         stamped = {**changes, "updated_at": self._clock()}
         self._store.update(self._detail_id, lambda r: _apply(r, stamped, None))
+
+
+def _fold(record: StoredDetailJob, use: DeviceUse, now: Any) -> StoredDetailJob:
+    """Return ``record`` with ``use`` folded into its device unless the job already ended."""
+    if record.job.status.is_terminal:
+        return record
+    device = merge_device(record.job.device, use)
+    return record.model_copy(
+        update={"job": record.job.model_copy(update={"device": device, "updated_at": now})}
+    )
 
 
 def _apply(

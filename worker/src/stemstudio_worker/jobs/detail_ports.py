@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Protocol
 
+from stemstudio_worker.ports import DeviceUse
 from stemstudio_worker.schemas import ParentOutcome, ParentStemName, StemName
 
 StepProgress = Callable[[float], None]
@@ -27,8 +28,8 @@ class DetailStepUnit(Protocol):
         """Share of the job's cost (renormalised by the runner)."""
         ...
 
-    def run(self, progress: StepProgress) -> None:
-        """Run the step, reporting its fraction to ``progress``."""
+    def run(self, progress: StepProgress) -> DeviceUse | None:
+        """Run the step, reporting its fraction to ``progress``; returns where it ran."""
         ...
 
 

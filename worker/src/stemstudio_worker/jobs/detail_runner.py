@@ -148,7 +148,9 @@ class DetailRunner:
         stage = texts.splitting(step.parents, active.index + 1, len(active.steps))
         parent: ParentStemName = step.parents[0]
         tracker.running(stage, active.percent(active.done), parent)
-        step.run(_Reporter(tracker, active, stage))
+        use = step.run(_Reporter(tracker, active, stage))
+        if use is not None:
+            tracker.fold_device(use)
         active.done += step.weight
         active.index += 1
 

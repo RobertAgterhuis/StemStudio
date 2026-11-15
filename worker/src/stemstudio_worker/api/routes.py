@@ -15,6 +15,7 @@ from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.runtime import WorkerRuntime
 from stemstudio_worker.ports import SourceInfo, SourceUnavailableError, WorkerError
 from stemstudio_worker.schemas import (
+    CPU_DEVICE,
     CreateJobRequest,
     Health,
     Job,
@@ -29,9 +30,16 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    """Liveness probe with the configured separator and device."""
+    """Liveness probe with the configured separator, device preference and active device.
+
+    The active device comes from the start-up probe of the running worker; before the lifespan
+    started (no runtime yet) it is reported as the CPU.
+    """
     settings: WorkerSettings = request.app.state.settings
-    return json_response(Health(separator=settings.separator, device=settings.device))
+    runtime: WorkerRuntime | None = getattr(request.app.state, "runtime", None)
+    info = CPU_DEVICE if runtime is None else runtime.device
+    health = Health(separator=settings.separator, device=settings.device, device_info=info)
+    return json_response(health)
 
 
 @router.post("/v1/jobs")

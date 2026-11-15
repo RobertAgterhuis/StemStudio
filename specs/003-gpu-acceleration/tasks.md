@@ -71,12 +71,12 @@ in the execution plan.
 
 ### stem-separation (tests first)
 
-- [ ] T011 [P] [stem-separation] Failing tests `worker/tests/devices/test_probe.py` with fake torch/NVML adapters: `cpu` preference never imports torch; each probe step of data-model 2.1 fails with its exact reason (CPU build, CUDA unavailable, architecture missing, test kernel error truncated to 200 chars, NVML unavailable); success yields `DeviceInfo(kind=gpu, name, computeCapability "12.0", total/free MiB)`; `cuda` and `auto` behave the same (FR-003)
-- [ ] T012 [stem-separation] Implement `devices/probe.py` and `devices/nvml.py` (lazy `torch`/`pynvml` imports, adapters injectable) to pass T011
-- [ ] T013 [P] [stem-separation] Failing tests `worker/tests/devices/test_runner.py` (fake NVML reader, fake torch memory hooks, fake steps): CPU runner calls `work("cpu")` and reports `DeviceUse(cpu)`; GPU runner holds the lease (a second thread waits; released on error); NVML free < need -> `work("cpu")` with the exact "Not enough free GPU memory ..." reason and no CUDA call; fits -> memory fraction `(free - 256 MiB) / total` set before and reset after the step; `torch.cuda.OutOfMemoryError` or an onnxruntime "out of memory"/"Failed to allocate memory" error on the GPU attempt -> `empty_cache()` and exactly one `work("cpu")` with the "ran out of memory" reason; the CPU attempt's error propagates; a non-OOM GPU error propagates without retry (FR-004, FR-005, SC-004)
-- [ ] T014 [stem-separation] Implement `devices/{lease,oom,runner}.py` to pass T013
-- [ ] T015 [P] [stem-separation] Failing tests `worker/tests/devices/test_factory.py`, `test_fake.py`: `create_device_runner(settings)` returns the CPU runner for `cpu`, the probed runner for `cuda`/`auto` (CPU runner + reason when the probe fails), the fake runner for `separator=fake`; fake `gpu` reports `DeviceInfo(gpu, "Fake GPU")` and GPU uses; fake `gpu-oom` makes the first `run` of each job context fall back with the OOM reason (data-model 1)
-- [ ] T016 [stem-separation] Implement `devices/fake.py` and `devices/__init__.py::create_device_runner` to pass T015
+- [x] T011 [P] [stem-separation] Failing tests `worker/tests/devices/test_probe.py` with fake torch/NVML adapters: `cpu` preference never imports torch; each probe step of data-model 2.1 fails with its exact reason (CPU build, CUDA unavailable, architecture missing, test kernel error truncated to 200 chars, NVML unavailable); success yields `DeviceInfo(kind=gpu, name, computeCapability "12.0", total/free MiB)`; `cuda` and `auto` behave the same (FR-003)
+- [x] T012 [stem-separation] Implement `devices/probe.py` and `devices/nvml.py` (lazy `torch`/`pynvml` imports, adapters injectable) to pass T011
+- [x] T013 [P] [stem-separation] Failing tests `worker/tests/devices/test_runner.py` (fake NVML reader, fake torch memory hooks, fake steps): CPU runner calls `work("cpu")` and reports `DeviceUse(cpu)`; GPU runner holds the lease (a second thread waits; released on error); NVML free < need -> `work("cpu")` with the exact "Not enough free GPU memory ..." reason and no CUDA call; fits -> memory fraction `(free - 256 MiB) / total` set before and reset after the step; `torch.cuda.OutOfMemoryError` or an onnxruntime "out of memory"/"Failed to allocate memory" error on the GPU attempt -> `empty_cache()` and exactly one `work("cpu")` with the "ran out of memory" reason; the CPU attempt's error propagates; a non-OOM GPU error propagates without retry (FR-004, FR-005, SC-004)
+- [x] T014 [stem-separation] Implement `devices/{lease,oom,runner}.py` to pass T013
+- [x] T015 [P] [stem-separation] Failing tests `worker/tests/devices/test_factory.py`, `test_fake.py`: `create_device_runner(settings)` returns the CPU runner for `cpu`, the probed runner for `cuda`/`auto` (CPU runner + reason when the probe fails), the fake runner for `separator=fake`; fake `gpu` reports `DeviceInfo(gpu, "Fake GPU")` and GPU uses; fake `gpu-oom` makes the first `run` of each job context fall back with the OOM reason (data-model 1)
+- [x] T016 [stem-separation] Implement `devices/fake.py` and `devices/__init__.py::create_device_runner` to pass T015
 
 ### backend (tests first)
 
@@ -96,12 +96,12 @@ in the execution plan.
 **Goal**: in GPU mode standard and detail separation run on the GPU and the track page shows it.
 **Independent test**: quickstart G3, G5, G6, G7 (CTO, T052); fakes in the wave.
 
-- [ ] T023 [P] [US1] [stem-separation] Failing tests `worker/tests/separation/test_demucs_device.py`: `DemucsSeparator` runs the separation through the injected `DeviceRunner` with `GpuNeed("htdemucs_6s", <research.md G-04>)`, passes the runner's device string to `apply`, returns `SeparationResult.device = merge_device(None, use)`; a CPU retry calls `apply` again with `cpu` (FR-002, FR-004)
-- [ ] T024 [US1] [stem-separation] Implement in `separation/` (factory `create_separator(settings, devices)`) to pass T023
-- [ ] T025 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_device_models.py`: `RealModelProvider` caches per `(model_id, device)`; KARA 2 on `cuda` calls `onnxruntime.preload_dlls()` and creates the session with `["CUDAExecutionProvider", "CPUExecutionProvider"]`, and when the session's first provider is not CUDA the step reports the "ONNX Runtime has no usable CUDA provider" fallback; every parent step runs through the runner with its model's `GpuNeed` (research.md G-04); `release_gpu()` drops only GPU instances (FR-002, ADR-012 D6)
-- [ ] T026 [US1] [stem-separation] Implement in `detail/{runtimes,steps,registry,__init__}.py` (factories receive the runner) to pass T025
-- [ ] T027 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_job_device.py` (fake runner, fake clock): `Job.device` is set when the separation starts and replaced by the result's device; cached results keep `device = null`; `DetailJob.device` is folded after every parent step and persisted in `detail-jobs/*.json`; the scheduler calls the idle hook (GPU release) when both queues are empty; `/health` returns the runner's `deviceInfo` (FR-006)
-- [ ] T028 [US1] [stem-separation] Implement in `jobs/{runner,progress,detail_runner,detail_progress,scheduler,runtime}.py`, `api/routes.py`, `main.py` (probe once, one runner shared) to pass T027
+- [x] T023 [P] [US1] [stem-separation] Failing tests `worker/tests/separation/test_demucs_device.py`: `DemucsSeparator` runs the separation through the injected `DeviceRunner` with `GpuNeed("htdemucs_6s", <research.md G-04>)`, passes the runner's device string to `apply`, returns `SeparationResult.device = merge_device(None, use)`; a CPU retry calls `apply` again with `cpu` (FR-002, FR-004)
+- [x] T024 [US1] [stem-separation] Implement in `separation/` (factory `create_separator(settings, devices)`) to pass T023
+- [x] T025 [P] [US1] [stem-separation] Failing tests `worker/tests/detail/test_device_models.py`: `RealModelProvider` caches per `(model_id, device)`; KARA 2 on `cuda` calls `onnxruntime.preload_dlls()` and creates the session with `["CUDAExecutionProvider", "CPUExecutionProvider"]`, and when the session's first provider is not CUDA the step reports the "ONNX Runtime has no usable CUDA provider" fallback; every parent step runs through the runner with its model's `GpuNeed` (research.md G-04); `release_gpu()` drops only GPU instances (FR-002, ADR-012 D6)
+- [x] T026 [US1] [stem-separation] Implement in `detail/{runtimes,steps,registry,__init__}.py` (factories receive the runner) to pass T025
+- [x] T027 [P] [US1] [stem-separation] Failing tests `worker/tests/jobs/test_job_device.py` (fake runner, fake clock): `Job.device` is set when the separation starts and replaced by the result's device; cached results keep `device = null`; `DetailJob.device` is folded after every parent step and persisted in `detail-jobs/*.json`; the scheduler calls the idle hook (GPU release) when both queues are empty; `/health` returns the runner's `deviceInfo` (FR-006)
+- [x] T028 [US1] [stem-separation] Implement in `jobs/{runner,progress,detail_runner,detail_progress,scheduler,runtime}.py`, `api/routes.py`, `main.py` (probe once, one runner shared) to pass T027
 - [x] T029 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sync/DeviceSyncTests.cs`: every standard poll copies `device` to `Track.Device`; every detail poll copies it to `DetailPhase.Device`; `TrackDto.Device`/`DetailPhaseDto.Device` mapped; served `GET /api/tracks/{id}` validates against backend 1.3.0 `Track` with a device (FR-006)
 - [x] T030 [US1] [backend] Implement in `Sync/TrackJobApplier.cs`, `Detail/DetailJobApplier.cs`, track/detail mappers to pass T029
 - [x] T031 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/DeviceBadgeTests.cs` and track-page tests: `DeviceBadge` renders `JobDeviceDto.DisplayText()` with `data-device` and `data-fallback`; `track-device` / `detail-device` exist only when the device is set; `track-device-fallback` / `detail-device-fallback` show the reason only when `cpuFallback` (ui-test-ids 1.2.0) (US1-1, FR-006)
@@ -117,8 +117,8 @@ in the execution plan.
 **Goal**: CPU default unchanged; GPU unavailable -> CPU with reason; OOM -> step retried on the CPU.
 **Independent test**: quickstart G1, G2, G4, G8, G9.
 
-- [ ] T034 [P] [US2] [stem-separation] Failing API-level tests `worker/tests/api/test_device_fallback.py` (TestClient, fake runner `gpu-oom`, injected failing probe): a standard and a detail job complete with `device.cpuFallback = true` and the OOM reason; `/health` reports `kind = cpu` and the probe reason; with `STEMSTUDIO_DEVICE=cpu` no probe runs and every job reports `CPU` without fallback (FR-003, FR-004, SC-004)
-- [ ] T035 [US2] [stem-separation] Implement anything missing to pass T034
+- [x] T034 [P] [US2] [stem-separation] Failing API-level tests `worker/tests/api/test_device_fallback.py` (TestClient, fake runner `gpu-oom`, injected failing probe): a standard and a detail job complete with `device.cpuFallback = true` and the OOM reason; `/health` reports `kind = cpu` and the probe reason; with `STEMSTUDIO_DEVICE=cpu` no probe runs and every job reports `CPU` without fallback (FR-003, FR-004, SC-004)
+- [x] T035 [US2] [stem-separation] Implement anything missing to pass T034
 - [x] T036 [P] [US2] [backend] Failing tests: the fallback reason from the worker `RunningDetailJob` example reaches `DetailPhaseDto.Device.FallbackReason`; a 1.1.0-shaped worker job (no `device`) keeps `Track.Device = null`; retrying a failed track clears the device (FR-004, FR-006)
 - [x] T037 [US2] [backend] Implement anything missing to pass T036
 - [x] T038 [US2] [qa] Author `gpu.spec.ts` "fallback notice" (`@gpu`, `STEMSTUDIO_FAKE_DEVICE=gpu-oom`): the job completes, `track-device-fallback` and `detail-device-fallback` contain "ran out of memory"; mark `@gpu` specs so the default run excludes them (`grepInvert`) (SC-004)
@@ -145,7 +145,7 @@ in the execution plan.
 
 ## Phase 6: Polish (inside the wave, per owner)
 
-- [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
+- [x] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
 - [x] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [x] T048 [P] [qa] Traceability matrix update, HO:polish

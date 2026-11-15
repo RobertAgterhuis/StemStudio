@@ -5,7 +5,9 @@ Planning reads every standard stem once: ``bass`` becomes "not supported", silen
 priority scheduler): drums, vocals and the instrument group. With a summing source the active
 instrument parents run through one model call on their sum and the families are re-assigned to
 each parent; a single active parent runs directly. Each step checkpoints its parents, so a retry
-plans only what is still missing.
+plans only what is still missing. With a ``DeviceRunner`` every step is one device step: the model
+is loaded for the device the runner picks (GPU, or the CPU on fallback) and the step returns where
+it ran (feature 003).
 """
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -32,9 +34,9 @@ from stemstudio_worker.detail.folding import (
 from stemstudio_worker.detail.gating import read_parent
 from stemstudio_worker.detail.names import INSTRUMENT_PARENTS, is_splittable
 from stemstudio_worker.detail.reassign import reassign_families
-from stemstudio_worker.detail.registry import SEPARATOR_VERSION
+from stemstudio_worker.detail.registry import GPU_NEEDS, SEPARATOR_VERSION
 from stemstudio_worker.detail.split import ParentResult, SplitTarget, split_parent, trivial_outcome
-from stemstudio_worker.ports import DetailAudio, DetailModel, DetailModelProvider
+from stemstudio_worker.ports import DetailAudio, DetailModel, DeviceRunner, DeviceUse, GpuNeed
 from stemstudio_worker.schemas import (
     DetailModelId,
     ParentOutcome,
@@ -61,6 +63,13 @@ _Weighted = tuple[tuple[ParentStemName, ...], float]
 StepProgress = Callable[[float], None]
 """Receives the completed fraction of a step; may raise ``DetailCancelledError``."""
 
+_RunOutput = tuple[dict[str, DetailAudio], str | None]
+"""Model outputs plus the model's own CPU fallback reason (or None)."""
+
+
+ModelLoader = Callable[[str], DetailModel]
+"""Returns the model loaded on a torch device (``cuda``/``cpu``); may download weights first."""
+
 
 @dataclass(frozen=True, slots=True)
 class ModelChoice:
@@ -68,15 +77,29 @@ class ModelChoice:
 
     Attributes:
         model_id: Id recorded in the outcome.
-        model: The loaded model.
+        load: Loads the model on the device of the step.
         table: Folds the raw outputs into detail stems.
         policy: The plausibility checks that apply.
+        need: Free GPU memory the model step needs.
     """
 
     model_id: DetailModelId
-    model: DetailModel
+    load: ModelLoader
     table: FoldTable
     policy: CheckPolicy
+    need: GpuNeed
+
+
+class DeviceModelProvider(Protocol):
+    """Loads registry models per device (``runtimes.RealModelProvider``)."""
+
+    def load(self, model_id: DetailModelId, device: str) -> DetailModel:
+        """Return ``model_id`` on ``device``, loading it on first use."""
+        ...
+
+    def release_gpu(self) -> None:
+        """Drop the GPU instances."""
+        ...
 
 
 class ModelSource(Protocol):
@@ -88,7 +111,11 @@ class ModelSource(Protocol):
         ...
 
     def choose(self, parent: ParentStemName) -> ModelChoice:
-        """Return the (loaded) model for ``parent``; may download weights first."""
+        """Return the model choice for ``parent`` (nothing is loaded yet)."""
+        ...
+
+    def release_gpu(self) -> None:
+        """Drop models held in GPU memory (the worker is idle)."""
         ...
 
 
@@ -97,14 +124,19 @@ class RegistrySource:
 
     sum_instruments = True
 
-    def __init__(self, provider: DetailModelProvider) -> None:
+    def __init__(self, provider: DeviceModelProvider) -> None:
         """Load models through ``provider`` on first use."""
         self._provider = provider
 
     def choose(self, parent: ParentStemName) -> ModelChoice:
         """Return MDX23C DrumSep, UVR KARA 2 or MVSep Mega 53 for ``parent``."""
         model_id, table, policy = _REGISTRY_CHOICE.get(parent, _INSTRUMENT_CHOICE)
-        return ModelChoice(model_id, self._provider.get(model_id), table, policy)
+        load = lambda device: self._provider.load(model_id, device)  # noqa: E731 - adapter
+        return ModelChoice(model_id, load, table, policy, GPU_NEEDS[model_id])
+
+    def release_gpu(self) -> None:
+        """Drop the provider's GPU instances."""
+        self._provider.release_gpu()
 
 
 _INSTRUMENT_CHOICE: Final[tuple[DetailModelId, FoldTable, CheckPolicy]] = (
@@ -127,11 +159,15 @@ class DetailStep:
 
     parents: tuple[ParentStemName, ...]
     weight: float
-    _work: Callable[[StepProgress], None]
+    _work: Callable[[StepProgress], DeviceUse | None]
 
-    def run(self, progress: StepProgress) -> None:
-        """Run the step, reporting its fraction to ``progress``."""
-        self._work(progress)
+    def run(self, progress: StepProgress) -> DeviceUse | None:
+        """Run the step, reporting its fraction to ``progress``.
+
+        Returns:
+            Where the model ran, or None for a pipeline without a device runner.
+        """
+        return self._work(progress)
 
 
 class _ModelProgress:
@@ -154,15 +190,32 @@ class _Group:
 class DetailPipeline:
     """Plans and runs the detail steps of one audio's standard stems."""
 
-    def __init__(self, source: ModelSource, version: str = SEPARATOR_VERSION) -> None:
-        """Use ``source`` for the models; ``version`` stamps checkpoints and results."""
+    def __init__(
+        self,
+        source: ModelSource,
+        devices: DeviceRunner | None = None,
+        version: str = SEPARATOR_VERSION,
+    ) -> None:
+        """Create the pipeline.
+
+        Args:
+            source: Chooses the model per parent.
+            devices: Runs each model step on the worker's device; without one the models run
+                on the CPU and the steps record no device.
+            version: Stamps checkpoints and results.
+        """
         self._source = source
+        self._devices = devices
         self._version = version
 
     @property
     def separator_version(self) -> str:
         """Version of the pipeline (models + thresholds)."""
         return self._version
+
+    def release_gpu(self) -> None:
+        """Drop the models held in GPU memory (called when the worker is idle, ADR-012 D6)."""
+        self._source.release_gpu()
 
     def plan(self, stems: Mapping[StemName, Path], partial: Path) -> list[DetailStep]:
         """Checkpoint the trivial outcomes and return the steps still to run.
@@ -223,16 +276,44 @@ class DetailPipeline:
     def _step(self, group: _Group, weight: float) -> DetailStep:
         return DetailStep(group.parents, weight, lambda progress: self._run(group, progress))
 
-    def _run(self, group: _Group, progress: StepProgress) -> None:
+    def _run(self, group: _Group, progress: StepProgress) -> DeviceUse | None:
         progress(0.0)
         audios = {p: read_stem(group.stems[p]) for p in group.parents}
         choice = self._source.choose(group.parents[0])
         mix = output_sum(list(audios.values())) if len(audios) > 1 else audios[group.parents[0]]
-        outputs = choice.model.separate(mix, _ModelProgress(progress))
+        model_run = _ModelRun(choice, mix, _ModelProgress(progress))
+        (outputs, reason), use = self._on_device(model_run, choice.need)
         target = SplitTarget(group.partial, self._version, choice.model_id, choice.policy)
         for result in _results(audios, outputs, choice.table):
             split_parent(target, result)
         progress(1.0)
+        return _with_fallback(use, reason)
+
+    def _on_device(self, run: "_ModelRun", need: GpuNeed) -> tuple[_RunOutput, DeviceUse | None]:
+        if self._devices is None:
+            return run("cpu"), None
+        return self._devices.run(run, need)
+
+
+@dataclass(frozen=True, slots=True)
+class _ModelRun:
+    """One model call on a device; also returns the model's own CPU fallback reason, if any."""
+
+    choice: ModelChoice
+    mix: DetailAudio
+    progress: _ModelProgress
+
+    def __call__(self, device: str) -> _RunOutput:
+        model = self.choice.load(device)
+        reason: str | None = getattr(model, "fallback_reason", None)
+        return model.separate(self.mix, self.progress), reason
+
+
+def _with_fallback(use: DeviceUse | None, reason: str | None) -> DeviceUse | None:
+    """The model ran on the CPU although the step was given the GPU: record the fallback."""
+    if use is None or reason is None:
+        return use
+    return DeviceUse(kind="cpu", torch_device="cpu", fallback_reason=reason)
 
 
 def _results(

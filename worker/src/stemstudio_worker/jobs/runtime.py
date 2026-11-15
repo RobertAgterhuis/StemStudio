@@ -1,5 +1,6 @@
 """The running job subsystem: stores, reconciliation, scheduler thread and services."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -12,10 +13,11 @@ from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
-from stemstudio_worker.jobs.scheduler import PriorityScheduler
+from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import PipelineAdapters
+from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
 _STOP_TIMEOUT_SECONDS = 5.0
 
@@ -23,6 +25,32 @@ _STOP_TIMEOUT_SECONDS = 5.0
 def utc_now() -> datetime:
     """Return the current time in UTC."""
     return datetime.now(UTC)
+
+
+def _nothing() -> None:
+    """Default idle hook: nothing to release."""
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceHooks:
+    """What the job subsystem knows about the processing device (feature 003).
+
+    Attributes:
+        info: The worker's device from the start-up probe (``/health``, planned job devices).
+        on_idle: Called when the scheduler has nothing queued (releases GPU models).
+    """
+
+    info: DeviceInfo = CPU_DEVICE
+    on_idle: Callable[[], None] = _nothing
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerParts:
+    """What the job subsystem runs: pipeline adapters, detail pipeline and device hooks."""
+
+    adapters: PipelineAdapters
+    pipeline: DetailPipelinePort
+    devices: DeviceHooks = DeviceHooks()
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:
@@ -48,6 +76,7 @@ class WorkerRuntime:
         scheduler: The priority scheduler with its worker thread.
         service: Creates (or reuses) jobs.
         detail_service: Creates, reads and cancels detail jobs.
+        device: The worker's device from the start-up probe.
     """
 
     settings: WorkerSettings
@@ -58,23 +87,37 @@ class WorkerRuntime:
     scheduler: PriorityScheduler
     service: JobService
     detail_service: DetailService
+    device: DeviceInfo = CPU_DEVICE
 
     @classmethod
     def start(
         cls, settings: WorkerSettings, adapters: PipelineAdapters, pipeline: DetailPipelinePort
     ) -> "WorkerRuntime":
+        """Start on a CPU worker (no device hooks); see :meth:`start_with`."""
+        return cls.start_with(settings, WorkerParts(adapters, pipeline))
+
+    @classmethod
+    def start_with(cls, settings: WorkerSettings, parts: WorkerParts) -> "WorkerRuntime":
         """Load the jobs, reconcile interrupted ones and start the worker thread."""
         paths = DataPaths(settings.data_dir)
         context = _load(paths, utc_now)
-        store, details, clock = context.jobs, context.details, context.clock
-        runner = JobRunner(JobContext(store, paths, clock), adapters)
-        details_runner = DetailRunner(context, pipeline)
-        scheduler = PriorityScheduler(runner.process, details_runner.step, details_runner.waiting)
+        scheduler = _scheduler(context, parts)
+        store, clock = context.jobs, context.clock
         service = JobService(store, scheduler.submit, clock)
         detail_service = DetailService(context, scheduler.submit_detail)
         scheduler.start()
-        return cls(settings, adapters, paths, store, details, scheduler, service, detail_service)
+        return cls(settings, parts.adapters, paths, store, context.details, scheduler, service,
+                   detail_service, parts.devices.info)  # fmt: skip
 
     def stop(self) -> None:
         """Stop the worker thread; a job still running is reconciled at the next start."""
         self.scheduler.stop(_STOP_TIMEOUT_SECONDS)
+
+
+def _scheduler(context: DetailContext, parts: WorkerParts) -> PriorityScheduler:
+    """The scheduler over the standard and detail runners of ``context``."""
+    job_context = JobContext(context.jobs, context.paths, context.clock, parts.devices.info)
+    runner = JobRunner(job_context, parts.adapters)
+    details = DetailRunner(context, parts.pipeline)
+    hooks = SchedulerHooks(on_yield=details.waiting, on_idle=parts.devices.on_idle)
+    return PriorityScheduler(runner.process, details.step, hooks)

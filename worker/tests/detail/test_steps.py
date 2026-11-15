@@ -265,11 +265,15 @@ def test_cancel_from_progress_stops_the_step_without_a_checkpoint(
 
 class _Provider:
     def __init__(self) -> None:
-        self.requested: list[DetailModelId] = []
+        self.requested: list[tuple[DetailModelId, str]] = []
+        self.released = 0
 
-    def get(self, model_id: DetailModelId) -> DetailModel:
-        self.requested.append(model_id)
+    def load(self, model_id: DetailModelId, device: str) -> DetailModel:
+        self.requested.append((model_id, device))
         return ScaledModel({})
+
+    def release_gpu(self) -> None:
+        self.released += 1
 
 
 def test_registry_source_maps_parents_to_the_adr_010_models() -> None:
@@ -282,7 +286,12 @@ def test_registry_source_maps_parents_to_the_adr_010_models() -> None:
     )  # fmt: skip
     assert (vocals.model_id, vocals.table) == ("uvr-mdxnet-kara-2", VOCAL_TABLE)
     assert (guitar.model_id, guitar.table, guitar.policy) == ("mvsep-mega-53", MEGA_TABLE, FAMILIES)
-    assert provider.requested == ["mdx23c-drumsep-6s", "uvr-mdxnet-kara-2", "mvsep-mega-53"]
+    assert provider.requested == []
+    for picked in (drums, vocals, guitar):
+        picked.load("cuda")
+    assert provider.requested == [
+        ("mdx23c-drumsep-6s", "cuda"), ("uvr-mdxnet-kara-2", "cuda"), ("mvsep-mega-53", "cuda"),
+    ]  # fmt: skip
     assert identity_table(("a",)) == {"a": ("a",)}
 
 
