@@ -1,0 +1,11 @@
+@* Red stub (T017). *@
+
+@code {
+    /// <summary>Feature.</summary>
+    [Parameter, EditorRequired]
+    public string Feature { get; set; } = string.Empty;
+
+    /// <summary>Content.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
