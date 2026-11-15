@@ -12,14 +12,20 @@ import { levelState } from '../support/preferences';
 
 // Feature 006 US1 + US3 (006:T039, T055; FR-005, FR-006, FR-008, FR-009, FR-011; SC-002,
 // SC-004; quickstart L2, L4, L5). Fake stack, STEMSTUDIO_FAKE_LYRICS=word unless a describe says
-// otherwise; the expected words come from tests/fixtures/lyrics/fake-lyrics.json. Landing errors
-// are measured against an independent audio-clock reference (support/karaoke-probe.ts).
+// otherwise; the expected words come from tests/fixtures/lyrics/fake-lyrics.json (the worker's
+// fake document on the 20 s fixture). Landing errors are measured against an independent
+// audio-clock reference (support/karaoke-probe.ts). The fake document has no gap longer than
+// 5 s, so the gap countdown (US1-6) is covered by the engine's dom/timeline unit tests only.
 const fake = readFakeLyrics();
 const settleMs = 60_000;
 const maxErrorMs = 50;
 const loops = Number(process.env.E2E_KARAOKE_LOOPS ?? '50');
 const seeks = Number(process.env.E2E_KARAOKE_SEEKS ?? '20');
 const loopRegion = { start: 1.5, end: 9.5 };
+/** Word starts inside the A-B loop region (each loop lands on every one of them). */
+const wordsPerLoop = fake.lines
+  .flatMap((l) => l.words)
+  .filter((w) => w.startMs >= loopRegion.start * 1000 && w.startMs < loopRegion.end * 1000).length;
 let track: TrackDto;
 
 async function restoreLyrics(lyricsApi: LyricsApi): Promise<void> {
@@ -27,6 +33,7 @@ async function restoreLyrics(lyricsApi: LyricsApi): Promise<void> {
   const current = await lyricsApi.waitForStatus(track.id, ['found', 'removed', 'notFound', 'failed', 'instrumental', 'alignPending'], settleMs);
   if (current.status === 'removed') {
     expect(await lyricsApi.search(track.id)).toBe(202);
+    await lyricsApi.waitForStatus(track.id, ['found'], settleMs);
   }
   expect(await lyricsApi.setOffset(track.id, 0)).toBe(200);
 }
@@ -63,16 +70,14 @@ test.describe('karaoke word sync', { tag: '@karaoke' }, () => {
     await wordLyricsReady(lyricsApi);
   });
 
-  test('the banner goes countdown -> singing -> gap countdown -> singing -> ended (L2, US1-6)', async ({ karaoke, mixer, page }) => {
+  test('the banner goes countdown -> singing -> ended (L2)', async ({ karaoke, mixer, page }) => {
     await openPlaying(page, mixer);
     await expect(karaoke.host).toHaveAttribute('data-sync', 'word');
     await expect(karaoke.credit).toHaveText(fake.modes.word.credit ?? '');
     await karaoke.waitForState('countdown', 5_000);
     await karaoke.waitForState('singing', 5_000);
     await expect(karaoke.currentWord).toHaveText(/\S/u);
-    await karaoke.waitForState('countdown', 15_000);
-    await karaoke.waitForState('singing', 5_000);
-    await karaoke.waitForState('ended', 10_000);
+    await karaoke.waitForState('ended', 20_000);
   });
 
   test('the ball lands within 50 ms of every word for 30 s of playback (L4, SC-002)', async ({ karaoke, mixer, page }) => {
@@ -92,7 +97,7 @@ test.describe('karaoke word sync', { tag: '@karaoke' }, () => {
     await mixer.setLoop(loopRegion.start, loopRegion.end, true);
     const samples = await recordKaraoke(karaoke.host, loops * 8_000);
     const landings = landingErrors(samples, fake.lines, 0);
-    expect(landings.length).toBeGreaterThanOrEqual(loops * 10);
+    expect(landings.length).toBeGreaterThanOrEqual((loops - 1) * wordsPerLoop);
     expect(maxLandingErrorMs(landings)).toBeLessThanOrEqual(maxErrorMs);
   });
 
