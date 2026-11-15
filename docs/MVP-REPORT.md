@@ -102,7 +102,15 @@ Open-source only; full list in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.
 - Manual quickstart scenarios V1–V10 (T124) are covered by automated E2E where possible, with V3
   and V5 checked by hand on the real stack. Cosmetic: the web app has no favicon (404 in the console).
 
-## 6. Prioritised backlog (next iteration)
+## 6. Post-MVP fixes (2026-11-15)
+
+- Spotify matching via one flat yt-dlp search (live V3 finding, see section 5).
+- Track detail: Retry shows a busy state and says "The retry failed again." when the new attempt
+  fails; failed or completed tracks can be deleted (`DELETE /api/tracks/{id}`, contract 1.1.0),
+  removing stems, upload and mixes. Covered by bUnit/API tests and `e2e/tests/retry-delete.spec.ts`
+  (Chromium + Firefox); `scripts/test-all.ps1` green.
+
+## 7. Prioritised backlog (next iteration)
 
 1. **Export/render a mix to an audio file** (WAV/MP3/FLAC; offline render of the current mix,
    optionally with metronome) — first post-MVP feature.
@@ -119,6 +127,6 @@ Open-source only; full list in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.
    and the test-code clones in backend tests.
 8. Playback-speed control (slow down without pitch change) and pitch shift for practice.
 9. Prerendering / faster first paint; keyboard shortcuts beyond space = play/pause.
-10. Track deletion with cleanup of stems and mixes; disk-usage overview.
+10. Disk-usage overview (track deletion with stem/mix cleanup was added after the MVP, contract 1.1.0).
 11. Waveform display with loop-region drag handles.
 12. Safari testing (WebKit project in Playwright).
