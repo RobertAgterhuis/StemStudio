@@ -26,6 +26,10 @@ else
         </div>
         <RadzenProgressBar Value="Track.Progress" Max="100" ShowValue="true" aria-label="Processing progress"
                            data-testid="track-progress" />
+        @if (Track.Device is not null)
+        {
+            <DeviceBadge Display="DeviceDisplay.FromJob(Track.Device)" TestId="track-device" ReasonTestId="track-device-fallback" />
+        }
 
         @if (ActionError is not null)
         {

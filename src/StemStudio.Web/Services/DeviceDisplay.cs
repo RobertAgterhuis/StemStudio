@@ -15,5 +15,12 @@ public sealed record DeviceDisplay(string Kind, string Text, bool? Fallback, str
     /// <summary>Display of the device a standard or detail job ran on.</summary>
     /// <param name="device">The job device record.</param>
     /// <returns>The display.</returns>
-    public static DeviceDisplay FromJob(JobDeviceDto device) => throw new NotImplementedException();
+    public static DeviceDisplay FromJob(JobDeviceDto device) => new(
+        KindValue(device.Kind),
+        device.DisplayText(),
+        device.CpuFallback,
+        device.CpuFallback ? device.FallbackReason ?? UnknownFallbackReason : null);
+
+    private static string KindValue(ProcessingDeviceKindDto kind) =>
+        kind == ProcessingDeviceKindDto.Gpu ? "gpu" : "cpu";
 }

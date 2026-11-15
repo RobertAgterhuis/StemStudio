@@ -17,6 +17,11 @@
                            data-testid="detail-progress" />
     }
 
+    @if (Detail.Device is not null)
+    {
+        <DeviceBadge Display="DeviceDisplay.FromJob(Detail.Device)" TestId="detail-device" ReasonTestId="detail-device-fallback" />
+    }
+
     @if (Detail.Status == DetailPhaseStatusDto.Failed)
     {
         <div class="ss-error" role="alert" data-testid="detail-error">@Detail.Error</div>
