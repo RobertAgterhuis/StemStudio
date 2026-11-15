@@ -5,6 +5,7 @@ own MusicXML (no user-supplied XML). A fresh toolkit is made per call, so concur
 state; Verovio's console log is switched off.
 """
 
+import importlib.resources
 from collections.abc import Mapping
 from typing import Final, Protocol
 
@@ -29,6 +30,10 @@ VEROVIO_OPTIONS: Final[Mapping[str, object]] = {
 class Toolkit(Protocol):
     """The part of ``verovio.toolkit`` the engraver uses."""
 
+    def setResourcePath(self, path: str) -> bool:  # noqa: N802 - Verovio API
+        """Point the toolkit at its font and resource folder."""
+        ...
+
     def setOptions(self, options: dict[str, object]) -> bool:  # noqa: N802 - Verovio API
         """Apply layout options."""
         ...
@@ -47,9 +52,14 @@ class Toolkit(Protocol):
 
 
 def new_toolkit() -> Toolkit:
-    """Return a Verovio toolkit with ``VEROVIO_OPTIONS`` applied and logging off."""
+    """Return a Verovio toolkit with ``VEROVIO_OPTIONS`` applied and logging off.
+
+    Verovio keeps its resource path per thread and the wheel sets it only on the importing
+    thread, so every toolkit points at the packaged ``data`` folder explicitly.
+    """
     verovio.enableLog(verovio.LOG_OFF)
     toolkit: Toolkit = verovio.toolkit()
+    toolkit.setResourcePath(str(importlib.resources.files("verovio") / "data"))
     toolkit.setOptions(dict(VEROVIO_OPTIONS))
     return toolkit
 

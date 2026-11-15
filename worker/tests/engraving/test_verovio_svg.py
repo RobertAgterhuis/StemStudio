@@ -82,7 +82,7 @@ def test_rendering_in_another_thread_finds_the_music_font() -> None:
     def render() -> None:
         try:
             pages.append(verovio_svg.render_svg_pages(bass_musicxml(bars=4)))
-        except BaseException as error:  # noqa: BLE001 - re-raised on the main thread below
+        except BaseException as error:
             errors.append(error)
 
     worker = threading.Thread(target=render)
