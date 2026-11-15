@@ -115,6 +115,11 @@ class DataPaths:
         """Files of one lyrics job; removed with the job."""
         return self.lyrics_jobs / job_id
 
+    @property
+    def transcription_jobs(self) -> Path:
+        """Transcription job files ``<id>.json`` and score files ``<id>/score.*`` (feature 008)."""
+        return self.root / "transcription-jobs"
+
     def lyrics_result(self, job_id: str) -> Path:
         """Result of a completed lyrics job (copyrighted text; deleted after the backend copy)."""
         return self.lyrics_job_dir(job_id) / "result.json"

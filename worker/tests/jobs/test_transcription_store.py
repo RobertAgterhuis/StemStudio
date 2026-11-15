@@ -18,6 +18,7 @@ from stemstudio_worker.jobs.transcription_store import (
 from stemstudio_worker.schemas import (
     RESTART_INTERRUPTED_TEXT,
     RenderJobStatus,
+    ScoreFileRole,
     TranscriptionJob,
     TranscriptionJobRequest,
 )
@@ -26,12 +27,15 @@ from .conftest import T0
 from .fakes import FakeClock
 
 S = RenderJobStatus
+BASS = "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac"
 REQUEST = TranscriptionJobRequest.model_validate({
-    "profile": "bass", "input": {"path": "tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac"},
+    "profile": "bass", "input": {"path": BASS},
     "grid": {"kind": "manual", "bpm": 120, "beatsPerBar": 4, "firstDownbeatSeconds": 0.5},
     "titles": {"title": "Bass line"},
 })  # fmt: skip
-CONTENTS = {"pdf": b"%PDF-1.7", "musicxml": b"<score-partwise/>", "midi": b"MThd"}
+CONTENTS: dict[ScoreFileRole, bytes] = {
+    "pdf": b"%PDF-1.7", "musicxml": b"<score-partwise/>", "midi": b"MThd",
+}  # fmt: skip
 
 
 def _seeded(root: Path, statuses: dict[str, S], age: timedelta = timedelta()) -> DataPaths:
