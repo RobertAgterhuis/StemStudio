@@ -48,11 +48,11 @@ def test_health_reports_settings(tmp_path: object) -> None:
             "transcribe": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
-            "available": False,
+            "available": True,
             "model": "large-v3-turbo",
-            "modelCached": False,
+            "modelCached": True,
             "auto": "gpu",
-            "reason": "The lyrics alignment has not been checked yet.",
+            "reason": None,
         },
         "transcription": {
             "models": {

@@ -89,8 +89,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### stem-separation (tests first)
 
-- [ ] T017 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lyrics_jobs.py` (fake lookup, fake aligner, fake clock): `lookup` jobs on the 005 network lane, `align` jobs as scheduler steps with priority standard > align > detail parent step (a queued align runs before the next detail parent, after a queued standard job; never pre-empts); persisted in `lyrics-jobs/*.json`; restart re-runs; `DELETE` removes job + result; 24 h sweep; cancel of queued/running align (FR-014)
-- [ ] T018 [stem-separation] Implement `jobs/{lyrics_store,lyrics_lane}.py` and the scheduler priority in `jobs/scheduler.py` to pass T017
+- [x] T017 [P] [stem-separation] Failing tests `worker/tests/jobs/test_lyrics_jobs.py` (fake lookup, fake aligner, fake clock): `lookup` jobs on the 005 network lane, `align` jobs as scheduler steps with priority standard > align > detail parent step (a queued align runs before the next detail parent, after a queued standard job; never pre-empts); persisted in `lyrics-jobs/*.json`; restart re-runs; `DELETE` removes job + result; 24 h sweep; cancel of queued/running align (FR-014)
+- [x] T018 [stem-separation] Implement `jobs/{lyrics_store,lyrics_lane}.py` and the scheduler priority in `jobs/scheduler.py` to pass T017
 
 ### backend (tests first)
 
@@ -117,8 +117,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T027 [P] [US1] [audio-ingest] Failing tests `worker/tests/lyrics/test_lrclib.py`, `test_select.py`, `test_lookup.py`: request order get+album -> get -> search, at most 3 requests, >= 500 ms between them (fake clock), `Retry-After` via the 005 client, UA from 005; selection rule of data-model 2.3 over the F-01/F-02 record sets (262 s -> word-synced record; 270 s -> line-synced; 200 s -> not found; plain-only within 15 s -> `plain`); instrumental -> outcome `instrumental`; non-JSON body -> not found; lookups off -> `disabled` without requests; fake provider modes (FR-001, FR-003, FR-012)
 - [ ] T028 [US1] [audio-ingest] Implement `lyrics/{lrclib,select,lookup,fake}.py` to pass T027
-- [ ] T029 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_lyrics_routes.py`: create/get/result/cancel/delete per contract (202, 404, 409, 422), `Cache-Control: no-store` on results, composition with the real lookup or the fake provider (FR-001, FR-010)
-- [ ] T030 [US1] [stem-separation] Implement `api/lyrics_routes.py`, `main.py` wiring to pass T029
+- [x] T029 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_lyrics_routes.py`: create/get/result/cancel/delete per contract (202, 404, 409, 422), `Cache-Control: no-store` on results, composition with the real lookup or the fake provider (FR-001, FR-010)
+- [x] T030 [US1] [stem-separation] Implement `api/lyrics_routes.py`, `main.py` wiring to pass T029
 - [ ] T031 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Lyrics/LyricsSyncTests.cs`: `none -> searching` when the standard poll reports `durationSeconds` (names from the 005 lookup fields), and on first mixer data request of an old track (FR-013); result applied (found/instrumental/notFound/disabled), worker job deleted after copy, worker 404 -> failed, unreachable keeps state (FR-001, FR-002)
 - [ ] T032 [US1] [backend] Implement `Api/Lyrics/{LyricsSynchronizer,LyricsJobApplier,LyricsService}.cs` (registered in `JobSyncService`) to pass T031
 - [ ] T033 [P] [US1] [backend] Failing tests `LyricsEndpointTests.cs`: `GET /api/tracks/{id}/lyrics` per status with `no-store`, `PUT .../lyrics/offset` (limits, 409 without lyrics), `TrackDto.lyricsStatus`; lyrics absent from `GET /api/tracks` and `GET /api/tracks/{id}`; a full fake run's log output contains none of the fixture words (FR-007, FR-010, SC-006)
@@ -138,10 +138,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 **Goal**: forced alignment of plain or pasted lyrics on the vocal stem.
 **Independent test**: quickstart L3, L8, L9.
 
-- [ ] T040 [P] [US2] [stem-separation] Failing tests `worker/tests/alignment/test_audio_prep.py`, `test_mapping.py`, `test_aligner.py` (fake stable-ts module, fake runner): stem choice `vocals.lead` from the detail cache, else `vocals`; collapse check on a synthetic result (`ports.COLLAPSE_*`: > 35 % of words under 20 ms or > 25 % of lines overlapping) -> one retry with `vad=True` -> `ALIGNMENT_FAILED_TEXT` (research.md P0-2); words under 20 ms or probability < 0.2 -> `lowConfidence`; missing stem / silent stem -> fixed texts; mono 16 kHz float32 via soxr; the adapter runs through `DeviceRunner` with `WHISPER_GPU_NEED`, passes the device, `download_root` = model dir, `original_split=True`, language hint; model download stage + progress; mapping of stable-ts words back to our tokens by order (mismatch -> error), `lowConfidence` below 0.2, word caps; CPU retry on GPU OOM via the runner (FR-004, FR-014)
-- [ ] T041 [US2] [stem-separation] Implement `alignment/{audio_prep,mapping,stable_ts_aligner,fake}.py` (lazy imports) and the `align` job handler to pass T040
-- [ ] T042 [P] [US2] [stem-separation] Failing tests: `estimatedSeconds` from the T002 formula per device; `Health.lyricsAlignment` (`modelCached` true when the weights file exists with the right size); `@pytest.mark.integration` test `worker/tests/alignment/test_align_clip.py` on the T012 clip asserting >= 80 % of word starts within 300 ms (SC-003, SC-005)
-- [ ] T043 [US2] [stem-separation] Implement the estimate and health additions to pass T042 (the integration test is run in T066)
+- [x] T040 [P] [US2] [stem-separation] Failing tests `worker/tests/alignment/test_audio_prep.py`, `test_mapping.py`, `test_aligner.py` (fake stable-ts module, fake runner): stem choice `vocals.lead` from the detail cache, else `vocals`; collapse check on a synthetic result (`ports.COLLAPSE_*`: > 35 % of words under 20 ms or > 25 % of lines overlapping) -> one retry with `vad=True` -> `ALIGNMENT_FAILED_TEXT` (research.md P0-2); words under 20 ms or probability < 0.2 -> `lowConfidence`; missing stem / silent stem -> fixed texts; mono 16 kHz float32 via soxr; the adapter runs through `DeviceRunner` with `WHISPER_GPU_NEED`, passes the device, `download_root` = model dir, `original_split=True`, language hint; model download stage + progress; mapping of stable-ts words back to our tokens by order (mismatch -> error), `lowConfidence` below 0.2, word caps; CPU retry on GPU OOM via the runner (FR-004, FR-014)
+- [x] T041 [US2] [stem-separation] Implement `alignment/{audio_prep,mapping,stable_ts_aligner,fake}.py` (lazy imports) and the `align` job handler to pass T040
+- [x] T042 [P] [US2] [stem-separation] Failing tests: `estimatedSeconds` from the T002 formula per device; `Health.lyricsAlignment` (`modelCached` true when the weights file exists with the right size); `@pytest.mark.integration` test `worker/tests/alignment/test_align_clip.py` on the T012 clip asserting >= 80 % of word starts within 300 ms (SC-003, SC-005)
+- [x] T043 [US2] [stem-separation] Implement the estimate and health additions to pass T042 (the integration test is run in T066)
 - [ ] T044 [P] [US2] [backend] Failing tests `LyricsAlignTests.cs`: plain result -> `alignPending`; auto rule starts alignment when the worker device is GPU (from `/api/device`) and the standard job is completed, respecting `STEMSTUDIO_ALIGN_AUTO` reported by the worker; `PUT .../lyrics` (paste; limits; control characters rejected) -> plain document with source user; `POST .../lyrics/align` and `/align/cancel` (409 rules); alignment progress/device/estimate mapped; completion -> `found` origin `aligned` (FR-004)
 - [ ] T045 [US2] [backend] Implement in `Api/Lyrics/*` to pass T044
 - [ ] T046 [P] [US2] [frontend] Failing bUnit tests: track detail `lyrics-section` per status; `lyrics-preview` static text for alignPending/failed with text; `lyrics-align` with `lyrics-align-estimate`; `lyrics-align-progress`, `lyrics-align-device` (003 device badge), `lyrics-align-cancel`; paste dialog (`lyrics-paste-*`, client-side length check); `lyrics-error`; `lyrics-copyright-notice` (FR-004, FR-010)
@@ -172,7 +172,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 ## Phase 6: Polish (inside the wave, per owner)
 
 - [ ] T056 [P] [audio-ingest] Refactor to SIG limits, docstrings, HO:polish with coverage of `lyrics`
-- [ ] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
+- [x] T057 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `alignment`, `jobs`, `api`
 - [ ] T058 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T059 [P] [audio-engine] Refactor, TSDoc, `npm run test:coverage` >= 90 %, HO:polish
 - [ ] T060 [P] [frontend] Accessibility (banner `aria-live="off"` with a "show full lyrics" alternative, keyboard access to controls, focus order, contrast >= 4.5:1), help topic review, HO:polish

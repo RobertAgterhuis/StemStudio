@@ -209,3 +209,78 @@ def test_dropping_a_detail_job_that_is_no_longer_queued_is_harmless() -> None:
     scheduler._drop("gone")
 
     assert scheduler.pending == (0, 0)
+
+
+# ------------------------------------------------------------------ lyrics alignment (006 T017)
+
+
+def _aligning(recorder: Recorder, hooks: SchedulerHooks | None = None) -> PriorityScheduler:
+    """A scheduler whose align units are recorded as ``align:<id>``."""
+    hooks = hooks or SchedulerHooks()
+    align = SchedulerHooks(hooks.on_yield, hooks.on_idle, lambda j: recorder.standard(f"align:{j}"))
+    return PriorityScheduler(recorder.standard, recorder.detail, align)
+
+
+def test_a_queued_alignment_runs_after_waiting_standard_jobs_and_before_detail_steps() -> None:
+    recorder = Recorder({"a": 2})
+    scheduler = _aligning(recorder)
+    scheduler.submit_detail("a")
+    scheduler.submit_align("l1")
+    scheduler.submit("s1")
+    scheduler.submit_align("l2")
+    _started(scheduler).join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["s1", "align:l1", "align:l2", "a:1", "a:2"]
+
+
+def test_an_alignment_never_preempts_a_running_detail_step() -> None:
+    recorder = Recorder({"a": 3})
+    release = recorder.block("a:1")
+    scheduler = _started(_aligning(recorder))
+    scheduler.submit_detail("a")
+    assert recorder.entered["a:1"].wait(WAIT)
+    scheduler.submit_align("l1")
+    scheduler.submit("s1")
+    release.set()
+    scheduler.join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["a:1", "s1", "align:l1", "a:2", "a:3"]
+
+
+def test_a_standard_job_submitted_during_an_alignment_runs_next() -> None:
+    recorder = Recorder({"a": 1})
+    release = recorder.block("align:l1")
+    scheduler = _started(_aligning(recorder))
+    scheduler.submit_align("l1")
+    scheduler.submit_align("l2")
+    assert recorder.entered["align:l1"].wait(WAIT)
+    scheduler.submit_detail("a")
+    scheduler.submit("s1")
+    release.set()
+    scheduler.join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["align:l1", "s1", "align:l2", "a:1"]
+
+
+def test_the_idle_hook_waits_for_queued_alignments() -> None:
+    recorder = Recorder()
+    idle: list[int] = []
+    hooks = SchedulerHooks(on_idle=lambda: idle.append(len(recorder.calls)))
+    scheduler = _aligning(recorder, hooks)
+    scheduler.submit("s1")
+    scheduler.submit_align("l1")
+    _started(scheduler).join()
+    scheduler.stop(WAIT)
+    assert idle == [2]
+    assert scheduler.pending_alignments == 0
+
+
+def test_alignments_without_an_align_unit_are_skipped() -> None:
+    recorder = Recorder()
+    scheduler = PriorityScheduler(recorder.standard, recorder.detail)
+    scheduler.submit_align("l1")
+    scheduler.submit("s1")
+    assert scheduler.pending_alignments == 1
+    _started(scheduler).join()
+    scheduler.stop(WAIT)
+    assert recorder.calls == ["s1"]

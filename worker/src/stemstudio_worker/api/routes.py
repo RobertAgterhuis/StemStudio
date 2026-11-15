@@ -30,7 +30,7 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    """Liveness probe: separator, device preference, active device, lookups, library, lanes.
+    """Liveness probe: device, lookups, library, lanes and the lyrics alignment readiness.
 
     The active device comes from the start-up probe, the library state from the library reader
     (checked on every call) and the lane state from the render lane; before the lifespan started
@@ -43,12 +43,17 @@ def get_health(request: Request) -> JSONResponse:
         online_lookups=settings.online.lookups_enabled,
     )  # fmt: skip
     if runtime is not None:
-        lanes = LanesHealth(render=runtime.lanes.render.health())
-        library = runtime.lanes.library.status()
-        health = health.model_copy(
-            update={"device_info": runtime.device, "library": library, "lanes": lanes}
-        )
+        health = health.model_copy(update=_runtime_health(runtime))
     return json_response(health)
+
+
+def _runtime_health(runtime: WorkerRuntime) -> dict[str, object]:
+    """The ``/health`` members the running job subsystem reports."""
+    lanes = runtime.lanes
+    states = LanesHealth(render=lanes.render.health(), transcribe=lanes.transcription.lane_health())
+    return {"device_info": runtime.device, "library": lanes.library.status(), "lanes": states,
+            "lyrics_alignment": lanes.lyrics.health(),
+            "transcription": lanes.transcription.health()}  # fmt: skip
 
 
 @router.post("/v1/jobs")

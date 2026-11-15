@@ -142,6 +142,11 @@ class MetadataLane:
         lane._lane.start()
         return lane
 
+    @property
+    def lane(self) -> LaneScheduler:
+        """The network lane thread (shared with the lyrics lookups of feature 006)."""
+        return self._lane
+
     def create(self, request: CreateMetadataJobRequest) -> MetadataJob:
         """Persist a queued job for ``request`` and queue it on the lane."""
         now = self._clock()

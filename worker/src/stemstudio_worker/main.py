@@ -8,7 +8,8 @@ scheduler becomes idle the GPU models are released (ADR-012 D6).
 
 The adapters of features 005 and 007 come from the ``metadata`` package (picture normaliser,
 song lookup, source details reader; one rate-limited online client) and the ``render`` package
-(one library reader shared by ``/health`` and the render executor).
+(one library reader shared by ``/health`` and the render executor). Feature 006 adds the lyrics
+lookup, the aligner and the vocal loader; alignments run through the shared device runner.
 """
 
 from collections.abc import AsyncIterator, Callable
@@ -17,15 +18,25 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
-from stemstudio_worker.analysis import create_beat_analyzer
-from stemstudio_worker.api import artwork_routes, detail_routes, metadata_routes, render_routes
+from stemstudio_worker.alignment import alignment_status, create_aligner, create_vocal_loader
+from stemstudio_worker.analysis import LibrosaDrumTranscriber, create_beat_analyzer
+from stemstudio_worker.api import (
+    artwork_routes,
+    detail_routes,
+    lyrics_routes,
+    metadata_routes,
+    render_routes,
+    transcription_routes,
+)
 from stemstudio_worker.api.problems import install_problem_handlers
 from stemstudio_worker.api.routes import router
 from stemstudio_worker.config import WorkerSettings, load_settings
 from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
+from stemstudio_worker.engraving import create_score_engraver, fonts
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
+from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
     OnlineParts,
@@ -33,22 +44,40 @@ from stemstudio_worker.jobs.runtime import (
     WorkerParts,
     WorkerRuntime,
 )
+from stemstudio_worker.jobs.transcription_pipeline import (
+    ScoreRules,
+    TranscriptionEnginesPort,
+    TranscriptionParts,
+)
+from stemstudio_worker.lyrics.lookup import create_lyrics_lookup
+from stemstudio_worker.metadata import (
+    _shared_client as shared_online_client,
+)
 from stemstudio_worker.metadata import (
     create_image_normalizer,
     create_metadata_lookup,
     create_source_details,
 )
+from stemstudio_worker.notation import create_notator
+from stemstudio_worker.notation.notices import score_warning
+from stemstudio_worker.notation.profiles import get_profile, resolve_resolution
 from stemstudio_worker.ports import (
+    WHISPER_GPU_NEED,
+    Aligner,
     GpuNeed,
     ImageNormalizer,
     LibraryReader,
+    LyricsLookup,
     MetadataLookup,
+    Notator,
     PipelineAdapters,
     RenderExecutor,
+    ScoreEngraver,
 )
 from stemstudio_worker.render import create_library_reader, create_render_executor
-from stemstudio_worker.schemas import CONTRACT_VERSION
+from stemstudio_worker.schemas import CONTRACT_VERSION, ScoreProfile
 from stemstudio_worker.separation import create_separator
+from stemstudio_worker.transcription import create_transcription_engines
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
 
@@ -58,6 +87,8 @@ _ROUTERS = (
     metadata_routes.router,
     artwork_routes.router,
     render_routes.router,
+    lyrics_routes.router,
+    transcription_routes.router,
 )
 
 
@@ -71,6 +102,13 @@ class AppOverrides:
         metadata_lookup: Song lookup of metadata jobs (default ``metadata.create_metadata_lookup``).
         render_executor: Renderer of render jobs (default ``render.create_render_executor``).
         library: Library reader (default ``render.create_library_reader``).
+        lyrics_lookup: LRCLIB lookup of lyrics jobs (default ``lyrics.create_lyrics_lookup``).
+        aligner: Lyrics aligner (default ``alignment.create_aligner``).
+        vocal_loader: Vocal stem loader of alignments (default ``alignment.create_vocal_loader``).
+        transcription_engines: Per-job transcribers (default
+            ``transcription.create_transcription_engines``).
+        notator: Notes -> score (default ``notation.create_notator``).
+        score_engraver: MusicXML -> PDF (default ``engraving.create_score_engraver``).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -78,6 +116,12 @@ class AppOverrides:
     metadata_lookup: MetadataLookup | None = None
     render_executor: RenderExecutor | None = None
     library: LibraryReader | None = None
+    lyrics_lookup: LyricsLookup | None = None
+    aligner: Aligner | None = None
+    vocal_loader: VocalLoader | None = None
+    transcription_engines: TranscriptionEnginesPort | None = None
+    notator: Notator | None = None
+    score_engraver: ScoreEngraver | None = None
 
 
 def create_app(
@@ -139,6 +183,27 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
     return RenderParts(executor=executor, library=library)
 
 
+def default_lyrics(
+    settings: WorkerSettings, overrides: AppOverrides, devices: ManagedRunner
+) -> LyricsParts:
+    """The feature 006 parts: injected ones, else the ``lyrics``/``alignment`` factories.
+
+    The LRCLIB lookup uses the process-wide 005 online client (one shared rate limiter).
+    """
+    lookup = overrides.lyrics_lookup or create_lyrics_lookup(
+        settings, shared_online_client(settings.online)
+    )
+    status = alignment_status(settings)
+    return LyricsParts(
+        lookup=lookup,
+        aligner=overrides.aligner or create_aligner(settings),
+        vocals=overrides.vocal_loader or create_vocal_loader(),
+        devices=devices,
+        model_cached=status.model_cached,
+        health=status.health,
+    )
+
+
 class _Parts:
     """The optional, injected parts of the app (tests); missing ones are built at start-up."""
 
@@ -157,35 +222,67 @@ class _Parts:
         devices = self.devices or create_device_runner(settings)
         pipeline = self.overrides.detail_pipeline or create_detail_pipeline(settings, devices)
         adapters = self.adapters or default_adapters(settings, devices)
-        devices.reclaim_with(_reclaimer(pipeline))
-        hooks = DeviceHooks(info=devices.info, on_idle=_idle_release(devices, pipeline))
+        lyrics = default_lyrics(settings, self.overrides, devices)
+        models = _GpuModels(pipeline, lyrics.aligner)
+        devices.reclaim_with(models.reclaim)
+        hooks = DeviceHooks(info=devices.info, on_idle=models.idle_release(devices))
         online = default_online(settings, self.overrides)
         render = default_render(settings, self.overrides)
-        parts = WorkerParts(adapters, pipeline, hooks, online, render)
+        scores = default_transcription(settings, self.overrides, devices, render.library)
+        parts = WorkerParts(adapters, pipeline, hooks, online, render, lyrics, scores)
         return WorkerRuntime.start_with(settings, parts)
 
 
-def _reclaimer(pipeline: DetailPipelinePort) -> Callable[[GpuNeed], None]:
-    """Release the pipeline's GPU models except the one the short step needs."""
-    release_models: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
-
-    def reclaim(need: GpuNeed) -> None:
-        if release_models is not None:
-            release_models(keep=need)
-
-    return reclaim
+def _pitch_range(profile: ScoreProfile) -> tuple[int, int]:
+    found = get_profile(profile)
+    return found.low, found.high
 
 
-def _idle_release(devices: ManagedRunner, pipeline: DetailPipelinePort) -> Callable[[], None]:
-    """Drop the pipeline's GPU models (when it has any), then return the GPU memory."""
-    release_models: Callable[[], None] | None = getattr(pipeline, "release_gpu", None)
+SCORE_RULES = ScoreRules(pitch_range=_pitch_range, resolution=resolve_resolution,
+                         warning=score_warning)  # fmt: skip
+"""The ``notation`` profile facts the transcription jobs use."""
 
-    def release() -> None:
-        if release_models is not None:
-            release_models()
-        devices.release()
 
-    return release
+def default_transcription(
+    settings: WorkerSettings,
+    overrides: AppOverrides,
+    devices: ManagedRunner,
+    library: LibraryReader,
+) -> TranscriptionParts:
+    """The feature 008 parts: injected ones, else the transcription/notation/engraving factories."""
+    engines = overrides.transcription_engines or create_transcription_engines(
+        settings, devices, LibrosaDrumTranscriber()
+    )
+    notator = overrides.notator or create_notator()
+    engraver = overrides.score_engraver or create_score_engraver()
+    return TranscriptionParts(engines, notator, engraver, SCORE_RULES, library,
+                              fonts.leipzig_available)  # fmt: skip
+
+
+class _GpuModels:
+    """The worker's cached models: the detail pipeline's (``release_gpu``) and the aligner's."""
+
+    def __init__(self, pipeline: object, aligner: object) -> None:
+        self._pipeline: Callable[..., None] | None = getattr(pipeline, "release_gpu", None)
+        self._aligner: Callable[[], None] | None = getattr(aligner, "release", None)
+
+    def reclaim(self, need: GpuNeed) -> None:
+        """Release the models a step that does not fit does not need (keeps its own)."""
+        if self._pipeline is not None:
+            self._pipeline(keep=need)
+        if self._aligner is not None and need != WHISPER_GPU_NEED:
+            self._aligner()
+
+    def idle_release(self, devices: ManagedRunner) -> Callable[[], None]:
+        """Idle hook: drop every cached model, then return the GPU memory."""
+
+        def release() -> None:
+            for drop in (self._pipeline, self._aligner):
+                if drop is not None:
+                    drop()
+            devices.release()
+
+        return release
 
 
 def _lifespan(settings: WorkerSettings, parts: _Parts) -> Lifespan:
