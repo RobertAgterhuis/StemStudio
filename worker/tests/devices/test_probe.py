@@ -57,7 +57,7 @@ def test_torch_that_cannot_be_imported_counts_as_a_cpu_build() -> None:
     def missing() -> FakeTorch:
         raise ImportError("No module named 'torch'")
 
-    info = probe_device("auto", missing, FakeNvml)  # type: ignore[arg-type]
+    info = probe_device("auto", missing, FakeNvml)
     assert info == DeviceInfo(kind="cpu", reason=NO_CUDA_BUILD)
 
 
@@ -101,6 +101,17 @@ def test_the_first_failing_step_wins() -> None:
     assert _probe(fake, nvml).reason == NOT_AVAILABLE
     assert "test_kernel" not in fake.calls
     assert nvml.reads == 0
+
+
+def test_a_failing_device_query_counts_as_a_failing_kernel() -> None:
+    class Broken(FakeTorch):
+        def device_name(self) -> str:
+            raise RuntimeError("no kernel image is available for execution on the device")
+
+    info = _probe(Broken())
+    assert info.reason == (
+        "The GPU test kernel failed: no kernel image is available for execution on the device."
+    )
 
 
 def test_a_long_gpu_name_is_clipped_to_the_contract_limit() -> None:
