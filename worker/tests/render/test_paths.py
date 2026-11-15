@@ -56,7 +56,7 @@ def _link_directory(link: Path, target: Path) -> None:
             raise
         import _winapi  # noqa: PLC0415  (Windows only)
 
-        _winapi.CreateJunction(str(target), str(link))
+        _winapi.CreateJunction(str(target), str(link))  # type: ignore[attr-defined,unused-ignore]
 
 
 def test_mounted_library_is_a_library_reader(tmp_path: Path) -> None:
