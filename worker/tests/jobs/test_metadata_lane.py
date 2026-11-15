@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.jobs.lanes import LaneScheduler
-from stemstudio_worker.jobs.metadata_lane import MetadataLane
+from stemstudio_worker.jobs.metadata_lane import MetadataLane, MetadataRunner
 from stemstudio_worker.jobs.metadata_store import MetadataJobStore, StoredMetadataJob
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.scheduler import PriorityScheduler
@@ -89,7 +89,7 @@ def test_create_queues_a_persisted_job(env: Env) -> None:
     _done(lane)
 
 
-def test_a_job_runs_with_the_lookup_stages_then_completes(env: Env) -> None:
+def test_a_running_job_shows_the_search_stage(env: Env) -> None:
     release = env.lookup.block()
     lane = env.start()
     job_id = lane.create(REQUEST).metadata_job_id
@@ -99,6 +99,38 @@ def test_a_job_runs_with_the_lookup_stages_then_completes(env: Env) -> None:
     assert running is not None
     assert (running.status, running.stage) == (S.RUNNING, "Searching MusicBrainz")
     release.set()
+    _done(lane)
+
+
+class RecordingStore(MetadataJobStore):
+    """A real store that also records every saved (status, stage)."""
+
+    def __init__(self, paths: DataPaths) -> None:
+        super().__init__(paths)
+        self.history: list[tuple[MetadataJobState, str]] = []
+
+    def save(self, record: StoredMetadataJob) -> None:
+        self.history.append((record.job.status, record.job.stage))
+        super().save(record)
+
+
+def test_the_lookup_stages_are_reported_while_running(env: Env) -> None:
+    env.seed("6" * 32, S.QUEUED)
+    store = RecordingStore(env.paths)
+    store.load_all()
+
+    MetadataRunner(store, env.lookup, env.clock).process("6" * 32)
+
+    assert store.history == [
+        (S.RUNNING, "Searching MusicBrainz"),
+        (S.RUNNING, "Reading Wikidata"),
+        (S.COMPLETED, "Completed"),
+    ]
+
+
+def test_a_job_completes_with_its_result(env: Env) -> None:
+    lane = env.start()
+    job_id = lane.create(REQUEST).metadata_job_id
     _done(lane)
 
     done = lane.get(job_id)
@@ -172,11 +204,8 @@ def test_an_unexpected_error_fails_only_that_job(
     second = lane.create(REQUEST).metadata_job_id
     _done(lane)
 
-    failed, completed = lane.get(first), lane.get(second)
-    assert failed is not None
-    assert completed is not None
-    assert (failed.status, failed.error) == (S.FAILED, METADATA_FAILED_TEXT)
-    assert completed.status is S.COMPLETED
+    states = [(job.status, job.error) for job in map(lane.get, (first, second)) if job]
+    assert states == [(S.FAILED, METADATA_FAILED_TEXT), (S.COMPLETED, None)]
     assert "failed unexpectedly" in caplog.text
 
 
@@ -248,6 +277,23 @@ def test_restart_leaves_terminal_jobs_alone(env: Env, status: MetadataJobState) 
     assert env.lookup.queries == []
 
 
+def test_a_damaged_result_file_reads_as_no_result(env: Env) -> None:
+    lane = env.start()
+    job_id = lane.create(REQUEST).metadata_job_id
+    _done(lane)
+    env.paths.metadata_result(job_id).write_text("{", encoding="utf-8")
+
+    assert lane.result(job_id) is None
+    assert lane.artwork(job_id, "cover") is None
+
+
+def test_removing_an_unknown_record_is_a_no_op(env: Env) -> None:
+    store = MetadataJobStore(env.paths)
+
+    assert store.delete("5" * 32) is False
+    store.remove("5" * 32)
+
+
 def test_a_damaged_record_file_is_skipped(env: Env) -> None:
     env.paths.metadata_jobs.mkdir(parents=True)
     (env.paths.metadata_jobs / f"{'4' * 32}.json").write_text("{", encoding="utf-8")
@@ -260,7 +306,9 @@ def test_a_damaged_record_file_is_skipped(env: Env) -> None:
 # ------------------------------------------------------------------ independence
 
 
-def test_a_long_separation_does_not_delay_a_metadata_job(env: Env) -> None:
+@pytest.fixture
+def blocked_separation() -> Iterator[PriorityScheduler]:
+    """A priority scheduler whose standard job runs until the test ends."""
     started, release = threading.Event(), threading.Event()
 
     def long_separation(_job_id: str) -> None:
@@ -269,19 +317,24 @@ def test_a_long_separation_does_not_delay_a_metadata_job(env: Env) -> None:
 
     separations = PriorityScheduler(long_separation, lambda _detail: False)
     separations.start()
-    try:
-        separations.submit("a" * 32)
-        assert started.wait(WAIT)
-        lane = env.start()
-        job_id = lane.create(REQUEST).metadata_job_id
-        _done(lane)
-        job = lane.get(job_id)
-        assert job is not None
-        assert job.status is S.COMPLETED
-        assert not separations.join(0)
-    finally:
-        release.set()
-        separations.stop(WAIT)
+    separations.submit("a" * 32)
+    assert started.wait(WAIT)
+    yield separations
+    release.set()
+    separations.stop(WAIT)
+
+
+def test_a_long_separation_does_not_delay_a_metadata_job(
+    env: Env, blocked_separation: PriorityScheduler
+) -> None:
+    lane = env.start()
+    job_id = lane.create(REQUEST).metadata_job_id
+    _done(lane)
+
+    job = lane.get(job_id)
+    assert job is not None
+    assert job.status is S.COMPLETED
+    assert not blocked_separation.join(0)
 
 
 # ------------------------------------------------------------------ sweep

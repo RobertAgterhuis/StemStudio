@@ -66,3 +66,20 @@ class DataPaths:
     def detail_stem(self, audio_sha256: str, parent: StemName, name: DetailStemName) -> Path:
         """FLAC file of one cached detail stem."""
         return self.detail_final(audio_sha256) / parent / f"{name}.flac"
+
+    @property
+    def metadata_jobs(self) -> Path:
+        """Directory of the ``<metadataJobId>.json`` metadata job files (feature 005)."""
+        return self.root / "metadata-jobs"
+
+    def metadata_job_dir(self, job_id: str) -> Path:
+        """Files of one metadata job (``result.json``, ``artwork/``); swept with the job."""
+        return self.metadata_jobs / job_id
+
+    def metadata_result(self, job_id: str) -> Path:
+        """Result of a completed metadata job."""
+        return self.metadata_job_dir(job_id) / "result.json"
+
+    def metadata_artwork(self, job_id: str) -> Path:
+        """Cover Art Archive picture (``cover.jpg``, ``thumb.jpg``) of a metadata job."""
+        return self.metadata_job_dir(job_id) / "artwork"
