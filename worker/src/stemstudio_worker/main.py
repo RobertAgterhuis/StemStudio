@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
-from stemstudio_worker.alignment import create_aligner, create_vocal_loader, whisper_weights
+from stemstudio_worker.alignment import alignment_status, create_aligner, create_vocal_loader
 from stemstudio_worker.analysis import create_beat_analyzer
 from stemstudio_worker.api import (
     artwork_routes,
@@ -34,7 +34,6 @@ from stemstudio_worker.detail import create_detail_pipeline
 from stemstudio_worker.devices import ManagedRunner, create_device_runner
 from stemstudio_worker.ingest import create_ingest_adapters
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
-from stemstudio_worker.jobs.lyrics_defaults import DisabledLyricsLookup
 from stemstudio_worker.jobs.lyrics_runner import LyricsParts, VocalLoader
 from stemstudio_worker.jobs.runtime import (
     DeviceHooks,
@@ -43,11 +42,13 @@ from stemstudio_worker.jobs.runtime import (
     WorkerParts,
     WorkerRuntime,
 )
+from stemstudio_worker.lyrics.lookup import create_lyrics_lookup
 from stemstudio_worker.metadata import (
     create_image_normalizer,
     create_metadata_lookup,
     create_source_details,
 )
+from stemstudio_worker.metadata.http import create_online_client
 from stemstudio_worker.ports import (
     WHISPER_GPU_NEED,
     Aligner,
@@ -85,7 +86,7 @@ class AppOverrides:
         metadata_lookup: Song lookup of metadata jobs (default ``metadata.create_metadata_lookup``).
         render_executor: Renderer of render jobs (default ``render.create_render_executor``).
         library: Library reader (default ``render.create_library_reader``).
-        lyrics_lookup: LRCLIB lookup of lyrics jobs (default: lookups complete ``disabled``).
+        lyrics_lookup: LRCLIB lookup of lyrics jobs (default ``lyrics.create_lyrics_lookup``).
         aligner: Lyrics aligner (default ``alignment.create_aligner``).
         vocal_loader: Vocal stem loader of alignments (default ``alignment.create_vocal_loader``).
     """
@@ -162,13 +163,18 @@ def default_render(settings: WorkerSettings, overrides: AppOverrides) -> RenderP
 def default_lyrics(
     settings: WorkerSettings, overrides: AppOverrides, devices: ManagedRunner
 ) -> LyricsParts:
-    """The feature 006 parts: injected ones, else the ``alignment`` factories; one device runner."""
+    """The feature 006 parts: injected ones, else the ``lyrics``/``alignment`` factories."""
+    lookup = overrides.lyrics_lookup or create_lyrics_lookup(
+        settings, create_online_client(settings.online)
+    )
+    status = alignment_status(settings)
     return LyricsParts(
-        lookup=overrides.lyrics_lookup or DisabledLyricsLookup(),
+        lookup=lookup,
         aligner=overrides.aligner or create_aligner(settings),
         vocals=overrides.vocal_loader or create_vocal_loader(),
         devices=devices,
-        model_cached=whisper_weights(settings).cached,
+        model_cached=status.model_cached,
+        health=status.health,
     )
 
 

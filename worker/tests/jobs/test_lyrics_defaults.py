@@ -7,7 +7,7 @@ import pytest
 
 from stemstudio_worker.jobs.lyrics_defaults import default_lyrics_parts
 from stemstudio_worker.ports import WHISPER_GPU_NEED, AlignmentError, AlignRequest, LyricsQuery
-from stemstudio_worker.schemas import ALIGNMENT_FAILED_TEXT, CPU_DEVICE
+from stemstudio_worker.schemas import ALIGNMENT_FAILED_TEXT, ALIGNMENT_NOT_CHECKED, CPU_DEVICE
 
 
 def _ignore(fraction: float, stage: str) -> None:
@@ -22,6 +22,7 @@ def test_lookups_are_disabled_and_alignments_fail_on_the_cpu(tmp_path: Path) -> 
 
     assert (result.outcome, result.lyrics) == ("disabled", None)
     assert parts.devices.info == CPU_DEVICE
+    assert parts.health() == ALIGNMENT_NOT_CHECKED
     assert parts.devices.run(lambda device: device, WHISPER_GPU_NEED)[0] == "cpu"
     with pytest.raises(AlignmentError, match=ALIGNMENT_FAILED_TEXT):
         parts.aligner.align(request, "cpu", _ignore)

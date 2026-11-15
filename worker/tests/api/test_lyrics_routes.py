@@ -233,6 +233,7 @@ def test_the_default_app_runs_lookups_with_its_own_provider(api: Api) -> None:
 
     assert job["status"] == "completed"
     assert_conforms(result, RESULT)
+    assert (result.json()["outcome"], result.json()["lyrics"]["syncLevel"]) == ("found", "word")
 
 
 # ------------------------------------------------------------------ estimate and health

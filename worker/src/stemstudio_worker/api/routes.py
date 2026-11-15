@@ -30,7 +30,7 @@ _STEM_NAMES: tuple[StemName, ...] = get_args(StemName)
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    """Liveness probe: separator, device preference, active device, lookups, library, lanes.
+    """Liveness probe: device, lookups, library, lanes and the lyrics alignment readiness.
 
     The active device comes from the start-up probe, the library state from the library reader
     (checked on every call) and the lane state from the render lane; before the lifespan started
@@ -45,9 +45,9 @@ def get_health(request: Request) -> JSONResponse:
     if runtime is not None:
         lanes = LanesHealth(render=runtime.lanes.render.health())
         library = runtime.lanes.library.status()
-        health = health.model_copy(
-            update={"device_info": runtime.device, "library": library, "lanes": lanes}
-        )
+        update = {"device_info": runtime.device, "library": library, "lanes": lanes,
+                  "lyrics_alignment": runtime.lanes.lyrics.health()}  # fmt: skip
+        health = health.model_copy(update=update)
     return json_response(health)
 
 

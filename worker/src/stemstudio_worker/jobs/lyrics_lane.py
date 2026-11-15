@@ -25,6 +25,7 @@ from stemstudio_worker.schemas import (
     AlignLyricsRequest,
     JobState,
     LookupLyricsRequest,
+    LyricsAlignmentHealth,
     LyricsJob,
     LyricsJobState,
     LyricsResult,
@@ -180,6 +181,10 @@ class LyricsService:
         for job_id in expired:
             self._jobs.remove(job_id)
         return expired
+
+    def health(self) -> LyricsAlignmentHealth:
+        """``Health.lyricsAlignment`` of the composed aligner."""
+        return self._runner.parts.health()
 
     def _record(self, job_id: str) -> StoredLyricsJob:
         record = self._context.store.get(job_id)

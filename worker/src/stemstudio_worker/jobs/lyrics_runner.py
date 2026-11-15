@@ -35,6 +35,7 @@ from stemstudio_worker.ports import (
 )
 from stemstudio_worker.schemas import (
     ALIGNMENT_FAILED_TEXT,
+    ALIGNMENT_NOT_CHECKED,
     LYRICS_STAGE_ALIGNING,
     LYRICS_STAGE_SEARCHING,
     LYRICS_UNREACHABLE_TEXT,
@@ -43,6 +44,7 @@ from stemstudio_worker.schemas import (
     DeviceInfo,
     JobDevice,
     LookupLyricsRequest,
+    LyricsAlignmentHealth,
     LyricsJobState,
     LyricsResult,
     TimedLyrics,
@@ -70,6 +72,10 @@ def _never() -> bool:
     return False
 
 
+def _not_checked() -> LyricsAlignmentHealth:
+    return ALIGNMENT_NOT_CHECKED
+
+
 @dataclass(frozen=True, slots=True)
 class LyricsParts:
     """The adapters of feature 006 (built by the composition root).
@@ -79,7 +85,8 @@ class LyricsParts:
         aligner: stable-ts + Whisper aligner (``alignment`` package) or its fake.
         vocals: Loads the vocal stem for the aligner.
         devices: The worker's device runner (one GPU step at a time, CPU fallback).
-        model_cached: Whether the Whisper weights are in the model cache (estimate, health).
+        model_cached: Whether the Whisper weights are in the model cache (estimate).
+        health: ``Health.lyricsAlignment`` (checked on every ``/health``).
     """
 
     lookup: LyricsLookup
@@ -87,6 +94,7 @@ class LyricsParts:
     vocals: VocalLoader
     devices: DeviceRunner
     model_cached: Callable[[], bool] = _never
+    health: Callable[[], LyricsAlignmentHealth] = _not_checked
 
 
 @dataclass(frozen=True, slots=True)
