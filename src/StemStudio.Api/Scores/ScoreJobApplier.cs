@@ -76,22 +76,12 @@ public sealed class ScoreJobApplier(IWorkerClient worker, IAssetFileStore files,
         }
     }
 
+    /// <summary>The validated facts: the summary, the device, and the piano model credit when the worker gave none (CC BY 4.0).</summary>
     private ScoreFacts Facts(Asset asset, WorkerScoreSummary summary, WorkerJobDevice? device)
     {
-        var facts = new ScoreFacts
+        var facts = ScoreMapper.ToFacts(summary) with
         {
-            Profile = summary.Profile,
-            Engine = summary.Engine,
-            Quality = summary.Quality,
-            Key = summary.Key,
-            Bpm = summary.Bpm,
-            TimeSignature = summary.TimeSignature,
-            Bars = summary.Bars,
-            Notes = summary.Notes,
-            Pages = summary.Pages,
-            Resolution = summary.Resolution,
-            Warnings = summary.Warnings,
-            Attribution = summary.Attribution,
+            Attribution = summary.Attribution ?? (summary.Engine == ScoreEngine.PianoCrnn ? ProfileCatalog.PianoAttribution : null),
             Device = devices.Convert(asset.Id, device),
         };
         ScoreFactsRules.Validate(facts);

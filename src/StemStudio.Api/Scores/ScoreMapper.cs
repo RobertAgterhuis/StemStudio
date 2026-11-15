@@ -1,4 +1,5 @@
 using StemStudio.Api.Tracks;
+using StemStudio.Api.Worker;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Scores;
 using StemStudio.Domain.Rendering;
@@ -66,6 +67,28 @@ public static class ScoreMapper
             Warnings = facts.Warnings.Select(warning => new ScoreWarningDto(Map<ScoreWarningCodeDto>(warning.Code), warning.Text)).ToList(),
             Attribution = facts.Attribution,
             Device = TrackMapper.ToDto(facts.Device),
+        };
+    }
+
+    /// <summary>The facts of a worker summary (no device, attribution as sent).</summary>
+    /// <param name="summary">The summary.</param>
+    /// <returns>The facts (not validated).</returns>
+    public static ScoreFacts ToFacts(WorkerScoreSummary summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+        return new ScoreFacts
+        {
+            Profile = summary.Profile,
+            Engine = summary.Engine,
+            Quality = summary.Quality,
+            Key = summary.Key,
+            Bpm = summary.Bpm,
+            TimeSignature = summary.TimeSignature,
+            Bars = summary.Bars,
+            Notes = summary.Notes,
+            Pages = summary.Pages,
+            Resolution = summary.Resolution,
+            Warnings = summary.Warnings,
         };
     }
 
