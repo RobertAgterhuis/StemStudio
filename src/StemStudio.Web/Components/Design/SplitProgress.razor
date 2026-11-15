@@ -1,15 +1,44 @@
-@* Red stub (T025). *@
+@* Signature progress visual (FR-007): one grey strand becomes six coloured ones as the separation advances. Purely
+   decorative (aria-hidden); the accessible value stays on the progress bar next to it. Progress is drawn by the
+   --split custom property through a transform (scaleX), so no script or layout animation is involved. *@
+
+<svg class="@($"ss-split{(State == SplitState.Done ? " ss-split-reveal" : null)}")" viewBox="0 0 240 64" aria-hidden="true"
+     focusable="false" data-testid="@TestId" data-state="@State.ToString().ToLowerInvariant()" style="@($"--split: {Fraction}")">
+    <defs>
+        <clipPath id="@ClipId"><rect class="ss-split-clip" x="0" y="0" width="240" height="64" /></clipPath>
+    </defs>
+    <path class="ss-split-song" d="M2 32H72" />
+    @foreach (var (stem, y) in Strands)
+    {
+        <path class="ss-split-guide" d="@Strand(y)" />
+    }
+    <g clip-path="@($"url(#{ClipId})")">
+        @foreach (var (stem, y) in Strands)
+        {
+            <path class="@($"ss-split-strand ss-stroke-{stem}")" d="@Strand(y)" />
+        }
+    </g>
+</svg>
 
 @code {
-    /// <summary>Stub.</summary>
+    private static readonly (string Stem, int Y)[] Strands =
+        [("vocals", 7), ("drums", 17), ("bass", 27), ("guitar", 37), ("piano", 47), ("other", 57)];
+
+    /// <summary>idle, running or done.</summary>
     [Parameter]
     public SplitState State { get; set; }
 
-    /// <summary>Stub.</summary>
+    /// <summary>Progress 0-100 (clamped).</summary>
     [Parameter]
     public double Progress { get; set; }
 
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary><c>split-progress</c> or <c>detail-split-progress</c>; also scopes the clip id.</summary>
+    [Parameter, EditorRequired]
     public string TestId { get; set; } = string.Empty;
+
+    private string ClipId => $"{TestId}-clip";
+
+    private string Fraction => InputValue.Format(Math.Clamp(Progress, 0, 100) / 100);
+
+    private static string Strand(int y) => $"M72 32C100 32 100 {y} 128 {y}H238";
 }

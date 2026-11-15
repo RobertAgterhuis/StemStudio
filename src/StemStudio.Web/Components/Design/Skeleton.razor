@@ -1,15 +1,23 @@
-@* Red stub (T025). *@
+@* Loading placeholder in the shape of the content (design-spec.md 4.10); the status text stays readable. *@
+
+<div class="ss-skeleton" role="status">
+    <span class="ss-skeleton-label" data-testid="@TestId">@Label</span>
+    @for (var i = 0; i < Lines; i++)
+    {
+        <span class="@($"ss-skeleton-bar{(i == 0 ? " ss-skeleton-title" : null)}")" aria-hidden="true"></span>
+    }
+</div>
 
 @code {
-    /// <summary>Stub.</summary>
+    /// <summary>Number of placeholder bars.</summary>
     [Parameter]
     public int Lines { get; set; } = 3;
 
-    /// <summary>Stub.</summary>
+    /// <summary>The status text.</summary>
     [Parameter]
     public string Label { get; set; } = "Loading...";
 
-    /// <summary>Stub.</summary>
+    /// <summary>Optional <c>data-testid</c> of the status text (e.g. <c>mixer-loading</c>).</summary>
     [Parameter]
     public string? TestId { get; set; }
 }

@@ -114,12 +114,6 @@
   stroke: var(--ss-color-muted);
 }
 
-.ss-stroke-vocals { stroke: var(--ss-stem-vocals); }
-.ss-stroke-drums { stroke: var(--ss-stem-drums); }
-.ss-stroke-bass { stroke: var(--ss-stem-bass); }
-.ss-stroke-guitar { stroke: var(--ss-stem-guitar); }
-.ss-stroke-piano { stroke: var(--ss-stem-piano); }
-.ss-stroke-other { stroke: var(--ss-stem-other); }
 
 /* Context bar. */
 .ss-bar {

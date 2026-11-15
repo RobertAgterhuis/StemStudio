@@ -1,15 +1,20 @@
-@* Red stub (T025). *@
+@* Designed empty state (design-spec.md 4.10): one sentence and the action that fills the screen. *@
+
+<div class="ss-state ss-state-empty" data-testid="@TestId">
+    <BrandMark />
+    <p class="ss-state-text">@Text @ChildContent</p>
+</div>
 
 @code {
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary><c>data-testid</c> (for example <c>tracks-empty</c>).</summary>
+    [Parameter, EditorRequired]
     public string TestId { get; set; } = string.Empty;
 
-    /// <summary>Stub.</summary>
-    [Parameter]
+    /// <summary>The sentence, e.g. "No tracks yet."</summary>
+    [Parameter, EditorRequired]
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Stub.</summary>
+    /// <summary>The next action (a link or button), rendered inline after the sentence.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 }
