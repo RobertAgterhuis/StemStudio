@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-    pytest with coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly),
+    pytest with coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
     quality gate (self-checks + SIG checks), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -34,7 +34,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Redocly = '@redocly/cli@2.78.0'
-$Contracts = 'specs/003-gpu-acceleration/contracts'
+$Contracts = 'specs/007-export-library/contracts'  # 007 documents contain 005's unchanged
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
@@ -60,6 +60,7 @@ $Steps = @(
     @{ Name = 'web-interop test:coverage'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'web-interop build'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'build') }
     @{ Name = 'contracts lint'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/worker-api.openapi.yaml", "$Contracts/backend-api.openapi.yaml") }
+    @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', "$Contracts/generate_render_vectors.py", '--check') }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'quality mypy'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'mypy') }

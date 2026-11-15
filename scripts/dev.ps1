@@ -76,6 +76,18 @@ function Initialize-Environment {
     $env:StemStudio__ApiBaseUrl = 'http://localhost:8081'
     $env:StemStudio__PublicApiBaseUrl = 'http://localhost:8081'
     Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR (fake device $env:STEMSTUDIO_FAKE_DEVICE); data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
+    Initialize-LibraryEnvironment (Join-Path $dataDir 'api')
+}
+
+function Initialize-LibraryEnvironment {
+    <# Feature 007: the worker reads the API data dir (never writes; the API is the only writer).
+       Feature 005: STEMSTUDIO_ONLINE_LOOKUPS, STEMSTUDIO_CONTACT_URL, STEMSTUDIO_WIKIPEDIA_LANGUAGES and
+       STEMSTUDIO_FAKE_ONLINE pass through from your shell unchanged (worker defaults: on, generic
+       User-Agent token, en, found); no value is set here. #>
+    param([string] $ApiDataDir)
+    $env:STEMSTUDIO_LIBRARY_DIR = $ApiDataDir
+    $lookups = if ($env:STEMSTUDIO_ONLINE_LOOKUPS) { $env:STEMSTUDIO_ONLINE_LOOKUPS } else { 'on' }
+    Write-Host "Library (read-only for the worker): $env:STEMSTUDIO_LIBRARY_DIR; online lookups: $lookups"
 }
 
 function Build-Engine {

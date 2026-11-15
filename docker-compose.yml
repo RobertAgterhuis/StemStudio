@@ -18,6 +18,19 @@
 # parent step, default 1; set 0 for the fastest runs).
 # No secrets are used or needed. Kestrel serves directly (no reverse proxy), so the API's own
 # upload limit (200 MiB) applies; a proxy added later must allow >= 200 MiB + multipart overhead.
+#
+# Online lookups (feature 005; specs/005-artwork-band-info/quickstart.md), worker only, all optional:
+#   STEMSTUDIO_ONLINE_LOOKUPS=on|off        default on; off = no MusicBrainz/Cover Art Archive/
+#                                           Wikidata/Wikipedia request at all
+#   STEMSTUDIO_CONTACT_URL=https://...      public page about your install, sent in the User-Agent;
+#                                           never an e-mail; unset = generic token (FR-010). It is
+#                                           passed through from your shell only, never baked in.
+#   STEMSTUDIO_WIKIPEDIA_LANGUAGES=nl,en    excerpt language order, 1-5 codes (default en)
+#   STEMSTUDIO_FAKE_ONLINE=found|not-found|failed|off   fake lookups (only with the fake separator)
+# Export and library (feature 007, ADR-016 D5): the worker mounts the API data volume READ-ONLY at
+# /library (STEMSTUDIO_LIBRARY_DIR) to render exports from stems; the API is the only writer.
+# Check it with scripts/check-library-mount.{sh,ps1}. STEMSTUDIO_RENDER_BLOCK_SECONDS (default 10)
+# sets the render block length.
 
 name: stemstudio
 
@@ -36,11 +49,21 @@ services:
       STEMSTUDIO_MODEL_DIR: /models
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: ${STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS:-1}
       STEMSTUDIO_FAKE_DEVICE: ${STEMSTUDIO_FAKE_DEVICE:-cpu}
+      # Feature 005 (online lookups): pass-through with the worker's own defaults.
+      STEMSTUDIO_ONLINE_LOOKUPS: ${STEMSTUDIO_ONLINE_LOOKUPS:-on}
+      STEMSTUDIO_CONTACT_URL: ${STEMSTUDIO_CONTACT_URL:-}
+      STEMSTUDIO_WIKIPEDIA_LANGUAGES: ${STEMSTUDIO_WIKIPEDIA_LANGUAGES:-en}
+      STEMSTUDIO_FAKE_ONLINE: ${STEMSTUDIO_FAKE_ONLINE:-found}
+      # Feature 007 (render lane): the read-only API library and the render block length.
+      STEMSTUDIO_LIBRARY_DIR: /library
+      STEMSTUDIO_RENDER_BLOCK_SECONDS: ${STEMSTUDIO_RENDER_BLOCK_SECONDS:-10}
     expose:
       - "8000"
     volumes:
       - worker-data:/data
       - model-cache:/models
+      # Read-only: the worker renders exports from the API's stems; the API is the only writer.
+      - api-data:/library:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
       interval: 10s
