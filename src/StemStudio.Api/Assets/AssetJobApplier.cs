@@ -76,7 +76,7 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
             throw new InvalidDataException(DamagedFile);
         }
 
-        var format = asset.Provenance.Recipe.Format;
+        var format = asset.Provenance.Recipe!.Format;
         var audio = new AudioFacts(format.Format, format.BitDepth, format.Mp3BitrateKbps, result.DurationSeconds, result.PeakDbfs, result.AppliedGainDb);
         asset.Complete([new AssetFile(AudioRole, fileName, result.ContentType, stored.SizeBytes, stored.Sha256)], audio, Now);
     }

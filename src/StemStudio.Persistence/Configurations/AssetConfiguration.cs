@@ -36,6 +36,7 @@ public sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
     private static void ConfigureJson(EntityTypeBuilder<Asset> builder)
     {
         builder.Ignore(asset => asset.Files);
+        builder.Ignore(asset => asset.Score); // mapped by the 008 migration AddScoreFacts (T035)
         builder.Property<List<AssetFile>>("_files").HasColumnName("Files")
             .HasConversion(JsonColumn<List<AssetFile>>.Converter, JsonColumn<List<AssetFile>>.Comparer);
         builder.Property(asset => asset.Audio).HasConversion(JsonColumn<AudioFacts>.Converter!, JsonColumn<AudioFacts>.Comparer!);

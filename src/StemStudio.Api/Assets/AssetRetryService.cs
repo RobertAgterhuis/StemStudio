@@ -23,7 +23,7 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
             return asset is null ? AssetProblems.NotFound(id) : AssetProblems.NotFailed();
         }
 
-        var track = await tracks.FindAsync(asset.Provenance.Recipe.TrackId, cancellationToken);
+        var track = await tracks.FindAsync(asset.Provenance.Recipe!.TrackId, cancellationToken);
         var (draft, problem) = ExportPlanner.Replan(track, asset.Provenance.Recipe);
         return problem ?? await ResubmitAsync(asset, draft!, cancellationToken);
     }

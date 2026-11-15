@@ -95,14 +95,14 @@ public static class AssetMapper
 
     private static ProvenanceDto ToDto(Provenance provenance, bool trackAvailable) => new()
     {
-        Origin = AssetOriginDto.Export,
+        Origin = Enum.Parse<AssetOriginDto>(provenance.Origin.ToString()),
         TrackId = provenance.TrackId,
         TrackTitle = provenance.TrackTitle,
         TrackArtist = provenance.TrackArtist,
         TrackAvailable = trackAvailable,
         SourceAssetIds = provenance.SourceAssetIds,
         Contents = provenance.Contents,
-        Recipe = ToDto(provenance.Recipe),
+        Recipe = provenance.Recipe is { } recipe ? ToDto(recipe) : null,
     };
 
     private static ExportMixDto ToDto(ExportMix mix) =>

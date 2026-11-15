@@ -31,7 +31,7 @@ public sealed class AssetPersistenceTests
         (loaded.Name, loaded.Status, loaded.Progress, loaded.SizeBytes, loaded.TrackId).ShouldBe(("Song - 6 channels", AssetStatus.Ready, 100, 1234L, TrackA));
         loaded.Files.ShouldBe(asset.Files);
         loaded.Audio.ShouldBe(asset.Audio);
-        var recipe = loaded.Provenance.Recipe;
+        var recipe = loaded.Provenance.Recipe!;
         (recipe.Mode, recipe.Range, recipe.Format).ShouldBe((ExportMode.Mix, new ExportRange(30, 75), new ExportFormat(AudioFormat.Mp3, null, 320)));
         recipe.Mix!.Channels.Single().ShouldBe(new ChannelSettings { Stem = "bass", Volume = 0.6, Pan = -0.5, Solo = true });
         recipe.Mix.DetailChannels.Single().Parent.ShouldBe("drums");
