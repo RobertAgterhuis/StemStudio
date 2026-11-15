@@ -10,6 +10,54 @@
 speed up standard separation, detail separation and later generative models, with automatic CPU
 fallback. Owner request: right after 002 (docs/ROADMAP.md)."
 
+## Clarifications
+
+### Session 2026-11-15
+
+Answered autonomously by the architect during planning (operating mode: fully autonomous), based
+on the measured feasibility spike; see `docs/decisions/ADR-012-gpu-device-policy.md` and
+`research.md`.
+
+- Q: What is the "single documented start option" (FR-001)? → A: the existing compose override:
+  `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build`. It builds the GPU
+  variant of the worker image (torch 2.15.0+cu132, onnxruntime-gpu 1.32.0 with cuRAND) and sets
+  `STEMSTUDIO_DEVICE=auto`. `cuda` and `auto` behave the same: GPU when usable, else CPU with a
+  reason; the worker never refuses to start because of the GPU.
+- Q: When is a GPU "usable" (FR-003)? → A: torch is a CUDA build, CUDA is available, the GPU's
+  architecture is in the build (compute capability 7.5 or newer), a test kernel runs and NVML can
+  read the memory. Each failure has a fixed reason text shown in the health information.
+- Q: How is free GPU memory checked (edge case "GPU busy")? → A: with NVML right before every
+  model step, against the step's measured need plus 1 GiB (htdemucs_6s 1.7 GB, DrumSep 4.4 GB,
+  KARA 2 3.6 GB, Mega 53-stem 10.6 GB). torch's own free-memory figure was measured unreliable
+  under WSL2. Steps that do not fit run on the CPU and are recorded as a fallback.
+- Q: What does "runs out of GPU memory" mean on Windows, where the driver spills into system
+  memory instead of failing? → A: the worker caps each step's GPU memory at the free memory
+  measured before the step, so an over-allocation raises an out-of-memory error instead of
+  silently running about 20x slower; that error triggers the single CPU retry of the step (FR-004).
+- Q: What is a "step" for the fallback and for "one GPU job at a time" (FR-004, FR-005)? → A: one
+  model run: the standard separation of a song, or one parent step of the detail phase (drums,
+  vocals, the instrument group). One GPU step runs at a time (GPU lease in the worker); other
+  programs on the same GPU are handled by the free-memory check.
+- Q: What is recorded and shown as "the device" of a job (FR-006)? → A: per standard and per
+  detail job: GPU (with its name) when at least one model step ran on the GPU, else CPU; plus a
+  CPU-fallback flag with the reason of the latest fallback. The worker's own device (GPU name or
+  CPU with the reason) is shown on the import page via the new `GET /api/device`; results that
+  come from the cache show no device.
+- Q: What does "equivalent" mean in FR-007 / SC-003? → A: the same outcome per parent (split,
+  skipped, not supported, ...) with the same kept detail stem names, and a passing reconstruction
+  check. Audio is not bit-identical: the detail models agree with the CPU to >= 52 dB SDR on the
+  same input; the standard separation differs run to run already on one device (Demucs' random
+  time shift), so standard stems are not compared sample by sample.
+- Q: How is SC-001 measured? → A: wall clock of the standard plus detail job of a fresh import of
+  the reference song on the GPU stack, against the CPU baseline of 31.5 minutes (standard 2.7 +
+  detail 28.8). The spike measured 3.7 minutes with cold models (8.5x).
+- Q: Does CI test the GPU path? → A: no (no GPU runners). CI stays CPU-only and checks that the CPU
+  image contains no NVIDIA runtime library; GPU code is unit-tested with fakes, and the GPU path is
+  validated on the reference machine by the CTO. A fake GPU mode (`STEMSTUDIO_FAKE_DEVICE`) lets
+  the end-to-end tests check the device display and the fallback notice.
+- Q: Do GPU models stay in GPU memory? → A: while more work is queued; when the worker becomes
+  idle it releases them so games or a local LLM get the memory back.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Faster separation on a GPU machine (Priority: P1)
