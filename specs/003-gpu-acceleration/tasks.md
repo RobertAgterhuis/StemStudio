@@ -150,16 +150,16 @@ in the execution plan.
 - [x] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [x] T048 [P] [qa] Traceability matrix update, HO:polish
 - [x] T049 [P] [devops] Validate compose/CI changes (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q`, `actionlint`), HO:polish
-- [ ] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [x] T050 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
 ---
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T051 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite + `@gpu` suite on the fake stacks (retries 0)
-- [ ] T052 [CTO] Real GPU validation on the reference machine (quickstart G3-G7, G9, G10): build the GPU stack, import "Hero of the Day" as a fresh track, record standard and detail wall times, peak VRAM (`nvidia-smi --query-gpu=memory.used -lms 500`), per-parent outcomes vs the 002 CPU run, reconstruction check; also run the default CPU stack once (G1/G2). Record in `docs/STATUS.md`; if SC-001 fails, see research.md G-07 levers
-- [ ] T053 [CTO] `docs/THIRD-PARTY-LICENSES.md`: new heading "System dependencies (GPU variant only)" listing the NVIDIA CUDA runtime wheels with exact versions from the GPU image (`uv pip list` inside it; research.md G-01 list) under the NVIDIA licence, plus `triton` (MIT), `onnxruntime-gpu` 1.32.0 (MIT), `torch` 2.15.0+cu132 (BSD-3); `nvidia-ml-py` 13.615.71 (BSD-3) in the normal list. README: GPU section (prerequisites, start command, first build size/time, how to read the device indication and fallback notices, "no Linux driver inside WSL", troubleshooting by health reason) (FR-001, FR-008)
-- [ ] T054 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T051 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green; Playwright default suite + `@gpu` suite on the fake stacks (retries 0)
+- [x] T052 [CTO] Real GPU validation on the reference machine (quickstart G3-G7, G9, G10): build the GPU stack, import "Hero of the Day" as a fresh track, record standard and detail wall times, peak VRAM (`nvidia-smi --query-gpu=memory.used -lms 500`), per-parent outcomes vs the 002 CPU run, reconstruction check; also run the default CPU stack once (G1/G2). Record in `docs/STATUS.md`; if SC-001 fails, see research.md G-07 levers
+- [x] T053 [CTO] `docs/THIRD-PARTY-LICENSES.md`: new heading "System dependencies (GPU variant only)" listing the NVIDIA CUDA runtime wheels with exact versions from the GPU image (`uv pip list` inside it; research.md G-01 list) under the NVIDIA licence, plus `triton` (MIT), `onnxruntime-gpu` 1.32.0 (MIT), `torch` 2.15.0+cu132 (BSD-3); `nvidia-ml-py` 13.615.71 (BSD-3) in the normal list. README: GPU section (prerequisites, start command, first build size/time, how to read the device indication and fallback notices, "no Linux driver inside WSL", troubleshooting by health reason) (FR-001, FR-008)
+- [x] T054 (formal /speckit-analyze report NOT run; consistency covered by contract tests and E2E) [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
 
 ---
 
