@@ -78,36 +78,43 @@ def test_cancelling_while_waiting_leaves_the_lease_untouched(tmp_path: Path) -> 
         assert clock.sleeps == []
 
 
+class _TwoThreads:
+    """First thread holds the lease until released; the second polls for it."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.order: list[str] = []
+        self.entered = threading.Event()
+        self.release = threading.Event()
+
+    def first(self) -> None:
+        with FileLease(self.path, _RealClock()).hold(lambda _: None):
+            self.order.append("first in")
+            self.entered.set()
+            self.release.wait(5)
+            self.order.append("first out")
+
+    def second(self) -> None:
+        self.entered.wait(5)
+        lease = FileLease(self.path, _RealClock(), poll_seconds=0.01)
+        with lease.hold(lambda _: self.order.append("wait")):
+            self.order.append("second in")
+
+
 def test_a_second_thread_blocks_on_the_file_lease(tmp_path: Path) -> None:
-    path = tmp_path / "gpu.lock"
-    order: list[str] = []
-    entered = threading.Event()
-    release = threading.Event()
-
-    def first() -> None:
-        with FileLease(path, _RealClock()).hold(lambda _: None):
-            order.append("first in")
-            entered.set()
-            release.wait(5)
-            order.append("first out")
-
-    def second() -> None:
-        entered.wait(5)
-        with FileLease(path, _RealClock(), poll_seconds=0.01).hold(lambda _: order.append("wait")):
-            order.append("second in")
-
-    threads = [threading.Thread(target=first), threading.Thread(target=second)]
+    run = _TwoThreads(tmp_path / "gpu.lock")
+    threads = [threading.Thread(target=run.first), threading.Thread(target=run.second)]
     for thread in threads:
         thread.start()
-    entered.wait(5)
+    run.entered.wait(5)
     time.sleep(0.1)
-    release.set()
+    run.release.set()
     for thread in threads:
         thread.join(5)
 
-    assert order[0] == "first in"
-    assert "wait" in order
-    assert order.index("first out") < order.index("second in")
+    assert run.order[0] == "first in"
+    assert "wait" in run.order
+    assert run.order.index("first out") < run.order.index("second in")
 
 
 _HOLDER = """
@@ -132,28 +139,32 @@ with FileLease(Path(sys.argv[1]), Clock()).hold(lambda _: None):
 """
 
 
-def test_another_process_holding_the_lease_blocks_this_one(tmp_path: Path) -> None:
-    path = tmp_path / "gpu.lock"
+def _start_holder(path: Path) -> subprocess.Popen[str]:
     process = subprocess.Popen(  # noqa: S603 - fixed interpreter and script
         [sys.executable, "-c", _HOLDER, str(path)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         text=True,
     )
+    assert process.stdout is not None
+    assert process.stdout.readline().strip() == "held"
+    return process
+
+
+def _finish(process: subprocess.Popen[str]) -> None:
+    assert process.stdin is not None
+    process.stdin.write("\n")
+    process.stdin.flush()
+    process.wait(10)
+
+
+def test_another_process_holding_the_lease_blocks_this_one(tmp_path: Path) -> None:
+    path = tmp_path / "gpu.lock"
+    process = _start_holder(path)
     try:
-        assert process.stdout is not None
-        assert process.stdout.readline().strip() == "held"
         clock = FakeClock()
         waits: list[str] = []
-
-        def finish_holder_after_first_poll() -> None:
-            if len(clock.sleeps) == 1:
-                assert process.stdin is not None
-                process.stdin.write("\n")
-                process.stdin.flush()
-                process.wait(10)
-
-        clock.on_sleep = finish_holder_after_first_poll
+        clock.on_sleep = lambda: _finish(process)
         with FileLease(path, clock).hold(waits.append):
             assert waits == [LEASE_WAIT_STAGE]
     finally:

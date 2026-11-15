@@ -1,5 +1,6 @@
 """Fake device adapters of the fake stack (CI/E2E, 009 data-model 1)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -62,9 +63,11 @@ def test_fake_gate_in_busy_mode_fails_after_the_wait_limit() -> None:
     clock = FakeClock()
     gate = fake_gate("busy", clock, wait_seconds=20.0, lease_file=None)
 
-    with pytest.raises(GpuBusyError, match="needs 8.4 GB, 2.0 GB free"):
-        with gate.hold(RESTYLE_NEEDS, lambda _: None):
-            pass
+    with (
+        pytest.raises(GpuBusyError, match=re.escape("needs 8.4 GB, 2.0 GB free")),
+        gate.hold(RESTYLE_NEEDS, lambda _: None),
+    ):
+        pass
     assert sum(clock.sleeps) == pytest.approx(20.0)
 
 

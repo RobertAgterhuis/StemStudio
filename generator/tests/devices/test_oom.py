@@ -40,11 +40,11 @@ def test_an_oom_in_the_implicit_context_is_recognised() -> None:
             raise RuntimeError("CUDA out of memory")
         except RuntimeError:
             raise ValueError("while handling") from None
-    except ValueError as outer:
-        assert not is_gpu_oom(outer)  # "from None" suppresses the context on purpose
-    outer = ValueError("wrapped")
-    outer.__context__ = RuntimeError("CUDA out of memory")
-    assert is_gpu_oom(outer)
+    except ValueError as suppressed:
+        assert not is_gpu_oom(suppressed)  # "from None" suppresses the context on purpose
+    wrapped = ValueError("wrapped")
+    wrapped.__context__ = RuntimeError("CUDA out of memory")
+    assert is_gpu_oom(wrapped)
 
 
 @pytest.mark.parametrize("error", [ValueError("bad"), RuntimeError("CUDA error: device-side")])

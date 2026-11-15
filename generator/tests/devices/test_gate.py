@@ -1,5 +1,6 @@
 """GPU gate: lease + NVML free-memory policy + memory cap (009 T014; ADR-018 D3/D4)."""
 
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -31,6 +32,10 @@ from stemstudio_generator.schemas import JobDevice
 from ..fakes import FakeClock
 
 _TOTAL = 16_303
+
+
+def _no_wait(stage: str) -> None:
+    pytest.fail(f"unexpected wait: {stage}")
 
 
 class ScriptedNvml:
@@ -83,18 +88,17 @@ def _gate(
     nvml: object, lease: object | None = None, wait: float = 600.0
 ) -> tuple[LeaseGpuGate, RecordingCap, FakeClock]:
     cap, clock = RecordingCap(), FakeClock()
-    access = GpuAccess(nvml=nvml, cap=cap, name="NVIDIA GeForce RTX 5070 Ti")  # type: ignore[arg-type]
-    gate = LeaseGpuGate(
-        lease or ThreadLease(),  # type: ignore[arg-type]
-        access,
-        clock,
-        GatePolicy(wait_seconds=wait),
+    access = GpuAccess(
+        lease=lease or ThreadLease(),  # type: ignore[arg-type]
+        nvml=nvml,  # type: ignore[arg-type]
+        cap=cap,
+        name="NVIDIA GeForce RTX 5070 Ti",
     )
-    return gate, cap, clock
+    return LeaseGpuGate(access, clock, GatePolicy(wait_seconds=wait)), cap, clock
 
 
 def test_enough_free_memory_admits_the_standard_profile() -> None:
-    gate, cap, _ = _gate(ScriptedNvml(14_800))
+    gate, _, _ = _gate(ScriptedNvml(14_800))
 
     with gate.hold(RESTYLE_NEEDS, lambda _: None) as use:
         assert use.need is COVER_TURBO
@@ -165,9 +169,11 @@ def test_waiting_ends_with_gpu_busy_after_the_wait_limit() -> None:
 def test_a_zero_wait_limit_fails_on_the_first_check() -> None:
     gate, _, clock = _gate(ScriptedNvml(1_000), wait=0.0)
 
-    with pytest.raises(GpuBusyError, match="needs 6.0 GB, 1.0 GB free"):
-        with gate.hold((SVC_FP16,), lambda _: None):
-            pass
+    with (
+        pytest.raises(GpuBusyError, match=re.escape("needs 6.0 GB, 1.0 GB free")),
+        gate.hold((SVC_FP16,), lambda _: None),
+    ):
+        pass
     assert clock.sleeps == []
 
 
@@ -189,21 +195,21 @@ def test_unreadable_nvml_means_the_gpu_is_not_usable() -> None:
     lease = RecordingLease()
     gate, _, _ = _gate(BrokenNvml(), lease)
 
-    with pytest.raises(GpuRequiredError, match="NVML unavailable"):
-        with gate.hold(RESTYLE_NEEDS, lambda _: None):
-            pass
+    with (
+        pytest.raises(GpuRequiredError, match="NVML unavailable"),
+        gate.hold(RESTYLE_NEEDS, _no_wait),
+    ):
+        pass
     assert lease.events == ["acquire", "release"]
 
 
 def test_the_gate_uses_the_file_lease(tmp_path: Path) -> None:
     clock = FakeClock()
     path = tmp_path / "gpu.lock"
-    gate = LeaseGpuGate(
-        FileLease(path, clock),
-        GpuAccess(nvml=ScriptedNvml(14_800), cap=RecordingCap(), name=None),
-        clock,
-        GatePolicy(),
+    access = GpuAccess(
+        lease=FileLease(path, clock), nvml=ScriptedNvml(14_800), cap=RecordingCap(), name=None
     )
+    gate = LeaseGpuGate(access, clock, GatePolicy())
     waits: list[str] = []
 
     with gate.hold(RESTYLE_NEEDS, lambda _: None) as use:
