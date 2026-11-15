@@ -159,9 +159,9 @@ public sealed class GenerationSyncServiceTests : ApiTestBase
     }
 
     /// <summary>Creates a restyle through the API; returns its id and generator job id.</summary>
-    internal static async Task<(Guid Generation, string JobId)> StartAsync(ApiFactory factory, HttpClient client, int takes = 1)
+    internal static async Task<(Guid Generation, string JobId)> StartAsync(ApiFactory factory, HttpClient client, int takes = 1, string videoId = "dQw4w9WgXcQ")
     {
-        var track = await RestyleEndpointTests.SeedTrackAsync(factory);
+        var track = await RestyleEndpointTests.SeedTrackAsync(factory, videoId);
         using var response = await client.PostAsJsonAsync(new Uri(ApiRoutes.Restyles(track.Id), UriKind.Relative), RestyleEndpointTests.Request() with { Takes = takes }, TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         var generation = await response.BodyAsync<GenerationDto>();
@@ -169,9 +169,9 @@ public sealed class GenerationSyncServiceTests : ApiTestBase
     }
 
     /// <summary>Creates a restyle and completes it with one or two takes.</summary>
-    internal static async Task<Guid> CompletedAsync(ApiFactory factory, HttpClient client, int takes = 2)
+    internal static async Task<Guid> CompletedAsync(ApiFactory factory, HttpClient client, int takes = 2, string videoId = "dQw4w9WgXcQ")
     {
-        var (generation, jobId) = await StartAsync(factory, client, takes);
+        var (generation, jobId) = await StartAsync(factory, client, takes, videoId);
         factory.Generator.Complete(jobId, takes == 1 ? [Take1] : [Take1, Take2]);
         await factory.SyncGenerationsAsync();
         return generation;

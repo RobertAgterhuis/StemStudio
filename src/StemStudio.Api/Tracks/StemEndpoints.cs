@@ -62,7 +62,7 @@ public sealed class StemService(ITrackRepository tracks, IStemFileStore stems, I
         }
 
         var file = HasStem(track, stemName) ? stems.FindStem(trackId, stemName) : null;
-        return Serve(file, $"Track {trackId} has no stem '{stemName}'.");
+        return ServeFile(file, $"Track {trackId} has no stem '{stemName}'.");
     }
 
     /// <summary>Serves one detail stem of a track whose detail phase completed.</summary>
@@ -79,10 +79,14 @@ public sealed class StemService(ITrackRepository tracks, IStemFileStore stems, I
         }
 
         var file = HasDetailStem(track, key) ? detailStems.Find(key) : null;
-        return Serve(file, $"Track {key.TrackId} has no detail stem '{key.Parent}/{key.Name}'.");
+        return ServeFile(file, $"Track {key.TrackId} has no detail stem '{key.Parent}/{key.Name}'.");
     }
 
-    private static IResult Serve(FileInfo? file, string missing) => file is null
+    /// <summary>Serves a FLAC file with Range, ETag and conditional semantics, or 404 with the given detail.</summary>
+    /// <param name="file">The file, or null when missing.</param>
+    /// <param name="missing">404 detail.</param>
+    /// <returns>The result.</returns>
+    public static IResult ServeFile(FileInfo? file, string missing) => file is null
         ? ApiProblems.NotFound(missing)
         : TypedResults.PhysicalFile(file.FullName, ContentType, lastModified: file.LastWriteTimeUtc, entityTag: EntityTag(file), enableRangeProcessing: true);
 

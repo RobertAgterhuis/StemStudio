@@ -151,6 +151,8 @@ public static class ApiComposition
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
+        services.AddScoped<RetryService>();
+        services.AddScoped<GenerationService>();
         services.AddSingleton<TakeStorage>();
         services.AddScoped<IGeneratedAudioLibrary, GeneratedAudioLibraryAdapter>();
         services.AddScoped<TakeCollector>();

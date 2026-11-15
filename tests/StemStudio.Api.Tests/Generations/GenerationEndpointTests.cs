@@ -5,7 +5,6 @@ using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
-using StemStudio.Domain.Generations;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Tests.Generations;
@@ -55,7 +54,7 @@ public sealed class GenerationEndpointTests : ApiTestBase
     public async Task Cancel_ActiveAsksTheGeneratorTerminalIsUnchanged()
     {
         var (active, jobId) = await GenerationSyncServiceTests.StartAsync(Factory, Client);
-        var completed = await GenerationSyncServiceTests.CompletedAsync(Factory, Client);
+        var completed = await GenerationSyncServiceTests.CompletedAsync(Factory, Client, videoId: "otherTrack1");
 
         using var cancelled = await PostAsync(ApiRoutes.CancelGeneration(active));
         using var unchanged = await PostAsync(ApiRoutes.CancelGeneration(completed));
@@ -105,7 +104,7 @@ public sealed class GenerationEndpointTests : ApiTestBase
     public async Task Retry_OnlyFailedOrCancelledAndOnlyWhenReady()
     {
         var completed = await GenerationSyncServiceTests.CompletedAsync(Factory, Client);
-        var (cancelled, _) = await GenerationSyncServiceTests.StartAsync(Factory, Client);
+        var (cancelled, _) = await GenerationSyncServiceTests.StartAsync(Factory, Client, videoId: "otherTrack1");
         (await PostAsync(ApiRoutes.CancelGeneration(cancelled))).Dispose();
 
         using var notRetryable = await PostAsync(ApiRoutes.RetryGeneration(completed));

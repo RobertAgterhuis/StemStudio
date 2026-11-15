@@ -131,7 +131,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingGenerationOperations =
     [
         "getGenerationStatus", "listStyles", "createStyle", "getStyle", "updateStyle", "deleteStyle", "duplicateStyle",
-        "listGenerations", "getGeneration", "deleteGeneration", "cancelGeneration", "retryGeneration", "getTakeAudio", "importTake",
+        "importTake",
     ];
 
     // Feature 010 (backend 1.9.0, staged in the 009/010 Phase 0): the backend removes each id per story (T028, T030, T035, T045, T047, T049).

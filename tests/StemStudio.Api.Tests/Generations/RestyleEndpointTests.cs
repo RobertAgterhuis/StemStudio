@@ -212,9 +212,9 @@ public sealed class RestyleEndpointTests : ApiTestBase
     internal static byte[] StemBytes(string stem) => System.Text.Encoding.UTF8.GetBytes("flac:" + stem);
 
     /// <summary>A completed six-stem track with stem files on disk.</summary>
-    internal static async Task<Track> SeedTrackAsync(ApiFactory factory)
+    internal static async Task<Track> SeedTrackAsync(ApiFactory factory, string videoId = "dQw4w9WgXcQ")
     {
-        var track = await factory.SeedAsync(SyncTestData.CompletedTrack());
+        var track = await factory.SeedAsync(SyncTestData.CompletedTrack(videoId));
         var stems = factory.Services.GetRequiredService<IStemFileStore>();
         foreach (var stem in StemCatalog.SixStem)
         {
