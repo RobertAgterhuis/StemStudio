@@ -3,8 +3,6 @@ namespace StemStudio.Domain.Mixes;
 /// <summary>Mixer settings of one stem channel.</summary>
 public sealed record ChannelSettings
 {
-    private static readonly Bounds PanBounds = new(-1, 1);
-
     /// <summary>Default fader volume (80 %).</summary>
     public const double DefaultVolume = 0.8;
 
@@ -33,6 +31,6 @@ public sealed record ChannelSettings
     internal void ValidateRanges(ValidationErrors errors)
     {
         errors.Range("volume", Volume, Bounds.Unit);
-        errors.Range("pan", Pan, PanBounds);
+        errors.Range("pan", Pan, Bounds.Pan);
     }
 }

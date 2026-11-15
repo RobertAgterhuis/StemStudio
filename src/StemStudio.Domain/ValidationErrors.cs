@@ -10,6 +10,9 @@ internal readonly record struct Bounds(double Min, double Max)
     /// <summary>Range 0..1 (volumes, confidence).</summary>
     public static readonly Bounds Unit = new(0, 1);
 
+    /// <summary>Range -1..1 (pan).</summary>
+    public static readonly Bounds Pan = new(-1, 1);
+
     /// <summary>The user-facing message.</summary>
     public string Message => string.Create(CultureInfo.InvariantCulture, $"Must be between {Min} and {Max}.");
 

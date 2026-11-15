@@ -24,6 +24,12 @@ public sealed record MixSettings
     /// <summary>Loop region, or null.</summary>
     public LoopRegion? Loop { get; init; }
 
+    /// <summary>Parents shown expanded; each must be split on the track. Empty = all collapsed.</summary>
+    public IReadOnlyList<string> Expanded { get; init; } = [];
+
+    /// <summary>At most one entry per (parent, detail stem); kept while the parent is collapsed.</summary>
+    public IReadOnlyList<DetailChannelSettings> DetailChannels { get; init; } = [];
+
     /// <summary>Checks every rule against the track the mix belongs to.</summary>
     /// <param name="track">The mix's track (must be completed).</param>
     /// <returns>Violations with JSON-style paths (e.g. <c>metronome.bpmOverride</c>); empty when valid.</returns>
@@ -38,6 +44,7 @@ public sealed record MixSettings
         ValidateChannels(errors, track.Stems.Select(stem => stem.Name).ToHashSet(StringComparer.Ordinal));
         Metronome.Validate(errors.Nested("metronome"));
         Loop?.Validate(errors.Nested("loop"), track.DurationSeconds ?? 0);
+        MixDetailRules.Validate(errors, this, track);
         return errors.Errors;
     }
 

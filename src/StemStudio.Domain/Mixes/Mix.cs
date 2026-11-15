@@ -6,6 +6,8 @@ namespace StemStudio.Domain.Mixes;
 public sealed class Mix
 {
     private List<ChannelSettings> _channels = [];
+    private List<string> _expanded = [];
+    private List<DetailChannelSettings> _detailChannels = [];
 
     private Mix()
     {
@@ -38,6 +40,12 @@ public sealed class Mix
     /// <summary>Loop region, or null.</summary>
     public LoopRegion? Loop { get; private set; }
 
+    /// <summary>Parents shown expanded (feature 002).</summary>
+    public IReadOnlyList<string> Expanded => _expanded;
+
+    /// <summary>Detail channel settings, at most one per (parent, detail stem) (feature 002).</summary>
+    public IReadOnlyList<DetailChannelSettings> DetailChannels => _detailChannels;
+
     /// <summary>Creation time (UTC).</summary>
     public DateTime CreatedAt { get; private set; }
 
@@ -52,6 +60,8 @@ public sealed class Mix
         Channels = Channels,
         Metronome = Metronome,
         Loop = Loop,
+        Expanded = Expanded,
+        DetailChannels = DetailChannels,
     };
 
     /// <summary>Creates a mix after validating the settings against the track.</summary>
@@ -108,6 +118,7 @@ public sealed class Mix
     {
         (Name, NormalizedName) = (settings.Name.Trim(), MixNaming.Normalize(settings.Name));
         (MasterVolume, _channels, Metronome, Loop) = (settings.MasterVolume, settings.Channels.ToList(), settings.Metronome, settings.Loop);
+        (_expanded, _detailChannels) = (settings.Expanded.ToList(), settings.DetailChannels.ToList());
         UpdatedAt = nowUtc;
     }
 }
