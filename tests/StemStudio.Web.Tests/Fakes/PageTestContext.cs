@@ -10,6 +10,7 @@ using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
+using StemStudio.Web.Generation;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Tests.Fakes;
@@ -47,6 +48,16 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<ShellOverlays>();
         Services.AddScoped<HelpContext>();
         Services.AddScoped<KaraokePreferences>();
+        Services.AddScoped<GenerationStatusSource>();
+        GenerativeDefaults();
+    }
+
+    /// <summary>Generation features answer "not installed" and empty lists unless a test says otherwise (009/010).</summary>
+    private void GenerativeDefaults()
+    {
+        Api.GetGenerationStatusAsync(Arg.Any<CancellationToken>()).Returns(GenerationData.NotInstalled());
+        Api.ListStylesAsync(Arg.Any<CancellationToken>()).Returns(GenerationData.Styles());
+        Api.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([]);
     }
 
     protected IStemStudioApiClient Api { get; } = Substitute.For<IStemStudioApiClient>();
