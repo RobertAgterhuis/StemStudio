@@ -4,7 +4,6 @@ FR-002, FR-003, FR-004, FR-009, SC-003. Every score is parsed back with music21.
 """
 
 from collections.abc import Sequence
-from fractions import Fraction
 from typing import Any
 
 import pytest
@@ -15,7 +14,7 @@ from music21 import meter as m21_meter
 from stemstudio_worker.notation import create_notator
 from stemstudio_worker.notation.notator import MusicNotator
 from stemstudio_worker.notation.notices import score_warning
-from stemstudio_worker.ports import DrumHit, NoNotesError, NotationSettings, NoteEvent, Notator
+from stemstudio_worker.ports import DrumHit, NoNotesError, NotationSettings, Notator, NoteEvent
 from stemstudio_worker.schemas import (
     BeatGridTempo,
     KeyName,
@@ -67,12 +66,16 @@ def measures(part: Any) -> list[Any]:
 def midi_note_ons(data: bytes) -> list[Any]:
     parsed = midi.MidiFile()
     parsed.readstr(data)
-    return [
-        event
-        for track in parsed.tracks
-        for event in track.events
-        if event.type == midi.ChannelVoiceMessages.NOTE_ON and event.velocity > 0
-    ]
+    events = [event for track in parsed.tracks for event in track.events]
+    return [event for event in events if is_note_on(event)]
+
+
+def is_note_on(event: Any) -> bool:
+    return bool(event.type == midi.ChannelVoiceMessages.NOTE_ON and (event.velocity or 0) > 0)
+
+
+def staff_pitches(part: Any) -> list[int]:
+    return sorted(p.midi for n in part.recurse().notes for p in n.pitches)
 
 
 NOTATOR = MusicNotator()
@@ -94,12 +97,12 @@ def test_bass_score_has_clef_meter_tempo_key_and_bars() -> None:
     mark = next(iter(part.recurse().getElementsByClass(tempo.MetronomeMark)))
     assert (mark.number, mark.referent.quarterLength) == (120, 1.0)
     assert len(measures(part)) == 2
-    assert (document.bars, document.notes, document.bpm, document.time_signature) == (
-        2,
-        5,
-        120,
-        "4/4",
-    )
+
+
+def test_the_document_reports_the_score_facts() -> None:
+    document = NOTATOR.notate(q_notes(BASS_LINE), settings("bass", key="G major"))
+    facts = (document.bars, document.notes, document.bpm, document.time_signature)
+    assert facts == (2, 5, 120, "4/4")
 
 
 def test_rests_fill_gaps_and_ties_cross_bar_lines() -> None:
@@ -152,10 +155,7 @@ def test_grand_staff_splits_at_middle_c(profile: ScoreProfile) -> None:
     upper, lower = parse(document.musicxml).parts
     assert type(upper.recurse().getElementsByClass(clef.Clef)[0]) is clef.TrebleClef
     assert type(lower.recurse().getElementsByClass(clef.Clef)[0]) is clef.BassClef
-    upper_pitches = [p.midi for n in upper.recurse().notes for p in n.pitches]
-    lower_pitches = [p.midi for n in lower.recurse().notes for p in n.pitches]
-    assert sorted(upper_pitches) == [60, 64, 67]
-    assert sorted(lower_pitches) == [48, 59]
+    assert (staff_pitches(upper), staff_pitches(lower)) == ([60, 64, 67], [48, 59])
     chord = next(iter(upper.recurse().notes))
     assert chord.isChord and chord.quarterLength == 2
 
@@ -212,15 +212,38 @@ def test_titles_and_part_name_are_written() -> None:
     )
     document = NOTATOR.notate(q_notes(BASS_LINE), titled)
     score = parse(document.musicxml)
-    assert (score.metadata.title, score.metadata.composer) == ("My score", "Song - Artist")
+    assert (score.metadata.bestTitle, score.metadata.composer) == ("My score", "Song - Artist")
     assert score.parts[0].partName == "Bass gtr"
-    assert b"StemStudio" in document.musicxml
-    assert b'<score-partwise version="4.0">' in document.musicxml
+    for written in (b"<work-title>My score</work-title>", b"StemStudio", b'partwise version="4.0"'):
+        assert written in document.musicxml
 
 
 def test_the_part_name_defaults_to_the_profile() -> None:
     document = NOTATOR.notate(q_notes(BASS_LINE), settings("bass"))
     assert parse(document.musicxml).parts[0].partName == "Bass"
+
+
+def test_a_note_longer_than_a_bar_continues_its_tie() -> None:
+    document = NOTATOR.notate(q_notes([(2, 8, 45)]), settings("bass"))
+    ties = [n.tie.type for n in parse(document.musicxml).recurse().notes]
+    assert ties[0] == "start"
+    assert "continue" in ties
+    assert ties[-1] == "stop"
+    assert len(midi_note_ons(document.midi)) == 1
+
+
+def test_a_score_without_subtitle_has_no_composer() -> None:
+    plain = NotationSettings(
+        profile="vocals",
+        grid=GRID,
+        resolution="eighth",
+        key_override=None,
+        titles=ScoreTitles(title="Only a title"),
+        duration_seconds=5.0,
+    )
+    document = NOTATOR.notate(q_notes([(0, 1, 60)]), plain)
+    assert not parse(document.musicxml).metadata.composer
+    assert b">Music21</creator>" not in document.musicxml
 
 
 # ------------------------------------------------------------------ notator rules
