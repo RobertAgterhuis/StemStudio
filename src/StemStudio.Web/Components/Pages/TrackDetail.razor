@@ -39,7 +39,7 @@ else
                     <ErrorState TestId="track-retry-failed-again" Message="The retry failed again." Hint="Check the source link or try another file." />
                 }
                 <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" IsBusy="IsRetrying" BusyText="Retrying..."
-                              Disabled="IsRetrying" data-testid="track-retry" />
+                              Disabled="IsRetrying" data-testid="track-retry" data-help-id="track-retry" />
             }
 
             @if (DeleteBlockedReason is not null)
@@ -63,7 +63,7 @@ else
                     else
                     {
                         <RadzenButton Text="Delete track" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
-                                      Click="AskDelete" data-testid="track-delete" />
+                                      Click="AskDelete" data-testid="track-delete" data-help-id="track-delete" />
                     }
                 </div>
             }

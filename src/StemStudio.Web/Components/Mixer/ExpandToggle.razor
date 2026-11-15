@@ -4,7 +4,7 @@
               Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" class="ss-expand" IsBusy="Busy" BusyText="Loading..."
               aria-expanded="@(Expanded ? "true" : "false")" aria-controls="@($"group-{Parent}")"
               aria-label="@($"{(Expanded ? "Hide" : "Show")} detail stems of {Parent}")" Click="OnToggle"
-              data-testid="@($"expand-{Parent}")" />
+              data-testid="@($"expand-{Parent}")" data-help-id="mixer-detail-groups" />
 
 @code {
     /// <summary>The split parent.</summary>

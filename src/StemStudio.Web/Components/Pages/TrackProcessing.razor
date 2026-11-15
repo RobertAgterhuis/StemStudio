@@ -5,13 +5,13 @@
     <h2 id="processing-heading" class="ss-heading">Processing</h2>
     <div class="ss-row">
         <RadzenBadge BadgeStyle="TrackStatusText.Badge(Track.Status)" Text="@TrackStatusText.Label(Track.Status)" IsPill="true"
-                     data-testid="track-status" />
+                     data-testid="track-status" data-help-id="track-status" />
         <span class="ss-stage" data-testid="track-stage">@Track.Stage</span>
     </div>
     <div class="ss-progress">
         <SplitProgress State="SplitStates.Of(Track.Status)" Progress="Track.Progress" TestId="split-progress" />
         <RadzenProgressBar Value="Track.Progress" Max="100" ShowValue="true" aria-label="Processing progress"
-                           data-testid="track-progress" />
+                           data-testid="track-progress" data-help-id="track-progress" />
     </div>
     @if (Track.Device is not null)
     {

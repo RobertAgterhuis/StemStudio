@@ -11,7 +11,7 @@
                 <div class="ss-library-tools">
                     <label class="ss-sr-only" for="mixes-search">Search mixes</label>
                     <input id="mixes-search" type="search" class="rz-textbox ss-search" placeholder="Search mixes" value="@Search"
-                           @oninput="OnSearch" data-testid="mixes-search" />
+                           @oninput="OnSearch" data-testid="mixes-search" data-help-id="mixes-search" />
                 </div>
             </LevelGate>
         }
@@ -52,7 +52,7 @@
                         <td class="ss-muted">@mix.TrackTitle</td>
                         <td class="ss-num"><time datetime="@Iso(mix.UpdatedAt)">@Local(mix.UpdatedAt)</time></td>
                         <td class="ss-cell-action">
-                            <div class="ss-row-actions">
+                            <div class="ss-row-actions" data-help-id="mixes-actions">
                                 <RadzenButton Text="@Label("Load")" Icon="play_circle" Size="ButtonSize.Small" class="@IconClass" data-tooltip="@Tooltip("Load")"
                                               aria-label="@($"Load {mix.Name}")" Click="() => Load(mix)" data-testid="@($"mix-load-{mix.Id}")" />
                                 <RadzenButton Text="@Label("Duplicate")" Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"

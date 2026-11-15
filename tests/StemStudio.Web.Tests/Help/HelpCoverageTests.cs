@@ -158,19 +158,18 @@ public sealed partial class HelpCoverageTests : PageTestContext
     public void ReferenceQueries_ReturnTheExpectedTopicFirst(string query, string expected) =>
         new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 
-    public static TheoryData<string> Tours => new(Catalog.Tours.Select(t => t.Id));
-
-    [Theory]
-    [MemberData(nameof(Tours))]
-    public void TourTargets_RenderOnTheirRoute_AtEachOfTheirLevels(string tourId)
+    [Fact]
+    public void TourTargets_RenderOnTheirRoute_AtEachOfTheirLevels()
     {
-        var tour = Catalog.Tours.Single(t => t.Id == tourId);
-        foreach (var level in tour.Levels)
+        foreach (var tour in Catalog.Tours)
         {
-            var markup = RenderRoute(tour.Route, level);
-            foreach (var step in tour.Steps)
+            foreach (var level in tour.Levels)
             {
-                markup.ShouldContain($"data-help-id=\"{step.Target}\"", Case.Sensitive, $"{tourId} at {level}: {step.Target}");
+                var markup = RenderRoute(tour.Route, level);
+                foreach (var step in tour.Steps)
+                {
+                    markup.ShouldContain($"data-help-id=\"{step.Target}\"", Case.Sensitive, $"{tour.Id} at {level}: {step.Target}");
+                }
             }
         }
     }

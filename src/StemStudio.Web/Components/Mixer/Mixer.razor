@@ -34,7 +34,7 @@ else
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
                 }
                 <RadzenButton Text="Save as" Icon="save_as" ButtonStyle="ButtonStyle.Light" Click="OpenSaveAs" data-testid="mix-save-as" />
-                <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" />
+                <RadzenButton Text="Save" Icon="save" Click="SaveAsync" data-testid="mix-save" data-help-id="mixer-save" />
             </div>
             @if (MixError is not null && !DialogOpen)
             {

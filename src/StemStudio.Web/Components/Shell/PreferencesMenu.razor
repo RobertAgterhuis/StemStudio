@@ -3,7 +3,7 @@
 
 <div class="ss-prefs">
     <button type="button" class="ss-bar-button" aria-expanded="@(Open ? "true" : "false")" aria-controls="preferences-panel"
-            data-testid="preferences-open" @ref="_button" @onclick="Toggle">
+            data-testid="preferences-open" data-help-id="preferences" @ref="_button" @onclick="Toggle">
         <span class="rzi" aria-hidden="true">tune</span><span class="ss-bar-label">Preferences</span>
     </button>
     @if (Open)

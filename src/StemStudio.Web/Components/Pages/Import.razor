@@ -13,10 +13,10 @@
 
     <section class="ss-import-panel" aria-label="Import">
         <form class="ss-import-form" @onsubmit="ImportUrlAsync">
-            <label for="import-url" class="ss-label">YouTube video or Spotify track link</label>
+            <div class="ss-label-row"><label for="import-url" class="ss-label">YouTube video or Spotify track link</label><HelpHint HelpId="import-url" /></div>
             <div class="ss-import-row">
                 <RadzenTextBox id="import-url" class="ss-import-url" @bind-Value="Url" Placeholder="https://youtu.be/..."
-                               aria-label="YouTube or Spotify link" data-testid="import-url-input" />
+                               aria-label="YouTube or Spotify link" data-testid="import-url-input" data-help-id="import-url" />
                 <RadzenButton ButtonType="ButtonType.Submit" Text="Import" Icon="download" Disabled="Busy" data-testid="import-url-submit" />
             </div>
         </form>
@@ -28,7 +28,7 @@
                 <span class="ss-small ss-muted">Up to 200 MiB</span>
             </label>
             <InputFile id="import-file" class="ss-dropzone-input" OnChange="UploadAsync" accept="@UploadRules.Accept" disabled="@Busy"
-                       aria-label="Audio file" data-testid="import-file-input" />
+                       aria-label="Audio file" data-testid="import-file-input" data-help-id="import-file" />
         </div>
 
         @if (Busy)
@@ -41,14 +41,18 @@
             <ErrorState TestId="import-error" Message="@Error" />
         }
 
-        <DeviceBadge Display="Device" TestId="worker-device" ReasonTestId="worker-device-reason" Label="Processing device" />
+        <InlineHint TopicId="import-url" />
+        <div class="ss-device-row" data-help-id="processing-device">
+            <DeviceBadge Display="Device" TestId="worker-device" ReasonTestId="worker-device-reason" Label="Processing device" />
+            <HelpHint HelpId="processing-device" />
+        </div>
     </section>
 
-    <p class="ss-notice" role="note" data-testid="legal-notice">
+    <p class="ss-notice" role="note" data-testid="legal-notice" data-help-id="legal-notice">
         Imports are for personal practice only. You are responsible for complying with copyright and the platforms' terms of service.
     </p>
 
-    <aside class="ss-limitation" aria-labelledby="limitation-title">
+    <aside class="ss-limitation" aria-labelledby="limitation-title" data-help-id="stem-limitations">
         <h2 id="limitation-title" class="ss-heading">What StemStudio can separate</h2>
         <p class="ss-help" data-testid="stem-limitation-help">
             StemStudio splits a song into vocals, drums, bass, guitar, piano and other (vocals, drums, bass and other

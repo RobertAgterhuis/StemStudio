@@ -7,6 +7,7 @@
         {
             <button type="button" class="ss-chip" data-testid="@($"preset-{preset.Id}")" @onclick="() => OnApply.InvokeAsync(preset)">@preset.Label</button>
         }
+        <InlineHint TopicId="mixer-presets" />
     </div>
 }
 else

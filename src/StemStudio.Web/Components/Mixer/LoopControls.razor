@@ -1,7 +1,7 @@
 @* A-B loop: markers in seconds (typed or taken from the position), toggle and refusal message (FR-013). *@
 
-<div class="ss-loop ss-console-panel" role="group" aria-label="A-B loop">
-    <h2 class="ss-panel-title">Loop</h2>
+<div class="ss-loop ss-console-panel" role="group" aria-label="A-B loop" data-help-id="mixer-loop">
+    <h2 class="ss-panel-title">Loop <HelpHint HelpId="mixer-loop" /></h2>
     <LevelGate Feature="mixer.loop.typed">
         <label class="ss-inline-label">
             A (s)
@@ -22,6 +22,7 @@
                   data-testid="loop-set-b" />
     <RadzenButton Text="@(Enabled ? "Loop on" : "Loop off")" Icon="repeat" ButtonStyle="@(Enabled ? ButtonStyle.Success : ButtonStyle.Light)"
                   aria-pressed="@(Enabled ? "true" : "false")" Click="OnToggle" data-testid="loop-toggle" />
+    <InlineHint TopicId="mixer-loop" />
     @if (Error is not null)
     {
         <div class="ss-error" role="alert" data-testid="loop-error">@Error</div>

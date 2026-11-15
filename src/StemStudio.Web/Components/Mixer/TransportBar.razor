@@ -1,6 +1,6 @@
 @* Transport: play, pause, stop, seek slider and position (FR-012). *@
 
-<div class="ss-transport ss-transport-dock" role="toolbar" aria-label="Transport">
+<div class="ss-transport ss-transport-dock" role="toolbar" aria-label="Transport" data-help-id="mixer-transport">
     <RadzenButton Icon="play_arrow" aria-label="Play" aria-pressed="@Pressed(PlaybackState.Playing)" Click="OnPlay" Disabled="!Ready"
                   data-testid="transport-play" />
     <RadzenButton Icon="pause" ButtonStyle="ButtonStyle.Light" aria-label="Pause" aria-pressed="@Pressed(PlaybackState.Paused)"

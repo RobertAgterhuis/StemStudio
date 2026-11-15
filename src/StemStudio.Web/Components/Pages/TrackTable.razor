@@ -20,7 +20,7 @@
                 <td class="ss-muted">@track.Artist</td>
                 <td>
                     <RadzenBadge BadgeStyle="TrackStatusText.Badge(track.Status)" Text="@TrackStatusText.Label(track.Status)" IsPill="true"
-                                 data-testid="@($"track-row-status-{track.Id}")" />
+                                 data-testid="@($"track-row-status-{track.Id}")" data-help-id="track-status" />
                 </td>
                 <td class="ss-num">@TimeText.Duration(track.DurationSeconds)</td>
                 @if (Expert)

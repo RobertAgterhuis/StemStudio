@@ -2,8 +2,8 @@
 
 <section class="ss-panel ss-summary" aria-labelledby="summary-heading">
     <h2 id="summary-heading" class="ss-heading">Stems</h2>
-    <dl class="ss-facts ss-facts-row">
-        <div><dt>Tempo</dt><dd data-testid="track-bpm">@TrackFacts.Bpm(Track)</dd></div>
+    <dl class="ss-facts ss-facts-row" data-help-id="track-facts">
+        <div><dt>Tempo</dt><dd data-testid="track-bpm" data-help-id="track-bpm">@TrackFacts.Bpm(Track)</dd></div>
         <div><dt>Duration</dt><dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd></div>
         <div><dt>Model</dt><dd data-testid="track-model">@TrackFacts.Model(Track)</dd></div>
     </dl>
@@ -24,7 +24,7 @@
     </ul>
 
     <a class="rz-button rz-button-md rz-variant-filled rz-primary rz-shade-default ss-link-button"
-       href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer">Open mixer</a>
+       href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer" data-help-id="open-mixer">Open mixer</a>
 </section>
 
 @code {

@@ -179,3 +179,20 @@
   justify-content: space-between;
   gap: var(--ss-space-3);
 }
+
+/* A label or a device line with its help hint. */
+.ss-label-row,
+.ss-device-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-label-row .ss-label {
+  margin: 0;
+}
+
+.ss-panel-title .ss-help-hint {
+  vertical-align: middle;
+}

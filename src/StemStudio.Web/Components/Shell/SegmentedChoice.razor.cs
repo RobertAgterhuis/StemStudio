@@ -32,6 +32,10 @@ public sealed partial class SegmentedChoice<TValue>
     [Parameter, EditorRequired]
     public string Label { get; set; } = string.Empty;
 
+    /// <summary>Help marker of the group, if any.</summary>
+    [Parameter]
+    public string? HelpId { get; set; }
+
     /// <summary><c>data-testid</c> of the group, if any.</summary>
     [Parameter]
     public string? TestId { get; set; }

@@ -3,7 +3,7 @@
 @inject ToastService Toasts
 
 <SegmentedChoice TValue="ExperienceLevel" Options="Levels" Value="Preferences.Current.EffectiveLevel" ValueChanged="SetAsync"
-                 Label="Experience level" TestId="level-switch" />
+                 Label="Experience level" TestId="level-switch" HelpId="level-switch" />
 
 @code {
     private static readonly IReadOnlyList<ChoiceOption<ExperienceLevel>> Levels =
