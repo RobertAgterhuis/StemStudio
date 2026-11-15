@@ -5,7 +5,7 @@ followed by the green commit.
 
 | Task | Red | Green |
 |---|---|---|
-| 008:T020/T021 engraver (`engraving/{verovio_svg,pdf,fonts,engraver}.py`) | `7c15c00` | GREEN_HASH |
+| 008:T020/T021 engraver (`engraving/{verovio_svg,pdf,fonts,engraver}.py`) | `7c15c00` | `5322ac8` |
 
 ## What was built
 
