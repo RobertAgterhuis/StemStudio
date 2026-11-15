@@ -23,7 +23,22 @@ public static class AssetEndpoints
             .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapGet(AssetRoute, (Guid assetId, AssetService assets, CancellationToken ct) => assets.GetAsync(assetId, ct))
             .WithName("getAsset").WithTags("assets").Produces<AssetDto>().ProducesProblem(StatusCodes.Status404NotFound);
-        return app.MapFileEndpoints();
+        return app.MapLibraryEndpoints().MapFileEndpoints();
+    }
+
+    private static IEndpointRouteBuilder MapLibraryEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(ApiRoutes.Assets, ([AsParameters] AssetListQuery query, AssetLibraryService library, CancellationToken ct) => library.ListAsync(query, ct))
+            .WithName("listAssets").WithTags("assets").Produces<AssetListDto>().ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+        app.MapPatch(AssetRoute, (Guid assetId, RenameAssetRequest? request, AssetService assets, CancellationToken ct) => assets.RenameAsync(assetId, request, ct))
+            .WithName("renameAsset").WithTags("assets").Produces<AssetDto>()
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+        app.MapDelete(AssetRoute, (Guid assetId, AssetLibraryService library, CancellationToken ct) => library.DeleteAsync(assetId, ct))
+            .WithName("deleteAsset").WithTags("assets").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPost(AssetRoute + "/retry", (Guid assetId, AssetRetryService retry, CancellationToken ct) => retry.RetryAsync(assetId, ct))
+            .WithName("retryAsset").WithTags("assets").Produces<AssetDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        return app;
     }
 
     private static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder app)

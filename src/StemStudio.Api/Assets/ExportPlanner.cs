@@ -49,6 +49,22 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
         return problem is null ? Draft(track, Recipe(request, mix)) : (null, problem);
     }
 
+    /// <summary>Plans a stored recipe again (retry); a channel that no longer exists makes the source unavailable.</summary>
+    /// <param name="track">The track, or null when it was deleted.</param>
+    /// <param name="recipe">The stored recipe.</param>
+    /// <returns>The draft, or the problem.</returns>
+    public static (ExportDraft? Draft, IResult? Problem) Replan(Track? track, ExportRecipe recipe)
+    {
+        ArgumentNullException.ThrowIfNull(recipe);
+        if (track is not { Status: TrackStatus.Completed })
+        {
+            return (null, AssetProblems.SourceUnavailable("The track of this item was deleted, so it cannot be rendered again."));
+        }
+
+        var (draft, problem) = Draft(track, recipe);
+        return problem is null ? (draft, null) : (null, AssetProblems.SourceUnavailable("A channel of this item no longer exists on the track."));
+    }
+
     private static (ExportDraft?, IResult?) Draft(Track track, ExportRecipe recipe)
     {
         try

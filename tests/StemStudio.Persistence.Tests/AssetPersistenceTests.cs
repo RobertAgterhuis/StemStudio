@@ -103,6 +103,19 @@ public sealed class AssetPersistenceTests
     }
 
     [Fact]
+    public async Task ExistingTrackIds_AreTheOnesStillStored()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var track = TestData.CompletedTrack();
+        await db.SeedAsync(track);
+
+        await using var read = db.NewContext();
+        var existing = await new TrackRepository(read).ExistingIdsAsync([track.Id, Guid.NewGuid()], Ct);
+
+        existing.ShouldBe([track.Id]);
+    }
+
+    [Fact]
     public async Task DatabaseFrom005_MigratesWithAnEmptyAssetsTable()
     {
         var path = Path.Combine(Path.GetTempPath(), $"stemstudio-005-{Guid.NewGuid():N}.db");
