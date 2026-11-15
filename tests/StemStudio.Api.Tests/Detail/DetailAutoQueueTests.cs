@@ -140,14 +140,17 @@ public sealed class DetailAutoQueueTests : IDisposable
 
         var phase = await PhaseAsync(track);
         (phase.Status, phase.Progress, phase.Stage).ShouldBe((DetailPhaseStatus.Completed, 100, "Completed"));
-        phase.Parents.Select(p => (p.Parent, p.Outcome)).ShouldBe(
-        [
-            ("vocals", ParentOutcomeKind.Split), ("drums", ParentOutcomeKind.Split), ("bass", ParentOutcomeKind.NotSupported),
-            ("guitar", ParentOutcomeKind.NothingFurther), ("piano", ParentOutcomeKind.SkippedSilent), ("other", ParentOutcomeKind.NotReliable),
-        ]);
+        phase.Parents.Select(p => (p.Parent, p.Outcome)).ShouldBe(FakeOutcomes);
         statusesDuringDownload.ShouldAllBe(status => status != DetailPhaseStatus.Completed);
         await AssertStoredAsync(track.Id, phase);
     }
+
+    /// <summary>The outcomes of <see cref="FakeWorkerClient.DetailResult"/>.</summary>
+    private static readonly (string, ParentOutcomeKind)[] FakeOutcomes =
+    [
+        ("vocals", ParentOutcomeKind.Split), ("drums", ParentOutcomeKind.Split), ("bass", ParentOutcomeKind.NotSupported),
+        ("guitar", ParentOutcomeKind.NothingFurther), ("piano", ParentOutcomeKind.SkippedSilent), ("other", ParentOutcomeKind.NotReliable),
+    ];
 
     [Fact]
     public async Task WorkerForgotTheJob_FailsInterruptedByRestart()

@@ -99,7 +99,7 @@ public sealed class DetailPersistenceTests
         var cancelled = TestData.CompletedTrack("ccccccccccc");
         cancelled.RequestDetail(TestData.T0);
         cancelled.CancelDetail(TestData.T0);
-        await SeedAsync(db, TestData.CompletedTrack("ddddddddddd"), DetailCompletedTrack("eeeeeeeeeee"), cancelled, running, queued, TestData.QueuedTrack("fffffffffff"));
+        await db.SeedAsync(TestData.CompletedTrack("ddddddddddd"), DetailCompletedTrack("eeeeeeeeeee"), cancelled, running, queued, TestData.QueuedTrack("fffffffffff"));
 
         await using var read = db.NewContext();
         var active = await new TrackRepository(read).ListDetailActiveAsync(Ct);
@@ -113,7 +113,7 @@ public sealed class DetailPersistenceTests
         await using var db = await SqliteTestDatabase.CreateAsync();
         var track = DetailCompletedTrack();
         var mix = Mix.Create(Guid.NewGuid(), track, MixWithDetail(), TestData.T0.AddHours(1));
-        await SeedAsync(db, track);
+        await db.SeedAsync(track);
         await using (var context = db.NewContext())
         {
             await new MixRepository(context).AddAsync(mix, Ct);
@@ -131,7 +131,7 @@ public sealed class DetailPersistenceTests
     {
         await using var db = await SqliteTestDatabase.CreateAsync();
         var track = TestData.CompletedTrack();
-        await SeedAsync(db, track);
+        await db.SeedAsync(track);
         await using (var context = db.NewContext())
         {
             await new MixRepository(context).AddAsync(Mix.Create(Guid.NewGuid(), track, TestData.Settings(), TestData.T0), Ct);
@@ -151,22 +151,27 @@ public sealed class DetailPersistenceTests
             var (trackId, mixId) = await CreateLegacyDatabaseAsync(connectionString);
 
             await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
-            await using var read = db.NewContext();
-            var track = (await new TrackRepository(read).FindAsync(trackId, Ct))!;
-            var mix = (await new MixRepository(read).FindAsync(mixId, Ct))!;
-
-            track.DetailPhase.ShouldBeNull();
-            track.Stems.Count.ShouldBe(6);
-            mix.Expanded.ShouldBeEmpty();
-            mix.DetailChannels.ShouldBeEmpty();
-            mix.Channels.Single().Stem.ShouldBe("guitar");
-            read.Database.GetPendingMigrations().ShouldBeEmpty();
+            await AssertLoadsWithoutDetailAsync(db, trackId, mixId);
         }
         finally
         {
             SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
+    }
+
+    private static async Task AssertLoadsWithoutDetailAsync(SqliteTestDatabase db, Guid trackId, Guid mixId)
+    {
+        await using var read = db.NewContext();
+        var track = (await new TrackRepository(read).FindAsync(trackId, Ct))!;
+        var mix = (await new MixRepository(read).FindAsync(mixId, Ct))!;
+
+        track.DetailPhase.ShouldBeNull();
+        track.Stems.Count.ShouldBe(6);
+        mix.Expanded.ShouldBeEmpty();
+        mix.DetailChannels.ShouldBeEmpty();
+        mix.Channels.Single().Stem.ShouldBe("guitar");
+        read.Database.GetPendingMigrations().ShouldBeEmpty();
     }
 
     private static async Task<(Guid TrackId, Guid MixId)> CreateLegacyDatabaseAsync(string connectionString)
@@ -230,20 +235,11 @@ public sealed class DetailPersistenceTests
 
     private static async Task<Track> SaveAndReloadAsync(SqliteTestDatabase db, Track track)
     {
-        await SeedAsync(db, track);
+        await db.SeedAsync(track);
         await using var read = db.NewContext();
         return (await new TrackRepository(read).FindAsync(track.Id, Ct))!;
     }
 
-    private static async Task SeedAsync(SqliteTestDatabase db, params Track[] tracks)
-    {
-        await using var context = db.NewContext();
-        var repository = new TrackRepository(context);
-        foreach (var track in tracks)
-        {
-            await repository.AddAsync(track, Ct);
-        }
-    }
 
     private static void AssertSamePhase(DetailPhase loaded, DetailPhase expected)
     {
