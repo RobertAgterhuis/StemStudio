@@ -1,8 +1,9 @@
 """``LibrosaDrumTranscriber``: drum detail stems -> drum hits (008 data-model 2.3, research S-05).
 
 Each detail stem (kick, snare, toms, hihat, cymbals) is loaded mono at 22,050 Hz, onsets are
-detected with librosa (``delta`` 0.2 for kick and snare, 0.3 otherwise, hop 256 = 11.6 ms), and
-every onset gets a linear loudness: the absolute peak of the stem just after it. The bleed gate
+detected with librosa (``delta`` 0.2 for kick and snare, 0.3 otherwise, hop 256 = 11.6 ms),
+moved back to the attack (detection lags by up to a frame), and every onset gets a linear
+loudness: the absolute peak of the stem around it. The bleed gate
 drops onsets quieter than 10 % of the piece's 99th-percentile peak (another piece leaking into
 the stem); a hit's ``strength`` is its peak relative to that percentile, clamped to 0..1. Stems
 whose peak stays below -60 dBFS, and stems that cannot be decoded, give no hits.
@@ -35,9 +36,12 @@ GATE_PERCENTILE: Final = 99.0
 SILENCE_PEAK: Final = 1e-3
 """Onsets (and stems) whose peak stays below this (-60 dBFS) are ignored."""
 
-PEAK_BEFORE_SECONDS: Final = 0.010
+PEAK_BEFORE_SECONDS: Final = 0.025
 PEAK_AFTER_SECONDS: Final = 0.030
-"""The loudness of an onset is the absolute peak from 10 ms before to 30 ms after it."""
+"""The attack and loudness of an onset are searched from 25 ms before to 30 ms after it."""
+
+ATTACK_RATIO: Final = 0.25
+"""The attack is the first sample reaching this share of the onset's local peak."""
 
 _DELTAS: Final[dict[DrumPiece, float]] = {"kick": 0.2, "snare": 0.2}
 _DEFAULT_DELTA: Final = 0.3
@@ -81,8 +85,7 @@ def piece_hits(piece: DrumPiece, path: Path, window: RenderRange | None) -> list
     samples = _load_mono(path, window)
     if samples is None or float(np.max(np.abs(samples), initial=0.0)) < SILENCE_PEAK:
         return []
-    times = _onset_times(samples, _DELTAS.get(piece, _DEFAULT_DELTA))
-    peaks = _onset_peaks(samples, times)
+    times, peaks = _attacks(samples, _onset_times(samples, _DELTAS.get(piece, _DEFAULT_DELTA)))
     return gate_hits(piece, times, peaks)
 
 
@@ -109,13 +112,26 @@ def _onset_times(samples: FloatArray, delta: float) -> FloatArray:
     return np.asarray(times, dtype=np.float64)
 
 
-def _onset_peaks(samples: FloatArray, times: FloatArray) -> FloatArray:
-    """Return the absolute peak around every onset (linear loudness for the gate)."""
+def _attacks(samples: FloatArray, times: FloatArray) -> tuple[FloatArray, FloatArray]:
+    """Refine every onset to its attack and return the attack times and peaks.
+
+    Around each detected onset (25 ms before to 30 ms after; detection lags by up to 1.5 frames)
+    the attack is the first sample reaching ``ATTACK_RATIO`` of the local absolute peak, and
+    that peak is the onset's linear loudness for the gate.
+    """
     magnitude = np.abs(samples)
-    starts = np.clip(((times - PEAK_BEFORE_SECONDS) * ONSET_SAMPLE_RATE).astype(int), 0, None)
-    stops = ((times + PEAK_AFTER_SECONDS) * ONSET_SAMPLE_RATE).astype(int) + 1
-    peaks = [float(np.max(magnitude[a:b], initial=0.0)) for a, b in zip(starts, stops, strict=True)]
-    return np.asarray(peaks, dtype=np.float64)
+    found = [_attack(magnitude, t) for t in times]
+    attack_times = np.asarray([t for t, _ in found], dtype=np.float64)
+    return attack_times, np.asarray([p for _, p in found], dtype=np.float64)
+
+
+def _attack(magnitude: FloatArray, onset: float) -> tuple[float, float]:
+    """Return (attack time, peak) of the onset at ``onset`` seconds."""
+    start = max(0, int((onset - PEAK_BEFORE_SECONDS) * ONSET_SAMPLE_RATE))
+    segment = magnitude[start : int((onset + PEAK_AFTER_SECONDS) * ONSET_SAMPLE_RATE) + 1]
+    peak = float(np.max(segment, initial=0.0))
+    first = int(np.argmax(segment >= ATTACK_RATIO * peak))
+    return (start + first) / ONSET_SAMPLE_RATE, peak
 
 
 def _load_mono(path: Path, window: RenderRange | None) -> FloatArray | None:
