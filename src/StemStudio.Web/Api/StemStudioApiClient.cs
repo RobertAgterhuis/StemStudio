@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using StemStudio.Contracts;
+using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
@@ -50,6 +51,10 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<TrackDto> CancelDetailAsync(Guid trackId, CancellationToken cancellationToken = default) =>
         SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.CancelDetail(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<ProcessingDeviceDto> GetDeviceAsync(CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MixSummaryDto>> ListMixesAsync(Guid? trackId = null, CancellationToken cancellationToken = default) =>

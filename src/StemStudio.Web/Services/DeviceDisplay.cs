@@ -1,3 +1,4 @@
+using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Services;
@@ -20,6 +21,14 @@ public sealed record DeviceDisplay(string Kind, string Text, bool? Fallback, str
         device.DisplayText(),
         device.CpuFallback,
         device.CpuFallback ? device.FallbackReason ?? UnknownFallbackReason : null);
+
+    /// <summary>Display of a worker device that is not known (worker unreachable or no answer).</summary>
+    public static DeviceDisplay Unknown { get; } = new("unknown", "Unknown", null, null);
+
+    /// <summary>Display of the worker's active processing device (<c>GET /api/device</c>).</summary>
+    /// <param name="device">The answer, or null when the API could not be asked.</param>
+    /// <returns>The display; <see cref="Unknown"/> without an answer.</returns>
+    public static DeviceDisplay FromWorker(ProcessingDeviceDto? device) => throw new NotImplementedException();
 
     private static string KindValue(ProcessingDeviceKindDto kind) =>
         kind == ProcessingDeviceKindDto.Gpu ? "gpu" : "cpu";

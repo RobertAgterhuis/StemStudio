@@ -1,4 +1,5 @@
 using Bunit;
+using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Components.Shared;
 using StemStudio.Web.Services;
@@ -42,6 +43,27 @@ public sealed class DeviceBadgeTests : PageTestContext
         var display = DeviceDisplay.FromJob(new JobDeviceDto(ProcessingDeviceKindDto.Cpu, null, true, null));
 
         display.Reason.ShouldBe(DeviceDisplay.UnknownFallbackReason);
+    }
+
+    [Fact]
+    public void FromWorker_NoAnswer_IsUnknown()
+    {
+        DeviceDisplay.FromWorker(null).ShouldBe(DeviceDisplay.Unknown);
+        DeviceDisplay.Unknown.ShouldBe(new DeviceDisplay("unknown", "Unknown", null, null));
+    }
+
+    [Fact]
+    public void FromWorker_ReachableWithoutKind_IsUnknown()
+    {
+        DeviceDisplay.FromWorker(new ProcessingDeviceDto { Reachable = true }).ShouldBe(DeviceDisplay.Unknown);
+    }
+
+    [Fact]
+    public void FromWorker_Gpu_HasNoFallbackFlag()
+    {
+        var display = DeviceDisplay.FromWorker(new ProcessingDeviceDto { Reachable = true, Kind = ProcessingDeviceKindDto.Gpu, Name = Gpu });
+
+        display.ShouldBe(new DeviceDisplay("gpu", $"GPU ({Gpu})", null, null));
     }
 
     [Fact]
