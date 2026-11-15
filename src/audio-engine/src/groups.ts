@@ -88,6 +88,11 @@ export class StemGroups {
     this.wanted.clear();
   }
 
+  /** Forgets every group and loaded or pending group load (engine disposal). */
+  public dispose(): void {
+    this.reset([]);
+  }
+
   /**
    * Expands (first time: after fetching and decoding the group) or collapses a parent.
    *

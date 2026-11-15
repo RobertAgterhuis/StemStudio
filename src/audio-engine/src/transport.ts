@@ -174,10 +174,15 @@ export class Transport implements TransportClock {
     }
   }
 
-  /** Stops all sources without notifying anyone (engine disposal). */
+  /** Stops all sources without notifying anyone and releases every decoded buffer (engine disposal). */
   public dispose(): void {
     this.listeners.length = 0;
+    this.sources.forEach((source) => {
+      source.buffer = null;
+    });
     this.halt();
+    this.buffers = new Map();
+    this.length = 0;
   }
 
   private applyRunningLoop(position: number, region: LoopRegion): void {

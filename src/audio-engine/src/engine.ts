@@ -1,5 +1,5 @@
 /**
- * Composition root: one AudioContext shared by transport, mixer, meters and metronome, exposed
+ * Composition root: one AudioContext shared by transport, mixer, stem groups, meters and metronome, exposed
  * as the {@link AudioEngine} object Blazor holds as an `IJSObjectReference`.
  *
  * @packageDocumentation
@@ -86,6 +86,7 @@ function createGroups(parts: Parts, load: GroupLoader): StemGroups {
   });
 }
 
+/** Fetch-and-decode function handed to {@link StemGroups} (rejects after disposal). */
 type GroupLoader = <N extends string>(sources: readonly NamedSource<N>[]) => Promise<ReadonlyMap<N, AudioBuffer>>;
 
 /** The StemStudio audio engine (contract `types.ts`, behaviour `contracts/audio-engine.md`). */
@@ -218,6 +219,8 @@ export class Engine implements AudioEngine {
     }
     this.disposed = true;
     this.parts.transport.dispose();
+    this.groups.dispose();
+    this.parts.mixer.dispose();
     this.parts.notifier.dispose();
     this.parts.meters.dispose();
     this.parts.metronome.dispose();
