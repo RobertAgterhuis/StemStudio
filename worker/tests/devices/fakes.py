@@ -1,5 +1,6 @@
 """Fake torch, NVML and torch-memory adapters for the device tests (no GPU needed)."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from stemstudio_worker.devices.nvml import GpuMemory
@@ -71,3 +72,21 @@ class FakeMemory:
 
     def empty_cache(self) -> None:
         self.events.append("empty_cache")
+
+
+@dataclass
+class FakeClock:
+    """A monotonic clock whose ``sleep`` advances time and then calls ``on_sleep(count)``."""
+
+    time: float = 0.0
+    sleeps: list[float] = field(default_factory=list)
+    on_sleep: Callable[[int], None] | None = None
+
+    def now(self) -> float:
+        return self.time
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.time += seconds
+        if self.on_sleep is not None:
+            self.on_sleep(len(self.sleeps))
