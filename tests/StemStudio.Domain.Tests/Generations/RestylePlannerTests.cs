@@ -58,11 +58,11 @@ public sealed class RestylePlannerTests
     }
 
     [Theory]
-    [InlineData(60, 65, "rangeEndSeconds")]
-    [InlineData(0, 500, "rangeEndSeconds")]
-    [InlineData(200, 220, "rangeEndSeconds")]
-    [InlineData(-1, 30, "rangeStartSeconds")]
-    [InlineData(210, null, "rangeEndSeconds")]
+    [InlineData(60.0, 65.0, "rangeEndSeconds")]
+    [InlineData(0.0, 500.0, "rangeEndSeconds")]
+    [InlineData(200.0, 220.0, "rangeEndSeconds")]
+    [InlineData(-1.0, 30.0, "rangeStartSeconds")]
+    [InlineData(210.0, null, "rangeEndSeconds")]
     public void Plan_RejectsBadRanges(double? start, double? end, string field)
     {
         var error = Should.Throw<DomainValidationException>(() =>
@@ -88,7 +88,7 @@ public sealed class RestylePlannerTests
     {
         var list = stems.Split(',', StringSplitOptions.RemoveEmptyEntries);
         var error = Should.Throw<DomainValidationException>(() =>
-            RestylePlanner.Plan(Options() with { IncludedStems = list },new RestyleSource(213.04, ["vocals", "drums", "bass", "other"]), StyleTestData.JazzTrio()));
+            RestylePlanner.Plan(Options() with { IncludedStems = list }, new RestyleSource(213.04, ["vocals", "drums", "bass", "other"]), StyleTestData.JazzTrio()));
 
         error.Errors.Single().Field.ShouldBe("includedStems");
     }
@@ -102,7 +102,7 @@ public sealed class RestylePlannerTests
     [Fact]
     public void Plan_AnInstrumentalStyleOnAVocalOnlyTrackHasNoStems() =>
         Should.Throw<DomainValidationException>(() =>
-            RestylePlanner.Plan(Options(), new RestyleSource(60, ["vocals"]), StyleTestData.RainyCafe()))
+            RestylePlanner.Plan(Options() with { Start = 0, End = 30 }, new RestyleSource(60, ["vocals"]), StyleTestData.RainyCafe()))
             .Errors.Single().Field.ShouldBe("includedStems");
 
     [Theory]

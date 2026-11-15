@@ -7,6 +7,7 @@ using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
+using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
 using StemStudio.Api.Lyrics;
@@ -19,7 +20,9 @@ using StemStudio.Api.Tracks;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Health;
+using StemStudio.Domain.Styles;
 using StemStudio.Persistence;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api;
 
@@ -64,6 +67,7 @@ public static class ApiComposition
         await using (var scope = app.Services.CreateAsyncScope())
         {
             await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
+            await SeedPresetsAsync(scope.ServiceProvider);
         }
 
         app.UseExceptionHandler();
@@ -72,6 +76,10 @@ public static class ApiComposition
         app.MapOpenApi();
         MapEndpoints(app);
     }
+
+    private static Task<int> SeedPresetsAsync(IServiceProvider services) =>
+        services.GetRequiredService<IStyleRepository>().SeedPresetsAsync(
+            PresetCatalog.Load().Presets, services.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime, CancellationToken.None);
 
     private static void MapEndpoints(WebApplication app)
     {
@@ -87,6 +95,7 @@ public static class ApiComposition
         app.MapAssetEndpoints();
         app.MapLyricsEndpoints();
         app.MapScoreEndpoints();
+        app.MapGenerationEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -133,6 +142,15 @@ public static class ApiComposition
         AddAssetServices(services);
         AddLyricsServices(services);
         AddScoreServices(services);
+        AddGenerationServices(services);
+    }
+
+    private static void AddGenerationServices(IServiceCollection services)
+    {
+        services.AddSingleton<GenerationAvailability>();
+        services.TryAddSingleton<ISeedSource, RandomSeedSource>();
+        services.AddScoped<GenerationSubmitter>();
+        services.AddScoped<RestyleService>();
     }
 
     private static void AddScoreServices(IServiceCollection services)

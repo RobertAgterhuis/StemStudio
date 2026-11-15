@@ -186,5 +186,5 @@ internal sealed class SequenceSeeds : StemStudio.Api.Generations.ISeedSource
 {
     private int _next;
 
-    public int Next() => Interlocked.Increment(ref _next) * 1000;
+    public int NewSeed() => Interlocked.Increment(ref _next) * 1000;
 }

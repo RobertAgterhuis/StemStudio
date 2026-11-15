@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Time.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
@@ -118,13 +118,6 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             ConfigureServices?.Invoke(services);
         });
     }
-
-    /// <summary>One pass of the generation synchroniser in a fresh scope (feature 009).</summary>
-    public Task<bool> SyncGenerationsAsync() => WithScopeAsync(async sp =>
-    {
-        await sp.GetRequiredService<StemStudio.Api.Generations.GenerationSynchronizer>().SyncAllAsync(CancellationToken.None);
-        return true;
-    });
 
     private HttpClient GeneratorHttp() =>
         new(Generator.Handler) { BaseAddress = GeneratorInstalled ? new Uri("http://generator:8010/") : null };

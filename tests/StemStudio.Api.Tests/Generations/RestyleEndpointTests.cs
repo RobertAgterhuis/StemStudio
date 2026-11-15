@@ -7,10 +7,10 @@ using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Styles;
-using StemStudio.Domain.Generations;
 using StemStudio.Domain.Styles;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
+using StyleFields = StemStudio.Domain.Styles.StyleFields;
 
 namespace StemStudio.Api.Tests.Generations;
 
@@ -58,7 +58,8 @@ public sealed class RestyleEndpointTests : ApiTestBase
         created.Stems.Select(stem => stem.FileName).ShouldBe(StemCatalog.SixStem.Select(name => name + ".flac"));
         created.Stems[0].Bytes.ShouldBe(StemBytes("vocals"));
         var stored = await Factory.WithScopeAsync(sp => sp.GetRequiredService<IGenerationRepository>().ListAsync(null, null, CancellationToken.None));
-        (stored.Single().GeneratorJobId, stored.Single().Seeds).ShouldBe((created.Id, (IReadOnlyList<int>)[1000, 2000]));
+        stored.Single().GeneratorJobId.ShouldBe(created.Id);
+        stored.Single().Seeds.ShouldBe([1000, 2000]);
     }
 
     [Fact]
