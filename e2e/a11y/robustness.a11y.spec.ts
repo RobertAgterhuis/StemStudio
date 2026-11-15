@@ -1,5 +1,12 @@
 import { axeViolations } from '../support/axe';
-import { computedColours, horizontalOverflow, reflowScreens, reflowViewport } from '../support/robustness';
+import {
+  computedColours,
+  desktopViewport,
+  horizontalOverflow,
+  reflowScreens,
+  reflowViewport,
+  textLineCounts,
+} from '../support/robustness';
 import { openScreen } from '../support/screens';
 import { expect, test } from '../support/ux-test';
 import { cellState, matrixThemes } from '../support/visual';
@@ -17,6 +24,22 @@ for (const theme of matrixThemes) {
         expect(await horizontalOverflow(page)).toBe(0);
       });
     }
+  });
+
+  test.describe(`library columns / ${theme}`, () => {
+    test.use({ storageState: cellState('advanced', theme), viewport: desktopViewport });
+
+    test('library headings and status words do not break at desktop width', async ({ page, uxData }) => {
+      await openScreen(page, 'library', uxData);
+      const table = page.locator('.ss-asset-table');
+      const headings = await textLineCounts(table.locator('th'));
+      const statuses = await textLineCounts(table.locator('.ss-asset-status'));
+      expect(statuses.length).toBeGreaterThan(0);
+      expect({ headings, statuses }).toEqual({
+        headings: headings.map((lines) => Math.min(lines, 1)),
+        statuses: statuses.map(() => 1),
+      });
+    });
   });
 
   test.describe(`forced colours / ${theme}`, () => {
