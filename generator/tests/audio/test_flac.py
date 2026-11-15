@@ -3,6 +3,7 @@
 import hashlib
 import json
 import shutil
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -125,6 +126,12 @@ def test_file_sha256_streams_the_file(tmp_path: Path) -> None:
     path.write_bytes(b"a" * 3_000_000)
 
     assert file_sha256(path) == hashlib.sha256(b"a" * 3_000_000).hexdigest()
+
+
+def test_subprocess_runner_captures_the_output_of_a_program() -> None:
+    result = SubprocessRunner().run([sys.executable, "-c", "print('ok')"], 30.0)
+
+    assert (result.returncode, result.stdout.strip()) == (0, "ok")
 
 
 def test_subprocess_runner_reports_a_missing_program() -> None:
