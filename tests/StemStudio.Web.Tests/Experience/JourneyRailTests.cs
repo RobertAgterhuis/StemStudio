@@ -20,7 +20,7 @@ public sealed class JourneyRailTests : PageTestContext
             .AddChildContent<JourneyRail>(r => r.Add(x => x.Stage, stage)));
 
     private static string[] States(IRenderedComponent<CascadingValue<ExperienceContext>> rail) =>
-        ["import", "separate", "mix", "save"].Select(s => rail.Find($"[data-testid=journey-step-{s}]").GetAttribute("data-state")!).ToArray();
+        new[] { "import", "separate", "mix", "save" }.Select(s => rail.Find($"[data-testid=journey-step-{s}]").GetAttribute("data-state")!).ToArray();
 
     [Theory]
     [InlineData(ExperienceLevel.Advanced)]
