@@ -16,5 +16,14 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["playwright.config.ts", "pages/**/*.ts", "support/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "playwright.config.ts",
+    "pages/**/*.ts",
+    "support/**/*.ts",
+    "tests/**/*.ts",
+    "visual/**/*.ts",
+    "a11y/**/*.ts",
+    "lighthouse/**/*.ts",
+    "lighthouse/**/*.mts"
+  ]
 }
