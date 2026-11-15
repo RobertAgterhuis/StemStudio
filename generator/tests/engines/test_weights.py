@@ -175,3 +175,49 @@ def test_the_default_hub_adapters_use_huggingface_hub(
         "download",
         {"repo_id": "org/m", "revision": "r1", "filename": "a.bin", "local_dir": str(tmp_path)},
     )
+
+
+def test_a_shared_directory_with_one_revision_line_per_file_serves_two_pins(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "model.bin").write_bytes(_A)
+    (tmp_path / "b.bin").write_bytes(_B)
+    write_manifest(tmp_path, "unused")
+    (tmp_path / "REVISION").write_text("a/model.bin org/model rev1\nb.bin org/other rev9\n")
+    first = WeightsDir(tmp_path, WeightsPin("org/model", "rev1", (PIN.files[0],)), only_pinned=True)
+    second = WeightsDir(
+        tmp_path, WeightsPin("org/other", "rev9", (("b.bin", ""),)), only_pinned=True
+    )
+
+    assert first.present()
+    assert second.present()
+    assert not WeightsDir(tmp_path, WeightsPin("org/other", "rev8", (("b.bin", ""),))).present()
+
+
+def test_only_pinned_downloads_fetch_the_pinned_files_and_keep_other_revision_lines(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "REVISION").write_text("other.pt org/other rev9\n")
+    fetched: list[str] = []
+
+    def fetch(repo: str, revision: str, filename: str, dest: Path) -> None:
+        fetched.append(filename)
+        (dest / filename).parent.mkdir(parents=True, exist_ok=True)
+        (dest / filename).write_bytes(_A)
+
+    pin = WeightsPin("org/model", "rev1", (PIN.files[0],))
+    cache = WeightsDir(
+        tmp_path,
+        pin,
+        Hub(fetch, lambda repo, revision: pytest.fail("no listing")),
+        only_pinned=True,
+    )
+
+    cache.ensure(lambda fraction, stage: None)
+
+    assert fetched == ["a/model.bin"]
+    assert cache.present()
+    assert (tmp_path / "REVISION").read_text().splitlines() == [
+        "a/model.bin org/model rev1", "other.pt org/other rev9",
+    ]  # fmt: skip
