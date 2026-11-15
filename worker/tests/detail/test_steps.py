@@ -286,3 +286,9 @@ def test_registry_source_maps_parents_to_the_adr_010_models() -> None:
     assert (guitar.model_id, guitar.table, guitar.policy) == ("mvsep-mega-53", MEGA_TABLE, FAMILIES)
     assert provider.requested == ["mdx23c-drumsep-6s", "uvr-mdxnet-kara-2", "mvsep-mega-53"]
     assert identity_table(("a",)) == {"a": ("a",)}
+
+
+def test_without_active_instrument_parents_there_is_no_instrument_step(tmp_path: Path) -> None:
+    stems = write_stems(tmp_path / "stems", band(silent=("guitar", "piano", "other")))
+    steps = DetailPipeline(_source()).plan(stems, tmp_path / "partial")
+    assert [s.parents for s in steps] == [("drums",), ("vocals",)]
