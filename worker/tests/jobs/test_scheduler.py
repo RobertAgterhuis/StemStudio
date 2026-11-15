@@ -201,3 +201,11 @@ def test_active_detail_jobs_are_told_before_a_standard_job_runs() -> None:
     scheduler.stop(WAIT)
     assert recorder.calls == ["a:1", "s1", "a:2", "b:1", "s2"]
     assert yielded == [("a", "b")]
+
+
+def test_dropping_a_detail_job_that_is_no_longer_queued_is_harmless() -> None:
+    scheduler = PriorityScheduler(lambda _job: None, lambda _detail: False)
+
+    scheduler._drop("gone")
+
+    assert scheduler.pending == (0, 0)
