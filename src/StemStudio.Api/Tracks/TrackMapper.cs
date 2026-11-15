@@ -20,6 +20,7 @@ public static class TrackMapper
             DurationSeconds = track.DurationSeconds,
             Model = track.Model,
             BeatGrid = ToDto(track.BeatGrid),
+            Detail = DetailMapper.ToDto(track.Id, track.DetailPhase),
         };
     }
 
