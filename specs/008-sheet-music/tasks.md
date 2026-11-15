@@ -107,14 +107,14 @@ in the execution plan.
 
 ### backend (tests first)
 
-- [ ] T030 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Scores/ScoreRecipeTests.cs`: profile suggestion per channel (data-model 2.1), allowed profiles (pitched vs drums), drums only for `drums` with drums split, quality default by device, resolution default per profile, key override names, tempo ranges, range >= 2 s, default name (FR-002, FR-006, FR-008, FR-009)
-- [ ] T031 [backend] Implement `src/StemStudio.Domain/Scores/{ScoreRecipe,ScoreFacts,ProfileCatalog}.cs` to pass T030
-- [ ] T032 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Scores/TempoGridResolverTests.cs`: every row of data-model 4.3 (reliable grid, shifted by a range, asset with provenance track and range, manual tempo overrides, none -> `tempo-required`) (FR-004, FR-007)
-- [ ] T033 [backend] Implement `TempoGridResolver` to pass T032
-- [ ] T034 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/ScorePersistenceTests.cs`: `Score` JSON round trip, `kind = score` filter, assets created by 007 load with `Score = null`
-- [ ] T035 [backend] Implement the configuration and migration `AddScoreFacts` to pass T034
-- [ ] T036 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerTranscriptionClientTests.cs` with the worker examples: create/get/files per role/delete, problems mapped, `device` parsed
-- [ ] T037 [backend] Implement `Worker/WorkerClient.Transcription.cs`, `WorkerTranscriptionJob.cs` to pass T036
+- [x] T030 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Scores/ScoreRecipeTests.cs`: profile suggestion per channel (data-model 2.1), allowed profiles (pitched vs drums), drums only for `drums` with drums split, quality default by device, resolution default per profile, key override names, tempo ranges, range >= 2 s, default name (FR-002, FR-006, FR-008, FR-009)
+- [x] T031 [backend] Implement `src/StemStudio.Domain/Scores/{ScoreRecipe,ScoreFacts,ProfileCatalog}.cs` to pass T030
+- [x] T032 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Scores/TempoGridResolverTests.cs`: every row of data-model 4.3 (reliable grid, shifted by a range, asset with provenance track and range, manual tempo overrides, none -> `tempo-required`) (FR-004, FR-007)
+- [x] T033 [backend] Implement `TempoGridResolver` to pass T032
+- [x] T034 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/ScorePersistenceTests.cs`: `Score` JSON round trip, `kind = score` filter, assets created by 007 load with `Score = null`
+- [x] T035 [backend] Implement the configuration and migration `AddScoreFacts` to pass T034
+- [x] T036 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerTranscriptionClientTests.cs` with the worker examples: create/get/files per role/delete, problems mapped, `device` parsed
+- [x] T037 [backend] Implement `Worker/WorkerClient.Transcription.cs`, `WorkerTranscriptionJob.cs` to pass T036
 
 **Checkpoint**: HO:foundational for beat-analysis, audio-ingest, stem-separation and backend.
 
