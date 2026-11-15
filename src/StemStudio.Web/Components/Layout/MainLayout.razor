@@ -7,9 +7,9 @@
 <div class="ss-shell" data-testid="app-shell" data-level="@LevelName" data-density="@DensityName">
     <a class="ss-skip" href="#main" data-testid="skip-link">Skip to content</a>
     <NavMenu OnHelp="ToggleHelp" />
-    <div class="ss-shell-body">
-        <ContextBar HelpOpen="HelpOpen" OnHelp="ToggleHelp" OnPalette="OpenPalette" />
-        <CascadingValue Value="Experience">
+    <CascadingValue Value="Experience">
+        <div class="ss-shell-body">
+            <ContextBar HelpOpen="HelpOpen" OnHelp="ToggleHelp" OnPalette="OpenPalette" />
             <main id="main" class="ss-main" tabindex="-1">
                 @if (Preferences.Loaded)
                 {
@@ -25,8 +25,8 @@
                     </div>
                 }
             </main>
-        </CascadingValue>
-    </div>
+        </div>
+    </CascadingValue>
     <div class="ss-toast-region" aria-live="polite">
         @if (Toasts.Message is { } message)
         {

@@ -2,7 +2,7 @@
    in the same place on every screen (WCAG 3.2.6). *@
 
 <header class="ss-bar">
-    <div class="ss-bar-context">@ChildContent</div>
+    <div class="ss-bar-context"><SectionOutlet SectionName="@JourneySection" />@ChildContent</div>
     <div class="ss-bar-actions">
         <LevelSwitch />
         <button type="button" class="ss-bar-button" data-testid="command-palette-open" aria-keyshortcuts="Control+K" @onclick="OnPalette">
@@ -29,7 +29,10 @@
     [Parameter]
     public EventCallback OnPalette { get; set; }
 
-    /// <summary>Left-hand content (the journey rail at Beginner).</summary>
+    /// <summary>Name of the section pages fill with their journey rail.</summary>
+    public const string JourneySection = "journey";
+
+    /// <summary>Extra left-hand content.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 }
