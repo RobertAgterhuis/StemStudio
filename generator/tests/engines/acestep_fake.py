@@ -111,7 +111,33 @@ def fake_api(recorder: Recorder) -> AceStepApi:
         config=config,
         generate=_Generate(recorder),
         torch=_Torch(),
+        causal_lm=_CausalLm(recorder),
     )
+
+
+class _Model:
+    def __init__(self, recorder: Recorder) -> None:
+        self.recorder = recorder
+
+    def to(self, device: str) -> "_Model":
+        self.recorder.moved.append(device)
+        return self
+
+    def eval(self) -> "_Model":
+        return self
+
+
+class _CausalLm:
+    """``transformers.AutoModelForCausalLM`` stand-in."""
+
+    def __init__(self, recorder: Recorder) -> None:
+        self.recorder = recorder
+
+    def from_pretrained(self, path: str, **kwargs: Any) -> _Model:
+        if self.recorder.pretrained_error is not None:
+            raise self.recorder.pretrained_error
+        self.recorder.pretrained.append(kwargs)
+        return _Model(self.recorder)
 
 
 def _audios(c: Params, save_dir: Path, seconds: float) -> Result:
