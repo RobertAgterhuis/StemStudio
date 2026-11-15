@@ -76,11 +76,14 @@ def _torch(cuda: CudaProbe) -> Callable[[], CudaProbe]:
     return lambda: cuda
 
 
-def _nvml(memory: GpuMemory | None = GpuMemory(16_303, 14_800)) -> Callable[[], NvmlReader]:
+_MEMORY = GpuMemory(16_303, 14_800)
+
+
+def _nvml(memory: GpuMemory | None = _MEMORY) -> Callable[[], NvmlReader]:
     return lambda: FakeNvml(memory)
 
 
-def _probe(cuda: FakeCuda, memory: GpuMemory | None = GpuMemory(16_303, 14_800)) -> DeviceInfo:
+def _probe(cuda: FakeCuda, memory: GpuMemory | None = _MEMORY) -> DeviceInfo:
     return probe_device(_torch(cuda), _nvml(memory))
 
 
