@@ -59,18 +59,9 @@ class LibrosaDrumTranscriber:
         window: RenderRange | None,
         progress: TranscriptionProgress,
     ) -> tuple[DrumHit, ...]:
-        """Detect the onsets of every given piece (missing pieces give no hits).
+        """See :meth:`~stemstudio_worker.ports.DrumTranscriber.transcribe`.
 
-        Args:
-            inputs: Resolved detail stem file per piece.
-            window: Part to transcribe; times in the result are relative to its start.
-            progress: Receives 0..1, one step per piece.
-
-        Returns:
-            Hits in time order (ties in the order kick, snare, toms, hihat, cymbals).
-
-        Raises:
-            TranscriptionCancelledError: Propagated from ``progress``.
+        Hits at the same time are ordered kick, snare, toms, hihat, cymbals.
         """
         pieces = [piece for piece in _PIECES if piece in inputs]
         hits: list[DrumHit] = []
