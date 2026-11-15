@@ -18,6 +18,7 @@ import soundfile as sf
 from stemstudio_worker.ports import (
     DeviceUse,
     DrumTranscriber,
+    EngravedScore,
     LibraryReader,
     NotationSettings,
     Notator,
@@ -181,17 +182,21 @@ class Pipeline:
         settings = self._settings(next(iter(inputs.values())))
         self._notation = settings
         done = self._transcribe(inputs, settings, report)
-        finished = report("engraving")
-        engraved = self._parts.engraver.engrave(
-            done.document.musicxml, self._request.titles.title, done.attribution
-        )
-        finished(1.0)
+        engraved = self._engrave(done, report)
         document = done.document
         files: dict[ScoreFileRole, bytes] = {
             "pdf": engraved.pdf, "musicxml": document.musicxml, "midi": document.midi,
         }  # fmt: skip
         device = _CPU if done.use is None else merge_device(None, done.use)
         return Outcome(files, self._summary(done, engraved.pages, inputs), device)
+
+    def _engrave(self, done: _Transcribed, report: StageReporter) -> EngravedScore:
+        finished = report("engraving")
+        engraved = self._parts.engraver.engrave(
+            done.document.musicxml, self._request.titles.title, done.attribution
+        )
+        finished(1.0)
+        return engraved
 
     def _settings(self, first: Path) -> NotationSettings:
         request, rules = self._request, self._parts.rules
@@ -248,13 +253,18 @@ class Pipeline:
             if applies
         ]
         if self._request.profile == "drums":
-            found += [warn("missing-drum-piece", piece=p) for p in _PIECES if p not in inputs]
+            found += [warn("missing-drum-piece", piece=p) for p in _missing_pieces(inputs)]
         return found
 
     def _on_detail_stem(self) -> bool:
         """A pitched profile transcribes a detail stem (other instruments may bleed in)."""
         given = self._request.input
         return given is not None and "/detail/" in given.path
+
+
+def _missing_pieces(inputs: Mapping[str, Path]) -> list[DrumPiece]:
+    """The drum pieces without an input stem, in the fixed piece order."""
+    return [piece for piece in _PIECES if piece not in inputs]
 
 
 def _piano_on_cpu(done: _Transcribed) -> bool:
