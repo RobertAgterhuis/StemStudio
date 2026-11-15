@@ -64,7 +64,13 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
             throw new ArgumentException($"'{stem}' is not a stem name.", nameof(stem));
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"{JobPath(jobId)}/stems/{stem}");
+        await DownloadAsync($"{JobPath(jobId)}/stems/{stem}", destination, cancellationToken);
+    }
+
+    /// <summary>Streams a file response into the destination (headers read first, then copied).</summary>
+    private async Task DownloadAsync(string path, Stream destination, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, path);
         using var response = await SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         await EnsureSuccessAsync(message, response, cancellationToken);
         await response.Content.CopyToAsync(destination, cancellationToken);

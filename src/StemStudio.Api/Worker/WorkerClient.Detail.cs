@@ -45,10 +45,7 @@ public sealed partial class WorkerClient
             throw new ArgumentException($"'{stem.Parent}/{stem.Name}' is not a detail stem.", nameof(stem));
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"{DetailJobPath(stem.DetailJobId)}/stems/{stem.Parent}/{stem.Name}");
-        using var response = await SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        await EnsureSuccessAsync(message, response, cancellationToken);
-        await response.Content.CopyToAsync(destination, cancellationToken);
+        await DownloadAsync($"{DetailJobPath(stem.DetailJobId)}/stems/{stem.Parent}/{stem.Name}", destination, cancellationToken);
     }
 
     private static string DetailJobPath(string detailJobId) => $"v1/detail-jobs/{ValidJobId(detailJobId)}";

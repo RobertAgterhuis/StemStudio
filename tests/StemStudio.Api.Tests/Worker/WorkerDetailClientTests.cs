@@ -202,10 +202,6 @@ public sealed class WorkerDetailClientTests
         await Should.ThrowAsync<WorkerUnavailableException>(() => client.GetDetailJobAsync(DetailJobId, Ct));
     }
 
-    private static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond)
-    {
-        var handler = new StubHttpMessageHandler(request => Task.FromResult(respond(request)));
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://worker:8000") };
-        return (new WorkerClient(http, Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkerClient>.Instance), handler);
-    }
+    private static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
+        WorkerClientTests.Create(respond);
 }

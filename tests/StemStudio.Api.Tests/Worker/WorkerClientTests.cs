@@ -409,7 +409,7 @@ public sealed class WorkerClientTests : IDisposable
         return path;
     }
 
-    private static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond)
+    internal static (WorkerClient Client, StubHttpMessageHandler Handler) Create(Func<HttpRequestMessage, HttpResponseMessage> respond)
     {
         var handler = new StubHttpMessageHandler(request => Task.FromResult(respond(request)));
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://worker:8000") };

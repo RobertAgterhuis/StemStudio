@@ -325,7 +325,8 @@ public sealed class DetailPhaseTests
             DetailPhaseStatus.Completed => t => t.CompleteDetail(Outcomes(), T0.AddMinutes(2)),
             DetailPhaseStatus.Failed => t => t.FailDetail("boom", T0.AddMinutes(2)),
             DetailPhaseStatus.Cancelled => t => t.CancelDetail(T0.AddMinutes(2)),
-            _ => _ => { },
+            _ => _ => { }
+            ,
         };
         move(track);
         return track;
