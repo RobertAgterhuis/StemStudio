@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 
 import pytest
+
+from stemstudio_worker.config import LyricsSettings, OnlineSettings, WorkerSettings
 from stemstudio_worker.lyrics.fake import FakeLyricsLookup
 from stemstudio_worker.lyrics.lookup import (
     DisabledLyricsLookup,
@@ -16,8 +18,6 @@ from stemstudio_worker.lyrics.lrclib import (
     MIN_REQUEST_GAP_SECONDS,
     LrclibClient,
 )
-
-from stemstudio_worker.config import LyricsSettings, OnlineSettings, WorkerSettings
 from stemstudio_worker.metadata.http import OnlineRequestError, OnlineResponse
 from stemstudio_worker.metadata.ratelimit import RateLimiter
 from stemstudio_worker.ports import (

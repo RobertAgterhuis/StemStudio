@@ -3,6 +3,7 @@
 from typing import Any
 
 import pytest
+
 from stemstudio_worker.lyrics.lrclib import LrclibRecord
 from stemstudio_worker.lyrics.select import (
     MATCH_SECONDS,
@@ -10,7 +11,6 @@ from stemstudio_worker.lyrics.select import (
     kind_of,
     select_record,
 )
-
 from stemstudio_worker.ports import LyricsQuery
 
 from .records import (

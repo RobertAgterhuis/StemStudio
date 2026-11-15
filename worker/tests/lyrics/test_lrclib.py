@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
+
 from stemstudio_worker.lyrics.lrclib import (
     LRCLIB_GET_URL,
     LRCLIB_HOST,
@@ -11,7 +12,6 @@ from stemstudio_worker.lyrics.lrclib import (
     MIN_REQUEST_GAP_SECONDS,
     LrclibClient,
 )
-
 from stemstudio_worker.metadata import http
 from stemstudio_worker.metadata.http import (
     OnlineClient,
@@ -166,6 +166,13 @@ def test_the_005_client_allows_lrclib() -> None:
     assert is_allowed_url(LRCLIB_SEARCH_URL)
 
 
+def fake_pacing(clock: FakeClock) -> RequestPacing:
+    """005 pacing whose clock, sleeper, wall clock and jitter are fakes."""
+    now = datetime(2026, 11, 15, tzinfo=UTC)
+    limiter = RateLimiter(clock, clock.sleep)
+    return RequestPacing(limiter, sleep=clock.sleep, now=lambda: now, jitter=lambda: 0.5)
+
+
 class TestThrough005Client:
     """The real 005 ``OnlineClient`` over ``httpx.MockTransport`` (lrclib.net allowed)."""
 
@@ -184,13 +191,8 @@ class TestThrough005Client:
             return replies.pop(0)
 
         clock = FakeClock()
-        pacing = RequestPacing(
-            RateLimiter(clock, clock.sleep),
-            sleep=clock.sleep,
-            now=lambda: datetime(2026, 11, 15, tzinfo=UTC),
-            jitter=lambda: 0.5,
-        )
-        online = OnlineClient(build_user_agent(None, "0.1.0"), httpx.MockTransport(handler), pacing)
+        transport = httpx.MockTransport(handler)
+        online = OnlineClient(build_user_agent(None, "0.1.0"), transport, fake_pacing(clock))
         lrclib = LrclibClient(online, RateLimiter(clock, clock.sleep, MIN_REQUEST_GAP_SECONDS))
         return lrclib, requests, clock
 

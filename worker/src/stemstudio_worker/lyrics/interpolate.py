@@ -13,9 +13,15 @@ from collections.abc import Sequence
 from itertools import accumulate
 from typing import Final
 
-from stemstudio_worker.lyrics.lrc import LrcLine
-from stemstudio_worker.lyrics.normalize import WordSpan, split_words, timed_line
-from stemstudio_worker.schemas import MAX_WORD_MS, LyricsLine
+from stemstudio_worker.lyrics.lrc import LrcLine, parse_lrc
+from stemstudio_worker.lyrics.normalize import (
+    DocumentMeta,
+    WordSpan,
+    finish,
+    split_words,
+    timed_line,
+)
+from stemstudio_worker.schemas import MAX_WORD_MS, LyricsLine, TimedLyrics
 
 MS_PER_CHARACTER: Final = 60
 """Longest line duration per character (ms)."""
@@ -73,6 +79,15 @@ def _slots(words: Sequence[str], start_ms: int, end_ms: int) -> list[WordSpan]:
     ]
 
 
+def lrc_document(text: str, meta: DocumentMeta) -> TimedLyrics:
+    """Build a line-synced document (origin ``interpolated``) from LRC text.
+
+    Raises:
+        LyricsUnusableError: No stamped lines, over a limit or a broken invariant.
+    """
+    return finish(interpolate_lrc(parse_lrc(text)), "line", "interpolated", meta)
+
+
 def interpolate_lrc(lines: Sequence[LrcLine]) -> list[LyricsLine]:
     """Time parsed LRC lines; breaks end the line before them and are dropped.
 
@@ -84,7 +99,7 @@ def interpolate_lrc(lines: Sequence[LrcLine]) -> list[LyricsLine]:
     nexts.append(None)
     return [
         interpolate_line(line.text, line.start_ms, following)
-        for line, following in zip(merged, nexts, strict=True)
+        for line, following in zip(merged, nexts, strict=False)
         if line.text
     ]
 

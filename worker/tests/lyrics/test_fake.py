@@ -1,8 +1,8 @@
 """Fake LRCLIB provider of the fake stack (``STEMSTUDIO_FAKE_LYRICS``): deterministic modes."""
 
 import pytest
-from stemstudio_worker.lyrics.fake import FAKE_LINES, FAKE_SOURCE_ID, FakeLyricsLookup
 
+from stemstudio_worker.lyrics.fake import FAKE_LINES, FAKE_SOURCE_ID, FakeLyricsLookup
 from stemstudio_worker.ports import LyricsQuery, LyricsUnavailableError
 from stemstudio_worker.schemas import LYRICS_STAGE_SEARCHING, LyricsResult
 

@@ -72,6 +72,11 @@ def check_input(text: str) -> str:
     """
     if len(text) > MAX_INPUT_BYTES or len(text.encode("utf-8")) > MAX_INPUT_BYTES:
         raise LyricsUnusableError
+    return normalize_newlines(text)
+
+
+def normalize_newlines(text: str) -> str:
+    """Replace CRLF and CR line breaks by LF."""
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
@@ -223,3 +228,15 @@ def _language(value: str | None) -> str | None:
     """The primary subtag of a language tag, or None when it is not a 2-3 letter code."""
     primary = _SUBTAG.split(value or "", maxsplit=1)[0].lower()
     return primary if _LANGUAGE.fullmatch(primary) else None
+
+
+def instrumental_document(meta: DocumentMeta) -> TimedLyrics:
+    """The empty document of an instrumental record (no lines, no text, no language)."""
+    return TimedLyrics(
+        sync_level="plain",
+        origin="none",
+        source=meta.source,
+        source_id=meta.source_id,
+        source_duration_seconds=meta.source_duration_seconds,
+        instrumental=True,
+    )

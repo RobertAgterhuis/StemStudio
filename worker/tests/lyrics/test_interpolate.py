@@ -153,6 +153,9 @@ class TestInterpolateLrc:
             ("b", 10_560),
         ]
 
+    def test_no_lines_give_no_lines(self) -> None:
+        assert interpolate_lrc([]) == []
+
     def test_breaks_alone_give_no_lines(self) -> None:
         assert interpolate_lrc([LrcLine(0, ""), LrcLine(10, "")]) == []
 
