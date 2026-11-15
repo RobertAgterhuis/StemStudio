@@ -21,6 +21,7 @@ from stemstudio_worker.ports import DetailCancelledError, DetailModel
 from stemstudio_worker.schemas import DetailModelId, ParentOutcome, ParentOutcomeKind, StemName
 
 from .models import ScaledModel, Source, TransformModel, band, choice, identity_table, write_stems
+from .signals import Audio
 
 K = ParentOutcomeKind
 DRUMS = ScaledModel({"kick": 0.5, "snare": 0.3, "toms": 0.15, "hh": 0.05})
@@ -73,7 +74,9 @@ def test_plan_checkpoints_bass_and_silent_parents_and_groups_instruments(
 
 
 def test_four_stem_fallback_has_no_guitar_or_piano(tmp_path: Path) -> None:
-    four = {k: v for k, v in band(silent=()).items() if k in ("vocals", "drums", "bass", "other")}
+    four: dict[StemName, Audio] = {
+        k: v for k, v in band(silent=()).items() if k in ("vocals", "drums", "bass", "other")
+    }
     stems = write_stems(tmp_path / "stems", four)
     steps = DetailPipeline(_source()).plan(stems, tmp_path / "partial")
     assert [s.parents for s in steps] == [("drums",), ("vocals",), ("other",)]
@@ -96,20 +99,25 @@ def test_drums_step_writes_kept_stems_rest_and_checkpoint(
     fractions: list[float] = []
     pipeline.plan(stems, partial)[0].run(fractions.append)
     drums = _outcome(partial, "drums")
-    assert drums.outcome is K.SPLIT
-    assert drums.model == "mdx23c-drumsep-6s"
+    assert (drums.outcome, drums.model) == (K.SPLIT, "mdx23c-drumsep-6s")
     assert [s.name for s in drums.stems] == ["kick", "snare", "toms", "rest"]
     assert drums.stems[0].path == "drums/kick"
     assert drums.stems[0].size_bytes == (partial / "drums" / "kick.flac").stat().st_size
+    assert fractions[-1] == 1.0
+    assert fractions == sorted(fractions)
+    assert not list(partial.glob("*.tmp"))
+
+
+def test_drums_split_reconstructs_the_parent(stems: dict[StemName, Path], tmp_path: Path) -> None:
+    partial = tmp_path / "partial"
+    DetailPipeline(_source()).plan(stems, partial)[0].run(lambda f: None)
+    drums = _outcome(partial, "drums")
     assert drums.metrics.reconstruction_error_db is not None
     assert drums.metrics.reconstruction_error_db <= -30
     assert drums.metrics.model_residual_db is not None
     assert drums.metrics.model_residual_db <= -100
     total = sum(read_stem(partial / "drums" / f"{s.name}.flac") for s in drums.stems)
     assert relative_db(total - read_stem(stems["drums"]), read_stem(stems["drums"])) <= -30
-    assert fractions[-1] == 1.0
-    assert fractions == sorted(fractions)
-    assert not list(partial.glob("*.tmp"))
 
 
 def test_vocals_split_into_lead_and_backing(stems: dict[StemName, Path], tmp_path: Path) -> None:
