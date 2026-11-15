@@ -134,7 +134,6 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingSongVoiceOperations =
     [
         "deleteVoiceProfile",
-        "createVoiceConversion", "getTakeVocal",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>

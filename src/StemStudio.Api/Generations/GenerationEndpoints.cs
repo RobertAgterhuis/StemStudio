@@ -55,6 +55,14 @@ public static class GenerationEndpoints
             .WithName("getTakeAudio").WithTags("generation").Produces(StatusCodes.Status200OK, contentType: StemService.ContentType)
             .Produces(StatusCodes.Status206PartialContent, contentType: StemService.ContentType).Produces(StatusCodes.Status304NotModified)
             .ProducesProblem(StatusCodes.Status404NotFound).Produces(StatusCodes.Status416RangeNotSatisfiable);
+        app.MapGet(TakeRoute + "/vocal", (Guid generationId, int index, GenerationService generations, CancellationToken ct) => generations.GetTakeVocalAsync(generationId, index, ct))
+            .WithName("getTakeVocal").WithTags("voices").Produces(StatusCodes.Status200OK, contentType: StemService.ContentType)
+            .Produces(StatusCodes.Status206PartialContent, contentType: StemService.ContentType).Produces(StatusCodes.Status304NotModified)
+            .ProducesProblem(StatusCodes.Status404NotFound).Produces(StatusCodes.Status416RangeNotSatisfiable);
+        app.MapPost(TakeRoute + "/voice-conversions", (Guid generationId, int index, VoiceConversionRequest? request, Voices.VoiceConversionService conversions, CancellationToken ct) =>
+                conversions.CreateAsync(generationId, index, request, ct))
+            .WithName("createVoiceConversion").WithTags("voices").Produces<GenerationDto>(StatusCodes.Status202Accepted).ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapPost(TakeRoute + "/import", (Guid generationId, int index, TakeImporter importer, CancellationToken ct) => importer.ImportAsync(generationId, index, ct))
             .WithName("importTake").WithTags("generation").Produces<TrackDto>().Produces<TrackDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);

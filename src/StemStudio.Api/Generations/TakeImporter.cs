@@ -38,8 +38,19 @@ public sealed class TakeImporter(IGenerationRepository generations, ITrackReposi
             return GenerationProblems.NotCompleted();
         }
 
+        return (await ImportTakeAsync(generation, index, cancellationToken)).Result;
+    }
+
+    /// <summary>Imports a take of a completed generation (also used by voice conversions).</summary>
+    /// <param name="generation">The completed generation.</param>
+    /// <param name="index">An existing take number.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The response and the track id (null when the import failed).</returns>
+    public async Task<(IResult Result, Guid? TrackId)> ImportTakeAsync(Generation generation, int index, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(generation);
         var result = await UploadAsync(generation.Take(index)!, cancellationToken);
-        return result is IValueHttpResult<TrackDto> { Value: not null } ? await MarkAsync(generation, index, result, cancellationToken) : result;
+        return result is IValueHttpResult<TrackDto> { Value: { } dto } ? (await MarkAsync(generation, index, result, cancellationToken), dto.Id) : (result, null);
     }
 
     private async Task<IResult> UploadAsync(GenerationTake take, CancellationToken cancellationToken)

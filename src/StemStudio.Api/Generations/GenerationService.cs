@@ -7,12 +7,12 @@ namespace StemStudio.Api.Generations;
 
 /// <summary>Reads, cancels, retries and deletes generations and serves their takes (009 FR-006, FR-007).</summary>
 /// <param name="generations">Repository.</param>
-/// <param name="generator">Generator client.</param>
+/// <param name="router">Picks the generator or the singer.</param>
 /// <param name="storage">Take storage.</param>
 /// <param name="library">Library port.</param>
 /// <param name="clock">Clock.</param>
 public sealed class GenerationService(
-    IGenerationRepository generations, IGeneratorClient generator, TakeStorage storage, IGeneratedAudioLibrary library, TimeProvider clock)
+    IGenerationRepository generations, GeneratorRouter router, TakeStorage storage, IGeneratedAudioLibrary library, TimeProvider clock)
 {
     /// <summary>Generations, newest first.</summary>
     /// <param name="kind">Kind filter (wire name).</param>
@@ -64,7 +64,7 @@ public sealed class GenerationService(
     {
         if (generation.IsActive)
         {
-            await BestEffortAsync(generation.GeneratorJobId, generator.CancelAsync, cancellationToken);
+            await BestEffortAsync(generation.GeneratorJobId, router.For(generation).CancelAsync, cancellationToken);
             generation.Cancel(clock.GetUtcNow().UtcDateTime);
             await generations.SaveAsync(cancellationToken);
         }
@@ -85,7 +85,7 @@ public sealed class GenerationService(
     {
         if (generation.IsActive)
         {
-            await BestEffortAsync(generation.GeneratorJobId, generator.DeleteAsync, cancellationToken);
+            await BestEffortAsync(generation.GeneratorJobId, router.For(generation).DeleteAsync, cancellationToken);
         }
 
         foreach (var assetId in generation.LibraryAssetIds)
@@ -96,6 +96,17 @@ public sealed class GenerationService(
         storage.DeleteAll(generation.Id);
         await generations.RemoveAsync(generation, cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    /// <summary>Serves the converted vocal of a voice-conversion take.</summary>
+    /// <param name="id">Generation id.</param>
+    /// <param name="index">Take number.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The file result or 404.</returns>
+    public async Task<IResult> GetTakeVocalAsync(Guid id, int index, CancellationToken cancellationToken)
+    {
+        var path = (await generations.FindAsync(id, cancellationToken))?.Take(index)?.VocalFilePath;
+        return StemService.ServeFile(path is null ? null : storage.Find(path), $"Generation {id} has no converted vocal for take {index}.");
     }
 
     /// <summary>Serves a take of a completed generation with Range/ETag semantics.</summary>

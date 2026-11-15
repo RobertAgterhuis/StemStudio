@@ -13,10 +13,12 @@ namespace StemStudio.Api.Generations;
 /// changes nothing; a job the generator no longer knows fails as interrupted.
 /// </summary>
 /// <param name="generations">Repository.</param>
-/// <param name="generator">Generator client.</param>
+/// <param name="router">Picks the generator or the singer.</param>
 /// <param name="collector">Take collector.</param>
 /// <param name="clock">Clock.</param>
-public sealed class GenerationSynchronizer(IGenerationRepository generations, IGeneratorClient generator, TakeCollector collector, TimeProvider clock)
+/// <param name="waiter">Submits voice conversions once their stems are ready.</param>
+public sealed class GenerationSynchronizer(
+    IGenerationRepository generations, GeneratorRouter router, TakeCollector collector, Voices.ConversionStemWaiter waiter, TimeProvider clock)
 {
     /// <summary>Error text when the generator lost a job.</summary>
     public const string Lost = "The generator lost this generation (it was restarted).";
@@ -26,20 +28,31 @@ public sealed class GenerationSynchronizer(IGenerationRepository generations, IG
     /// <returns>A task.</returns>
     public async Task SyncAllAsync(CancellationToken cancellationToken)
     {
-        foreach (var generation in (await generations.ListActiveAsync(cancellationToken)).Where(g => g.GeneratorJobId is not null))
+        foreach (var generation in await generations.ListActiveAsync(cancellationToken))
         {
-            await SyncAsync(generation, cancellationToken);
+            await (generation.Status == GenerationState.WaitingForStems ? AdvanceAsync(generation, cancellationToken) : SyncAsync(generation, cancellationToken));
         }
+    }
+
+    private async Task AdvanceAsync(Generation conversion, CancellationToken cancellationToken)
+    {
+        await waiter.AdvanceAsync(conversion, cancellationToken);
+        await generations.SaveAsync(cancellationToken);
     }
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     private async Task SyncAsync(Generation generation, CancellationToken cancellationToken)
     {
+        if (generation.GeneratorJobId is null)
+        {
+            return;
+        }
+
         GeneratorJob? job;
         try
         {
-            job = await generator.GetAsync(generation.GeneratorJobId!, cancellationToken);
+            job = await router.For(generation).GetAsync(generation.GeneratorJobId, cancellationToken);
         }
         catch (GeneratorUnavailableException)
         {

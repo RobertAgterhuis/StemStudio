@@ -158,6 +158,9 @@ public static class ApiComposition
         services.AddSingleton<SingerAvailability>();
         services.AddScoped<AudioHashIndex>();
         services.AddScoped<VoiceProfileService>();
+        services.AddScoped<GeneratorRouter>();
+        services.AddScoped<ConversionStemWaiter>();
+        services.AddScoped<VoiceConversionService>();
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();
