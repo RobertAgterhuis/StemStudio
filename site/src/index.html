@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>StemStudio</title>
+  <meta name="description" content="StemStudio splits a song into vocals, drums, bass, guitar, piano and other, and gives you a mixer with a beat-synced metronome to practise along. Open source, runs on your own machine.">
+  <link rel="canonical" href="{{siteUrl}}">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="assets/theme.js"></script>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site-tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="#top" aria-label="StemStudio home">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <path class="m-root" d="M3 16h8"/>
+          <path class="m-s s-vocals" d="M11 16C17 16 18 6 24 6H29"/>
+          <path class="m-s s-drums" d="M11 16C17 16 18 10 24 10H29"/>
+          <path class="m-s s-bass" d="M11 16C17 16 18 14 24 14H29"/>
+          <path class="m-s s-guitar" d="M11 16C17 16 18 18 24 18H29"/>
+          <path class="m-s s-piano" d="M11 16C17 16 18 22 24 22H29"/>
+          <path class="m-s s-other" d="M11 16C17 16 18 26 24 26H29"/>
+        </svg>
+        <span>StemStudio</span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#screens">Screens</a></li>
+          <li><a href="#start">Quick start</a></li>
+          <li><a href="#status">Status</a></li>
+          <li><a href="#manuals">Manuals</a></li>
+        </ul>
+      </nav>
+      <div class="top-actions">
+        <a class="gh" href="{{repoUrl}}">GitHub</a>
+        <button type="button" class="theme" data-theme-toggle hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="5"/><path d="M12 7a5 5 0 0 0 0 10z" class="theme-half"/></svg>
+          <span data-theme-label>Switch to light theme</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap">
+        <h1 id="hero-title" class="hero-title">Take the song apart. Play your part.</h1>
+        <p class="lede">StemStudio imports a song, splits it into vocals, drums, bass, guitar, piano and other, and gives you a mixer with a beat-synced metronome. Mute the guitar and play it yourself. Open source, and it runs on your own machine.</p>
+        <p class="cta">
+          <a class="button button-primary" href="#start">Install with Docker</a>
+          <a class="button" href="{{repoUrl}}">Source code on GitHub</a>
+        </p>
+      </div>
+      <div class="signal" aria-hidden="true">
+        <svg class="signal-lines" viewBox="0 0 1200 240" preserveAspectRatio="none" focusable="false">
+          <path class="strand strand-root" d="M0 120H420"/>
+          <path class="strand s-vocals" d="M420 120C560 120 600 20 760 20H1200"/>
+          <path class="strand s-drums" d="M420 120C560 120 600 60 760 60H1200"/>
+          <path class="strand s-bass" d="M420 120C560 120 600 100 760 100H1200"/>
+          <path class="strand s-guitar" d="M420 120C560 120 600 140 760 140H1200"/>
+          <path class="strand s-piano" d="M420 120C560 120 600 180 760 180H1200"/>
+          <path class="strand s-other" d="M420 120C560 120 600 220 760 220H1200"/>
+        </svg>
+        <ul class="signal-labels">
+          <li class="chip s-vocals">vocals</li>
+          <li class="chip s-drums">drums</li>
+          <li class="chip s-bass">bass</li>
+          <li class="chip s-guitar">guitar</li>
+          <li class="chip s-piano">piano</li>
+          <li class="chip s-other">other</li>
+        </ul>
+      </div>
+      <p class="wrap signal-caption">One mixed recording in, six stems out: the six colours you will see in every StemStudio screen.</p>
+    </section>
+
+    <section class="block" id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <h2 id="features-title">What it does</h2>
+        <p class="intro">Everything below is delivered and tested. Each card carries the colour of a stem, like the channel strips in the mixer.</p>
+        {{features}}
+      </div>
+    </section>
+
+    <section class="block" id="screens" aria-labelledby="screens-title">
+      <div class="wrap">
+        <h2 id="screens-title">Screens</h2>
+        <p class="intro">Taken from the app's own visual tests and design review. They follow the theme you picked for this page; select one to open it at full size.</p>
+        {{gallery}}
+      </div>
+    </section>
+
+    <section class="block" id="how" aria-labelledby="how-title">
+      <div class="wrap">
+        <h2 id="how-title">How it works</h2>
+        <p class="intro">Three services on your own computer. The browser plays the stems itself, sample-locked through the Web Audio engine; the worker does the heavy lifting.</p>
+        <figure class="arch">
+          <div class="arch-scroll" tabindex="0" role="group" aria-label="Architecture diagram, scrollable">
+            <svg viewBox="0 0 960 420" role="img" aria-labelledby="arch-title arch-desc" focusable="false">
+              <title id="arch-title">StemStudio architecture</title>
+              <desc id="arch-desc">The browser talks to StemStudio.Web over SignalR and fetches FLAC stems from StemStudio.Api. Web calls the API over HTTP. The API sends jobs to the Python worker and polls them. The worker uses an optional NVIDIA GPU and queries open data services for artwork and band info.</desc>
+              <g class="edges">
+                <path class="edge s-vocals" d="M260 195C305 195 305 80 350 80"/>
+                <path class="edge s-piano" d="M260 225C305 225 305 340 350 340"/>
+                <path class="edge s-drums" d="M470 130V280"/>
+                <path class="edge s-bass" d="M590 340C640 340 640 215 690 215"/>
+                <path class="edge s-guitar" d="M815 270V310"/>
+                <path class="edge s-other" d="M815 160V120"/>
+              </g>
+              <g class="edge-labels">
+                <text x="298" y="112" text-anchor="end">SignalR</text>
+                <text x="306" y="318" text-anchor="end">FLAC stems</text>
+                <text x="482" y="210">HTTP</text>
+                <text x="600" y="380">jobs, polling</text>
+                <text x="827" y="296">CUDA</text>
+                <text x="827" y="146">lookups</text>
+              </g>
+              <g class="node">
+                <rect x="20" y="150" width="240" height="120" rx="6"/>
+                <text class="n-title" x="40" y="190">Your browser</text>
+                <text x="40" y="218">Blazor UI, Radzen</text>
+                <text x="40" y="242">Web Audio engine</text>
+              </g>
+              <g class="node">
+                <rect x="350" y="30" width="240" height="100" rx="6"/>
+                <text class="n-title" x="370" y="68">StemStudio.Web</text>
+                <text x="370" y="96">Blazor Server, port 8080</text>
+              </g>
+              <g class="node">
+                <rect x="350" y="280" width="240" height="120" rx="6"/>
+                <text class="n-title" x="370" y="318">StemStudio.Api</text>
+                <text x="370" y="346">Minimal API, port 8081</text>
+                <text x="370" y="370">EF Core, SQLite, files</text>
+              </g>
+              <g class="node node-worker">
+                <rect x="690" y="160" width="250" height="110" rx="6"/>
+                <text class="n-title" x="710" y="196">Worker</text>
+                <text x="710" y="224">Python 3.12, FastAPI</text>
+                <text x="710" y="248">yt-dlp, ffmpeg, Demucs</text>
+              </g>
+              <g class="node node-soft">
+                <rect x="690" y="310" width="250" height="90" rx="6"/>
+                <text class="n-title" x="710" y="348">NVIDIA GPU</text>
+                <text x="710" y="374">optional, CPU fallback</text>
+              </g>
+              <g class="node node-soft">
+                <rect x="690" y="20" width="250" height="100" rx="6"/>
+                <text class="n-title" x="710" y="56">Open data</text>
+                <text x="710" y="82">MusicBrainz, Wikidata,</text>
+                <text x="710" y="104">Wikipedia, Cover Art</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>The Blazor app and the API are .NET 10; the worker separates with Demucs (htdemucs_6s, fallback htdemucs) and detects the beat grid with librosa. Dependencies flow one way and are checked automatically.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="block" id="start" aria-labelledby="start-title">
+      <div class="wrap">
+        <h2 id="start-title">Quick start</h2>
+        <div class="prose">{{quickStart}}</div>
+        <p class="copy-status" role="status" aria-live="polite" data-copy-status></p>
+      </div>
+    </section>
+
+    <section class="block" id="gpu" aria-labelledby="gpu-title">
+      <div class="wrap">
+        <h2 id="gpu-title">GPU acceleration</h2>
+        {{gpu}}
+      </div>
+    </section>
+
+    <section class="block" id="status" aria-labelledby="status-title">
+      <div class="wrap">
+        <h2 id="status-title">Feature status</h2>
+        <p class="intro">The build order from the roadmap. A feature counts as delivered once its integration run is recorded in the project status.</p>
+        {{timeline}}
+      </div>
+    </section>
+
+    <section class="block" id="manuals" aria-labelledby="manuals-title">
+      <div class="wrap">
+        <h2 id="manuals-title">Manuals</h2>
+        <p class="intro">Both manuals are built from Markdown in the repository and checked against their sources on every change.</p>
+        {{manuals}}
+      </div>
+    </section>
+
+    <section class="block" id="licences" aria-labelledby="licences-title">
+      <div class="wrap">
+        <h2 id="licences-title">Open source and licences</h2>
+        {{licences}}
+      </div>
+    </section>
+
+    <section class="block" id="decisions" aria-labelledby="decisions-title">
+      <div class="wrap">
+        <h2 id="decisions-title">Design decisions</h2>
+        <p class="intro">Architecture decision records, from the first clarifications to the planned composer agent.</p>
+        {{adrs}}
+      </div>
+    </section>
+
+    <section class="block" id="legal" aria-labelledby="legal-title">
+      <div class="wrap narrow">
+        <h2 id="legal-title">Personal practice and privacy</h2>
+        <div class="notice">{{legal}}</div>
+        <p>This website sets no cookies and loads nothing from other servers: no analytics, no trackers, no external fonts. The theme you pick is kept in your browser's local storage and never leaves your device.</p>
+        <p>StemStudio itself is single-user and local. Online lookups for artwork and band info send only the song title, artist, duration and ISRC to the open data services, and you can switch them off.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <p><a href="{{repoUrl}}">StemStudio on GitHub</a>, MIT licence.</p>
+      <p class="build">Generated from commit <a href="{{repoUrl}}/commit/{{sha}}"><code>{{shortSha}}</code></a> of {{date}}.</p>
+    </div>
+  </footer>
+  <script src="assets/site.js" defer></script>
+</body>
+</html>

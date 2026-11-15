@@ -178,6 +178,19 @@ Pinned exactly in `tools/docs/package.json`; the lock file was resolved with
 | playwright-core (+ Chromium headless shell, print to PDF) | 1.64.1 | Apache-2.0 | https://github.com/microsoft/playwright |
 | Archivo font (embedded in the PDFs, from the web app) | variable, Latin subset | OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
 
+The website generator (`tools/site`, not shipped with the app; builds `site/dist` for GitHub Pages)
+adds **no dependencies**: it loads the markdown-it above from `tools/docs/node_modules`, and its
+local review script (`tools/site/review.mjs`) reuses the e2e suite's `@playwright/test` 1.65.1 and
+`@axe-core/playwright` 4.14.0 (listed under test tooling). The published site contains only
+StemStudio files plus the self-hosted Archivo font (OFL-1.1, licence text published next to it as
+`assets/archivo-OFL.txt`). Deployment uses GitHub's own actions (`.github/workflows/pages.yml`):
+
+| Component | Version | Licence | URL |
+|---|---|---|---|
+| actions/configure-pages | 6.0.0 | MIT | https://github.com/actions/configure-pages |
+| actions/upload-pages-artifact | 5.0.0 | MIT | https://github.com/actions/upload-pages-artifact |
+| actions/deploy-pages | 5.0.1 | MIT | https://github.com/actions/deploy-pages |
+
 ## Open licence issue: Demucs weights
 
 The Demucs code is MIT, but the pretrained weights have no clear licence and `htdemucs_6s` is
