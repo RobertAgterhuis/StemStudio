@@ -187,8 +187,8 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T069 [US5] [generative] Implement in `engines/acestep_engine.py`, `engines/fake.py`, `jobs/runner.py` to pass T068
 - [ ] T070 [P] [US5] [backend] Failing tests: `mode=inPlace` validation (range inside the track, whole track <= 480 s), stored mode, take duration = track duration (FR-014)
 - [ ] T071 [US5] [backend] Implement to pass T070
-- [ ] T072 [P] [US5] [frontend] Failing bUnit test: in-place option `restyle-mode-inplace` in `RestyleDialog` with its explanation and range inputs (US5-1)
-- [ ] T073 [US5] [frontend] Implement to pass T072
+- [x] T072 [P] [US5] [frontend] Failing bUnit test: in-place option `restyle-mode-inplace` in `RestyleDialog` with its explanation and range inputs (US5-1)
+- [x] T073 [US5] [frontend] Implement to pass T072
 
 **Checkpoint**: HO:us5 (generative, backend, frontend).
 
