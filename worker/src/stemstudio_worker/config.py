@@ -5,7 +5,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, TypedDict, cast
 
 SeparatorKind = Literal["demucs", "fake"]
 DeviceKind = Literal["cpu", "cuda", "auto"]
@@ -181,15 +181,43 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         separator=separator,
         device=cast(DeviceKind, _choice(env, "STEMSTUDIO_DEVICE", _DEVICES)),
         model_dir=Path(env.get("STEMSTUDIO_MODEL_DIR", "data/models")),
-        fake_detail_step_seconds=_seconds(env, "STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS", 1.0),
-        fake_device=cast(FakeDeviceKind, _choice(env, "STEMSTUDIO_FAKE_DEVICE", _FAKE_DEVICES)),
+        **_fake_settings(env),
         online=_online_settings(env),
         render=_render_settings(env),
         lyrics=_lyrics_settings(env),
         transcription=_transcription_settings(env, separator),
-        gpu_lease_file=_optional_path(env, "STEMSTUDIO_GPU_LEASE_FILE"),
-        gpu_lease_wait_seconds=_seconds(env, "STEMSTUDIO_GPU_LEASE_WAIT_SECONDS", 900.0),
+        **_gpu_lease_settings(env),
     )
+
+
+class _FakeSettings(TypedDict):
+    """The fake separator variables of ``WorkerSettings``."""
+
+    fake_detail_step_seconds: float
+    fake_device: FakeDeviceKind
+
+
+class _GpuLeaseSettings(TypedDict):
+    """The cross-container GPU lease variables of ``WorkerSettings`` (feature 009)."""
+
+    gpu_lease_file: Path | None
+    gpu_lease_wait_seconds: float
+
+
+def _fake_settings(env: Mapping[str, str]) -> _FakeSettings:
+    """Read ``STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS`` and ``STEMSTUDIO_FAKE_DEVICE``."""
+    return {
+        "fake_detail_step_seconds": _seconds(env, "STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS", 1.0),
+        "fake_device": cast(FakeDeviceKind, _choice(env, "STEMSTUDIO_FAKE_DEVICE", _FAKE_DEVICES)),
+    }
+
+
+def _gpu_lease_settings(env: Mapping[str, str]) -> _GpuLeaseSettings:
+    """Read ``STEMSTUDIO_GPU_LEASE_FILE`` (blank -> None) and ``..._GPU_LEASE_WAIT_SECONDS``."""
+    return {
+        "gpu_lease_file": _optional_path(env, "STEMSTUDIO_GPU_LEASE_FILE"),
+        "gpu_lease_wait_seconds": _seconds(env, "STEMSTUDIO_GPU_LEASE_WAIT_SECONDS", 900.0),
+    }
 
 
 def _optional_path(env: Mapping[str, str], name: str) -> Path | None:

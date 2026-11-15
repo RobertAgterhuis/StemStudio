@@ -104,29 +104,38 @@ internal static class ContractJson
     public static bool IsGeneratorCopyOf(string file, JsonNode? expected) =>
         JsonNode.DeepEquals(JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Generator", "Examples", file + ".json"))), expected);
 
-    private static void Strip(JsonNode? node)
+    /// <summary>Asserts that every enum's wire names equal the <c>enum</c> of its backend schema, in order.</summary>
+    public static void AssertEnumsMatch(IEnumerable<(Type Enum, string Schema)> pairs)
     {
-        if (node is JsonObject obj)
+        foreach (var (type, schema) in pairs)
         {
-            foreach (var name in TimeMembers)
-            {
-                obj.Remove(name);
-            }
-
-            foreach (var child in obj.Select(pair => pair.Value).ToList())
-            {
-                Strip(child);
-            }
-        }
-        else if (node is JsonArray array)
-        {
-            foreach (var child in array)
-            {
-                Strip(child);
-            }
+            WireNames(type).ShouldBe(Strings(Schema(schema)["enum"]!), schema);
         }
     }
 
+    private static void Strip(JsonNode? node)
+    {
+        var children = node switch
+        {
+            JsonObject obj => StripTimes(obj),
+            JsonArray array => [.. array],
+            _ => [],
+        };
+        foreach (var child in children)
+        {
+            Strip(child);
+        }
+    }
+
+    private static List<JsonNode?> StripTimes(JsonObject obj)
+    {
+        foreach (var name in TimeMembers)
+        {
+            obj.Remove(name);
+        }
+
+        return [.. obj.Select(pair => pair.Value)];
+    }
     public static JsonNode Schema(string name) => OpenApiContract.Backend.Root["components"]!["schemas"]![name]!;
 
     public static JsonNode Example(string name) => OpenApiContract.Backend.Root["components"]!["examples"]![name]!["value"]!.DeepClone();

@@ -51,13 +51,7 @@ public sealed class GenerationContractTests
     }
 
     [Fact]
-    public void GenerationEnums_MatchTheContract()
-    {
-        foreach (var (type, schema) in EnumSchemas)
-        {
-            WireNames(type).ShouldBe(Strings(Schema(schema)["enum"]!), schema);
-        }
-    }
+    public void GenerationEnums_MatchTheContract() => AssertEnumsMatch(EnumSchemas);
 
     [Theory]
     [InlineData("PresetStyle")]
@@ -134,12 +128,9 @@ public sealed class GenerationContractTests
             (ApiRoutes.ImportTake(id, 2), "/api/generations/{generationId}/takes/{index}/import"),
         };
 
-        foreach (var (route, template) in routes)
-        {
-            RouteMatches(route, template, id).ShouldBeTrue(route);
-            Section(OpenApiContract.Backend.Root, "paths").ContainsKey(template).ShouldBeTrue(template);
-        }
+        AssertRoutesExist(routes, id);
     }
+
 
     [Fact]
     public void StyleLimits_MatchTheContract()
@@ -192,6 +183,16 @@ public sealed class GenerationContractTests
 
         JsonNode.DeepEquals(actual, expected).ShouldBeTrue(example);
         SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), JsonSerializer.SerializeToNode(Example(example).Deserialize<T>(Web), Web)).ShouldBeEmpty();
+    }
+
+    /// <summary>Asserts that every route fills its template and the template is a path of the backend contract.</summary>
+    internal static void AssertRoutesExist(IEnumerable<(string Route, string Template)> routes, Guid id)
+    {
+        foreach (var (route, template) in routes)
+        {
+            RouteMatches(route, template, id).ShouldBeTrue(route);
+            Section(OpenApiContract.Backend.Root, "paths").ContainsKey(template).ShouldBeTrue(template);
+        }
     }
 
     /// <summary>True when <paramref name="route"/> is <paramref name="template"/> with every id = <paramref name="id"/> and the take index 1 or 2.</summary>

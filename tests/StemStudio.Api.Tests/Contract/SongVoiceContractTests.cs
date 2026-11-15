@@ -21,13 +21,7 @@ public sealed class SongVoiceContractTests
     ];
 
     [Fact]
-    public void SongVoiceEnums_MatchTheContract()
-    {
-        foreach (var (type, schema) in EnumSchemas)
-        {
-            WireNames(type).ShouldBe(Strings(Schema(schema)["enum"]!), schema);
-        }
-    }
+    public void SongVoiceEnums_MatchTheContract() => AssertEnumsMatch(EnumSchemas);
 
     [Fact]
     public void LyricsLanguages_MatchTheContractAndTheGenerator()
@@ -115,12 +109,9 @@ public sealed class SongVoiceContractTests
             (ApiRoutes.TakeVocal(id, 1), "/api/generations/{generationId}/takes/{index}/vocal"),
         };
 
-        foreach (var (route, template) in routes)
-        {
-            RouteMatches(route, template, id).ShouldBeTrue(route);
-            Section(OpenApiContract.Backend.Root, "paths").ContainsKey(template).ShouldBeTrue(template);
-        }
+        AssertRoutesExist(routes, id);
     }
+
 
     [Theory]
     [InlineData("SongRequest")]
