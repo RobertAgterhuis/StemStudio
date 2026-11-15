@@ -56,11 +56,7 @@ class FakeRuntime:
         self.notes = notes if notes is not None else {0: (60, 100, 200)}
         self.loads: list[tuple[Path, str]] = []
         self.segments: list[tuple[npt.NDArray[np.float32], str]] = []
-        self.threads: list[int] = []
         self.error: Exception | None = None
-
-    def set_threads(self, threads: int) -> None:
-        self.threads.append(threads)
 
     def load(self, checkpoint: Path, device: str) -> Any:
         self.loads.append((checkpoint, device))
@@ -86,7 +82,7 @@ def _transcriber(
     tmp_path: Path, runtime: FakeRuntime, mode: str = "cpu"
 ) -> tuple[PianoTranscriber, OomOnceRunner]:
     devices = OomOnceRunner(mode)  # type: ignore[arg-type]
-    return PianoTranscriber(RecordingModels(tmp_path), devices, threads=6, runtime=runtime), devices
+    return PianoTranscriber(RecordingModels(tmp_path), devices, runtime), devices
 
 
 def test_a_note_comes_out_of_the_regression_post_processor(tmp_path: Path) -> None:
@@ -99,21 +95,20 @@ def test_a_note_comes_out_of_the_regression_post_processor(tmp_path: Path) -> No
 
     assert (transcriber.engine, transcriber.attribution) == ("piano-crnn", PIANO_ATTRIBUTION)
     (note,) = result.notes
-    assert note.pitch == 60
-    assert note.start == pytest.approx(1.0, abs=0.02)
-    assert note.end == pytest.approx(2.0, abs=0.02)
-    assert note.velocity == pytest.approx(0.5, abs=0.02)
-    assert devices.need == PIANO_GPU_NEED
-    assert result.device is not None
-    assert result.device.kind == "cpu"
+    assert (note.pitch, round(note.start, 1), round(note.end, 1), round(note.velocity, 1)) == (
+        60,
+        1.0,
+        2.0,
+        0.5,
+    )
+    assert (devices.need, result.device and result.device.kind) == (PIANO_GPU_NEED, "cpu")
     assert runtime.loads == [(tmp_path / f"{PIANO_WEIGHTS.model_id}.bin", "cpu")]
-    assert runtime.threads == [6]
     assert reports == [1.0]
 
 
 def test_audio_is_cut_into_half_overlapping_10_s_segments_at_16_khz(tmp_path: Path) -> None:
-    audio = write_audio(tmp_path / "in.flac", ramp(12.0))
-    runtime = FakeRuntime({0: (60, 100, 200), 2: (64, 500, 700)})
+    audio = write_audio(tmp_path / "in.flac", ramp(14.0))
+    runtime = FakeRuntime({0: (60, 100, 200), 2: (64, 260, 380)})
     transcriber, _devices = _transcriber(tmp_path, runtime)
     reports: list[float] = []
 
@@ -125,7 +120,7 @@ def test_audio_is_cut_into_half_overlapping_10_s_segments_at_16_khz(tmp_path: Pa
     assert np.array_equal(first[SEGMENT_SAMPLES // 2 :], second[: SEGMENT_SAMPLES // 2])
     assert reports == pytest.approx([1 / 3, 2 / 3, 1.0])
     assert [note.pitch for note in result.notes] == [60, 64]
-    assert result.notes[1].start == pytest.approx(10.0 + 5.0, abs=0.02)
+    assert result.notes[1].start == pytest.approx(10.0 + 2.6, abs=0.02)
 
 
 def test_a_gpu_step_and_a_cpu_fallback_are_reported(tmp_path: Path) -> None:
@@ -220,28 +215,36 @@ class _TinyModel:
         return {key: self.torch.full((1, frames, 88), 0.25) for key in KEYS}
 
 
+def _checkpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A tiny checkpoint, with the vendored ``Note_pedal`` replaced by :class:`_TinyModel`."""
+    import torch  # noqa: PLC0415
+
+    checkpoint = tmp_path / "piano.pth"
+    torch.save({"model": {"note_model": {}, "pedal_model": {}}}, checkpoint)
+    vendored = "stemstudio_worker.transcription.vendor.piano_transcription.models"
+    monkeypatch.setattr(importlib.import_module(vendored), "Note_pedal", _TinyModel)
+    return checkpoint
+
+
 def test_the_torch_runtime_builds_the_vendored_model_and_runs_a_segment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import torch  # noqa: PLC0415
 
-    checkpoint = tmp_path / "piano.pth"
-    torch.save({"model": {"note_model": {}, "pedal_model": {}}}, checkpoint)
-    models = importlib.import_module(
-        "stemstudio_worker.transcription.vendor.piano_transcription.models"
-    )
-    monkeypatch.setattr(models, "Note_pedal", _TinyModel)
-    runtime = TorchRuntime()
+    checkpoint = _checkpoint(tmp_path, monkeypatch)
+    threads = torch.get_num_threads()
+    runtime = TorchRuntime(2)
 
     model = runtime.load(checkpoint, "cpu")
     out = runtime.infer(model, np.zeros(1600, dtype=np.float32), "cpu")
-    runtime.set_threads(2)
+    used = torch.get_num_threads()
+    torch.set_num_threads(threads)
 
     assert (model.args, model.device, model.loaded[1]) == ((100, 88), "cpu", False)
     assert model.loaded[0] == {"note_model": {}, "pedal_model": {}}
     assert out["frame_output"].shape == (11, 88)
     assert isinstance(out["frame_output"], np.ndarray)
-    assert torch.get_num_threads() == 2
+    assert used == 2
 
 
 def test_no_shell_download_matplotlib_audioread_or_mido_in_the_piano_code() -> None:
