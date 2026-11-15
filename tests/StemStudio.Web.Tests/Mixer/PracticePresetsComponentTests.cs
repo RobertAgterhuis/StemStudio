@@ -98,7 +98,6 @@ public sealed class PracticePresetsComponentTests : MixerTestContext
 
         await page.Find("[data-testid=preset-focus-vocals]").ClickAsync(new MouseEventArgs());
 
-        Services.GetService(typeof(StemStudio.Web.Services.ToastService)).ShouldBeOfType<StemStudio.Web.Services.ToastService>()
-            .Message.ShouldBe("Focus: vocals applied");
+        Services.GetService<StemStudio.Web.Services.ToastService>()!.Message.ShouldBe("Focus: vocals applied");
     }
 }
