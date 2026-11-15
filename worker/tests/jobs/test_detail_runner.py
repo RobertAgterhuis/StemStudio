@@ -49,6 +49,7 @@ class Env:
     service: DetailService
     pipeline: FakePipeline
     runner: DetailRunner
+    context: DetailContext
 
     def create(self) -> str:
         job, _ = self.service.create(STD)
@@ -75,7 +76,7 @@ def _env(root: Path, pipeline: FakePipeline | None = None) -> Env:
     context = DetailContext(jobs, details, paths, FakeClock())
     fake = pipeline or FakePipeline()
     service = DetailService(context, lambda detail_id: None)
-    return Env(paths, details, service, fake, DetailRunner(context, fake))
+    return Env(paths, details, service, fake, DetailRunner(context, fake), context)
 
 
 @pytest.fixture
@@ -150,19 +151,15 @@ def test_a_cached_result_of_another_version_is_recomputed(tmp_path: Path) -> Non
     env = _env(tmp_path, FakePipeline(separator_version="0"))
     first = env.create()
     env.drive(first)
-    newer = _env(tmp_path / "unused", FakePipeline(separator_version="1"))
-    runner = DetailRunner(
-        DetailContext(JobStore(env.paths.jobs), env.details, env.paths, FakeClock()),
-        newer.pipeline,
-    )
-    env.details.save(env.details.get(first).model_copy(  # type: ignore[union-attr]
-        update={"job": env.job(first).model_copy(update={"status": D.CANCELLED})}
+    env.details.update(first, lambda r: r.model_copy(
+        update={"job": r.job.model_copy(update={"status": D.FAILED})}
     ))  # fmt: skip
-    env.details.load_all()
+    newer = FakePipeline(separator_version="1")
+    runner = DetailRunner(env.context, newer)
     second = env.create()
     while runner.step(second):
         pass
-    assert len(newer.pipeline.plans) == 1
+    assert len(newer.plans) == 1
     assert env.job(second).status is D.COMPLETED
 
 
