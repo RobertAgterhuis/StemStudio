@@ -1,5 +1,6 @@
-"""Key estimation, override and spelling (008 T016; data-model 2.5; research.md S-07/S-08; FR-005)."""
+"""Key estimation, override and spelling (008 T016; data-model 2.5; research S-07/S-08; FR-005)."""
 
+from collections.abc import Sequence
 from fractions import Fraction
 from typing import get_args
 
@@ -24,7 +25,7 @@ G_MAJOR_LINE = [
 ]  # fmt: skip
 
 
-def line(pitches_and_lengths: list[tuple[int, float]]) -> list[PlacedNote]:
+def line(pitches_and_lengths: Sequence[tuple[int, float]]) -> list[PlacedNote]:
     notes, onset = [], Fraction(0)
     for pitch, length in pitches_and_lengths:
         notes.append(PlacedNote(onset, onset + Fraction(length), pitch, 0.8))
@@ -47,9 +48,18 @@ def test_a_g_major_line_is_estimated_as_g_major() -> None:
 
 
 def test_the_estimate_is_weighted_by_duration() -> None:
-    # The same pitches; long A and E (and short G/B/D) tip the estimate to A minor.
-    weighted = [(69, 8), (64, 4), (72, 2), (67, 0.25), (71, 0.25), (62, 0.25), (69, 4), (76, 2)]
-    assert estimate_key(line(weighted)).info.tonic == "A"
+    # The same eight pitches: long C/G/C lean to C major, long A/E/E lean to A minor.
+    pitches = [60, 64, 67, 69, 72, 76, 71, 62]
+    c_long = [(p, 6.0 if p in {60, 67, 72} else 0.5) for p in pitches]
+    a_long = [(p, 6.0 if p in {69, 64, 76} else 0.5) for p in pitches]
+    assert (estimate_key(line(c_long)).info.tonic, estimate_key(line(c_long)).info.mode) == (
+        "C",
+        "major",
+    )
+    assert (estimate_key(line(a_long)).info.tonic, estimate_key(line(a_long)).info.mode) == (
+        "A",
+        "minor",
+    )
 
 
 def test_a_chromatic_line_has_low_confidence() -> None:
