@@ -60,12 +60,12 @@ export class FakeDriver implements TourDriver {
   private render(popover: NonNullable<DriveStep['popover']>): PopoverDOM {
     const wrapper = document.createElement('div');
     const title = document.createElement('header');
-    title.textContent = popover.title ?? '';
+    title.textContent = String(popover.title);
     const description = document.createElement('div');
-    description.textContent = popover.description ?? '';
+    description.textContent = String(popover.description);
     const progress = document.createElement('span');
-    const previousButton = this.button(this.config.prevBtnText ?? 'prev', this.config.onPrevClick);
-    const nextButton = this.button(this.isLastStep() ? (this.config.doneBtnText ?? 'done') : (this.config.nextBtnText ?? 'next'), this.config.onNextClick);
+    const previousButton = this.button('prev', this.config.onPrevClick);
+    const nextButton = this.button(this.isLastStep() ? 'done' : 'next', this.config.onNextClick);
     const closeButton = this.button('x', this.config.onCloseClick);
     const footer = document.createElement('footer');
     const footerButtons = document.createElement('span');

@@ -50,3 +50,17 @@ export const DARK = '(prefers-color-scheme: dark)';
 
 /** The reduced-motion query used by the module. */
 export const REDUCED = '(prefers-reduced-motion: reduce)';
+
+/**
+ * Returns a value that the test knows exists, or fails the test.
+ *
+ * @param value - The value.
+ * @returns The value.
+ */
+export function must<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) {
+    throw new Error('expected a value');
+  }
+
+  return value;
+}
