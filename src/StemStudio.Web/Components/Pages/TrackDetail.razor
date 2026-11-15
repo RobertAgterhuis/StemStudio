@@ -4,80 +4,74 @@
 
 @if (LoadError is not null)
 {
-    <div class="ss-error" role="alert" data-testid="track-load-error">@LoadError</div>
+    <ErrorState TestId="track-load-error" Message="@LoadError" Hint="The track may have been deleted."><a href="tracks">Back to tracks</a></ErrorState>
 }
 else if (Track is null)
 {
-    <p class="ss-muted" role="status">Loading...</p>
+    <Skeleton Lines="5" />
 }
 else
 {
-    <h1 data-testid="track-title">@Track.Title</h1>
-    @if (Track.Artist is not null)
-    {
-        <p class="ss-artist">@Track.Artist</p>
-    }
+    <div class="ss-page ss-track">
+        <header class="ss-track-head">
+            <div class="ss-track-names">
+                <h1 data-testid="track-title">@Track.Title</h1>
+                @if (Track.Artist is not null)
+                {
+                    <p class="ss-track-artist">@Track.Artist</p>
+                }
+            </div>
+            <StemRibbon Stems="StemList" TestId="track-ribbon" />
+        </header>
 
-    <RadzenCard class="ss-card">
-        <div class="ss-row">
-            <RadzenBadge BadgeStyle="TrackStatusText.Badge(Track.Status)" Text="@TrackStatusText.Label(Track.Status)"
-                         data-testid="track-status" />
-            <span class="ss-stage" data-testid="track-stage">@Track.Stage</span>
-        </div>
-        <RadzenProgressBar Value="Track.Progress" Max="100" ShowValue="true" aria-label="Processing progress"
-                           data-testid="track-progress" />
-        @if (Track.Device is not null)
-        {
-            <DeviceBadge Display="DeviceDisplay.FromJob(Track.Device)" TestId="track-device" ReasonTestId="track-device-fallback"
-                         Label="Processed on" />
-        }
-
-        @if (ActionError is not null)
-        {
-            <div class="ss-error" role="alert" data-testid="track-action-error">@ActionError</div>
-        }
-
-        @if (Track.Status == TrackStatusDto.Failed)
-        {
-            <div class="ss-error" role="alert" data-testid="track-error">@Track.Error</div>
-            @if (RetryFailedAgain)
+        <TrackProcessing Track="Track">
+            @if (ActionError is not null)
             {
-                <div class="ss-error" role="alert" data-testid="track-retry-failed-again">The retry failed again.</div>
+                <ErrorState TestId="track-action-error" Message="@ActionError" />
             }
-            <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" IsBusy="IsRetrying" BusyText="Retrying..."
-                          Disabled="IsRetrying" data-testid="track-retry" />
-        }
 
-        @if (DeleteBlockedReason is not null)
-        {
-            <div class="ss-error" role="alert" data-testid="track-delete-blocked">
-                @DeleteBlockedReason Cancel the detail phase or wait until it has finished, then delete the track.
-            </div>
-        }
-
-        @if (CanDelete)
-        {
-            <div class="ss-row ss-delete">
-                @if (ConfirmingDelete)
+            @if (Track.Status == TrackStatusDto.Failed)
+            {
+                <ErrorState TestId="track-error" Message="@(Track.Error ?? string.Empty)" />
+                @if (RetryFailedAgain)
                 {
-                    <span role="alert">This deletes the track, its stems and all of its mixes.</span>
-                    <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger" Click="DeleteAsync" IsBusy="IsDeleting"
-                                  BusyText="Deleting..." Disabled="IsDeleting" data-testid="track-delete-confirm" />
-                    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelDelete" Disabled="IsDeleting"
-                                  data-testid="track-delete-cancel" />
+                    <ErrorState TestId="track-retry-failed-again" Message="The retry failed again." Hint="Check the source link or try another file." />
                 }
-                else
-                {
-                    <RadzenButton Text="Delete track" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
-                                  Click="AskDelete" data-testid="track-delete" />
-                }
-            </div>
-        }
-    </RadzenCard>
+                <RadzenButton Text="Retry" Icon="refresh" Click="RetryAsync" IsBusy="IsRetrying" BusyText="Retrying..."
+                              Disabled="IsRetrying" data-testid="track-retry" />
+            }
 
-    @if (Track.Status == TrackStatusDto.Completed)
-    {
-        <TrackSummary Track="Track" />
-        <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" />
-    }
+            @if (DeleteBlockedReason is not null)
+            {
+                <div class="ss-error" role="alert" data-testid="track-delete-blocked">
+                    @DeleteBlockedReason Cancel the detail phase or wait until it has finished, then delete the track.
+                </div>
+            }
+
+            @if (CanDelete)
+            {
+                <div class="ss-row ss-delete">
+                    @if (ConfirmingDelete)
+                    {
+                        <span role="alert">This deletes the track, its stems and all of its mixes.</span>
+                        <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger" Click="DeleteAsync" IsBusy="IsDeleting"
+                                      BusyText="Deleting..." Disabled="IsDeleting" data-testid="track-delete-confirm" />
+                        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelDelete" Disabled="IsDeleting"
+                                      data-testid="track-delete-cancel" />
+                    }
+                    else
+                    {
+                        <RadzenButton Text="Delete track" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                                      Click="AskDelete" data-testid="track-delete" />
+                    }
+                </div>
+            }
+        </TrackProcessing>
+
+        @if (Track.Status == TrackStatusDto.Completed)
+        {
+            <TrackSummary Track="Track" />
+            <DetailSection Track="Track" Busy="IsDetailBusy" OnStart="StartDetailAsync" OnCancel="CancelDetailAsync" />
+        }
+    </div>
 }

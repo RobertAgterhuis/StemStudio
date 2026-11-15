@@ -1,13 +1,11 @@
-@* Results of a completed track: stems, beat grid, duration, model and the way into the mixer. *@
+@* Results of a completed track (design-spec.md 4.4): facts row, stem tabs and the way into the mixer. *@
 
-<RadzenCard class="ss-card">
-    <dl class="ss-facts">
-        <dt>Tempo</dt>
-        <dd data-testid="track-bpm">@TrackFacts.Bpm(Track)</dd>
-        <dt>Duration</dt>
-        <dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd>
-        <dt>Model</dt>
-        <dd data-testid="track-model">@TrackFacts.Model(Track)</dd>
+<section class="ss-panel ss-summary" aria-labelledby="summary-heading">
+    <h2 id="summary-heading" class="ss-heading">Stems</h2>
+    <dl class="ss-facts ss-facts-row">
+        <div><dt>Tempo</dt><dd data-testid="track-bpm">@TrackFacts.Bpm(Track)</dd></div>
+        <div><dt>Duration</dt><dd data-testid="track-duration">@TimeText.Duration(Track.DurationSeconds)</dd></div>
+        <div><dt>Model</dt><dd data-testid="track-model">@TrackFacts.Model(Track)</dd></div>
     </dl>
 
     @if (TrackFacts.IsFallback(Track))
@@ -18,17 +16,16 @@
         </p>
     }
 
-    <h2 class="ss-subtitle">Stems</h2>
-    <ul class="ss-stems">
+    <ul class="ss-stem-tabs" aria-label="Stems">
         @foreach (var stem in Track.Stems)
         {
-            <li class="ss-stem" data-testid="@($"track-stem-{stem.Name}")">@stem.Name</li>
+            <li data-testid="@($"track-stem-{stem.Name}")"><StemTab Stem="@stem.Name" /></li>
         }
     </ul>
 
     <a class="rz-button rz-button-md rz-variant-filled rz-primary rz-shade-default ss-link-button"
        href="@($"tracks/{Track.Id}/mixer")" data-testid="open-mixer">Open mixer</a>
-</RadzenCard>
+</section>
 
 @code {
     /// <summary>The completed track.</summary>

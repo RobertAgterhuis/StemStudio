@@ -33,6 +33,9 @@ public sealed partial class TrackDetail : IDisposable
     /// <summary>Error of the last poll, retry or delete, cleared by the next successful poll or retry.</summary>
     private string? ActionError { get; set; }
 
+    /// <summary>The stem names of the track for the ribbon.</summary>
+    private IReadOnlyList<string> StemList => Track!.Stems.Select(s => s.Name).ToList();
+
     /// <summary>True while the standard separation or the detail phase is still in progress.</summary>
     private bool NeedsPolling => !TrackStatusText.IsTerminal(Track!.Status) || DetailPhaseText.IsActive(Track.Detail.Status);
 
