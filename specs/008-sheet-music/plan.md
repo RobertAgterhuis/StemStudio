@@ -9,6 +9,9 @@ weights exception, ADR-011 GPU runtime); `docs/ROADMAP.md`; research
 **Note**: Produced by the architect agent (`/speckit-plan` equivalent). Binding design decisions
 are in ADR-017 (`docs/decisions/ADR-017-sheet-music-transcription-and-engraving.md`);
 measurements in [research.md](research.md); contract changes in [contracts/DELTA.md](contracts/DELTA.md).
+Phase 0 executed 2026-11-15 together with 006 (hand-off `docs/handoffs/architect-006-008-phase0.md`):
+worker 1.6.0, backend 1.7.0, UI ids 1.7.0 in [contracts/](contracts/); "Phase 0 outcome" in DELTA.md
+and ADR-017, measurements in research.md "Phase 0 measurements".
 
 ## Summary
 
@@ -33,10 +36,10 @@ Phase 0). Synthetic accuracy: single voice F1 1.00, piano F1 0.96.
 **Language/Version**: unchanged (C# 14 / .NET 10; Python 3.12; TypeScript 6.0, engine untouched).
 
 **Primary Dependencies (new, worker, locked in `uv.lock`)**: `music21` 10.5.2 (BSD-3) with
-chardet (0BSD), jsonpickle (BSD-3), more-itertools (MIT), webcolors (BSD-3) [matplotlib: lock or
-exclude, Phase 0 T002]; `verovio` 6.4.1 (LGPL-3.0-only); `cairosvg` 2.9.1 (LGPL-3.0-or-later) with
+chardet (0BSD), jsonpickle (BSD-3), more-itertools (MIT), webcolors (BSD-3) [matplotlib excluded
+by a uv override, Phase 0]; `verovio` 6.4.0 (LGPL-3.0-only); `cairosvg` 2.9.1 (LGPL-3.0-or-later) with
 cairocffi 1.7.1 (BSD-3), cssselect2 0.10.1, tinycss2 1.5.1, webencodings 0.6.1 (BSD), defusedxml
-0.7.1 (PSF-2.0); `pypdf` 7.x (BSD-3); `torchlibrosa` 0.1.0 (MIT). Vendored (no package):
+0.7.1 (PSF-2.0); `pypdf` 6.21.4 (BSD-3); `torchlibrosa` 0.1.0 (MIT). Vendored (no package):
 basic-pitch 0.4.0 post-processing (Apache-2.0 + NOTICE), piano_transcription_inference 0.0.6 model
 and post-processor (MIT). Weights (model cache, first use): basic-pitch ONNX (Apache-2.0), piano
 CRNN (CC BY 4.0). Image: Leipzig font (OFL-1.1) installed at build (fontTools MIT, build stage

@@ -8,7 +8,7 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '2.0.0';
+export type EngineContractVersion = '2.1.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
@@ -151,6 +151,45 @@ export interface MetronomeSettings {
   readonly beatsPerBar: number;
 }
 
+/** One word of the karaoke banner; times in integer milliseconds from the start of the track (contract 2.1.0). */
+export interface KaraokeWord {
+  /** Text, set with `textContent` (never parsed as HTML); 1..100 characters. */
+  readonly text: string;
+  /** The ball lands on the word at this time. */
+  readonly startMs: number;
+  /** End of the word, > `startMs`. */
+  readonly endMs: number;
+}
+
+/** One line of the karaoke banner; its words lie inside `startMs..endMs`. */
+export interface KaraokeLine {
+  /** Start of the line (= start of its first word or earlier). */
+  readonly startMs: number;
+  /** End of the line, > `startMs`. */
+  readonly endMs: number;
+  /** Words in order (1..40); starts never decrease. */
+  readonly words: readonly KaraokeWord[];
+}
+
+/** Timed lyrics to draw: the render subset of the backend `Lyrics` DTO (word- or line-synced only). */
+export interface KaraokeLyrics {
+  /** Lines in order of `startMs` (<= 400); empty = banner state `hidden`. */
+  readonly lines: readonly KaraokeLine[];
+}
+
+/** Options of {@link AudioEngine.attachKaraoke}. */
+export interface KaraokeOptions {
+  /** User offset -5000..5000 ms; positive = the lyrics come later. */
+  readonly offsetMs: number;
+  /** No ball, the current word is highlighted instead; default `matchMedia('(prefers-reduced-motion: reduce)')`. */
+  readonly reducedMotion?: boolean;
+  /** Gaps between lines longer than this show the countdown; default 5000 ms. */
+  readonly countdownGapMs?: number;
+}
+
+/** State of the banner, written to the host's `data-state` attribute. */
+export type KaraokeState = 'hidden' | 'countdown' | 'singing' | 'ended';
+
 /** Optional construction parameters (mainly for tests). */
 export interface EngineOptions {
   /** Factory for the single AudioContext; defaults to `new AudioContext({ sampleRate: 44100 })`. */
@@ -210,6 +249,16 @@ export interface AudioEngine {
   attachMeter(target: MeterTarget, elementId: string): void;
   /** Unbinds a meter. */
   detachMeter(target: MeterTarget): void;
+  /**
+   * Builds the karaoke banner inside the (empty) element `elementId` and draws it on the shared
+   * animation frame against the audio clock (contract 2.1.0). Replaces an attached karaoke.
+   * Throws `Error("Karaoke host not found: <id>")` or `Error("Invalid karaoke lyrics: <reason>")`.
+   */
+  attachKaraoke(elementId: string, lyrics: KaraokeLyrics, options: KaraokeOptions): void;
+  /** Changes the karaoke offset (-5000..5000 ms); takes effect on the next frame. */
+  setKaraokeOffset(offsetMs: number): void;
+  /** Removes the karaoke DOM and stops drawing it; no-op when none is attached. */
+  detachKaraoke(): void;
   /** Stops playback, cancels timers/animation frames and closes the AudioContext. */
   dispose(): Promise<void>;
 }

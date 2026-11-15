@@ -305,7 +305,7 @@ def test_health_reports_a_readable_library_and_an_idle_lane(render_api: Api) -> 
     assert_conforms(response, "/health")
     health = response.json()
     assert health["library"] == {"readable": True, "reason": None}
-    assert health["lanes"] == {"render": {"queued": 0, "running": False}}
+    assert health["lanes"]["render"] == {"queued": 0, "running": False}
 
 
 def test_health_reports_the_render_lane_while_busy(render_api: Api, executor: FakeExecutor) -> None:
@@ -316,7 +316,7 @@ def test_health_reports_the_render_lane_while_busy(render_api: Api, executor: Fa
 
     lanes = render_api.client.get("/health").json()["lanes"]
 
-    assert lanes == {"render": {"queued": 1, "running": True}}
+    assert lanes["render"] == {"queued": 1, "running": True}
     executor.gate.set()
     _wait(render_api)
 

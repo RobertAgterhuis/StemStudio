@@ -122,4 +122,55 @@ public static class ApiRoutes
 
     /// <summary>File role of the audio file of an audio item.</summary>
     public const string AssetFileAudio = "audio";
+
+    /// <summary>File role of the PDF of a score item (1.7.0).</summary>
+    public const string AssetFilePdf = "pdf";
+
+    /// <summary>File role of the MusicXML file of a score item (1.7.0).</summary>
+    public const string AssetFileMusicXml = "musicxml";
+
+    /// <summary>File role of the MIDI file of a score item (1.7.0).</summary>
+    public const string AssetFileMidi = "midi";
+
+    /// <summary>The lyrics of a track: <c>GET</c>, <c>PUT</c> (enter text), <c>DELETE</c> (1.6.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string Lyrics(Guid trackId) => $"{Track(trackId)}/lyrics";
+
+    /// <summary>Search the lyrics again: <c>POST /api/tracks/{id}/lyrics/search</c> (1.6.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string LyricsSearch(Guid trackId) => $"{Lyrics(trackId)}/search";
+
+    /// <summary>Align the lyrics text: <c>POST /api/tracks/{id}/lyrics/align</c> (1.6.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string LyricsAlign(Guid trackId) => $"{Lyrics(trackId)}/align";
+
+    /// <summary>Cancel the alignment: <c>POST /api/tracks/{id}/lyrics/align/cancel</c> (1.6.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string LyricsAlignCancel(Guid trackId) => $"{LyricsAlign(trackId)}/cancel";
+
+    /// <summary>Store the lyrics offset: <c>PUT /api/tracks/{id}/lyrics/offset</c> (1.6.0).</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <returns>The route.</returns>
+    public static string LyricsOffset(Guid trackId) => $"{Lyrics(trackId)}/offset";
+
+    /// <summary>Create a score item: <c>POST /api/assets/scores</c> (1.7.0).</summary>
+    public const string Scores = "/api/assets/scores";
+
+    /// <summary>Sheet music options: <c>GET /api/scores/options</c> (1.7.0).</summary>
+    public const string ScoreOptions = "/api/scores/options";
+
+    /// <summary>Sheet music options of a track channel.</summary>
+    /// <param name="trackId">Track id.</param>
+    /// <param name="channel">Channel id (e.g. <c>bass</c>, <c>vocals.lead</c>).</param>
+    /// <returns>The route with the query.</returns>
+    public static string ScoreOptionsForChannel(Guid trackId, string channel) => $"{ScoreOptions}?trackId={trackId}&channel={Uri.EscapeDataString(channel)}";
+
+    /// <summary>Sheet music options of a library audio item.</summary>
+    /// <param name="assetId">Item id.</param>
+    /// <returns>The route with the query.</returns>
+    public static string ScoreOptionsForAsset(Guid assetId) => $"{ScoreOptions}?assetId={assetId}";
 }

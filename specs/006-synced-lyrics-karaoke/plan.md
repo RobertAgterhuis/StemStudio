@@ -6,9 +6,10 @@
 research `docs/research/roadmap-003-011.md` section 5 and [research.md](research.md); ADR-015
 (builds on ADR-005, ADR-012, ADR-014).
 
-**Note**: Produced by the architect agent ahead of time. Contract version numbers are assigned
-when the feature starts (after 005); deltas in [contracts/DELTA.md](contracts/DELTA.md). Phase 0
-(incl. the alignment install spike) is listed in tasks.md but not executed yet.
+**Note**: Phase 0 executed 2026-11-15 together with 008 (handoff
+`docs/handoffs/architect-006-008-phase0.md`): contracts worker 1.5.0, backend 1.6.0, engine
+2.1.0, UI ids 1.6.0 in [contracts/](contracts/); spike and measurements in research.md "Phase 0
+results"; refinements in [contracts/DELTA.md](contracts/DELTA.md) "Phase 0 outcome".
 
 ## Summary
 
@@ -157,7 +158,8 @@ beat-analysis has no work in this feature.
 
 | Deviation / refinement | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| `torchaudio 2.11.1` next to `torch 2.15.0` (version skew) | stable-ts requires torchaudio; no newer torchaudio exists; we use none of its compiled ops directly | A separate aligner container with its own torch doubles image size (+1-3 GB) and adds a service; kept as the fallback if the Phase 0 spike (P0-1) fails |
+| `torchaudio 2.11.1` next to `torch 2.15.0` (version skew) | stable-ts requires torchaudio; no newer torchaudio exists; we use none of its compiled ops directly. **Phase 0 P0-1: imports and runs in both images (`+cpu`, `+cu132`) -> same image** | A separate aligner container with its own torch doubles image size (+1-3 GB) and adds a service; not needed |
+| Collapse check + `vad` retry in the aligner adapter | Phase 0 P0-2: Whisper alignment on the plain `vocals` stem collapsed on the reference song (fine on `vocals.lead`) | Trusting stable-ts' own `failure_threshold` (did not catch the collapse) or aligning only after a vocal split (makes US2 depend on 002 for every song) |
 | uv override removing `triton` | openai-whisper requires triton on Linux; triton wheels bundle NVIDIA binaries (would break the 003 CPU-image guard) | Allowing triton in the CPU image would need an ADR-011 extension; Whisper does not import triton for CPU tensors |
 | Engine owns a DOM subtree (karaoke host) | 60 fps updates must not go through Blazor rendering or .NET interop | Blazor-driven updates at 10 Hz (position callback) are visibly jerky; per-frame interop costs far more than 2 ms |
 | Shared `FrameLoop` (meters migrate onto it) | Two independent rAF loops per page waste frames and can desynchronise | Leaving meters untouched would keep two loops; the change is internal to the engine (behaviour unchanged, existing meter tests stay green) |

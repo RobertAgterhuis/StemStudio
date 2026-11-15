@@ -10,7 +10,7 @@ Builds on the 001-003 data models and on [007's data model](../007-export-librar
 |---|---|---|---|
 | worker | `STEMSTUDIO_TRANSCRIBER` | `real` (`fake` when `STEMSTUDIO_SEPARATOR=fake`) | `fake` = deterministic notes per profile (2.6); notation and engraving stay real |
 | worker | `STEMSTUDIO_TRANSCRIBE_THREADS` | `8` | torch/onnxruntime intra-op threads in the `transcribe` lane |
-| worker image | Leipzig font | installed | `/usr/local/share/fonts/verovio/Leipzig.otf` (OFL-1.1), converted at build from the pinned Verovio wheel (research.md S-08); `fc-list` must list "Leipzig" |
+| worker image | Leipzig font | installed | `/usr/local/share/fonts/verovio/Leipzig.ttf` (OFL-1.1; TrueType outlines, 119,416 B), converted at build from the pinned Verovio wheel by `worker/scripts/install_music_font.py` (research.md S-08, P0); `fc-list` must list "Leipzig" |
 | API | `StemStudio:ScoreEstimates` | see 4.5 | seconds per audio second per (profile engine, device), used for the shown estimate |
 
 ## 2. Worker
@@ -142,7 +142,8 @@ sweep rules as 007 render jobs; `GET /v1/transcription-jobs/{id}/files/{role}`.
 | `basic-pitch-icassp2022` | `https://github.com/spotify/basic-pitch/raw/v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx` (Phase 0 verifies the tag URL) | `2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec` | 230,444 B | Apache-2.0 |
 | `piano-crnn-note-pedal` | `https://zenodo.org/records/4034264/files/CRNN_note_F1%3D0.9677_pedal_F1%3D0.9186.pth` | `c3fa9730725bf4a762f1c14bc80cd5986eacda01b026f5a4a2525cd607876141` | 171,966,578 B | CC BY 4.0 |
 
-`GpuNeed("piano-crnn", <MiB measured in Phase 0>)`; basic-pitch and drum onsets: CPU only.
+`PIANO_GPU_NEED = GpuNeed("Piano transcription", 1280)` (measured NVML peak 952 MiB + 20 %, Phase 0);
+basic-pitch and drum onsets: CPU only. Weights constants: `ports.BASIC_PITCH_WEIGHTS`, `ports.PIANO_WEIGHTS`.
 
 ## 3. Engraving (binding)
 
@@ -199,7 +200,7 @@ For a source: suggested profile, allowed profiles, whether drums need splitting,
 (`reliable`, `unreliable`, `none`), default quality, and per engine an estimate
 `seconds = duration · factor(engine, device) + overhead`. Defaults (from research.md S-02/S-04,
 refined in the integration wave): basic-pitch CPU 0.10 s/s, piano CRNN CPU 1.7 s/s, piano CRNN GPU
-0.05 s/s (estimate until measured), drum onsets 0.02 s/s; overhead 5 s (+ 60 s when the piano
+0.08 s/s (measured in Phase 0: 0.075 s/s), drum onsets 0.02 s/s; overhead 5 s (+ 60 s when the piano
 model is not downloaded yet).
 
 ### 4.6 Limits (`ContractLimits` additions)

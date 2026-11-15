@@ -1,0 +1,6 @@
+{
+  "type": "standard-job-not-completed",
+  "title": "Standard job not completed",
+  "status": 409,
+  "detail": "Job 3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c is in state separating."
+}

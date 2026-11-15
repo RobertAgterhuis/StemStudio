@@ -1,6 +1,7 @@
 # ADR-017: Sheet music: transcription models, notation and engraving (feature 008)
 
-- **Status**: Proposed (architect, 2026-11-15; becomes Accepted when Phase 0 of 008 starts)
+- **Status**: Accepted (architect, 008 Phase 0, 2026-11-15; Phase 0 refinements below under
+  "Phase 0 outcome")
 - **Context documents**: `specs/008-sheet-music/{spec.md, research.md, data-model.md,
   contracts/DELTA.md}`, ADR-009 (model weights exception), ADR-010 (detail models), ADR-012
   (device policy), ADR-016 (asset library, lanes, read-only library mount),
@@ -67,7 +68,7 @@ estimated time of both.
   instrument, while the 002 drum detail stems already separate kick, snare, toms, hi-hat and
   cymbals. If drum quality proves insufficient, a separate `transcriber-mt3` service behind the
   same worker contract is the documented path (new ADR). ADTOF stays excluded (CC BY-NC-SA code).
-- **Engraving**: music21 (BSD-3) in-process; Verovio 6.4.1 Python wheel (LGPL-3.0-only) and
+- **Engraving**: music21 (BSD-3) in-process; Verovio 6.4.0 Python wheel (6.4.1 was < 2 weeks old; same Leipzig.css) (LGPL-3.0-only) and
   CairoSVG 2.9.1 (LGPL-3.0-or-later) used **unmodified** as separately installed packages
   (replaceable, so the LGPL relinking condition holds), with cairocffi (BSD-3), libcairo (system,
   LGPL-2.1/MPL-1.1, already in the image), pypdf (BSD-3). The Leipzig font (OFL-1.1, shipped
@@ -150,3 +151,29 @@ real, so E2E tests download real PDF/MusicXML/MIDI files.
 | LilyPond / MuseScore CLI engraving | GPL executables, +100 MB or Qt AppImage; Verovio output is sufficient for lead sheets |
 | SVG rendering in the browser + print to PDF | the agent (011) and downloads need a server-side PDF |
 | Key from the beat-analysis service | the beat grid has no key; estimating from the transcribed notes uses exactly what is notated |
+
+## Phase 0 outcome (2026-11-15, combined 006 + 008 Phase 0)
+
+- Contracts: worker-api **1.6.0**, backend-api **1.7.0**, ui-test-ids **1.7.0** (all on top of 006's
+  1.5.0 / 1.6.0 / 1.6.0, which sit on 007's documents); engine unchanged (2.1.0 from 006).
+- D7 measured on the RTX 5070 Ti (throw-away container, GPU image): piano CRNN load 4.0 s, 60 s
+  of audio in 4.5 s (cold = warm, 0.075 s per audio second incl. post-processing), NVML peak
+  952 MiB -> `PIANO_GPU_NEED = GpuNeed("Piano transcription", 1280)`; estimate factor 0.08 s/s
+  + 5 s (+ about 40 s for the first 172 MB download).
+- basic-pitch tag URL verified: `.../v0.4.0/basic_pitch/saved_models/icassp_2022/nmp.onnx`
+  (redirects to raw.githubusercontent.com), 230,444 B, SHA-256 `2c3c1d14...59a0ec`.
+- matplotlib: **excluded** with a uv override (`matplotlib ; sys_platform == 'never'`): music21
+  10.5.2 imports it lazily; key analysis, MusicXML and MIDI writing work without it (one
+  informational message at import). Saves ~40 MB and its dependency tree.
+- Leipzig: the wheel embeds one WOFF2 `@font-face` in `verovio/data/Leipzig.css`; fontTools
+  (with brotli) converts it to a 119,416-byte **TrueType** file (SHA-256 `9606f129...ef08`,
+  family "Leipzig"), so the installed file is `Leipzig.ttf` (`worker/scripts/install_music_font.py`
+  names it by outline format). The wheel has no OFL text: the OFL-1.1 attribution comes from the
+  upstream Leipzig repository and is recorded by the CTO.
+- Vendoring: piano_transcription_inference also imports **mido** (`utilities.py`); the vendored
+  subset must drop mido, matplotlib and audioread.
+- pypdf pinned to 6.21.4 (7.x is less than two weeks old); `PdfWriter.append` is available.
+- Provenance: score items carry `Provenance.scoreRecipe`; `Provenance.recipe` is null for them
+  (additive alternative to a oneOf, so the 007 DTO keeps its shape; `ProvenanceDto.Recipe`
+  became nullable).
+

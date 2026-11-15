@@ -1,0 +1,17 @@
+{
+  "lyricsJobId": "9a4c6e8b0d2f41a3b5c7d9e1f3a5b7c9",
+  "mode": "align",
+  "status": "running",
+  "stage": "Aligning lyrics",
+  "progress": 0.4,
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "estimatedSeconds": 30,
+  "error": null,
+  "createdAt": "2026-11-15T10:00:00Z",
+  "updatedAt": "2026-11-15T10:00:12Z"
+}

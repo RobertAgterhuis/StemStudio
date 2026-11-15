@@ -61,7 +61,7 @@ keeps our line breaks; `align_words(...)` refines words inside given segment tim
 line-synced lyrics). Whisper `timing.py` imports triton only for CUDA tensors and falls back to
 numba/CPU kernels on `RuntimeError`; with CPU tensors triton is never imported.
 
-**Open risk (Phase 0 spike P0-1)**: whether `torchaudio 2.11.1` imports and runs
+**Resolved in Phase 0 (P0-1 below)**, was: whether `torchaudio 2.11.1` imports and runs
 `functional.resample`/filters next to `torch 2.15.0` (the wheel is `py3-none`, compiled against
 torch 2.11). Not verified here (would need a ~1 GB install). Fallback: a separate `aligner` image
 with its own lock (Complexity Tracking in plan.md).
@@ -181,3 +181,62 @@ the backend copied them; a 24 h sweep removes leftovers.
 |---|---|---|
 | O-1 | (from 005) public contact page for the User-Agent | No |
 | O-2 | For the SC-003 alignment test clip: may the team record a short self-sung clip with self-written lyrics (licensed CC0 by the singer), or should qa pick an existing CC0/CC BY vocal recording? | Blocks only the SC-003 integration measurement (T012/T042/T066), not the wave |
+
+## Phase 0 results (2026-11-15, T001/T002)
+
+Throw-away containers from `stemstudio/worker:local` (CPU, torch 2.15.0+cpu) and
+`stemstudio/worker:local-gpu` (torch 2.15.0+cu132, triton 3.9.0 in the image); extra packages
+installed with `pip --target /tmp/pk --no-deps` inside the container only (the image's torch was
+never replaced); volumes read-only; the running `stemstudio` project untouched; `nvidia-smi`
+showed 13.6-14.1 GB free before every GPU run. Lyrics were fetched from LRCLIB at run time into
+the scratch directory, never printed and deleted afterwards (only counts and times are recorded).
+
+### P0-1 install spike: **same worker image** (no aligner image)
+
+| Check | CPU image | GPU image |
+|---|---|---|
+| torchaudio wheel | `2.11.1+cpu` (whl/cpu) | `2.11.1+cu132` (whl/cu132; cu130/cu128 stop at 2.11.0) |
+| `import torchaudio` next to torch 2.15.0 | 0.02 s, no warning | same |
+| `functional.resample` 44.1 -> 16 kHz, `highpass_biquad`, `lowpass_biquad` | run | run |
+| `import stable_whisper` (2.19.1), `whisper` (20250625) | 0.15-0.19 s | same |
+| triton imported? | never (import, `load_model`, `align`) | never (CUDA path did not need it) |
+| `load_model("turbo", download_root=...)` first use | 136.4 s incl. the 1,617,941,637-byte download, SHA-256 `aff26ae4...a19a` verified by whisper (reads the whole file into RAM once) | |
+| cached model load | 12-13.5 s | 17.3-18.8 s |
+
+Consequences: the CPU lock (`uv.lock`) carries `torchaudio 2.11.1+cpu` and no triton (override);
+**devops** installs `torchaudio==2.11.1+cu132` from the cu132 index in the GPU image next to its
+torch cu132 (same rule as torch itself, ADR-011).
+
+### P0-2 measurements (reference song, 261.9 s, 48 lines, 285 words)
+
+`align(audio16k_mono_f32, text, language="en", original_split=True)`; audio prep (FLAC read, mono,
+soxr to 16 kHz) 0.35-0.40 s.
+
+| Run | Wall time | s per audio s | Memory |
+|---|---|---|---|
+| GPU, `vocals.lead`, cold / warm | 6.7 / 5.0 s | 0.026 / 0.019 | NVML peak delta **4,059 MiB** (context included); torch max allocated 3,581, reserved 3,692 MiB |
+| GPU, `vocals`, cold / warm | 4.8 / 2.7 s | 0.018 / 0.010 | NVML peak delta **4,118 MiB** |
+| CPU 8 threads, `vocals.lead`, whole song | 207.8 s | 0.79 | - |
+| CPU 8 threads, first 60 s | 76.2 s | 1.27 | - |
+
+Set from these: `WHISPER_GPU_NEED = 5120 MiB` (4,118 + 20 %, rounded up to 256);
+`estimate_alignment_seconds` = duration x (GPU 0.03 | CPU 0.8) + (GPU 20 | CPU 15) s + 140 s while
+the weights are not cached (SC-005: GPU well under 2 min per 4-min song).
+
+**Quality finding (binding for stem-separation T040/T041)**: against the LRCLIB line starts,
+`vocals.lead` gives a median line-start error of 405-415 ms (15 of 48 lines within 300 ms, 29
+within 500 ms; part of it may be LRC stamps leading the sung onset). The plain `vocals` stem
+**collapsed** (all lines squeezed into 12.5-90 s, median error 83.6 s) although it is nearly
+the same audio (difference -41.7 dB): Whisper alignment is fragile, not the stem. Tried on
+`vocals`: `vad=True` (median 43.7 s), `only_voice_freq` (52.0 s), `fast_mode` (104 s),
+`nonspeech_error=0.1` (no change), gain -1 dB, peak normalisation, `original_split=False`: all
+collapse; `vad=True` on `vocals.lead` is worse (543 ms). stable-ts `failure_threshold=0.2` did
+not reject the collapsed run (279 of 285 words with zero duration). A collapse detector separates
+the cases cleanly: words shorter than 20 ms are 9-16 % of a good run and 69-98 % of a collapsed
+one. Adapter rule (ports `COLLAPSE_*` constants): align on `vocals.lead` when the worker detail
+cache has it, else `vocals`, with default stable-ts options; a run with more than 35 % of words
+under 20 ms or more than 25 % of lines starting before the previous line ends is *collapsed*;
+retry once with `vad=True`; a second collapse fails the job with `ALIGNMENT_FAILED_TEXT`, and the
+track page (frontend T046/T047) offers "Split the vocals into detail stems and try again" when
+the vocals are not split. Accepted runs mark words under 20 ms or with probability < 0.2 as
+`lowConfidence`. SC-003 is measured on `vocals.lead`.
