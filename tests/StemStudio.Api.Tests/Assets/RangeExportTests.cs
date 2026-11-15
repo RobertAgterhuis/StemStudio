@@ -21,7 +21,7 @@ public sealed class RangeExportTests : ApiTestBase
         await ContractAssert.MatchesAsync(response, "createAudioExport");
         var asset = await response.BodyAsync<AssetDto>();
         (asset.Name, asset.Provenance.Contents).ShouldBe(("Never Gonna Give You Up - drums, 0:30-1:15", "drums, raw, 0:30-1:15"));
-        asset.Provenance.Recipe.Range.ShouldBe(new RangeDto(30, 75));
+        asset.Provenance.Recipe!.Range.ShouldBe(new RangeDto(30, 75));
         Worker.RenderCreates.Single().Range.ShouldBe(new WorkerRenderRange(30, 75));
     }
 
