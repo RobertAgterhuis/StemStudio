@@ -253,6 +253,21 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
     }
 
     [Fact]
+    public void WhileTheLyricsLoad_TheNoticeSaysSo_InsteadOfFailingTheMixer()
+    {
+        var pending = new TaskCompletionSource<LyricsDto>();
+        Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(pending.Task);
+
+        var page = Render<StemStudio.Web.Components.Mixer.Karaoke.KaraokeBanner>(p => p.Add(c => c.TrackId, TestData.TrackId).Add(c => c.EngineReady, true));
+
+        var notice = page.Find("[data-testid=karaoke-unavailable]");
+        notice.GetAttribute("data-status").ShouldBe("none");
+        notice.TextContent.ShouldContain("Loading the lyrics");
+        pending.SetResult(LyricsData.Found());
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-banner]").ShouldNotBeNull());
+    }
+
+    [Fact]
     public void LoadError_IsShownAsUnavailable()
     {
         Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).ThrowsAsync(Problem(System.Net.HttpStatusCode.ServiceUnavailable, "Down"));
