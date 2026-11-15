@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- xUnit v3 + Shouldly + NSubstitute + coverlet come from Directory.Build.props. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StemStudio.Api\StemStudio.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Worker contract examples (copied from worker-api.openapi.yaml 1.0.1) and the backend contract itself. -->
+    <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\001-stemstudio-mvp\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Contract\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

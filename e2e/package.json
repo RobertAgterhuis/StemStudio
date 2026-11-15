@@ -1,0 +1,29 @@
+{
+  "name": "@stemstudio/e2e",
+  "version": "0.1.0",
+  "description": "StemStudio Playwright end-to-end suite (import -> separate -> mix -> save -> reload) against the docker compose stack.",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "test": "playwright test --grep-invert \"@real|@restart\"",
+    "test:real": "playwright test --grep @real",
+    "test:restart": "playwright test --grep @restart",
+    "list": "playwright test --list",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.15.0",
+    "eslint-plugin-jsdoc": "65.4.2",
+    "eslint-plugin-playwright": "2.12.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}

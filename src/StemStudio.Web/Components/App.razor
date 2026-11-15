@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <RadzenTheme Theme="material" @rendermode="ServerNoPrerender" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="ServerNoPrerender" />
+</head>
+
+<body>
+    <Routes @rendermode="ServerNoPrerender" />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+</body>
+
+</html>
+
+@code {
+    // Prerendering is off: pages load data and the audio engine once, after the circuit is up.
+    private static readonly IComponentRenderMode ServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
+}

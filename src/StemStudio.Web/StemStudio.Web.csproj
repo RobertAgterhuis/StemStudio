@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Blazor Web App, Interactive Server render mode, Radzen (ADR-002). Depends on Contracts only.
+       wwwroot/js/audio-engine.js is produced by src/audio-engine (npm run build). Owned by the frontend agent. -->
+  <PropertyGroup>
+    <RootNamespace>StemStudio.Web</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="StemStudio.Web.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Radzen.Blazor" />
+  </ItemGroup>
+</Project>

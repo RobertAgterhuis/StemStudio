@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- xUnit v3 + Shouldly + NSubstitute + coverlet come from Directory.Build.props. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StemStudio.Domain\StemStudio.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Binding URL vectors (contract 1.0.1), shared with the worker. -->
+    <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Tracks\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

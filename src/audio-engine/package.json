@@ -1,0 +1,34 @@
+{
+  "name": "@stemstudio/audio-engine",
+  "version": "0.1.0",
+  "description": "StemStudio Web Audio engine: sample-locked multi-stem playback, mixer, meters, A-B loop and look-ahead metronome, consumed by Blazor via JS interop.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "main": "../StemStudio.Web/wwwroot/js/audio-engine.js",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.0",
+    "eslint": "10.15.0",
+    "eslint-plugin-jsdoc": "65.4.2",
+    "globals": "17.14.0",
+    "jsdom": "31.0.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}

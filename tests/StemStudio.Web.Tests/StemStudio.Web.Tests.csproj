@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- xUnit v3 + Shouldly + NSubstitute + coverlet come from Directory.Build.props. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StemStudio.Web\StemStudio.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+</Project>

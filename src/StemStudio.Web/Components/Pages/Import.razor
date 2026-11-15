@@ -1,0 +1,43 @@
+@page "/"
+
+<PageTitle>Import - StemStudio</PageTitle>
+
+<h1>Import a song</h1>
+
+<p class="ss-notice" role="note" data-testid="legal-notice">
+    Imports are for personal practice only. You are responsible for complying with copyright and the platforms' terms of service.
+</p>
+
+<RadzenCard class="ss-card">
+    <form class="ss-import-form" @onsubmit="ImportUrlAsync">
+        <label for="import-url" class="ss-label">YouTube video or Spotify track link</label>
+        <div class="ss-row">
+            <RadzenTextBox id="import-url" class="ss-grow" @bind-Value="Url" Placeholder="https://youtu.be/..."
+                           aria-label="YouTube or Spotify link" data-testid="import-url-input" />
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Import" Icon="download" Disabled="Busy"
+                          data-testid="import-url-submit" />
+        </div>
+    </form>
+
+    <div class="ss-upload">
+        <label for="import-file" class="ss-label">Or upload an MP3, WAV or FLAC file (max 200 MiB)</label>
+        <InputFile id="import-file" OnChange="UploadAsync" accept="@UploadRules.Accept" disabled="@Busy"
+                   aria-label="Audio file" data-testid="import-file-input" />
+    </div>
+
+    @if (Busy)
+    {
+        <p class="ss-muted" role="status">Importing...</p>
+    }
+
+    @if (Error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="import-error">@Error</div>
+    }
+</RadzenCard>
+
+<p class="ss-help" data-testid="stem-limitation-help">
+    StemStudio splits a song into vocals, drums, bass, guitar, piano and other (vocals, drums, bass and other
+    when the 4-stem fallback model is used). Separating every instrument individually beyond these stems is
+    not reliably possible with current open-source models.
+</p>

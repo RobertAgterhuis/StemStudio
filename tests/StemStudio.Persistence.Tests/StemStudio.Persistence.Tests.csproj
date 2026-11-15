@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- xUnit v3 + Shouldly + NSubstitute + coverlet come from Directory.Build.props. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StemStudio.Persistence\StemStudio.Persistence.csproj" />
+  </ItemGroup>
+</Project>

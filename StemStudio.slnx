@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StemStudio.Domain/StemStudio.Domain.csproj" />
+    <Project Path="src/StemStudio.Contracts/StemStudio.Contracts.csproj" />
+    <Project Path="src/StemStudio.Persistence/StemStudio.Persistence.csproj" />
+    <Project Path="src/StemStudio.Api/StemStudio.Api.csproj" />
+    <Project Path="src/StemStudio.Web/StemStudio.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StemStudio.Domain.Tests/StemStudio.Domain.Tests.csproj" />
+    <Project Path="tests/StemStudio.Persistence.Tests/StemStudio.Persistence.Tests.csproj" />
+    <Project Path="tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj" />
+    <Project Path="tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj" />
+  </Folder>
+  <Folder Name="/solution-items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path=".editorconfig" />
+  </Folder>
+</Solution>

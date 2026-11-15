@@ -1,0 +1,54 @@
+@page "/mixes"
+
+<PageTitle>Mixes - StemStudio</PageTitle>
+
+<h1>Mix library</h1>
+
+@if (Error is not null)
+{
+    <div class="ss-error" role="alert" data-testid="mixes-error">@Error</div>
+}
+
+@if (Items is null)
+{
+    @if (Error is null)
+    {
+        <p class="ss-muted" role="status">Loading...</p>
+    }
+}
+else if (Items.Count == 0)
+{
+    <p class="ss-muted" data-testid="mixes-empty">No saved mixes yet. Open a track in the mixer and press Save.</p>
+}
+else
+{
+    <table class="ss-table">
+        <thead>
+            <tr><th>Mix</th><th>Track</th><th>Last modified</th><th><span class="ss-sr-only">Actions</span></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var mix in Items)
+            {
+                <tr data-testid="@($"mix-row-{mix.Id}")">
+                    <td>@mix.Name</td>
+                    <td>@mix.TrackTitle</td>
+                    <td><time datetime="@Iso(mix.UpdatedAt)">@Local(mix.UpdatedAt)</time></td>
+                    <td class="ss-row">
+                        <RadzenButton Text="Load" Size="ButtonSize.Small" Click="() => Load(mix)" data-testid="@($"mix-load-{mix.Id}")" />
+                        <RadzenButton Text="Duplicate" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                      Click="() => DuplicateAsync(mix)" data-testid="@($"mix-duplicate-{mix.Id}")" />
+                        <RadzenButton Text="Rename" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                      Click="() => OpenRename(mix)" data-testid="@($"mix-rename-{mix.Id}")" />
+                        <RadzenButton Text="Delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                      Click="() => DeleteAsync(mix)" data-testid="@($"mix-delete-{mix.Id}")" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Renaming is not null)
+{
+    <SaveMixDialog Title="Rename mix" Name="@Renaming.Name" Error="@RenameError" OnConfirm="RenameAsync" OnCancel="CloseRename" />
+}

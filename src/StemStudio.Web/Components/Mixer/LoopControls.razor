@@ -1,0 +1,67 @@
+@* A-B loop: markers in seconds (typed or taken from the position), toggle and refusal message (FR-013). *@
+
+<div class="ss-loop" role="group" aria-label="A-B loop">
+    <label class="ss-inline-label">
+        A (s)
+        <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(Start)" aria-label="Loop start A in seconds"
+               @onchange="StartChanged" data-testid="loop-start" />
+    </label>
+    <RadzenButton Text="Set A" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnStart.InvokeAsync(Position)"
+                  data-testid="loop-set-a" />
+    <label class="ss-inline-label">
+        B (s)
+        <input type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@Text(End)" aria-label="Loop end B in seconds"
+               @onchange="EndChanged" data-testid="loop-end" />
+    </label>
+    <RadzenButton Text="Set B" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => OnEnd.InvokeAsync(Position)"
+                  data-testid="loop-set-b" />
+    <RadzenButton Text="@(Enabled ? "Loop on" : "Loop off")" Icon="repeat" ButtonStyle="@(Enabled ? ButtonStyle.Success : ButtonStyle.Light)"
+                  aria-pressed="@(Enabled ? "true" : "false")" Click="OnToggle" data-testid="loop-toggle" />
+    @if (Error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="loop-error">@Error</div>
+    }
+</div>
+
+@code {
+    /// <summary>Marker A, if set.</summary>
+    [Parameter]
+    public double? Start { get; set; }
+
+    /// <summary>Marker B, if set.</summary>
+    [Parameter]
+    public double? End { get; set; }
+
+    /// <summary>Looping on.</summary>
+    [Parameter]
+    public bool Enabled { get; set; }
+
+    /// <summary>Why the last change was refused.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    /// <summary>Current transport position (for "Set A/B").</summary>
+    [Parameter]
+    public double Position { get; set; }
+
+    /// <summary>Marker A changed (seconds).</summary>
+    [Parameter]
+    public EventCallback<double> OnStart { get; set; }
+
+    /// <summary>Marker B changed (seconds).</summary>
+    [Parameter]
+    public EventCallback<double> OnEnd { get; set; }
+
+    /// <summary>Loop toggle pressed.</summary>
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
+
+    private static string? Text(double? seconds) => seconds is { } value ? InputValue.Format(value) : null;
+
+    private Task StartChanged(ChangeEventArgs args) => Emit(OnStart, args);
+
+    private Task EndChanged(ChangeEventArgs args) => Emit(OnEnd, args);
+
+    private static Task Emit(EventCallback<double> callback, ChangeEventArgs args) =>
+        InputValue.Parse(args) is { } seconds ? callback.InvokeAsync(seconds) : Task.CompletedTask;
+}

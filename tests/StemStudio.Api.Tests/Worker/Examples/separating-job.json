@@ -1,0 +1,16 @@
+{
+  "jobId": "3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c",
+  "sourceKey": "youtube:dQw4w9WgXcQ",
+  "sourceType": "youtube",
+  "status": "separating",
+  "stage": "Separating stems",
+  "progress": 47,
+  "error": null,
+  "metadata": {
+    "title": "Never Gonna Give You Up",
+    "artist": "Rick Astley",
+    "sourceUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  },
+  "createdAt": "2026-11-14T12:00:00Z",
+  "updatedAt": "2026-11-14T12:03:10Z"
+}

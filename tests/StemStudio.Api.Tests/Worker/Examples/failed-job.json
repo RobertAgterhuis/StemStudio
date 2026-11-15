@@ -1,0 +1,16 @@
+{
+  "jobId": "3f2b8c1d9e4a4f6b8a7c5d3e2f1a0b9c",
+  "sourceKey": "spotify:4cOdK2wGLETKBW3PvgPWqT",
+  "sourceType": "spotify",
+  "status": "failed",
+  "stage": "Failed",
+  "progress": 5,
+  "error": "No matching YouTube audio was found for this Spotify track.",
+  "metadata": {
+    "title": "Some Song",
+    "artist": "Some Artist",
+    "sourceUrl": null
+  },
+  "createdAt": "2026-11-14T12:00:00Z",
+  "updatedAt": "2026-11-14T12:00:20Z"
+}

@@ -1,0 +1,62 @@
+<Project>
+  <!-- Shared build settings for every .NET project in StemStudio (see ADR-007). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <StemStudioIsTestProject Condition="$(MSBuildProjectName.EndsWith('.Tests'))">true</StemStudioIsTestProject>
+  </PropertyGroup>
+
+  <!-- Production code: public API must be documented (CS1591 is an error via TreatWarningsAsErrors). -->
+  <PropertyGroup Condition="'$(StemStudioIsTestProject)' != 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Test projects: xUnit v3 on VSTest, coverlet for Cobertura coverage (see ADR-006). -->
+  <PropertyGroup Condition="'$(StemStudioIsTestProject)' == 'true'">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <!-- xunit.v3 4.x defaults to Microsoft.Testing.Platform; we run it on VSTest
+         (xunit.runner.visualstudio) so coverlet.collector and coverlet.msbuild work (ADR-007). -->
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+    <!-- Needed so IDE0005 (unnecessary usings) runs on build; test code itself is not XML-documented. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- coverlet.msbuild = the coverage GATE (dotnet test -p:CollectCoverage=true), see ADR-006:
+         each test project measures and gates only its own component (StemStudio.X.Tests -> [StemStudio.X]*);
+         Api.Tests additionally gates StemStudio.Contracts. Cobertura for humans/CI, OpenCover for Sonar. -->
+    <StemStudioCoverageComponent>$(MSBuildProjectName.Replace('.Tests', ''))</StemStudioCoverageComponent>
+    <CoverletOutputFormat>cobertura%2copencover</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/coverage/</CoverletOutput>
+    <SkipAutoProps>true</SkipAutoProps>
+    <Include>[$(StemStudioCoverageComponent)]*</Include>
+    <Include Condition="'$(MSBuildProjectName)' == 'StemStudio.Api.Tests'">[StemStudio.Api]*%2c[StemStudio.Contracts]*</Include>
+    <Threshold>90</Threshold>
+    <ThresholdType>line%2cbranch</ThresholdType>
+    <ThresholdStat>Minimum</ThresholdStat>
+    <Exclude>[StemStudio.*.Tests]*</Exclude>
+    <ExcludeByFile>**/*.generated.cs%3b**/*.g.cs%3b**/Migrations/*.cs</ExcludeByFile>
+    <ExcludeByAttribute>GeneratedCodeAttribute%2cCompilerGeneratedAttribute%2cExcludeFromCodeCoverageAttribute%2cObsoleteAttribute</ExcludeByAttribute>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)tests/coverlet.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(StemStudioIsTestProject)' == 'true'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.msbuild" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" />
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+  </ItemGroup>
+</Project>

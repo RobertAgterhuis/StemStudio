@@ -1,0 +1,6 @@
+{
+  "type": "about:blank",
+  "title": "Invalid source",
+  "status": 400,
+  "detail": "Only YouTube video and Spotify track URLs are supported; playlists and albums are not."
+}

@@ -1,0 +1,94 @@
+# StemStudio: one-command start-up.
+#   docker compose up --build                          # web http://localhost:8080, api http://localhost:8081
+#   STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait   # fast stack for E2E / smoke tests
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (optional)
+#
+# The worker has no host port (internal network only). The first real separation downloads the
+# Demucs weights (~300 MB) into the model-cache volume; later starts reuse them.
+# No secrets are used or needed. Kestrel serves directly (no reverse proxy), so the API's own
+# upload limit (200 MiB) applies; a proxy added later must allow >= 200 MiB + multipart overhead.
+
+name: stemstudio
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    image: stemstudio/worker:local
+    environment:
+      STEMSTUDIO_SEPARATOR: ${STEMSTUDIO_SEPARATOR:-demucs}
+      STEMSTUDIO_DEVICE: ${STEMSTUDIO_DEVICE:-cpu}
+      STEMSTUDIO_DATA_DIR: /data
+      HF_HOME: /models/hf
+      TORCH_HOME: /models/torch
+    expose:
+      - "8000"
+    volumes:
+      - worker-data:/data
+      - model-cache:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 90s
+      start_interval: 2s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: stemstudio/api:local
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8081"
+      StemStudio__DataDir: /data
+      StemStudio__WorkerBaseUrl: http://worker:8000
+      StemStudio__WebOrigin: http://localhost:8080
+    ports:
+      - "8081:8081"
+    volumes:
+      - api-data:/data
+    depends_on:
+      worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--output", "/dev/null", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+      start_interval: 2s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    image: stemstudio/web:local
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      StemStudio__ApiBaseUrl: http://api:8081
+      StemStudio__PublicApiBaseUrl: http://localhost:8081
+    ports:
+      - "8080:8080"
+    volumes:
+      - web-keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--output", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+      start_interval: 2s
+    restart: unless-stopped
+
+volumes:
+  worker-data:
+  api-data:
+  model-cache:
+  web-keys:
