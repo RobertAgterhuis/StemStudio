@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API
-  version: 1.0.2
+  version: 1.1.0
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -14,6 +14,8 @@ info:
     * Collections (`GET /api/tracks`, `GET /api/mixes`) are ordered by `updatedAt` descending.
     * Changelog: 1.0.1 (non-breaking) - stem caching/range headers (304, Last-Modified, 416
       Content-Range), explicit field limits, canonical URL forwarding, 200 MiB in bytes.
+      1.1.0 (additive) - `DELETE /api/tracks/{trackId}` removes a failed or completed track with
+      its stem files and mixes; 409 while the track is queued or processing.
   license:
     name: MIT
     identifier: MIT
@@ -174,6 +176,22 @@ paths:
                   $ref: '#/components/examples/FailedTrack'
         '404':
           $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [tracks]
+      operationId: deleteTrack
+      summary: Delete a failed or completed track together with its stem files and mixes.
+      description: |
+        Allowed only in a terminal status (`failed`, `completed`); a queued or processing track
+        returns 409. The stored upload (if any), the track's stem files and all of its mixes are
+        removed. The worker's per-source cache is not touched, so importing the same source again
+        may complete instantly.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/tracks/{trackId}/retry:
     parameters:
       - $ref: '#/components/parameters/TrackId'
