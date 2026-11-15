@@ -190,7 +190,7 @@ the per-parent outcomes. **Independent test**: quickstart D1-D3; E2E `@detail` "
 - [ ] T068 [US3] [backend] Implement `src/StemStudio.Api/Detail/{DetailEndpoints,DetailService}.cs` and the `TrackDeletionService` rule to pass T067
 - [ ] T069 [P] [US3] [frontend] Failing bUnit tests: `detail-retry` (failed, cancelled) and `detail-cancel` (queued, running) call the client and refresh; `detail-error` shows the reason; delete refused shows `track-delete-blocked` (FR-007, FR-008, FR-016)
 - [ ] T070 [US3] [frontend] Implement the actions in `TrackDetail.Detail.razor.cs` / `TrackDetail.Actions.cs` to pass T069
-- [ ] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
+- [x] T071 [US3] [qa] Author `detail.spec.ts` "restart" (`STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS=5`: restart the worker container mid-phase -> "interrupted by restart" -> Retry completes; standard stems play throughout), "cancel" (cancel -> delete succeeds) and "priority" (detail of track A running, import B -> B's standard separation completes before A's detail phase)
 
 **Checkpoint**: HO:us3.
 

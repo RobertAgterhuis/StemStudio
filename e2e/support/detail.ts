@@ -6,6 +6,7 @@
  */
 import { expect } from '@playwright/test';
 import type { DetailSection } from '../pages/detail-section';
+import type { TrackDetailPage } from '../pages/track-detail-page';
 import type {
   DetailPhaseStatus,
   DetailStemName,
@@ -110,10 +111,33 @@ export async function ensureDetailCompleted(api: StemStudioApi): Promise<TrackDt
   return done;
 }
 
-/** Imports a unique band copy through the API and waits until its detail phase is active. */
-export async function importWithLivePhase(api: StemStudioApi, salt: string): Promise<TrackDto> {
+/**
+ * Imports a unique band copy through the API and waits until its detail phase has one of
+ * `statuses` (default: queued or running).
+ */
+export async function importWithLivePhase(
+  api: StemStudioApi,
+  salt: string,
+  statuses: readonly DetailPhaseStatus[] = activeStatuses,
+): Promise<TrackDto> {
   const track = await api.ensureFileCompleted(uniqueBand(salt), fakeJobTimeoutMs);
-  return api.waitForDetail(track.id, activeStatuses, detailPhaseTimeoutMs);
+  return api.waitForDetail(track.id, statuses, detailPhaseTimeoutMs);
+}
+
+/**
+ * Tries to delete the track from its detail page: clicks `track-delete` when it is enabled and
+ * confirms the inline confirmation if one appears. Works whether the UI refuses before or after
+ * the confirmation (ui-test-ids 1.1.0 only names the `track-delete-blocked` reason).
+ */
+export async function attemptDelete(trackPage: TrackDetailPage, detail: DetailSection): Promise<void> {
+  if (!(await trackPage.deleteButton.isEnabled())) {
+    return;
+  }
+  await trackPage.deleteButton.click();
+  await trackPage.deleteConfirm.or(detail.deleteBlocked).first().waitFor();
+  if (await trackPage.deleteConfirm.isVisible()) {
+    await trackPage.deleteConfirm.click();
+  }
 }
 
 /** Fails with a hint when a phase that should still be active has already finished. */
