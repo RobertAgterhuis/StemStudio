@@ -5,6 +5,7 @@ using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
 using StemStudio.Contracts.Importing;
+using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 
@@ -129,6 +130,14 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     /// <inheritdoc />
     public Task<AssetDto> RetryAssetAsync(Guid assetId, CancellationToken cancellationToken = default) =>
         SendAsync<AssetDto>(HttpMethod.Post, ApiRoutes.RetryAsset(assetId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> GetLyricsAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Get, ApiRoutes.Lyrics(trackId), null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default) =>
+        SendAsync<LyricsDto>(HttpMethod.Put, ApiRoutes.LyricsOffset(trackId), JsonBody(new LyricsOffsetRequest(offsetMs)), cancellationToken);
 
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;

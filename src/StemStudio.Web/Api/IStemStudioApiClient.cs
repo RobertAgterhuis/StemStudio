@@ -1,6 +1,7 @@
 using StemStudio.Contracts.Artists;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Health;
+using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 
@@ -174,4 +175,17 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The queued item; 409 (not failed, source unavailable) and 503 throw <see cref="ApiException"/>.</returns>
     Task<AssetDto> RetryAssetAsync(Guid assetId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/tracks/{id}/lyrics</c> (no-store): the lyrics; a completed track with status none starts its search.</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics.</returns>
+    Task<LyricsDto> GetLyricsAsync(Guid trackId, CancellationToken cancellationToken = default);
+
+    /// <summary><c>PUT /api/tracks/{id}/lyrics/offset</c>: stores the karaoke offset (-5000..5000 ms, steps of 10).</summary>
+    /// <param name="trackId">The track.</param>
+    /// <param name="offsetMs">The offset; positive = the lyrics come later.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics; 409 without lyrics.</returns>
+    Task<LyricsDto> SetLyricsOffsetAsync(Guid trackId, int offsetMs, CancellationToken cancellationToken = default);
 }

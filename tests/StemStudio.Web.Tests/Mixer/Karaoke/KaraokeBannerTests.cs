@@ -104,9 +104,9 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
 
         await Engine.Received(1).SetKaraokeOffsetAsync(200);
         await Engine.Received(1).SetKaraokeOffsetAsync(250);
-        await Api.DidNotReceiveWithAnyArgs().SetLyricsOffsetAsync(default, default, default);
+        await Api.DidNotReceiveWithAnyArgs().SetLyricsOffsetAsync(default, default, Xunit.TestContext.Current.CancellationToken);
         Time.Advance(TimeSpan.FromMilliseconds(499));
-        await Api.DidNotReceiveWithAnyArgs().SetLyricsOffsetAsync(default, default, default);
+        await Api.DidNotReceiveWithAnyArgs().SetLyricsOffsetAsync(default, default, Xunit.TestContext.Current.CancellationToken);
         Time.Advance(TimeSpan.FromMilliseconds(1));
         page.WaitForAssertion(() => Api.Received(1).SetLyricsOffsetAsync(TestData.TrackId, 250, Arg.Any<CancellationToken>()));
         page.Find("[data-testid=karaoke-offset]").GetAttribute("aria-valuenow").ShouldBe("250");
@@ -147,7 +147,7 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
         var page = RenderBanner(LyricsData.Found(offsetMs: start));
         var nativeStep = key is "ArrowRight" or "ArrowUp" ? 10 : -10;
 
-        await page.Find("[data-testid=karaoke-offset]").KeyDownAsync(new() { Key = key });
+        await page.Find("[data-testid=karaoke-offset]").KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = key });
         await page.Find("[data-testid=karaoke-offset]").InputAsync(new() { Value = (start + nativeStep).ToString(System.Globalization.CultureInfo.InvariantCulture) });
 
         await Engine.Received(1).SetKaraokeOffsetAsync(expected);
@@ -159,7 +159,7 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
     {
         var page = RenderBanner(LyricsData.Found(offsetMs: 100));
 
-        await page.Find("[data-testid=karaoke-offset]").KeyDownAsync(new() { Key = "Home" });
+        await page.Find("[data-testid=karaoke-offset]").KeyDownAsync(new Microsoft.AspNetCore.Components.Web.KeyboardEventArgs { Key = "Home" });
         await page.Find("[data-testid=karaoke-offset]").InputAsync(new() { Value = "110" });
 
         await Engine.Received(1).SetKaraokeOffsetAsync(110);
@@ -300,5 +300,39 @@ public sealed class KaraokeBannerTests : KaraokeTestContext
         var page = RenderAt(ExperienceLevel.Expert, LyricsData.Found(origin: origin));
 
         page.Find(".ss-karaoke-origin").TextContent.ShouldBe(text);
+    }
+
+    [Fact]
+    public async Task Dispose_StoresAnOffsetThatWasStillWaiting()
+    {
+        var page = RenderBanner(LyricsData.Found());
+        await page.Find("[data-testid=karaoke-offset]").InputAsync(new() { Value = "70" });
+
+        await DisposeComponentsAsync();
+
+        await Api.Received(1).SetLyricsOffsetAsync(TestData.TrackId, 70, CancellationToken.None);
+    }
+
+    [Fact]
+    public void AttachFailure_IsShown_AndKeepsTheMixerRunning()
+    {
+        Engine.AttachKaraokeAsync(Arg.Any<string>(), Arg.Any<KaraokeLyrics>(), Arg.Any<KaraokeOptions>())
+            .ThrowsAsync(new AudioEngineException("Invalid karaoke lyrics: word outside its line"));
+
+        var page = RenderBanner(LyricsData.Found());
+
+        page.WaitForAssertion(() => page.Find(".ss-karaoke-error").TextContent.ShouldContain("Invalid karaoke lyrics"));
+    }
+
+    [Fact]
+    public async Task OffsetChange_BeforeTheEngineIsReady_IsUsedByTheAttach()
+    {
+        var page = RenderBanner(false, LyricsData.Found());
+
+        await page.Find("[data-testid=karaoke-offset]").InputAsync(new() { Value = "40" });
+        page.Render(p => p.Add(c => c.EngineReady, true));
+
+        await Engine.DidNotReceiveWithAnyArgs().SetKaraokeOffsetAsync(default);
+        page.WaitForAssertion(() => AttachedOptions().OffsetMs.ShouldBe(40));
     }
 }

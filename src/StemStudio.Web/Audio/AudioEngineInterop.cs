@@ -81,6 +81,16 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     /// <inheritdoc />
     public Task AttachMeterAsync(string target, string elementId) => Call(EngineMethods.AttachMeter, target, elementId);
 
+    /// <inheritdoc />
+    public Task AttachKaraokeAsync(string elementId, KaraokeLyrics lyrics, KaraokeOptions options) =>
+        Call(EngineMethods.AttachKaraoke, elementId, lyrics, options);
+
+    /// <inheritdoc />
+    public Task SetKaraokeOffsetAsync(int offsetMs) => Call(EngineMethods.SetKaraokeOffset, offsetMs);
+
+    /// <inheritdoc />
+    public Task DetachKaraokeAsync() => _engine is null ? Task.CompletedTask : Call(EngineMethods.DetachKaraoke);
+
     /// <summary>Engine callback <c>OnPositionChanged</c>.</summary>
     /// <param name="seconds">The transport position.</param>
     [JSInvokable]

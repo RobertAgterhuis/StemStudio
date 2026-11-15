@@ -74,7 +74,7 @@ public sealed partial class AudioEngineInteropTests
     public void KaraokeRecords_NeverPrintTheText()
     {
         Lyrics.ToString().ShouldNotContain("Fake");
-        Lyrics.Lines[0].ToString().ShouldNotContain("line");
+        Lyrics.Lines[0].ToString().ShouldNotContain("Fake");
         Lyrics.Lines[0].Words[0].ToString().ShouldNotContain("Fake");
         Lyrics.Lines[0].Words[0].ToString().ShouldContain("10950");
     }
