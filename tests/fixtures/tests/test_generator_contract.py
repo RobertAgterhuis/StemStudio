@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+import generate_artwork_fixtures
 import generate_detail_fixtures
 import generate_fixtures
 
@@ -41,6 +42,15 @@ GENERATORS = [
             "13 detail fixtures",
         ),
         id="detail",
+    ),
+    pytest.param(
+        Spec(
+            generate_artwork_fixtures,
+            "artwork-manifest.json",
+            "cover_embedded_10s.mp3",
+            "6 artwork fixtures",
+        ),
+        id="artwork",
     ),
 ]
 
