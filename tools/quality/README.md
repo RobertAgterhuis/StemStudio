@@ -44,18 +44,30 @@ each other (`@stemstudio/<name>` or a relative path into the other package); npm
 `driver.js` are not edges. A new package below `src/` with a `package.json` is a warning until it
 is added to `TS_ALLOWED`.
 
+TypeScript module rule (feature 006, `TS_MODULE_FORBIDDEN`): inside `src/audio-engine/src/`,
+`transport` and `mixer` (the file `transport.ts` or any file below `transport/`) never import
+`karaoke/` through a relative specifier (static, type-only, `export ... from` or dynamic
+`import()`). `karaoke` may read the transport clock, `engine.ts`/`index.ts` compose it, and
+test files are not modules.
+
 Raw-colour guard (feature 004, FR-003): values are checked per declaration, so selectors (`#id`,
 `.red`), comments, strings, `url()` and custom-property names are ignored; `var()`,
 `transparent`, `currentColor`, CSS-wide keywords and `color-mix()` over tokens are allowed.
 Findings are owned by frontend.
 
 Worker dependency rule: `api -> jobs -> ports <- {ingest, separation, analysis, detail, devices,
-metadata, render}`, every module may import `schemas` and `config`, `detail` may additionally import its own
+metadata, render, lyrics, alignment}`, every module may import `schemas` and `config`, `detail` may additionally import its own
 `vendor`, `jobs` never imports `detail`, no module imports `devices` (feature 003: `separation` and
 `detail` receive the `DeviceRunner` from the composition root), no module imports `metadata`
 (feature 005: `ingest` receives the `ImageNormalizer` from the composition root), no module imports
-`render` (feature 007: `jobs` receives the `RenderExecutor` from the composition root) and
-`main.py` (composition root) is unrestricted.
+`render` (feature 007: `jobs` receives the `RenderExecutor` from the composition root), no module
+imports `lyrics` or `alignment` (feature 006: `jobs` receives the `LyricsLookup` and the `Aligner`
+from the composition root) and `main.py` (composition root) is unrestricted.
+
+Sub-module exception (`PYTHON_SUBMODULES_ALLOWED`, feature 006): `lyrics` may import the shared
+egress modules `metadata.http`, `metadata.ratelimit` and `metadata.user_agent` (and names inside
+them), no other `metadata` module; the error names the imported module and the allowed ones.
+Edges are recorded per imported name, and one statement yields at most one finding.
 
 .NET feature-folder rule (`DOTNET_FOLDER_FORBIDDEN`): the C# files below a listed folder must not
 reference the forbidden StemStudio project namespaces, neither in `using`/`global using`/

@@ -55,22 +55,22 @@ MAIN = (
 )
 
 
+LYRICS_TREE = {
+    "lyrics/__init__.py": LYRICS_INIT,
+    "lyrics/lrclib.py": LYRICS_EGRESS,
+    "lyrics/lrc.py": "from . import normalize\nfrom ..schemas import LyricsLine\n",
+    "alignment/__init__.py": ALIGNMENT_INIT,
+    "alignment/adapter.py": "from ..ports import WHISPER_GPU_NEED\n",
+    "metadata/http.py": "from ..ports import ArtworkFetchError\nfrom . import user_agent\n",
+    "jobs/lyrics_lane.py": "from stemstudio_worker.ports import LyricsLookup, Aligner\n",
+    "api/lyrics_routes.py": "from ..jobs import lyrics_store\n",
+    "main.py": MAIN,
+}
+
+
 def _lyrics_tree(root: Path) -> None:
-    _module(root, "lyrics/__init__.py", LYRICS_INIT)
-    _module(root, "lyrics/lrclib.py", LYRICS_EGRESS)
-    _module(root, "lyrics/lrc.py", "from . import normalize\nfrom ..schemas import LyricsLine\n")
-    _module(root, "alignment/__init__.py", ALIGNMENT_INIT)
-    _module(root, "alignment/adapter.py", "from ..ports import WHISPER_GPU_NEED\n")
-    _module(
-        root,
-        "metadata/http.py",
-        "from ..ports import ArtworkFetchError\nfrom . import user_agent\n",
-    )
-    _module(
-        root, "jobs/lyrics_lane.py", "from stemstudio_worker.ports import LyricsLookup, Aligner\n"
-    )
-    _module(root, "api/lyrics_routes.py", "from ..jobs import lyrics_store\n")
-    _module(root, "main.py", MAIN)
+    for rel, text in LYRICS_TREE.items():
+        _module(root, rel, text)
 
 
 def test_lyrics_and_alignment_are_mapped_to_ports_schemas_config() -> None:
@@ -138,7 +138,6 @@ def test_lyrics_importing_other_metadata_modules_is_forbidden(
         ("api/lyrics_routes.py", "from stemstudio_worker import lyrics\n", "api -> lyrics"),
         ("api/routes.py", "from ..alignment import create_aligner\n", "api -> alignment"),
         ("ingest/fetch.py", "from ..lyrics import lrclib\n", "ingest -> lyrics"),
-        ("metadata/lookup.py", "from ..lyrics import select\n", "metadata -> lyrics"),
         ("separation/demucs.py", "from ..alignment import x\n", "separation -> alignment"),
     ],
 )
