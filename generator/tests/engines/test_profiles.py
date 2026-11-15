@@ -105,5 +105,5 @@ def test_take_models_and_generator_labels() -> None:
         "soulx-singer-svc",
         SOULX_SVC_WEIGHTS.revision,
     )
-    assert MUSIC_GENERATOR_LABEL == f"ACE-Step 1.5 ({ACESTEP_WEIGHTS.revision})"
-    assert VOICE_GENERATOR_LABEL == f"SoulX-Singer-SVC ({SOULX_SVC_WEIGHTS.revision})"
+    assert f"ACE-Step 1.5 ({ACESTEP_WEIGHTS.revision})" == MUSIC_GENERATOR_LABEL
+    assert f"SoulX-Singer-SVC ({SOULX_SVC_WEIGHTS.revision})" == VOICE_GENERATOR_LABEL
