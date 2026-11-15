@@ -220,7 +220,7 @@ public sealed class WorkerMetadataClientTests
         part.Headers.ContentDisposition!.Name!.Trim('"').ShouldBe("file");
         part.Headers.ContentDisposition.FileName!.Trim('"').ShouldBe("me.png");
         part.Headers.ContentType!.MediaType.ShouldBe("image/png");
-        sent.Body!.TakeLast(20).ShouldContain((byte)7);
+        sent.BodyText.ShouldContain("\u0009\u0008\u0007");
     }
 
     [Fact]

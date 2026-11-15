@@ -103,4 +103,43 @@ public interface IWorkerClient
     /// <exception cref="WorkerRequestException">The worker rejected the request (4xx).</exception>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached in time, failed (5xx) or sent an invalid body.</exception>
     Task<WorkerHealth> GetHealthAsync(CancellationToken cancellationToken);
+
+    /// <summary>Creates a metadata job (<c>POST /v1/metadata-jobs</c>, worker 1.3.0); never retried.</summary>
+    /// <param name="request">Names and facts to look up.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The queued job.</returns>
+    /// <exception cref="WorkerRequestException">The worker rejected the request (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerMetadataJob> CreateMetadataJobAsync(WorkerMetadataJobRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Gets a metadata job.</summary>
+    /// <param name="metadataJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The job, or null when the worker does not know it (404, e.g. swept after 24 h).</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerMetadataJob?> GetMetadataJobAsync(string metadataJobId, CancellationToken cancellationToken);
+
+    /// <summary>Gets the result of a completed metadata job.</summary>
+    /// <param name="metadataJobId">Job ID.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    /// <exception cref="WorkerRequestException">Unknown or not completed job (404/409).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerMetadataResult> GetMetadataResultAsync(string metadataJobId, CancellationToken cancellationToken);
+
+    /// <summary>Downloads one picture file (JPEG, at most <see cref="WorkerClient.MaxArtworkBytes"/>).</summary>
+    /// <param name="artwork">Owner, identifier and variant.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The JPEG bytes, or null when the worker has no such picture (404).</returns>
+    /// <exception cref="ArgumentException">The reference is invalid (no request is sent).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached, failed (5xx) or sent an oversized body.</exception>
+    Task<byte[]?> GetArtworkAsync(WorkerArtworkRef artwork, CancellationToken cancellationToken);
+
+    /// <summary>Streams a user picture to <c>POST /v1/artwork</c> for re-encoding (never retried).</summary>
+    /// <param name="file">The picture.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The normalised picture.</returns>
+    /// <exception cref="WorkerRequestException">Not a picture (400), too large (413), wrong type (415) or over 40 MP (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerArtworkUpload> NormalizeArtworkAsync(WorkerArtworkFile file, CancellationToken cancellationToken);
 }
