@@ -22,7 +22,7 @@ THREE_BANDS = {"Unit size (LOC)": (15, 30), "Unit complexity (CCN)": (5, 10)}
 
 WORKER = "worker/src/stemstudio_worker/"
 WORKER_CORE = ("__init__.py", "config.py", "main.py", "ports.py", "schemas.py")
-"""Worker modules outside the six feature packages (composition root, ports, schemas)."""
+"""Worker modules outside the seven feature packages (composition root, ports, schemas)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +49,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("worker/ingest", (WORKER + "ingest/",)),
     Component("worker/separation", (WORKER + "separation/",)),
     Component("worker/detail", (WORKER + "detail/",)),
+    Component("worker/devices", (WORKER + "devices/",)),
     Component("worker/analysis", (WORKER + "analysis/",)),
     Component("worker/jobs", (WORKER + "jobs/",)),
     Component("worker/api", (WORKER + "api/",)),
