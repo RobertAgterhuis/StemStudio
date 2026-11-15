@@ -7,7 +7,7 @@ import io
 import sys
 import types
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -90,14 +90,14 @@ def test_install_wraps_bad_base64(tmp_path: Path) -> None:
 
 class _FakeNameTable:
     def __init__(self) -> None:
-        self.names: list[tuple[str, int, int, int, int]] = []
+        self.names: list[tuple[object, ...]] = []
 
-    def setName(self, value: str, name_id: int, platform: int, encoding: int, lang: int) -> None:  # noqa: N802 - fontTools API
-        self.names.append((value, name_id, platform, encoding, lang))
+    def setName(self, value: str, *ids: int) -> None:  # noqa: N802 - fontTools API
+        self.names.append((value, *ids))
 
 
 class _FakeTTFont:
-    created: "list[_FakeTTFont]" = []
+    created: ClassVar[list["_FakeTTFont"]] = []
 
     def __init__(self, stream: io.BytesIO, *, recalcTimestamp: bool = True) -> None:  # noqa: N803 - fontTools API
         self.data = stream.read()
