@@ -47,6 +47,9 @@ public sealed partial class KaraokeBanner : IAsyncDisposable
 
     private bool ShowsBanner => Visible && Karaoke is not null;
 
+    /// <summary>False until the first lyrics request has answered (the first render comes before it).</summary>
+    private bool HasLoaded => Lyrics is not null || LoadError is not null;
+
     private string UnavailableStatus => Lyrics is null ? LyricsText.Value(LyricsStatusDto.Failed) : LyricsText.Value(Lyrics.Status);
 
     private string UnavailableText => LoadError ?? LyricsText.MixerNotice(Lyrics!);
