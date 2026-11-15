@@ -98,13 +98,37 @@
   color: var(--ss-color-warning);
 }
 
+/* Long names and track titles (hashes of uploads) wrap instead of widening the page (WCAG 1.4.10). */
+.ss-asset-table td,
+.ss-library .ss-library-tools .ss-select {
+  overflow-wrap: anywhere;
+}
+
+.ss-library .ss-library-tools,
+.ss-library .ss-library-tools .ss-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (max-width: 48rem) {
   .ss-asset-table thead {
     display: none;
   }
 
+  .ss-asset-table,
+  .ss-asset-table tbody,
   .ss-asset-table tr,
   .ss-asset-table td {
     display: block;
+  }
+
+  .ss-asset-table audio {
+    max-width: 100%;
+  }
+
+  /* A percentage width lets the track filter shrink below its longest option. */
+  .ss-library .ss-library-tools,
+  .ss-library .ss-library-tools .ss-select {
+    width: 100%;
   }
 }
