@@ -56,16 +56,20 @@ class JobRunner:
         record = self._store.get(job_id)
         if record is None or record.job.status.is_terminal:
             return
-        tracker = p.JobTracker(self._store, job_id, self._clock)
+        try:
+            self._guarded(record, p.JobTracker(self._store, job_id, self._clock))
+        finally:
+            self._cleanup(job_id)
+
+    def _guarded(self, record: StoredJob, tracker: p.JobTracker) -> None:
+        """Run the job; failures become its error text (unexpected ones are logged)."""
         try:
             self._run(record, tracker)
         except WorkerError as exc:
             tracker.fail(str(exc) or p.UNEXPECTED_ERROR)
         except Exception:
-            _LOG.exception("Job %s failed unexpectedly", job_id)
+            _LOG.exception("Job %s failed unexpectedly", record.job.job_id)
             tracker.fail(p.UNEXPECTED_ERROR)
-        finally:
-            self._cleanup(job_id)
 
     def _run(self, record: StoredJob, tracker: p.JobTracker) -> None:
         key = record.job.source_key

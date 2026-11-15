@@ -100,17 +100,20 @@ def demix(
 
     border = plan.chunk_size - plan.chunk_size // plan.overlap
     audio, padded = _pad_borders(mix, border)
-    accumulator = _Accumulator(
-        plan, audio.shape[-1], _window(plan.chunk_size, plan.chunk_size // 10)
-    )
+    window = _window(plan.chunk_size, plan.chunk_size // 10)
+    accumulator = _Accumulator(plan, audio.shape[-1], window)
     starts = range(0, audio.shape[-1], plan.chunk_size // plan.overlap)
     with torch.inference_mode():
         for index, start in enumerate(starts):
             accumulator.add(start, network(_chunk(audio, start, plan.chunk_size))[0])
             progress((index + 1) / len(starts), STAGE)
-    estimate = accumulator.estimate()
-    estimate = estimate[..., border:-border] if padded else estimate
-    return np.nan_to_num(estimate, nan=0.0).astype(np.float32)
+    return _unpad(accumulator.estimate(), border if padded else 0)
+
+
+def _unpad(estimate: npt.NDArray[np.float32], border: int) -> npt.NDArray[np.float32]:
+    """Remove the reflect padding and replace NaN (never-covered samples) by zero."""
+    trimmed = estimate[..., border:-border] if border else estimate
+    return np.nan_to_num(trimmed, nan=0.0).astype(np.float32)
 
 
 def _pad_borders(mix: DetailAudio, border: int) -> tuple["torch.Tensor", bool]:
