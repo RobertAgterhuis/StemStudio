@@ -9,7 +9,6 @@ using StemStudio.Web.Api;
 using StemStudio.Web.Components.Pages;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Preferences;
-using StemStudio.Web.Services;
 using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Artwork;
@@ -79,17 +78,19 @@ public sealed class ArtworkActionsTests : PageTestContext
     }
 
     [Fact]
-    public void WhileUploading_ShowsProgressAndDisablesTheInput()
+    public async Task WhileUploading_ShowsProgressAndDisablesTheInput()
     {
         var pending = new TaskCompletionSource<TrackDto>();
         Api.SetArtworkAsync(TestData.TrackId, Arg.Any<UploadFile>(), Arg.Any<CancellationToken>()).Returns(pending.Task);
         var page = RenderAdvanced();
 
-        Choose(page, Png());
+        // UploadFiles waits for the change handler, which waits for the pending upload: run it beside the test.
+        var choosing = Task.Run(() => Choose(page, Png()), Xunit.TestContext.Current.CancellationToken);
 
-        page.Find("[data-testid=artwork-progress]").TextContent.ShouldBe("Uploading picture...");
+        page.WaitForAssertion(() => page.Find("[data-testid=artwork-progress]").TextContent.ShouldBe("Uploading picture..."));
         page.Find("[data-testid=artwork-upload-input]").HasAttribute("disabled").ShouldBeTrue();
         pending.SetResult(ArtworkData.WithArtwork(ArtworkSourceDto.User));
+        await choosing;
         page.WaitForAssertion(() => page.FindAll("[data-testid=artwork-progress]").ShouldBeEmpty());
     }
 

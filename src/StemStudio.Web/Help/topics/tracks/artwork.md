@@ -3,7 +3,7 @@ id: artwork
 title: "Song picture"
 area: tracks
 summary: "The cover shown for a song. It comes from the import source or the matched album, or you choose your own."
-anchors: ["artwork"]
+anchors: ["artwork", "artwork-actions"]
 keywords: ["artwork", "cover", "picture", "thumbnail", "album art", "image", "placeholder"]
 related: [band-info, online-lookups, tracks-library]
 reviewed: "005"

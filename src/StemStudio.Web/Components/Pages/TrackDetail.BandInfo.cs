@@ -1,4 +1,5 @@
 using StemStudio.Contracts.Artists;
+using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Components.Pages;
 
@@ -7,6 +8,9 @@ public sealed partial class TrackDetail
 {
     /// <summary>True while the band info panel is shown.</summary>
     private bool ShowBandInfo { get; set; }
+
+    /// <summary>The own picture was set or reset.</summary>
+    private void SetTrack(TrackDto track) => Track = track;
 
     private void ToggleBandInfo() => ShowBandInfo = !ShowBandInfo;
 

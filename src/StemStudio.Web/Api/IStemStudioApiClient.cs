@@ -118,4 +118,17 @@ public interface IStemStudioApiClient
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The track with the lookup scheduled (202); 404, 409 (searching) and 422 throw <see cref="ApiException"/>.</returns>
     Task<TrackDto> LookupMetadataAsync(Guid trackId, MetadataLookupRequest? request, CancellationToken cancellationToken = default);
+
+    /// <summary><c>PUT /api/tracks/{id}/artwork</c>: sets the user's own picture (multipart field <c>file</c>, 1.4.0).</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="file">A JPEG, PNG or WebP picture of at most 10 MiB.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The track with <c>artwork.source = user</c>; 400/413/415/422/503 throw <see cref="ApiException"/>.</returns>
+    Task<TrackDto> SetArtworkAsync(Guid trackId, UploadFile file, CancellationToken cancellationToken = default);
+
+    /// <summary><c>DELETE /api/tracks/{id}/artwork</c>: back to the automatic picture (1.4.0).</summary>
+    /// <param name="trackId">The track id.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The track with its automatic picture (or none).</returns>
+    Task<TrackDto> ResetArtworkAsync(Guid trackId, CancellationToken cancellationToken = default);
 }

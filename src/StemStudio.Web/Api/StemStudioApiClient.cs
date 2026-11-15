@@ -91,6 +91,14 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
     public Task<TrackDto> LookupMetadataAsync(Guid trackId, MetadataLookupRequest? request, CancellationToken cancellationToken = default) =>
         SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.MetadataLookup(trackId), request is null ? JsonBody(new { }) : JsonBody(request), cancellationToken);
 
+    /// <inheritdoc />
+    public Task<TrackDto> SetArtworkAsync(Guid trackId, UploadFile file, CancellationToken cancellationToken = default) =>
+        SendAsync<TrackDto>(HttpMethod.Put, ApiRoutes.TrackArtworkUpload(trackId), MultipartBody(file), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<TrackDto> ResetArtworkAsync(Guid trackId, CancellationToken cancellationToken = default) =>
+        SendAsync<TrackDto>(HttpMethod.Delete, ApiRoutes.TrackArtworkUpload(trackId), null, cancellationToken);
+
     private static string MixesQuery(Guid? trackId) =>
         trackId is { } id ? $"{ApiRoutes.Mixes}?trackId={id}" : ApiRoutes.Mixes;
 
