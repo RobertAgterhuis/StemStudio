@@ -69,7 +69,7 @@ in the execution plan.
 - [ ] T007 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T008 [P] [devops] `docker-compose.yml`: worker gets `api-data:/library:ro` and `STEMSTUDIO_LIBRARY_DIR: /library` (comment: read-only, the API is the only writer); `scripts/dev.{ps1,sh}` set `STEMSTUDIO_LIBRARY_DIR` to the API data dir; CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/007-export-library/contracts` (FR-012, ADR-016 D5)
 - [ ] T009 [devops] Write the mount check first and show it fail on the current compose file, then make it pass: `scripts/check-library-mount.{ps1,sh}` (worker `/health` reports `library.readable: true`; a write attempt as the worker user inside `/library` fails with "Read-only file system"); run it in the CI `e2e` job after the fake stack is up
-- [ ] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: render tested with generated FLAC fixtures, shared vectors (three consumers + browser check), fake stack exports are real files, traceability US1..US5 -> test files
+- [x] T010 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: render tested with generated FLAC fixtures, shared vectors (three consumers + browser check), fake stack exports are real files, traceability US1..US5 -> test files
 
 ---
 
@@ -140,7 +140,7 @@ in the execution plan.
 - [ ] T045 [US2] [frontend] Implement `Components/Export/ChannelPicker.razor` and the mixer integration to pass T044
 - [ ] T046 [P] [US2] [audio-engine] Vector consumer `src/audio-engine/tests/render-vectors.test.ts`: every gate case of `render-vectors.json` through the engine's real gate functions gives the expected per-channel gates/gains (test-only; it must pass against the existing engine; a failure is reported to the architect as a contract defect, no engine change in this feature) (FR-003, SC-003)
 - [ ] T047 [US2] [qa] Author `export.spec.ts` "what I hear": in the mixer set solo drums + bass, bass pan -40 %, master 70 %, export WAV 16, download and check with a fixture helper that the file's RMS per channel matches the value computed from the fake stems and the vector law (+/- 0.1 dB) and that muted/non-soloed stems are absent (FR-002, FR-003)
-- [ ] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
+- [x] T048 [US2] [qa] Author `e2e/tests/panner-law.spec.ts`: in Chromium, an `OfflineAudioContext` renders a constant stereo signal (1, 0.5) through a `StereoPannerNode` at every pan of `render-vectors.json`; the outputs match the vector matrices to 1e-6 (research.md E-05, SC-003)
 
 **Checkpoint**: HO:us2.
 
