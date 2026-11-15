@@ -26,7 +26,7 @@ from stemstudio_worker.jobs.lyrics_lane import (
 )
 from stemstudio_worker.jobs.lyrics_store import LyricsJobStore, StoredLyricsJob
 from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.jobs.scheduler import PriorityScheduler
+from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import (
     WHISPER_GPU_NEED,
@@ -98,7 +98,9 @@ class Env:
                             model_cached=lambda: self.cached)  # fmt: skip
         runner = LyricsRunner(context, parts)
         self.network = LaneScheduler("network", lambda _job: None)
-        self.scheduler = PriorityScheduler(lambda _job: None, lambda _d: False, align=runner.align)
+        self.scheduler = PriorityScheduler(
+            lambda _job: None, lambda _d: False, SchedulerHooks(align=runner.align)
+        )
         queues = LyricsQueues(
             lookup=functools.partial(self.network.submit_call, runner.lookup),
             align=self.scheduler.submit_align,
@@ -158,7 +160,12 @@ def test_a_lookup_completes_on_the_network_lane_with_its_result(env: Env) -> Non
     assert (job.device, job.estimated_seconds) == (None, None)
     assert env.lookup.queries == [LyricsQuery("Fake Song", 180.0, "Fake Band", None)]
     done = service.get(job.lyrics_job_id)
-    assert (done.status, done.stage, done.progress, done.error) == (S.COMPLETED, "Completed", 1, None)
+    assert (done.status, done.stage, done.progress, done.error) == (
+        S.COMPLETED,
+        "Completed",
+        1,
+        None,
+    )
     assert service.result(job.lyrics_job_id) == FOUND
     assert (env.paths.lyrics_jobs / f"{job.lyrics_job_id}.json").is_file()
 
@@ -184,7 +191,11 @@ def test_an_unreachable_lrclib_fails_the_lookup_with_the_fixed_text(env: Env) ->
     env.wait()
 
     failed = service.get(job.lyrics_job_id)
-    assert (failed.status, failed.stage, failed.error) == (S.FAILED, "Failed", LYRICS_UNREACHABLE_TEXT)
+    assert (failed.status, failed.stage, failed.error) == (
+        S.FAILED,
+        "Failed",
+        LYRICS_UNREACHABLE_TEXT,
+    )
     with pytest.raises(LyricsConflictError) as raised:
         service.result(job.lyrics_job_id)
     assert raised.value.kind == "lyrics-not-completed"
@@ -225,7 +236,12 @@ def test_an_alignment_runs_on_the_vocal_stem_through_the_device_runner(env: Env)
     env.wait()
 
     expected = estimate_alignment_seconds(0.5, "gpu", model_cached=False)
-    assert (job.mode, job.status, job.estimated_seconds, job.device) == ("align", S.QUEUED, expected, None)
+    assert (job.mode, job.status, job.estimated_seconds, job.device) == (
+        "align",
+        S.QUEUED,
+        expected,
+        None,
+    )
     assert env.vocals.paths == [env.paths.stem_file(SHA, "vocals")]
     request, device = env.aligner.calls[0]
     assert (request.text, request.language, request.refine, device) == (TEXT, "en", None, "cuda")
@@ -233,7 +249,11 @@ def test_an_alignment_runs_on_the_vocal_stem_through_the_device_runner(env: Env)
     done = service.get(job.lyrics_job_id)
     assert (done.status, done.progress, done.stage) == (S.COMPLETED, 1, "Completed")
     assert done.device is not None
-    assert (done.device.kind, done.device.name, done.device.cpu_fallback) == ("gpu", "Fake GPU", False)
+    assert (done.device.kind, done.device.name, done.device.cpu_fallback) == (
+        "gpu",
+        "Fake GPU",
+        False,
+    )
     assert service.result(job.lyrics_job_id) == LyricsResult(outcome="found", lyrics=ALIGNED)
 
 
@@ -370,9 +390,13 @@ def test_an_alignment_needs_a_known_completed_standard_job_with_vocals(env: Env)
         service.create(align_request(STD))
 
     assert (running.value.kind, str(running.value)) == (
-        "standard-job-not-completed", f"Job {'c' * 32} is in state separating."
+        "standard-job-not-completed",
+        f"Job {'c' * 32} is in state separating.",
     )
-    assert (missing.value.kind, str(missing.value)) == ("vocal-stem-missing", VOCAL_STEM_MISSING_TEXT)
+    assert (missing.value.kind, str(missing.value)) == (
+        "vocal-stem-missing",
+        VOCAL_STEM_MISSING_TEXT,
+    )
 
 
 # ------------------------------------------------------------------ cancel and delete
@@ -492,7 +516,9 @@ def test_a_restarted_job_starts_queued_with_no_progress(env: Env) -> None:
     env.wait()
 
     assert (raw["job"]["status"], raw["job"]["progress"], raw["job"]["stage"]) == (
-        "running", 0, "Aligning lyrics"
+        "running",
+        0,
+        "Aligning lyrics",
     )
     assert service.get("2" * 32).status is S.COMPLETED
 
@@ -510,6 +536,36 @@ def test_the_sweep_removes_terminal_jobs_older_than_24_hours(env: Env) -> None:
     with pytest.raises(UnknownJobError):
         service.get("1" * 32)
     assert service.get("2" * 32).status is S.CANCELLED
+
+
+def test_an_alignment_whose_standard_job_vanished_fails_with_the_missing_stem_text(
+    env: Env,
+) -> None:
+    env.seed(_job("2" * 32, "align", S.QUEUED), align_request("d" * 32))
+
+    service = env.start()
+    env.wait()
+
+    assert service.get("2" * 32).error == VOCAL_STEM_MISSING_TEXT
+
+
+def test_each_queue_ignores_jobs_of_the_other_mode(env: Env) -> None:
+    service = env.start()
+    lookup = service.create(LOOKUP)
+    env.wait()
+    env.seed(_job("2" * 32, "align", S.QUEUED), align_request(STD))
+    env.seed(_job("1" * 32, "lookup", S.QUEUED), LOOKUP)
+    store = LyricsJobStore(env.paths)
+    store.load_all()
+    parts = LyricsParts(env.lookup, env.aligner, env.vocals, env.devices)
+    runner = LyricsRunner(LyricsContext(store, env.jobs, env.paths, env.clock), parts)
+
+    runner.lookup("2" * 32)
+    runner.align("1" * 32)
+    runner.align(lookup.lyrics_job_id)
+
+    assert [store.get(i * 32).job.status for i in "21"] == [S.QUEUED, S.QUEUED]  # type: ignore[union-attr]
+    assert parts.model_cached() is False
 
 
 def test_an_unreadable_result_file_is_not_served(env: Env) -> None:

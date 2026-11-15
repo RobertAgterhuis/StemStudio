@@ -216,12 +216,9 @@ def test_dropping_a_detail_job_that_is_no_longer_queued_is_harmless() -> None:
 
 def _aligning(recorder: Recorder, hooks: SchedulerHooks | None = None) -> PriorityScheduler:
     """A scheduler whose align units are recorded as ``align:<id>``."""
-    return PriorityScheduler(
-        recorder.standard,
-        recorder.detail,
-        hooks or SchedulerHooks(),
-        align=lambda job: recorder.standard(f"align:{job}"),
-    )
+    hooks = hooks or SchedulerHooks()
+    align = SchedulerHooks(hooks.on_yield, hooks.on_idle, lambda j: recorder.standard(f"align:{j}"))
+    return PriorityScheduler(recorder.standard, recorder.detail, align)
 
 
 def test_a_queued_alignment_runs_after_waiting_standard_jobs_and_before_detail_steps() -> None:

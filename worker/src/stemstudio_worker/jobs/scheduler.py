@@ -1,11 +1,14 @@
 """Priority scheduler on one worker thread (FR-011, SC-006, research.md D-09).
 
-Standard jobs run whole and always before detail work; detail jobs run in units (plan, one
-parent step, finalise), oldest job first. A standard job submitted while a detail unit runs
-starts as soon as that unit returns. When a unit leaves both queues empty the ``on_idle`` hook
-runs before the scheduler reports idle (feature 003: GPU models are released, ADR-012 D6).
+Standard jobs run whole and always before everything else; lyrics alignments (feature 006) run
+whole after the waiting standard jobs and before the next detail unit; detail jobs run in units
+(plan, one parent step, finalise), oldest job first. A running unit is never pre-empted: a
+standard job submitted while a detail unit or an alignment runs starts as soon as that unit
+returns. When a unit leaves every queue empty the ``on_idle`` hook runs before the scheduler
+reports idle (feature 003: GPU models are released, ADR-012 D6).
 """
 
+import functools
 import logging
 from collections import deque
 from collections.abc import Callable
@@ -16,22 +19,29 @@ from stemstudio_worker.jobs.threads import QueueThread
 _LOG = logging.getLogger(__name__)
 
 
+def _skip(_job_id: str) -> None:
+    """Default align unit of a scheduler built without alignments."""
+
+
 @dataclass(frozen=True, slots=True)
 class SchedulerHooks:
-    """Optional callbacks of the scheduler (both run on the worker thread).
+    """Optional callbacks of the scheduler (all run on the worker thread).
 
     Attributes:
         on_yield: Told the active detail job ids right before a standard job runs ahead of
             them (e.g. to report "Waiting for standard separations").
         on_idle: Called after a unit that left nothing queued (releases GPU models).
+        align: Processes one lyrics alignment to a terminal state (feature 006); without it
+            submitted alignments are dropped.
     """
 
     on_yield: Callable[[list[str]], None] | None = None
     on_idle: Callable[[], None] | None = None
+    align: Callable[[str], None] = _skip
 
 
 class PriorityScheduler(QueueThread):
-    """Runs ``standard(job_id)`` and ``detail_step(detail_id) -> more`` on a single thread."""
+    """Runs ``standard(job_id)``, ``align(job_id)`` and ``detail_step(detail_id) -> more``."""
 
     def __init__(
         self,
@@ -44,13 +54,14 @@ class PriorityScheduler(QueueThread):
         Args:
             standard: Processes one standard job to a terminal state.
             detail_step: Runs the next unit of a detail job; returns True while units remain.
-            hooks: Optional yield and idle callbacks.
+            hooks: Optional yield, idle and align callbacks.
         """
         super().__init__("stemstudio-jobs")
         self._standard = standard
         self._detail_step = detail_step
         self._hooks = hooks
         self._standard_queue: deque[str] = deque()
+        self._align_queue: deque[str] = deque()
         self._detail_queue: deque[str] = deque()
 
     @property
@@ -63,6 +74,16 @@ class PriorityScheduler(QueueThread):
         """Queue a standard job (FIFO, ahead of every detail unit)."""
         self._enqueue(self._standard_queue, job_id)
 
+    @property
+    def pending_alignments(self) -> int:
+        """Number of waiting lyrics alignments."""
+        with self._changed:
+            return len(self._align_queue)
+
+    def submit_align(self, job_id: str) -> None:
+        """Queue a lyrics alignment (FIFO, after waiting standard jobs, before detail units)."""
+        self._enqueue(self._align_queue, job_id)
+
     def submit_detail(self, detail_id: str) -> None:
         """Queue a detail job behind the active ones."""
         self._enqueue(self._detail_queue, detail_id)
@@ -73,7 +94,10 @@ class PriorityScheduler(QueueThread):
             self._changed.notify_all()
 
     def _idle(self) -> bool:
-        return not (self._busy or self._standard_queue or self._detail_queue)
+        return not self._busy and self._nothing_waiting()
+
+    def _nothing_waiting(self) -> bool:
+        return not (self._standard_queue or self._align_queue or self._detail_queue)
 
     def _loop(self) -> None:
         while (unit := self._next_unit()) is not None:
@@ -88,6 +112,8 @@ class PriorityScheduler(QueueThread):
             if self._standard_queue:
                 job_id, waiting = self._standard_queue.popleft(), list(self._detail_queue)
                 return lambda: self._standard_unit(job_id, waiting)
+            if self._align_queue:
+                return functools.partial(self._hooks.align, self._align_queue.popleft())
             return self._detail_unit(self._detail_queue[0])
 
     def _standard_unit(self, job_id: str, waiting: list[str]) -> None:
@@ -132,4 +158,4 @@ class PriorityScheduler(QueueThread):
 
     def _nothing_queued(self) -> bool:
         with self._changed:
-            return not (self._standard_queue or self._detail_queue)
+            return self._nothing_waiting()

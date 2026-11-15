@@ -105,3 +105,16 @@ class DataPaths:
     def render_jobs(self) -> Path:
         """Render job files ``<id>.json`` and outputs ``<id>/output.<ext>`` (feature 007)."""
         return self.root / "render-jobs"
+
+    @property
+    def lyrics_jobs(self) -> Path:
+        """Lyrics job files ``<id>.json`` and results ``<id>/result.json`` (feature 006)."""
+        return self.root / "lyrics-jobs"
+
+    def lyrics_job_dir(self, job_id: str) -> Path:
+        """Files of one lyrics job; removed with the job."""
+        return self.lyrics_jobs / job_id
+
+    def lyrics_result(self, job_id: str) -> Path:
+        """Result of a completed lyrics job (copyrighted text; deleted after the backend copy)."""
+        return self.lyrics_job_dir(job_id) / "result.json"
