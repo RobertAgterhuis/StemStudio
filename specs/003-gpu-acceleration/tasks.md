@@ -145,7 +145,7 @@ in the execution plan.
 
 ## Phase 6: Polish (inside the wave, per owner)
 
-- [ ] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
+- [x] T045 [P] [stem-separation] Refactor to SIG limits, docstrings, HO:polish with coverage of `devices`, `separation`, `detail`, `jobs`, `api`
 - [ ] T046 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T047 [P] [frontend] Accessibility of the device badge (text, not colour only), HO:polish
 - [ ] T048 [P] [qa] Traceability matrix update, HO:polish
