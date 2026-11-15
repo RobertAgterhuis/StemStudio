@@ -82,7 +82,7 @@ public sealed class AssetJobApplier(IWorkerClient worker, IAssetFileStore files,
     }
 
     /// <summary>A readable reason, or null for an unreachable worker (kept for the next poll) and unexpected errors.</summary>
-    private static string? FailureReason(Exception exception) => exception switch
+    internal static string? FailureReason(Exception exception) => exception switch
     {
         InvalidDataException invalid => invalid.Message,
         WorkerRequestException rejection => $"Copying the rendered file failed: {rejection.Detail}",

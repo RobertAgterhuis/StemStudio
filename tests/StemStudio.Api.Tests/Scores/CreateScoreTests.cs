@@ -8,6 +8,7 @@ using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Scores;
+using StemStudio.Contracts.Tracks;
 using StemStudio.Domain.Scores;
 using StemStudio.Domain.Tracks;
 using static StemStudio.Api.Tests.Scores.ScoreTestData;
@@ -118,7 +119,9 @@ public sealed class CreateScoreTests : IDisposable
         (sent.Profile, sent.Input, sent.DrumInputs, sent.Range, sent.Resolution, sent.KeyOverride).ShouldBe((ScoreProfile.Bass, new WorkerTranscriptionInput($"tracks/{track.Id:D}/stems/bass.flac"), null, null, ScoreResolution.Sixteenth, null));
         sent.Titles.ShouldBe(new WorkerScoreTitles("Never Gonna Give You Up - bass (sheet music)", "Never Gonna Give You Up - Rick Astley", "Bass"));
         var grid = sent.Grid.ShouldBeOfType<WorkerBeatGridTempo>();
-        (grid.Bpm, grid.BeatsPerBar, grid.Beats, grid.Downbeats).ShouldBe((113.5, 4, track.BeatGrid!.Beats, track.BeatGrid.Downbeats));
+        (grid.Bpm, grid.BeatsPerBar).ShouldBe((113.5, 4));
+        grid.Beats.ShouldBe(track.BeatGrid!.Beats);
+        grid.Downbeats.ShouldBe(track.BeatGrid.Downbeats);
     }
 
     [Fact]
@@ -182,6 +185,7 @@ public sealed class CreateScoreTests : IDisposable
         using var response = await _client.GetAsync(new Uri(ApiRoutes.Asset(asset.Id), UriKind.Relative), Ct);
         await ContractAssert.MatchesAsync(response, "getAsset");
         var ready = await response.BodyAsync<AssetDto>();
+        ready.Error.ShouldBeNull();
         (ready.Status, ready.Progress, ready.SizeBytes).ShouldBe((AssetStatusDto.Ready, 100, Roles.Sum(role => (long)FileBytes(role).Length)));
         ready.Files.Select(file => (file.Role, file.ContentType, file.Sha256)).ShouldBe(
             [(AssetFileRoleDto.Pdf, "application/pdf", Sha("pdf")), (AssetFileRoleDto.MusicXml, "application/vnd.recordare.musicxml+xml", Sha("musicxml")), (AssetFileRoleDto.Midi, "audio/midi", Sha("midi"))]);

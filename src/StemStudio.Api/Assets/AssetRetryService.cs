@@ -1,3 +1,4 @@
+using StemStudio.Api.Scores;
 using StemStudio.Contracts;
 using StemStudio.Domain.Assets;
 using StemStudio.Persistence.Repositories;
@@ -9,7 +10,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="tracks">Track repository.</param>
 /// <param name="submitter">Starts the render.</param>
 /// <param name="reader">Maps the item.</param>
-public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader)
+/// <param name="scores">Retries score items (feature 008).</param>
+public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores)
 {
     /// <summary>Re-plans and resubmits a failed item.</summary>
     /// <param name="id">Item ID.</param>
@@ -21,6 +23,11 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
         if (asset is null || asset.Status != AssetStatus.Failed)
         {
             return asset is null ? AssetProblems.NotFound(id) : AssetProblems.NotFailed();
+        }
+
+        if (asset.Kind == AssetKind.Score)
+        {
+            return await scores.RetryAsync(asset, cancellationToken);
         }
 
         var track = await tracks.FindAsync(asset.Provenance.Recipe!.TrackId, cancellationToken);

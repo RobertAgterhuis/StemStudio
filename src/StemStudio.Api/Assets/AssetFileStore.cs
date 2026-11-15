@@ -61,6 +61,6 @@ public sealed partial class AssetFileStore(DataDirectory dataDirectory) : IAsset
 
     private string Directory(Guid assetId) => Path.Combine(dataDirectory.Sub("assets"), assetId.ToString("D", CultureInfo.InvariantCulture));
 
-    [GeneratedRegex(@"\A[a-z][a-z0-9-]{0,31}\.(flac|wav|mp3)\z", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A[a-z][a-z0-9-]{0,31}\.(flac|wav|mp3|pdf|musicxml|mid)\z", RegexOptions.CultureInvariant)]
     private static partial Regex FileNamePattern();
 }

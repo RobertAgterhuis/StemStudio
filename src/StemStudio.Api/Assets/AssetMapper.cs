@@ -1,4 +1,5 @@
 using StemStudio.Api.Mixes;
+using StemStudio.Api.Scores;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
@@ -39,6 +40,7 @@ public static class AssetMapper
         Error = asset.Error,
         Files = asset.Files.Select(file => ToDto(asset.Id, file)).ToList(),
         Audio = asset.Audio is { } audio ? ToDto(audio) : null,
+        Score = asset.Score is { } score ? ScoreMapper.ToDto(score) : null,
     };
 
     /// <summary>Maps a recipe to its DTO.</summary>
@@ -103,6 +105,7 @@ public static class AssetMapper
         SourceAssetIds = provenance.SourceAssetIds,
         Contents = provenance.Contents,
         Recipe = provenance.Recipe is { } recipe ? ToDto(recipe) : null,
+        ScoreRecipe = provenance.ScoreRecipe is { } scoreRecipe ? ScoreMapper.ToDto(scoreRecipe) : null,
     };
 
     private static ExportMixDto ToDto(ExportMix mix) =>

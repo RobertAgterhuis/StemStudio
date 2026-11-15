@@ -33,8 +33,8 @@ internal static class ScoreTestData
         track.AssignDetailJob(SyncTestData.DetailJobId, SyncTestData.T0);
         track.CompleteDetail(
         [
-            new ParentOutcome("drums", ParentOutcomeKind.Split, [new("kick", 8), new("snare", 8), new("toms", 8), new("hihat", 8), new("cymbals", 8)]),
-            new ParentOutcome("vocals", ParentOutcomeKind.Split, [new("lead", 8), new("backing", 8)]),
+            new ParentOutcome("drums", ParentOutcomeKind.Split, [new("kick", 8), new("snare", 8), new("toms", 8), new("hihat", 8), new("cymbals", 8), new("rest", 8)]),
+            new ParentOutcome("vocals", ParentOutcomeKind.Split, [new("lead", 8), new("backing", 8), new("rest", 8)]),
             new ParentOutcome("bass", ParentOutcomeKind.NotSupported, []),
             new ParentOutcome("guitar", ParentOutcomeKind.NothingFurther, []),
             new ParentOutcome("piano", ParentOutcomeKind.SkippedSilent, []),

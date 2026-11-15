@@ -51,4 +51,18 @@ public sealed record WorkerHealth
 
     /// <summary>Lyrics alignment readiness (1.5.0); null for an older worker.</summary>
     public WorkerLyricsAlignmentHealth? LyricsAlignment { get; init; }
+
+    /// <summary>Readiness of the transcription models (1.6.0); null for an older worker.</summary>
+    public WorkerTranscriptionHealth? Transcription { get; init; }
+}
+
+/// <summary>Readiness of the transcription models (worker 1.6.0 <c>TranscriptionHealth</c>).</summary>
+/// <param name="Models">Model id -> <c>ready</c> or <c>not-downloaded</c>.</param>
+public sealed record WorkerTranscriptionHealth(IReadOnlyDictionary<string, string> Models)
+{
+    /// <summary>Model id of the piano CRNN.</summary>
+    public const string PianoModel = "piano-crnn-note-pedal";
+
+    /// <summary>True when the piano model is downloaded.</summary>
+    public bool PianoReady => Models.TryGetValue(PianoModel, out var state) && state == "ready";
 }

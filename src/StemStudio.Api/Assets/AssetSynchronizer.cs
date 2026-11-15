@@ -1,3 +1,4 @@
+using StemStudio.Api.Scores;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Assets;
@@ -13,8 +14,9 @@ namespace StemStudio.Api.Assets;
 /// <param name="assets">Asset repository (scoped).</param>
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Applies render job states.</param>
+/// <param name="scores">Applies transcription job states (feature 008).</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class AssetSynchronizer(IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ILogger<AssetSynchronizer> logger)
+public sealed partial class AssetSynchronizer(IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ScoreJobApplier scores, ILogger<AssetSynchronizer> logger)
 {
     /// <summary>Synchronises every active item.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -30,7 +32,9 @@ public sealed partial class AssetSynchronizer(IAssetRepository assets, IWorkerCl
         var jobId = asset.WorkerJobId!;
         try
         {
-            await applier.ApplyAsync(asset, await worker.GetRenderJobAsync(jobId, cancellationToken), cancellationToken);
+            await (asset.Kind == AssetKind.Score
+                ? scores.ApplyAsync(asset, await worker.GetTranscriptionJobAsync(jobId, cancellationToken), cancellationToken)
+                : applier.ApplyAsync(asset, await worker.GetRenderJobAsync(jobId, cancellationToken), cancellationToken));
         }
         catch (WorkerUnavailableException)
         {
@@ -52,7 +56,7 @@ public sealed partial class AssetSynchronizer(IAssetRepository assets, IWorkerCl
 
         try
         {
-            await worker.DeleteRenderJobAsync(jobId, cancellationToken);
+            await AssetJobs.DeleteAsync(worker, asset, jobId, cancellationToken);
         }
         catch (Exception exception) when (exception is WorkerUnavailableException or WorkerRequestException)
         {
