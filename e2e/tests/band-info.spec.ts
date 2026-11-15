@@ -4,7 +4,9 @@ import { fakeJobTimeoutMs, runId } from '../support/env';
 import { expect, test } from '../support/test';
 import { requireOnlineMode } from '../support/feature-skips';
 import { beginnerHiddenBandInfoIds, expectNotRendered } from '../support/levels';
-import { readFakeProvider } from '../support/online';
+import { fakeOnlineMode, readFakeProvider } from '../support/online';
+import { fixturePath } from '../support/fixtures';
+import { uniqueWavCopy } from '../support/unique-audio';
 import { levelState } from '../support/preferences';
 
 // Feature 005 US2 (005:T043; FR-003, FR-004, FR-008, FR-009, FR-011, FR-014, FR-015; quickstart
@@ -14,9 +16,13 @@ const fake = readFakeProvider();
 const settleMs = 60_000;
 let track: TrackDto;
 
+// A track of its own per run and mode: a lookup result is stored, so a track looked up while the
+// stack ran in another STEMSTUDIO_FAKE_ONLINE mode (only the worker restarts) keeps that result.
+const ownTrack = (): string => uniqueWavCopy(fixturePath('click_120bpm_4-4_12s.wav'), `band-info-${fakeOnlineMode}-${runId()}`);
+
 test.beforeEach(async ({ api, metadataApi }) => {
   test.setTimeout(fakeJobTimeoutMs + 2 * settleMs);
-  track = await api.ensureCompleted('click_120bpm_4-4_12s.wav', fakeJobTimeoutMs);
+  track = await api.ensureFileCompleted(ownTrack(), fakeJobTimeoutMs);
   await metadataApi.waitForMetadata(track.id, settleMs);
 });
 
