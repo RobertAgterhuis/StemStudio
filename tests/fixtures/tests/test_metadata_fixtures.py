@@ -44,15 +44,15 @@ def _qualifies(recording: dict[str, Any], query: dict[str, Any]) -> bool:
     return same_title and fuzz.ratio(normalise(credit), normalise(query["artist"])) >= 90
 
 
+def _is_plain_album(release: dict[str, Any]) -> bool:
+    group = release["release-group"]
+    plain = group["primary-type"] == "Album" and not group["secondary-types"]
+    return bool(plain and release["status"] == "Official")
+
+
 def _official_album_date(recording: dict[str, Any]) -> str:
-    dates = [
-        r["release-group"]["first-release-date"] or "9999"
-        for r in recording["releases"]
-        if r["status"] == "Official"
-        and r["release-group"]["primary-type"] == "Album"
-        and not r["release-group"]["secondary-types"]
-    ]
-    return min(dates, default="9999")
+    plain = filter(_is_plain_album, recording["releases"])
+    return min((r["release-group"]["first-release-date"] or "9999" for r in plain), default="9999")
 
 
 def _rank(recording: dict[str, Any], duration: float | None) -> tuple[float, str]:
@@ -60,17 +60,21 @@ def _rank(recording: dict[str, Any], duration: float | None) -> tuple[float, str
     return round(distance, 3), _official_album_date(recording)
 
 
+def _no_answer_kind(case: dict[str, Any]) -> str | None:
+    busy = sum(e["response"]["status"] == 503 for e in case["exchanges"])
+    return None if busy > MAX_RETRIES else "empty"
+
+
 def _final_recordings(case: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
-    """Recordings of the first successful answer and how they were found (None = failed)."""
-    busy = 0
-    for exchange in case["exchanges"]:
-        status, body = exchange["response"]["status"], exchange["response"]["body"]
-        busy = busy + 1 if status == 503 else 0
-        if status == 200 and body["recordings"]:
-            return body["recordings"], exchange["request"]["kind"]
-        if status == 200:
-            return [], "empty"
-    return [], None if busy > MAX_RETRIES else "empty"
+    """Recordings of the first 200 answer and its kind; kind None = retries exhausted."""
+    useful = [e for e in case["exchanges"] if e["response"]["status"] == 200]
+    if not useful:
+        return [], _no_answer_kind(case)
+    return useful[0]["response"]["body"]["recordings"], useful[0]["request"]["kind"]
+
+
+def _matched_by(kind: str) -> str:
+    return "isrc" if kind == "isrc-lookup" else "search"
 
 
 def reference_match(case: dict[str, Any]) -> dict[str, Any]:
@@ -82,8 +86,7 @@ def reference_match(case: dict[str, Any]) -> dict[str, Any]:
     if not hits:
         return {"outcome": "not-found", "recordingMbid": None}
     best = min(hits, key=lambda r: _rank(r, query["durationSeconds"]))
-    by = "isrc" if kind == "isrc-lookup" else "search"
-    return {"outcome": "found", "recordingMbid": best["id"], "matchedBy": by}
+    return {"outcome": "found", "recordingMbid": best["id"], "matchedBy": _matched_by(kind)}
 
 
 @pytest.mark.parametrize("case", CASES["cases"], ids=lambda c: c["id"])
@@ -121,12 +124,7 @@ def test_case_ids_are_unique() -> None:
 
 
 def _ids(document: Any) -> list[str]:
-    if isinstance(document, dict):
-        own = [document["id"]] if isinstance(document.get("id"), str) else []
-        return own + [i for value in document.values() for i in _ids(value)]
-    if isinstance(document, list):
-        return [i for value in document for i in _ids(value)]
-    return []
+    return re.findall(r'"id": "([^"]+)"', json.dumps(document))
 
 
 def test_musicbrainz_ids_are_lower_case_uuids() -> None:

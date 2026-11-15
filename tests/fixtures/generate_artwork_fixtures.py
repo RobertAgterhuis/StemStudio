@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import json
 import struct
 import sys
 from collections.abc import Callable, Sequence
@@ -37,7 +36,15 @@ import numpy as np
 import soundfile as sf  # type: ignore[import-untyped]
 from PIL import Image
 
-from generate_fixtures import FIXTURE_DIR, SAMPLE_RATE, Audio, Rhythm, encode_mp3, render_music
+from generate_fixtures import (
+    SAMPLE_RATE,
+    Audio,
+    Rhythm,
+    cli_args,
+    encode_mp3,
+    render_music,
+    write_manifest,
+)
 
 MANIFEST_VERSION = 1
 AUDIO_SECONDS = 10.0
@@ -274,36 +281,27 @@ def manifest_entry(fixture: ArtworkFixture) -> dict[str, Any]:
     }
 
 
-def build_manifest() -> dict[str, Any]:
-    """The full manifest: version, sample rate and one entry per catalogue file."""
-    fixtures = {f.name: manifest_entry(f) for f in CATALOGUE}
-    return {"version": MANIFEST_VERSION, "sampleRate": SAMPLE_RATE, "fixtures": fixtures}
-
-
 def generate(out_dir: Path, manifest_path: Path) -> dict[str, Any]:
-    """Write every catalogue fixture into ``out_dir`` and the manifest to ``manifest_path``."""
+    """Write every catalogue file into ``out_dir`` and its facts to ``manifest_path``."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    entries: dict[str, Any] = {}
     for fixture in CATALOGUE:
         write_fixture(fixture, out_dir)
-    manifest = build_manifest()
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
-    return manifest
+        entries[fixture.name] = manifest_entry(fixture)
+    manifest = {"version": MANIFEST_VERSION, "sampleRate": SAMPLE_RATE, "fixtures": entries}
+    return write_manifest(manifest, manifest_path)
 
 
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     """Parse ``--out-dir`` and ``--manifest`` (defaults: next to this script)."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
-    parser.add_argument("--out-dir", type=Path, default=FIXTURE_DIR / "audio")
-    parser.add_argument("--manifest", type=Path, default=FIXTURE_DIR / "artwork-manifest.json")
-    return parser.parse_args(argv)
+    return cli_args(argv, "artwork-manifest.json", __doc__)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Command-line entry point; returns the process exit code."""
     args = parse_args(argv)
-    manifest = generate(args.out_dir, args.manifest)
-    sys.stdout.write(f"wrote {len(manifest['fixtures'])} artwork fixtures to {args.out_dir}\n")
+    count = len(generate(args.out_dir, args.manifest)["fixtures"])
+    sys.stdout.write(f"wrote {count} artwork fixtures to {args.out_dir}\n")
     return 0
 
 
