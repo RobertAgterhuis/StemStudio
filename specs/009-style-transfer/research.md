@@ -130,6 +130,9 @@ Removed after the spike: containers `spike-*`, image `spike-acestep:tmp` (15.4 G
 `spike-gen-models` (13.4 GB weights), `spike-gen-io`, `spike-gen-uvcache` (uv cache ~9 GB); source
 clones in the scratchpad. Not touched: the running `stemstudio` compose project and its volumes
 (read-only mounts only). Cached afterwards: the `python:3.11-slim` and `alpine` base images (small).
+Note: a `docker builder prune --filter until=3h` run during clean-up removed 2.62 GB of BuildKit
+cache entries **older than 3 h** (shared build cache, not images or volumes); later builds of other
+images may re-download layers once.
 
 ## R-01 Decision: model and engine
 
