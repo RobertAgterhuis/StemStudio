@@ -185,3 +185,96 @@ def test_checks_work_without_a_gpu(tmp_path: Path) -> None:
     settings = settings_for(tmp_path, "no-gpu", kinds=("voiceConversion",))
     for stack in open_stack(settings):
         assert _ok_body(_check(stack, _voice(tmp_path, 20.0)))["ok"] is True
+
+
+class _SpyDecoder:
+    """Decoder that records calls and writes a decoded WAV of ``seconds``."""
+
+    def __init__(self, seconds: float = 12.0) -> None:
+        self.calls: list[list[str]] = []
+        self.seconds = seconds
+
+    def run(self, args: list[str], timeout_seconds: float) -> Any:
+        self.calls.append(list(args))
+        write(Path(args[-1].removeprefix("file:")), tone(self.seconds, 48_000), 48_000)
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+
+def _spy(stack: Stack, seconds: float = 12.0) -> _SpyDecoder:
+    spy = _SpyDecoder(seconds)
+    stack.composition.app.state.context.analyzer.decoder = spy
+    return spy
+
+
+@pytest.mark.parametrize(
+    ("name", "content"),
+    [
+        ("sample.wav", b"#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:10,\nhttp://169.254.169.254/latest\n"),
+        ("sample.webm", b"ffconcat version 1.0\nfile '/etc/passwd'\n"),
+        ("sample.mp3", b"<?xml version='1.0'?><MPD></MPD>"),
+    ],
+)
+def test_playlists_disguised_as_audio_never_reach_ffmpeg(
+    singer: Stack, tmp_path: Path, name: str, content: bytes
+) -> None:
+    spy = _spy(singer)
+    path = tmp_path / name
+    path.write_bytes(content)
+
+    response = _check(singer, path)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "The sample could not be read as audio."
+    assert spy.calls == []
+
+
+@pytest.mark.parametrize(
+    ("magic", "demuxer"),
+    [
+        (b"\x1aE\xdf\xa3", "matroska"),
+        (b"OggS\x00\x02" + b"\x00" * 22 + b"OpusHead", "ogg"),
+        (b"\x00\x00\x00\x20ftypisom", "mov"),
+    ],
+)
+def test_ffmpeg_gets_an_explicit_demuxer_a_file_only_whitelist_and_a_time_cap(
+    singer: Stack, tmp_path: Path, magic: bytes, demuxer: str
+) -> None:
+    spy = _spy(singer)
+    recording = tmp_path / "recording.bin"
+    recording.write_bytes(magic + b"\x00" * 64)
+
+    assert _ok_body(_check(singer, recording, "audio/webm"))["ok"] is True
+
+    [args] = spy.calls
+    input_at = args.index("-i")
+    assert args[args.index("-f") : args.index("-f") + 2] == ["-f", demuxer]
+    assert args.index("-f") < input_at
+    assert args[args.index("-protocol_whitelist") + 1] == "file"
+    assert args[args.index("-t") + 1] == "61"
+
+
+def test_a_long_stream_is_decoded_only_up_to_the_cap_and_refused_as_too_long(
+    singer: Stack, tmp_path: Path
+) -> None:
+    _spy(singer, seconds=61.0)
+    recording = tmp_path / "long.webm"
+    recording.write_bytes(b"\x1aE\xdf\xa3" + b"\x00" * 64)
+
+    body = _ok_body(_check(singer, recording, "audio/webm"))
+
+    assert (body["ok"], body["reason"]) == (False, "tooLong")
+
+
+def test_a_long_soundfile_sample_is_refused_before_decoding(
+    singer: Stack, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def no_decode(path: Path) -> Any:
+        pytest.fail("a sample over the cap must not be decoded")
+
+    monkeypatch.setattr("stemstudio_generator.audio.samples.read_audio", no_decode)
+    long_wav = write(tmp_path / "long.wav", np.zeros(90 * 8_000, np.float32), 8_000)
+
+    body = _ok_body(_check(singer, long_wav))
+
+    assert (body["ok"], body["reason"]) == (False, "tooLong")
+    assert body["durationSeconds"] == pytest.approx(90.0)
