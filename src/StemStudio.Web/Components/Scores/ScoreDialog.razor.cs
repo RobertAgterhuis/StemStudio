@@ -2,22 +2,15 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Assets;
 using StemStudio.Web.Api;
-using StemStudio.Web.Interop;
 using StemStudio.Web.Scores;
 
 namespace StemStudio.Web.Components.Scores;
 
 /// <summary>Loads the score options of a <see cref="ScoreTarget"/>, submits the choices and confirms the new item (feature 008).</summary>
-public sealed partial class ScoreDialog : IAsyncDisposable
+public sealed partial class ScoreDialog
 {
-    private ElementReference _title;
-    private IAsyncDisposable? _returnFocus;
-
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
-
-    [Inject]
-    private IWebInterop Web { get; set; } = default!;
 
     /// <summary>What is notated.</summary>
     [Parameter, EditorRequired]
@@ -40,18 +33,9 @@ public sealed partial class ScoreDialog : IAsyncDisposable
     private AssetDto? Saved { get; set; }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_returnFocus is not null)
-        {
-            await _returnFocus.DisposeAsync();
-        }
-    }
-
-    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
-        _returnFocus = await Web.CaptureFocusAsync();
+        await base.OnInitializedAsync();
         try
         {
             Form = new ScoreForm(await Api.GetScoreOptionsAsync(Target.Source), Target);
@@ -59,15 +43,6 @@ public sealed partial class ScoreDialog : IAsyncDisposable
         catch (ApiException ex)
         {
             Error = ex.Error.UserMessage;
-        }
-    }
-
-    /// <inheritdoc />
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await _title.FocusAsync();
         }
     }
 

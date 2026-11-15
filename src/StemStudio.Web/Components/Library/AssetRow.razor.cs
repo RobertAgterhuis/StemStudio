@@ -28,6 +28,10 @@ public sealed partial class AssetRow
     [Parameter]
     public EventCallback<AssetDto> OnDelete { get; set; }
 
+    /// <summary>Sheet music pressed (ready audio items only, feature 008).</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnScore { get; set; }
+
     /// <summary>Retry pressed (failed items only).</summary>
     [Parameter]
     public EventCallback<AssetDto> OnRetry { get; set; }

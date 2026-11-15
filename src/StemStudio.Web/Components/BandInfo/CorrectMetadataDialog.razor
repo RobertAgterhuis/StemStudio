@@ -1,12 +1,13 @@
 @* "Correct title and artist" (feature 005, FR-009, US2-3/US2-4): modal, focus starts in the title field and returns to
    the opener on close; Enter in a field submits, Escape cancels. *@
+@inherits ModalDialog
 
 <div class="ss-modal-backdrop">
     <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="correct-metadata-title" @onkeydown="OnDialogKeyAsync">
         <h2 id="correct-metadata-title" class="ss-title">Correct title and artist</h2>
         <p class="ss-help">The lookup runs again with these names. They are used for the search only.</p>
         <label class="ss-label" for="metadata-correct-title">Title</label>
-        <input id="metadata-correct-title" class="rz-textbox ss-wide" maxlength="500" @bind="_title" @bind:event="oninput" @onkeydown="OnFieldKeyAsync" @ref="_first"
+        <input id="metadata-correct-title" class="rz-textbox ss-wide" maxlength="500" @bind="_title" @bind:event="oninput" @onkeydown="OnFieldKeyAsync" @ref="InitialFocus"
                data-testid="metadata-correct-title" />
         <label class="ss-label" for="metadata-correct-artist">Artist</label>
         <input id="metadata-correct-artist" class="rz-textbox ss-wide" maxlength="500" @bind="_artist" @bind:event="oninput"

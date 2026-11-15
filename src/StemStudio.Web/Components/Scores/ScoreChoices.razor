@@ -65,6 +65,13 @@
 
 <ScoreTempoFields Tempo="Form.Tempo" />
 
+<LevelGate Feature="score.range">
+    <fieldset>
+        <legend class="ss-label">Part of the song (optional, at least 2 s) <HelpHint HelpId="sheet-music" /></legend>
+        <RangeFields Range="Form.Range" Prefix="score-range" HelpId="sheet-music" />
+    </fieldset>
+</LevelGate>
+
 @code {
     /// <summary>The dialog's choices.</summary>
     [Parameter, EditorRequired]

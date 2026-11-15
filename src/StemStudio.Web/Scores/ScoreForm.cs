@@ -1,4 +1,6 @@
+using StemStudio.Contracts;
 using StemStudio.Contracts.Scores;
+using StemStudio.Web.Export;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Scores;
@@ -32,6 +34,9 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
     /// <summary>The manual tempo; required when the beat grid is unreliable or absent.</summary>
     public TempoInput Tempo { get; } = new(options.GridStatus != GridStatusDto.Reliable, target.SuggestedTempo);
 
+    /// <summary>Part of the source to notate, at least 2 s long; empty = all of it.</summary>
+    public RangeInput Range { get; } = new(null, options.DurationSeconds, ContractLimits.MinScoreRangeSeconds);
+
     /// <summary>True when the chosen profile has a quality choice (piano).</summary>
     public bool HasQuality => Profile == ScoreProfileDto.Piano;
 
@@ -57,7 +62,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
 
     /// <summary>Checks the choices.</summary>
     /// <returns>A readable problem, or null.</returns>
-    public string? Validate() => Profile is null ? ProfileMessage : Tempo.Validate();
+    public string? Validate() => Profile is null ? ProfileMessage : Tempo.Validate() ?? Range.Validate();
 
     /// <summary>The request (call <see cref="Validate"/> first).</summary>
     /// <returns>The request.</returns>
@@ -69,6 +74,7 @@ public sealed class ScoreForm(ScoreOptionsDto options, ScoreTarget target)
         Resolution = Simplified ? ScoreResolutionDto.Eighth : ScoreResolutionDto.Sixteenth,
         KeyOverride = HasKey && KeyOverride.Length > 0 ? KeyOverride : null,
         Tempo = Tempo.ToDto(),
+        Range = Range.ToDto(),
     };
 
     private int? EstimateOf(ScoreProfileDto? profile) =>

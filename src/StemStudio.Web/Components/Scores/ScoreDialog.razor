@@ -1,12 +1,13 @@
 @* Sheet music dialog (feature 008, FR-002..FR-010, FR-014; ui-test-ids 1.7.0): a channel of a track or a library item is
    transcribed into a score item (PDF, MusicXML, MIDI) in the background; the dialog confirms with a link to the item. *@
 @using StemStudio.Contracts.Scores
+@inherits ModalDialog
 
 <div class="ss-modal-backdrop">
     <div class="ss-modal ss-score-dialog" role="dialog" aria-modal="true" aria-labelledby="score-title" data-testid="score-dialog"
          data-source="@Target.SourceKind" data-help-id="sheet-music" @onkeydown="OnKeyAsync">
         <div class="ss-label-row">
-            <h2 id="score-title" class="ss-title" tabindex="-1" @ref="_title">Sheet music</h2>
+            <h2 id="score-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Sheet music</h2>
             <HelpHint HelpId="sheet-music" />
         </div>
         <p class="ss-help">Notation of @Target.Subject. It is made in the background and saved to your library.</p>

@@ -46,6 +46,8 @@
             {
                 <audio controls preload="none" src="@FileUrl(true)" aria-label="@($"Play {Asset.Name}")" data-testid="@($"asset-play-{Asset.Id}")"></audio>
                 <a class="ss-row-action" href="@FileUrl(false)" download aria-label="@($"Download {Asset.Name}")" data-testid="@($"asset-download-{Asset.Id}")">Download</a>
+                <RadzenButton Text="Sheet music" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Sheet music of {Asset.Name}")"
+                              Click="() => OnScore.InvokeAsync(Asset)" data-testid="@($"asset-score-{Asset.Id}")" />
             }
             @if (Asset.Status == AssetStatusDto.Failed)
             {

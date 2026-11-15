@@ -10,5 +10,11 @@ public sealed partial class TrackDetail
 
     private void OpenScore(string channel) => Scoring = ScoreTarget.ForChannel(Track!, channel);
 
-    private void CloseScore() => Scoring = null;
+    /// <summary>Closes the dialog and reloads the track: the dialog may have queued the drums split.</summary>
+    private async Task CloseScoreAsync()
+    {
+        Scoring = null;
+        await RefreshAsync(Stopping);
+        StartPolling();
+    }
 }

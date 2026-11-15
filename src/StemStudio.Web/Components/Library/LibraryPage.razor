@@ -44,7 +44,8 @@
             <tbody>
                 @foreach (var asset in Visible)
                 {
-                    <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" OnRename="OpenRename" OnDelete="DeleteAsync" OnRetry="RetryAsync" />
+                    <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" OnRename="OpenRename" OnDelete="DeleteAsync" OnRetry="RetryAsync"
+                              OnScore="OpenScore" />
                 }
             </tbody>
         </table>
@@ -54,4 +55,9 @@
 @if (Renaming is not null)
 {
     <AssetRenameDialog Name="@Renaming.Name" Error="@RenameError" OnConfirm="RenameAsync" OnCancel="CloseRename" />
+}
+
+@if (Scoring is not null)
+{
+    <ScoreDialog Target="Scoring" OnClose="CloseScore" OnSaved="OnScoreSavedAsync" />
 }
