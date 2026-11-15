@@ -74,18 +74,18 @@ committed contract and is faked:
 
 ### stem-separation (tests first)
 
-- [ ] T012 [P] [stem-separation] Failing tests `worker/tests/detail/test_gating.py` on synthetic signals: frame levels (2048/512, mono), parent gate (skip when < 8 % of frames > -40 dBFS; boundary cases), sub-stem gate (energy >= -20 dB rel. parent and >= 5 % frames above max(-50 dBFS, parent level - 25 dB)) (FR-003, FR-004)
-- [ ] T013 [stem-separation] Implement `detail/names.py` and `detail/gating.py` (named constants from research.md D-04) to pass T012
-- [ ] T014 [P] [stem-separation] Failing tests `worker/tests/detail/test_folding.py` and `test_reassign.py`: DrumSep 6 -> 5 (`ride + crash -> cymbals`, `hh -> hihat`), Mega 53 -> 8 families (research.md D-05 table; unlisted outputs ignored), shares of a family over 1..3 parents sum to the family within 1e-5 and follow the parents' power (FR-002)
-- [ ] T015 [stem-separation] Implement `detail/folding.py` and `detail/reassign.py` to pass T014
-- [ ] T016 [P] [stem-separation] Failing tests `worker/tests/detail/test_checks.py`: rest = parent - sum(kept); model residual > -15 dB -> not-reliable; family sum > parent + 1 dB -> not-reliable; < 2 kept -> nothing-further; reconstruction of 16-bit FLAC round trip <= -30 dB, a clipped rest fails it (FR-005, FR-006, SC-002)
-- [ ] T017 [stem-separation] Implement `detail/checks.py` to pass T016
-- [ ] T018 [P] [stem-separation] Failing tests `worker/tests/detail/test_download.py` with a fake opener: first-use download to `<model_dir>/detail/<id>/<file>.part`, SHA-256 verified then renamed, existing verified file skips the network, mismatch deletes and raises "Detail model download was corrupt; try again.", network error raises "Detail model could not be downloaded; try again when online." (FR-018)
-- [ ] T019 [stem-separation] Implement `detail/registry.py` (three `ModelSpec`s from research.md D-07) and `detail/download.py` to pass T018
-- [ ] T020 [P] [stem-separation] Failing tests `worker/tests/jobs/test_detail_store.py`, `test_detail_service.py`: persist/load `detail-jobs/*.json`; create is idempotent per `audioSha256` for queued/running/completed, new job after failed/cancelled; unknown standard job -> 404; not completed or stems missing -> 409; cancel queued -> cancelled at once, running -> flag + cancelled, terminal -> 409 (FR-010, FR-016)
-- [ ] T021 [stem-separation] Implement `jobs/detail_store.py`, `jobs/detail_service.py` to pass T020
-- [ ] T022 [P] [stem-separation] Failing tests `worker/tests/jobs/test_scheduler.py` (fake step functions, fake clock): a submitted standard job runs before the next detail step; detail steps interleave in FIFO job order; stop() waits for the current unit; a crashing step does not stop the thread (FR-011, SC-006)
-- [ ] T023 [stem-separation] Implement `jobs/scheduler.py` and switch `jobs/runtime.py` from `JobQueue` to the scheduler (standard behaviour unchanged; existing tests stay green)
+- [x] T012 [P] [stem-separation] Failing tests `worker/tests/detail/test_gating.py` on synthetic signals: frame levels (2048/512, mono), parent gate (skip when < 8 % of frames > -40 dBFS; boundary cases), sub-stem gate (energy >= -20 dB rel. parent and >= 5 % frames above max(-50 dBFS, parent level - 25 dB)) (FR-003, FR-004)
+- [x] T013 [stem-separation] Implement `detail/names.py` and `detail/gating.py` (named constants from research.md D-04) to pass T012
+- [x] T014 [P] [stem-separation] Failing tests `worker/tests/detail/test_folding.py` and `test_reassign.py`: DrumSep 6 -> 5 (`ride + crash -> cymbals`, `hh -> hihat`), Mega 53 -> 8 families (research.md D-05 table; unlisted outputs ignored), shares of a family over 1..3 parents sum to the family within 1e-5 and follow the parents' power (FR-002)
+- [x] T015 [stem-separation] Implement `detail/folding.py` and `detail/reassign.py` to pass T014
+- [x] T016 [P] [stem-separation] Failing tests `worker/tests/detail/test_checks.py`: rest = parent - sum(kept); model residual > -15 dB -> not-reliable; family sum > parent + 1 dB -> not-reliable; < 2 kept -> nothing-further; reconstruction of 16-bit FLAC round trip <= -30 dB, a clipped rest fails it (FR-005, FR-006, SC-002)
+- [x] T017 [stem-separation] Implement `detail/checks.py` to pass T016
+- [x] T018 [P] [stem-separation] Failing tests `worker/tests/detail/test_download.py` with a fake opener: first-use download to `<model_dir>/detail/<id>/<file>.part`, SHA-256 verified then renamed, existing verified file skips the network, mismatch deletes and raises "Detail model download was corrupt; try again.", network error raises "Detail model could not be downloaded; try again when online." (FR-018)
+- [x] T019 [stem-separation] Implement `detail/registry.py` (three `ModelSpec`s from research.md D-07) and `detail/download.py` to pass T018
+- [x] T020 [P] [stem-separation] Failing tests `worker/tests/jobs/test_detail_store.py`, `test_detail_service.py`: persist/load `detail-jobs/*.json`; create is idempotent per `audioSha256` for queued/running/completed, new job after failed/cancelled; unknown standard job -> 404; not completed or stems missing -> 409; cancel queued -> cancelled at once, running -> flag + cancelled, terminal -> 409 (FR-010, FR-016)
+- [x] T021 [stem-separation] Implement `jobs/detail_store.py`, `jobs/detail_service.py` to pass T020
+- [x] T022 [P] [stem-separation] Failing tests `worker/tests/jobs/test_scheduler.py` (fake step functions, fake clock): a submitted standard job runs before the next detail step; detail steps interleave in FIFO job order; stop() waits for the current unit; a crashing step does not stop the thread (FR-011, SC-006)
+- [x] T023 [stem-separation] Implement `jobs/scheduler.py` and switch `jobs/runtime.py` from `JobQueue` to the scheduler (standard behaviour unchanged; existing tests stay green)
 
 ### backend (tests first)
 
