@@ -9,9 +9,7 @@ import soundfile as sf
 Array = npt.NDArray[np.float32]
 
 
-def tone(
-    seconds: float, rate: int = 48_000, freq: float = 440.0, amplitude: float = 0.5
-) -> Array:
+def tone(seconds: float, rate: int = 48_000, freq: float = 440.0, amplitude: float = 0.5) -> Array:
     """Mono sine of ``seconds`` at ``rate`` as float32 ``(frames,)``."""
     t = np.arange(round(seconds * rate), dtype=np.float64) / rate
     return (amplitude * np.sin(2 * np.pi * freq * t)).astype(np.float32)

@@ -5,6 +5,7 @@ import json
 import shutil
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -133,6 +134,12 @@ def test_subprocess_runner_reports_a_missing_program() -> None:
     assert result.stderr
 
 
+def _ffprobe(path: Path) -> dict[str, Any]:
+    args = ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json"]
+    result: dict[str, Any] = json.loads(SubprocessRunner().run([*args, f"file:{path}"], 30).stdout)
+    return result
+
+
 @pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
                     reason="ffmpeg/ffprobe not installed")  # fmt: skip
 def test_real_ffmpeg_writes_24_bit_48k_stereo_with_the_tags(tmp_path: Path) -> None:
@@ -141,11 +148,7 @@ def test_real_ffmpeg_writes_24_bit_48k_stereo_with_the_tags(tmp_path: Path) -> N
 
     written = FlacWriter().write(source, tmp_path / "take-1.flac", labels)
 
-    probe = SubprocessRunner().run(
-        ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json",
-         f"file:{written.path}"], 30.0,
-    )  # fmt: skip
-    info = json.loads(probe.stdout)
+    info = _ffprobe(written.path)
     stream = info["streams"][0]
     tags = {k.upper(): v for k, v in info["format"]["tags"].items()}
     assert (stream["codec_name"], stream["sample_rate"], stream["channels"]) == ("flac", "48000", 2)
