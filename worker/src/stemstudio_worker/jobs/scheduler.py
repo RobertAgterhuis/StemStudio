@@ -2,15 +2,31 @@
 
 Standard jobs run whole and always before detail work; detail jobs run in units (plan, one
 parent step, finalise), oldest job first. A standard job submitted while a detail unit runs
-starts as soon as that unit returns.
+starts as soon as that unit returns. When a unit leaves both queues empty the ``on_idle`` hook
+runs before the scheduler reports idle (feature 003: GPU models are released, ADR-012 D6).
 """
 
 import logging
 import threading
 from collections import deque
 from collections.abc import Callable
+from dataclasses import dataclass
 
 _LOG = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class SchedulerHooks:
+    """Optional callbacks of the scheduler (both run on the worker thread).
+
+    Attributes:
+        on_yield: Told the active detail job ids right before a standard job runs ahead of
+            them (e.g. to report "Waiting for standard separations").
+        on_idle: Called after a unit that left nothing queued (releases GPU models).
+    """
+
+    on_yield: Callable[[list[str]], None] | None = None
+    on_idle: Callable[[], None] | None = None
 
 
 class PriorityScheduler:
@@ -20,19 +36,19 @@ class PriorityScheduler:
         self,
         standard: Callable[[str], None],
         detail_step: Callable[[str], bool],
-        on_yield: Callable[[list[str]], None] | None = None,
+        hooks: SchedulerHooks = SchedulerHooks(),
     ) -> None:
         """Create a stopped scheduler.
 
         Args:
             standard: Processes one standard job to a terminal state.
             detail_step: Runs the next unit of a detail job; returns True while units remain.
-            on_yield: Told the active detail job ids right before a standard job runs ahead of
-                them (e.g. to report "Waiting for standard separations").
+            hooks: Optional yield and idle callbacks.
         """
         self._standard = standard
         self._detail_step = detail_step
-        self._on_yield = on_yield
+        self._on_yield = hooks.on_yield
+        self._on_idle = hooks.on_idle
         self._standard_queue: deque[str] = deque()
         self._detail_queue: deque[str] = deque()
         self._busy = False
@@ -133,6 +149,18 @@ class PriorityScheduler:
         except Exception:
             _LOG.exception("A job unit crashed the scheduler thread")
         finally:
-            with self._changed:
-                self._busy = False
-                self._changed.notify_all()
+            self._after_unit()
+
+    def _after_unit(self) -> None:
+        if self._on_idle is not None and self._nothing_queued():
+            try:
+                self._on_idle()
+            except Exception:
+                _LOG.exception("Releasing idle GPU memory failed")
+        with self._changed:
+            self._busy = False
+            self._changed.notify_all()
+
+    def _nothing_queued(self) -> bool:
+        with self._changed:
+            return not (self._standard_queue or self._detail_queue)

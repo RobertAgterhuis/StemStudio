@@ -110,6 +110,27 @@ def test_the_default_composition_builds_one_runner_for_every_consumer(
     assert status["device"]["kind"] == "gpu"
 
 
+def test_an_injected_pipeline_without_gpu_models_still_releases_the_runner(
+    tmp_path: Path,
+) -> None:
+    runner = RecordingRunner()
+
+    class Pipeline:
+        separator_version = "1"
+
+        def plan(self, stems: object, partial: object) -> list[object]:
+            return []
+
+        def outcomes(self, names: object, partial: object) -> list[object]:
+            return []
+
+    app = main.create_app(_settings(tmp_path), adapters=_fake_adapters(runner),
+                          detail_pipeline=Pipeline(), devices=runner)  # type: ignore[arg-type]  # fmt: skip
+    with TestClient(app) as client:
+        _complete(client)
+    assert runner.released >= 1
+
+
 def test_a_cpu_worker_reports_the_cpu_with_the_probe_reason(tmp_path: Path) -> None:
     info = DeviceInfo(kind="cpu", reason="No usable NVIDIA GPU: CUDA is not available.")
     app = main.create_app(_settings(tmp_path), adapters=_fake_adapters(), devices=CpuRunner(info))
