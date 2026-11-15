@@ -18,6 +18,7 @@ using StemStudio.Api.Storage;
 using StemStudio.Api.Styles;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Tracks;
+using StemStudio.Api.Voices;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Health;
@@ -70,6 +71,7 @@ public static class ApiComposition
         {
             await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
             await SeedPresetsAsync(scope.ServiceProvider);
+            await scope.ServiceProvider.GetRequiredService<AudioHashIndex>().RefreshAsync(CancellationToken.None);
         }
 
         app.UseExceptionHandler();
@@ -100,6 +102,7 @@ public static class ApiComposition
         app.MapGenerationEndpoints();
         app.MapStyleEndpoints();
         app.MapLyricsSheetEndpoints();
+        app.MapVoiceEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -152,6 +155,9 @@ public static class ApiComposition
     private static void AddGenerationServices(IServiceCollection services)
     {
         services.AddSingleton<GenerationAvailability>();
+        services.AddSingleton<SingerAvailability>();
+        services.AddScoped<AudioHashIndex>();
+        services.AddScoped<VoiceProfileService>();
         services.TryAddSingleton<ISeedSource, RandomSeedSource>();
         services.AddScoped<GenerationSubmitter>();
         services.AddScoped<RestyleService>();

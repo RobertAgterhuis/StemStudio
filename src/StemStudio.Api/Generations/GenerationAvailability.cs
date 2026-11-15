@@ -20,8 +20,11 @@ public sealed record GenerationReadiness(GenerationAvailabilityDto State, string
 /// </summary>
 /// <param name="generator">The generator client.</param>
 /// <param name="clock">Clock for the cache.</param>
-public sealed class GenerationAvailability(IGeneratorClient generator, TimeProvider clock)
+public class GenerationAvailability(IGeneratorClient generator, TimeProvider clock)
 {
+    /// <summary>The reason given when the service is not installed or not reachable.</summary>
+    protected virtual string NotInstalled => NotInstalledReason;
+
     /// <summary>How long a probe is reused.</summary>
     public static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
@@ -67,7 +70,7 @@ public sealed class GenerationAvailability(IGeneratorClient generator, TimeProvi
     {
         if (!generator.IsConfigured)
         {
-            return new GenerationReadiness(GenerationAvailabilityDto.NotInstalled, NotInstalledReason, null);
+            return new GenerationReadiness(GenerationAvailabilityDto.NotInstalled, NotInstalled, null);
         }
 
         try
@@ -79,9 +82,21 @@ public sealed class GenerationAvailability(IGeneratorClient generator, TimeProvi
         }
         catch (GeneratorUnavailableException)
         {
-            return new GenerationReadiness(GenerationAvailabilityDto.NotInstalled, NotInstalledReason, null);
+            return new GenerationReadiness(GenerationAvailabilityDto.NotInstalled, NotInstalled, null);
         }
     }
+}
+
+/// <summary>The singer's availability (010: voice profiles and conversions), cached like the generator's.</summary>
+/// <param name="singer">The singer client.</param>
+/// <param name="clock">Clock.</param>
+public sealed class SingerAvailability(ISingerClient singer, TimeProvider clock) : GenerationAvailability(singer, clock)
+{
+    /// <summary>Reason when the singer is not installed or not reachable.</summary>
+    public const string SingerNotInstalledReason = "The singer service is not installed.";
+
+    /// <inheritdoc />
+    protected override string NotInstalled => SingerNotInstalledReason;
 }
 
 /// <summary>Random seeds for takes (replaced in tests).</summary>

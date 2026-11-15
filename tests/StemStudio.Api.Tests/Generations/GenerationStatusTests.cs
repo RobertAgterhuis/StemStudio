@@ -20,7 +20,7 @@ public sealed class GenerationStatusTests : ApiTestBase
         status.Device.ShouldBe(new Contracts.Health.ProcessingDeviceDto { Reachable = true, Kind = ProcessingDeviceKindDto.Gpu, Name = "NVIDIA GeForce RTX 5070 Ti", TotalMemoryMiB = 16303 });
         status.Models.Select(model => model.Id).ShouldBe(["acestep-v15-turbo", "acestep-vae", "qwen3-embedding-0.6b", "acestep-5hz-lm-1.7b"]);
         status.DownloadBytesNeeded.ShouldBe(4_790_000_000L + 340_000_000 + 1_190_000_000 + 3_710_000_000);
-        status.Voice.State.ShouldBe(GenerationAvailabilityDto.NotInstalled);
+        status.Voice.State.ShouldBe(GenerationAvailabilityDto.Ready);
         await ContractAssert.MatchesAsync(response, "getGenerationStatus");
     }
 
