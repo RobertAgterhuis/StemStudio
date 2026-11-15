@@ -113,8 +113,8 @@ public sealed partial class BackendContractTests
         served.ShouldBe(contract, ignoreOrder: true);
     }
 
-    // Contract 1.2.0 operations that the backend implements in feature 002 (tasks T054, T068); remove an entry once it is served.
-    private static readonly string[] PendingDetailOperations = ["startDetail", "cancelDetail", "getDetailStem"];
+    // Contract 1.2.0 operations that the backend implements in feature 002 (task T068); remove an entry once it is served.
+    private static readonly string[] PendingDetailOperations = ["startDetail", "cancelDetail"];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);
