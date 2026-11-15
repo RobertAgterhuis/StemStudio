@@ -61,13 +61,15 @@ class Source:
     chosen: list[ParentStemName] = field(default_factory=list)
 
     released: int = 0
+    kept: list[GpuNeed | None] = field(default_factory=list)
 
     def choose(self, parent: ParentStemName) -> ModelChoice:
         self.chosen.append(parent)
         return self.choices[parent]
 
-    def release_gpu(self) -> None:
+    def release_gpu(self, keep: GpuNeed | None = None) -> None:
         self.released += 1
+        self.kept.append(keep)
 
 
 def choice(

@@ -80,13 +80,13 @@ def test_a_fitting_step_runs_on_the_gpu_under_a_memory_fraction() -> None:
     ]
 
 
-def test_too_little_free_memory_runs_the_step_on_the_cpu_without_touching_cuda() -> None:
+def test_too_little_free_memory_runs_the_step_on_the_cpu_without_running_on_cuda() -> None:
     runner, memory = _gpu(free=9_700)
     steps = Steps()
 
     result, use = runner.run(steps, MEGA)
 
-    assert (result, steps.devices, memory.events) == ("result on cpu", ["cpu"], [])
+    assert (result, steps.devices, memory.events) == ("result on cpu", ["cpu"], ["empty_cache"])
     assert use == DeviceUse(
         kind="cpu", torch_device="cpu",
         fallback_reason=(
@@ -200,6 +200,68 @@ def test_the_lease_is_released_when_a_step_fails() -> None:
     assert not lease.held
     with lease.hold():
         assert lease.held
+
+
+def _reclaiming(free: list[int]) -> tuple[GpuRunner, FakeMemory, list[str]]:
+    """A GPU runner whose NVML reads ``free`` in turn and whose reclaimer is recorded."""
+    memory = FakeMemory()
+    tools = GpuTools(nvml=FakeNvml(total=16_000, free=free), memory=memory, lease=GpuLease())
+    runner = GpuRunner(GPU, tools)
+    reclaimed: list[str] = []
+    runner.reclaim_with(lambda need: memory.events.append(f"reclaim {need.label}"))
+    return runner, memory, reclaimed
+
+
+def test_a_short_step_first_reclaims_the_workers_own_gpu_models_and_then_fits() -> None:
+    runner, memory, _ = _reclaiming(free=[1_835, 12_000])
+    steps = Steps()
+
+    result, use = runner.run(steps, MEGA)
+
+    assert (result, use, steps.devices) == ("result on cuda", GPU_USE, ["cuda"])
+    assert memory.events == [
+        "reclaim Mega 53-stem", "empty_cache",
+        f"fraction {(12_000 - 256) / 16_000:.6f}", "fraction 1.000000",
+    ]  # fmt: skip
+
+
+def test_a_step_that_still_does_not_fit_after_reclaiming_runs_on_the_cpu() -> None:
+    runner, memory, _ = _reclaiming(free=[1_835, 3_000])
+    steps = Steps()
+
+    result, use = runner.run(steps, MEGA)
+
+    assert (result, steps.devices) == ("result on cpu", ["cpu"])
+    assert use.fallback_reason == (
+        "Not enough free GPU memory for Mega 53-stem (needs 10600 MiB, 3000 MiB free); "
+        "ran on the CPU."
+    )
+    assert memory.events == ["reclaim Mega 53-stem", "empty_cache"]
+
+
+def test_the_reclaim_is_not_needed_when_the_step_fits() -> None:
+    runner, memory, _ = _reclaiming(free=[12_000])
+    runner.run(Steps(), MEGA)
+    assert not any(event.startswith("reclaim") for event in memory.events)
+
+
+def test_a_failing_reclaimer_is_logged_and_the_step_still_completes(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    runner, _ = _gpu(free=1_000)
+
+    def broken(need: GpuNeed) -> None:
+        raise RuntimeError("release failed")
+
+    runner.reclaim_with(broken)
+    assert runner.run(Steps(), MEGA)[0] == "result on cpu"
+    assert "Releasing cached GPU models failed" in caplog.text
+
+
+def test_cpu_runners_accept_a_reclaimer_and_never_call_it() -> None:
+    runner = CpuRunner()
+    runner.reclaim_with(lambda need: pytest.fail("a CPU worker has no GPU models"))
+    assert runner.run(Steps(), MEGA)[0] == "result on cpu"
 
 
 def test_release_frees_the_cached_gpu_memory() -> None:

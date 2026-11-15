@@ -20,6 +20,7 @@ def _devices(runner: FakeDeviceRunner, runs: int) -> list[tuple[str, DeviceUse]]
 
 def test_the_cpu_fake_runs_on_the_cpu() -> None:
     runner = FakeDeviceRunner("cpu")
+    runner.reclaim_with(lambda need: None)
     assert isinstance(runner, DeviceRunner)
     assert runner.info == CPU_DEVICE
     assert _devices(runner, 1) == [("cpu", DeviceUse(kind="cpu", torch_device="cpu"))]

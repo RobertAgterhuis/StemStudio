@@ -71,6 +71,19 @@ def test_release_gpu_drops_only_the_gpu_instances(tmp_path: Path) -> None:
     assert [device for _, device in loaded] == ["cpu", "cuda", "cuda"]
 
 
+def test_release_gpu_can_keep_the_model_of_the_next_step(tmp_path: Path) -> None:
+    loaded: list[tuple[str, str]] = []
+    provider = _provider(tmp_path, loaded)
+    kara = provider.load("uvr-mdxnet-kara-2", "cuda")
+    provider.load("mvsep-mega-53", "cuda")
+
+    provider.release_gpu(keep=GPU_NEEDS["uvr-mdxnet-kara-2"])
+
+    assert provider.load("uvr-mdxnet-kara-2", "cuda") is kara
+    provider.load("mvsep-mega-53", "cuda")
+    assert [name for name, _ in loaded].count("mvsep_mega_model_bs_roformer_53_stems_v1.ckpt") == 2
+
+
 def test_the_registry_needs_are_the_measured_ones() -> None:
     assert {
         "mdx23c-drumsep-6s": GpuNeed("MDX23C DrumSep", 4_400),
@@ -225,9 +238,12 @@ def test_the_registry_source_uses_the_model_needs() -> None:
 
 def test_release_gpu_reaches_the_model_source(tmp_path: Path) -> None:
     source = Source({})
-    DetailPipeline(source, RecordingRunner()).release_gpu()
-    assert source.released == 1
-    FakeSource(0.0).release_gpu()
+    pipeline = DetailPipeline(source, RecordingRunner())
+    pipeline.release_gpu()
+    pipeline.release_gpu(keep=NEED)
+    assert source.released == 2
+    assert source.kept == [None, NEED]
+    FakeSource(0.0).release_gpu(keep=NEED)
 
 
 def test_fake_steps_run_through_the_runner_with_the_fake_need(tmp_path: Path) -> None:
