@@ -162,7 +162,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 ## Phase 6: Polish (inside the wave, per owner)
 
 - [ ] T051 [P] [audio-ingest] Refactor to SIG limits, docstrings, `@pytest.mark.integration` live-service smoke `worker/tests/metadata/test_live_services.py` (one request per service, reference songs; deselected by default), HO:polish with coverage of `metadata`, `ingest`
-- [ ] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
+- [x] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
 - [ ] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [ ] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
 - [ ] T055 [P] [qa] Traceability matrix update, HO:polish
