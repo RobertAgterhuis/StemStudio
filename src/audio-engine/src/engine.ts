@@ -153,6 +153,11 @@ export class Engine implements AudioEngine {
     this.parts.mixer.setChannel(name, settings);
   }
 
+  /** {@inheritDoc AudioEngine.setExpanded} */
+  public setExpanded(): Promise<void> {
+    return Promise.reject(new Error('setExpanded is not implemented yet (contract 2.0.0, tasks T058-T059)'));
+  }
+
   /** {@inheritDoc AudioEngine.setMaster} */
   public setMaster(volume: number): void {
     this.alive();

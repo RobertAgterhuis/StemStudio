@@ -61,7 +61,9 @@ export class Mixer {
    * @returns The meter tap of the target, or undefined when the stem is not loaded.
    */
   public analyser(target: MeterTarget): AnalyserNode | undefined {
-    return target === 'master' ? this.masterAnalyser : this.channels.get(target)?.analyser;
+    // Detail channel ids (`<parent>.<detail>`, contract 2.0.0) are not loaded until groups exist.
+    const channels: ReadonlyMap<string, Channel> = this.channels;
+    return target === 'master' ? this.masterAnalyser : channels.get(target)?.analyser;
   }
 
   /**
