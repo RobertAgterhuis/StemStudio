@@ -113,7 +113,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T027 [US1] [backend] Implement `Api/Artwork/{ArtworkFileStore,ArtworkService,ArtworkEndpoints}.cs` and the sync hook in `Sync/TrackJobApplier.cs` to pass T026
 - [x] T028 [P] [US1] [frontend] Failing bUnit tests: `TrackArtwork` renders `img` with `loading="lazy"`, `decoding="async"`, width/height and alt text "Cover of <title>", or `ArtworkPlaceholder` (initials, colour from a stable title hash, `aria-hidden` decoration + text alternative); `track-thumb-<id>`, `track-cover`, `mixer-cover` with `data-artwork-source`; broken image -> placeholder (`onerror`) (FR-006, US1-1..5)
 - [x] T029 [US1] [frontend] Implement `Components/Shared/{TrackArtwork,ArtworkPlaceholder}.razor`, the thumbnail column in `Tracks.razor`, the cover on `TrackDetail` and in the mixer header (004 layout), help topic `artwork` to pass T028
-- [ ] T030 [US1] [qa] Author `e2e/tests/artwork.spec.ts` (fake stack `STEMSTUDIO_FAKE_ONLINE=not-found`): YouTube/Spotify/upload-with-cover/WAV sources and their `data-artwork-source`; thumbnail visible in the library; seed script `e2e/support/seed-artwork.ts` and a timing assertion for 100 rows (SC-001, SC-003)
+- [x] T030 [US1] [qa] Author `e2e/tests/artwork.spec.ts` (fake stack `STEMSTUDIO_FAKE_ONLINE=not-found`): YouTube/Spotify/upload-with-cover/WAV sources and their `data-artwork-source`; thumbnail visible in the library; seed script `e2e/support/seed-artwork.ts` and a timing assertion for 100 rows (SC-001, SC-003)
 
 **Checkpoint**: HO:us1.
 
@@ -136,7 +136,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T040 [US2] [backend] Implement `Api/Metadata/BandInfoEndpoints.cs` to pass T039
 - [x] T041 [P] [US2] [frontend] Failing bUnit tests: `BandInfoPanel` per status (searching skeleton, found facts, notFound + correct, failed + retry, disabled + help link); members row only for groups; `WikipediaAttribution` renders title link, "Wikipedia contributors" history link, "CC BY-SA 4.0" licence link and "Excerpt, unmodified"; `band-info-sources`; `CorrectMetadataDialog` validation and submit; journey levels (beginner: name, type, years, summary; advanced/expert: all facts and sources); `mixer-album` text (FR-008, FR-009, FR-015)
 - [x] T042 [US2] [frontend] Implement `Components/BandInfo/*`, `IStemStudioApiClient.{GetBandInfoAsync, LookupMetadataAsync}`, `band-info-open` on track page and mixer, help topics `band-info` and `online-lookups`, legal notice sentence (FR-014) to pass T041
-- [ ] T043 [US2] [qa] Author `e2e/tests/band-info.spec.ts` (fake stack, modes `found`, `not-found`, `failed`, `off`): panel content, attribution links, retry, correction flow updates the panel and cover, disabled notice
+- [x] T043 [US2] [qa] Author `e2e/tests/band-info.spec.ts` (fake stack, modes `found`, `not-found`, `failed`, `off`): panel content, attribution links, retry, correction flow updates the panel and cover, disabled notice
 
 **Checkpoint**: HO:us2.
 
@@ -153,7 +153,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T047 [US3] [backend] Implement in `Api/Artwork/*` to pass T046
 - [x] T048 [P] [US3] [frontend] Failing bUnit tests: upload input (accept JPEG/PNG/WebP, client-side size check), progress, `artwork-error`, `artwork-reset` only when the source is `user`; advanced/expert levels only (FR-013, FR-015)
 - [x] T049 [US3] [frontend] Implement the artwork actions on the track detail page to pass T048
-- [ ] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
+- [x] T050 [US3] [qa] Author `artwork.spec.ts` "own picture": upload a generated PNG, check `data-artwork-source="user"` in the library, reset, invalid file error
 
 **Checkpoint**: HO:us3.
 
@@ -165,7 +165,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T052 [P] [stem-separation] Refactor, docstrings, HO:polish with coverage of `jobs`, `api`
 - [x] T053 [P] [backend] Refactor, XML docs, HO:polish with Domain/Persistence/Api coverage
 - [x] T054 [P] [frontend] Accessibility (alt texts, focus order in the panel, contrast in both 004 themes, keyboard access to `band-info-open`), help topic review, HO:polish
-- [ ] T055 [P] [qa] Traceability matrix update, HO:polish
+- [x] T055 [P] [qa] Traceability matrix update, HO:polish
 - [x] T056 [P] [devops] Validate compose/CI changes (`docker compose config -q`, `actionlint`), HO:polish
 - [ ] T057 [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
 
@@ -173,12 +173,13 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T058 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green
-- [ ] T059 [CTO] Playwright default suite + `artwork`/`band-info` specs on the fake stack (retries 0)
-- [ ] T060 [CTO] `docs/THIRD-PARTY-LICENSES.md`: tinytag 2.3.2 (MIT); Pillow 13.0.0 (MIT-CMU), httpx 0.28.1 (BSD-3), rapidfuzz 3.14.6 (MIT) as direct dependencies; new section "Online data services" (MusicBrainz CC0 core data, Cover Art Archive no stated image licence, Wikidata CC0, Wikipedia CC BY-SA 4.0 with attribution) (FR-014)
-- [ ] T061 [CTO] README: online lookups (what is sent, User-Agent, `STEMSTUDIO_CONTACT_URL`, how to switch off), personal-practice notice incl. pictures and band texts
-- [ ] T062 [CTO] Real-service validation on the reference machine (quickstart A4, A5, A7, A8, A10; `pytest -m integration tests/metadata/test_live_services.py`); record in `docs/STATUS.md`
-- [ ] T063 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [x] T058 [CTO] Merge the owner branches; full build, lint, unit + coverage gates green (2026-11-15: merged on `005-007-artwork-export`; `scripts/test-all.ps1` all steps green in the integration run and again at close-out)
+- [x] T059 [CTO] Playwright default suite + `artwork`/`band-info` specs on the fake stack (retries 0) (2026-11-15: qa integration run, retries 0: legacy 66/66, ux 74/74, `test:artwork` in all four fake online modes; HO:qa-005-007-integration)
+- [x] T060 [CTO] `docs/THIRD-PARTY-LICENSES.md`: tinytag 2.3.2 (MIT); Pillow 13.0.0 (MIT-CMU), httpx 0.28.1 (BSD-3), rapidfuzz 3.14.6 (MIT) as direct dependencies; new section "Online data services" (MusicBrainz CC0 core data, Cover Art Archive no stated image licence, Wikidata CC0, Wikipedia CC BY-SA 4.0 with attribution) (FR-014) (2026-11-15)
+- [ ] T061 [CTO] README: online lookups (what is sent, User-Agent, `STEMSTUDIO_CONTACT_URL`, how to switch off), personal-practice notice incl. pictures and band texts (OPEN 2026-11-15: README section not written yet; the manuals cover it)
+- [ ] T062 [CTO] Real-service validation on the reference machine (quickstart A4, A5, A7, A8, A10; `pytest -m integration tests/metadata/test_live_services.py`); record in `docs/STATUS.md` (PARTLY 2026-11-15: `test_live_services.py` 4/4 passed with the generic User-Agent after the ISRC `inc` fix; quickstart A4, A5, A7, A8, A10 on the real stack still open)
+- [x] T063 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR (2026-11-15: STATUS updated. The formal `/speckit-analyze` pass was NOT run; consistency is covered by the contract tests and the E2E suites. No PR opened: the branch is handed to the owner)
+- [x] T063a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes (2026-11-15: chapters 7 and tech manual 2/3/6/7/8 updated, PDFs rebuilt, `check.mjs` passes)
 
 ---
 
@@ -228,4 +229,5 @@ can ship alone.
 - [ ] No personal data in requests (test over recorded requests); lookups can be switched off; failures shown with reasons; nothing guessed (V)
 - [ ] No secrets; analyzers/formatters/linters clean; public APIs documented
 - [ ] Help topics `artwork`, `band-info`, `online-lookups` present (004 framework)
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

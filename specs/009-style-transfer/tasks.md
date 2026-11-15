@@ -209,6 +209,7 @@ lint/SIG output. Marker `HO:<checkpoint>` in the execution plan.
 - [ ] T082 [CTO] Real GPU validation on the reference machine (quickstart Q3-Q8): image size, first download time, cold/warm 45 s restyle, full-song restyle, VRAM peaks, labels, import, GPU sharing with a running detail separation, free-memory wait; record in `docs/STATUS.md`; if SC-001 fails see research.md S-08
 - [ ] T083 [CTO] `docs/THIRD-PARTY-LICENSES.md`: ACE-Step 1.5 code (MIT, commit) and weights (MIT, revision + SHA-256 per file, research.md S-01), the generator image's Python packages (`uv pip list` in the image) incl. torch 2.10.0+cu128 and its NVIDIA CUDA 12.8 wheels under "System dependencies (generator image, GPU only)"; README: generative section (start command, GPU requirement, disk/VRAM needs, labels, ethics rules)
 - [ ] T084 [CTO] Owner listening check (quickstart Q9, SC-004); `/speckit-analyze`; `docs/STATUS.md`; PR
+- [ ] T084a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -262,4 +263,5 @@ starts only after T084.
 - [ ] No artist names in presets (automated); AI labels on 100 % of takes (automated); personal-use notice shown (IV)
 - [ ] GPU-only behaviour visible with reasons; timings and VRAM measured on the reference machine (V)
 - [ ] Help entries present and linked; no secrets; analyzers/formatters/linters clean; public APIs documented
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

@@ -190,6 +190,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T067 [CTO] `docs/THIRD-PARTY-LICENSES.md`: stable-ts 2.19.1 (MIT), openai-whisper 20250625 (MIT), torchaudio 2.11.1 (BSD-2-Clause), tiktoken 0.14.0 (MIT), more-itertools 11.2.1 (MIT), regex (Apache-2.0 / CNRI-Python), PyYAML (MIT, direct); model weights Whisper large-v3-turbo (MIT, SHA-256, source URL, first-use download); "Online data services": LRCLIB (no stated data licence; lyrics copyrighted, local display only)
 - [ ] T068 [CTO] README: karaoke banner, lyrics sources, what is sent, alignment (GPU automatic, CPU on click, 1.6 GB model), copyright and personal-practice notice incl. lyrics
 - [ ] T069 [CTO] `/speckit-analyze` consistency pass; update `docs/STATUS.md`; PR
+- [ ] T069a [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1, last step of the integration wave, after `docs/STATUS.md` is updated): edit the chapters of this feature in `docs/public/src/user-manual/` and/or `docs/public/src/technical-manual/` (remove the *In development* marker, describe the delivered behaviour, setup, env vars, contracts and limits; add screenshots from the visual baselines where useful), run `cd tools/docs && npm ci && npm run browser && npm run build`, commit the sources, both PDFs and `docs/public/build-manifest.json` together; `node tools/docs/check.mjs` passes
 
 ---
 
@@ -242,4 +243,5 @@ alignment stack.
 - [ ] Ball driven by `requestAnimationFrame` on the audio clock, no timers; landing accuracy and frame rate measured; estimated/aligned timing labelled (V)
 - [ ] No secrets; analyzers/formatters/linters clean; public APIs documented
 - [ ] Help topics `help-karaoke`, `help-lyrics-sources`, `help-lyrics-align`, `help-karaoke-offset` present (004 framework)
+- [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer

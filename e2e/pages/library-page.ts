@@ -72,11 +72,13 @@ export class LibraryPage {
     await expect(this.row(assetId)).toHaveCount(0);
   }
 
-  /** Duration in seconds the item's `<audio>` element reports once its metadata is loaded. */
+  /**
+   * Duration in seconds the item's `<audio>` element reports once its metadata is loaded. The
+   * players use `preload="none"` (a long list loads nothing up front), so the metadata is
+   * requested here the way pressing play would.
+   */
   async playerDuration(assetId: string): Promise<number> {
     const player = this.player(assetId);
-    // The rows use preload="none" (nothing loads until play); ask for the metadata only, as a
-    // press on play would, without starting playback.
     await player.evaluate((el) => {
       const audio = el as HTMLAudioElement;
       audio.preload = 'metadata';

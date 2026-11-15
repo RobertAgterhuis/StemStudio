@@ -153,15 +153,18 @@ def test_metallica_cover_comes_from_the_cover_art_archive() -> None:
 def test_kevin_macleod_reference_flow_by_isrc() -> None:
     reference = load("kevin-macleod")
     router = router_for(reference)
-    isrc_reply = search_reply(reference, MONKEYS, "Monkeys Spinning Monkeys", 125000)
-    router.add(MB_HOST, "/ws/2/isrc/USUAN1400011", isrc_reply)
     query = MetadataQuery(title="Monkeys Spinning Monkeys", artist="Kevin", isrc="USUAN1400011")
 
     result = _lookup(router).lookup(query, Stages()).result
 
     assert result.recording is not None
-    assert (result.recording.matched_by, result.warnings) == ("isrc", [])
+    assert (result.recording.mbid, result.recording.matched_by) == (MONKEYS, "isrc")
+    assert result.warnings == []
+    assert result.release_group is not None
+    assert result.release_group.model_dump(by_alias=True) == reference["expected"]["releaseGroup"]
     _check_artist(result, reference["expected"])
+    isrc = next(r for r in router.requests if r.url.path.startswith("/ws/2/isrc/"))
+    assert "release-groups" not in isrc.url.params["inc"]
 
 
 def test_requests_carry_the_user_agent_and_only_the_allowed_fields() -> None:

@@ -98,6 +98,27 @@
   color: var(--ss-color-warning);
 }
 
+/* Long names and track titles (hashes of uploads) wrap instead of widening the page (WCAG 1.4.10). */
+.ss-asset-table td,
+.ss-library .ss-library-tools .ss-select {
+  overflow-wrap: anywhere;
+}
+
+.ss-library .ss-library-tools,
+.ss-library .ss-library-tools .ss-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Column headings, status words and dates are short: never break inside a word ("Statu s").
+   Only the long names and titles above wrap anywhere; failure reasons wrap at spaces. */
+.ss-asset-table th,
+.ss-asset-status,
+.ss-asset-table time {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
 @media (max-width: 48rem) {
   /* Reflow at 320 CSS px (WCAG 1.4.10): a long track title in the filter must not widen the page. */
   .ss-library-tools .ss-select {
@@ -109,8 +130,20 @@
     display: none;
   }
 
+  .ss-asset-table,
+  .ss-asset-table tbody,
   .ss-asset-table tr,
   .ss-asset-table td {
     display: block;
+  }
+
+  .ss-asset-table audio {
+    max-width: 100%;
+  }
+
+  /* A percentage width lets the track filter shrink below its longest option. */
+  .ss-library .ss-library-tools,
+  .ss-library .ss-library-tools .ss-select {
+    width: 100%;
   }
 }

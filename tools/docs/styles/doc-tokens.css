@@ -1,0 +1,28 @@
+/*
+ * Print tokens of the public manuals. Every value maps onto an app design token from
+ * src/StemStudio.Web/wwwroot/css/tokens.css (loaded first, light theme "day session").
+ * No literal colours here or in print.css (guard: tools/docs/check.mjs).
+ */
+:root {
+  --doc-paper: var(--ss-color-raised);
+  --doc-cover: var(--ss-color-base);
+  --doc-panel: var(--ss-color-surface);
+  --doc-well: var(--ss-color-sunken);
+  --doc-ink: var(--ss-color-ink);
+  --doc-muted: var(--ss-color-muted);
+  --doc-rule: var(--ss-color-divider);
+  --doc-border: var(--ss-color-control-border);
+  --doc-accent: var(--ss-color-focus);
+  --doc-ok: var(--ss-color-success);
+  --doc-warn: var(--ss-color-warning);
+  --doc-danger: var(--ss-color-danger);
+  --doc-on-state: var(--ss-color-on-state);
+  --doc-strand-root: var(--ss-stem-none);
+
+  --doc-page-margin-top: 20mm;
+  --doc-page-margin-side: 18mm;
+  --doc-page-margin-bottom: 18mm;
+  --doc-body-size: 10pt;
+  --doc-small-size: 8.5pt;
+  --doc-code-size: 8.5pt;
+}

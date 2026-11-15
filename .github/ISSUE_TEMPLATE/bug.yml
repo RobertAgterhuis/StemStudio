@@ -1,0 +1,17 @@
+name: Bug report
+description: Something does not work as described in the user manual
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened, description: Steps to reproduce and what you expected }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Commit or version, description: "git rev-parse --short HEAD" }
+  - type: dropdown
+    id: device
+    attributes: { label: Processing device, options: [CPU, NVIDIA GPU] }
+  - type: textarea
+    id: logs
+    attributes: { label: Logs, description: Relevant container logs (remove any personal data), render: text }

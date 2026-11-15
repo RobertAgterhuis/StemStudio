@@ -53,8 +53,8 @@ test.describe('library management', { tag: '@library' }, () => {
     const copy = uniqueWavCopy(fixturePath('click_90bpm_3-4_12s.wav'), `${runId()}-library-${testInfo.project.name}`);
     const track = await api.ensureFileCompleted(copy, fakeJobTimeoutMs);
     const item = await saveRaw(assetsApi, track, 'drums', 'flac');
-    // A queued or running detail phase blocks the delete (002 FR-016, 409); the fake stack starts one by itself.
-    await api.waitForDetail(track.id, ['completed', 'failed', 'cancelled', 'none'], detailPhaseTimeoutMs);
+    // A new import starts its detail phase (002); a track cannot be deleted while it is active.
+    await api.stopDetail(track.id, detailPhaseTimeoutMs);
     expect(await api.deleteTrack(track.id)).toBe(204);
 
     await library.goto();

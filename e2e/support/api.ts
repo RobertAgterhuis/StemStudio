@@ -226,6 +226,15 @@ export class StemStudioApi {
     return json<TrackDto>(await this.request.post(`/api/tracks/${id}/detail/cancel`));
   }
 
+  /**
+   * Cancels the track's detail phase when it is queued or running and waits until it has ended,
+   * so the track can be deleted (a new import starts its detail phase, feature 002).
+   */
+  async stopDetail(id: string, timeoutMs: number): Promise<TrackDto> {
+    if (['queued', 'running'].includes((await this.getTrack(id)).detail.status)) await this.cancelDetail(id);
+    return this.waitForDetail(id, ['none', 'completed', 'failed', 'cancelled'], timeoutMs);
+  }
+
   /** Polls until the track's detail phase has one of `statuses`; returns the track. */
   async waitForDetail(id: string, statuses: readonly DetailPhaseStatus[], timeoutMs: number): Promise<TrackDto> {
     const status = (): Promise<string> => this.getTrack(id).then((track) => track.detail.status);

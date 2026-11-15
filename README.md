@@ -1,5 +1,11 @@
 # StemStudio
 
+[![ci](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/ci.yml)
+[![pages](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/pages.yml/badge.svg)](https://github.com/RobertAgterhuis/StemStudio/actions/workflows/pages.yml)
+
+**Website: <https://robertagterhuis.github.io/StemStudio/>** (screens, feature status, manuals;
+rebuilt from this repository on every push to `main`).
+
 Practise along with your favourite songs. StemStudio imports a song (YouTube link, Spotify track
 link or a local MP3/WAV/FLAC file), splits it into instrument stems with
 [Demucs](https://github.com/adefossez/demucs), and gives you a mixer with a beat-synced
@@ -112,6 +118,15 @@ checked automatically by `tools/quality`. Contracts live in
 API and the worker, plus the audio-engine interop contract). Design decisions are recorded in
 [`docs/decisions/`](docs/decisions/).
 
+## Manuals
+
+- User manual: [`docs/public/StemStudio-User-Manual.pdf`](docs/public/StemStudio-User-Manual.pdf)
+- Technical manual: [`docs/public/StemStudio-Technical-Manual.pdf`](docs/public/StemStudio-Technical-Manual.pdf)
+
+Online lookups (MusicBrainz, Wikimedia) identify StemStudio with a contact URL; set
+`STEMSTUDIO_CONTACT_URL=https://github.com/RobertAgterhuis/StemStudio` (or your own public page)
+in the environment. Without it a generic User-Agent without personal data is used.
+
 ## Development and quality gates
 
 ```powershell
@@ -124,6 +139,9 @@ API and the worker, plus the audio-engine interop contract). Design decisions ar
   The report is in [`docs/quality/SIG-REPORT.md`](docs/quality/SIG-REPORT.md).
 - End-to-end: Playwright in [`e2e/`](e2e/) against the compose stack
   (see [`docs/testing/TEST-STRATEGY.md`](docs/testing/TEST-STRATEGY.md)).
+- Website: [`tools/site/`](tools/site/) generates [`site/`](site/) into `site/dist`;
+  [`.github/workflows/pages.yml`](.github/workflows/pages.yml) deploys it to GitHub Pages on every
+  push to `main`, and `node tools/site/check.mjs` (test-all and CI) validates it.
 - CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml); SonarQube settings in
   `sonar-project.properties` (the analysis runs only when a `SONAR_TOKEN` secret is configured).
 

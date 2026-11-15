@@ -722,6 +722,22 @@ STEMSTUDIO_FAKE_ONLINE=not-found docker compose up -d --build --wait
 (cd e2e && npx playwright test tests/panner-law.spec.ts tests/audio-check.spec.ts)
 ```
 
+### 12.5 Lessons from the 005/007 integration run
+
+- **Mode switches restart only the worker** (`docker compose up -d --no-deps worker` with the new
+  `STEMSTUDIO_FAKE_ONLINE`); the data volume stays, and stored lookup results stay with it.
+  `band-info.spec.ts` therefore imports a track of its own per run and mode
+  (`uniqueWavCopy(..., band-info-<mode>-<run id>)`), and the correction case waits for a title
+  unique to the run and browser, never for a status that an earlier run may already have stored.
+- **Item names are unique** (data-model 4.4: " (2)", " (3)", ...); specs that check a default
+  name accept the suffix, because the library persists across browsers and reruns.
+- **A new import starts its detail phase** (002), during which `DELETE /api/tracks/{id}` is 409;
+  specs that delete a fresh track call `api.stopDetail` first.
+- **Library players use `preload="none"`**; `LibraryPage.playerDuration` asks for the metadata
+  (`preload = "metadata"`, `load()`) the way pressing play would.
+- **Server-rendered option lists** (the "Selected channels" boxes) are awaited before they are
+  listed with `locator.all()`.
+
 ## 13. (006) Synced lyrics with karaoke ball
 
 Binding contracts: `specs/006-synced-lyrics-karaoke/contracts/` (worker 1.5.0, backend 1.6.0,

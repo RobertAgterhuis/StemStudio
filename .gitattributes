@@ -4,3 +4,5 @@
 *.wav binary
 *.mp3 binary
 *.flac binary
+*.pdf binary
+*.woff2 binary

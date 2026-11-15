@@ -7,7 +7,7 @@ the E2E specs `e2e/tests/band-info.spec.ts` and `artwork.spec.ts`, and the fixtu
 | File | What | Used by |
 |---|---|---|
 | `matching-cases.json` | 23 matching cases (research.md R-05, ADR-014 D4, SC-004): lookup input, optional raw YouTube fields (`source`, for the R-04 title cleaning), the MusicBrainz exchanges in request order, and the expected outcome (`found` with `recordingMbid`/`releaseGroupMbid`/`matchedBy`, `not-found`, or `failed`) | `test_matcher.py`, `test_musicbrainz.py`, `test_titles.py` (replay with `httpx.MockTransport`) |
-| `reference/metallica.json`, `reference/kevin-macleod.json` | The two reference artists (quickstart A4/A5): MusicBrainz artist (url-rels) and release group, Cover Art Archive exchanges (307 to archive.org for Load, 200 for Kevin MacLeod), Wikidata claims (P136, P527 + P580/P582, P571, P495, P856) and labels, Wikipedia REST summary; plus the `expected` ArtistInfo/ReleaseGroupInfo/WikipediaSummary | `test_coverart.py`, `test_wikidata.py`, `test_wikipedia.py`, `test_lookup.py` |
+| `reference/metallica.json`, `reference/kevin-macleod.json` | The two reference artists (quickstart A4/A5): MusicBrainz artist (url-rels) and release group (Kevin MacLeod also the ISRC lookup and the recording lookups that follow it), Cover Art Archive exchanges (307 to archive.org for Load, 200 for Kevin MacLeod), Wikidata claims (P136, P527 + P580/P582, P571, P495, P856) and labels, Wikipedia REST summary; plus the `expected` ArtistInfo/ReleaseGroupInfo/WikipediaSummary | `test_coverart.py`, `test_wikidata.py`, `test_wikipedia.py`, `test_lookup.py` |
 | `fake-provider.json` | Proposed behaviour table of the fake online provider (`STEMSTUDIO_FAKE_ONLINE` = `found`, `not-found`, `failed`, `off`) and the facts it returns in mode `found` | `metadata/fake.py` (005:T034) should return exactly these values; the E2E specs read their expectations from here |
 
 ## Provenance and licences
@@ -47,6 +47,17 @@ the earliest date; four 503 answers in a row (first try + 3 retries) fail the lo
 "Band information could not be retrieved; try again later.". `request.query` is the expected
 Lucene query; a replaying transport may match by `request.kind` and order only (escaping is
 pinned by case `lucene-special-characters`).
+
+## ISRC exchanges follow the real service
+
+MusicBrainz answers `GET /ws/2/isrc/<isrc>?inc=artist-credits+releases+release-groups` with
+**400** ("release-groups is not a valid inc parameter for the isrc resource"; live check of
+005:T062, 2026-11-15), and the `/isrc` answer with `inc=artist-credits+releases` lists the
+recordings without their releases. An `isrc-lookup` exchange therefore uses
+`inc=artist-credits+releases` and carries no `releases`; it is followed by one `recording-lookup`
+exchange per recording (`/ws/2/recording/<mbid>?inc=artist-credits+releases+release-groups`)
+that holds the releases with their release groups. `test_isrc_answers_carry_no_release_groups`
+enforces this.
 
 ## Changing the fixtures
 
