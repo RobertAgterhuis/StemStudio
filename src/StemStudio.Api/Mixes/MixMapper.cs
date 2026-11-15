@@ -63,7 +63,10 @@ public static class MixMapper
         };
     }
 
-    private static DetailChannelSettings ToDomain(DetailChannelSettingsDto channel) => new()
+    /// <summary>Maps detail channel settings.</summary>
+    /// <param name="channel">The DTO.</param>
+    /// <returns>Domain settings.</returns>
+    internal static DetailChannelSettings ToDomain(DetailChannelSettingsDto channel) => new()
     {
         Parent = channel.Parent,
         Stem = channel.Stem,
@@ -73,7 +76,10 @@ public static class MixMapper
         Solo = channel.Solo,
     };
 
-    private static ChannelSettings ToDomain(ChannelSettingsDto channel) =>
+    /// <summary>Maps channel settings.</summary>
+    /// <param name="channel">The DTO.</param>
+    /// <returns>Domain settings.</returns>
+    internal static ChannelSettings ToDomain(ChannelSettingsDto channel) =>
         new() { Stem = channel.Stem, Volume = channel.Volume, Pan = channel.Pan, Mute = channel.Mute, Solo = channel.Solo };
 
     private static MetronomeSettings ToDomain(MetronomeSettingsDto metronome) => new()

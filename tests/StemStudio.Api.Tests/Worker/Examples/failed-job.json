@@ -9,9 +9,15 @@
   "metadata": {
     "title": "Some Song",
     "artist": "Some Artist",
-    "sourceUrl": null
+    "sourceUrl": null,
+    "album": "Some Album",
+    "isrc": "GBAYE0601498",
+    "durationSeconds": null,
+    "lookupTitle": "Some Song",
+    "lookupArtist": "Some Artist"
   },
   "device": null,
+  "artwork": null,
   "createdAt": "2026-11-14T12:00:00Z",
   "updatedAt": "2026-11-14T12:00:20Z"
 }

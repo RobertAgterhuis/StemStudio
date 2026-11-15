@@ -21,6 +21,16 @@ public static class ApiProblems
             .GroupBy(error => Path(prefix, error.Field), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Select(error => error.Message).ToArray(), StringComparer.Ordinal));
 
+    /// <summary>422 validation problem: well-formed values outside their limits (backend 1.4.0 <c>UnprocessableRequest</c>).</summary>
+    /// <param name="errors">Messages per field.</param>
+    /// <returns>The result.</returns>
+    public static IResult Unprocessable(IDictionary<string, string[]> errors) => TypedResults.Problem(new HttpValidationProblemDetails(errors)
+    {
+        Type = "https://tools.ietf.org/html/rfc9110#section-15.5.21",
+        Title = "One or more validation errors occurred.",
+        Status = StatusCodes.Status422UnprocessableEntity,
+    });
+
     /// <summary>404 problem.</summary>
     /// <param name="detail">What was not found.</param>
     /// <returns>The result.</returns>

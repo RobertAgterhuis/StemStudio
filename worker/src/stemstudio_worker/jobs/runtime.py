@@ -1,22 +1,36 @@
-"""The running job subsystem: stores, reconciliation, scheduler thread and services."""
+"""The running job subsystem: stores, reconciliation, scheduler, lanes and services.
+
+Besides the priority scheduler it runs the light lanes (metadata, render) and the sweep timer.
+"""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.jobs.artwork import ArtworkCapture
 from stemstudio_worker.jobs.detail_ports import DetailPipelinePort
 from stemstudio_worker.jobs.detail_runner import DetailRunner
 from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
 from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.metadata_lane import DisabledLookup, MetadataLane
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
+from stemstudio_worker.jobs.render_service import NoLibrary, NoRenderer, RenderService
 from stemstudio_worker.jobs.runner import JobContext, JobRunner
 from stemstudio_worker.jobs.scheduler import PriorityScheduler, SchedulerHooks
 from stemstudio_worker.jobs.service import JobService
 from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.ports import PipelineAdapters
+from stemstudio_worker.jobs.sweeper import SWEEP_INTERVAL_SECONDS, Sweeper
+from stemstudio_worker.jobs.user_artwork import UserArtworkStore
+from stemstudio_worker.ports import (
+    ImageNormalizer,
+    LibraryReader,
+    MetadataLookup,
+    PipelineAdapters,
+    RenderExecutor,
+)
 from stemstudio_worker.schemas import CPU_DEVICE, DeviceInfo
 
 _STOP_TIMEOUT_SECONDS = 5.0
@@ -45,12 +59,78 @@ class DeviceHooks:
 
 
 @dataclass(frozen=True, slots=True)
+class OnlineParts:
+    """The adapters of feature 005 (built by the composition root from ``metadata``).
+
+    Attributes:
+        normalizer: Normalises source pictures ("Saving cover"); None: jobs get no picture.
+        lookup: Looks songs up for metadata jobs; None: every metadata job is ``disabled``.
+    """
+
+    normalizer: ImageNormalizer | None = None
+    lookup: MetadataLookup | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RenderParts:
+    """The adapters of feature 007 (built by the composition root from ``render``).
+
+    Attributes:
+        executor: Renders library files into one audio file.
+        library: Read-only library access; its ``status()`` is ``Health.library``.
+    """
+
+    executor: RenderExecutor = field(default_factory=NoRenderer)
+    library: LibraryReader = field(default_factory=NoLibrary)
+
+
+@dataclass(frozen=True, slots=True)
+class Lanes:
+    """The light lanes beside the separation scheduler, their stores and the sweep timer.
+
+    Attributes:
+        metadata: The metadata job lane (feature 005).
+        artwork: Normalised user pictures, kept for one hour (feature 005).
+        normalizer: The picture normaliser of ``POST /v1/artwork``; None when unavailable.
+        render: The render job lane (feature 007).
+        library: The library reader (``Health.library``).
+        sweeper: Hourly removal of expired job files.
+    """
+
+    metadata: MetadataLane
+    artwork: UserArtworkStore
+    normalizer: ImageNormalizer | None
+    render: RenderService
+    library: LibraryReader
+    sweeper: Sweeper
+
+    @classmethod
+    def start(cls, paths: DataPaths, parts: "WorkerParts", clock: Clock) -> "Lanes":
+        """Start the metadata and render lanes (after their restart handling) and the sweeper."""
+        online, render_parts = parts.online, parts.render
+        metadata = MetadataLane.start(paths, online.lookup or DisabledLookup(), clock)
+        render = RenderService.start(paths, render_parts.executor, clock)
+        artwork = UserArtworkStore(paths, clock)
+        sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, [metadata.sweep, artwork.sweep, render.sweep])
+        sweeper.start()
+        return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper)
+
+    def stop(self, timeout: float) -> None:
+        """Stop the sweep timer and the lane threads."""
+        self.sweeper.stop(timeout)
+        self.metadata.stop(timeout)
+        self.render.stop(timeout)
+
+
+@dataclass(frozen=True, slots=True)
 class WorkerParts:
-    """What the job subsystem runs: pipeline adapters, detail pipeline and device hooks."""
+    """What the job subsystem runs: adapters, detail pipeline, device hooks, online parts."""
 
     adapters: PipelineAdapters
     pipeline: DetailPipelinePort
     devices: DeviceHooks = DeviceHooks()
+    online: OnlineParts = OnlineParts()
+    render: RenderParts = RenderParts()
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:
@@ -76,6 +156,7 @@ class WorkerRuntime:
         scheduler: The priority scheduler with its worker thread.
         service: Creates (or reuses) jobs.
         detail_service: Creates, reads and cancels detail jobs.
+        lanes: The metadata lane and the sweep timer.
         device: The worker's device from the start-up probe.
     """
 
@@ -87,6 +168,7 @@ class WorkerRuntime:
     scheduler: PriorityScheduler
     service: JobService
     detail_service: DetailService
+    lanes: Lanes
     device: DeviceInfo = CPU_DEVICE
 
     @classmethod
@@ -106,18 +188,22 @@ class WorkerRuntime:
         service = JobService(store, scheduler.submit, clock)
         detail_service = DetailService(context, scheduler.submit_detail)
         scheduler.start()
+        lanes = Lanes.start(paths, parts, clock)
         return cls(settings, parts.adapters, paths, store, context.details, scheduler, service,
-                   detail_service, parts.devices.info)  # fmt: skip
+                   detail_service, lanes, parts.devices.info)  # fmt: skip
 
     def stop(self) -> None:
         """Stop the worker thread; a job still running is reconciled at the next start."""
+        self.lanes.stop(_STOP_TIMEOUT_SECONDS)
         self.scheduler.stop(_STOP_TIMEOUT_SECONDS)
 
 
 def _scheduler(context: DetailContext, parts: WorkerParts) -> PriorityScheduler:
     """The scheduler over the standard and detail runners of ``context``."""
     job_context = JobContext(context.jobs, context.paths, context.clock, parts.devices.info)
-    runner = JobRunner(job_context, parts.adapters)
+    normalizer = parts.online.normalizer
+    capture = None if normalizer is None else ArtworkCapture(normalizer)
+    runner = JobRunner(job_context, parts.adapters, capture)
     details = DetailRunner(context, parts.pipeline)
     hooks = SchedulerHooks(on_yield=details.waiting, on_idle=parts.devices.on_idle)
     return PriorityScheduler(runner.process, details.step, hooks)

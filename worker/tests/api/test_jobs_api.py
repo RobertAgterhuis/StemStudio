@@ -45,7 +45,10 @@ def test_health_reports_fake_separator(api: Api) -> None:
             "freeMemoryMiB": None,
             "reason": None,
         },
-        "contractVersion": "1.2.0",
+        "onlineLookups": True,
+        "library": {"readable": True, "reason": None},
+        "lanes": {"render": {"queued": 0, "running": False}},
+        "contractVersion": "1.4.0",
     }
 
 
@@ -456,7 +459,13 @@ def test_youtube_job_and_result_carry_the_downloaded_title(api: Api) -> None:
     job = api.client.get(f"/v1/jobs/{job_id}").json()
     result = api.client.get(f"/v1/jobs/{job_id}/result").json()
 
-    expected = {"title": FETCHED_TITLE, "artist": FETCHED_ARTIST, "sourceUrl": YOUTUBE}
+    expected = {
+        "title": FETCHED_TITLE,
+        "artist": FETCHED_ARTIST,
+        "sourceUrl": YOUTUBE,
+        "durationSeconds": 0.2,
+        **dict.fromkeys(("album", "isrc", "lookupTitle", "lookupArtist")),
+    }
     assert job["metadata"] == result["metadata"] == expected
 
 

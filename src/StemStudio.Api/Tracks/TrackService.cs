@@ -28,7 +28,30 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
     public async Task<IResult> GetAsync(Guid id, CancellationToken cancellationToken)
     {
         var track = await tracks.FindAsync(id, cancellationToken);
-        return track is null ? NotFound(id) : TypedResults.Ok(TrackMapper.ToDto(track));
+        if (track is null)
+        {
+            return NotFound(id);
+        }
+
+        await ScheduleOwnLookupAsync(track, cancellationToken);
+        return TypedResults.Ok(TrackMapper.ToDto(track));
+    }
+
+    /// <summary>
+    /// Schedules the lookup of a completed track that was never looked up (FR-012: tracks imported before feature 005
+    /// get their lookup the first time they are opened) and saves.
+    /// </summary>
+    /// <param name="track">The track.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    public async Task ScheduleOwnLookupAsync(Track track, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        if (track.Status == TrackStatus.Completed && track.Metadata.Status == MetadataStatus.None)
+        {
+            track.ScheduleOwnLookup(Now);
+            await tracks.SaveAsync(cancellationToken);
+        }
     }
 
     /// <summary>Starts a new worker job for a failed track; the track stays failed when the worker cannot be reached.</summary>

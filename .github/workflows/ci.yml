@@ -28,7 +28,8 @@ env:
   UV_VERSION: "0.13.5"
   NODE_VERSION: "22"
   REDOCLY_CLI: "@redocly/cli@2.78.0"
-  CONTRACTS_DIR: specs/003-gpu-acceleration/contracts
+  # Feature 007 documents (worker 1.4.0, backend 1.5.0); they contain feature 005's unchanged.
+  CONTRACTS_DIR: specs/007-export-library/contracts
 
 jobs:
   dotnet:
@@ -234,6 +235,8 @@ jobs:
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$CONTRACTS_DIR/redocly.yaml"
           "$CONTRACTS_DIR/worker-api.openapi.yaml" "$CONTRACTS_DIR/backend-api.openapi.yaml"
+      - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
+        run: python3 "$CONTRACTS_DIR/generate_render_vectors.py" --check
 
   quality:
     name: Quality gate (SIG checks) and its own tests
@@ -290,13 +293,21 @@ jobs:
         run: npx playwright test --list
 
   cpu-image-guard:
-    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011)
+    name: CPU worker image has no NVIDIA/CUDA runtime (FR-008, ADR-011), no contact URL (005 FR-010)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build the default (CPU) worker image and run the guard (scripts/cpu_image_guard.py)
         run: scripts/check-cpu-image.sh --build stemstudio/worker:ci-cpu
+      - name: The worker image does not set STEMSTUDIO_CONTACT_URL (005 FR-010; only the user's own env may)
+        run: |
+          image_env="$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' stemstudio/worker:ci-cpu)"
+          if grep -q '^STEMSTUDIO_CONTACT_URL=' <<< "$image_env"; then
+            echo "::error::stemstudio/worker:ci-cpu sets STEMSTUDIO_CONTACT_URL; it must come from the user's environment only"
+            exit 1
+          fi
+          echo "stemstudio/worker:ci-cpu does not set STEMSTUDIO_CONTACT_URL"
 
   licences:
     name: Licence report (NuGet, Python, npm)
@@ -369,6 +380,8 @@ jobs:
           curl --fail --silent --show-error http://localhost:8081/health
           curl --fail --silent --show-error http://localhost:8080/health
           docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+      - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
+        run: scripts/check-library-mount.sh
       - name: Install Playwright browsers
         working-directory: e2e
         run: |

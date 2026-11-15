@@ -9,31 +9,11 @@
  * @packageDocumentation
  */
 import type { BrowserContextOptions, Page } from '@playwright/test';
+// The stored choice types are the web-interop module's own (one definition, no copy).
+import type { DensityPreference, Level, MotionPreference, ThemePreference } from '../../src/web-interop/src/types';
 import { webBaseUrl } from './env';
 
-/**
- * Allowed values of the record's choice fields (data-model.md 1.1). `level` is the experience level of
- * ui-test-ids 1.3.0 `app-shell[data-level]`; theme `system` follows `prefers-color-scheme`; density
- * `auto` = compact at Expert, comfortable otherwise; motion `system` follows `prefers-reduced-motion`.
- */
-export const preferenceChoices = {
-  level: ['beginner', 'advanced', 'expert'],
-  theme: ['system', 'light', 'dark'],
-  density: ['auto', 'comfortable', 'compact'],
-  motion: ['system', 'reduced'],
-} as const;
-
-/** Experience level. */
-export type Level = (typeof preferenceChoices.level)[number];
-
-/** Stored theme choice. */
-export type ThemePreference = (typeof preferenceChoices.theme)[number];
-
-/** Stored density choice. */
-export type DensityPreference = (typeof preferenceChoices.density)[number];
-
-/** Stored motion choice. */
-export type MotionPreference = (typeof preferenceChoices.motion)[number];
+export type { DensityPreference, Level, MotionPreference, ThemePreference };
 
 /** Ids of the five tours of design-spec.md 7. */
 export type TourId = 'import-basics' | 'track-basics' | 'mixer-basics' | 'mixer-advanced' | 'expert-keyboard';

@@ -122,23 +122,24 @@ def test_fetch_downloads_the_canonical_url_of_a_spotify_match(tmp_path: Path) ->
     assert factory.instances[0].extracted == [(VIDEO_URL, False)]
 
 
+PROGRESS_EVENTS: list[dict[str, Any]] = [
+    {"status": "downloading", "downloaded_bytes": 50, "total_bytes": 100},
+    {"status": "downloading", "downloaded_bytes": 20, "total_bytes_estimate": 100},
+    {"status": "downloading", "downloaded_bytes": 10},
+    {"status": "downloading", "downloaded_bytes": 300, "total_bytes": 200},
+    {"status": "error"},
+    {"status": "finished", "downloaded_bytes": 100, "total_bytes": 100},
+]
+
+
 def test_fetch_reports_non_decreasing_progress_ending_at_one(tmp_path: Path) -> None:
-    events = [
-        {"status": "downloading", "downloaded_bytes": 50, "total_bytes": 100},
-        {"status": "downloading", "downloaded_bytes": 20, "total_bytes_estimate": 100},
-        {"status": "downloading", "downloaded_bytes": 10},
-        {"status": "downloading", "downloaded_bytes": 300, "total_bytes": 200},
-        {"status": "error"},
-        {"status": "finished", "downloaded_bytes": 100, "total_bytes": 100},
-    ]
     recorder = Recorder()
 
-    _fetch(tmp_path, Factory({"hook_events": events}), recorder)
+    _fetch(tmp_path, Factory({"hook_events": PROGRESS_EVENTS}), recorder)
 
     fractions = [fraction for fraction, _ in recorder.events]
     assert fractions == sorted(fractions)
-    assert fractions[0] == 0.5
-    assert fractions[-1] == 1.0
+    assert (fractions[0], fractions[-1]) == (0.5, 1.0)
     assert all(0.0 <= fraction <= 1.0 for fraction in fractions)
     assert {stage for _, stage in recorder.events} == {DOWNLOAD_STAGE}
 

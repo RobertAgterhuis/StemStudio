@@ -1,0 +1,34 @@
+@* The picture of a track (feature 005, FR-006, ui-test-ids 1.4.0): a lazy, sized img when the track has one, else
+   (or when it fails to load) the placeholder. The test id sits on the img or the placeholder itself. *@
+@inject Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> Options
+
+@if (Track.Artwork is { } artwork && _brokenVersion != artwork.Version)
+{
+    <img class="@($"ss-art ss-art-{Variant.ToString().ToLowerInvariant()}")" src="@ArtworkDisplay.Url(Options.Value.PublicApiBaseUrl, artwork, Variant)"
+         alt="@($"Cover of {Track.Title}")" width="@ArtworkDisplay.Size(Variant)" height="@ArtworkDisplay.Size(Variant)" loading="lazy" decoding="async"
+         data-testid="@TestId" data-artwork-source="@ArtworkDisplay.SourceName(artwork)" data-help-id="@HelpId" @onerror="() => _brokenVersion = artwork.Version" />
+}
+else
+{
+    <ArtworkPlaceholder Title="@Track.Title" Variant="Variant" TestId="@TestId" HelpId="@HelpId" />
+}
+
+@code {
+    private string? _brokenVersion;
+
+    /// <summary>The track whose picture is shown.</summary>
+    [Parameter, EditorRequired]
+    public TrackDto Track { get; set; } = default!;
+
+    /// <summary>Cover (600 px) or thumbnail (160 px).</summary>
+    [Parameter]
+    public ArtworkVariant Variant { get; set; }
+
+    /// <summary>The <c>data-testid</c>: <c>track-cover</c>, <c>mixer-cover</c> or <c>track-thumb-&lt;id&gt;</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>Optional help marker (<c>artwork</c>).</summary>
+    [Parameter]
+    public string? HelpId { get; set; }
+}

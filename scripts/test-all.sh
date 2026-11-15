@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-# pytest + coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly),
-# quality gate (self-checks + SIG checks), public manuals check, fixture generator (checks + generation) and the E2E suite
+# pytest + coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+# quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
@@ -25,7 +25,7 @@ for arg in "$@"; do
   esac
 done
 REDOCLY=@redocly/cli@2.78.0
-CONTRACTS=specs/003-gpu-acceleration/contracts
+CONTRACTS=specs/007-export-library/contracts  # 007 documents contain 005's unchanged
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
@@ -66,6 +66,7 @@ step "web-interop test:coverage" src/web-interop npm run test:coverage
 step "web-interop build" src/web-interop npm run build
 step "contracts lint" . npx --yes "$REDOCLY" lint --config "$CONTRACTS/redocly.yaml" \
   "$CONTRACTS/worker-api.openapi.yaml" "$CONTRACTS/backend-api.openapi.yaml"
+step "render vectors check" . uv run --project worker --frozen python "$CONTRACTS/generate_render_vectors.py" --check
 step "quality ruff check" tools/quality uvq ruff check .
 step "quality ruff format" tools/quality uvq ruff format --check .
 step "quality mypy" tools/quality uvq mypy

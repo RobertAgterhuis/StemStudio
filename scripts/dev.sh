@@ -52,6 +52,16 @@ init_environment() {
   export StemStudio__ApiBaseUrl=http://localhost:8081
   export StemStudio__PublicApiBaseUrl=http://localhost:8081
   echo "Separator: $STEMSTUDIO_SEPARATOR (fake device $STEMSTUDIO_FAKE_DEVICE); data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
+  init_library_environment "$data_dir/api"
+}
+
+init_library_environment() {
+  # Feature 007: the worker reads the API data dir (it never writes there; the API is the only writer).
+  export STEMSTUDIO_LIBRARY_DIR="$1"
+  # Feature 005: STEMSTUDIO_ONLINE_LOOKUPS, STEMSTUDIO_CONTACT_URL, STEMSTUDIO_WIKIPEDIA_LANGUAGES and
+  # STEMSTUDIO_FAKE_ONLINE pass through from your shell unchanged (worker defaults: on, generic
+  # User-Agent token, en, found); no value is set here.
+  echo "Library (read-only for the worker): $STEMSTUDIO_LIBRARY_DIR; online lookups: ${STEMSTUDIO_ONLINE_LOOKUPS:-on}"
 }
 
 build_engine() {

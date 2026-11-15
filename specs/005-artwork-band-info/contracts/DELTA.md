@@ -1,5 +1,31 @@
 # Contract deltas: feature 005 (Song Artwork and Band Info)
 
+## Phase 0 outcome (architect, 2026-11-15; combined with 007)
+
+Versions assigned (docs/ROADMAP.md): **worker-api 1.3.0**, **backend-api 1.4.0**, **ui-test-ids
+1.4.0** (on 004's 1.3.0); full documents next to this file, Redocly 2.78.0 clean. 005 and 007 share
+one skeleton: the code and the test links are at the 007 versions (worker 1.4.0, backend 1.5.0),
+which contain these documents unchanged (tested in `ArtworkContractTests` and
+`worker/tests/test_metadata_contract.py`). Refinements against the delta below:
+
+1. `MetadataLookup.lookup(query, progress)` returns `MetadataFindings(result, artwork)`: the
+   contract `MetadataResult` plus the normalised Cover Art Archive JPEGs the job must store.
+2. Settings are grouped: `WorkerSettings.online.{lookups_enabled, contact_url,
+   wikipedia_languages, fake_mode}` (instead of four flat fields).
+3. `POST /v1/metadata-jobs` 422 is problem+json (`ValidationFailed`, with an `errors` map):
+   stem-separation installs a `RequestValidationError` handler (FastAPI's default body differs).
+4. `Health.onlineLookups` is required on the wire (Python default `true`).
+5. Track artwork: `ETag` = quoted artwork version; `304` with `If-None-Match`; `PUT` also answers
+   `404` for an unknown track. `Track.metadata` is required on the wire (default `none`),
+   `Track.artwork` optional/nullable like `device`.
+6. Band info: `DataSource.name` is an enum (MusicBrainz, Wikidata, Wikipedia, Cover Art
+   Archive), `licence` is null for Cover Art Archive; backend `ArtistInfo` carries `mbid`, not
+   `wikidataId`. Request DTO name `MetadataLookupRequest` (plan.md said `CorrectMetadataRequest`).
+7. Help topic ids are `artwork`, `band-info`, `online-lookups` (prefix `help-` dropped, 004 area
+   naming); 422 of the backend uses the new response `UnprocessableRequest`.
+8. Backend test staging list is named `PendingArtworkOperations`.
+
+
 Status: **delta only**. Final version numbers are assigned when 005 starts (after 003 and 004
 are merged): every contract below gets the next **minor** version over the version current at
 that time (all changes are additive). In Phase 0 the architect writes the full documents into
@@ -113,7 +139,7 @@ No change.
 | Mixer (`/tracks/{id}/mixer`) | `mixer-cover` (same attribute), `mixer-album` (text "<album> (<year>)", only when found), `band-info-open` |
 | Band info panel (both screens) | `band-info-panel`, `band-info-status` (`data-status`), `band-info-name`, `band-info-type`, `band-info-country`, `band-info-years`, `band-info-genres`, `band-info-members` (only for groups with members), `band-info-website`, `band-info-summary`, `band-info-attribution` (contains the three links), `band-info-sources`, `band-info-retry` (failed/notFound), `band-info-correct` (opens the dialog), `metadata-correct-title`, `metadata-correct-artist`, `metadata-correct-submit`, `band-info-disabled` (lookups off) |
 | Artwork actions (track detail, P3) | `artwork-upload-input`, `artwork-reset`, `artwork-error` |
-| Help topics (004 framework) | `help-artwork`, `help-band-info`, `help-online-lookups` (topic ids; anchors `data-help-id` on the cover, the panel and the import page notice) |
+| Help topics (004 framework) | `artwork`, `band-info`, `online-lookups` (Phase 0: `help-` prefix dropped; topic ids; anchors `data-help-id` on the cover, the panel and the import page notice) |
 
 The import page legal notice (`legal-notice`) text gains the sentence on online lookups
 (pictures, band information; 006: lyrics).

@@ -79,6 +79,13 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         return true;
     });
 
+    /// <summary>One pass of the metadata synchroniser in a fresh scope (feature 005).</summary>
+    public Task<bool> SyncMetadataAsync() => WithScopeAsync(async sp =>
+    {
+        await sp.GetRequiredService<StemStudio.Api.Metadata.MetadataSynchronizer>().SyncAllAsync(CancellationToken.None);
+        return true;
+    });
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");

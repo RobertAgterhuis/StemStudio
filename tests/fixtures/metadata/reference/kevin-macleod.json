@@ -1,0 +1,355 @@
+{
+  "description": "Reference artist 2 (quickstart A5, SC-002): Kevin MacLeod / Monkeys Spinning Monkeys (person, no members).",
+  "expected": {
+    "artist": {
+      "mbid": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+      "name": "Kevin MacLeod",
+      "type": "person",
+      "country": "US",
+      "beginYear": 1972,
+      "endYear": null,
+      "genres": [
+        "film score"
+      ],
+      "members": [],
+      "website": "https://incompetech.com/",
+      "wikidataId": "Q16731782"
+    },
+    "releaseGroup": {
+      "mbid": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+      "title": "25 Years (Volume 2)",
+      "primaryType": "Album",
+      "firstReleaseYear": 2024
+    },
+    "summary": {
+      "language": "en",
+      "title": "Kevin MacLeod",
+      "pageUrl": "https://en.wikipedia.org/wiki/Kevin_MacLeod",
+      "historyUrl": "https://en.wikipedia.org/w/index.php?title=Kevin_MacLeod&action=history",
+      "revisionId": "1250000002",
+      "licence": "CC BY-SA 4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    "artworkSource": "spotify"
+  },
+  "musicbrainz": [
+    {
+      "request": {
+        "kind": "isrc-lookup",
+        "path": "/ws/2/isrc/USUAN1400011",
+        "query": "inc=artist-credits+releases"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "isrc": "USUAN1400011",
+          "recordings": [
+            {
+              "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+              "title": "Monkeys Spinning Monkeys",
+              "length": 125000,
+              "disambiguation": "",
+              "video": false,
+              "artist-credit": [
+                {
+                  "name": "Kevin MacLeod",
+                  "joinphrase": "",
+                  "artist": {
+                    "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                    "name": "Kevin MacLeod"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+              "title": "Monkeys Spinning Monkeys",
+              "length": 125000,
+              "disambiguation": "",
+              "video": false,
+              "artist-credit": [
+                {
+                  "name": "Kevin MacLeod",
+                  "joinphrase": "",
+                  "artist": {
+                    "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                    "name": "Kevin MacLeod"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "recording-lookup",
+        "path": "/ws/2/recording/da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+        "query": "inc=artist-credits+releases+release-groups"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "da6fcaf1-7302-5b1c-bcd4-ee66a5258a2a",
+          "title": "Monkeys Spinning Monkeys",
+          "length": 125000,
+          "disambiguation": "",
+          "video": false,
+          "artist-credit": [
+            {
+              "name": "Kevin MacLeod",
+              "joinphrase": "",
+              "artist": {
+                "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                "name": "Kevin MacLeod"
+              }
+            }
+          ],
+          "releases": []
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "recording-lookup",
+        "path": "/ws/2/recording/9667c51c-3727-5ae2-a60c-a6c844a17e61",
+        "query": "inc=artist-credits+releases+release-groups"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "9667c51c-3727-5ae2-a60c-a6c844a17e61",
+          "title": "Monkeys Spinning Monkeys",
+          "length": 125000,
+          "disambiguation": "",
+          "video": false,
+          "artist-credit": [
+            {
+              "name": "Kevin MacLeod",
+              "joinphrase": "",
+              "artist": {
+                "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+                "name": "Kevin MacLeod"
+              }
+            }
+          ],
+          "releases": [
+            {
+              "id": "f854868a-1aae-5dc9-8bbe-b48eb9d29524",
+              "title": "25 Years (Volume 2)",
+              "status": "Official",
+              "date": "2024-01-01",
+              "release-group": {
+                "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+                "title": "25 Years (Volume 2)",
+                "primary-type": "Album",
+                "secondary-types": [],
+                "first-release-date": "2024-01-01"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "artist",
+        "path": "/ws/2/artist/8292bf44-2dd1-4bad-8019-276ec38f28e7",
+        "query": "inc=url-rels&fmt=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "8292bf44-2dd1-4bad-8019-276ec38f28e7",
+          "name": "Kevin MacLeod",
+          "type": "Person",
+          "country": "US",
+          "life-span": {
+            "begin": "1972-09-28",
+            "end": null,
+            "ended": false
+          },
+          "relations": [
+            {
+              "type": "official homepage",
+              "url": {
+                "resource": "https://incompetech.com/"
+              }
+            },
+            {
+              "type": "official homepage",
+              "url": {
+                "resource": "https://freepd.com/"
+              }
+            },
+            {
+              "type": "wikidata",
+              "url": {
+                "resource": "https://www.wikidata.org/wiki/Q16731782"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "release-group",
+        "path": "/ws/2/release-group/057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+        "query": "fmt=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c",
+          "title": "25 Years (Volume 2)",
+          "primary-type": "Album",
+          "secondary-types": [],
+          "first-release-date": "2024-01-01"
+        }
+      }
+    }
+  ],
+  "coverArtArchive": {
+    "note": "Image bodies are not committed; tests generate a JPEG of the listed size in place of the body.",
+    "imageSize": [
+      500,
+      500
+    ],
+    "exchanges": [
+      {
+        "request": {
+          "kind": "cover-art",
+          "host": "coverartarchive.org",
+          "path": "/release-group/057247bb-7a93-4654-9a7d-4cb9abaf5c5c/front-500"
+        },
+        "response": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "image/jpeg"
+          },
+          "body": null
+        }
+      }
+    ]
+  },
+  "wikidata": [
+    {
+      "request": {
+        "kind": "wikidata-entity",
+        "host": "www.wikidata.org",
+        "path": "/w/api.php",
+        "query": "action=wbgetentities&ids=Q16731782&props=sitelinks|claims&sitefilter=enwiki|nlwiki&format=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "entities": {
+            "Q16731782": {
+              "id": "Q16731782",
+              "sitelinks": {
+                "enwiki": {
+                  "site": "enwiki",
+                  "title": "Kevin MacLeod"
+                }
+              },
+              "claims": {
+                "P136": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q900000003"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    }
+                  }
+                ],
+                "P495": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": {
+                          "id": "Q30"
+                        },
+                        "type": "wikibase-entityid"
+                      }
+                    }
+                  }
+                ],
+                "P856": [
+                  {
+                    "mainsnak": {
+                      "datavalue": {
+                        "value": "https://incompetech.com/",
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "kind": "wikidata-labels",
+        "host": "www.wikidata.org",
+        "path": "/w/api.php",
+        "query": "action=wbgetentities&ids=Q900000003&props=labels&languages=en&format=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "entities": {
+            "Q900000003": {
+              "id": "Q900000003",
+              "labels": {
+                "en": {
+                  "language": "en",
+                  "value": "film score"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "wikipedia": [
+    {
+      "request": {
+        "kind": "wikipedia-summary",
+        "host": "en.wikipedia.org",
+        "path": "/api/rest_v1/page/summary/Kevin_MacLeod"
+      },
+      "response": {
+        "status": 200,
+        "headers": {},
+        "body": {
+          "type": "standard",
+          "title": "Kevin MacLeod",
+          "lang": "en",
+          "extract": "Placeholder summary written for the StemStudio tests. It stands in for the Wikipedia excerpt about Kevin MacLeod; no Wikipedia text is committed (CC BY-SA 4.0). The live-service test reads the real excerpt at run time.",
+          "revision": 1250000002,
+          "content_urls": {
+            "desktop": {
+              "page": "https://en.wikipedia.org/wiki/Kevin_MacLeod"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -45,6 +45,11 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | spotDL | 4.6.0 | MIT | https://github.com/spotDL/spotify-downloader |
 | FFmpeg / ffprobe (Debian package, separate executable) | distro | LGPL-2.1+ / GPL-2.0+ (Debian build) | https://ffmpeg.org/legal.html |
 | Deno (JS runtime required by yt-dlp) | 2.9.8 | MIT | https://github.com/denoland/deno |
+| tinytag (embedded cover and tags of uploads; feature 005) | 2.3.2 | MIT | https://github.com/tinytag/tinytag |
+| Pillow (artwork normalisation; feature 005, was transitive) | 13.0.0 | MIT-CMU | https://github.com/python-pillow/Pillow |
+| httpx (online lookups; feature 005, was a dev dependency; pulls in httpcore 1.0.9 BSD-3-Clause, h11 0.16.0 MIT, anyio 4.16.0 MIT, idna 3.20 BSD-3-Clause, certifi MPL-2.0) | 0.28.1 | BSD-3-Clause | https://github.com/encode/httpx |
+| rapidfuzz (recording matcher; feature 005, was transitive) | 3.14.6 | MIT | https://github.com/rapidfuzz/RapidFuzz |
+| lameenc (MP3 encoding of exports; feature 007, ADR-016; was transitive via demucs) | 1.9.0 | **LGPL-3.0-or-later** (bundles LAME, LGPL) | https://github.com/chrisstaite/lameenc |
 
 | onnxruntime (CPU) | 1.32.0 | MIT | https://github.com/microsoft/onnxruntime |
 | rotary-embedding-torch | 0.9.2 | MIT | https://github.com/lucidrains/rotary-embedding-torch |
@@ -89,7 +94,7 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 
 | Component | Licence | Pulled in by |
 |---|---|---|
-| lameenc 1.9.0 | LGPL-3.0+ | demucs |
+| lameenc 1.9.0 | LGPL-3.0+ | **direct** since feature 007 (MP3 export, used unmodified through its Python API as a separate library; no GPL library is imported by StemStudio code); also demucs |
 | soxr 1.1.0 | LGPL-2.1+ | librosa |
 | mutagen 1.48.1 | GPL-2.0+ | spotdl |
 | unidecode 1.4.0 | GPL-2.0+ | spotdl |
@@ -100,6 +105,21 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 
 **Distribution note:** anyone who redistributes the worker image must comply with the GPL/LGPL
 terms of these components (offer source, keep notices).
+
+## Online data services (feature 005, FR-014)
+
+The worker queries these services only when online lookups are on (`STEMSTUDIO_ONLINE_LOOKUPS`,
+default `on`) and sends only the song title, artist, duration and ISRC (MusicBrainz) or the ids
+found there; the User-Agent names StemStudio and, when set, `STEMSTUDIO_CONTACT_URL` (never an
+e-mail address). Nothing they return is bundled with StemStudio, and pictures and band texts are
+never written into exports.
+
+| Service | Data used | Licence / terms | How StemStudio complies |
+|---|---|---|---|
+| MusicBrainz WS/2 (https://musicbrainz.org/doc/MusicBrainz_API) | core data: recordings, releases, release groups, artists, URL relations | **CC0 1.0** (core data; supplementary data such as tags and annotations is not used) | 1 request/s, descriptive User-Agent, stored with the track |
+| Cover Art Archive (https://coverartarchive.org) | front cover of a release group | **No licence stated**; images belong to their rights holders | images are shown **in the app only** (cover, thumbnails), never exported or redistributed; personal-practice notice |
+| Wikidata (https://www.wikidata.org) | genres, members, founding year, country, website, Wikipedia site links | **CC0 1.0** (structured data) | ids and facts only |
+| Wikipedia REST `page/summary` (https://en.wikipedia.org/api/rest_v1/) | the summary excerpt of the artist article (`STEMSTUDIO_WIKIPEDIA_LANGUAGES`) | **CC BY-SA 4.0** (text) | excerpt shown unmodified with **in-app attribution** (article link, "Wikipedia contributors" history link, licence link, "Excerpt, unmodified"; `band-info-attribution`); never exported |
 
 ## Frontend audio engine (build-time only; the shipped bundle contains only StemStudio code)
 

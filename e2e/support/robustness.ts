@@ -11,7 +11,7 @@ import type { ScreenId } from './screens';
 export const reflowViewport = { width: 320, height: 720 } as const;
 
 /** Screens that must reflow without horizontal page scrolling at 320 px. */
-export const reflowScreens: readonly ScreenId[] = ['import', 'tracks', 'track', 'track-no-detail', 'mixes', 'mixer'];
+export const reflowScreens: readonly ScreenId[] = ['import', 'tracks', 'track', 'track-no-detail', 'mixes', 'mixer', 'library'];
 
 /** Pixels the document is wider than the viewport (0 when nothing scrolls horizontally). */
 export async function horizontalOverflow(page: Page): Promise<number> {
@@ -33,4 +33,19 @@ export async function computedColours(locator: Locator): Promise<ComputedColours
     const style = getComputedStyle(element);
     return { color: style.color, background: style.backgroundColor };
   });
+}
+
+/** Desktop viewport of the visual matrix (the library columns must not break words here). */
+export const desktopViewport = { width: 1440, height: 900 } as const;
+
+/** Number of text lines of each element behind a locator (1 = the text did not wrap). */
+export async function textLineCounts(locator: Locator): Promise<number[]> {
+  return locator.evaluateAll((elements) =>
+    elements.map((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const tops = new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top)));
+      return tops.size;
+    }),
+  );
 }

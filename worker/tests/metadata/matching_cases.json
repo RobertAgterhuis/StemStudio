@@ -1,0 +1,294 @@
+{
+  "about": "Self-written matcher cases (005:T031, SC-004). Responses mimic MusicBrainz WS/2 search JSON trimmed to the fields StemStudio reads; ids other than the F-01 ones are made up. 'responses' are served in order (with an ISRC: the /isrc answer, which lists recordings without releases, then one /recording lookup per listed recording); a number is an HTTP status without body.",
+  "cases": [
+    {
+      "name": "metallica-hero-of-the-day-live-and-demo-decoys",
+      "query": {"title": "Hero Of The Day", "artist": "Metallica", "durationSeconds": 261.9},
+      "responses": [{"recordings": [
+        {"id": "11111111-1111-4111-8111-000000000001", "score": 100, "title": "Hero of the Day", "length": 258120,
+         "artist-credit": [{"name": "Metallica", "joinphrase": "", "artist": {"id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "name": "Metallica"}}],
+         "releases": [{"status": "Official", "date": "1998-11-23", "release-group": {"id": "21111111-1111-4111-8111-000000000001", "title": "Cunning Stunts", "primary-type": "Album", "secondary-types": ["Live"]}}]},
+        {"id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9", "score": 99, "title": "Hero of the Day", "length": 261893,
+         "artist-credit": [{"name": "Metallica", "joinphrase": "", "artist": {"id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "name": "Metallica"}}],
+         "releases": [{"status": "Official", "date": "1996-06-04", "release-group": {"id": "e389b7df-862d-3d91-a612-acca150f6e71", "title": "Load", "primary-type": "Album"}}]},
+        {"id": "11111111-1111-4111-8111-000000000003", "score": 85, "title": "Mouldy (Hero of the Day take 1)", "length": 262000,
+         "artist-credit": [{"name": "Metallica", "joinphrase": "", "artist": {"id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "name": "Metallica"}}],
+         "releases": []},
+        {"id": "11111111-1111-4111-8111-000000000004", "score": 79, "title": "Mouldy (Hero of the Day take 2)", "length": 263500,
+         "artist-credit": [{"name": "Metallica", "joinphrase": "", "artist": {"id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "name": "Metallica"}}],
+         "releases": []}
+      ]}],
+      "expected": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+      "matchedBy": "search",
+      "releaseGroup": "e389b7df-862d-3d91-a612-acca150f6e71"
+    },
+    {
+      "name": "kevin-macleod-by-isrc-prefers-the-recording-with-a-release",
+      "query": {"title": "Monkeys Spinning Monkeys", "artist": "Kevin MacLeod", "durationSeconds": 125.0, "isrc": "USUAN1400011"},
+      "responses": [{"recordings": [
+        {"id": "12222222-2222-4222-8222-000000000001", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}]},
+        {"id": "12222222-2222-4222-8222-000000000002", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}]}
+      ]},
+        {"id": "12222222-2222-4222-8222-000000000001", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}],
+         "releases": []},
+        {"id": "12222222-2222-4222-8222-000000000002", "title": "Monkeys Spinning Monkeys", "length": 125000,
+         "artist-credit": [{"name": "Kevin MacLeod", "joinphrase": "", "artist": {"id": "8292bf44-2dd1-4bad-8019-276ec38f28e7", "name": "Kevin MacLeod"}}],
+         "releases": [{"status": "Official", "date": "2024", "release-group": {"id": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c", "title": "25 Years (Volume 2)", "primary-type": "Album"}}]}
+      ],
+      "expected": "12222222-2222-4222-8222-000000000002",
+      "matchedBy": "isrc",
+      "releaseGroup": "057247bb-7a93-4654-9a7d-4cb9abaf5c5c"
+    },
+    {
+      "name": "isrc-without-hits-falls-back-to-the-search",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0, "isrc": "NLA0A2400001"},
+      "responses": [{"recordings": []}, {"recordings": [
+        {"id": "13333333-3333-4333-8333-000000000001", "score": 100, "title": "Example Song", "length": 201000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "13333333-3333-4333-8333-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "cover-version-by-another-artist-is-not-a-match",
+      "query": {"title": "Hallelujah", "artist": "Jeff Buckley", "durationSeconds": 413.0},
+      "responses": [{"recordings": [
+        {"id": "14444444-4444-4444-8444-000000000001", "score": 100, "title": "Hallelujah", "length": 412000,
+         "artist-credit": [{"name": "Leonard Cohen", "joinphrase": "", "artist": {"id": "24444444-4444-4444-8444-000000000001", "name": "Leonard Cohen"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "cover-version-picks-the-requested-artist",
+      "query": {"title": "Hallelujah", "artist": "Jeff Buckley", "durationSeconds": 413.0},
+      "responses": [{"recordings": [
+        {"id": "14444444-4444-4444-8444-000000000001", "score": 100, "title": "Hallelujah", "length": 412000,
+         "artist-credit": [{"name": "Leonard Cohen", "joinphrase": "", "artist": {"id": "24444444-4444-4444-8444-000000000001", "name": "Leonard Cohen"}}]},
+        {"id": "14444444-4444-4444-8444-000000000002", "score": 95, "title": "Hallelujah", "length": 414000,
+         "artist-credit": [{"name": "Jeff Buckley", "joinphrase": "", "artist": {"id": "24444444-4444-4444-8444-000000000002", "name": "Jeff Buckley"}}]}
+      ]}],
+      "expected": "14444444-4444-4444-8444-000000000002",
+      "matchedBy": "search"
+    },
+    {
+      "name": "same-title-by-another-artist-is-not-a-match",
+      "query": {"title": "Hero", "artist": "Foo Fighters", "durationSeconds": 240.0},
+      "responses": [{"recordings": [
+        {"id": "15555555-5555-4555-8555-000000000001", "score": 100, "title": "Hero", "length": 241000,
+         "artist-credit": [{"name": "Enrique Iglesias", "joinphrase": "", "artist": {"id": "25555555-5555-4555-8555-000000000001", "name": "Enrique Iglesias"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "official-music-video-suffix-is-cleaned-before-matching",
+      "query": {"title": "Example Song (Official Music Video)", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000001", "score": 100, "title": "Example Song", "length": 199000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "16666666-6666-4666-8666-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "feat-credit-matches-on-the-first-artist",
+      "query": {"title": "Duet Song (feat. Guest Singer)", "artist": "Main Singer", "durationSeconds": 180.0},
+      "responses": [{"recordings": [
+        {"id": "17777777-7777-4777-8777-000000000001", "score": 100, "title": "Duet Song", "length": 181000,
+         "artist-credit": [
+           {"name": "Main Singer", "joinphrase": " feat. ", "artist": {"id": "27777777-7777-4777-8777-000000000001", "name": "Main Singer"}},
+           {"name": "Guest Singer", "joinphrase": "", "artist": {"id": "27777777-7777-4777-8777-000000000002", "name": "Guest Singer"}}
+         ]}
+      ]}],
+      "expected": "17777777-7777-4777-8777-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "fan-channel-upload-with-the-uploader-as-artist-is-not-a-match",
+      "query": {"title": "Example Song", "artist": "Best Music Fan Channel", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000001", "score": 100, "title": "Example Song", "length": 199000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "missing-duration-prefers-the-earliest-official-album",
+      "query": {"title": "Old Song", "artist": "Old Band"},
+      "responses": [{"recordings": [
+        {"id": "18888888-8888-4888-8888-000000000001", "score": 100, "title": "Old Song", "length": 300000,
+         "artist-credit": [{"name": "Old Band", "joinphrase": "", "artist": {"id": "28888888-8888-4888-8888-000000000001", "name": "Old Band"}}],
+         "releases": [{"status": "Official", "date": "1999-01-01", "release-group": {"id": "38888888-8888-4888-8888-000000000001", "title": "Live in Town", "primary-type": "Album", "secondary-types": ["Live"]}}]},
+        {"id": "18888888-8888-4888-8888-000000000002", "score": 98, "title": "Old Song", "length": 250000,
+         "artist-credit": [{"name": "Old Band", "joinphrase": "", "artist": {"id": "28888888-8888-4888-8888-000000000001", "name": "Old Band"}}],
+         "releases": [{"status": "Official", "date": "1985-03-01", "release-group": {"id": "38888888-8888-4888-8888-000000000002", "title": "First Album", "primary-type": "Album"}}]}
+      ]}],
+      "expected": "18888888-8888-4888-8888-000000000002",
+      "matchedBy": "search",
+      "releaseGroup": "38888888-8888-4888-8888-000000000002"
+    },
+    {
+      "name": "busy-503-then-200-is-retried",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [503, {"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000001", "score": 100, "title": "Example Song", "length": 199000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "16666666-6666-4666-8666-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "non-latin-title-and-artist",
+      "query": {"title": "群青日和", "artist": "東京事変", "durationSeconds": 214.0},
+      "responses": [{"recordings": [
+        {"id": "19999999-9999-4999-8999-000000000001", "score": 100, "title": "群青日和", "length": 213500,
+         "artist-credit": [{"name": "東京事変", "joinphrase": "", "artist": {"id": "29999999-9999-4999-8999-000000000001", "name": "東京事変"}}]}
+      ]}],
+      "expected": "19999999-9999-4999-8999-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "duration-outside-the-window-is-not-a-match",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000002", "score": 100, "title": "Example Song", "length": 220000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "no-hits",
+      "query": {"title": "Unknown Song", "artist": "Unknown Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": []}],
+      "expected": "not-found"
+    },
+    {
+      "name": "case-and-punctuation-are-ignored",
+      "query": {"title": "dont stop me now", "artist": "queen", "durationSeconds": 209.0},
+      "responses": [{"recordings": [
+        {"id": "1aaaaaaa-aaaa-4aaa-8aaa-000000000001", "score": 100, "title": "Don't Stop Me Now", "length": 209000,
+         "artist-credit": [{"name": "Queen", "joinphrase": "", "artist": {"id": "2aaaaaaa-aaaa-4aaa-8aaa-000000000001", "name": "Queen"}}]}
+      ]}],
+      "expected": "1aaaaaaa-aaaa-4aaa-8aaa-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "ampersand-equals-and",
+      "query": {"title": "Duo Song", "artist": "Simon and Garfunkel", "durationSeconds": 180.0},
+      "responses": [{"recordings": [
+        {"id": "1bbbbbbb-bbbb-4bbb-8bbb-000000000001", "score": 100, "title": "Duo Song", "length": 180500,
+         "artist-credit": [{"name": "Simon & Garfunkel", "joinphrase": "", "artist": {"id": "2bbbbbbb-bbbb-4bbb-8bbb-000000000001", "name": "Simon & Garfunkel"}}]}
+      ]}],
+      "expected": "1bbbbbbb-bbbb-4bbb-8bbb-000000000001",
+      "matchedBy": "search"
+    },
+    {
+      "name": "small-artist-typo-is-similar-enough",
+      "query": {"title": "Hero Of The Day", "artist": "Metalica", "durationSeconds": 262.0},
+      "responses": [{"recordings": [
+        {"id": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9", "score": 99, "title": "Hero of the Day", "length": 261893,
+         "artist-credit": [{"name": "Metallica", "joinphrase": "", "artist": {"id": "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab", "name": "Metallica"}}]}
+      ]}],
+      "expected": "c8361f8a-ece3-4ad0-a5a6-4bb6d06083b9",
+      "matchedBy": "search"
+    },
+    {
+      "name": "only-a-live-version-with-another-title-is-not-a-match",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000003", "score": 100, "title": "Example Song (Live)", "length": 201000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "closest-duration-wins",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000004", "score": 100, "title": "Example Song", "length": 203000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]},
+        {"id": "16666666-6666-4666-8666-000000000005", "score": 90, "title": "Example Song", "length": 200800,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "16666666-6666-4666-8666-000000000005",
+      "matchedBy": "search"
+    },
+    {
+      "name": "equal-duration-prefers-an-official-album-over-a-compilation",
+      "query": {"title": "Hit Song", "artist": "Hit Band", "durationSeconds": 190.0},
+      "responses": [{"recordings": [
+        {"id": "1ccccccc-cccc-4ccc-8ccc-000000000001", "score": 100, "title": "Hit Song", "length": 190000,
+         "artist-credit": [{"name": "Hit Band", "joinphrase": "", "artist": {"id": "2ccccccc-cccc-4ccc-8ccc-000000000001", "name": "Hit Band"}}],
+         "releases": [{"status": "Official", "date": "1990", "release-group": {"id": "3ccccccc-cccc-4ccc-8ccc-000000000001", "title": "Greatest Hits", "primary-type": "Album", "secondary-types": ["Compilation"]}}]},
+        {"id": "1ccccccc-cccc-4ccc-8ccc-000000000002", "score": 100, "title": "Hit Song", "length": 190000,
+         "artist-credit": [{"name": "Hit Band", "joinphrase": "", "artist": {"id": "2ccccccc-cccc-4ccc-8ccc-000000000001", "name": "Hit Band"}}],
+         "releases": [
+           {"status": "Promotion", "date": "1994-01-01", "release-group": {"id": "3ccccccc-cccc-4ccc-8ccc-000000000003", "title": "Hit Song", "primary-type": "Single"}},
+           {"status": "Official", "date": "1995-05-05", "release-group": {"id": "3ccccccc-cccc-4ccc-8ccc-000000000002", "title": "Hit Album", "primary-type": "Album"}}
+         ]}
+      ]}],
+      "expected": "1ccccccc-cccc-4ccc-8ccc-000000000002",
+      "matchedBy": "search",
+      "releaseGroup": "3ccccccc-cccc-4ccc-8ccc-000000000002"
+    },
+    {
+      "name": "equal-duration-prefers-the-earliest-album",
+      "query": {"title": "Hit Song", "artist": "Hit Band", "durationSeconds": 190.0},
+      "responses": [{"recordings": [
+        {"id": "1ccccccc-cccc-4ccc-8ccc-000000000003", "score": 100, "title": "Hit Song", "length": 190000,
+         "artist-credit": [{"name": "Hit Band", "joinphrase": "", "artist": {"id": "2ccccccc-cccc-4ccc-8ccc-000000000001", "name": "Hit Band"}}],
+         "releases": [{"status": "Official", "date": "2001-02-03", "release-group": {"id": "3ccccccc-cccc-4ccc-8ccc-000000000004", "title": "Remastered Album", "primary-type": "Album"}}]},
+        {"id": "1ccccccc-cccc-4ccc-8ccc-000000000004", "score": 100, "title": "Hit Song", "length": 190000,
+         "artist-credit": [{"name": "Hit Band", "joinphrase": "", "artist": {"id": "2ccccccc-cccc-4ccc-8ccc-000000000001", "name": "Hit Band"}}],
+         "releases": [{"status": "Official", "date": "1993-07-08", "release-group": {"id": "3ccccccc-cccc-4ccc-8ccc-000000000005", "title": "Original Album", "primary-type": "Album"}}]}
+      ]}],
+      "expected": "1ccccccc-cccc-4ccc-8ccc-000000000004",
+      "matchedBy": "search",
+      "releaseGroup": "3ccccccc-cccc-4ccc-8ccc-000000000005"
+    },
+    {
+      "name": "no-artist-and-no-isrc-sends-no-request",
+      "query": {"title": "Example Song", "durationSeconds": 200.0},
+      "responses": [],
+      "expected": "not-found"
+    },
+    {
+      "name": "unknown-length-cannot-be-checked-against-a-known-duration",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000006", "score": 100, "title": "Example Song",
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]}],
+      "expected": "not-found"
+    },
+    {
+      "name": "joint-credit-matches-the-full-credit",
+      "query": {"title": "Under Pressure", "artist": "Queen & David Bowie", "durationSeconds": 248.0},
+      "responses": [{"recordings": [
+        {"id": "1aaaaaaa-aaaa-4aaa-8aaa-000000000002", "score": 100, "title": "Under Pressure", "length": 248000,
+         "artist-credit": [
+           {"name": "Queen", "joinphrase": " & ", "artist": {"id": "2aaaaaaa-aaaa-4aaa-8aaa-000000000001", "name": "Queen"}},
+           {"name": "David Bowie", "joinphrase": "", "artist": {"id": "2aaaaaaa-aaaa-4aaa-8aaa-000000000002", "name": "David Bowie"}}
+         ]}
+      ]}],
+      "expected": "1aaaaaaa-aaaa-4aaa-8aaa-000000000002",
+      "matchedBy": "search"
+    },
+    {
+      "name": "isrc-hit-with-another-duration-is-still-the-exact-recording",
+      "query": {"title": "Example Song", "artist": "Example Band", "durationSeconds": 200.0, "isrc": "NLA0A2400002"},
+      "responses": [{"recordings": [
+        {"id": "16666666-6666-4666-8666-000000000007", "title": "Example Song - Radio Edit", "length": 185000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}]}
+      ]},
+        {"id": "16666666-6666-4666-8666-000000000007", "title": "Example Song - Radio Edit", "length": 185000,
+         "artist-credit": [{"name": "Example Band", "joinphrase": "", "artist": {"id": "23333333-3333-4333-8333-000000000001", "name": "Example Band"}}],
+         "releases": []}
+      ],
+      "expected": "16666666-6666-4666-8666-000000000007",
+      "matchedBy": "isrc"
+    }
+  ]
+}

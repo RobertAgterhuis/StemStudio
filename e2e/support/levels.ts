@@ -1,6 +1,7 @@
 /**
- * Level visibility rules R7-R9 of ui-test-ids 1.3.0 as id lists, plus helpers to assert them and
- * to time a level switch (SC-010).
+ * Level visibility rules R7-R9 of ui-test-ids 1.3.0, with the Beginner exceptions of 1.4.0
+ * (feature 005) and 1.5.0 (feature 007), as id lists, plus helpers to assert them and to time a
+ * level switch (SC-010).
  *
  * @packageDocumentation
  */
@@ -93,4 +94,77 @@ export async function timedLevelSwitch(page: Page, level: Level): Promise<number
 export function positionSeconds(text: string): number {
   const match = /(\d+):(\d{2}(?:\.\d+)?)/.exec(text);
   return match === null ? Number.NaN : Number(match[1]) * 60 + Number(match[2]);
+}
+
+// Feature 005 (ui-test-ids 1.4.0) and 007 (1.5.0): R7 holds for every new id (rendered at
+// Advanced and Expert); the contracts' "Beginner" columns list the exceptions below. Ids that
+// exist only in some state (`artwork-reset`, `artwork-error`, `export-mp3-bitrate`,
+// `export-range-loop`, `export-include-detail`) are only in the hidden lists: absent at Beginner
+// in every state.
+
+/** 1.4.0 + 1.5.0 track detail ids rendered at every level, for the given standard stems. */
+export function everyLevelTrackFeatureIds(stems: readonly string[]): string[] {
+  return ['track-cover', 'metadata-status', 'band-info-open', ...stems.map((stem) => `export-stem-${stem}`)];
+}
+
+/** 1.4.0 + 1.5.0 track detail ids that Beginner does not render. */
+export const beginnerHiddenTrackFeatureIds: readonly string[] = [
+  'artwork-upload-input',
+  'artwork-reset',
+  'artwork-error',
+  'export-all-stems',
+];
+
+/** 1.4.0 + 1.5.0 track detail ids rendered at Advanced on a track with the automatic picture. */
+export const advancedTrackFeatureIds: readonly string[] = ['artwork-upload-input', 'export-all-stems'];
+
+/** 1.4.0 + 1.5.0 mixer ids rendered at every level. */
+export const everyLevelMixerFeatureIds: readonly string[] = ['mixer-cover', 'band-info-open', 'mixer-export'];
+
+/** Band info facts that Beginner does not render (1.4.0; status `found`). */
+export const beginnerHiddenBandInfoIds: readonly string[] = [
+  'band-info-country',
+  'band-info-genres',
+  'band-info-members',
+  'band-info-website',
+  'band-info-sources',
+];
+
+/** Export dialog ids rendered at every level in mode `mix` (Beginner: the format only, FLAC preselected). */
+export const everyLevelMixDialogIds: readonly string[] = [
+  'export-source-audible',
+  'export-format',
+  'export-name',
+  'export-submit',
+  'export-cancel',
+];
+
+/** Export dialog ids that Beginner does not render (1.5.0); `export-channel-*` is matched by prefix. */
+export const beginnerHiddenDialogIds: readonly string[] = [
+  'export-source-selected',
+  'export-bit-depth',
+  'export-mp3-bitrate',
+  'export-range-loop',
+  'export-range-start',
+  'export-range-end',
+  'export-include-detail',
+];
+
+/** Export dialog ids rendered at Advanced in mode `mix` with the default FLAC and no loop region. */
+export const advancedMixDialogIds: readonly string[] = [
+  'export-source-selected',
+  'export-bit-depth',
+  'export-range-start',
+  'export-range-end',
+];
+
+/** Library ids rendered at every level. */
+export const everyLevelLibraryIds: readonly string[] = ['library-total-size'];
+
+/** Library filters that Beginner does not render (1.5.0). */
+export const beginnerHiddenLibraryIds: readonly string[] = ['library-filter-track', 'library-filter-kind', 'library-search'];
+
+/** Asserts that no element's `data-testid` starts with `prefix` (per-key ids such as `export-channel-`). */
+export async function expectNoIdWithPrefix(page: Page, prefix: string): Promise<void> {
+  await expect(page.locator(`[data-testid^="${prefix}"]`), `${prefix}*`).toHaveCount(0);
 }

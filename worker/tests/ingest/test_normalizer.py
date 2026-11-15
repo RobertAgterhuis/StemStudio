@@ -242,24 +242,19 @@ def test_subprocess_runner_maps_launch_failures_to_a_failed_result(
     assert result.stderr
 
 
+TONE_SOURCE = "sine=frequency=440:sample_rate=48000:duration=2"
+
+
+def _generated_tone(path: Path) -> Path:
+    """A 2 s 48 kHz sine written by the real ffmpeg (integration tests only)."""
+    command = ["ffmpeg", "-nostdin", "-loglevel", "error", "-f", "lavfi", "-i", TONE_SOURCE]
+    subprocess.run([*command, str(path)], check=True, timeout=60)  # noqa: S603 - fixed list
+    return path
+
+
 @pytest.mark.integration
 def test_real_ffmpeg_converts_a_generated_tone(tmp_path: Path) -> None:
-    tone = tmp_path / "tone.flac"
-    subprocess.run(  # noqa: S603 - fixed argument list, generated input
-        [  # noqa: S607 - ffmpeg is resolved from PATH by design
-            "ffmpeg",
-            "-nostdin",
-            "-loglevel",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            "sine=frequency=440:sample_rate=48000:duration=2",
-            str(tone),
-        ],
-        check=True,
-        timeout=60,
-    )
+    tone = _generated_tone(tmp_path / "tone.flac")
 
     result = FfmpegNormalizer().normalize(tone, tmp_path / "audio.wav")
 

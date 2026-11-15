@@ -9,7 +9,7 @@ public sealed record TrackProgress(TrackStatus Status, string? Stage, int Progre
 /// <summary>Source metadata reported by the worker.</summary>
 /// <param name="Title">Title; blank keeps the current title.</param>
 /// <param name="Artist">Artist, when known.</param>
-public sealed record TrackMetadata(string? Title, string? Artist);
+public sealed record SourceMetadata(string? Title, string? Artist);
 
 /// <summary>The result of a completed job, after every stem was stored locally.</summary>
 /// <param name="DurationSeconds">Duration, &gt; 0 and &lt;= 900.</param>

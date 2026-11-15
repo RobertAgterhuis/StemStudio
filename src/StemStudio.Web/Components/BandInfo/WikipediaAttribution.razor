@@ -1,0 +1,15 @@
+@* CC BY-SA 4.0 attribution of a Wikipedia excerpt (feature 005, FR-008): title link, authors link, licence link and the
+   note that the excerpt is unmodified. The link texts are binding for the end-to-end tests. *@
+
+<p class="ss-small ss-muted ss-attribution" data-testid="band-info-attribution">
+    From the Wikipedia article <a href="@Summary.PageUrl" target="_blank" rel="noopener noreferrer">@Summary.Title</a>
+    by <a href="@Summary.HistoryUrl" target="_blank" rel="noopener noreferrer">Wikipedia contributors</a>,
+    licensed under <a href="@Summary.LicenceUrl" target="_blank" rel="noopener noreferrer">@Summary.Licence</a>.
+    Excerpt, unmodified.
+</p>
+
+@code {
+    /// <summary>The excerpt and its attribution data.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Contracts.Artists.WikipediaSummaryDto Summary { get; set; } = default!;
+}

@@ -159,7 +159,7 @@ public sealed partial class Track
     /// <summary>Applies title and artist reported by the worker while the track is not terminal.</summary>
     /// <param name="metadata">Reported metadata.</param>
     /// <param name="nowUtc">Current time (UTC).</param>
-    public void ApplyMetadata(TrackMetadata metadata, DateTime nowUtc)
+    public void ApplyMetadata(SourceMetadata metadata, DateTime nowUtc)
     {
         ArgumentNullException.ThrowIfNull(metadata);
         var title = Text.TrimToLength(metadata.Title, MaxTitleLength) ?? Title;

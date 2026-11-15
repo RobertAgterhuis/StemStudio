@@ -1,0 +1,3125 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API
+  version: 1.5.0
+  summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
+  description: |
+    * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
+    * Errors are RFC 9457 problem details (`application/problem+json`); validation errors use
+      `HttpValidationProblemDetails` with an `errors` map (field -> messages).
+    * No authentication: single local user (spec Assumptions).
+    * CORS: the configured web origin (`StemStudio:WebOrigin`) may `GET` stems and tracks, so the
+      browser audio engine can fetch FLAC files directly.
+    * Times are UTC ISO 8601. Durations and positions are seconds (number).
+    * Collections (`GET /api/tracks`, `GET /api/mixes`) are ordered by `updatedAt` descending;
+      `GET /api/assets` by `createdAt` descending.
+    * Changelog: 1.0.1 (non-breaking) - stem caching/range headers (304, Last-Modified, 416
+      Content-Range), explicit field limits, canonical URL forwarding, 200 MiB in bytes.
+      1.1.0 (additive) - `DELETE /api/tracks/{trackId}` removes a failed or completed track with
+      its stem files and mixes; 409 while the track is queued or processing.
+      1.2.0 (additive, feature 002) - detail separation: `Track.detail` (phase status, progress,
+      per-parent outcomes, detail stems), `POST /api/tracks/{trackId}/detail` (start, "Split
+      further", retry), `POST /api/tracks/{trackId}/detail/cancel`,
+      `GET /api/tracks/{trackId}/detail-stems/{parent}/{name}` (same Range/ETag semantics as
+      stems); `MixSettings.expanded` and `MixSettings.detailChannels` (optional, default empty,
+      so mixes saved with 1.1.0 load unchanged); delete returns 409 while a detail phase is
+      queued or running.
+      1.3.0 (additive, feature 003) - GPU acceleration: `Track.device` (where the standard
+      separation ran) and `DetailPhase.device` (where the detail steps ran), both with the CPU
+      fallback flag and reason; `GET /api/device` reports the worker's active processing device
+      (GPU name or CPU, with the reason when the GPU is not used). See ADR-012.
+      1.4.0 (additive, feature 005) - song artwork and band info: `Track.artwork` (the picture
+      shown, with versioned cover/thumbnail URLs) and `Track.metadata` (lookup state, always
+      present; `none` for older tracks); `GET /api/tracks/{trackId}/artwork/{variant}`,
+      `PUT`/`DELETE /api/tracks/{trackId}/artwork` (own picture, reset to automatic),
+      `GET /api/tracks/{trackId}/band-info` (facts with sources and Wikipedia attribution),
+      `POST /api/tracks/{trackId}/metadata/lookup` (retry or correct the names). See ADR-014.
+      1.5.0 (additive, feature 007) - asset library: `/api/assets` (list with filters, total
+      size), `POST /api/assets/audio-exports` (a stem, a detail stem, what I hear or selected
+      channels, optional range, FLAC/WAV/MP3), `POST /api/assets/stem-packs`, get, rename,
+      delete, retry, and `GET /api/assets/{assetId}/files/{role}` (Range, ETag,
+      Content-Disposition). Items are rendered by the worker from a server-side plan (gate rule
+      v2, `render-vectors.json`) and survive deletion of their track. The shared `AudioSource`
+      schema is defined for later features. See ADR-016.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []  # single local user; no authentication (spec Assumptions)
+tags:
+  - name: imports
+    description: Start processing a YouTube/Spotify URL or an uploaded file.
+  - name: tracks
+    description: Imported tracks, their processing status, stems and beat grid.
+  - name: mixes
+    description: Saved mixer configurations.
+  - name: artwork
+    description: Song pictures (cover and thumbnail) of tracks (1.4.0).
+  - name: band-info
+    description: Recording, album and artist facts from open data services (1.4.0).
+  - name: assets
+    description: The personal library of saved audio (and later scores and generated songs) (1.5.0).
+  - name: health
+    description: Liveness and the processing device.
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: API is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+  /api/device:
+    get:
+      tags: [health]
+      operationId: getProcessingDevice
+      summary: The worker's active processing device (GPU or CPU).
+      description: |
+        The API reads the worker's `GET /health` (`deviceInfo`, worker contract 1.2.0) with a
+        short timeout and may cache the answer for up to 10 seconds. The device is probed once at
+        worker start-up, so it changes only when the worker restarts. When the worker cannot be
+        reached the answer is still `200` with `reachable: false` and the device fields null, so
+        the UI can show "unknown" without an error. `/health` stays a pure liveness probe.
+      responses:
+        '200':
+          description: The processing device, or `reachable` false.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingDevice'
+              examples:
+                gpu:
+                  summary: GPU worker
+                  value:
+                    reachable: true
+                    kind: gpu
+                    name: NVIDIA GeForce RTX 5070 Ti
+                    totalMemoryMiB: 16303
+                    reason: null
+                cpuWithReason:
+                  summary: GPU requested but not usable
+                  value:
+                    reachable: true
+                    kind: cpu
+                    name: null
+                    totalMemoryMiB: null
+                    reason: 'No usable NVIDIA GPU: CUDA is not available in this container (is the GPU option enabled and the driver current?).'
+                unreachable:
+                  summary: Worker not reachable
+                  value:
+                    reachable: false
+                    kind: null
+                    name: null
+                    totalMemoryMiB: null
+                    reason: null
+  /api/imports:
+    post:
+      tags: [imports]
+      operationId: importFromUrl
+      summary: Import a YouTube video URL or a Spotify track URL.
+      description: |
+        The API validates the URL (allow-listed hosts, single video/track only) and derives the
+        source key (`youtube:<videoId>` or `spotify:<trackId>`). Accepted and rejected forms and
+        their keys are listed in `source-url-vectors.json` (binding test vectors for the API and
+        the worker). The API forwards the **canonical** URL to the worker
+        (`https://www.youtube.com/watch?v=<id>` or `https://open.spotify.com/track/<id>`); a worker
+        `400` is returned as a `400` validation problem on field `url`, and nothing is persisted.
+
+        * A track with that key exists: it is returned with `200` (cached; no new job). A failed
+          track is returned as-is; the client may call `POST /api/tracks/{id}/retry`.
+        * Otherwise a track is created with status `queued`, a worker job is started and the
+          track is returned with `202`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportUrlRequest'
+            example:
+              url: https://youtu.be/dQw4w9WgXcQ
+      responses:
+        '200':
+          description: The source was imported before; the existing track is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedTrack'
+        '202':
+          description: Track created and processing job started.
+          headers:
+            Location:
+              $ref: '#/components/headers/TrackLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+              examples:
+                queued:
+                  $ref: '#/components/examples/QueuedTrack'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/imports/upload:
+    post:
+      tags: [imports]
+      operationId: importFromUpload
+      summary: Import an uploaded MP3, WAV or FLAC file (max 200 MiB = 209,715,200 bytes).
+      description: |
+        The source key is `upload:<sha256 of the file bytes>`. Caching and responses behave as
+        for `POST /api/imports`. The title is the file name without extension.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadRequest'
+            encoding:
+              file:
+                contentType: audio/mpeg, audio/wav, audio/x-wav, audio/flac, application/octet-stream
+      responses:
+        '200':
+          description: The same file was imported before; the existing track is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '202':
+          description: Track created and processing job started.
+          headers:
+            Location:
+              $ref: '#/components/headers/TrackLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks:
+    get:
+      tags: [tracks]
+      operationId: listTracks
+      summary: List all imported tracks, ordered by updatedAt descending.
+      responses:
+        '200':
+          description: All tracks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Track'
+  /api/tracks/{trackId}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [tracks]
+      operationId: getTrack
+      summary: Get a track with status, progress, stems and beat grid (polled about once per second).
+      responses:
+        '200':
+          description: The track.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+              examples:
+                separating:
+                  $ref: '#/components/examples/SeparatingTrack'
+                completed:
+                  $ref: '#/components/examples/CompletedTrack'
+                failed:
+                  $ref: '#/components/examples/FailedTrack'
+                detailCompleted:
+                  $ref: '#/components/examples/DetailCompletedTrack'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [tracks]
+      operationId: deleteTrack
+      summary: Delete a failed or completed track together with its stem files, detail stems and mixes.
+      description: |
+        Allowed only in a terminal status (`failed`, `completed`) and while no detail phase is
+        `queued` or `running` (cancel it first); otherwise 409. The stored upload (if any), the track's stem files and all of its mixes are
+        removed. The worker's per-source cache is not touched, so importing the same source again
+        may complete instantly.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/tracks/{trackId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [tracks]
+      operationId: retryTrack
+      summary: Retry a failed track (new worker job, status back to queued).
+      description: Upload sources can be retried only while the API still holds the uploaded file; otherwise 409.
+      responses:
+        '202':
+          description: A new job was started.
+          headers:
+            Location:
+              $ref: '#/components/headers/TrackLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/stems/{stemName}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - name: stemName
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/StemName'
+    get:
+      tags: [tracks]
+      operationId: getStem
+      summary: Download one stem as FLAC; supports HTTP Range requests and conditional GET.
+      description: |
+        Static-file semantics (ASP.NET Core `Results.File` with range processing): `ETag` and
+        `Last-Modified` on every 200/206/304; `If-None-Match` / `If-Modified-Since` -> 304;
+        `If-Range` honoured; an unsatisfiable range -> 416 with `Content-Range: bytes */<size>`.
+        CORS allows the configured web origin and exposes `Content-Range`, `Accept-Ranges`, `ETag`.
+      parameters:
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          example: bytes=0-1048575
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Modified-Since
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Range
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Whole stem file.
+          headers:
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '206':
+          description: Requested byte range of the stem file.
+          headers:
+            Content-Range:
+              schema:
+                type: string
+              example: bytes 0-1048575/23456789
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '304':
+          description: Not modified (`If-None-Match` or `If-Modified-Since` matched); no body.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          description: Range not satisfiable; no body.
+          headers:
+            Content-Range:
+              description: '`bytes */<file size>` (RFC 9110 section 14.4).'
+              schema:
+                type: string
+              example: bytes */23456789
+  /api/tracks/{trackId}/detail:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [tracks]
+      operationId: startDetail
+      summary: Queue the detail phase of a completed track ("Split further", or retry after failed/cancelled).
+      description: |
+        Allowed when the track is `completed` and `detail.status` is `none`, `failed` or
+        `cancelled`; the phase restarts at `queued` with progress 0 (worker checkpoints of
+        finished parent steps are reused). Otherwise 409. New imports get their detail phase
+        queued automatically when the standard separation completes. If the worker is
+        unreachable the phase stays `queued` and the background sync submits it later (no 503).
+      responses:
+        '202':
+          description: The detail phase was queued.
+          headers:
+            Location:
+              $ref: '#/components/headers/TrackLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+              examples:
+                queued:
+                  $ref: '#/components/examples/DetailQueuedTrack'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/tracks/{trackId}/detail/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [tracks]
+      operationId: cancelDetail
+      summary: Cancel a queued or running detail phase.
+      description: |
+        The phase becomes `cancelled` at once; detail stems are never partially offered. 409 when
+        the phase is not `queued` or `running`; 503 when a worker job exists and the worker
+        cannot be reached (nothing changes).
+      responses:
+        '200':
+          description: The track with the cancelled detail phase.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/detail-stems/{parent}/{name}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - name: parent
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ParentStemName'
+      - name: name
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/DetailStemName'
+    get:
+      tags: [tracks]
+      operationId: getDetailStem
+      summary: Download one detail stem as FLAC; same Range, conditional-GET and CORS semantics as getStem.
+      parameters:
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          example: bytes=0-1048575
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Modified-Since
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Range
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/StemFile'
+        '206':
+          $ref: '#/components/responses/StemFilePartial'
+        '304':
+          $ref: '#/components/responses/StemNotModified'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          $ref: '#/components/responses/RangeNotSatisfiable'
+  /api/mixes:
+    get:
+      tags: [mixes]
+      operationId: listMixes
+      summary: List saved mixes, ordered by updatedAt descending.
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          description: Only mixes of this track.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Mix library entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MixSummary'
+              example:
+                - id: 6a1f0c9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b
+                  trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+                  trackTitle: Never Gonna Give You Up
+                  name: Guitar practice
+                  updatedAt: '2026-11-14T13:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+    post:
+      tags: [mixes]
+      operationId: createMix
+      summary: Save a new mix (also "save as").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMixRequest'
+            example:
+              trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+              settings:
+                name: Guitar practice
+                masterVolume: 1
+                channels:
+                  - stem: guitar
+                    volume: 0
+                    pan: 0
+                    mute: true
+                    solo: false
+                metronome:
+                  enabled: true
+                  volume: 0.7
+                  bpmOverride: null
+                  offsetMs: 0
+                  beatsPerBar: 4
+                loop: null
+      responses:
+        '201':
+          description: Mix created.
+          headers:
+            Location:
+              description: URL of the new mix.
+              schema:
+                type: string
+              example: /api/mixes/6a1f0c9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mix'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/MixNameTaken'
+  /api/mixes/{mixId}:
+    parameters:
+      - $ref: '#/components/parameters/MixId'
+    get:
+      tags: [mixes]
+      operationId: getMix
+      summary: Get a mix.
+      responses:
+        '200':
+          description: The mix.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mix'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [mixes]
+      operationId: updateMix
+      summary: Replace name and settings of a mix (save / edit).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MixSettings'
+            examples:
+              guitarPractice:
+                $ref: '#/components/examples/MixSettings'
+              noSnare:
+                $ref: '#/components/examples/MixSettingsWithDetail'
+      responses:
+        '200':
+          description: Updated mix.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mix'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/MixNameTaken'
+    delete:
+      tags: [mixes]
+      operationId: deleteMix
+      summary: Delete a mix (the track and its stems remain).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/mixes/{mixId}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/MixId'
+    post:
+      tags: [mixes]
+      operationId: duplicateMix
+      summary: Copy a mix as "<name> (copy)".
+      description: |
+        If "<name> (copy)" is taken for the track, "<name> (copy 2)", "<name> (copy 3)", ... is
+        used. The base name is shortened so that the result is at most 100 characters.
+      responses:
+        '201':
+          description: Copy created.
+          headers:
+            Location:
+              description: URL of the new mix.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mix'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/tracks/{trackId}/artwork/{variant}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - name: variant
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ArtworkVariant'
+      - name: v
+        in: query
+        required: false
+        description: |
+          Artwork version (`Track.artwork.version`). When it matches the current picture the
+          response is cacheable for a year (`immutable`); otherwise (missing or stale) it is
+          served with `no-cache`.
+        schema:
+          type: string
+          pattern: '^[0-9a-f]{12}$'
+    get:
+      tags: [artwork]
+      operationId: getTrackArtwork
+      summary: The picture shown for a track as JPEG (1.4.0).
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            The JPEG (`cover` 600 x 600, `thumb` 160 x 160). `Cache-Control` is
+            `private, max-age=31536000, immutable` when `v` matches, else `no-cache`.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ArtworkETag'
+            Cache-Control:
+              schema:
+                type: string
+              example: private, max-age=31536000, immutable
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                contentMediaType: image/jpeg
+        '304':
+          description: Not modified (`If-None-Match` matched); no body.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ArtworkETag'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/artwork:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    put:
+      tags: [artwork]
+      operationId: setTrackArtwork
+      summary: Use an own picture for a track (1.4.0).
+      description: |
+        One multipart part `file` (JPEG, PNG or WebP, at most 10 MiB = 10,485,760 bytes; the
+        limit is enforced while streaming). The API forwards the bytes to the worker, which
+        re-encodes them (EXIF/GPS and every other metadata block removed); the result becomes
+        `Track.artwork` with `source` `user`. The automatic picture is kept for
+        `DELETE /api/tracks/{trackId}/artwork`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ArtworkUploadRequest'
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, image/webp, application/octet-stream
+      responses:
+        '200':
+          description: The track with its new picture.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '400':
+          description: The file is not a decodable picture.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Not an image
+                status: 400
+                detail: The file could not be read as a picture.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: Larger than 10 MiB (10,485,760 bytes).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Picture too large
+                status: 413
+                detail: The picture is larger than 10 MiB.
+        '415':
+          description: Not a JPEG, PNG or WebP file.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Unsupported picture type
+                status: 415
+                detail: Only JPEG, PNG and WebP pictures are supported.
+        '422':
+          description: More than 40 megapixels.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Picture too large
+                status: 422
+                detail: The picture has more than 40 megapixels.
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+    delete:
+      tags: [artwork]
+      operationId: resetTrackArtwork
+      summary: Remove the own picture and go back to the automatic one (1.4.0).
+      description: Idempotent; without an own picture the track is returned unchanged.
+      responses:
+        '200':
+          description: The track with the automatic picture (or none).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/band-info:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [band-info]
+      operationId: getBandInfo
+      summary: Recording, album and artist facts of a track with their sources (1.4.0).
+      description: |
+        `status` is `Track.metadata.status`. Facts are present only when `found`. Every fact
+        lists its source in `sources`; the Wikipedia excerpt carries its CC BY-SA 4.0
+        attribution data and must be shown with it, unmodified.
+      responses:
+        '200':
+          description: Band information (possibly empty while searching or not found).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandInfo'
+              examples:
+                found:
+                  $ref: '#/components/examples/FoundBandInfo'
+                searching:
+                  $ref: '#/components/examples/SearchingBandInfo'
+                failed:
+                  $ref: '#/components/examples/FailedBandInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/metadata/lookup:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [band-info]
+      operationId: lookupTrackMetadata
+      summary: Retry the lookup, optionally with corrected title and artist (1.4.0).
+      description: |
+        With a body, the given names are stored (`metadata.correctedByUser` true) and used for
+        the lookup; an empty body (or no body) retries with the current names. The metadata
+        status becomes `pending` and the lookup runs in the background (poll the track).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetadataLookupRequest'
+            examples:
+              corrected:
+                value:
+                  title: Hero of the Day
+                  artist: Metallica
+              retry:
+                value: {}
+      responses:
+        '202':
+          description: Lookup scheduled; the track with metadata status `pending`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A lookup is already running for this track (status `searching`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Lookup in progress
+                status: 409
+                detail: Band information is being looked up; try again when it has finished.
+        '422':
+          $ref: '#/components/responses/UnprocessableRequest'
+  /api/assets:
+    get:
+      tags: [assets]
+      operationId: listAssets
+      summary: List library items, newest first (1.5.0).
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AssetKind'
+        - name: trackId
+          in: query
+          required: false
+          description: Only items made from this track (also after the track was deleted).
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AssetStatus'
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive "name contains".
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: One page of items; `total` and `totalSizeBytes` count every item matching the filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetList'
+              example:
+                items: []
+                total: 0
+                totalSizeBytes: 0
+        '422':
+          $ref: '#/components/responses/UnprocessableRequest'
+  /api/assets/audio-exports:
+    post:
+      tags: [assets]
+      operationId: createAudioExport
+      summary: Save a stem, a detail stem or a selection of channels as an audio file (1.5.0).
+      description: |
+        `mode` `raw`: every listed channel at gain 1, pan 0, master 1 (mute/solo ignored); a single
+        raw channel to 16-bit FLAC is bit-identical to the stem. `mode` `mix`: the current mixer
+        state (`mix`, possibly unsaved) or a saved mix (`mixId`), exactly one of the two;
+        `channels` null = every audible channel by the engine's gate rule v2 (what I hear), a list
+        = exactly those channels with their fader and pan (selected channels). The item is
+        created `queued` and rendered in the background (poll `GET /api/assets/{assetId}`).
+        Refused with `409 insufficient-disk-space` when the data drive has less than
+        `StemStudio:MinFreeDiskBytes` (1 GiB) free.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAudioExportRequest'
+            examples:
+              rawStem:
+                $ref: '#/components/examples/RawStemExportRequest'
+              whatIHear:
+                $ref: '#/components/examples/AudibleMixExportRequest'
+              selectedChannels:
+                $ref: '#/components/examples/SelectedChannelsExportRequest'
+      responses:
+        '202':
+          description: Item created and render started.
+          headers:
+            Location:
+              $ref: '#/components/headers/AssetLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+              examples:
+                queued:
+                  $ref: '#/components/examples/QueuedAsset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ExportConflict'
+        '422':
+          $ref: '#/components/responses/ExportUnprocessable'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/assets/stem-packs:
+    post:
+      tags: [assets]
+      operationId: createStemPack
+      summary: Save every stem of a track (optionally every kept detail stem) as raw items (1.5.0).
+      description: One raw item per standard stem and, with `includeDetail`, per kept detail stem of every split parent, in catalogue order; each is rendered as its own job.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStemPackRequest'
+            example:
+              trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+              includeDetail: true
+              format:
+                format: flac
+                bitDepth: 16
+                mp3BitrateKbps: null
+      responses:
+        '202':
+          description: Items created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StemPack'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ExportConflict'
+        '422':
+          $ref: '#/components/responses/ExportUnprocessable'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/assets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [assets]
+      operationId: getAsset
+      summary: Get a library item with status, progress, files and provenance (polled while rendering).
+      responses:
+        '200':
+          description: The item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+              examples:
+                rendering:
+                  $ref: '#/components/examples/RenderingAsset'
+                ready:
+                  $ref: '#/components/examples/ReadyAsset'
+                failed:
+                  $ref: '#/components/examples/FailedAsset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [assets]
+      operationId: renameAsset
+      summary: Rename a library item (names need not be unique).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameAssetRequest'
+            example:
+              name: Drums for practice
+      responses:
+        '200':
+          description: The renamed item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableRequest'
+    delete:
+      tags: [assets]
+      operationId: deleteAsset
+      summary: Delete a library item and its files (an active render is cancelled).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/{assetId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [assets]
+      operationId: retryAsset
+      summary: Render a failed item again from its stored recipe.
+      responses:
+        '202':
+          description: A new render was started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            `asset-not-failed` (only failed items can be retried) or `source-unavailable` (the
+            track or one of its stems no longer exists).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                notFailed:
+                  value:
+                    type: asset-not-failed
+                    title: Item is not failed
+                    status: 409
+                    detail: Only failed items can be retried.
+                sourceUnavailable:
+                  value:
+                    type: source-unavailable
+                    title: Source unavailable
+                    status: 409
+                    detail: The track of this item was deleted, so it cannot be rendered again.
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/assets/{assetId}/files/{role}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+      - name: role
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/AssetFileRole'
+    get:
+      tags: [assets]
+      operationId: getAssetFile
+      summary: Download or play a file of a ready item; supports HTTP Range and conditional GET.
+      description: |
+        Same static-file semantics as stems (Range -> 206, `If-None-Match`/`If-Modified-Since`
+        -> 304, unsatisfiable range -> 416). `HEAD` answers with the same headers and no body.
+        `Content-Disposition` is `attachment` with the sanitised item name plus the file
+        extension (RFC 6266 `filename` ASCII fallback and RFC 5987 `filename*`), or `inline`
+        with `inline=true` (player). 404 for an unknown role or an item that is not ready.
+      parameters:
+        - name: inline
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          example: bytes=0-1048575
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: If-Modified-Since
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Whole file.
+          headers:
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+            Content-Disposition:
+              $ref: '#/components/headers/ContentDisposition'
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+            audio/wav:
+              schema:
+                type: string
+                contentMediaType: audio/wav
+            audio/mpeg:
+              schema:
+                type: string
+                contentMediaType: audio/mpeg
+        '206':
+          description: Requested byte range of the file.
+          headers:
+            Content-Range:
+              schema:
+                type: string
+              example: bytes 0-1048575/1824512
+            Accept-Ranges:
+              $ref: '#/components/headers/AcceptRanges'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/LastModified'
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+            audio/wav:
+              schema:
+                type: string
+                contentMediaType: audio/wav
+            audio/mpeg:
+              schema:
+                type: string
+                contentMediaType: audio/mpeg
+        '304':
+          $ref: '#/components/responses/StemNotModified'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          $ref: '#/components/responses/RangeNotSatisfiable'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MixId:
+      name: mixId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  headers:
+    AcceptRanges:
+      schema:
+        type: string
+        const: bytes
+    ETag:
+      description: Entity tag of the stem file.
+      schema:
+        type: string
+      example: '"1db3f0a2c4e5"'
+    LastModified:
+      description: HTTP-date of the stem file's last write.
+      schema:
+        type: string
+      example: Sat, 14 Nov 2026 12:06:30 GMT
+    TrackLocation:
+      description: URL of the track resource to poll.
+      schema:
+        type: string
+      example: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+    ArtworkETag:
+      description: Entity tag of the picture (quoted artwork version).
+      schema:
+        type: string
+      example: '"2c26b46b68ff"'
+    AssetLocation:
+      description: URL of the library item to poll.
+      schema:
+        type: string
+      example: /api/assets/3c9a1e7b-5d2f-4a6c-8e0b-1f2a3b4c5d6e
+    ContentDisposition:
+      description: '`attachment` (or `inline` with `inline=true`) with the sanitised item name (RFC 6266/5987).'
+      schema:
+        type: string
+      example: attachment; filename="Never Gonna Give You Up - drums.flac"; filename*=UTF-8''Never%20Gonna%20Give%20You%20Up%20-%20drums.flac
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    ImportUrlRequest:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: |
+            YouTube video URL (youtube.com, www.youtube.com, m.youtube.com, music.youtube.com,
+            youtu.be; `watch?v=`, `youtu.be/<id>`, `shorts/<id>`) or Spotify track URL
+            (`https://open.spotify.com/track/<id>`, optional `intl-xx/` segment). Playlists,
+            albums, podcasts and other hosts are rejected.
+    UploadRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: .mp3, .wav or .flac file, at most 209715200 bytes.
+    SourceType:
+      type: string
+      enum: [youtube, spotify, upload]
+    TrackStatus:
+      type: string
+      description: '`completed` and `failed` are terminal; see data-model.md for transitions.'
+      enum: [queued, downloading, separating, analysing, completed, failed]
+    StemName:
+      type: string
+      enum: [vocals, drums, bass, guitar, piano, other]
+    Stem:
+      type: object
+      additionalProperties: false
+      required: [name, url]
+      properties:
+        name:
+          $ref: '#/components/schemas/StemName'
+        url:
+          type: string
+          description: Relative URL /api/tracks/{trackId}/stems/{name}; resolve against the public API base URL.
+    BeatGrid:
+      type: object
+      additionalProperties: false
+      required: [bpm, beats, downbeats, beatsPerBar, confidence, reliable]
+      properties:
+        bpm:
+          type: number
+          minimum: 0
+          maximum: 400
+        beats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+        downbeats:
+          type: array
+          items:
+            type: number
+            minimum: 0
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reliable:
+          type: boolean
+    Track:
+      type: object
+      additionalProperties: false
+      required: [id, title, sourceType, sourceKey, status, progress, stems, detail, metadata, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        sourceType:
+          $ref: '#/components/schemas/SourceType'
+        sourceKey:
+          type: string
+          pattern: '^(youtube|spotify|upload):[A-Za-z0-9_-]{1,64}$'
+        sourceUrl:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/TrackStatus'
+        stage:
+          type: [string, 'null']
+          maxLength: 200
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 1000
+        durationSeconds:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+          maximum: 900
+        model:
+          type: [string, 'null']
+          enum: [htdemucs_6s, htdemucs, fake, null]
+        stems:
+          type: array
+          description: |
+            Empty until completed. Stem set by model: `htdemucs_6s` and `fake` = vocals, drums, bass,
+            guitar, piano, other (6); `htdemucs` = vocals, drums, bass, other (4).
+          items:
+            $ref: '#/components/schemas/Stem'
+        beatGrid:
+          oneOf:
+            - $ref: '#/components/schemas/BeatGrid'
+            - type: 'null'
+        detail:
+          $ref: '#/components/schemas/DetailPhase'
+        device:
+          oneOf:
+            - $ref: '#/components/schemas/JobDevice'
+            - type: 'null'
+          description: |
+            Where the standard separation ran (1.3.0); set from the worker job while separating and
+            kept when completed. Null before the separation, for results that came from the cache,
+            and for tracks processed before 1.3.0.
+        artwork:
+          oneOf:
+            - $ref: '#/components/schemas/Artwork'
+            - type: 'null'
+          description: The picture shown (1.4.0); null when there is none (the UI shows a placeholder).
+        metadata:
+          $ref: '#/components/schemas/TrackMetadata'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProcessingDeviceKind:
+      type: string
+      enum: [cpu, gpu]
+      description: The CPU, or the NVIDIA GPU (CUDA).
+    JobDevice:
+      type: object
+      additionalProperties: false
+      required: [kind, cpuFallback]
+      description: |
+        Where a job ran (1.3.0; copied from the worker's `JobDevice`). `kind` is `gpu` when at
+        least one model step ran on the GPU. `cpuFallback` is true when at least one model step
+        ran on the CPU on a GPU worker (too little free GPU memory, or out of GPU memory and
+        retried once on the CPU); the UI then shows `fallbackReason`.
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProcessingDeviceKind'
+        name:
+          type: [string, 'null']
+          maxLength: 200
+          description: GPU name when kind is gpu, else null.
+        cpuFallback:
+          type: boolean
+        fallbackReason:
+          type: [string, 'null']
+          maxLength: 500
+    ProcessingDevice:
+      type: object
+      additionalProperties: false
+      required: [reachable]
+      description: The worker's active processing device (1.3.0, `GET /api/device`).
+      properties:
+        reachable:
+          type: boolean
+          description: False when the worker could not be asked; every other field is then null.
+        kind:
+          oneOf:
+            - $ref: '#/components/schemas/ProcessingDeviceKind'
+            - type: 'null'
+        name:
+          type: [string, 'null']
+          maxLength: 200
+        totalMemoryMiB:
+          type: [integer, 'null']
+          minimum: 0
+        reason:
+          type: [string, 'null']
+          maxLength: 500
+          description: Why the GPU is not used although it was requested; null otherwise.
+    ParentStemName:
+      type: string
+      description: A standard stem that can be split further (`bass` is never split).
+      enum: [vocals, drums, guitar, piano, other]
+    DetailStemName:
+      type: string
+      description: Same closed set as worker contract 1.1.0; `rest` is always the last stem of a group.
+      enum: [kick, snare, toms, hihat, cymbals, lead, backing, strings, brass, woodwinds, keys, synth, acoustic-guitar, electric-guitar, percussion, rest]
+    DetailPhaseStatus:
+      type: string
+      description: |
+        `none` = never requested (tracks imported before feature 002, or standard separation not
+        completed yet). `completed`, `failed`, `cancelled` are terminal (data-model.md 4.1).
+      enum: [none, queued, running, completed, failed, cancelled]
+    ParentOutcomeKind:
+      type: string
+      description: |
+        UI texts: `split` "Split into <names>", `skipped-silent` "Skipped: (almost) silent",
+        `nothing-further` "Nothing further to separate", `not-reliable` "Split was not reliable",
+        `not-supported` "Not split".
+      enum: [split, skipped-silent, nothing-further, not-reliable, not-supported]
+    DetailStem:
+      type: object
+      additionalProperties: false
+      required: [name, url]
+      properties:
+        name:
+          $ref: '#/components/schemas/DetailStemName'
+        url:
+          type: string
+          description: Relative URL /api/tracks/{trackId}/detail-stems/{parent}/{name}; resolve against the public API base URL.
+    ParentOutcome:
+      type: object
+      additionalProperties: false
+      required: [parent, outcome, stems]
+      properties:
+        parent:
+          $ref: '#/components/schemas/StemName'
+        outcome:
+          $ref: '#/components/schemas/ParentOutcomeKind'
+        stems:
+          type: array
+          maxItems: 10
+          description: Detail stems in display order, `rest` last; empty unless outcome is split.
+          items:
+            $ref: '#/components/schemas/DetailStem'
+    DetailPhase:
+      type: object
+      additionalProperties: false
+      required: [status, progress, parents]
+      properties:
+        status:
+          $ref: '#/components/schemas/DetailPhaseStatus'
+        stage:
+          type: [string, 'null']
+          maxLength: 200
+          description: e.g. "Queued", "Waiting for standard separations", "Splitting drums (1 of 3)".
+        currentParent:
+          oneOf:
+            - $ref: '#/components/schemas/ParentStemName'
+            - type: 'null'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 1000
+          description: Set iff status is failed (e.g. "interrupted by restart").
+        parents:
+          type: array
+          maxItems: 6
+          description: One outcome per standard stem once completed (standard display order); empty otherwise.
+          items:
+            $ref: '#/components/schemas/ParentOutcome'
+        device:
+          oneOf:
+            - $ref: '#/components/schemas/JobDevice'
+            - type: 'null'
+          description: |
+            Where the detail steps ran (1.3.0), updated while running; null before the first parent
+            step, for cached results and for phases completed before 1.3.0.
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    DetailChannelSettings:
+      type: object
+      additionalProperties: false
+      required: [parent, stem, volume, pan, mute, solo]
+      properties:
+        parent:
+          $ref: '#/components/schemas/ParentStemName'
+        stem:
+          $ref: '#/components/schemas/DetailStemName'
+        volume:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.8
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+          default: 0
+        mute:
+          type: boolean
+          default: false
+        solo:
+          type: boolean
+          default: false
+    ChannelSettings:
+      type: object
+      additionalProperties: false
+      required: [stem, volume, pan, mute, solo]
+      properties:
+        stem:
+          $ref: '#/components/schemas/StemName'
+        volume:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.8
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+          default: 0
+        mute:
+          type: boolean
+          default: false
+        solo:
+          type: boolean
+          default: false
+    MetronomeSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, volume, bpmOverride, offsetMs, beatsPerBar]
+      properties:
+        enabled:
+          type: boolean
+        volume:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.7
+        bpmOverride:
+          type: [number, 'null']
+          minimum: 30
+          maximum: 300
+          description: Null follows the detected beat grid.
+        offsetMs:
+          type: integer
+          minimum: -2000
+          maximum: 2000
+          default: 0
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 4
+    LoopRegion:
+      type: object
+      additionalProperties: false
+      required: [start, end, enabled]
+      description: Requires 0 <= start < end <= track duration.
+      properties:
+        start:
+          type: number
+          minimum: 0
+        end:
+          type: number
+          exclusiveMinimum: 0
+        enabled:
+          type: boolean
+    MixSettings:
+      type: object
+      additionalProperties: false
+      required: [name, masterVolume, channels, metronome, loop]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed; unique per track, compared case-insensitively.
+        masterVolume:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 1
+        channels:
+          type: array
+          maxItems: 6
+          description: At most one entry per stem of the track; stems without an entry use defaults.
+          items:
+            $ref: '#/components/schemas/ChannelSettings'
+        metronome:
+          $ref: '#/components/schemas/MetronomeSettings'
+        loop:
+          oneOf:
+            - $ref: '#/components/schemas/LoopRegion'
+            - type: 'null'
+        expanded:
+          type: array
+          uniqueItems: true
+          maxItems: 5
+          default: []
+          description: |
+            Parents shown expanded (their detail stems replace the parent audio); each must have
+            outcome `split` on the track. Absent or empty = all collapsed (mixes saved before 1.2.0).
+          items:
+            $ref: '#/components/schemas/ParentStemName'
+        detailChannels:
+          type: array
+          maxItems: 50
+          default: []
+          description: |
+            At most one entry per (parent, stem); each detail stem must exist on the track; detail
+            stems without an entry use defaults. Kept while the parent is collapsed.
+          items:
+            $ref: '#/components/schemas/DetailChannelSettings'
+    CreateMixRequest:
+      type: object
+      additionalProperties: false
+      required: [trackId, settings]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        settings:
+          $ref: '#/components/schemas/MixSettings'
+    Mix:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, settings, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        settings:
+          $ref: '#/components/schemas/MixSettings'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MixSummary:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, trackTitle, name, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        trackTitle:
+          type: string
+        name:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    ArtworkSource:
+      type: string
+      description: |
+        Where the shown picture came from (1.4.0). Precedence of automatic pictures: `spotify` >
+        `embedded` > `coverartarchive` > `youtube`; an own picture (`user`) always wins.
+      enum: [user, spotify, embedded, coverartarchive, youtube]
+    ArtworkVariant:
+      type: string
+      description: '`cover` = 600 x 600 JPEG, `thumb` = 160 x 160 JPEG.'
+      enum: [cover, thumb]
+    Artwork:
+      type: object
+      additionalProperties: false
+      required: [source, version, coverUrl, thumbUrl]
+      description: The picture shown for a track (1.4.0).
+      properties:
+        source:
+          $ref: '#/components/schemas/ArtworkSource'
+        version:
+          type: string
+          pattern: '^[0-9a-f]{12}$'
+          description: First 12 hex characters of the cover's SHA-256; changes with the picture.
+        coverUrl:
+          type: string
+          description: /api/tracks/{trackId}/artwork/cover?v={version}
+        thumbUrl:
+          type: string
+          description: /api/tracks/{trackId}/artwork/thumb?v={version}
+    MetadataStatus:
+      type: string
+      description: |
+        Lookup state (1.4.0): `none` (never looked up, e.g. tracks from before 1.4.0), `pending`
+        (scheduled), `searching`, `found`, `notFound` (no reliable match; nothing is guessed),
+        `failed` (services unreachable; `reason` says why), `disabled` (online lookups off).
+      enum: [none, pending, searching, found, notFound, failed, disabled]
+    TrackMetadata:
+      type: object
+      additionalProperties: false
+      required: [status, correctedByUser]
+      properties:
+        status:
+          $ref: '#/components/schemas/MetadataStatus'
+        reason:
+          type: [string, 'null']
+          maxLength: 1000
+          description: Failure reason or warnings of the last lookup.
+        album:
+          type: [string, 'null']
+          maxLength: 500
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+          description: First release year of the album.
+        artistName:
+          type: [string, 'null']
+          maxLength: 500
+        correctedByUser:
+          type: boolean
+          description: True when the user corrected title or artist for the lookup.
+    MetadataLookupRequest:
+      type: object
+      additionalProperties: false
+      description: Both optional; an empty object retries with the current names.
+      properties:
+        title:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 500
+    ArtworkUploadRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: JPEG, PNG or WebP picture, at most 10,485,760 bytes.
+    RecordingInfo:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        album:
+          type: [string, 'null']
+          maxLength: 500
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+    ArtistType:
+      type: string
+      enum: [group, person, orchestra, choir, character, other]
+    ArtistMember:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 500
+        fromYear:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+        toYear:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+    WikipediaSummary:
+      type: object
+      additionalProperties: false
+      required: [language, title, extract, pageUrl, historyUrl, licence, licenceUrl]
+      description: |
+        Shown with: the article title linked to `pageUrl`, "Wikipedia contributors" linked to
+        `historyUrl`, the licence linked to `licenceUrl`, and the note "Excerpt, unmodified".
+      properties:
+        language:
+          type: string
+          pattern: '^[a-z]{2,3}$'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        extract:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        pageUrl:
+          type: string
+          pattern: '^https://'
+        historyUrl:
+          type: string
+          pattern: '^https://'
+        licence:
+          type: string
+          const: CC BY-SA 4.0
+        licenceUrl:
+          type: string
+          const: https://creativecommons.org/licenses/by-sa/4.0/
+    ArtistInfo:
+      type: object
+      additionalProperties: false
+      required: [mbid, name, genres, members]
+      properties:
+        mbid:
+          type: string
+          format: uuid
+          description: MusicBrainz artist id.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 500
+        type:
+          oneOf:
+            - $ref: '#/components/schemas/ArtistType'
+            - type: 'null'
+        country:
+          type: [string, 'null']
+          pattern: '^[A-Z]{2}$'
+        beginYear:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+        endYear:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+          description: Null while active.
+        genres:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 100
+        members:
+          type: array
+          maxItems: 12
+          description: Only for groups.
+          items:
+            $ref: '#/components/schemas/ArtistMember'
+        website:
+          type: [string, 'null']
+          pattern: '^https://'
+        summary:
+          oneOf:
+            - $ref: '#/components/schemas/WikipediaSummary'
+            - type: 'null'
+    DataSource:
+      type: object
+      additionalProperties: false
+      required: [name, url]
+      properties:
+        name:
+          type: string
+          enum: [MusicBrainz, Wikidata, Wikipedia, Cover Art Archive]
+        url:
+          type: string
+          pattern: '^https://'
+          description: The record or article the facts came from.
+        licence:
+          type: [string, 'null']
+          description: '`CC0` (MusicBrainz core data, Wikidata), `CC BY-SA 4.0` (Wikipedia); null for Cover Art Archive (no licence stated; shown in the app only).'
+    BandInfo:
+      type: object
+      additionalProperties: false
+      required: [status, sources]
+      properties:
+        status:
+          $ref: '#/components/schemas/MetadataStatus'
+        reason:
+          type: [string, 'null']
+          maxLength: 1000
+        recording:
+          oneOf:
+            - $ref: '#/components/schemas/RecordingInfo'
+            - type: 'null'
+        artist:
+          oneOf:
+            - $ref: '#/components/schemas/ArtistInfo'
+            - type: 'null'
+        sources:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/DataSource'
+    AssetKind:
+      type: string
+      description: '`audio` (1.5.0); `score` is reserved for sheet music (feature 008).'
+      enum: [audio, score]
+    AssetStatus:
+      type: string
+      description: '`ready` and `failed` are terminal.'
+      enum: [queued, rendering, ready, failed]
+    AssetFileRole:
+      type: string
+      description: '`audio` (1.5.0); feature 008 adds `pdf`, `musicxml` and `midi`.'
+      enum: [audio]
+    ChannelId:
+      type: string
+      pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+      description: A standard stem (`drums`) or a detail stem `<parent>.<detail>` (`drums.kick`); the engine's ChannelId.
+      example: drums.kick
+    ExportMode:
+      type: string
+      description: '`raw`: gain 1, pan 0, master 1, mute/solo ignored. `mix`: fader, pan and master of the mix.'
+      enum: [raw, mix]
+    AudioFileFormat:
+      type: string
+      enum: [flac, wav, mp3]
+    ExportFormat:
+      type: object
+      additionalProperties: false
+      required: [format]
+      properties:
+        format:
+          $ref: '#/components/schemas/AudioFileFormat'
+        bitDepth:
+          type: [integer, 'null']
+          enum: [16, 24, null]
+          description: FLAC/WAV only; null = 16 for one raw channel, else 24.
+        mp3BitrateKbps:
+          type: [integer, 'null']
+          enum: [192, 256, 320, null]
+          description: MP3 only (constant bit rate); null = 320.
+    ExportRange:
+      type: object
+      additionalProperties: false
+      required: [startSeconds, endSeconds]
+      description: Requires 0 <= startSeconds < endSeconds <= track duration and a length of at least 0.5 s.
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 900
+    ExportMix:
+      type: object
+      additionalProperties: false
+      required: [masterVolume, channels]
+      description: The mixer state used for an export (`MixSettings` without name, metronome and loop, which never affect an export).
+      properties:
+        masterVolume:
+          type: number
+          minimum: 0
+          maximum: 1
+        channels:
+          type: array
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/ChannelSettings'
+        expanded:
+          type: array
+          uniqueItems: true
+          maxItems: 5
+          default: []
+          items:
+            $ref: '#/components/schemas/ParentStemName'
+        detailChannels:
+          type: array
+          maxItems: 50
+          default: []
+          items:
+            $ref: '#/components/schemas/DetailChannelSettings'
+    CreateAudioExportRequest:
+      type: object
+      additionalProperties: false
+      required: [trackId, mode, format]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+          description: A completed track.
+        mode:
+          $ref: '#/components/schemas/ExportMode'
+        channels:
+          type: [array, 'null']
+          minItems: 1
+          maxItems: 56
+          uniqueItems: true
+          description: |
+            Explicit selection (each a standard stem of the track or a kept detail stem of a split
+            parent), or null = every audible channel (mode `mix` only). Required in mode `raw`.
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        mix:
+          oneOf:
+            - $ref: '#/components/schemas/ExportMix'
+            - type: 'null'
+          description: Current mixer state (mode `mix`; exactly one of `mix` and `mixId`).
+        mixId:
+          type: [string, 'null']
+          format: uuid
+          description: A saved mix of the track (mode `mix`; exactly one of `mix` and `mixId`).
+        range:
+          oneOf:
+            - $ref: '#/components/schemas/ExportRange'
+            - type: 'null'
+        format:
+          $ref: '#/components/schemas/ExportFormat'
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 120
+          description: Null = "<track title> - <contents>", made unique with " (2)", " (3)", ...
+    CreateStemPackRequest:
+      type: object
+      additionalProperties: false
+      required: [trackId, format]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        includeDetail:
+          type: boolean
+          default: false
+        format:
+          $ref: '#/components/schemas/ExportFormat'
+    StemPack:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 56
+          items:
+            $ref: '#/components/schemas/Asset'
+    RenameAssetRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Trimmed; no control characters.
+    AssetFile:
+      type: object
+      additionalProperties: false
+      required: [role, contentType, sizeBytes, sha256, url]
+      properties:
+        role:
+          $ref: '#/components/schemas/AssetFileRole'
+        contentType:
+          type: string
+          enum: [audio/flac, audio/wav, audio/mpeg]
+        sizeBytes:
+          type: integer
+          minimum: 1
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        url:
+          type: string
+          description: /api/assets/{assetId}/files/{role}
+    AudioFacts:
+      type: object
+      additionalProperties: false
+      required: [format, bitDepth, mp3BitrateKbps, sampleRate, channels, durationSeconds, peakDbfs, appliedGainDb]
+      properties:
+        format:
+          $ref: '#/components/schemas/AudioFileFormat'
+        bitDepth:
+          type: [integer, 'null']
+          enum: [16, 24, null]
+        mp3BitrateKbps:
+          type: [integer, 'null']
+          enum: [192, 256, 320, null]
+        sampleRate:
+          type: integer
+          const: 44100
+        channels:
+          type: integer
+          const: 2
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 900
+        peakDbfs:
+          type: number
+          maximum: 0
+        appliedGainDb:
+          type: number
+          maximum: 0
+          description: Negative when the export was lowered to avoid clipping ("Lowered by X dB").
+    ExportRecipe:
+      type: object
+      additionalProperties: false
+      required: [trackId, mode, channels, mix, range, format]
+      description: The normalised export request (stored; used by retry and by the agent).
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        mode:
+          $ref: '#/components/schemas/ExportMode'
+        channels:
+          type: [array, 'null']
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        mix:
+          oneOf:
+            - $ref: '#/components/schemas/ExportMix'
+            - type: 'null'
+          description: Snapshot of the mix used (mode `mix`; a `mixId` is resolved and copied at creation).
+        range:
+          oneOf:
+            - $ref: '#/components/schemas/ExportRange'
+            - type: 'null'
+        format:
+          $ref: '#/components/schemas/ExportFormat'
+    AssetOrigin:
+      type: string
+      description: '`export` (1.5.0); later features add `transcription`, `restyle`, `generation`.'
+      enum: [export]
+    Provenance:
+      type: object
+      additionalProperties: false
+      required: [origin, trackId, trackTitle, trackArtist, trackAvailable, sourceAssetIds, contents, recipe]
+      properties:
+        origin:
+          $ref: '#/components/schemas/AssetOrigin'
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        trackTitle:
+          type: string
+          maxLength: 300
+          description: Snapshot taken at creation; kept when the track is deleted.
+        trackArtist:
+          type: [string, 'null']
+          maxLength: 500
+        trackAvailable:
+          type: boolean
+          description: Whether the track still exists (computed on read).
+        sourceAssetIds:
+          type: array
+          description: Library items this item was made from (empty for exports).
+          items:
+            type: string
+            format: uuid
+        contents:
+          type: string
+          maxLength: 200
+          description: e.g. "drums, raw", "vocals + bass + drums.kick, mixed, 0:30-1:15", "6 channels, mixed".
+        recipe:
+          $ref: '#/components/schemas/ExportRecipe'
+          description: How the item was made (origin `export`; feature 008 turns this into a oneOf with its own recipe).
+    Asset:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, status, progress, error, files, audio, score, provenance, sizeBytes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/AssetKind'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          $ref: '#/components/schemas/AssetStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 500
+          description: Readable reason; set exactly when status is failed.
+        files:
+          type: array
+          maxItems: 4
+          description: Empty until ready.
+          items:
+            $ref: '#/components/schemas/AssetFile'
+        audio:
+          oneOf:
+            - $ref: '#/components/schemas/AudioFacts'
+            - type: 'null'
+          description: Set when a kind `audio` item is ready.
+        score:
+          type: 'null'
+          description: Reserved for feature 008 (sheet music facts).
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+        sizeBytes:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AssetList:
+      type: object
+      additionalProperties: false
+      required: [items, total, totalSizeBytes]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Asset'
+        total:
+          type: integer
+          minimum: 0
+        totalSizeBytes:
+          type: integer
+          minimum: 0
+    AudioSource:
+      description: |
+        An audio input of later features (008 transcription, 009 style transfer, 011 agent): a
+        channel of a track or a library item. Not used by a 1.5.0 operation.
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [trackId, channel]
+          properties:
+            trackId:
+              type: string
+              format: uuid
+            channel:
+              $ref: '#/components/schemas/ChannelId'
+        - type: object
+          additionalProperties: false
+          required: [assetId]
+          properties:
+            assetId:
+              type: string
+              format: uuid
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+  responses:
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields with a message the user can act on.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+            title: One or more validation errors occurred.
+            status: 400
+            errors:
+              url:
+                - Only YouTube video links and Spotify track links are supported. Playlists and albums are not.
+    PayloadTooLarge:
+      description: Upload larger than 200 MiB (209,715,200 bytes).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: File too large
+            status: 413
+            detail: The file is larger than 200 MiB (209,715,200 bytes).
+    UnsupportedMediaType:
+      description: Upload is not an .mp3, .wav or .flac file.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Unsupported file type
+            status: 415
+            detail: Only MP3, WAV and FLAC files are supported.
+    NotFound:
+      description: Unknown track, stem or mix.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Track 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a does not exist.
+    Conflict:
+      description: The operation is not allowed in the current state (e.g. retry of a non-failed track).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Track is not failed
+            status: 409
+            detail: Only failed tracks can be retried.
+    MixNameTaken:
+      description: Another mix of the same track already has this name.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Mix name taken
+            status: 409
+            detail: A mix named "Guitar practice" already exists for this track.
+    WorkerUnavailable:
+      description: The processing service cannot be reached; no track or job was created.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Processing service unavailable
+            status: 503
+            detail: The processing service is unavailable. Existing tracks and mixes remain usable.
+    StemFile:
+      description: Whole stem file.
+      headers:
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptRanges'
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+      content:
+        audio/flac:
+          schema:
+            type: string
+            contentMediaType: audio/flac
+    StemFilePartial:
+      description: Requested byte range of the stem file.
+      headers:
+        Content-Range:
+          schema:
+            type: string
+          example: bytes 0-1048575/23456789
+        Accept-Ranges:
+          $ref: '#/components/headers/AcceptRanges'
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+      content:
+        audio/flac:
+          schema:
+            type: string
+            contentMediaType: audio/flac
+    StemNotModified:
+      description: Not modified (`If-None-Match` or `If-Modified-Since` matched); no body.
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+        Last-Modified:
+          $ref: '#/components/headers/LastModified'
+    RangeNotSatisfiable:
+      description: Range not satisfiable; no body.
+      headers:
+        Content-Range:
+          description: '`bytes */<file size>` (RFC 9110 section 14.4).'
+          schema:
+            type: string
+          example: bytes */23456789
+    UnprocessableRequest:
+      description: The request is well-formed but a value is out of its limits; `errors` names the fields.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.21
+            title: One or more validation errors occurred.
+            status: 422
+            errors:
+              title:
+                - The title must be 1 to 500 characters long.
+    ExportConflict:
+      description: |
+        `track-not-ready` (the track is not completed), `insufficient-disk-space` (less than
+        `StemStudio:MinFreeDiskBytes` free on the data drive) or `source-unavailable` (a stem
+        file of the source is missing; the worker rejected the input).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            trackNotReady:
+              value:
+                type: track-not-ready
+                title: Track not ready
+                status: 409
+                detail: The track is still being processed; export it when it is completed.
+            insufficientDiskSpace:
+              value:
+                type: insufficient-disk-space
+                title: Not enough disk space
+                status: 409
+                detail: Less than 1 GiB is free on the data drive; delete items or free space first.
+            sourceUnavailable:
+              value:
+                type: source-unavailable
+                title: Source unavailable
+                status: 409
+                detail: A stem file of this track is missing; separate the track again and retry.
+    ExportUnprocessable:
+      description: |
+        A value is outside its limits (`errors` names the field, e.g. `channels[2]`, `range`,
+        `format`), or `nothing-to-export` (no channel would be audible).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            validation:
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.21
+                title: One or more validation errors occurred.
+                status: 422
+                errors:
+                  channels[2]:
+                    - The track has no detail stem drums.kick.
+            nothingToExport:
+              value:
+                type: nothing-to-export
+                title: Nothing to export
+                status: 422
+                detail: 'Nothing to export: no channel is audible'
+  examples:
+    QueuedTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: https://youtu.be/dQw4w9WgXcQ
+        artist: null
+        sourceType: youtube
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceUrl: https://youtu.be/dQw4w9WgXcQ
+        status: queued
+        stage: Queued
+        progress: 0
+        error: null
+        durationSeconds: null
+        model: null
+        stems: []
+        beatGrid: null
+        detail:
+          status: none
+          stage: null
+          currentParent: null
+          progress: 0
+          error: null
+          parents: []
+          updatedAt: null
+        artwork: null
+        metadata:
+          status: none
+          reason: null
+          album: null
+          year: null
+          artistName: null
+          correctedByUser: false
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:00Z'
+    SeparatingTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: Never Gonna Give You Up
+        artist: Rick Astley
+        sourceType: youtube
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceUrl: https://youtu.be/dQw4w9WgXcQ
+        status: separating
+        stage: Separating stems
+        progress: 47
+        error: null
+        durationSeconds: null
+        model: null
+        stems: []
+        beatGrid: null
+        detail:
+          status: none
+          stage: null
+          currentParent: null
+          progress: 0
+          error: null
+          parents: []
+          device: null
+          updatedAt: null
+        device:
+          kind: gpu
+          name: NVIDIA GeForce RTX 5070 Ti
+          cpuFallback: false
+          fallbackReason: null
+        artwork:
+          source: youtube
+          version: 9b74c9897bac
+          coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=9b74c9897bac
+          thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=9b74c9897bac
+        metadata:
+          status: searching
+          reason: null
+          album: null
+          year: null
+          artistName: null
+          correctedByUser: false
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:03:10Z'
+    CompletedTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: Never Gonna Give You Up
+        artist: Rick Astley
+        sourceType: youtube
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceUrl: https://youtu.be/dQw4w9WgXcQ
+        status: completed
+        stage: Completed
+        progress: 100
+        error: null
+        durationSeconds: 213.04
+        model: htdemucs_6s
+        stems:
+          - name: vocals
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/vocals
+          - name: drums
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/drums
+          - name: bass
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass
+          - name: guitar
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/guitar
+          - name: piano
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/piano
+          - name: other
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/other
+        beatGrid:
+          bpm: 113.5
+          beats: [0.52, 1.05, 1.58, 2.11, 2.64]
+          downbeats: [0.52, 2.64]
+          beatsPerBar: 4
+          confidence: 0.87
+          reliable: true
+        detail:
+          status: none
+          stage: null
+          currentParent: null
+          progress: 0
+          error: null
+          parents: []
+          updatedAt: null
+        artwork:
+          source: spotify
+          version: 2c26b46b68ff
+          coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=2c26b46b68ff
+          thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=2c26b46b68ff
+        metadata:
+          status: found
+          reason: null
+          album: Whenever You Need Somebody
+          year: 1987
+          artistName: Rick Astley
+          correctedByUser: false
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:06:31Z'
+    FailedTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: Some Song
+        artist: Some Artist
+        sourceType: spotify
+        sourceKey: spotify:4cOdK2wGLETKBW3PvgPWqT
+        sourceUrl: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
+        status: failed
+        stage: Failed
+        progress: 5
+        error: No matching YouTube audio was found for this Spotify track.
+        durationSeconds: null
+        model: null
+        stems: []
+        beatGrid: null
+        detail:
+          status: none
+          stage: null
+          currentParent: null
+          progress: 0
+          error: null
+          parents: []
+          updatedAt: null
+        artwork: null
+        metadata:
+          status: none
+          reason: null
+          album: null
+          year: null
+          artistName: null
+          correctedByUser: false
+        createdAt: '2026-11-14T12:00:00Z'
+        updatedAt: '2026-11-14T12:00:20Z'
+    DetailQueuedTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: Never Gonna Give You Up
+        artist: Rick Astley
+        sourceType: youtube
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceUrl: https://youtu.be/dQw4w9WgXcQ
+        status: completed
+        stage: Completed
+        progress: 100
+        error: null
+        durationSeconds: 213.04
+        model: htdemucs
+        stems:
+          - name: vocals
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/vocals
+          - name: drums
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/drums
+          - name: bass
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass
+          - name: other
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/other
+        beatGrid: null
+        detail:
+          status: queued
+          stage: Queued
+          currentParent: null
+          progress: 0
+          error: null
+          parents: []
+          updatedAt: '2026-11-15T12:06:31Z'
+        artwork: null
+        metadata:
+          status: none
+          reason: null
+          album: null
+          year: null
+          artistName: null
+          correctedByUser: false
+        createdAt: '2026-11-15T12:00:00Z'
+        updatedAt: '2026-11-15T12:06:31Z'
+    DetailCompletedTrack:
+      value:
+        id: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        title: Never Gonna Give You Up
+        artist: Rick Astley
+        sourceType: youtube
+        sourceKey: youtube:dQw4w9WgXcQ
+        sourceUrl: https://youtu.be/dQw4w9WgXcQ
+        status: completed
+        stage: Completed
+        progress: 100
+        error: null
+        durationSeconds: 213.04
+        model: htdemucs
+        stems:
+          - name: vocals
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/vocals
+          - name: drums
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/drums
+          - name: bass
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass
+          - name: other
+            url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/other
+        beatGrid: null
+        detail:
+          status: completed
+          stage: Completed
+          currentParent: null
+          progress: 100
+          error: null
+          parents:
+            - parent: vocals
+              outcome: split
+              stems:
+                - name: lead
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/lead
+                - name: backing
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/backing
+                - name: rest
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/vocals/rest
+            - parent: drums
+              outcome: split
+              stems:
+                - name: kick
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/kick
+                - name: snare
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/snare
+                - name: rest
+                  url: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail-stems/drums/rest
+            - parent: bass
+              outcome: not-supported
+              stems: []
+            - parent: other
+              outcome: skipped-silent
+              stems: []
+          device:
+            kind: gpu
+            name: NVIDIA GeForce RTX 5070 Ti
+            cpuFallback: true
+            fallbackReason: 'Not enough free GPU memory for Mega 53-stem (needs 7000 MiB, 3100 MiB free); ran on the CPU.'
+          updatedAt: '2026-11-15T12:31:10Z'
+        device:
+          kind: gpu
+          name: NVIDIA GeForce RTX 5070 Ti
+          cpuFallback: false
+          fallbackReason: null
+        artwork: null
+        metadata:
+          status: none
+          reason: null
+          album: null
+          year: null
+          artistName: null
+          correctedByUser: false
+        createdAt: '2026-11-15T12:00:00Z'
+        updatedAt: '2026-11-15T12:31:10Z'
+    MixSettingsWithDetail:
+      value:
+        name: No snare
+        masterVolume: 1
+        channels: []
+        metronome:
+          enabled: true
+          volume: 0.7
+          bpmOverride: null
+          offsetMs: 0
+          beatsPerBar: 4
+        loop: null
+        expanded: [drums]
+        detailChannels:
+          - parent: drums
+            stem: snare
+            volume: 0.8
+            pan: 0
+            mute: true
+            solo: false
+    MixSettings:
+      value:
+        name: Guitar practice
+        masterVolume: 1
+        channels:
+          - stem: guitar
+            volume: 0
+            pan: 0
+            mute: true
+            solo: false
+          - stem: drums
+            volume: 0.9
+            pan: -0.2
+            mute: false
+            solo: false
+        metronome:
+          enabled: true
+          volume: 0.7
+          bpmOverride: null
+          offsetMs: 0
+          beatsPerBar: 4
+        loop:
+          start: 10
+          end: 20
+          enabled: true
+    FoundBandInfo:
+      summary: Placeholder band and texts (no third-party text in the contract)
+      value:
+        status: found
+        reason: null
+        recording:
+          title: Example Song
+          album: Example Album
+          year: 1996
+        artist:
+          mbid: 6b7c8d9e-0f1a-4b2c-8d3e-4f5a6b7c8d9e
+          name: The Example Band
+          type: group
+          country: US
+          beginYear: 1981
+          endYear: null
+          genres: [heavy metal, thrash metal]
+          members:
+            - name: First Member
+              fromYear: 1981
+              toYear: null
+          website: https://www.example.org/
+          summary:
+            language: en
+            title: The Example Band
+            extract: The Example Band is a placeholder group used in contract examples; real excerpts are fetched at run time.
+            pageUrl: https://en.wikipedia.org/wiki/The_Example_Band
+            historyUrl: https://en.wikipedia.org/w/index.php?title=The_Example_Band&action=history
+            licence: CC BY-SA 4.0
+            licenceUrl: https://creativecommons.org/licenses/by-sa/4.0/
+        sources:
+          - name: MusicBrainz
+            url: https://musicbrainz.org/recording/0f4e8a7c-3b2d-4c1e-9f8a-7b6c5d4e3f2a
+            licence: CC0
+          - name: Wikidata
+            url: https://www.wikidata.org/wiki/Q15920
+            licence: CC0
+          - name: Wikipedia
+            url: https://en.wikipedia.org/wiki/The_Example_Band
+            licence: CC BY-SA 4.0
+          - name: Cover Art Archive
+            url: https://coverartarchive.org/release-group/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+            licence: null
+    SearchingBandInfo:
+      value:
+        status: searching
+        reason: null
+        recording: null
+        artist: null
+        sources: []
+    FailedBandInfo:
+      value:
+        status: failed
+        reason: Band information could not be retrieved; try again later.
+        recording: null
+        artist: null
+        sources: []
+    RawStemExportRequest:
+      summary: One standard stem, raw, 16-bit FLAC
+      value:
+        trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        mode: raw
+        channels: [drums]
+        mix: null
+        mixId: null
+        range: null
+        format:
+          format: flac
+          bitDepth: 16
+          mp3BitrateKbps: null
+        name: null
+    AudibleMixExportRequest:
+      summary: What I hear (unsaved mixer state) as MP3 with a range
+      value:
+        trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        mode: mix
+        channels: null
+        mix:
+          masterVolume: 0.7
+          channels:
+            - stem: guitar
+              volume: 0
+              pan: 0
+              mute: true
+              solo: false
+          expanded: [drums]
+          detailChannels:
+            - parent: drums
+              stem: snare
+              volume: 0.8
+              pan: 0
+              mute: true
+              solo: false
+        mixId: null
+        range:
+          startSeconds: 30
+          endSeconds: 75.5
+        format:
+          format: mp3
+          bitDepth: null
+          mp3BitrateKbps: 320
+        name: Practice backing track
+    SelectedChannelsExportRequest:
+      summary: Selected channels of a saved mix as 24-bit WAV
+      value:
+        trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+        mode: mix
+        channels: [vocals, bass, drums.kick]
+        mix: null
+        mixId: 6a1f0c9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b
+        range: null
+        format:
+          format: wav
+          bitDepth: 24
+          mp3BitrateKbps: null
+        name: null
+    QueuedAsset:
+      value:
+        id: 3c9a1e7b-5d2f-4a6c-8e0b-1f2a3b4c5d6e
+        kind: audio
+        name: Never Gonna Give You Up - drums
+        status: queued
+        progress: 0
+        error: null
+        files: []
+        audio: null
+        score: null
+        provenance:
+          origin: export
+          trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+          trackTitle: Never Gonna Give You Up
+          trackArtist: Rick Astley
+          trackAvailable: true
+          sourceAssetIds: []
+          contents: drums, raw
+          recipe:
+            trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+            mode: raw
+            channels: [drums]
+            mix: null
+            range: null
+            format:
+              format: flac
+              bitDepth: 16
+              mp3BitrateKbps: null
+        sizeBytes: 0
+        createdAt: '2026-11-15T13:00:00Z'
+        updatedAt: '2026-11-15T13:00:00Z'
+    RenderingAsset:
+      value:
+        id: 3c9a1e7b-5d2f-4a6c-8e0b-1f2a3b4c5d6e
+        kind: audio
+        name: Never Gonna Give You Up - drums
+        status: rendering
+        progress: 62
+        error: null
+        files: []
+        audio: null
+        score: null
+        provenance:
+          origin: export
+          trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+          trackTitle: Never Gonna Give You Up
+          trackArtist: Rick Astley
+          trackAvailable: true
+          sourceAssetIds: []
+          contents: drums, raw
+          recipe:
+            trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+            mode: raw
+            channels: [drums]
+            mix: null
+            range: null
+            format:
+              format: flac
+              bitDepth: 16
+              mp3BitrateKbps: null
+        sizeBytes: 0
+        createdAt: '2026-11-15T13:00:00Z'
+        updatedAt: '2026-11-15T13:00:02Z'
+    ReadyAsset:
+      summary: What I hear, lowered by 1.8 dB to avoid clipping
+      value:
+        id: 7d4b2c8e-6a1f-4b3d-9e5c-2a3b4c5d6e7f
+        kind: audio
+        name: Practice backing track
+        status: ready
+        progress: 100
+        error: null
+        files:
+          - role: audio
+            contentType: audio/mpeg
+            sizeBytes: 1824512
+            sha256: e3b98a4da31a127d4bde6e43033f66ba274cab0eb7eb1c70ec41402bf6273dd8
+            url: /api/assets/7d4b2c8e-6a1f-4b3d-9e5c-2a3b4c5d6e7f/files/audio
+        audio:
+          format: mp3
+          bitDepth: null
+          mp3BitrateKbps: 320
+          sampleRate: 44100
+          channels: 2
+          durationSeconds: 45.5
+          peakDbfs: -0.1
+          appliedGainDb: -1.8
+        score: null
+        provenance:
+          origin: export
+          trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+          trackTitle: Never Gonna Give You Up
+          trackArtist: Rick Astley
+          trackAvailable: false
+          sourceAssetIds: []
+          contents: 6 channels, mixed, 0:30-1:15
+          recipe:
+            trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+            mode: mix
+            channels: null
+            mix:
+              masterVolume: 0.7
+              channels:
+                - stem: guitar
+                  volume: 0
+                  pan: 0
+                  mute: true
+                  solo: false
+              expanded: [drums]
+              detailChannels:
+                - parent: drums
+                  stem: snare
+                  volume: 0.8
+                  pan: 0
+                  mute: true
+                  solo: false
+            range:
+              startSeconds: 30
+              endSeconds: 75.5
+            format:
+              format: mp3
+              bitDepth: null
+              mp3BitrateKbps: 320
+        sizeBytes: 1824512
+        createdAt: '2026-11-15T13:00:00Z'
+        updatedAt: '2026-11-15T13:00:10Z'
+    FailedAsset:
+      value:
+        id: 3c9a1e7b-5d2f-4a6c-8e0b-1f2a3b4c5d6e
+        kind: audio
+        name: Never Gonna Give You Up - drums
+        status: failed
+        progress: 20
+        error: The processing service lost this job; try again
+        files: []
+        audio: null
+        score: null
+        provenance:
+          origin: export
+          trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+          trackTitle: Never Gonna Give You Up
+          trackArtist: Rick Astley
+          trackAvailable: true
+          sourceAssetIds: []
+          contents: drums, raw
+          recipe:
+            trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+            mode: raw
+            channels: [drums]
+            mix: null
+            range: null
+            format:
+              format: flac
+              bitDepth: 16
+              mp3BitrateKbps: null
+        sizeBytes: 0
+        createdAt: '2026-11-15T13:00:00Z'
+        updatedAt: '2026-11-15T13:00:31Z'

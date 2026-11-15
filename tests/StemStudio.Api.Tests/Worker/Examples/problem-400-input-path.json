@@ -1,0 +1,6 @@
+{
+  "type": "invalid-input-path",
+  "title": "Invalid input path",
+  "status": 400,
+  "detail": "Input path is not allowed: tracks/../stemstudio.db"
+}

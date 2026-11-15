@@ -1,12 +1,15 @@
 using Microsoft.Extensions.Options;
+using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
+using StemStudio.Api.Metadata;
 
 namespace StemStudio.Api.Sync;
 
 /// <summary>
 /// Background poller (ADR-003): every <see cref="StemStudioApiOptions.JobPollIntervalMs"/> on the injected
 /// <see cref="TimeProvider"/> it fails orphaned imports (<see cref="OrphanedImportSweeper"/>), runs one
-/// <see cref="ITrackSynchronizer"/> pass and one <see cref="DetailSynchronizer"/> pass, in a new scope.
+/// <see cref="ITrackSynchronizer"/> pass, one <see cref="DetailSynchronizer"/> pass and one <see cref="MetadataSynchronizer"/> pass
+/// (feature 005) and one <see cref="AssetSynchronizer"/> pass (feature 007), in a new scope.
 /// </summary>
 /// <param name="scopes">Scope factory.</param>
 /// <param name="options">API options.</param>
@@ -47,14 +50,21 @@ public sealed partial class JobSyncService(
         try
         {
             await using var scope = scopes.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<OrphanedImportSweeper>().SweepAsync(cancellationToken);
-            await scope.ServiceProvider.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(cancellationToken);
-            await scope.ServiceProvider.GetRequiredService<DetailSynchronizer>().SyncAllAsync(cancellationToken);
+            await PassesAsync(scope.ServiceProvider, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             LogTickFailed(logger, exception);
         }
+    }
+
+    private static async Task PassesAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        await services.GetRequiredService<OrphanedImportSweeper>().SweepAsync(cancellationToken);
+        await services.GetRequiredService<ITrackSynchronizer>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<DetailSynchronizer>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<MetadataSynchronizer>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<AssetSynchronizer>().SyncAllAsync(cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job synchronisation tick failed; retrying on the next tick")]

@@ -9,10 +9,14 @@
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Worker contract examples (copied from worker-api.openapi.yaml 1.0.1/1.1.0, checked against the 1.2.0 document) and the backend contract itself. -->
+    <!-- Worker contract examples (copied from worker-api.openapi.yaml, re-synced from 1.4.0) and the backend contract itself.
+         Features 005 and 007 run as one wave: the tests use the 007 documents (worker 1.4.0, backend 1.5.0 = 005 plus 007);
+         the 005 backend document (1.4.0) is linked as well so a test can prove it is a subset. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\003-gpu-acceleration\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\003-gpu-acceleration\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\007-export-library\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\007-export-library\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\005-artwork-band-info\contracts\backend-api.openapi.yaml" Link="Contract\005\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\007-export-library\contracts\render-vectors.json" Link="Contract\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Contract\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

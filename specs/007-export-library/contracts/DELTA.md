@@ -1,5 +1,36 @@
 # Contract delta: Export Isolated Channels (Asset Library)
 
+## Phase 0 outcome (architect, 2026-11-15; combined with 005)
+
+Versions assigned (docs/ROADMAP.md): **worker-api 1.4.0**, **backend-api 1.5.0**, **ui-test-ids
+1.5.0**, **render-vectors 1.0.0**; each is 005's document (worker 1.3.0, backend 1.4.0, UI ids
+1.4.0) plus the 007 additions. Full documents next to this file, Redocly 2.78.0 clean (warnings:
+`operation-4xx-response` on health/device/list and the idempotent render `DELETE`,
+`no-unused-components` for `AudioSource`). Refinements against the delta below:
+
+1. `RenderJob` id field is `renderJobId` (data-model 2.4 said `id`), like `detailJobId` and
+   `metadataJobId`.
+2. `RenderInput.path` has no schema `pattern`: the allow-list is checked by the path guard so a
+   bad path is `400 invalid-input-path`, not a 422 (patterns in `ports.LIBRARY_PATH_PATTERNS`,
+   helper `is_allowed_library_path`). Problem `type` values are the short codes
+   (`invalid-input-path`, `input-not-found`, `render-not-completed`, backend `track-not-ready`,
+   `insufficient-disk-space`, `nothing-to-export`, `asset-not-failed`, `source-unavailable`).
+3. `RenderExecutor` has `validate(request)` (create time: 400/404 before queueing) and
+   `render(request, out_dir, progress)`; `RenderProgress.__call__(fraction, /)` is positional-only.
+4. Settings are grouped: `WorkerSettings.render.{library_dir, block_seconds}`.
+5. `GET /api/assets/{assetId}/files/{role}`: `HEAD` is documented in the `GET` operation (one
+   operationId); `createAudioExport`, `createStemPack`, `retryAsset` also answer `503`;
+   `listAssets` answers `422` for invalid filters.
+6. `Provenance.recipe` is `$ref ExportRecipe` (008 turns it into a `oneOf`); `AssetFileRole` is
+   `[audio]` and `AssetOrigin` `[export]` in 1.5.0 (008 extends both). `ExportFormat.bitDepth` /
+   `mp3BitrateKbps` are nullable (null = default of data-model 4.2).
+7. `render-vectors.json` gate cases also carry `trackId`, the expected `path` and `contents` of
+   every input; inputs are listed in mixer order (standard stems in catalogue order, then detail
+   stems), explicit selections too. Generator: `generate_render_vectors.py` (`--check`).
+8. Backend test staging list is named `PendingAssetOperations`. CI/test-all `CONTRACTS_DIR` ->
+   this directory is devops T008 (covers 005 as well).
+
+
 This file lists **what changes** in each contract. The full documents
 (`worker-api.openapi.yaml`, `backend-api.openapi.yaml`, `ui-test-ids.md`, `render-vectors.json`,
 `redocly.yaml`) are produced by the architect in Phase 0 (T001-T005) on top of whatever versions

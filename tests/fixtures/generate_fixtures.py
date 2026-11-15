@@ -302,19 +302,28 @@ def generate(out_dir: Path, manifest_path: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     for fixture in CATALOGUE:
         write_fixture(fixture, out_dir)
-    manifest = build_manifest()
+    return write_manifest(build_manifest(), manifest_path)
+
+
+def write_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[str, Any]:
+    """Write ``manifest`` as indented JSON with a final newline (shared by the generators)."""
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(manifest, indent=2) + "\n"
     manifest_path.write_text(text, encoding="utf-8", newline="\n")
     return manifest
 
 
+def cli_args(argv: Sequence[str] | None, manifest_name: str, doc: str | None) -> argparse.Namespace:
+    """Parse ``--out-dir`` (default ``audio/``) and ``--manifest`` (default ``manifest_name``)."""
+    parser = argparse.ArgumentParser(description=doc.splitlines()[0] if doc else None)
+    parser.add_argument("--out-dir", type=Path, default=FIXTURE_DIR / "audio")
+    parser.add_argument("--manifest", type=Path, default=FIXTURE_DIR / manifest_name)
+    return parser.parse_args(argv)
+
+
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     """Parse ``--out-dir`` and ``--manifest`` (defaults: next to this script)."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
-    parser.add_argument("--out-dir", type=Path, default=FIXTURE_DIR / "audio")
-    parser.add_argument("--manifest", type=Path, default=FIXTURE_DIR / "manifest.json")
-    return parser.parse_args(argv)
+    return cli_args(argv, "manifest.json", __doc__)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

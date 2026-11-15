@@ -18,6 +18,11 @@ public abstract class PageTestContext : BunitContext
 {
     private static readonly Lazy<HelpCatalog> RealHelp = new(() => HelpCatalog.FromAssembly(typeof(HelpCatalog).Assembly));
 
+    // Polling tests release ManualPollingTimer continuations on the thread pool; under a fully parallel run the pool
+    // can be busy for more than bUnit's 1 s default, which made WaitForAssertion flaky (007 T067). Correct waits
+    // still finish at once; only a starved run waits longer.
+    static PageTestContext() => DefaultWaitTimeout = TimeSpan.FromSeconds(10);
+
     protected PageTestContext()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

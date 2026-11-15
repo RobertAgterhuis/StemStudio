@@ -1,6 +1,6 @@
 # ADR-014: Song artwork and band info (feature 005)
 
-- **Status**: Proposed (architect, 2026-11-15); becomes Accepted when feature 005 starts
+- **Status**: Accepted (architect, 2026-11-15, 005 Phase 0 T004; contracts worker 1.3.0, backend 1.4.0, UI test ids 1.4.0 in `specs/005-artwork-band-info/contracts/`)
 - **Date**: 2026-11-15
 - **Decider**: Architect (autonomous mode), to be confirmed by the CTO
 - **Feature**: `specs/005-artwork-band-info/`

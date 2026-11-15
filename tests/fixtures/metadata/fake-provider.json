@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "description": "Proposed behaviour table of the fake online provider (STEMSTUDIO_FAKE_ONLINE, separator=fake; research.md P0-1). The E2E specs band-info.spec.ts and artwork.spec.ts read their expectations from this file; audio-ingest 005:T034 (metadata/fake.py) should return exactly these values (a worker test can compare against this file).",
+  "modes": {
+    "found": {
+      "outcome": "found",
+      "status": "found",
+      "artworkSource": "coverartarchive",
+      "artworkColour": [
+        40,
+        90,
+        160
+      ],
+      "warnings": []
+    },
+    "not-found": {
+      "outcome": "not-found",
+      "status": "notFound",
+      "artworkSource": null,
+      "warnings": []
+    },
+    "failed": {
+      "outcome": null,
+      "status": "failed",
+      "artworkSource": null,
+      "error": "Band information could not be retrieved; try again later.",
+      "note": "three 503 answers, then the job fails"
+    },
+    "off": {
+      "outcome": "disabled",
+      "status": "disabled",
+      "artworkSource": null,
+      "warnings": []
+    }
+  },
+  "found": {
+    "recording": {
+      "title": "<the lookup title>",
+      "album": "Synthetic Sessions",
+      "year": 2020
+    },
+    "mixerAlbumText": "Synthetic Sessions (2020)",
+    "artist": {
+      "mbid": "816012e6-d855-599b-8cb1-0d8bd765ebe1",
+      "name": "The Fixture Band",
+      "type": "group",
+      "country": "NL",
+      "beginYear": 2001,
+      "endYear": null,
+      "genres": [
+        "synth-pop",
+        "test rock"
+      ],
+      "members": [
+        {
+          "name": "Ada Sample",
+          "fromYear": 2001,
+          "toYear": null
+        },
+        {
+          "name": "Bo Waveform",
+          "fromYear": 2001,
+          "toYear": 2015
+        },
+        {
+          "name": "Cy Decibel",
+          "fromYear": 2015,
+          "toYear": null
+        }
+      ],
+      "website": "https://example.org/the-fixture-band",
+      "summary": {
+        "language": "en",
+        "title": "The Fixture Band",
+        "extract": "The Fixture Band is a fictional group invented for the StemStudio tests. This text is not from Wikipedia.",
+        "pageUrl": "https://en.wikipedia.org/wiki/The_Fixture_Band",
+        "historyUrl": "https://en.wikipedia.org/w/index.php?title=The_Fixture_Band&action=history",
+        "licence": "CC BY-SA 4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+      }
+    },
+    "sources": [
+      "MusicBrainz",
+      "Wikidata",
+      "Wikipedia",
+      "Cover Art Archive"
+    ],
+    "correctedLookup": {
+      "title": "Corrected Title",
+      "artist": "The Fixture Band",
+      "note": "a corrected lookup in mode found returns the same artist; the recording title follows the corrected title"
+    }
+  }
+}

@@ -26,7 +26,20 @@ public enum WorkerJobState
 /// <param name="Title">Title.</param>
 /// <param name="Artist">Artist, when known.</param>
 /// <param name="SourceUrl">YouTube URL the audio came from; null for uploads.</param>
-public sealed record WorkerSourceMetadata(string Title, string? Artist, string? SourceUrl);
+/// <param name="Album">Album, when known (1.3.0).</param>
+/// <param name="Isrc">ISRC of a Spotify source (1.3.0).</param>
+/// <param name="DurationSeconds">Duration once the audio is normalised (1.3.0).</param>
+/// <param name="LookupTitle">Cleaned title for the online lookup (1.3.0).</param>
+/// <param name="LookupArtist">Cleaned artist for the online lookup (1.3.0).</param>
+public sealed record WorkerSourceMetadata(
+    string Title,
+    string? Artist,
+    string? SourceUrl,
+    string? Album = null,
+    string? Isrc = null,
+    double? DurationSeconds = null,
+    string? LookupTitle = null,
+    string? LookupArtist = null);
 
 /// <summary>A worker job (contract <c>Job</c>).</summary>
 public sealed record WorkerJob
@@ -54,4 +67,7 @@ public sealed record WorkerJob
 
     /// <summary>Where the separation runs or ran (1.2.0); null before it, for cached results and for 1.1.0 workers.</summary>
     public WorkerJobDevice? Device { get; init; }
+
+    /// <summary>The source picture once the stage "Saving cover" captured one (1.3.0); null otherwise.</summary>
+    public WorkerArtworkInfo? Artwork { get; init; }
 }

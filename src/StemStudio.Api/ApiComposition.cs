@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Api.Artwork;
+using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Device;
 using StemStudio.Api.Importing;
+using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Sync;
@@ -70,6 +73,9 @@ public static class ApiComposition
         app.MapStemEndpoints();
         app.MapDetailEndpoints();
         app.MapMixEndpoints();
+        app.MapArtworkEndpoints();
+        app.MapBandInfoEndpoints();
+        app.MapAssetEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -85,7 +91,7 @@ public static class ApiComposition
         services.AddScoped<StemService>();
         services.AddScoped<MixService>();
         AddSyncServices(services);
-        AddDetailServices(services);
+        AddFeatureServices(services);
         services.AddSingleton<ProcessingDeviceCache>();
         services.AddScoped<ProcessingDeviceService>();
     }
@@ -94,6 +100,7 @@ public static class ApiComposition
     {
         services.AddSingleton<TrackFiles>();
         services.AddSingleton<JobDeviceApplier>();
+        services.AddScoped<JobReportApplier>();
         services.AddScoped<TrackJobApplier>();
         services.AddScoped<ITrackSynchronizer, TrackSynchronizer>();
         services.AddScoped<OrphanedImportSweeper>();
@@ -106,6 +113,40 @@ public static class ApiComposition
         services.AddScoped<DetailJobApplier>();
         services.AddScoped<DetailSynchronizer>();
         services.AddScoped<DetailService>();
+    }
+
+    private static void AddFeatureServices(IServiceCollection services)
+    {
+        AddDetailServices(services);
+        AddArtworkServices(services);
+        AddAssetServices(services);
+    }
+
+    private static void AddArtworkServices(IServiceCollection services)
+    {
+        services.AddSingleton<IArtworkFileStore, ArtworkFileStore>();
+        services.AddScoped<ArtworkDownloader>();
+        services.AddScoped<ArtworkService>();
+        services.AddScoped<UserArtworkService>();
+        services.AddScoped<MetadataJobApplier>();
+        services.AddScoped<MetadataSynchronizer>();
+        services.AddScoped<MetadataService>();
+    }
+
+    private static void AddAssetServices(IServiceCollection services)
+    {
+        services.AddSingleton<IAssetFileStore, AssetFileStore>();
+        services.TryAddSingleton<IDiskSpace, DriveDiskSpace>();
+        services.AddSingleton<DiskSpaceGuard>();
+        services.AddScoped<ExportPlanner>();
+        services.AddScoped<AssetSubmitter>();
+        services.AddScoped<ExportService>();
+        services.AddScoped<AssetJobApplier>();
+        services.AddScoped<AssetSynchronizer>();
+        services.AddScoped<AssetService>();
+        services.AddScoped<AssetLibraryService>();
+        services.AddScoped<AssetRetryService>();
+        services.AddScoped<StemPackService>();
     }
 
     private static void AddHttpServices(IServiceCollection services, StemStudioApiOptions options)

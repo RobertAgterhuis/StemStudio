@@ -20,6 +20,12 @@ marked **(004)** and collected in section 10. Binding contracts: `specs/004-desi
 1.3.0, worker 1.2.0 and engine 2.0.0 are unchanged (`DELTA.md`). ADR-013 holds the design
 decisions.
 
+Features 005 (song artwork and band info) and 007 (export isolated channels, asset library) are
+built in one combined wave; their additions are marked **(005)** / **(007)** and collected in
+sections 11 and 12. Binding contracts: `specs/005-artwork-band-info/contracts/` (worker 1.3.0,
+backend 1.4.0, UI test ids 1.4.0) and `specs/007-export-library/contracts/` (worker 1.4.0,
+backend 1.5.0, UI test ids 1.5.0, render vectors 1.0.0), each a superset of the previous.
+
 ## 1. Test pyramid
 
 ```text
@@ -528,3 +534,200 @@ robustness); `lighthouse-setup` 1 (then
 SC-007 `journey-beginner.spec.ts`; SC-008 `expert-keyboard.spec.ts`; SC-009 `help.spec.ts` +
 `HelpCoverageTests.cs`; SC-010 `journey-levels.spec.ts`; SC-002 and SC-011 frontend (token
 contrast test, T063 trace).
+
+
+## 11. (005) Song artwork and band info
+
+Binding contracts: `specs/005-artwork-band-info/contracts/` (worker 1.3.0, backend 1.4.0, UI test
+ids 1.4.0); the code links the 007 documents, which contain them unchanged (architect Phase 0).
+Design: ADR-014.
+
+### 11.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Worker unit (audio-ingest) | User-Agent, https/allow-list client, rate limiter and back-off, image normaliser, source artwork per source, title cleaning, MusicBrainz client + matcher, CAA, Wikidata, Wikipedia, lookup orchestration, fake provider | `httpx.MockTransport` replaying `tests/fixtures/metadata/*.json` in request order; fake clock and sleeper; images generated in the test; stub spotDL `Song`, yt-dlp `info` dicts |
+| Worker unit (stem-separation) | metadata lane, artwork step of the standard job, metadata/artwork routes, `POST /v1/artwork` | fake `MetadataLookup`, fake `ImageNormalizer`, fake clock |
+| Backend | precedence, metadata state machine, persistence + migration, worker client, artwork sync and endpoints, band info, own picture | stub `HttpMessageHandler` with the worker examples, SQLite, temp data dir |
+| Frontend (bUnit) | `TrackArtwork`, placeholder, `BandInfoPanel` per status, attribution, correction dialog, artwork actions, levels | fake `IStemStudioApiClient` |
+| E2E (qa) | `artwork.spec.ts`, `band-info.spec.ts` on the fake stack | `STEMSTUDIO_FAKE_ONLINE`, artwork fixtures |
+| Live services (CTO T062) | one request per service with the reference songs | `@pytest.mark.integration`, manual only |
+
+No unit, component or default E2E test touches the network (constitution I). SC-005 (no personal
+data, User-Agent on every request) is proven by audio-ingest's test over every request the fake
+transport records; the E2E suite never sees outgoing traffic.
+
+### 11.2 Fake stack modes and run matrix
+
+The worker's fake online provider is selected with `STEMSTUDIO_FAKE_ONLINE` (only with
+`STEMSTUDIO_SEPARATOR=fake`). Its behaviour table and the facts it returns are
+**`tests/fixtures/metadata/fake-provider.json`** (qa proposal, research.md P0-1); audio-ingest
+005:T034 implements `metadata/fake.py` to return exactly those values and a worker test compares
+them. The E2E specs read their expectations from the same file and skip in other modes
+(`support/online.ts`, `support/feature-skips.ts`; the suite reads `E2E_FAKE_ONLINE`, else
+`STEMSTUDIO_FAKE_ONLINE`, else `found`).
+
+| Stack mode | Runs | Skips |
+|---|---|---|
+| `found` (compose default) | embedded covers, caching, own picture, Beginner actions; band info found, mixer album, correction, Beginner subset | WAV placeholder, not-found, failed, off |
+| `not-found` (quickstart A2) | embedded covers, caching, own picture, **WAV placeholder**; band info not-found | found, failed, off |
+| `failed` | WAV placeholder; band info failed | found, not-found, off |
+| `off` | WAV placeholder; band info off (`band-info-disabled` + help link) | found, not-found, failed |
+
+`npm run test:artwork` (`@artwork|@band-info`) is run once per mode by the CTO in 005:T059 (four
+`docker compose up -d --wait` with the variable, like the 003 `@gpu` runs). Opt-in cases:
+`@online` (real YouTube/Spotify imports; `E2E_ONLINE=1` plus `E2E_YOUTUBE_URL` /
+`E2E_SPOTIFY_URL`, real stack) and `@perf` (SC-003: 100 seeded tracks via
+`support/seed-artwork.ts`, `E2E_PERF=1`, reference machine). Both skip by default, so `npm test`
+never needs the internet.
+
+### 11.3 Fixtures
+
+`tests/fixtures/generate_artwork_fixtures.py` -> `tests/fixtures/audio/` (git-ignored) and
+`tests/fixtures/artwork-manifest.json` (committed). Every picture is a generated gradient; no
+third-party image, audio or text is committed.
+
+| File | Content | Expected | Used by |
+|---|---|---|---|
+| `cover_embedded_10s.mp3` | 10 s synthetic music, ID3v2.3 TIT2/TPE1/TALB, APIC front cover PNG 500 x 499 (not square) | `data-artwork-source="embedded"` in every online mode | `artwork.spec.ts`, own-picture cases |
+| `cover_embedded_10s.flac` | other music, Vorbis comments, PICTURE block JPEG 640 x 640 | `embedded` | `artwork.spec.ts` |
+| `own_picture_800x600.png`, `own_picture_640x640.jpg` | valid own pictures | `PUT .../artwork` 200, source `user` | own picture, `seed-artwork.ts` |
+| `not_a_picture.png` | text with a picture name | 400 "Not an image" | own picture refused |
+| `unsupported_picture.gif` | valid GIF | 415 | own picture refused |
+
+`tests/fixtures/metadata/` (committed, README with provenance): `matching-cases.json` (23 cases,
+R-05; checked by a reference matcher of ADR-014 D4 in `tests/fixtures/tests/test_metadata_fixtures.py`),
+`reference/metallica.json`, `reference/kevin-macleod.json` (MusicBrainz, CAA, Wikidata,
+Wikipedia exchanges with **placeholder extracts**, no CC BY-SA text), `fake-provider.json`.
+Identifiers other than those observed in research.md F-01..F-05 are synthetic.
+
+### 11.4 (005) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 Spotify album image (FR-001, FR-005, SC-001) | `test_source_artwork.py` (stub `Song`), `ArtworkSyncTests.cs`, `ArtworkPrecedenceTests.cs` | `artwork.spec.ts` `@online` Spotify (opt-in) |
+| US1-2 YouTube thumbnail cropped square (FR-001, FR-007) | `test_source_artwork.py` (thumbnails fixture), `test_images.py` | `artwork.spec.ts` `@online` YouTube (opt-in) |
+| US1-3 embedded cover; WAV placeholder (FR-001, FR-006) | `test_source_artwork.py` (tinytag), `TrackArtworkTests` (bUnit) | `artwork.spec.ts` embedded MP3/FLAC, WAV placeholder |
+| US1-4 100 tracks, lazy thumbnails (SC-003) | `TrackArtworkTests` (`loading`, `decoding`, size) | `artwork.spec.ts` `@perf` (opt-in), lazy/async attributes in the default run |
+| US1-5 artwork failure never fails the import (FR-002, SC-006) | `test_artwork_step.py`, `ArtworkSyncTests.cs` | - (worker unit) |
+| FR-007 storage and caching (ETag, `immutable`, <= 200/20 KB) | `ArtworkEndpointTests.cs`, `test_images.py` | `artwork.spec.ts` "pictures are small, versioned and cached" |
+| US2 found: facts, sources, attribution (FR-003, FR-008, FR-014) | `test_lookup.py`, `test_wikidata.py`, `test_wikipedia.py`, `BandInfoEndpointTests.cs`, `BandInfoPanelTests` | `band-info.spec.ts` found |
+| US2 mixer album "(year)" | `BandInfoPanelTests` (`mixer-album`) | `band-info.spec.ts` mixer |
+| US2 no wrong match (FR-004, SC-004) | `test_matcher.py` over `matching-cases.json` | `band-info.spec.ts` not-found |
+| US2 status, retry, correction (FR-009) | `MetadataSyncTests.cs`, `BandInfoEndpointTests.cs`, `CorrectMetadataDialogTests` | `band-info.spec.ts` correction, not-found retry, failed |
+| US2 lookups off (FR-011) | `test_lookup.py` (no request), `MetadataSyncTests.cs` | `band-info.spec.ts` off |
+| US2 levels (FR-015) | `BandInfoPanelTests` per level | `band-info.spec.ts` Beginner subset (`beginnerHiddenBandInfoIds`); `artwork.spec.ts` Beginner; `feature-levels.spec.ts` track page |
+| FR-014 legal notice sentence; help topics `artwork`, `band-info`, `online-lookups` | help coverage tests | `import.spec.ts` notice sentence (`@artwork`); `help.spec.ts` 005 reference queries and markers |
+| FR-010 User-Agent / no personal data (SC-005) | `test_user_agent.py`, `test_lookup.py` (recorded requests) | - |
+| FR-012 old tracks looked up on first open | `MetadataSyncTests.cs` | - |
+| US3 own picture, reset, refused files (FR-013) | `test_artwork_upload.py`, `UserArtworkEndpointTests.cs`, artwork action bUnit tests | `artwork.spec.ts` own picture |
+| FR-016 delete removes pictures | `ArtworkEndpointTests.cs`, `ArtworkPersistenceTests.cs` | - |
+| SC-002 reference songs within 30 s | - | CTO 005:T062 (real stack, quickstart A4/A5) |
+
+## 12. (007) Export isolated channels (asset library)
+
+Binding contracts: `specs/007-export-library/contracts/` (worker 1.4.0, backend 1.5.0, UI test
+ids 1.5.0, render vectors 1.0.0). Design: ADR-016.
+
+### 12.1 What is tested where
+
+- **Render (worker, audio-ingest)**: tested with **generated FLAC fixtures** written by the tests
+  themselves (sines and noise with known level, pan and length); raw single-stem FLAC 16 is
+  compared sample for sample, mixes against the vector law, block-wise against whole-file
+  renders, MP3 by decoded length and level. No committed audio.
+- **Shared vectors** `render-vectors.json` (gate cases + pan matrices) have **four consumers**:
+  engine Vitest (real `gate.ts`), backend xUnit (gate/recipe resolution), worker pytest (render
+  maths) and the browser (`e2e/tests/panner-law.spec.ts`: Chromium's `StereoPannerNode` renders
+  the constant stereo signal (1, 0.5) at every vector pan and must match to 1e-6). The panner
+  check needs no stack and **passes today** (Chromium, 8 tests).
+- **Fake stack exports are real files**: the fake separator copies the mix into every stem, but
+  the export path is the real one (API -> worker render -> library), so E2E downloads are real
+  FLAC/WAV/MP3 files. Expected levels are computed from the served stems with the vector
+  matrices.
+- **Audio oracle** (`e2e/support/audio-check.ts`): WAV headers parsed in Node; FLAC/WAV/MP3
+  decoded by the browser's `decodeAudioData` in a blank scratch page at 44.1 kHz (no
+  resampling), so both sides of a comparison go through one decoder. The expected mix applies
+  the matrices with splitter/gain/merger nodes, independent of the browser panner. The oracle is
+  self-tested without a stack (`e2e/tests/audio-check.spec.ts`, both browsers, 12 tests, green).
+- Assumption of the E2E specs (to confirm in the integration run): mixer fader % maps linearly
+  to the export `volume` (default 80 % = 0.8), as in the 001 mixer tests.
+
+### 12.2 (007) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 raw stem FLAC 16 bit-identical (FR-001, FR-004, SC-004) | worker render tests, `AudioExportEndpointTests` | `export.spec.ts` raw stem (decoded samples equal) |
+| US1-2 detail stem MP3 plays and downloads (FR-004, FR-008) | worker MP3 tests, bUnit export actions | `export.spec.ts` raw detail stem (`@detail`) |
+| US1-3 no export for unsplit parents | bUnit export actions | `export.spec.ts` (no `export-detail-bass-*`, `-guitar-*`) |
+| US2-1 what I hear uses unsaved state, no metronome (FR-002, FR-003) | engine/backend/worker vector consumers | `export.spec.ts` what I hear (+/- 0.1 dB per channel) |
+| US2-2 expanded group, muted detail | vectors `expanded-muted-detail` (three consumers) | - |
+| US2-3 selected channels ignore mute/solo | vectors `explicit-selection` | `export.spec.ts` "Selected channels" (drums muted at 60 %, vocals soloed; drums + bass at fader and pan, master 70 %, +/- 0.1 dB) |
+| US2-4 clip protection -0.1 dBFS + note (FR-005, SC-005) | worker render tests | `export.spec.ts` clipping mix |
+| SC-003 browser panner = vectors | engine, backend, worker | `panner-law.spec.ts` |
+| US3-1 list, total size, newest first (FR-007) | `AssetEndpointTests`, bUnit library | `library.spec.ts` |
+| US3-2 rename -> download name (FR-008) | `AssetEndpointTests` (Content-Disposition) | `library.spec.ts` |
+| US3-3 delete removes files | `AssetEndpointTests`, persistence tests | `library.spec.ts` (gone after reload, API 404) |
+| US3-4 live status, retry | `AssetSyncTests`, bUnit library | `LibraryPage.waitForStatus` (no reload) in every export case |
+| US3-5 orphaned items stay and play (FR-009) | `AssetEndpointTests` | `library.spec.ts` deleted track |
+| US4-1 loop region length (FR-006) | worker range tests, backend validation | `export.spec.ts` loop region 2.500 s +/- 1 ms |
+| US4-2 range too short / outside | backend validation, bUnit dialog | `export.spec.ts` range validation (0.2 s, end before start, past the end: `export-error`, no item created) |
+| US5-1 stem pack (FR-013) | `StemPackEndpointTests` | `export.spec.ts` stem pack (six items ready) |
+| FR-010 recipe/provenance | backend recipe tests | `provenance.contents` asserted in export specs |
+| FR-011 not blocked by separations (SC-001, SC-002) | lane scheduler tests | CTO 007:T071 (timing on the reference machine) |
+| FR-014 help and levels (SC-006) | help coverage tests, bUnit levels | `feature-levels.spec.ts` (Beginner/Advanced dialog, track page, library); `help.spec.ts` 007 reference queries and markers; `export.spec.ts` `export-clipping` marker |
+| FR-015 low disk space refused | backend disk check | - |
+
+### 12.3 (005/007) suite structure after the 004 merge
+
+- **One `test` object**: the 005/007 fixtures (`metadataApi`, `assetsApi`, `artwork`,
+  `bandInfo`, `exportDialog`, `library`, `scratch`) live in `support/test.ts` next to the
+  001-003 ones (`support/feature-test.ts` is gone); fixtures are lazy, so older specs pay nothing.
+  `ux-test.ts` extends it, so 004-style specs (help, levels) can use them too. `AppShell.navigate`
+  covers `nav-library`; `ImportPage.uploadFile` uses `support/input-file.ts`.
+- **Levels**: the 1.4.0/1.5.0 Beginner exceptions are id lists in `support/levels.ts` (next to
+  R7-R9 of 1.3.0) and asserted by `tests/feature-levels.spec.ts` with `levelState(...)` storage
+  states (Beginner: format only, FLAC preselected; Advanced adds bit depth, range, selected
+  channels, stem pack, own picture and library filters; MP3 swaps bit depth for bit rate).
+- **Help**: the new topics have their own reference queries (`artworkReferenceQueries`,
+  `exportReferenceQueries` in `support/help.ts`; the 20 of V-H3 stay as SC-009 specifies) and
+  their `data-help-id` markers are checked with `expectHelpMarker` (a validation, never a
+  selector for an action).
+- **Visual / a11y matrices**: `support/screens.ts` adds `band-info` (panel open, lookup settled),
+  `export-dialog` (mixer, mode `mix`) and `library` (one seeded item "UX bass", created by
+  `support/ux-library.ts` before navigating); `library` also joins the 360 px visual set and the
+  320 px reflow check. Covers/thumbnails change the existing 004 screens: every baseline is
+  regenerated by the CTO in the integration run (fresh stack, container). `asset-play-*`
+  (native player) is masked.
+- **Tags**: every new case carries `@artwork`, `@band-info`, `@export` or `@library` and none
+  carries `@ux`, so `test:legacy` (66 tests) and `test:ux` (74 tests) list exactly as before.
+
+### 12.4 Commands
+
+```bash
+# (005/007) fixtures (adds the artwork generator; the metadata JSON is hand-maintained)
+uv run --project worker python tests/fixtures/generate_artwork_fixtures.py
+# (005) per fake online mode (CTO T059): found | not-found | failed | off
+export STEMSTUDIO_SEPARATOR=fake
+STEMSTUDIO_FAKE_ONLINE=not-found docker compose up -d --build --wait
+(cd e2e && STEMSTUDIO_FAKE_ONLINE=not-found npm run test:artwork)
+# (007) export + library (without @detail), then the @detail export case with test:detail
+(cd e2e && npm run test:export)
+# stack-free checks (pass without docker)
+(cd e2e && npx playwright test tests/panner-law.spec.ts tests/audio-check.spec.ts)
+```
+
+### 12.5 Lessons from the 005/007 integration run
+
+- **Mode switches restart only the worker** (`docker compose up -d --no-deps worker` with the new
+  `STEMSTUDIO_FAKE_ONLINE`); the data volume stays, and stored lookup results stay with it.
+  `band-info.spec.ts` therefore imports a track of its own per run and mode
+  (`uniqueWavCopy(..., band-info-<mode>-<run id>)`), and the correction case waits for a title
+  unique to the run and browser, never for a status that an earlier run may already have stored.
+- **Item names are unique** (data-model 4.4: " (2)", " (3)", ...); specs that check a default
+  name accept the suffix, because the library persists across browsers and reruns.
+- **A new import starts its detail phase** (002), during which `DELETE /api/tracks/{id}` is 409;
+  specs that delete a fresh track call `api.stopDetail` first.
+- **Library players use `preload="none"`**; `LibraryPage.playerDuration` asks for the metadata
+  (`preload = "metadata"`, `load()`) the way pressing play would.
+- **Server-rendered option lists** (the "Selected channels" boxes) are awaited before they are
+  listed with `locator.all()`.

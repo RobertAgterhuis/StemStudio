@@ -36,7 +36,10 @@ public static class UploadRequestReader
         }
     }
 
-    private static string? Boundary(string? contentType)
+    /// <summary>The boundary of a multipart/form-data content type, or null.</summary>
+    /// <param name="contentType">The request content type.</param>
+    /// <returns>The boundary or null.</returns>
+    internal static string? Boundary(string? contentType)
     {
         if (!MediaTypeHeaderValue.TryParse(contentType, out var media) || !media.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase))
         {
@@ -61,7 +64,10 @@ public static class UploadRequestReader
         return ApiProblems.Validation("file", MissingPart);
     }
 
-    private static string? FileName(MultipartSection section)
+    /// <summary>The client file name of the part named <c>file</c>, or null for any other part.</summary>
+    /// <param name="section">The multipart section.</param>
+    /// <returns>The file name or null.</returns>
+    internal static string? FileName(MultipartSection section)
     {
         if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)
             || !disposition.IsFileDisposition()

@@ -10,7 +10,7 @@ using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Responses of the running API checked against backend-api.openapi.yaml 1.2.0 (Constitution III, O2).</summary>
+/// <summary>Responses of the running API checked against backend-api.openapi.yaml (1.5.0 since the 005/007 Phase 0; Constitution III, O2).</summary>
 public sealed partial class BackendContractTests : IDisposable
 {
     private readonly ApiFactory _factory = new();
@@ -195,7 +195,9 @@ public sealed partial class BackendContractTests : IDisposable
     public void Contract_EveryOperationHasAnOperationId()
     {
         OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
-            .ShouldBe(["getHealth", "getProcessingDevice", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "startDetail", "cancelDetail", "getDetailStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix"], ignoreOrder: true);
+            .ShouldBe(["getHealth", "getProcessingDevice", "importFromUrl", "importFromUpload", "listTracks", "getTrack", "deleteTrack", "retryTrack", "getStem", "startDetail", "cancelDetail", "getDetailStem", "listMixes", "createMix", "getMix", "updateMix", "deleteMix", "duplicateMix",
+                "getTrackArtwork", "setTrackArtwork", "resetTrackArtwork", "getBandInfo", "lookupTrackMetadata",
+                "listAssets", "createAudioExport", "createStemPack", "getAsset", "renameAsset", "deleteAsset", "retryAsset", "getAssetFile"], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)
@@ -209,7 +211,7 @@ public sealed partial class BackendContractTests : IDisposable
     {
         var queued = SyncTestData.UrlTrack("aaaaaaaaaaa");
         var separating = SyncTestData.UrlTrack("bbbbbbbbbbb");
-        separating.ApplyMetadata(new TrackMetadata("Some Song", "Some Artist"), SyncTestData.T0);
+        separating.ApplyMetadata(new SourceMetadata("Some Song", "Some Artist"), SyncTestData.T0);
         separating.ApplyProgress(new TrackProgress(TrackStatus.Separating, "Separating stems", 47), SyncTestData.T0);
         var tracks = new List<Track> { queued, separating, SyncTestData.CompletedTrack("ccccccccccc"), SyncTestData.FailedTrack("ddddddddddd") };
         foreach (var track in tracks)

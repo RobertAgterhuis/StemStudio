@@ -1,0 +1,68 @@
+@* The facts of a found lookup (feature 005, FR-008, FR-015): name, type, years, album and the summary at every level;
+   country, genres, members, website and the sources from Advanced (feature artist.details). A fact exists only when known. *@
+@using StemStudio.Contracts.Artists
+
+<dl class="ss-facts ss-band-facts">
+    <div><dt>Name</dt><dd data-testid="band-info-name">@Artist.Name</dd></div>
+    @if (Artist.Type is { } type)
+    {
+        <div><dt>Type</dt><dd data-testid="band-info-type">@BandFacts.Type(type)</dd></div>
+    }
+    @if (BandFacts.Years(Artist) is { } years)
+    {
+        <div><dt>Active</dt><dd data-testid="band-info-years">@years</dd></div>
+    }
+    @if (Info.Recording?.Album is { } album)
+    {
+        <div><dt>Album</dt><dd data-testid="band-info-album">@BandFacts.Album(album, Info.Recording.Year)</dd></div>
+    }
+    <LevelGate Feature="artist.details">
+        @if (Artist.Country is { } country)
+        {
+            <div><dt>Country</dt><dd data-testid="band-info-country">@BandFacts.Country(country)</dd></div>
+        }
+        @if (Artist.Genres.Count > 0)
+        {
+            <div><dt>Genres</dt><dd data-testid="band-info-genres">@string.Join(", ", Artist.Genres)</dd></div>
+        }
+        @if (BandFacts.ShowsMembers(Artist))
+        {
+            <div>
+                <dt>Members</dt>
+                <dd data-testid="band-info-members"><ul class="ss-band-members">@foreach (var member in Artist.Members) { <li>@BandFacts.Member(member)</li> }</ul></dd>
+            </div>
+        }
+        @if (Artist.Website is { } website)
+        {
+            <div><dt>Website</dt><dd data-testid="band-info-website"><a href="@website" target="_blank" rel="noopener noreferrer">@website</a></dd></div>
+        }
+    </LevelGate>
+</dl>
+
+@if (Artist.Summary is { } summary)
+{
+    <blockquote class="ss-band-summary" lang="@summary.Language" cite="@summary.PageUrl" data-testid="band-info-summary">@summary.Extract</blockquote>
+    <WikipediaAttribution Summary="summary" />
+}
+
+<LevelGate Feature="artist.details">
+    @if (Info.Sources.Count > 0)
+    {
+        <p class="ss-small ss-muted" data-testid="band-info-sources">
+            Data:
+            @for (var i = 0; i < Info.Sources.Count; i++)
+            {
+                var source = Info.Sources[i];
+                <a href="@source.Url" target="_blank" rel="noopener noreferrer">@BandFacts.Source(source)</a>@(i < Info.Sources.Count - 1 ? ", " : ".")
+            }
+        </p>
+    }
+</LevelGate>
+
+@code {
+    /// <summary>A found band info (its <see cref="BandInfoDto.Artist"/> is set).</summary>
+    [Parameter, EditorRequired]
+    public BandInfoDto Info { get; set; } = default!;
+
+    private ArtistInfoDto Artist => Info.Artist!;
+}
