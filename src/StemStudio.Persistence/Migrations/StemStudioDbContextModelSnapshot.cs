@@ -150,6 +150,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<string>("DetailPhase")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Device")
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("DurationSeconds")
                         .HasColumnType("REAL");
 
