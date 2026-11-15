@@ -80,14 +80,15 @@ def _render(
 
 def _read_ints(path: Path) -> np.ndarray[Any, np.dtype[np.int32]]:
     data, _ = sf.read(path, dtype="int32", always_2d=True)
-    return data
+    return np.asarray(data, dtype=np.int32)
 
 
 # ------------------------------------------------------------------ protocol and factories
 
 
 def test_factories_build_the_mounted_library_and_the_executor(tmp_path: Path) -> None:
-    settings = WorkerSettings(render=RenderSettings(library_dir=tmp_path, block_seconds=2.0))
+    render = RenderSettings(library_dir=tmp_path, block_seconds=2.0)
+    settings = WorkerSettings(data_dir=tmp_path, render=render)
     library: LibraryReader = create_library_reader(settings)
     executor: RenderExecutor = create_render_executor(settings, library)
     assert library.status() == LibraryHealth(readable=True, reason=None)
@@ -95,8 +96,8 @@ def test_factories_build_the_mounted_library_and_the_executor(tmp_path: Path) ->
     assert (executor.library, executor.block_frames) == (library, 88200)
 
 
-def test_the_factory_builds_its_own_library_when_none_is_given() -> None:
-    executor = create_render_executor(WorkerSettings())
+def test_the_factory_builds_its_own_library_when_none_is_given(tmp_path: Path) -> None:
+    executor = create_render_executor(WorkerSettings(data_dir=tmp_path))
     assert isinstance(executor, BlockRenderExecutor)
     assert executor.library.status().reason == LIBRARY_UNAVAILABLE_TEXT
     assert executor.block_frames == 441000
@@ -116,8 +117,9 @@ def test_validate_resolves_every_input(tmp_path: Path) -> None:
 
 
 def test_validate_rejects_a_path_off_the_allow_list(tmp_path: Path) -> None:
-    request = _request(("bass", 1, 0))
-    request.inputs[0].path = "tracks/../stemstudio.db"
+    body = _request(("bass", 1, 0)).model_dump(by_alias=True)
+    body["inputs"][0]["path"] = "tracks/../stemstudio.db"
+    request = RenderJobRequest.model_validate(body)
     with pytest.raises(InputPathError):
         _executor(tmp_path).validate(request)
 

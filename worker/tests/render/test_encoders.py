@@ -106,13 +106,8 @@ def test_pcm_outputs_use_the_requested_subtype_and_keep_every_sample(
     _encode(path, output, ints, RenderMetadata())
     info = sf.info(path)
     read, _ = sf.read(path, dtype="int32", always_2d=True)
-    assert (info.format, info.subtype, info.samplerate, info.channels, info.frames) == (
-        fmt.upper(),
-        subtype,
-        44100,
-        2,
-        3000,
-    )
+    facts = (info.format, info.subtype, info.samplerate, info.channels, info.frames)
+    assert facts == (fmt.upper(), subtype, 44100, 2, 3000)
     np.testing.assert_array_equal(read >> (32 - bits), ints)
 
 
