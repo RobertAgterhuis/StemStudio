@@ -19,6 +19,8 @@ const settledMetadata = /^(found|notFound|failed|disabled)$/;
  * `score-stem-*` row to `track` and a ready score item to `library`. `style-library`, `song`, `voices` (with the consent
  * panel open) and `restyle-dialog` are the 009/010 states (1.8.0/1.9.0); the restyle dialog opens
  * only with a ready generator, so it skips on the default stack (TEST-STRATEGY 16.6 item 7).
+ * `settings` is the 011 page `/settings` with its agent section (ui-test-ids 1.10.0); its screen
+ * topic is `agent-backends`, the topic of its first section.
  */
 export type ScreenId =
   | 'import'
@@ -35,7 +37,8 @@ export type ScreenId =
   | 'style-library'
   | 'song'
   | 'voices'
-  | 'restyle-dialog';
+  | 'restyle-dialog'
+  | 'settings';
 
 /** Every screen of the matrices, in report order. */
 export const screenIds: readonly ScreenId[] = [
@@ -54,6 +57,7 @@ export const screenIds: readonly ScreenId[] = [
   'song',
   'voices',
   'restyle-dialog',
+  'settings',
 ];
 
 /** Help screen topic per screen (design-spec.md 7; V-H1). */
@@ -73,6 +77,7 @@ export const screenTopics: Readonly<Record<ScreenId, string>> = {
   song: 'song-options',
   voices: 'voice-profiles',
   'restyle-dialog': 'track-screen',
+  settings: 'agent-backends',
 };
 
 interface ScreenDefinition {
@@ -98,6 +103,7 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   song: { path: () => '/songs/new', ready: songReady },
   voices: { path: () => '/voices', ready: voicesReady },
   'restyle-dialog': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: restyleDialogReady },
+  settings: { path: () => '/settings', ready: settingsReady },
 };
 
 async function prepareLibrary(data: UxData): Promise<void> {
@@ -232,4 +238,11 @@ async function restyleDialogReady(page: Page): Promise<void> {
   await expect(page.getByTestId('restyle-dialog')).toBeVisible();
   await expect(page.getByTestId('restyle-style-description')).not.toBeEmpty();
   await movePointerAway(page);
+}
+
+/** Settings page with the agent section: backend choice and the Ollama and Claude status. */
+async function settingsReady(page: Page): Promise<void> {
+  await expect(page.getByTestId('settings-agent-backend')).toBeVisible();
+  await expect(page.getByTestId('settings-agent-ollama-status')).toBeVisible();
+  await expect(page.getByTestId('settings-agent-claude-status')).toHaveAttribute('data-key-configured', /^(true|false)$/);
 }

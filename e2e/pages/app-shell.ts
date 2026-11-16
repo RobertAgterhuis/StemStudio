@@ -6,9 +6,19 @@ export type ResolvedTheme = 'light' | 'dark';
 
 /**
  * Top-level screens reachable from the rail (`nav-<target>`); `generations` and `styles` are
- * ui-test-ids 1.8.0, `songs`, `lyrics` and `voices` 1.9.0.
+ * ui-test-ids 1.8.0, `songs`, `lyrics` and `voices` 1.9.0, `settings` 1.10.0.
  */
-export type NavTarget = 'import' | 'tracks' | 'mixes' | 'library' | 'generations' | 'styles' | 'songs' | 'lyrics' | 'voices';
+export type NavTarget =
+  | 'import'
+  | 'tracks'
+  | 'mixes'
+  | 'library'
+  | 'generations'
+  | 'styles'
+  | 'songs'
+  | 'lyrics'
+  | 'voices'
+  | 'settings';
 
 /** URL each rail link leads to. */
 export const navPaths: Readonly<Record<NavTarget, RegExp>> = {
@@ -21,6 +31,7 @@ export const navPaths: Readonly<Record<NavTarget, RegExp>> = {
   songs: /\/songs\/new$/,
   lyrics: /\/lyrics$/,
   voices: /\/voices$/,
+  settings: /\/settings$/,
 };
 
 /** App shell of feature 004 (ui-test-ids 1.3.0 "Shell", "Preferences", "Welcome", "Journey"). */

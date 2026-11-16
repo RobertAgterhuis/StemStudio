@@ -48,6 +48,8 @@ export function dynamicMasks(page: Page): Locator[] {
     page.getByTestId(/^asset-play-/),
     // The browser's PDF viewer of a score item (008) renders asynchronously, inside its own frame.
     page.getByTestId(/^asset-preview-/),
+    // Ollama reachability, version and model list of the 011 settings page depend on the host.
+    page.getByTestId('settings-agent-ollama-status'),
     // The only non-test-id selector of the suite: dates are rendered in <time> (cosmetic mask).
     page.locator('time'),
   ];
