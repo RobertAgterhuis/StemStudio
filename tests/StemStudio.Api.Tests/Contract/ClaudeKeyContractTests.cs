@@ -26,10 +26,11 @@ public sealed class ClaudeKeyContractTests
 
     private static readonly string[] KeyOperations = ["getClaudeKeyStatus", "storeClaudeKey", "deleteClaudeKey"];
 
-    // DELTA.md section 1, rules 3 and 4: the only 1.10.0 entries 1.21.0 replaces.
+    // DELTA.md section 1, rules 3 and 4: the only 1.10.0 entries 1.21.0 replaces; /api/agent/settings changes only the text of
+    // updateAgentSettings (pre-release text change at integration, T053; pinned by SettingsPath_DiffersOnlyInTheUpdateDescription).
     public static TheoryData<string, string[]> Replaced1100Entries => new()
     {
-        { "paths", ["/api/agent/status", "/api/agent/settings/test"] },
+        { "paths", ["/api/agent/status", "/api/agent/settings/test", ApiRoutes.AgentSettings] },
         { "components/schemas", ["ClaudeStatus", "TestAgentBackendRequest", "BackendTestResult"] },
         { "components/responses", [] },
         { "components/examples", [] },
@@ -61,6 +62,38 @@ public sealed class ClaudeKeyContractTests
     public void Backend1210_Contains1100UnchangedExceptTheReplacedAgentEntries(string section, string[] replaced)
     {
         ChangedEntries(Backend011, OpenApiContract.Backend, section).ShouldBe(replaced, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void SettingsPath_DiffersFrom1100OnlyInTheUpdateDescription()
+    {
+        var before = Section(Backend011.Root, "paths")[ApiRoutes.AgentSettings]!.DeepClone();
+        var after = Section(OpenApiContract.Backend.Root, "paths")[ApiRoutes.AgentSettings]!.DeepClone();
+        before["put"]!.AsObject().Remove("description");
+        after["put"]!.AsObject().Remove("description");
+
+        JsonNode.DeepEquals(before, after).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UpdateAgentSettings_NeedsAUsableKeyFromEitherSource()
+    {
+        var description = Section(OpenApiContract.Backend.Root, "paths")[ApiRoutes.AgentSettings]!["put"]!["description"]!.GetValue<string>();
+
+        description.ShouldContain("a usable Claude key");
+        description.ShouldContain("stored in Settings");
+        description.ShouldNotContain("needs `ANTHROPIC_API_KEY`");
+    }
+
+    [Fact]
+    public void KeyStoreUnavailableExample_IsTheApiText()
+    {
+        foreach (var document in new[] { OpenApiContract.Backend, Delta.Value })
+        {
+            var example = document.Root["components"]!["responses"]!["KeyStoreUnavailable"]!["content"]!["application/problem+json"]!["example"]!;
+
+            example["detail"]!.GetValue<string>().ShouldBe(StemStudio.Agent.Backends.ClaudeKeyProvider.StoreUnavailableReason(StemStudio.Agent.Model.KeyStoreUnavailableReasons.NotWritable));
+        }
     }
 
     [Theory]
