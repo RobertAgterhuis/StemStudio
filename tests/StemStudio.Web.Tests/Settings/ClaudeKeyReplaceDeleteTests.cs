@@ -228,12 +228,13 @@ public sealed class ClaudeKeyReplaceDeleteTests : PageTestContext
         Id(cut, "settings-agent-claude-key-delete-confirm-yes").Click();
 
         panel.WaitForAssertion(() => panel.Markup.ShouldContain(KeyChanged));
-        panel.Find(".ss-agent-key-changed").GetAttribute("role").ShouldBe("status");
+        Id(panel, "agent-key-changed").GetAttribute("role").ShouldBe("status");
         Has(panel, "agent-cancel").ShouldBeTrue();
         AgentEvents.Started().Completed();
         AgentEvents.End();
         await Panel.Following;
         panel.WaitForAssertion(() => panel.Markup.ShouldNotContain(KeyChanged));
+        Has(panel, "agent-key-changed").ShouldBeFalse();
     }
 
     [Fact]
