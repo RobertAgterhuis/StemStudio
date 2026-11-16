@@ -334,10 +334,10 @@ export class Transport implements TransportClock {
   }
 
   private startAll(offset: number, at?: number): void {
+    this.restartHook();
     const { rate, latency } = this.current;
     const earliest = this.options.context.currentTime + this.options.startDelaySeconds + latency;
     const when = Math.max(at ?? earliest, earliest);
-    this.restartHook();
     this.sourceStart = when - latency;
     this.heard.reset(anchorOf(when, offset, rate));
     this.played.reset(anchorOf(this.sourceStart, offset, rate));
@@ -371,6 +371,12 @@ export class Transport implements TransportClock {
     this.played.all
       .filter((anchor) => anchor.when > at)
       .forEach((anchor) => source.playbackRate.setValueAtTime(rateOf(anchor), anchor.when));
+  }
+
+  /** Withdraws a live change whose automation time is still in the future (before it is replaced). */
+  public cancelPending(): void {
+    this.dropPending();
+    this.pending = null;
   }
 
   private dropPending(): void {

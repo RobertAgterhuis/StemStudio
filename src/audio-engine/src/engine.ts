@@ -4,7 +4,7 @@
  *
  * @packageDocumentation
  */
-import { DotNetNotifier } from './callbacks';
+import { DotNetNotifier, PracticeNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
@@ -16,7 +16,9 @@ import { ClickPlayer } from './metronome/clicks';
 import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
+import { PracticeController } from './practice/controller';
 import { loadStems, type NamedSource } from './stem-loader';
+import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
 import type {
   AudioEngine,
@@ -43,8 +45,6 @@ export const DEFAULT_START_DELAY_SECONDS = 0.1;
 export const DEFAULT_SCHEDULE_AHEAD_SECONDS = 0.1;
 /** Default scheduler wake-up interval (ms). */
 export const DEFAULT_SCHEDULER_INTERVAL_MS = 25;
-/** Message of the contract 2.3.0 practice stubs; replaced by the implementation (012 tasks.md T034). */
-export const PRACTICE_NOT_IMPLEMENTED = 'Practice tempo is not implemented yet (engine contract 2.3.0)';
 
 interface Parts {
   readonly context: AudioContext;
@@ -114,6 +114,8 @@ export class Engine implements AudioEngine {
   private readonly parts: Parts;
   private readonly groups: StemGroups;
   private readonly fetchFn: typeof fetch;
+  private readonly practice: PracticeController;
+  private readonly practiceNotifier: PracticeNotifier;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -126,6 +128,8 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
+    this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
+    this.practice = this.createPractice(options);
   }
 
   /** Validated metronome settings. */
@@ -149,6 +153,7 @@ export class Engine implements AudioEngine {
     this.parts.mixer.build([...buffers.keys(), ...groupChannels(groups)]);
     this.grid = request.beatGrid;
     this.parts.metronome.configure(this.metronome, this.grid);
+    this.practice.onTrackLoaded();
     return this.parts.transport.duration;
   }
 
@@ -252,17 +257,16 @@ export class Engine implements AudioEngine {
   }
 
   /** {@inheritDoc AudioEngine.setPractice} */
-  public setPractice(settings: PracticeSettings): Promise<void> {
-    return Promise.resolve(settings).then(() => {
-      this.alive();
-      throw new Error(PRACTICE_NOT_IMPLEMENTED);
-    });
+  public async setPractice(settings: PracticeSettings): Promise<void> {
+    await Promise.resolve();
+    this.alive();
+    await this.practice.apply(settings);
   }
 
   /** {@inheritDoc AudioEngine.getPracticeStatus} */
   public getPracticeStatus(): PracticeStatus {
     this.alive();
-    throw new Error(PRACTICE_NOT_IMPLEMENTED);
+    return this.practice.status();
   }
 
   /** {@inheritDoc AudioEngine.dispose} */
@@ -279,7 +283,34 @@ export class Engine implements AudioEngine {
     this.parts.karaoke.detach();
     this.parts.frames.dispose();
     this.parts.metronome.dispose();
+    this.practice.dispose();
+    this.practiceNotifier.dispose();
     await this.parts.context.close();
+  }
+
+  private createPractice(options: EngineOptions): PracticeController {
+    const { context, transport, mixer } = this.parts;
+    const factory = options.timeStretchFactory ?? createWorkletStageFactory({ ...options.timeStretch, fetch: this.fetchFn });
+    const practice = new PracticeController({
+      context,
+      transport,
+      mixer,
+      factory,
+      changed: () => {
+        this.practiceNotifier.changed();
+      },
+      countIn: () => ({ available: this.countInAvailable(), beatsPerBar: this.metronome.beatsPerBar }),
+    });
+    transport.addListener(practice);
+    transport.setRestartHook(() => {
+      practice.onRestart();
+    });
+    return practice;
+  }
+
+  /** Count-in needs a tempo: a manual BPM, or a reliable grid with at least two beats. */
+  private countInAvailable(): boolean {
+    return this.metronome.bpmOverride !== null || (this.grid?.reliable === true && this.grid.beats.length > 1);
   }
 
   /** Fetches and decodes files; rejects when the engine was disposed meanwhile. */

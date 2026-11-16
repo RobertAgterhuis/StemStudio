@@ -236,3 +236,15 @@ describe('restart (engaging the stretch stage)', () => {
     expect(transport.position()).toBeCloseTo(5.42, 9);
   });
 });
+
+describe('karaoke clock at a rate (no karaoke change)', () => {
+  it('follows the rate-aware anchor at the heard time', async () => {
+    const { KaraokeClock } = await import('../src/karaoke/clock');
+    const { ctx, transport } = makeTransport();
+    transport.setTiming({ rate: 0.75, latency: L });
+    await transport.play();
+    const clock = new KaraokeClock({ context: ctx.asAudioContext(), transport, now: () => 0 });
+    ctx.currentTime = 0.1 + L + 4;
+    expect(clock.positionMs()).toBe(3000);
+  });
+});

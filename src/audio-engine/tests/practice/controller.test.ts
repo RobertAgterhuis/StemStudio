@@ -337,3 +337,67 @@ describe('status reports (OnPracticeChanged at most 10 Hz)', () => {
     expect(statuses(rig)).toHaveLength(total);
   });
 });
+
+describe('edge cases', () => {
+  it('reports the count-in as available with a manual BPM or a reliable grid', async () => {
+    const grid = { bpm: 120, beats: [0, 0.5, 1], downbeats: [0], beatsPerBar: 3, confidence: 0.9, reliable: true };
+    const rig = await loadedPracticeRig(grid);
+    expect(rig.engine.getPracticeStatus().countIn.available).toBe(true);
+    await rig.engine.loadTrack({ stems: [{ name: 'vocals', url: '/vocals' }], beatGrid: { ...grid, reliable: false } });
+    expect(rig.engine.getPracticeStatus().countIn.available).toBe(false);
+    rig.engine.setMetronome({ enabled: false, volume: 0.8, bpmOverride: 90, offsetMs: 0, beatsPerBar: 3 });
+    await rig.engine.setPractice(practice({ countIn: { bars: 2 } }));
+    expect(rig.engine.getPracticeStatus().countIn).toEqual({ available: true, active: false, beatsRemaining: 0, beatsTotal: 6 });
+  });
+
+  it('disposes a stage that finishes loading after the engine was disposed', async () => {
+    const rig = await loadedPracticeRig();
+    let release: () => void = () => undefined;
+    rig.gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const pending = rig.engine.setPractice(practice({ speedPercent: 70 }));
+    await flush();
+    await rig.engine.dispose();
+    release();
+    await pending.catch(() => undefined);
+    expect(rig.stages).toHaveLength(1);
+    expect(stageOf(rig).disposed).toBe(true);
+  });
+
+  it('two calls during one load share it', async () => {
+    const rig = await loadedPracticeRig();
+    await Promise.all([rig.engine.setPractice(practice({ speedPercent: 70 })), rig.engine.setPractice(practice({ speedPercent: 80 }))]);
+    expect(rig.calls).toBe(1);
+  });
+
+  it('keeps working when the .NET side rejects the report', async () => {
+    const rig = await loadedPracticeRig();
+    rig.ref.invokeMethodAsync = () => Promise.reject(new Error('circuit gone'));
+    await expect(rig.engine.setPractice(practice({ speedPercent: 70 }))).resolves.toBeUndefined();
+    await vi.advanceTimersByTimeAsync(200);
+  });
+
+  it('ignores a repeated identical change while playing', async () => {
+    const rig = await loadedPracticeRig();
+    await rig.engine.setPractice(practice({ speedPercent: 70 }));
+    await rig.engine.play();
+    rig.ctx.currentTime = 2;
+    await rig.engine.setPractice(practice({ speedPercent: 70, countIn: { bars: 1 } }));
+    expect(stageOf(rig).pitches).toHaveLength(1);
+  });
+});
+
+describe('failure of a loaded but bypassed stage', () => {
+  it('marks the stretch unavailable without restarting playback', async () => {
+    const rig = await loadedPracticeRig();
+    await rig.engine.setPractice(practice({ speedPercent: 70 }));
+    await rig.engine.setPractice(NEUTRAL);
+    await rig.engine.play();
+    expect(rig.engine.getPracticeStatus().stretch).toBe('bypass');
+    const started = rig.ctx.startedSources().length;
+    stageOf(rig).fail('late trap');
+    expect(rig.ctx.startedSources()).toHaveLength(started);
+    expect(rig.engine.getPracticeStatus()).toMatchObject({ stretch: 'unavailable', stretchReason: 'late trap' });
+  });
+});
