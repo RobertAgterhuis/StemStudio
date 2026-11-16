@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -77,6 +78,7 @@ public sealed class DataProtectionSetupTests : IDisposable
     }
 
     [Fact]
+    [SupportedOSPlatform("windows")]
     public void Windows_ProtectsTheRingWithDpapi()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "DPAPI exists only on Windows");
@@ -190,6 +192,7 @@ public sealed class DataProtectionSetupTests : IDisposable
     }
 
     [Fact]
+    [UnsupportedOSPlatform("windows")]
     public void Linux_RealModesAreTightened()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS(), "Unix file modes");
@@ -204,6 +207,16 @@ public sealed class DataProtectionSetupTests : IDisposable
     [Fact]
     public void RealModes_AreUnsupportedOnlyOnWindows() =>
         UnixFileModes.ForCurrentPlatform().Supported.ShouldBe(!OperatingSystem.IsWindows());
+
+    [Fact]
+    public void WindowsModes_RefuseEveryCall()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "the stub exists only on Windows");
+        var modes = UnixFileModes.ForCurrentPlatform();
+
+        Should.Throw<PlatformNotSupportedException>(() => modes.GetMode(KeyDir));
+        Should.Throw<PlatformNotSupportedException>(() => modes.SetMode(KeyDir, KeyRingDirectory.OwnerOnly));
+    }
 
     [Fact]
     public void StartupWarnings_AreLoggedOnceWithReasonOrPathAndMode()
@@ -329,9 +342,9 @@ public sealed class DataProtectionSetupTests : IDisposable
 
         public int SetCalls { get; private set; }
 
-        public UnixFileMode Get(string path) => Mode;
+        public UnixFileMode GetMode(string path) => Mode;
 
-        public void Set(string path, UnixFileMode mode)
+        public void SetMode(string path, UnixFileMode mode)
         {
             SetCalls++;
             if (RefuseSet)

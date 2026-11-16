@@ -31,6 +31,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
 
     public string DataDir { get; }
 
+    /// <summary>The Data Protection key ring directory of the test host: a sibling of <see cref="DataDir"/>, never inside it.</summary>
+    public string KeyRingDir => DataDir + "-keys";
+
     public FakeWorkerClient Worker { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(Start);
@@ -119,6 +122,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.UseSetting("StemStudio:DataDir", DataDir);
         builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
+        builder.UseSetting("StemStudio:DataProtection:KeyRingDir", KeyRingDir);
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
@@ -156,6 +160,11 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             if (_ownsDataDir)
             {
                 Directory.Delete(DataDir, true);
+            }
+
+            if (Directory.Exists(KeyRingDir))
+            {
+                Directory.Delete(KeyRingDir, true);
             }
         }
         catch (IOException)
