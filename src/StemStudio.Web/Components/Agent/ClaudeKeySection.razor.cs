@@ -25,20 +25,30 @@ public sealed partial class ClaudeKeySection
     [Inject]
     private IAgentApiClient Api { get; set; } = default!;
 
+    [Inject]
+    private PageOrigin Origin { get; set; } = default!;
+
     private ClaudeKeyStatusDto Key { get; set; } = ClaudeKeyStatusDto.NotConfigured;
 
     private string? Error { get; set; }
 
     private bool Busy { get; set; }
 
+    /// <summary>True when the page was not opened under a loopback host name or the API answered <c>403 local-only</c>.</summary>
+    private bool LocalOnly { get; set; }
+
     private bool ShowsInput => Key.Stored == StoredClaudeKeyStateDto.Absent;
 
     private string SaveText => Key.Stored == StoredClaudeKeyStateDto.Absent ? "Save key" : "Save new key";
 
-    private bool CanSave => !Busy && Key.StoreAvailable && !string.IsNullOrWhiteSpace(_value);
+    private bool CanSave => !Busy && !LocalOnly && Key.StoreAvailable && !string.IsNullOrWhiteSpace(_value);
 
     /// <inheritdoc />
-    protected override void OnInitialized() => Key = Initial;
+    protected override void OnInitialized()
+    {
+        Key = Initial;
+        LocalOnly = !Origin.IsLocal;
+    }
 
     private void OnInput(ChangeEventArgs e) => _value = e.Value?.ToString() ?? string.Empty;
 
@@ -67,7 +77,8 @@ public sealed partial class ClaudeKeySection
         }
         catch (ApiException ex)
         {
-            Error = ClaudeKeyErrors.Message(ex.Error);
+            LocalOnly |= ClaudeKeyErrors.IsLocalOnly(ex.Error);
+            Error = LocalOnly ? null : ClaudeKeyErrors.Message(ex.Error);
         }
     }
 }

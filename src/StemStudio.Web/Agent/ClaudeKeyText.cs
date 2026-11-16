@@ -12,6 +12,10 @@ public static class ClaudeKeyText
     /// <summary>The fix of an unreadable stored key (ui-test-ids 1.21.0 <c>settings-agent-claude-key-unreadable</c>).</summary>
     public const string UnreadableFix = "Enter the key again: press Replace key and paste the key from the Anthropic console.";
 
+    /// <summary>The notice of <c>settings-agent-claude-key-local-only</c> (CK-FR-012).</summary>
+    public const string LocalOnly =
+        "The Claude key can only be entered on the computer StemStudio runs on. Open StemStudio there as http://localhost:8080 to enter, replace, delete or test it.";
+
     private const string Unreadable =
         "The stored key cannot be read on this installation (the encryption keys are missing or different, e.g. after a restore on another computer).";
 

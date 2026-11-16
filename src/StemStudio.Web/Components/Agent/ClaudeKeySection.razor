@@ -7,6 +7,10 @@
     <h4 id="claude-key-title" class="ss-agent-settings-title">Claude API key</h4>
     <p data-testid="settings-agent-claude-key-status" aria-live="polite" data-state="@AgentWire.Name(Key.State)"
        data-source="@ClaudeKeyText.Source(Key)" data-stored="@AgentWire.Name(Key.Stored)">@ClaudeKeyText.Status(Key)</p>
+    @if (LocalOnly)
+    {
+        <p class="ss-agent-notice" role="note" data-testid="settings-agent-claude-key-local-only">@ClaudeKeyText.LocalOnly</p>
+    }
     @if (ClaudeKeyText.IsOverridden(Key))
     {
         <p class="ss-claude-key-note" data-testid="settings-agent-claude-key-env-override">@ClaudeKeyText.EnvironmentOverride(Key)</p>
@@ -17,7 +21,7 @@
             <label for="claude-key-input">Claude API key</label>
             @* No value binding: the typed key only travels from the browser to the circuit; @key recreates the field to empty it. *@
             <input @key="_generation" id="claude-key-input" class="rz-textbox" type="password" autocomplete="off" spellcheck="false"
-                   maxlength="@AgentContractLimits.ClaudeKeyRequestMaxLength" @oninput="OnInput" data-testid="settings-agent-claude-key-input" />
+                   maxlength="@AgentContractLimits.ClaudeKeyRequestMaxLength" disabled="@LocalOnly" @oninput="OnInput" data-testid="settings-agent-claude-key-input" />
         </div>
         <div class="ss-agent-settings-actions">
             <RadzenButton Text="@SaveText" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(!CanSave)" Click="SaveAsync"

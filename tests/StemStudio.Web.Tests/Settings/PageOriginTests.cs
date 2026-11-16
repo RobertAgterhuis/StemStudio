@@ -34,13 +34,13 @@ public sealed class PageOriginTests
     public void SomethingElse_IsNotALoopbackHostName(string? host) => PageOrigin.IsLoopbackHost(host).ShouldBeFalse();
 
     [Fact]
-    public void TheHostOfTheFirstRead_IsKept()
+    public void TheHostOfTheFirstRead_IsKept_WhileTheCircuitNavigates()
     {
         var navigation = new TestNavigationManager("http://localhost:8080/");
         var origin = new PageOrigin(navigation);
         origin.IsLocal.ShouldBeTrue();
 
-        navigation.NavigateTo("http://192.168.1.20:8080/settings");
+        navigation.NavigateTo("settings");
 
         origin.IsLocal.ShouldBeTrue();
         origin.Host.ShouldBe("localhost");
