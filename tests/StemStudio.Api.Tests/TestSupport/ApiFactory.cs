@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -30,6 +31,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     }
 
     public string DataDir { get; }
+
+    /// <summary>The Data Protection key ring directory of the test host: a sibling of <see cref="DataDir"/>, never inside it.</summary>
+    public string KeyRingDir => DataDir + "-keys";
 
     public FakeWorkerClient Worker { get; } = new();
 
@@ -119,6 +123,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.UseSetting("StemStudio:DataDir", DataDir);
         builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
+        builder.UseSetting("StemStudio:DataProtection:KeyRingDir", KeyRingDir);
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
@@ -132,6 +137,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<ISingerClient>(new SingerClient(
                 new HttpClient(Singer.Handler) { BaseAddress = SingerInstalled ? new Uri("http://singer:8010/") : null }, NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
+            services.AddSingleton<Microsoft.AspNetCore.Hosting.IStartupFilter, TestPeerStartup>();
             ConfigureServices?.Invoke(services);
             services.DecorateGpuJobClients();
         });
@@ -157,12 +163,42 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
             {
                 Directory.Delete(DataDir, true);
             }
+
+            if (Directory.Exists(KeyRingDir))
+            {
+                Directory.Delete(KeyRingDir, true);
+            }
         }
         catch (IOException)
         {
             // A file may still be locked briefly on Windows; the OS temp cleanup removes it later.
         }
     }
+}
+
+/// <summary>
+/// The TestServer has no TCP peer: requests come from loopback unless the test header <see cref="Header"/> names another
+/// address (011 follow-up claude-key, local-only filter).
+/// </summary>
+internal sealed class TestPeerStartup : Microsoft.AspNetCore.Hosting.IStartupFilter
+{
+    public const string Header = "X-Test-Peer";
+
+    public Action<Microsoft.AspNetCore.Builder.IApplicationBuilder> Configure(Action<Microsoft.AspNetCore.Builder.IApplicationBuilder> next) => app =>
+    {
+        app.Use((context, nextMiddleware) =>
+        {
+            var peer = context.Request.Headers[Header].ToString();
+            context.Connection.RemoteIpAddress = peer switch
+            {
+                "" => System.Net.IPAddress.Loopback,
+                "none" => null,
+                _ => System.Net.IPAddress.Parse(peer),
+            };
+            return nextMiddleware(context);
+        });
+        next(app);
+    };
 }
 
 internal static class HttpResponseExtensions

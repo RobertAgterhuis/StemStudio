@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using StemStudio.Persistence.Agent;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Persistence;
@@ -23,6 +24,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ILyricsSheetRepository, LyricsSheetRepository>();
         services.AddScoped<IVoiceProfileRepository, VoiceProfileRepository>();
         services.AddScoped<IAudioHashRepository, AudioHashRepository>();
+        services.AddScoped<IAgentSecretStore, AgentSecretStore>();
         return services;
     }
 }

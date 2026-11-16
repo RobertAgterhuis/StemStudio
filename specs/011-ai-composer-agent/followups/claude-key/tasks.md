@@ -71,12 +71,12 @@ character (research R-07).
 
 ### backend (tests first)
 
-- [ ] T011 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentSecretStoreTests.cs`: upsert/replace in one transaction, delete idempotent, column limits, migration `AddAgentSecrets` applies on an 011 database (CK-FR-002)
-- [ ] T012 [backend] Implement `AgentSecretEntity`, `AgentSecretStore`, migration `AddAgentSecrets` to pass T011
-- [ ] T013 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/Secrets/DataProtectionSetupTests.cs`: application name `StemStudio.Api` (payload from a provider with the same dir and name decrypts, a different name does not); directory guard refuses `DataDir`, `BackupDir`, content root and a git work tree (temp dirs) -> `storeAvailable` false and the API host still builds; Linux mode tightening to 0700 and the one-time warning when not owner (OS-conditional); DPAPI configured on Windows (OS-conditional) [sec] (CK-FR-003..005)
-- [ ] T014 [backend] Implement `DataProtectionSetup` + `KeyRingDirectory` to pass T013
-- [ ] T015 [P] [backend] Failing tests `Secrets/ProtectedClaudeKeyStoreTests.cs`: round trip; ciphertext from another key ring -> `Unreadable`; corrupted ciphertext -> `Unreadable`; revoked key -> `Unreadable`; `requiresMigration` -> re-protected and saved; `ClaudeKeyUnreadable` logged once per process with the exception type only (captured logger, no message, no ciphertext); the plaintext never in the row [sec] (CK-FR-002, CK-FR-011)
-- [ ] T016 [backend] Implement `ProtectedClaudeKeyStore` (`IStoredClaudeKeyReader`/`Writer`) to pass T015
+- [x] T011 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentSecretStoreTests.cs`: upsert/replace in one transaction, delete idempotent, column limits, migration `AddAgentSecrets` applies on an 011 database (CK-FR-002)
+- [x] T012 [backend] Implement `AgentSecretEntity`, `AgentSecretStore`, migration `AddAgentSecrets` to pass T011
+- [x] T013 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/Secrets/DataProtectionSetupTests.cs`: application name `StemStudio.Api` (payload from a provider with the same dir and name decrypts, a different name does not); directory guard refuses `DataDir`, `BackupDir`, content root and a git work tree (temp dirs) -> `storeAvailable` false and the API host still builds; Linux mode tightening to 0700 and the one-time warning when not owner (OS-conditional); DPAPI configured on Windows (OS-conditional) [sec] (CK-FR-003..005)
+- [x] T014 [backend] Implement `DataProtectionSetup` + `KeyRingDirectory` to pass T013
+- [x] T015 [P] [backend] Failing tests `Secrets/ProtectedClaudeKeyStoreTests.cs`: round trip; ciphertext from another key ring -> `Unreadable`; corrupted ciphertext -> `Unreadable`; revoked key -> `Unreadable`; `requiresMigration` -> re-protected and saved; `ClaudeKeyUnreadable` logged once per process with the exception type only (captured logger, no message, no ciphertext); the plaintext never in the row [sec] (CK-FR-002, CK-FR-011)
+- [x] T016 [backend] Implement `ProtectedClaudeKeyStore` (`IStoredClaudeKeyReader`/`Writer`) to pass T015
 
 ### quality-gate (tests first)
 
@@ -96,23 +96,23 @@ character (research R-07).
 
 - [x] T021 [P] [US1] [ai-agent] Failing tests: `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` read the key only through `IClaudeKeyProvider`; client cache keyed by fingerprint; `ClaudeStatusDto.Key` filled; `keyConfigured` true for a readable stored key; a key change applies to the next run, an active run keeps its client; extend the 011 SC-006 sentinel test to stored keys [sec] (CK-FR-001, CK-FR-008, CK-FR-016) - done 2026-11-16 (`Backends/ClaudeKeyBackendTests`; red was a build failure against the old factory signature, so T021 and T022 share one commit)
 - [x] T022 [US1] [ai-agent] Implement to pass T021 - done 2026-11-16 (`ClaudeChatClientFactory(IClaudeKeyProvider)`, `ClaudeKeyStatus.ToDto`, `RunKeyPins` in `ClaudeChatSession`, `NoStoredClaudeKeyReader` default, DI)
-- [ ] T023 [P] [US1] [backend] Failing tests `Agent/ClaudeKeyEndpointsTests.cs`: `GET` status for all states; `PUT` 200 with the status, 422 per reason with `reason` and without the value, 400 fixed text for bad JSON and missing field, 413 over 1 KiB, 503 when the store is unavailable; no request to the must-not-call Anthropic handler; backend and notice acknowledgement unchanged; `WithHttpLogging(None)` metadata and the logging interceptor (with a global `AddHttpLogging(All)` in the test host nothing of the key route is logged) [sec] (CK-FR-006, CK-FR-008..010, CK-FR-015)
-- [ ] T024 [US1] [backend] Implement `ClaudeKeyEndpoints` and `KeyEndpointLoggingInterceptor` to pass T023
+- [x] T023 [P] [US1] [backend] Failing tests `Agent/ClaudeKeyEndpointsTests.cs`: `GET` status for all states; `PUT` 200 with the status, 422 per reason with `reason` and without the value, 400 fixed text for bad JSON and missing field, 413 over 1 KiB, 503 when the store is unavailable; no request to the must-not-call Anthropic handler; backend and notice acknowledgement unchanged; `WithHttpLogging(None)` metadata and the logging interceptor (with a global `AddHttpLogging(All)` in the test host nothing of the key route is logged) [sec] (CK-FR-006, CK-FR-008..010, CK-FR-015)
+- [x] T024 [US1] [backend] Implement `ClaudeKeyEndpoints` and `KeyEndpointLoggingInterceptor` to pass T023
 - [ ] T025 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Settings/ClaudeKeySectionTests.cs`: status texts and `data-state`/`data-source`/`data-stored` for every state; env-override note; input `type=password`, `autocomplete=off`, empty after success **and** after failure; save disabled when empty or saving; 422/503/413 messages never contain the value; Beginner level shows the section (CK-FR-014, ui-test-ids 1.21.0)
 - [ ] T026 [US1] [frontend] Implement `ClaudeKeySection` and the API client methods to pass T025
-- [ ] T027 [P] [US1] [backend] Failing test `Agent/ClaudeKeyLeakTests.cs` (written at the start of the story, green at its end): sentinel saved through the API; 0 hits of the sentinel, its base64 and UTF-16 forms in all responses, Trace logs, SSE of a fake Claude run, `stemstudio.db`, `-wal`, `-shm` [sec] (CK-SC-001)
+- [x] T027 [P] [US1] [backend] Failing test `Agent/ClaudeKeyLeakTests.cs` (written at the start of the story, green at its end): sentinel saved through the API; 0 hits of the sentinel, its base64 and UTF-16 forms in all responses, Trace logs, SSE of a fake Claude run, `stemstudio.db`, `-wal`, `-shm` [sec] (CK-SC-001)
 
 ## Phase 3: User Story 6 - Key entry only on the computer itself (P1)
 
-- [ ] T028 [P] [US6] [backend] Failing tests `Secrets/LocalOnlyKeyEntryFilterTests.cs`: peer loopback v4/v6 accepted; peer = resolved `InternalCaller` accepted; other peer -> 403 `local-only`; `Host` outside the allow-list -> 403; foreign `Origin` -> 403; the filter runs before the body is read; `KeyEntryRefused` log rate-limited, without body; GET status not filtered [sec] (CK-FR-012)
-- [ ] T029 [US6] [backend] Implement `LocalOnlyKeyEntryFilter` to pass T028
+- [x] T028 [P] [US6] [backend] Failing tests `Secrets/LocalOnlyKeyEntryFilterTests.cs`: peer loopback v4/v6 accepted; peer = resolved `InternalCaller` accepted; other peer -> 403 `local-only`; `Host` outside the allow-list -> 403; foreign `Origin` -> 403; the filter runs before the body is read; `KeyEntryRefused` log rate-limited, without body; GET status not filtered [sec] (CK-FR-012)
+- [x] T029 [US6] [backend] Implement `LocalOnlyKeyEntryFilter` to pass T028
 - [ ] T030 [P] [US6] [frontend] Failing tests: `PageOrigin` captures the loopback host of the first request (`localhost`, `127.0.0.1`, `[::1]` accepted; IP, `web`, other names not); non-loopback circuit -> `settings-agent-claude-key-local-only` shown and controls disabled; a `403 local-only` answer shows the same notice [sec] (CK-FR-012)
 - [ ] T031 [US6] [frontend] Implement `PageOrigin` and the notice to pass T030
 
 ## Phase 4: User Story 3 - Replace or delete the stored key (P2)
 
-- [ ] T032 [P] [US3] [backend] Failing tests: `PUT` over an existing row replaces ciphertext, last four and time in one transaction; `DELETE` removes, is idempotent, deletes an unreadable row, keeps backend `claude` and the agent status then says "no key" with "Switch to Local"; local-only applies to `DELETE` (CK-FR-006, CK-FR-015)
-- [ ] T033 [US3] [backend] Implement to pass T032
+- [x] T032 [P] [US3] [backend] Failing tests: `PUT` over an existing row replaces ciphertext, last four and time in one transaction; `DELETE` removes, is idempotent, deletes an unreadable row, keeps backend `claude` and the agent status then says "no key" with "Switch to Local"; local-only applies to `DELETE` (CK-FR-006, CK-FR-015)
+- [x] T033 [US3] [backend] Implement to pass T032
 - [ ] T034 [P] [US3] [frontend] Failing tests: replace shows input + "Save new key" + cancel; cancel empties; delete opens the `alertdialog`, `no` keeps, `yes` deletes; panel note "Key changed - applies to the next command" while a run is active (CK-FR-014, CK-FR-016)
 - [ ] T035 [US3] [frontend] Implement to pass T034
 
@@ -120,15 +120,15 @@ character (research R-07).
 
 - [x] T036 [P] [US4] [ai-agent] Failing tests: `ClaudeBackendProbe.TestAsync` with `claudeKeySource` `active`/`stored`/`environment` uses the right key (the stub handler receives the `x-api-key` sentinel of the requested source), `keySource` in the result, missing requested source -> `ok: false` readable detail; exactly one request per test; 401/403/timeout/network texts (CK-FR-007, CK-SC-002) - done 2026-11-16 (`Backends/ClaudeKeySourceTestTests`)
 - [x] T037 [US4] [ai-agent] Implement to pass T036 - done 2026-11-16 (`ClaudeBackendProbe.TestAsync(settings, source, ct)`, `AgentStatusService.TestAsync(backend, claudeKeySource, ct)`; the `IAgentStatusService` port still has only `TestAsync(backend, ct)` = active, port change requested from the architect)
-- [ ] T038 [P] [US4] [backend] Failing tests: `POST /api/agent/settings/test` passes `claudeKeySource`, answers `403 local-only` for the Claude case from a non-local caller, Ollama case unchanged [sec]
-- [ ] T039 [US4] [backend] Implement to pass T038
+- [x] T038 [P] [US4] [backend] Failing tests: `POST /api/agent/settings/test` passes `claudeKeySource`, answers `403 local-only` for the Claude case from a non-local caller, Ollama case unchanged [sec]
+- [x] T039 [US4] [backend] Implement to pass T038
 - [ ] T040 [P] [US4] [frontend] Failing tests: **Test key** shown per ui-test-ids rules, source choice only when both keys exist, result with `data-ok` and `data-key-source`
 - [ ] T041 [US4] [frontend] Implement to pass T040
 
 ## Phase 6: User Story 5 - Recover from an unreadable stored key (P2)
 
-- [ ] T042 [P] [US5] [backend] Failing tests (API host with a second, different key ring): API starts, status `stored-unreadable` with reason/fix, all other agent and library endpoints answer normally, Claude run fails `backend-unavailable` with the reason, `PUT` replaces the unreadable row and status becomes `stored` (CK-FR-011, CK-SC-004)
-- [ ] T043 [US5] [backend] Implement the remaining wiring to pass T042
+- [x] T042 [P] [US5] [backend] Failing tests (API host with a second, different key ring): API starts, status `stored-unreadable` with reason/fix, all other agent and library endpoints answer normally, Claude run fails `backend-unavailable` with the reason, `PUT` replaces the unreadable row and status becomes `stored` (CK-FR-011, CK-SC-004)
+- [x] T043 [US5] [backend] Implement the remaining wiring to pass T042
 - [ ] T044 [P] [US5] [frontend] Failing tests: `settings-agent-claude-key-unreadable` text and fix; agent panel unavailable state offers "Switch to Local" for this reason
 - [ ] T045 [US5] [frontend] Implement to pass T044
 - [ ] T046 [P] [US5] [qa] E2E `e2e/tests/agent-claude-key.spec.ts` part 2: make the stored key unreadable by removing the key ring files (`docker compose exec api sh -c 'rm -f /keys/*.xml'` + `docker compose restart api` in `scripts/agent-e2e.*`), then assert the unreadable state and recovery by saving a new key
