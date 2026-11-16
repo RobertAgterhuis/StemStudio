@@ -144,8 +144,8 @@ character (research R-07).
 
 ## Integration wave (CTO, architect)
 
-- [ ] T053 [architect] Fold the follow-up into the 011 documents after ratification: `spec.md` FR-018 (key sentence -> CK-FR-001..003), FR-019 ("key configured" -> key status), SC-006 ("never in plain text"); `data-model.md` section 1 (pointer to this delta); `contracts/DELTA.md` status row; mark this folder "merged"
-- [ ] T054 [CTO] `.claude/agents/ai-agent.md` key rule (plan.md sync impact), `SECURITY.md` (threat model summary), `README.md` quick note, compose comment review
+- [x] T053 [architect] Fold the follow-up into the 011 documents after ratification: `spec.md` FR-018 (key sentence -> CK-FR-001..003), FR-019 ("key configured" -> key status), SC-006 ("never in plain text"); `data-model.md` section 1 (pointer to this delta); `contracts/DELTA.md` status row; mark this folder "merged" - done 2026-11-16 (CTO integration): folded, ADR-020 and the technical manual updated; `updateAgentSettings` text "a usable Claude key" and the 503 example are pre-release text changes in 1.21.0 (pinned by `ClaudeKeyContractTests`); ai-agent decisions recorded in data-model 3 and ADR-035 D8; ui-test-ids 1.21.0 gained `agent-unavailable-switch-to-local` and `agent-key-changed`; port overload `IAgentStatusService.TestAsync(backend, claudeKeySource, ct)`
+- [x] T054 [CTO] `.claude/agents/ai-agent.md` key rule (plan.md sync impact), `SECURITY.md` (threat model summary), `README.md` quick note, compose comment review - done 2026-11-16 (compose comment block reviewed, unchanged)
 - [ ] T055 [CTO] Public manuals: user manual (Settings -> Claude key, recovery), technical manual (volume `api-keys`, key ring directory, never copy it with backups, threat model limits); regenerate PDFs (`tools/docs`), commit sources, PDFs and `build-manifest.json`
 - [ ] T056 [CTO] Run quickstart Q1-Q9b (Q10 by the owner if wanted); security sign-off of the threat model; `docs/STATUS.md`; close the follow-up
 

@@ -61,6 +61,11 @@ The agent panel shows the reason and the fix:
 - *"Model … does not support tool calling."*: choose `qwen3.5:9b` in **Settings**.
 - *"Claude rejected the API key"*, *"Claude could not be reached"* or *"Claude is rate limited
   …"*: press **Switch to local** or choose Ollama in **Settings**.
+- *"No Claude key is configured"* or *"The saved key cannot be read on this installation"*:
+  enter the key in **Settings -> Composer agent -> Claude API key** (on the computer itself, as
+  `http://localhost:8080`), or press **Switch to local**.
+- *"The key store is not available"*: the folder for the encryption keys cannot be used; the
+  administrator checks `StemStudio__DataProtection__KeyRingDir` (technical manual, chapter 3).
 - The agent is set to **None** in **Settings**.
 
 Everything else in StemStudio keeps working while the agent is unavailable. If the agent does

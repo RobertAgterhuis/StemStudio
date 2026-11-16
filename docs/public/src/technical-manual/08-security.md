@@ -27,9 +27,29 @@ feature 011, text that a language model reads or writes.
 
 ## Secrets
 
-The core product has no secrets. The only secret is the optional `ANTHROPIC_API_KEY` of the
-agent (chapter 3): environment only, never in files or command lines, never logged, stored or
-returned.
+The core product has no secrets. The only secret is the optional Claude key of the agent
+(chapter 3): from `ANTHROPIC_API_KEY` (never in files or command lines) or entered in Settings and
+stored encrypted with Data Protection; never logged, returned or stored in plain text.
+
+### Threat model of the stored Claude key (ADR-035)
+
+| Threat | Protected | How |
+|---|---|---|
+| Copy of the SQLite database | yes | ciphertext and last four only; the key ring is in another volume or directory |
+| Backup archive or export (013) | yes | contains the ciphertext, never the key ring |
+| The `api-data` volume (also the worker's read-only `/library` mount) | yes | `api-keys` is mounted only into `api` |
+| Logs, problem details, SSE events, screenshots, password managers | yes | write-only API, fixed problem texts, HTTP logging off for the route, `autocomplete="off"`, the page never renders the value |
+| A malicious web page in the owner's browser (CSRF) | yes | `PUT`/`DELETE` need a CORS preflight; the API allows only `GET` from the web origin (pinned by a test) |
+| Another LAN device before feature 018 | partly | it can never read the key; direct API calls and forwarded headers are refused (peer must be loopback or the `web` service); through the Web page a forged host name can overwrite or delete the stored key. Accepted until 018 binds the ports to `127.0.0.1` |
+| Full host access (admin/root, Docker Desktop's VM disk, a disk image, malware running as the owner) | **no** | with the database and the key ring the key can be decrypted; on Linux the ring is not encrypted at rest; DPAPI does not stop malware running as the Windows user |
+| Memory of the running API or Web process | **no** | the key is in memory while a Claude client exists and briefly in the Blazor circuit during entry |
+| Lost key volume, restore on another computer | availability only | `stored-unreadable` with "Enter the key again" |
+
+Key writes (`PUT`/`DELETE /api/agent/settings/claude-key`) and the Claude **Test key** are
+accepted only from loopback or the `web` service with a loopback host name and no foreign
+`Origin`; the Web page enables the controls only when opened as `localhost`, `127.0.0.1` or
+`[::1]`. After a leak, revoke the key in the Anthropic console first, then replace it in
+Settings.
 
 ## Agent safety
 
