@@ -148,6 +148,7 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
         var problem = await response.JsonAsync();
         problem.GetProperty("type").GetString().ShouldBe(AgentProblemTypes.Uri(AgentProblemTypes.InvalidBody));
         problem.GetProperty("detail").GetString().ShouldBe(ClaudeKeyEndpoints.InvalidBodyDetail);
+        (await _api.StatusAsync()).Stored.ShouldBe(StoredClaudeKeyStateDto.Absent);
     }
 
     [Fact]
@@ -157,6 +158,30 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         await ShouldNotLeakAsync(response, ClaudeKeySentinels.Stored);
+    }
+
+    // qa F3: the refusal paths that handle a body carrying the key, with every log category at Trace; nothing is stored. The theory
+    // data are case names, so no test name or result file ever shows a sentinel.
+    public static TheoryData<string, HttpStatusCode> LogRiskBodies => new()
+    {
+        { "unterminated-json", HttpStatusCode.BadRequest },
+        { "json-array", HttpStatusCode.BadRequest },
+        { "over-1-kib", HttpStatusCode.RequestEntityTooLarge },
+        { "inner-whitespace", HttpStatusCode.UnprocessableEntity },
+    };
+
+    [Theory]
+    [MemberData(nameof(LogRiskBodies))]
+    public async Task Put_RefusedBodyCarryingTheKey_IsNeverLoggedAtTraceAndNothingIsStored(string body, HttpStatusCode expected)
+    {
+        using var api = new ClaudeKeyApi(new() { TraceLogs = true });
+
+        using var response = await api.PutRawAsync(LogRiskBody(body));
+
+        response.StatusCode.ShouldBe(expected);
+        await ShouldNotLeakAsync(response, ClaudeKeySentinels.Stored);
+        KeyLeaks.TraceLogsShouldBeClean(api.Factory.Logs, ClaudeKeySentinels.Stored);
+        (await api.StatusAsync()).Stored.ShouldBe(StoredClaudeKeyStateDto.Absent);
     }
 
     [Fact]
@@ -305,6 +330,14 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
         KeyEndpointLoggingInterceptor.IsKeyRoute(new PathString(ApiRoutes.AgentClaudeKey + "/")).ShouldBeTrue();
     }
 
+    private static string LogRiskBody(string name) => name switch
+    {
+        "unterminated-json" => "{\"apiKey\": \"" + ClaudeKeySentinels.Stored,
+        "json-array" => "[\"" + ClaudeKeySentinels.Stored + "\"]",
+        "over-1-kib" => "{\"apiKey\":\"" + ClaudeKeySentinels.Stored + new string('a', AgentContractLimits.ClaudeKeyBodyBytes) + "\"}",
+        _ => "{\"apiKey\":\"" + ClaudeKeySentinels.Stored + " x\"}",
+    };
+
     private static StringContent Json(string json) => new(json, Encoding.UTF8, "application/json");
 
     private static async Task ShouldNotLeakAsync(HttpResponseMessage response, string sentinel)
@@ -320,9 +353,9 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
 
     private static void ShouldNotLeak(ListLoggerProvider logs, string sentinel)
     {
-        foreach (var form in ClaudeKeySentinels.SearchForms(sentinel))
+        foreach (var line in logs.Entries.Select(entry => entry.Message + entry.Exception).Concat(logs.Scopes))
         {
-            logs.Entries.ShouldAllBe(entry => !entry.Message.Contains(form, StringComparison.Ordinal) && (entry.Exception == null || !entry.Exception.ToString().Contains(form, StringComparison.Ordinal)));
+            KeyLeaks.ShouldNotContainAny(line, "a log line or scope", sentinel);
         }
     }
 }

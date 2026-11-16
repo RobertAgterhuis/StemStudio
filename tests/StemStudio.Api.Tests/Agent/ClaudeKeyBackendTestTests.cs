@@ -16,7 +16,7 @@ namespace StemStudio.Api.Tests.Agent;
 public sealed class ClaudeKeyBackendTestTests : IDisposable
 {
     private const string ModelJson = """{"type":"model","id":"claude-opus-5-5","display_name":"Claude Opus 5.5","created_at":"2026-10-01T00:00:00Z"}""";
-    private readonly ClaudeKeyApi _api = new(new() { RealStatusService = true });
+    private readonly ClaudeKeyApi _api = new(new() { RealStatusService = true, TraceLogs = true });
 
     public ClaudeKeyBackendTestTests()
     {
@@ -44,9 +44,9 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
         var result = await response.BodyAsync<BackendTestResultDto>();
         (result.Ok, result.KeySource).ShouldBe((true, expected == "stored" ? ClaudeKeySourceDto.Stored : ClaudeKeySourceDto.Environment));
         _api.AnthropicKeys.ShouldBe([expected == "stored" ? ClaudeKeySentinels.Stored : ClaudeKeySentinels.Environment]);
-        var body = await response.Content.ReadAsStringAsync(Ct);
-        body.ShouldNotContain(ClaudeKeySentinels.Stored);
-        body.ShouldNotContain(ClaudeKeySentinels.Environment);
+        // R6: every search form of both keys is absent from the result and from the Trace logs of the probe path.
+        KeyLeaks.ShouldNotContainAny(await response.Content.ReadAsStringAsync(Ct), "the test result", ClaudeKeySentinels.Stored, ClaudeKeySentinels.Environment);
+        KeyLeaks.TraceLogsShouldBeClean(_api.Factory.Logs, ClaudeKeySentinels.Stored, ClaudeKeySentinels.Environment);
     }
 
     [Fact]

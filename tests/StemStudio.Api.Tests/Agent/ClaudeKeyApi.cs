@@ -83,8 +83,11 @@ internal sealed class ClaudeKeyApi : IDisposable
 
         if (options.TraceLogs)
         {
+            // appsettings.json sets Microsoft.AspNetCore to Warning, which wins over a shorter prefix: override it explicitly, or
+            // the pipeline and Data Protection logs are never searched (qa F1).
             settings["Logging:LogLevel:Default"] = "Trace";
             settings["Logging:LogLevel:Microsoft"] = "Trace";
+            settings["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace";
         }
 
         StatusService.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentStatuses.Ready());
