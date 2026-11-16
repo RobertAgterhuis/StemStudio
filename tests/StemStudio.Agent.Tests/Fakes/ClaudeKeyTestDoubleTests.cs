@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
@@ -92,7 +91,7 @@ public sealed partial class ClaudeKeyTestDoubleTests
 
     public static TheoryData<string> Sentinels => new(ClaudeKeySentinels.Environment, ClaudeKeySentinels.Stored, ClaudeKeySentinels.Replacement);
 
-    private static ClaudeApiKey Key() => (ClaudeApiKey)RuntimeHelpers.GetUninitializedObject(typeof(ClaudeApiKey));
+    private static ClaudeApiKey Key() => ClaudeApiKey.Parse(ClaudeKeySentinels.Stored).Key!;
 
     [GeneratedRegex("^[A-Za-z0-9_-]+$")]
     private static partial Regex KeyShape();

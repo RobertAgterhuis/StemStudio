@@ -9,6 +9,7 @@ using StemStudio.Agent.Tools;
 using StemStudio.Agent.Tools.Providers;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Generation;
+using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Agent.Tests.Backends;
 
@@ -36,7 +37,7 @@ public sealed class AgentStatusServiceTests : IDisposable
         var probes = new BackendProbes
         {
             Ollama = new OllamaBackendProbe(ollama.Client(), _time),
-            Claude = new ClaudeBackendProbe(new ClaudeChatClientFactory(environment ?? new FakeEnvironment(), _claude.Client("https://api.anthropic.com/")), _time),
+            Claude = new ClaudeBackendProbe(new ClaudeChatClientFactory(new ClaudeKeyProvider(environment ?? new FakeEnvironment(), new FakeStoredClaudeKeyReader()), _claude.Client("https://api.anthropic.com/")), _time),
             FakeAvailable = fake,
         };
         return new AgentStatusService(new InMemorySettingsStore(settings), _gpu, probes, new ToolCatalog(new AgentToolRegistry([new Core001ToolProvider(), new MetaToolProvider()]), reader));

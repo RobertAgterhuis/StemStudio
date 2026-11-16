@@ -21,7 +21,7 @@ public sealed record BackendProbes
 
 /// <summary>
 /// <see cref="IAgentStatusService"/>: the status of the selected backend without generating text (FR-023). Ollama is probed
-/// (at most 2 s) for every backend so Settings can show it; Claude is never contacted here, only on <see cref="TestAsync"/>.
+/// (at most 2 s) for every backend so Settings can show it; Claude is never contacted here, only on <see cref="TestAsync(AgentBackendDto, ClaudeKeyTestSourceDto, CancellationToken)"/>.
 /// </summary>
 /// <param name="settings">Agent settings (the effective backend).</param>
 /// <param name="gpu">GPU activity (Ollama fallback model).</param>
@@ -52,13 +52,21 @@ public sealed class AgentStatusService(IAgentSettingsStore settings, IGpuActivit
     }
 
     /// <inheritdoc />
-    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken)
+    public Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken) =>
+        TestAsync(backend, ClaudeKeyTestSourceDto.Active, cancellationToken);
+
+    /// <summary>Tests one backend on the user's explicit request; a Claude test uses the key of the requested source (CK-FR-007).</summary>
+    /// <param name="backend">ollama or claude.</param>
+    /// <param name="claudeKeySource">Which Claude key to test; ignored for other backends.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result (<c>keySource</c> set for a Claude test with a key).</returns>
+    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken)
     {
         var current = await settings.GetAsync(cancellationToken);
         return backend switch
         {
             AgentBackendDto.Ollama => await TestOllamaAsync(current, cancellationToken),
-            AgentBackendDto.Claude => await probes.Claude.TestAsync(current, cancellationToken),
+            AgentBackendDto.Claude => await probes.Claude.TestAsync(current, claudeKeySource, cancellationToken),
             _ => new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = NotTestable },
         };
     }
@@ -91,7 +99,7 @@ public sealed class AgentStatusService(IAgentSettingsStore settings, IGpuActivit
     {
         if (!claude.KeyConfigured)
         {
-            return NotReady(ClaudeErrors.KeyMissing, "Set ANTHROPIC_API_KEY in the shell that starts StemStudio, then restart it.");
+            return NotReady(ClaudeErrors.KeyUnusable(claude.Key.Reason, null), claude.Key.Fix ?? ClaudeErrors.KeyMissingFix);
         }
 
         return claude.NoticeAcknowledged
