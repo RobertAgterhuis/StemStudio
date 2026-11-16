@@ -41,6 +41,12 @@ public sealed record PolicyInput
     /// <summary>True when the compensated artefact is fresh (created by the run and unchanged since).</summary>
     public bool Fresh { get; init; }
 
+    /// <summary>
+    /// True when the dynamic heavy-risk check failed and the call was escalated to heavy: the reason is
+    /// <c>risk-check-failed</c> instead of <c>risk-heavy</c>, so no plan grant covers it (data-model 4.2).
+    /// </summary>
+    public bool RiskCheckFailed { get; init; }
+
     /// <summary>Artist names of the library (artist-imitation guardrail).</summary>
     public IReadOnlyList<string?> LibraryArtists { get; init; } = [];
 }

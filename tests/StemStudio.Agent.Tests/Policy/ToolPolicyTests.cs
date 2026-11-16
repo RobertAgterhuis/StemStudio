@@ -104,6 +104,17 @@ public sealed class ToolPolicyTests
     }
 
     [Fact]
+    public void FailedRiskCheck_AsksWithRiskCheckFailed_InsteadOfRiskHeavy_AndIsNeverPlanCovered()
+    {
+        var input = TableInput(ToolRiskDto.Heavy, tainted: false, UrlCase.NoUrl, planCovered: true) with { RiskCheckFailed = true };
+
+        var decision = ToolPolicy.Decide(input);
+
+        decision.Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+        decision.Reasons.ShouldBe([AgentDecisionReasons.RiskCheckFailed]);
+    }
+
+    [Fact]
     public void ReadTool_WithAnUnknownUrl_StaysAuto()
     {
         var input = new PolicyInput { Tool = Tool(ToolRiskDto.Read, true), Arguments = Json(new { url = "https://x.example" }), Tainted = true, UserMessages = [] };

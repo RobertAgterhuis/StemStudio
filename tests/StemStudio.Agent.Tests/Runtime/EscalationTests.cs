@@ -68,7 +68,8 @@ public sealed class EscalationTests
         await execution.WaitAsync(TimeSpan.FromSeconds(10), Token);
 
         (step.Risk, step.Decision).ShouldBe((ToolRiskDto.Heavy, StepDecisionDto.ApprovalRequired));
-        step.DecisionReasons.ShouldContain(AgentDecisionReasons.RiskHeavy);
+        step.DecisionReasons.ShouldContain(AgentDecisionReasons.RiskCheckFailed);
+        step.DecisionReasons.ShouldNotContain(AgentDecisionReasons.RiskHeavy);
         _executed.ShouldBeEmpty();
         harness.Events.Events.ShouldAllBe(item => !item.Payload.Contains("SECRET", StringComparison.Ordinal));
         harness.Script.Requests.SelectMany(request => request.Messages).SelectMany(message => message.Contents).OfType<Microsoft.Extensions.AI.FunctionResultContent>()
@@ -130,6 +131,7 @@ public sealed class EscalationTests
         await execution.WaitAsync(TimeSpan.FromSeconds(10), Token);
 
         second.Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+        second.DecisionReasons.ShouldBe([AgentDecisionReasons.RiskCheckFailed]);
         _executed.Count.ShouldBe(2);
     }
 }
