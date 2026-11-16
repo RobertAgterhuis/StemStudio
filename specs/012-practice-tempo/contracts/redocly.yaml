@@ -1,0 +1,10 @@
+# Lint configuration for the StemStudio OpenAPI 3.1 contracts (feature 012).
+# Run from the repo root: npx @redocly/cli@2.78.0 lint --config specs/012-practice-tempo/contracts/redocly.yaml #   specs/012-practice-tempo/contracts/backend-api.openapi.yaml
+# Superset check ("newer contains older"): python -I specs/012-practice-tempo/contracts/check_superset.py
+extends:
+  - recommended
+rules:
+  # GET /health, GET /api/device, GET /api/tracks and GET /api/generation/status have no client-error cases; every other operation lists its 4XX responses.
+  operation-4xx-response: warn
+  no-server-example.com: off
+  no-unused-components: warn
