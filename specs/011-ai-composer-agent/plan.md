@@ -175,7 +175,8 @@ tools/quality/ dependency rules for StemStudio.Agent                            
 **Dependency direction**: `Web -> (HTTP) -> Api -> Agent -> Contracts`; `Api -> Persistence ->
 Domain`; `Agent` references no Api, Domain, Persistence or Web project; `Agent.Backends` is the
 only namespace that references OllamaSharp/Anthropic; `Agent.Policy` references only `Model` and
-`Tools`.
+`Tools` (and the data-only `Resources`, the embedded 009 imitation lexicon; CTO decision at T080,
+enforced as an allow-list by `tools/quality/dependency_check.py`).
 
 ### Ownership map (additions)
 

@@ -172,7 +172,10 @@ def test_only_backends_is_exempt_from_the_sdk_namespaces() -> None:
 
 def test_policy_is_an_allow_list_of_model_tools_and_resources() -> None:
     allowed = {"StemStudio.Agent.Model", "StemStudio.Agent.Tools", "StemStudio.Agent.Resources"}
-    assert DOTNET_FOLDER_ALLOWED["StemStudio.Agent/Policy"] == ("StemStudio.Agent", frozenset(allowed))
+    assert DOTNET_FOLDER_ALLOWED["StemStudio.Agent/Policy"] == (
+        "StemStudio.Agent",
+        frozenset(allowed),
+    )
     assert "StemStudio.Agent/Policy" not in DOTNET_FOLDER_FORBIDDEN
 
 
@@ -228,7 +231,7 @@ POLICY = "forbidden dependency StemStudio.Agent/Policy -> "
         ("using StemStudio.Agent.Runtime;\n", (POLICY + "StemStudio.Agent.Runtime", 1, "ai-agent")),
         (
             "using StemStudio.Agent.Backends.Fakes;\n",
-            (POLICY + "StemStudio.Agent.Backends", 1, "ai-agent"),
+            (POLICY + "StemStudio.Agent.Backends.Fakes", 1, "ai-agent"),
         ),
         (
             "class G\n{\n    StemStudio.Agent.Runtime.RunLoop? _l;\n}\n",

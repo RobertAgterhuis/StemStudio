@@ -111,8 +111,12 @@ never reference `StemStudio.Agent`. Package rule (`DOTNET_PACKAGES_ALLOWED`): th
 `src/StemStudio.Agent/` except `Backends/**` (`DOTNET_FOLDER_EXEMPT`) must not reference the
 `OllamaSharp` or `Anthropic` namespaces (using directives of any kind and qualified names count;
 `AgentBackendDto.Anthropic`, an enum member `Anthropic` or the identifier `OllamaModel` do not).
-`StemStudio.Agent/Policy` -/- `StemStudio.Agent.Backends`, `StemStudio.Agent.Runtime`. Same gap
-as above: `Runtime.RunLoop` written inside `namespace StemStudio.Agent.Policy` is not detected.
+`StemStudio.Agent/Policy` is an allow-list (`DOTNET_FOLDER_ALLOWED`, CTO decision at the 011
+integration T080): inside `StemStudio.Agent` it may reference only `StemStudio.Agent.Model`,
+`StemStudio.Agent.Tools`, the data-only `StemStudio.Agent.Resources` (embedded 009 lexicon) and its
+own namespace; anything else (`Runtime`, `Backends`, `Ports`, the root namespace) is
+`forbidden dependency StemStudio.Agent/Policy -> <name>`. Same gap as above: `Runtime.RunLoop`
+written inside `namespace StemStudio.Agent.Policy` is not detected.
 Owners: `src/StemStudio.Agent/{Ports,Model}/` and the csproj are the architect's, the rest of the
 library, `tests/StemStudio.Agent.Tests/` and `tools/agent-eval/` belong to `ai-agent`; the
 library is the `Agent` row of the component table. `tools/agent-eval` (the eval harness) is a

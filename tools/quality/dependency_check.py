@@ -16,8 +16,12 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
     Api/Assets -/- Web;  Domain/Rendering -/- {Api, Persistence, Web, Contracts}   (feature 007)
     Api/Generation, Api/Generator -/- Web                                          (feature 009)
     Api/Voices -/- {Web, Api.Generation};  Api/Generator -/- {Api.Generation, Api.Voices}  (010)
-    Agent (except Agent/Backends) -/- {OllamaSharp, Anthropic};
-    Agent/Policy -/- {Agent.Backends, Agent.Runtime}                                (feature 011)
+    Agent (except Agent/Backends) -/- {OllamaSharp, Anthropic}                      (feature 011)
+
+.NET feature-folder allow-lists (same references; only names below the scope root count)::
+
+    Agent/Policy -> StemStudio.Agent.{Model, Tools, Resources} only    (feature 011, CTO T080;
+                    plan.md: Model and Tools; Resources = the embedded 009 lexicon, data only)
 
     The SDK namespaces count in ``using`` directives (incl. ``global``, ``static``, aliases) and
     in qualified names (``OllamaSharp.OllamaApiClient``); a member access (``Dto.Anthropic``),
@@ -129,13 +133,28 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     ),
     "StemStudio.Api/Voices": frozenset({"StemStudio.Web", "StemStudio.Api.Generation"}),
     "StemStudio.Agent": frozenset(DOTNET_EXTERNAL_NAMESPACES),
-    "StemStudio.Agent/Policy": frozenset({"StemStudio.Agent.Backends", "StemStudio.Agent.Runtime"}),
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it).
 
 An entry forbids the namespace and every namespace below it (``StemStudio.Web`` forbids
 ``StemStudio.Web.Pages``, ``StemStudio.Api.Generation`` does not forbid
 ``StemStudio.Api.GenerationTools``).
+"""
+
+DOTNET_FOLDER_ALLOWED: Mapping[str, tuple[str, frozenset[str]]] = {
+    "StemStudio.Agent/Policy": (
+        "StemStudio.Agent",
+        frozenset(
+            {"StemStudio.Agent.Model", "StemStudio.Agent.Tools", "StemStudio.Agent.Resources"}
+        ),
+    ),
+}
+"""Allow-lists per feature folder below ``src/``: ``folder -> (scope root, allowed names)``.
+
+A reference to the scope root or below it is an error unless it is (below) an allowed name or
+the folder's own namespace (``StemStudio.Agent.Policy``); names outside the scope root
+(``StemStudio.Contracts``, ``System``) are left to the project rules. Families are matched per
+dotted segment (``StemStudio.Agent.Model`` does not allow ``StemStudio.Agent.ModelExtras``).
 """
 
 DOTNET_FOLDER_EXEMPT: Mapping[str, frozenset[str]] = {
@@ -402,6 +421,29 @@ def check_forbidden(
 
 
 _FORBIDDEN = "forbidden dependency"
+
+
+def check_allowed(
+    edges: Sequence[Edge], allow_lists: Mapping[str, tuple[str, frozenset[str]]]
+) -> list[Finding]:
+    """Return an error for every edge of an allow-listed folder that leaves its allow-list."""
+    return [
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"{_FORBIDDEN} {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+        if edge.source in allow_lists and not _allow_listed(edge, *allow_lists[edge.source])
+    ]
+
+
+def _allow_listed(edge: Edge, scope: str, allowed: frozenset[str]) -> bool:
+    own = scope + "." + edge.source.split("/", 1)[1].replace("/", ".")
+    inside = _in_family(edge.target, frozenset({scope}))
+    return not inside or _in_family(edge.target, allowed | {own})
 
 
 def _forbidden_hit(edge: Edge, forbidden: Mapping[str, frozenset[str]]) -> str | None:
@@ -735,8 +777,10 @@ def run(root: Path) -> list[Finding]:
     """Check the .NET, TypeScript, worker and generator dependency graphs below ``root``."""
     findings = check_edges(read_dotnet_edges(root / "src", root), DOTNET_ALLOWED)
     findings.extend(check_packages(read_package_edges(root / "src", root), DOTNET_PACKAGES_ALLOWED))
-    folder_edges = read_folder_edges(root / "src", root, list(DOTNET_FOLDER_FORBIDDEN))
+    folders = list(DOTNET_FOLDER_FORBIDDEN) + list(DOTNET_FOLDER_ALLOWED)
+    folder_edges = read_folder_edges(root / "src", root, folders)
     findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
+    findings.extend(check_allowed(folder_edges, DOTNET_FOLDER_ALLOWED))
     findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
     module_edges = read_ts_module_edges(root / "src", root)
     findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))
