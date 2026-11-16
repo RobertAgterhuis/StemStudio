@@ -65,7 +65,7 @@ public sealed class JobWaiterTests
 
         var result = await new JobWaiter(_actions, _time).WaitAsync(new JobWait(Standard, TimeSpan.FromMinutes(1)), Token);
 
-        (result.Status, result.Error).ShouldBe((JobPoll.Failed, "Download failed"));
+        (result.Status, result.Error, result.Untrusted).ShouldBe((JobPoll.Failed, JobPoll.FailedMessage, "Download failed"));
     }
 
     [Fact]
