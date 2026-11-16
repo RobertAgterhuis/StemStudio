@@ -106,7 +106,7 @@ public sealed class ProjectionEdgeTests
         var device = await InvokeAsync(Tool(new Device003ToolProvider(), "get_processing_device"), "{}", _actions);
         var estimate = await detail.Estimator!(Invocation(detail, $$"""{"trackId":"{{TrackId}}"}""", _actions), TestContext.Current.CancellationToken);
 
-        Json(device.Projection).ShouldBe("""{"reachable":false,"kind":null,"name":null,"reason":"Worker down"}""");
+        Json(device.Projection).ShouldBe("""{"reachable":false,"kind":null,"name":null,"reason":"The processing worker is not reachable."}""");
         (estimate.EstimatedMinutes, estimate.Device, estimate.DeviceCode).ShouldBe((30.0, "CPU", "cpu"));
     }
 

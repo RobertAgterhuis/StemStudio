@@ -25,8 +25,8 @@ public sealed class Device003ToolProvider : IAgentToolProvider
         {
             ["reachable"] = device.Reachable,
             ["kind"] = device.Kind is { } kind ? Name(kind) : null,
-            ["name"] = device.Name,
-            ["reason"] = device.Reason,
+            ["name"] = TrustedText.SafeName(device.Name),
+            ["reason"] = device.Reachable ? null : "The processing worker is not reachable.",
         });
     }
 }

@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
+using StemStudio.Contracts.Lyrics;
 using static StemStudio.Agent.Tools.Providers.ToolDefinitions;
 
 namespace StemStudio.Agent.Tools.Providers;
@@ -88,6 +89,15 @@ public sealed class LyricsToolProvider : IAgentToolProvider
         return new ToolEstimate($"Align the lyrics of a track ({track.Title})", Math.Round(minutes, 1), "GPU");
     }
 
+    /// <summary>A fixed message per status; the backend's problem text is dropped (it may quote lyrics, FR-026).</summary>
+    private static string ProblemText(LyricsStatusDto status) => status switch
+    {
+        LyricsStatusDto.NotFound => "No lyrics were found for this track.",
+        LyricsStatusDto.Disabled => "Online lyrics search is switched off.",
+        LyricsStatusDto.Instrumental => "The track is instrumental.",
+        _ => "The lyrics could not be loaded.",
+    };
+
     private static JsonObject Summary(LyricsSummary summary) => new()
     {
         ["status"] = Name(summary.Status),
@@ -95,6 +105,6 @@ public sealed class LyricsToolProvider : IAgentToolProvider
         ["origin"] = summary.Origin is { } origin ? Name(origin) : null,
         ["source"] = summary.Source is { } source ? Name(source) : null,
         ["instrumental"] = summary.Instrumental,
-        ["reason"] = summary.Reason,
+        ["reason"] = summary.Reason is null ? null : ProblemText(summary.Status),
     };
 }

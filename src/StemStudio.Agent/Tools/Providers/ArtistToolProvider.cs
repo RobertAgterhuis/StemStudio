@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Artists;
+using StemStudio.Contracts.Tracks;
 using static StemStudio.Agent.Tools.Providers.ToolDefinitions;
 
 namespace StemStudio.Agent.Tools.Providers;
@@ -49,7 +50,8 @@ public sealed class ArtistToolProvider : IAgentToolProvider
         var projection = new JsonObject
         {
             ["status"] = Name(info.Status),
-            ["reason"] = info.Reason,
+            ["reason"] = info.Reason is null ? null : ReasonText(info.Status),
+            ["reasonDetail"] = info.Reason is null ? null : new JsonObject { [ResultProjector.UntrustedField] = Untrusted(info.Reason) },
             ["artist"] = info.Artist is { } artist ? Artist(artist) : null,
             ["recording"] = info.Recording is { } recording ? new JsonObject { [ResultProjector.UntrustedField] = Untrusted(recording.Album), ["year"] = recording.Year } : null,
         };
@@ -62,12 +64,22 @@ public sealed class ArtistToolProvider : IAgentToolProvider
         return ToolResult.Of(projection);
     }
 
+    private static string Country(string? country) => string.IsNullOrWhiteSpace(country) ? string.Empty : $"country: {country}; ";
+
+    /// <summary>A fixed message per status; the provider's own text goes only into <c>reasonDetail.untrusted_text</c>.</summary>
+    private static string ReasonText(MetadataStatusDto status) => status switch
+    {
+        MetadataStatusDto.NotFound => "No band info was found for this track.",
+        MetadataStatusDto.Disabled => "Online band info lookup is switched off.",
+        MetadataStatusDto.Pending or MetadataStatusDto.Searching => "The band info lookup is still running.",
+        _ => "The band info lookup failed.",
+    };
+
     private static JsonObject Artist(ArtistInfoDto artist) => new()
     {
         [ResultProjector.UntrustedField] = Untrusted(
-            $"{artist.Name}; genres: {string.Join(", ", artist.Genres.Take(MaxGenres))}; members: {string.Join(", ", artist.Members.Take(MaxMembers).Select(member => member.Name))}"),
+            $"{artist.Name}; {Country(artist.Country)}genres: {string.Join(", ", artist.Genres.Take(MaxGenres))}; members: {string.Join(", ", artist.Members.Take(MaxMembers).Select(member => member.Name))}"),
         ["type"] = artist.Type is { } type ? Name(type) : null,
-        ["country"] = artist.Country,
         ["beginYear"] = artist.BeginYear,
         ["endYear"] = artist.EndYear,
     };

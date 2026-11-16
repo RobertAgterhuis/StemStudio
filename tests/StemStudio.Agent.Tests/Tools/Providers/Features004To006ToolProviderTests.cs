@@ -64,7 +64,7 @@ public sealed class Features004To006ToolProviderTests
         projected.Tainted.ShouldBeTrue();
         var json = JsonDocument.Parse(projected.Json).RootElement;
         json.GetProperty("status").GetString().ShouldBe("found");
-        json.GetProperty("artist").GetProperty("untrusted_text").GetString().ShouldBe("Metallica; genres: thrash metal, heavy metal; members: James Hetfield, Lars Ulrich");
+        json.GetProperty("artist").GetProperty("untrusted_text").GetString().ShouldBe("Metallica; country: US; genres: thrash metal, heavy metal; members: James Hetfield, Lars Ulrich");
         json.GetProperty("artist").GetProperty("beginYear").GetInt32().ShouldBe(1981);
         json.GetProperty("untrusted_text").GetString()!.Length.ShouldBeLessThanOrEqualTo(500);
         json.GetProperty("source").GetString().ShouldBe("Wikipedia (CC BY-SA 4.0)");
@@ -83,13 +83,13 @@ public sealed class Features004To006ToolProviderTests
     }
 
     [Fact]
-    public async Task ArtistInfo_NotFound_HasNoExternalText()
+    public async Task ArtistInfo_NotFound_KeepsTheProviderTextUntrusted()
     {
         _actions.Artists.GetBandInfoAsync(TrackId, Arg.Any<CancellationToken>()).Returns(new BandInfoDto { Status = MetadataStatusDto.NotFound, Reason = "No match" });
 
         var result = await InvokeAsync(Tool(new ArtistToolProvider(), "get_artist_info"), TrackArgs, _actions);
 
-        Json(result.Projection).ShouldBe("""{"status":"notFound","reason":"No match","artist":null,"recording":null}""");
+        Json(result.Projection).ShouldBe("""{"status":"notFound","reason":"No band info was found for this track.","reasonDetail":{"untrusted_text":"No match"},"artist":null,"recording":null}""");
     }
 
     [Fact]
