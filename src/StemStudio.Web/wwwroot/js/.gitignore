@@ -6,3 +6,8 @@ web-interop.js
 web-interop.js.map
 first-paint.js
 first-paint.js.map
+# Build output of feature 012 (architect, Phase 0 T006): the AudioWorklet processor (npm run build, MIT) and the
+# SoundTouch module (scripts/build-soundtouch.*, LGPL-2.1); never committed.
+time-stretch-processor.js
+time-stretch-processor.js.map
+soundtouch/
