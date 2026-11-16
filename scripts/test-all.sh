@@ -4,7 +4,8 @@
 # (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
 # secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
 # quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E suite
-# (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
+# (lint, typecheck, list); feature 012: the 012 contract lint + superset check, the soundtouch emsdk pin check and,
+# when soundtouch.wasm has been built, the engine's Node WASM suite (test:wasm). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
 # Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e] [--agent-e2e]
@@ -39,7 +40,12 @@ GENERATIVE_CONTRACTS=(specs/009-style-transfer/contracts specs/010-lyrics-to-son
 AGENT_CONTRACTS=specs/011-ai-composer-agent/contracts
 # 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta itself.
 CLAUDE_KEY_CONTRACTS=specs/011-ai-composer-agent/followups/claude-key/contracts
-SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py), quality-gate env
+# Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings); superset check needs PyYAML only.
+PRACTICE_CONTRACTS=specs/012-practice-tempo/contracts
+PYYAML=pyyaml==6.0.3
+# SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
+SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
+SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
 KEY_CHECKS=(scripts/key_volume_checks.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
@@ -93,6 +99,13 @@ step "engine lint" src/audio-engine npm run lint
 step "engine typecheck" src/audio-engine npm run typecheck
 step "engine test:coverage" src/audio-engine npm run test:coverage
 step "engine build" src/audio-engine npm run build
+if [[ -f "$REPO_ROOT/$SOUNDTOUCH_WASM" ]]; then
+  step "engine test:wasm (012, real soundtouch.wasm)" src/audio-engine npm run test:wasm
+else
+  echo -e "
+engine test:wasm skipped: $SOUNDTOUCH_WASM not built (scripts/build-soundtouch.sh)"
+fi
+step "soundtouch emsdk pin (012)" . scripts/build-soundtouch.sh --check-pins
 step "web-interop npm ci" src/web-interop npm ci --no-audit --no-fund
 step "web-interop lint" src/web-interop npm run lint
 step "web-interop typecheck" src/web-interop npm run typecheck
@@ -107,6 +120,8 @@ done
 step "contracts lint (011-ai-composer-agent)" . npx --yes "$REDOCLY" lint --config "$AGENT_CONTRACTS/redocly.yaml"   "$AGENT_CONTRACTS/backend-api.openapi.yaml" "$AGENT_CONTRACTS/agent-api.openapi.yaml"
 step "contracts lint (011 claude-key)" . npx --yes "$REDOCLY" lint --config "$CLAUDE_KEY_CONTRACTS/redocly.yaml" \
   "$CLAUDE_KEY_CONTRACTS/backend-api.openapi.yaml" "$CLAUDE_KEY_CONTRACTS/backend-api.claude-key.openapi.yaml"
+step "contracts lint (012-practice-tempo)" . npx --yes "$REDOCLY" lint --config "$PRACTICE_CONTRACTS/redocly.yaml"   "$PRACTICE_CONTRACTS/backend-api.openapi.yaml"
+step "contracts superset (012 contains 1.21.0)" . uv run --no-project --with "$PYYAML" python -I "$PRACTICE_CONTRACTS/check_superset.py"
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check

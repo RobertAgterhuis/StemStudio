@@ -39,6 +39,10 @@ env:
   AGENT_CONTRACTS: specs/011-ai-composer-agent/contracts
   # 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta.
   CLAUDE_KEY_CONTRACTS: specs/011-ai-composer-agent/followups/claude-key/contracts
+  # Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings). CONTRACTS_DIR stays 008's: 012
+  # has no worker document, and the .NET contract tests link the 012 document in their csproj.
+  PRACTICE_CONTRACTS: specs/012-practice-tempo/contracts
+  PYYAML: pyyaml==6.0.3
 
 jobs:
   dotnet:
@@ -296,8 +300,57 @@ jobs:
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$CLAUDE_KEY_CONTRACTS/redocly.yaml"
           "$CLAUDE_KEY_CONTRACTS/backend-api.openapi.yaml" "$CLAUDE_KEY_CONTRACTS/backend-api.claude-key.openapi.yaml"
+      - name: Redocly lint, practice tempo document (012; backend 1.11.0)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$PRACTICE_CONTRACTS/redocly.yaml"
+          "$PRACTICE_CONTRACTS/backend-api.openapi.yaml"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: 012 backend 1.11.0 contains 1.21.0 (check_superset.py, newer contains older)
+        run: uv run --no-project --with "$PYYAML" python -I "$PRACTICE_CONTRACTS/check_superset.py"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
+
+  soundtouch:
+    name: SoundTouch WASM (pinned emsdk, two offline builds compared, Node WASM suite; 012)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The web image pins the lock's emsdk image digest
+        run: scripts/build-soundtouch.sh --check-pins
+      # Only the verified source archive is cached (the script re-checks its SHA-256 on every use);
+      # the module itself is built in this run, twice.
+      - name: Source archive cache (keyed by soundtouch.lock)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: third_party/soundtouch/upstream
+          key: soundtouch-src-${{ hashFiles('third_party/soundtouch/soundtouch.lock') }}
+      - name: Build twice in fresh offline emsdk containers, compare SHA-256, write the module
+        run: scripts/build-soundtouch.sh --verify-reproducible
+      - name: Module SHA-256 in the job summary
+        run: |
+          wasm=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
+          echo "### soundtouch.wasm" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$(sha256sum "$wasm" | cut -d' ' -f1)\` ($(stat -c %s "$wasm") bytes, reproducible)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/audio-engine/package-lock.json
+      - name: Node WASM suite against the real module (npm run test:wasm; the module must exist here)
+        working-directory: src/audio-engine
+        env:
+          SOUNDTOUCH_WASM_REQUIRED: "1"
+        run: |
+          npm ci --no-audit --no-fund
+          npm run test:wasm
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: soundtouch-wasm
+          path: src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
+          if-no-files-found: error
 
   secret-scan:
     name: Secret scan (no Claude key or key value in the repo, CI never sets it; 011 SC-006)
@@ -332,7 +385,7 @@ jobs:
           uv run --frozen ruff format --check .
           uv run --frozen mypy
           uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml
-      - name: Key volume checks (011 claude-key; scripts/key_volume_checks.py, >= 90 % line+branch, fail_under in scripts/pyproject.toml)
+      - name: Devops script checks (011 key_volume_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
         run: |
           cfg=scripts/pyproject.toml
           uv run --project tools/quality --frozen ruff check --config "$cfg" scripts/key_volume_checks.py scripts/tests
@@ -473,7 +526,7 @@ jobs:
 
   e2e:
     name: E2E main flow (compose, fake separator, Playwright)
-    needs: [dotnet, worker, generator, audio-engine, web-interop, contracts, secret-scan, quality, e2e-lint]
+    needs: [dotnet, worker, generator, audio-engine, web-interop, soundtouch, contracts, secret-scan, quality, e2e-lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
