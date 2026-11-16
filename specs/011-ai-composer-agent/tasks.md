@@ -239,7 +239,7 @@ clear unavailable state.
 - [ ] T079d [P] [frontend] Accessibility of the panel (keyboard: Enter sends, Esc closes; live region for streamed text and step status; cards focus the Approve button only after reading - no auto-focus on Approve), HO:polish
 - [ ] T079e [P] [qa] Traceability matrix update, HO:polish
 - [ ] T079f [P] [devops] Validate compose/CI (`docker compose config -q`, `actionlint`), HO:polish
-- [ ] T079g [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish
+- [x] T079g [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish - done on the lane branch (0 errors); the final run over the merged code is part of the CTO integration T080
 
 ---
 
