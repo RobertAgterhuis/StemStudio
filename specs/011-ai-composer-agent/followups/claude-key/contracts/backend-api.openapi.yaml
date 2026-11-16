@@ -91,8 +91,10 @@ info:
       `key-store-unavailable`. `ClaudeStatus.keyConfigured` now means "a usable key is available"
       (environment or a readable stored key); the environment variable still wins. Merged unchanged
       from `backend-api.claude-key.openapi.yaml` 1.21.0-delta.2; the shared components keep their 1.10.0
-      definitions. No other 1.10.0 entry changes. The numbers 1.11.0-1.20.0 stay allocated to 012-021
-      (ROADMAP contract version allocation).
+      definitions. No other 1.10.0 entry changes. Pre-release text changes within 1.21.0 (integration,
+      2026-11-16, T053): `updateAgentSettings` describes "a usable Claude key" from either source instead
+      of `ANTHROPIC_API_KEY`; the `KeyStoreUnavailable` example detail is the API's text (delta too). The
+      numbers 1.11.0-1.20.0 stay allocated to 012-021 (ROADMAP contract version allocation).
   license:
     name: MIT
     identifier: MIT
@@ -2349,9 +2351,11 @@ paths:
       operationId: updateAgentSettings
       summary: Change the backend, models, effort or limits.
       description: |
-        Omitted fields keep their value. `backend: claude` needs `ANTHROPIC_API_KEY` (409
-        `claude-not-configured`) and the acknowledged notice (422 `notice-not-acknowledged`; send
-        `acknowledgeClaudeNotice: true` in the same or an earlier request). Ollama models must be
+        Omitted fields keep their value. `backend: claude` needs a usable Claude key - the
+        `ANTHROPIC_API_KEY` environment variable or a readable key stored in Settings
+        (`/api/agent/settings/claude-key`); otherwise 409 `claude-not-configured` - and the
+        acknowledged notice (422 `notice-not-acknowledged`; send `acknowledgeClaudeNotice: true` in
+        the same or an earlier request). Ollama models must be
         installed with the `tools` capability (422 `model-unavailable`). `fake` cannot be selected
         here (environment only).
       requestBody:
@@ -7070,7 +7074,7 @@ components:
             type: https://stemstudio.local/problems/key-store-unavailable
             title: Key store not available
             status: 503
-            detail: The key store is not available - its folder is not writable. The ANTHROPIC_API_KEY environment variable still works.
+            detail: "The key store is not available: the key ring directory is missing or not writable. The ANTHROPIC_API_KEY environment variable still works."
   examples:
     QueuedTrack:
       value:

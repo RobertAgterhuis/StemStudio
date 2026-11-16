@@ -207,7 +207,7 @@ components:
             type: https://stemstudio.local/problems/key-store-unavailable
             title: Key store not available
             status: 503
-            detail: The key store is not available - its folder is not writable. The ANTHROPIC_API_KEY environment variable still works.
+            detail: "The key store is not available: the key ring directory is missing or not writable. The ANTHROPIC_API_KEY environment variable still works."
   schemas:
     ProblemDetails:
       type: object
