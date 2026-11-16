@@ -291,6 +291,52 @@ public sealed class AgentPanelTests : PageTestContext
         cut.WaitForAssertion(() => Id(cut, "agent-run-error").TextContent.ShouldContain("The run stopped."));
     }
 
+    [Fact]
+    public async Task UiRequest_IsExecutedByTheHost_AndTheResultIsPosted()
+    {
+        SendCommand("Ga naar de mixes");
+
+        AgentEvents.Started()
+            .Push(AgentEventTypes.UiRequested, new UiRequestedEventDto { StepId = AgentData.StepId, Tool = "navigate", Arguments = AgentData.Json("""{"page":"mixes"}"""), TimeoutSeconds = 15 })
+            .Push(AgentEventTypes.UiRequested, new UiRequestedEventDto { StepId = AgentData.OtherConversationId, Tool = "mixer_reset", Arguments = AgentData.Json("{}"), TimeoutSeconds = 15 });
+
+        await WaitForCallAsync(() => AgentApi.Received(1).SubmitUiResultAsync(
+            AgentData.RunId, AgentData.OtherConversationId, Arg.Is<SubmitUiResultRequest>(r => !r.Ok && r.Error == "The mixer of the track is not open"), Arg.Any<CancellationToken>()));
+        await AgentApi.Received(1).SubmitUiResultAsync(
+            AgentData.RunId, AgentData.StepId, Arg.Is<SubmitUiResultRequest>(r => r.Ok && r.Result!.Value.GetProperty("opened").GetBoolean()), Arg.Any<CancellationToken>());
+        NavigatedTo.ShouldEndWith("/mixes");
+    }
+
+    [Fact]
+    public async Task UiResult_ThatIsNoLongerExpected_IsIgnored()
+    {
+        AgentApi.SubmitUiResultAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<SubmitUiResultRequest>(), Arg.Any<CancellationToken>())
+            .Returns(_ => throw Problem(System.Net.HttpStatusCode.Conflict, "Not expected."));
+        var cut = SendCommand("Ga naar de mixes");
+
+        AgentEvents.Started().Push(AgentEventTypes.UiRequested, new UiRequestedEventDto { StepId = AgentData.StepId, Tool = "navigate", Arguments = AgentData.Json("""{"page":"mixes"}"""), TimeoutSeconds = 15 }).Text("Done");
+
+        cut.WaitForAssertion(() => Id(cut, "agent-streaming").TextContent.ShouldBe("Done"));
+        cut.FindAll("[data-testid=agent-error]").ShouldBeEmpty();
+        await Task.CompletedTask;
+    }
+
+    private static async Task WaitForCallAsync(Func<Task> assertion)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await assertion();
+                return;
+            }
+            catch (NSubstitute.Exceptions.ReceivedCallsException) when (attempt < 100)
+            {
+                await Task.Delay(20);
+            }
+        }
+    }
+
     private Cut SendCommand(string text, ExperienceLevel level = ExperienceLevel.Advanced)
     {
         var cut = RenderPanel(level);
