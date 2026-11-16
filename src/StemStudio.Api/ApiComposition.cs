@@ -106,6 +106,7 @@ public static class ApiComposition
         app.MapStyleEndpoints();
         app.MapLyricsSheetEndpoints();
         app.MapVoiceEndpoints();
+        app.MapAgentEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

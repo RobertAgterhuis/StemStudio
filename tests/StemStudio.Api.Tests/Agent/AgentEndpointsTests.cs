@@ -3,7 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
@@ -159,8 +161,8 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         var run = (await Service<IRunStore>().GetRunAsync(runId, Ct))!;
         (run.Status, run.FailureCode, run.FailureMessage).ShouldBe((AgentRunStatusDto.Failed, AgentFailureCodes.Internal, AgentRunExecutorText.InternalFailure));
         var events = await ReadStreamAsync(runId, null);
-        events.Last().Event.ShouldBe(AgentEventTypes.RunFailed);
-        events.Last().Data.ShouldNotContain("secret");
+        events[^1].Event.ShouldBe(AgentEventTypes.RunFailed);
+        events[^1].Data.ShouldNotContain("secret");
     }
 
     [Fact]
@@ -207,7 +209,7 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         (await ReadStreamAsync(runId, 1)).Select(e => e.Id).ShouldBe(["2", "3"]);
         var fromHeader = await ReadStreamAsync(runId, null, lastEventId: "2");
         fromHeader.Single().Event.ShouldBe(AgentEventTypes.RunCompleted);
-        (await ReadStreamAsync(runId, 1)).First().Data.ShouldBe("""{"text":"Muting."}""");
+        (await ReadStreamAsync(runId, 1))[0].Data.ShouldBe("""{"text":"Muting."}""");
     }
 
     [Theory]
@@ -328,7 +330,7 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         return await response.BodyAsync<ConversationDto>();
     }
 
-    private Task PublishAsync<T>(Guid runId, string type, T payload) =>
+    private Task<RunEvent> PublishAsync<T>(Guid runId, string type, T payload) =>
         Service<IRunEventSink>().PublishAsync(runId, type, JsonSerializer.Serialize(payload, ApiFactory.Json), Ct);
 
     private async Task<IReadOnlyList<SseEvent>> ReadStreamAsync(Guid runId, int? after, string? lastEventId = null)

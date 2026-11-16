@@ -54,4 +54,11 @@ internal static class AgentStoreValues
     /// <returns>The value.</returns>
     public static T FromJson<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, Json) ?? throw new JsonException($"The stored {typeof(T).Name} is null.");
+
+    /// <summary>The contract (JSON) name of an enum value, e.g. <c>claude-opus-5-5</c>.</summary>
+    /// <typeparam name="T">Enum type with a contract converter.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <returns>The JSON name.</returns>
+    public static string ContractName<T>(T value)
+        where T : struct, Enum => JsonSerializer.Serialize(value, Json).Trim('"');
 }

@@ -24,6 +24,15 @@ public static class AgentRegistration
         services.AddSingleton<IRunEventSink>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<IRunEventLogReader>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<AgentStartupRecovery>();
+        services.AddSingleton<AgentQueries>();
+        services.AddSingleton<AgentRunLifecycle>();
+        services.AddSingleton<AgentRunFactory>();
+        services.AddSingleton<SseWriter>();
+        services.AddSingleton<AgentRunExecutor>();
+        services.AddHostedService(sp => sp.GetRequiredService<AgentRunExecutor>());
+        services.AddScoped<AgentConversationService>();
+        services.AddScoped<AgentMessageService>();
+        services.AddScoped<AgentRunEndpointService>();
         return services;
     }
 }
