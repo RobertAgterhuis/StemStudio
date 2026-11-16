@@ -3,21 +3,21 @@
 The follow-up adds one resource to the backend API (`/api/agent/settings/claude-key`), extends two
 011 schemas additively, adds UI test ids and changes no other contract.
 
-## Status (design, 2026-11-16)
+## Status (merged in Phase 0, 2026-11-16)
 
 | Contract | Base | Follow-up document | State |
 |---|---|---|---|
-| Backend API | 1.10.0 (011) or the full document current at build time | [backend-api.claude-key.openapi.yaml](backend-api.claude-key.openapi.yaml) **1.21.0-delta.1** -> full **1.21.0** | draft; Redocly 2.78.0 valid (OpenAPI 3.1; 2 expected `operation-4xx-response` warnings: `getAgentStatus`, `getClaudeKeyStatus` have no client errors) |
-| UI test ids | 1.10.0 or later | [ui-test-ids.delta.md](ui-test-ids.delta.md) **1.21.0** | draft |
+| Backend API | 1.10.0 (011; 012-021 not built yet) | [backend-api.claude-key.openapi.yaml](backend-api.claude-key.openapi.yaml) **1.21.0-delta.2** -> full [backend-api.openapi.yaml](backend-api.openapi.yaml) **1.21.0** | **merged** (T002); Redocly 2.78.0 valid (OpenAPI 3.1): delta 2 expected `operation-4xx-response` warnings (`getAgentStatus`, `getClaudeKeyStatus`), full document 9 (the 8 of 1.10.0 + `getClaudeKeyStatus`); `ClaudeKeyContractTests` prove 1.21.0 = 1.10.0 + this delta |
+| UI test ids | 1.10.0 (011) | [ui-test-ids.delta.md](ui-test-ids.delta.md) -> full [ui-test-ids.md](ui-test-ids.md) **1.21.0** | **merged** (T002); `ClaudeKeyUiTestIdsTests` prove 1.21.0 = 1.10.0 + the delta rows |
 | Tool catalogue | 1.0.0 (011) | unchanged: the agent gets **no** tool for the key (a key must never pass through a model) | - |
 | Worker, generator, audio engine, web-interop, backup-archive, remote-protocol | - | unchanged | - |
-| C# | - | `src/StemStudio.Contracts/Agent`: `ClaudeKeyStatusDto`, `ClaudeKeyStateDto`, `ClaudeKeySourceDto`, `StoredClaudeKeyStateDto`, `ClaudeKeyTestSourceDto`, `StoreClaudeKeyRequest` (class, redacted `ToString`), `ClaudeStatusDto.Key`, `TestAgentBackendRequest.ClaudeKeySource`, `BackendTestResultDto.KeySource`, `AgentProblemTypes` (+4), `ApiRoutes.AgentClaudeKey` | T004 |
+| C# | - | `src/StemStudio.Contracts/Agent`: `ClaudeKeyStatusDto`, `ClaudeKeyStateDto`, `ClaudeKeySourceDto`, `StoredClaudeKeyStateDto`, `ClaudeKeyTestSourceDto`, `StoreClaudeKeyRequest` (class, redacted `ToString`), `ClaudeStatusDto.Key`, `TestAgentBackendRequest.ClaudeKeySource`, `BackendTestResultDto.KeySource`, `AgentProblemTypes` (+4), `ClaudeKeyInvalidReasons`, `AgentContractLimits.ClaudeKeyBodyBytes`/`ClaudeKeyRequestMaxLength`, `ApiRoutes.AgentClaudeKey` | **done** (T004) |
 
 ## 1. Merge rule (architect, T002)
 
 1. Add the path `/api/agent/settings/claude-key` (operations `getClaudeKeyStatus`, `storeClaudeKey`,
    `deleteClaudeKey`) unchanged.
-2. Add the responses `InvalidBody`, `LocalOnly`, `PayloadTooLarge`, `ClaudeKeyInvalid`,
+2. Add the responses `InvalidBody`, `LocalOnly`, `ClaudeKeyTooLarge`, `ClaudeKeyInvalid`,
    `KeyStoreUnavailable` and the schemas `ClaudeKeyInvalidProblem`, `ClaudeKeySource`,
    `ClaudeKeyState`, `StoredClaudeKeyState`, `ClaudeKeyStatus`, `StoreClaudeKeyRequest`,
    `ClaudeKeyTestSource` unchanged.
@@ -31,6 +31,11 @@ The follow-up adds one resource to the backend API (`/api/agent/settings/claude-
 6. Bump `info.version` to 1.21.0 with the changelog line of this delta; update
    `AgentContractTests` so they prove the full document contains the base and this delta
    (`PendingAgentOperations` gets the three new operation ids until the endpoints exist).
+
+**Merge note (T002, delta.2)**: delta.1 named its 413 response `PayloadTooLarge`, which 1.0.0
+already defines for the 200 MiB upload; delta.2 renames it `ClaudeKeyTooLarge` (no other change).
+The base was 1.10.0 because 012-021 are not built; the CTO merges their deltas onto 1.21.0 in
+feature order (ROADMAP allocation note).
 
 **Compatibility**: additive. Old clients ignore `claude.key` and `keySource`; old requests without
 `claudeKeySource` keep their 011 behaviour (the active key, now possibly a stored one).

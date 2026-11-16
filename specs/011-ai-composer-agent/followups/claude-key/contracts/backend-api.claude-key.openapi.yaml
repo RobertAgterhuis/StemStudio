@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - Claude key delta (feature 011 follow-up "claude-key")
-  version: 1.21.0-delta.1
+  version: 1.21.0-delta.2
   summary: Additive delta of the backend API - write-only Claude API key stored encrypted, key status.
   description: |
     * **Standalone, additive delta** of the backend API `agent` tag (ROADMAP allocation: backend
@@ -26,6 +26,8 @@ info:
       /api/agent/settings/claude-key`; `ClaudeStatus.key`; `TestAgentBackendRequest.claudeKeySource`;
       `BackendTestResult.keySource`; problem types `claude-key-invalid`, `invalid-body`,
       `local-only`, `key-store-unavailable`.
+      1.21.0-delta.2 (architect, T002 merge) - the 413 response is `ClaudeKeyTooLarge`: the name
+      `PayloadTooLarge` is taken by the 200 MiB upload response of 1.0.0 (collision found at the merge).
   license:
     name: MIT
     identifier: MIT
@@ -93,7 +95,7 @@ paths:
         '403':
           $ref: '#/components/responses/LocalOnly'
         '413':
-          $ref: '#/components/responses/PayloadTooLarge'
+          $ref: '#/components/responses/ClaudeKeyTooLarge'
         '422':
           $ref: '#/components/responses/ClaudeKeyInvalid'
         '503':
@@ -172,8 +174,8 @@ components:
             title: Only on this computer
             status: 403
             detail: The Claude key can only be entered on the computer StemStudio runs on.
-    PayloadTooLarge:
-      description: The body is larger than 1 KiB.
+    ClaudeKeyTooLarge:
+      description: The body is larger than 1 KiB (named apart from the upload `PayloadTooLarge` of 1.0.0).
       content:
         application/problem+json:
           schema:

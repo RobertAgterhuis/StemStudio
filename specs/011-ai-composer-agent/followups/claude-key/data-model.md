@@ -45,13 +45,19 @@ ClaudeApiKey            sealed class; Reveal() for the SDK only; ToString() = "[
                         LastFour; Fingerprint (SHA-256 hex, memory only, client cache key);
                         Parse(string) -> ClaudeKeyFormatResult (Ok | Error(code)), codes:
                         empty, prefix, length, characters, admin-key
-ClaudeKeySource         enum Environment | Stored
-StoredClaudeKeyState    enum Absent | Readable | Unreadable
-ClaudeKeyState          enum NotConfigured | Environment | Stored | StoredUnreadable
-ClaudeKeyResolution     record (Key: ClaudeApiKey?, Source: ClaudeKeySource?, State, LastFour?,
-                        Stored: StoredClaudeKeyState, StoredAt: DateTimeOffset?, StoreAvailable: bool,
-                        StoreUnavailableReason: string?)
+ClaudeKeyFormatResult   sealed class: Valid(key) | Invalid(reason); Key?, Error?, IsValid; never the raw value
+ClaudeKeySource         = Contracts ClaudeKeySourceDto      (Environment | Stored)
+StoredClaudeKeyState    = Contracts StoredClaudeKeyStateDto (Absent | Readable | Unreadable)
+ClaudeKeyState          = Contracts ClaudeKeyStateDto       (NotConfigured | Environment | Stored | StoredUnreadable)
+ClaudeKeyResolution     record, init properties (Key: ClaudeApiKey?, Source?, State, LastFour?, Stored,
+                        StoredLastFour?, StoredAt?, StoreAvailable, StoreUnavailableReason?, Reason?, Fix?);
+                        Configured => Key is not null
+KeyStoreUnavailableReasons  constants not-writable | inside-library | inside-backups | inside-app | inside-repository
 ```
+
+The domain reuses the Contracts enums, as the 011 model does (no duplicated enums). Skeleton (Phase 0,
+T005): `ClaudeApiKey` members throw `NotImplementedException` until the ai-agent's T008; its
+`ToString()` already returns `[redacted]`.
 
 State rule (one function, unit-tested over all combinations):
 
@@ -69,9 +75,9 @@ key not in use while ANTHROPIC_API_KEY is set" and "saved key unreadable".
 
 | Port (`StemStudio.Agent.Ports`) | Implementation (owner) | Purpose |
 |---|---|---|
-| `IClaudeKeyProvider` `Resolve()` -> `ClaudeKeyResolution` | `ClaudeKeyProvider` (`StemStudio.Agent.Backends`, ai-agent) over `IEnvironmentReader` + `IStoredClaudeKeyReader` | the single source of the key for `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` (replaces their direct `IEnvironmentReader` reads) |
-| `IStoredClaudeKeyReader` `Read()` -> `(StoredClaudeKeyState, ClaudeApiKey?, LastFour?, StoredAt?)` | `ProtectedClaudeKeyStore` (`StemStudio.Api/Agent/Secrets`, backend) | decrypts with Data Protection; maps `CryptographicException` and bad payloads to `Unreadable`; re-protects on `requiresMigration` |
-| `IStoredClaudeKeyWriter` `Store(ClaudeApiKey)`, `Delete()` | same class (backend) | write side, used only by the key endpoints |
+| `IClaudeKeyProvider` `Resolve()` -> `ClaudeKeyResolution`; `KeyFor(ClaudeKeyTestSourceDto)` -> `SelectedClaudeKey?` (explicit test); `Invalidate()` | `ClaudeKeyProvider` (`StemStudio.Agent.Backends`, ai-agent) over `IEnvironmentReader` + `IStoredClaudeKeyReader` | the single source of the key for `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` (replaces their direct `IEnvironmentReader` reads) |
+| `IStoredClaudeKeyReader` `Read()` -> `StoredClaudeKey` (State, Key?, LastFour?, StoredAt?, StoreAvailable, StoreUnavailableReason?) | `ProtectedClaudeKeyStore` (`StemStudio.Api/Agent/Secrets`, backend) | decrypts with Data Protection; maps `CryptographicException` and bad payloads to `Unreadable`; re-protects on `requiresMigration` |
+| `IStoredClaudeKeyWriter` `StoreAsync(ClaudeApiKey, ct)` -> replaced?, `DeleteAsync(ct)` | same class (backend) | write side, used only by the key endpoints |
 | `IAgentSecretStore` (Persistence) `Get/Upsert/Delete(name)` | `AgentSecretStore` (`StemStudio.Persistence/Agent`, backend) | EF access to `AgentSecrets` |
 
 Dependency direction (quality-gate rule): only `StemStudio.Api/Agent/Secrets` references
