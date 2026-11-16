@@ -1,0 +1,10 @@
+# Lint configuration for the StemStudio OpenAPI 3.1 contracts (feature 022).
+# Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/022-library-folders/contracts/redocly.yaml specs/022-library-folders/contracts/backend-api.library-folders.openapi.yaml
+extends:
+  - recommended
+rules:
+  # GET /api/library/folders has no client-error case besides 422; every operation lists its 4XX responses.
+  operation-4xx-response: warn
+  no-server-example.com: off
+  no-unused-components: warn
