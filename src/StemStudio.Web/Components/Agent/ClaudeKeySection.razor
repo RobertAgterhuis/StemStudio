@@ -1,7 +1,7 @@
 @* Claude API key part of the agent settings (011 follow-up claude-key, CK-FR-014; ui-test-ids 1.21.0
    settings-agent-claude-key-*): status (never the key, at most its last four characters), a password field that is never
-   pre-filled and is emptied after every save attempt, and readable errors. Logic in the code-behind, texts in
-   ClaudeKeyText and ClaudeKeyErrors. *@
+   pre-filled and is emptied after every save attempt, replace, cancel, delete with confirmation and readable errors.
+   Logic in the code-behind, texts in ClaudeKeyText and ClaudeKeyErrors. *@
 
 <div class="ss-claude-key" role="group" aria-labelledby="claude-key-title" data-testid="settings-agent-claude-key">
     <h4 id="claude-key-title" class="ss-agent-settings-title">Claude API key</h4>
@@ -23,10 +23,31 @@
             <input @key="_generation" id="claude-key-input" class="rz-textbox" type="password" autocomplete="off" spellcheck="false"
                    maxlength="@AgentContractLimits.ClaudeKeyRequestMaxLength" disabled="@LocalOnly" @oninput="OnInput" data-testid="settings-agent-claude-key-input" />
         </div>
-        <div class="ss-agent-settings-actions">
+    }
+    <div class="ss-agent-settings-actions">
+        @if (ShowsInput)
+        {
             <RadzenButton Text="@SaveText" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(!CanSave)" Click="SaveAsync"
                           data-testid="settings-agent-claude-key-save" />
-        </div>
+        }
+        @if (Editing)
+        {
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="Busy" Click="Cancel" data-testid="settings-agent-claude-key-cancel" />
+        }
+        @if (HasStored && !Editing)
+        {
+            <RadzenButton Text="Replace key" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@Locked" Click="Replace"
+                          data-testid="settings-agent-claude-key-replace" />
+        }
+        @if (HasStored)
+        {
+            <RadzenButton Text="Delete key" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@Locked" Click="() => Confirming = true"
+                          data-testid="settings-agent-claude-key-delete" />
+        }
+    </div>
+    @if (Confirming)
+    {
+        <ClaudeKeyDeleteDialog Disabled="Locked" OnYes="DeleteAsync" OnNo="() => Confirming = false" />
     }
     @if (Error is { } error)
     {

@@ -6,8 +6,8 @@ using StemStudio.Web.Api;
 namespace StemStudio.Web.Components.Agent;
 
 /// <summary>
-/// Stores the Claude key (backend API 1.21.0). The typed value lives only in <see cref="_value"/> until the save call and is
-/// dropped before the call returns; the status shown afterwards comes from the API's answer.
+/// Stores, replaces and deletes the Claude key (backend API 1.21.0). The typed value lives only in <see cref="_value"/>
+/// until the save call and is dropped before the call returns; the status shown afterwards comes from the API's answer.
 /// </summary>
 public sealed partial class ClaudeKeySection
 {
@@ -34,14 +34,24 @@ public sealed partial class ClaudeKeySection
 
     private bool Busy { get; set; }
 
+    /// <summary>True after "Replace key" until the new key was saved or the replace was cancelled.</summary>
+    private bool Editing { get; set; }
+
+    /// <summary>True while the delete confirmation is open.</summary>
+    private bool Confirming { get; set; }
+
     /// <summary>True when the page was not opened under a loopback host name or the API answered <c>403 local-only</c>.</summary>
     private bool LocalOnly { get; set; }
 
-    private bool ShowsInput => Key.Stored == StoredClaudeKeyStateDto.Absent;
+    private bool Locked => Busy || LocalOnly;
 
-    private string SaveText => Key.Stored == StoredClaudeKeyStateDto.Absent ? "Save key" : "Save new key";
+    private bool HasStored => Key.Stored != StoredClaudeKeyStateDto.Absent;
 
-    private bool CanSave => !Busy && !LocalOnly && Key.StoreAvailable && !string.IsNullOrWhiteSpace(_value);
+    private bool ShowsInput => !HasStored || Editing;
+
+    private string SaveText => HasStored ? "Save new key" : "Save key";
+
+    private bool CanSave => !Locked && Key.StoreAvailable && !string.IsNullOrWhiteSpace(_value);
 
     /// <inheritdoc />
     protected override void OnInitialized()
@@ -58,27 +68,56 @@ public sealed partial class ClaudeKeySection
         _generation++;
     }
 
+    private void Replace()
+    {
+        ClearInput();
+        Editing = true;
+        Confirming = false;
+    }
+
+    private void Cancel()
+    {
+        ClearInput();
+        Editing = false;
+    }
+
     private async Task SaveAsync()
     {
         var value = _value;
         ClearInput();
-        Busy = true;
         await ApplyAsync(() => Api.StoreClaudeKeyAsync(value));
-        Busy = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        Confirming = false;
+        await ApplyAsync(() => Api.DeleteClaudeKeyAsync());
     }
 
     private async Task ApplyAsync(Func<Task<ClaudeKeyStatusDto>> call)
     {
+        Busy = true;
         try
         {
-            Key = await call();
-            Error = null;
-            await Changed.InvokeAsync(Key);
+            await AcceptAsync(await call());
         }
         catch (ApiException ex)
         {
-            LocalOnly |= ClaudeKeyErrors.IsLocalOnly(ex.Error);
-            Error = LocalOnly ? null : ClaudeKeyErrors.Message(ex.Error);
+            Fail(ex.Error);
         }
+
+        Busy = false;
+    }
+
+    private async Task AcceptAsync(ClaudeKeyStatusDto key)
+    {
+        (Key, Error, Editing) = (key, null, false);
+        await Changed.InvokeAsync(key);
+    }
+
+    private void Fail(ApiError error)
+    {
+        LocalOnly |= ClaudeKeyErrors.IsLocalOnly(error);
+        Error = LocalOnly ? null : ClaudeKeyErrors.Message(error);
     }
 }

@@ -62,6 +62,7 @@ public sealed partial class AgentSettingsSection
     private async Task KeyChangedAsync(ClaudeKeyStatusDto key)
     {
         Status = Status! with { Claude = Status.Claude with { Key = key, KeyConfigured = key.Configured } };
+        Panel.NoteKeyChanged();
         await Panel.RefreshStatusAsync();
     }
 
