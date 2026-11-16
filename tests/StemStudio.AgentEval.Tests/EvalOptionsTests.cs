@@ -1,23 +1,24 @@
 namespace StemStudio.AgentEval.Tests;
 
-/// <summary>Skeleton tests (architect, 011 follow-ups): the harness command line and its exit codes.</summary>
+/// <summary>The harness command line and its exit codes for arguments that never reach a model.</summary>
 public sealed class EvalOptionsTests
 {
     [Fact]
-    public void Parse_DefaultsToOllamaThreeRuns()
+    public void Parse_DefaultsToOllamaThreeRunsAndTheRepositoryPaths()
     {
         var (options, error) = EvalOptions.Parse([]);
 
         error.ShouldBeNull();
-        options.ShouldBe(new EvalOptions("ollama", 3, "eval-set.json", "agent-eval-report.md"));
+        options.ShouldBe(new EvalOptions("ollama", 3, new EvalPaths("tools/agent-eval/eval-set.json", "src/StemStudio.Domain/Styles/presets.v1.json", "agent-eval-report.md"), "qwen3.5:9b"));
+        options!.EvalSetPath.ShouldBe("tools/agent-eval/eval-set.json");
     }
 
     [Fact]
-    public void Parse_ReadsEveryOption()
+    public void Parse_ReadsEveryOption_AndIgnoresATrailingName()
     {
-        var (options, _) = EvalOptions.Parse(["--backend", "fake", "--runs", "10", "--eval-set", "set.json", "--out", "r.md"]);
+        var (options, _) = EvalOptions.Parse(["--backend", "fake", "--runs", "10", "--model", "m", "--eval-set", "set.json", "--presets", "p.json", "--out", "r.md", "--runs"]);
 
-        options.ShouldBe(new EvalOptions("fake", 10, "set.json", "r.md"));
+        options.ShouldBe(new EvalOptions("fake", 10, new EvalPaths("set.json", "p.json", "r.md"), "m"));
     }
 
     [Theory]
@@ -35,17 +36,14 @@ public sealed class EvalOptionsTests
     }
 
     [Fact]
-    public void EntryPoint_ReturnsUsageErrorForInvalidArguments()
+    public async Task EntryPoint_ReturnsUsageErrorForInvalidArguments()
     {
-        Run("--backend", "openai").ShouldBe(64);
+        (await EntryPoint.RunAsync("--backend", "openai")).ShouldBe(64);
     }
 
     [Fact]
-    public void EntryPoint_LiveBackendIsNotImplementedYet()
+    public async Task EntryPoint_TheClaudeBackendIsNotWired()
     {
-        Run("--backend", "ollama", "--runs", "1").ShouldBe(2);
+        (await EntryPoint.RunAsync("--backend", "claude", "--runs", "1")).ShouldBe(2);
     }
-
-    private static int Run(params string[] args) =>
-        (int)typeof(EvalOptions).Assembly.EntryPoint!.Invoke(null, [args])!;
 }
