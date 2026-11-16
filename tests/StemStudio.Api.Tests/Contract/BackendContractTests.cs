@@ -204,7 +204,10 @@ public sealed partial class BackendContractTests : IDisposable
                 "listLyricsSheets", "createLyricsSheet", "uploadLyricsSheet", "getLyricsSheet", "updateLyricsSheet", "deleteLyricsSheet",
                 "listVoiceProfiles", "createVoiceProfile", "getVoiceProfile", "getVoiceSample", "getVoiceConsentStatement",
                 "createVoiceConversion", "getTakeVocal", "deleteVoiceProfile",
-                "listGenerations", "getGeneration", "deleteGeneration", "cancelGeneration", "retryGeneration", "getTakeAudio", .. PendingGenerationOperations, .. PendingSongVoiceOperations, .. PendingAgentOperations], ignoreOrder: true);
+                "listGenerations", "getGeneration", "deleteGeneration", "cancelGeneration", "retryGeneration", "getTakeAudio",
+                "listAgentTools", "listConversations", "createConversation", "getConversation", "sendAgentMessage", "getAgentRun",
+                "streamAgentRunEvents", "submitAgentUiResult", "cancelAgentRun", "decideAgentApproval", "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend",
+                "renameConversation", "deleteConversation", "undoLastAgentAction", .. PendingGenerationOperations, .. PendingSongVoiceOperations, .. PendingAgentOperations], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

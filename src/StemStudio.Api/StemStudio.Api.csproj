@@ -8,6 +8,8 @@
     <ProjectReference Include="..\StemStudio.Domain\StemStudio.Domain.csproj" />
     <ProjectReference Include="..\StemStudio.Persistence\StemStudio.Persistence.csproj" />
     <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
+    <!-- Feature 011: the composer agent library (Api -> Agent -> Contracts; plan.md dependency direction). -->
+    <ProjectReference Include="..\StemStudio.Agent\StemStudio.Agent.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Api.Agent;
 using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
@@ -49,6 +50,7 @@ public static class ApiComposition
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
+        services.AddAgentHost(builder.Configuration);
         return builder;
     }
 
@@ -72,6 +74,7 @@ public static class ApiComposition
             await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
             await SeedPresetsAsync(scope.ServiceProvider);
             await scope.ServiceProvider.GetRequiredService<AudioHashIndex>().RefreshAsync(CancellationToken.None);
+            await scope.ServiceProvider.GetRequiredService<AgentStartupRecovery>().RecoverAsync(CancellationToken.None);
         }
 
         app.UseExceptionHandler();
@@ -103,6 +106,7 @@ public static class ApiComposition
         app.MapStyleEndpoints();
         app.MapLyricsSheetEndpoints();
         app.MapVoiceEndpoints();
+        app.MapAgentEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
