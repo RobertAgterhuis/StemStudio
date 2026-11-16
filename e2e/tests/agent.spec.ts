@@ -11,6 +11,7 @@ import {
   savedMix,
   storedBackendToRestore,
 } from '../support/agent-flow';
+import type { AgentPanel } from '../pages/agent-panel';
 import { finalText } from '../support/agent-scripts';
 import { expect, test } from '../support/agent-test';
 import { isOn } from '../support/controls';
@@ -42,6 +43,7 @@ test('command executes: plan, steps, mute drums, answer', { tag: ['@agent', '@us
   await expect(agent.badge).toHaveAttribute('data-backend', 'fake');
 
   await agent.sendCommand('Find my agent track, open the mixer and mute the drums');
+  await approveTaintedMute(agent);
   await agent.expectAnswer(finalText('us1-command'));
 
   await agent.expectPlan(3, 'done');
@@ -289,6 +291,7 @@ test('history: a reopened conversation shows its messages, plan and steps', { ta
   await trackPage.goto(track.id);
   await agent.openNewConversation();
   await agent.sendCommand(command);
+  await approveTaintedMute(agent);
   await agent.expectAnswer(finalText('us1-command'));
   const conversationId = await agentApi.latestConversationId();
   expect((await agentApi.conversation(conversationId)).messages.map((m) => m.role)).toEqual(['user', 'assistant']);
@@ -304,6 +307,16 @@ test('history: a reopened conversation shows its messages, plan and steps', { ta
     await agent.expectStep(tool, 'succeeded');
   }
 });
+
+/**
+ * The search results carry library titles, which are external text and taint the run (FR-013; owner decision at
+ * T080: titles keep tainting), so the mute after the search asks first; the test approves.
+ */
+async function approveTaintedMute(agent: AgentPanel): Promise<void> {
+  await agent.expectApproval('mixer_set_channel', 'change');
+  expect(await agent.approvalReasons()).toContain('tainted');
+  await agent.approve();
+}
 
 /** Id of the 009 preset "Jazz trio" (presets.v1.json), used literally by `us6-restyle.json`. */
 const jazzTrioId = '3f9c2a1e-6b4d-4e8f-a0c2-1d3e5f7a9b01';
