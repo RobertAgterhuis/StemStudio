@@ -23,6 +23,7 @@ public static class FeatureCatalog
         new("mixer.presets", Beginner, null, "mixer-presets"),
         new("practice.speed-reset", Advanced, null, "practice-speed"),
         new("practice.trainer", Advanced, null, "practice-speed-trainer"),
+        new("practice.count-in.options", Advanced, null, "practice-count-in"),
         new("practice.numeric", Expert, null, "practice-speed"),
         new("practice.stretch-status", Expert, null, "practice-sound-quality"),
         new("tracks.search", Advanced, null, "tracks-library"),

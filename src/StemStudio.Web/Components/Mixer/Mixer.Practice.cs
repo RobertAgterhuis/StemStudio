@@ -41,6 +41,16 @@ public sealed partial class Mixer
             ? Task.CompletedTask
             : ToggleTrainerAsync();
 
+    private Task ToggleCountInAsync() => SubmitPracticeAsync(State!.ToggleCountIn(IsBeginner));
+
+    private Task SetCountInBarsAsync(int bars) => SubmitPracticeAsync(State!.SetCountInBars(bars));
+
+    private Task SetCountInEveryPassAsync(bool everyPass) => SubmitPracticeAsync(State!.SetCountInEveryPass(everyPass));
+
+    // The count-in key turns it on only where its switch could (a tempo is known); it always turns it off.
+    private Task CountInCommandAsync() =>
+        State!.Practice.CountIn.Bars == 0 && TrackBpm is null ? Task.CompletedTask : ToggleCountInAsync();
+
     private Task SubmitPracticeAsync(PracticeSettingsDto settings) => EngineReady ? PracticeSender.SubmitAsync(settings) : Task.CompletedTask;
 
     private async Task SendPracticeAsync(PracticeSettingsDto settings)
@@ -65,6 +75,7 @@ public sealed partial class Mixer
         "mixer.transpose" => StretchUnavailable ? Task.CompletedTask : SetTransposeAsync(State!.Practice.TransposeSemitones + argument),
         "mixer.practice.reset" => StretchUnavailable ? Task.CompletedTask : ResetPracticeAsync(),
         "mixer.trainer.toggle" => TrainerCommandAsync(),
+        "mixer.countin.toggle" => CountInCommandAsync(),
         _ => SaveCommandAsync(command),
     };
 

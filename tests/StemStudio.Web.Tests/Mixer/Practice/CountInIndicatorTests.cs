@@ -40,18 +40,16 @@ public sealed class CountInIndicatorTests : PracticeTestContext
     }
 
     [Theory]
-    [InlineData(4, "current", "todo", "todo", "todo")]
-    [InlineData(2, "done", "done", "current", "todo")]
-    [InlineData(1, "done", "done", "done", "current")]
-    public void Dots_ShowDoneCurrentAndTodo(int remaining, string first, string second, string third, string fourth)
+    [InlineData(4, "current todo todo todo")]
+    [InlineData(2, "done done current todo")]
+    [InlineData(1, "done done done current")]
+    public void Dots_ShowDoneCurrentAndTodo(int remaining, string states)
     {
         var page = RenderAt();
 
         RaiseStatus(Counting(remaining));
 
-        page.WaitForAssertion(() => page.Find("[data-testid=countin-dot-1]").GetAttribute("data-state").ShouldBe(first));
-        new[] { "countin-dot-2", "countin-dot-3", "countin-dot-4" }.Select(id => page.Find($"[data-testid={id}]").GetAttribute("data-state"))
-            .ShouldBe([second, third, fourth]);
+        page.WaitForAssertion(() => page.FindAll("[data-testid^=countin-dot-]").Select(d => d.GetAttribute("data-state")).ShouldBe(states.Split(' ')));
         page.FindAll("[data-testid=countin-dot-5]").ShouldBeEmpty();
     }
 

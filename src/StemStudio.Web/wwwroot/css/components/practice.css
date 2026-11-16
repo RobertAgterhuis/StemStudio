@@ -100,6 +100,13 @@
   color: var(--ss-color-on-primary);
 }
 
+/* Slot between the karaoke banner and the transport; empty (height 0) unless a count-in runs. */
+.ss-countin-slot {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--ss-gutter);
+}
+
 /* Count-in indicator above the transport: one dot per beat. The current beat gets a ring (no brightness flash), a beat
    is never re-lit, so nothing flashes (WCAG 2.3.1) even at 6 beats per second. */
 .ss-countin {

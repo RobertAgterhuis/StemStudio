@@ -5,7 +5,7 @@ area: mixer
 summary: "Slow the whole song down to 50 % or speed it up to 120 % without changing its key."
 anchors: ["practice-speed"]
 keywords: ["speed", "tempo", "slow down", "slower", "faster", "practice", "percent", "time stretch"]
-related: [practice-transpose, practice-sound-quality, practice-speed-trainer]
+related: [practice-transpose, practice-sound-quality, practice-speed-trainer, practice-count-in]
 reviewed: "012"
 ---
 

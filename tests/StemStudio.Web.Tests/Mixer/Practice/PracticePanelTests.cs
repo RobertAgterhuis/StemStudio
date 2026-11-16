@@ -14,10 +14,10 @@ public sealed class PracticePanelTests : PracticeTestContext
     private static readonly string[] BeginnerAlways =
     [
         "practice-panel", "practice-speed", "practice-speed-value", "practice-speed-down", "practice-speed-up", "practice-transpose",
-        "practice-transpose-down", "practice-transpose-up", "practice-reset", "practice-effective-bpm",
+        "practice-transpose-down", "practice-transpose-up", "practice-reset", "practice-effective-bpm", "countin-toggle",
     ];
 
-    private static readonly string[] AdvancedOrHigher = ["practice-speed-reset"];
+    private static readonly string[] AdvancedOrHigher = ["practice-speed-reset", "countin-bars", "countin-every-pass", "trainer-panel"];
 
     private static readonly string[] ExpertOnly = ["practice-speed-input", "practice-transpose-input", "practice-stretch-status"];
 
@@ -177,7 +177,7 @@ public sealed class PracticePanelTests : PracticeTestContext
             page.FindAll($"[data-testid={id}]").Count.ShouldBe(1, id);
         }
 
-        foreach (var id in AdvancedOrHigher.Concat(ExpertOnly))
+        foreach (var id in AdvancedOrHigher.Concat(ExpertOnly).Append("trainer-toggle"))
         {
             page.FindAll($"[data-testid={id}]").ShouldBeEmpty(id);
         }
