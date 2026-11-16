@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "description": "US1 (T040): plan, search the library, open the mixer of the track in the page context, mute the drums, answer. Also replayed by the US5 history test.",
+  "turns": [
+    {
+      "calls": [
+        {
+          "name": "set_plan",
+          "arguments": {
+            "steps": [
+              { "title": "Search the library", "tool": "search_library" },
+              { "title": "Open the mixer", "tool": "open_mixer" },
+              { "title": "Mute the drums", "tool": "mixer_set_channel" }
+            ]
+          }
+        }
+      ]
+    },
+    { "calls": [{ "name": "search_library", "arguments": { "query": "agent" } }] },
+    { "calls": [{ "name": "open_mixer", "arguments": { "trackId": "{{context.trackId}}" } }] },
+    { "calls": [{ "name": "mixer_set_channel", "arguments": { "stem": "drums", "mute": true } }] },
+    { "text": "The mixer is open and the drums are muted. Save the mix to keep it.", "usage": { "inputTokens": 1200, "outputTokens": 16 } }
+  ]
+}

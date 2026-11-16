@@ -133,7 +133,7 @@ all lanes below begin in parallel from the Phase 0 commit.
 - [ ] T037 [US1] [frontend] Implement `Components/Agent/{AgentPanel,MessageList,PlanView,StepRow,ConversationList,BackendBadge}.razor`, `Agent/AgentPanelState.cs`, layout toggle to pass T036
 - [ ] T038 [P] [US1] [frontend] Failing tests `Agent/AgentUiToolHostTests.cs` + mixer handler tests: `ui.requested` dispatched to the registered handler; mixer handlers change `MixerState` through the same methods as the UI (absolute/relative gain, pan, mute, solo, master, reset, transport, loop by seconds or bars from the beat grid, metronome) and return previous/current values; wrong track or no handler -> `{ok: false, "The mixer of <title> is not open"}`; `open_track`/`open_mixer` navigate (unsaved-changes guard of 001 respected) (FR-005)
 - [ ] T039 [US1] [frontend] Implement `Agent/AgentUiToolHost.cs`, handler registration in `Mixer.razor` and the layout to pass T038
-- [ ] T040 [US1] [qa] Author `e2e/tests/agent.spec.ts` "command executes" (fake script: search -> open mixer -> mute drums): plan + steps visible, `mute-drums` pressed state, answer shown; script files `e2e/agent-scripts/us1-*.json`
+- [x] T040 [US1] [qa] Author `e2e/tests/agent.spec.ts` "command executes" (fake script: search -> open mixer -> mute drums): plan + steps visible, `mute-drums` pressed state, answer shown; script files `e2e/agent-scripts/us1-*.json`
 
 **Checkpoint**: HO:us1.
 
