@@ -52,24 +52,24 @@ public sealed class AgentStatusService(IAgentSettingsStore settings, IGpuActivit
     }
 
     /// <inheritdoc />
-    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken)
+    public Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken) =>
+        TestAsync(backend, ClaudeKeyTestSourceDto.Active, cancellationToken);
+
+    /// <summary>Tests one backend on the user's explicit request; a Claude test uses the key of the requested source (CK-FR-007).</summary>
+    /// <param name="backend">ollama or claude.</param>
+    /// <param name="claudeKeySource">Which Claude key to test; ignored for other backends.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result (<c>keySource</c> set for a Claude test with a key).</returns>
+    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken)
     {
         var current = await settings.GetAsync(cancellationToken);
         return backend switch
         {
             AgentBackendDto.Ollama => await TestOllamaAsync(current, cancellationToken),
-            AgentBackendDto.Claude => await probes.Claude.TestAsync(current, cancellationToken),
+            AgentBackendDto.Claude => await probes.Claude.TestAsync(current, claudeKeySource, cancellationToken),
             _ => new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = NotTestable },
         };
     }
-
-    /// <summary>Red stub (T036).</summary>
-    /// <param name="backend">Backend.</param>
-    /// <param name="claudeKeySource">Key source.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>The result.</returns>
-    public Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
 
     /// <inheritdoc />
     public IReadOnlyList<AgentToolInfoDto> ListTools(PageContextDto context) => tools.List(context);

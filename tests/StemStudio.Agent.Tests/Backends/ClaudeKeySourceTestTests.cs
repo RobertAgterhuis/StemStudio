@@ -171,6 +171,23 @@ public sealed class ClaudeKeySourceTestTests
     }
 
     [Fact]
+    public async Task Test_CancelledByTheCaller_IsRethrown()
+    {
+        var stub = new StubHttpHandler { Hang = true };
+        using var caller = CancellationTokenSource.CreateLinkedTokenSource(Token);
+
+        var pending = Probe(stub, Both()).TestAsync(Settings(), ClaudeKeyTestSourceDto.Stored, caller.Token);
+        await WaitForRequestAsync(stub);
+        await caller.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => pending);
+    }
+
+    [Fact]
+    public void Factory_RequiresAKeyProvider() =>
+        Should.Throw<ArgumentNullException>(() => new ClaudeChatClientFactory(null!));
+
+    [Fact]
     public async Task StatusService_PassesTheSourceToTheClaudeTest()
     {
         var stub = Answering();

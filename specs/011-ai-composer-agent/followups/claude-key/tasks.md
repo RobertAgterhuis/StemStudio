@@ -118,8 +118,8 @@ character (research R-07).
 
 ## Phase 5: User Story 4 - Test the key on request (P2)
 
-- [ ] T036 [P] [US4] [ai-agent] Failing tests: `ClaudeBackendProbe.TestAsync` with `claudeKeySource` `active`/`stored`/`environment` uses the right key (the stub handler receives the `x-api-key` sentinel of the requested source), `keySource` in the result, missing requested source -> `ok: false` readable detail; exactly one request per test; 401/403/timeout/network texts (CK-FR-007, CK-SC-002)
-- [ ] T037 [US4] [ai-agent] Implement to pass T036
+- [x] T036 [P] [US4] [ai-agent] Failing tests: `ClaudeBackendProbe.TestAsync` with `claudeKeySource` `active`/`stored`/`environment` uses the right key (the stub handler receives the `x-api-key` sentinel of the requested source), `keySource` in the result, missing requested source -> `ok: false` readable detail; exactly one request per test; 401/403/timeout/network texts (CK-FR-007, CK-SC-002) - done 2026-11-16 (`Backends/ClaudeKeySourceTestTests`)
+- [x] T037 [US4] [ai-agent] Implement to pass T036 - done 2026-11-16 (`ClaudeBackendProbe.TestAsync(settings, source, ct)`, `AgentStatusService.TestAsync(backend, claudeKeySource, ct)`; the `IAgentStatusService` port still has only `TestAsync(backend, ct)` = active, port change requested from the architect)
 - [ ] T038 [P] [US4] [backend] Failing tests: `POST /api/agent/settings/test` passes `claudeKeySource`, answers `403 local-only` for the Claude case from a non-local caller, Ollama case unchanged [sec]
 - [ ] T039 [US4] [backend] Implement to pass T038
 - [ ] T040 [P] [US4] [frontend] Failing tests: **Test key** shown per ui-test-ids rules, source choice only when both keys exist, result with `data-ok` and `data-key-source`

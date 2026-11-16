@@ -1,6 +1,5 @@
 using Anthropic.Exceptions;
 using StemStudio.Agent.Model;
-using StemStudio.Agent.Runtime;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Backends;
@@ -33,44 +32,56 @@ public sealed class ClaudeBackendProbe(ClaudeChatClientFactory factory, TimeProv
     }
 
     /// <summary>Detail when the stored key is requested but none is readable.</summary>
-    public const string NoStoredKey = "";
+    public const string NoStoredKey = "There is no readable stored Claude key to test: save the key in Settings first.";
 
     /// <summary>Detail when the environment key is requested but none is usable.</summary>
-    public const string NoEnvironmentKey = "";
+    public const string NoEnvironmentKey = "ANTHROPIC_API_KEY is not set to a usable Claude key, so there is nothing to test.";
 
-    /// <summary>Red stub (T036).</summary>
-    /// <param name="settings">Agent settings.</param>
-    /// <param name="source">Key source.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>The result.</returns>
-    public Task<BackendTestResultDto> TestAsync(AgentSettings settings, ClaudeKeyTestSourceDto source, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
-
-    /// <summary>Looks up the selected model on the user's explicit request.</summary>
+    /// <summary>Looks up the selected model with the active key on the user's explicit request.</summary>
     /// <param name="settings">Agent settings.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The result.</returns>
-    public async Task<BackendTestResultDto> TestAsync(AgentSettings settings, CancellationToken cancellationToken)
+    public Task<BackendTestResultDto> TestAsync(AgentSettings settings, CancellationToken cancellationToken) =>
+        TestAsync(settings, ClaudeKeyTestSourceDto.Active, cancellationToken);
+
+    /// <summary>
+    /// Looks up the selected model with the key of the requested source on the user's explicit request (CK-FR-007): exactly
+    /// one request, or none when that source has no usable key. <c>keySource</c> names the key that was tested.
+    /// </summary>
+    /// <param name="settings">Agent settings.</param>
+    /// <param name="source">Which key to test; <see cref="ClaudeKeyTestSourceDto.Active"/> follows the precedence.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result (never the key).</returns>
+    public async Task<BackendTestResultDto> TestAsync(AgentSettings settings, ClaudeKeyTestSourceDto source, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(settings);
         var started = time.GetTimestamp();
-        var detail = await LookUpAsync(ClaudeChatClientFactory.ModelId(settings.ClaudeModel), cancellationToken);
-        return new BackendTestResultDto
+        var selected = factory.Keys.KeyFor(source);
+        var (ok, text) = selected is null
+            ? (false, Missing(source))
+            : await LookUpAsync(selected.Key, ClaudeChatClientFactory.ModelId(settings.ClaudeModel), cancellationToken);
+        var latency = (int)time.GetElapsedTime(started).TotalMilliseconds;
+        return new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = ok, LatencyMs = latency, Detail = text, KeySource = selected?.Source };
+    }
+
+    private string Missing(ClaudeKeyTestSourceDto source)
+    {
+        var resolution = factory.Keys.Resolve();
+        return source switch
         {
-            Backend = AgentBackendDto.Claude,
-            Ok = detail.Ok,
-            LatencyMs = (int)time.GetElapsedTime(started).TotalMilliseconds,
-            Detail = detail.Text,
+            ClaudeKeyTestSourceDto.Stored => NoStoredKey,
+            ClaudeKeyTestSourceDto.Environment => NoEnvironmentKey,
+            _ => ClaudeErrors.KeyUnusable(resolution.Reason, resolution.Fix),
         };
     }
 
-    private async Task<(bool Ok, string Text)> LookUpAsync(string model, CancellationToken cancellationToken)
+    private async Task<(bool Ok, string Text)> LookUpAsync(ClaudeApiKey key, string model, CancellationToken cancellationToken)
     {
         using var timeout = new CancellationTokenSource(Timeout, time);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try
         {
-            await factory.Client(factory.ActiveKey()).Models.Retrieve(model, cancellationToken: linked.Token);
+            await factory.Client(key).Models.Retrieve(model, cancellationToken: linked.Token);
             return (true, $"Claude answered; model {model} is available.");
         }
         catch (Exception exception) when (Failure(exception, cancellationToken) is { } text)
@@ -82,7 +93,6 @@ public sealed class ClaudeBackendProbe(ClaudeChatClientFactory factory, TimeProv
     /// <summary>The readable text of a test failure; never the response body. Null rethrows (e.g. the caller cancelled).</summary>
     private static string? Failure(Exception exception, CancellationToken cancellationToken) => exception switch
     {
-        BackendUnavailableException unavailable => unavailable.Message,
         AnthropicApiException api => ClaudeErrors.ForStatus(api.StatusCode),
         AnthropicIOException or HttpRequestException => ClaudeErrors.Unreachable,
         OperationCanceledException when !cancellationToken.IsCancellationRequested => ClaudeErrors.Unreachable,
