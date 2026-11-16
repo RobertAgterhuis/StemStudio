@@ -268,3 +268,15 @@ describe('explicit passes in the transport', () => {
     expect(ctx.startedSources()).toHaveLength(1);
   });
 });
+
+describe('launch after an open start', () => {
+  it('keeps open sources running when a pass is launched', async () => {
+    const { ctx, transport } = makeTransport();
+    await transport.play();
+    ctx.currentTime = 1;
+    transport.launch({ heardWhen: 2, offset: 0, duration: 1, rate: 1, latency: 0 });
+    expect(ctx.startedSources()).toHaveLength(2);
+    transport.stop();
+    expect(ctx.startedSources().every((s) => s.stopCalls.length === 1)).toBe(true);
+  });
+});

@@ -6,12 +6,14 @@
  * @packageDocumentation
  */
 import { anchorOf } from '../anchors';
+import type { ClickOutput } from '../metronome/clicks';
 import type { Mixer } from '../mixer';
 import { contentOffsetFrames, isNeutral, needsStretch, pitchFactor, speedRate } from '../stretch/params';
 import { UNAVAILABLE_PREFIX, type FailureAware } from '../stretch/worklet-stage';
 import type { Transport, TransportListener } from '../transport';
 import type { PlaybackState, PracticeSettings, PracticeStatus, StretchState, TimeStretchStage } from '../types';
 import { DEFAULT_PRACTICE, validatePractice } from './settings';
+import { CountIns, type TempoSource } from './count-ins';
 import { PassMode, type Tempo } from './pass-mode';
 import { CHANGE_LEAD_SECONDS, liveChangeTimes, type LiveChangeTimes } from './tempo';
 
@@ -30,8 +32,12 @@ export interface PracticeHost {
   readonly factory: (context: AudioContext) => Promise<TimeStretchStage>;
   /** Requests an `OnPracticeChanged` report (throttled by the caller). */
   readonly changed: () => void;
-  /** Count-in tempo availability and beats per bar of the metronome settings. */
-  readonly countIn: () => { readonly available: boolean; readonly beatsPerBar: number };
+  /** Metronome click output (count-in clicks). */
+  readonly clicks: ClickOutput;
+  /** Start delay of sample-locked starts (s). */
+  readonly startDelay: number;
+  /** Beat grid and metronome settings (count-in tempo). */
+  readonly tempoSource: () => TempoSource;
 }
 
 /** Rate and pitch factor heard for the current settings. */
@@ -58,16 +64,23 @@ export class PracticeController implements TransportListener {
   private restarts = 0;
   private transpose = 0;
   private readonly passMode: PassMode;
+  private readonly countIns: CountIns;
 
   /** @param host - Engine parts. */
   public constructor(private readonly host: PracticeHost) {
+    this.countIns = new CountIns({ ...host, changed: host.changed, tempoSource: host.tempoSource });
     this.passMode = new PassMode({
       context: host.context,
       transport: host.transport,
       settings: () => this.settings,
       tempoFor: (speed) => this.tempoFor(speed),
       stage: () => this.active,
-      gap: () => 0,
+      gap: (rate) => (this.settings.countIn.everyPass ? this.countIns.gap(this.settings.countIn.bars, rate) : 0),
+      countIn: (heardWhen, rate) => {
+        if (this.settings.countIn.everyPass) {
+          this.countIns.beforePass(this.settings.countIn.bars, heardWhen, rate);
+        }
+      },
       applied: (pitch) => {
         this.applied = pitch;
       },
@@ -96,6 +109,17 @@ export class PracticeController implements TransportListener {
     this.host.changed();
   }
 
+  /** Starts playback, after a count-in when one is set and a tempo is known (`play()` resolves at once). */
+  public async play(): Promise<void> {
+    const { transport, context } = this.host;
+    if (transport.state === 'playing') {
+      return;
+    }
+    await context.resume();
+    const latency = this.engaged && isNeutral(this.settings) ? 0 : transport.timing.latency;
+    await transport.play(this.countIns.beforePlay(this.settings.countIn.bars, this.target().rate, latency));
+  }
+
   /** The loop changed (after the transport applied it): passes may start, stop or restart. */
   public onLoopChanged(): void {
     if (this.passMode.loopChanged()) {
@@ -111,7 +135,6 @@ export class PracticeController implements TransportListener {
   /** @returns The current snapshot. */
   public status(): PracticeStatus {
     const { speedPercent, transposeSemitones, countIn } = this.settings;
-    const tempo = this.host.countIn();
     const trainer = this.passMode.trainerStatus();
     const runs = trainer.state === 'running' || trainer.state === 'target';
     return {
@@ -122,7 +145,7 @@ export class PracticeController implements TransportListener {
       latencyMs: this.active === null ? 0 : this.latencyOf(this.active, this.applied) * 1000,
       underruns: this.underruns(),
       trainer,
-      countIn: { available: tempo.available, active: false, beatsRemaining: 0, beatsTotal: countIn.bars * tempo.beatsPerBar },
+      countIn: this.countIns.status(countIn.bars),
     };
   }
 
@@ -158,6 +181,9 @@ export class PracticeController implements TransportListener {
   public onStateChanged(state: PlaybackState): void {
     clearInterval(this.poll);
     this.passMode.onState(state);
+    if (state !== 'playing') {
+      this.countIns.cancel();
+    }
     if (state === 'playing') {
       this.poll = setInterval(this.pollUnderruns, UNDERRUN_POLL_MS);
     } else {
@@ -167,7 +193,7 @@ export class PracticeController implements TransportListener {
 
   /** {@inheritDoc TransportListener.onReposition} */
   public onReposition(): void {
-    // Positions are reported by DotNetNotifier; nothing to do here.
+    this.countIns.cancel();
   }
 
   /** Frees the stage and stops polling. */
@@ -175,6 +201,7 @@ export class PracticeController implements TransportListener {
     this.disposed = true;
     clearInterval(this.poll);
     this.passMode.dispose();
+    this.countIns.dispose();
     this.stage?.dispose();
   }
 

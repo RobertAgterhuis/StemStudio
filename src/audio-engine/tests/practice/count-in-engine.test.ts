@@ -24,6 +24,13 @@ function liveClicks(rig: PracticeRig): number[] {
     .map((s) => s.startCalls[0]?.when ?? Number.NaN);
 }
 
+function expectTimes(actual: readonly (number | undefined)[], expected: readonly number[]): void {
+  expect(actual).toHaveLength(expected.length);
+  expected.forEach((time, i) => {
+    expect(actual[i]).toBeCloseTo(time, 9);
+  });
+}
+
 async function run(rig: PracticeRig, seconds: number): Promise<void> {
   for (let i = 0; i < Math.round(seconds / 0.025); i++) {
     rig.ctx.currentTime += 0.025;
@@ -55,11 +62,11 @@ describe('count-in before play', () => {
     await rig.engine.play();
     expect(rig.engine.getState()).toBe('playing');
     const clicks = clickSources(rig);
-    expect(clicks.map((s) => s.startCalls[0]?.when)).toEqual([0.1, 0.6, 1.1, 1.6]);
+    expectTimes(clicks.map((s) => s.startCalls[0]?.when), [0.1, 0.6, 1.1, 1.6]);
     const output = clicks[0]?.connections[0] as unknown as { gain: { value: number }; connections: unknown[] };
     expect(output.gain.value).toBe(0.6);
     expect(output.connections).toEqual([rig.ctx.destination]);
-    expect(clicks.map((s) => s.buffer?.getChannelData(0)[10] ?? 0).map((v, i, all) => v === all[0])).toEqual([true, false, false, false]);
+    expect(clicks.map((s) => s.buffer?.getChannelData(0)[10] ?? 0).map((v, _i, all) => v === all[0])).toEqual([true, false, false, false]);
     running(rig).forEach((source) => {
       expect(source.startCalls[0]?.when).toBeCloseTo(1.6 + 0.5, 9);
     });
@@ -87,7 +94,7 @@ describe('count-in before play', () => {
     await rig.engine.play();
     await run(rig, 0.3);
     rig.engine.pause();
-    expect(liveClicks(rig)).toEqual([0.1]);
+    expectTimes(liveClicks(rig), [0.1]);
     expect(rig.engine.getPracticeStatus().countIn.active).toBe(false);
     await rig.engine.play();
     expect(liveClicks(rig)).toHaveLength(5);
@@ -111,12 +118,13 @@ describe('count-in before play', () => {
     rig.engine.setMetronome(METRONOME);
     await rig.engine.setPractice(practice({ speedPercent: 50, countIn: { bars: 2 } }));
     await rig.engine.play();
-    const times = clickSources(rig).map((s) => s.startCalls[0]?.when ?? 0);
+    const times = clickSources(rig).map((s) => Number(s.startCalls[0]?.when));
     expect(times).toHaveLength(8);
-    expect((times[1] ?? 0) - (times[0] ?? 0)).toBeCloseTo(1, 9);
-    const music = running(rig)[0]?.startCalls[0]?.when ?? 0;
-    expect(rig.engine.getPracticeStatus().latencyMs).toBeGreaterThan(0);
-    expect(music + rig.engine.getPracticeStatus().latencyMs / 1000).toBeCloseTo((times[7] ?? 0) + 1, 6);
+    expect(Number(times[1]) - Number(times[0])).toBeCloseTo(1, 9);
+    const music = Number(running(rig)[0]?.startCalls[0]?.when);
+    const { latencyMs } = rig.engine.getPracticeStatus();
+    expect(latencyMs).toBeGreaterThan(0);
+    expect(music + latencyMs / 1000).toBeCloseTo(Number(times[7]) + 1, 6);
   });
 
   it('starts without a count-in when no tempo is known', async () => {
@@ -144,11 +152,11 @@ describe('count-in before every pass', () => {
     rig.engine.setLoop({ start: 2, end: 4, enabled: true });
     await rig.engine.setPractice(practice({ countIn: { bars: 1, everyPass: true } }));
     await rig.engine.play();
-    expect(liveClicks(rig)).toEqual([0.1, 0.6, 1.1, 1.6]);
+    expectTimes(liveClicks(rig), [0.1, 0.6, 1.1, 1.6]);
     await run(rig, 4);
     const pass2 = running(rig).filter((s) => Math.abs((s.startCalls[0]?.when ?? 0) - 6.1) < 1e-9);
     expect(pass2).toHaveLength(2);
-    expect(liveClicks(rig).slice(4)).toEqual([4.1, 4.6, 5.1, 5.6].map((t) => expect.closeTo(t, 9) as unknown as number));
+    expectTimes(liveClicks(rig).slice(4), [4.1, 4.6, 5.1, 5.6]);
     await run(rig, 0.5);
     expect(rig.engine.getPosition()).toBe(2);
     expect(rig.engine.getPracticeStatus().countIn.active).toBe(true);
@@ -158,11 +166,54 @@ describe('count-in before every pass', () => {
     const rig = await loadedPracticeRig(GRID);
     rig.engine.setMetronome(METRONOME);
     rig.engine.setLoop({ start: 2, end: 4, enabled: true });
-    await rig.engine.setPractice(practice({ trainer: { enabled: true, startPercent: 50, stepPercent: 50, targetPercent: 100 }, countIn: { bars: 1, everyPass: true } }));
+    await rig.engine.setPractice(practice({ trainer: { enabled: true, startPercent: 50, stepPercent: 20, targetPercent: 70 }, countIn: { bars: 1, everyPass: true } }));
     await rig.engine.play();
     const first = running(rig)[0]?.startCalls[0]?.when ?? 0;
     await run(rig, first + 4);
     const second = running(rig).map((s) => s.startCalls[0]?.when ?? 0).filter((t) => t > first + 1);
-    expect(second[0]).toBeCloseTo(first + 2 / 0.5 + 4 * 0.5 / 1, 9);
+    expect(second[0]).toBeCloseTo(first + 2 / 0.5 + (4 * 0.5) / 0.7, 9);
+  });
+});
+
+describe('reports for the UI (frontend 012 requests)', () => {
+  it('sends one OnPracticeChanged per count-in beat and a final one with active false', async () => {
+    const rig = await countInRig();
+    rig.ref.clear();
+    await rig.engine.play();
+    await run(rig, 2.5);
+    const counts = statuses(rig).map((s) => s.countIn);
+    const beats = counts.filter((c) => c.active).map((c) => c.beatsRemaining);
+    expect([...new Set(beats)]).toEqual([4, 3, 2, 1]);
+    expect(counts.at(-1)).toMatchObject({ active: false, beatsRemaining: 0 });
+  });
+
+  it('sends a status at every speed-trainer pass start', async () => {
+    const rig = await loadedPracticeRig();
+    rig.engine.setLoop({ start: 2, end: 4, enabled: true });
+    await rig.engine.setPractice(practice({ trainer: { enabled: true, startPercent: 60, stepPercent: 10, targetPercent: 90 } }));
+    rig.ref.clear();
+    await rig.engine.play();
+    await run(rig, 12);
+    const passes = statuses(rig).map((s) => s.trainer.pass);
+    // Passes at 60/70/80/90 % last 3.33 + 2.86 + 2.5 + 2.22 s, so pass 5 starts before 12 s.
+    expect([...new Set(passes)]).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('play while already playing changes nothing', async () => {
+    const rig = await countInRig();
+    await rig.engine.play();
+    const clicks = clickSources(rig).length;
+    await rig.engine.play();
+    expect(clickSources(rig)).toHaveLength(clicks);
+  });
+
+  it('every-pass count-in without a tempo plays gapless passes', async () => {
+    const rig = await loadedPracticeRig();
+    rig.engine.setLoop({ start: 2, end: 4, enabled: true });
+    await rig.engine.setPractice(practice({ countIn: { bars: 1, everyPass: true } }));
+    await rig.engine.play();
+    await run(rig, 2);
+    expect(running(rig).filter((s) => Math.abs(Number(s.startCalls[0]?.when) - 2.1) < 1e-9)).toHaveLength(2);
+    expect(clickSources(rig)).toHaveLength(0);
   });
 });

@@ -52,8 +52,8 @@ export interface PassHost {
   first(): PassTempo;
   /** Tempo of the next pass (advances the trainer). */
   next(): NextPass;
-  /** A pass was created: its pitch applies from source time `sourceStart`. */
-  scheduled(pitch: number, sourceStart: number): void;
+  /** A pass was created: its pitch applies from source time `sourceStart`; `spec` is what the transport started. */
+  scheduled(pitch: number, sourceStart: number, spec: PassSpec): void;
   /** Another pass is heard now. */
   heard(): void;
 }
@@ -145,8 +145,9 @@ export class PassScheduler implements PassPlanner {
     const sourceStart = last.sourceEnd + next.gap;
     const length = region.end - region.start;
     const spec = { heardWhen: sourceStart + next.latency, offset: region.start, rate: next.rate, latency: next.latency };
-    this.host.transport.launch(next.open ? spec : { ...spec, duration: length });
-    this.host.scheduled(next.pitch, sourceStart);
+    const launched = next.open ? spec : { ...spec, duration: length };
+    this.host.transport.launch(launched);
+    this.host.scheduled(next.pitch, sourceStart, launched);
     if (next.open) {
       this.host.transport.setPlanner(null);
       this.records = [];

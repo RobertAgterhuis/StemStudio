@@ -54,6 +54,7 @@ interface Parts {
   readonly frames: FrameLoop;
   readonly meters: Meters;
   readonly metronome: MetronomeScheduler;
+  readonly clicks: ClickPlayer;
   readonly karaoke: Karaoke;
 }
 
@@ -69,9 +70,10 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   transport.addListener(notifier);
   const frames = new FrameLoop();
   const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
-  const metronome = createMetronome(context, transport, options);
+  const clicks = new ClickPlayer(context);
+  const metronome = createMetronome({ context, transport, clicks }, options);
   const karaoke = createKaraoke(context, transport, frames);
-  return { context, mixer, transport, notifier, frames, meters, metronome, karaoke };
+  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke };
 }
 
 function createKaraoke(context: AudioContext, transport: Transport, loop: FrameLoop): Karaoke {
@@ -81,11 +83,14 @@ function createKaraoke(context: AudioContext, transport: Transport, loop: FrameL
   return karaoke;
 }
 
-function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
+function createMetronome(
+  { context, transport, clicks }: { context: AudioContext; transport: Transport; clicks: ClickPlayer },
+  options: EngineOptions,
+): MetronomeScheduler {
   const metronome = new MetronomeScheduler({
     context,
     clock: transport,
-    output: new ClickPlayer(context),
+    output: clicks,
     aheadSeconds: options.scheduleAheadSeconds ?? DEFAULT_SCHEDULE_AHEAD_SECONDS,
     intervalMs: options.schedulerIntervalMs ?? DEFAULT_SCHEDULER_INTERVAL_MS,
   });
@@ -160,7 +165,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.play} */
   public async play(): Promise<void> {
     this.alive();
-    await this.parts.transport.play();
+    await this.practice.play();
   }
 
   /** {@inheritDoc AudioEngine.pause} */
@@ -298,18 +303,15 @@ export class Engine implements AudioEngine {
       changed: () => {
         this.practiceNotifier.changed();
       },
-      countIn: () => ({ available: this.countInAvailable(), beatsPerBar: this.metronome.beatsPerBar }),
+      clicks: this.parts.clicks,
+      startDelay: options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS,
+      tempoSource: () => ({ grid: this.grid, metronome: this.metronome }),
     });
     transport.addListener(practice);
     transport.setRestartHook(() => {
       practice.onRestart();
     });
     return practice;
-  }
-
-  /** Count-in needs a tempo: a manual BPM, or a reliable grid with at least two beats. */
-  private countInAvailable(): boolean {
-    return this.metronome.bpmOverride !== null || (this.grid?.reliable === true && this.grid.beats.length > 1);
   }
 
   /** Fetches and decodes files; rejects when the engine was disposed meanwhile. */

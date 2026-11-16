@@ -6,7 +6,7 @@
  */
 import { NO_LOOP } from '../loop';
 import { pitchFactor } from '../stretch/params';
-import type { Transport } from '../transport';
+import type { PassSpec, Transport } from '../transport';
 import type { LoopRegion, PlaybackState, PracticeSettings, TimeStretchStage } from '../types';
 import { MIN_PASS_SECONDS, PassScheduler, type NextPass, type PassHost, type PassTempo } from './passes';
 import { SpeedTrainer, type TrainerSnapshot } from './trainer';
@@ -35,6 +35,8 @@ export interface PassModeHost {
   stage(): TimeStretchStage | null;
   /** Silence before a pass at `rate` (count-in every pass), context seconds. */
   gap(rate: number): number;
+  /** A pass heard from `heardWhen` at `rate` was created (count-in clicks before it, when set). */
+  countIn(heardWhen: number, rate: number): void;
   /** A pitch factor was sent to the stage for a pass. */
   applied(pitch: number): void;
   /** Requests a status report. */
@@ -169,9 +171,12 @@ export class PassMode implements PassHost {
   }
 
   /** {@inheritDoc PassHost.scheduled} */
-  public scheduled(pitch: number, sourceStart: number): void {
+  public scheduled(pitch: number, sourceStart: number, spec: PassSpec): void {
     this.host.stage()?.setPitch(pitch, Math.round(sourceStart * this.context.sampleRate));
     this.host.applied(pitch);
+    if (spec.duration !== undefined) {
+      this.host.countIn(spec.heardWhen, spec.rate);
+    }
   }
 
   /** {@inheritDoc PassHost.heard} */
