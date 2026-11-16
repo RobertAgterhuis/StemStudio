@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.AI;
-using StemStudio.Agent.Backends.Fakes;
 using NSubstitute;
+using StemStudio.Agent.Backends.Fakes;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Runtime;
