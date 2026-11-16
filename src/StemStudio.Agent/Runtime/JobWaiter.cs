@@ -29,6 +29,12 @@ public sealed record JobPoll(string Status, int Progress, string? Error)
     /// <summary>The wait exceeded MaxJobWaitMinutes.</summary>
     public const string Timeout = "timeout";
 
+    /// <summary>Trusted message of a failed job whose own text is external (shown next to <see cref="Untrusted"/>).</summary>
+    public const string FailedMessage = "The job failed.";
+
+    /// <summary>The job's own error text (external: worker, downloader or generator output); projected only as untrusted_text.</summary>
+    public string? Untrusted { get; init; }
+
     /// <summary>True when waiting ends.</summary>
     public bool IsTerminal => Status != Running;
 
@@ -36,6 +42,30 @@ public sealed record JobPoll(string Status, int Progress, string? Error)
     /// <param name="error">Readable error.</param>
     /// <returns>The reading.</returns>
     public static JobPoll Fail(string error) => new(Failed, 0, error);
+
+    /// <summary>A failed reading whose own text is external: fixed trusted message, the text as untrusted.</summary>
+    /// <param name="status">Final status.</param>
+    /// <param name="progress">Progress.</param>
+    /// <param name="external">The job's error text.</param>
+    /// <returns>The reading.</returns>
+    public static JobPoll External(string status, int progress, string? external) =>
+        status == Failed ? new JobPoll(status, progress, FailedMessage) { Untrusted = external } : new JobPoll(status, progress, null);
+
+    /// <summary>The fixed message of a generation error code.</summary>
+    /// <param name="code">Error code.</param>
+    /// <returns>The message.</returns>
+    public static string GenerationMessage(GenerationErrorCodeDto code) => code switch
+    {
+        GenerationErrorCodeDto.GpuRequired => "The GPU became unusable; generations need a working GPU.",
+        GenerationErrorCodeDto.GpuBusy => "Not enough free GPU memory: try again when the other GPU job has finished.",
+        GenerationErrorCodeDto.OutOfMemory => "The GPU ran out of memory: try a shorter range or one take.",
+        GenerationErrorCodeDto.ModelDownloadFailed => "The generation model could not be downloaded.",
+        GenerationErrorCodeDto.Interrupted => "The generator restarted and lost the job: retry it.",
+        GenerationErrorCodeDto.InvalidInput => "The audio could not be processed.",
+        GenerationErrorCodeDto.UnvoicedTarget => "The take has almost no singing to convert.",
+        GenerationErrorCodeDto.PromptInvalid => "The voice sample could not be used.",
+        _ => "The generation model failed.",
+    };
 }
 
 /// <summary>What to wait for.</summary>
@@ -114,7 +144,7 @@ public static class JobStatusReader
         {
             JobPhaseDto.Detail => Detail(track.Detail),
             JobPhaseDto.Lyrics => Lyrics(track.LyricsStatus),
-            _ => new JobPoll(Track(track.Status), track.Progress, track.Error),
+            _ => JobPoll.External(Track(track.Status), track.Progress, track.Error),
         };
     }
 
@@ -130,7 +160,7 @@ public static class JobStatusReader
         DetailPhaseStatusDto.Queued or DetailPhaseStatusDto.Running => new JobPoll(JobPoll.Running, detail.Progress, null),
         DetailPhaseStatusDto.Completed => new JobPoll(JobPoll.Completed, 100, null),
         DetailPhaseStatusDto.Cancelled => new JobPoll(JobPoll.Cancelled, detail.Progress, null),
-        DetailPhaseStatusDto.Failed => new JobPoll(JobPoll.Failed, detail.Progress, detail.Error),
+        DetailPhaseStatusDto.Failed => JobPoll.External(JobPoll.Failed, detail.Progress, detail.Error),
         _ => JobPoll.Fail("No detail separation was started for this track."),
     };
 
@@ -155,7 +185,7 @@ public static class JobStatusReader
             AssetStatusDto.Failed => JobPoll.Failed,
             _ => JobPoll.Running,
         };
-        return new JobPoll(status, asset.Progress, status == JobPoll.Failed ? asset.Error : null);
+        return JobPoll.External(status, asset.Progress, asset.Error);
     }
 
     private static async Task<JobPoll> GenerationAsync(IStemStudioActions actions, JobRef job, CancellationToken cancellationToken)
@@ -173,6 +203,8 @@ public static class JobStatusReader
             GenerationStateDto.Cancelled => JobPoll.Cancelled,
             _ => JobPoll.Running,
         };
-        return new JobPoll(status, generation.Progress, generation.Error?.Message);
+        return generation.Error is { } error && status == JobPoll.Failed
+            ? new JobPoll(status, generation.Progress, JobPoll.GenerationMessage(error.Code)) { Untrusted = error.Message }
+            : JobPoll.External(status, generation.Progress, null);
     }
 }

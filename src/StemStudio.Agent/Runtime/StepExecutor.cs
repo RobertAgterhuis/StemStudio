@@ -93,17 +93,23 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            return await FailStepAsync(state, step, StepFailure.Reason(exception, services.Logger, state.RunId, step.Tool), cancellationToken);
+            return await FailStepAsync(state, step, StepFailure.From(exception, services.Logger, state.RunId, step.Tool), cancellationToken);
         }
 
         return await SucceedAsync(state, step, prepared, result, cancellationToken);
     }
 
-    private async Task<ProjectedResult> FailStepAsync(RunState state, RunStep step, string reason, CancellationToken cancellationToken)
+    private async Task<ProjectedResult> FailStepAsync(RunState state, RunStep step, StepFailure failure, CancellationToken cancellationToken)
     {
-        await FinishAsync(step with { Status = AgentStepStatusDto.Failed, Error = Cap(reason) }, null, cancellationToken);
+        await FinishAsync(step with { Status = AgentStepStatusDto.Failed, Error = Cap(failure.StepError) }, null, cancellationToken);
         await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Failed, cancellationToken);
-        return ResultProjector.Error(reason);
+        var result = failure.ModelResult();
+        if (result.Tainted && !state.Run.Tainted)
+        {
+            await SaveRunAsync(state, state.Run with { Tainted = true }, cancellationToken);
+        }
+
+        return result;
     }
 
     private Task<ToolResult> InvokeAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken) => prepared.Tool!.Kind switch
@@ -127,7 +133,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         var answer = await RequestUiAsync(state, step, step.Tool, step.Arguments, cancellationToken);
         if (!answer.Ok)
         {
-            throw new AgentActionException(answer.Error ?? "The page could not execute the step.");
+            throw new UiToolFailedException(answer.Error ?? StepFailure.PageFailed);
         }
 
         var element = RunEvents.Element(answer.Result);
@@ -197,25 +203,60 @@ internal static class PageTransitions
     }
 }
 
-/// <summary>Readable, fixed reasons for failed steps; raw exception texts are only logged (never shown to the model).</summary>
-internal static class StepFailure
+/// <summary>The open page reported that it could not execute a UI tool; its text may contain external titles.</summary>
+internal sealed class UiToolFailedException : Exception
+{
+    public UiToolFailedException()
+        : this(StepFailure.PageFailed)
+    {
+    }
+
+    public UiToolFailedException(string message)
+        : base(message)
+    {
+    }
+
+    public UiToolFailedException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}
+
+/// <summary>
+/// A failed step: the readable step error for the panel and what the model sees. Raw exception texts are only logged; texts
+/// that may carry external content (page errors) reach the model only as untrusted_text, which taints the run.
+/// </summary>
+/// <param name="StepError">Error stored on the step.</param>
+/// <param name="Untrusted">External text for the model, when any.</param>
+internal sealed record StepFailure(string StepError, string? Untrusted)
 {
     /// <summary>Reason for an unexpected error.</summary>
     public const string Internal = "The step failed because of an internal error.";
 
-    /// <summary>The reason shown for an exception of a handler or a UI result.</summary>
-    public static string Reason(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool) => exception switch
+    /// <summary>Trusted message for a page that could not execute a UI tool.</summary>
+    public const string PageFailed = "The page could not execute the step.";
+
+    private const int UntrustedMaxLength = 300;
+
+    /// <summary>The failure of an exception of a handler or a UI result.</summary>
+    public static StepFailure From(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool) => exception switch
     {
-        AgentActionException action => action.Message,
-        JsonException => "The page returned an invalid result.",
-        HttpRequestException => "StemStudio could not be reached.",
-        TimeoutException or OperationCanceledException => "The step timed out.",
+        UiToolFailedException page => new StepFailure(page.Message, page.Message),
+        AgentActionException action => new StepFailure(action.Message, null),
+        JsonException => new StepFailure("The page returned an invalid result.", null),
+        HttpRequestException => new StepFailure("StemStudio could not be reached.", null),
+        TimeoutException or OperationCanceledException => new StepFailure("The step timed out.", null),
         _ => Logged(exception, logger, runId, tool),
     };
 
-    private static string Logged(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool)
+    /// <summary>What the model sees.</summary>
+    public ProjectedResult ModelResult() => ResultProjector.Untrusted(Untrusted, UntrustedMaxLength) is { } external
+        ? ResultProjector.Project(new JsonObject { ["ok"] = false, ["error"] = PageFailed, [ResultProjector.UntrustedField] = external })
+        : ResultProjector.Error(StepError);
+
+    private static StepFailure Logged(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool)
     {
         RunLog.StepFailed(logger, runId, tool, exception);
-        return Internal;
+        return new StepFailure(Internal, null);
     }
 }

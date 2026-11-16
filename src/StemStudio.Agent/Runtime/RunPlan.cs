@@ -53,6 +53,7 @@ internal sealed class RunPlan(AgentServices services, RunEvents events)
 /// <param name="plan">Plan keeper.</param>
 internal sealed class MetaToolRunner(AgentServices services, RunEvents events, RunPlan plan)
 {
+    private const int UntrustedMaxLength = 300;
     private readonly JobWaiter _jobs = new(services.Actions, services.Time);
 
     /// <summary>Executes a meta tool.</summary>
@@ -77,6 +78,11 @@ internal sealed class MetaToolRunner(AgentServices services, RunEvents events, R
         if (result.Error is { } error)
         {
             projection["error"] = error;
+        }
+
+        if (ResultProjector.Untrusted(result.Untrusted, UntrustedMaxLength) is { } external)
+        {
+            projection[ResultProjector.UntrustedField] = external;
         }
 
         return new ToolResult { Projection = projection, Job = job, Progress = result.Progress };
