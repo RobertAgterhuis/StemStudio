@@ -29,6 +29,8 @@ public abstract class AgentApiTestBase : IDisposable
 
     private protected ILlmGpuRelease GpuRelease { get; } = Substitute.For<ILlmGpuRelease>();
 
+    private protected IEnvironmentReader Environment { get; } = Substitute.For<IEnvironmentReader>();
+
     private protected ApiFactory Factory { get; }
 
     private protected HttpClient Client { get; }
@@ -71,5 +73,6 @@ public abstract class AgentApiTestBase : IDisposable
         services.AddSingleton(StatusService);
         services.AddSingleton(UiGateway);
         services.AddSingleton(GpuRelease);
+        services.AddSingleton(Environment);
     }
 }

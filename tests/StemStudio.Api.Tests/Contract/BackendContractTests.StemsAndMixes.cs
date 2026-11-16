@@ -138,7 +138,7 @@ public sealed partial class BackendContractTests
     // T060 (settings, test), T070 (undo, rename, delete).
     private static readonly string[] PendingAgentOperations =
     [
-        "getAgentSettings", "updateAgentSettings", "testAgentBackend", "renameConversation", "deleteConversation",
+        "renameConversation", "deleteConversation",
         "undoLastAgentAction",
     ];
 
