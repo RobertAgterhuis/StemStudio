@@ -58,16 +58,24 @@ public static class ToolPolicy
     private static List<string> Reasons(PolicyInput input)
     {
         var reasons = new List<string>();
-        var freshCompensation = input.IsCompensation && input.Fresh;
-        var heavy = input.Tool.Risk == ToolRiskDto.Heavy && !freshCompensation;
-        AddIf(reasons, heavy && !input.RiskCheckFailed, AgentDecisionReasons.RiskHeavy);
-        AddIf(reasons, heavy && input.RiskCheckFailed, AgentDecisionReasons.RiskCheckFailed);
-        AddIf(reasons, input.Tool.Risk == ToolRiskDto.Destructive && !freshCompensation, AgentDecisionReasons.RiskDestructive);
+        if (!(input.IsCompensation && input.Fresh) && RiskReason(input) is { } risk)
+        {
+            reasons.Add(risk);
+        }
+
         AddIf(reasons, input.Tainted, AgentDecisionReasons.Tainted);
         AddIf(reasons, Texts(input.Arguments, input.Tool.UrlArguments).Any(url => !ProvenanceChecker.UrlFromUser(url, input.UserMessages)), AgentDecisionReasons.UrlNotFromUser);
         AddIf(reasons, input.IsCompensation && !input.Fresh, AgentDecisionReasons.UndoCompensation);
         return reasons;
     }
+
+    /// <summary>The risk reason of heavy and destructive tools; a failed dynamic check is <c>risk-check-failed</c>.</summary>
+    private static string? RiskReason(PolicyInput input) => input.Tool.Risk switch
+    {
+        ToolRiskDto.Heavy => input.RiskCheckFailed ? AgentDecisionReasons.RiskCheckFailed : AgentDecisionReasons.RiskHeavy,
+        ToolRiskDto.Destructive => AgentDecisionReasons.RiskDestructive,
+        _ => null,
+    };
 
     private static void AddIf(List<string> reasons, bool condition, string reason)
     {

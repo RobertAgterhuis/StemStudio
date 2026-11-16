@@ -15,8 +15,6 @@ public sealed class LyricsToolProvider : IAgentToolProvider
 {
     private const string F = "006";
     private const double AlignMinutesPerAudioMinute = 0.5;
-    private const double DefaultAudioMinutes = 4;
-    private static readonly ToolParameter TrackId = Param.Uuid("trackId").Describe("Track id from search_library.");
 
     /// <inheritdoc />
     public IEnumerable<AgentToolDescriptor> GetTools() =>

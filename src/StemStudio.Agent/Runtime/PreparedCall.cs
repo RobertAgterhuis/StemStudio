@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
-using StemStudio.Agent.Model;
 using StemStudio.Agent.Tools;
 using StemStudio.Contracts.Agent;
 
@@ -34,7 +33,7 @@ internal sealed record PreparedCall(FunctionCallContent Call, AgentToolDescripto
     }
 
     /// <summary>The step record of the call.</summary>
-    public RunStep ToStep(Guid runId, int seq, AgentStepStatusDto status) => new()
+    public Model.RunStep ToStep(Guid runId, int seq, AgentStepStatusDto status) => new()
     {
         Id = Guid.NewGuid(),
         RunId = runId,

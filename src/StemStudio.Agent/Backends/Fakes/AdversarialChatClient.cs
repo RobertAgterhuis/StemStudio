@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.AI;
 
 namespace StemStudio.Agent.Backends.Fakes;
@@ -50,15 +49,10 @@ public sealed class AdversarialChatClient(ScriptedCall probe, IReadOnlyList<Scri
         return _turn == 1 ? [Call(probe, 0)] : [new TextContent("Done.")];
     }
 
-    private AIContent Call(ScriptedCall call, int index) => new FunctionCallContent($"call-{_turn}-{index + 1}", call.Name, Arguments(call.Arguments));
+    private AIContent Call(ScriptedCall call, int index) => call.ToContent($"call-{_turn}-{index + 1}");
 
     private static bool SawUntrustedText(IEnumerable<ChatMessage> messages) => messages
         .SelectMany(message => message.Contents)
         .OfType<FunctionResultContent>()
         .Any(result => result.Result?.ToString()?.Contains("untrusted_text", StringComparison.Ordinal) == true);
-
-    private static Dictionary<string, object?>? Arguments(JsonElement? arguments) =>
-        arguments is { ValueKind: JsonValueKind.Object } value
-            ? value.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone())
-            : null;
 }

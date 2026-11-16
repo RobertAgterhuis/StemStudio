@@ -10,6 +10,12 @@ namespace StemStudio.Agent.Tools.Providers;
 /// <summary>Shared builders for the feature providers (descriptor defaults, projection helpers, undo actions).</summary>
 internal static class ToolDefinitions
 {
+    /// <summary>Audio length assumed for estimates when a track reports no duration (minutes).</summary>
+    public const double DefaultAudioMinutes = 4;
+
+    /// <summary>The <c>trackId</c> parameter of the track tools.</summary>
+    public static ToolParameter TrackId { get; } = Param.Uuid("trackId").Describe("Track id from search_library.");
+
     /// <summary>Contract JSON of DTO values (camelCase, enum member names).</summary>
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web) { Encoder = CanonicalJson.Encoder };
 

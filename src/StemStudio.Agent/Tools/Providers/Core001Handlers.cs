@@ -75,12 +75,7 @@ internal static class Core001Handlers
     {
         var settings = await MixProjections.ReadOpenMixerAsync(call, cancellationToken);
         var mix = await call.Actions.Mixes.CreateMixAsync(new CreateMixRequest(call.RequiredId("trackId"), settings with { Name = call.Text("name")! }), cancellationToken);
-        return new ToolResult
-        {
-            Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), ["name"] = call.Text("name") },
-            Undo = MixUndo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }, mix),
-            UndoFresh = true,
-        };
+        return FreshMix(new JsonObject { ["mixId"] = mix.Id.ToString(), ["name"] = call.Text("name") }, mix);
     }
 
     public static async Task<ToolResult> UpdateMixAsync(ToolInvocation call, CancellationToken cancellationToken)
@@ -96,13 +91,16 @@ internal static class Core001Handlers
     public static async Task<ToolResult> DuplicateMixAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
         var mix = await call.Actions.Mixes.DuplicateMixAsync(call.RequiredId("mixId"), cancellationToken);
-        return new ToolResult
-        {
-            Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), [ResultProjector.UntrustedField] = Untrusted(mix.Settings.Name) },
-            Undo = MixUndo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }, mix),
-            UndoFresh = true,
-        };
+        return FreshMix(new JsonObject { ["mixId"] = mix.Id.ToString(), [ResultProjector.UntrustedField] = Untrusted(mix.Settings.Name) }, mix);
     }
+
+    /// <summary>A mix the step created: undo is a fresh compensation (delete_mix) guarded by its <c>updatedAt</c>.</summary>
+    private static ToolResult FreshMix(JsonObject projection, MixDto mix) => new()
+    {
+        Projection = projection,
+        Undo = MixUndo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }, mix),
+        UndoFresh = true,
+    };
 
     public static async Task<ToolResult> RenameMixAsync(ToolInvocation call, CancellationToken cancellationToken)
     {

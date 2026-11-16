@@ -1,10 +1,10 @@
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Generation;
-using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Scores;
 using StemStudio.Contracts.Styles;
 using StemStudio.Contracts.Tracks;
+using LyricsInput = StemStudio.Contracts.Lyrics.LyricsInput;
 
 namespace StemStudio.AgentEval.Fixture;
 

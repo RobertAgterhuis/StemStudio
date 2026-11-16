@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using StemStudio.Agent.Model;
-using StemStudio.Agent.Ports;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Assets;
@@ -123,7 +122,7 @@ public sealed class ExportToolProvider : IAgentToolProvider
 
     private static async Task<ToolResult> ListAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
-        var query = new AssetQuery { Kind = AssetKindDto.Audio, TrackId = call.Id("trackId"), Query = call.Text("query"), Limit = MaxExports };
+        var query = new Ports.AssetQuery { Kind = AssetKindDto.Audio, TrackId = call.Id("trackId"), Query = call.Text("query"), Limit = MaxExports };
         var list = await call.Actions.Assets.ListAssetsAsync(query, cancellationToken);
         return ToolResult.Of(new JsonArray([.. list.Items.Take(MaxExports).Select(asset => (JsonNode)new JsonObject
         {

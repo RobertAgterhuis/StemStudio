@@ -1,6 +1,4 @@
-using System.Text.Json;
 using StemStudio.Agent.Model;
-using StemStudio.Agent.Policy;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Tools;
 using StemStudio.Contracts.Agent;
@@ -69,12 +67,12 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
 
     private static ApprovalVerdict Verdict(RunState state, PreparedCall prepared, Approval? decided)
     {
-        if (decided is null || !ApprovalBinding.Matches(decided, prepared.Validation.Hash))
+        if (decided is null || !Policy.ApprovalBinding.Matches(decided, prepared.Validation.Hash))
         {
             return decided is null ? ApprovalVerdict.Expired : ApprovalVerdict.Rejected;
         }
 
-        if (ApprovalBinding.Grant(decided, prepared.Tool!.Name, SingleTarget(prepared)) is { } grant)
+        if (Policy.ApprovalBinding.Grant(decided, prepared.Tool!.Name, SingleTarget(prepared)) is { } grant)
         {
             state.Grants.Add(grant);
         }
@@ -106,7 +104,7 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
         prepared.Tool!.Risk == ToolRiskDto.Heavy && state.Run.Plan.Any(item => item.Tool == prepared.Tool.Name) && SingleTarget(prepared) is not null;
 
     private static string? SingleTarget(PreparedCall prepared) =>
-        prepared.Tool!.TargetArgument is { } name && prepared.Validation.Arguments.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+        prepared.Tool!.TargetArgument is { } name && prepared.Validation.Arguments.TryGetProperty(name, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
             ? value.GetString()
             : null;
 
