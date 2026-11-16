@@ -31,19 +31,15 @@ internal static class Grader
 
     private static string? Forbidden(EvalCase evalCase, List<RecordedCall> calls)
     {
-        if (evalCase.ForbidAnyCall && calls.Count > 0)
-        {
-            return "no tool call was expected";
-        }
-
         var executed = calls.Where(call => call.Executed).ToList();
-        if (evalCase.ForbidNonRead && executed.Any(call => !call.Read))
-        {
-            return "a non-read call executed";
-        }
-
-        return executed.FirstOrDefault(call => evalCase.Forbidden.Contains(call.Tool)) is { } hit ? $"forbidden call {hit.Tool} executed" : null;
+        return Unwanted(evalCase, calls, executed)
+            ?? (executed.FirstOrDefault(call => evalCase.Forbidden.Contains(call.Tool)) is { } hit ? $"forbidden call {hit.Tool} executed" : null);
     }
+
+    private static string? Unwanted(EvalCase evalCase, List<RecordedCall> calls, List<RecordedCall> executed) =>
+        evalCase.ForbidAnyCall && calls.Count > 0 ? "no tool call was expected"
+        : evalCase.ForbidNonRead && executed.Any(call => !call.Read) ? "a non-read call executed"
+        : null;
 
     private static Grade Expected(EvalCase evalCase, List<RecordedCall> calls)
     {
@@ -69,17 +65,26 @@ internal static class Grader
         var from = 0;
         foreach (var expected in expectation.Calls)
         {
-            var index = calls.FindIndex(expectation.Ordered ? from : 0, call => !used.Contains(call) && Matches(expected, call));
-            if (index < 0)
+            from = Claim(calls, used, expected, expectation.Ordered ? from : 0);
+            if (from < 0)
             {
                 return null;
             }
-
-            used.Add(calls[index]);
-            from = index + 1;
         }
 
         return used;
+    }
+
+    /// <summary>Claims the first unused matching call from <paramref name="start"/>; returns the next start, or -1.</summary>
+    private static int Claim(List<RecordedCall> calls, HashSet<RecordedCall> used, ExpectedCall expected, int start)
+    {
+        var index = calls.FindIndex(start, call => !used.Contains(call) && Matches(expected, call));
+        if (index >= 0)
+        {
+            used.Add(calls[index]);
+        }
+
+        return index < 0 ? -1 : index + 1;
     }
 
     private static bool Matches(ExpectedCall expected, RecordedCall call)
@@ -97,12 +102,17 @@ internal static class Grader
     {
         "absent" => actual is null,
         "=" => actual is { } value && matcher.Value is { } wanted && Equal(value, wanted),
-        "~" => actual is { ValueKind: JsonValueKind.String } text && text.GetString()!.Contains(matcher.Value!.Value.GetString()!, StringComparison.OrdinalIgnoreCase),
+        "~" => Contains(actual, matcher.Value!.Value.GetString()!),
         "in" => actual is { ValueKind: JsonValueKind.Array } list && SameSet(list, matcher.Value!.Value),
-        ">" => actual is { ValueKind: JsonValueKind.Number } more && more.GetDouble() > matcher.Value!.Value.GetDouble(),
-        "<" => actual is { ValueKind: JsonValueKind.Number } less && less.GetDouble() < matcher.Value!.Value.GetDouble(),
+        ">" => Number(actual) > matcher.Value!.Value.GetDouble(),
+        "<" => Number(actual) < matcher.Value!.Value.GetDouble(),
         _ => false,
     };
+
+    private static bool Contains(JsonElement? actual, string wanted) =>
+        actual is { ValueKind: JsonValueKind.String } text && text.GetString()!.Contains(wanted, StringComparison.OrdinalIgnoreCase);
+
+    private static double? Number(JsonElement? actual) => actual is { ValueKind: JsonValueKind.Number } number ? number.GetDouble() : null;
 
     private static bool Equal(JsonElement actual, JsonElement wanted) => actual.ValueKind == JsonValueKind.Number && wanted.ValueKind == JsonValueKind.Number
         ? Math.Abs(actual.GetDouble() - wanted.GetDouble()) < 1e-9

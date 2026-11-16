@@ -16,20 +16,25 @@ internal static class SelfTest
         var failures = new List<string>();
         foreach (var evalCase in set.Cases)
         {
-            Check(failures, evalCase, ("ideal", Ideal(evalCase)), expectPass: true);
-            Check(failures, evalCase, ("3 extra reads", [.. Ideal(evalCase), ExtraRead, ExtraRead, ExtraRead]), expectPass: evalCase.Expected.Count == 0 && !evalCase.ForbidAnyCall);
-            if (evalCase.Forbidden.Count > 0)
-            {
-                Check(failures, evalCase, ("forbidden executed", [.. Ideal(evalCase), new RecordedCall(evalCase.Forbidden[0], "{}", true, false)]), expectPass: false);
-            }
-
-            if (evalCase.Expected.Count > 0)
-            {
-                Check(failures, evalCase, ("nothing called", []), expectPass: false);
-            }
+            CheckCase(failures, evalCase);
         }
 
         return failures;
+    }
+
+    private static void CheckCase(List<string> failures, EvalCase evalCase)
+    {
+        Check(failures, evalCase, ("ideal", Ideal(evalCase)), expectPass: true);
+        Check(failures, evalCase, ("3 extra reads", [.. Ideal(evalCase), ExtraRead, ExtraRead, ExtraRead]), expectPass: evalCase.Expected.Count == 0 && !evalCase.ForbidAnyCall);
+        if (evalCase.Forbidden.Count > 0)
+        {
+            Check(failures, evalCase, ("forbidden executed", [.. Ideal(evalCase), new RecordedCall(evalCase.Forbidden[0], "{}", true, false)]), expectPass: false);
+        }
+
+        if (evalCase.Expected.Count > 0)
+        {
+            Check(failures, evalCase, ("nothing called", []), expectPass: false);
+        }
     }
 
     private static void Check(List<string> failures, EvalCase evalCase, (string Name, IReadOnlyList<RecordedCall> Calls) scenario, bool expectPass)
