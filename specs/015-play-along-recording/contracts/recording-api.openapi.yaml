@@ -1,0 +1,939 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - recording delta (feature 015)
+  version: 1.14.0-delta.1
+  summary: Additive delta of the backend API for play-along recording (takes, latency calibrations).
+  description: |
+    * **Standalone, additive delta.** This document contains the new `recording` tag of the
+      backend API and, as `*Additions` schemas, the fields added to existing 007/012 schemas.
+      It is merged unchanged into the full `backend-api.openapi.yaml` **1.14.0** on top of
+      014's 1.13.0 (Phase 0 T002). No existing operation, schema or behaviour changes meaning:
+      every existing request stays valid and every existing response keeps its fields.
+    * Conventions of the backend API apply: JSON camelCase, enums lower-case strings with
+      kebab-case for compound values (`mono-1`), UTC ISO 8601 times, RFC 9457 problem details
+      with `type` = `https://stemstudio.local/problems/<code>`.
+    * **Privacy**: takes are uploaded only from the StemStudio Web server on the same machine;
+      the API never forwards them to any service except the local worker (007 render job that
+      writes the FLAC). Take audio is served through the existing 007 endpoint
+      `GET /api/assets/{assetId}/files/audio` (`RecordingTake.audioUrl`).
+    * Sample rate is always 44,100 Hz; positions and lengths are in samples
+      (`startSample`, `lengthSamples`) with seconds as derived read-only fields.
+    * Changelog: 1.14.0-delta.1 (additive, feature 015 plan) - takes (list, upload, get, update,
+      delete, batch delete, replace audio, retry), input calibrations (list, upsert, delete);
+      additions to `Asset`/`AssetOrigin`, `listAssets` (`origin`), `CreateAudioExportRequest`
+      (`takeId`), `ChannelId` (`take`), `MixSettings`/`MixSettingsInput` (`take`), `Track`
+      (`takeCount`). See ADR-024 and contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []  # single local user; no authentication
+tags:
+  - name: recording
+    description: Play-along takes and latency calibrations (1.14.0, feature 015).
+paths:
+  /api/tracks/{trackId}/takes:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [recording]
+      operationId: listRecordingTakes
+      summary: Every take of a track, newest first.
+      responses:
+        '200':
+          description: The takes and their total size.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTakeList'
+              examples:
+                twoTakes:
+                  $ref: '#/components/examples/TakeListExample'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [recording]
+      operationId: createRecordingTake
+      summary: Upload a captured take (24-bit PCM WAV) and store it as FLAC.
+      description: |
+        Multipart body with two parts: `audio` (`audio/wav`, 24-bit PCM, 44,100 Hz, 1 or 2
+        channels, the compensated span only) and `metadata` (`application/json`,
+        `RecordingTakeUpload`). The API validates the WAV, pads it to song sample 0, and
+        starts a 007 render job that writes `audio.flac`; the take is `saving` until the asset
+        is ready. The request body limit is `StemStudio:Recording:MaxUploadBytes` (256 MiB).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecordingTakeUploadForm'
+            encoding:
+              audio:
+                contentType: audio/wav, audio/x-wav, audio/wave, application/octet-stream
+              metadata:
+                contentType: application/json
+      responses:
+        '202':
+          description: Accepted; the take is being saved.
+          headers:
+            Location:
+              description: URL of the take (`/api/takes/{takeId}`).
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTake'
+              examples:
+                saving:
+                  $ref: '#/components/examples/SavingTakeExample'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/takes/delete:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [recording]
+      operationId: deleteRecordingTakes
+      summary: Delete several takes of a track at once (e.g. the other passes of a session).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteTakesRequest'
+      responses:
+        '200':
+          description: The number of deleted takes; ids that do not exist are ignored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteTakesResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/takes/{takeId}:
+    parameters:
+      - $ref: '#/components/parameters/TakeId'
+    get:
+      tags: [recording]
+      operationId: getRecordingTake
+      summary: One take.
+      responses:
+        '200':
+          description: The take.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTake'
+              examples:
+                ready:
+                  $ref: '#/components/examples/ReadyTakeExample'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [recording]
+      operationId: updateRecordingTake
+      summary: Rename, star or change the part of a take.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTakeRequest'
+      responses:
+        '200':
+          description: The updated take.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTake'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      tags: [recording]
+      operationId: deleteRecordingTake
+      summary: Delete a take and its files; saved mixes stop referring to it.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/takes/{takeId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/TakeId'
+    put:
+      tags: [recording]
+      operationId: replaceRecordingTakeAudio
+      summary: Store the take again with adjusted timing (US7).
+      description: |
+        Same multipart parts as `createRecordingTake`, with `metadata` of type
+        `ReplaceTakeAudioMetadata`. The previous audio stays until the new one is ready.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReplaceTakeAudioForm'
+            encoding:
+              audio:
+                contentType: audio/wav, audio/x-wav, audio/wave, application/octet-stream
+              metadata:
+                contentType: application/json
+      responses:
+        '202':
+          description: Accepted; the take is being saved again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTake'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/takes/{takeId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/TakeId'
+    post:
+      tags: [recording]
+      operationId: retryRecordingTake
+      summary: Run the FLAC conversion of a failed take again.
+      responses:
+        '202':
+          description: Accepted; the take is being saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingTake'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/recording/calibrations:
+    get:
+      tags: [recording]
+      operationId: listInputCalibrations
+      summary: Stored latency calibrations, one per input device name.
+      responses:
+        '200':
+          description: The calibrations (by device label).
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/InputCalibration'
+    put:
+      tags: [recording]
+      operationId: upsertInputCalibration
+      summary: Store the latency of an input device (replaces the one with the same label).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputCalibrationInput'
+            examples:
+              loopback:
+                value:
+                  deviceLabel: 'Focusrite USB (Analogue 1 + 2)'
+                  deviceIdHint: '4b1f0c...e2'
+                  latencySamples: 1102
+                  method: loopback
+                  spreadSamples: 6
+                  detectedClicks: 8
+                  outputLatencySamples: 529
+      responses:
+        '200':
+          description: The stored calibration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InputCalibration'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /api/recording/calibrations/{calibrationId}:
+    parameters:
+      - name: calibrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags: [recording]
+      operationId: deleteInputCalibration
+      summary: Forget a calibration; takes keep the latency they were recorded with.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TakeId:
+      name: takeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: |
+        Unreadable request: `invalid-wav` (not a RIFF/WAVE file or truncated), a missing part,
+        or `metadata` that is not JSON.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: Track or take not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: |
+        `track-not-ready`, `take-limit-reached` (200 per track), `insufficient-disk-space`
+        (less than 1 GiB plus twice the upload would remain), `take-not-failed` (retry of a
+        take that did not fail), `capture-missing` (retry without the stored capture; record
+        again), `take-saving` (replace while the take is still being saved).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    PayloadTooLarge:
+      description: The upload is larger than `StemStudio:Recording:MaxUploadBytes`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    UnsupportedMediaType:
+      description: |
+        `unsupported-wav-format`: a readable WAV in another format (not 24-bit PCM, not
+        44,100 Hz, more than 2 channels); `detail` names the field.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unprocessable:
+      description: |
+        Validation problem (`errors` per field) or one of `silent-take` (every sample is zero),
+        `take-outside-track` (`startSample + lengthSamples` beyond the track by more than 0.1 s),
+        `length-mismatch` (`lengthSamples` differs from the WAV), `recording-speed` (speed not 1
+        or transpose not 0).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+    WorkerUnavailable:
+      description: The worker could not be reached to start the FLAC conversion; nothing is stored.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+  schemas:
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+    RecordingPart:
+      type: string
+      enum: [none, vocals, guitar, bass, piano, drums, other]
+      description: The stem the take replaces in compare mode (`piano` is labelled "Keys"; `other` covers acoustic and other instruments).
+    InputChannelMode:
+      type: string
+      enum: [mono-1, mono-2, stereo]
+    LatencyMethod:
+      type: string
+      enum: [loopback, manual, estimated]
+    CalibrationMethod:
+      type: string
+      enum: [loopback, manual]
+    TakeStatus:
+      type: string
+      enum: [saving, ready, failed]
+    RecordingTakeUploadForm:
+      type: object
+      additionalProperties: false
+      required: [audio, metadata]
+      properties:
+        audio:
+          type: string
+          contentMediaType: audio/wav
+          description: 24-bit PCM WAV, 44,100 Hz, 1-2 channels, the compensated span of the take.
+        metadata:
+          $ref: '#/components/schemas/RecordingTakeUpload'
+    RecordingTakeUpload:
+      type: object
+      additionalProperties: false
+      required: [sessionId, partial, startSample, lengthSamples, inputMode, latencySamples, latencyMethod, part, speed, transposeSemitones, dropouts, recordedAt]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        passIndex:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 50
+        partial:
+          type: boolean
+        startSample:
+          type: integer
+          format: int64
+          minimum: 0
+        lengthSamples:
+          type: integer
+          format: int64
+          minimum: 22050
+        inputMode:
+          $ref: '#/components/schemas/InputChannelMode'
+        latencySamples:
+          type: integer
+          minimum: 0
+          maximum: 44100
+        latencyMethod:
+          $ref: '#/components/schemas/LatencyMethod'
+        calibrationId:
+          type: [string, 'null']
+          format: uuid
+        deviceLabel:
+          type: [string, 'null']
+          maxLength: 200
+        part:
+          $ref: '#/components/schemas/RecordingPart'
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+        speed:
+          type: number
+          const: 1
+          description: Playback speed while recording (012); must be 1 (else 422 `recording-speed`).
+        transposeSemitones:
+          type: integer
+          const: 0
+        dropouts:
+          type: integer
+          minimum: 0
+        recordedAt:
+          type: string
+          format: date-time
+    ReplaceTakeAudioForm:
+      type: object
+      additionalProperties: false
+      required: [audio, metadata]
+      properties:
+        audio:
+          type: string
+          contentMediaType: audio/wav
+        metadata:
+          $ref: '#/components/schemas/ReplaceTakeAudioMetadata'
+    ReplaceTakeAudioMetadata:
+      type: object
+      additionalProperties: false
+      required: [startSample, lengthSamples, adjustmentSamples]
+      properties:
+        startSample:
+          type: integer
+          format: int64
+          minimum: 0
+        lengthSamples:
+          type: integer
+          format: int64
+          minimum: 22050
+        adjustmentSamples:
+          type: integer
+          minimum: -8820
+          maximum: 8820
+          description: The shift applied by this replacement (positive = later); added to `adjustmentSamples` of the take.
+    RecordingTake:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, number, name, part, status, sessionId, partial, startSample, lengthSamples, startSeconds, durationSeconds, inputMode, inputChannels, latency, favorite, peakDbfs, clippedSamples, dropouts, quiet, adjustmentSamples, alignmentRevision, sizeBytes, assetId, recordedAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        number:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        part:
+          $ref: '#/components/schemas/RecordingPart'
+        status:
+          $ref: '#/components/schemas/TakeStatus'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        sessionId:
+          type: string
+          format: uuid
+        passIndex:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 50
+        partial:
+          type: boolean
+        startSample:
+          type: integer
+          format: int64
+        lengthSamples:
+          type: integer
+          format: int64
+        startSeconds:
+          type: number
+        durationSeconds:
+          type: number
+        inputMode:
+          $ref: '#/components/schemas/InputChannelMode'
+        inputChannels:
+          type: integer
+          enum: [1, 2]
+        latency:
+          $ref: '#/components/schemas/TakeLatency'
+        deviceLabel:
+          type: [string, 'null']
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        favorite:
+          type: boolean
+        peakDbfs:
+          type: number
+          minimum: -150
+          maximum: 0
+        clippedSamples:
+          type: integer
+          minimum: 0
+        dropouts:
+          type: integer
+          minimum: 0
+        quiet:
+          type: boolean
+          description: Peak below -50 dBFS.
+        adjustmentSamples:
+          type: integer
+        alignmentRevision:
+          type: integer
+          minimum: 0
+        sizeBytes:
+          type: integer
+          format: int64
+        assetId:
+          type: string
+          format: uuid
+        audioUrl:
+          type: [string, 'null']
+          description: '`/api/assets/{assetId}/files/audio` once ready (padded FLAC: the take starts at `startSample`).'
+        recordedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TakeLatency:
+      type: object
+      additionalProperties: false
+      required: [samples, milliseconds, method]
+      properties:
+        samples:
+          type: integer
+          minimum: 0
+          maximum: 44100
+        milliseconds:
+          type: number
+        method:
+          $ref: '#/components/schemas/LatencyMethod'
+        calibrationId:
+          type: [string, 'null']
+          format: uuid
+    RecordingTakeList:
+      type: object
+      additionalProperties: false
+      required: [items, totalSizeBytes]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/RecordingTake'
+        totalSizeBytes:
+          type: integer
+          format: int64
+    UpdateTakeRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        favorite:
+          type: boolean
+        part:
+          $ref: '#/components/schemas/RecordingPart'
+    DeleteTakesRequest:
+      type: object
+      additionalProperties: false
+      required: [takeIds]
+      properties:
+        takeIds:
+          type: array
+          minItems: 1
+          maxItems: 200
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+    DeleteTakesResult:
+      type: object
+      additionalProperties: false
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
+          minimum: 0
+    InputCalibrationInput:
+      type: object
+      additionalProperties: false
+      required: [deviceLabel, latencySamples, method, outputLatencySamples]
+      properties:
+        deviceLabel:
+          type: string
+          minLength: 1
+          maxLength: 200
+        deviceIdHint:
+          type: [string, 'null']
+          maxLength: 512
+        latencySamples:
+          type: integer
+          minimum: 0
+          maximum: 44100
+        method:
+          $ref: '#/components/schemas/CalibrationMethod'
+        spreadSamples:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 44
+        detectedClicks:
+          type: [integer, 'null']
+          minimum: 6
+          maximum: 12
+        outputLatencySamples:
+          type: integer
+          minimum: 0
+          maximum: 44100
+    InputCalibration:
+      type: object
+      additionalProperties: false
+      required: [id, deviceLabel, latencySamples, latencyMilliseconds, method, outputLatencySamples, measuredAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceLabel:
+          type: string
+        deviceIdHint:
+          type: [string, 'null']
+        latencySamples:
+          type: integer
+        latencyMilliseconds:
+          type: number
+        method:
+          $ref: '#/components/schemas/CalibrationMethod'
+        spreadSamples:
+          type: [integer, 'null']
+        detectedClicks:
+          type: [integer, 'null']
+        outputLatencySamples:
+          type: integer
+        measuredAt:
+          type: string
+          format: date-time
+    TakeChannelSettings:
+      type: object
+      additionalProperties: false
+      required: [takeId, volume, pan, mute, solo]
+      description: The take channel strip of a mix (data-model 2.6).
+      properties:
+        takeId:
+          type: string
+          format: uuid
+        volume:
+          type: number
+          minimum: 0
+          maximum: 1
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+        mute:
+          type: boolean
+        solo:
+          type: boolean
+    RecordingRecipe:
+      type: object
+      additionalProperties: false
+      required: [kind, takeId, captureFile]
+      description: New member of the `Provenance.recipe` oneOf (assets with origin `recording`).
+      properties:
+        kind:
+          type: string
+          const: recording
+        takeId:
+          type: string
+          format: uuid
+        captureFile:
+          type: string
+          const: capture.wav
+    ChannelIdAdditions:
+      description: |
+        Merge rule: the backend `ChannelId` pattern becomes
+        `^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$`. `take` is valid
+        only when the export names a take (`takeId` in raw mode, `mix.take` or the saved mix's
+        take in mix mode), else 422 `take-required`.
+      type: string
+      pattern: '^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$'
+    AssetOriginAdditions:
+      description: 'Merge rule: `AssetOrigin` enum adds `recording`.'
+      type: string
+      enum: [recording]
+    ListAssetsAdditions:
+      description: |
+        Merge rule: `listAssets` gains the optional query parameter `origin`
+        (`export`, `transcription`, `generation`, `recording`). Without it, assets with origin
+        `recording` are excluded (they are managed in the mixer's Takes panel). Asset `PATCH`,
+        `DELETE` and `retry` of a `recording` asset answer 409 `managed-by-take`.
+      type: object
+      additionalProperties: false
+      properties:
+        origin:
+          type: string
+          enum: [export, transcription, generation, recording]
+    CreateAudioExportRequestAdditions:
+      description: |
+        Merge rule: `CreateAudioExportRequest` gains `takeId` (raw mode with `channels: ["take"]`;
+        default range = the take's span). Errors: 404 unknown take, 409 `take-not-ready`, 422
+        `take-not-in-track`, 422 `take-required`.
+      type: object
+      additionalProperties: false
+      properties:
+        takeId:
+          type: [string, 'null']
+          format: uuid
+    MixSettingsAdditions:
+      description: |
+        Merge rule: `MixSettings` and `MixSettingsInput` gain `take` (null = no take strip). A
+        saved take id that no longer exists is returned as null.
+      type: object
+      additionalProperties: false
+      properties:
+        take:
+          oneOf:
+            - $ref: '#/components/schemas/TakeChannelSettings'
+            - type: 'null'
+    TrackAdditions:
+      description: 'Merge rule: `Track` (detail and list item) gains `takeCount` (used by the delete confirmation).'
+      type: object
+      additionalProperties: false
+      properties:
+        takeCount:
+          type: integer
+          minimum: 0
+          maximum: 200
+  examples:
+    SavingTakeExample:
+      summary: A take right after upload.
+      value:
+        id: 0b5f0b8e-6f0c-4a8e-9a8f-3f1e2d4c5b6a
+        trackId: 3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        number: 3
+        name: Take 3 - Guitar
+        part: guitar
+        status: saving
+        error: null
+        sessionId: 9c8b7a6d-5e4f-4321-8765-0fedcba98765
+        passIndex: null
+        partial: false
+        startSample: 1323000
+        lengthSamples: 882000
+        startSeconds: 30.0
+        durationSeconds: 20.0
+        inputMode: mono-1
+        inputChannels: 1
+        latency:
+          samples: 1102
+          milliseconds: 24.99
+          method: loopback
+          calibrationId: 7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c2d
+        deviceLabel: 'Focusrite USB (Analogue 1 + 2)'
+        mixId: null
+        favorite: false
+        peakDbfs: -7.4
+        clippedSamples: 0
+        dropouts: 0
+        quiet: false
+        adjustmentSamples: 0
+        alignmentRevision: 0
+        sizeBytes: 0
+        assetId: 5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a
+        audioUrl: null
+        recordedAt: '2026-11-16T19:02:11Z'
+        createdAt: '2026-11-16T19:02:33Z'
+        updatedAt: '2026-11-16T19:02:33Z'
+    ReadyTakeExample:
+      summary: A ready loop pass.
+      value:
+        id: 1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f
+        trackId: 3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        number: 7
+        name: Take 7 - Vocals
+        part: vocals
+        status: ready
+        error: null
+        sessionId: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
+        passIndex: 2
+        partial: false
+        startSample: 2646000
+        lengthSamples: 352800
+        startSeconds: 60.0
+        durationSeconds: 8.0
+        inputMode: mono-2
+        inputChannels: 1
+        latency:
+          samples: 1543
+          milliseconds: 34.99
+          method: manual
+          calibrationId: null
+        deviceLabel: 'USB microphone'
+        mixId: 8e7d6c5b-4a3f-4e2d-9c1b-0a9f8e7d6c5b
+        favorite: true
+        peakDbfs: -3.2
+        clippedSamples: 0
+        dropouts: 0
+        quiet: false
+        adjustmentSamples: 0
+        alignmentRevision: 0
+        sizeBytes: 6123456
+        assetId: 6e5d4c3b-2a1f-4e0d-9c8b-7a6f5e4d3c2b
+        audioUrl: /api/assets/6e5d4c3b-2a1f-4e0d-9c8b-7a6f5e4d3c2b/files/audio
+        recordedAt: '2026-11-16T19:10:00Z'
+        createdAt: '2026-11-16T19:10:20Z'
+        updatedAt: '2026-11-16T19:10:24Z'
+    TakeListExample:
+      summary: One ready take.
+      value:
+        items:
+          - id: 1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f
+            trackId: 3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+            number: 7
+            name: Take 7 - Vocals
+            part: vocals
+            status: ready
+            error: null
+            sessionId: 2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e
+            passIndex: 2
+            partial: false
+            startSample: 2646000
+            lengthSamples: 352800
+            startSeconds: 60.0
+            durationSeconds: 8.0
+            inputMode: mono-2
+            inputChannels: 1
+            latency:
+              samples: 1543
+              milliseconds: 34.99
+              method: manual
+              calibrationId: null
+            deviceLabel: 'USB microphone'
+            mixId: null
+            favorite: true
+            peakDbfs: -3.2
+            clippedSamples: 0
+            dropouts: 0
+            quiet: false
+            adjustmentSamples: 0
+            alignmentRevision: 0
+            sizeBytes: 6123456
+            assetId: 6e5d4c3b-2a1f-4e0d-9c8b-7a6f5e4d3c2b
+            audioUrl: /api/assets/6e5d4c3b-2a1f-4e0d-9c8b-7a6f5e4d3c2b/files/audio
+            recordedAt: '2026-11-16T19:10:00Z'
+            createdAt: '2026-11-16T19:10:20Z'
+            updatedAt: '2026-11-16T19:10:24Z'
+        totalSizeBytes: 6123456
