@@ -50,6 +50,15 @@ public static class AgentEndpoints
             .WithName("createConversation").WithTags(Tag).Produces<ConversationDto>(StatusCodes.Status201Created).ProducesValidationProblem();
         app.MapGet(ConversationRoute, (Guid conversationId, AgentConversationService service, CancellationToken ct) => service.GetAsync(conversationId, ct))
             .WithName("getConversation").WithTags(Tag).Produces<ConversationDto>().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPatch(ConversationRoute, (Guid conversationId, RenameConversationRequest? request, AgentConversationService service, CancellationToken ct) => service.RenameAsync(conversationId, request, ct))
+            .WithName("renameConversation").WithTags(Tag).Produces<ConversationSummaryDto>()
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        app.MapDelete(ConversationRoute, (Guid conversationId, AgentConversationService service, CancellationToken ct) => service.DeleteAsync(conversationId, ct))
+            .WithName("deleteConversation").WithTags(Tag).Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
+        app.MapPost(ConversationRoute + "/undo", (Guid conversationId, AgentUndoService service, CancellationToken ct) => service.UndoAsync(conversationId, ct))
+            .WithName("undoLastAgentAction").WithTags(Tag).Produces<AgentRunAcceptedDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapPost(ConversationRoute + "/messages", (Guid conversationId, SendAgentMessageRequest? request, AgentMessageService service, AgentStatusProbe probe, CancellationToken ct) =>
                 SendAsync(new MessageCall(conversationId, request, service, probe), ct))
             .WithName("sendAgentMessage").WithTags(Tag).Produces<AgentMessageAcceptedDto>(StatusCodes.Status202Accepted)

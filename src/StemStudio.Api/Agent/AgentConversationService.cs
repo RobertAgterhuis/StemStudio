@@ -76,6 +76,50 @@ public sealed class AgentConversationService(IConversationStore conversations, A
         });
     }
 
+    /// <summary>Renames a conversation.</summary>
+    /// <param name="conversationId">Conversation id.</param>
+    /// <param name="request">The new title.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200, 404 or 422.</returns>
+    public async Task<IResult> RenameAsync(Guid conversationId, RenameConversationRequest? request, CancellationToken cancellationToken)
+    {
+        var title = request?.Title?.Trim() ?? string.Empty;
+        if (title.Length is 0 or > AgentContractLimits.TitleMaxLength)
+        {
+            return AgentProblems.Unprocessable("title", "The title has 1 to 120 characters.");
+        }
+
+        if (await conversations.GetAsync(conversationId, cancellationToken) is not { } conversation)
+        {
+            return ConversationNotFound();
+        }
+
+        var renamed = conversation with { Title = title, UpdatedAt = clock.GetUtcNow() };
+        await conversations.UpdateAsync(renamed, cancellationToken);
+        var runs = await queries.RunsOfAsync(conversationId, cancellationToken);
+        return TypedResults.Ok(AgentDtoMapping.ToSummary(renamed, runs.Count == 0 ? null : runs[^1].Status));
+    }
+
+    /// <summary>Deletes a conversation with everything of it, unless one of its runs is still active.</summary>
+    /// <param name="conversationId">Conversation id.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>204, 404 or 409.</returns>
+    public async Task<IResult> DeleteAsync(Guid conversationId, CancellationToken cancellationToken)
+    {
+        if (await conversations.GetAsync(conversationId, cancellationToken) is null)
+        {
+            return ConversationNotFound();
+        }
+
+        if ((await queries.RunsOfAsync(conversationId, cancellationToken)).Any(run => !run.IsTerminal))
+        {
+            return AgentProblems.Conflict(AgentProblemTypes.RunActive, "Wait for the current command to finish or cancel it before deleting the conversation.");
+        }
+
+        await conversations.DeleteAsync(conversationId, cancellationToken);
+        return TypedResults.NoContent();
+    }
+
     /// <summary>404 for an unknown conversation.</summary>
     /// <returns>The result.</returns>
     public static IResult ConversationNotFound() => ApiProblems.NotFound("The conversation does not exist.");

@@ -39,6 +39,7 @@ public static class AgentRegistration
         services.AddScoped<AgentApprovalService>();
         services.AddSingleton<AgentStatusProbe>();
         services.AddScoped<AgentSettingsService>();
+        services.AddScoped<AgentUndoService>();
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();
