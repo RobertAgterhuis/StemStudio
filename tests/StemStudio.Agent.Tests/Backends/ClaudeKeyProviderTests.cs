@@ -149,11 +149,11 @@ public sealed class ClaudeKeyProviderTests
     }
 
     [Theory]
-    [InlineData(KeyStoreUnavailableReasons.NotWritable, "missing or not writable")]
-    [InlineData(KeyStoreUnavailableReasons.InsideLibrary, "inside the library folder")]
-    [InlineData(KeyStoreUnavailableReasons.InsideBackups, "inside the backups folder")]
-    [InlineData(KeyStoreUnavailableReasons.InsideApp, "inside the application folder")]
-    [InlineData(KeyStoreUnavailableReasons.InsideRepository, "inside a git repository")]
+    [InlineData(KeyStoreUnavailableReasons.NotWritable, "is missing or not writable")]
+    [InlineData(KeyStoreUnavailableReasons.InsideLibrary, "is inside the library folder")]
+    [InlineData(KeyStoreUnavailableReasons.InsideBackups, "is inside the backups folder")]
+    [InlineData(KeyStoreUnavailableReasons.InsideApp, "is inside the application folder")]
+    [InlineData(KeyStoreUnavailableReasons.InsideRepository, "is inside a git repository")]
     [InlineData("something-new", "cannot be used")]
     public void UnavailableStore_IsPassedThroughWithAReadableReason(string code, string words)
     {
