@@ -1,13 +1,13 @@
-using System.Runtime.CompilerServices;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
+using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Agent.Tests.Model;
 
 /// <summary>
 /// Skeleton tests (architect, 011 follow-up claude-key Phase 0, T005): the Claude key model and port records. The
-/// <see cref="ClaudeApiKey"/> stub tests are replaced by the ai-agent's <c>ClaudeApiKeyTests</c> (T007).
+/// <see cref="ClaudeApiKey"/> behaviour itself is covered by <c>ClaudeApiKeyTests</c> (ai-agent T007).
 /// </summary>
 public sealed class ClaudeKeySkeletonTests
 {
@@ -20,27 +20,16 @@ public sealed class ClaudeKeySkeletonTests
     }
 
     [Fact]
-    public void ClaudeApiKey_StubThrowsUntilTheAiAgentBuildsIt()
-    {
-        var key = Uninitialized();
-
-        Should.Throw<NotImplementedException>(() => ClaudeApiKey.Parse("x"));
-        Should.Throw<NotImplementedException>(key.Reveal);
-        Should.Throw<NotImplementedException>(() => key.LastFour);
-        Should.Throw<NotImplementedException>(() => key.Fingerprint);
-    }
-
-    [Fact]
     public void ClaudeApiKey_ToStringIsRedacted()
     {
-        Uninitialized().ToString().ShouldBe(ClaudeApiKey.Redacted);
+        SentinelKey().ToString().ShouldBe(ClaudeApiKey.Redacted);
         ClaudeApiKey.Redacted.ShouldBe("[redacted]");
     }
 
     [Fact]
     public void FormatResult_ValidHoldsTheKey()
     {
-        var key = Uninitialized();
+        var key = SentinelKey();
 
         var result = ClaudeKeyFormatResult.Valid(key);
 
@@ -66,7 +55,7 @@ public sealed class ClaudeKeySkeletonTests
     public void Resolution_IsConfiguredOnlyWithAKeyAndNeverPrintsIt()
     {
         var none = new ClaudeKeyResolution { State = ClaudeKeyStateDto.NotConfigured, Stored = StoredClaudeKeyStateDto.Absent, StoreAvailable = true };
-        var stored = none with { Key = Uninitialized(), Source = ClaudeKeySourceDto.Stored, State = ClaudeKeyStateDto.Stored, LastFour = "STO1" };
+        var stored = none with { Key = SentinelKey(), Source = ClaudeKeySourceDto.Stored, State = ClaudeKeyStateDto.Stored, LastFour = "STO1" };
 
         (none.Configured, stored.Configured).ShouldBe((false, true));
         stored.ToString().ShouldContain("Key = [redacted]");
@@ -82,7 +71,7 @@ public sealed class ClaudeKeySkeletonTests
     [Fact]
     public void SelectedKey_CarriesItsSource()
     {
-        var selected = new SelectedClaudeKey(Uninitialized(), ClaudeKeySourceDto.Environment);
+        var selected = new SelectedClaudeKey(SentinelKey(), ClaudeKeySourceDto.Environment);
 
         selected.Source.ShouldBe(ClaudeKeySourceDto.Environment);
         selected.ToString().ShouldContain("[redacted]");
@@ -100,6 +89,5 @@ public sealed class ClaudeKeySkeletonTests
         codes.ShouldBe(["not-writable", "inside-library", "inside-backups", "inside-app", "inside-repository"]);
     }
 
-    // The stub has no public constructor and Parse throws; an uninitialized instance reaches the members until T008.
-    private static ClaudeApiKey Uninitialized() => (ClaudeApiKey)RuntimeHelpers.GetUninitializedObject(typeof(ClaudeApiKey));
+    private static ClaudeApiKey SentinelKey() => ClaudeApiKey.Parse(ClaudeKeySentinels.Stored).Key!;
 }

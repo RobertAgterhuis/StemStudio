@@ -170,7 +170,7 @@ public sealed class ClaudeApiKeyTests
             (property.GetValue(key) as string).ShouldNotBe(ClaudeKeySentinels.Stored, property.Name);
         }
 
-        type.GetMethods().Where(m => m.ReturnType == typeof(string) && m.GetParameters().Length == 0 && !m.IsStatic)
+        type.GetMethods().Where(m => m.ReturnType == typeof(string) && m.GetParameters().Length == 0 && !m.IsStatic && !m.IsSpecialName)
             .Select(m => m.Name).Order().ShouldBe(["Reveal", "ToString"]);
         key.Reveal().ShouldBe(ClaudeKeySentinels.Stored);
     }

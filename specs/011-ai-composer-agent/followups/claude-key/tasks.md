@@ -64,8 +64,8 @@ character (research R-07).
 
 ### ai-agent (tests first)
 
-- [ ] T007 [P] [ai-agent] Failing tests `tests/StemStudio.Agent.Tests/Model/ClaudeApiKeyTests.cs`: trimming, each format reason (`empty`, `prefix`, `length` 39/257, `characters` incl. inner whitespace, `admin-key`), `LastFour`, SHA-256 `Fingerprint`, `ToString()` = `[redacted]`, `Reveal()` only path to the value [sec] (CK-FR-006, CK-FR-009)
-- [ ] T008 [ai-agent] Implement `ClaudeApiKey` (format regex assembled from constants) to pass T007
+- [x] T007 [P] [ai-agent] Failing tests `tests/StemStudio.Agent.Tests/Model/ClaudeApiKeyTests.cs`: trimming, each format reason (`empty`, `prefix`, `length` 39/257, `characters` incl. inner whitespace, `admin-key`), `LastFour`, SHA-256 `Fingerprint`, `ToString()` = `[redacted]`, `Reveal()` only path to the value [sec] (CK-FR-006, CK-FR-009) - done 2026-11-16 (`ClaudeApiKeyTests`; the stub test of `ClaudeKeySkeletonTests` removed)
+- [x] T008 [ai-agent] Implement `ClaudeApiKey` (format regex assembled from constants) to pass T007 - done 2026-11-16 (rule order empty, prefix, length, characters, admin-key; prefix assembled from parts, character class checked with `char.IsAsciiLetterOrDigit` instead of a regex)
 - [ ] T009 [P] [ai-agent] Failing tests `Backends/ClaudeKeyProviderTests.cs`: the full state table of data-model 3 (env yes/no x stored absent/readable/unreadable), environment wins, whitespace env = unset, `storeAvailable` false passthrough, readable reason/fix texts (CK-FR-001, CK-FR-008, CK-FR-011)
 - [ ] T010 [ai-agent] Implement `ClaudeKeyProvider` (over `IEnvironmentReader` + `IStoredClaudeKeyReader`, cached until `Invalidate()` or an env change) to pass T009
 
