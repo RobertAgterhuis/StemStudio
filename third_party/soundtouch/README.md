@@ -51,7 +51,9 @@ pwsh scripts/build-soundtouch.ps1    # Windows
 The script reads `soundtouch.lock`, downloads `SOUNDTOUCH_URL` into `upstream/`, verifies
 `SOUNDTOUCH_SHA256`, runs `em++` with `EMCC_FLAGS` over `SOUNDTOUCH_SOURCES` and the shim inside
 `EMSDK_IMAGE@EMSDK_DIGEST` without network access, and writes `OUTPUT`. Two builds from the same
-lock are bit-identical (measured in Phase 0, checked in CI).
+lock are bit-identical (measured in Phase 0, checked in CI). `--verify-reproducible` (`-VerifyReproducible`)
+builds twice in fresh containers and fails unless both SHA-256 match; `--local` (`-Local`) compiles with the
+`em++` of an activated local Emscripten SDK of the locked version instead of Docker.
 
 ## Replace the module with your own build (LGPL-2.1 section 6)
 

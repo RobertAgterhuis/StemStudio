@@ -11,7 +11,7 @@ and contributors, licensed under the **GNU Lesser General Public License version
   `soundtouch.lock`). The upstream source is **not modified**.
 - What StemStudio adds: the shim `shim/stemstudio_soundtouch.cpp` and the ABI header
   `include/stemstudio_soundtouch.h` (both LGPL-2.1-or-later, because they are compiled into the
-  library module), and the build script `build-soundtouch.sh`.
+  library module), and the build scripts `scripts/build-soundtouch.sh` / `scripts/build-soundtouch.ps1`.
 - Form: SoundTouch and the shim are compiled into one separate WebAssembly file,
   `js/soundtouch/soundtouch.wasm`, which the web app loads at run time through the documented ABI
   (`README.md`). StemStudio's own code (`js/time-stretch-processor.js`, `js/audio-engine.js`) is
@@ -23,4 +23,4 @@ and contributors, licensed under the **GNU Lesser General Public License version
 
 Every binary distribution of StemStudio (the web Docker image, release archives) contains this
 folder as `/third-party/soundtouch/` with `COPYING.TXT`, this notice, the source archive, the shim,
-the header and the build script; the web app serves it at `/third-party/soundtouch/`.
+the header and the build scripts; the web app serves it at `/third-party/soundtouch/index.html`.

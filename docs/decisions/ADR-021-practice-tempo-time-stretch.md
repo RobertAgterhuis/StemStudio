@@ -161,3 +161,5 @@ None changes `types.ts` 2.3.0 or the WASM ABI.
 - **E10 Contract text fix requested.** audio-engine.md "Content offset" says input frame n lands near SoundTouch
   output frame `n - c(p)`; the measurement (and `L(p) = (D + c(p)) / sampleRate`) needs `n + c(p)`. The Node suite
   measures `output onset - input onset`: 17.5 ms at p = 0.5 (c = 24.9 ms) and -33.1 ms at p = 2 (c = -24.9 ms).
+  **Applied by the CTO in the 012 integration wave** (audio-engine.md 2.3.0 now reads `n + c(p)`; editorial, no
+  behaviour or version change).

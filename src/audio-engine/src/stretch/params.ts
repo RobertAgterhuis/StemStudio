@@ -42,7 +42,7 @@ export function needsStretch(settings: PracticeSettings): boolean {
 }
 
 /**
- * Mean WSOLA content offset: input frame `n` appears near SoundTouch output frame `n - c(p)` (ADR-021 P6).
+ * Mean WSOLA content offset: input frame `n` appears near SoundTouch output frame `n + c(p)` (ADR-021 P6).
  *
  * @param factor - Pitch factor.
  * @returns `round(-1100 * log2(p))` frames (0 at factor 1, never -0).

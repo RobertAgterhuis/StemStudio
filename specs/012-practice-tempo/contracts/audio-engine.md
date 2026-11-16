@@ -424,7 +424,7 @@ type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPract
   FIFO and refills `D` frames of silence. The engine requests `sampleRate` 44100; `D` is defined in
   frames at that rate.
 - **Content offset c(p)**: WSOLA places the audio of input frame `n` near SoundTouch output frame
-  `n - c(p)` (measured mean: +32 ms at p = 0.42, 0 at p = 1, -28 ms at p = 2, -40 ms at p = 4;
+  `n + c(p)` (measured mean: +32 ms at p = 0.42, 0 at p = 1, -28 ms at p = 2, -40 ms at p = 4;
   per-onset spread up to +-23 ms, inherent to WSOLA). The engine compensates the mean with the
   constant model `c(p) = round(STRETCH_CONTENT_FRAMES_PER_OCTAVE * log2(p))`,
   `STRETCH_CONTENT_FRAMES_PER_OCTAVE = -1100` (`stretch/constants.ts`); heard latency
