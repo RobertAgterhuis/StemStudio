@@ -47,7 +47,8 @@ public sealed class RunEventHub(AgentDb db, TimeProvider clock) : IRunEventSink,
         await _appendLock.WaitAsync(cancellationToken);
         try
         {
-            var entity = await db.WithAsync(context => new RunEventLog(context).AppendAsync(runId, type, payload, clock.GetUtcNow().UtcDateTime, cancellationToken));
+            var entity = await db.WithAsync(context => new RunEventLog(context).AppendAsync(
+                new RunEventEntity { RunId = runId, Type = type, Payload = payload, CreatedAt = clock.GetUtcNow().UtcDateTime }, cancellationToken));
             var runEvent = ToRecord(entity);
             Broadcast(runEvent);
             return runEvent;

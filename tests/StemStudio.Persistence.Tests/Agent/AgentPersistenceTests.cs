@@ -109,10 +109,10 @@ public sealed class AgentPersistenceTests
 
         await using var context = db.NewContext();
         var log = new RunEventLog(context);
-        (await log.AppendAsync(run.Id, "run.started", "{}", T0, Ct)).Seq.ShouldBe(1);
-        (await log.AppendAsync(other.Id, "run.started", "{}", T0, Ct)).Seq.ShouldBe(1);
-        (await log.AppendAsync(run.Id, "text.delta", """{"text":"Hi"}""", T0.AddSeconds(1), Ct)).Seq.ShouldBe(2);
-        (await log.AppendAsync(run.Id, "run.completed", "{}", T0.AddSeconds(2), Ct)).Seq.ShouldBe(3);
+        (await log.AppendAsync(Event(run.Id, "run.started", "{}", T0), Ct)).Seq.ShouldBe(1);
+        (await log.AppendAsync(Event(other.Id, "run.started", "{}", T0), Ct)).Seq.ShouldBe(1);
+        (await log.AppendAsync(Event(run.Id, "text.delta", """{"text":"Hi"}""", T0.AddSeconds(1)), Ct)).Seq.ShouldBe(2);
+        (await log.AppendAsync(Event(run.Id, "run.completed", "{}", T0.AddSeconds(2)), Ct)).Seq.ShouldBe(3);
 
         (await log.ListAfterAsync(run.Id, 0, Ct)).Select(e => e.Type).ShouldBe(["run.started", "text.delta", "run.completed"]);
         var replay = await log.ListAfterAsync(run.Id, 1, Ct);
@@ -138,7 +138,7 @@ public sealed class AgentPersistenceTests
             write.AgentApprovals.Add(AgentRows.Approval(step.Id, run.Id, T0));
             write.AgentUndoEntries.Add(AgentRows.Undo(conversation.Id, run.Id, step.Id, 1));
             await write.SaveChangesAsync(Ct);
-            await new RunEventLog(write).AppendAsync(run.Id, "run.started", "{}", T0, Ct);
+            await new RunEventLog(write).AppendAsync(Event(run.Id, "run.started", "{}", T0), Ct);
         }
 
         await using (var delete = db.NewContext())
@@ -177,4 +177,7 @@ public sealed class AgentPersistenceTests
             File.Delete(path);
         }
     }
+
+    private static RunEventEntity Event(Guid runId, string type, string payload, DateTime createdAt) =>
+        new() { RunId = runId, Type = type, Payload = payload, CreatedAt = createdAt };
 }
