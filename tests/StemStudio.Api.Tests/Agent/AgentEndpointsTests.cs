@@ -212,6 +212,53 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         (await ReadStreamAsync(runId, 1))[0].Data.ShouldBe("""{"text":"Muting."}""");
     }
 
+    [Fact]
+    public async Task Events_FlushTheHeadersBeforeTheFirstEvent()
+    {
+        var runId = await StartRunAsync();
+
+        var open = Client.GetAsync(ApiRoutes.AgentRunEvents(runId), HttpCompletionOption.ResponseHeadersRead, Ct);
+        (await Task.WhenAny(open, Task.Delay(TimeSpan.FromSeconds(10), Ct))).ShouldBe(open);
+
+        using var response = await open;
+        response.Content.Headers.ContentType!.MediaType.ShouldBe("text/event-stream");
+    }
+
+    [Fact]
+    public async Task Events_AfterWinsOverLastEventId()
+    {
+        var runId = await StartRunAsync();
+        await PublishAsync(runId, AgentEventTypes.TextDelta, new TextDeltaEventDto { Text = "a" });
+        await PublishAsync(runId, AgentEventTypes.TextDelta, new TextDeltaEventDto { Text = "b" });
+        await PublishAsync(runId, AgentEventTypes.RunCompleted, new RunCompletedEventDto { RunId = runId, MessageId = Guid.NewGuid() });
+
+        (await ReadStreamAsync(runId, 1, lastEventId: "2")).Select(e => e.Id).ShouldBe(["2", "3"]);
+    }
+
+    [Theory]
+    [InlineData("cpu", "cpu")]
+    [InlineData("CPU", "cpu")]
+    [InlineData("cuda:0", "gpu")]
+    [InlineData("NVIDIA GeForce RTX 5070 Ti", "gpu")]
+    [InlineData(null, null)]
+    public async Task GetRun_MapsTheApprovalDeviceToCpuOrGpu(string? device, string? expected)
+    {
+        var runId = await StartRunAsync();
+        var step = AgentRecords.Step(runId, 1, AgentStepStatusDto.AwaitingApproval);
+        await Service<IRunStore>().SaveStepAsync(step, Ct);
+        await Service<IRunStore>().SaveApprovalAsync(AgentRecords.Approval(step.Id, runId), Ct);
+        await PublishAsync(runId, AgentEventTypes.ApprovalRequested, new ApprovalRequestDto
+        {
+            StepId = step.Id, Tool = "split_detail", Risk = ToolRiskDto.Heavy, Arguments = JsonDocument.Parse("{}").RootElement,
+            ArgumentsHash = step.ArgumentsHash, Effect = "Splits drums", Undoable = true, EstimatedMinutes = 6, Device = device, AllowPlanScope = true,
+        });
+
+        using var response = await Client.GetAsync(ApiRoutes.AgentRun(runId), Ct);
+
+        await ContractAssert.MatchesAsync(response, "getAgentRun");
+        (await response.BodyAsync<AgentRunDto>()).PendingApproval!.Device.ShouldBe(expected);
+    }
+
     [Theory]
     [InlineData("?after=-1", null)]
     [InlineData("?after=x", null)]
