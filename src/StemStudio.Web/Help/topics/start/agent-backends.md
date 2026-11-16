@@ -3,6 +3,8 @@ id: agent-backends
 title: "Agent backends"
 area: start
 summary: "The agent runs on Ollama on this computer by default; Claude is optional and paid per use; None turns it off."
+route: "/settings"
+anchors: ["agent-backends"]
 keywords: ["ollama", "claude", "backend", "model", "local", "fallback", "settings"]
 related: [agent-panel, agent-approvals]
 reviewed: "011"

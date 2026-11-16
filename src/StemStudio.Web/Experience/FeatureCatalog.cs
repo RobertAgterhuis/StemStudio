@@ -55,6 +55,8 @@ public static class FeatureCatalog
         new("agent.conversation-actions", Advanced, null, "agent-panel"),
         new("agent.usage", Advanced, null, "agent-backends"),
         new("agent.tool-log", Expert, null, "agent-panel"),
+        new("agent.models", Advanced, null, "agent-backends"),
+        new("agent.claude-options", Expert, null, "agent-backends"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

@@ -12,6 +12,14 @@ public static class AgentWire
     public static string Name<T>(T value)
         where T : struct, Enum => JsonSerializer.Serialize(value, AgentApiClient.Json).Trim('"');
 
+    /// <summary>The enum member of a wire name (the inverse of <see cref="Name{T}"/>).</summary>
+    /// <typeparam name="T">A contract enum with a string converter.</typeparam>
+    /// <param name="wire">The wire name, e.g. <c>claude-haiku-5-5</c>.</param>
+    /// <returns>The member.</returns>
+    /// <exception cref="JsonException">The name is not a member.</exception>
+    public static T Parse<T>(string wire)
+        where T : struct, Enum => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(wire), AgentApiClient.Json);
+
     /// <summary>
     /// Enter sends, Shift+Enter keeps a new line (ui-test-ids <c>agent-input</c>): when Enter without Shift was pressed
     /// and the browser inserted exactly one new line, returns the text without it.
