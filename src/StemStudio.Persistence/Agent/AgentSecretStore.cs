@@ -56,11 +56,7 @@ public sealed class AgentSecretStore : IAgentSecretStore
         ArgumentNullException.ThrowIfNull(secret);
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         var existing = await _context.AgentSecrets.SingleOrDefaultAsync(row => row.Name == secret.Name, cancellationToken);
-        var target = existing ?? _context.AgentSecrets.Add(new AgentSecretEntity { Name = secret.Name }).Entity;
-        target.Ciphertext = secret.Ciphertext;
-        target.LastFour = secret.LastFour;
-        target.PurposeVersion = secret.PurposeVersion;
-        target.StoredAt = secret.StoredAt;
+        Apply(existing ?? _context.AgentSecrets.Add(new AgentSecretEntity { Name = secret.Name }).Entity, secret);
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
@@ -73,6 +69,14 @@ public sealed class AgentSecretStore : IAgentSecretStore
 
         await transaction.CommitAsync(cancellationToken);
         return existing is not null;
+    }
+
+    private static void Apply(AgentSecretEntity target, AgentSecretEntity secret)
+    {
+        target.Ciphertext = secret.Ciphertext;
+        target.LastFour = secret.LastFour;
+        target.PurposeVersion = secret.PurposeVersion;
+        target.StoredAt = secret.StoredAt;
     }
 
     /// <inheritdoc />

@@ -3,6 +3,7 @@ using StemStudio.Agent;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Gpu;
 using StemStudio.Api.Agent.Loopback;
+using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Agent.Stores;
 
 namespace StemStudio.Api.Agent;
@@ -38,6 +39,7 @@ public static class AgentRegistration
         services.AddSingleton<RunEventHub>();
         services.AddSingleton<IRunEventSink>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<IRunEventLogReader>(sp => sp.GetRequiredService<RunEventHub>());
+        services.AddClaudeKeyStore();
         return services;
     }
 

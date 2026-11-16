@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+using NSubstitute;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Secrets;
@@ -167,7 +169,8 @@ public sealed class ProtectedClaudeKeyStoreTests : IDisposable
 
         host.Services.GetRequiredService<IKeyManager>().RevokeAllKeys(DateTimeOffset.UtcNow.AddMinutes(1), "test");
 
-        host.Store.Read().State.ShouldBe(StoredClaudeKeyStateDto.Unreadable);
+        // Data Protection refreshes a changed key ring in the background (the first reads may still see the old ring).
+        await Eventually.WaitUntilAsync(() => Task.FromResult(host.Store.Read().State == StoredClaudeKeyStateDto.Unreadable));
     }
 
     [Fact]
@@ -178,10 +181,12 @@ public sealed class ProtectedClaudeKeyStoreTests : IDisposable
         var before = host.Row()!.Ciphertext;
         host.Services.GetRequiredService<IKeyManager>().CreateNewKey(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(90));
         host.Clock.Advance(TimeSpan.FromDays(1));
+        StoredClaudeKey? stored = null;
 
-        var stored = host.Store.Read();
+        // Data Protection refreshes a changed key ring in the background (the first reads may still see the old key as default).
+        await Eventually.WaitUntilAsync(() => Task.FromResult((stored = host.Store.Read()).StoredAt != Start));
 
-        stored.Key!.Reveal().ShouldBe(ClaudeKeySentinels.Stored);
+        stored!.Key!.Reveal().ShouldBe(ClaudeKeySentinels.Stored);
         stored.StoredAt.ShouldBe(Start.AddDays(1));
         var row = host.Row()!;
         row.Ciphertext.ShouldNotBe(before);
@@ -274,6 +279,33 @@ public sealed class ProtectedClaudeKeyStoreTests : IDisposable
 
         await Should.ThrowAsync<ArgumentNullException>(() => host.Store.StoreAsync(null!, Ct));
         Should.Throw<ArgumentNullException>(() => host.Services.GetRequiredService<ClaudeKeyProtector>().Protect(null!));
+    }
+
+    [Fact]
+    public void Protector_WithoutPersistedSupport_StillDecrypts()
+    {
+        var inner = Substitute.For<IDataProtector>();
+        inner.Protect(Arg.Any<byte[]>()).Returns(call => call.Arg<byte[]>());
+        inner.Unprotect(Arg.Any<byte[]>()).Returns(call => call.Arg<byte[]>());
+        var provider = Substitute.For<IDataProtectionProvider>();
+        provider.CreateProtector(DataProtectionSetup.ClaudeKeyPurpose).Returns(inner);
+        var protector = new ClaudeKeyProtector(provider, KeyRingStatus.Ready(_root.FullName, null));
+
+        protector.Unprotect(protector.Protect("value")).ShouldBe(new UnprotectResult("value", false, null));
+        Should.Throw<ArgumentNullException>(() => new ClaudeKeyProtector(null!, KeyRingStatus.Ready(_root.FullName, null)));
+        Should.Throw<ArgumentNullException>(() => new ClaudeKeyProtector(provider, null!));
+    }
+
+    [Fact]
+    public async Task DecryptedValueThatIsNoKey_IsLoggedAsAFormatFailure()
+    {
+        var host = Host("keys");
+        await host.Store.StoreAsync(Key(ClaudeKeySentinels.Stored), Ct);
+        await host.ExecuteAsync($"UPDATE AgentSecrets SET Ciphertext = '{host.Services.GetRequiredService<ClaudeKeyProtector>().Protect("not a key")}'");
+
+        host.Store.Read();
+
+        host.Logs.For(nameof(ProtectedClaudeKeyStore)).ShouldContain(entry => entry.Message.Contains("InvalidKeyFormat", StringComparison.Ordinal));
     }
 
     private static ClaudeApiKey Key(string value) => ClaudeApiKey.Parse(value).Key.ShouldNotBeNull();

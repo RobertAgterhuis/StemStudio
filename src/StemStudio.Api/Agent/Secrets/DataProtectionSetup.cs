@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Agent.Ports;
 using StemStudio.Api.Storage;
 
 namespace StemStudio.Api.Agent.Secrets;
@@ -40,19 +42,24 @@ public static class DataProtectionSetup
         var locations = new KeyRingLocations(ConfiguredKeyRingDirectory(configuration, contentRoot), dataDirectory.Root, backupDir, contentRoot);
         var status = KeyRingDirectory.Prepare(locations, UnixFileModes.ForCurrentPlatform());
         services.AddSingleton(status);
-        var builder = services.AddDataProtection().SetApplicationName(ApplicationName);
-        if (!status.Available)
-        {
-            builder.UseEphemeralDataProtectionProvider();
-            return services;
-        }
+        Configure(services.AddDataProtection().SetApplicationName(ApplicationName), status);
+        return services;
+    }
 
-        builder.PersistKeysToFileSystem(new DirectoryInfo(status.Path));
-        if (OperatingSystem.IsWindows())
-        {
-            builder.ProtectKeysWithDpapi();
-        }
-
+    /// <summary>
+    /// Registers <see cref="ProtectedClaudeKeyStore"/> as the singleton behind <see cref="IStoredClaudeKeyReader"/> and
+    /// <see cref="IStoredClaudeKeyWriter"/> (needs <see cref="AddClaudeKeyProtection"/> and the persistence registrations).
+    /// </summary>
+    /// <param name="services">Service collection.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddClaudeKeyStore(this IServiceCollection services)
+    {
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<ClaudeKeyProtector>();
+        services.AddSingleton<ClaudeKeyRow>();
+        services.AddSingleton<ProtectedClaudeKeyStore>();
+        services.AddSingleton<IStoredClaudeKeyReader>(sp => sp.GetRequiredService<ProtectedClaudeKeyStore>());
+        services.AddSingleton<IStoredClaudeKeyWriter>(sp => sp.GetRequiredService<ProtectedClaudeKeyStore>());
         return services;
     }
 
@@ -64,6 +71,21 @@ public static class DataProtectionSetup
     {
         ArgumentNullException.ThrowIfNull(configuration);
         return Resolve(configuration[KeyRingDirKey], contentRoot) ?? KeyRingDefaults.ForCurrentProcess();
+    }
+
+    private static void Configure(IDataProtectionBuilder builder, KeyRingStatus status)
+    {
+        if (!status.Available)
+        {
+            builder.UseEphemeralDataProtectionProvider();
+            return;
+        }
+
+        builder.PersistKeysToFileSystem(new DirectoryInfo(status.Path));
+        if (OperatingSystem.IsWindows())
+        {
+            builder.ProtectKeysWithDpapi();
+        }
     }
 
     private static string? Resolve(string? configured, string contentRoot) =>

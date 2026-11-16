@@ -36,22 +36,14 @@ public static class KeyRingDirectory
 
     private static string? PlacementProblem(string directory, KeyRingLocations locations)
     {
-        if (IsSameOrBelow(directory, locations.DataDir))
-        {
-            return KeyStoreUnavailableReasons.InsideLibrary;
-        }
-
-        if (locations.BackupDir is { } backups && IsSameOrBelow(directory, backups))
-        {
-            return KeyStoreUnavailableReasons.InsideBackups;
-        }
-
-        if (IsSameOrBelow(directory, locations.ContentRoot))
-        {
-            return KeyStoreUnavailableReasons.InsideApp;
-        }
-
-        return IsInGitWorkTree(directory) ? KeyStoreUnavailableReasons.InsideRepository : null;
+        (string? Parent, string Reason)[] forbidden =
+        [
+            (locations.DataDir, KeyStoreUnavailableReasons.InsideLibrary),
+            (locations.BackupDir, KeyStoreUnavailableReasons.InsideBackups),
+            (locations.ContentRoot, KeyStoreUnavailableReasons.InsideApp),
+        ];
+        var inside = forbidden.FirstOrDefault(entry => entry.Parent is { } parent && IsSameOrBelow(directory, parent));
+        return inside.Reason ?? (IsInGitWorkTree(directory) ? KeyStoreUnavailableReasons.InsideRepository : null);
     }
 
     private static bool IsSameOrBelow(string path, string parent)
@@ -100,19 +92,19 @@ public static class KeyRingDirectory
         }
 
         var mode = modes.GetMode(directory);
-        if ((mode & ~OwnerOnly) == 0)
-        {
-            return null;
-        }
+        return (mode & ~OwnerOnly) == 0 || TrySetOwnerOnly(directory, modes) ? null : mode;
+    }
 
+    private static bool TrySetOwnerOnly(string directory, IUnixFileModes modes)
+    {
         try
         {
             modes.SetMode(directory, OwnerOnly);
-            return null;
+            return true;
         }
         catch (UnauthorizedAccessException)
         {
-            return mode;
+            return false;
         }
     }
 }
