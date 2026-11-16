@@ -131,11 +131,11 @@ character (research R-07).
 - [ ] T043 [US5] [backend] Implement the remaining wiring to pass T042
 - [ ] T044 [P] [US5] [frontend] Failing tests: `settings-agent-claude-key-unreadable` text and fix; agent panel unavailable state offers "Switch to Local" for this reason
 - [ ] T045 [US5] [frontend] Implement to pass T044
-- [ ] T046 [P] [US5] [qa] E2E `e2e/tests/agent-claude-key.spec.ts` part 2: make the stored key unreadable by removing the key ring files (`docker compose exec api sh -c 'rm -f /keys/*.xml'` + `docker compose restart api` in `scripts/agent-e2e.*`), then assert the unreadable state and recovery by saving a new key
+- [x] T046 [P] [US5] [qa] E2E `e2e/tests/agent-claude-key.spec.ts` part 2: make the stored key unreadable by removing the key ring files (`docker compose exec api sh -c 'rm -f /keys/*.xml'` + `docker compose restart api` in `scripts/agent-e2e.*`), then assert the unreadable state and recovery by saving a new key
 
 ## Phase 7: Polish and cross-cutting
 
-- [ ] T047 [P] [US1] [qa] E2E `agent-claude-key.spec.ts` part 1: save, status with last four, DOM and input value without the sentinel, replace, delete with confirmation, local-only notice under a non-allow-listed host name; must-not-call proof via the API's request counter of the fake Anthropic handler (CK-SC-001, CK-SC-002, CK-SC-005)
+- [x] T047 [P] [US1] [qa] E2E `agent-claude-key.spec.ts` part 1: save, status with last four, DOM and input value without the sentinel, replace, delete with confirmation, local-only notice under a non-allow-listed host name; must-not-call proof via the API's request counter of the fake Anthropic handler (CK-SC-001, CK-SC-002, CK-SC-005)
 - [ ] T048 [qa] Audit: every [sec] test asserts the behaviour (not only status codes); no key-shaped literal in tests or fixtures (`scripts/secret_scan.py`); coverage evidence of all owners; hand-off
 - [ ] T049 [P] [frontend] Help topic `agent-claude-key` (sources, precedence, what is and is not protected in plain words, recovery) with its help-content test; axe checks of the section (WCAG 2.2 AA) (CK-FR-018, CK-SC-006)
 - [ ] T050 [P] [devops] Non-Docker path: `scripts/dev.{ps1,sh}` print the key ring directory; check script asserts the default per-user directory is outside the repository and the library; technical notes for the CTO's manual edit
