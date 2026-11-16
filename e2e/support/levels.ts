@@ -284,3 +284,29 @@ export const beginnerHiddenUseMyVoiceIds: readonly string[] = ['take-voice-pitch
 
 /** 1.8.0/1.9.0 rail links, rendered at every level. */
 export const generativeNavIds: readonly string[] = ['nav-generations', 'nav-styles', 'nav-songs', 'nav-lyrics', 'nav-voices'];
+
+/** 1.10.0 layout and rail controls of feature 011, rendered on every page at every level. */
+export const agentShellIds: readonly string[] = ['agent-toggle', 'nav-settings'];
+
+/** 1.10.0 settings page ids rendered at every level, whatever the backend state. */
+export const everyLevelSettingsIds: readonly string[] = [
+  'settings-agent-backend',
+  'settings-agent-backend-ollama',
+  'settings-agent-backend-claude',
+  'settings-agent-backend-none',
+  'settings-agent-ollama-status',
+  'settings-agent-claude-status',
+  'settings-agent-test',
+  'settings-agent-save',
+];
+
+/** 1.10.0 settings page ids that Beginner does not render (Advanced: Ollama pickers; Expert: Claude pickers). */
+export const beginnerHiddenSettingsIds: readonly string[] = [
+  'settings-agent-ollama-model',
+  'settings-agent-ollama-fallback-model',
+  'settings-agent-claude-model',
+  'settings-agent-claude-effort',
+];
+
+/** 1.10.0 settings page ids rendered only at Expert. */
+export const expertSettingsIds: readonly string[] = ['settings-agent-claude-model', 'settings-agent-claude-effort'];

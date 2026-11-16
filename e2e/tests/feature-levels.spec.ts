@@ -5,16 +5,20 @@ import { fakeJobTimeoutMs } from '../support/env';
 import {
   advancedMixDialogIds,
   advancedTrackFeatureIds,
+  agentShellIds,
   beginnerHiddenDialogIds,
   beginnerHiddenLibraryIds,
+  beginnerHiddenSettingsIds,
   beginnerHiddenTrackFeatureIds,
   everyLevelLibraryIds,
   everyLevelMixDialogIds,
   everyLevelMixerFeatureIds,
+  everyLevelSettingsIds,
   everyLevelTrackFeatureIds,
   expectNoIdWithPrefix,
   expectNotRendered,
   expectRendered,
+  expertSettingsIds,
 } from '../support/levels';
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/test';
@@ -23,7 +27,9 @@ import type { MixerPage } from '../pages/mixer-page';
 
 // Level rules of the 005/007 additions (ui-test-ids 1.4.0 and 1.5.0 "Beginner" columns, R7;
 // 005 FR-015, 007 FR-014, quickstart X10). The band info facts at Beginner are asserted in
-// band-info.spec.ts (they need STEMSTUDIO_FAKE_ONLINE=found).
+// band-info.spec.ts (they need STEMSTUDIO_FAKE_ONLINE=found). The 011 settings page (ui-test-ids
+// 1.10.0) is covered at every level; the Advanced/Expert pickers depend on the backend state, so
+// only their absence below their level is asserted.
 let track: TrackDto;
 
 test.beforeEach(async ({ api }) => {
@@ -34,6 +40,12 @@ test.beforeEach(async ({ api }) => {
 async function openTrack(page: Page): Promise<void> {
   await page.goto(`/tracks/${track.id}`);
   await expect(page.getByTestId('track-status')).toHaveText(/completed/i);
+}
+
+/** Opens `/settings` (feature 011) and waits for its agent section. */
+async function openSettings(page: Page): Promise<void> {
+  await page.goto('/settings');
+  await expect(page.getByTestId('settings-agent-backend')).toBeVisible();
 }
 
 async function openMixDialog(page: Page, mixer: MixerPage, exportDialog: ExportDialog): Promise<void> {
@@ -68,6 +80,13 @@ test.describe('Beginner', () => {
     await expectRendered(page, everyLevelLibraryIds);
     await expectNotRendered(page, beginnerHiddenLibraryIds);
   });
+
+  test('the settings page shows the backend choice, status, test and save, no model pickers', { tag: '@agent' }, async ({ page }) => {
+    await openSettings(page);
+    await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'beginner');
+    await expectRendered(page, [...agentShellIds, ...everyLevelSettingsIds]);
+    await expectNotRendered(page, beginnerHiddenSettingsIds);
+  });
 });
 
 test.describe('Advanced', () => {
@@ -96,5 +115,22 @@ test.describe('Advanced', () => {
     await library.goto();
     await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'advanced');
     await expectRendered(page, [...everyLevelLibraryIds, ...beginnerHiddenLibraryIds]);
+  });
+
+  test('the settings page renders every level-free control and no Claude pickers (Expert only)', { tag: '@agent' }, async ({ page }) => {
+    await openSettings(page);
+    await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'advanced');
+    await expectRendered(page, [...agentShellIds, ...everyLevelSettingsIds]);
+    await expectNotRendered(page, expertSettingsIds);
+  });
+});
+
+test.describe('Expert', () => {
+  test.use({ storageState: levelState('expert') });
+
+  test('the settings page renders every level-free control', { tag: '@agent' }, async ({ page }) => {
+    await openSettings(page);
+    await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'expert');
+    await expectRendered(page, [...agentShellIds, ...everyLevelSettingsIds]);
   });
 });

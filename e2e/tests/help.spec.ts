@@ -1,6 +1,8 @@
 import { navPaths } from '../pages/app-shell';
 import type { HelpOpener, HelpPanel } from '../pages/help-panel';
 import {
+  agentPageMarkers,
+  agentScreenTopics,
   artworkReferenceQueries,
   blurActiveElement,
   expectHelpMarker,
@@ -12,7 +14,7 @@ import {
   scoreReferenceQueries,
   wrongFirstResults,
 } from '../support/help';
-import { expectRendered, generativeNavIds } from '../support/levels';
+import { agentShellIds, expectRendered, generativeNavIds } from '../support/levels';
 import { requireLyricsMode } from '../support/lyrics';
 import { levelState } from '../support/preferences';
 import { openScreen, screenTopics, type ScreenId } from '../support/screens';
@@ -227,6 +229,33 @@ test('the style, generation, song and voice pages carry their help markers', { t
   await page.getByTestId('voice-new').click();
   await expect(page.getByTestId('voice-consent-text')).toBeVisible();
   await expectHelpMarker(shell.root, 'voice-consent');
+});
+
+// The settings page of feature 011 (ui-test-ids 1.10.0, help topic `agent-backends`). Tagged
+// @agent: the agent passes of T080 run it, `npm test` keeps its 010 scope.
+test('the settings page opens its screen topic and carries its help marker', { tag: '@agent' }, async ({ help, page, shell }) => {
+  for (const [path, topicId] of Object.entries(agentScreenTopics)) {
+    await page.goto(path);
+    await shell.waitForShell();
+    await help.open('button');
+    await help.expectTopic(topicId);
+    await expect.poll(() => shell.focusIsInside(help.panel), `${path}: focus moves into the panel`).toBe(true);
+    await help.closeWithEscape();
+  }
+  for (const [path, topicIds] of Object.entries(agentPageMarkers)) {
+    await page.goto(path);
+    for (const topicId of topicIds) {
+      await expectHelpMarker(shell.root, topicId);
+    }
+  }
+});
+
+test('the layout shows the agent toggle and the rail link reaches the settings page (ui-test-ids 1.10.0)', { tag: '@agent' }, async ({ page, shell }) => {
+  await page.goto('/');
+  await expectRendered(page, agentShellIds);
+  await shell.navigate('settings');
+  await expect(page).toHaveURL(navPaths.settings);
+  await expectRendered(page, agentShellIds);
 });
 
 test.describe('at Beginner', () => {

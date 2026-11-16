@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "US2 (T049): delete the mix loaded in the open mixer (destructive -> approval card); the test approves.",
+  "turns": [
+    { "calls": [{ "name": "delete_mix", "arguments": { "mixId": "{{context.mixId}}" } }] },
+    { "text": "The mix is deleted." }
+  ]
+}

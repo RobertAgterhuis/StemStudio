@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "US6 (T078b): restyle the track of the page context with the 009 preset Jazz trio over 2-14 s (heavy -> approval card); the test approves. Needs the fake generator.",
+  "turns": [
+    {
+      "calls": [
+        {
+          "name": "restyle_track",
+          "arguments": {
+            "trackId": "{{context.trackId}}",
+            "styleId": "3f9c2a1e-6b4d-4e8f-a0c2-1d3e5f7a9b01",
+            "mode": "range",
+            "rangeStartSeconds": 2,
+            "rangeEndSeconds": 14
+          }
+        }
+      ]
+    },
+    { "text": "The restyle as Jazz trio is queued." }
+  ]
+}
