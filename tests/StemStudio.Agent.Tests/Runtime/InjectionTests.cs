@@ -94,9 +94,9 @@ public sealed class InjectionTests
 
         var run = (await harness.CurrentRunAsync())!;
         run.Tainted.ShouldBeTrue(source);
-        await harness.Actions.Tracks.DidNotReceiveWithAnyArgs().DeleteTrackAsync(default, default);
-        await harness.Actions.Tracks.DidNotReceiveWithAnyArgs().ImportFromUrlAsync(default!, default);
-        await harness.Actions.Mixes.DidNotReceiveWithAnyArgs().UpdateMixAsync(default, default!, default);
+        await harness.Actions.Tracks.DidNotReceive().DeleteTrackAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await harness.Actions.Tracks.DidNotReceive().ImportFromUrlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await harness.Actions.Mixes.DidNotReceive().UpdateMixAsync(Arg.Any<Guid>(), Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>());
         var attacks = harness.Runs.Steps.Where(step => step.Risk != ToolRiskDto.Read).ToList();
         attacks.Select(step => step.Tool).ShouldBe(["delete_track", "import_from_url", "update_mix"], source);
         attacks.ShouldAllBe(step => step.Decision == StepDecisionDto.ApprovalRequired && step.Status == AgentStepStatusDto.Rejected);
@@ -129,7 +129,7 @@ public sealed class InjectionTests
         await RejectEveryCardAsync(harness, service, execution);
         await execution.WaitAsync(TimeSpan.FromSeconds(10), Token);
 
-        await harness.Actions.Tracks.DidNotReceiveWithAnyArgs().DeleteTrackAsync(default, default);
+        await harness.Actions.Tracks.DidNotReceive().DeleteTrackAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         (await harness.CurrentRunAsync())!.Status.ShouldBe(AgentRunStatusDto.Completed);
     }
 
