@@ -24,6 +24,8 @@ public static class AgentEndpoints
     /// <returns>The builder.</returns>
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet(ApiRoutes.AgentStatus, async (AgentStatusProbe probe, CancellationToken ct) => TypedResults.Ok(await probe.GetAsync(ct)))
+            .WithName("getAgentStatus").WithTags(Tag).Produces<AgentStatusDto>();
         app.MapGet(ApiRoutes.AgentTools, ListTools).WithName("listAgentTools").WithTags(Tag).Produces<List<AgentToolInfoDto>>().ProducesValidationProblem();
         return app.MapConversationEndpoints().MapRunEndpoints();
     }
@@ -36,9 +38,11 @@ public static class AgentEndpoints
             .WithName("createConversation").WithTags(Tag).Produces<ConversationDto>(StatusCodes.Status201Created).ProducesValidationProblem();
         app.MapGet(ConversationRoute, (Guid conversationId, AgentConversationService service, CancellationToken ct) => service.GetAsync(conversationId, ct))
             .WithName("getConversation").WithTags(Tag).Produces<ConversationDto>().ProducesProblem(StatusCodes.Status404NotFound);
-        app.MapPost(ConversationRoute + "/messages", (Guid conversationId, SendAgentMessageRequest? request, AgentMessageService service, CancellationToken ct) => service.SendAsync(conversationId, request, ct))
+        app.MapPost(ConversationRoute + "/messages", (Guid conversationId, SendAgentMessageRequest? request, AgentMessageService service, AgentStatusProbe probe, CancellationToken ct) =>
+                SendAsync(new MessageCall(conversationId, request, service, probe), ct))
             .WithName("sendAgentMessage").WithTags(Tag).Produces<AgentMessageAcceptedDto>(StatusCodes.Status202Accepted)
-            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
     }
 
@@ -63,6 +67,9 @@ public static class AgentEndpoints
         return app;
     }
 
+    private static async Task<IResult> SendAsync(MessageCall call, CancellationToken cancellationToken) =>
+        await call.Probe.UnavailableAsync(cancellationToken) ?? await call.Service.SendAsync(call.ConversationId, call.Request, cancellationToken);
+
     private static IResult ListTools(string? page, string? trackId, [FromServices] IAgentStatusService status)
     {
         Guid? track = null;
@@ -79,4 +86,6 @@ public static class AgentEndpoints
         var context = new PageContextDto { Page = string.IsNullOrWhiteSpace(page) ? AgentEndpointDefaults.Page : page, TrackId = track };
         return TypedResults.Ok(status.ListTools(context));
     }
+
+    private sealed record MessageCall(Guid ConversationId, SendAgentMessageRequest? Request, AgentMessageService Service, AgentStatusProbe Probe);
 }

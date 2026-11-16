@@ -27,7 +27,7 @@ public sealed class StatusEndpointTests : AgentApiTestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         await ContractAssert.MatchesAsync(response, "getAgentStatus");
-        (await response.BodyAsync<AgentStatusDto>()).ShouldBeEquivalentTo(AgentStatuses.Ready());
+        Json(await response.BodyAsync<AgentStatusDto>()).ShouldBe(Json(AgentStatuses.Ready()));
     }
 
     [Theory]
@@ -42,13 +42,13 @@ public sealed class StatusEndpointTests : AgentApiTestBase
         using var send = await SendMessageAsync(conversation.ConversationId);
 
         await ContractAssert.MatchesAsync(get, "getAgentStatus");
-        (await get.BodyAsync<AgentStatusDto>()).ShouldBeEquivalentTo(status);
+        Json(await get.BodyAsync<AgentStatusDto>()).ShouldBe(Json(status));
         send.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
         await ContractAssert.MatchesAsync(send, "sendAgentMessage");
         var problem = await send.JsonAsync();
         (problem.GetProperty("type").GetString(), problem.GetProperty("status").GetInt32())
             .ShouldBe((AgentProblemTypes.Uri(AgentProblemTypes.BackendUnavailable), 503));
-        problem.GetProperty("agentStatus").Deserialize<AgentStatusDto>(ApiFactory.Json).ShouldBeEquivalentTo(status);
+        Json(problem.GetProperty("agentStatus").Deserialize<AgentStatusDto>(ApiFactory.Json)!).ShouldBe(Json(status));
         RunService.ReceivedCalls().ShouldBeEmpty();
         (await GetConversationMessagesAsync(conversation.ConversationId)).ShouldBe(0);
     }
@@ -84,6 +84,8 @@ public sealed class StatusEndpointTests : AgentApiTestBase
         (body.Ready, body.Reason).ShouldBe((false, AgentStatusProbe.FailureReason));
         (tracks.StatusCode, health.StatusCode).ShouldBe((HttpStatusCode.OK, HttpStatusCode.OK));
     }
+
+    private static string Json(AgentStatusDto status) => JsonSerializer.Serialize(status, ApiFactory.Json);
 
     private async Task<int> GetConversationMessagesAsync(Guid conversationId)
     {

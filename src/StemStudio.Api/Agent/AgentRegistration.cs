@@ -36,6 +36,7 @@ public static class AgentRegistration
         services.AddScoped<AgentMessageService>();
         services.AddScoped<AgentRunEndpointService>();
         services.AddScoped<AgentApprovalService>();
+        services.AddSingleton<AgentStatusProbe>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();
         services.DecorateWorkerClient();
