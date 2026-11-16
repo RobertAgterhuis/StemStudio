@@ -12,6 +12,9 @@ namespace StemStudio.Agent.Runtime;
 /// <param name="Validation">Argument validation (canonical JSON and hash also for invalid calls).</param>
 internal sealed record PreparedCall(FunctionCallContent Call, AgentToolDescriptor? Tool, ArgumentValidation Validation)
 {
+    /// <summary>True when the dynamic risk check failed and the call was escalated to heavy (never plan-covered).</summary>
+    public bool RiskCheckFailed { get; init; }
+
     private const int CallIdMaxLength = 100;
 
     /// <summary>True when the tool is offered and the arguments are valid.</summary>

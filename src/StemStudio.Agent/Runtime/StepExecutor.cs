@@ -122,14 +122,17 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
             return prepared;
         }
 
+        var heavy = prepared with { Tool = prepared.Tool with { Risk = ToolRiskDto.Heavy } };
         try
         {
             var invocation = new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
-            return await heavyWhen(invocation, cancellationToken) ? prepared with { Tool = prepared.Tool with { Risk = ToolRiskDto.Heavy } } : prepared;
+            return await heavyWhen(invocation, cancellationToken) ? heavy : prepared;
         }
-        catch (AgentActionException)
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            return prepared;
+            // Fail closed: an unknown size is treated as heavy (approval, no plan grant); the cause is logged, never shown.
+            RunLog.RiskCheckFailed(services.Logger, state.RunId, prepared.Tool.Name, exception);
+            return heavy with { RiskCheckFailed = true };
         }
     }
 
@@ -143,7 +146,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         Tainted = state.Run.Tainted,
         UserMessages = state.UserMessages,
         Plan = state.Run.Plan,
-        PlanGrants = state.Grants,
+        PlanGrants = prepared.RiskCheckFailed ? [] : state.Grants,
         IsCompensation = state.CurrentUndo?.Kind == UndoKindDto.Compensate,
         Fresh = state.CurrentUndo?.Fresh == true,
     };
