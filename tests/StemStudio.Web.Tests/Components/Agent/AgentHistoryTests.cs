@@ -57,6 +57,24 @@ public sealed class AgentHistoryTests : PageTestContext
     }
 
     [Fact]
+    public void Undo_IsDisabled_WhenEveryCommandOfTheConversationWasUndone()
+    {
+        Stored(AgentRunStatusDto.Completed);
+        AgentApi.GetConversationAsync(AgentData.ConversationId, Arg.Any<CancellationToken>()).Returns(AgentData.Conversation(
+            messages:
+            [
+                AgentData.Message(1, MessageRoleDto.User, "Drums op -6 dB"), AgentData.Message(2, MessageRoleDto.Assistant, "Done."),
+                AgentData.Message(3, MessageRoleDto.User, "Undo"), AgentData.Message(4, MessageRoleDto.Assistant, "Undone: 1 step."),
+            ],
+            runs: [AgentData.RunSummary(AgentRunStatusDto.Completed)]));
+
+        var cut = RenderPanel();
+
+        cut.WaitForAssertion(() => Id(cut, "agent-message-4").TextContent.ShouldContain("Undone"));
+        Id(cut, "agent-undo").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
     public void NothingToUndo_DisablesUndo_AndSaysSo()
     {
         Stored(AgentRunStatusDto.Completed);
