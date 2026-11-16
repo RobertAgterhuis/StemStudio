@@ -27,6 +27,7 @@ describe('SpeedTrainer', () => {
     expect(subject.snapshot()).toEqual({ state: 'running', pass: 1, speedPercent: 70 });
     expect(subject.completePass()).toBe(80);
     expect(subject.snapshot()).toEqual({ state: 'running', pass: 2, speedPercent: 80 });
+    expect(subject.speedPercent).toBe(80);
     expect(subject.completePass()).toBe(90);
     expect(subject.completePass()).toBe(95);
     expect(subject.snapshot()).toEqual({ state: 'target', pass: 4, speedPercent: 95 });
