@@ -16,6 +16,7 @@ Inventory of the volumes (compose files on `main` at 5ae61cf):
 | `model-cache` (`/models` in worker, generator, singer) | worker, generator, singer | Demucs (`torch/`), detail models, Whisper, basic-pitch/piano, ACE-Step (`acestep/`), SoulX + RMVPE + whisper-base (`soulx/`), `hf/` | no (downloaded again at first use; ADR-009 says weights are never redistributed) |
 | `generator-data`, `singer-data` | generator, singer | job JSON and scratch | no |
 | `web-keys` | web | ASP.NET Data Protection keys | no (protect circuits/antiforgery only; nothing persisted depends on them) |
+| `api-keys` (`/keys` in api only; added by the 011 follow-up claude-key) | API | ASP.NET Data Protection key ring of the API (decrypts the stored Claude key in `AgentSecrets`) | **never** (011 follow-up CK-FR-017; a backup holds only the ciphertext in the database snapshot) |
 | `gpu-lease` | worker, generator, singer | lock file | no |
 
 Consequences:

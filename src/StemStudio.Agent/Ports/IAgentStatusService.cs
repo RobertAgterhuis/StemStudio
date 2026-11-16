@@ -16,6 +16,16 @@ public interface IAgentStatusService
     /// <returns>The test result.</returns>
     Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Tests one backend on the user's explicit request with the chosen Claude key (backend-api 1.21.0,
+    /// <c>TestAgentBackendRequest.claudeKeySource</c>); the source is ignored for backends other than Claude.
+    /// </summary>
+    /// <param name="backend">ollama or claude.</param>
+    /// <param name="claudeKeySource">Which Claude key to test: active (default), environment or stored.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The test result; for Claude <c>keySource</c> names the tested key (null when none was usable).</returns>
+    Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken);
+
     /// <summary>The registry view for a page context (available and unavailable tools, sorted by name).</summary>
     /// <param name="context">Page context.</param>
     /// <returns>The tools.</returns>

@@ -495,3 +495,26 @@ mixes, assets and generations; a style with the same name becomes "<name> (resto
   them in local storage).
 - The 011 agent gets tools for backup and storage in a later tool-catalogue minor version (roadmap
   note); 013 adds none.
+
+## Cross-feature note: 011 follow-up "claude-key" (architect, 2026-11-16)
+
+Design: `specs/011-ai-composer-agent/followups/claude-key/` (constitution 1.4.0 ratified by the
+owner 2026-11-16). When it is built, the owner can store the Claude API key in Settings,
+encrypted with ASP.NET Core Data Protection; the database table `AgentSecrets` holds only the
+ciphertext and the last four characters. Binding rules for 013 (they refine FR-003, FR-004 and the
+restore requirements; tasks T035, T048 and T062 carry them):
+
+- The API's Data Protection key ring (`StemStudio:DataProtection:KeyRingDir`, Docker volume
+  `api-keys` at `/keys`, mounted only into `api`) is **never** read or archived. 013 already reads
+  only the library volume; a test proves that no archive entry comes from the key ring directory.
+- Owner decision Q2 (2026-11-16): backups **keep the ciphertext**. `AgentSecrets` stays in the
+  `database` snapshot as ciphertext (useless without the key ring). A restore on the same computer
+  keeps the key; a restore on another computer asks for the key again (status `stored-unreadable`,
+  "Enter the key again"), which never blocks the restore or the app. The archive never contains
+  the key ring.
+- A replace restore whose stored key is unreadable afterwards adds "The stored Claude key must be
+  entered again" to the restore report.
+- A merge restore never imports `AgentSecrets` rows and never changes the live row.
+- Manifest, README and logs never contain a key, ciphertext or last four characters.
+- The ciphertext is not stripped from archives (the "strip" alternative of follow-up plan.md Q2
+  was not chosen).

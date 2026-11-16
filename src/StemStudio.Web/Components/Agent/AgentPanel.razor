@@ -22,6 +22,11 @@
             {
                 <p class="ss-agent-fix">@fix</p>
             }
+            @if (status.Backend == AgentBackendDto.Claude)
+            {
+                @* Claude without a usable key (none, deleted or unreadable, 011 follow-up claude-key): never switched silently. *@
+                <RadzenButton Text="Switch to local" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="State.SwitchToLocalAsync" data-testid="agent-unavailable-switch-to-local" />
+            }
         </div>
     }
     <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" IsActive="State.IsActive" OnSelect="State.SelectConversationAsync"
@@ -59,6 +64,10 @@
             }
         }
     </div>
+    @if (State.KeyChangedDuringRun)
+    {
+        <p class="ss-agent-key-changed" role="status" data-testid="agent-key-changed">Key changed - applies to the next command. The active run keeps the key it started with; cancel it to use the new key now.</p>
+    }
     <p class="ss-sr-only ss-agent-step-live" aria-live="polite">@StepAnnouncement</p>
     @if (State.Error is { } error)
     {

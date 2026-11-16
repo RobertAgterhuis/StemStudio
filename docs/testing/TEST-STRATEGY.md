@@ -1429,3 +1429,81 @@ Validated without a stack: `tsc --noEmit`, ESLint (0 warnings), `playwright test
 | 6 | architect | placeholders recorded in `agent-script.schema.json` and DELTA.md 8 | - (documentation) |
 | 7 | CTO | re-render the 004 visual baselines on the 011 layout | visual suite |
 
+
+### 17.10 (011 follow-up claude-key) Claude key in Settings, stored encrypted
+
+Binding: `specs/011-ai-composer-agent/followups/claude-key/` (spec CK-FR-001..018, CK-SC-001..006,
+quickstart Q4-Q6, Q9), backend API **1.21.0** (`/api/agent/settings/claude-key`), UI test ids
+**1.21.0** ("Claude key in Settings"), constitution 1.4.0. The 17.x rule stays: no automated test
+calls Anthropic. Unit, API and bUnit tests prove the must-not-call rule with a counting stub
+handler (CK-SC-002); the E2E suite cannot see the api's outgoing traffic, so it **never presses
+Test key** (that would send the sentinel to the real service) and only asserts that the button
+and the source choice are offered.
+
+**Sentinels** (`e2e/support/claude-key.ts`): built at run time from parts (the secret scan fails
+on the literal prefix followed by a key character), unique per `E2E_RUN_ID`, well formed for
+`ClaudeApiKey.Parse` (prefix, 40-256 characters, `A-Z a-z 0-9 - _`, not admin): `stored`
+(...STO1), `replacement` (...STO2), `environment` (...ENV1), `recovered` (...REC1) and the
+admin-shaped `admin` (...ADM1, must be refused). The leak search looks for four forms: plain,
+UTF-8 base64, UTF-16LE base64 and raw UTF-16LE bytes; reports name the sentinel's role, never
+its value. The stack-free self-test `e2e/tests/claude-key-support.spec.ts` (`@self-test`) checks
+the format rule, the four forms and the loopback host list.
+
+**Where the E2E suite looks** (CK-SC-001): the rendered DOM (`page.content()`) and the field
+value after every save; every HTTP response body, every WebSocket frame **received** by the page
+(the Blazor circuit's render batches) and every console message (`support/leak-watch.ts`); the
+bodies of `GET /api/agent/settings/claude-key` and `GET /api/agent/status` (which must agree,
+CK-FR-008); the logs of the `api` and `web` containers since the spec started; and the bytes of
+`stemstudio.db` plus `-wal`/`-shm` in the api container. Frames the browser *sends* carry the
+typed key to the Web app by design and are not scanned.
+
+**Writes go through the UI only.** Behind Docker's port forwarding the api sees every host
+request from the network gateway (research F-01), so a key write from the test process is
+refused (`403 local-only`); the suite saves, replaces and deletes through the Settings page and
+asserts the refusal of direct writes with a foreign `Origin` (refused in every topology,
+CK-SC-005). Every test starts by deleting a left-over key through the UI; `afterAll` leaves no
+stored key, so `agent.spec.ts` "settings" (Claude without a key) is unaffected.
+
+**Tag `@claude-key`** (no `@agent`, so `scripts/agent-e2e.*` never pick the spec up). `npm test`
+and `test:legacy` exclude it; `npm run test:claude-key` runs it in Chromium and Firefox. It needs
+the Docker CLI on the host (api recreated with and without `ANTHROPIC_API_KEY`, key ring files
+removed, logs and database read through `docker compose -f $E2E_COMPOSE_FILE`), a page base URL
+under a loopback host (`localhost`; otherwise the tests skip: key entry is local-only) and a
+stack started **without** `ANTHROPIC_API_KEY` (`beforeAll` fails otherwise, so a real key is
+never displayed or replaced). The sentinel reaches compose only through the child environment,
+never a command line. Run it from the shell that started the stack: `up --no-deps api` re-reads
+the compose variables from that environment.
+
+| Test (`e2e/tests/agent-claude-key.spec.ts`) | Asserts | Spec |
+|---|---|---|
+| not configured | status `not-configured`; field `type=password`, `autocomplete=off`, `spellcheck=false`, `maxlength=512`, empty; Save disabled; the `ANTHROPIC_API_KEY` alternative; no Test key; axe of the key group | US1-1, CK-FR-014, CK-SC-006 |
+| malformed | admin-shaped value -> readable "admin key" error, field emptied, value not in the error, DOM or API; nothing stored | US1-3, CK-FR-006, CK-FR-009 |
+| store | `stored`/`readable`, "...STO1", "stored encrypted"; `data-key-configured=true`; backend unchanged (CK-FR-015); both status endpoints agree and hold no sentinel; after reload no field, DOM clean; axe; network/console clean | US1-2, US2-3, US2-4, CK-SC-001 |
+| replace | Replace opens an empty field, Cancel closes it unchanged; Save new key -> "...STO2" in UI and API | US3-1 |
+| delete | confirmation is an `alertdialog` with the focus on Keep key; axe with it open; Keep key and Escape keep the key; Delete key -> `not-configured`, `stored: absent` | US3-2, CK-SC-006 |
+| local-only (API) | `PUT`/`DELETE` with a foreign `Origin` -> `403` `.../local-only`, no sentinel in the problem, key unchanged | US6-2, CK-FR-012, CK-SC-005 |
+| local-only (page) | page opened under a non-loopback host (`E2E_LAN_BASE_URL`, else this computer's LAN IPv4 with the web port): notice shown, field and Save disabled; skips when there is no such address | US6-2, CK-FR-012 |
+| environment wins | api recreated with `ANTHROPIC_API_KEY` = ENV sentinel: `environment`/`environment`/`readable`, "...ENV1", override note "...STO1", test-source choice and Test key offered (not pressed); API agrees; axe; api recreated without the variable in `finally` | US2-1, US2-2, US4-2, CK-FR-001 |
+| unreadable | `rm -f /keys/*.xml` in the api + `restart api`: first status call `stored-unreadable`, `configured: false`; `/api/tracks` 200; notice "Enter the key again"; axe; Replace + save -> `stored` "...REC1" | US5-1, US5-3, CK-SC-004 |
+| logs and database | after a save: no sentinel (any form) in the api/web logs since the start or in `stemstudio.db`/`-wal`/`-shm` | CK-SC-001, CK-FR-002 |
+
+Axe (CK-SC-006, WCAG 2.2 AA tags of 10.3, scoped to `settings-agent-claude-key` with
+`support/axe.ts` `axeViolationsIn`, page opened as `localhost`): not configured, stored,
+environment + stored, unreadable, delete confirmation open. The axe scans run in both browsers
+inside the functional tests (each state needs the stack changes above), not in the `a11y`
+project.
+
+Not in E2E (unit/API/bUnit evidence of the owners, audited in `docs/handoffs/qa-ck-polish.md`):
+Test key results (stub Anthropic 200/401/403/timeout), the must-not-call count over start-up,
+page load, polling, save, replace and delete, Trace-level log capture, SSE events, the 413 and
+invalid-JSON bodies, the "Key changed - applies to the next command" panel note, and the
+`docker compose down` + `up --build` survival (quickstart Q8, CTO).
+
+```bash
+# stack-free: helpers, types, lint
+(cd e2e && npx playwright test tests/claude-key-support.spec.ts && npm run typecheck && npm run lint)
+# fake stack WITHOUT ANTHROPIC_API_KEY in this shell, then the key specs from the same shell
+STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_AGENT_BACKEND=fake docker compose up -d --build --wait
+(cd e2e && MSYS_NO_PATHCONV=1 npm run test:claude-key)
+# optional: E2E_LAN_BASE_URL=http://<lan-ip>:8080 to choose the non-loopback address
+```

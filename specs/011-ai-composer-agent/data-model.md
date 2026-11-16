@@ -9,7 +9,7 @@ ai-agent) as plain records with no EF dependency. The backend maps them in
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | unset | Claude key; presence only is reported (`keyConfigured`). Read once per backend creation from the process environment; never logged, never persisted, never returned. |
+| `ANTHROPIC_API_KEY` | unset | Claude key from the environment (wins over a stored key). Since the claude-key follow-up (constitution 1.4.0) a key can also be stored encrypted from Settings: table `AgentSecrets`, key ring directory, `ClaudeStatus.key` and the state rule are in `followups/claude-key/data-model.md`. Never logged, never persisted in plain text, never returned. |
 | `StemStudio__Agent__Backend` | `ollama` | initial backend when no settings row exists (`ollama`, `claude`, `none`, `fake`) |
 | `StemStudio__Agent__Ollama__BaseUrl` | `http://localhost:11434` (compose: `http://host.docker.internal:11434`) | Ollama endpoint; must be `http`/`https`, no credentials in the URL |
 | `StemStudio__Agent__LoopbackBaseUrl` | `http://127.0.0.1:${ASPNETCORE_HTTP_PORTS}` | base URL the server tools use to call the API's own public endpoints |

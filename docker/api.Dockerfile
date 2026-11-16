@@ -33,18 +33,23 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
 # ---------------------------------------------------------------- runtime
 FROM ${RUNTIME_IMAGE} AS runtime
 # curl only serves the container health check.
+# /keys (011 follow-up claude-key): Data Protection key ring of the stored Claude key, mode 0700
+# for the app user. An empty named volume mounted there (compose: api-keys) takes this mode and
+# owner on first use (spike T003, research R-05 F-04). Never part of /data or a backup.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /data \
- && chown "$APP_UID":"$APP_UID" /data
+ && chown "$APP_UID":"$APP_UID" /data \
+ && install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys
 ENV ASPNETCORE_HTTP_PORTS=8081 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    StemStudio__DataDir=/data
+    StemStudio__DataDir=/data \
+    StemStudio__DataProtection__KeyRingDir=/keys
 WORKDIR /app
 COPY --from=build /out ./
 USER $APP_UID
-VOLUME ["/data"]
+VOLUME ["/data", "/keys"]
 EXPOSE 8081
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \
   CMD ["curl", "--fail", "--silent", "--show-error", "--output", "/dev/null", "http://127.0.0.1:8081/health"]

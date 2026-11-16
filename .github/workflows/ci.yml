@@ -37,6 +37,8 @@ env:
   GENERATIVE_CONTRACTS: specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts
   # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
   AGENT_CONTRACTS: specs/011-ai-composer-agent/contracts
+  # 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta.
+  CLAUDE_KEY_CONTRACTS: specs/011-ai-composer-agent/followups/claude-key/contracts
 
 jobs:
   dotnet:
@@ -290,6 +292,10 @@ jobs:
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$AGENT_CONTRACTS/redocly.yaml"
           "$AGENT_CONTRACTS/backend-api.openapi.yaml" "$AGENT_CONTRACTS/agent-api.openapi.yaml"
+      - name: Redocly lint, claude-key follow-up documents (011; backend 1.21.0 + claude-key delta)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$CLAUDE_KEY_CONTRACTS/redocly.yaml"
+          "$CLAUDE_KEY_CONTRACTS/backend-api.openapi.yaml" "$CLAUDE_KEY_CONTRACTS/backend-api.claude-key.openapi.yaml"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -326,6 +332,13 @@ jobs:
           uv run --frozen ruff format --check .
           uv run --frozen mypy
           uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml
+      - name: Key volume checks (011 claude-key; scripts/key_volume_checks.py, >= 90 % line+branch, fail_under in scripts/pyproject.toml)
+        run: |
+          cfg=scripts/pyproject.toml
+          uv run --project tools/quality --frozen ruff check --config "$cfg" scripts/key_volume_checks.py scripts/tests
+          uv run --project tools/quality --frozen ruff format --config "$cfg" --check scripts/key_volume_checks.py scripts/tests
+          uv run --project tools/quality --frozen mypy --config-file "$cfg" scripts/key_volume_checks.py scripts/tests
+          uv run --project tools/quality --frozen pytest -c "$cfg" --cov --cov-branch --cov-config="$cfg" --cov-report=term scripts/tests
       - name: SIG checks on the whole code base (unit size, complexity, parameters, duplication, dependencies)
         run: uv run --project tools/quality --frozen python tools/quality/run_all.py --report "$RUNNER_TEMP/SIG-REPORT.md"
       - name: Public manuals up to date (docs/public sources vs build-manifest.json, constitution 1.3.1)
@@ -396,6 +409,12 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml config -q
           # Feature 011: the agent variables of the fake E2E stack interpolate (no Claude key is set).
           STEMSTUDIO_AGENT_BACKEND=fake STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/ci.json docker compose -f docker-compose.yml config -q
+      - name: The key ring volume api-keys is at /keys in api only, in every combination (011 claude-key)
+        run: |
+          scripts/check-key-volume.sh
+          scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml
+          scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml
+          scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml
       - name: Build the fake generator image (GENERATOR_VARIANT=fake) and run the guard (profile generator)
         run: scripts/check-cpu-image.sh --build --generator stemstudio/generator:ci-fake
       - name: The fake image runs as the non-root user stemstudio (uid 10001)

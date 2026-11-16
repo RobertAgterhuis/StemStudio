@@ -237,3 +237,19 @@ Delivered on branch `011-composer-agent`, merged into `main` as `230a363b`; inte
 | Public manuals (T084a) | user manual chapter 13 (delivered behaviour, approvals, taint, Undo, Settings, limits), 3 and 16; technical manual chapters 2, 3 (agent settings, Ollama setup), 4, 6 (agent endpoints and tools), 7 (`AddAgent`, aggregates), 8, 9 (agent E2E and evaluation), 11; PDFs and `build-manifest.json` regenerated; no screenshot added (the Settings baselines mask the status line) |
 | Final `scripts/test-all.ps1` after T081-T084a | recorded in `docs/handoffs/cto-011-pr.md` ("Final run"), so this file (a manual input) stays unchanged after the PDF build |
 | Not done / open | T082 (owner); O5 (`first-paint.js` before `<base>`, frontend); B2 and B1/O1-O4 merged and re-checked on the stack; A13 and A10 cases 1/16 (owner); A8 with a real Ollama quit (owner); "Continue" for interrupted runs (spec edge case, no task; documented as a limitation); SC-001 variance (consider a low Ollama temperature, ai-agent); grader matches an expected call even when it failed (S1 counted a denied `save_lyrics_sheet`) and `eval-set.json` omits some reads that eval-set.md lists as expected (29, S2); devops `agent-e2e` mode for the `@generative` agent tests; backend `MetadataMapper.ToQuery` still sends the hashed title of an upload; frontend Undo count is message-based; `Agent` parameter stars 3 |
+
+## Feature 011 follow-up claude-key: Claude key in Settings, stored encrypted (2026-11-16)
+
+Integrated on branch `011-claude-key-spec` and merged into `main` 2026-11-16; hand-off
+`docs/handoffs/cto-011-claude-key-integration.md`. Constitution 1.4.0, ADR-035.
+
+| Check | Result |
+|---|---|
+| Wave | quality-gate, devops, ai-agent, backend, frontend and qa lanes merged in order; port overload, ui-test-ids rows, contract text, decisions (ADR-035 D8) and the quality-gate/qa test requests R1-R12, F1-F8 done test-first on the merged tree |
+| Findings fixed | Trace leak tests never covered `Microsoft.AspNetCore` (appsettings Warning won); the key handlers trusted a disabled button (a forged click stored under local-only); a key-write problem echoing the key reached the exception message; Firefox: a page-object detach race and axe `target-size` crashing the page |
+| `scripts/test-all.ps1` | all steps passed except the manuals check before the PDF rebuild; Domain 752, Agent 720 (98.91 % line / 94.18 % branch), AgentEval 134, Persistence 114 (98.91 / 95), Web 1848 (99.57 / 93.71), Api 1651 + 2 Linux-only skips (98.98 / 92.03), Contracts 100 / 100; key volume checks and quality 100 % |
+| Quality | Release build 0 warnings; `dotnet format` clean; `run_all.py` 0 errors (2210 files, 17 372 units, 815 warnings); Redocly 1.21.0 valid; secret scan clean |
+| E2E (own project `ck-e2e` on 18080/18081, retries 0) | default suite 381 passed / 115 skipped; `@claude-key` 20/20 (Chromium and Firefox); agent fake 18/18, none 2/2; visual 110 passed / 6 skipped (6 settings baselines regenerated); a11y 142 passed / 6 skipped |
+| Quickstart | Q1-Q6 by the automated runs; Q7 `/keys` 700 uid 1654, not in the worker; Q8 stored key survives `down` + `up --build`; Q9 lost key volume -> `stored-unreadable` with "Enter the key again", other endpoints 200; Q9b local-only page by the E2E LAN test; Q10 (real key) for the owner |
+| Owner stack | compose project `stemstudio` untouched (same container and image ids before and after) |
+| Open | test-only Anthropic base-URL override for an E2E proof of CK-SC-002 (not done, needs devops + ai-agent design); Claude "Not configured" text still names only the environment variable; Firefox crash in axe `target-size` worked around in the scoped scans only (not reported upstream) |

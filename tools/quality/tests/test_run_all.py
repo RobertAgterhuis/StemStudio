@@ -108,3 +108,25 @@ def test_raw_colour_exits_one_and_is_reported(
     assert "## Design tokens\n\n**FAIL** - 1 errors" in text
     row = "| error | raw-colour | `src/StemStudio.Web/wwwroot/css/base.css:1` | frontend |"
     assert row in text
+
+
+def test_claude_key_rule_breach_exits_one_and_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path)
+    store = root / "src" / "StemStudio.Api" / "Agent" / "Secrets" / "Store.cs"
+    store.parent.mkdir(parents=True)
+    store.write_text('class S { void M() => logger.LogInformation("{Key}", key); }\n', "utf-8")
+    report = tmp_path / "r.md"
+    assert run_all.main(["--root", str(root), "--report", str(report)], _dup(CLEAN)) == 1
+    assert "[secret]" in capsys.readouterr().out
+    text = report.read_text(encoding="utf-8")
+    assert "## Claude key handling\n\n**FAIL** - 1 errors" in text
+    assert "| error | secret | `src/StemStudio.Api/Agent/Secrets/Store.cs:1` | backend |" in text
+
+
+def test_clean_report_has_a_passing_claude_key_section(tmp_path: Path) -> None:
+    report = tmp_path / "r.md"
+    run_all.main(["--root", str(_repo(tmp_path)), "--report", str(report)], _dup(CLEAN))
+    text = report.read_text(encoding="utf-8")
+    assert "## Claude key handling\n\n**PASS** - Data Protection only in Api/Agent/Secrets" in text

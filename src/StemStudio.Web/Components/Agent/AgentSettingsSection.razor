@@ -1,5 +1,5 @@
 @* Agent section of the settings page (US4, FR-019, FR-020): backend radio group, Ollama status and models, Claude
-   status (never the key), its paid-service notice, the connection test and save. Logic in the code-behind and in
+   status (never the key), the Claude key (ClaudeKeySection, 1.21.0), its paid-service notice, the connection test and save. Logic in the code-behind and in
    AgentSettingsForm. *@
 
 <section class="ss-card ss-agent-settings" aria-labelledby="agent-settings-title">
@@ -44,6 +44,7 @@
 
         <h3 class="ss-agent-settings-title">Claude</h3>
         <p data-testid="settings-agent-claude-status" data-key-configured="@(KeyConfigured ? "true" : "false")">@ClaudeText</p>
+        <ClaudeKeySection Initial="ClaudeKey" Changed="KeyChangedAsync" />
         <LevelGate Feature="agent.claude-options">
             <div class="ss-field">
                 <label for="agent-claude-model">Claude model</label>

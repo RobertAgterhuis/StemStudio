@@ -38,6 +38,7 @@ def render(data: ReportInput) -> str:
         _dependencies(data.findings),
         _tokens(data.findings),
         _vendor(data.findings),
+        _secrets(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -129,6 +130,16 @@ def _tokens(findings: Sequence[Finding]) -> str:
 def _vendor(findings: Sequence[Finding]) -> str:
     return _check_section(
         findings, "vendor", "Vendored code", "every vendored package has LICENSE and NOTICE."
+    )
+
+
+def _secrets(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings,
+        "secret",
+        "Claude key handling",
+        "Data Protection only in Api/Agent/Secrets, no record key types, no key in log calls "
+        "(`secret_rules.py`).",
     )
 
 

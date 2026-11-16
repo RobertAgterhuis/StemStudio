@@ -7,13 +7,15 @@ using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
+using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Api.Tests.Agent;
 
 /// <summary>011 T060: agent settings and the backend test (FR-018, FR-019, SC-006).</summary>
 public sealed class SettingsEndpointTests : AgentApiTestBase
 {
-    private const string SentinelKey = "sk" + "-ant-api03-SENTINEL-0123456789abcdef"; // built from parts, like scripts/secret_scan.py
+    // 011 follow-up claude-key: a well-formed run-time sentinel, since the key provider format-checks the environment value.
+    private static readonly string SentinelKey = ClaudeKeySentinels.Environment;
 
     [Fact]
     public async Task Get_ReturnsTheDefaults()
@@ -113,7 +115,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     [Fact]
     public async Task Test_ProbesTheChosenBackend()
     {
-        StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>())
+        StatusService.TestAsync(AgentBackendDto.Ollama, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>())
             .Returns(new BackendTestResultDto { Backend = AgentBackendDto.Ollama, Ok = true, LatencyMs = 42, Detail = "qwen3.5:9b answered" });
 
         using var ok = await Client.PostAsJsonAsync(ApiRoutes.AgentSettingsTest, new { backend = "ollama" }, Ct);
@@ -128,7 +130,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     [Fact]
     public async Task Test_AFailingProbeIsNotOkWithAFixedDetail()
     {
-        StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("http://internal:11434 refused"));
+        StatusService.TestAsync(AgentBackendDto.Ollama, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("http://internal:11434 refused"));
 
         using var response = await Client.PostAsJsonAsync(ApiRoutes.AgentSettingsTest, new { backend = "ollama" }, Ct);
 
@@ -163,7 +165,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     public async Task TheKey_NeverAppearsInResponsesLogsOrTheDatabase()
     {
         UseKey(SentinelKey);
-        StatusService.TestAsync(AgentBackendDto.Claude, Arg.Any<CancellationToken>())
+        StatusService.TestAsync(AgentBackendDto.Claude, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>())
             .Returns(new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = true, LatencyMs = 1, Detail = "claude-opus-5-5 is available" });
 
         var bodies = new List<string>();
@@ -181,11 +183,11 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
             }
         }
 
-        bodies.ShouldAllBe(body => !body.Contains("SENTINEL"));
-        Factory.Logs.Entries.ShouldAllBe(entry => !entry.Message.Contains("SENTINEL"));
+        bodies.ShouldAllBe(body => !body.Contains(SentinelKey));
+        Factory.Logs.Entries.ShouldAllBe(entry => !entry.Message.Contains(SentinelKey));
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         var database = await File.ReadAllBytesAsync(Path.Combine(Factory.DataDir, "stemstudio.db"), Ct);
-        System.Text.Encoding.UTF8.GetString(database).ShouldNotContain("SENTINEL");
+        System.Text.Encoding.UTF8.GetString(database).ShouldNotContain(SentinelKey);
     }
 
     private void UseKey(string? key) => Environment.GetVariable("ANTHROPIC_API_KEY").Returns(key);

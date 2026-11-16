@@ -1,3 +1,4 @@
+using StemStudio.Agent.Backends;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
@@ -53,15 +54,16 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
     /// need to load), but a failing or missing agent library yields <c>ok: false</c> with a fixed detail, never an exception text.
     /// </summary>
     /// <param name="backend">ollama or claude.</param>
+    /// <param name="claudeKeySource">Which Claude key to test (1.21.0); ignored for Ollama.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The test result.</returns>
-    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken)
+    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken)
     {
         try
         {
             if (services.GetService<IAgentStatusService>() is { } status)
             {
-                return await status.TestAsync(backend, cancellationToken);
+                return await status.TestAsync(backend, claudeKeySource, cancellationToken);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -87,15 +89,25 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
     }
 
     private async Task<AgentStatusDto> FallbackAsync(string reason, CancellationToken cancellationToken) =>
-        Fallback(await settings.GetAsync(cancellationToken), reason);
+        Fallback(await settings.GetAsync(cancellationToken), reason, KeyStatus());
 
-    private static AgentStatusDto Fallback(AgentSettings current, string reason) => new()
+    // 011 follow-up claude-key: the fallback still reports the key status (never the key).
+    private ClaudeKeyStatusDto KeyStatus() =>
+        services.GetService<IClaudeKeyProvider>() is { } keys ? ClaudeKeyStatus.ToDto(keys.Resolve()) : ClaudeKeyStatusDto.NotConfigured;
+
+    private static AgentStatusDto Fallback(AgentSettings current, string reason, ClaudeKeyStatusDto key) => new()
     {
         Backend = current.Backend,
         Ready = false,
         UsingFallback = false,
         Reason = reason,
         Ollama = new OllamaStatusDto { Reachable = false, DefaultPresent = false, FallbackPresent = false },
-        Claude = new ClaudeStatusDto { KeyConfigured = false, NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null, Model = current.ClaudeModel },
+        Claude = new ClaudeStatusDto
+        {
+            KeyConfigured = key.Configured,
+            NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null,
+            Model = current.ClaudeModel,
+            Key = key,
+        },
     };
 }

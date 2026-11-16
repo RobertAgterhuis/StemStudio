@@ -90,17 +90,45 @@ In **Settings** (in the left rail) you choose the language model behind the agen
 
 - **Ollama (on this computer, free)**, the default. From Advanced level you pick the model and
   the fallback model; models that are not pulled or cannot call tools are marked and refused.
-- **Claude (online, paid per use)**: Anthropic's model. It can only be selected when the
-  administrator has set the API key in the environment of the StemStudio API; otherwise it
-  shows *"not configured"*. When you select it you must confirm the notice *"paid per use, text
-  only is sent to Anthropic"*. The badge then shows the model, and from Advanced level each
-  command shows its token usage. Expert level adds the Claude model and effort options.
+- **Claude (online, paid per use)**: Anthropic's model. It can only be selected when a Claude
+  API key is available (see "Your Claude API key" below); otherwise it shows *"not
+  configured"*. When you select it you must confirm the notice *"paid per use, text only is sent
+  to Anthropic"*. The badge then shows the model, and from Advanced level each command shows its
+  token usage. Expert level adds the Claude model and effort options.
 - **None (agent off)**.
 
 StemStudio never switches between Ollama and Claude by itself; it may switch silently from
 the default local model to the smaller local model while a GPU job runs (the badge shows
 which). If Claude fails (key rejected, no connection, rate limit), the panel says why and
 offers **Switch to local**. **Test connection** checks the chosen backend within ten seconds.
+
+## Your Claude API key
+
+You can enter the key yourself, on every level, under **Settings -> Composer agent -> Claude API
+key**:
+
+1. Open StemStudio on the computer it runs on, as `http://localhost:8080`. From another device
+   the field is disabled with the note *"The Claude key can only be entered on the computer
+   StemStudio runs on"*.
+2. Paste the key from the Anthropic console and press **Save key**. The field empties at once;
+   the status shows only where the key comes from and its last four characters
+   (*"ends with ...WXYZ"*). The key is stored encrypted on this computer.
+3. Saving does **not** select Claude: choose it as the backend and confirm the notice.
+
+- **Test key** checks the key with Anthropic once, only when you press it (free; no text is
+  generated). When both a saved key and the environment key exist you choose which one to test.
+- **Replace key** opens an empty field for a new key; **Delete key** asks for confirmation.
+  Neither changes the selected backend. After a leak, revoke the key in the Anthropic console
+  first, then replace it here.
+- If the administrator has set `ANTHROPIC_API_KEY`, that key **wins**; a saved key is then shown as
+  *"not used while ANTHROPIC_API_KEY is set"*.
+- *"The saved key cannot be read on this installation"* means the encryption keys were lost (for
+  example after a restore on another computer). Press **Replace key** and paste the key again.
+- A key change during a running command applies to the next command; the panel says *"Key
+  changed - applies to the next command"*.
+- What the encryption protects: a copy of the database, backups and exports, logs and
+  screenshots. What it does not protect: someone with full access to this computer, or malware
+  running as you.
 
 ## Levels and limits
 

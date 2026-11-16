@@ -6,8 +6,9 @@
 .DESCRIPTION
     Builds the audio-engine and web-interop bundles first, then starts the three processes with data under <repo>/data.
     Press Ctrl+C to stop all of them. No secrets are needed; the optional Claude key (feature 011)
-    is inherited from your session ($env:ANTHROPIC_API_KEY = Read-Host -MaskInput) and never written
-    anywhere by this script.
+    is entered in Settings (stored encrypted; the key ring directory is printed at start, per user,
+    outside the repository) or inherited from your session ($env:ANTHROPIC_API_KEY = Read-Host
+    -MaskInput) and never written anywhere by this script.
 
 .PARAMETER Fake
     Uses the fake separator (STEMSTUDIO_SEPARATOR=fake): stems are copies of the mix, no model download.
@@ -80,6 +81,7 @@ function Initialize-Environment {
     Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR (fake device $env:STEMSTUDIO_FAKE_DEVICE); data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
     Initialize-LibraryEnvironment (Join-Path $dataDir 'api')
     Initialize-AgentEnvironment
+    Initialize-KeyRingEnvironment
 }
 
 function Initialize-AgentEnvironment {
@@ -90,6 +92,23 @@ function Initialize-AgentEnvironment {
     $env:StemStudio__Agent__Backend = if ($env:STEMSTUDIO_AGENT_BACKEND) { $env:STEMSTUDIO_AGENT_BACKEND } else { 'ollama' }
     $keyState = if ($env:ANTHROPIC_API_KEY) { 'set' } else { 'unset' }
     Write-Host "Agent: backend $env:StemStudio__Agent__Backend; Ollama $env:StemStudio__Agent__Ollama__BaseUrl; Claude key $keyState"
+}
+
+function Initialize-KeyRingEnvironment {
+    <# 011 follow-up claude-key (api only): Data Protection key ring of the Claude key stored in
+       Settings, per user and outside the repository and data/ (never copy it with the library or a
+       backup); an existing value wins. Windows: %LOCALAPPDATA%\StemStudio\keys (DPAPI-protected by
+       the API); Linux/macOS: $XDG_DATA_HOME/stemstudio/keys or ~/.local/share/stemstudio/keys. #>
+    if (-not $env:StemStudio__DataProtection__KeyRingDir) {
+        $env:StemStudio__DataProtection__KeyRingDir = if ($IsWindows) {
+            Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'StemStudio' 'keys'
+        }
+        elseif ($env:XDG_DATA_HOME -and [IO.Path]::IsPathRooted($env:XDG_DATA_HOME)) {
+            Join-Path $env:XDG_DATA_HOME 'stemstudio' 'keys'
+        }
+        else { Join-Path $HOME '.local' 'share' 'stemstudio' 'keys' }
+    }
+    Write-Host "Claude key ring (api, per user; never copy it with data/): $env:StemStudio__DataProtection__KeyRingDir"
 }
 
 function Initialize-LibraryEnvironment {

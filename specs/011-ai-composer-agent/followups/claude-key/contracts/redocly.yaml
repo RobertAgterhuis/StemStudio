@@ -1,0 +1,12 @@
+# Lint configuration for the 011 follow-up "claude-key" contract delta (OpenAPI 3.1).
+# Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/011-ai-composer-agent/followups/claude-key/contracts/redocly.yaml specs/011-ai-composer-agent/followups/claude-key/contracts/backend-api.openapi.yaml specs/011-ai-composer-agent/followups/claude-key/contracts/backend-api.claude-key.openapi.yaml
+# backend-api.openapi.yaml 1.21.0 = 011's 1.10.0 + backend-api.claude-key.openapi.yaml 1.21.0-delta.2 (DELTA.md section 1).
+# Expected warnings (operation-4xx-response): 9 in the full document (8 inherited from 1.10.0), 2 in the delta.
+extends:
+  - recommended
+rules:
+  # GET /api/agent/status and GET /api/agent/settings/claude-key have no client-error cases.
+  operation-4xx-response: warn
+  no-server-example.com: off
+  no-unused-components: warn

@@ -1,27 +1,27 @@
 {
   "schema": 1,
   "builtAt": "2026-11-16",
-  "sourceHash": "2f04ad14aa4083fff3228a6ad08e2d955ded4cb616dcba589782aacde3a96174",
+  "sourceHash": "d4c9454eef8a2371caf6de5e1ddde791154fdae2deb62cf6ffa22f8e3c35f60d",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
-      "pages": 34,
-      "bytes": 1141192
+      "pages": 37,
+      "bytes": 1231237
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 41,
-      "bytes": 1520792
+      "bytes": 1535339
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "5e5cdeeb8c0f4bf681c16852b5119e9adc648c46659cd6ae938840a8141df5d6"
+      "sha256": "75468026b902389a161a6e11c01907b2070b4f0fd537df3bb95c8e6f63c021f4"
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "ea6e08d932c64d051e38f62b11d2d77f308538388ff54b4e2d86049719b6cf2e"
+      "sha256": "eb0dd748a3ccfdcb772011c9cb398761fab2b07409965735bd2c048f3394c541"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -65,7 +65,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "2d2edbc01699f2387f21fbd9af73a88ddb3f43392caa66e3f3c1ee94ae8db1ae"
+      "sha256": "eb84d4809c72cf79cf0eb4972cec4331cda8bbe5497364ac9965224fe97881ca"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
@@ -73,19 +73,19 @@
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
-      "sha256": "af9b57d73aa379c25ceaf951ada9b1318ccd301e5a6c98e99cee86115f706f33"
+      "sha256": "be5bf3436a6e137762bfdcdab161745ff8f78c5f3d5c35098c6ed41d2eeb6918"
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "7dbf0609ac4cf3f5305f1cfcad528348018bb8612ae87fea8281923b0717bdd8"
+      "sha256": "5bc0cbcdc4ae32ce0f5c521f96a43af5f3da115cb795829bd7aef2d0568647ff"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
-      "sha256": "a3c57bdc5fb2f7c3269dfa73429cb041a263568c6a5af6909e87d0d621d23f38"
+      "sha256": "dc660723c49c226dda743e00370347bc5274cc294a1238f2441babb30051bce0"
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
-      "sha256": "64f8bc81cbdbf44ed86626b7b3432465960fb03b70d3ab6fba3bb848dcca4c5f"
+      "sha256": "9c6012865d89b02fb7135deb69393b6bb12de9be82bd8e49f654f84d649c0ba7"
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
@@ -157,7 +157,7 @@
     },
     {
       "path": "docs/public/src/user-manual/13-ai-composer-agent.md",
-      "sha256": "4617da761f79b2e602c6229affde3fbd26ec1ca45415a576d512da8fafa377f9"
+      "sha256": "0798f2232cfe05434128bf3f5c96f26bd70a8ca407679f6280ba767ba5924e61"
     },
     {
       "path": "docs/public/src/user-manual/14-keyboard-shortcuts.md",
@@ -169,7 +169,7 @@
     },
     {
       "path": "docs/public/src/user-manual/16-troubleshooting-faq.md",
-      "sha256": "9d28f0c6d3950938e02928e4939de6ff3852f0c549777478caa8f9b3dbd15923"
+      "sha256": "bf5e89f4e30b067e6b99689a5a7bd8118eee2b899f57a28c9bb4ead6f65d6358"
     },
     {
       "path": "docs/public/src/user-manual/17-legal-notice.md",

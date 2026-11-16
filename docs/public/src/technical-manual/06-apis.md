@@ -56,12 +56,13 @@ unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
 | 009 Style transfer | `GET /api/generation/status`, `/api/styles` CRUD and `…/duplicate`, `POST /api/tracks/{id}/restyles`, `/api/generations` with cancel, retry, take audio and import |
 | 010 Lyrics to song | `/api/lyrics` CRUD, upload and sections, `POST /api/songs`, `/api/voice-profiles`, `GET /api/consent/voice`, `POST …/takes/{n}/voice-conversions` |
 
-### AI composer agent (011, backend API 1.10.0, tag `agent`)
+### AI composer agent (011, backend API 1.10.0; Claude key 1.21.0; tag `agent`)
 
 | Method and path | Purpose |
 |---|---|
 | `GET /api/agent/status` | Backend, model, readiness, reason and fix (always 200; each probe times out after 2 s) |
 | `GET`, `PUT /api/agent/settings`; `POST /api/agent/settings/test` | Stored backend and models (`422` for a model that is not pulled or has no tool calling, or an unacknowledged Claude notice); connection test within 10 s without generating text |
+| `GET`, `PUT`, `DELETE /api/agent/settings/claude-key` | 1.21.0 (claude-key follow-up): the stored Claude key. `GET` returns the status only (source, state, last four, save time; never the key); `PUT {apiKey}` stores it encrypted (`400 invalid-body`, `413` over 1 KiB, `422 claude-key-invalid` with `reason`, `503 key-store-unavailable`); `DELETE` removes it. `PUT`/`DELETE` and the Claude case of `POST /api/agent/settings/test` (`claudeKeySource` = `active`, `environment`, `stored`) are local-only (`403 local-only`) |
 | `GET /api/agent/tools` | The tool catalogue with risk classes and availability |
 | `GET`, `POST /api/agent/conversations`; `GET`, `PATCH`, `DELETE /api/agent/conversations/{id}` | Conversations (list, create, read with messages, rename, delete) |
 | `POST /api/agent/conversations/{id}/messages` | Send a command with the page context; starts a run (`409` while another run is active) |

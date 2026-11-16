@@ -16,8 +16,8 @@
 # Desktop must allow at least 20 GB (check: docker info --format "{{.MemTotal}}").
 # STEMSTUDIO_SEPARATOR=fake also fakes the detail phase (STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS per
 # parent step, default 1; set 0 for the fastest runs).
-# No secrets are needed (the optional Claude key of feature 011 comes from your shell only, see
-# below). Kestrel serves directly (no reverse proxy), so the API's own
+# No secrets are needed (the optional Claude key of feature 011 is entered in Settings or comes
+# from your shell, see below). Kestrel serves directly (no reverse proxy), so the API's own
 # upload limit (200 MiB) applies; a proxy added later must allow >= 200 MiB + multipart overhead.
 #
 # Online lookups (feature 005; specs/005-artwork-band-info/quickstart.md), worker only, all optional:
@@ -51,8 +51,19 @@
 #                                           OPTIONAL and runs on the host, not in compose; without
 #                                           it the app works and the agent panel says why it is off.
 #                                           The api reaches the host via extra_hosts host-gateway.
-#   ANTHROPIC_API_KEY                       Claude (paid, opt-in) only. Passed through from your
-#                                           shell when set; no value is ever written in a file.
+#   Claude key (paid, opt-in; 011 follow-up claude-key, constitution 1.4.0), either of:
+#   - Settings -> Claude key, on THIS computer (http://localhost:8080/settings). The api stores
+#     the key encrypted (ASP.NET Core Data Protection) in its SQLite database; the key ring that
+#     decrypts it is the separate volume api-keys at /keys (StemStudio__DataProtection__KeyRingDir),
+#     mounted into api only. NEVER copy api-keys together with the library volume api-data or a
+#     backup: whoever has both can decrypt the key. Losing api-keys (docker compose down -v,
+#     docker volume rm stemstudio_api-keys) only means "Enter the key again" in Settings.
+#     Key entry is accepted from this computer only (loopback, or the web service:
+#     StemStudio__Agent__KeyEntry__InternalCaller=web). Until feature 018, a LAN device that
+#     forges the host name can overwrite or delete the stored key, never read it (threat T7).
+#     Check the volume with scripts/check-key-volume.{sh,ps1}.
+#   - ANTHROPIC_API_KEY                     passed through from your shell when set; it WINS over
+#                                           a stored key. No value is ever written in a file.
 #                                           Set it for one shell session only, never in .env:
 #                                             bash:       read -rs ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY
 #                                             PowerShell: $env:ANTHROPIC_API_KEY = Read-Host -MaskInput
@@ -126,6 +137,10 @@ services:
       - StemStudio__Agent__Ollama__BaseUrl=${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}
       - StemStudio__Agent__Backend=${STEMSTUDIO_AGENT_BACKEND:-ollama}
       - STEMSTUDIO_AGENT_FAKE_SCRIPT=${STEMSTUDIO_AGENT_FAKE_SCRIPT:-}
+      # 011 follow-up claude-key: key ring of the stored Claude key (volume api-keys below) and
+      # the trusted internal caller of the local-only key entry (accepted besides loopback).
+      - StemStudio__DataProtection__KeyRingDir=/keys
+      - StemStudio__Agent__KeyEntry__InternalCaller=web
       # Bare name: the host's value when set, otherwise the variable is absent in the container.
       - ANTHROPIC_API_KEY
     # host.docker.internal resolves to the host on Linux too (Docker Desktop has it built in).
@@ -135,6 +150,9 @@ services:
       - "8081:8081"
     volumes:
       - api-data:/data
+      # Data Protection key ring (011 follow-up claude-key): api only, never the worker, web or a
+      # backup; directory 0700 for the app user (docker/api.Dockerfile).
+      - api-keys:/keys
       # E2E fake agent scripts (qa, e2e/agent-scripts/*.json); read-only, ignored unless the
       # backend is fake.
       - ./e2e/agent-scripts:/scripts:ro
@@ -178,5 +196,7 @@ services:
 volumes:
   worker-data:
   api-data:
+  # Key ring of the stored Claude key (api only); not part of the library or a 013 backup.
+  api-keys:
   model-cache:
   web-keys:

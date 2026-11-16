@@ -133,7 +133,9 @@ Settings of the AI composer agent (011, API only; compose maps the shell variabl
 |---|---|---|---|
 | `STEMSTUDIO_AGENT_BACKEND` (`StemStudio__Agent__Backend`) | 011 | `ollama` | Initial backend `ollama`, `claude` or `none` while no settings row exists; the Settings page changes it later. `fake` (tests only) always wins over the stored row |
 | `STEMSTUDIO_OLLAMA_URL` (`StemStudio__Agent__Ollama__BaseUrl`) | 011 | `http://host.docker.internal:11434` (compose), `http://localhost:11434/` (without Docker) | Ollama on the host; compose adds `host-gateway` for Linux engines |
-| `ANTHROPIC_API_KEY` | 011 | unset | Enables the optional Claude backend; see below |
+| `ANTHROPIC_API_KEY` | 011 | unset | Claude key from the environment; wins over a key stored in Settings; see below |
+| `StemStudio__DataProtection__KeyRingDir` | 011 claude-key | compose `/keys`; Windows `%LOCALAPPDATA%\StemStudio\keys`; Linux/macOS `$XDG_DATA_HOME/stemstudio/keys` or `~/.local/share/stemstudio/keys` | Key ring that encrypts the stored Claude key; see "Claude key storage" |
+| `StemStudio__Agent__KeyEntry__InternalCaller` | 011 claude-key | compose `web`; empty without Docker | Host name of the Web app, whose addresses may store or delete the key besides loopback |
 | `StemStudio__Agent__LoopbackBaseUrl` | 011 | `http://127.0.0.1:{HTTP_PORTS}` | Where the agent calls the API's own endpoints |
 | `STEMSTUDIO_AGENT_FAKE_SCRIPT` | 011 | empty | E2E only, with backend `fake`: scripted model turns from `e2e/agent-scripts/` (mounted read-only at `/scripts`); Git Bash users prefix `MSYS_NO_PATHCONV=1` |
 
@@ -157,18 +159,45 @@ model on the CPU while the job runs. Without Ollama the app works and the agent 
 
 Variables named `STEMSTUDIO_FAKE_*` are for the fake test stack only.
 
-## Secrets: ANTHROPIC_API_KEY
+## Secrets: the Claude key
 
 StemStudio has exactly one secret, and only when the optional Claude backend of the agent is
-used. The rules (constitution "Optional paid AI service exception", ADR-020):
+used. It has two sources (constitution 1.4.0, ADR-020, ADR-035):
 
-- The key is read **only from the process environment** of the API. Export it in the shell
-  session that starts compose; compose passes it through with a bare `- ANTHROPIC_API_KEY`
-  entry.
-- **Never** put it in a file: not in `.env`, compose files, `appsettings*.json`, scripts,
-  the repository or command-line arguments. Prefer a secret store of your operating system
-  or a key vault that injects it into the environment.
-- The API only reports whether a key is present. It never stores, logs or returns the key; a
-  sentinel-key test checks this.
-- Without the key Claude cannot be selected and StemStudio works fully with Ollama. CI never
-  calls Claude.
+- **Settings** (Composer agent -> Claude API key): the user pastes the key on the computer that
+  runs StemStudio (`http://localhost:8080`); the API stores it encrypted (see "Claude key
+  storage").
+- **`ANTHROPIC_API_KEY`** in the process environment of the API. Export it in the shell session
+  that starts compose; compose passes it through with a bare `- ANTHROPIC_API_KEY` entry. It
+  **wins** over a stored key (the stored key is kept and shown as "not used").
+- **Never** put the key in a file: not in `.env`, compose files, `appsettings*.json`, scripts,
+  the repository or command-line arguments.
+- Both sources pass the same format check (prefix `sk-ant-`, 40-256 letters, digits, `-`, `_`;
+  never an Admin API key); a malformed environment value is not used and the status says why.
+- The API reports only the source, the state, the last four characters and the save time. It
+  never logs or returns the key; sentinel-key tests search every response, log line at Trace,
+  event and database file for it.
+- Without a usable key Claude cannot be selected and StemStudio works fully with Ollama. CI never
+  calls Claude, and Anthropic is contacted only by a Claude run or an explicit **Test key**.
+
+### Claude key storage (011 follow-up claude-key)
+
+- The key is encrypted with ASP.NET Core Data Protection (purpose
+  `StemStudio.Agent.ClaudeApiKey.v1`, application name `StemStudio.Api`); table `AgentSecrets`
+  holds only the ciphertext, the last four characters and the save time.
+- **Docker**: the key ring is the volume `stemstudio_api-keys` at `/keys`, mounted only into
+  `api`, directory `0700` for the app user. **Never copy it together with `api-data` or a
+  backup**: whoever has both can decrypt the key. `docker compose down -v`,
+  `docker volume rm stemstudio_api-keys` or a restore on another computer makes the stored key
+  unreadable by design: Settings shows *"cannot be read on this installation"* and the user enters
+  the key again. `scripts/check-key-volume.{sh,ps1}` checks the compose set-up (volume only in
+  `api`, `/keys` `0700`, the variables, `ANTHROPIC_API_KEY` a bare pass-through).
+- **Without Docker**: a per-user directory, `%LOCALAPPDATA%\StemStudio\keys` on Windows (the
+  ring is protected with DPAPI for the Windows user), `$XDG_DATA_HOME/stemstudio/keys` or
+  `~/.local/share/stemstudio/keys` on Linux/macOS (directory `0700`, not encrypted at rest).
+  `scripts/dev.*` print it at start; override it with `StemStudio__DataProtection__KeyRingDir`.
+- The API refuses a key ring inside the library, the backups, the app folder or a git work tree
+  (paths are normalised; case-insensitive except on Linux) and then disables key storage with
+  `503 key-store-unavailable`; the API still starts and `ANTHROPIC_API_KEY` still works.
+- Moving the library to another computer without the key ring makes the stored key unreadable
+  by design; nothing else breaks.

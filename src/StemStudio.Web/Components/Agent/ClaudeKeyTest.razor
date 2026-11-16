@@ -1,0 +1,25 @@
+@* "Test key" of the Claude key section (011 follow-up claude-key US4; ui-test-ids 1.21.0 settings-agent-claude-key-test*):
+   the free model lookup, only on an explicit click; with both keys the owner chooses which one. The parent renders this
+   with @key = the key status, so a key change drops the old result. *@
+
+@if (ClaudeKeyText.CanTest(Status))
+{
+    @if (ClaudeKeyText.HasBothKeys(Status))
+    {
+        <div class="ss-agent-backends" role="radiogroup" aria-label="Key to test" data-testid="settings-agent-claude-key-test-source">
+            <label><input type="radio" name="claude-key-test-source" value="active" checked="@(_source == ClaudeKeyTestSourceDto.Active)" disabled="@Disabled"
+                          @onchange="() => _source = ClaudeKeyTestSourceDto.Active" data-testid="settings-agent-claude-key-test-source-active" /> The key in use (ANTHROPIC_API_KEY)</label>
+            <label><input type="radio" name="claude-key-test-source" value="stored" checked="@(_source == ClaudeKeyTestSourceDto.Stored)" disabled="@Disabled"
+                          @onchange="() => _source = ClaudeKeyTestSourceDto.Stored" data-testid="settings-agent-claude-key-test-source-stored" /> The stored key</label>
+        </div>
+    }
+    <div class="ss-agent-settings-actions">
+        <RadzenButton Text="Test key" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@(Disabled || _busy)" Click="TestAsync"
+                      data-testid="settings-agent-claude-key-test" />
+    </div>
+    @if (_result is { } result)
+    {
+        <p class="ss-agent-test-result" role="status" data-testid="settings-agent-claude-key-test-result" data-ok="@(result.Ok ? "true" : "false")"
+           data-key-source="@(result.KeySource is { } source ? AgentWire.Name(source) : string.Empty)">@ClaudeKeyText.TestResult(result)</p>
+    }
+}

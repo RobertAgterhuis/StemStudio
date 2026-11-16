@@ -56,6 +56,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<AgentUiToolHost>();
         Services.AddScoped<AgentRunNotifier>();
         Services.AddScoped<AgentPanelState>();
+        Services.AddScoped<PageOrigin>();
         GenerativeDefaults();
         AgentDefaults();
     }

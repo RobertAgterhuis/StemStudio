@@ -9,6 +9,7 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 | `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, worker import graph, worker third-party imports (`notation`, `engraving`), generator import graph, worker <-> generator imports | forbidden edge, cycle | module or package not in the dependency map |
 | `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
 | `vendor_check.py` | licence records of every package below `detail/vendor/` and `transcription/vendor/` | a package without a `LICENSE`/`LICENCE`/`COPYING` file or without a `NOTICE` file | |
+| `secret_rules.py` | Claude key handling (011 follow-up claude-key): Data Protection namespace/entry points, `global using` and packages; `StemStudio.Api.Agent.Secrets` references; `record` declarations of `ClaudeApiKey`/`StoreClaudeKeyRequest`; log calls and `[LoggerMessage]` methods in `Api/Agent/Secrets/**` and `Agent/Backends/Claude*` | Data Protection outside `src/StemStudio.Api/Agent/Secrets/` (or any `global using` of it), the secrets namespace outside `StemStudio.Api`, a Data Protection package outside the API, a key value type declared as `record`, a log argument named `key`/`apiKey`, a `Reveal()` in a log argument, a `{Key}`/`{ApiKey}` placeholder | |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
 | `sonar_args.py` | `sonar-project.properties` -> `/d:` args for `dotnet sonarscanner begin` | | |
 
@@ -165,4 +166,5 @@ uv run --directory tools/quality pytest --cov --cov-branch --cov-report=xml
 
 Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
 `python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
-`python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`.
+`python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`,
+`python tools/quality/secret_rules.py`.

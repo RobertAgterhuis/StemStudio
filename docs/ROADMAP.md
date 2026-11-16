@@ -48,6 +48,9 @@ Cross-cutting, every feature: in-app help entries (004 framework), user-journey 
 - 2026-11-15: AI agent LLM backend is configurable: Ollama (default, local, open models) and Claude
   API (optional, paid per use, key only via environment variable, off when no key is set). This
   needs a constitution amendment for an optional, opt-in paid external service (feature 011).
+- 2026-11-16: the Claude key can also be entered in Settings and stored encrypted in the database
+  (environment variable still wins); constitution 1.4.0 ratified by the owner on 2026-11-16 (011
+  follow-up claude-key; LAN access kept until 018, backups keep the ciphertext).
 - 2026-11-15: Model weights exception (constitution 1.1.0, ADR-009) also applies to the generative
   and transcription models of 008-010.
 
@@ -78,14 +81,23 @@ previous version.
 | 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.2.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
+| 011 follow-up claude-key (Claude key in Settings, encrypted; 2026-11-16) | 1.21.0 | - | - | 1.21.0 | agent tool catalogue unchanged (no key tool) |
 | 022 Library by artist and album (owner request 2026-11-16) | 1.22.0 | - | - | 1.22.0 | agent tool catalogue 1.1.0 |
 | 023 Lyric writing assistant | 1.23.0 | - | - | 1.23.0 | agent tool catalogue 1.2.0, agent eval set 1.1.0, lyric-assist-output 1.0.0 |
 
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
 
+The 011 follow-up "claude-key" (owner decision 2026-11-16, design in
+`specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 accepted) takes the next free minors,
+backend-api **1.21.0** and ui-test-ids **1.21.0**, as standalone deltas. Whatever is built first is
+merged onto the full documents current at that time (as 013 does after 012); if the follow-up is
+built before 012-021, its delta keeps the label 1.21.0 and the CTO merges the earlier-numbered
+deltas onto it in feature order, so no allocated number is reused. Constitution 1.4.0 was
+ratified by the owner on 2026-11-16.
+
 Feature 022 (owner request 2026-11-16, design in `specs/022-library-folders/`, ADR-036 proposed)
 takes the next free minors after the 011 follow-up "claude-key" (backend-api 1.21.0 and ui-test-ids
-1.21.0, reserved on branch `011-claude-key-spec`): backend-api **1.22.0**, ui-test-ids **1.22.0** and
+1.21.0, merged to `main` 2026-11-16): backend-api **1.22.0**, ui-test-ids **1.22.0** and
 agent tool catalogue **1.1.0** (no other feature changes the catalogue), as standalone deltas merged
 onto the newest full documents when 022 is built. Worker, generator and audio-engine contracts are
 unchanged.

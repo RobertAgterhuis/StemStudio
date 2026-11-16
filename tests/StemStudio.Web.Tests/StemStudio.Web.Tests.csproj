@@ -19,4 +19,9 @@
     <!-- Recorded agent event streams (backend-api 1.10.0, feature 011) for the SSE reader and client tests. -->
     <None Include="Agent\Fixtures\*.sse" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Run-time sentinel Claude keys (011 follow-up claude-key, architect T005); only the sentinels, the other shared
+         doubles need StemStudio.Agent, which the Web app does not reference. -->
+    <Compile Include="..\Shared\ClaudeKey\ClaudeKeySentinels.cs" LinkBase="Shared\ClaudeKey" />
+  </ItemGroup>
 </Project>

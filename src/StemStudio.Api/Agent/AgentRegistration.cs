@@ -3,6 +3,7 @@ using StemStudio.Agent;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Gpu;
 using StemStudio.Api.Agent.Loopback;
+using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Agent.Stores;
 
 namespace StemStudio.Api.Agent;
@@ -19,6 +20,7 @@ public static class AgentRegistration
         services.Configure<AgentHostOptions>(configuration.GetSection(AgentHostOptions.SectionName));
         services.AddStemStudioAgent();
         services.AddAgentStores().AddAgentRuntime().AddAgentEndpointServices();
+        services.AddClaudeKeyStore(configuration);
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();

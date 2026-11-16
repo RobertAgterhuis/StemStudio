@@ -301,7 +301,7 @@ level via fakes) -> Integration wave. `[amend]` and `[NNN]` tasks are in scope (
 - [ ] No test calls a real LLM; chat behind `IChatClient` fakes; evaluation run on the reference machine recorded (I, SC-001)
 - [ ] SIG limits respected; `tools/quality/run_all.py` passes incl. the `StemStudio.Agent` dependency rules (II)
 - [ ] Implementations match backend API 1.10.0, UI test ids 1.10.0, tool catalogue 1.0.0; contract tests pass (`PendingAgentOperations` empty); worker, generator and engine contracts unchanged (III)
-- [ ] Only OSI libraries; Claude backend opt-in per amendment 1.3.0 (key only from the environment, Ollama default); app and agent fully functional without `ANTHROPIC_API_KEY`; licences recorded (IV)
+- [ ] Only OSI libraries; Claude backend opt-in per amendment 1.3.0 (key from the environment or, since constitution 1.4.0 and the claude-key follow-up, stored encrypted from Settings; Ollama default); app and agent fully functional without `ANTHROPIC_API_KEY`; licences recorded (IV)
 - [ ] Model in use, fallbacks, unavailable tools and evaluation limits shown honestly (V)
 - [ ] Key never in files, logs, DB or responses (automated scan); injection tests green (SC-002, SC-006)
 - [ ] docs/public user and/or technical manual updated for this feature and the PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)

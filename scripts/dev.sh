@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs StemStudio without Docker: worker (uv, :8000), API (dotnet run, :8081), web (dotnet run, :8080).
 # Builds the audio-engine and web-interop bundles first; data lives under <repo>/data. Ctrl+C stops all three.
-# No secrets are needed; the optional Claude key (feature 011) is inherited from your shell
+# No secrets are needed; the optional Claude key (feature 011) is entered in Settings (stored
+# encrypted; key ring printed at start, per user, outside the repo) or inherited from your shell
 # (export ANTHROPIC_API_KEY for this session only) and never written anywhere by this script.
 #
 # Usage: scripts/dev.sh [--fake] [--skip-engine-build] [--smoke-test] [--timeout <seconds>]
@@ -20,7 +21,7 @@ PIDS=()
 HEALTH_URLS=(http://localhost:8000/health http://localhost:8081/health http://localhost:8080/health)
 
 usage() {
-  sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 parse_args() {
@@ -55,6 +56,7 @@ init_environment() {
   echo "Separator: $STEMSTUDIO_SEPARATOR (fake device $STEMSTUDIO_FAKE_DEVICE); data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
   init_library_environment "$data_dir/api"
   init_agent_environment
+  init_key_ring_environment
 }
 
 init_agent_environment() {
@@ -67,6 +69,23 @@ init_agent_environment() {
   local key_state="unset"
   if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then key_state="set"; fi
   echo "Agent: backend $StemStudio__Agent__Backend; Ollama $StemStudio__Agent__Ollama__BaseUrl; Claude key $key_state"
+}
+
+init_key_ring_environment() {
+  # 011 follow-up claude-key (api only): Data Protection key ring of the Claude key stored in
+  # Settings, per user and outside the repository and data/ (never copy it with the library or a
+  # backup); an existing value wins. Windows (Git Bash): %LOCALAPPDATA%/StemStudio/keys, else
+  # $XDG_DATA_HOME/stemstudio/keys or ~/.local/share/stemstudio/keys (the API's own defaults).
+  if [[ -z "${StemStudio__DataProtection__KeyRingDir:-}" ]]; then
+    local dir="${XDG_DATA_HOME:-}"
+    [[ "$dir" == /* ]] || dir="$HOME/.local/share"
+    dir="$dir/stemstudio/keys"
+    if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]] && [[ -n "${LOCALAPPDATA:-}" ]]; then
+      dir="$LOCALAPPDATA\StemStudio\keys"
+    fi
+    export StemStudio__DataProtection__KeyRingDir="$dir"
+  fi
+  echo "Claude key ring (api, per user; never copy it with data/): $StemStudio__DataProtection__KeyRingDir"
 }
 
 init_library_environment() {

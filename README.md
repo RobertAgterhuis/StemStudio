@@ -136,16 +136,22 @@ gets the GPU memory.
 connection. A model that is not pulled or cannot call tools is refused with the `ollama pull`
 command to run. `STEMSTUDIO_AGENT_BACKEND=ollama|claude|none` sets the initial backend.
 
-**Claude (optional, paid per use).** Claude can only be selected when `ANTHROPIC_API_KEY` is set
-in the environment of the API, for one shell session only - never in `.env`, a compose file or a
-script:
+**Claude (optional, paid per use).** Claude can only be selected when a usable key exists. Either
+paste it in **Settings -> Composer agent -> Claude API key -> Save key** (open StemStudio as
+`http://localhost:8080` on the computer itself; the key is stored encrypted, only its last four
+characters are shown, and **Test key** checks it on request), or set `ANTHROPIC_API_KEY` in the
+environment of the API for one shell session - never in `.env`, a compose file or a script. The
+environment variable wins over a stored key:
 
 ```powershell
 $env:ANTHROPIC_API_KEY = Read-Host -MaskInput   # bash: read -rs ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY
 docker compose up -d                            # the api is recreated with the key
 ```
 
-The key is never stored, logged or sent to the browser. Selecting Claude requires acknowledging a
+The stored key's encryption keys live in the Docker volume `stemstudio_api-keys` (never copy it
+with the library or a backup; without it the key must be entered again). See `SECURITY.md` for what
+the encryption does and does not protect. The key is never logged or sent to the browser, and it is
+never stored in plain text. Saving a key does not select Claude. Selecting Claude requires acknowledging a
 notice once. Only text is sent to Anthropic: the system prompt, the tool definitions, your
 messages (the newest part of the conversation) and the tool results (ids, names, statuses,
 numbers, short descriptions) - never audio, files, the key, online lyrics or band biographies.

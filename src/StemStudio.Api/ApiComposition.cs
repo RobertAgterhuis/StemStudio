@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.Agent;
+using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
@@ -46,6 +47,7 @@ public static class ApiComposition
         var dataDirectory = DataDirectory.Resolve(options.DataDir, builder.Environment.ContentRootPath);
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
+        services.AddClaudeKeyProtection(builder.Configuration, builder.Environment.ContentRootPath, dataDirectory);
         services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
@@ -69,6 +71,7 @@ public static class ApiComposition
     {
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
+        app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {
             await scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.MigrateAsync();
@@ -107,6 +110,7 @@ public static class ApiComposition
         app.MapLyricsSheetEndpoints();
         app.MapVoiceEndpoints();
         app.MapAgentEndpoints();
+        app.MapClaudeKeyEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

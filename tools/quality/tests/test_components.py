@@ -69,6 +69,7 @@ REQUESTED = [
     "Contracts",
     "Persistence",
     "Api",
+    "Api/Agent/Secrets",
     "Web",
     "Agent",
     "worker/ingest",
@@ -97,6 +98,7 @@ REQUESTED = [
     "e2e",
     "tools/quality",
     "tools/agent-eval",
+    "scripts",
 ]
 
 

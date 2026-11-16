@@ -6,7 +6,7 @@
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
     (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
-    secret scan (no Claude key or key value in the repo, feature 011),
+    secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -46,6 +46,18 @@ $RenderVectors = 'specs/007-export-library/contracts/generate_render_vectors.py'
 $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics-to-song/contracts')
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
 $AgentContracts = 'specs/011-ai-composer-agent/contracts'
+# 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta itself.
+$ClaudeKeyContracts = 'specs/011-ai-composer-agent/followups/claude-key/contracts'
+$ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py), quality-gate env
+$KeyChecks = @('scripts/key_volume_checks.py', 'scripts/tests')
+$QualityTools = @('uv', 'run', '--project', 'tools/quality', '--frozen')
+# Static key volume check (011 claude-key) for every compose combination CI validates.
+$ComposeCombos = @(
+    , @('docker-compose.yml')
+    , @('docker-compose.yml', 'docker-compose.gpu.yml')
+    , @('docker-compose.yml', 'docker-compose.gpu.yml', 'docker-compose.generative.yml')
+    , @('docker-compose.yml', 'docker-compose.generative.yml', 'docker-compose.generative-fake.yml')
+)
 $AgentCoverage = 'tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml'
 $AgentEvalCoverage = 'tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml'
 $WorkerPython = @('uv', 'run', '--project', 'worker', '--frozen', 'python')
@@ -85,6 +97,7 @@ $Steps = @(
         @{ Name = "contracts lint ($(Split-Path -Leaf (Split-Path -Parent $dir)))"; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$dir/redocly.yaml", "$dir/generator-api.openapi.yaml", "$dir/backend-api.openapi.yaml") }
     }
     @{ Name = 'contracts lint (011-ai-composer-agent)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$AgentContracts/redocly.yaml", "$AgentContracts/backend-api.openapi.yaml", "$AgentContracts/agent-api.openapi.yaml") }
+    @{ Name = 'contracts lint (011 claude-key)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$ClaudeKeyContracts/redocly.yaml", "$ClaudeKeyContracts/backend-api.openapi.yaml", "$ClaudeKeyContracts/backend-api.claude-key.openapi.yaml") }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
@@ -92,6 +105,13 @@ $Steps = @(
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'quality mypy'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'mypy') }
     @{ Name = 'quality pytest + coverage'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term') }
+    @{ Name = 'key volume checks ruff check'; Dir = '.'; Cmd = $QualityTools + @('ruff', 'check', '--config', $ScriptsCfg) + $KeyChecks }
+    @{ Name = 'key volume checks ruff format'; Dir = '.'; Cmd = $QualityTools + @('ruff', 'format', '--config', $ScriptsCfg, '--check') + $KeyChecks }
+    @{ Name = 'key volume checks mypy'; Dir = '.'; Cmd = $QualityTools + @('mypy', '--config-file', $ScriptsCfg) + $KeyChecks }
+    @{ Name = 'key volume checks pytest + coverage'; Dir = '.'; Cmd = $QualityTools + @('pytest', '-c', $ScriptsCfg, '--cov', '--cov-branch', "--cov-config=$ScriptsCfg", '--cov-report=term', 'scripts/tests') }
+    foreach ($combo in $ComposeCombos) {
+        @{ Name = "key volume check ($($combo -join ' + '))"; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-Command', "& ./scripts/check-key-volume.ps1 -File $($combo -join ',')") }
+    }
     @{ Name = 'quality gate (run_all)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'tools/quality', '--frozen', 'python', 'tools/quality/run_all.py') }
     @{ Name = 'docs manuals up to date'; Dir = '.'; Cmd = @('node', 'tools/docs/check.mjs') }
     @{ Name = 'site npm ci (tools/docs markdown-it)'; Dir = 'tools/docs'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }

@@ -29,10 +29,15 @@ ADR-012, constitution 1.3.0 (optional paid AI service exception), the ports and 
 - Safety is code, not prompt: risk classes, taint, provenance and approval binding are pure,
   unit-tested functions; a test proves that an adversarial model cannot execute a non-read tool
   without approval after untrusted content (SC-002).
-- Never read, log or echo `ANTHROPIC_API_KEY` beyond passing it to the SDK client; tests assert it
-  never appears in events, results or logs (sentinel key + captured logger).
-- The Claude backend is opt-in and off by default (constitution 1.3.0, principle IV exception):
-  it is selectable only when the key is present and the notice is acknowledged; StemStudio never
+- Never read, log or echo the Claude key (from `ANTHROPIC_API_KEY` or the stored-key port
+  `IStoredClaudeKeyReader`, both only through `IClaudeKeyProvider`) beyond passing it to the SDK
+  client; it travels as `ClaudeApiKey` (sealed class, `ToString()` = `[redacted]`, `Reveal()` for the
+  SDK only); tests assert it never appears in events, results, logs or status in any
+  `ClaudeKeySentinels.SearchForms` form (sentinel key + captured logger). The agent gets no tool for
+  the key (constitution 1.4.0, ADR-035).
+- The Claude backend is opt-in and off by default (constitution 1.3.0/1.4.0, principle IV exception):
+  it is selectable only when a usable key exists (environment wins, else a readable stored key) and
+  the notice is acknowledged; storing a key never selects Claude; StemStudio never
   switches to it (or to another paid model) automatically; no server-side `fallbacks`; only text
   is sent (no lyrics text, biographies, files or secrets); per-run token limits apply.
 - Tool names, risk classes and undo kinds follow `contracts/tool-catalogue.md` exactly; tune only
