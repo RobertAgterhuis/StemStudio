@@ -1,31 +1,41 @@
 """Data copies (feature 011): clones touching a listed data file are warnings with a reason.
 
-``src/StemStudio.Agent/Policy/ImitationLexicon.cs`` is a C# copy of the 009 v1 imitation lexicon
-(``StemStudio.Agent`` may not reference ``StemStudio.Domain``), so a clone with it is data, not
-logic. Every listed file carries a mandatory reason; any other production clone stays an error.
+The mechanism stays for future data files; the list is empty since the agent's imitation lexicon
+copy (``src/StemStudio.Agent/Policy/ImitationLexicon.cs``) was replaced by the embedded 009
+resource files (``StemStudio.Agent.Resources.EmbeddedLexicon``, T080). Every listed file carries a
+mandatory reason; any other production clone stays an error.
 """
 
+import pytest
+
+import duplication
 from common import Severity
 from duplication import DATA_COPIES, Clone, evaluate
 
-LEXICON = "src/StemStudio.Agent/Policy/ImitationLexicon.cs"
+DATA_FILE = "src/StemStudio.Agent/Resources/Sample.cs"
+REASON = "sample data file"
 
 
-def test_lexicon_is_a_listed_data_copy_with_a_reason() -> None:
-    assert "imitation lexicon" in DATA_COPIES[LEXICON]
+@pytest.fixture
+def listed(monkeypatch: pytest.MonkeyPatch) -> str:
+    """Lists ``DATA_FILE`` as a data copy for one test."""
+    monkeypatch.setitem(duplication.DATA_COPIES, DATA_FILE, REASON)
+    return DATA_FILE
+
+
+def test_the_removed_lexicon_copy_is_no_longer_listed() -> None:
+    assert "src/StemStudio.Agent/Policy/ImitationLexicon.cs" not in DATA_COPIES
     assert all(reason.strip() for reason in DATA_COPIES.values())
 
 
-def test_clone_with_a_data_copy_is_a_warning_with_the_reason() -> None:
-    (finding,) = evaluate([Clone("src/StemStudio.Domain/Styles/X.cs", 1, LEXICON, 5, 9)])
+def test_clone_with_a_data_copy_is_a_warning_with_the_reason(listed: str) -> None:
+    (finding,) = evaluate([Clone("src/StemStudio.Domain/Styles/X.cs", 1, listed, 5, 9)])
     assert finding.severity is Severity.WARNING
-    assert finding.message == (
-        f"9 duplicated lines, also in {LEXICON}:5 (data copy: {DATA_COPIES[LEXICON]})"
-    )
+    assert finding.message == f"9 duplicated lines, also in {listed}:5 (data copy: {REASON})"
 
 
-def test_data_copy_as_first_side_is_a_warning() -> None:
-    (finding,) = evaluate([Clone(LEXICON, 1, LEXICON, 40, 7)])
+def test_data_copy_as_first_side_is_a_warning(listed: str) -> None:
+    (finding,) = evaluate([Clone(listed, 1, listed, 40, 7)])
     assert finding.severity is Severity.WARNING
     assert "(data copy: " in finding.message
 

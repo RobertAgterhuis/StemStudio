@@ -77,11 +77,7 @@ SERVICE_ROOTS = ("worker/src/", "generator/src/")
 
 CROSS_SERVICE_NOTE = "(cross-service: worker and generator may not share code)"
 
-DATA_COPIES: dict[str, str] = {
-    "src/StemStudio.Agent/Policy/ImitationLexicon.cs": (
-        "C# copy of the 009 v1 imitation lexicon; StemStudio.Agent may not reference Domain"
-    ),
-}
+DATA_COPIES: dict[str, str] = {}
 """Production files that hold copied data, not logic (path -> mandatory reason, feature 011).
 
 A clone touching one of them is a warning that names the reason.

@@ -1,17 +1,18 @@
 using System.Globalization;
 using System.Text;
+using StemStudio.Agent.Resources;
 
 namespace StemStudio.Agent.Policy;
 
 /// <summary>
 /// The agent's artist-imitation pre-check (FR-025, tool catalogue "Guardrail artist-imitation"): the same matching as
 /// the 009 backend guard (whole words, case- and diacritics-insensitive, trailing * as prefix) over
-/// <see cref="ImitationLexicon"/> plus the library's artist names. The backend guard stays authoritative.
+/// the embedded 009 lexicon (<see cref="EmbeddedLexicon"/>) plus the library's artist names. The backend guard stays authoritative.
 /// </summary>
 public sealed class ImitationGuard
 {
-    private static readonly HashSet<string> GenreWords = new(ImitationLexicon.GenreWords.Select(Normalize), StringComparer.Ordinal);
-    private static readonly string[] Phrases = [.. ImitationLexicon.Phrases.Select(PhrasePattern)];
+    private static readonly HashSet<string> GenreWords = new(EmbeddedLexicon.GenreWords.Select(Normalize), StringComparer.Ordinal);
+    private static readonly string[] Phrases = [.. EmbeddedLexicon.Phrases.Select(PhrasePattern)];
 
     private readonly string[] _names;
 
@@ -24,7 +25,7 @@ public sealed class ImitationGuard
     {
         ArgumentNullException.ThrowIfNull(libraryArtists);
         var library = libraryArtists.Select(Normalize).Where(name => name.Length > 1 && !GenreWords.Contains(name));
-        return new ImitationGuard([.. ImitationLexicon.DenyList.Select(Normalize).Concat(library).Distinct(StringComparer.Ordinal).Select(name => $" {name} ")]);
+        return new ImitationGuard([.. EmbeddedLexicon.DenyList.Select(Normalize).Concat(library).Distinct(StringComparer.Ordinal).Select(name => $" {name} ")]);
     }
 
     /// <summary>True when the text contains an imitation phrase or an artist name.</summary>

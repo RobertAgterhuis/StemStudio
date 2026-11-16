@@ -120,9 +120,9 @@ default root and its own component row (measured, not production code).
 
 Data copies (`duplication.DATA_COPIES`, feature 011): a production file that holds copied data,
 not logic, is listed with a mandatory reason; a clone touching it is a warning ending in
-`(data copy: <reason>)`. Listed: `src/StemStudio.Agent/Policy/ImitationLexicon.cs`, the C# copy of
-the 009 v1 imitation lexicon (`StemStudio.Agent` may not reference Domain; the architect may
-replace it with embedded `.txt` resources, then the entry goes).
+`(data copy: <reason>)`. The list is empty: the former C# copy of the 009 v1 imitation lexicon
+(`src/StemStudio.Agent/Policy/ImitationLexicon.cs`) was replaced by the embedded Domain resource
+files (`StemStudio.Agent.Resources.EmbeddedLexicon`) at the 011 integration (T080).
 
 Generator (features 009/010, `GENERATOR_ALLOWED`): `generator/src/stemstudio_generator` follows
 `api -> jobs -> ports <- {engines, devices, audio}`; `engines`, `devices` and `audio` import only
