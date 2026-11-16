@@ -16,6 +16,7 @@ public abstract class AgentApiTestBase : IDisposable
 {
     private protected AgentApiTestBase()
     {
+        StatusService.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentStatuses.Ready());
         Factory = new ApiFactory { ConfigureServices = Register };
         Client = Factory.CreateClient();
     }
