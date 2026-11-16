@@ -103,7 +103,7 @@ public sealed class StoresTests : ApiTestBase
         var first = AgentRecords.Step(run.Id, 1) with { Job = null, PlanIndex = null, EstimatedMinutes = null, ResultSummary = null };
         await Runs.SaveStepAsync(second, Ct);
         await Runs.SaveStepAsync(first, Ct);
-        var done = second with { Status = AgentStepStatusDto.Failed, Error = "Not found", EndedAt = AgentRecords.T0.AddSeconds(3), DecisionReasons = [] };
+        var done = second with { Status = AgentStepStatusDto.Failed, Error = "Not found", EndedAt = AgentRecords.T0.AddSeconds(3), DecisionReasons = new List<string>() };
         await Runs.SaveStepAsync(done, Ct);
 
         var steps = await Runs.GetStepsAsync(run.Id, Ct);
