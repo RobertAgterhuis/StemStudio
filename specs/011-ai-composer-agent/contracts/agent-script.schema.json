@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stemstudio.local/schemas/agent-script/1.0.0",
   "title": "StemStudio fake-backend agent script 1.0.0",
-  "description": "Scripted model turns for ScriptedChatClient (STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_AGENT_FAKE_SCRIPT=e2e/agent-scripts/<name>.json) and for unit tests. Turn i answers the i-th model request of a run; a request beyond the last turn fails the run. Names and arguments are not validated here: the runner's registry and policy treat them exactly like a real model's output.",
+  "description": "Scripted model turns for ScriptedChatClient (STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_AGENT_FAKE_SCRIPT=e2e/agent-scripts/<name>.json) and for unit tests. Turn i answers the i-th model request of a run; a request beyond the last turn fails the run. Names and arguments are not validated here: the runner's registry and policy treat them exactly like a real model's output. Every run plays the script from turn 1; undo runs request no model turn. String argument values may contain the placeholders {{context.trackId}} and {{context.mixId}}, which the fake backend replaces with the page context of the message that started the run (server-generated ids); no other placeholders exist.",
   "type": "object",
   "required": ["version", "turns"],
   "additionalProperties": false,

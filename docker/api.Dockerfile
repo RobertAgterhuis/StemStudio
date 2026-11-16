@@ -15,12 +15,15 @@ COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/StemStudio.Domain/StemStudio.Domain.csproj src/StemStudio.Domain/
 COPY src/StemStudio.Contracts/StemStudio.Contracts.csproj src/StemStudio.Contracts/
 COPY src/StemStudio.Persistence/StemStudio.Persistence.csproj src/StemStudio.Persistence/
+# Feature 011: the composer agent library (links the Domain's 009 lexicon files, copied above).
+COPY src/StemStudio.Agent/StemStudio.Agent.csproj src/StemStudio.Agent/
 COPY src/StemStudio.Api/StemStudio.Api.csproj src/StemStudio.Api/
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet restore src/StemStudio.Api/StemStudio.Api.csproj
 COPY src/StemStudio.Domain/ src/StemStudio.Domain/
 COPY src/StemStudio.Contracts/ src/StemStudio.Contracts/
 COPY src/StemStudio.Persistence/ src/StemStudio.Persistence/
+COPY src/StemStudio.Agent/ src/StemStudio.Agent/
 COPY src/StemStudio.Api/ src/StemStudio.Api/
 # No --no-restore: the restore layer can stay cached while the cache mount was pruned (NETSDK1064);
 # the implicit restore is a no-op when the packages are present.

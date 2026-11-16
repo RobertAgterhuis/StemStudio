@@ -1,13 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The composer agent library (feature 011, ADR-020, plan.md "Source Code"). No ASP.NET, Domain, Persistence or Web reference:
        Agent -> Contracts + Microsoft.Extensions.AI only; OllamaSharp and Anthropic are used only in StemStudio.Agent.Backends
-       (quality-gate dependency rule T007). Ports/ and Model/ are architect-owned; Tools/, Policy/, Runtime/, Backends/ and
+       (quality-gate dependency rule T007). Ports/, Model/ and Resources/ are architect-owned; Tools/, Policy/, Runtime/, Backends/ and
        AgentServiceCollectionExtensions.cs belong to the ai-agent role. -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Agent</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\StemStudio.Contracts\StemStudio.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 009 imitation lexicon v1 (ADR-018 D8): the Domain's files linked, not copied (Resources/EmbeddedLexicon.cs). -->
+    <EmbeddedResource Include="..\StemStudio.Domain\Styles\imitation-phrases.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
+    <EmbeddedResource Include="..\StemStudio.Domain\Styles\artist-denylist.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
+    <EmbeddedResource Include="..\StemStudio.Domain\Styles\genre-words.v1.txt" Link="Resources\%(Filename)%(Extension)" LogicalName="StemStudio.Agent.Lexicon.%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI" />

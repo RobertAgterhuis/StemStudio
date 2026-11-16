@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Radzen;
 using StemStudio.Web;
+using StemStudio.Web.Agent;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Components;
@@ -30,6 +31,10 @@ builder.Services.AddScoped<PageCommands>();
 builder.Services.AddScoped<ShellOverlays>();
 builder.Services.AddScoped<KaraokePreferences>();
 builder.Services.AddScoped<GenerationStatusSource>();
+builder.Services.AddScoped<NavigationUiTools>();
+builder.Services.AddScoped<AgentUiToolHost>();
+builder.Services.AddScoped<AgentRunNotifier>();
+builder.Services.AddScoped<AgentPanelState>();
 builder.Services.AddScoped<ITourLauncher>(services => services.GetRequiredService<TourService>());
 
 // Help content is validated once at start-up (contracts/help-content.md 1): invalid content fails fast.
@@ -43,6 +48,12 @@ builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
         client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl;
         client.Timeout = TimeSpan.FromMinutes(10); // 200 MiB uploads are streamed through this client
     });
+
+
+// Composer agent (011): its own typed client; the event stream is read with ResponseHeadersRead, so the timeout
+// covers each request's headers only.
+builder.Services.AddHttpClient<IAgentApiClient, AgentApiClient>(
+    (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
 
 var app = builder.Build();
 app.UseAntiforgery();

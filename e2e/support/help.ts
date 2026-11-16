@@ -127,6 +127,16 @@ export const generativePageMarkers: Readonly<Record<string, readonly string[]>> 
   '/songs/new': ['song-options', 'song-language', 'lyrics-format', 'lyrics-sections', 'generation-personal-use'],
 };
 
+/** Screen topic per 011 page (help opened with the button; ui-test-ids 1.10.0). */
+export const agentScreenTopics: Readonly<Record<string, string>> = {
+  '/settings': 'agent-backends',
+};
+
+/** Help markers per 011 page (`agent-backends` on `settings-agent-backend`). */
+export const agentPageMarkers: Readonly<Record<string, readonly string[]>> = {
+  '/settings': ['agent-backends'],
+};
+
 /**
  * Runs every reference query and returns the ones whose first result is wrong (query -> got).
  * @param queries Query -> expected first topic; defaults to the 20 of V-H3.

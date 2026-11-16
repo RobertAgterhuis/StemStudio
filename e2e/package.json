@@ -8,15 +8,15 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu\"",
-    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test\"",
+    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent\"",
+    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
     "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",
     "test:lyrics": "playwright test --project=chromium --project=firefox --grep \"@karaoke|@lyrics\"",
     "test:sheet-music": "playwright test --project=chromium --project=firefox --grep @sheet-music --grep-invert @detail",
     "test:styles": "playwright test --project=chromium --project=firefox --grep \"@styles|@generation-status\"",
-    "test:generative": "playwright test --project=chromium --project=firefox --grep @generative --grep-invert @restart",
+    "test:generative": "playwright test --project=chromium --project=firefox --grep @generative --grep-invert \"@restart|@agent\"",
     "test:generative-restart": "playwright test --project=chromium --project=firefox --grep \"@generative.*@restart|@restart.*@generative\"",
     "test:gpu": "playwright test --project=chromium --project=firefox --grep @gpu",
     "test:real": "playwright test --project=chromium --project=firefox --grep @real",

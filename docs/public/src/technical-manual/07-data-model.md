@@ -34,6 +34,15 @@ worker job id, audio facts (format, bit depth or bit rate, duration, `appliedGai
 provenance (track id, title and artist, contents, render recipe) and its files. Items keep
 their provenance when the track is deleted; the API then reports `trackAvailable: false`.
 
+**Agent (011)**: one settings row; **conversations** with their messages (role, text, page
+context, run); **runs** (`queued` → `running` ⇄ `awaiting_approval` / `awaiting_ui` /
+`waiting_job` → `completed`, `failed`, `cancelled` or `interrupted`; at most one active run;
+API start-up marks unfinished runs `interrupted` and expires their approvals); **steps** with
+the tool call, its risk, the policy decision and its result; **approvals** (`pending`,
+`approved`, `rejected`, `expired`); **undo entries** with the inverse calls of a command group.
+Since 001 changed in 011: an upload's title is its original file name, no longer the stored
+hash (existing tracks are not migrated).
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -48,7 +57,7 @@ their provenance when the track is deleted; the API then reports `trackAvailable
 | `20261115171827_AddScoreFacts` | 008 | `Assets.Score` (profile, quality, key, grid, warnings, page count) |
 | `20261115190101_AddGenerativeStyles` | 009 | `Styles`, `Generations`, `GenerationTakes`, `Tracks.Origin` |
 | `20261115200748_AddLyricsAndVoices` | 010 | `LyricsSheets`, `VoiceProfiles`, `AudioHashes` |
-| `AddAgent` (planned) | 011 | Agent settings, conversations, runs, steps, approvals, undo, events |
+| `20261116064402_AddAgent` | 011 | `AgentSettings` (one row: backend, models, Claude model and effort, limits, notice acknowledgement; never the key), `Conversations`, `ConversationMessages`, `AgentRuns` (status, backend, model, taint, counters, usage), `RunSteps` (tool, arguments, risk, decision and reasons, status, result), `Approvals` (bound to the arguments hash, 24 h expiry), `RunEvents` (SSE replay), `UndoEntries` (inverse calls, `ExpectedUpdatedAt`). Unreleased id kept after the T080 regeneration: development databases that applied an earlier 011 `AddAgent` must be recreated |
 
 ## File layout
 

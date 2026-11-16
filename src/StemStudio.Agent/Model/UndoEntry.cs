@@ -26,6 +26,12 @@ public sealed record UndoEntry
     /// <summary>True for a compensation of an artefact created by this run and not modified since (no approval).</summary>
     public required bool Fresh { get; init; }
 
+    /// <summary>
+    /// Optimistic check for versioned targets (mixes): the target's <c>updatedAt</c> right after the step. At undo time a
+    /// different <c>updatedAt</c> (tolerance 1 s) makes the entry obsolete. Null when the target has no version (data-model 4.4).
+    /// </summary>
+    public DateTimeOffset? ExpectedUpdatedAt { get; init; }
+
     /// <summary>Entry status.</summary>
     public required UndoEntryStatus Status { get; init; }
 }

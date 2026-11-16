@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- HTTP contract DTOs shared by StemStudio.Api and StemStudio.Web. No dependencies (ADR-002).
-       Mirrors specs/010-lyrics-to-song/contracts/backend-api.openapi.yaml (1.9.0 = 008's 1.7.0 + 009 + 010) exactly;
-       Agent/ mirrors the additive 011 delta specs/011-ai-composer-agent/contracts/agent-api.openapi.yaml (1.10.0-delta.1). -->
+       Mirrors specs/011-ai-composer-agent/contracts/backend-api.openapi.yaml (1.10.0 = 010's 1.9.0 + the 011 agent delta) exactly;
+       Agent/ holds the agent DTOs of 1.10.0 (merged unchanged from agent-api.openapi.yaml 1.10.0-delta.1). -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Contracts</RootNamespace>
   </PropertyGroup>

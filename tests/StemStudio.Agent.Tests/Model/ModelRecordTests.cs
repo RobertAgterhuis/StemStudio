@@ -16,6 +16,25 @@ public sealed class ModelRecordTests
     }
 
     [Fact]
+    public void UndoEntry_ExpectedUpdatedAtIsOptional()
+    {
+        var entry = new UndoEntry
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = Guid.NewGuid(),
+            RunId = Guid.NewGuid(),
+            StepId = Guid.NewGuid(),
+            Kind = UndoKindDto.Inverse,
+            Action = new UndoAction { Tool = "restore_mix", Arguments = "{}" },
+            Fresh = false,
+            Status = UndoEntryStatus.Available,
+        };
+
+        entry.ExpectedUpdatedAt.ShouldBeNull();
+        (entry with { ExpectedUpdatedAt = Samples.Now }).ExpectedUpdatedAt.ShouldBe(Samples.Now);
+    }
+
+    [Fact]
     public void Approval_ExpiresOnlyWhilePendingAfter24Hours()
     {
         var pending = Samples.Approval(ApprovalStatusDto.Pending, Samples.Now);

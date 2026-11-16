@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "US2 (T049): split the track of the page context further (heavy -> approval card with the estimate); the test approves.",
+  "turns": [
+    { "calls": [{ "name": "start_detail_separation", "arguments": { "trackId": "{{context.trackId}}" } }] },
+    { "text": "The detail separation is queued." }
+  ]
+}

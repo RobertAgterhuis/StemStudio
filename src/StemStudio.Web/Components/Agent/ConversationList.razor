@@ -1,0 +1,33 @@
+@* Conversation list (ui-test-ids agent-conversation-list), newest first as the API returns them; the open one has
+   aria-current="true". From Advanced every entry can be renamed in place (Enter saves, Escape cancels) and deleted
+   (disabled while its run is active). *@
+
+<nav class="ss-agent-conversations" aria-label="Conversations" data-testid="agent-conversation-list">
+    <ul>
+        @foreach (var conversation in Conversations)
+        {
+            var id = conversation.ConversationId;
+            <li @key="id" class="ss-agent-conversation">
+                @if (_editing == id)
+                {
+                    <input class="ss-agent-title-input" aria-label="Conversation title" maxlength="@AgentContractLimits.TitleMaxLength" value="@_title"
+                           @oninput="SetTitle" @onchange="SetTitle" @onkeydown="e => KeyAsync(e, id)" />
+                    <button type="button" class="ss-bar-button" aria-label="Save title" @onclick="() => SaveAsync(id)">
+                        <span class="rzi" aria-hidden="true">check</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="ss-text-button" data-testid="@($"agent-conversation-{id:D}")"
+                            aria-current="@(id == OpenId ? "true" : null)" @onclick="() => OnSelect.InvokeAsync(id)">@conversation.Title</button>
+                    <LevelGate Feature="agent.conversation-actions">
+                        <button type="button" class="ss-bar-button" aria-label="@($"Rename {conversation.Title}")" data-testid="@($"agent-conversation-rename-{id:D}")"
+                                @onclick="() => StartRename(conversation)"><span class="rzi" aria-hidden="true">edit</span></button>
+                        <button type="button" class="ss-bar-button" aria-label="@($"Delete {conversation.Title}")" data-testid="@($"agent-conversation-delete-{id:D}")"
+                                disabled="@IsActive(conversation)" @onclick="() => OnDelete.InvokeAsync(id)"><span class="rzi" aria-hidden="true">delete</span></button>
+                    </LevelGate>
+                }
+            </li>
+        }
+    </ul>
+</nav>

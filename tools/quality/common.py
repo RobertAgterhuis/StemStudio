@@ -18,8 +18,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_SUFFIXES = frozenset({".cs", ".py", ".ts", ".tsx", ".razor"})
 """File types measured by the gate (C#, Python, TypeScript, Razor ``@code`` blocks)."""
 
-DEFAULT_ROOTS = ("src", "tests", "worker", "generator", "e2e", "tools/quality")
-"""Source roots scanned when no paths are given (``generator``: features 009/010)."""
+DEFAULT_ROOTS = (
+    "src",
+    "tests",
+    "worker",
+    "generator",
+    "e2e",
+    "tools/quality",
+    "tools/agent-eval",
+)
+"""Source roots scanned when no paths are given (``generator``: features 009/010;
+``tools/agent-eval``: feature 011, the ai-agent eval harness, measured but not production)."""
 
 PRODUCTION_ROOTS = ("src/", "worker/src/", "generator/src/")
 """Prefixes of production code; duplication there fails the gate."""
@@ -67,6 +76,12 @@ EXCLUDED_PATHS = (
 
 OWNERS = (
     ("src/StemStudio.Contracts/", "architect"),
+    ("src/StemStudio.Agent/Ports/", "architect"),
+    ("src/StemStudio.Agent/Model/", "architect"),
+    ("src/StemStudio.Agent/StemStudio.Agent.csproj", "architect"),
+    ("src/StemStudio.Agent/", "ai-agent"),
+    ("tests/StemStudio.Agent.Tests/", "ai-agent"),
+    ("tools/agent-eval/", "ai-agent"),
     ("src/StemStudio.Domain/", "backend"),
     ("src/StemStudio.Persistence/", "backend"),
     ("src/StemStudio.Api/", "backend"),

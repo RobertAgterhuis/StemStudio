@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "US5 (T074): save the open mixer as a new mix (change, fresh compensation); the test undoes it without a card.",
+  "turns": [
+    { "calls": [{ "name": "save_mix_as", "arguments": { "trackId": "{{context.trackId}}", "name": "Agent mix", "fromOpenMixer": true } }] },
+    { "text": "The mix is saved as Agent mix." }
+  ]
+}

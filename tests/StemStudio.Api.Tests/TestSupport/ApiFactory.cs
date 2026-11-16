@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using StemStudio.Api.Agent.Gpu;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
@@ -49,6 +50,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     public bool SingerInstalled { get; init; } = true;
 
     public Action<IServiceCollection>? ConfigureServices { get; init; }
+
+    /// <summary>Extra configuration values (e.g. <c>StemStudio:Agent:Backend</c>), applied before start.</summary>
+    public IReadOnlyDictionary<string, string?> Settings { get; init; } = new Dictionary<string, string?>();
 
     public ListLoggerProvider Logs { get; } = new();
 
@@ -115,6 +119,11 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.UseSetting("StemStudio:DataDir", DataDir);
         builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
+        foreach (var (key, value) in Settings)
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IWorkerClient>(Worker);
@@ -124,6 +133,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
                 new HttpClient(Singer.Handler) { BaseAddress = SingerInstalled ? new Uri("http://singer:8010/") : null }, NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
             ConfigureServices?.Invoke(services);
+            services.DecorateGpuJobClients();
         });
     }
 

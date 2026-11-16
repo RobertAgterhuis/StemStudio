@@ -39,7 +39,7 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
     private void ApplyMetadata(Track track, WorkerSourceMetadata metadata)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        track.ApplyMetadata(MetadataMapper.ToSource(metadata), now);
+        track.ApplyMetadata(MetadataMapper.ToSource(track, metadata), now);
         if (metadata.DurationSeconds is not null)
         {
             track.ScheduleLookup(MetadataMapper.ToQuery(metadata), now);

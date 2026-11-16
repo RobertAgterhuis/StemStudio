@@ -1,3 +1,5 @@
+import fnmatch
+
 import pytest
 
 import sonar_args
@@ -26,3 +28,13 @@ def test_repo_properties_cover_all_report_paths(capsys: pytest.CaptureFixture[st
     } <= keys
     assert not any("token" in line.lower() for line in out)
     assert "/d:sonar.sources" not in keys
+
+
+def test_agent_eval_is_a_source_and_its_coverage_report_is_imported() -> None:
+    """Feature 011 (T080): the eval harness is analysed and its xUnit coverage reaches Sonar."""
+    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
+    props = sonar_args.parse_properties(text)
+    assert "tools/agent-eval" in props["sonar.sources"].split(",")
+    report = "tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.opencover.xml"
+    patterns = props["sonar.cs.opencover.reportsPaths"].split(",")
+    assert any(fnmatch.fnmatch(report, pattern) for pattern in patterns)

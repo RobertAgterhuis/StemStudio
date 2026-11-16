@@ -10,12 +10,14 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Worker contract examples (copied from worker-api.openapi.yaml, re-synced from 1.6.0) and the backend contract itself.
-         Features 009 and 010 run as one wave on top of 008: the tests use the 010 backend document (1.9.0 = 008 plus 009 plus 010),
+         Feature 011 (Phase 0 part 2): the tests use the 011 backend document (1.10.0 = 010's 1.9.0 plus the agent delta).
+         Features 009 and 010 ran as one wave on top of 008 (backend 1.9.0 = 008 plus 009 plus 010),
          the 008 worker document (1.6.0, unchanged) and the 010 generator document (1.1.0, contains 009's 1.0.0); the 005-009 backend
          documents and the 009 generator document are linked as well so tests can prove they are subsets. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\008-sheet-music\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\010-lyrics-to-song\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\011-ai-composer-agent\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\010-lyrics-to-song\contracts\backend-api.openapi.yaml" Link="Contract\010\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\009-style-transfer\contracts\backend-api.openapi.yaml" Link="Contract\009\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\008-sheet-music\contracts\backend-api.openapi.yaml" Link="Contract\008\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\010-lyrics-to-song\contracts\generator-api.openapi.yaml" Link="Contract\generator-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
@@ -24,7 +26,7 @@
     <None Include="..\..\specs\006-synced-lyrics-karaoke\contracts\backend-api.openapi.yaml" Link="Contract\006\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\007-export-library\contracts\backend-api.openapi.yaml" Link="Contract\007\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\005-artwork-band-info\contracts\backend-api.openapi.yaml" Link="Contract\005\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Feature 011 Phase 0 part 1: standalone agent delta (merged into backend-api 1.10.0 after 009/010); AgentContractTests. -->
+    <!-- Feature 011: the standalone agent delta 1.10.0-delta.1, merged unchanged into backend-api 1.10.0; AgentContractTests prove it. -->
     <None Include="..\..\specs\011-ai-composer-agent\contracts\agent-api.openapi.yaml" Link="Contract\011\agent-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\007-export-library\contracts\render-vectors.json" Link="Contract\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Contract\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />

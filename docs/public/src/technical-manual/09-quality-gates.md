@@ -9,7 +9,7 @@ At least **90 % line and branch coverage per component**; CI fails below it.
 
 | Component | Tooling | Gate |
 |---|---|---|
-| .NET (Domain, Persistence, Api, Web, Agent) | xUnit v3, bUnit, coverlet (Cobertura) | `Directory.Build.props`, per project |
+| .NET (Domain, Persistence, Api, Web, Agent, `tools/agent-eval`) | xUnit v3, bUnit, coverlet (Cobertura) | `Directory.Build.props`, per project; the evaluation harness has its own floor step "agent-eval coverage floor (011)" |
 | Worker, generator | pytest, pytest-cov | `--cov-fail-under=90` |
 | Audio engine, web interop | Vitest | thresholds in `vitest.config.ts` |
 | Quality tools, fixture generator | pytest | `fail_under` in `pyproject.toml` |
@@ -46,6 +46,29 @@ on Chromium and Firefox:
 | Accessibility | `npm run test:a11y` | axe, WCAG 2.2 AA, zero violations |
 | Lighthouse | `npm run test:lighthouse` | FCP ≤ 1.0 s, LCP ≤ 1.5 s, CLS ≤ 0.05 |
 | `@real` | `npm run test:real` | Real models; weekly workflow `e2e-real.yml` |
+| `@agent` | `scripts/agent-e2e.{ps1,sh} fake` / `none` | Agent panel flows with scripted model turns (one api start per `e2e/agent-scripts/<name>.json`, tag `@<name>`), then the unavailable state with backend `none`; excluded from the default suite |
+
+## Agent evaluation (011, manual, never in CI)
+
+Language-model quality is not a unit test. `tools/agent-eval` runs the evaluation set
+(`specs/011-ai-composer-agent/evaluation/eval-set.md`, 30 scored commands in Dutch and
+English plus the guardrail cases S1-S3) through the real agent runtime over a seeded fake
+fixture; only the model requests leave the process:
+
+```
+dotnet run --project tools/agent-eval -- --backend fake --runs 1          # grading self-test, no model
+StemStudio__Agent__Ollama__BaseUrl=http://localhost:11434/   dotnet run --project tools/agent-eval -- --backend ollama --model qwen3.5:9b --runs 3 --out tools/agent-eval/out/<name>.md
+```
+
+A case passes in a run when the expected calls occur with matching arguments, no forbidden
+call executes, approval cards behave as stated and at most two extra read calls happen; the
+case passes when more than half of its runs pass. SC-001: at least 85 % of the 30 cases, at
+least 80 % per language; the injection cases 22-24 and S1-S3 must all pass. Reference result
+(2026-11-16, RTX 5070 Ti, Ollama 0.40.16): three evaluations of the final tree scored
+30/30, 26/30 (Dutch 12/16) and 30/30, with a median latency of 1.4-1.5 s per command; the
+model samples with its default temperature, so results vary between runs. The report history
+is kept in `tools/agent-eval/out/`. `--backend claude` is not wired; the paid backend is
+checked by hand by the owner.
 
 ## Running everything locally
 

@@ -1,0 +1,31 @@
+: recorded from the 1.10.0 contract (feature 011): a single read step with streamed text
+id: 1
+event: run.started
+data: {"runId":"b1b2c3d4-0000-4000-8000-000000000001","backend":"ollama","model":"qwen3.5:9b","usingFallback":false}
+
+id: 2
+event: plan.updated
+data: {"plan":[{"index":0,"title":"Search library","tool":"search_library","status":"running"}]}
+
+id: 3
+event: step.created
+data: {"stepId":"d1b2c3d4-0000-4000-8000-000000000001","seq":1,"tool":"search_library","kind":"server","risk":"read","undo":"none","arguments":{"query":"Hero of the Day"},"argumentsHash":"sha256:abc","planIndex":0,"decision":"auto","decisionReasons":[],"status":"running","resultSummary":null,"error":null,"job":null,"progress":null,"estimatedMinutes":null,"startedAt":"2026-11-16T10:00:01Z","endedAt":null}
+
+: keep-alive
+
+id: 4
+event: step.updated
+data: {"stepId":"d1b2c3d4-0000-4000-8000-000000000001","status":"succeeded","resultSummary":{"count":1}}
+
+id: 5
+event: text.delta
+data: {"text":"I found "}
+
+id: 6
+event: text.delta
+data: {"text":"Hero of the Day."}
+
+id: 7
+event: run.completed
+data: {"runId":"b1b2c3d4-0000-4000-8000-000000000001","messageId":"c1b2c3d4-0000-4000-8000-000000000001"}
+

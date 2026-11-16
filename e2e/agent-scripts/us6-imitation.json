@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "description": "US6-3 / FR-025 (T078b): a song whose free caption names a real band and uses an imitation phrase; the artist-imitation guardrail denies the step (no card, no generation). Needs the fake generator.",
+  "turns": [
+    {
+      "calls": [
+        {
+          "name": "generate_song",
+          "arguments": {
+            "title": "Agent song",
+            "language": "en",
+            "leadVoice": "any",
+            "instrumental": true,
+            "freeCaption": "heavy riffs in the style of Metallica",
+            "durationSeconds": 30
+          }
+        }
+      ]
+    },
+    { "text": "I cannot make music that imitates a real artist. Describe the genre, the instruments and the mood instead." }
+  ]
+}

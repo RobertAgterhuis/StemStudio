@@ -276,7 +276,9 @@ fake backend (exact tool calls) and on the reference machine with the local mode
 - **Two browser tabs** with the panel: both show the same run (events are per run); approvals and
   UI tool results are accepted once (first wins, idempotent ids).
 - **API restart during a run**: the run is marked interrupted; jobs it started keep running in the
-  worker; pending approvals expire; the panel offers "Continue" (new run with the same context).
+  worker; pending approvals expire; the panel offers "Continue" (new run with the same context). *Delivered
+  in 011 without "Continue" (T084): the panel shows the run as interrupted and the user sends the
+  command again; "Continue" is an open follow-up.*
 - **Job fails** while the agent waits: the step fails with the job's readable error; dependent
   steps are skipped; the agent may offer a retry (job class, needs no confirmation unless tainted).
 - **Very long conversations**: only the newest messages within the context budget are sent; older
@@ -440,7 +442,7 @@ fake backend (exact tool calls) and on the reference machine with the local mode
 - Single local user, no authentication (as in 001); the agent acts with the same rights as the UI.
 - The Claude backend is optional, paid per use, and requires a constitution amendment (draft in
   [plan.md](plan.md)); without the amendment the Claude backend code is not merged and the feature
-  ships with Ollama and none only.
+  ships with Ollama and none only. *Ratified as constitution 1.3.0 (CTO decisions 2026-11-15).*
 - 004's journey levels and in-app help framework exist; if not, the panel uses the Expert layout
   and no help tool.
 - Text-only interaction (no speech input/output) in this feature.

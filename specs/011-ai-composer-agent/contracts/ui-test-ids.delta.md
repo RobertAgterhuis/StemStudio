@@ -1,6 +1,9 @@
 # Contract delta: UI test ids for feature 011 (draft, additive)
 
-Status: **draft delta** (011 Phase 0 part 1, 2026-11-15). Base: `specs/008-sheet-music/contracts/ui-test-ids.md`
+Status: **merged** into [ui-test-ids.md](ui-test-ids.md) **1.10.0** (011 Phase 0 part 2, 2026-11-16;
+009/010 added no settings page, so `/settings` is new; three ids added at the merge:
+`agent-approval-effect`, `agent-approval-estimate`, `nav-settings`). The full document is binding;
+this file is kept for the review history. Original status: draft delta (011 Phase 0 part 1, 2026-11-15). Base: `specs/008-sheet-music/contracts/ui-test-ids.md`
 **1.7.0**. Features 009 and 010 take the next two minors (expected 1.8.0, 1.9.0); in Phase 0 part 2
 the architect merges this delta unchanged into the full `specs/011-ai-composer-agent/contracts/ui-test-ids.md`
 as the following minor (expected **1.10.0**). Nothing below renames, removes or changes an existing

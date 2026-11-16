@@ -1,6 +1,7 @@
 # StemStudio CI: build, lint, test and gate every component at >= 90 % line AND branch coverage,
 # then run the Playwright main flow against the compose stack with the fake separator.
-# Actions are pinned to commit SHAs (tag in the comment). No secrets are used.
+# Actions are pinned to commit SHAs (tag in the comment). No secrets are used: the optional Claude
+# key of feature 011 is never set here (scripts/secret_scan.py fails the run if a workflow sets it).
 name: ci
 
 on:
@@ -34,6 +35,8 @@ env:
   RENDER_VECTORS: specs/007-export-library/contracts/generate_render_vectors.py
   # Features 009/010 (generator 1.0.0 / 1.1.0, backend 1.8.0 / 1.9.0); 010's documents contain 009's.
   GENERATIVE_CONTRACTS: specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts
+  # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
+  AGENT_CONTRACTS: specs/011-ai-composer-agent/contracts
 
 jobs:
   dotnet:
@@ -55,6 +58,11 @@ jobs:
         run: dotnet format StemStudio.slnx --verify-no-changes --no-restore
       - name: Test with per-component 90 % line+branch gate (Directory.Build.props, ADR-006)
         run: dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
+      - name: StemStudio.Agent is in the gate (report present, line and branch >= 90 %; feature 011)
+        run: python3 scripts/coverage_floor.py tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
+      # tools/agent-eval itself is never run in CI (live runs need a model); only its unit tests are.
+      - name: StemStudio.AgentEval is in the gate (report present, line and branch >= 90 %; feature 011)
+        run: python3 scripts/coverage_floor.py tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
       - name: Coverage summary
         if: always()
         shell: python
@@ -72,6 +80,7 @@ jobs:
         if: always()
         with:
           name: coverage-dotnet
+          # every test project, incl. tests/StemStudio.AgentEval.Tests (coverage.{cobertura,opencover}.xml, feature 011)
           path: tests/*/TestResults/coverage/
           if-no-files-found: warn
 
@@ -277,8 +286,23 @@ jobs:
           for dir in $GENERATIVE_CONTRACTS; do
             npx --yes "$REDOCLY_CLI" lint --config "$dir/redocly.yaml"               "$dir/generator-api.openapi.yaml" "$dir/backend-api.openapi.yaml"
           done
+      - name: Redocly lint, agent documents (011; backend 1.10.0 + agent delta)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$AGENT_CONTRACTS/redocly.yaml"
+          "$AGENT_CONTRACTS/backend-api.openapi.yaml" "$AGENT_CONTRACTS/agent-api.openapi.yaml"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
+
+  secret-scan:
+    name: Secret scan (no Claude key or key value in the repo, CI never sets it; 011 SC-006)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The rules fire on planted samples (self-test)
+        run: python3 scripts/secret_scan.py --self-test
+      - name: Scan the repository (tracked files)
+        run: python3 scripts/secret_scan.py
 
   quality:
     name: Quality gate (SIG checks) and its own tests
@@ -370,6 +394,8 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q
           docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml config -q
           docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml config -q
+          # Feature 011: the agent variables of the fake E2E stack interpolate (no Claude key is set).
+          STEMSTUDIO_AGENT_BACKEND=fake STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/ci.json docker compose -f docker-compose.yml config -q
       - name: Build the fake generator image (GENERATOR_VARIANT=fake) and run the guard (profile generator)
         run: scripts/check-cpu-image.sh --build --generator stemstudio/generator:ci-fake
       - name: The fake image runs as the non-root user stemstudio (uid 10001)
@@ -428,7 +454,7 @@ jobs:
 
   e2e:
     name: E2E main flow (compose, fake separator, Playwright)
-    needs: [dotnet, worker, generator, audio-engine, web-interop, contracts, quality, e2e-lint]
+    needs: [dotnet, worker, generator, audio-engine, web-interop, contracts, secret-scan, quality, e2e-lint]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -436,6 +462,9 @@ jobs:
       # The @detail specs expect a fake detail phase of ~25 s (e2e/support/env.ts): long enough
       # to cancel the shared plain track's phase before it completes.
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5
+      # Feature 011: the default suite runs with the agent off (quickstart A6, SC-005); the agent
+      # steps below recreate only the api with fake / none. There is no Ollama and no Claude key here.
+      STEMSTUDIO_AGENT_BACKEND: none
       E2E_BASE_URL: http://localhost:8080
       E2E_API_URL: http://localhost:8081
     steps:
@@ -463,6 +492,8 @@ jobs:
           curl --fail --silent --show-error http://localhost:8081/health
           curl --fail --silent --show-error http://localhost:8080/health
           docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+      - name: The api container has no Claude key (bare pass-through, CI never sets it; 011 SC-006)
+        run: docker compose exec -T api sh -c 'test -z "${ANTHROPIC_API_KEY+set}"'
       - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
         run: scripts/check-library-mount.sh
       - name: Install Playwright browsers
@@ -488,6 +519,10 @@ jobs:
           docker compose restart api web
           docker compose up -d --wait --wait-timeout 180 api web
           (cd e2e && npm run test:restart)
+      - name: Agent specs with the fake backend, one api start per e2e/agent-scripts file (011 T059, A5)
+        run: scripts/agent-e2e.sh fake
+      - name: Agent unavailable spec with backend none (011 T059, A6, SC-005)
+        run: scripts/agent-e2e.sh none
       - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
         env:
           STEMSTUDIO_FAKE_DEVICE: gpu

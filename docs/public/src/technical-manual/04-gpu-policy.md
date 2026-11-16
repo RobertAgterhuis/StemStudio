@@ -51,4 +51,6 @@ have **no CPU fallback**; without a usable GPU the API answers `409 gpuRequired`
 
 Lyrics alignment (006) and the accurate piano transcription (008) use the worker's device
 runner with the same policy. The agent (011) asks Ollama to release its model
-(`keep_alive: 0`) before submitting GPU-heavy jobs.
+(`keep_alive: 0`, 2 s timeout; the job starts anyway) before submitting GPU-heavy jobs, from
+the UI or from the agent, and agent turns use the fallback model `qwen3.5:4b` on the CPU
+(`num_gpu` 0) while such a job runs. Ollama runs outside StemStudio's GPU lease.

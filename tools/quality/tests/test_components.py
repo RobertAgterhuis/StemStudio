@@ -70,6 +70,7 @@ REQUESTED = [
     "Persistence",
     "Api",
     "Web",
+    "Agent",
     "worker/ingest",
     "worker/metadata",
     "worker/lyrics",
@@ -95,6 +96,7 @@ REQUESTED = [
     "web-interop",
     "e2e",
     "tools/quality",
+    "tools/agent-eval",
 ]
 
 

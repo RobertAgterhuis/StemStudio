@@ -44,8 +44,7 @@ Everything of Advanced, plus tools for fast, precise work:
 
 ## Levels in later features
 
-Every new feature follows the same pattern (chapter numbers in brackets; karaoke, sheet music
-and the AI agent are still in development):
+Every new feature follows the same pattern (chapter numbers in brackets):
 
 | Feature | Beginner | Advanced | Expert |
 |---|---|---|---|
@@ -53,7 +52,7 @@ and the AI agent are still in development):
 | Karaoke (8) | Banner and on/off | Offset and text size | Timing origin, alignment controls |
 | Export (9) | Save to library, format | Bit depth, bit rate, range, selected channels, all stems, library filters | As Advanced |
 | Sheet music (10) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
-| AI agent (13) | Chat, plan and approvals | Backend badge, job details, usage | Full tool log, model choice |
+| AI agent (13) | Chat, plan and approvals | Step list with job details, backend badge, conversation actions, Claude usage, model choice | Full tool log, Claude model and effort |
 
 ## Preferences
 

@@ -6,6 +6,7 @@
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
     (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+    secret scan (no Claude key or key value in the repo, feature 011),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -20,6 +21,11 @@
     8080/8081 free and the Playwright browsers installed; the project and its volumes are removed
     afterwards.
 
+.PARAMETER AgentE2e
+    Also starts a fake stack (STEMSTUDIO_AGENT_BACKEND=none) as compose project stemstudio-e2e and
+    runs scripts/agent-e2e.ps1 fake, then none (feature 011, T059). Same prerequisites as -Gpu; the
+    project and its volumes are removed afterwards.
+
 .EXAMPLE
     ./scripts/test-all.ps1
 .EXAMPLE
@@ -28,7 +34,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive developer script; console output is the UI.')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Private helpers that only change this script''s own throwaway containers or process environment.')]
 [CmdletBinding()]
-param([switch] $ContinueOnError, [switch] $Gpu)
+param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -38,6 +44,11 @@ $Contracts = 'specs/008-sheet-music/contracts'  # 008 documents contain 006's an
 $RenderVectors = 'specs/007-export-library/contracts/generate_render_vectors.py'  # 008 has no vectors file
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
 $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics-to-song/contracts')
+# Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
+$AgentContracts = 'specs/011-ai-composer-agent/contracts'
+$AgentCoverage = 'tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml'
+$AgentEvalCoverage = 'tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml'
+$WorkerPython = @('uv', 'run', '--project', 'worker', '--frozen', 'python')
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
@@ -47,6 +58,8 @@ $Steps = @(
     @{ Name = 'dotnet build'; Dir = '.'; Cmd = @('dotnet', 'build', 'StemStudio.slnx', '-c', 'Release') }
     @{ Name = 'dotnet format'; Dir = '.'; Cmd = @('dotnet', 'format', 'StemStudio.slnx', '--verify-no-changes') }
     @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', 'StemStudio.slnx', '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
+    @{ Name = 'agent coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentCoverage) }
+    @{ Name = 'agent-eval coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentEvalCoverage) }
     @{ Name = 'worker uv sync'; Dir = 'worker'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
@@ -71,6 +84,9 @@ $Steps = @(
     foreach ($dir in $GenerativeContracts) {
         @{ Name = "contracts lint ($(Split-Path -Leaf (Split-Path -Parent $dir)))"; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$dir/redocly.yaml", "$dir/generator-api.openapi.yaml", "$dir/backend-api.openapi.yaml") }
     }
+    @{ Name = 'contracts lint (011-ai-composer-agent)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$AgentContracts/redocly.yaml", "$AgentContracts/backend-api.openapi.yaml", "$AgentContracts/agent-api.openapi.yaml") }
+    @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
+    @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
@@ -99,6 +115,16 @@ if ($Gpu) {
         $gpuEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_FAKE_DEVICE = $mode }
         $Steps += @{ Name = "gpu e2e: fake stack ($mode) up"; Dir = '.'; Env = $gpuEnv; Cmd = @('docker', 'compose', '-p', $E2eProject, 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
         $Steps += @{ Name = "gpu e2e: playwright @gpu ($mode)"; Dir = 'e2e'; Env = $gpuEnv; Cmd = @('npm', 'run', 'test:gpu') }
+    }
+}
+
+# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none); they
+# recreate only the api of this project.
+if ($AgentE2e) {
+    $agentEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_AGENT_BACKEND = 'none'; COMPOSE_PROJECT_NAME = $E2eProject }
+    $Steps += @{ Name = 'agent e2e: fake stack up'; Dir = '.'; Env = $agentEnv; Cmd = @('docker', 'compose', 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
+    foreach ($backend in 'fake', 'none') {
+        $Steps += @{ Name = "agent e2e: playwright agent.spec.ts ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/agent-e2e.ps1', $backend) }
     }
 }
 
@@ -138,6 +164,6 @@ foreach ($step in $Steps) {
     $summary.Add([pscustomobject]@{ Step = $step.Name; Result = $result })
     if ($result -eq 'failed' -and -not $ContinueOnError) { break }
 }
-if ($Gpu) { & docker compose -p $E2eProject down -v | Out-Host }
+if ($Gpu -or $AgentE2e) { & docker compose -p $E2eProject down -v | Out-Host }
 $summary | Format-Table -AutoSize | Out-String | Write-Host
 exit ([int]($summary.Result -contains 'failed'))

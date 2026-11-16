@@ -1,77 +1,119 @@
 # The AI composer agent
 
-<span class="planned">In development</span> Feature 011. This chapter describes the
-specified behaviour.
-
 Tell StemStudio what you want in plain English or Dutch, and the agent carries it out with
 the same actions you would use yourself: import, separate, mix, export, transcribe, restyle
 and generate. You stay in control: anything heavy or destructive waits for your approval.
+The agent is optional; every other part of StemStudio works the same without it.
+
+## Before you start
+
+The agent uses a language model that runs on your own computer with **Ollama**. Ollama is a
+separate, free program that the administrator installs on the computer that runs StemStudio,
+together with two models (see the technical manual, chapter 3):
+
+- `qwen3.5:9b`, the default model (about 6.6 GB);
+- `qwen3.5:4b`, a smaller model that is used while the graphics card is busy with a
+  separation or generation job.
+
+StemStudio never downloads models itself. If Ollama is not running or a model is missing, the
+panel says so and tells you the fix, for example *"Model qwen3.5:9b is not pulled."* with
+the command `ollama pull qwen3.5:9b` (chapter 16).
 
 ## Opening the agent
 
-Press the **agent** button, available on every page, to open the panel. Type a command (up
-to 4,000 characters) and press **Send**. The agent answers in the language of your command
-and knows which track or mix is open. Examples:
+Press **Agent** in the header, available on every page, to open the panel. Type a command (up
+to 4,000 characters) and press **Enter** or **Send**; **Shift+Enter** starts a new line and
+**Escape** closes the panel. The agent answers in the language of your command and knows
+which track or mix is open. Examples:
 
-- *"Import this YouTube link and open the mixer when it is ready."*
-- *"Mute the drums, loop from 1:20 to 1:45 and turn on the click."*
-- *"Save this as 'Drums out, slow' and export it as MP3."*
-- *"Maak bladmuziek van de baspartij."*
+- *"Import this YouTube link and split it further."*
+- *"Mute the drums, loop bars 17 to 24 and turn on the click."*
+- *"Sla de wijzigingen op in deze mix."*
+- *"Make sheet music of the bass of Hero of the Day."*
 
 For a task with several steps, the agent first shows a numbered **plan** and then works
-through it. Each step shows its status: planned, awaiting approval, running, waiting for
-job, done, failed, skipped or undone. When a command is ambiguous (for example two tracks
-match) the agent asks which one you mean instead of guessing. Questions outside StemStudio
-are politely declined.
+through it. From Advanced level each step is listed with its status: planned, awaiting
+approval, running, waiting for job, done, failed, skipped or undone; a job step shows its
+progress. When a command is ambiguous (for example two tracks match) the agent asks which one
+you mean instead of guessing. Questions outside StemStudio are politely declined.
+
+Your conversations are kept on this computer. When you reload the page or come back later,
+the panel opens the latest conversation again. From Advanced level you can rename and delete
+conversations; **New** starts an empty one. Only one command runs at a time in StemStudio;
+**Cancel** stops a running command; jobs it already started keep running and can be
+cancelled on their own page.
 
 ## Approvals
 
-An **approval card** appears before every heavy action (a long job on the GPU or CPU) and
-every destructive action (deleting something). It shows exactly what will happen, with the
-arguments, whether it can be undone and, for heavy jobs, the estimated time and device.
+An **approval card** appears before every heavy action (a long job on the GPU or CPU, such as
+splitting further, transcribing or generating) and every destructive action (deleting or
+overwriting something). It says exactly what will happen, with the arguments, whether it can
+be undone and, for heavy jobs, the estimated time and device. A delete card names the track
+or mix.
 
 - **Approve** runs the step; **Reject** skips it and the steps that depend on it.
-- **Approve plan** approves all heavy, non-destructive steps of this plan at once.
+- **Approve all heavy steps of this plan** approves the heavy, non-destructive steps of the
+  plan at once.
   Destructive steps are always asked one by one.
-- A pending card is still there when you come back after closing the browser.
+- A pending card is still there when you come back after closing the browser; it expires
+  after 24 hours.
 
-Extra safety: when the agent has read text from outside (for example lyrics or band
-information), or wants to use a link or lyrics that you did not type yourself, it also asks
-before changing anything. The card then says the step was proposed after reading external
-content.
+Extra safety: once the agent has read text that does not come from you, such as track titles
+from YouTube or Spotify, lyrics or band information, it also asks before changing anything
+else in that command. The card then says the step was proposed after reading external
+content. This is why, for example, *"export the bass of Hero of the Day"* asks for approval:
+the agent first searched the library and read the track's title. Links and lyrics must come
+from your own messages; a link that only appears in a track title is never imported.
+
+If the size of a job cannot be checked beforehand, the card says *"The size could not be
+checked, so this is treated as a long job"* and asks you like any heavy step.
 
 ## Undo
 
-Press **Undo** or type *"undo"* (*"maak ongedaan"*) to reverse the last command: mixer
-changes, a newly saved mix, an overwritten mix (the previous version comes back) and a
-running job (it is cancelled). Undoing an import, export or generated result deletes it and
-therefore asks for confirmation.
+Press **Undo** to reverse the agent's last command: mixer changes return to their previous
+values, a newly saved mix is deleted again, an overwritten mix gets its previous version back
+and a running job is cancelled. Press it again for the command before. Undo is disabled when
+nothing of the conversation is left to undo. Imports, exports and generated results are not
+undone; ask the agent to delete them, which asks for confirmation.
 
 ## What the agent does not do
 
-- It cannot clone voices; voice profiles stay in the screens of chapter 12.
-- It refuses requests to imitate an artist.
-- It has no access to files, the shell, the internet at large or settings.
+- It never creates or deletes a voice profile and never gives consent. It can convert a take
+  to **your own** voice only with a profile you already made with consent (chapter 12), and
+  only after you approve the card.
+- It refuses requests to imitate an artist; styles describe genres and sounds.
+- It has no access to files, the shell, the internet at large or the settings.
 
 ## Local AI or Claude
 
-In **Settings** you choose the language model behind the agent:
+In **Settings** (in the left rail) you choose the language model behind the agent:
 
-- **Ollama** (default): a local model on your own computer, free and offline. Ollama is
-  installed separately; StemStudio does not download models for you. If the model is
-  missing you see *"Model not pulled: run `ollama pull qwen3.5:9b`"*.
-- **Claude** (optional): Anthropic's model, paid per use. It can only be selected when the
-  administrator has set the API key in the environment of the StemStudio API. When you select
-  it you must confirm the notice *"paid per use, text only is sent to Anthropic"*. The badge
-  then shows the model and the token usage.
-- **None**: the agent is switched off.
+- **Ollama (on this computer, free)**, the default. From Advanced level you pick the model and
+  the fallback model; models that are not pulled or cannot call tools are marked and refused.
+- **Claude (online, paid per use)**: Anthropic's model. It can only be selected when the
+  administrator has set the API key in the environment of the StemStudio API; otherwise it
+  shows *"not configured"*. When you select it you must confirm the notice *"paid per use, text
+  only is sent to Anthropic"*. The badge then shows the model, and from Advanced level each
+  command shows its token usage. Expert level adds the Claude model and effort options.
+- **None (agent off)**.
 
-StemStudio never switches between Ollama and Claude by itself. If Claude fails, you see
-*"Claude not available: …"* with a button to switch to the local model. **Test connection**
-checks the chosen backend within ten seconds.
+StemStudio never switches between Ollama and Claude by itself; it may switch silently from
+the default local model to the smaller local model while a GPU job runs (the badge shows
+which). If Claude fails (key rejected, no connection, rate limit), the panel says why and
+offers **Switch to local**. **Test connection** checks the chosen backend within ten seconds.
 
 ## Levels and limits
 
-Beginners see the chat, the plan and approvals; Advanced adds the backend badge, job details
-and Claude usage; Expert adds the full tool log and model selection. One command may use up
-to 12 model turns and 20 actions, and only one command runs at a time in StemStudio.
+Beginners see the chat, the plan and approvals; Advanced adds the backend badge, the step
+list with job details, conversation actions, Claude usage and the model pickers; Expert adds
+the full tool log with the exact arguments and results. One command may use up to 12 model
+turns and 20 actions.
+
+Known limits:
+
+- The local model is good, not perfect: in the project's evaluation it handled most test
+  commands correctly, but not every time. Check the plan and the approval cards.
+- If StemStudio restarts while a command runs, the command is marked as interrupted. Jobs it
+  started keep running. There is no *Continue* button yet: send the command again.
+- After a library search every further change or job in the same command asks for approval
+  (see *Extra safety* above), even when the request looks harmless.

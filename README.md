@@ -42,6 +42,10 @@ metronome so you can mute the guitar and play it yourself.
   style from a library of 24 presets or your own styles (ACE-Step 1.5).
 - **Songs from your own lyrics** (feature 010, optional, NVIDIA GPU): write lyrics, generate a
   sung song, and optionally convert the vocal into your own voice after explicit consent.
+- **AI composer agent** (feature 011, optional): type a command in Dutch or English ("mute the
+  drums and loop the chorus", "importeer deze link en splits verder") and a local language model
+  (Ollama) plans and carries it out with StemStudio's own tools; heavy and destructive steps ask
+  for your confirmation first.
 
 ### Online lookups (feature 005, 006)
 
@@ -101,6 +105,52 @@ Measured on an RTX 5070 Ti: a 30 s restyle in about 16 s, a 45 s song in about 5
 file tags (`AI_GENERATED`, `AI_VOICE`). Styles describe music, never artists: imitation phrases
 and artist names are refused. A voice profile needs your own recording (10-60 s) and a signed
 consent statement; library audio is refused as a voice sample. Results are for personal use.
+
+### AI composer agent (feature 011, optional)
+
+The **Agent** button in the header opens a panel on every page. The agent turns a command into a
+visible plan, runs StemStudio's tools step by step (import, split further, mixer, loops, mixes,
+exports, lyrics, sheet music, style transfer and songs when those features are available) and
+shows each step's result. Heavy steps (separation, transcription, generation) and destructive
+steps (deletes, overwrites) always show a confirmation card with the exact arguments; Undo
+reverses the agent's last command group where an inverse exists (mixer values, a saved or
+overwritten mix, a started job). Conversations are stored locally and restored after a reload.
+
+**Prerequisites.** Ollama on the host (not in compose; https://ollama.com, MIT) and the models,
+pulled by you once (Qwen3.5 weights, Apache-2.0):
+
+```bash
+ollama pull qwen3.5:9b     # default model, ~6.6 GB, needs tool calling
+ollama pull qwen3.5:4b     # fallback, ~3.3 GB, used while a GPU job holds the GPU
+curl http://localhost:11434/api/tags   # both must be listed
+```
+
+The api container reaches the host at `http://host.docker.internal:11434`; set
+`STEMSTUDIO_OLLAMA_URL` for another address (without Docker: `StemStudio__Agent__Ollama__BaseUrl`).
+Without Ollama the app works as before and the panel says why the agent is off and how to fix
+it. Before a heavy GPU job starts, StemStudio asks Ollama to unload the agent model so the job
+gets the GPU memory.
+
+**Settings page** (rail -> Settings): choose the backend - **Local (Ollama)**, the default;
+**Claude** (optional, paid per use); or **None** (agent off) - pick the models, and test the
+connection. A model that is not pulled or cannot call tools is refused with the `ollama pull`
+command to run. `STEMSTUDIO_AGENT_BACKEND=ollama|claude|none` sets the initial backend.
+
+**Claude (optional, paid per use).** Claude can only be selected when `ANTHROPIC_API_KEY` is set
+in the environment of the API, for one shell session only - never in `.env`, a compose file or a
+script:
+
+```powershell
+$env:ANTHROPIC_API_KEY = Read-Host -MaskInput   # bash: read -rs ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY
+docker compose up -d                            # the api is recreated with the key
+```
+
+The key is never stored, logged or sent to the browser. Selecting Claude requires acknowledging a
+notice once. Only text is sent to Anthropic: the system prompt, the tool definitions, your
+messages (the newest part of the conversation) and the tool results (ids, names, statuses,
+numbers, short descriptions) - never audio, files, the key, online lyrics or band biographies.
+Each run is capped at 60,000 input and 8,000 output tokens (configurable); the panel shows the
+usage. StemStudio never switches to Claude by itself.
 
 ## Quick start (Docker)
 
@@ -249,6 +299,13 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   3.3 GB (SoulX) of model weights; the generator image is ~15 GB, the singer image 7-8 GB.
   Results vary per take, lyrics are not always sung exactly as written, and the voice conversion
   works best with 20-30 s of dry singing.
+- **AI composer agent** quality depends on the local model: `qwen3.5:9b` handles the evaluation
+  set's commands most of the time, not always - check the plan and the confirmation cards. A run
+  interrupted by an API restart is marked interrupted; there is no "Continue" button yet - send
+  the command again. Track titles from online sources count as untrusted text, so once a run has
+  searched the library every following change or heavy step asks for confirmation, even when you
+  would not expect it. Undo covers only actions with an inverse; imports, exports and generated
+  results are removed with a (confirmed) delete instead.
 - **Detail separation** (drums -> kick/snare/toms/hihat/cymbals, vocals -> lead/backing,
   guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
   leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
@@ -265,6 +322,8 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 > sheet-music models (Whisper large-v3-turbo MIT, basic-pitch Apache-2.0, piano CRNN CC BY 4.0 by
 > Kong et al.) and the generative models (ACE-Step 1.5 MIT; SoulX-Singer, RMVPE and Whisper base
 > Apache-2.0) have open licences and are also downloaded on first use.
+> The agent's local models (Qwen3.5 9B/4B, Apache-2.0) are pulled by you with Ollama and are
+> not part of StemStudio either.
 
 StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components

@@ -15,4 +15,8 @@
           Link="Contracts\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Recorded agent event streams (backend-api 1.10.0, feature 011) for the SSE reader and client tests. -->
+    <None Include="Agent\Fixtures\*.sse" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

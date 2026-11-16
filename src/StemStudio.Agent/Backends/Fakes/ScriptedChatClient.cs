@@ -106,13 +106,7 @@ public sealed class ScriptedChatClient : IChatClient
         return contents;
     }
 
-    private FunctionCallContent Call(ScriptedCall call, int index) =>
-        new($"call-{_requests.Count}-{index + 1}", call.Name, Arguments(call.Arguments));
-
-    private static Dictionary<string, object?>? Arguments(JsonElement? arguments) =>
-        arguments is { ValueKind: JsonValueKind.Object } value
-            ? value.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone())
-            : null;
+    private FunctionCallContent Call(ScriptedCall call, int index) => call.ToContent($"call-{_requests.Count}-{index + 1}");
 
     private static UsageDetails? Usage(ScriptedTurn turn) => turn.Usage is not { } usage ? null : new UsageDetails
     {

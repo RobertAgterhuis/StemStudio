@@ -1,0 +1,96 @@
+@* Agent section of the settings page (US4, FR-019, FR-020): backend radio group, Ollama status and models, Claude
+   status (never the key), its paid-service notice, the connection test and save. Logic in the code-behind and in
+   AgentSettingsForm. *@
+
+<section class="ss-card ss-agent-settings" aria-labelledby="agent-settings-title">
+    <h2 id="agent-settings-title" class="ss-heading">Composer agent</h2>
+    @if (Error is { } error)
+    {
+        <p class="ss-agent-error" role="alert" data-testid="settings-agent-error">@error</p>
+    }
+    @if (Form is { } form)
+    {
+        <div class="ss-agent-backends" role="radiogroup" aria-label="Agent backend" data-testid="settings-agent-backend" data-help-id="agent-backends">
+            <label><input type="radio" name="agent-backend" value="ollama" data-testid="settings-agent-backend-ollama" checked="@(form.Backend == AgentBackendDto.Ollama)"
+                          @onchange="() => Select(AgentBackendDto.Ollama)" /> Ollama (on this computer, free)</label>
+            <label><input type="radio" name="agent-backend" value="claude" data-testid="settings-agent-backend-claude" checked="@(form.Backend == AgentBackendDto.Claude)"
+                          disabled="@(!KeyConfigured)" @onchange="() => Select(AgentBackendDto.Claude)" /> Claude (online, paid per use)@(KeyConfigured ? string.Empty : " - not configured")</label>
+            <label><input type="radio" name="agent-backend" value="none" data-testid="settings-agent-backend-none" checked="@(form.Backend == AgentBackendDto.None)"
+                          @onchange="() => Select(AgentBackendDto.None)" /> None (agent off)</label>
+        </div>
+
+        <h3 class="ss-agent-settings-title">Ollama</h3>
+        <p data-testid="settings-agent-ollama-status">@OllamaText</p>
+        <LevelGate Feature="agent.models">
+            <div class="ss-field">
+                <label for="agent-ollama-model">Model</label>
+                <select id="agent-ollama-model" class="ss-select" value="@form.OllamaModel" data-testid="settings-agent-ollama-model" @onchange="e => form.OllamaModel = Text(e)">
+                    @foreach (var model in AgentSettingsForm.ModelChoices(Status?.Ollama, form.OllamaModel))
+                    {
+                        <option value="@model">@model</option>
+                    }
+                </select>
+            </div>
+            <div class="ss-field">
+                <label for="agent-ollama-fallback">Fallback model while a GPU job runs</label>
+                <select id="agent-ollama-fallback" class="ss-select" value="@form.OllamaFallbackModel" data-testid="settings-agent-ollama-fallback-model" @onchange="e => form.OllamaFallbackModel = Text(e)">
+                    @foreach (var model in AgentSettingsForm.ModelChoices(Status?.Ollama, form.OllamaFallbackModel))
+                    {
+                        <option value="@model">@model</option>
+                    }
+                </select>
+            </div>
+        </LevelGate>
+
+        <h3 class="ss-agent-settings-title">Claude</h3>
+        <p data-testid="settings-agent-claude-status" data-key-configured="@(KeyConfigured ? "true" : "false")">@ClaudeText</p>
+        <LevelGate Feature="agent.claude-options">
+            <div class="ss-field">
+                <label for="agent-claude-model">Claude model</label>
+                <select id="agent-claude-model" class="ss-select" value="@AgentWire.Name(form.ClaudeModel)" data-testid="settings-agent-claude-model"
+                        @onchange="e => form.ClaudeModel = AgentWire.Parse<ClaudeModelDto>(Text(e))">
+                    @foreach (var model in Enum.GetValues<ClaudeModelDto>())
+                    {
+                        <option value="@AgentWire.Name(model)">@AgentWire.Name(model)</option>
+                    }
+                </select>
+            </div>
+            <div class="ss-field">
+                <label for="agent-claude-effort">Effort</label>
+                <select id="agent-claude-effort" class="ss-select" value="@AgentWire.Name(form.ClaudeEffort)" data-testid="settings-agent-claude-effort"
+                        @onchange="e => form.ClaudeEffort = AgentWire.Parse<ClaudeEffortDto>(Text(e))">
+                    @foreach (var effort in Enum.GetValues<ClaudeEffortDto>())
+                    {
+                        <option value="@AgentWire.Name(effort)">@AgentWire.Name(effort)</option>
+                    }
+                </select>
+            </div>
+        </LevelGate>
+        @if (form.Backend == AgentBackendDto.Claude)
+        {
+            <div class="ss-agent-notice" data-testid="settings-agent-claude-notice">
+                <p>Claude is an online service of Anthropic and is <strong>paid per use</strong> with your own API key.</p>
+                <p>StemStudio sends text only: your commands, the list of tools and short tool results (ids, names, statuses,
+                   numbers). Never audio, files, lyrics from online sources, biographies or the API key.</p>
+            </div>
+            <label class="ss-agent-ack">
+                <input type="checkbox" data-testid="settings-agent-claude-notice-ack" checked="@form.NoticeAcknowledged"
+                       @onchange="e => form.NoticeAcknowledged = e.Value is true" /> I understand that Claude is paid per use and what is sent
+            </label>
+        }
+
+        <div class="ss-agent-settings-actions">
+            <RadzenButton Text="Test connection" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@(form.Backend == AgentBackendDto.None || Busy)"
+                          Click="TestAsync" data-testid="settings-agent-test" />
+            <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="Busy" Click="SaveAsync" data-testid="settings-agent-save" />
+            @if (Saved)
+            {
+                <span role="status">Saved</span>
+            }
+        </div>
+        @if (TestResult is { } result)
+        {
+            <p class="ss-agent-test-result" role="status" data-testid="settings-agent-test-result" data-ok="@(result.Ok ? "true" : "false")">@TestText(result)</p>
+        }
+    }
+</section>

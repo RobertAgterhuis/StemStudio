@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit tests of the evaluation harness tools/agent-eval (feature 011, T079a). xUnit v3 + Shouldly + NSubstitute + coverlet
+       (90 % line AND branch gate on [StemStudio.AgentEval]*) come from Directory.Build.props. Project file: architect;
+       test code: ai-agent. No test may call an LLM (only the fake backend and the grader). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\agent-eval\StemStudio.AgentEval.csproj" />
+  </ItemGroup>
+</Project>

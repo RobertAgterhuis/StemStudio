@@ -2,8 +2,12 @@
 
 .NET (``<ProjectReference>`` in ``src/*/*.csproj``)::
 
-    Web -> Contracts;  Api -> {Contracts, Domain, Persistence};  Persistence -> Domain
-    Domain and Contracts reference no StemStudio project.
+    Web -> Contracts;  Api -> {Contracts, Domain, Persistence, Agent};  Persistence -> Domain
+    Agent -> Contracts (feature 011);  Domain and Contracts reference no StemStudio project.
+
+.NET packages (``<PackageReference>``, only for the projects in ``DOTNET_PACKAGES_ALLOWED``)::
+
+    Agent -> {Microsoft.Extensions.AI[.*], OllamaSharp[.*], Anthropic[.*]}   (feature 011)
 
 .NET feature folders (``using`` directives and qualified names in ``src/<folder>/**/*.cs``;
 comments, string/char literals and ``namespace`` declarations are ignored)::
@@ -12,6 +16,16 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
     Api/Assets -/- Web;  Domain/Rendering -/- {Api, Persistence, Web, Contracts}   (feature 007)
     Api/Generation, Api/Generator -/- Web                                          (feature 009)
     Api/Voices -/- {Web, Api.Generation};  Api/Generator -/- {Api.Generation, Api.Voices}  (010)
+    Agent (except Agent/Backends) -/- {OllamaSharp, Anthropic}                      (feature 011)
+
+.NET feature-folder allow-lists (same references; only names below the scope root count)::
+
+    Agent/Policy -> StemStudio.Agent.{Model, Tools, Resources} only    (feature 011, CTO T080;
+                    plan.md: Model and Tools; Resources = the embedded 009 lexicon, data only)
+
+    The SDK namespaces count in ``using`` directives (incl. ``global``, ``static``, aliases) and
+    in qualified names (``OllamaSharp.OllamaApiClient``); a member access (``Dto.Anthropic``),
+    an enum member or an identifier (``OllamaModel``) is not a reference.
 
 Worker (imports inside ``stemstudio_worker``)::
 
@@ -86,13 +100,25 @@ DOTNET_ALLOWED: Mapping[str, frozenset[str]] = {
     "StemStudio.Contracts": frozenset(),
     "StemStudio.Persistence": frozenset({"StemStudio.Domain"}),
     "StemStudio.Api": frozenset(
-        {"StemStudio.Domain", "StemStudio.Persistence", "StemStudio.Contracts"}
+        {"StemStudio.Domain", "StemStudio.Persistence", "StemStudio.Contracts", "StemStudio.Agent"}
     ),
     "StemStudio.Web": frozenset({"StemStudio.Contracts"}),
+    "StemStudio.Agent": frozenset({"StemStudio.Contracts"}),
 }
 """Allowed project references per production project."""
 
-_DOTNET_PROJECTS = "Api|Contracts|Domain|Persistence|Web"
+DOTNET_PACKAGES_ALLOWED: Mapping[str, frozenset[str]] = {
+    "StemStudio.Agent": frozenset({"Microsoft.Extensions.AI", "OllamaSharp", "Anthropic"}),
+}
+"""Allowed NuGet packages per project; a name ``a.b`` also allows ``a.b.<anything>``.
+
+Projects missing here are not restricted.
+"""
+
+_DOTNET_PROJECTS = "Agent|Api|Contracts|Domain|Persistence|Web"
+
+DOTNET_EXTERNAL_NAMESPACES = ("OllamaSharp", "Anthropic")
+"""Third-party root namespaces a feature-folder rule may forbid (feature 011)."""
 
 DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "StemStudio.Api/Metadata": frozenset({"StemStudio.Web"}),
@@ -106,6 +132,7 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
         {"StemStudio.Web", "StemStudio.Api.Generation", "StemStudio.Api.Voices"}
     ),
     "StemStudio.Api/Voices": frozenset({"StemStudio.Web", "StemStudio.Api.Generation"}),
+    "StemStudio.Agent": frozenset(DOTNET_EXTERNAL_NAMESPACES),
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it).
 
@@ -113,6 +140,27 @@ An entry forbids the namespace and every namespace below it (``StemStudio.Web`` 
 ``StemStudio.Web.Pages``, ``StemStudio.Api.Generation`` does not forbid
 ``StemStudio.Api.GenerationTools``).
 """
+
+DOTNET_FOLDER_ALLOWED: Mapping[str, tuple[str, frozenset[str]]] = {
+    "StemStudio.Agent/Policy": (
+        "StemStudio.Agent",
+        frozenset(
+            {"StemStudio.Agent.Model", "StemStudio.Agent.Tools", "StemStudio.Agent.Resources"}
+        ),
+    ),
+}
+"""Allow-lists per feature folder below ``src/``: ``folder -> (scope root, allowed names)``.
+
+A reference to the scope root or below it is an error unless it is (below) an allowed name or
+the folder's own namespace (``StemStudio.Agent.Policy``); names outside the scope root
+(``StemStudio.Contracts``, ``System``) are left to the project rules. Families are matched per
+dotted segment (``StemStudio.Agent.Model`` does not allow ``StemStudio.Agent.ModelExtras``).
+"""
+
+DOTNET_FOLDER_EXEMPT: Mapping[str, frozenset[str]] = {
+    "StemStudio.Agent": frozenset({"StemStudio.Agent/Backends"}),
+}
+"""Sub-folders (relative to ``src/``) whose files a folder rule does not check."""
 
 _CS_NOISE = re.compile(
     "|".join(
@@ -132,6 +180,16 @@ _CS_NOISE = re.compile(
 
 _CS_REFERENCE = re.compile(rf"\bStemStudio\.(?:{_DOTNET_PROJECTS})\b(?:\.[A-Za-z_]\w*)*")
 """A qualified reference into a StemStudio project namespace (the whole dotted name)."""
+
+_EXTERNAL = "|".join(DOTNET_EXTERNAL_NAMESPACES)
+_CS_EXTERNAL_QUALIFIED = re.compile(rf"(?<![\w.])(?P<name>{_EXTERNAL})(?:\.[A-Za-z_]\w*)+")
+_CS_EXTERNAL_USING = re.compile(
+    rf"^[ \t]*(?:global[ \t]+)?using[ \t]+(?:static[ \t]+)?(?:\w+[ \t]*=[ \t]*)?"
+    rf"(?:global::)?(?P<name>{_EXTERNAL})[ \t]*;",
+    re.MULTILINE,
+)
+"""A qualified third-party name, or a ``using`` directive of a bare third-party root namespace;
+the edge target is the root namespace (``OllamaSharp``)."""
 
 _LEAVES = frozenset({"schemas", "config"})
 _ADAPTER = _LEAVES | {"ports"}
@@ -273,27 +331,71 @@ def read_dotnet_edges(src_dir: Path, root: Path) -> list[Edge]:
     return edges
 
 
+def read_package_edges(src_dir: Path, root: Path) -> list[Edge]:
+    """Return the ``PackageReference`` edges (project -> package) of the ``src/*/*.csproj``."""
+    edges: list[Edge] = []
+    for project in sorted(src_dir.glob("*/*.csproj")):
+        tree = ET.parse(project)  # noqa: S314  (trusted repository files)
+        path = relative(project, root)
+        edges.extend(
+            Edge(project.stem, ref.get("Include", ""), path, 0)
+            for ref in tree.iter("PackageReference")
+        )
+    return edges
+
+
+def check_packages(edges: Sequence[Edge], allowed: Mapping[str, frozenset[str]]) -> list[Finding]:
+    """Return an error per package outside its project's allow-list (unlisted: unrestricted)."""
+    return [
+        Finding("dependency", Severity.ERROR, edge.path, edge.line, _package_message(edge))
+        for edge in edges
+        if edge.source in allowed and not _in_family(edge.target, allowed[edge.source])
+    ]
+
+
+def _package_message(edge: Edge) -> str:
+    return f"forbidden package {edge.source} -> {edge.target}"
+
+
+def _in_family(name: str, families: frozenset[str]) -> bool:
+    return any(name == family or name.startswith(family + ".") for family in families)
+
+
 def read_folder_edges(src_dir: Path, root: Path, folders: Sequence[str]) -> list[Edge]:
-    """Return the StemStudio namespace references of the C# files below each folder.
+    """Return the StemStudio and third-party namespace references of the C# files per folder.
 
     ``folders`` are relative to ``src_dir`` (``StemStudio.Api/Metadata``); an edge is
-    ``folder -> StemStudio.<Project>`` at the referencing line. Excluded files (``obj/``,
-    ``*.g.cs``) contribute no edges.
+    ``folder -> StemStudio.<Project>[.<...>]`` (the whole dotted name) or ``folder -> OllamaSharp``
+    (the third-party root) at the referencing line. Excluded files (``obj/``, ``*.g.cs``) and
+    files below the folder's ``DOTNET_FOLDER_EXEMPT`` sub-folders contribute no edges.
     """
     edges: list[Edge] = []
     for folder in folders:
-        for cs_file in sorted((src_dir / folder).rglob("*.cs")):
-            rel_path = relative(cs_file, root)
-            if not is_excluded(rel_path):
-                edges.extend(_cs_file_edges(cs_file, folder, rel_path))
+        for cs_file, rel_path in _folder_files(src_dir, root, folder):
+            edges.extend(_cs_file_edges(cs_file, folder, rel_path))
     return edges
+
+
+def _folder_files(src_dir: Path, root: Path, folder: str) -> Iterator[tuple[Path, str]]:
+    """The checked C# files below ``folder`` with their repository paths."""
+    exempt = [src_dir / name for name in DOTNET_FOLDER_EXEMPT.get(folder, ())]
+    for cs_file in sorted((src_dir / folder).rglob("*.cs")):
+        rel_path = relative(cs_file, root)
+        if not is_excluded(rel_path) and not _below_any(cs_file, exempt):
+            yield cs_file, rel_path
+
+
+def _below_any(path: Path, folders: Sequence[Path]) -> bool:
+    return any(path.is_relative_to(folder) for folder in folders)
 
 
 def _cs_file_edges(cs_file: Path, folder: str, rel_path: str) -> Iterator[Edge]:
     text = _CS_NOISE.sub(_keep_newlines, cs_file.read_text(encoding="utf-8"))
-    for match in _CS_REFERENCE.finditer(text):
-        line = text.count("\n", 0, match.start()) + 1
-        yield Edge(folder, match.group(), rel_path, line)
+    references = [(m.start(), m.group()) for m in _CS_REFERENCE.finditer(text)]
+    for pattern in (_CS_EXTERNAL_QUALIFIED, _CS_EXTERNAL_USING):
+        references.extend((m.start("name"), m.group("name")) for m in pattern.finditer(text))
+    for start, target in sorted(references):
+        yield Edge(folder, target, rel_path, text.count("\n", 0, start) + 1)
 
 
 def check_forbidden(
@@ -319,6 +421,29 @@ def check_forbidden(
 
 
 _FORBIDDEN = "forbidden dependency"
+
+
+def check_allowed(
+    edges: Sequence[Edge], allow_lists: Mapping[str, tuple[str, frozenset[str]]]
+) -> list[Finding]:
+    """Return an error for every edge of an allow-listed folder that leaves its allow-list."""
+    return [
+        Finding(
+            "dependency",
+            Severity.ERROR,
+            edge.path,
+            edge.line,
+            f"{_FORBIDDEN} {edge.source} -> {edge.target}",
+        )
+        for edge in edges
+        if edge.source in allow_lists and not _allow_listed(edge, *allow_lists[edge.source])
+    ]
+
+
+def _allow_listed(edge: Edge, scope: str, allowed: frozenset[str]) -> bool:
+    own = scope + "." + edge.source.split("/", 1)[1].replace("/", ".")
+    inside = _in_family(edge.target, frozenset({scope}))
+    return not inside or _in_family(edge.target, allowed | {own})
 
 
 def _forbidden_hit(edge: Edge, forbidden: Mapping[str, frozenset[str]]) -> str | None:
@@ -651,8 +776,11 @@ def _rotate(path: list[str]) -> tuple[str, ...]:
 def run(root: Path) -> list[Finding]:
     """Check the .NET, TypeScript, worker and generator dependency graphs below ``root``."""
     findings = check_edges(read_dotnet_edges(root / "src", root), DOTNET_ALLOWED)
-    folder_edges = read_folder_edges(root / "src", root, list(DOTNET_FOLDER_FORBIDDEN))
+    findings.extend(check_packages(read_package_edges(root / "src", root), DOTNET_PACKAGES_ALLOWED))
+    folders = list(DOTNET_FOLDER_FORBIDDEN) + list(DOTNET_FOLDER_ALLOWED)
+    folder_edges = read_folder_edges(root / "src", root, folders)
     findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
+    findings.extend(check_allowed(folder_edges, DOTNET_FOLDER_ALLOWED))
     findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
     module_edges = read_ts_module_edges(root / "src", root)
     findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))

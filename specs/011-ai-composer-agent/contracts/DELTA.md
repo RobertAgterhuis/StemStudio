@@ -2,19 +2,20 @@
 
 Feature 011 adds one group of backend endpoints (`/api/agent/*`), one internal hook in the backend
 (GPU release before heavy jobs), additive UI test ids, the tool catalogue
-([tool-catalogue.md](tool-catalogue.md)) and the fake-backend script format. The worker contract
-and the audio-engine contract are **unchanged**.
+([tool-catalogue.md](tool-catalogue.md)) and the fake-backend script format. The worker, generator
+and audio-engine contracts are **unchanged**.
 
-## Status (Phase 0 part 1, 2026-11-15)
+## Status (Phase 0 part 2, 2026-11-16; base: local `main` with 001-010 delivered)
 
-| Contract | Base on this branch | 011 document | State |
+| Contract | Base | 011 document | State |
 |---|---|---|---|
-| Backend API | 1.7.0 (`specs/008-sheet-music`) | [agent-api.openapi.yaml](agent-api.openapi.yaml) `1.10.0-delta.1`: standalone, additive, Redocly-valid (OpenAPI 3.1) | **binding for the wave**; merged unchanged into the full `backend-api.openapi.yaml` **1.10.0** after 009 (1.8.0) and 010 (1.9.0) (Phase 0 part 2) |
-| UI test ids | 1.7.0 | [ui-test-ids.delta.md](ui-test-ids.delta.md) (draft delta) | names binding; minor number (expected 1.10.0) fixed at the merge |
-| Tool catalogue | - | [tool-catalogue.md](tool-catalogue.md) **1.0.0** (001-008 binding; 009/010 pending) | binding |
+| Backend API | 1.9.0 (`specs/010-lyrics-to-song`) | [backend-api.openapi.yaml](backend-api.openapi.yaml) **1.10.0** = 1.9.0 + [agent-api.openapi.yaml](agent-api.openapi.yaml) (`1.10.0-delta.1`) unchanged; the four components the delta shares with 1.9.0 (`ProblemDetails`, `ValidationProblemDetails`, `ValidationProblem`, `NotFound`) keep their 1.9.0 definitions | **binding**; Redocly-valid (OpenAPI 3.1); `AgentContractTests` prove 1.10.0 contains 1.9.0 and the delta unchanged; the 17 agent operation ids are staged in `PendingAgentOperations` |
+| UI test ids | 1.9.0 | [ui-test-ids.md](ui-test-ids.md) **1.10.0** = 1.9.0 + [ui-test-ids.delta.md](ui-test-ids.delta.md) + `agent-approval-effect`, `agent-approval-estimate`, `nav-settings` | binding |
+| Tool catalogue | - | [tool-catalogue.md](tool-catalogue.md) **1.0.0** final: 57 tools of 001-011 (009/010 binding), page-context groups for the 32-tool cap | binding |
 | Agent script format | - | [agent-script.schema.json](agent-script.schema.json) **1.0.0** | binding (E2E `e2e/agent-scripts/*.json`, unit tests) |
-| Evaluation set | - | [../evaluation/eval-set.md](../evaluation/eval-set.md) **1.0.0** (cases 29-30 pending 009) | binding |
-| C# | - | `src/StemStudio.Contracts/Agent/*` (DTOs, `ApiRoutes.Agent*`), `src/StemStudio.Agent/{Ports,Model}` | binding |
+| Evaluation set | - | [../evaluation/eval-set.md](../evaluation/eval-set.md) **1.0.0** final: 30 scored cases (29-30 scored) + supplementary guardrail cases S1-S3 | binding |
+| C# | - | `src/StemStudio.Contracts/Agent/*` (DTOs, `ApiRoutes.Agent*`), `src/StemStudio.Agent/{Ports,Model}` incl. the 009/010 ports `IStyleActions`, `IGenerationActions`, `ISongActions`, `IVoiceActions` | binding |
+| Worker API, generator API, audio engine | 1.6.0 / 1.1.0 / 2.1.0 | unchanged (no audio-engine 2.2.0 needed: the agent drives the mixer through the Web app's `MixerState`) | - |
 
 The sections below are the readable summary; on any difference the OpenAPI document wins.
 
@@ -119,18 +120,21 @@ events. The stream closes after `run.completed` / `run.failed` / `run.cancelled`
 `ILlmGpuRelease.ReleaseAsync(CancellationToken)` (in `StemStudio.Agent`, implemented by
 `OllamaGpuRelease`) is called by the backend **before** it submits a GPU-heavy job to the worker:
 `POST /api/imports`, `/api/imports/upload`, `/api/tracks/{id}/retry`, `/api/tracks/{id}/detail`
-(and the 006-010 GPU job endpoints when they land). Best effort, 2 s timeout, never fails the
-request; skipped when the backend is not `ollama` or the worker device is CPU (`GET /api/device`
-cache). `IGpuActivity.IsHeavyJobActive()` (backend, from track/detail states) drives the
-fallback-model selection (FR-021).
+and the delivered 006-010 GPU job endpoints `POST /api/tracks/{id}/lyrics/align`, `/api/assets/scores`, `/api/tracks/{id}/restyles`, `/api/songs`, `/api/generations/{id}/retry`, `/api/generations/{id}/takes/{index}/voice-conversions` and `/takes/{index}/import` (backend T078). Best effort, 2 s timeout, never fails the
+request; skipped when the backend is not `ollama`. For worker jobs it is also skipped when the
+worker device is CPU (`GET /api/device` cache); generator and singer jobs (restyles, songs,
+generation retries, voice conversions) always release, because those services run only on the
+GPU regardless of the worker device. `IGpuActivity.IsHeavyJobActive()` (backend, from track,
+detail, generation, lyrics-alignment and score-transcription states; a conversion still waiting
+for stems does not count) drives the fallback-model selection (FR-021).
 
-## 6. UI test ids (additive, next minor of `ui-test-ids.md`; full table in [ui-test-ids.delta.md](ui-test-ids.delta.md))
+## 6. UI test ids (additive, `ui-test-ids.md` 1.10.0; full table in [ui-test-ids.md](ui-test-ids.md), "Additions in 1.10.0")
 
 | Screen | `data-testid` |
 |---|---|
 | Layout (every page) | `agent-toggle` (opens/closes the panel), `agent-panel`, `agent-backend-badge` (attributes `data-backend` `ollama`/`claude`/`none`/`fake`, `data-model`, `data-fallback` `true`/`false`), `agent-unavailable` (only while not ready; contains reason and fix) |
 | Agent panel | `agent-input`, `agent-send`, `agent-cancel` (only while a run is active), `agent-undo` (enabled when something can be undone), `agent-new-conversation`, `agent-conversation-list`, `agent-conversation-<conversationId>`, `agent-conversation-rename-<conversationId>`, `agent-conversation-delete-<conversationId>`, `agent-message-<seq>` (attribute `data-role` `user`/`assistant`), `agent-streaming` (while text streams), `agent-plan`, `agent-plan-item-<index>` (attribute `data-status`), `agent-step-<seq>` (attributes `data-tool`, `data-status`, `data-risk`), `agent-step-progress-<seq>` (`aria-valuenow` 0-100), `agent-step-error-<seq>`, `agent-approval-card` (attributes `data-tool`, `data-risk`, `data-reasons` comma-separated), `agent-approval-arguments`, `agent-approve`, `agent-approve-plan` (only when `allowPlanScope`), `agent-reject`, `agent-run-error` (with `agent-switch-to-local` when the failed backend is Claude), `agent-usage` (Claude, Advanced+), `agent-tool-log` (Expert) |
-| Settings (`/settings`, 004 page or a new page if 004 is absent) | `settings-agent-backend` (radio group: `settings-agent-backend-ollama`, `-claude`, `-none`), `settings-agent-ollama-status`, `settings-agent-ollama-model`, `settings-agent-ollama-fallback-model`, `settings-agent-claude-status` (attribute `data-key-configured`), `settings-agent-claude-model`, `settings-agent-claude-effort`, `settings-agent-claude-notice`, `settings-agent-claude-notice-ack`, `settings-agent-test`, `settings-agent-test-result`, `settings-agent-save`, `settings-agent-error` |
+| Settings (`/settings`, a new page: 004-010 have no settings route; rail link `nav-settings`) | `settings-agent-backend` (radio group: `settings-agent-backend-ollama`, `-claude`, `-none`), `settings-agent-ollama-status`, `settings-agent-ollama-model`, `settings-agent-ollama-fallback-model`, `settings-agent-claude-status` (attribute `data-key-configured`), `settings-agent-claude-model`, `settings-agent-claude-effort`, `settings-agent-claude-notice`, `settings-agent-claude-notice-ack`, `settings-agent-test`, `settings-agent-test-result`, `settings-agent-save`, `settings-agent-error` |
 
 ## 7. Compose / runtime (devops, not a contract document)
 
@@ -149,4 +153,12 @@ outputTokens, cachedInputTokens}}]}`. Turn *i* answers the *i*-th model request 
 (`ScriptedChatClient`, `src/StemStudio.Agent/Backends/Fakes`); a request beyond the last turn fails
 the run. Calls get the ids `call-<turn>-<n>`. Names and arguments are not validated by the script:
 the registry and policy treat them like a real model's output, which is what the injection and
-invalid-call tests need. The E2E stack loads the file named by `STEMSTUDIO_AGENT_FAKE_SCRIPT`.
+invalid-call tests need. The E2E stack loads the file named by `STEMSTUDIO_AGENT_FAKE_SCRIPT`
+(an empty value counts as unset).
+
+Every run plays its script from turn 1 (a fresh client or cursor per run); undo runs request no
+model turn. Because track and mix ids are generated by the server, string values in `calls[].arguments`
+may contain the placeholders `{{context.trackId}}` and `{{context.mixId}}`; the fake backend replaces
+them with the page context of the user message that started the run, before the registry and policy
+see the call. These are the only placeholders; any other `{{...}}` text is passed through unchanged.
+Description-only addition: the schema stays 1.0.0.

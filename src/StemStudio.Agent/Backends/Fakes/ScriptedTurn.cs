@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.AI;
 
 namespace StemStudio.Agent.Backends.Fakes;
 
@@ -23,6 +24,16 @@ public sealed record ScriptedCall
 
     /// <summary>Arguments object; null means no arguments.</summary>
     public JsonElement? Arguments { get; init; }
+
+    /// <summary>The call as model output with the given call id (arguments as a name/value dictionary).</summary>
+    /// <param name="callId">Call id.</param>
+    /// <returns>The function call content.</returns>
+    internal FunctionCallContent ToContent(string callId) => new(callId, Name, Dictionary(Arguments));
+
+    private static Dictionary<string, object?>? Dictionary(JsonElement? arguments) =>
+        arguments is { ValueKind: JsonValueKind.Object } value
+            ? value.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone())
+            : null;
 }
 
 /// <summary>Scripted token usage of a turn.</summary>
