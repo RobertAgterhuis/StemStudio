@@ -59,7 +59,9 @@ public static class ToolPolicy
     {
         var reasons = new List<string>();
         var freshCompensation = input.IsCompensation && input.Fresh;
-        AddIf(reasons, input.Tool.Risk == ToolRiskDto.Heavy && !freshCompensation, AgentDecisionReasons.RiskHeavy);
+        var heavy = input.Tool.Risk == ToolRiskDto.Heavy && !freshCompensation;
+        AddIf(reasons, heavy && !input.RiskCheckFailed, AgentDecisionReasons.RiskHeavy);
+        AddIf(reasons, heavy && input.RiskCheckFailed, AgentDecisionReasons.RiskCheckFailed);
         AddIf(reasons, input.Tool.Risk == ToolRiskDto.Destructive && !freshCompensation, AgentDecisionReasons.RiskDestructive);
         AddIf(reasons, input.Tainted, AgentDecisionReasons.Tainted);
         AddIf(reasons, Texts(input.Arguments, input.Tool.UrlArguments).Any(url => !ProvenanceChecker.UrlFromUser(url, input.UserMessages)), AgentDecisionReasons.UrlNotFromUser);

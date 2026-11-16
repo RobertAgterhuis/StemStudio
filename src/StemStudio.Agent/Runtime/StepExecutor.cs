@@ -209,6 +209,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         UserMessages = state.UserMessages,
         Plan = state.Run.Plan,
         PlanGrants = prepared.RiskCheckFailed ? [] : state.Grants,
+        RiskCheckFailed = prepared.RiskCheckFailed,
         IsCompensation = state.CurrentUndo?.Kind == UndoKindDto.Compensate,
         Fresh = state.CurrentUndo?.Fresh == true,
     };
