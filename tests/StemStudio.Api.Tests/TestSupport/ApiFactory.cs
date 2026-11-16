@@ -50,6 +50,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
 
     public Action<IServiceCollection>? ConfigureServices { get; init; }
 
+    /// <summary>Extra configuration values (e.g. <c>StemStudio:Agent:Backend</c>), applied before start.</summary>
+    public IReadOnlyDictionary<string, string?> Settings { get; init; } = new Dictionary<string, string?>();
+
     public ListLoggerProvider Logs { get; } = new();
 
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web);
@@ -115,6 +118,11 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.UseSetting("StemStudio:DataDir", DataDir);
         builder.UseSetting("StemStudio:WebOrigin", "http://web.test");
+        foreach (var (key, value) in Settings)
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IWorkerClient>(Worker);
