@@ -1,0 +1,4 @@
+id: 1
+event: run.interrupted
+data: {"runId":"b1b2c3d4-0000-4000-8000-000000000001"}
+

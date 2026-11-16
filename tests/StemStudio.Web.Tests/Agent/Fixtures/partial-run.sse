@@ -1,0 +1,8 @@
+id: 1
+event: run.started
+data: {"runId":"b1b2c3d4-0000-4000-8000-000000000001","backend":"ollama","model":"qwen3.5:9b","usingFallback":false}
+
+id: 2
+event: text.delta
+data: {"text":"Working"}
+

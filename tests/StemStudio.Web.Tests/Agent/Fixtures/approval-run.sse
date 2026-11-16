@@ -1,0 +1,28 @@
+id: 1
+event: run.started
+data: {"runId":"b1b2c3d4-0000-4000-8000-000000000001","backend":"claude","model":"claude-opus-5-5","usingFallback":false}
+
+id: 2
+event: approval.requested
+data: {"stepId":"d1b2c3d4-0000-4000-8000-000000000001","tool":"start_detail_separation","risk":"heavy","arguments":{"trackId":"e1b2c3d4-0000-4000-8000-000000000001"},"argumentsHash":"sha256:abc","reasons":["risk-heavy","tainted"],"effect":"Splits Hero of the Day into 6 detail stems","undoable":true,"estimatedMinutes":6.5,"device":"cuda","allowPlanScope":true}
+
+id: 3
+event: approval.resolved
+data: {"stepId":"d1b2c3d4-0000-4000-8000-000000000001","status":"approved","scope":"once","decidedAt":"2026-11-16T10:00:05Z"}
+
+id: 4
+event: usage.updated
+data: {"inputTokens":1200,"outputTokens":80,"cachedInputTokens":900}
+
+id: 5
+event: model.changed
+data: {"model":"claude-opus-5-5","usingFallback":false,"reason":"same"}
+
+id: 6
+event: ui.requested
+data: {"stepId":"d1b2c3d4-0000-4000-8000-000000000001","tool":"mixer_set_channel","arguments":{"stem":"vocals","gainDb":-6},"timeoutSeconds":15}
+
+id: 7
+event: run.failed
+data: {"code":"budget-exhausted","message":"The run used its token budget.","fix":"Switch to the local backend"}
+
