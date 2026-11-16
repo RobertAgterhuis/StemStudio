@@ -204,6 +204,25 @@ public sealed class MixerUiToolsTests
     }
 
     [Fact]
+    public async Task GetState_IncludesTheSaveableSettings_AndTheKaraokeBanner()
+    {
+        _controls.KaraokeVisible = true;
+        await _controls.SetVolumeAsync("vocals", 0.5);
+
+        var json = Json(await RunAsync("mixer_get_state"));
+
+        json.GetProperty("karaoke").GetBoolean().ShouldBeTrue();
+        var settings = json.GetProperty("settings");
+        var expected = JsonSerializer.SerializeToElement(_controls.State.ToSettings(""), JsonSerializerOptions.Web);
+        settings.GetRawText().ShouldBe(expected.GetRawText());
+        settings.GetProperty("name").GetString().ShouldBe("");
+        settings.GetProperty("masterVolume").GetDouble().ShouldBe(1.0);
+        settings.GetProperty("channels").EnumerateArray()
+            .Single(c => c.GetProperty("stem").GetString() == "vocals").GetProperty("volume").GetDouble().ShouldBe(0.5);
+        settings.GetProperty("metronome").GetProperty("beatsPerBar").GetInt32().ShouldBe(4);
+    }
+
+    [Fact]
     public async Task UnknownTool_Fails() =>
         (await RunAsync("save_mix_as")).Error.ShouldBe("The mixer cannot run save_mix_as.");
 
