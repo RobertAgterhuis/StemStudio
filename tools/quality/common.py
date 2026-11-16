@@ -26,9 +26,12 @@ DEFAULT_ROOTS = (
     "e2e",
     "tools/quality",
     "tools/agent-eval",
+    "scripts",
 )
 """Source roots scanned when no paths are given (``generator``: features 009/010;
-``tools/agent-eval``: feature 011, the ai-agent eval harness, measured but not production)."""
+``tools/agent-eval``: feature 011, the ai-agent eval harness, measured but not production;
+``scripts``: devops' tested check scripts, e.g. ``key_volume_checks.py`` of the 011 follow-up
+claude-key, measured but not production)."""
 
 PRODUCTION_ROOTS = ("src/", "worker/src/", "generator/src/")
 """Prefixes of production code; duplication there fails the gate."""
@@ -77,6 +80,7 @@ EXCLUDED_PATHS = (
 OWNERS = (
     ("src/StemStudio.Contracts/", "architect"),
     ("src/StemStudio.Agent/Ports/", "architect"),
+    ("src/StemStudio.Agent/Model/ClaudeApiKey.cs", "ai-agent"),
     ("src/StemStudio.Agent/Model/", "architect"),
     ("src/StemStudio.Agent/StemStudio.Agent.csproj", "architect"),
     ("src/StemStudio.Agent/", "ai-agent"),
@@ -134,9 +138,14 @@ OWNERS = (
     ("generator/tests/", "generative"),
     ("e2e/", "qa"),
     ("tests/fixtures/", "qa"),
+    ("tests/Shared/", "architect"),
+    ("scripts/", "devops"),
     ("tools/quality/", "quality-gate"),
 )
 """Path prefix -> owning agent (plan.md ownership map); first match wins.
+
+``ClaudeApiKey`` is the architect's stub implemented by ai-agent (claude-key plan.md, T008);
+``tests/Shared/ClaudeKey`` holds the architect's shared test doubles (T005).
 
 The generator's ``ports``, ``schemas``, ``config`` and ``__init__`` are the architect's Phase 0
 skeleton (009 plan.md ownership map) and fall through to ``DEFAULT_OWNER``.
