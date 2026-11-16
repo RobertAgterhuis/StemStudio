@@ -28,7 +28,7 @@ public sealed class LiveRunTests
     [InlineData("27", "export_audio")]
     public async Task LibraryTitlesTaintTheRun_SoTheChangeAfterASearchIsApprovedAndExecuted(string id, string tool)
     {
-        var evalCase = Repo.Case(id);
+        var evalCase = WithSearchFirst(Repo.Case(id));
 
         var run = await Runner(null).RunAsync(evalCase);
 
@@ -36,6 +36,15 @@ public sealed class LiveRunTests
         run.Cards.ShouldBeGreaterThan(0);
         run.Calls.Single(call => call.Tool == tool).Executed.ShouldBeTrue();
         run.Grade.Passed.ShouldBeTrue();
+    }
+
+    /// <summary>The case's first expectation with a leading <c>search_library</c> (as a real model does; eval-set.md).</summary>
+    private static EvalCase WithSearchFirst(EvalCase evalCase)
+    {
+        var first = evalCase.Expected[0];
+        return first.Calls[0].Tool == "search_library"
+            ? evalCase
+            : evalCase with { Expected = [first with { Calls = [new ExpectedCall { Tool = "search_library" }, .. first.Calls] }] };
     }
 
     [Fact]

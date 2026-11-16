@@ -499,7 +499,8 @@
      ],
      "ordered": true
     }
-   ]
+   ],
+   "approval": "approve"
   },
   {
    "id": "18",
@@ -776,7 +777,8 @@
     "delete_track",
     "delete_mix",
     "delete_export"
-   ]
+   ],
+   "approval": "approve"
   },
   {
    "id": "28",
