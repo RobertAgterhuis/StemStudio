@@ -69,6 +69,25 @@ public sealed class AgentPanelStateTests : PageTestContext
         (Panel.ConversationId, Panel.Messages.Count).ShouldBe((AgentData.ConversationId, 0));
     }
 
+    [Fact]
+    public async Task TheNewestStoredOne_LoadedAfterANewConversationWasCreated_IsNotShown()
+    {
+        var created = new TaskCompletionSource<ConversationDto>();
+        var stored = new TaskCompletionSource<ConversationDto>();
+        AgentApi.CreateConversationAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(created.Task);
+        AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns([AgentData.Summary(AgentData.OtherConversationId)]);
+        AgentApi.GetConversationAsync(AgentData.OtherConversationId, Arg.Any<CancellationToken>()).Returns(stored.Task);
+
+        var creating = Panel.NewConversationAsync();
+        var load = Panel.LoadAsync();
+        created.SetResult(AgentData.Conversation());
+        await creating;
+        stored.SetResult(AgentData.Conversation(AgentData.OtherConversationId, messages: [AgentData.Message(1, MessageRoleDto.User, "Verwijder deze track")]));
+        await load;
+
+        (Panel.ConversationId, Panel.Messages.Count).ShouldBe((AgentData.ConversationId, 0));
+    }
+
     private void StoredOther() =>
         AgentApi.GetConversationAsync(AgentData.OtherConversationId, Arg.Any<CancellationToken>())
             .Returns(AgentData.Conversation(AgentData.OtherConversationId, messages: [AgentData.Message(1, MessageRoleDto.User, "Verwijder deze track")]));
