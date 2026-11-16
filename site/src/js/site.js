@@ -29,8 +29,9 @@
     target.textContent = (button.getAttribute("data-label-" + next) || "Switch to " + next + " theme");
   }
 
-  function applyTheme(next) {
+  function applyTheme(next, button) {
     root.setAttribute("data-theme", next);
+    label(button);
     try {
       window.localStorage.setItem(KEY, next);
     } catch (e) {
@@ -48,12 +49,11 @@
       var next = current() === "light" ? "dark" : "light";
       if (document.startViewTransition && !reduced) {
         document.startViewTransition(function () {
-          applyTheme(next);
+          applyTheme(next, button);
         });
       } else {
-        applyTheme(next);
+        applyTheme(next, button);
       }
-      label(button);
     });
   }
 
@@ -141,9 +141,9 @@
   window.StemSite = { syncBeat: syncBeat, pauseOffscreen: pauseOffscreen, reduced: reduced };
 
   redirectMovedAnchor();
+  window.addEventListener("hashchange", redirectMovedAnchor);
   setupTheme();
   setupCopy();
   setupReveal();
   pauseOffscreen(document.querySelectorAll("[data-beat]"));
-  syncBeat(document.body);
 })();

@@ -330,16 +330,23 @@
     observer.observe(race);
   }
 
-  var parts = [];
-  var figure = document.querySelector(".split");
-  if (figure) {
-    var split = Split(figure);
-    if (split) parts.push(split);
+  /* Start after the first paint, so measuring the canvas never delays it. */
+  function init() {
+    var parts = [];
+    var figure = document.querySelector(".split");
+    if (figure) {
+      var split = Split(figure);
+      if (split) parts.push(split);
+    }
+    var desk = document.querySelector("[data-mixer]");
+    if (desk) parts.push(Mixer(desk, document.querySelector("[data-mix-status]")));
+    if (parts.length) startHero(parts);
+    var race = document.querySelector("[data-race]");
+    if (race) setupRace(race);
+    site.pauseOffscreen(document.querySelectorAll(".story-visual, .flow"));
   }
-  var desk = document.querySelector("[data-mixer]");
-  if (desk) parts.push(Mixer(desk, document.querySelector("[data-mix-status]")));
-  if (parts.length) startHero(parts);
-  var race = document.querySelector("[data-race]");
-  if (race) setupRace(race);
-  site.pauseOffscreen(document.querySelectorAll(".story-visual, .flow"));
+
+  window.requestAnimationFrame(function () {
+    window.setTimeout(init, 0);
+  });
 })();

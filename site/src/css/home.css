@@ -367,8 +367,22 @@
 
 .karaoke { position: relative; padding-top: 1.6rem; text-align: center; }
 .words { display: inline-flex; font-size: 1.35rem; font-weight: 700; font-stretch: 110%; }
-.words span { width: 3.4rem; opacity: 0.5; }
-.words span:first-child { opacity: 1; }
+.words span { position: relative; width: 3.4rem; }
+
+/* The word being sung gets an underline in the vocals colour (opacity only). */
+.words span::after {
+  content: "";
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: -0.25rem;
+  height: 3px;
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-stem-vocals);
+  opacity: 0;
+}
+
+.words span:first-child::after { opacity: 1; }
 
 .ball {
   position: absolute;
@@ -747,11 +761,11 @@
   html:not([data-motion="reduced"]) .clickbar i:nth-child(3)::after { animation-delay: calc(2 * var(--site-beat)); }
   html:not([data-motion="reduced"]) .clickbar i:nth-child(4)::after { animation-delay: calc(3 * var(--site-beat)); }
   html:not([data-motion="reduced"]) .ball { animation: ball-x calc(4 * var(--site-beat)) linear infinite; }
-  html:not([data-motion="reduced"]) .words span { animation: word calc(4 * var(--site-beat)) linear infinite; }
-  html:not([data-motion="reduced"]) .words span:first-child { opacity: 0.5; }
-  html:not([data-motion="reduced"]) .words span:nth-child(2) { animation-delay: var(--site-beat); }
-  html:not([data-motion="reduced"]) .words span:nth-child(3) { animation-delay: calc(2 * var(--site-beat)); }
-  html:not([data-motion="reduced"]) .words span:nth-child(4) { animation-delay: calc(3 * var(--site-beat)); }
+  html:not([data-motion="reduced"]) .words span::after { animation: word calc(4 * var(--site-beat)) linear infinite; }
+  html:not([data-motion="reduced"]) .words span:first-child::after { opacity: 0; }
+  html:not([data-motion="reduced"]) .words span:nth-child(2)::after { animation-delay: var(--site-beat); }
+  html:not([data-motion="reduced"]) .words span:nth-child(3)::after { animation-delay: calc(2 * var(--site-beat)); }
+  html:not([data-motion="reduced"]) .words span:nth-child(4)::after { animation-delay: calc(3 * var(--site-beat)); }
   html.js:not([data-motion="reduced"]) .notes > * { opacity: 0; transition: opacity 400ms var(--ss-ease-enter); }
   html.js:not([data-motion="reduced"]) .story.is-in .notes > * { opacity: 1; }
   html.js:not([data-motion="reduced"]) .story.is-in .notes > :nth-child(n + 3) { transition-delay: 300ms; }
@@ -793,8 +807,8 @@
 @keyframes word {
   0% { opacity: 1; }
   24.9% { opacity: 1; }
-  25% { opacity: 0.5; }
-  100% { opacity: 0.5; }
+  25% { opacity: 0; }
+  100% { opacity: 0; }
 }
 
 /* The ball lands on each word on the beat and flies back after the fourth. */

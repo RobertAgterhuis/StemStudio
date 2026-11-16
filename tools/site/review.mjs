@@ -1,7 +1,8 @@
 /**
  * Local design review of the built site: serves site/dist under /StemStudio/ on a free port,
- * runs axe (WCAG 2.2 AA tags) in light and dark at 1440, 390 and 320 px, and saves home-page
- * screenshots (light/dark at 1440 and 390 px) into docs/design-review/site/.
+ * runs axe (WCAG 2.2 AA tags) on the home and developer pages in light and dark at 1440, 390 and
+ * 320 px (reduced motion, everything revealed), and saves screenshots (light/dark at 1440 and
+ * 390 px) into docs/design-review/site/.
  * Reuses the e2e suite's Playwright and @axe-core/playwright:
  *   (cd e2e && npm ci) && (cd tools/docs && npm ci) && node tools/site/build.mjs && node tools/site/review.mjs
  * Exit code 1 when axe reports a violation.
@@ -18,6 +19,10 @@ const { AxeBuilder } = e2eRequire("@axe-core/playwright");
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const SHOTS_DIR = "docs/design-review/site";
+const PAGES = [
+  ["", "home"],
+  ["developers.html", "developers"],
+];
 const VIEWPORTS = [
   { width: 1440, height: 900, shot: true },
   { width: 390, height: 844, shot: true },
@@ -30,9 +35,10 @@ const VIEWPORTS = [
  * @param {string} url site URL
  * @param {"light" | "dark"} theme colour scheme
  * @param {{ width: number, height: number, shot: boolean }} viewport viewport
+ * @param {string} name page name for the screenshot file
  * @returns {Promise<string[]>} violations as text
  */
-async function reviewOne(browser, url, theme, viewport) {
+async function reviewOne(browser, url, theme, viewport, name) {
   const context = await browser.newContext({ colorScheme: theme, reducedMotion: "reduce", viewport });
   const page = await context.newPage();
   const errors = [];
@@ -53,10 +59,10 @@ async function reviewOne(browser, url, theme, viewport) {
       }
       window.scrollTo(0, 0);
     });
-    await page.screenshot({ path: abs(`${SHOTS_DIR}/home-${viewport.width}-${theme}.png`), fullPage: true });
+    await page.screenshot({ path: abs(`${SHOTS_DIR}/${name}-${viewport.width}-${theme}.png`), fullPage: true });
   }
   await context.close();
-  return [...errors, ...violations].map((v) => `${theme} ${viewport.width}px: ${v}`);
+  return [...errors, ...violations].map((v) => `${name} ${theme} ${viewport.width}px: ${v}`);
 }
 
 /** Runs the review. */
@@ -66,9 +72,9 @@ async function main() {
   const browser = await chromium.launch();
   try {
     const problems = [];
-    for (const theme of ["light", "dark"]) for (const viewport of VIEWPORTS) problems.push(...(await reviewOne(browser, server.url, theme, viewport)));
+    for (const [file, name] of PAGES) for (const theme of ["light", "dark"]) for (const viewport of VIEWPORTS) problems.push(...(await reviewOne(browser, server.url + file, theme, viewport, name)));
     problems.forEach((p) => console.error(p));
-    console.log(`axe: ${problems.length} problem(s) on ${VIEWPORTS.length * 2} page states; screenshots in ${SHOTS_DIR}`);
+    console.log(`axe: ${problems.length} problem(s) on ${PAGES.length * VIEWPORTS.length * 2} page states; screenshots in ${SHOTS_DIR}`);
     process.exitCode = problems.length > 0 ? 1 : 0;
   } finally {
     await browser.close();
