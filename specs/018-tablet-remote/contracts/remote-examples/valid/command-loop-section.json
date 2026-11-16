@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "c3",
+  "name": "loop.section",
+  "args": {
+    "sectionId": "s3"
+  }
+}

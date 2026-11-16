@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "c2",
+  "name": "transport.seek",
+  "args": {
+    "positionSec": 58.0
+  }
+}

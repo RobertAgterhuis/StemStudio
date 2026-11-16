@@ -1,0 +1,472 @@
+openapi: 3.1.0
+info:
+  title: StemStudio remote surface (LAN listener)
+  version: 1.0.0
+  summary: HTTP part of remote-protocol 1.0.0, served by the web app's remote listener only.
+  description: |
+    * Part of **remote-protocol 1.0.0** (normative text: `remote-protocol.md`; WebSocket messages:
+      `remote-messages.schema.json`). Served only when `StemStudio__Remote__Mode` is `lan-http` or
+      `lan-https`, on `StemStudio__Remote__Port`, never on the main listener (rule R2).
+    * Every other path on this listener answers 404 before routing (rule R1). `Host` must be the
+      public host or an alias (400, rule R3); `POST` and the WebSocket upgrade need an exact
+      `Origin` match (403 `origin-refused`, rule R4). Security headers per rule R5.
+    * Static files (`/remote/`, `/remote/assets/*`, manifest, service worker, icons, offline page,
+      shared tokens and fonts) are not listed here; they are plain `GET` with long-lived caching for
+      hashed names and `no-cache` for `index.html`, `sw.js` and the manifest.
+    * When "Allow remote control" is off, only `info` and the static files answer; everything else
+      answers `403 remote-disabled`.
+    * Problem details: RFC 9457, `type` = `https://stemstudio.local/problems/<code>`.
+    * Changelog: 1.0.0 (feature 018).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://{publicHost}:{port}
+    description: lan-https (recommended)
+    variables:
+      publicHost:
+        default: 192.168.1.20
+        description: StemStudio__Remote__PublicHost (the computer's LAN address)
+      port:
+        default: '8443'
+  - url: http://{publicHost}:{port}
+    description: lan-http (not encrypted; no install, no wake lock on the device)
+    variables:
+      publicHost:
+        default: 192.168.1.20
+      port:
+        default: '8090'
+tags:
+  - name: remote-pairing
+    description: Pairing a device (code, approval on the computer, key delivery).
+  - name: remote-session
+    description: The WebSocket session (commands and state).
+  - name: remote-content
+    description: Read-only content of the song the computer has open.
+security: []
+paths:
+  /remote/v1/info:
+    get:
+      tags: [remote-pairing]
+      operationId: getRemoteInfo
+      summary: What this listener is; no secrets, no device data.
+      responses:
+        '200':
+          description: Listener information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteInfo'
+        '400':
+          $ref: '#/components/responses/HostRefused'
+  /remote/v1/pairings/redeem:
+    post:
+      tags: [remote-pairing]
+      operationId: redeemPairingCode
+      summary: Submit the 6-digit code and a device name.
+      description: Forwarded to the API (`redeemRemotePairingCode`) with the listener's transport.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemRequest'
+      responses:
+        '202':
+          description: Request created; show the check number and poll.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemTicket'
+        '400':
+          $ref: '#/components/responses/HostRefused'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: '`pairing-code-invalid` (wrong, unknown, used or expired code).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: '`device-name-invalid`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: '`pairing-rate-limited`.'
+          headers:
+            Retry-After:
+              description: Seconds to wait.
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /remote/v1/pairings/requests/{requestId}:
+    get:
+      tags: [remote-pairing]
+      operationId: getPairingRequestOutcome
+      summary: Poll the outcome; the key is returned exactly once.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: X-Pairing-Secret
+          in: header
+          required: true
+          description: The poll secret from the redeem answer (never in the URL).
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{22}$'
+      responses:
+        '200':
+          description: Outcome (`waiting`, `allowed` with the key once, `rejected`, `expired`).
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingOutcome'
+        '400':
+          $ref: '#/components/responses/HostRefused'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Unknown request, wrong secret, or the key was already delivered.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /remote/v1/ws:
+    get:
+      tags: [remote-session]
+      operationId: openRemoteSession
+      summary: WebSocket upgrade for the remote session (messages in remote-messages.schema.json).
+      description: |
+        Requires `Upgrade: websocket`, `Sec-WebSocket-Protocol: stemstudio.remote.v1` and an exact
+        `Origin`. Authentication happens in the first message (`hello` with the device key) within
+        5 s; see remote-protocol.md section 3 for messages and close codes.
+      parameters:
+        - name: Sec-WebSocket-Protocol
+          in: header
+          required: true
+          schema:
+            type: string
+            const: stemstudio.remote.v1
+      responses:
+        '101':
+          description: Switching protocols.
+        '400':
+          description: Not a WebSocket request, missing subprotocol, or foreign host.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /remote/v1/content/lyrics:
+    get:
+      tags: [remote-content]
+      operationId: getRemoteLyrics
+      summary: Lyrics lines of the open song (006).
+      security:
+        - deviceKey: []
+      responses:
+        '200':
+          description: The lines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteLyrics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ContentNotAvailable'
+  /remote/v1/content/chords:
+    get:
+      tags: [remote-content]
+      operationId: getRemoteChords
+      summary: Chord events of the open song (016).
+      security:
+        - deviceKey: []
+      responses:
+        '200':
+          description: The chord events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteChords'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ContentNotAvailable'
+  /remote/v1/content/sheets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [remote-content]
+      operationId: getRemoteSheet
+      summary: PDF of a sheet asset (score, tablature or drum score) of the open song.
+      security:
+        - deviceKey: []
+      responses:
+        '200':
+          description: The PDF (at most 20 MB).
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ContentNotAvailable'
+  /remote/v1/content/sheets/{assetId}/map:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [remote-content]
+      operationId: getRemoteSheetMap
+      summary: Page timing of a sheet from 014's score map, for page follow.
+      security:
+        - deviceKey: []
+      responses:
+        '200':
+          description: The page map.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteSheetMap'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ContentNotAvailable'
+  /remote/v1/content/artwork:
+    get:
+      tags: [remote-content]
+      operationId: getRemoteArtwork
+      summary: Artwork thumbnail of the open song (005), at most 512 px.
+      security:
+        - deviceKey: []
+      responses:
+        '200':
+          description: The image.
+          content:
+            image/webp:
+              schema:
+                type: string
+                contentMediaType: image/webp
+            image/jpeg:
+              schema:
+                type: string
+                contentMediaType: image/jpeg
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ContentNotAvailable'
+components:
+  securitySchemes:
+    deviceKey:
+      type: http
+      scheme: bearer
+      description: The 256-bit device key from pairing (base64url, 43 characters).
+  parameters:
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    HostRefused:
+      description: Foreign `Host` header (DNS rebinding protection, rule R3).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: '`origin-refused` (rule R4) or `remote-disabled` (switch off on the computer).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: '`remote-key-invalid`: missing, unknown, removed or expired device key.'
+      headers:
+        WWW-Authenticate:
+          description: Bearer realm="stemstudio-remote".
+          schema:
+            type: string
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ContentNotAvailable:
+      description: '`content-not-available`: no song open, the kind does not exist, or the id does not belong to the open song.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    RemoteInfo:
+      type: object
+      required: [product, protocol, mode, secure, enabled]
+      properties:
+        product:
+          type: string
+          const: StemStudio
+        protocol:
+          type: string
+          pattern: '^1\.[0-9]+\.[0-9]+$'
+        mode:
+          type: string
+          enum: [lan-http, lan-https]
+        secure:
+          type: boolean
+        enabled:
+          type: boolean
+          description: State of "Allow remote control" on the computer.
+    RedeemRequest:
+      type: object
+      required: [code, deviceName]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 40
+    RedeemTicket:
+      type: object
+      required: [requestId, pollSecret, checkNumber, expiresAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        pollSecret:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{22}$'
+        checkNumber:
+          type: string
+          pattern: '^[0-9]{3}$'
+        expiresAt:
+          type: string
+          format: date-time
+    PairingOutcome:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [waiting, allowed, rejected, expired]
+        deviceId:
+          type: string
+          format: uuid
+        deviceName:
+          type: string
+        key:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        transport:
+          type: string
+          enum: [http, https]
+    RemoteLyrics:
+      type: object
+      required: [revision, synced, lines]
+      properties:
+        revision:
+          type: string
+        synced:
+          type: boolean
+        lines:
+          type: array
+          maxItems: 2000
+          items:
+            type: object
+            required: [index, text]
+            properties:
+              index:
+                type: integer
+                minimum: 0
+              startSec:
+                type: [number, 'null']
+              endSec:
+                type: [number, 'null']
+              text:
+                type: string
+                maxLength: 500
+    RemoteChords:
+      type: object
+      required: [revision, events]
+      properties:
+        revision:
+          type: string
+        events:
+          type: array
+          maxItems: 5000
+          items:
+            type: object
+            required: [startSec, endSec, symbol]
+            properties:
+              startSec:
+                type: number
+              endSec:
+                type: number
+              symbol:
+                type: string
+                maxLength: 16
+    RemoteSheetMap:
+      type: object
+      required: [revision, pages]
+      properties:
+        revision:
+          type: string
+        pages:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            required: [page, startSec, endSec]
+            properties:
+              page:
+                type: integer
+                minimum: 1
+              startSec:
+                type: number
+              endSec:
+                type: number

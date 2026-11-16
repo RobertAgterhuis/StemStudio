@@ -1,0 +1,15 @@
+{
+  "type": "welcome",
+  "deviceId": "0193a5b2-7c41-7d2e-9f10-3c5e8a1b2c01",
+  "deviceName": "iPad music stand",
+  "protocol": "1.0.0",
+  "transport": "https",
+  "limits": {
+    "maxMessageBytes": 4096,
+    "commandsPerSecond": 20
+  },
+  "commands": [
+    "transport.play",
+    "transport.pause"
+  ]
+}

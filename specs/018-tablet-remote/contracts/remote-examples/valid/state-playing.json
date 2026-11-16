@@ -1,0 +1,120 @@
+{
+  "type": "state",
+  "seq": 42,
+  "serverTime": 183021,
+  "mode": "lan-https",
+  "secure": true,
+  "player": {
+    "trackId": "0193a5b2-7c41-7d2e-9f10-3c5e8a1b2c3d",
+    "title": "Practice song",
+    "artist": "Fixture band",
+    "durationSec": 212.4,
+    "artworkAvailable": true,
+    "playing": true,
+    "positionSec": 63.25,
+    "rate": 0.8,
+    "loop": {
+      "enabled": true,
+      "startSec": 58.0,
+      "endSec": 74.5,
+      "sectionId": "s3"
+    },
+    "metronome": false,
+    "countIn": true,
+    "section": {
+      "id": "s3",
+      "name": "Chorus",
+      "index": 2
+    },
+    "sections": [
+      {
+        "id": "s1",
+        "name": "Intro",
+        "startSec": 0,
+        "endSec": 12.0
+      },
+      {
+        "id": "s2",
+        "name": "Verse 1",
+        "startSec": 12.0,
+        "endSec": 58.0
+      },
+      {
+        "id": "s3",
+        "name": "Chorus",
+        "startSec": 58.0,
+        "endSec": 74.5
+      }
+    ],
+    "stems": [
+      {
+        "id": "vocals",
+        "name": "Vocals",
+        "family": "vocals",
+        "muted": false,
+        "soloed": false
+      },
+      {
+        "id": "guitar",
+        "name": "Guitar",
+        "family": "guitar",
+        "muted": false,
+        "soloed": false
+      },
+      {
+        "id": "bass",
+        "name": "Bass",
+        "family": "bass",
+        "muted": true,
+        "soloed": false
+      },
+      {
+        "id": "piano",
+        "name": "Piano",
+        "family": "keys",
+        "muted": false,
+        "soloed": false
+      },
+      {
+        "id": "drums",
+        "name": "Drums",
+        "family": "drums",
+        "muted": false,
+        "soloed": false
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "family": "other",
+        "muted": false,
+        "soloed": false
+      }
+    ],
+    "practisedFamily": "bass",
+    "masterDb": -3.0,
+    "setlist": {
+      "id": "0193a5b2-7c41-7d2e-9f10-3c5e8a1b2c55",
+      "name": "Saturday rehearsal",
+      "index": 1,
+      "count": 3,
+      "previousTitle": "Opener",
+      "nextTitle": "Closer"
+    },
+    "content": {
+      "lyrics": true,
+      "chords": true,
+      "sheets": [
+        {
+          "assetId": "0193a5b2-7c41-7d2e-9f10-3c5e8a1b2c99",
+          "family": "bass",
+          "kind": "score",
+          "title": "Bass - Practice song",
+          "pages": 3
+        }
+      ],
+      "scoreMap": true,
+      "revision": "r-7f3a"
+    }
+  },
+  "remotes": 1
+}

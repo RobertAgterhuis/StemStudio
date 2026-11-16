@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "x1",
+  "name": "tempo.set",
+  "args": {
+    "percent": 300
+  }
+}

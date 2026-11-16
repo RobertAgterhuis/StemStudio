@@ -1,0 +1,9 @@
+{
+  "type": "state",
+  "seq": 0,
+  "serverTime": 5,
+  "mode": "lan-http",
+  "secure": false,
+  "player": null,
+  "remotes": 1
+}

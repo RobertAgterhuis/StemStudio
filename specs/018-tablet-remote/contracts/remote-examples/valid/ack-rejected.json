@@ -1,0 +1,7 @@
+{
+  "type": "ack",
+  "id": "c4",
+  "result": "rejected",
+  "reason": "invalid-args",
+  "message": "Tempo must be 50-120 %."
+}

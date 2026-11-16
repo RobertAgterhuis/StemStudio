@@ -1,0 +1,9 @@
+{
+  "type": "hello",
+  "key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "client": {
+    "name": "stemstudio-remote",
+    "version": "1.0.0"
+  },
+  "admin": true
+}

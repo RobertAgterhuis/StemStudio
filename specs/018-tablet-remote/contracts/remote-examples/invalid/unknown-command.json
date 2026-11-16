@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "x2",
+  "name": "tracks.delete",
+  "args": {
+    "trackId": "0193a5b2-7c41-7d2e-9f10-3c5e8a1b2c3d"
+  }
+}

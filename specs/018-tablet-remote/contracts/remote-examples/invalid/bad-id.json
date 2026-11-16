@@ -1,0 +1,5 @@
+{
+  "type": "command",
+  "id": "<script>",
+  "name": "transport.play"
+}

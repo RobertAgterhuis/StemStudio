@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "c8",
+  "name": "master.volume",
+  "args": {
+    "db": -6.5
+  }
+}

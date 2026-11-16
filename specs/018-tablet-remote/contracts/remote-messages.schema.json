@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/contracts/remote-messages/1.0.0",
+  "title": "StemStudio remote protocol messages",
+  "description": "Every WebSocket message of remote-protocol 1.0.0 (contracts/remote-protocol.md section 3). Additive changes only within 1.x; receivers ignore unknown fields, so object schemas here are closed only for client-to-server messages (the server validates strictly).",
+  "version": "1.0.0",
+  "oneOf": [
+    { "$ref": "#/$defs/clientMessage" },
+    { "$ref": "#/$defs/serverMessage" }
+  ],
+  "$defs": {
+    "messageId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,36}$" },
+    "uuid": { "type": "string", "format": "uuid" },
+    "family": { "enum": ["vocals", "guitar", "bass", "keys", "drums", "other"] },
+    "clientMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/hello" },
+        { "$ref": "#/$defs/command" },
+        { "$ref": "#/$defs/ping" }
+      ]
+    },
+    "serverMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/welcome" },
+        { "$ref": "#/$defs/state" },
+        { "$ref": "#/$defs/ack" },
+        { "$ref": "#/$defs/pong" },
+        { "$ref": "#/$defs/searchResult" },
+        { "$ref": "#/$defs/bye" }
+      ]
+    },
+    "hello": {
+      "type": "object",
+      "required": ["type", "key", "client"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "hello" },
+        "key": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "256-bit device key, base64url without padding." },
+        "client": {
+          "type": "object",
+          "required": ["name", "version"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "const": "stemstudio-remote" },
+            "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+          }
+        }
+      }
+    },
+    "ping": {
+      "type": "object",
+      "required": ["type", "id"],
+      "additionalProperties": false,
+      "properties": { "type": { "const": "ping" }, "id": { "$ref": "#/$defs/messageId" } }
+    },
+    "command": {
+      "type": "object",
+      "required": ["type", "id", "name"],
+      "properties": {
+        "type": { "const": "command" },
+        "id": { "$ref": "#/$defs/messageId" },
+        "name": { "type": "string" },
+        "args": { "type": "object" }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/noArgCommand" },
+        { "$ref": "#/$defs/cmdSeek" },
+        { "$ref": "#/$defs/cmdSkip" },
+        { "$ref": "#/$defs/cmdSection" },
+        { "$ref": "#/$defs/cmdTempoSet" },
+        { "$ref": "#/$defs/cmdTempoNudge" },
+        { "$ref": "#/$defs/cmdStemMute" },
+        { "$ref": "#/$defs/cmdStemSolo" },
+        { "$ref": "#/$defs/cmdFamily" },
+        { "$ref": "#/$defs/cmdMaster" },
+        { "$ref": "#/$defs/cmdTrackOpen" },
+        { "$ref": "#/$defs/cmdSearch" }
+      ]
+    },
+    "noArgCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true,
+        "name": { "enum": ["transport.play", "transport.pause", "transport.toggle", "transport.stop", "section.previous", "section.next", "section.restart", "loop.toggle", "metronome.toggle", "countIn.toggle", "setlist.previous", "setlist.next"] },
+        "args": { "type": "object", "maxProperties": 0 }
+      }
+    },
+    "cmdSeek": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "transport.seek" },
+        "args": { "type": "object", "required": ["positionSec"], "additionalProperties": false, "properties": { "positionSec": { "type": "number", "minimum": 0, "maximum": 86400 } } }
+      }
+    },
+    "cmdSkip": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "transport.skip" },
+        "args": { "type": "object", "required": ["deltaSec"], "additionalProperties": false, "properties": { "deltaSec": { "type": "number", "minimum": -30, "maximum": 30, "not": { "const": 0 } } } }
+      }
+    },
+    "cmdSection": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "enum": ["section.goto", "loop.section"] },
+        "args": { "type": "object", "required": ["sectionId"], "additionalProperties": false, "properties": { "sectionId": { "type": "string", "minLength": 1, "maxLength": 64 } } }
+      }
+    },
+    "cmdTempoSet": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "tempo.set" },
+        "args": { "type": "object", "required": ["percent"], "additionalProperties": false, "properties": { "percent": { "type": "integer", "minimum": 50, "maximum": 120 } } }
+      }
+    },
+    "cmdTempoNudge": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "tempo.nudge" },
+        "args": { "type": "object", "required": ["deltaPercent"], "additionalProperties": false, "properties": { "deltaPercent": { "type": "integer", "minimum": -10, "maximum": 10, "not": { "const": 0 } } } }
+      }
+    },
+    "cmdStemMute": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "stem.mute" },
+        "args": { "type": "object", "required": ["stemId", "muted"], "additionalProperties": false, "properties": { "stemId": { "type": "string", "minLength": 1, "maxLength": 64 }, "muted": { "type": "boolean" } } }
+      }
+    },
+    "cmdStemSolo": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "stem.solo" },
+        "args": { "type": "object", "required": ["stemId", "soloed"], "additionalProperties": false, "properties": { "stemId": { "type": "string", "minLength": 1, "maxLength": 64 }, "soloed": { "type": "boolean" } } }
+      }
+    },
+    "cmdFamily": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "family.practise" },
+        "args": { "type": "object", "required": ["family"], "additionalProperties": false, "properties": { "family": { "oneOf": [{ "$ref": "#/$defs/family" }, { "type": "null" }] } } }
+      }
+    },
+    "cmdMaster": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "master.volume" },
+        "args": { "type": "object", "required": ["db"], "additionalProperties": false, "properties": { "db": { "type": "number", "minimum": -60, "maximum": 6, "multipleOf": 0.5 } } }
+      }
+    },
+    "cmdTrackOpen": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "track.open" },
+        "args": { "type": "object", "required": ["trackId"], "additionalProperties": false, "properties": { "trackId": { "$ref": "#/$defs/uuid" } } }
+      }
+    },
+    "cmdSearch": {
+      "type": "object", "required": ["args"], "additionalProperties": false,
+      "properties": {
+        "type": true, "id": true, "name": { "const": "library.search" },
+        "args": { "type": "object", "required": ["query"], "additionalProperties": false, "properties": { "query": { "type": "string", "maxLength": 60 } } }
+      }
+    },
+    "welcome": {
+      "type": "object",
+      "required": ["type", "deviceId", "deviceName", "protocol", "transport", "limits", "commands"],
+      "properties": {
+        "type": { "const": "welcome" },
+        "deviceId": { "$ref": "#/$defs/uuid" },
+        "deviceName": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "protocol": { "type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$" },
+        "transport": { "enum": ["http", "https"] },
+        "limits": {
+          "type": "object",
+          "required": ["maxMessageBytes", "commandsPerSecond"],
+          "properties": { "maxMessageBytes": { "const": 4096 }, "commandsPerSecond": { "const": 20 } }
+        },
+        "commands": { "type": "array", "items": { "type": "string" }, "maxItems": 64, "uniqueItems": true }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["id", "name", "startSec", "endSec"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 40 },
+        "startSec": { "type": "number", "minimum": 0 },
+        "endSec": { "type": "number", "minimum": 0 }
+      }
+    },
+    "stem": {
+      "type": "object",
+      "required": ["id", "name", "family", "muted", "soloed"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 40 },
+        "family": { "$ref": "#/$defs/family" },
+        "muted": { "type": "boolean" },
+        "soloed": { "type": "boolean" }
+      }
+    },
+    "sheet": {
+      "type": "object",
+      "required": ["assetId", "family", "kind", "title"],
+      "properties": {
+        "assetId": { "$ref": "#/$defs/uuid" },
+        "family": { "$ref": "#/$defs/family" },
+        "kind": { "enum": ["score", "tab", "drums"] },
+        "title": { "type": "string", "maxLength": 80 },
+        "pages": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "player": {
+      "type": "object",
+      "required": ["trackId", "title", "artist", "durationSec", "artworkAvailable", "playing", "positionSec", "rate", "loop", "metronome", "countIn", "section", "sections", "stems", "practisedFamily", "masterDb", "setlist", "content"],
+      "properties": {
+        "trackId": { "$ref": "#/$defs/uuid" },
+        "title": { "type": "string", "maxLength": 200 },
+        "artist": { "type": ["string", "null"], "maxLength": 200 },
+        "durationSec": { "type": "number", "minimum": 0 },
+        "artworkAvailable": { "type": "boolean" },
+        "playing": { "type": "boolean" },
+        "positionSec": { "type": "number", "minimum": 0 },
+        "rate": { "type": "number", "minimum": 0.5, "maximum": 1.2 },
+        "loop": {
+          "type": "object",
+          "required": ["enabled", "startSec", "endSec", "sectionId"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "startSec": { "type": "number", "minimum": 0 },
+            "endSec": { "type": "number", "minimum": 0 },
+            "sectionId": { "type": ["string", "null"] }
+          }
+        },
+        "metronome": { "type": "boolean" },
+        "countIn": { "type": "boolean" },
+        "section": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object", "required": ["id", "name", "index"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "index": { "type": "integer", "minimum": 0 } } }
+          ]
+        },
+        "sections": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/section" } },
+        "stems": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/stem" } },
+        "practisedFamily": { "oneOf": [{ "$ref": "#/$defs/family" }, { "type": "null" }] },
+        "masterDb": { "type": "number", "minimum": -60, "maximum": 6 },
+        "setlist": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["id", "name", "index", "count"],
+              "properties": {
+                "id": { "$ref": "#/$defs/uuid" },
+                "name": { "type": "string", "maxLength": 80 },
+                "index": { "type": "integer", "minimum": 0 },
+                "count": { "type": "integer", "minimum": 1 },
+                "previousTitle": { "type": ["string", "null"] },
+                "nextTitle": { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "content": {
+          "type": "object",
+          "required": ["lyrics", "chords", "sheets", "scoreMap", "revision"],
+          "properties": {
+            "lyrics": { "type": "boolean" },
+            "chords": { "type": "boolean" },
+            "sheets": { "type": "array", "maxItems": 24, "items": { "$ref": "#/$defs/sheet" } },
+            "scoreMap": { "type": "boolean" },
+            "revision": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "required": ["type", "seq", "serverTime", "mode", "secure", "player", "remotes"],
+      "properties": {
+        "type": { "const": "state" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "serverTime": { "type": "integer", "minimum": 0 },
+        "mode": { "enum": ["lan-http", "lan-https"] },
+        "secure": { "type": "boolean" },
+        "player": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/player" }] },
+        "remotes": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "ack": {
+      "type": "object",
+      "required": ["type", "id", "result"],
+      "properties": {
+        "type": { "const": "ack" },
+        "id": { "$ref": "#/$defs/messageId" },
+        "result": { "enum": ["ok", "rejected"] },
+        "reason": { "enum": ["invalid-args", "unknown-command", "no-player", "unavailable", "busy", "waiting-for-computer"] },
+        "message": { "type": "string", "maxLength": 200 }
+      },
+      "if": { "properties": { "result": { "const": "rejected" } } },
+      "then": { "required": ["reason"] }
+    },
+    "pong": {
+      "type": "object",
+      "required": ["type", "id", "serverTime"],
+      "properties": { "type": { "const": "pong" }, "id": { "$ref": "#/$defs/messageId" }, "serverTime": { "type": "integer", "minimum": 0 } }
+    },
+    "searchResult": {
+      "type": "object",
+      "required": ["type", "id", "items"],
+      "properties": {
+        "type": { "const": "searchResult" },
+        "id": { "$ref": "#/$defs/messageId" },
+        "items": {
+          "type": "array", "maxItems": 25,
+          "items": {
+            "type": "object",
+            "required": ["trackId", "title", "artist", "durationSec"],
+            "properties": {
+              "trackId": { "$ref": "#/$defs/uuid" },
+              "title": { "type": "string", "maxLength": 200 },
+              "artist": { "type": ["string", "null"], "maxLength": 200 },
+              "durationSec": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "bye": {
+      "type": "object",
+      "required": ["type", "reason"],
+      "properties": {
+        "type": { "const": "bye" },
+        "reason": { "enum": ["revoked", "disabled", "replaced", "server-stopping", "expired"] }
+      }
+    }
+  }
+}

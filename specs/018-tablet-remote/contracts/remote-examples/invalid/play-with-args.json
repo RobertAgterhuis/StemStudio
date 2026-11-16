@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "x4",
+  "name": "transport.play",
+  "args": {
+    "positionSec": 3
+  }
+}

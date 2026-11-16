@@ -1,0 +1,698 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - remote delta (feature 018)
+  version: 1.17.0-delta.1
+  summary: Additive delta of the backend API for remote control pairing, devices and audit (/api/remote/*).
+  description: |
+    * **Standalone, additive delta.** Only the `remote` tag of the backend API. It is merged
+      unchanged into the full `backend-api.openapi.yaml` **1.17.0** once features 012-017 have fixed
+      their minors (1.11.0-1.16.0); 018 Phase 0 performs the merge (tasks.md T001). No existing
+      operation, schema or behaviour changes. C# DTOs: `src/StemStudio.Contracts/Remote`, routes
+      `ApiRoutes.Remote*`.
+    * Conventions of the backend API apply: JSON camelCase, enums lower-case kebab-case, UTC ISO 8601
+      times, RFC 9457 problem details with `type` = `https://stemstudio.local/problems/<code>`.
+    * **Callers.** The settings, pairing-window, device and audit operations are used by the web
+      app's Remote control page (server side, over the compose network). `redeem`, `poll` and
+      `authenticate` are called **only by the web app's remote surface** on behalf of a device; the
+      device itself never reaches the API (ADR-027). The API stays published on `127.0.0.1` only.
+    * **Request rules for every non-GET operation under `/api/remote`** (CSRF hardening, ADR-027
+      D6): the body MUST be `application/json` (send `{}` when there are no fields; otherwise
+      `415`), and a request that carries an `Origin` header other than the configured `WebOrigin`
+      is refused with `403 origin-refused`. Server-to-server calls send no `Origin`.
+    * **Secrets.** Device keys are 256-bit random values (base64url, 43 characters) that appear in
+      exactly one response (`pollPairingRequest` with status `allowed`) and are stored only as
+      SHA-256. Pairing codes appear only in the pairing-window responses for the main app. No key,
+      code, poll secret or check number is ever logged or written to the audit log.
+    * Changelog: 1.17.0-delta.1 (additive, feature 018 spec) - remote settings, pairing window,
+      redeem/poll, devices, authenticate, audit. See ADR-027 and contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published on 127.0.0.1 only from 018)
+security: []  # single local user; device keys are verified by authenticateRemoteDevice, not by HTTP auth
+tags:
+  - name: remote
+    description: Remote control of the main device from paired phones and tablets on the LAN (1.17.0, feature 018).
+paths:
+  /api/remote/settings:
+    get:
+      tags: [remote]
+      operationId: getRemoteSettings
+      summary: The in-app remote switch (defaults when never saved).
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteSettings'
+    put:
+      tags: [remote]
+      operationId: updateRemoteSettings
+      summary: Turn "Allow remote control" on or off.
+      description: |
+        Writes an audit event `switch-changed`. Turning it off ends an open pairing window
+        (`cancelled`); the web app then closes every remote connection (FR-017).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRemoteSettingsRequest'
+      responses:
+        '200':
+          description: The new settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteSettings'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/pairings:
+    post:
+      tags: [remote]
+      operationId: startRemotePairing
+      summary: Open a pairing window (120 s) with a new 6-digit code; ends any open window.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+      responses:
+        '201':
+          description: The new pairing window.
+          headers:
+            Location:
+              description: /api/remote/pairings/current
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingWindow'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '409':
+          description: '`remote-disabled` (switch off) or `device-limit` (8 devices paired).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/pairings/current:
+    get:
+      tags: [remote]
+      operationId: getCurrentRemotePairing
+      summary: The open or most recent pairing window (polled by the Remote control page every second).
+      description: |
+        Returns the window until 30 s after it reached a final state (`delivered`, `rejected`,
+        `expired`, `stopped`, `cancelled`), then 404. The code is included only while `open`.
+      responses:
+        '200':
+          description: The pairing window.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingWindow'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/remote/pairings/{pairingId}:
+    parameters:
+      - $ref: '#/components/parameters/PairingId'
+    delete:
+      tags: [remote]
+      operationId: cancelRemotePairing
+      summary: Cancel a pairing window (idempotent).
+      responses:
+        '204':
+          description: Cancelled or already final.
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/remote/pairings/{pairingId}/allow:
+    parameters:
+      - $ref: '#/components/parameters/PairingId'
+    post:
+      tags: [remote]
+      operationId: allowRemotePairing
+      summary: Allow the device that redeemed the code; creates the paired device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+      responses:
+        '200':
+          description: The new device (the key is delivered to the device by poll, never here).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteDevice'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`pairing-not-requested` (no device request, or already final) or `device-limit`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/pairings/{pairingId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/PairingId'
+    post:
+      tags: [remote]
+      operationId: rejectRemotePairing
+      summary: Reject the device request; ends the window.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyRequest'
+      responses:
+        '204':
+          description: Rejected.
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`pairing-not-requested`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/pairings/redeem:
+    post:
+      tags: [remote]
+      operationId: redeemRemotePairingCode
+      summary: (Remote surface only) A device submits the code and its name.
+      description: |
+        The right code while the window is `open` consumes it and creates the device request
+        (state `requested`). Wrong, unknown, used and expired codes all answer
+        `404 pairing-code-invalid`; the fifth wrong code of a window stops it. At most 20 calls per
+        rolling minute in total (`429 pairing-rate-limited`, `Retry-After`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemPairingRequest'
+      responses:
+        '202':
+          description: Request created; the device polls for the outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingRequestTicket'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          description: '`pairing-code-invalid`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: '`remote-disabled`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: '`device-name-invalid` (1-40 printable characters).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: '`pairing-rate-limited`.'
+          headers:
+            Retry-After:
+              description: Seconds until a new attempt is accepted.
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/remote/pairings/requests/{requestId}/poll:
+    parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [remote]
+      operationId: pollRemotePairingRequest
+      summary: (Remote surface only) The outcome of a device request; delivers the device key once.
+      description: |
+        `allowed` carries `deviceId`, `deviceName` and `key` exactly once (state -> `delivered`);
+        every later call and a wrong poll secret answer 404. An allowed key that is not collected
+        within 60 s is discarded and the device row removed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollPairingRequest'
+      responses:
+        '200':
+          description: The current outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingRequestOutcome'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/devices:
+    get:
+      tags: [remote]
+      operationId: listRemoteDevices
+      summary: Paired devices, newest first (at most 8).
+      responses:
+        '200':
+          description: The devices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteDeviceList'
+    delete:
+      tags: [remote]
+      operationId: removeAllRemoteDevices
+      summary: Remove every paired device (audit `all-removed`).
+      responses:
+        '200':
+          description: Number of removed devices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemovedDevices'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+  /api/remote/devices/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    patch:
+      tags: [remote]
+      operationId: renameRemoteDevice
+      summary: Rename a device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRemoteDeviceRequest'
+      responses:
+        '200':
+          description: The renamed device.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteDevice'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: '`device-name-invalid`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags: [remote]
+      operationId: removeRemoteDevice
+      summary: Remove one device; its key stops working immediately.
+      responses:
+        '204':
+          description: Removed.
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/remote/devices/authenticate:
+    post:
+      tags: [remote]
+      operationId: authenticateRemoteDevice
+      summary: (Remote surface only) Check a device key; updates last use (at most once per minute).
+      description: |
+        Answers 401 for unknown keys and for devices unused for more than 30 days (which are
+        deleted, audit `device-expired`); refused attempts are audited coalesced (`auth-refused`).
+        Answers `409 remote-disabled` when the switch is off.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticateRemoteDeviceRequest'
+      responses:
+        '200':
+          description: The device.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteDevice'
+        '401':
+          description: '`remote-key-invalid`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          $ref: '#/components/responses/OriginRefused'
+        '409':
+          description: '`remote-disabled`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /api/remote/audit:
+    get:
+      tags: [remote]
+      operationId: listRemoteAuditEvents
+      summary: Newest remote audit events first (Expert view).
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: The events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteAuditList'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+components:
+  parameters:
+    PairingId:
+      name: pairingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    NotFound:
+      description: Not found (`not-found`, `pairing-not-found`, `device-not-found`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    OriginRefused:
+      description: '`origin-refused`: the request carried a foreign `Origin` header.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnsupportedMediaType:
+      description: The body was not `application/json`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationProblem:
+      description: Invalid request (`validation`), with field errors.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 problem details (same shape as the rest of the backend API).
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          examples: ['https://stemstudio.local/problems/pairing-code-invalid']
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    EmptyRequest:
+      type: object
+      description: An empty JSON object; required so that cross-site "simple" requests cannot reach the endpoint.
+      additionalProperties: false
+    Transport:
+      type: string
+      enum: [http, https]
+    RemoteSettings:
+      type: object
+      required: [enabled, updatedAt]
+      properties:
+        enabled:
+          type: boolean
+          description: '"Allow remote control"; false by default.'
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    UpdateRemoteSettingsRequest:
+      type: object
+      required: [enabled]
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+    PairingStatus:
+      type: string
+      enum: [open, requested, allowed, delivered, rejected, expired, stopped, cancelled]
+    PairingWindow:
+      type: object
+      required: [pairingId, status, createdAt, expiresAt, wrongCodes, code, request]
+      properties:
+        pairingId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PairingStatus'
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        wrongCodes:
+          type: integer
+          minimum: 0
+          maximum: 5
+        code:
+          type: [string, 'null']
+          pattern: '^[0-9]{6}$'
+          description: Only while `open`; null afterwards.
+        request:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/PairingRequestSummary'
+    PairingRequestSummary:
+      type: object
+      required: [deviceName, checkNumber, transport, redeemedAt]
+      properties:
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 40
+        checkNumber:
+          type: string
+          pattern: '^[0-9]{3}$'
+        transport:
+          $ref: '#/components/schemas/Transport'
+        redeemedAt:
+          type: string
+          format: date-time
+    RedeemPairingRequest:
+      type: object
+      required: [code, deviceName, transport]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 40
+        transport:
+          $ref: '#/components/schemas/Transport'
+    PairingRequestTicket:
+      type: object
+      required: [requestId, pollSecret, checkNumber, expiresAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        pollSecret:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{22}$'
+          description: 128-bit secret (base64url) that the device must present when polling.
+        checkNumber:
+          type: string
+          pattern: '^[0-9]{3}$'
+        expiresAt:
+          type: string
+          format: date-time
+    PollPairingRequest:
+      type: object
+      required: [pollSecret]
+      additionalProperties: false
+      properties:
+        pollSecret:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{22}$'
+    PairingRequestOutcome:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [waiting, allowed, rejected, expired]
+        deviceId:
+          type: string
+          format: uuid
+        deviceName:
+          type: string
+        key:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: The device key; present only in the single `allowed` answer.
+        transport:
+          $ref: '#/components/schemas/Transport'
+    RemoteDevice:
+      type: object
+      required: [deviceId, name, transport, pairedAt, lastUsedAt]
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        transport:
+          $ref: '#/components/schemas/Transport'
+        pairedAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+    RemoteDeviceList:
+      type: object
+      required: [items, limit]
+      properties:
+        items:
+          type: array
+          maxItems: 8
+          items:
+            $ref: '#/components/schemas/RemoteDevice'
+        limit:
+          type: integer
+          const: 8
+    RemovedDevices:
+      type: object
+      required: [removed]
+      properties:
+        removed:
+          type: integer
+          minimum: 0
+    RenameRemoteDeviceRequest:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+    AuthenticateRemoteDeviceRequest:
+      type: object
+      required: [key]
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{43}$'
+    RemoteAuditKind:
+      type: string
+      enum: [switch-changed, pairing-started, pairing-requested, pairing-allowed, pairing-rejected, pairing-expired, pairing-stopped, pairing-cancelled, device-renamed, device-removed, device-expired, all-removed, auth-refused]
+    RemoteAuditEvent:
+      type: object
+      required: [id, at, kind, deviceId, deviceName, detail]
+      properties:
+        id:
+          type: integer
+          format: int64
+        at:
+          type: string
+          format: date-time
+        kind:
+          $ref: '#/components/schemas/RemoteAuditKind'
+        deviceId:
+          type: [string, 'null']
+          format: uuid
+        deviceName:
+          type: [string, 'null']
+          maxLength: 40
+        detail:
+          type: [string, 'null']
+          maxLength: 200
+    RemoteAuditList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/RemoteAuditEvent'

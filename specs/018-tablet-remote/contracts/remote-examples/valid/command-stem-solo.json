@@ -1,0 +1,9 @@
+{
+  "type": "command",
+  "id": "c7",
+  "name": "stem.solo",
+  "args": {
+    "stemId": "vocals",
+    "soloed": true
+  }
+}

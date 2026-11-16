@@ -1,0 +1,8 @@
+{
+  "type": "command",
+  "id": "c10",
+  "name": "library.search",
+  "args": {
+    "query": "chorus"
+  }
+}
