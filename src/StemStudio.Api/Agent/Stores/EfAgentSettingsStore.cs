@@ -10,7 +10,8 @@ namespace StemStudio.Api.Agent.Stores;
 
 /// <summary>
 /// EF Core implementation of <see cref="IAgentSettingsStore"/> (feature 011, T021): the single row, or the defaults with the
-/// backend from <c>StemStudio__Agent__Backend</c> while none is saved.
+/// backend from <c>StemStudio__Agent__Backend</c> while none is saved. <c>StemStudio__Agent__Backend=fake</c> (the E2E test
+/// stack) overrides the stored backend, so a persisted row can never switch the fake stack to a real model.
 /// </summary>
 /// <param name="db">Context per operation.</param>
 /// <param name="options">Host options.</param>
@@ -21,7 +22,9 @@ public sealed class EfAgentSettingsStore(AgentDb db, IOptions<AgentHostOptions> 
     public Task<AgentSettings> GetAsync(CancellationToken cancellationToken) => db.WithAsync(async context =>
     {
         var entity = await context.AgentSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return entity is null ? AgentSettings.Defaults(options.Value.InitialBackend(), clock.GetUtcNow()) : ToRecord(entity);
+        var configured = options.Value.InitialBackend();
+        var settings = entity is null ? AgentSettings.Defaults(configured, clock.GetUtcNow()) : ToRecord(entity);
+        return configured == AgentBackendDto.Fake ? settings with { Backend = AgentBackendDto.Fake } : settings;
     });
 
     /// <inheritdoc />
