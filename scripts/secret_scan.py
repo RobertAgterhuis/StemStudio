@@ -93,13 +93,20 @@ def read_text(path: Path) -> str | None:
     return data.decode("utf-8", errors="replace")
 
 
+def applicable_rules(relative: str) -> tuple[Rule, ...]:
+    """The rules for one file: the CI-only rules apply under .github/ only."""
+    if relative.startswith(".github/"):
+        return RULES
+    return tuple(rule for rule in RULES if not rule.ci_only)
+
+
 def scan_text(relative: str, text: str) -> list[Finding]:
     """Findings of every applicable rule in one file."""
-    in_ci = relative.startswith(".github/")
-    rules = [rule for rule in RULES if in_ci or not rule.ci_only]
+    rules = applicable_rules(relative)
+    lines = enumerate(text.splitlines(), start=1)
     return [
         Finding(relative, number, rule.name)
-        for number, line in enumerate(text.splitlines(), start=1)
+        for number, line in lines
         for rule in rules
         if rule.pattern.search(line)
     ]
@@ -129,22 +136,25 @@ SELF_TEST_EXPECTED = {
 }
 
 
+def plant_samples(root: Path) -> None:
+    """Writes SELF_TEST_SAMPLES under root."""
+    for name, content in SELF_TEST_SAMPLES.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(content, encoding="utf-8")
+
+
 def self_test() -> int:
     """Plants leaking and allowed samples in a temp dir; 0 when exactly the leaks are found."""
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
-        for name, content in SELF_TEST_SAMPLES.items():
-            (root / name).parent.mkdir(parents=True, exist_ok=True)
-            (root / name).write_text(content, encoding="utf-8")
-        found = set(scan(root, walk_files(root)))
+        plant_samples(Path(temp))
+        found = set(scan(Path(temp), walk_files(Path(temp))))
     if found == SELF_TEST_EXPECTED:
         print(
-            f"secret scan self-test passed ({len(found)} planted leaks found, allowed forms clean)"
+            f"secret scan self-test passed ({len(found)} planted leaks, allowed forms clean)"
         )
         return 0
-    print(
-        f"secret scan self-test FAILED: missing {SELF_TEST_EXPECTED - found}, extra {found - SELF_TEST_EXPECTED}"
-    )
+    missing, extra = SELF_TEST_EXPECTED - found, found - SELF_TEST_EXPECTED
+    print(f"secret scan self-test FAILED: missing {missing}, extra {extra}")
     return 1
 
 
