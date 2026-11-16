@@ -15,8 +15,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 """Repository root (``tools/quality`` lives two levels below it)."""
 
-SOURCE_SUFFIXES = frozenset({".cs", ".py", ".ts", ".tsx", ".razor"})
-"""File types measured by the gate (C#, Python, TypeScript, Razor ``@code`` blocks)."""
+SOURCE_SUFFIXES = frozenset({".cs", ".py", ".ts", ".tsx", ".razor", ".cpp", ".h"})
+"""File types measured by the gate (C#, Python, TypeScript, Razor ``@code`` blocks; C++ for the
+SoundTouch shim and its ABI header of feature 012)."""
 
 DEFAULT_ROOTS = (
     "src",
@@ -27,13 +28,15 @@ DEFAULT_ROOTS = (
     "tools/quality",
     "tools/agent-eval",
     "scripts",
+    "third_party",
 )
 """Source roots scanned when no paths are given (``generator``: features 009/010;
 ``tools/agent-eval``: feature 011, the ai-agent eval harness, measured but not production;
 ``scripts``: devops' tested check scripts, e.g. ``key_volume_checks.py`` of the 011 follow-up
-claude-key, measured but not production)."""
+claude-key, measured but not production; ``third_party``: feature 012, our SoundTouch shim and
+ABI header, while the downloaded upstream source and the build output are excluded)."""
 
-PRODUCTION_ROOTS = ("src/", "worker/src/", "generator/src/")
+PRODUCTION_ROOTS = ("src/", "worker/src/", "generator/src/", "third_party/soundtouch/")
 """Prefixes of production code; duplication there fails the gate."""
 
 EXCLUDED_DIRS = frozenset(
@@ -68,6 +71,11 @@ EXCLUDED_PATHS = (
     "tools/quality/tests/samples/",
     "worker/src/stemstudio_worker/detail/vendor/",
     "worker/src/stemstudio_worker/transcription/vendor/",
+    "third_party/soundtouch/upstream/",
+    "third_party/soundtouch/build/",
+    "src/StemStudio.Web/wwwroot/js/time-stretch-processor.js",
+    "src/StemStudio.Web/wwwroot/js/soundtouch/",
+    "src/StemStudio.Web/wwwroot/third-party/",
 )
 """Repository-relative paths (files or prefixes) never measured.
 
@@ -75,6 +83,12 @@ EXCLUDED_PATHS = (
 ``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO);
 ``transcription/vendor/`` holds the vendored basic-pitch and piano-transcription post-processing
 (feature 008 plan.md, same rule). ``vendor_check.py`` keeps their LICENSE/NOTICE records.
+
+Feature 012: ``third_party/soundtouch/upstream/`` is the downloaded, unmodified SoundTouch 2.4.1
+source (LGPL-2.1, third-party code) and ``third_party/soundtouch/build/`` the local em++ output;
+the worklet bundle ``time-stretch-processor.js(.map)``, ``wwwroot/js/soundtouch/`` and
+``wwwroot/third-party/`` are generated build and package outputs. The shim
+(``third_party/soundtouch/shim/``) is our code and stays measured.
 """
 
 OWNERS = (
@@ -140,6 +154,8 @@ OWNERS = (
     ("tests/fixtures/", "qa"),
     ("tests/Shared/", "architect"),
     ("scripts/", "devops"),
+    ("third_party/soundtouch/shim/", "audio-engine"),
+    ("third_party/soundtouch/", "architect"),
     ("tools/quality/", "quality-gate"),
 )
 """Path prefix -> owning agent (plan.md ownership map); first match wins.

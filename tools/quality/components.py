@@ -75,6 +75,9 @@ COMPONENTS: tuple[Component, ...] = (
     Component("generator/api", (GENERATOR + "api/",)),
     Component("generator/core", tuple(GENERATOR + name for name in WORKER_CORE)),
     Component("audio-engine", ("src/audio-engine/",)),
+    Component("audio-engine/stretch", ("src/audio-engine/src/stretch/",)),
+    Component("audio-engine/practice", ("src/audio-engine/src/practice/",)),
+    Component("soundtouch shim", ("third_party/soundtouch/shim/",)),
     Component("web-interop", ("src/web-interop/",)),
     Component("e2e", ("e2e/",), scope="all"),
     Component("tools/quality", ("tools/quality/",), scope="all"),
@@ -86,6 +89,8 @@ COMPONENTS: tuple[Component, ...] = (
 
 ``Api/Agent/Secrets`` (claude-key) is also counted in ``Api``; it is listed on its own because
 the Data Protection confinement rule (``secret_rules.py``) is about that folder.
+``audio-engine/stretch`` and ``audio-engine/practice`` (feature 012) are sub-rows of
+``audio-engine``; ``soundtouch shim`` is the C++ ABI implementation (feature 012).
 """
 
 
@@ -148,7 +153,8 @@ _HEADER = (
     "parameters <= 2 / 3-4 / > 4. Stars (size / complexity / interfacing) are a house "
     "estimate from `tools/quality/risk.py`, not a Sigrid rating. Production code only, except "
     "e2e, tools/quality, tools/agent-eval and scripts (all code) and the test-code row; "
-    "Api/Agent/Secrets is a sub-row of Api.\n\n"
+    "Api/Agent/Secrets is a sub-row of Api, audio-engine/stretch and audio-engine/practice "
+    "are sub-rows of audio-engine.\n\n"
     "| Component | Units | LOC | Size % | Complexity % | Params % | Stars (estimate) | Clones |\n"
     "|---|---:|---:|---|---|---|---|---:|"
 )

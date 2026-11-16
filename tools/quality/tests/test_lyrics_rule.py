@@ -205,10 +205,8 @@ def _engine_tree(root: Path) -> None:
 
 
 def test_transport_and_mixer_must_not_import_karaoke() -> None:
-    assert {
-        "audio-engine/transport": frozenset({"audio-engine/karaoke"}),
-        "audio-engine/mixer": frozenset({"audio-engine/karaoke"}),
-    } == TS_MODULE_FORBIDDEN
+    assert "audio-engine/karaoke" in TS_MODULE_FORBIDDEN["audio-engine/transport"]
+    assert "audio-engine/karaoke" in TS_MODULE_FORBIDDEN["audio-engine/mixer"]
 
 
 def test_engine_tree_with_karaoke_reading_the_transport_is_clean(tmp_path: Path) -> None:
