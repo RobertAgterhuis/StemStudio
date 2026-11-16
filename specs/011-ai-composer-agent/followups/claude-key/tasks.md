@@ -146,8 +146,8 @@ character (research R-07).
 
 - [x] T053 [architect] Fold the follow-up into the 011 documents after ratification: `spec.md` FR-018 (key sentence -> CK-FR-001..003), FR-019 ("key configured" -> key status), SC-006 ("never in plain text"); `data-model.md` section 1 (pointer to this delta); `contracts/DELTA.md` status row; mark this folder "merged" - done 2026-11-16 (CTO integration): folded, ADR-020 and the technical manual updated; `updateAgentSettings` text "a usable Claude key" and the 503 example are pre-release text changes in 1.21.0 (pinned by `ClaudeKeyContractTests`); ai-agent decisions recorded in data-model 3 and ADR-035 D8; ui-test-ids 1.21.0 gained `agent-unavailable-switch-to-local` and `agent-key-changed`; port overload `IAgentStatusService.TestAsync(backend, claudeKeySource, ct)`
 - [x] T054 [CTO] `.claude/agents/ai-agent.md` key rule (plan.md sync impact), `SECURITY.md` (threat model summary), `README.md` quick note, compose comment review - done 2026-11-16 (compose comment block reviewed, unchanged)
-- [ ] T055 [CTO] Public manuals: user manual (Settings -> Claude key, recovery), technical manual (volume `api-keys`, key ring directory, never copy it with backups, threat model limits); regenerate PDFs (`tools/docs`), commit sources, PDFs and `build-manifest.json`
-- [ ] T056 [CTO] Run quickstart Q1-Q9b (Q10 by the owner if wanted); security sign-off of the threat model; `docs/STATUS.md`; close the follow-up
+- [x] T055 [CTO] Public manuals: user manual (Settings -> Claude key, recovery), technical manual (volume `api-keys`, key ring directory, never copy it with backups, threat model limits); regenerate PDFs (`tools/docs`), commit sources, PDFs and `build-manifest.json` - done 2026-11-16 (user manual 13 and 16; technical manual 3, 5, 6, 7, 8)
+- [x] T056 [CTO] Run quickstart Q1-Q9b (Q10 by the owner if wanted); security sign-off of the threat model; `docs/STATUS.md`; close the follow-up - done 2026-11-16 on the separate compose project `ck-e2e` (see `docs/handoffs/cto-011-claude-key-integration.md`); Q10 left to the owner
 
 ## Execution plan per owner (parallel wave)
 
@@ -169,10 +169,10 @@ character (research R-07).
 ## Definition of Done checklist (mirrors the constitution)
 
 - [x] Constitution 1.4.0 ratified before implementation (T001, 2026-11-16)
-- [ ] Tests green; >= 90 % line and branch per component; exact numbers in every hand-off
-- [ ] Analyzers, `dotnet format`, SIG limits, `run_all.py`, `secret_scan.py` clean
-- [ ] Contracts merged and Redocly-valid (backend 1.21.0, ui-test-ids 1.21.0)
-- [ ] CK-SC-001..006 evidenced (tests or quickstart rows)
-- [ ] Threat model rows T1-T7 covered by [sec] tests; T8-T11 documented for the user
-- [ ] Public manuals updated and PDFs regenerated (T055); `docs/STATUS.md` updated
-- [ ] Hand-off notes written; Conventional Commits
+- [x] Tests green; >= 90 % line and branch per component; exact numbers in every hand-off
+- [x] Analyzers, `dotnet format`, SIG limits, `run_all.py`, `secret_scan.py` clean
+- [x] Contracts merged and Redocly-valid (backend 1.21.0, ui-test-ids 1.21.0)
+- [x] CK-SC-001..006 evidenced (tests or quickstart rows)
+- [x] Threat model rows T1-T7 covered by [sec] tests; T8-T11 documented for the user
+- [x] Public manuals updated and PDFs regenerated (T055); `docs/STATUS.md` updated
+- [x] Hand-off notes written; Conventional Commits
