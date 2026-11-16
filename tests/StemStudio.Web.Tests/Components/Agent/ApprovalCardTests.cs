@@ -67,6 +67,17 @@ public sealed class ApprovalCardTests : PageTestContext
         Id(cut, "agent-approval-estimate").TextContent.ShouldContain("Duration unknown");
     }
 
+    [Fact]
+    public void RiskCheckFailed_IsExplainedAsAHeavyStepWhoseSizeCouldNotBeChecked()
+    {
+        var cut = Request(AgentData.Approval(reasons: [AgentDecisionReasons.RiskCheckFailed]));
+
+        var card = Id(cut, "agent-approval-card");
+        card.GetAttribute("data-reasons").ShouldBe(AgentDecisionReasons.RiskCheckFailed);
+        card.QuerySelector(".ss-agent-card-reasons li")!.TextContent.ShouldBe("The size could not be checked, so this is treated as a long job: check it before you approve");
+        card.TextContent.ShouldNotContain(AgentDecisionReasons.RiskCheckFailed);
+    }
+
     [Theory]
     [InlineData(AgentDecisionReasons.UrlNotFromUser, "The link does not appear in your own messages")]
     [InlineData(AgentDecisionReasons.UndoCompensation, "Removes what an earlier step created")]
