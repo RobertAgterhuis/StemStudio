@@ -133,7 +133,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
                 new HttpClient(Singer.Handler) { BaseAddress = SingerInstalled ? new Uri("http://singer:8010/") : null }, NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
             ConfigureServices?.Invoke(services);
-            services.DecorateWorkerClient();
+            services.DecorateGpuJobClients();
         });
     }
 

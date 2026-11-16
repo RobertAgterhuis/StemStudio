@@ -43,7 +43,7 @@ public static class AgentRegistration
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();
-        services.DecorateWorkerClient();
+        services.DecorateGpuJobClients();
         return services;
     }
 }

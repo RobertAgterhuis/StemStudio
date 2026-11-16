@@ -7,8 +7,9 @@ namespace StemStudio.Api.Agent.Gpu;
 
 /// <summary>
 /// Frees the GPU memory of the local model before a GPU-heavy job is submitted (contracts/DELTA.md section 5, FR-022, SC-008):
-/// calls the agent library's <see cref="ILlmGpuRelease"/> when the selected backend is Ollama and the worker is not known to run
-/// on the CPU. Best effort: waits at most 2 s and never fails the request.
+/// calls the agent library's <see cref="ILlmGpuRelease"/> when the selected backend is Ollama and the job will use the GPU (a worker
+/// job unless the worker is known to run on the CPU; every generator and singer job). Best effort: waits at most 2 s and never
+/// fails the request.
 /// </summary>
 /// <param name="services">Resolves the optional <see cref="ILlmGpuRelease"/>.</param>
 /// <param name="settings">Agent settings (selected backend).</param>
@@ -19,12 +20,23 @@ public sealed class GpuJobGate(IServiceProvider services, IAgentSettingsStore se
     /// <summary>Longest wait for the release.</summary>
     public static readonly TimeSpan Limit = TimeSpan.FromSeconds(2);
 
-    /// <summary>Releases the local model's GPU memory, when that applies.</summary>
+    /// <summary>Releases the local model's GPU memory before a worker job, unless the worker is known to run on the CPU.</summary>
     /// <param name="cancellationToken">Request cancellation.</param>
     /// <returns>A task that never faults because of the release.</returns>
-    public async Task BeforeGpuJobAsync(CancellationToken cancellationToken)
+    public Task BeforeGpuJobAsync(CancellationToken cancellationToken) =>
+        devices.TryGet()?.Kind == ProcessingDeviceKindDto.Cpu ? Task.CompletedTask : ReleaseAsync(cancellationToken);
+
+    /// <summary>
+    /// Releases the local model's GPU memory before a generator or singer job. These services run on the GPU only, so the
+    /// worker device does not matter.
+    /// </summary>
+    /// <param name="cancellationToken">Request cancellation.</param>
+    /// <returns>A task that never faults because of the release.</returns>
+    public Task BeforeGeneratorJobAsync(CancellationToken cancellationToken) => ReleaseAsync(cancellationToken);
+
+    private async Task ReleaseAsync(CancellationToken cancellationToken)
     {
-        if (services.GetService<ILlmGpuRelease>() is not { } release || !await AppliesAsync(cancellationToken))
+        if (services.GetService<ILlmGpuRelease>() is not { } release || (await settings.GetAsync(cancellationToken)).Backend != AgentBackendDto.Ollama)
         {
             return;
         }
@@ -39,7 +51,4 @@ public sealed class GpuJobGate(IServiceProvider services, IAgentSettingsStore se
             await limit.CancelAsync();
         }
     }
-
-    private async Task<bool> AppliesAsync(CancellationToken cancellationToken) =>
-        devices.TryGet()?.Kind != ProcessingDeviceKindDto.Cpu && (await settings.GetAsync(cancellationToken)).Backend == AgentBackendDto.Ollama;
 }

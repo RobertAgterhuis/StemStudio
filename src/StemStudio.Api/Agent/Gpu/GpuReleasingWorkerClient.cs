@@ -5,7 +5,8 @@ namespace StemStudio.Api.Agent.Gpu;
 /// <summary>
 /// Decorates the worker client (feature 011, T053/T078): every call that submits a GPU-heavy worker job (standard and detail
 /// separation, lyrics alignment, transcription) first passes the <see cref="GpuJobGate"/>; everything else is forwarded as is.
-/// One decorator covers every endpoint that submits such a job (imports, uploads, retries, detail, lyrics align, scores).
+/// One decorator covers every endpoint that submits such a job (imports, uploads, track retries, detail, lyrics alignment,
+/// scores, take imports and the take separation of a voice conversion).
 /// </summary>
 /// <param name="inner">The real worker client.</param>
 /// <param name="gate">The GPU release gate.</param>
@@ -33,12 +34,18 @@ public sealed class GpuReleasingWorkerClient(IWorkerClient inner, GpuJobGate gat
     }
 
     /// <inheritdoc />
-    public Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken) =>
-        inner.CreateLyricsAlignJobAsync(request, cancellationToken);
+    public async Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken)
+    {
+        await gate.BeforeGpuJobAsync(cancellationToken);
+        return await inner.CreateLyricsAlignJobAsync(request, cancellationToken);
+    }
 
     /// <inheritdoc />
-    public Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken) =>
-        inner.CreateTranscriptionJobAsync(request, cancellationToken);
+    public async Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken)
+    {
+        await gate.BeforeGpuJobAsync(cancellationToken);
+        return await inner.CreateTranscriptionJobAsync(request, cancellationToken);
+    }
 
     /// <inheritdoc />
     public Task<WorkerJob?> GetJobAsync(string jobId, CancellationToken cancellationToken) => inner.GetJobAsync(jobId, cancellationToken);
