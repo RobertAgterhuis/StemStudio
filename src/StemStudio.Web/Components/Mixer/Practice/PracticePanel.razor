@@ -1,0 +1,31 @@
+@* Practice tempo of the whole mix (012 US1, FR-001..FR-009, FR-016): speed, transpose, reset, effective tempo, the quality
+   hint, the unavailable reason and the Expert stretch diagnostics. Count-in and speed trainer render as child content. *@
+
+<section class="ss-practice ss-console-panel" role="group" aria-labelledby="practice-title" aria-busy="@(Loading ? "true" : null)"
+         data-testid="practice-panel" data-stretch="@PracticeText.StretchName(Status.Stretch)" data-speed="@HeardSpeed"
+         data-transpose="@HeardTranspose">
+    <h2 id="practice-title" class="ss-panel-title">Practice tempo <HelpHint HelpId="practice-speed" /></h2>
+    <SpeedControl Value="HeardSpeed" ReadOnly="TrainerRuns" Disabled="Unavailable" OnChange="OnSpeed" />
+    <TransposeControl Value="HeardTranspose" Disabled="Unavailable" OnChange="OnTranspose" />
+    <div class="ss-practice-row">
+        <RadzenButton Text="Original speed and key" Icon="restart_alt" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                      Disabled="ResetDisabled" Click="OnReset" data-testid="practice-reset" />
+        @if (EffectiveBpm is { } bpm)
+        {
+            <span class="ss-practice-bpm" data-testid="practice-effective-bpm">@PracticeText.EffectiveBpm(bpm)</span>
+        }
+    </div>
+    @if (PracticeRules.NeedsQualityHint(HeardSpeed, HeardTranspose))
+    {
+        <p class="ss-help ss-practice-hint" data-testid="practice-quality-hint" data-help-id="practice-sound-quality">@PracticeText.QualityHint</p>
+    }
+    @if (Unavailable)
+    {
+        <p class="ss-help ss-practice-unavailable" data-testid="practice-unavailable">@PracticeText.Unavailable(Status.StretchReason)</p>
+    }
+    <LevelGate Feature="practice.stretch-status">
+        <p class="ss-help ss-practice-diagnostics" data-testid="practice-stretch-status" data-latency-ms="@PracticeText.LatencyMs(Status)"
+           data-underruns="@Status.Underruns" data-help-id="practice-sound-quality">@PracticeText.StretchStatus(Status)</p>
+    </LevelGate>
+    @ChildContent
+</section>

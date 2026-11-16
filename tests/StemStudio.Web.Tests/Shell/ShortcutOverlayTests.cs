@@ -57,6 +57,22 @@ public sealed class ShortcutOverlayTests : PageTestContext
         Id(shell, "shortcut-overlay").TextContent.ShouldContain("Loop on or off");
     }
 
+    [Fact]
+    public async Task OnTheMixer_ListsThePracticeKeys_InTheirOwnGroup()
+    {
+        Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
+        var shell = RenderShell(ExperienceLevel.Expert);
+
+        await shell.InvokeAsync(() => Interop.CommandAsync(ShortcutScope.Global, "shortcuts.open"));
+
+        var practice = shell.FindAll("[data-testid=shortcut-overlay] table").Single(t => t.QuerySelector("caption")!.TextContent == "Practice");
+        practice.TextContent.ShouldContain("Speed -5 % or +5 %");
+        practice.TextContent.ShouldContain("Key down or up one semitone");
+        practice.TextContent.ShouldContain("Original speed and key");
+        practice.TextContent.ShouldContain("Count-in on or off");
+        practice.TextContent.ShouldContain("Speed trainer on or off (Advanced)");
+    }
+
     [Theory]
     [InlineData(ExperienceLevel.Beginner)]
     [InlineData(ExperienceLevel.Advanced)]

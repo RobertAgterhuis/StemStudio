@@ -13,9 +13,9 @@ public sealed partial class EngineContractDriftTests
 {
     private static readonly string TypesTs = File.ReadAllText(RepoFile("src", "audio-engine", "src", "types.ts"));
 
-    // Staged callbacks (architect, 012 Phase 0 T005): in types.ts 2.3.0 but not yet [JSInvokable] in AudioEngineInterop.
-    // The frontend removes each name when it implements it (012 T029/T030: OnPracticeChanged).
-    private static readonly string[] PendingCallbacks = ["OnPracticeChanged"];
+    // Staged callbacks: in types.ts but not yet [JSInvokable] in AudioEngineInterop. Empty since 012 T030
+    // (OnPracticeChanged implemented); a later contract stages new names here until the frontend implements them.
+    private static readonly string[] PendingCallbacks = [];
 
     [Fact]
     public void EveryInvokedEngineMethod_ExistsInAudioEngineInterface()
@@ -50,6 +50,13 @@ public sealed partial class EngineContractDriftTests
 
         invokables.ShouldBe(contractCallbacks);
         PendingCallbacks.ShouldAllBe(name => match.Groups[1].Value.Contains($"'{name}'", StringComparison.Ordinal) && !invokables.Contains(name));
+    }
+
+    [Fact]
+    public void PracticeMethods_AreInvoked()
+    {
+        EngineMethods.All.ShouldContain("setPractice");
+        EngineMethods.All.ShouldContain("getPracticeStatus");
     }
 
     [Fact]

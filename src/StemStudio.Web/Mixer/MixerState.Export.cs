@@ -23,6 +23,7 @@ public sealed partial class MixerState
             Channels = [.. visible.Select(c => new ExportChannel(c.Stem, c.Stem.Replace(".", ": ", StringComparison.Ordinal)))],
             Audible = [.. visible.Where(IsAudible).Select(c => c.Stem)],
             Loop = Loop,
+            AtPracticeTempo = !PracticeRules.IsNeutral(Practice),
             Duration = Duration > 0 ? Duration : track.DurationSeconds ?? 0,
         };
     }

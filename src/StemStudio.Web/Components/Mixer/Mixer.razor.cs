@@ -71,6 +71,7 @@ public sealed partial class Mixer : IAsyncDisposable
     {
         Engine.PositionChanged -= OnPositionChanged;
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
+        ReleasePractice();
         ReleaseAgentTools();
         await (_spaceKey?.DisposeAsync() ?? ValueTask.CompletedTask);
         await ReleaseKeysAsync();
@@ -103,6 +104,7 @@ public sealed partial class Mixer : IAsyncDisposable
         _engineStarted = true;
         _spaceKey = await Shortcuts.RegisterSpaceAsync(() => InvokeAsync(TogglePlaybackAsync));
         await RegisterKeysAsync();
+        SubscribeEngine();
         await StartEngineAsync(State);
         RegisterAgentTools();
         StateHasChanged();
@@ -110,8 +112,6 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task StartEngineAsync(MixerState state)
     {
-        Engine.PositionChanged += OnPositionChanged;
-        Engine.PlaybackStateChanged += OnPlaybackStateChanged;
         try
         {
             await Engine.InitializeAsync();
@@ -124,6 +124,13 @@ public sealed partial class Mixer : IAsyncDisposable
         {
             EngineError = ex.Message;
         }
+    }
+
+    private void SubscribeEngine()
+    {
+        Engine.PositionChanged += OnPositionChanged;
+        Engine.PlaybackStateChanged += OnPlaybackStateChanged;
+        Engine.PracticeChanged += OnPracticeChanged;
     }
 
     private async Task AttachMetersAsync(MixerState state)
@@ -147,6 +154,7 @@ public sealed partial class Mixer : IAsyncDisposable
         await Engine.SetMasterAsync(state.MasterVolume);
         await Engine.SetMetronomeAsync(state.Metronome);
         await (state.Loop is { } loop ? Engine.SetLoopAsync(loop) : Task.CompletedTask);
+        await PracticeSender.SubmitAsync(state.Practice);
     }
 
     private void OnPositionChanged(object? sender, double seconds) =>

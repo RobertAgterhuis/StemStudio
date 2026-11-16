@@ -7,7 +7,8 @@ public sealed partial class MixerState
 {
     /// <summary>
     /// Restores every setting of a saved mix; stems without an entry get defaults and parents not listed as expanded
-    /// are collapsed (mixes saved before 1.2.0 collapse everything, FR-015). Clears the dirty flag.
+    /// are collapsed (mixes saved before 1.2.0 collapse everything, FR-015); mixes saved before 1.11.0 get the default
+    /// practice settings (012 FR-014). Clears the dirty flag.
     /// </summary>
     /// <param name="mix">The mix (must belong to this track).</param>
     public void ApplyMix(MixDto mix)
@@ -20,6 +21,7 @@ public sealed partial class MixerState
         _loopStart = settings.Loop?.Start;
         _loopEnd = settings.Loop?.End;
         LoopError = null;
+        ApplyPractice(settings.Practice);
         MarkSaved(mix);
     }
 
@@ -53,5 +55,6 @@ public sealed partial class MixerState
         {
             Expanded = Groups.Where(g => g.Expanded).Select(g => g.Parent).ToList(),
             DetailChannels = Groups.SelectMany(g => g.Stems).Select(s => s.ToDto()).ToList(),
+            Practice = Practice,
         };
 }

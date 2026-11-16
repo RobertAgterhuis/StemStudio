@@ -83,6 +83,14 @@ else
             <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
                           Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
             <MetronomePanel Settings="State.Metronome" Grid="_track?.BeatGrid" OnChange="SetMetronomeAsync" OnReset="ResetMetronomeAsync" />
+            <PracticePanel Settings="State.Practice" Status="PracticeLive" TrackBpm="TrackBpm" OnSpeed="SetSpeedAsync" OnTranspose="SetTransposeAsync"
+                           OnReset="ResetPracticeAsync">
+                <CountInControl Settings="State.Practice.CountIn" LastBars="State.LastCountInBars" Available="@(TrackBpm is not null)"
+                                LoopProblem="@PracticeRules.LoopProblem(State.Loop)" OnToggle="ToggleCountInAsync" OnBars="SetCountInBarsAsync"
+                                OnEveryPass="SetCountInEveryPassAsync" />
+                <SpeedTrainerPanel Settings="State.Practice.Trainer" Status="PracticeLive.Trainer" LoopProblem="@PracticeRules.LoopProblem(State.Loop)"
+                                   Unavailable="StretchUnavailable" OnChange="SetTrainerAsync" OnToggle="ToggleTrainerAsync" />
+            </PracticePanel>
         </div>
 
         <div class="ss-console-desk">
@@ -113,6 +121,7 @@ else
 
         <div class="ss-mixer-dock">
             <KaraokeBanner @ref="_karaoke" TrackId="Id" EngineReady="EngineReady" />
+            <div class="ss-countin-slot"><CountInIndicator Status="PracticeLive.CountIn" /></div>
             <TransportBar Ready="EngineReady" Position="Position" Duration="State.Duration" State="Playback" OnPlay="PlayAsync" OnPause="PauseAsync"
                           OnStop="StopAsync" OnSeek="SeekAsync" />
         </div>

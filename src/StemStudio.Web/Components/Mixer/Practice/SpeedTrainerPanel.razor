@@ -1,0 +1,37 @@
+@* Speed trainer on the A-B loop (012 US2, FR-010; ui-test-ids 1.11.0 trainer-*): start, step, target and passes per
+   step, the on/off switch (needs an enabled loop of at least 0.5 s) and the live status. Advanced and Expert. *@
+
+<LevelGate Feature="practice.trainer">
+    <div class="ss-practice-sub" role="group" aria-labelledby="trainer-title" data-testid="trainer-panel" data-help-id="practice-speed-trainer">
+        <h3 id="trainer-title" class="ss-panel-title">Speed trainer <HelpHint HelpId="practice-speed-trainer" /></h3>
+        <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(Settings.Enabled ? "true" : "false")"
+                disabled="@ToggleDisabled" aria-describedby="@(LoopProblem is null ? null : NeedsLoopId)" @onclick="OnToggle"
+                data-testid="trainer-toggle">Speed trainer</button>
+        @if (LoopProblem is { } problem)
+        {
+            <span id="@NeedsLoopId" class="ss-help" data-testid="trainer-needs-loop">@problem</span>
+        }
+        <label class="ss-inline-label" for="trainer-start">Start %
+            <input id="trainer-start" type="number" class="rz-textbox ss-number" min="50" max="119" step="1" value="@_form.Start"
+                   @onchange="e => EditAsync(e, (f, v) => f.Start = v)" aria-label="Trainer start speed in percent" data-testid="trainer-start" />
+        </label>
+        <label class="ss-inline-label" for="trainer-step">Step %
+            <input id="trainer-step" type="number" class="rz-textbox ss-number" min="1" max="20" step="1" value="@_form.Step"
+                   @onchange="e => EditAsync(e, (f, v) => f.Step = v)" aria-label="Trainer step in percent" data-testid="trainer-step" />
+        </label>
+        <label class="ss-inline-label" for="trainer-target">Target %
+            <input id="trainer-target" type="number" class="rz-textbox ss-number" min="51" max="120" step="1" value="@_form.Target"
+                   @onchange="e => EditAsync(e, (f, v) => f.Target = v)" aria-label="Trainer target speed in percent" data-testid="trainer-target" />
+        </label>
+        <label class="ss-inline-label" for="trainer-passes">Passes per step
+            <input id="trainer-passes" type="number" class="rz-textbox ss-number" min="1" max="8" step="1" value="@_form.Passes"
+                   @onchange="e => EditAsync(e, (f, v) => f.Passes = v)" aria-label="Trainer passes per step" data-testid="trainer-passes" />
+        </label>
+        @if (Error is not null)
+        {
+            <p class="ss-error" role="alert" data-testid="trainer-error">@Error</p>
+        }
+        <p class="ss-help ss-practice-hint" aria-live="polite" aria-atomic="true" data-testid="trainer-status"
+           data-state="@Status.State.ToString().ToLowerInvariant()" data-pass="@Status.Pass" data-speed="@Status.SpeedPercent"><span aria-hidden="true">@StatusText.Pass</span>@StatusText.Speed</p>
+    </div>
+</LevelGate>

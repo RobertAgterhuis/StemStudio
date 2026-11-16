@@ -19,8 +19,9 @@ public sealed class KaraokeMixerTests : MixerTestContext
 
         var dock = page.Find(".ss-mixer-dock");
         dock.QuerySelector("[data-testid=karaoke-banner]").ShouldNotBeNull();
-        var children = dock.Children.Select(c => c.ClassList.Contains("ss-transport") ? "transport" : c.ClassList.Contains("ss-karaoke") ? "karaoke" : "other");
-        children.ShouldBe(["karaoke", "transport"]);
+        var children = dock.Children.Select(c => c.ClassList.Contains("ss-transport") ? "transport" : c.ClassList.Contains("ss-karaoke") ? "karaoke"
+            : c.ClassList.Contains("ss-countin-slot") ? "countin" : "other");
+        children.ShouldBe(["karaoke", "countin", "transport"]);
         page.Find(".ss-console").LastElementChild.ShouldBe(dock);
     }
 

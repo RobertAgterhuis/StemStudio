@@ -1,6 +1,6 @@
 {
   "id": "mixer-basics",
-  "version": 1,
+  "version": 2,
   "title": "Mixer basics",
   "route": "/tracks/{id}/mixer",
   "levels": [
@@ -28,6 +28,11 @@
     {
       "target": "mixer-loop",
       "topic": "mixer-loop"
+    },
+    {
+      "target": "practice-speed",
+      "topic": "practice-speed",
+      "text": "Slow the song down to learn a part; the key stays the same."
     },
     {
       "target": "mixer-save",
