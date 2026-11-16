@@ -4,7 +4,7 @@ using static StemStudio.Agent.Tools.Providers.ToolDefinitions;
 namespace StemStudio.Agent.Tools.Providers;
 
 /// <summary>Tools that only undo runs execute (not in the registry, never offered to the model).</summary>
-internal static class UndoTools
+public static class UndoTools
 {
     /// <summary>The undo-only tools.</summary>
     public static IReadOnlyList<AgentToolDescriptor> All { get; } =
@@ -14,6 +14,13 @@ internal static class UndoTools
             Title = "Restore the previous mix version",
             Description = "Undo of update_mix.",
             Handler = Core001Handlers.RestoreMixAsync,
+        },
+        Tool("011", "remove_lyrics", ToolKindDto.Server, ToolRiskDto.Destructive) with
+        {
+            Title = "Remove fetched lyrics",
+            Description = "Undo of fetch_lyrics.",
+            Schema = ToolSchema.Of(Param.Uuid("trackId")),
+            Handler = LyricsToolProvider.RemoveAsync,
         },
     ];
 }

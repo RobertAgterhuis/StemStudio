@@ -26,6 +26,7 @@ public static class UiUndo
         "mixer_reset" when previous.ValueKind == JsonValueKind.Array => [.. previous.EnumerateArray().Select(Channel)],
         "mixer_set_master" when previous.ValueKind == JsonValueKind.Number => [Action(tool, new JsonObject { ["gainDb"] = Gain(previous) })],
         "set_loop" => [Loop(previous)],
+        "show_karaoke" when previous.ValueKind is JsonValueKind.True or JsonValueKind.False => [Action(tool, new JsonObject { ["enabled"] = previous.GetBoolean() })],
         "set_metronome" when previous.ValueKind == JsonValueKind.Object => [Metronome(previous)],
         _ => [],
     };

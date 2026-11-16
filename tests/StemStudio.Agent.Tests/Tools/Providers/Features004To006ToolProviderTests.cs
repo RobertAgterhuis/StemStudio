@@ -174,7 +174,7 @@ public sealed class Features004To006ToolProviderTests
             BeginYear = 1981,
             Genres = ["thrash metal", "heavy metal"],
             Members = [new ArtistMemberDto("James Hetfield"), new ArtistMemberDto("Lars Ulrich")],
-            Summary = new WikipediaSummaryDto { Language = "en", Title = "Metallica", Extract = new string('m', 900), PageUrl = "https://en.wikipedia.org/wiki/Metallica" },
+            Summary = new WikipediaSummaryDto { Language = "en", Title = "Metallica", Extract = new string('m', 900), PageUrl = "https://en.wikipedia.org/wiki/Metallica", HistoryUrl = "https://en.wikipedia.org/w/index.php?title=Metallica&action=history" },
         },
     };
 }

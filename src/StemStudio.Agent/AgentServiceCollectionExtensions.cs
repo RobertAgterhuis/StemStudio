@@ -71,6 +71,9 @@ public static class AgentServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, Core001ToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, Detail002ToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, Device003ToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, HelpToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, ArtistToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LyricsToolProvider>());
         services.TryAddSingleton(sp => new AgentToolRegistry(sp.GetServices<IAgentToolProvider>()));
         services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp)));
         services.TryAddSingleton(sp => new ToolCatalog(sp.GetRequiredService<AgentToolRegistry>(), sp.GetRequiredService<ServiceStatusReader>()));
