@@ -18,6 +18,12 @@ public delegate Task<ToolResult> ToolHandler(ToolInvocation invocation, Cancella
 /// <returns>The estimate.</returns>
 public delegate Task<ToolEstimate> ToolEstimator(ToolInvocation invocation, CancellationToken cancellationToken);
 
+/// <summary>Checks a call before the policy decides; throws <see cref="AgentActionException"/> to fail the step.</summary>
+/// <param name="invocation">Validated arguments and ports.</param>
+/// <param name="cancellationToken">Cancellation.</param>
+/// <returns>A task.</returns>
+public delegate Task ToolPrecondition(ToolInvocation invocation, CancellationToken cancellationToken);
+
 /// <summary>Decides whether a call is escalated to the heavy risk class.</summary>
 /// <param name="invocation">Validated arguments and ports.</param>
 /// <param name="cancellationToken">Cancellation.</param>

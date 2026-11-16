@@ -158,11 +158,11 @@ public sealed class ProviderEdgeTests
 
         await Should.ThrowAsync<AgentActionException>(() => InvokeAsync(Tool(new SongToolProvider(), "generate_song"), """{"language":"en","leadVoice":"any","timeSignature":5}""", _actions));
         var song = await InvokeAsync(Tool(new SongToolProvider(), "generate_song"), """{"language":"en","leadVoice":"any","instrumental":true}""", _actions);
-        var estimate = await convert.Estimator!(Invocation(convert, $$"""{"generationId":"{{Id}}","index":2,"profileId":"{{Id}}"}""", _actions), Token);
+        var estimate = await Should.ThrowAsync<AgentActionException>(() => convert.Estimator!(Invocation(convert, $$"""{"generationId":"{{Id}}","index":2,"profileId":"{{Id}}"}""", _actions), Token));
         var sheets = await InvokeAsync(Tool(new SongToolProvider(), "list_lyrics_sheets"), "{}", _actions);
 
         song.EstimatedMinutes.ShouldBe(3.0);
-        estimate.Effect.ShouldBe("Convert take 2 to the voice \"unknown\"");
+        estimate.Message.ShouldBe(SongToolProvider.UnknownProfile);
         sheets.Projection[0]!["language"].ShouldBeNull();
     }
 

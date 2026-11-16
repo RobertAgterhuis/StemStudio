@@ -18,6 +18,12 @@ public sealed class SongToolProvider : IAgentToolProvider
 {
     private const string F = "010";
     private const int MaxSheets = 20;
+
+    /// <summary>Refusal when the profile does not exist (no personal data).</summary>
+    public const string UnknownProfile = "This voice profile does not exist; choose one from list_voice_profiles.";
+
+    /// <summary>Refusal when the consent is not current (no personal data).</summary>
+    public const string ConsentNotCurrent = "Renew the consent for this voice on the Voices page";
     private static readonly ToolParameter Language = Param.Choice("language", ContractLimits.LyricsLanguages);
 
     /// <inheritdoc />
@@ -67,6 +73,7 @@ public sealed class SongToolProvider : IAgentToolProvider
             TargetArgument = "generationId",
             Handler = ConvertAsync,
             Estimator = ConvertEstimateAsync,
+            Precondition = async (call, cancellationToken) => await ConsentedProfileAsync(call, cancellationToken),
         },
     ];
 
@@ -159,15 +166,24 @@ public sealed class SongToolProvider : IAgentToolProvider
         })]));
     }
 
-    private static async Task<ToolEstimate> ConvertEstimateAsync(ToolInvocation call, CancellationToken cancellationToken)
+    /// <summary>Defense in depth (the backend's 409 stays authoritative): the profile exists and its consent is current.</summary>
+    private static async Task<VoiceProfileSummary> ConsentedProfileAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
         var profileId = call.RequiredId("profileId");
-        var profile = (await call.Actions.Voices.ListVoiceProfilesAsync(cancellationToken)).FirstOrDefault(item => item.ProfileId == profileId);
-        return Estimate($"Convert take {call.Whole("index")} to the voice \"{profile?.DisplayName ?? "unknown"}\"", null, 1);
+        var profile = (await call.Actions.Voices.ListVoiceProfilesAsync(cancellationToken)).FirstOrDefault(item => item.ProfileId == profileId)
+            ?? throw new AgentActionException(UnknownProfile);
+        return profile.ConsentCurrent ? profile : throw new AgentActionException(ConsentNotCurrent);
+    }
+
+    private static async Task<ToolEstimate> ConvertEstimateAsync(ToolInvocation call, CancellationToken cancellationToken)
+    {
+        var profile = await ConsentedProfileAsync(call, cancellationToken);
+        return Estimate($"Convert take {call.Whole("index")} to the voice \"{profile.DisplayName}\"", null, 1);
     }
 
     private static async Task<ToolResult> ConvertAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
+        await ConsentedProfileAsync(call, cancellationToken);
         var request = new VoiceConversionRequest { ProfileId = call.RequiredId("profileId"), PitchShift = call.Whole("pitchShift") ?? 0, AutoShift = call.Flag("autoShift") ?? true };
         var generation = await call.Actions.Voices.CreateVoiceConversionAsync(call.RequiredId("generationId"), call.Whole("index")!.Value, request, cancellationToken);
         return Started(generation, JobPhaseDto.Generation, Estimate("Voice conversion", null, 1).EstimatedMinutes);

@@ -69,7 +69,8 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     private async Task<ProjectedResult> DecideAndRunAsync(RunState state, PreparedCall call, CancellationToken cancellationToken)
     {
         var prepared = await EscalateAsync(state, call, cancellationToken);
-        var decision = ToolPolicy.Decide(PolicyFor(state, prepared) with { LibraryArtists = await LibraryArtistsAsync(prepared, cancellationToken) });
+        var decision = await PreconditionAsync(state, prepared, cancellationToken)
+            ?? ToolPolicy.Decide(PolicyFor(state, prepared) with { LibraryArtists = await LibraryArtistsAsync(prepared, cancellationToken) });
         var status = decision.Decision switch
         {
             StepDecisionDto.Denied => AgentStepStatusDto.Failed,
@@ -112,6 +113,25 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         {
             await services.Runs.SaveStepAsync(step with { Status = AgentStepStatusDto.Expired, EndedAt = services.Time.GetUtcNow() }, CancellationToken.None);
             throw;
+        }
+    }
+
+    /// <summary>A failed precondition denies the step with its fixed message (before any card or job).</summary>
+    private async Task<PolicyDecision?> PreconditionAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        if (prepared.Tool!.Precondition is not { } precondition)
+        {
+            return null;
+        }
+
+        try
+        {
+            await precondition(new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend }, cancellationToken);
+            return null;
+        }
+        catch (AgentActionException failed)
+        {
+            return new PolicyDecision(StepDecisionDto.Denied, [], PortErrors.From(failed).ModelError ?? failed.Message);
         }
     }
 

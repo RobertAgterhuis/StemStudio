@@ -11,7 +11,7 @@ namespace StemStudio.Agent.Runtime;
 internal static class PortErrors
 {
     /// <summary>Text of the consent problems of 010 (tool catalogue).</summary>
-    public const string RenewConsent = "Renew the consent for this voice on the Voices page";
+    public const string RenewConsent = Tools.Providers.SongToolProvider.ConsentNotCurrent;
 
     private static readonly Dictionary<string, string> Known = new(StringComparer.Ordinal)
     {

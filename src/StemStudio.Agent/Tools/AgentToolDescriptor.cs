@@ -51,6 +51,12 @@ public sealed record AgentToolDescriptor
     /// </summary>
     public ToolEscalation? HeavyWhen { get; init; }
 
+    /// <summary>
+    /// A check before the policy decides (no approval card, no job when it fails): throws
+    /// <see cref="Ports.AgentActionException"/> with a fixed readable message to fail the step.
+    /// </summary>
+    public ToolPrecondition? Precondition { get; init; }
+
     /// <summary>Maps the result of a UI tool to the projection and undo action; null projects the result as is.</summary>
     public UiResultMapper? MapUiResult { get; init; }
 
