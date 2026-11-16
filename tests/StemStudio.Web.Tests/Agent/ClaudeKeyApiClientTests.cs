@@ -57,6 +57,36 @@ public sealed class ClaudeKeyApiClientTests : IDisposable
         ex.Error.Extensions["reason"].GetString().ShouldBe(ClaudeKeyInvalidReasons.Prefix);
     }
 
+    // qa F6: a misbehaving server that echoes the key in detail, title, field errors or reason never makes the client's exception
+    // (its message, error or extensions) carry it, so no log of the circuit can record it.
+    [Theory]
+    [InlineData("store")]
+    [InlineData("delete")]
+    public async Task KeyWriteProblem_EchoingTheKey_IsDroppedFromTheException(string call)
+    {
+        var echo = ClaudeKeySentinels.Stored;
+        _handler.Problem(HttpStatusCode.UnprocessableContent,
+            $$"""{"type":"https://stemstudio.local/problems/claude-key-invalid","title":"{{echo}}","status":422,"detail":"{{echo}}","reason":"{{echo}}","errors":{"apiKey":["{{echo}}"]},"value":"{{echo}}"}""");
+
+        var ex = await Should.ThrowAsync<ApiException>(() => call == "store" ? _client.StoreClaudeKeyAsync(echo, Ct) : _client.DeleteClaudeKeyAsync(Ct));
+
+        ex.Error.Code.ShouldBe(AgentProblemTypes.ClaudeKeyInvalid);
+        var text = string.Join("|", ex.Message, ex.ToString(), ex.Error.ToString(), ex.Error.UserMessage, string.Join(",", ex.Error.Extensions.Select(pair => pair.Key + "=" + pair.Value)));
+        ClaudeKeySentinels.SearchForms(echo).ShouldAllBe(form => !text.Contains(form, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task KeyWriteProblem_KeepsAKnownReasonAndTheType()
+    {
+        _handler.Problem(HttpStatusCode.UnprocessableContent,
+            """{"type":"https://stemstudio.local/problems/claude-key-invalid","title":"Not a Claude API key","status":422,"detail":"The key must start with sk-ant-.","reason":"length"}""");
+
+        var ex = await Should.ThrowAsync<ApiException>(() => _client.StoreClaudeKeyAsync("x", Ct));
+
+        (ex.Error.Status, ex.Error.Code, ex.Error.Detail).ShouldBe((HttpStatusCode.UnprocessableContent, AgentProblemTypes.ClaudeKeyInvalid, (string?)null));
+        ex.Error.Extensions["reason"].GetString().ShouldBe(ClaudeKeyInvalidReasons.Length);
+    }
+
     [Theory]
     [InlineData(ClaudeKeyTestSourceDto.Active, "active")]
     [InlineData(ClaudeKeyTestSourceDto.Stored, "stored")]
