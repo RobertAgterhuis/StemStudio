@@ -27,22 +27,19 @@ internal sealed class ApprovalWaiter
     /// <summary>True when the card allowed a plan-scoped approval.</summary>
     public bool AllowsPlanScope(Guid stepId) => _pending.TryGetValue(stepId, out var entry) && entry.AllowPlanScope;
 
-    /// <summary>Waits for the decision; null when the lifetime passed first.</summary>
-    public async Task<Approval?> WaitAsync(Guid stepId, bool allowPlanScope, TimeProvider time, CancellationToken cancellationToken)
+    /// <summary>
+    /// Starts waiting for the step's decision. Call it before the card is published, so a decision that arrives while the
+    /// card is being published is not lost; dispose the wait when the step no longer waits.
+    /// </summary>
+    public ApprovalWait Register(Guid stepId, bool allowPlanScope)
     {
         var signal = new TaskCompletionSource<Approval>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[stepId] = (signal, allowPlanScope);
-        try
-        {
-            return await RaceAsync(signal.Task, time, cancellationToken);
-        }
-        finally
-        {
-            _pending.TryRemove(stepId, out _);
-        }
+        return new ApprovalWait(signal.Task, () => _pending.TryRemove(stepId, out _));
     }
 
-    private static async Task<Approval?> RaceAsync(Task<Approval> decision, TimeProvider time, CancellationToken cancellationToken)
+    /// <summary>Races the decision against the approval lifetime.</summary>
+    internal static async Task<Approval?> RaceAsync(Task<Approval> decision, TimeProvider time, CancellationToken cancellationToken)
     {
         using var expiry = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var expired = Task.Delay(Approval.Lifetime, time, expiry.Token);
@@ -54,6 +51,18 @@ internal sealed class ApprovalWaiter
 
     /// <summary>Hands the decision to the waiting runner.</summary>
     public bool Complete(Approval approval) => _pending.TryGetValue(approval.Id, out var entry) && entry.Signal.TrySetResult(approval);
+}
+
+/// <summary>A registered wait for one approval decision (see <see cref="ApprovalWaiter.Register"/>).</summary>
+/// <param name="decision">Completes with the decision.</param>
+/// <param name="release">Stops waiting.</param>
+internal sealed class ApprovalWait(Task<Approval> decision, Action release) : IDisposable
+{
+    /// <summary>Waits for the decision; null when the lifetime passed first.</summary>
+    public Task<Approval?> WaitAsync(TimeProvider time, CancellationToken cancellationToken) => ApprovalWaiter.RaceAsync(decision, time, cancellationToken);
+
+    /// <inheritdoc />
+    public void Dispose() => release();
 }
 
 /// <summary>Cancellation handles of the runs executing in this process.</summary>

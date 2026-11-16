@@ -39,17 +39,18 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
         await services.Runs.SaveApprovalAsync(approval, cancellationToken);
         await SetRunStatusAsync(state, AgentRunStatusDto.AwaitingApproval, cancellationToken);
         var allowPlanScope = AllowsPlanScope(state, prepared);
+        using var wait = waiter.Register(approval.Id, allowPlanScope);
         await events.PublishAsync(state.RunId, AgentEventTypes.ApprovalRequested, Card(step, prepared, estimate, allowPlanScope), cancellationToken);
-        var decided = await WaitAsync(state, approval, allowPlanScope, cancellationToken);
+        var decided = await WaitAsync(state, approval, wait, cancellationToken);
         await SetRunStatusAsync(state, AgentRunStatusDto.Running, cancellationToken);
         return (Verdict(state, prepared, decided), step);
     }
 
-    private async Task<Approval?> WaitAsync(RunState state, Approval approval, bool allowPlanScope, CancellationToken cancellationToken)
+    private async Task<Approval?> WaitAsync(RunState state, Approval approval, ApprovalWait wait, CancellationToken cancellationToken)
     {
         try
         {
-            return await waiter.WaitAsync(approval.Id, allowPlanScope, services.Time, cancellationToken) ?? await ExpireAsync(state, approval, CancellationToken.None);
+            return await wait.WaitAsync(services.Time, cancellationToken) ?? await ExpireAsync(state, approval, CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
