@@ -7,6 +7,7 @@ using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Styles;
 using StemStudio.Domain.Tracks;
 using StemStudio.Domain.Voices;
+using StemStudio.Persistence.Agent;
 using StemStudio.Persistence.Configurations;
 
 namespace StemStudio.Persistence;
@@ -44,6 +45,30 @@ public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> op
 
     /// <summary>File-byte hashes of stored audio (feature 010 exact-copy guard).</summary>
     public DbSet<AudioHash> AudioHashes => Set<AudioHash>();
+
+    /// <summary>The agent settings row (feature 011).</summary>
+    public DbSet<AgentSettingsEntity> AgentSettings => Set<AgentSettingsEntity>();
+
+    /// <summary>Agent conversations (feature 011).</summary>
+    public DbSet<ConversationEntity> AgentConversations => Set<ConversationEntity>();
+
+    /// <summary>Agent conversation messages (feature 011).</summary>
+    public DbSet<ConversationMessageEntity> AgentMessages => Set<ConversationMessageEntity>();
+
+    /// <summary>Agent runs (feature 011).</summary>
+    public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
+
+    /// <summary>Agent run steps (feature 011).</summary>
+    public DbSet<RunStepEntity> AgentRunSteps => Set<RunStepEntity>();
+
+    /// <summary>Agent approvals (feature 011).</summary>
+    public DbSet<ApprovalEntity> AgentApprovals => Set<ApprovalEntity>();
+
+    /// <summary>Agent undo entries (feature 011).</summary>
+    public DbSet<UndoEntryEntity> AgentUndoEntries => Set<UndoEntryEntity>();
+
+    /// <summary>Agent run events (feature 011, SSE replay).</summary>
+    public DbSet<RunEventEntity> AgentRunEvents => Set<RunEventEntity>();
 
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
