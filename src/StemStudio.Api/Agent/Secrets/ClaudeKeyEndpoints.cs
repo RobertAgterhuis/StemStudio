@@ -29,13 +29,22 @@ public static class ClaudeKeyEndpoints
         var group = app.MapGroup(ApiRoutes.AgentClaudeKey).WithTags(Tag).WithHttpLogging(HttpLoggingFields.None);
         group.MapGet(string.Empty, (IClaudeKeyProvider keys) => TypedResults.Ok(ClaudeKeyStatusMapping.ToDto(keys.Resolve())))
             .WithName("getClaudeKeyStatus").Produces<ClaudeKeyStatusDto>();
-        group.MapPut(string.Empty, StoreAsync)
+        group.MapPut(string.Empty, StoreAsync).LocalOnly()
             .WithName("storeClaudeKey").Produces<ClaudeKeyStatusDto>()
             .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge).ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
     }
+
+    /// <summary>Applies the shared <see cref="LocalOnlyKeyEntryFilter"/> (runs before the handler reads the body).</summary>
+    /// <param name="builder">The endpoint.</param>
+    /// <returns>The endpoint.</returns>
+    public static RouteHandlerBuilder LocalOnly(this RouteHandlerBuilder builder) => builder.AddEndpointFilterFactory((factory, next) =>
+    {
+        var filter = factory.ApplicationServices.GetRequiredService<LocalOnlyKeyEntryFilter>();
+        return invocation => filter.InvokeAsync(invocation, next);
+    });
 
     private static async Task<IResult> StoreAsync(HttpRequest request, ClaudeKeyStoreServices services, CancellationToken cancellationToken)
     {

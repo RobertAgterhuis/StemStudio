@@ -332,7 +332,7 @@ public sealed class ProtectedClaudeKeyStoreTests : IDisposable
                 .AddSingleton<TimeProvider>(Clock)
                 .AddStemStudioPersistence($"Data Source={database};Pooling=False")
                 .AddClaudeKeyProtection(configuration, Path.Combine(root, "app"), new DataDirectory(Path.GetDirectoryName(database)!))
-                .AddClaudeKeyStore();
+                .AddClaudeKeyStore(configuration);
             Services = services.BuildServiceProvider();
             using var scope = Services.CreateScope();
             scope.ServiceProvider.GetRequiredService<StemStudioDbContext>().Database.Migrate();

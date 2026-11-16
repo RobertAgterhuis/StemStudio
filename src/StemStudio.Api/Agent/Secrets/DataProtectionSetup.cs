@@ -24,6 +24,9 @@ public static class DataProtectionSetup
     /// <summary>Configuration key of the key ring directory (environment <c>StemStudio__DataProtection__KeyRingDir</c>).</summary>
     public const string KeyRingDirKey = "StemStudio:DataProtection:KeyRingDir";
 
+    /// <summary>Configuration key of the Web app's browser origin (the only accepted <c>Origin</c> of a key write).</summary>
+    public const string WebOriginKey = "StemStudio:WebOrigin";
+
     /// <summary>Configuration key of the 013 backups folder, which the key ring must stay out of.</summary>
     public const string BackupDirKey = "StemStudio:BackupDir";
 
@@ -53,9 +56,14 @@ public static class DataProtectionSetup
     /// the HTTP logging interceptor of the key route (needs <see cref="AddClaudeKeyProtection"/> and the persistence registrations).
     /// </summary>
     /// <param name="services">Service collection.</param>
+    /// <param name="configuration">Configuration (internal caller and web origin of the local-only rule).</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddClaudeKeyStore(this IServiceCollection services)
+    public static IServiceCollection AddClaudeKeyStore(this IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.AddSingleton(new KeyEntryPolicy(configuration[KeyEntryPolicy.InternalCallerKey], configuration[WebOriginKey] ?? new StemStudioApiOptions().WebOrigin));
+        services.TryAddSingleton<IHostAddressResolver, DnsHostAddressResolver>();
+        services.AddSingleton<LocalOnlyKeyEntryFilter>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ClaudeKeyProtector>();
         services.AddSingleton<ClaudeKeyRow>();

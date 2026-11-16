@@ -152,7 +152,7 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
     {
         var resolver = new DnsHostAddressResolver();
 
-        (await resolver.ResolveAsync("localhost", Ct)).ShouldContain(IPAddress.IsLoopback);
+        (await resolver.ResolveAsync("localhost", Ct)).ShouldContain(address => IPAddress.IsLoopback(address));
         (await resolver.ResolveAsync("stemstudio-no-such-host.invalid", Ct)).ShouldBeEmpty();
     }
 

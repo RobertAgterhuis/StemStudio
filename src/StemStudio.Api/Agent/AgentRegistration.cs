@@ -20,6 +20,7 @@ public static class AgentRegistration
         services.Configure<AgentHostOptions>(configuration.GetSection(AgentHostOptions.SectionName));
         services.AddStemStudioAgent();
         services.AddAgentStores().AddAgentRuntime().AddAgentEndpointServices();
+        services.AddClaudeKeyStore(configuration);
         services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();
@@ -39,7 +40,6 @@ public static class AgentRegistration
         services.AddSingleton<RunEventHub>();
         services.AddSingleton<IRunEventSink>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<IRunEventLogReader>(sp => sp.GetRequiredService<RunEventHub>());
-        services.AddClaudeKeyStore();
         return services;
     }
 
