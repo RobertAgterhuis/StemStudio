@@ -10,6 +10,10 @@
             <HelpHint HelpId="export-dialog" />
         </div>
         <p class="ss-help">@Subject</p>
+        @if (Target.AtPracticeTempo)
+        {
+            <p class="ss-help" data-testid="export-practice-note" data-help-id="practice-speed">Exports use the original speed and key.</p>
+        }
 
         @if (Saved is { } saved)
         {
