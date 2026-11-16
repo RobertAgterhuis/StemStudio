@@ -1,0 +1,14 @@
+# Lint configuration for the StemStudio OpenAPI 3.1 contract deltas of feature 016.
+# Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/016-instrument-views/contracts/redocly.yaml \
+#     specs/016-instrument-views/contracts/worker-api.delta.openapi.yaml \
+#     specs/016-instrument-views/contracts/backend-api.delta.openapi.yaml
+# (Phase 0 T002/T003 add the full worker-api 1.9.0 and backend-api 1.15.0 documents.)
+extends:
+  - recommended
+rules:
+  # DELETE of an analysis job is idempotent (204 only), like the 007/008 job deletes.
+  operation-4xx-response: warn
+  no-server-example.com: off
+  # The *Extension schemas are merge instructions, not referenced by an operation.
+  no-unused-components: warn

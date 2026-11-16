@@ -1,0 +1,745 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API - instrument views delta (feature 016)
+  version: 1.9.0-delta.1
+  summary: Additive delta of the worker API for chords, drum hits, reference melody, tablature and transposed parts.
+  description: |
+    * **Standalone, additive delta.** This document contains only what feature 016 adds to the
+      worker API. In 016 Phase 0 (tasks T002) it is merged unchanged into the full
+      `specs/016-instrument-views/contracts/worker-api.openapi.yaml` **1.9.0** on top of 014's
+      1.8.0 (sections). Shared schemas are referenced from the last full document on `main`
+      (008, 1.6.0); at the merge those references become internal.
+    * New tag `instrument-analysis`: one job resource with a `kind` discriminator (`chords`,
+      `drum-hits`, `vocal-pitch`) on a new lane `instrument-analysis` (one job at a time; it never
+      waits for the `separate`, `render` or `transcribe` lanes). Results are returned inline.
+    * Additions to existing schemas (applied at the merge; listed here as `*Extension` schemas
+      because the 1.6.0 schemas are closed with `additionalProperties: false`):
+      `TranscriptionJobRequest` + `TranscriptionJobRequestExtension`; `ScoreSummary` +
+      `ScoreSummaryExtension`; `ScoreProfile` enum + `strings`, `brass`, `woodwinds`;
+      `ScoreWarningCode` enum + `ScoreWarningCodeExtension`; `Health` + `HealthExtension`;
+      `LanesHealth` + `instrumentAnalysis` (`LaneHealth`).
+    * Behaviour changes without schema change: drum MIDI uses the General MIDI percussion map on
+      channel 10 (kick 36, snare 38, toms 47, hi-hat 42, cymbals 49); MIDI files are always at
+      sounding pitch; `drums` accepts `drumInputs` with a single piece without
+      `missing-drum-piece` warnings when the request's `singlePiece` is set.
+    * Changelog: 1.9.0-delta.1 (additive, feature 016 planning) - instrument analysis jobs
+      (chords with the song key and key regions, S11), tablature, parts, chord symbols in scores,
+      new profiles. See ADR-031..033 and contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: docker compose network (not published)
+security: []
+tags:
+  - name: instrument-analysis
+    description: Per-track analyses for the instrument views (1.9.0, feature 016).
+paths:
+  /v1/instrument-analysis-jobs:
+    post:
+      tags: [instrument-analysis]
+      operationId: createInstrumentAnalysisJob
+      summary: Start a chords, drum hits or reference melody analysis.
+      description: |
+        Input paths follow the allow-list of `createRenderJob` (007). `chords` sums the given
+        harmonic stems; `drum-hits` runs the 008 drum onset detection per piece; `vocal-pitch`
+        runs pYIN on one vocal stem (data-model.md 2.3, 3.1, 5.1).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstrumentAnalysisJobRequest'
+            examples:
+              chords:
+                value:
+                  kind: chords
+                  inputs:
+                    - tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac
+                    - tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/guitar.flac
+                    - tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/piano.flac
+                    - tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/other.flac
+                  bassInput: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac
+                  grid:
+                    kind: beat-grid
+                    bpm: 120
+                    beatsPerBar: 4
+                    beats: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+                    downbeats: [0.5, 2.5]
+                  vocabulary: simple
+                  engine: null
+              drumHits:
+                value:
+                  kind: drum-hits
+                  drumInputs:
+                    kick: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/kick.flac
+                    snare: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/snare.flac
+                    toms: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/toms.flac
+                    hihat: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/hihat.flac
+                    cymbals: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/drums/cymbals.flac
+              vocalPitch:
+                value:
+                  kind: vocal-pitch
+                  input: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/detail/vocals/lead.flac
+                  source: vocals.lead
+      responses:
+        '202':
+          description: Accepted; the job is queued on the `instrument-analysis` lane.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentAnalysisJob'
+        '400':
+          description: '`invalid-input-path` - a path is outside the allow-list.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '404':
+          description: '`input-not-found` - an input file does not exist.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation error (kind/inputs mismatch, more than 4 chord inputs, invalid grid).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/ProblemDetails'
+  /v1/instrument-analysis-jobs/{analysisJobId}:
+    parameters:
+      - name: analysisJobId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+    get:
+      tags: [instrument-analysis]
+      operationId: getInstrumentAnalysisJob
+      summary: Status, progress and (when completed) the result.
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentAnalysisJob'
+              examples:
+                runningChords:
+                  value:
+                    analysisJobId: 4f1c2b3a4d5e6f708192a3b4c5d6e7f8
+                    kind: chords
+                    status: running
+                    stage: analysing
+                    progress: 0.42
+                    device: {kind: cpu, name: null, cpuFallback: false, fallbackReason: null}
+                    error: null
+                    result: null
+                    createdAt: '2026-11-16T10:00:00Z'
+                    updatedAt: '2026-11-16T10:00:03Z'
+                completedChords:
+                  value:
+                    analysisJobId: 4f1c2b3a4d5e6f708192a3b4c5d6e7f8
+                    kind: chords
+                    status: completed
+                    stage: null
+                    progress: 1
+                    device: {kind: cpu, name: null, cpuFallback: false, fallbackReason: null}
+                    error: null
+                    result:
+                      kind: chords
+                      vocabulary: simple
+                      engine: btc
+                      key: {tonic: 0, mode: major, confidence: 0.81, alternative: null}
+                      keyRegions:
+                        - {startMs: 500, endMs: 16500, tonic: 0, mode: major, confidence: 0.84}
+                        - {startMs: 16500, endMs: 32500, tonic: 2, mode: major, confidence: 0.77}
+                      preferFlats: false
+                      beatSnapped: true
+                      noChords: false
+                      segments:
+                        - {startMs: 0, endMs: 500, label: N, root: null, quality: null, bass: null, confidence: 0.95}
+                        - {startMs: 500, endMs: 2500, label: 'C:maj', root: 0, quality: maj, bass: null, confidence: 0.9}
+                        - {startMs: 2500, endMs: 4500, label: 'G:maj', root: 7, quality: maj, bass: null, confidence: 0.88}
+                      warnings: []
+                    createdAt: '2026-11-16T10:00:00Z'
+                    updatedAt: '2026-11-16T10:00:06Z'
+                failedPitch:
+                  value:
+                    analysisJobId: 9a8b7c6d5e4f30211203f4e5d6c7b8a9
+                    kind: vocal-pitch
+                    status: failed
+                    stage: null
+                    progress: 0.3
+                    device: null
+                    error: The vocal stem is silent, so no melody can be shown.
+                    result: null
+                    createdAt: '2026-11-16T10:00:00Z'
+                    updatedAt: '2026-11-16T10:00:20Z'
+        '404':
+          description: Unknown job (also after a restart sweep).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/ProblemDetails'
+    delete:
+      tags: [instrument-analysis]
+      operationId: deleteInstrumentAnalysisJob
+      summary: Cancel (when queued/running) and remove the job; idempotent.
+      responses:
+        '204':
+          description: Removed (or did not exist).
+components:
+  schemas:
+    InstrumentAnalysisKind:
+      type: string
+      enum: [chords, drum-hits, vocal-pitch]
+    LibraryPath:
+      type: string
+      minLength: 1
+      maxLength: 300
+      description: Library-relative path with the allow-list of `createRenderJob` (007).
+    ChordVocabulary:
+      type: string
+      enum: [simple, full]
+      description: '`simple` = major/minor (25 classes); `full` = 170 classes plus inversions (data-model.md 2.1).'
+    ChordEngine:
+      type: string
+      enum: [btc, chroma-hmm, fake]
+    InstrumentAnalysisJobRequest:
+      oneOf:
+        - $ref: '#/components/schemas/ChordsJobRequest'
+        - $ref: '#/components/schemas/DrumHitsJobRequest'
+        - $ref: '#/components/schemas/VocalPitchJobRequest'
+      discriminator:
+        propertyName: kind
+        mapping:
+          chords: '#/components/schemas/ChordsJobRequest'
+          drum-hits: '#/components/schemas/DrumHitsJobRequest'
+          vocal-pitch: '#/components/schemas/VocalPitchJobRequest'
+    ChordsJobRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, inputs, vocabulary]
+      properties:
+        kind:
+          type: string
+          const: chords
+        inputs:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/LibraryPath'
+          description: The harmonic standard stems (bass, guitar, piano, other that exist).
+        bassInput:
+          oneOf:
+            - $ref: '#/components/schemas/LibraryPath'
+            - type: 'null'
+          description: Bass stem for slash chords (`full` only); null = no inversions.
+        grid:
+          oneOf:
+            - $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/BeatGridTempo'
+            - type: 'null'
+          description: Reliable beat grid for beat snapping; null = no snapping (0.5 s minimum segments).
+        vocabulary:
+          $ref: '#/components/schemas/ChordVocabulary'
+        engine:
+          oneOf:
+            - $ref: '#/components/schemas/ChordEngine'
+            - type: 'null'
+          description: Null = the worker's `STEMSTUDIO_CHORD_ENGINE`; `btc` falls back to `chroma-hmm` when its weights are unavailable.
+    DrumHitsJobRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, drumInputs]
+      properties:
+        kind:
+          type: string
+          const: drum-hits
+        drumInputs:
+          $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/DrumInputs'
+    VocalPitchJobRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, input, source]
+      properties:
+        kind:
+          type: string
+          const: vocal-pitch
+        input:
+          $ref: '#/components/schemas/LibraryPath'
+        source:
+          type: string
+          enum: [vocals.lead, vocals]
+    InstrumentAnalysisStage:
+      type: string
+      enum: [loading-model, preparing, analysing, finishing]
+    InstrumentAnalysisJob:
+      type: object
+      additionalProperties: false
+      required: [analysisJobId, kind, status, stage, progress, device, error, result, createdAt, updatedAt]
+      properties:
+        analysisJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        kind:
+          $ref: '#/components/schemas/InstrumentAnalysisKind'
+        status:
+          $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/RenderJobStatus'
+        stage:
+          oneOf:
+            - $ref: '#/components/schemas/InstrumentAnalysisStage'
+            - type: 'null'
+          description: Null while queued and after the end.
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        device:
+          oneOf:
+            - $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/JobDevice'
+            - type: 'null'
+          description: Set for `chords` with the BTC engine (DeviceRunner); null for CPU-only analyses.
+        error:
+          type: [string, 'null']
+          maxLength: 500
+          description: Readable reason when failed (e.g. "interrupted by restart").
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/ChordChart'
+            - $ref: '#/components/schemas/DrumHits'
+            - $ref: '#/components/schemas/VocalPitch'
+            - type: 'null'
+          description: Set when completed.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PitchClass:
+      type: integer
+      minimum: 0
+      maximum: 11
+      description: C = 0 ... B = 11.
+    ChordQuality:
+      type: string
+      enum: [maj, min, dim, aug, min6, maj6, min7, minmaj7, maj7, '7', dim7, hdim7, sus2, sus4]
+    ChordSegment:
+      type: object
+      additionalProperties: false
+      required: [startMs, endMs, label, root, quality, bass, confidence]
+      properties:
+        startMs:
+          type: integer
+          minimum: 0
+        endMs:
+          type: integer
+          minimum: 1
+        label:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Harte syntax, `N` = no chord, `X` = unknown.
+          example: 'A:min7/b7'
+        root:
+          oneOf:
+            - $ref: '#/components/schemas/PitchClass'
+            - type: 'null'
+        quality:
+          oneOf:
+            - $ref: '#/components/schemas/ChordQuality'
+            - type: 'null'
+        bass:
+          oneOf:
+            - $ref: '#/components/schemas/PitchClass'
+            - type: 'null'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    AnalysisKey:
+      type: object
+      additionalProperties: false
+      required: [tonic, mode, confidence]
+      properties:
+        tonic:
+          $ref: '#/components/schemas/PitchClass'
+        mode:
+          type: string
+          enum: [major, minor]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        alternative:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [tonic, mode]
+              properties:
+                tonic:
+                  $ref: '#/components/schemas/PitchClass'
+                mode:
+                  type: string
+                  enum: [major, minor]
+            - type: 'null'
+          description: The relative major/minor when it fits almost as well (research R-13), else null.
+    KeyRegion:
+      type: object
+      additionalProperties: false
+      required: [startMs, endMs, tonic, mode, confidence]
+      description: A key region of at least 8 bars (16 s without a grid); regions are contiguous and ordered (data-model.md 2.8).
+      properties:
+        startMs:
+          type: integer
+          minimum: 0
+        endMs:
+          type: integer
+          minimum: 1
+        tonic:
+          $ref: '#/components/schemas/PitchClass'
+        mode:
+          type: string
+          enum: [major, minor]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    AnalysisWarning:
+      type: object
+      additionalProperties: false
+      required: [code, text]
+      properties:
+        code:
+          type: string
+          enum: [vocabulary-reduced, grid-unreliable, fallback-engine, few-chords, key-uncertain, few-voiced, detail-bleed]
+        text:
+          type: string
+          minLength: 1
+          maxLength: 300
+    ChordChart:
+      type: object
+      additionalProperties: false
+      required: [kind, vocabulary, engine, key, keyRegions, preferFlats, beatSnapped, noChords, segments, warnings]
+      properties:
+        kind:
+          type: string
+          const: chords
+        vocabulary:
+          $ref: '#/components/schemas/ChordVocabulary'
+        engine:
+          $ref: '#/components/schemas/ChordEngine'
+        key:
+          oneOf:
+            - $ref: '#/components/schemas/AnalysisKey'
+            - type: 'null'
+          description: Global key (scope addition S11); null when no chords were detected.
+        keyRegions:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/KeyRegion'
+        preferFlats:
+          type: boolean
+        beatSnapped:
+          type: boolean
+        noChords:
+          type: boolean
+        segments:
+          type: array
+          maxItems: 4000
+          items:
+            $ref: '#/components/schemas/ChordSegment'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisWarning'
+    DrumPiece:
+      type: string
+      enum: [kick, snare, toms, hihat, cymbals]
+    DrumHitEvent:
+      type: object
+      additionalProperties: false
+      required: [timeMs, piece, strength]
+      properties:
+        timeMs:
+          type: integer
+          minimum: 0
+        piece:
+          $ref: '#/components/schemas/DrumPiece'
+        strength:
+          type: number
+          minimum: 0
+          maximum: 1
+    DrumHits:
+      type: object
+      additionalProperties: false
+      required: [kind, engine, pieces, hits]
+      properties:
+        kind:
+          type: string
+          const: drum-hits
+        engine:
+          type: string
+          enum: [drum-onsets, fake]
+        pieces:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrumPiece'
+          description: Pieces that had an input.
+        hits:
+          type: array
+          maxItems: 40000
+          items:
+            $ref: '#/components/schemas/DrumHitEvent'
+    VocalPitch:
+      type: object
+      additionalProperties: false
+      required: [kind, hopMs, frames, source, engine, voicedRatio, range, warnings]
+      properties:
+        kind:
+          type: string
+          const: vocal-pitch
+        hopMs:
+          type: integer
+          const: 10
+        frames:
+          type: array
+          maxItems: 90000
+          items:
+            type: integer
+            minimum: 0
+            maximum: 12700
+          description: Centi-semitones (MIDI x 100) per frame; 0 = unvoiced.
+        source:
+          type: string
+          enum: [vocals.lead, vocals]
+        engine:
+          type: string
+          enum: [pyin, yin, fake]
+        voicedRatio:
+          type: number
+          minimum: 0
+          maximum: 1
+        range:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [lowCents, highCents]
+              properties:
+                lowCents:
+                  type: integer
+                  minimum: 1
+                  maximum: 12700
+                highCents:
+                  type: integer
+                  minimum: 1
+                  maximum: 12700
+            - type: 'null'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisWarning'
+    # ---------------------------------------------------------------- score pipeline additions
+    TuningId:
+      type: string
+      enum: [guitar-standard, guitar-drop-d, guitar-half-step-down, guitar-full-step-down, guitar-dadgad,
+             guitar-open-g, guitar-open-d, bass-4-standard, bass-4-drop-d, bass-4-half-step-down,
+             bass-5-standard, bass-6-standard]
+    TabLayout:
+      type: string
+      enum: [notation-and-tab, tab-only]
+    TablatureSettings:
+      type: object
+      additionalProperties: false
+      required: [tuning, capo, layout]
+      description: Only for the `guitar` and `bass` profiles (422 otherwise); the tuning must match the profile; capo only for guitar tunings.
+      properties:
+        tuning:
+          $ref: '#/components/schemas/TuningId'
+        capo:
+          type: integer
+          minimum: 0
+          maximum: 12
+        layout:
+          $ref: '#/components/schemas/TabLayout'
+    WrittenInstrument:
+      type: string
+      enum: [concert, trumpet-bb, clarinet-bb, soprano-sax-bb, tenor-sax-bb, bass-clarinet-bb, alto-sax-eb,
+             baritone-sax-eb, clarinet-eb, horn-f, english-horn-f, flute, oboe, violin, viola, cello,
+             double-bass, trombone, bassoon, tuba]
+    ClefChoice:
+      type: string
+      enum: [auto, treble, bass, alto, tenor, treble-8vb, bass-8vb]
+    PartSettings:
+      type: object
+      additionalProperties: false
+      required: [instrument, clef]
+      description: For every pitched single-staff profile; grand-staff profiles accept `instrument` with `clef = auto` only; not for drums.
+      properties:
+        instrument:
+          $ref: '#/components/schemas/WrittenInstrument'
+        clef:
+          $ref: '#/components/schemas/ClefChoice'
+    ScoreChordSymbol:
+      type: object
+      additionalProperties: false
+      required: [startMs, root, quality, bass]
+      properties:
+        startMs:
+          type: integer
+          minimum: 0
+          description: Relative to the transcription input start (the API subtracts the range start).
+        root:
+          $ref: '#/components/schemas/PitchClass'
+        quality:
+          $ref: '#/components/schemas/ChordQuality'
+        bass:
+          oneOf:
+            - $ref: '#/components/schemas/PitchClass'
+            - type: 'null'
+    TranscriptionJobRequestExtension:
+      type: object
+      additionalProperties: false
+      description: Properties added to `TranscriptionJobRequest` (all optional; absent or null = 008 behaviour, byte-identical output).
+      properties:
+        tablature:
+          oneOf:
+            - $ref: '#/components/schemas/TablatureSettings'
+            - type: 'null'
+        part:
+          oneOf:
+            - $ref: '#/components/schemas/PartSettings'
+            - type: 'null'
+        chords:
+          oneOf:
+            - type: array
+              maxItems: 4000
+              items:
+                $ref: '#/components/schemas/ScoreChordSymbol'
+            - type: 'null'
+          description: Chord symbols placed above the top staff (profiles vocals, guitar, keys, piano, strings, brass, woodwinds); `N` segments are not sent; spelled in the written key.
+        preferFlats:
+          type: [boolean, 'null']
+          description: Spelling hint for the chord symbols at concert pitch (from the chord chart).
+        singlePiece:
+          oneOf:
+            - $ref: '#/components/schemas/DrumPiece'
+            - type: 'null'
+          description: '`drums` profile with one piece (source `drums.<piece>`); suppresses `missing-drum-piece`.'
+    TablatureSummary:
+      type: object
+      additionalProperties: false
+      required: [tuning, strings, capo, layout, octaveMoved, notesDropped, wideStretches]
+      properties:
+        tuning:
+          $ref: '#/components/schemas/TuningId'
+        strings:
+          type: integer
+          minimum: 4
+          maximum: 6
+        capo:
+          type: integer
+          minimum: 0
+          maximum: 12
+        layout:
+          $ref: '#/components/schemas/TabLayout'
+        octaveMoved:
+          type: integer
+          minimum: 0
+        notesDropped:
+          type: integer
+          minimum: 0
+        wideStretches:
+          type: integer
+          minimum: 0
+    PartSummary:
+      type: object
+      additionalProperties: false
+      required: [instrument, name, interval, writtenKey, clef, outOfRange]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/WrittenInstrument'
+        name:
+          type: string
+          maxLength: 80
+          example: Alto Saxophone in E-flat
+        interval:
+          type: string
+          description: Sounding -> written interval in music21 notation (`P1`, `M2`, `M9`, `M6`, `M13`, `-m3`, `P5`, `P8`).
+          example: M6
+        writtenKey:
+          oneOf:
+            - $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/KeyName'
+            - type: 'null'
+        clef:
+          type: string
+          enum: [treble, bass, alto, tenor, treble-8vb, bass-8vb]
+        outOfRange:
+          type: integer
+          minimum: 0
+    ScoreSummaryExtension:
+      type: object
+      additionalProperties: false
+      description: Properties added to `ScoreSummary` (always present after the merge; null when not used).
+      required: [tablature, part, chordsIncluded]
+      properties:
+        tablature:
+          oneOf:
+            - $ref: '#/components/schemas/TablatureSummary'
+            - type: 'null'
+        part:
+          oneOf:
+            - $ref: '#/components/schemas/PartSummary'
+            - type: 'null'
+        chordsIncluded:
+          type: boolean
+    ScoreProfileExtension:
+      type: string
+      description: Values added to the `ScoreProfile` enum.
+      enum: [strings, brass, woodwinds]
+    ScoreWarningCodeExtension:
+      type: string
+      description: Values added to `ScoreWarningCode` (texts in data-model.md 4.4-4.6).
+      enum: [tab-octave-moved, tab-notes-dropped, tab-wide-stretch, part-out-of-range, section-reduced]
+    InstrumentAnalysisHealth:
+      type: object
+      additionalProperties: false
+      required: [models, chordEngine, pitchEngine]
+      properties:
+        models:
+          type: object
+          additionalProperties: false
+          required: [btc-majmin, btc-large-voca]
+          properties:
+            btc-majmin:
+              type: string
+              enum: [ready, not-downloaded]
+            btc-large-voca:
+              type: string
+              enum: [ready, not-downloaded]
+        chordEngine:
+          $ref: '#/components/schemas/ChordEngine'
+        pitchEngine:
+          type: string
+          enum: [pyin, yin, fake]
+    HealthExtension:
+      type: object
+      additionalProperties: false
+      description: Properties added to `Health` (required after the merge) and to `LanesHealth`.
+      required: [instrumentAnalysis, lanes]
+      properties:
+        instrumentAnalysis:
+          $ref: '#/components/schemas/InstrumentAnalysisHealth'
+        lanes:
+          type: object
+          additionalProperties: false
+          required: [instrumentAnalysis]
+          properties:
+            instrumentAnalysis:
+              $ref: '../../008-sheet-music/contracts/worker-api.openapi.yaml#/components/schemas/LaneHealth'

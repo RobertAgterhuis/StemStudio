@@ -1,0 +1,1154 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - instrument views delta (feature 016)
+  version: 1.15.0-delta.1
+  summary: Additive delta of the backend API for chords, drum hits, reference melody, the instrument catalogue, tablature and transposed parts.
+  description: |
+    * **Standalone, additive delta.** Merged unchanged into the full
+      `specs/016-instrument-views/contracts/backend-api.openapi.yaml` **1.15.0** in 016 Phase 0
+      (tasks T003) on top of 015's 1.14.0. Shared schemas are referenced from the last full
+      document on `main` (010, 1.9.0); at the merge those references become internal. C# DTOs:
+      `src/StemStudio.Contracts/InstrumentViews/*`, routes `ApiRoutes.Chords*`, `ApiRoutes.DrumHits*`,
+      `ApiRoutes.VocalPitch*`, `ApiRoutes.InstrumentCatalogue`.
+    * Conventions of the backend API apply: JSON camelCase, enums lower-case strings, UTC ISO 8601,
+      RFC 9457 problem details with `type` = `https://stemstudio.local/problems/<code>`.
+    * Three per-track analyses share one shape (`TrackAnalysisBase`): status `none`, `queued`,
+      `running`, `ready`, `failed`, `unavailable` (prerequisite missing; `reason` says which),
+      `stale` (the input stems changed). Chords and drum hits start automatically (data-model.md
+      7.3); `POST` starts or re-runs any of them.
+    * Additions to existing schemas (applied at the merge, listed as `*Extension` schemas):
+      `Track` + `instrumentViews` and `key` (`TrackKeySummary`, scope addition S11); `CreateScoreRequest`, `ScoreRecipe`, `ScoreOptions`,
+      `ScoreFacts` + the 016 fields; `ScoreProfile` + `strings`, `brass`, `woodwinds`;
+      `ScoreWarningCode` + the 016 codes; `listAssets` + query `channel` (with `trackId`).
+      `ScoreConflict` codes + `chords-not-ready`; `ScoreUnprocessable` codes + `tablature-not-allowed`,
+      `capo-not-allowed`, `tuning-mismatch`, `clef-not-allowed`, `part-not-allowed`.
+    * Singing scores are computed in the browser and never sent to this API (FR-047).
+    * Changelog: 1.15.0-delta.1 (additive, feature 016 planning). See ADR-031..033 and
+      contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []
+tags:
+  - name: instrument-views
+    description: Chords, drum hits, reference melody and the instrument catalogue (1.15.0, feature 016).
+paths:
+  /api/tracks/{trackId}/chords:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [instrument-views]
+      operationId: getChords
+      summary: The track's chord chart with status (segments when ready).
+      responses:
+        '200':
+          description: The analysis; `document` is null unless `ready` or `stale`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChordsAnalysis'
+              example:
+                kind: chords
+                status: ready
+                reason: null
+                progress: 1
+                engine: btc
+                device: {kind: cpu, name: null, cpuFallback: false, fallbackReason: null}
+                estimateSeconds: null
+                updatedAt: '2026-11-16T10:00:06Z'
+                limits: Chord detection is a practice aid (about 80 % correct on pop songs); check by ear.
+                document:
+                  vocabulary: simple
+                  engine: btc
+                  key: {tonic: 0, mode: major, confidence: 0.81, alternative: null}
+                  keyRegions:
+                    - {startMs: 500, endMs: 16500, tonic: 0, mode: major, confidence: 0.84}
+                  preferFlats: false
+                  beatSnapped: true
+                  noChords: false
+                  hasEdits: false
+                  segments:
+                    - {startMs: 0, endMs: 500, label: N, root: null, quality: null, bass: null, confidence: 0.95, edited: false}
+                    - {startMs: 500, endMs: 2500, label: 'C:maj', root: 0, quality: maj, bass: null, confidence: 0.9, edited: false}
+                  warnings: []
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+    post:
+      tags: [instrument-views]
+      operationId: detectChords
+      summary: Start (or re-run) chord detection.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectChordsRequest'
+      responses:
+        '202':
+          description: Queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChordsAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`track-not-ready` (standard separation not completed), `edits-exist` (ready chords have edits and `overwriteEdits` is false), `analysis-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
+        '503':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/WorkerUnavailable'
+    delete:
+      tags: [instrument-views]
+      operationId: deleteChords
+      summary: Remove the chord chart (cancels a running job); status becomes `none`.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+  /api/tracks/{trackId}/chords/segments/{segmentIndex}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - name: segmentIndex
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 3999
+    put:
+      tags: [instrument-views]
+      operationId: editChordSegment
+      summary: Correct the chord of one segment (Advanced); marks it `edited`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditChordRequest'
+            example:
+              label: 'A:min7'
+      responses:
+        '200':
+          description: The updated analysis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChordsAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`chords-not-ready`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/ValidationProblem'
+  /api/tracks/{trackId}/chords/sheet:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/Transpose'
+      - $ref: '#/components/parameters/Capo'
+    get:
+      tags: [instrument-views]
+      operationId: getChordSheet
+      summary: Chords placed over the lyric lines (data-model.md 2.6), spelled for transpose and capo.
+      description: Contains lyric text, so it is served with `Cache-Control - no-store` like `getLyrics`.
+      responses:
+        '200':
+          description: The chord sheet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChordSheet'
+              example:
+                transpose: 0
+                capo: 2
+                rows:
+                  - text: Fake line one
+                    chords:
+                      - {charIndex: 0, symbol: A, lead: false}
+                      - {charIndex: 5, symbol: E, lead: false}
+                  - text: ''
+                    chords:
+                      - {charIndex: 0, symbol: F#m, lead: false}
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`chords-not-ready`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+  /api/tracks/{trackId}/chords/chordpro:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/Transpose'
+      - $ref: '#/components/parameters/Capo'
+    get:
+      tags: [instrument-views]
+      operationId: downloadChordPro
+      summary: The chord sheet as a ChordPro file (attachment `<title>.cho`).
+      responses:
+        '200':
+          description: ChordPro text.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "{title: Fake Song}\n{artist: Fake Artist}\n{capo: 2}\n{key: A}\n[A]Fake [E]line one\n"
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`chords-not-ready`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+  /api/tracks/{trackId}/key:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/Transpose'
+      - name: instrument
+        in: query
+        required: false
+        description: Written instrument (catalogue id) for the written key; default `concert`.
+        schema:
+          $ref: '#/components/schemas/WrittenInstrumentBackend'
+    get:
+      tags: [instrument-views]
+      operationId: getKey
+      summary: The song key and key regions (scope addition S11), from the chords analysis.
+      responses:
+        '200':
+          description: Key view; `key` null unless the chords analysis is `ready` (or `stale`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyView'
+              example:
+                status: ready
+                transpose: 2
+                key: {tonic: 0, mode: major, confidence: 0.81, alternative: null}
+                display: D major (original C major, +2)
+                writtenKey: null
+                regions:
+                  - {startMs: 500, endMs: 16500, startBar: 1, tonic: 0, mode: major, confidence: 0.84, display: D major}
+                  - {startMs: 16500, endMs: 32500, startBar: 9, tonic: 2, mode: major, confidence: 0.77, display: E major}
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+  /api/tracks/{trackId}/chords/capo-suggestions:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/Transpose'
+    get:
+      tags: [instrument-views]
+      operationId: getCapoSuggestions
+      summary: Up to three easy capo positions for the guitar family (scope addition S12, research R-14).
+      responses:
+        '200':
+          description: Suggestions, best first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapoSuggestions'
+              example:
+                transpose: 0
+                shortcut: null
+                suggestions:
+                  - {capo: 3, shapeKey: C major, openShare: 1.0, fewOpenShapes: false}
+                  - {capo: 1, shapeKey: D major, openShare: 0.75, fewOpenShapes: false}
+                  - {capo: 6, shapeKey: A major, openShare: 0.75, fewOpenShapes: false}
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`chords-not-ready`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+  /api/tracks/{trackId}/drum-hits:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [instrument-views]
+      operationId: getDrumHits
+      summary: The track's drum hits per piece with status.
+      responses:
+        '200':
+          description: The analysis; `unavailable` with reason "Split the drums first." when drums are not split.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrumHitsAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+    post:
+      tags: [instrument-views]
+      operationId: detectDrumHits
+      summary: Start (or re-run) drum hit detection.
+      responses:
+        '202':
+          description: Queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrumHitsAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`drums-not-split`, `analysis-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/WorkerUnavailable'
+    delete:
+      tags: [instrument-views]
+      operationId: deleteDrumHits
+      summary: Remove the drum hits; status becomes `none`.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+  /api/tracks/{trackId}/vocal-pitch:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [instrument-views]
+      operationId: getVocalPitch
+      summary: The reference melody of the lead vocal with status.
+      description: The response is large (up to 90,000 frames) and is served with response compression.
+      responses:
+        '200':
+          description: The analysis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocalPitchAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+    post:
+      tags: [instrument-views]
+      operationId: analyseVocalPitch
+      summary: Start (or re-run) the reference melody analysis.
+      responses:
+        '202':
+          description: Queued; `estimateSeconds` set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocalPitchAnalysis'
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: '`track-not-ready`, `no-vocals`, `analysis-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/WorkerUnavailable'
+    delete:
+      tags: [instrument-views]
+      operationId: deleteVocalPitch
+      summary: Remove the reference melody; status becomes `none`.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/responses/NotFound'
+  /api/instruments/catalogue:
+    get:
+      tags: [instrument-views]
+      operationId: getInstrumentCatalogue
+      summary: Static catalogue of families, tunings, written instruments, clefs and tolerances.
+      responses:
+        '200':
+          description: The catalogue (cacheable, `Cache-Control - max-age=3600`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentCatalogue'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Transpose:
+      name: transpose
+      in: query
+      required: false
+      description: Playback transpose of 012 in semitones (display only).
+      schema:
+        type: integer
+        minimum: -12
+        maximum: 12
+        default: 0
+    Capo:
+      name: capo
+      in: query
+      required: false
+      description: Display capo fret (chords are shown as played with the capo).
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 12
+        default: 0
+    AssetChannelFilter:
+      name: channel
+      in: query
+      required: false
+      description: Added to `listAssets` - with `trackId`, only items whose provenance source is this channel (`<stem>` or `<parent>.<detail>`), newest first.
+      schema:
+        type: string
+        pattern: '^[a-z]+(\.[a-z-]+)?$'
+  schemas:
+    AnalysisStatus:
+      type: string
+      enum: [none, queued, running, ready, failed, unavailable, stale]
+    InstrumentViewsStatus:
+      type: object
+      additionalProperties: false
+      description: Added to `Track` as `instrumentViews` (always present; `none` for old tracks).
+      required: [chords, drumHits, vocalPitch]
+      properties:
+        chords:
+          $ref: '#/components/schemas/AnalysisStatus'
+        drumHits:
+          $ref: '#/components/schemas/AnalysisStatus'
+        vocalPitch:
+          $ref: '#/components/schemas/AnalysisStatus'
+    SongKey:
+      type: object
+      additionalProperties: false
+      required: [tonic, mode, confidence, alternative]
+      properties:
+        tonic:
+          $ref: '#/components/schemas/PitchClass'
+        mode:
+          type: string
+          enum: [major, minor]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        alternative:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [tonic, mode]
+              properties:
+                tonic:
+                  $ref: '#/components/schemas/PitchClass'
+                mode:
+                  type: string
+                  enum: [major, minor]
+            - type: 'null'
+    KeyRegion:
+      type: object
+      additionalProperties: false
+      required: [startMs, endMs, tonic, mode, confidence]
+      properties:
+        startMs:
+          type: integer
+          minimum: 0
+        endMs:
+          type: integer
+          minimum: 1
+        tonic:
+          $ref: '#/components/schemas/PitchClass'
+        mode:
+          type: string
+          enum: [major, minor]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    TrackKeySummary:
+      type: object
+      additionalProperties: false
+      description: Added to `Track` as `key` (null unless chords are ready); shown next to the BPM.
+      required: [tonic, mode, confidence, display, regions]
+      properties:
+        tonic:
+          $ref: '#/components/schemas/PitchClass'
+        mode:
+          type: string
+          enum: [major, minor]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        display:
+          type: string
+          maxLength: 40
+          example: E-flat major
+        regions:
+          type: integer
+          minimum: 0
+          description: Number of key regions (> 1 = the song changes key).
+    KeyView:
+      type: object
+      additionalProperties: false
+      required: [status, transpose, key, display, writtenKey, regions]
+      properties:
+        status:
+          $ref: '#/components/schemas/AnalysisStatus'
+        transpose:
+          type: integer
+          minimum: -12
+          maximum: 12
+        key:
+          oneOf:
+            - $ref: '#/components/schemas/SongKey'
+            - type: 'null'
+        display:
+          type: [string, 'null']
+          maxLength: 80
+          description: data-model.md 2.8, e.g. "D major (original C major, +2)", "(uncertain)" appended below 50 %.
+        writtenKey:
+          type: [string, 'null']
+          maxLength: 80
+          description: Written key for the `instrument` query (null for concert instruments).
+        regions:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [startMs, endMs, startBar, tonic, mode, confidence, display]
+            properties:
+              startMs:
+                type: integer
+              endMs:
+                type: integer
+              startBar:
+                type: [integer, 'null']
+                description: 1-based bar of the beat grid; null without a reliable grid.
+              tonic:
+                $ref: '#/components/schemas/PitchClass'
+              mode:
+                type: string
+                enum: [major, minor]
+              confidence:
+                type: number
+              display:
+                type: string
+                description: Spelled at the requested transpose.
+    CapoSuggestions:
+      type: object
+      additionalProperties: false
+      required: [transpose, shortcut, suggestions]
+      properties:
+        transpose:
+          type: integer
+          minimum: -12
+          maximum: 12
+        shortcut:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [capo, reason]
+              properties:
+                capo:
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+                reason:
+                  type: string
+                  const: original-shapes
+            - type: 'null'
+          description: The capo that keeps the original song's shapes at this transpose (FR-077).
+        suggestions:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            additionalProperties: false
+            required: [capo, shapeKey, openShare, fewOpenShapes]
+            properties:
+              capo:
+                type: integer
+                minimum: 0
+                maximum: 7
+              shapeKey:
+                type: string
+                example: C major
+              openShare:
+                type: number
+                minimum: 0
+                maximum: 1
+              fewOpenShapes:
+                type: boolean
+    TrackAnalysisBase:
+      type: object
+      required: [kind, status, reason, progress, engine, device, estimateSeconds, updatedAt, limits]
+      properties:
+        kind:
+          type: string
+          enum: [chords, drumHits, vocalPitch]
+        status:
+          $ref: '#/components/schemas/AnalysisStatus'
+        reason:
+          type: [string, 'null']
+          maxLength: 1000
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        engine:
+          type: [string, 'null']
+          enum: [btc, chroma-hmm, drum-onsets, pyin, yin, fake, null]
+        device:
+          oneOf:
+            - $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/JobDevice'
+            - type: 'null'
+        estimateSeconds:
+          type: [integer, 'null']
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+        limits:
+          type: string
+          maxLength: 300
+          description: Quality limits shown with the result (FR-064).
+    PitchClass:
+      type: integer
+      minimum: 0
+      maximum: 11
+    ChordQuality:
+      type: string
+      enum: [maj, min, dim, aug, min6, maj6, min7, minmaj7, maj7, '7', dim7, hdim7, sus2, sus4]
+    ChordSegment:
+      type: object
+      additionalProperties: false
+      required: [startMs, endMs, label, root, quality, bass, confidence, edited]
+      properties:
+        startMs:
+          type: integer
+          minimum: 0
+        endMs:
+          type: integer
+          minimum: 1
+        label:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Harte syntax; `N` = no chord, `X` = unknown.
+        root:
+          oneOf:
+            - $ref: '#/components/schemas/PitchClass'
+            - type: 'null'
+        quality:
+          oneOf:
+            - $ref: '#/components/schemas/ChordQuality'
+            - type: 'null'
+        bass:
+          oneOf:
+            - $ref: '#/components/schemas/PitchClass'
+            - type: 'null'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        edited:
+          type: boolean
+    AnalysisWarning:
+      type: object
+      additionalProperties: false
+      required: [code, text]
+      properties:
+        code:
+          type: string
+          enum: [vocabulary-reduced, grid-unreliable, fallback-engine, few-chords, key-uncertain, few-voiced, detail-bleed]
+        text:
+          type: string
+          maxLength: 300
+    ChordChartDocument:
+      type: object
+      additionalProperties: false
+      required: [vocabulary, engine, key, keyRegions, preferFlats, beatSnapped, noChords, hasEdits, segments, warnings]
+      properties:
+        vocabulary:
+          type: string
+          enum: [simple, full]
+        engine:
+          type: string
+          enum: [btc, chroma-hmm, fake]
+        key:
+          oneOf:
+            - $ref: '#/components/schemas/SongKey'
+            - type: 'null'
+        keyRegions:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/KeyRegion'
+        preferFlats:
+          type: boolean
+        beatSnapped:
+          type: boolean
+        noChords:
+          type: boolean
+        hasEdits:
+          type: boolean
+        segments:
+          type: array
+          maxItems: 4000
+          items:
+            $ref: '#/components/schemas/ChordSegment'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisWarning'
+    ChordsAnalysis:
+      allOf:
+        - $ref: '#/components/schemas/TrackAnalysisBase'
+        - type: object
+          required: [document]
+          properties:
+            kind:
+              const: chords
+            document:
+              oneOf:
+                - $ref: '#/components/schemas/ChordChartDocument'
+                - type: 'null'
+    DetectChordsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        vocabulary:
+          type: string
+          enum: [simple, full]
+          default: simple
+        engine:
+          type: [string, 'null']
+          enum: [btc, chroma-hmm, null]
+          description: Expert only in the UI; null = the worker default.
+        overwriteEdits:
+          type: boolean
+          default: false
+    EditChordRequest:
+      type: object
+      additionalProperties: false
+      required: [label]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^(N|X|[A-G](#|b)?:(maj|min|dim|aug|min6|maj6|min7|minmaj7|maj7|7|dim7|hdim7|sus2|sus4)(/(b?[1-7]))?)$'
+          description: Harte label; validated and parsed into root/quality/bass by the API.
+    ChordSheetChord:
+      type: object
+      additionalProperties: false
+      required: [charIndex, symbol, lead]
+      properties:
+        charIndex:
+          type: integer
+          minimum: 0
+        symbol:
+          type: string
+          maxLength: 24
+        lead:
+          type: boolean
+          description: The chord starts before the first word of the line.
+    ChordSheet:
+      type: object
+      additionalProperties: false
+      required: [transpose, capo, rows]
+      properties:
+        transpose:
+          type: integer
+          minimum: -12
+          maximum: 12
+        capo:
+          type: integer
+          minimum: 0
+          maximum: 12
+        rows:
+          type: array
+          maxItems: 2000
+          items:
+            type: object
+            additionalProperties: false
+            required: [text, chords]
+            properties:
+              text:
+                type: string
+                maxLength: 500
+                description: Lyric line, or empty for instrumental rows.
+              chords:
+                type: array
+                maxItems: 40
+                items:
+                  $ref: '#/components/schemas/ChordSheetChord'
+    DrumHitsAnalysis:
+      allOf:
+        - $ref: '#/components/schemas/TrackAnalysisBase'
+        - type: object
+          required: [document]
+          properties:
+            kind:
+              const: drumHits
+            document:
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [pieces, hits]
+                  properties:
+                    pieces:
+                      type: array
+                      items:
+                        type: string
+                        enum: [kick, snare, toms, hihat, cymbals]
+                    hits:
+                      type: array
+                      maxItems: 40000
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required: [timeMs, piece, strength]
+                        properties:
+                          timeMs:
+                            type: integer
+                            minimum: 0
+                          piece:
+                            type: string
+                            enum: [kick, snare, toms, hihat, cymbals]
+                          strength:
+                            type: number
+                            minimum: 0
+                            maximum: 1
+                - type: 'null'
+    VocalPitchAnalysis:
+      allOf:
+        - $ref: '#/components/schemas/TrackAnalysisBase'
+        - type: object
+          required: [document]
+          properties:
+            kind:
+              const: vocalPitch
+            document:
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [hopMs, frames, source, voicedRatio, range, warnings]
+                  properties:
+                    hopMs:
+                      type: integer
+                      const: 10
+                    frames:
+                      type: array
+                      maxItems: 90000
+                      items:
+                        type: integer
+                        minimum: 0
+                        maximum: 12700
+                      description: Centi-semitones (MIDI x 100); 0 = unvoiced.
+                    source:
+                      type: string
+                      enum: [vocals.lead, vocals]
+                    voicedRatio:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    range:
+                      oneOf:
+                        - type: object
+                          additionalProperties: false
+                          required: [lowCents, highCents]
+                          properties:
+                            lowCents:
+                              type: integer
+                            highCents:
+                              type: integer
+                        - type: 'null'
+                    warnings:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/AnalysisWarning'
+                - type: 'null'
+    InstrumentFamily:
+      type: string
+      enum: [vocals, drums, bass, guitar, keys, orchestral]
+    InstrumentCatalogue:
+      type: object
+      additionalProperties: false
+      required: [families, tunings, instruments, clefs, tolerances]
+      properties:
+        families:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, label, stems, detailNames, view]
+            properties:
+              id:
+                $ref: '#/components/schemas/InstrumentFamily'
+              label:
+                type: string
+                example: Strings, brass and woodwinds
+              stems:
+                type: array
+                items:
+                  type: string
+                description: Standard stems of the family (`other` only while not split, data-model.md 5.3).
+              detailNames:
+                type: array
+                items:
+                  type: string
+              view:
+                type: string
+                enum: [singing, drum-trainer, tablature, chords, part]
+        tunings:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, instrument, label, pitches]
+            properties:
+              id:
+                $ref: '#/components/schemas/TuningIdBackend'
+              instrument:
+                type: string
+                enum: [guitar, bass]
+              label:
+                type: string
+              pitches:
+                type: array
+                minItems: 4
+                maxItems: 6
+                items:
+                  type: integer
+                  minimum: 20
+                  maximum: 70
+                description: Sounding MIDI pitches, lowest string first.
+        instruments:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, keyName, interval, defaultClef, lowMidi, highMidi]
+            properties:
+              id:
+                $ref: '#/components/schemas/WrittenInstrumentBackend'
+              name:
+                type: string
+              keyName:
+                type: string
+                enum: [C, Bb, Eb, F]
+              interval:
+                type: string
+                example: M6
+              defaultClef:
+                type: string
+              lowMidi:
+                type: integer
+              highMidi:
+                type: integer
+        clefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClefChoiceBackend'
+        tolerances:
+          type: object
+          additionalProperties: false
+          required: [beginner, advanced, expert, min, max, step]
+          properties:
+            beginner:
+              type: integer
+              const: 100
+            advanced:
+              type: integer
+              const: 50
+            expert:
+              type: integer
+              const: 25
+            min:
+              type: integer
+              const: 10
+            max:
+              type: integer
+              const: 200
+            step:
+              type: integer
+              const: 5
+    TuningIdBackend:
+      type: string
+      enum: [guitar-standard, guitar-drop-d, guitar-half-step-down, guitar-full-step-down, guitar-dadgad,
+             guitar-open-g, guitar-open-d, bass-4-standard, bass-4-drop-d, bass-4-half-step-down,
+             bass-5-standard, bass-6-standard]
+    WrittenInstrumentBackend:
+      type: string
+      enum: [concert, trumpet-bb, clarinet-bb, soprano-sax-bb, tenor-sax-bb, bass-clarinet-bb, alto-sax-eb,
+             baritone-sax-eb, clarinet-eb, horn-f, english-horn-f, flute, oboe, violin, viola, cello,
+             double-bass, trombone, bassoon, tuba]
+    ClefChoiceBackend:
+      type: string
+      enum: [auto, treble, bass, alto, tenor, treble-8vb, bass-8vb]
+    ScoreTablature:
+      type: object
+      additionalProperties: false
+      required: [tuning, capo, layout]
+      properties:
+        tuning:
+          $ref: '#/components/schemas/TuningIdBackend'
+        capo:
+          type: integer
+          minimum: 0
+          maximum: 12
+        layout:
+          type: string
+          enum: [notation-and-tab, tab-only]
+    ScorePart:
+      type: object
+      additionalProperties: false
+      required: [instrument, clef]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/WrittenInstrumentBackend'
+        clef:
+          $ref: '#/components/schemas/ClefChoiceBackend'
+    CreateScoreRequestExtension:
+      type: object
+      additionalProperties: false
+      description: |
+        Properties added to `CreateScoreRequest` (and stored in `ScoreRecipe`). `tablature` only for
+        guitar/bass (`422 tablature-not-allowed`; `tuning-mismatch`; `capo-not-allowed` for bass);
+        `part` not for drums (`422 part-not-allowed`), `clef` other than `auto` not for keys/piano
+        (`422 clef-not-allowed`); `includeChords` needs ready chords (`409 chords-not-ready`) and an
+        allowed profile. Source `{trackId, channel: drums.<piece>}` is accepted with profile `drums`.
+      properties:
+        tablature:
+          oneOf:
+            - $ref: '#/components/schemas/ScoreTablature'
+            - type: 'null'
+          description: Null for guitar/bass = the UI default is "notation + tab, standard tuning" (sent explicitly by the UI); the API applies no default.
+        part:
+          oneOf:
+            - $ref: '#/components/schemas/ScorePart'
+            - type: 'null'
+        includeChords:
+          type: boolean
+          default: false
+    ScoreOptionsExtension:
+      type: object
+      additionalProperties: false
+      description: Properties added to `ScoreOptions`.
+      required: [tablature, parts, chords]
+      properties:
+        tablature:
+          type: object
+          additionalProperties: false
+          required: [available, defaultTuning, tunings, capoAllowed]
+          properties:
+            available:
+              type: boolean
+            defaultTuning:
+              oneOf:
+                - $ref: '#/components/schemas/TuningIdBackend'
+                - type: 'null'
+            tunings:
+              type: array
+              items:
+                $ref: '#/components/schemas/TuningIdBackend'
+            capoAllowed:
+              type: boolean
+        parts:
+          type: object
+          additionalProperties: false
+          required: [available, defaultInstrument, clefAllowed]
+          properties:
+            available:
+              type: boolean
+            defaultInstrument:
+              $ref: '#/components/schemas/WrittenInstrumentBackend'
+            clefAllowed:
+              type: boolean
+        chords:
+          type: object
+          additionalProperties: false
+          required: [available]
+          properties:
+            available:
+              type: boolean
+              description: Chords are ready for the source track and the suggested profile allows chord symbols.
+    TablatureFacts:
+      type: object
+      additionalProperties: false
+      required: [tuning, strings, capo, layout, octaveMoved, notesDropped, wideStretches]
+      properties:
+        tuning:
+          $ref: '#/components/schemas/TuningIdBackend'
+        strings:
+          type: integer
+        capo:
+          type: integer
+        layout:
+          type: string
+          enum: [notation-and-tab, tab-only]
+        octaveMoved:
+          type: integer
+        notesDropped:
+          type: integer
+        wideStretches:
+          type: integer
+    PartFacts:
+      type: object
+      additionalProperties: false
+      required: [instrument, name, interval, writtenKey, clef, outOfRange]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/WrittenInstrumentBackend'
+        name:
+          type: string
+        interval:
+          type: string
+        writtenKey:
+          type: [string, 'null']
+        clef:
+          type: string
+        outOfRange:
+          type: integer
+    ScoreFactsExtension:
+      type: object
+      additionalProperties: false
+      description: Properties added to `ScoreFacts` (and the worker `ScoreSummary`).
+      required: [tablature, part, chordsIncluded]
+      properties:
+        tablature:
+          oneOf:
+            - $ref: '#/components/schemas/TablatureFacts'
+            - type: 'null'
+        part:
+          oneOf:
+            - $ref: '#/components/schemas/PartFacts'
+            - type: 'null'
+        chordsIncluded:
+          type: boolean
+    ScoreProfileExtension:
+      type: string
+      description: Values added to `ScoreProfile`.
+      enum: [strings, brass, woodwinds]
+    ScoreWarningCodeExtension:
+      type: string
+      description: Values added to `ScoreWarningCode`.
+      enum: [tab-octave-moved, tab-notes-dropped, tab-wide-stretch, part-out-of-range, section-reduced]
