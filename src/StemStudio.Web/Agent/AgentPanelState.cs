@@ -118,6 +118,34 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         }
     }
 
+    /// <summary>
+    /// Decides the pending approval, bound to its arguments hash (FR-015). The card stays until
+    /// <c>approval.resolved</c>; a conflict (expired, run ended, arguments changed) closes it with the reason.
+    /// </summary>
+    /// <param name="decision">Approve or reject.</param>
+    /// <param name="scope">Once, the heavy steps of this plan, or null for a rejection.</param>
+    /// <returns>A task that completes when the API answered.</returns>
+    public async Task DecideAsync(ApprovalDecisionDto decision, ApprovalScopeDto? scope)
+    {
+        if (Run is not { Approval: { } approval } run)
+        {
+            return;
+        }
+
+        try
+        {
+            await api.DecideApprovalAsync(run.RunId, approval.StepId, new DecideApprovalRequest { Decision = decision, Scope = scope, ArgumentsHash = approval.ArgumentsHash });
+            Error = null;
+        }
+        catch (ApiException ex)
+        {
+            Error = ex.Error.UserMessage;
+            Run = ex.Error.IsConflict ? Run with { Approval = null } : Run;
+        }
+
+        Notify();
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

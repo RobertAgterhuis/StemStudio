@@ -3,6 +3,7 @@ id: agent-approvals
 title: "Agent confirmations"
 area: start
 summary: "Before the agent deletes, overwrites or starts a long job it shows a card with the exact step to approve."
+anchors: ["agent-approvals"]
 keywords: ["approve", "reject", "confirm", "confirmation", "tainted", "undo"]
 related: [agent-panel, agent-backends]
 reviewed: "011"

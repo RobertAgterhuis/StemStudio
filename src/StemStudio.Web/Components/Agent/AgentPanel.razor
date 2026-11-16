@@ -21,6 +21,10 @@
         {
             <PlanView Plan="run.Plan" />
             <StepList Steps="run.Steps" />
+            @if (run.Approval is { } approval)
+            {
+                <ApprovalCard @key="approval.StepId" Approval="approval" />
+            }
             @if (run.Failure is { } failure)
             {
                 <div class="ss-agent-run-error" role="alert" data-testid="agent-run-error">

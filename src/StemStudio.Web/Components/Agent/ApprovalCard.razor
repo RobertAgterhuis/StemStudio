@@ -1,0 +1,56 @@
+@* Confirmation card (US2, FR-012/FR-013; ui-test-ids agent-approval-*): the effect, the exact arguments, why it asks,
+   whether it can be undone and, for heavy steps, the estimate. Approve never takes focus by itself (T079d). The card
+   closes on approval.resolved (every tab). *@
+@inject AgentPanelState State
+
+<section class="ss-agent-card" role="group" aria-labelledby="agent-approval-title" data-testid="agent-approval-card" data-help-id="agent-approvals"
+         data-tool="@Approval.Tool" data-risk="@AgentWire.Name(Approval.Risk)" data-reasons="@string.Join(',', Approval.Reasons)">
+    <h3 id="agent-approval-title" class="ss-agent-card-title">Confirm: @Approval.Tool</h3>
+    <p class="ss-agent-card-effect" data-testid="agent-approval-effect">@Approval.Effect</p>
+    @if (Approval.Reasons.Count > 0)
+    {
+        <ul class="ss-agent-card-reasons">
+            @foreach (var reason in Approval.Reasons)
+            {
+                <li @key="reason">@ApprovalText.Reason(reason)</li>
+            }
+        </ul>
+    }
+    <p class="ss-agent-card-undo">@(Approval.Undoable ? "Can be undone" : "Cannot be undone")</p>
+    @if (Approval.Risk == ToolRiskDto.Heavy)
+    {
+        <p class="ss-agent-card-estimate" data-testid="agent-approval-estimate" data-minutes="@ApprovalText.Minutes(Approval.EstimatedMinutes)"
+           data-device="@ApprovalText.Device(Approval.Device)">@ApprovalText.Estimate(Approval.EstimatedMinutes, Approval.Device)</p>
+    }
+    <pre class="ss-agent-card-arguments" data-testid="agent-approval-arguments" aria-label="Arguments">@ApprovalText.Arguments(Approval.Arguments)</pre>
+    <div class="ss-agent-card-actions">
+        <RadzenButton Text="Approve" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="_busy" Click="ApproveAsync" data-testid="agent-approve" />
+        @if (Approval.AllowPlanScope)
+        {
+            <RadzenButton Text="Approve all heavy steps of this plan" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="_busy"
+                          Click="ApprovePlanAsync" data-testid="agent-approve-plan" />
+        }
+        <RadzenButton Text="Reject" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="_busy" Click="RejectAsync" data-testid="agent-reject" />
+    </div>
+</section>
+
+@code {
+    private bool _busy;
+
+    /// <summary>The pending approval.</summary>
+    [Parameter, EditorRequired]
+    public ApprovalRequestDto Approval { get; set; } = default!;
+
+    private Task ApproveAsync() => DecideAsync(ApprovalDecisionDto.Approve, ApprovalScopeDto.Once);
+
+    private Task ApprovePlanAsync() => DecideAsync(ApprovalDecisionDto.Approve, ApprovalScopeDto.PlanHeavy);
+
+    private Task RejectAsync() => DecideAsync(ApprovalDecisionDto.Reject, null);
+
+    private async Task DecideAsync(ApprovalDecisionDto decision, ApprovalScopeDto? scope)
+    {
+        _busy = true;
+        await State.DecideAsync(decision, scope);
+        _busy = false;
+    }
+}
