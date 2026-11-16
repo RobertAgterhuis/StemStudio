@@ -564,6 +564,12 @@ jobs:
           curl --fail --silent --show-error http://localhost:8081/health
           curl --fail --silent --show-error http://localhost:8080/health
           docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: soundtouch-wasm
+          path: ${{ runner.temp }}/soundtouch
+      - name: The web serves soundtouch.wasm (application/wasm, equal to the reproducible build) and /third-party/soundtouch complete (012 FR-006)
+        run: scripts/check-soundtouch-served.sh --expect-wasm "$RUNNER_TEMP/soundtouch/soundtouch.wasm" "$E2E_BASE_URL"
       - name: The api container has no Claude key (bare pass-through, CI never sets it; 011 SC-006)
         run: docker compose exec -T api sh -c 'test -z "${ANTHROPIC_API_KEY+set}"'
       - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
