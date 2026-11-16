@@ -109,7 +109,8 @@ authentication, and the owner decided on 2026-11-16 to keep LAN access as is unt
    containers through Docker's port forwarding; the peer address inside the container is not the
    browser's address and is not loopback. The container cannot tell "browser on the computer" from
    "browser on the LAN" by address. (Expected behaviour of Docker Desktop's port forwarding; to be
-   confirmed in spike T003 together with 018's T003.)
+   confirmed in spike T003 together with 018's T003.) **Confirmed for the host (F-01); the LAN
+   device row stays for quickstart Q9b.**
 3. A direct call to `http://<host>:8081/api/agent/settings/claude-key` from the LAN arrives from
    the forwarding address, not from the web container, so the API filter (loopback or the `web`
    service address) refuses it.
@@ -134,6 +135,27 @@ authentication, and the owner decided on 2026-11-16 to keep LAN access as is unt
   `127.0.0.1`, host-name allow-list on both listeners). Owner decision Q1 (2026-11-16): the
   binding is not pulled forward; LAN access stays until 018 and this limit is an accepted residual
   risk (plan.md threat T7).
+
+### Spike T003 findings (devops, 2026-11-16)
+
+Reference machine: Windows 11, Docker Desktop with the WSL2 backend (Engine 29.9.2). A throwaway
+compose project `ck-spike` on host ports 18080/18081 ran a probe ASP.NET Core app (.NET 10,
+`mcr.microsoft.com/dotnet/aspnet:10.0`, non-root `$APP_UID`) as `api` and `web`, with the same
+`/keys` lines as `docker/api.Dockerfile` (T020) and a named volume `api-keys` at `/keys`. The
+probe returned `Connection.RemoteIpAddress`, the `Host` header and `X-Forwarded-For`, protected
+and unprotected a payload with `SetApplicationName("StemStudio.Api")` and
+`PersistKeysToFileSystem("/keys")`. The owner's `stemstudio` stack was not touched; the project,
+its volumes and the probe image were removed afterwards (`down -v`).
+
+| # | Question | Observed | Consequence |
+|---|---|---|---|
+| F-01 | Peer seen by `api` for a request from the host through a published port | `http://localhost`, `127.0.0.1`, `[::1]` **and the host's own LAN address** all arrived from the compose network's **gateway** (`::ffff:10.200.5.1`, the network was `10.200.5.0/24`); never loopback; no `X-Forwarded-For` | the API cannot tell "browser on the computer" from "browser on the LAN" by address. The gateway address must **not** be allow-listed (it would admit the LAN too). A second LAN device was not available in the spike; it uses the same port forwarding and is the quickstart Q9b row |
+| F-02 | Peer seen by `api` for a call from the `web` service (`http://api:8081`) | `::ffff:10.200.5.3` = the `web` container; `Dns.GetHostAddresses("web")` returned `10.200.5.3`; `Host` was `api:8081` | `LocalOnlyKeyEntryFilter` (backend T028/T029) must compare with `MapToIPv4()` (the peer is an IPv4-mapped IPv6 address, DNS gives plain IPv4) and must compare the `Host` **without the port** (`api:8081`, `localhost:8081`) |
+| F-03 | Is the loopback host name the only browser-side signal? | yes: the `Host` header is passed through unchanged (`Host: localhost` sent to the LAN address arrived as `localhost`); the peer address is the same for every host-side origin (F-01) | the Web layer's `PageOrigin` loopback check is the only signal and a LAN client can forge it: threat T7 as accepted (owner Q1 (b)) |
+| F-04 | Mode and owner of a named volume at `/keys` for the non-root app user | empty volume on first mount: `700 1654:1654` (`app`, `$APP_UID` = 1654), initialised from the image's `install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys`; key files are written `0600` by Data Protection. A volume that was first mounted (still empty) into an image **without** `/keys` was still initialised `700 1654:1654` at the next mount into the api image (Docker copies up into any **empty** volume) | the Dockerfile lines are enough for new and empty volumes; a non-empty volume with another owner is the API's warning path (`KeyRingPermissionsWide`, backend T013/T014) |
+| F-05 | The key ring and a protected payload survive `docker compose down` + `up --build --force-recreate` with a fixed application name | yes: the payload unprotected after `down` (no `-v`) and a rebuild that also moved the content root from `/app` to `/app2`; the same single key file was reused. The same payload with application name `Other` -> `CryptographicException` | `SetApplicationName("StemStudio.Api")` is required (R-03) and sufficient; only `down -v` or `docker volume rm` loses the ring (quickstart Q9) |
+| F-06 | Side effect of `VOLUME ["/keys"]` | a container from the api image **without** an explicit `/keys` mount gets an anonymous volume there (seen on the probe's `web`, which reused the image) | harmless in compose (`web`/`worker` use other images); a one-off `docker compose run api` has its own empty ring, so a stored key reads as `stored-unreadable` there |
+| F-07 | Git Bash | MSYS path conversion rewrote a container path in an environment variable into `C:/Program Files/Git/...` (CoreCLR failed to start) | scripts that pass container paths from Git Bash set `MSYS_NO_PATHCONV=1` (known rule, as for `/scripts`) |
 
 ## R-06 Logging, exceptions and DTOs
 
