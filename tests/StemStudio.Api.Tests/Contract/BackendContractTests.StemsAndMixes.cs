@@ -138,9 +138,8 @@ public sealed partial class BackendContractTests
     // T060 (settings, test), T070 (undo, rename, delete).
     private static readonly string[] PendingAgentOperations =
     [
-        "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend", "listAgentTools", "listConversations",
-        "createConversation", "getConversation", "renameConversation", "deleteConversation", "sendAgentMessage",
-        "undoLastAgentAction", "getAgentRun", "streamAgentRunEvents", "decideAgentApproval", "submitAgentUiResult", "cancelAgentRun",
+        "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend", "renameConversation", "deleteConversation",
+        "undoLastAgentAction", "decideAgentApproval",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
