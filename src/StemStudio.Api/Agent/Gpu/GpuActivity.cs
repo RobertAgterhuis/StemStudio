@@ -14,29 +14,17 @@ namespace StemStudio.Api.Agent.Gpu;
 /// <summary>
 /// <see cref="IGpuActivity"/> from the API's own job states (FR-021): true while a generator or singer job is active, or while a
 /// track's standard or detail job, a lyrics alignment or a score transcription is queued or running on the GPU (or on an unknown
-/// device unless the worker is known to be CPU-only). The answer is cached for 2 s.
+/// device unless the worker is known to be CPU-only), and while a gated GPU job submission is in flight (<see cref="GpuSubmissions"/>).
+/// The job states are read on every call: an idle answer is never reused, so the agent turn right after a heavy job was requested
+/// already gets the CPU fallback (B2, SC-008).
 /// </summary>
 /// <param name="scopes">Scope per evaluation.</param>
 /// <param name="devices">Cached worker device.</param>
-/// <param name="clock">Clock of the cache.</param>
-public sealed class GpuActivity(IServiceScopeFactory scopes, ProcessingDeviceCache devices, TimeProvider clock) : IGpuActivity
+/// <param name="submissions">GPU job submissions in flight.</param>
+public sealed class GpuActivity(IServiceScopeFactory scopes, ProcessingDeviceCache devices, GpuSubmissions submissions) : IGpuActivity
 {
-    private static readonly TimeSpan CacheLifetime = TimeSpan.FromSeconds(2);
-    private (bool Active, DateTimeOffset At)? _cached;
-
     /// <inheritdoc />
-    public bool IsHeavyJobActive()
-    {
-        var now = clock.GetUtcNow();
-        if (_cached is { } cached && now - cached.At < CacheLifetime)
-        {
-            return cached.Active;
-        }
-
-        var active = Evaluate();
-        _cached = (active, now);
-        return active;
-    }
+    public bool IsHeavyJobActive() => submissions.Holding || Evaluate();
 
     private bool Evaluate()
     {

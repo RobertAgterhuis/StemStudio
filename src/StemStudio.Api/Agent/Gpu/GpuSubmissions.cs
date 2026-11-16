@@ -12,17 +12,53 @@ public sealed class GpuSubmissions(TimeProvider clock)
     /// <summary>How long the GPU stays busy after a submission returned (the caller stores the job right after it).</summary>
     public static readonly TimeSpan Grace = TimeSpan.FromSeconds(10);
 
-    /// <summary>Opens a hold.</summary>
-    /// <returns>The hold; disposing it closes the hold (once).</returns>
-    public IDisposable Begin() => new Hold();
+    private readonly Lock _gate = new();
+    private int _open;
+    private DateTimeOffset _graceUntil = DateTimeOffset.MinValue;
 
     /// <summary>True while a hold is open or closed less than <see cref="Grace"/> ago.</summary>
-    public bool Holding => clock.GetUtcNow() < DateTimeOffset.MinValue;
-
-    private sealed class Hold : IDisposable
+    public bool Holding
     {
+        get
+        {
+            lock (_gate)
+            {
+                return _open > 0 || clock.GetUtcNow() < _graceUntil;
+            }
+        }
+    }
+
+    /// <summary>Opens a hold.</summary>
+    /// <returns>The hold; disposing it closes the hold (once) and starts the grace period.</returns>
+    public IDisposable Begin()
+    {
+        lock (_gate)
+        {
+            _open++;
+        }
+
+        return new Hold(this);
+    }
+
+    private void Close()
+    {
+        lock (_gate)
+        {
+            _open--;
+            _graceUntil = clock.GetUtcNow() + Grace;
+        }
+    }
+
+    private sealed class Hold(GpuSubmissions owner) : IDisposable
+    {
+        private int _closed;
+
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref _closed, 1) == 0)
+            {
+                owner.Close();
+            }
         }
     }
 }

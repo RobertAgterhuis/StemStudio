@@ -147,12 +147,7 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         var activity = Service<IGpuActivity>();
         var completed = await Factory.SeedAsync(SyncTestData.CompletedTrack("bbbbbbbbbbb"));
         activity.IsHeavyJobActive().ShouldBeFalse("a status poll just before the approval");
-        var duringRelease = new List<bool>();
-        GpuRelease.ReleaseAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            duringRelease.Add(activity.IsHeavyJobActive());
-            return Task.CompletedTask;
-        });
+        var seen = ActivityAtRelease();
 
         using var detail = await Client.PostAsync(ApiRoutes.StartDetail(completed.Id), null, Ct);
         Factory.Clock.Advance(TimeSpan.FromMilliseconds(900));
@@ -160,42 +155,32 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         detail.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         activity.IsHeavyJobActive().ShouldBeTrue("the next turn must use the CPU fallback");
         await Factory.SyncDetailAsync();
-        duringRelease.ShouldBe([true]);
+        seen.ShouldBe(["release True"]);
     }
 
     [Fact]
     public async Task TheGate_HoldsTheGpuFromBeforeTheReleaseUntilShortlyAfterTheSubmission()
     {
         // Imports and generator jobs are stored only after the submission returns: the gate itself must mark the GPU busy.
-        var activity = Service<IGpuActivity>();
-        var seen = new List<string>();
-        GpuRelease.ReleaseAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            seen.Add($"release {activity.IsHeavyJobActive()}");
-            return Task.CompletedTask;
-        });
+        var seen = ActivityAtRelease();
         var inner = Substitute.For<IWorkerClient>();
         inner.CreateDetailJobAsync(default!, Ct).ReturnsForAnyArgs(_ =>
-        {
-            seen.Add($"submit {activity.IsHeavyJobActive()}");
-            return FakeWorkerClient.DetailJob("7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b", WorkerDetailJobState.Queued);
-        });
+            Record(seen, "submit", FakeWorkerClient.DetailJob("7c1e9a2b4d6f48e0a3b5c7d9e1f20a4b", WorkerDetailJobState.Queued)));
 
         await new GpuReleasingWorkerClient(inner, Service<GpuJobGate>()).CreateDetailJobAsync("job", Ct);
 
         seen.ShouldBe(["release True", "submit True"]);
-        activity.IsHeavyJobActive().ShouldBeTrue("the caller stores the job right after the submission");
+        Service<IGpuActivity>().IsHeavyJobActive().ShouldBeTrue("the caller stores the job right after the submission");
         Factory.Clock.Advance(GpuSubmissions.Grace);
-        activity.IsHeavyJobActive().ShouldBeFalse("from then on the stored job states decide");
+        Service<IGpuActivity>().IsHeavyJobActive().ShouldBeFalse("from then on the stored job states decide");
     }
 
     [Fact]
-    public async Task TheGate_HoldsWhileSubmissionsOverlap_AndAFailedSubmissionEndsItsHold()
+    public async Task TheGate_HoldsWhileSubmissionsOverlap()
     {
         var activity = Service<IGpuActivity>();
-        var gate = Service<GpuJobGate>();
-        var first = await gate.BeforeGpuJobAsync(Ct);
-        var second = await gate.BeforeGeneratorJobAsync(Ct);
+        var first = await Service<GpuJobGate>().BeforeGpuJobAsync(Ct);
+        var second = await Service<GpuJobGate>().BeforeGeneratorJobAsync(Ct);
 
         first.Dispose();
         Factory.Clock.Advance(GpuSubmissions.Grace);
@@ -204,12 +189,18 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         second.Dispose();
         Factory.Clock.Advance(GpuSubmissions.Grace);
         activity.IsHeavyJobActive().ShouldBeFalse("disposing a hold twice counts once");
+    }
 
+    [Fact]
+    public async Task AFailedSubmission_EndsItsHold()
+    {
         var inner = Substitute.For<IGeneratorClient>();
         inner.CreateSongAsync(default!, Ct).ThrowsAsyncForAnyArgs(new HttpRequestException("generator down"));
-        await Should.ThrowAsync<HttpRequestException>(() => new GpuReleasingGeneratorClient(inner, gate).CreateSongAsync(null!, Ct));
+
+        await Should.ThrowAsync<HttpRequestException>(() => new GpuReleasingGeneratorClient(inner, Service<GpuJobGate>()).CreateSongAsync(null!, Ct));
         Factory.Clock.Advance(GpuSubmissions.Grace);
-        activity.IsHeavyJobActive().ShouldBeFalse();
+
+        Service<IGpuActivity>().IsHeavyJobActive().ShouldBeFalse();
     }
 
     [Fact]
@@ -257,6 +248,19 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         var track = SyncTestData.UrlTrack(videoId, jobId: null);
         track.ApplyDevice(device, SyncTestData.T0);
         return track;
+    }
+
+    private List<string> ActivityAtRelease()
+    {
+        var seen = new List<string>();
+        GpuRelease.ReleaseAsync(Arg.Any<CancellationToken>()).Returns(_ => Record(seen, "release", Task.CompletedTask));
+        return seen;
+    }
+
+    private T Record<T>(List<string> seen, string step, T value)
+    {
+        seen.Add($"{step} {Service<IGpuActivity>().IsHeavyJobActive()}");
+        return value;
     }
 
     private Task<WorkerJob> Submitted(string jobId) => Task.FromResult(Record("submit", FakeWorkerClient.Job(jobId, WorkerJobState.Queued)));
