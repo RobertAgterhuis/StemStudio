@@ -16,16 +16,23 @@ public sealed class AgentRunner
     private readonly ModelTurnStreamer _streamer;
     private readonly StepExecutor _steps;
     private readonly ServiceStatusReader _status;
+    private readonly RunCoordination _coordination;
 
     /// <summary>Creates the runner.</summary>
     /// <param name="services">Ports and services.</param>
     public AgentRunner(AgentServices services)
+        : this(services, new RunCoordination())
+    {
+    }
+
+    internal AgentRunner(AgentServices services, RunCoordination coordination)
     {
         ArgumentNullException.ThrowIfNull(services);
         _services = services;
+        _coordination = coordination;
         _events = new RunEvents(services.Events);
         _streamer = new ModelTurnStreamer(_events, services.Time);
-        _steps = new StepExecutor(services, _events);
+        _steps = new StepExecutor(services, _events, coordination.Approvals);
         _status = new ServiceStatusReader(services.Actions.Generations, services.Time);
     }
 
@@ -42,9 +49,10 @@ public sealed class AgentRunner
         }
 
         var outcome = RunOutcome.Internal;
+        using var control = _coordination.Controls.Register(runId, cancellationToken);
         try
         {
-            outcome = await RunGuardedAsync(state, cancellationToken);
+            outcome = await RunGuardedAsync(state, control);
         }
         finally
         {
@@ -52,8 +60,9 @@ public sealed class AgentRunner
         }
     }
 
-    private async Task<RunOutcome> RunGuardedAsync(RunState state, CancellationToken cancellationToken)
+    private async Task<RunOutcome> RunGuardedAsync(RunState state, RunControl control)
     {
+        var cancellationToken = control.Token;
         try
         {
             await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
@@ -66,7 +75,7 @@ public sealed class AgentRunner
         }
         catch (OperationCanceledException)
         {
-            return RunOutcome.Cancelled;
+            return RunOutcome.Cancelled(control.CancelJobs ? await JobCanceller.CancelAsync(_services, state.RunId) : []);
         }
         catch (Exception exception)
         {

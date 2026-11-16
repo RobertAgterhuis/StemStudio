@@ -17,8 +17,12 @@ internal sealed record RunOutcome(AgentRunStatusDto Status, string EventType, st
     /// <summary>An unexpected error.</summary>
     public static RunOutcome Internal { get; } = Fail(AgentFailureCodes.Internal, InternalMessage);
 
+    /// <summary>Jobs cancelled together with the run ("phase:id").</summary>
+    public IReadOnlyList<string> CancelledJobs { get; init; } = [];
+
     /// <summary>Cancelled by the user or the host.</summary>
-    public static RunOutcome Cancelled { get; } = new(AgentRunStatusDto.Cancelled, AgentEventTypes.RunCancelled, null, null, null);
+    public static RunOutcome Cancelled(IReadOnlyList<string> jobs) =>
+        new(AgentRunStatusDto.Cancelled, AgentEventTypes.RunCancelled, null, null, null) { CancelledJobs = jobs };
 
     /// <summary>A failure with a code and a readable message (capped at 500 characters).</summary>
     public static RunOutcome Fail(string code, string message) =>
@@ -34,7 +38,7 @@ internal sealed record RunOutcome(AgentRunStatusDto Status, string EventType, st
     public object Payload(Guid runId) => Status switch
     {
         AgentRunStatusDto.Completed => new RunCompletedEventDto { RunId = runId, MessageId = MessageId!.Value },
-        AgentRunStatusDto.Cancelled => new RunCancelledEventDto { RunId = runId },
+        AgentRunStatusDto.Cancelled => new RunCancelledEventDto { RunId = runId, CancelledJobs = CancelledJobs },
         _ => new RunFailureDto { Code = Code!, Message = Message! },
     };
 }

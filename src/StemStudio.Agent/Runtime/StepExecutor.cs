@@ -15,10 +15,18 @@ namespace StemStudio.Agent.Runtime;
 /// </summary>
 /// <param name="services">Ports.</param>
 /// <param name="events">Event publisher.</param>
-internal sealed class StepExecutor(AgentServices services, RunEvents events)
+/// <param name="approvals">In-memory approval wait.</param>
+internal sealed class StepExecutor(AgentServices services, RunEvents events, ApprovalWaiter approvals)
 {
+    /// <summary>What the model sees for a rejected step.</summary>
+    public const string RejectedMessage = "The user rejected this step.";
+
+    /// <summary>What the model sees for an expired approval.</summary>
+    public const string ExpiredMessage = "The approval expired; the step did not run.";
+
     private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(AgentContractLimits.UiToolTimeoutSeconds);
     private readonly RunPlan _plan = new(services, events);
+    private readonly ApprovalGate _gate = new(services, events, approvals);
     private readonly MetaToolRunner _meta = new(services, events, new RunPlan(services, events));
 
     /// <summary>Executes the call and returns what the model sees.</summary>
@@ -66,9 +74,35 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         return decision.Decision switch
         {
             StepDecisionDto.Denied => ResultProjector.Error(decision.Refusal!),
-            StepDecisionDto.ApprovalRequired => await FinishAsync(step with { Status = AgentStepStatusDto.Rejected, Error = "This step needs the user's approval." }, null, cancellationToken),
+            StepDecisionDto.ApprovalRequired => await AskThenRunAsync(state, step, prepared, cancellationToken),
             _ => await RunAsync(state, step, prepared, cancellationToken),
         };
+    }
+
+    private async Task<ProjectedResult> AskThenRunAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        var (verdict, asked) = await AskAsync(state, step, prepared, cancellationToken);
+        if (verdict == ApprovalVerdict.Approved)
+        {
+            return await RunAsync(state, asked with { Status = AgentStepStatusDto.Running, StartedAt = services.Time.GetUtcNow() }, prepared, cancellationToken);
+        }
+
+        var (status, message) = verdict == ApprovalVerdict.Rejected ? (AgentStepStatusDto.Rejected, RejectedMessage) : (AgentStepStatusDto.Expired, ExpiredMessage);
+        await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Skipped, cancellationToken);
+        return await FinishAsync(asked with { Status = status, Error = message }, null, cancellationToken);
+    }
+
+    private async Task<(ApprovalVerdict Verdict, RunStep Step)> AskAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _gate.AskAsync(state, step, prepared, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            await services.Runs.SaveStepAsync(step with { Status = AgentStepStatusDto.Expired, EndedAt = services.Time.GetUtcNow() }, CancellationToken.None);
+            throw;
+        }
     }
 
     private RunStep Started(RunStep step, AgentStepStatusDto status) =>
