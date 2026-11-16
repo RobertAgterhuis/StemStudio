@@ -8,6 +8,7 @@
 | `http://localhost:8080/health`, `http://localhost:8081/health` | `ok` |
 | Worker `/health` (inside the network) | status, separator, device information, contract version |
 | `GET /api/device` | Processing device and reason |
+| `GET /api/agent/status` (011) | Agent backend, model, `ready` or the reason and fix; Ollama itself: `curl http://localhost:11434/api/tags` |
 | Windows without Docker | `scripts/dev.ps1 -SmokeTest` waits for all three health endpoints |
 
 When the worker is down, imports answer 503 and existing tracks and mixes keep working.
@@ -62,3 +63,8 @@ up the pinned newer version when the project updates it.
   not install a Linux NVIDIA driver inside WSL.
 - Detail separation needs at least 20 GB of Docker memory and an online first run.
 - Lyrics text and the API key are never written to the logs by design.
+- Agent (011): "Local AI not reachable" means Ollama is not running or `STEMSTUDIO_OLLAMA_URL`
+  is wrong; "not pulled" names the `ollama pull` command; an API restart marks a running agent
+  command `interrupted` (its jobs keep running; there is no "Continue" yet, the user sends the
+  command again). Development databases that applied an earlier, unreleased 011 `AddAgent`
+  migration must be recreated (`docker compose down -v` deletes all data).

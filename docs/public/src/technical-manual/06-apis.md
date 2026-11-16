@@ -56,11 +56,26 @@ unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
 | 009 Style transfer | `GET /api/generation/status`, `/api/styles` CRUD and `…/duplicate`, `POST /api/tracks/{id}/restyles`, `/api/generations` with cancel, retry, take audio and import |
 | 010 Lyrics to song | `/api/lyrics` CRUD, upload and sections, `POST /api/songs`, `/api/voice-profiles`, `GET /api/consent/voice`, `POST …/takes/{n}/voice-conversions` |
 
-### Planned additions <span class="planned">In development</span>
+### AI composer agent (011, backend API 1.10.0, tag `agent`)
 
-| Feature | Endpoints |
+| Method and path | Purpose |
 |---|---|
-| 011 Agent | `/api/agent/status`, `/settings` (+ `/test`), `/tools`, `/conversations` (+ messages, undo), `/runs/{runId}` with SSE `events`, `approvals/{stepId}`, `ui-results/{stepId}`, `cancel` |
+| `GET /api/agent/status` | Backend, model, readiness, reason and fix (always 200; each probe times out after 2 s) |
+| `GET`, `PUT /api/agent/settings`; `POST /api/agent/settings/test` | Stored backend and models (`422` for a model that is not pulled or has no tool calling, or an unacknowledged Claude notice); connection test within 10 s without generating text |
+| `GET /api/agent/tools` | The tool catalogue with risk classes and availability |
+| `GET`, `POST /api/agent/conversations`; `GET`, `PATCH`, `DELETE /api/agent/conversations/{id}` | Conversations (list, create, read with messages, rename, delete) |
+| `POST /api/agent/conversations/{id}/messages` | Send a command with the page context; starts a run (`409` while another run is active) |
+| `POST /api/agent/conversations/{id}/undo` | Undo the last command group of the conversation (`409` when nothing is left) |
+| `GET /api/agent/runs/{runId}`, `GET …/events` | Run snapshot; Server-Sent Events, resumable with `Last-Event-ID` |
+| `POST …/approvals/{stepId}` | Approve or reject a card, bound to its `argumentsHash`; idempotent, first decision wins |
+| `POST …/ui-results/{stepId}` | Result of a UI tool (mixer, navigation) executed by the Web app |
+| `POST …/cancel` | Cancel the run (optionally its jobs) |
+
+The agent calls the other endpoints of this API through a loopback HTTP client, so it has the
+same rights and validation as the UI (for example an import URL outside the YouTube/Spotify
+allow-list is a `400`). The API key is never returned; problem types are
+`https://stemstudio.local/problems/<code>` (for example `model-unavailable`,
+`notice-not-acknowledged`, `run-active`).
 
 ## Worker API (port 8000, internal)
 
@@ -117,11 +132,13 @@ completed, failed, cancelled. Version 1.1.0 (010) adds the kinds `song` and
 and singer containers serve the same contract and answer `409 kindNotServed` for kinds they do
 not run.
 
-## Agent tools <span class="planned">In development</span>
+## Agent tools
 
-The agent's tools are defined in `specs/011-ai-composer-agent/contracts/tool-catalogue.md`:
-43 tools when all features are delivered (library, mixes, navigation, open-mixer control,
-detail separation, device, help, artist info, lyrics, export, transcription, styles and song
-generation). Each tool has a fixed risk class in code (read, change, job, heavy,
-destructive). Run events stream over Server-Sent Events and are resumable with
-`Last-Event-ID`.
+The agent's tools are defined in `specs/011-ai-composer-agent/contracts/tool-catalogue.md`
+1.0.0: 57 tools of features 001-011 (library, mixes, navigation, open-mixer control, detail
+separation, device, help, artist info, lyrics, export, transcription, styles, songs and
+own-voice conversion). Each tool has a fixed risk class in code (read, change, job, heavy,
+destructive). A request offers at most 32 tools: the core group plus the groups of the page
+context, minus tools whose service is unavailable. Server tools call the API; UI tools (mixer,
+transport, loop, metronome, navigation) are executed by the Web app and report back through
+`ui-results` within 15 s.

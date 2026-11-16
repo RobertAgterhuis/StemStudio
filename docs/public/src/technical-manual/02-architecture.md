@@ -18,7 +18,7 @@ product; it must not be exposed to the internet (ADR-002).
 | Worker (`worker/`) | Python 3.12, FastAPI | 8000 (internal) | Ingest (yt-dlp, spotDL, ffmpeg), Demucs separation, detail models, beat analysis |
 | Generator (`generator/`) | Python 3.12, FastAPI, ACE-Step | 8010 (internal) | Style transfer and song generation (009, 010) |
 | Singer (`generator/`, variant `soulx`) | Python, SoulX-Singer | 8010 (internal) | Voice-sample checks and voice conversion (010) |
-| Agent (`src/StemStudio.Agent`) <span class="planned">In development</span> | .NET library hosted in the API | — | AI composer agent loop and tool registry (011) |
+| Agent (`src/StemStudio.Agent`) | .NET library hosted in the API | — | AI composer agent loop and tool registry (011) |
 
 ## Data flow
 
@@ -58,15 +58,15 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.7.0 (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0) | 1.8.0 (009), 1.9.0 (010), 1.10.0 (011) |
+| Backend API (`backend-api.openapi.yaml`) | 1.10.0 (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`) | — |
 | Worker API (`worker-api.openapi.yaml`) | 1.6.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0) | — |
-| Audio engine (`audio-engine.md`) | 2.1.0 (006: karaoke clock and banner) | 2.2.0 if needed (011) |
-| UI test ids (`ui-test-ids.md`) | 1.7.0 (005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0) | one minor per feature, up to 1.10.0 (011) |
+| Audio engine (`audio-engine.md`) | 2.1.0 (006: karaoke clock and banner; unchanged by 011, the agent drives the mixer through the Web app) | — |
+| UI test ids (`ui-test-ids.md`) | 1.10.0 (005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0) | one minor per feature |
 | Help content (`help-content.md` + schemas) | 1.0.0 (004) | additive topics per feature |
 | Web interop (`web-interop.md`) | 1.0.0 (004) | — |
 | Render vectors (`render-vectors.json`) | 1.0.0 (007) | — |
-| Generator API (`generator-api.openapi.yaml`) | — | 1.0.0 (009), 1.1.0 (010) |
-| Agent tool catalogue (`tool-catalogue.md`) | draft 0.1.0 | 1.0.0 (011) |
+| Generator API (`generator-api.openapi.yaml`) | 1.1.0 (009: 1.0.0, 010: 1.1.0) | — |
+| Agent tool catalogue (`tool-catalogue.md`, 57 tools), agent E2E script schema (`agent-script.schema.json`), evaluation set (`eval-set.md`) | 1.0.0 (011) | — |
 
 Conventions: camelCase JSON, lower-case enums, RFC 9457 problem details for errors, UTC ISO
 8601 timestamps. CI lints the current OpenAPI documents with Redocly.

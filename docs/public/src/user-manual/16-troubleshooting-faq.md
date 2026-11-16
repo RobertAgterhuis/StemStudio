@@ -50,13 +50,30 @@ to go back to the detected values.
 reset all preferences, clear the site data of StemStudio in your browser. In a private window
 StemStudio cannot store preferences and stays at the Beginner level.
 
+## The agent is not available
+
+The agent panel shows the reason and the fix:
+
+- *"Local AI not reachable"*: Ollama is not running on the computer that runs StemStudio.
+  Start it (on Windows from the tray icon) and reopen the panel.
+- *"Model qwen3.5:9b is not pulled."* with the fix `ollama pull qwen3.5:9b`: the
+  administrator runs that command once (and `ollama pull qwen3.5:4b` for the fallback model).
+- *"Model … does not support tool calling."*: choose `qwen3.5:9b` in **Settings**.
+- *"Claude rejected the API key"*, *"Claude could not be reached"* or *"Claude is rate limited
+  …"*: press **Switch to local** or choose Ollama in **Settings**.
+- The agent is set to **None** in **Settings**.
+
+Everything else in StemStudio keeps working while the agent is unavailable. If the agent does
+something you did not mean, press **Undo**; heavy and destructive steps always wait for your
+approval.
+
 ## Frequently asked questions
 
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
 the online lookups for cover art and band info (chapter 7) send the title, artist, duration
-and ISRC code, and they can be switched off. Lyrics lookups (chapter 8) are still in
-development. The optional Claude backend for the
-agent (chapter 13) sends text only, never audio, and only when you select it.
+and ISRC code, and lyrics lookups (chapter 8) the title, artist, album and duration; both
+can be switched off. The optional Claude backend for the agent (chapter 13) sends text only,
+never audio, and only when you select it.
 
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
 vocals and the remaining instruments further. Several guitars of the same kind cannot be

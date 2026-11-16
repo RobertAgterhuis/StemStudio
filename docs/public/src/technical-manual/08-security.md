@@ -31,7 +31,7 @@ The core product has no secrets. The only secret is the optional `ANTHROPIC_API_
 agent (chapter 3): environment only, never in files or command lines, never logged, stored or
 returned.
 
-## Agent safety <span class="planned">In development</span>
+## Agent safety
 
 Safety is enforced in code, not left to the model (research finding: a small local model
 obeyed an injected "delete" instruction):
@@ -40,12 +40,23 @@ obeyed an injected "delete" instruction):
   file, URL-fetch, raw HTTP, SQL or settings tools.
 - Every tool has a fixed risk class. Heavy and destructive actions always need approval;
   approvals are bound to a hash of the exact arguments and expire after 24 hours.
-- External text (lyrics, biographies, help) reaches the model only in `untrusted_text` fields
-  and **taints** the run; after that every change or job needs approval. URLs and lyrics must
-  literally come from the user's own messages.
+- External text (track titles from YouTube or Spotify, lyrics, biographies, help) reaches the
+  model only in `untrusted_text` fields and **taints** the run; after that every change or job
+  needs approval (owner decision: titles taint, so a change after a library search always
+  asks). URLs and lyrics must literally come from the user's own messages, and an import URL
+  still has to pass the API's YouTube/Spotify allow-list.
+- When the size of a job cannot be checked beforehand, the step is treated as heavy and the
+  card says so (`risk-check-failed`). Artist-imitation arguments are refused before any card
+  (`artist-imitation`), with the same lexicon as 009.
 - Tool results are capped at 4 KB and never contain lyrics, biographies, paths or secrets.
 - Per run: 12 model turns, 20 tool calls, 3 invalid calls; Claude budget 60,000 input and
   8,000 output tokens.
+- In the library, `Agent/Policy` may reference only `Agent.Model`, `Agent.Tools` and the
+  data-only `Agent.Resources` (quality-gate rule); the Agent never references Domain, so the
+  imitation and lyrics-provenance checks are mirrors of the Domain rules (`MIRRORS`, owner
+  decision 2026-11-16).
+- Evaluation of the real model (`tools/agent-eval`, chapter 9): the injection cases 22-24 pass;
+  in no run did a non-read call execute without approval after the run was tainted.
 
 ## Privacy
 

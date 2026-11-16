@@ -126,13 +126,34 @@ Settings of the generative services (009, 010):
 | `STEMSTUDIO_GPU_LEASE_WAIT_SECONDS` | 009 | `900` | Worker wait before CPU fallback |
 | `STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS` | 009 | `600` | Generator wait for free VRAM |
 
-Planned settings of later features <span class="planned">In development</span>:
+Settings of the AI composer agent (011, API only; compose maps the shell variables to the
+`StemStudio__Agent__*` keys of the API):
 
 | Variable | Feature | Default | Meaning |
 |---|---|---|---|
-| `STEMSTUDIO_AGENT_BACKEND` | 011 | `ollama` | `ollama`, `claude`, `none` (`fake` in tests) |
-| `STEMSTUDIO_OLLAMA_URL` | 011 | `http://host.docker.internal:11434` | Ollama on the host |
+| `STEMSTUDIO_AGENT_BACKEND` (`StemStudio__Agent__Backend`) | 011 | `ollama` | Initial backend `ollama`, `claude` or `none` while no settings row exists; the Settings page changes it later. `fake` (tests only) always wins over the stored row |
+| `STEMSTUDIO_OLLAMA_URL` (`StemStudio__Agent__Ollama__BaseUrl`) | 011 | `http://host.docker.internal:11434` (compose), `http://localhost:11434/` (without Docker) | Ollama on the host; compose adds `host-gateway` for Linux engines |
 | `ANTHROPIC_API_KEY` | 011 | unset | Enables the optional Claude backend; see below |
+| `StemStudio__Agent__LoopbackBaseUrl` | 011 | `http://127.0.0.1:{HTTP_PORTS}` | Where the agent calls the API's own endpoints |
+| `STEMSTUDIO_AGENT_FAKE_SCRIPT` | 011 | empty | E2E only, with backend `fake`: scripted model turns from `e2e/agent-scripts/` (mounted read-only at `/scripts`); Git Bash users prefix `MSYS_NO_PATHCONV=1` |
+
+### Ollama for the agent (011, optional)
+
+Ollama runs on the host, not in compose; StemStudio does not install, start or update it and
+never pulls models. Reference machine: Ollama 0.40.16 on Windows 11, RTX 5070 Ti.
+
+```
+ollama pull qwen3.5:9b      # default model, ~6.6 GB (Q4_K_M), tool calling
+ollama pull qwen3.5:4b      # fallback while a GPU job holds the GPU, ~3.3 GB
+curl http://localhost:11434/api/tags
+```
+
+The API checks `GET /api/version`, `GET /api/tags` and the model's `tools` capability
+(`POST /api/show`); a model that is not pulled or cannot call tools is refused in Settings
+with `422` and the pull command. Turns use `num_ctx` 16,384; before a GPU-heavy job the API
+asks Ollama to unload the model (`keep_alive: 0`, chapter 4) and agent turns use the fallback
+model on the CPU while the job runs. Without Ollama the app works and the agent panel shows
+*"Local AI not reachable"* with the fix.
 
 Variables named `STEMSTUDIO_FAKE_*` are for the fake test stack only.
 

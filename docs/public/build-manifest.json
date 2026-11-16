@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-16",
-  "sourceHash": "61025cfa1876e17c24511d627a6782752e5ee670a24653af6de1ef8c0968a88e",
+  "sourceHash": "74b50894119d32127c8d6e54e6716eab713e3882a0909665404ef223b06cd5c2",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
-      "pages": 31,
-      "bytes": 1039590
+      "pages": 34,
+      "bytes": 1140385
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
-      "pages": 40,
-      "bytes": 1511425
+      "pages": 41,
+      "bytes": 1521001
     }
   ],
   "inputs": [
@@ -21,7 +21,7 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "3ab84026e80d11f4e423a79e5c7492b41422f9648d854241c3f41f5a5c07ecc8"
+      "sha256": "8f7d245ee42ebc69ae8c7497887713a30ef4baf1b00a6d45080c5634fcd83e34"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -61,15 +61,15 @@
     },
     {
       "path": "docs/public/src/technical-manual/02-architecture.md",
-      "sha256": "89b4d7938585e50230d8b3e0189269a91a9f8bc0721ca554bd6cba4f9e1d03ef"
+      "sha256": "967d9958ff890f998261fb9ea846c72323999eda2f4c61bbf83edee6361408b0"
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "5a52d60ecf26406ff339c124d44960b62821a208bc77788f0fe6ef3a4f6b3acc"
+      "sha256": "2d2edbc01699f2387f21fbd9af73a88ddb3f43392caa66e3f3c1ee94ae8db1ae"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
-      "sha256": "6759e406fba26b5cfdb3938b4acc8957d1422f3b4a755a37f76419fa16f8c68d"
+      "sha256": "1a12a7e4c8d1f98b529708b4848039a820d937c921cbd2661900cffdfedcfc5e"
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
@@ -77,19 +77,19 @@
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "5f9b1ce8eb057933d99dd78a2a0ce5393d8012777bf8c205069e41b3f5037d3d"
+      "sha256": "7dbf0609ac4cf3f5305f1cfcad528348018bb8612ae87fea8281923b0717bdd8"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
-      "sha256": "e63c25924c1918de635a7e085ed492071cce90add653cab0fe526d55a3a355a2"
+      "sha256": "a3c57bdc5fb2f7c3269dfa73429cb041a263568c6a5af6909e87d0d621d23f38"
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
-      "sha256": "ab491d082ea4608ebca7121da70a6f96ceedc1b56d07d8865e91bfb7c1b31d2d"
+      "sha256": "64f8bc81cbdbf44ed86626b7b3432465960fb03b70d3ab6fba3bb848dcca4c5f"
     },
     {
       "path": "docs/public/src/technical-manual/09-quality-gates.md",
-      "sha256": "390969a8c67427a32dd2b97e36cdff6f94218f12c30cb1f844070d5726c2000f"
+      "sha256": "c818d42ede011e84f14472ffe92a8c46bb6bbb26054ac07c9920192c0c3b5a1f"
     },
     {
       "path": "docs/public/src/technical-manual/10-development-workflow.md",
@@ -97,7 +97,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/11-operations.md",
-      "sha256": "a4938cf8b0918cfdf54e71688d6b3da14bbcf4625ae520de0e2a38af3f57473c"
+      "sha256": "804e44a56b77a1c6783f5b9d4996ca7d2164ccc56d68a2af098b6729adbf9080"
     },
     {
       "path": "docs/public/src/technical-manual/12-documentation.md",
@@ -117,7 +117,7 @@
     },
     {
       "path": "docs/public/src/user-manual/03-journey-levels.md",
-      "sha256": "65503665fdf97e9c6010e947d775e9db66bc02a632413b7c8f9719029c959b74"
+      "sha256": "d54d1c1307d6a4a9bc5ce7ac8d6961f458368bdc75472be40320c728ae71afc1"
     },
     {
       "path": "docs/public/src/user-manual/04-importing.md",
@@ -157,7 +157,7 @@
     },
     {
       "path": "docs/public/src/user-manual/13-ai-composer-agent.md",
-      "sha256": "bd9025b80f11bf1ce87af94ac8680430da65e8a49e54b29f2b0425604918f073"
+      "sha256": "4617da761f79b2e602c6229affde3fbd26ec1ca45415a576d512da8fafa377f9"
     },
     {
       "path": "docs/public/src/user-manual/14-keyboard-shortcuts.md",
@@ -169,7 +169,7 @@
     },
     {
       "path": "docs/public/src/user-manual/16-troubleshooting-faq.md",
-      "sha256": "73f5b34ddcaf0bc4f4454ca1fef196cbb272dd9538f8421c58c29183ef541002"
+      "sha256": "9d28f0c6d3950938e02928e4939de6ff3852f0c549777478caa8f9b3dbd15923"
     },
     {
       "path": "docs/public/src/user-manual/17-legal-notice.md",
