@@ -23,4 +23,10 @@ public static class AgentDecisionReasons
 
     /// <summary>An undo compensation that deletes something not freshly created by the run.</summary>
     public const string UndoCompensation = "undo-compensation";
+
+    /// <summary>
+    /// The tool's dynamic heavy-risk check (e.g. the size of an export) failed, so the step was escalated to heavy and needs
+    /// approval; never covered by a <c>plan_heavy</c> approval.
+    /// </summary>
+    public const string RiskCheckFailed = "risk-check-failed";
 }

@@ -107,6 +107,17 @@ public sealed class AgentContractTests
         mapping.ShouldBe(AgentEventTypes.All);
     }
 
+    [Fact]
+    public void ApprovalDevice_IsAProcessingDeviceCodeOrNull()
+    {
+        var device = AgentSchema("ApprovalRequest")["properties"]!["device"]!;
+
+        var values = device["enum"]!.AsArray().ToList();
+
+        values.Where(value => value is not null).Select(value => value!.GetValue<string>()).ShouldBe(Strings(AgentSchema("ProcessingDeviceKind")["enum"]!));
+        values.ShouldContain(value => value == null);
+    }
+
     [Theory]
     [InlineData("run.completed", true)]
     [InlineData("run.failed", true)]
@@ -325,7 +336,7 @@ public sealed class AgentContractTests
         Effect = "Splits Enter Sandman into detail stems",
         Undoable = true,
         EstimatedMinutes = 4,
-        Device = "GPU (RTX 4070)",
+        Device = "gpu",
         AllowPlanScope = true,
     };
 

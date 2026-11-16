@@ -8,7 +8,10 @@ info:
       backend API. It was merged unchanged into the full `backend-api.openapi.yaml` **1.10.0** of
       this folder (011 Phase 0 part 2, 2026-11-16; 1.10.0 = 010's 1.9.0 + this delta, proven by
       `AgentContractTests`). The full document is the binding one; this file is kept for the
-      review history and the merge test. No existing operation, schema or behaviour changes. C# DTOs:
+      review history and the merge test. Pre-release additions within 1.10.0 (011 follow-ups,
+      2026-11-16, applied to both documents): `DecisionReason` `risk-check-failed`;
+      `ApprovalRequest.device` restricted to `cpu` | `gpu` | null. No existing operation, schema or
+      behaviour changes. C# DTOs:
       `src/StemStudio.Contracts/Agent`, routes `ApiRoutes.Agent*`.
     * Conventions of the backend API apply: JSON camelCase, enums lower-case strings (here
       snake_case where the value has two words, e.g. `awaiting_approval`), UTC ISO 8601 times,
@@ -593,7 +596,12 @@ components:
       description: restyle and generation are used once features 009 and 010 are delivered.
     DecisionReason:
       type: string
-      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation]
+      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation, risk-check-failed]
+      description: |
+        Why a step needs approval or was denied (data-model 4.2, 6). `risk-check-failed`: the tool's
+        dynamic heavy-risk check (e.g. the size of an export) could not be evaluated, so the step is
+        escalated to heavy and requires approval; such a step is never covered by a `plan_heavy`
+        approval.
     ArgumentsHash:
       type: string
       pattern: '^[0-9a-f]{64}$'
@@ -1105,6 +1113,11 @@ components:
           minimum: 0
         device:
           type: [string, 'null']
+          enum: [cpu, gpu, null]
+          description: |
+            Processing device code of a heavy job: `cpu` or `gpu` (the values of the backend's
+            `ProcessingDeviceKind`); null when the step is not heavy or the device is unknown. Not a
+            readable device name such as a GPU model.
         allowPlanScope:
           type: boolean
     ApprovalState:

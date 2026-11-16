@@ -80,7 +80,9 @@ info:
       One active run at a time (409 `run-active`). Merged unchanged from
       `agent-api.openapi.yaml` 1.10.0-delta.1; the shared `ProblemDetails`,
       `ValidationProblemDetails`, `ValidationProblem` and `NotFound` keep their 1.9.0 definitions.
-      No 1.9.0 entry changes. See ADR-020.
+      No 1.9.0 entry changes. See ADR-020. Pre-release additions within 1.10.0 (011 follow-ups,
+      2026-11-16, before release, applied to the delta as well): `DecisionReason`
+      `risk-check-failed`; `ApprovalRequest.device` restricted to `cpu` | `gpu` | null.
   license:
     name: MIT
     identifier: MIT
@@ -5330,7 +5332,12 @@ components:
       description: restyle and generation are used once features 009 and 010 are delivered.
     DecisionReason:
       type: string
-      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation]
+      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation, risk-check-failed]
+      description: |
+        Why a step needs approval or was denied (data-model 4.2, 6). `risk-check-failed`: the tool's
+        dynamic heavy-risk check (e.g. the size of an export) could not be evaluated, so the step is
+        escalated to heavy and requires approval; such a step is never covered by a `plan_heavy`
+        approval.
     ArgumentsHash:
       type: string
       pattern: '^[0-9a-f]{64}$'
@@ -5842,6 +5849,11 @@ components:
           minimum: 0
         device:
           type: [string, 'null']
+          enum: [cpu, gpu, null]
+          description: |
+            Processing device code of a heavy job: `cpu` or `gpu` (the values of the backend's
+            `ProcessingDeviceKind`); null when the step is not heavy or the device is unknown. Not a
+            readable device name such as a GPU model.
         allowPlanScope:
           type: boolean
     ApprovalState:

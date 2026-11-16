@@ -32,7 +32,7 @@ public sealed record ApprovalRequestDto
     /// <summary>Estimated duration of heavy jobs.</summary>
     public double? EstimatedMinutes { get; init; }
 
-    /// <summary>Device of heavy jobs, e.g. "GPU (RTX 4070)" or "CPU".</summary>
+    /// <summary>Processing device code of a heavy job: <c>cpu</c> or <c>gpu</c>; null when not heavy or unknown (never a readable device name).</summary>
     public string? Device { get; init; }
 
     /// <summary>True when the card may offer "approve for this plan".</summary>
