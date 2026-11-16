@@ -34,6 +34,7 @@ public static class AgentRegistration
         services.AddScoped<AgentConversationService>();
         services.AddScoped<AgentMessageService>();
         services.AddScoped<AgentRunEndpointService>();
+        services.AddScoped<AgentApprovalService>();
         services.AddLoopbackActions(configuration);
         return services;
     }

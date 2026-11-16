@@ -52,6 +52,10 @@ public static class AgentEndpoints
                 service.SubmitUiResultAsync(runId, stepId, request, gateway))
             .WithName("submitAgentUiResult").WithTags(Tag).Produces(StatusCodes.Status204NoContent).ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
+        app.MapPost(RunRoute + "/approvals/{stepId:guid}", (Guid runId, Guid stepId, DecideApprovalRequest? request, AgentApprovalService service, CancellationToken ct) =>
+                service.DecideAsync(runId, stepId, request, ct))
+            .WithName("decideAgentApproval").WithTags(Tag).Produces<ApprovalStateDto>().ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapPost(RunRoute + "/cancel", (Guid runId, CancelAgentRunRequest? request, AgentRunEndpointService service, [FromServices] IAgentRunService agent, CancellationToken ct) =>
                 service.CancelAsync(runId, request, agent, ct))
             .WithName("cancelAgentRun").WithTags(Tag).Produces<AgentRunDto>(StatusCodes.Status202Accepted)
