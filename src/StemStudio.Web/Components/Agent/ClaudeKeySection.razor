@@ -3,7 +3,7 @@
    pre-filled and is emptied after every save attempt, replace, cancel, delete with confirmation, Test key (ClaudeKeyTest) and readable errors.
    Logic in the code-behind, texts in ClaudeKeyText and ClaudeKeyErrors. *@
 
-<div class="ss-claude-key" role="group" aria-labelledby="claude-key-title" data-testid="settings-agent-claude-key">
+<div class="ss-claude-key" role="group" aria-labelledby="claude-key-title" data-testid="settings-agent-claude-key" data-help-id="agent-claude-key">
     <h4 id="claude-key-title" class="ss-agent-settings-title">Claude API key</h4>
     <p data-testid="settings-agent-claude-key-status" aria-live="polite" data-state="@AgentWire.Name(Key.State)"
        data-source="@ClaudeKeyText.Source(Key)" data-stored="@AgentWire.Name(Key.Stored)">@ClaudeKeyText.Status(Key)</p>
