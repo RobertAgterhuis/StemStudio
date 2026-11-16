@@ -5,21 +5,29 @@ import { DEFAULT_PROCESSOR_URL, DEFAULT_WASM_URL, createWorkletStageFactory, typ
 import type { TimeStretchStage } from '../../src/types';
 import { MockAudioContext } from '../mocks/audio-context';
 import { FetchStub } from '../mocks/fetch';
-import { WorkletContext } from '../mocks/worklet-node';
+import { WorkletContext, type MockAudioWorkletNode } from '../mocks/worklet-node';
 
 const WASM_BYTES = 30;
 
 function rig(options: { status?: number; processorUrl?: string; wasmUrl?: string } = {}) {
   const ctx = new WorkletContext();
   const fetch = new FetchStub();
-  fetch.reply(options.wasmUrl ?? DEFAULT_WASM_URL, { status: options.status ?? 200, bytes: WASM_BYTES });
+  const { status, ...urls } = { status: 200, processorUrl: DEFAULT_PROCESSOR_URL, wasmUrl: DEFAULT_WASM_URL, ...options };
+  fetch.reply(urls.wasmUrl, { status, bytes: WASM_BYTES });
   const factory = createWorkletStageFactory({
     fetch: fetch.fetch,
     createNode: (context, name, nodeOptions) => (context as unknown as WorkletContext).createWorkletNode(name, nodeOptions) as unknown as AudioWorkletNode,
-    ...(options.processorUrl === undefined ? {} : { processorUrl: options.processorUrl }),
-    ...(options.wasmUrl === undefined ? {} : { wasmUrl: options.wasmUrl }),
+    ...urls,
   });
   return { ctx, fetch, factory };
+}
+
+function nodeOf(r: ReturnType<typeof rig>, index = 0): MockAudioWorkletNode {
+  const node = r.ctx.workletNodes[index];
+  if (node === undefined) {
+    throw new Error('no worklet node');
+  }
+  return node;
 }
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -96,7 +104,8 @@ describe('worklet stage loading (FR-007, FR-009, SC-007)', () => {
     const r = rig();
     const pending = r.factory(r.ctx.asAudioContext());
     await flush();
-    r.ctx.workletNodes[0]?.port.reply({ type: 'error', message: 'bad magic' });
+    nodeOf(r).port.reply({ type: 'stats', underruns: 0 });
+    nodeOf(r).port.reply({ type: 'error', message: 'bad magic' });
     await expect(pending).rejects.toThrow('Time stretch unavailable: bad magic');
     expect(r.ctx.workletNodes[0]?.disconnected).toBe(true);
   });
@@ -113,6 +122,9 @@ describe('worklet stage loading (FR-007, FR-009, SC-007)', () => {
     const r = rig();
     const failing = createWorkletStageFactory({ fetch: () => Promise.reject(new Error('offline')), createNode: () => { throw new Error('unused'); } });
     await expect(failing(r.ctx.asAudioContext())).rejects.toThrow('Time stretch unavailable: offline');
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- a non-Error rejection is the case under test
+    const odd = createWorkletStageFactory({ fetch: () => Promise.reject('gone'), createNode: () => { throw new Error('unused'); } });
+    await expect(odd(r.ctx.asAudioContext())).rejects.toThrow('Time stretch unavailable: gone');
   });
 });
 
@@ -120,21 +132,21 @@ describe('worklet stage messages', () => {
   it('sends pitch, reset and dispose over the port and reads underruns from stats', async () => {
     const r = rig();
     const stage = await readyStage(r);
-    const node = r.ctx.workletNodes[0];
+    const node = nodeOf(r);
     stage.setPitch(2, 88200);
     stage.reset();
     expect(stage.underruns()).toBe(0);
-    node?.port.reply({ type: 'stats', underruns: 384 });
-    node?.port.reply({ type: 'unknown' });
-    node?.port.reply(null);
+    node.port.reply({ type: 'stats', underruns: 384 });
+    node.port.reply({ type: 'unknown' });
+    node.port.reply(null);
     expect(stage.underruns()).toBe(384);
     stage.dispose();
-    expect(node?.port.posted).toEqual([
+    expect(node.port.posted).toEqual([
       { type: 'pitch', value: 2, atFrame: 88200 },
       { type: 'reset' },
       { type: 'dispose' },
     ]);
-    expect(node?.disconnected).toBe(true);
+    expect(node.disconnected).toBe(true);
   });
 
   it('reports a processor error after ready to the failure handler', async () => {
@@ -144,8 +156,9 @@ describe('worklet stage messages', () => {
     stage.onfailure = (reason) => {
       reasons.push(reason);
     };
-    r.ctx.workletNodes[0]?.port.reply({ type: 'error', message: 'trap' });
-    r.ctx.workletNodes[0]?.onprocessorerror?.(new Event('processorerror'));
+    const node = nodeOf(r);
+    node.port.reply({ type: 'error', message: 'trap' });
+    node.onprocessorerror?.(new Event('processorerror'));
     expect(reasons).toEqual(['trap', 'processor error']);
   });
 
