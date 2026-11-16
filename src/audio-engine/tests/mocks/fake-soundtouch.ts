@@ -24,6 +24,8 @@ export class FakeSoundTouch implements SoundTouchExports {
   public jitter: () => number = () => 0;
   public createResult = 4096;
   public abiVersion = 1;
+  /** When set, `st_malloc` returns this instead of a pointer. */
+  public mallocResult: number | null = null;
   private queue: [number, number][] = [];
   private putFrames = 0;
   private heap = 1024;
@@ -85,6 +87,9 @@ export class FakeSoundTouch implements SoundTouchExports {
 
   public st_malloc(bytes: number): number {
     this.mallocs += 1;
+    if (this.mallocResult !== null) {
+      return this.mallocResult;
+    }
     const pointer = this.heap;
     this.heap += Math.ceil(bytes / 16) * 16;
     return pointer;

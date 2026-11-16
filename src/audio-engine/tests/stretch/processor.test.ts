@@ -23,8 +23,7 @@ function rig(options: { fake?: FakeSoundTouch; load?: AbiLoader; delayFrames?: n
   if (Processor === undefined) {
     throw new Error('not registered');
   }
-  const processorOptions = { wasmBytes: new ArrayBuffer(8), ...(options.delayFrames === undefined ? {} : { delayFrames: options.delayFrames }) };
-  const node = new Processor({ processorOptions });
+  const node = new Processor({ processorOptions: { wasmBytes: new ArrayBuffer(8), delayFrames: options.delayFrames } });
   return { scope, node, port: node.port as unknown as FakeProcessorPort, fake };
 }
 
@@ -114,6 +113,13 @@ describe('time-stretch processor: loading (FR-006)', () => {
     expect(r.port.ofType('error')).toEqual([{ type: 'error', message: 'st_create failed' }]);
   });
 
+  it('posts an error when st_malloc fails', async () => {
+    const fake = new FakeSoundTouch();
+    fake.mallocResult = 0;
+    const r = await ready({ fake });
+    expect(r.port.ofType('error')).toEqual([{ type: 'error', message: 'st_malloc failed' }]);
+  });
+
   it('allocates its WASM buffers before ready and never in process()', async () => {
     const r = await ready();
     const mallocs = r.fake.mallocs;
@@ -150,6 +156,29 @@ describe('time-stretch processor: fixed delay', () => {
     expect([out[0]?.[0]?.[0], out[0]?.[1]?.[0]]).toEqual([0.5, 0.5]);
   });
 
+  it('receives a burst larger than one receive chunk completely', async () => {
+    const fake = new FakeSoundTouch();
+    fake.latency = 5000;
+    const r = await ready({ fake, delayFrames: 6000 });
+    for (let q = 0; q < 40; q++) {
+      quantum(r, block(q * Q + 1));
+    }
+    fake.latency = 0;
+    const heard: number[] = [];
+    for (let q = 40; q < 60; q++) {
+      heard.push(...left(quantum(r, block(q * Q + 1)).out));
+    }
+    heard.forEach((value, i) => {
+      const j = 40 * Q + i;
+      expect(value).toBe(j < 6000 ? 0 : j - 6000 + 1);
+    });
+  });
+
+  it('survives a node without outputs', async () => {
+    const r = await ready();
+    expect(r.node.process(block(1), [])).toBe(true);
+  });
+
   it('writes only the left channel when the output has one channel', async () => {
     const r = await ready({ delayFrames: 0 });
     const out = [[new Float32Array(Q)]];
@@ -168,7 +197,7 @@ describe('time-stretch processor: fixed delay', () => {
     expect(stats.length).toBeGreaterThanOrEqual(7);
     expect(stats.length).toBeLessThanOrEqual(9);
     expect(stats[0]).toEqual({ type: 'stats', underruns: Q });
-    const counts = stats.map((s) => Number(s['underruns']));
+    const counts = stats.map((s) => Number(s.underruns));
     expect(counts).toEqual([...counts].sort((a, b) => a - b));
   });
 
@@ -286,7 +315,7 @@ describe('instantiateSoundTouch', () => {
     const spy = vi.spyOn(WebAssembly, 'instantiate').mockResolvedValue({
       instance: { exports: fake },
       module: {},
-    } as unknown as WebAssembly.WebAssemblyInstantiatedSource);
+    } as never);
     const bytes = new ArrayBuffer(4);
     const exports = await instantiateSoundTouch(bytes);
     expect(spy).toHaveBeenCalledWith(bytes, {});
@@ -300,7 +329,7 @@ describe('instantiateSoundTouch', () => {
     vi.spyOn(WebAssembly, 'instantiate').mockResolvedValue({
       instance: { exports: fake },
       module: {},
-    } as unknown as WebAssembly.WebAssemblyInstantiatedSource);
+    } as never);
     await expect(instantiateSoundTouch(new ArrayBuffer(4))).resolves.toBe(fake);
   });
 });

@@ -15,7 +15,7 @@ export class FakeProcessorPort {
 
   /** Posted messages of one type. */
   public ofType(type: string): Record<string, unknown>[] {
-    return (this.posted as Record<string, unknown>[]).filter((m) => m['type'] === type);
+    return (this.posted as Record<string, unknown>[]).filter((m) => m.type === type);
   }
 }
 
