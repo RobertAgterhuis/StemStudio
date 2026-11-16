@@ -31,10 +31,11 @@ a later agent-tool-catalogue minor version.
 | 013 | **Library care**: backup and restore of the whole library, storage overview and clean-up | M4, M5 | 001-010 |
 | 014 | **Practice flow**: song sections with one-click loops, score follows playback, setlists, keyboard and foot-pedal control, practice log | S2, S5, S6, S7, S8 | 008, 012 |
 | 015 | **Play-along recording**: record yourself over the mix with latency compensation, takes, listen back, export | S3 | 007, 012 |
-| 016 | **Instrument views**: chords (keys/guitar/vocals), tablature (guitar/bass), drum trainer, singing feedback, transposed parts for B-flat/E-flat/F instruments | S1, S4, S9, S10 | 008, 014, 015 |
+| 016 | **Instrument views**: chords (keys/guitar/vocals), key detection, capo mode, tablature (guitar/bass), drum trainer, singing feedback, transposed parts for B-flat/E-flat/F instruments | S1, S4, S9, S10, S11, S12 | 008, 014, 015 |
 | 017 | **Mixer effects and controllers**: EQ, compressor, reverb and a practice EQ per strip; MIDI controller mapping (Web MIDI) | C2, C3 | 012 |
 | 018 | **Tablet and remote**: installable PWA with a music-stand layout, LAN remote control | C4 | 014 |
 | 019 | **Arrangement editor**: cut, repeat and rearrange sections of stems into a practice version, export | C6 | 007, 014 |
+| 021 | **Practice partner and studio bridge**: generate a missing part in key and tempo, amp/pedal simulation for guitar and bass, DAWproject export | C9, C10, C11 | 009, 015, 017, 019 |
 | 020 | **Insights and handouts**: stem quality report with tips; one-click lesson PDF (lyrics, chords, sections, tempo, scores) | C7, C8 | 014, 016 |
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
@@ -74,8 +75,9 @@ previous version.
 | 018 Tablet/remote | 1.17.0 | - | - | 1.17.0 | remote-protocol 1.0.0 |
 | 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.1.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
+| 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
 
 Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
-{012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> 020 (specs for 012-020 are written in
+{012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in
 parallel now). Features in braces
 are built in parallel; their contract edits are additive and merged by the CTO.

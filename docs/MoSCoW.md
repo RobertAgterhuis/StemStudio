@@ -47,6 +47,8 @@ Important, with clear value, but the product works without them.
 | S8 | **Practice log**: time practised per song and section, tempo reached in the speed trainer, simple progress chart | Motivation and insight for beginners (004 journeys). | Local only, no tracking outside the machine. S–M |
 | S9 | **Singing feedback**: pitch line of your voice against the lead vocal, per line score in the karaoke banner | Fun and useful for singers; builds on 006 and S3. | Real-time pitch tracking (e.g. an open-source pitch model or YIN in an AudioWorklet). M |
 | S10 | **Drum trainer**: drum notation with hit lanes (kick/snare/hi-hat from 002 detail stems) and a "drumless" practice mix in one click | Drummers are a large group of stem-practice users. | Builds on 002 + 008. M |
+| S11 | **Key detection**: song key (and key changes) next to the tempo; the transposed key is shown when 012 transposes | Needed to transpose sensibly and to spell chords; Moises has it. | Part of 016. S |
+| S12 | **Capo mode**: capo position and chord shapes relative to the capo, so the sounding key stays correct; suggests easy capo positions | Guitarists play songs in a comfortable shape; Moises has it. | Part of 016. S |
 
 ## Could have
 
@@ -60,6 +62,9 @@ Nice ideas; pick them when there is room.
 | C6 | **Remix and arrangement editor**: cut, repeat and rearrange sections of stems into a new practice version (e.g. "chorus 4×") | Practice versions and band arrangements. | Non-destructive edit list per mix; export via 007. L |
 | C7 | **Stem quality report**: a bleed and artefact score per stem with a tip ("try the detail model", "use the GPU model") | Explains why a stem sounds bad. | Uses existing separation metrics. S–M |
 | C8 | **Teacher handouts**: one-click PDF with lyrics, chords, sections, tempo and score per instrument for a lesson | Re-uses 006/008/S1/S2 output. | Builds on the docs PDF pipeline. S |
+| C9 | **Practice partner**: generate a missing part (bass line, drums, accompaniment) in the song's key and tempo, as an extra strip | Play with a band when a stem is missing or you want a variation; Moises' "AI session musician". | Generative stack of 009/010 (ACE-Step); research which models can generate a single part conditioned on the song. L |
+| C10 | **Amp and pedal simulation** for guitar and bass played through an audio interface | Practise with a realistic tone without an amp; Moises has an amp modeler. | Neural Amp Modeler (MIT) in an AudioWorklet/WASM; builds on 015 input and 017 effects. M |
+| C11 | **Export to a DAW** as DAWproject (open format) with stems, tempo, sections and the arrangement | Continue in Ableton, Bitwig, Studio One, Cubase. | Builds on 007 and 019. S-M |
 
 ## Won't have (this time)
 
@@ -74,6 +79,8 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 | W5 | Features that need a paid service or paid model to work | Open-source-only principle; the optional Claude backend of 011 is the single, opt-in exception. |
 | W6 | A native desktop or mobile app (Electron, MAUI) | The Blazor web app plus C4 covers the use case at a fraction of the cost. |
 | W7 | Dutch user interface (localisation) | Owner decision 2026-11-16: the UI, help and manuals stay English only. |
+| W8 | Video recording while practising | Owner decision 2026-11-16. |
+| W9 | AI mastering, auto-mix, loading VST plug-ins, a library of other people's voices | Little value for practice; VST cannot run in a browser; other voices conflict with W3. |
 
 ## Suggested order
 
@@ -96,4 +103,5 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 - 2026-11-16: no Dutch UI (W7).
 - 2026-11-16: every instrument counts equally; C1 and C5 moved to Should (S9, S10) so vocals and drums
   get their own views next to chords and tablature.
+- 2026-11-16 (comparison with Moises): key detection (S11) and capo mode (S12) go into 016; practice partner (C9), amp simulation (C10) and DAWproject export (C11) become feature 021; no video recording (W8).
 - 2026-11-16: M1 uses SoundTouch (LGPL-2.1), not Rubber Band (GPL), so StemStudio stays MIT. Any change to SoundTouch itself stays LGPL and is published with its source; the licence goes into THIRD-PARTY-LICENSES.
