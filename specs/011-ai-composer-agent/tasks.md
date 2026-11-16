@@ -184,8 +184,8 @@ clear unavailable state.
 **Goal**: choose Ollama / Claude / none with status, notice and connection test.
 **Independent test**: quickstart A14, A15; SC-006.
 
-- [ ] T060 [P] [US4] [backend] Failing tests `Agent/SettingsEndpointTests.cs`: GET/PUT settings with validation (model must exist with tools capability -> 422), `claude` without key -> 409, without notice -> 422; `POST settings/test` for Ollama; no response, log line (captured logger) or DB row ever contains the key value (test sets a sentinel key) (FR-018, FR-019, SC-006)
-- [ ] T061 [US4] [backend] Implement the settings endpoints to pass T060
+- [x] T060 [P] [US4] [backend] Failing tests `Agent/SettingsEndpointTests.cs`: GET/PUT settings with validation (model must exist with tools capability -> 422), `claude` without key -> 409, without notice -> 422; `POST settings/test` for Ollama; no response, log line (captured logger) or DB row ever contains the key value (test sets a sentinel key) (FR-018, FR-019, SC-006)
+- [x] T061 [US4] [backend] Implement the settings endpoints to pass T060
 - [ ] T062 [P] [US4] [frontend] Failing bUnit tests `Components/Agent/AgentSettingsTests.cs`: radio group, Ollama status and model pickers (only tool-capable models), Claude disabled with "not configured" when `keyConfigured` false, notice + acknowledge before saving Claude, test-connection result, errors (FR-019)
 - [ ] T063 [US4] [frontend] Implement the new `/settings` page (004-010 have none) with the agent section and the rail link `nav-settings` (ui-test-ids 1.10.0) to pass T062
 - [ ] T064 [P] [US4] [ai-agent] [amend] Failing tests `Backends/ClaudeBackendTests.cs` (stub handler for `api.anthropic.com`): factory uses `ANTHROPIC_API_KEY` from an injected environment reader, model `claude-opus-5-5` default, effort setting, tool mode auto, streaming, max output tokens; per-run token budget stops the run (`budget-exhausted`); refusal and 401/429/5xx mapped to readable `run.failed` with "Switch to local"; probe only reports `keyConfigured` and calls `GET /v1/models/{id}` only on explicit test; a "must not be called" handler proves 0 requests when Claude is not selected (FR-018, FR-020, SC-006)
@@ -204,8 +204,8 @@ clear unavailable state.
 
 - [ ] T068 [P] [US5] [ai-agent] Failing tests `Runtime/UndoPlannerTests.cs`: undo entries recorded for executed change/job steps with the inverse/compensation of the catalogue; newest available group undone in reverse order as a new run; fresh compensations auto, others need approval; entries become `obsolete` when the target changed outside the agent (mix `updatedAt`) or vanished; "nothing to undo" (FR-017, SC-007)
 - [ ] T069 [US5] [ai-agent] Implement `Runtime/UndoPlanner.cs` and recording in `StepExecutor` to pass T068
-- [ ] T070 [P] [US5] [backend] Failing tests: `POST conversations/{id}/undo` 202/409; rename/delete conversation (409 while active); reload restores messages, plans, steps (FR-002, FR-017)
-- [ ] T071 [US5] [backend] Implement to pass T070
+- [x] T070 [P] [US5] [backend] Failing tests: `POST conversations/{id}/undo` 202/409; rename/delete conversation (409 while active); reload restores messages, plans, steps (FR-002, FR-017)
+- [x] T071 [US5] [backend] Implement to pass T070
 - [ ] T072 [P] [US5] [frontend] Failing bUnit tests: undo button state, conversation rename/delete, history reload restores the view and resumes a running run's stream (FR-002)
 - [ ] T073 [US5] [frontend] Implement to pass T072
 - [ ] T074 [US5] [qa] Author `agent.spec.ts` "undo" (three mixer changes -> undo -> previous fader values via `aria-valuenow`; save-as -> undo -> mix gone) and "history" (reload page, conversation restored)
