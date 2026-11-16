@@ -36,7 +36,7 @@ public sealed class StyleToolProvider : IAgentToolProvider
         Create("list_styles", ToolRiskDto.Read) with
         {
             Title = "List styles",
-            Description = "List preset and own styles (genre, tempo feel, vocals, strength). Use the styleId with restyle_track or generate_song.",
+            Description = "List preset and own styles (genre, tempo feel, vocals, strength). Use the styleId with restyle_track or generate_song. Search a style or genre word with query (e.g. 'reggae'); genreFamily accepts only the listed families.",
             Schema = ToolSchema.Of(Param.Text("query", 1, 60).Optional(), Param.Choice("kind", "preset", "user").Optional(), Param.Choice("genreFamily", Genres).Optional()),
             Handler = ListStylesAsync,
         },
@@ -83,7 +83,7 @@ public sealed class StyleToolProvider : IAgentToolProvider
         Create("list_generations", ToolRiskDto.Read) with
         {
             Title = "List generations",
-            Description = "List restyles, songs and voice conversions (newest first, at most 20) with status, progress and takes.",
+            Description = "List restyles, songs and voice conversions (newest first, at most 20) with status, progress and takes. A generated song is found here by its title, not with search_library.",
             Schema = ToolSchema.Of(Param.Choice("kind", "restyle", "song", "voiceConversion").Optional(), Param.Uuid("trackId").Optional()),
             Handler = ListGenerationsAsync,
         },

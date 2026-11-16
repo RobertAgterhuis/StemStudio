@@ -48,7 +48,7 @@ public sealed class SongToolProvider : IAgentToolProvider
         Create("generate_song", ToolRiskDto.Heavy) with
         {
             Title = "Generate a song",
-            Description = "Make a new song from a saved sheet (lyricsId) or lyrics the user typed (lyricsText), in a style (styleId) or a short caption, or instrumental. GPU job: the user must confirm. Wait with wait_for_job phase generation.",
+            Description = "Make a new song from a saved sheet (lyricsId) or lyrics the user typed (lyricsText, copied exactly as typed), in a style (styleId) or a short caption, or instrumental. Title, style and voice are optional: do not ask for them first. GPU job: the user must confirm. Wait with wait_for_job phase generation.",
             Schema = SongSchema(),
             UndoKind = UndoKindDto.Compensate,
             LyricsArguments = ["lyricsText"],
