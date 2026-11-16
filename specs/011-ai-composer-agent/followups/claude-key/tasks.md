@@ -7,10 +7,11 @@ description: "Task list for the 011 follow-up claude-key (Phase 0 by the archite
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [contracts/](contracts/)
-(DELTA.md, backend-api 1.21.0-delta.1, ui-test-ids 1.21.0), constitution 1.4.0 (**proposed, owner
-ratification required**), ADR-020, ADR-035 (proposed).
+(DELTA.md, backend-api 1.21.0-delta.1, ui-test-ids 1.21.0), constitution 1.4.0 (**ratified by the
+owner 2026-11-16**), ADR-020, ADR-035 (Accepted).
 
 **Gate**: T001 first. No other task starts before the owner has ratified constitution 1.4.0.
+**Gate passed 2026-11-16** (T001 done; Q1 keep LAN access, Q2 keep the ciphertext).
 
 **Tests**: REQUIRED (constitution I). Every implementation task has a preceding red test task of the
 same owner (red -> green -> refactor); each owner reports >= 90 % line AND branch coverage of its
@@ -48,7 +49,7 @@ character (research R-07).
 
 ## Phase 0: Ratification, contracts and skeleton (CTO, architect; BEFORE the wave)
 
-- [ ] T001 [CTO] Owner ratification of constitution **1.4.0** (plan.md text, Q0) through `/speckit-constitution` with the sync impact report; ADR-035 -> Accepted; CTO-DECISIONS row -> decided; record the owner's answers to Q1 and Q2 in plan.md (and enable or drop T052)
+- [x] T001 [CTO] Owner ratification of constitution **1.4.0** (plan.md text, Q0) through `/speckit-constitution` with the sync impact report; ADR-035 -> Accepted; CTO-DECISIONS row -> decided; record the owner's answers to Q1 and Q2 in plan.md (and enable or drop T052) - done 2026-11-16: ratified as 1.4.0; Q1 (b) keep LAN access (T052 dropped), Q2 keep the ciphertext
 - [ ] T002 [architect] Merge `contracts/backend-api.claude-key.openapi.yaml` into the full backend document **1.21.0** and `contracts/ui-test-ids.delta.md` into the full `ui-test-ids.md` **1.21.0** (DELTA.md section 1) on the versions current at build time; Redocly 2.78.0 lint clean; extend `AgentContractTests` (full document contains base and delta; three new ids in `PendingAgentOperations`)
 - [ ] T003 [architect] Spike with devops on the reference machine (research R-04, R-05): (a) peer address seen by `api` for a Settings call from the host browser, from a LAN device and for a direct LAN call to 8081; (b) a named volume mounted at `/keys` inherits `0700`/`$APP_UID` from the image on first use; (c) the key ring and a protected payload survive `docker compose up --build`; record results in research.md (F-01..)
 - [ ] T004 [P] [architect] .NET contracts `src/StemStudio.Contracts/Agent/`: `ClaudeKeyStatusDto`, `ClaudeKeyStateDto`, `ClaudeKeySourceDto`, `StoredClaudeKeyStateDto`, `ClaudeKeyTestSourceDto`, `StoreClaudeKeyRequest` (sealed class, redacted `ToString`), `ClaudeStatusDto.Key`, `TestAgentBackendRequest.ClaudeKeySource`, `BackendTestResultDto.KeySource`, `AgentProblemTypes` (+4), `ApiRoutes.AgentClaudeKey`, `AgentContractLimits.ClaudeKeyBodyBytes = 1024`; DTO round-trip tests against the contract examples; a test that `StoreClaudeKeyRequest.ToString()` never contains the value [sec]
@@ -139,7 +140,7 @@ character (research R-07).
 - [ ] T049 [P] [frontend] Help topic `agent-claude-key` (sources, precedence, what is and is not protected in plain words, recovery) with its help-content test; axe checks of the section (WCAG 2.2 AA) (CK-FR-018, CK-SC-006)
 - [ ] T050 [P] [devops] Non-Docker path: `scripts/dev.{ps1,sh}` print the key ring directory; check script asserts the default per-user directory is outside the repository and the library; technical notes for the CTO's manual edit
 - [ ] T051 [quality-gate] SIG report and coverage review of all touched components; review of every [sec] test against plan.md threat model rows T1-T7; `run_all.py` 0 errors; hand-off
-- [ ] T052 [devops] **Only if the owner chooses Q1 (a)**: publish `8080` and `8081` on `127.0.0.1` (018 FR-011 pulled forward, `STEMSTUDIO_BIND_ADDRESS` override) with the T019 check extended; Playwright container reachability re-checked (018 T003 note)
+- [ ] T052 **not selected (owner Q1, 2026-11-16: keep LAN access until 018)**. [devops] **Only if the owner chooses Q1 (a)**: publish `8080` and `8081` on `127.0.0.1` (018 FR-011 pulled forward, `STEMSTUDIO_BIND_ADDRESS` override) with the T019 check extended; Playwright container reachability re-checked (018 T003 note)
 
 ## Integration wave (CTO, architect)
 
@@ -155,7 +156,7 @@ character (research R-07).
 | ai-agent | T007 -> T008, T009 -> T010 (HO foundational) -> T021 -> T022 (HO us-p1) -> T036 -> T037 (HO us-p2) |
 | backend | T011 -> T012, T013 -> T014, T015 -> T016 (HO foundational) -> T027 (red), T023 -> T024, T028 -> T029, T027 green (HO us-p1) -> T032 -> T033, T038 -> T039, T042 -> T043 (HO us-p2) |
 | frontend | T025 -> T026, T030 -> T031 (HO us-p1) -> T034 -> T035, T040 -> T041, T044 -> T045 (HO us-p2) -> T049 (HO polish) |
-| devops | T019 -> T020 (HO foundational) -> T050 (-> T052 if Q1 a) (HO polish) |
+| devops | T019 -> T020 (HO foundational) -> T050 (HO polish; T052 not selected, owner Q1) |
 | qa | T047 (red against the fake stack as soon as T002 is merged) -> T046 -> T048 (HO polish) |
 | quality-gate | T017 -> T018 (HO foundational) -> T051 (HO polish) |
 
@@ -167,7 +168,7 @@ character (research R-07).
 
 ## Definition of Done checklist (mirrors the constitution)
 
-- [ ] Constitution 1.4.0 ratified before implementation (T001)
+- [x] Constitution 1.4.0 ratified before implementation (T001, 2026-11-16)
 - [ ] Tests green; >= 90 % line and branch per component; exact numbers in every hand-off
 - [ ] Analyzers, `dotnet format`, SIG limits, `run_all.py`, `secret_scan.py` clean
 - [ ] Contracts merged and Redocly-valid (backend 1.21.0, ui-test-ids 1.21.0)

@@ -1,23 +1,23 @@
 {
   "schema": 1,
   "builtAt": "2026-11-16",
-  "sourceHash": "f2702f94579221fdf2ebf7f91b9b9e2ae9dae648fa37e559e88c40693dbc90a8",
+  "sourceHash": "8f8727996ffe9bac3f556c0c6fc1de973af5ea5f9ea18fa6577625a5ae70c70b",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 34,
-      "bytes": 1138786
+      "bytes": 1139797
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 41,
-      "bytes": 1519380
+      "bytes": 1519970
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "09c7c5f28d106c0f294b5d3dd63f60831a32811c9cdf7d98fb7e86264e710603"
+      "sha256": "4a978cf27c08b14fe8cdf91388987d18e20b6c564e31795e86e129a039cd0e8b"
     },
     {
       "path": "docs/STATUS.md",
@@ -73,7 +73,7 @@
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
-      "sha256": "af9b57d73aa379c25ceaf951ada9b1318ccd301e5a6c98e99cee86115f706f33"
+      "sha256": "fce718647b25551e4524f5b0a548f26c2340647c6bf89934575ffc6cc375b855"
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",

@@ -57,11 +57,21 @@
   onnxruntime wheels) MAY be used as a system dependency, like the GPU driver, only in the optional
   GPU image variant. The default CPU image stays fully open source, and every feature MUST keep
   working on the CPU.
-- **Optional paid AI service exception** (owner decision 2026-11-15, "both, configurable"; ADR-020):
+- **Optional paid AI service exception** (owner decision 2026-11-15, "both, configurable"; ADR-020;
+  condition (2) widened by the owner on 2026-11-16, constitution 1.4.0, ADR-035):
   the Claude API MAY be used as an alternative LLM backend of the AI composer agent, under these
-  conditions: (1) opt-in, off by default, never switched to automatically; (2) the key comes only
-  from the `ANTHROPIC_API_KEY` environment variable and never appears in files, the database, logs,
-  command lines, responses or the UI; (3) StemStudio, including the agent (local Ollama default, or
+  conditions: (1) opt-in, off by default, never switched to automatically; (2) the key comes from
+  the `ANTHROPIC_API_KEY` environment variable or, when the owner enters it in Settings on the
+  computer StemStudio runs on, from the database, encrypted with ASP.NET Core Data Protection; the
+  encryption key ring is stored separately from the database (its own Docker volume or a per-user
+  directory), restricted to the app, and is never part of the library, a backup, an export or the
+  repository; the environment variable wins when both exist; the key is write-only: it never
+  appears in plain text in files, the database, logs, command lines, events, responses, backups or
+  the UI, which may show only its source, its last four characters and when it was saved; it
+  cannot be entered, changed or tested from another device; an unreadable stored key disables
+  Claude with a readable fix and never stops StemStudio. Encryption protects against a leaked
+  database, backup or export, not against someone with full access to the computer; this limit is
+  documented for the user; (3) StemStudio, including the agent (local Ollama default, or
   "off"), is fully functional without it, and CI never calls it; (4) access only through the
   open-source Anthropic SDK; (5) text only, with per-run limits and visible usage; (6) any other
   paid service needs its own amendment.
@@ -127,4 +137,4 @@
   closes. `tools/docs/check.mjs` (in `scripts/test-all.*` and CI) fails when the sources differ
   from `docs/public/build-manifest.json`.
 
-**Version**: 1.3.1 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-15
+**Version**: 1.4.0 | **Ratified**: 2026-11-14 | **Last Amended**: 2026-11-16

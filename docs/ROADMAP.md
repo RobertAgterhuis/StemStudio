@@ -47,8 +47,8 @@ Cross-cutting, every feature: in-app help entries (004 framework), user-journey 
   API (optional, paid per use, key only via environment variable, off when no key is set). This
   needs a constitution amendment for an optional, opt-in paid external service (feature 011).
 - 2026-11-16: the Claude key can also be entered in Settings and stored encrypted in the database
-  (environment variable still wins); needs constitution 1.4.0, proposed, owner ratification required
-  (011 follow-up claude-key).
+  (environment variable still wins); constitution 1.4.0 ratified by the owner on 2026-11-16 (011
+  follow-up claude-key; LAN access kept until 018, backups keep the ciphertext).
 - 2026-11-15: Model weights exception (constitution 1.1.0, ADR-009) also applies to the generative
   and transcription models of 008-010.
 
@@ -84,12 +84,12 @@ previous version.
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
 
 The 011 follow-up "claude-key" (owner decision 2026-11-16, design in
-`specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 proposed) takes the next free minors,
+`specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 accepted) takes the next free minors,
 backend-api **1.21.0** and ui-test-ids **1.21.0**, as standalone deltas. Whatever is built first is
 merged onto the full documents current at that time (as 013 does after 012); if the follow-up is
 built before 012-021, its delta keeps the label 1.21.0 and the CTO merges the earlier-numbered
-deltas onto it in feature order, so no allocated number is reused. It needs constitution 1.4.0
-(proposed, owner ratification required).
+deltas onto it in feature order, so no allocated number is reused. Constitution 1.4.0 was
+ratified by the owner on 2026-11-16.
 
 Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
 {012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in

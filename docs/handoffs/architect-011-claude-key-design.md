@@ -56,3 +56,20 @@ manual (volume `api-keys`, key ring directory, never copy it with backups, threa
 ## Next owner
 
 CTO (owner ratification, T001), then architect Phase 0 (T002-T006).
+
+## Owner decisions recorded (2026-11-16)
+
+- Q0: constitution **1.4.0** ratified (MINOR) and applied to `.specify/memory/constitution.md`
+  (condition (2) of the paid-service exception replaced; version line 1.4.0, Last Amended
+  2026-11-16; the file has no Sync Impact Report comment or history section, so the amendment is
+  recorded in the exception's provenance and in this commit). ADR-035 Accepted; CTO-DECISIONS row
+  ratified; T001 ticked.
+- Q1: keep LAN access until 018; threat T7 recorded as an accepted residual risk (plan.md, ADR-035,
+  CTO-DECISIONS, 018 note); T052 not selected; spike T003 kept.
+- Q2: 013 backups keep the ciphertext; 013 spec cross-feature note and T048 now state: same
+  computer keeps the key, another computer asks again, the archive never contains the key ring.
+- Superseded notes (no behaviour rewrite): 011 spec clarification, FR-018, SC-006; 011 plan
+  amendment quote; 011 tasks DoD line; ADR-020 D3; technical manual chapter 5 (PDFs rebuilt,
+  `node tools/docs/check.mjs` green). README, SECURITY.md and the other manual chapters describe
+  delivered behaviour and stay for T054/T055.
+- Next: architect Phase 0 (T002-T006), then the owner wave.

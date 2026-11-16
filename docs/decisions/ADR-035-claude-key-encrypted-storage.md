@@ -1,8 +1,9 @@
 # ADR-035: Claude API key entered in Settings and stored encrypted (011 follow-up)
 
-- **Status**: Proposed (architect, 2026-11-16). Conditional on constitution **1.4.0** (proposed,
-  owner ratification required; text in
-  `specs/011-ai-composer-agent/followups/claude-key/plan.md`).
+- **Status**: Accepted (owner, 2026-11-16). Proposed by the architect on 2026-11-16; constitution
+  **1.4.0** ratified by the owner on 2026-11-16 (text in
+  `specs/011-ai-composer-agent/followups/claude-key/plan.md`). Owner answers: Q1 keep LAN access
+  until 018, Q2 keep the ciphertext in 013 backups.
 - **Context documents**: `specs/011-ai-composer-agent/followups/claude-key/{spec.md, plan.md,
   research.md, data-model.md, contracts/DELTA.md}`, ADR-020 D3 (Claude backend), ADR-022 (013
   backups), ADR-027 (018 LAN security).
@@ -44,8 +45,11 @@ explicitly (research R-02); the app is reachable on the LAN without authenticati
   read-only library mount. Does **not** protect against someone who can read both the database and
   the key ring (full host access) or the process memory; stated in the help topic and manuals.
 - Before 018 a hostile LAN client can overwrite or delete (not read) the stored key through the
-  Web page with a forged host name; owner question Q1 offers binding the ports to `127.0.0.1` now.
-- A restore on another computer or a lost key volume means entering the key again.
+  Web page with a forged host name. The owner kept LAN access and accepted this residual risk until
+  018 closes it (Q1, 2026-11-16); the ports are not bound to `127.0.0.1` before 018.
+- 013 backups keep the ciphertext (Q2, 2026-11-16): a restore on the same computer keeps the key; a
+  restore on another computer or a lost key volume means entering the key again; an archive never
+  contains the key ring.
 - One more volume to document; the technical manual says not to copy `api-keys` with backups.
 
 ## Alternatives considered

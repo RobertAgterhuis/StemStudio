@@ -3,8 +3,10 @@
 **Feature**: follow-up of `specs/011-ai-composer-agent` (AI composer agent)
 **Branch**: `011-claude-key-spec` (design), implementation branch `011-claude-key`
 **Created**: 2026-11-16
-**Status**: Draft (architect). Implementation is blocked until the owner ratifies the constitution
-amendment 1.4.0 proposed in [plan.md](plan.md#constitution-amendment-140-proposed-owner-ratification-required).
+**Status**: Draft (architect). Constitution amendment 1.4.0 in
+[plan.md](plan.md#constitution-amendment-140-ratified-by-the-owner-2026-11-16) was ratified by the
+owner on 2026-11-16 (Q0); Q1 (keep LAN access until 018) and Q2 (keep the ciphertext in backups)
+are answered there.
 **Input**: owner decision 2026-11-16: "enter the Anthropic API key in the GUI (Settings page) and
 store it ENCRYPTED in the SQLite database, instead of only via the `ANTHROPIC_API_KEY` environment
 variable". Binding design agreed by the coordinator with the owner (Data Protection, separate key
@@ -45,12 +47,12 @@ merged into the 011 documents only after ratification (tasks T001, T053).
 - Q: From where can the key be entered? -> A: only from the computer StemStudio runs on
   (localhost). Paired 018 remote devices never can. Before 018 is built the Docker set-up cannot
   tell a browser on the computer from one on the LAN (research R-05); the rule is then a host-name
-  guard, and the hard boundary arrives with 018's `127.0.0.1` binding (owner question Q1 in
-  plan.md).
+  guard, and the hard boundary arrives with 018's `127.0.0.1` binding. The owner kept LAN access
+  until 018 and accepted that residual risk (Q1, 2026-11-16, plan.md).
 - Q: Is the ciphertext in a 013 backup? -> A: yes, inside the database snapshot (it is useless
   without the key ring, which a backup never contains). Restoring on the same installation keeps
-  the key working; on another installation the status becomes `stored-unreadable` (owner question
-  Q2 in plan.md offers the stricter alternative).
+  the key working; on another installation the status becomes `stored-unreadable` and the owner
+  enters the key again (owner decision Q2, 2026-11-16: keep the ciphertext, do not strip it).
 
 ## User Scenarios & Testing *(mandatory)*
 

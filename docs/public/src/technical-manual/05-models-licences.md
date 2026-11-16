@@ -17,7 +17,9 @@ CTO consolidates from every hand-off.
   system dependency of the optional GPU images only.
 - **Optional paid AI service (constitution 1.3.0, ADR-020).** Anthropic's Claude API for the
   agent: opt-in, off by default, key only from the environment, text only, per-run limits and
-  visible usage, never required. Any other paid service needs its own amendment.
+  visible usage, never required. Any other paid service needs its own amendment. The key rule is
+  superseded by constitution 1.4.0 (ADR-035) once the claude-key follow-up ships: the key may then
+  also be entered in Settings and stored encrypted.
 - **GPU-only generative services (constitution 1.3.0, ADR-018).** The generator may require a
   GPU because generative models are impractical on a CPU.
 

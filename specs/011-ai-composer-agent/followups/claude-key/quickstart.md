@@ -29,7 +29,7 @@ Anthropic call); Q7-Q9 need the reference machine; Q10 is optional, paid, owner 
 | Q7 | `docker volume inspect stemstudio_api-keys`; `docker compose exec api stat -c '%a %u' /keys` | volume exists, `700` and the app uid; `docker compose exec worker ls /keys` fails (not mounted) |
 | Q8 | Save a well-formed dummy key in Settings (the prefix plus 100 random letters typed by hand; saving never contacts Anthropic), then `docker compose down` and `docker compose up -d --build --wait` | status still `stored`, same last four (CK-SC-003) |
 | Q9 | `docker compose down`, `docker volume rm stemstudio_api-keys`, `docker compose up -d --wait` | API healthy; status `stored-unreadable` with "Enter the key again"; Ollama agent and the full E2E suite work (CK-SC-004); saving a key again -> `stored` |
-| Q9b | From a second device on the LAN open `http://<computer-ip>:8080/settings` (before 018; after owner choice Q1 (a), binding to 127.0.0.1, the page does not load at all) | key section disabled with the local-only notice; `curl -X DELETE http://<computer-ip>:8081/api/agent/settings/claude-key` -> `403 local-only` |
+| Q9b | From a second device on the LAN open `http://<computer-ip>:8080/settings` (before 018; the owner kept LAN access, Q1 (b) 2026-11-16) | key section disabled with the local-only notice; `curl -X DELETE http://<computer-ip>:8081/api/agent/settings/claude-key` -> `403 local-only` |
 
 ## C. Optional, paid, owner only
 

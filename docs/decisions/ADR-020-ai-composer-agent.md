@@ -52,7 +52,8 @@ model `qwen3.5:9b`, fallback `qwen3.5:4b` on the CPU while a GPU-heavy job is qu
 5.5) with explicit effort `low` (configurable), `ToolMode` auto (forced tool choice is rejected by
 the model), streaming, per-run token budget, no server-side model fallbacks (a refusal ends the
 run); **none**; **fake** (tests). The key is read from `ANTHROPIC_API_KEY` only, at client
-creation, and never stored, logged or returned. Claude is selectable only when the key exists and
+creation, and never stored, logged or returned (key source superseded by constitution 1.4.0 and
+ADR-035 once the claude-key follow-up ships: the key may also be stored encrypted from Settings). Claude is selectable only when the key exists and
 the paid-use notice is acknowledged; there is no automatic switching between Ollama and Claude.
 
 ### D4 Tool registry that grows per feature

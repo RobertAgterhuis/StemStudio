@@ -547,6 +547,8 @@ loopback or the `web` service, loopback host names, web origin). For 018 this me
   protocol stays without secret commands (remote-protocol 1.0.0 unchanged).
 - FR-011 (ports on `127.0.0.1`), FR-013 (remote listener 404 for every API path) and FR-014
   (host-name allow-lists) are what make "only on the computer itself" a hard boundary; until 018 the
-  follow-up's Web-side check is a host-name guard only (follow-up research R-05, plan.md Q1).
+  follow-up's Web-side check is a host-name guard only (follow-up research R-05). The owner kept
+  LAN access until 018 (follow-up plan.md Q1, 2026-11-16) and accepted that a LAN device forging the
+  host name can overwrite or delete the stored key, never read it; 018 closes this gap.
 - 018 security tests add: `PUT /api/agent/settings/claude-key` through the remote listener -> 404;
   a paired device's WebSocket has no message type that reaches the key.

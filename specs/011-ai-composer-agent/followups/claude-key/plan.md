@@ -7,7 +7,9 @@ owner; 011 spec/plan/data-model/contracts; 013 and 018 designs; constitution 1.3
 
 **Note**: produced by the architect agent (`/speckit-plan` equivalent). **Gate**: no
 implementation task starts before the owner ratifies the constitution amendment 1.4.0 below
-(task T001). Until then 011 behaves as built (environment variable only).
+(task T001). **Gate passed**: the owner ratified 1.4.0 on 2026-11-16 and answered Q1 and Q2 (see
+[Owner answers](#owner-answers-2026-11-16)). Until the follow-up ships, 011 behaves as built
+(environment variable only).
 
 ## Summary
 
@@ -39,7 +41,7 @@ files, DOM (CK-SC-001).
 Windows/Linux/macOS dev path.
 **Performance Goals**: save -> new status <= 1 s p95; status call adds <= 5 ms (one row read, one
 decrypt, cached per API process until the row or the environment changes).
-**Constraints**: constitution 1.4.0 condition (2) as proposed; SIG limits; >= 90 % line and branch;
+**Constraints**: constitution 1.4.0 condition (2) (ratified 2026-11-16); SIG limits; >= 90 % line and branch;
 no Anthropic call in CI; no secret-shaped literal in the repository (`scripts/secret_scan.py`).
 **Scale/Scope**: one secret row, three endpoints, one Settings section, one volume.
 
@@ -50,7 +52,7 @@ no Anthropic call in CI; no secret-shaped literal in the repository (`scripts/se
 | I | Test-first, >= 90 % | every task is a red/green pair; sentinel scan and must-not-call handler are executable criteria; no Anthropic call in tests | PASS |
 | II | SIG 4 stars | small units: format parser, state function, store, filter, endpoint group; Data Protection confined to `StemStudio.Api/Agent/Secrets` (quality-gate dependency rule) | PASS |
 | III | Contracts first | backend API delta 1.21.0-delta.1 (Redocly valid), ui-test-ids delta 1.21.0, DTOs before the wave (T002-T004) | PASS |
-| IV | Open source, lawful use | no new dependency (Data Protection is MIT, shared framework). **Condition (2) of the paid-service exception says the key "never appears in files, the database ...": storing an encrypted key in the database and showing its last four characters is not allowed today** -> amendment 1.4.0 proposed below | **BLOCKED until ratified** (Complexity Tracking row 1) |
+| IV | Open source, lawful use | no new dependency (Data Protection is MIT, shared framework). **Condition (2) of the paid-service exception says the key "never appears in files, the database ...": storing an encrypted key in the database and showing its last four characters was not allowed under 1.3.1** -> amendment 1.4.0 below, ratified by the owner 2026-11-16 | **PASS** (1.4.0; Complexity Tracking row 1) |
 | V | Simplicity and honesty | one secret, no own crypto, no key-ring certificates (YAGNI, research R-02); the threat model states what is not protected; local-only limit before 018 stated (research R-05) | PASS |
 | - | Tech and security constraints | no secrets in files/command lines (the key arrives in a request body over loopback / the compose network); validated input; body limit; no logs of the value | PASS |
 | - | Public manuals (1.3.1) | user manual (Settings, Claude key), technical manual (volume `api-keys`, key ring dir, backup note, recovery) - CTO task T055 | PASS (planned) |
@@ -68,13 +70,16 @@ organisation's Messages API). Single local user, no accounts.
 | T4 | Logs, problem details, SSE events, screenshots of the UI, browser history, password managers | **yes** | write-only API, fixed problem texts, HTTP logging disabled for the route, `autocomplete="off"`, the page never renders the value |
 | T5 | A malicious web page in the owner's browser calls the API (CSRF) | **yes** | `PUT`/`DELETE` with JSON need a CORS preflight; the API allows only `GET` from the web origin; the key cannot be read back anyway |
 | T6 | A paired 018 remote device | **yes** (after 018) | no remote command; remote listener 404s API paths; API bound to `127.0.0.1` |
-| T7 | Another device on the LAN **before 018** (ports published on all interfaces, owner decision to keep LAN as is) | **partly** | it can never **read** the key (write-only). The API refuses direct calls (peer is not loopback/web). Through the Web page it is stopped only by a host-name guard, which a hostile client can forge: it could overwrite or delete the stored key, and - as today, independent of this feature - select Claude and spend tokens with whatever key is configured. Fixed by 018 (`127.0.0.1` binding) or earlier per owner question Q1 |
+| T7 | Another device on the LAN **before 018** (ports published on all interfaces, owner decision to keep LAN as is) | **partly** | it can never **read** the key (write-only). The API refuses direct calls (peer is not loopback/web). Through the Web page it is stopped only by a host-name guard, which a hostile client can forge: it could overwrite or delete the stored key, and - as today, independent of this feature - select Claude and spend tokens with whatever key is configured. **Accepted residual risk until 018** (owner decision Q1, 2026-11-16: keep LAN access, no `127.0.0.1` binding before 018; T052 not selected). Closed by 018 (`127.0.0.1` binding, FR-011/FR-014) |
 | T8 | Someone who can read **both** volumes or the per-user directory and the database (full host access: admin/root on the computer, Docker Desktop's VM disk, a full disk image, malware running as the owner) | **no** | on Linux the key ring is not encrypted at rest (research R-02); anyone with both decrypts the key. On Windows non-Docker, DPAPI binds the ring to the Windows user, which does not stop malware running as that user. This is stated in the help topic and the technical manual |
 | T9 | Memory of the running API / Web process (debugger, crash dump) | **no** | the key is in memory while a Claude client exists and briefly in the Blazor circuit during entry |
 | T10 | Key in transit browser -> Web -> API | localhost only | Blazor circuit over `http://localhost` and plain HTTP on the internal compose network; never on the LAN after 018 |
 | T11 | Lost key volume / restore on another computer | **availability**, not secrecy | `stored-unreadable` with "Enter the key again"; nothing else breaks |
 
-Residual risks accepted in the amendment: T8, T9; T7 until 018 (or Q1).
+Residual risks accepted in the amendment: T8, T9; T7 until 018. T7 was accepted explicitly by the
+owner on 2026-11-16 (Q1 (b)): until 018 is built, a device on the LAN that forges the host name can
+overwrite or delete the stored key through the Web page, but never read it. Spike T003 still
+records the Docker Desktop peer-address behaviour this rests on (research R-05).
 
 ## Design
 
@@ -158,10 +163,10 @@ maps to "the browser on the computer itself", which 018 makes a real boundary.
   FR-011/013/014).
 - `docs/ROADMAP.md`: contract allocation row "011 follow-up claude-key: backend-api 1.21.0,
   ui-test-ids 1.21.0".
-- `docs/decisions/CTO-DECISIONS-2026-11-15.md`: one row, "proposed, owner ratification required".
-- `docs/decisions/ADR-035-claude-key-encrypted-storage.md`: Proposed.
+- `docs/decisions/CTO-DECISIONS-2026-11-15.md`: one row, ratified by the owner 2026-11-16.
+- `docs/decisions/ADR-035-claude-key-encrypted-storage.md`: Accepted (2026-11-16).
 
-## Constitution amendment 1.4.0 (proposed, owner ratification required)
+## Constitution amendment 1.4.0 (ratified by the owner 2026-11-16)
 
 **Version**: 1.3.1 -> **1.4.0** (MINOR). Rationale: principle IV and its paid-service exception
 stay; one condition of the exception is materially widened, with new safeguards. Governance names
@@ -190,7 +195,7 @@ principle IV. If the owner reads it as a redefinition, the same text ships as 2.
 
 **Sync impact report** (for `/speckit-constitution`, task T001):
 
-- Version 1.3.1 -> 1.4.0; Last Amended 2026-11-16 (or the ratification date).
+- Version 1.3.1 -> 1.4.0; Last Amended 2026-11-16 (applied to `.specify/memory/constitution.md`, T001).
 - Templates: none change.
 - Follow-ups after ratification: 011 `spec.md` FR-018 key sentence, FR-019 ("key configured"),
   SC-006 ("never appears in any ... database row" -> "never in plain text"); 011 `data-model.md`
@@ -198,10 +203,10 @@ principle IV. If the owner reads it as a redefinition, the same text ships as 2.
   passing it to the SDK client" -> "... the key (from the environment or the stored-key port)";
   `docker-compose.yml` comment block; `SECURITY.md`; user and technical manuals (tasks T053-T055).
 
-**Proposed CTO-DECISIONS row** (added to `docs/decisions/CTO-DECISIONS-2026-11-15.md` with this
-design, marked proposed):
+**CTO-DECISIONS row** (added to `docs/decisions/CTO-DECISIONS-2026-11-15.md` with this design as
+proposed; text as ratified on 2026-11-16):
 
-> | 011 | Claude API key entered in Settings and stored encrypted in SQLite (owner decision 2026-11-16) | **Proposed, owner ratification required**: constitution 1.4.0 (condition (2) of the paid-service exception widened); ASP.NET Core Data Protection, key ring in its own volume `api-keys` excluded from 013 backups; environment variable wins; write-only, local-only API; design `specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 |
+> | 011 | Claude API key entered in Settings and stored encrypted in SQLite (owner decision 2026-11-16) | **Ratified by the owner 2026-11-16**: constitution 1.4.0 (condition (2) of the paid-service exception widened); ASP.NET Core Data Protection, key ring in its own volume `api-keys` excluded from 013 backups; environment variable wins; write-only, local-only API; design `specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 |
 
 ## Complexity Tracking
 
@@ -209,7 +214,7 @@ design, marked proposed):
 |---|---|---|
 | Constitution IV condition (2) (key in the database, last four shown) | owner decision 2026-11-16: environment variables in the shell that starts Docker are awkward and lost per shell | keeping env-only is the owner's current pain; storing in plain text or in a file would weaken the condition instead of replacing it with safeguards |
 | A second Docker volume (`api-keys`) | the key ring must not sit next to the ciphertext or in backups | storing the ring in `api-data` would put both in every backup and in the worker's read-only mount |
-| Two-layer local-only check with a soft layer before 018 | the Docker NAT hides the browser's address (research R-05) | binding ports to `127.0.0.1` now is 018's job and the owner kept LAN access for now (Q1 offers it) |
+| Two-layer local-only check with a soft layer before 018 | the Docker NAT hides the browser's address (research R-05) | binding ports to `127.0.0.1` now is 018's job and the owner kept LAN access until 018 (Q1 (b), 2026-11-16) |
 
 ## Owner questions (real decisions)
 
@@ -218,6 +223,14 @@ design, marked proposed):
 | Q0 | Ratify constitution 1.4.0 (text above)? | yes / no / as 2.0.0 | yes, 1.4.0 |
 | Q1 | Until 018 is built, any device on the LAN can open StemStudio and, with a forged host name, overwrite or delete (never read) the stored key. Bind the web and API ports to `127.0.0.1` now (018 FR-011 pulled forward; LAN use of the app stops until 018)? | (a) bind to `127.0.0.1` with this follow-up; (b) keep LAN access, accept T7 until 018 | (a): one compose change, no app logic; LAN use returns with 018's remote |
 | Q2 | 013 backups: keep the ciphertext in the database snapshot (same-computer restore keeps the key, other computer -> "enter again"), or strip it (every restore asks for the key)? | keep / strip | keep: the archive is useless without the key ring, which is never archived |
+
+### Owner answers (2026-11-16)
+
+| # | Answer | Effect |
+|---|---|---|
+| Q0 | **Ratified as 1.4.0** (MINOR) | text above applied to `.specify/memory/constitution.md`; ADR-035 Accepted; CTO-DECISIONS row ratified; T001 done |
+| Q1 | **(b) keep LAN access**; no `127.0.0.1` binding before 018 | threat T7 is an accepted residual risk until 018 (a LAN device forging the host name can overwrite or delete the stored key, never read it); T052 not selected; spike T003 stays (Docker Desktop peer-address behaviour); 018 closes the gap (cross-feature note in 018 `spec.md`) |
+| Q2 | **keep** the ciphertext in 013 backups | restore on the same computer keeps the key; restore on another computer asks for the key again (`stored-unreadable`); the archive never contains the key ring (013 `spec.md` cross-feature note, tasks T035, T048, T062) |
 
 ## Agent definition changes
 

@@ -131,8 +131,9 @@ authentication, and the owner decided on 2026-11-16 to keep LAN access as is unt
   overwrite or delete the stored key (it can never read it; the API is write-only), and it can
   already today do anything else the unauthenticated app allows (including selecting Claude with
   the owner's environment key). The hard boundary is 018 FR-011/FR-014 (ports bound to
-  `127.0.0.1`, host-name allow-list on both listeners). Owner question Q1 offers to pull the
-  `127.0.0.1` binding forward into this follow-up.
+  `127.0.0.1`, host-name allow-list on both listeners). Owner decision Q1 (2026-11-16): the
+  binding is not pulled forward; LAN access stays until 018 and this limit is an accepted residual
+  risk (plan.md threat T7).
 
 ## R-06 Logging, exceptions and DTOs
 
@@ -180,7 +181,7 @@ prefix, characters `[A-Za-z0-9_-]` only, not an admin key. The live check is the
 `api-data` volume and the database snapshot. The separate `api-keys` volume is therefore outside
 any archive by construction; the cross-feature note makes it explicit and adds a test (013 T035
 extension: no entry from the key ring directory, no plaintext sentinel). Decision on the ciphertext
-row: kept in the snapshot (owner question Q2 offers stripping it).
+row: kept in the snapshot (owner decision Q2, 2026-11-16: keep, do not strip).
 
 ## Dependencies
 

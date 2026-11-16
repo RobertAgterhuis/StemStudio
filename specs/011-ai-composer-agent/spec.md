@@ -63,7 +63,8 @@ owner are listed at the end of [plan.md](plan.md) ("Owner questions").
   GPU job holds the GPU; **Claude** (optional, paid per use) with `claude-opus-5-5`; and
   **none** (agent off, every other feature unaffected). The backend is chosen in Settings; Claude
   can be selected only when `ANTHROPIC_API_KEY` is set in the API's environment. The key is never
-  shown, stored, logged or sent to the browser.
+  shown, stored, logged or sent to the browser. *(Key-source rule superseded by constitution 1.4.0
+  once the claude-key follow-up ships, `specs/011-ai-composer-agent/followups/claude-key/`.)*
 - Q: What happens when the selected backend is unavailable? → A: the panel shows the status and a
   fix ("Start Ollama", "Model not pulled: run `ollama pull qwen3.5:9b`", "Claude key missing or
   rejected"); the user can switch backend. StemStudio never switches silently from Ollama to the
@@ -360,7 +361,8 @@ fake backend (exact tool calls) and on the reference machine with the local mode
 - **FR-018**: The system MUST support the backends Ollama (default), Claude (optional) and none;
   the selection and model choices are settings stored locally; the Claude API key MUST come only
   from the `ANTHROPIC_API_KEY` environment variable of the API and MUST NOT be stored, logged,
-  returned by any endpoint or shown.
+  returned by any endpoint or shown. *(Key sentence superseded by constitution 1.4.0 once the
+  claude-key follow-up ships: CK-FR-001..003 in `specs/011-ai-composer-agent/followups/claude-key/`, folded in by its task T053.)*
 - **FR-019**: Settings MUST show for each backend: availability (reachable / model present /
   tool support / key configured), the active model, and for Claude the "paid per use" notice with
   the list of data sent; selecting Claude MUST require acknowledging the notice once.
@@ -422,7 +424,9 @@ fake backend (exact tool calls) and on the reference machine with the local mode
   the panel shows the unavailable state within 3 s.
 - **SC-006**: Without `ANTHROPIC_API_KEY`, CI and the default start make **0** requests to the
   Claude API (verified by a failing HTTP handler in tests); the key never appears in any API
-  response, log line, database row or page (automated scan in tests).
+  response, log line, database row or page (automated scan in tests). *("database row" becomes "in
+  plain text in a database row": superseded by constitution 1.4.0 once the claude-key follow-up
+  ships.)*
 - **SC-007**: Undo restores the previous state for 100 % of reversible actions in the automated
   tests (mixer values, saved mix, overwritten mix, cancelled job).
 - **SC-008**: On the reference machine, a detail separation started while the agent model is

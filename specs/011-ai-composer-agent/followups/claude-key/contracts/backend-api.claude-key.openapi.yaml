@@ -15,7 +15,7 @@ info:
       operation ids, `testAgentBackend` gains a `403`. Every other 1.10.0 operation, schema and
       behaviour is unchanged; the unchanged schemas this document needs to validate on its own
       are copied from 1.10.0 verbatim.
-    * Requires constitution **1.4.0** (proposed, owner ratification required): the Claude key may be
+    * Requires constitution **1.4.0** (ratified by the owner 2026-11-16): the Claude key may be
       stored encrypted in the database; only its last four characters, its source and the save time
       are ever shown.
     * **Write-only**: no response, problem detail, event or log line ever contains the key or any

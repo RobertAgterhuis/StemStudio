@@ -107,6 +107,9 @@ Add to principle **IV. Open Source Only, Lawful Use**, after the GPU vendor runt
 >      files, lyrics text from online sources, biographies or secrets; per-run token limits apply
 >      and usage is shown;
 >   6. any other paid service or paid tier requires its own amendment.
+>
+> *Note (2026-11-16): condition 2 is superseded by constitution 1.4.0 once the claude-key follow-up
+> ships (`specs/011-ai-composer-agent/followups/claude-key/`, ADR-035); the text above is the 1.3.0 draft as ratified then.*
 
 Add to **Technology & Security Constraints**:
 
