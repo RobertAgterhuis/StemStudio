@@ -1,0 +1,672 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - feature 017 delta
+  version: 1.16.0-delta
+  summary: New operations and schemas of backend-api 1.16.0 (mixer effects, export pre-renders, controller profiles).
+  description: |
+    Standalone, lint-clean fragment. Phase 0 (T002) merges it into the full
+    `backend-api.openapi.yaml` 1.16.0 on top of the version current when 017 starts (1.15.0 from
+    016) and applies the property additions listed in `../DELTA.md` section 2 to existing schemas
+    (`ChannelSettings`, `DetailChannelSettings`, `MixSettings`, `ExportMix`,
+    `CreateAudioExportRequest`, `ExportRecipe`). Everything is additive: requests without the new
+    members behave exactly as in 1.15.0.
+
+    Conventions as in the full document: camelCase JSON, lower-case enum strings, RFC 9457
+    problem details with `type` = `https://stemstudio.local/problems/<code>`, closed schemas.
+
+    Changelog line for the full document: 1.16.0 (additive, feature 017) - optional strip
+    `effects` on `ChannelSettings`/`DetailChannelSettings` and a mix-level `effects` (reverb bus)
+    on `MixSettings`/`ExportMix` (absent = effects off, mixes saved before 1.16.0 load
+    unchanged); `POST /api/tracks/{trackId}/prerenders` and `DELETE /api/prerenders/{prerenderId}`
+    (browser-rendered 32-bit float WAV of an export with effects); `CreateAudioExportRequest.effects`
+    (`ignore` default, `apply`) and `prerenderId`; `ExportRecipe.effects`;
+    `/api/controller-profiles` CRUD (MIDI controller mappings per device).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8080
+    description: Local API (docker compose)
+security: []  # single local user; no authentication (001 spec Assumptions)
+tags:
+  - name: prerenders
+    description: Browser-rendered audio used by exports with effects (1.16.0).
+  - name: controllers
+    description: MIDI controller profiles and bindings (1.16.0).
+paths:
+  /api/tracks/{trackId}/prerenders:
+    post:
+      tags: [prerenders]
+      operationId: createPrerender
+      summary: Upload the browser's offline render of an export with effects (1.16.0).
+      description: |
+        Body: RIFF/WAVE, IEEE float (format 3), 32-bit, 2 channels, 44,100 Hz, at most
+        `StemStudio:MaxPrerenderBytes` (320,000,000) bytes; `Content-Length` is required. The file
+        is stored as a staging pre-render and must be consumed by `createAudioExport`
+        (`effects: apply`) within `StemStudio:PrerenderTtlMinutes` (60); unused pre-renders are
+        deleted after that. CORS: the web origin may POST here with `Content-Type: audio/wav`.
+      parameters:
+        - $ref: '#/components/parameters/TrackId'
+        - name: Content-Length
+          in: header
+          required: true
+          schema:
+            type: integer
+            minimum: 52
+            maximum: 320000000
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              contentMediaType: audio/wav
+      responses:
+        '201':
+          description: Stored; use `prerenderId` in the export request.
+          headers:
+            Location:
+              description: '`/api/prerenders/{prerenderId}`'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prerender'
+              examples:
+                stored:
+                  value:
+                    prerenderId: 5d0c2b8e-3f1a-4c6d-9e2b-7a8f1c3d5e6f
+                    trackId: 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a
+                    frames: 1984500
+                    durationSeconds: 45.0
+                    sizeBytes: 15876044
+                    expiresAt: '2026-11-16T11:00:00Z'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`track-not-ready` (track not completed) or `insufficient-disk-space`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                notReady:
+                  value:
+                    type: https://stemstudio.local/problems/track-not-ready
+                    title: Track not ready
+                    status: 409
+                    detail: The track has not finished processing.
+        '411':
+          description: '`length-required`: no `Content-Length` header.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '413':
+          description: '`prerender-too-large`: more than 320,000,000 bytes (about 15 minutes).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '415':
+          description: '`unsupported-prerender`: not a 32-bit float stereo 44.1 kHz WAV; `detail` names the field.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                wrongRate:
+                  value:
+                    type: https://stemstudio.local/problems/unsupported-prerender
+                    title: Unsupported pre-render
+                    status: 415
+                    detail: 'Sample rate 48000 Hz; expected 44100 Hz.'
+  /api/prerenders/{prerenderId}:
+    delete:
+      tags: [prerenders]
+      operationId: deletePrerender
+      summary: Discard an unused pre-render (dialog cancelled); idempotent (1.16.0).
+      parameters:
+        - $ref: '#/components/parameters/PrerenderId'
+      responses:
+        '204':
+          description: Deleted, or did not exist.
+        '409':
+          description: '`prerender-consumed`: already used by an export (delete the library item instead).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /api/controller-profiles:
+    get:
+      tags: [controllers]
+      operationId: listControllerProfiles
+      summary: All controller profiles, ordered by display name (1.16.0).
+      responses:
+        '200':
+          description: Profiles with their bindings.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/ControllerProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [controllers]
+      operationId: createControllerProfile
+      summary: Create the profile of a device (1.16.0).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControllerProfileInput'
+            examples:
+              nanoKontrol:
+                $ref: '#/components/examples/ProfileInput'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              description: '`/api/controller-profiles/{profileId}`'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControllerProfile'
+        '409':
+          description: '`profile-exists`: a profile for this device name and manufacturer exists (its id is in the extension member `profileId`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/controller-profiles/{profileId}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [controllers]
+      operationId: getControllerProfile
+      summary: One profile (1.16.0).
+      responses:
+        '200':
+          description: The profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControllerProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [controllers]
+      operationId: updateControllerProfile
+      summary: Replace name, enabled state, bank size and all bindings (1.16.0).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControllerProfileInput'
+            examples:
+              nanoKontrol:
+                $ref: '#/components/examples/ProfileInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControllerProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`profile-exists`: the device identity was changed to one that has a profile.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [controllers]
+      operationId: deleteControllerProfile
+      summary: Delete a profile and its bindings; idempotent (1.16.0).
+      responses:
+        '204':
+          description: Deleted, or did not exist.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PrerenderId:
+      name: prerenderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    NotFound:
+      description: The resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    BadRequest:
+      description: Malformed request (e.g. an id that is not a GUID).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields (e.g. `bindings[3].mode`) with a message the user can act on.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+  examples:
+    ProfileInput:
+      value:
+        deviceName: nanoKONTROL2 SLIDER/KNOB
+        manufacturer: KORG INC.
+        displayName: nanoKONTROL2
+        enabled: true
+        stripsPerBank: 8
+        bindings:
+          - id: a1b2c3d4
+            control: { kind: cc, channel: 1, number: 0 }
+            target: { kind: strip-volume, slot: 1 }
+            mode: absolute
+            invert: false
+            pickup: true
+          - id: e5f6a7b8
+            control: { kind: cc, channel: 1, number: 48 }
+            target: { kind: strip-mute, slot: 1 }
+            mode: toggle
+            invert: false
+            pickup: false
+          - id: c9d0e1f2
+            control: { kind: cc, channel: 1, number: 41 }
+            target: { kind: command, command: transport.play-pause }
+            mode: trigger
+            invert: false
+            pickup: false
+          - id: a3b4c5d6
+            control: { kind: cc, channel: 1, number: 16 }
+            target: { kind: speed }
+            mode: absolute
+            invert: false
+            pickup: true
+  schemas:
+    PassBand:
+      type: object
+      additionalProperties: false
+      required: [enabled, frequencyHz, slope]
+      properties:
+        enabled:
+          type: boolean
+        frequencyHz:
+          type: number
+          description: High-pass 20..2000 Hz, low-pass 500..20000 Hz (checked by the owning field).
+          minimum: 20
+          maximum: 20000
+        slope:
+          type: integer
+          enum: [12, 24]
+          description: dB per octave.
+    ShelfBand:
+      type: object
+      additionalProperties: false
+      required: [frequencyHz, gainDb]
+      properties:
+        frequencyHz:
+          type: number
+          minimum: 30
+          maximum: 16000
+          description: Low shelf 30..500 Hz, high shelf 1000..16000 Hz.
+        gainDb:
+          type: number
+          minimum: -18
+          maximum: 18
+    PeakBand:
+      type: object
+      additionalProperties: false
+      required: [frequencyHz, gainDb, q]
+      properties:
+        frequencyHz:
+          type: number
+          minimum: 40
+          maximum: 16000
+        gainDb:
+          type: number
+          minimum: -18
+          maximum: 18
+        q:
+          type: number
+          minimum: 0.3
+          maximum: 12
+    PresetId:
+      type: [string, 'null']
+      pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+      maxLength: 48
+      description: Built-in preset the values came from (engine catalogue); informational, not validated against the catalogue.
+    Eq:
+      type: object
+      additionalProperties: false
+      required: [enabled, highPass, lowShelf, mid1, mid2, highShelf, lowPass]
+      description: 6-band parametric EQ, pre-fader (data-model 2.1).
+      properties:
+        enabled:
+          type: boolean
+        presetId:
+          $ref: '#/components/schemas/PresetId'
+        highPass:
+          $ref: '#/components/schemas/PassBand'
+        lowShelf:
+          $ref: '#/components/schemas/ShelfBand'
+        mid1:
+          $ref: '#/components/schemas/PeakBand'
+        mid2:
+          $ref: '#/components/schemas/PeakBand'
+        highShelf:
+          $ref: '#/components/schemas/ShelfBand'
+        lowPass:
+          $ref: '#/components/schemas/PassBand'
+    Compressor:
+      type: object
+      additionalProperties: false
+      required: [enabled, thresholdDb, ratio, kneeDb, attackMs, releaseMs, makeupDb]
+      description: Compressor after the EQ, pre-fader.
+      properties:
+        enabled:
+          type: boolean
+        presetId:
+          $ref: '#/components/schemas/PresetId'
+        thresholdDb:
+          type: number
+          minimum: -60
+          maximum: 0
+          default: -24
+        ratio:
+          type: number
+          minimum: 1
+          maximum: 20
+          default: 3
+        kneeDb:
+          type: number
+          minimum: 0
+          maximum: 40
+          default: 6
+        attackMs:
+          type: number
+          minimum: 0
+          maximum: 200
+          default: 10
+        releaseMs:
+          type: number
+          minimum: 10
+          maximum: 1000
+          default: 200
+        makeupDb:
+          type: number
+          minimum: 0
+          maximum: 24
+          default: 0
+    ChannelEffects:
+      type: object
+      additionalProperties: false
+      required: [bypass, eq, compressor, reverbSend]
+      description: Effects of one strip; added as optional `effects` (this schema or null) to `ChannelSettings` and `DetailChannelSettings`. Null or absent = no effects.
+      properties:
+        bypass:
+          type: boolean
+          default: false
+        eq:
+          oneOf:
+            - $ref: '#/components/schemas/Eq'
+            - type: 'null'
+        compressor:
+          oneOf:
+            - $ref: '#/components/schemas/Compressor'
+            - type: 'null'
+        reverbSend:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0
+          description: Linear send level into the mix's reverb bus, post-fader.
+    ReverbKind:
+      type: string
+      enum: [room, plate, hall]
+    ReverbBus:
+      type: object
+      additionalProperties: false
+      required: [kind, returnLevel, predelayMs, irVersion]
+      properties:
+        kind:
+          $ref: '#/components/schemas/ReverbKind'
+        returnLevel:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.5
+        predelayMs:
+          type: integer
+          minimum: 0
+          maximum: 200
+          default: 20
+        irVersion:
+          type: integer
+          const: 1
+          description: Version of the engine's impulse-response generator (research R-04).
+    MixEffects:
+      type: object
+      additionalProperties: false
+      required: [reverb]
+      description: Mix-level effects; added as optional `effects` (this schema or null) to `MixSettings` and `ExportMix`.
+      properties:
+        reverb:
+          $ref: '#/components/schemas/ReverbBus'
+    ExportEffects:
+      type: string
+      enum: [ignore, apply]
+      default: ignore
+      description: |
+        Added as optional `effects` to `CreateAudioExportRequest` and `ExportRecipe`. `ignore`
+        (default; also when absent): rendered by the worker exactly as in 1.5.0. `apply` (mode
+        `mix` only): the audio is the pre-render `prerenderId`, encoded by the worker at gain 1,
+        pan 0, master 1. Errors: `422 prerender-required` (apply without `prerenderId`),
+        `404 prerender-not-found`, `409 prerender-consumed`, `422 prerender-mismatch` (other track,
+        or length differs from the range by more than 2 frames), `422 effects-not-allowed`
+        (mode `raw`).
+    Prerender:
+      type: object
+      additionalProperties: false
+      required: [prerenderId, trackId, frames, durationSeconds, sizeBytes, expiresAt]
+      properties:
+        prerenderId:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        frames:
+          type: integer
+          minimum: 1
+        durationSeconds:
+          type: number
+          description: frames / 44100.
+        sizeBytes:
+          type: integer
+          maximum: 320000000
+        expiresAt:
+          type: string
+          format: date-time
+          description: Deleted after this time unless an export consumed it.
+    MidiControlKind:
+      type: string
+      enum: [cc, cc14, note, pitch-bend, program]
+    MidiControl:
+      type: object
+      additionalProperties: false
+      required: [kind, channel, number]
+      properties:
+        kind:
+          $ref: '#/components/schemas/MidiControlKind'
+        channel:
+          type: integer
+          minimum: 1
+          maximum: 16
+        number:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 127
+          description: cc/note/program 0..127; cc14 0..31 (MSB, LSB = number + 32); pitch-bend null.
+    ControllerTargetKind:
+      type: string
+      enum: [strip-volume, strip-pan, strip-mute, strip-solo, strip-reverb-send, strip-bypass, master-volume, reverb-return, speed, transpose, command]
+    ControllerCommand:
+      type: string
+      enum: [transport.play-pause, transport.stop, transport.to-start, loop.toggle, loop.set-a, loop.set-b, metronome.toggle, count-in.toggle, speed.up, speed.down, speed.reset, transpose.up, transpose.down, transpose.reset, effects.bypass-all, bank.next, bank.previous]
+    ControllerTarget:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      description: '`slot` (1..16) is required for `strip-*` kinds and forbidden otherwise; `command` is required for kind `command` and forbidden otherwise.'
+      properties:
+        kind:
+          $ref: '#/components/schemas/ControllerTargetKind'
+        slot:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 16
+        command:
+          oneOf:
+            - $ref: '#/components/schemas/ControllerCommand'
+            - type: 'null'
+    BindingMode:
+      type: string
+      enum: [absolute, relative-twos, relative-signed, relative-offset, toggle, momentary, trigger]
+    ControllerBinding:
+      type: object
+      additionalProperties: false
+      required: [id, control, target, mode, invert, pickup]
+      description: Validation matrix in data-model 3.5 (mode must suit the target; one binding per control).
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9]{8}$'
+        control:
+          $ref: '#/components/schemas/MidiControl'
+        target:
+          $ref: '#/components/schemas/ControllerTarget'
+        mode:
+          $ref: '#/components/schemas/BindingMode'
+        invert:
+          type: boolean
+          default: false
+        pickup:
+          type: boolean
+          description: Soft takeover; only with mode `absolute`.
+    ControllerProfileFields:
+      type: object
+      description: Shared members of `ControllerProfileInput` and `ControllerProfile` (closed through `unevaluatedProperties` on both).
+      required: [deviceName, manufacturer, displayName, enabled, stripsPerBank, bindings]
+      properties:
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: '`MIDIInput.name`; with `manufacturer` the unique device identity.'
+        manufacturer:
+          type: string
+          maxLength: 120
+          description: '`MIDIInput.manufacturer`, empty when unknown.'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 60
+        enabled:
+          type: boolean
+        stripsPerBank:
+          type: integer
+          minimum: 1
+          maximum: 16
+          default: 8
+        bindings:
+          type: array
+          maxItems: 256
+          items:
+            $ref: '#/components/schemas/ControllerBinding'
+    ControllerProfileInput:
+      allOf:
+        - $ref: '#/components/schemas/ControllerProfileFields'
+      unevaluatedProperties: false
+    ControllerProfile:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/ControllerProfileFields'
+        - type: object
+          required: [id, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string

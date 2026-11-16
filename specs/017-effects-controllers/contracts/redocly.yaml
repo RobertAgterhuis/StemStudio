@@ -1,0 +1,10 @@
+# Lint configuration for the StemStudio OpenAPI 3.1 contract delta of feature 017.
+# Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/017-effects-controllers/contracts/redocly.yaml specs/017-effects-controllers/contracts/backend-api.delta.openapi.yaml
+# (Phase 0 T002 adds backend-api.openapi.yaml 1.16.0 = 016's 1.15.0 + this delta and lints it with this file.)
+extends:
+  - recommended
+rules:
+  operation-4xx-response: warn
+  no-server-example.com: off
+  no-unused-components: warn
