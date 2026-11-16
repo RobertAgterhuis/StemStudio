@@ -1,0 +1,210 @@
+{
+  "$comment": "Home page strings (English). Readable version with sources: site/COPY-DECK.md. Strings are trusted HTML and may use {{value}} placeholders from tools/site/build.mjs. Add nl.json with the same keys for a Dutch page.",
+  "meta": {
+    "title": "StemStudio: take the song apart, play your part",
+    "description": "StemStudio splits a song into vocals, drums, bass, guitar, piano and other, so you can mute your instrument and play along with the real band. Free and open source, runs on your own computer.",
+    "skip": "Skip to content",
+    "home": "StemStudio home"
+  },
+  "nav": {
+    "label": "Sections",
+    "use": "How you'll use it",
+    "features": "Features",
+    "start": "Get started",
+    "dev": "For developers",
+    "github": "GitHub",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme"
+  },
+  "hero": {
+    "title": "Take the song apart.<br> Play your part.",
+    "lede": "StemStudio splits a song into its <strong>stems</strong>, the separate parts of the recording: vocals, drums, bass, guitar, piano and other. Mute your instrument and play along with the real band.",
+    "primary": "Get started",
+    "secondary": "See it in action",
+    "trust": "Free and open source (MIT licence). Runs on your own computer.",
+    "splitLabel": "Animation: one mixed waveform splits into six coloured stems: vocals, drums, bass, guitar, piano and other.",
+    "mixerTitle": "Try the mixer",
+    "mixerText": "This is how StemStudio's mixer works. Press <strong>M</strong> to mute a part, <strong>S</strong> to hear only that part. No sound on this page: it shows the idea, the app plays the music.",
+    "mute": "M",
+    "solo": "S",
+    "muteLabel": "Mute",
+    "soloLabel": "Solo",
+    "statusAll": "Playing: vocals, drums, bass, guitar, piano, other.",
+    "playing": "Playing:",
+    "muted": "Muted:",
+    "nothing": "Nothing is playing.",
+    "reset": "Reset mix"
+  },
+  "use": {
+    "title": "How you'll use it",
+    "intro": "Four musicians, four practice sessions, one app.",
+    "guitar": {
+      "who": "Guitar",
+      "title": "Mute the guitar. Keep the band.",
+      "s1": "Import the song and open the mixer.",
+      "s2": "Press M on the guitar strip. The band plays on without it, and you take the guitar part.",
+      "s3": "Stuck on the solo? Press Set A where it starts and Set B where it ends, then turn the loop on. The <strong>A-B loop</strong> repeats just that passage until your fingers know it."
+    },
+    "drums": {
+      "who": "Drums",
+      "title": "Lose the drummer. Keep the groove.",
+      "s1": "One click on the preset <em>Play along: drums</em> mutes the drums and turns the click on.",
+      "s2": "The click follows the beat StemStudio found in the song, with an accent on the first beat of every bar.",
+      "s3": "Click slightly off? At the Advanced level you correct the <strong>BPM</strong> (beats per minute, the tempo), the offset and the beats per bar."
+    },
+    "vocals": {
+      "who": "Vocals",
+      "title": "Sing it like the record.",
+      "s1": "The <em>Karaoke</em> preset mutes the vocals in one click.",
+      "s2": "Synced lyrics run in a banner under the mixer, and a ball bounces from word to word in time with the music.",
+      "s3": "Want a guide voice? Keep the vocals and pull their fader down instead."
+    },
+    "teach": {
+      "who": "Teacher and student",
+      "title": "Bring the song to the lesson.",
+      "s1": "Turn a stem into a practice lead sheet: a PDF to print, plus MusicXML and MIDI for your notation software.",
+      "s2": "Save a named mix for each lesson: every fader, mute, loop and click setting comes back exactly as you left it.",
+      "s3": "Export a stem or your own mix as FLAC, WAV or MP3 to practise with at home."
+    },
+    "mixSaved": "Lesson 3, slow verse"
+  },
+  "steps": {
+    "title": "Three steps to your first play-along",
+    "s1t": "Import a song",
+    "s1": "Paste a YouTube or Spotify link, or drop an MP3, WAV or FLAC file.",
+    "s2t": "Split into stems",
+    "s2": "StemStudio separates the song into six stems on your own computer, then splits drums, vocals and the rest further where the song allows it.",
+    "s3t": "Play along",
+    "s3": "Open the mixer, mute your part and press Play. All stems stay perfectly in sync."
+  },
+  "show": {
+    "title": "Everything you need to learn a song",
+    "intro": "Five sides of the same app. The screens follow the theme you picked for this page; select one to open it at full size.",
+    "hear": {
+      "title": "Hear every part",
+      "lead": "Six stems, each in its own colour, each on its own channel strip.",
+      "p1": "Every stem gets a fader, pan, mute, solo and a level meter.",
+      "p2": "Then StemStudio splits further where the song allows it: kick, snare, toms, hi-hat and cymbals; lead and backing vocals; strings, brass, keys and more.",
+      "note": "Separation is never perfect. You will hear some bleed between stems, and the quality of guitar and piano varies per song."
+    },
+    "practice": {
+      "title": "Practice smarter",
+      "lead": "Loop the hard bit, keep time, and pick up tomorrow where you left off.",
+      "p1": "A click on the song's own beat, with its own volume.",
+      "p2": "Practice presets set up an exercise in one click: <em>Play along: drums</em>, <em>Karaoke</em>, <em>Focus: vocals</em>, <em>Reset mix</em>.",
+      "p3": "Save, load, duplicate and edit named mixes, with every channel, master, click and loop setting."
+    },
+    "learn": {
+      "title": "Learn the song",
+      "lead": "Read along, sing along, play from the page.",
+      "p1": "A karaoke banner with synced lyrics and a bouncing ball.",
+      "p2": "A lead sheet per instrument as PDF, MusicXML and MIDI, for vocals, bass, guitar, keys, piano and drums.",
+      "p3": "Cover art and band facts from open data, right next to your song.",
+      "note": "Sheet music is a practice aid: it can miss or add notes."
+    },
+    "library": {
+      "title": "Your library",
+      "lead": "Every song you practise, ready when you are.",
+      "p1": "Import from a YouTube link, a Spotify track link or your own MP3, WAV or FLAC file (up to 200 MB and 15 minutes).",
+      "p2": "Save stems, stem packs and mixes as FLAC, WAV or MP3."
+    },
+    "create": {
+      "title": "Create",
+      "lead": "Optional extras for when you want to play with the song itself.",
+      "p1": "Restyle a song, or part of it, with one of 24 preset styles or your own. Needs an NVIDIA graphics card.",
+      "p2": "Write lyrics and generate a sung song; turn the vocal into your own voice, only after your explicit consent. Needs an NVIDIA graphics card.",
+      "p3": "Type a command in English or Dutch, such as “mute the drums and loop the chorus”, and a local AI model turns it into steps and carries them out with StemStudio's own tools. Heavy and destructive steps ask you first.",
+      "note": "Every generated take is labelled AI-generated."
+    }
+  },
+  "screens": {
+    "mixer": "The mixer: six coloured channel strips with faders, mute, solo and meters, the drums opened into kick, snare, toms, hi-hat and cymbals",
+    "expert": "The mixer at Expert level, with presets, numeric entry for gain and pan, the loop and the click",
+    "track": "A track page with cover art, band information and the six stems",
+    "import": "The import screen: paste a YouTube or Spotify link or drop a file, with the personal-practice notice",
+    "tracks": "The track list with artist, status and length of each imported song",
+    "library": "The library with exported stems and mixes, ready to download, rename or delete",
+    "styles": "The style library: preset styles such as Acoustic blues, Big band swing and Bossa nova, each with genre, tempo feel and instruments",
+    "open": "open full size",
+    "theme": "theme"
+  },
+  "levels": {
+    "title": "Starts simple. Grows with you.",
+    "intro": "Pick a level when you start and switch whenever you like. Your songs and mixes stay the same.",
+    "b": "Beginner",
+    "bt": "Guidance, hints and big practice presets. A rail shows the four steps: Import, Separate, Mix, Save. A short tour on every screen.",
+    "a": "Advanced",
+    "at": "The full set of practice controls: pan, typed loop times, click corrections, search and sort.",
+    "e": "Expert",
+    "et": "Numeric entry for volume and pan, level meters in dB, job details, keyboard hints and the shortcut overlay.",
+    "foot": "Light and dark theme, keyboard shortcuts and in-app help at every level."
+  },
+  "privacy": {
+    "title": "Runs on your own computer.",
+    "lead": "No account. No cloud. Your songs, stems and mixes stay on your machine.",
+    "p1": "No account or password: StemStudio is made for one person on one computer.",
+    "p2": "Your audio is processed on your computer and never uploaded.",
+    "p3": "Cover art, band info and lyrics are looked up with only the song's title, artist, album, duration and ISRC (a recording's ID code). Switch the lookups off whenever you like.",
+    "p4": "The optional Claude backend for the agent sends text only, never audio, and only when you choose it.",
+    "p5": "This website sets no cookies and loads no trackers. Your theme choice stays in your own browser.",
+    "legalTitle": "Personal practice and privacy",
+    "legal": "StemStudio is made for your own practice. Import only songs you may use, and respect copyright and the terms of YouTube and Spotify. StemStudio never bypasses copy protection: for a Spotify link it reads the track details and finds a matching public recording on YouTube. Covers, band texts and lyrics stay inside the app and never end up in exports or sheet music."
+  },
+  "gpu": {
+    "title": "Got an NVIDIA card? Split a song in minutes.",
+    "lead": "With a recent NVIDIA graphics card, StemStudio splits a 4-minute song, detail stems included, in a few minutes instead of half an hour.",
+    "cpu": "CPU",
+    "gpu": "NVIDIA GPU",
+    "min": "{{gpuCpu}} min",
+    "minGpu": "{{gpuGpu}} min",
+    "factor": "{{gpuFactor}}× faster",
+    "caption": "Reference song of {{gpuSong}}, standard and detail separation, measured on an RTX 5070 Ti. The stems are the same either way.",
+    "cpuText": "No NVIDIA card? StemStudio works on the CPU too. The six standard stems of a 4-minute song take several minutes, the detail split about half an hour.",
+    "fallback": "If the card is busy with a game or another AI program, StemStudio uses the CPU for that step and tells you why. You never lose a job.",
+    "again": "Race again",
+    "label": "Separation time for the reference song"
+  },
+  "soon": {
+    "title": "Coming soon",
+    "intro": "In development now. Details can still change before they arrive.",
+    "tempo": "Practice tempo",
+    "tempoText": "Slow a song down without changing its pitch, or move it to another key. With a speed trainer and a count-in.",
+    "record": "Record yourself",
+    "recordText": "Record your part over the mix, keep your takes and listen back.",
+    "tablet": "Tablet and remote",
+    "tabletText": "A music-stand layout for your tablet and a remote control over your home network."
+  },
+  "start": {
+    "title": "Get started",
+    "intro": "StemStudio runs in Docker on your own computer. Set it up once; after that it is one command to start.",
+    "needTitle": "What you need",
+    "need1": "A Windows, macOS or Linux computer with about 5 GB of free disk space, plus 50 to 150 MB for each song.",
+    "need2": "Chrome, Edge or Firefox. Safari works on a best-effort basis.",
+    "need3": "Optional: an NVIDIA graphics card for much faster splitting.",
+    "need4": "For detail stems, Docker needs at least 20 GB of memory (in Docker Desktop: Settings, Resources).",
+    "s1t": "Install Docker",
+    "s1": "Docker is an app that runs StemStudio's parts in separate, ready-made boxes called containers, so you don't have to install anything else. Use Docker Desktop on Windows or macOS, or Docker Engine with Compose on Linux.",
+    "s1link": "Get Docker",
+    "s2t": "Download StemStudio",
+    "s2": "Download the code from GitHub as a ZIP file and unpack it. Prefer Git? Clone the repository instead.",
+    "s2link": "Download the ZIP",
+    "s3t": "Start it",
+    "s3": "Open a terminal in the StemStudio folder and run this command. The first start builds everything and takes several minutes.",
+    "s3gpu": "With an NVIDIA graphics card, start it like this instead:",
+    "s4t": "Split your first song",
+    "s4": "Open <a href=\"http://localhost:8080\">http://localhost:8080</a> and split your first song.",
+    "small": "The first split downloads the separation model; after that StemStudio works offline, except for imports from YouTube or Spotify. Stop it with Ctrl+C in the terminal: your songs, stems and mixes stay.",
+    "guide": "Read the guide",
+    "guideMeta": "User Manual, PDF, {{userPages}} pages, {{userSize}}",
+    "guideText": "Every screen and every feature, from your first import to the AI composer agent."
+  },
+  "foot": {
+    "github": "StemStudio on GitHub",
+    "licence": "MIT licence",
+    "thirdParty": "Third-party licences",
+    "user": "User Manual (PDF)",
+    "tech": "Technical Manual (PDF)",
+    "dev": "For developers",
+    "built": "Generated from commit {{commitLink}} of {{date}}."
+  }
+}

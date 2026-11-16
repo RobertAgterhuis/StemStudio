@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { repoLink, REPO_URL } from "../lib/md.mjs";
-import { cleanScreenshot, decodePng, encodePng, paintOverMasks } from "../lib/png.mjs";
+import { bannedWords, featureCoverage, fences, fill, lookup } from "../lib/i18n.mjs";
+import { cleanScreenshot, cropImage, decodePng, encodePng, paintOverMasks } from "../lib/png.mjs";
 import { boldBullets, gpuNumbers, licenceSections, roadmapFeatures, section } from "../lib/sources.mjs";
 
 /** @returns {import("../lib/png.mjs").Image} 3x1 RGB image: grey, magenta, magenta */
@@ -61,4 +62,40 @@ test("roadmap features carry description and delivery date", () => {
 test("licence groups count their table rows and skip rejected components", () => {
   const text = "# T\n## Runtime\n| A | B |\n|---|---|\n| x | 1 |\n| y | 2 |\n### Empty\ntext\n## Rejected for licence reasons\n| A |\n|---|\n| z |\n";
   assert.deepEqual(licenceSections(text), [{ title: "Runtime", level: 2, count: 2 }]);
+});
+
+test("screenshots can be cropped after the masks are painted over", () => {
+  const cropped = cropImage(masked(), { x: 1, y: 0, width: 2, height: 1 });
+  assert.equal(cropped.width, 2);
+  assert.deepEqual([...cropped.pixels], [255, 0, 255, 255, 0, 255]);
+  assert.throws(() => cropImage(masked(), { x: 2, y: 0, width: 2, height: 1 }), /outside/);
+  const png = cleanScreenshot(encodePng(masked()), { x: 0, y: 0, width: 2, height: 1 });
+  assert.deepEqual([...decodePng(png).pixels], [10, 20, 30, 10, 20, 30]);
+});
+
+test("templates take generated values and locale strings, which may use values", () => {
+  const dict = { hero: { title: "Split in {{min}} min" } };
+  assert.equal(lookup(dict, "hero.title"), "Split in {{min}} min");
+  assert.throws(() => lookup(dict, "hero.missing"), /missing locale string t.hero.missing/);
+  assert.equal(fill("<h1>{{t.hero.title}}</h1><p>{{min}}</p>", { min: "3.7" }, dict), "<h1>Split in 3.7 min</h1><p>3.7</p>");
+  assert.throws(() => fill("{{nope}}", {}, dict, "x.html"), /unknown placeholder \{\{nope\}\} in x.html/);
+});
+
+test("README commands are read from the fenced blocks", () => {
+  const md = ["text", "```bash", "docker compose up --build", "```", "more", "```", "a", "b", "```", ""].join("\n");
+  assert.deepEqual(fences(md), ["docker compose up --build", "a\nb"]);
+});
+
+test("every README feature must be placed on the home page", () => {
+  const ids = new Set(["theme-hear", "gpu"]);
+  assert.deepEqual(featureCoverage(["Mixer", "GPU acceleration"], { Mixer: "theme-hear", "GPU acceleration": "gpu" }, ids), []);
+  const problems = featureCoverage(["Mixer", "New"], { Mixer: "theme-gone", Old: "gpu" }, ids).join(" | ");
+  assert.match(problems, /"New" is not mapped/);
+  assert.match(problems, /"Old", which is no longer/);
+  assert.match(problems, /#theme-gone/);
+});
+
+test("sales and hype words are found in visible text only", () => {
+  assert.deepEqual(bannedWords("<p>Free and open source</p><script>var plans;</script>"), []);
+  assert.deepEqual(bannedWords("<p>Unleash it. Buy now</p>"), ['the home page uses "buy" (no sales or hype language)', 'the home page uses "unleash" (no sales or hype language)']);
 });

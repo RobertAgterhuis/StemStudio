@@ -38,4 +38,7 @@
   --site-block: clamp(4rem, 2.5rem + 6vw, 8rem);
   --site-strand-width: 3px;
   --site-signal-height: clamp(10rem, 6rem + 14vw, 19rem);
+
+  /* Tempo: every looping motion on the site keeps this beat (96 BPM). site/src/js reads it too. */
+  --site-beat: 625ms;
 }

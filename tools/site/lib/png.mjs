@@ -151,12 +151,38 @@ export function paintOverMasks(image) {
   return painted;
 }
 
+/** @typedef {{ x: number, y: number, width: number, height: number }} Crop */
+
 /**
- * Removes the visual-test masks from a PNG file; files without masks are returned unchanged.
+ * Cuts a rectangle out of an image.
+ * @param {Image} image decoded image
+ * @param {Crop} crop rectangle in pixels (must lie inside the image)
+ * @returns {Image} new image
+ */
+export function cropImage(image, crop) {
+  const { x, y, width, height } = crop;
+  if (x < 0 || y < 0 || width <= 0 || height <= 0 || x + width > image.width || y + height > image.height) {
+    throw new Error(`crop ${x},${y} ${width}x${height} is outside the ${image.width}x${image.height} image`);
+  }
+  const { channels } = image;
+  const pixels = Buffer.alloc(width * height * channels);
+  for (let row = 0; row < height; row += 1) {
+    const from = ((y + row) * image.width + x) * channels;
+    image.pixels.copy(pixels, row * width * channels, from, from + width * channels);
+  }
+  return { ...image, width, height, pixels };
+}
+
+/**
+ * Removes the visual-test masks from a PNG file and optionally crops it; files without masks and
+ * without a crop are returned unchanged.
  * @param {Buffer} file PNG bytes
+ * @param {Crop} [crop] optional rectangle to keep
  * @returns {Buffer} cleaned PNG bytes
  */
-export function cleanScreenshot(file) {
+export function cleanScreenshot(file, crop) {
   const image = decodePng(file);
-  return paintOverMasks(image) > 0 ? encodePng(image) : file;
+  const painted = paintOverMasks(image);
+  if (crop) return encodePng(cropImage(image, crop));
+  return painted > 0 ? encodePng(image) : file;
 }

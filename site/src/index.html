@@ -1,26 +1,27 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="{{lang}}" data-theme="dark" data-moved="{{movedAnchors}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <title>StemStudio</title>
-  <meta name="description" content="StemStudio splits a song into vocals, drums, bass, guitar, piano and other, and gives you a mixer with a beat-synced metronome to practise along. Open source, runs on your own machine.">
+  <title>{{t.meta.title}}</title>
+  <meta name="description" content="{{t.meta.description}}">
   <link rel="canonical" href="{{siteUrl}}">
   <meta name="color-scheme" content="dark light">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="preload" href="assets/archivo.woff2" as="font" type="font/woff2" crossorigin>
-  <script src="assets/theme.js"></script>
-  <link rel="stylesheet" href="assets/tokens.css">
-  <link rel="stylesheet" href="assets/site-tokens.css">
-  <link rel="stylesheet" href="assets/site.css">
+  <link rel="icon" href="{{root}}assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="{{root}}assets/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="{{root}}assets/theme.js"></script>
+  <link rel="stylesheet" href="{{root}}assets/tokens.css">
+  <link rel="stylesheet" href="{{root}}assets/site-tokens.css">
+  <link rel="stylesheet" href="{{root}}assets/site.css">
+  <link rel="stylesheet" href="{{root}}assets/home.css">
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
+  <a class="skip" href="#main">{{t.meta.skip}}</a>
   <header class="top">
     <div class="wrap top-inner">
-      <a class="brand" href="#top" aria-label="StemStudio home">
+      <a class="brand" href="#top" aria-label="{{t.meta.home}}">
         <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
           <path class="m-root" d="M3 16h8"/>
           <path class="m-s s-vocals" d="M11 16C17 16 18 6 24 6H29"/>
@@ -32,20 +33,19 @@
         </svg>
         <span>StemStudio</span>
       </a>
-      <nav class="nav" aria-label="Sections">
+      <span class="beat" aria-hidden="true" data-beat><i></i><i></i><i></i><i></i></span>
+      <nav class="nav" aria-label="{{t.nav.label}}">
         <ul>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#screens">Screens</a></li>
-          <li><a href="#start">Quick start</a></li>
-          <li><a href="#status">Status</a></li>
-          <li><a href="#manuals">Manuals</a></li>
+          <li><a href="#use">{{t.nav.use}}</a></li>
+          <li><a href="#screens">{{t.nav.features}}</a></li>
+          <li><a href="#quick-start">{{t.nav.start}}</a></li>
+          <li><a href="{{root}}developers.html">{{t.nav.dev}}</a></li>
         </ul>
       </nav>
       <div class="top-actions">
-        <a class="gh" href="{{repoUrl}}">GitHub</a>
-        <button type="button" class="theme" data-theme-toggle hidden>
+        <button type="button" class="theme" data-theme-toggle data-label-light="{{t.nav.themeToLight}}" data-label-dark="{{t.nav.themeToDark}}" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="5"/><path d="M12 7a5 5 0 0 0 0 10z" class="theme-half"/></svg>
-          <span data-theme-label>Switch to light theme</span>
+          <span data-theme-label>{{t.nav.themeToLight}}</span>
         </button>
       </div>
     </div>
@@ -53,16 +53,21 @@
 
   <main id="main">
     <section class="hero" id="top" aria-labelledby="hero-title">
-      <div class="wrap">
-        <h1 id="hero-title" class="hero-title">Take the song apart. Play your part.</h1>
-        <p class="lede">StemStudio imports a song, splits it into vocals, drums, bass, guitar, piano and other, and gives you a mixer with a beat-synced metronome. Mute the guitar and play it yourself. Open source, and it runs on your own machine.</p>
-        <p class="cta">
-          <a class="button button-primary" href="#start">Install with Docker</a>
-          <a class="button" href="{{repoUrl}}">Source code on GitHub</a>
-        </p>
+      <div class="wrap hero-text">
+        <h1 id="hero-title" class="hero-title">{{t.hero.title}}</h1>
+        <div class="hero-side">
+          <p class="lede">{{t.hero.lede}}</p>
+          <p class="cta">
+            <a class="button button-primary" href="#quick-start">{{t.hero.primary}}</a>
+            <a class="button" href="#screens">{{t.hero.secondary}}</a>
+          </p>
+          <p class="trust">{{t.hero.trust}}</p>
+        </div>
       </div>
-      <div class="signal" aria-hidden="true">
-        <svg class="signal-lines" viewBox="0 0 1200 240" preserveAspectRatio="none" focusable="false">
+
+      <figure class="split" role="img" aria-label="{{t.hero.splitLabel}}">
+        <canvas class="split-canvas" data-split aria-hidden="true"></canvas>
+        <svg class="split-static" viewBox="0 0 1200 240" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <path class="strand strand-root" d="M0 120H420"/>
           <path class="strand s-vocals" d="M420 120C560 120 600 20 760 20H1200"/>
           <path class="strand s-drums" d="M420 120C560 120 600 60 760 60H1200"/>
@@ -71,7 +76,7 @@
           <path class="strand s-piano" d="M420 120C560 120 600 180 760 180H1200"/>
           <path class="strand s-other" d="M420 120C560 120 600 220 760 220H1200"/>
         </svg>
-        <ul class="signal-labels">
+        <ul class="split-labels" aria-hidden="true">
           <li class="chip s-vocals">vocals</li>
           <li class="chip s-drums">drums</li>
           <li class="chip s-bass">bass</li>
@@ -79,154 +84,373 @@
           <li class="chip s-piano">piano</li>
           <li class="chip s-other">other</li>
         </ul>
+      </figure>
+
+      <div class="wrap console" id="try">
+        <div class="console-text">
+          <h2 class="console-title">{{t.hero.mixerTitle}}</h2>
+          <p>{{t.hero.mixerText}}</p>
+          <p class="console-status" role="status" aria-live="polite" data-mix-status>{{t.hero.statusAll}}</p>
+        </div>
+        <div class="desk" data-mixer data-playing="{{t.hero.playing}}" data-muted="{{t.hero.muted}}" data-nothing="{{t.hero.nothing}}">
+          <ul class="channels" role="list">
+            <li class="ch s-vocals" data-stem="vocals">
+              <span class="ch-name">vocals</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} vocals</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} vocals</span></button></span>
+            </li>
+            <li class="ch s-drums" data-stem="drums">
+              <span class="ch-name">drums</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} drums</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} drums</span></button></span>
+            </li>
+            <li class="ch s-bass" data-stem="bass">
+              <span class="ch-name">bass</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} bass</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} bass</span></button></span>
+            </li>
+            <li class="ch s-guitar" data-stem="guitar">
+              <span class="ch-name">guitar</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} guitar</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} guitar</span></button></span>
+            </li>
+            <li class="ch s-piano" data-stem="piano">
+              <span class="ch-name">piano</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} piano</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} piano</span></button></span>
+            </li>
+            <li class="ch s-other" data-stem="other">
+              <span class="ch-name">other</span>
+              <span class="ch-body" aria-hidden="true"><span class="ch-meter"><span class="ch-level"></span></span><span class="ch-fader"><span class="ch-cap"></span></span></span>
+              <span class="ch-buttons"><button type="button" class="ch-btn ch-m" aria-pressed="false" data-mute><span aria-hidden="true">{{t.hero.mute}}</span><span class="sr-only">{{t.hero.muteLabel}} other</span></button><button type="button" class="ch-btn ch-s" aria-pressed="false" data-solo><span aria-hidden="true">{{t.hero.solo}}</span><span class="sr-only">{{t.hero.soloLabel}} other</span></button></span>
+            </li>
+          </ul>
+          <button type="button" class="desk-reset" data-mix-reset>{{t.hero.reset}}</button>
+        </div>
       </div>
-      <p class="wrap signal-caption">One mixed recording in, six stems out: the six colours you will see in every StemStudio screen.</p>
     </section>
 
-    <section class="block" id="features" aria-labelledby="features-title">
+    <section class="block use" id="use" aria-labelledby="use-title">
       <div class="wrap">
-        <h2 id="features-title">What it does</h2>
-        <p class="intro">Everything below is delivered and tested. Each card carries the colour of a stem, like the channel strips in the mixer.</p>
-        {{features}}
+        <h2 id="use-title">{{t.use.title}}</h2>
+        <p class="intro">{{t.use.intro}}</p>
+        <ul class="stories" role="list">
+          <li class="story s-guitar reveal">
+            <div class="story-text">
+              <p class="story-who"><span class="dot" aria-hidden="true"></span>{{t.use.guitar.who}}</p>
+              <h3>{{t.use.guitar.title}}</h3>
+              <ol class="story-steps">
+                <li>{{t.use.guitar.s1}}</li>
+                <li>{{t.use.guitar.s2}}</li>
+                <li>{{t.use.guitar.s3}}</li>
+              </ol>
+            </div>
+            <div class="story-visual" aria-hidden="true">
+              <div class="mini" data-mute-stem="guitar"><i class="s-vocals"></i><i class="s-drums"></i><i class="s-bass"></i><i class="s-guitar is-off"></i><i class="s-piano"></i><i class="s-other"></i></div>
+              <div class="loopbar"><span class="loop-a">A</span><span class="loop-zone"><span class="loop-head"></span></span><span class="loop-b">B</span></div>
+            </div>
+          </li>
+          <li class="story s-drums reveal">
+            <div class="story-text">
+              <p class="story-who"><span class="dot" aria-hidden="true"></span>{{t.use.drums.who}}</p>
+              <h3>{{t.use.drums.title}}</h3>
+              <ol class="story-steps">
+                <li>{{t.use.drums.s1}}</li>
+                <li>{{t.use.drums.s2}}</li>
+                <li>{{t.use.drums.s3}}</li>
+              </ol>
+            </div>
+            <div class="story-visual" aria-hidden="true">
+              <div class="mini"><i class="s-vocals"></i><i class="s-drums is-off"></i><i class="s-bass"></i><i class="s-guitar"></i><i class="s-piano"></i><i class="s-other"></i></div>
+              <div class="clickbar"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </li>
+          <li class="story s-vocals reveal">
+            <div class="story-text">
+              <p class="story-who"><span class="dot" aria-hidden="true"></span>{{t.use.vocals.who}}</p>
+              <h3>{{t.use.vocals.title}}</h3>
+              <ol class="story-steps">
+                <li>{{t.use.vocals.s1}}</li>
+                <li>{{t.use.vocals.s2}}</li>
+                <li>{{t.use.vocals.s3}}</li>
+              </ol>
+            </div>
+            <div class="story-visual" aria-hidden="true">
+              <div class="mini"><i class="s-vocals is-off"></i><i class="s-drums"></i><i class="s-bass"></i><i class="s-guitar"></i><i class="s-piano"></i><i class="s-other"></i></div>
+              <div class="karaoke"><span class="ball"></span><span class="words"><span>La</span><span>la</span><span>la,</span><span>la</span></span></div>
+            </div>
+          </li>
+          <li class="story s-piano reveal">
+            <div class="story-text">
+              <p class="story-who"><span class="dot" aria-hidden="true"></span>{{t.use.teach.who}}</p>
+              <h3>{{t.use.teach.title}}</h3>
+              <ol class="story-steps">
+                <li>{{t.use.teach.s1}}</li>
+                <li>{{t.use.teach.s2}}</li>
+                <li>{{t.use.teach.s3}}</li>
+              </ol>
+            </div>
+            <div class="story-visual" aria-hidden="true">
+              <svg class="staff" viewBox="0 0 320 90" focusable="false">
+                <path class="staff-lines" d="M0 20H320M0 32H320M0 44H320M0 56H320M0 68H320"/>
+                <path class="staff-bar" d="M160 20V68M318 20V68"/>
+                <g class="notes">
+                  <ellipse cx="34" cy="56" rx="7" ry="5"/><path d="M41 56V22"/>
+                  <ellipse cx="74" cy="50" rx="7" ry="5"/><path d="M81 50V16"/>
+                  <ellipse cx="114" cy="44" rx="7" ry="5"/><path d="M121 44V10"/>
+                  <ellipse cx="194" cy="38" rx="7" ry="5"/><path d="M187 38V72"/>
+                  <ellipse cx="234" cy="44" rx="7" ry="5"/><path d="M227 44V78"/>
+                  <ellipse cx="274" cy="32" rx="7" ry="5"/><path d="M267 32V66"/>
+                </g>
+              </svg>
+              <p class="saved-mix"><span class="dot"></span>{{t.use.mixSaved}}</p>
+            </div>
+          </li>
+        </ul>
       </div>
     </section>
 
-    <section class="block" id="screens" aria-labelledby="screens-title">
+    <section class="block steps" id="steps" aria-labelledby="steps-title">
       <div class="wrap">
-        <h2 id="screens-title">Screens</h2>
-        <p class="intro">Taken from the app's own visual tests and design review. They follow the theme you picked for this page; select one to open it at full size.</p>
-        {{gallery}}
+        <h2 id="steps-title">{{t.steps.title}}</h2>
+        <ol class="flow reveal" role="list">
+          <li class="flow-step">
+            <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path class="ic" d="M24 6v24M14 20l10 10 10-10M8 34v8h32v-8"/></svg></span>
+            <h3><span class="flow-no">1</span>{{t.steps.s1t}}</h3>
+            <p>{{t.steps.s1}}</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path class="ic" d="M4 24h12"/><path class="ic s-vocals" d="M16 24c8 0 8-16 16-16h12"/><path class="ic s-drums" d="M16 24c8 0 8-9 16-9h12"/><path class="ic s-bass" d="M16 24c8 0 8-3 16-3h12"/><path class="ic s-guitar" d="M16 24c8 0 8 3 16 3h12"/><path class="ic s-piano" d="M16 24c8 0 8 9 16 9h12"/><path class="ic s-other" d="M16 24c8 0 8 16 16 16h12"/></svg></span>
+            <h3><span class="flow-no">2</span>{{t.steps.s2t}}</h3>
+            <p>{{t.steps.s2}}</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path class="ic ic-fill" d="M16 10v28l22-14z"/></svg></span>
+            <h3><span class="flow-no">3</span>{{t.steps.s3t}}</h3>
+            <p>{{t.steps.s3}}</p>
+          </li>
+        </ol>
       </div>
     </section>
 
-    <section class="block" id="how" aria-labelledby="how-title">
+    <section class="block show" id="screens" aria-labelledby="features">
       <div class="wrap">
-        <h2 id="how-title">How it works</h2>
-        <p class="intro">Three services on your own computer. The browser plays the stems itself, sample-locked through the Web Audio engine; the worker does the heavy lifting.</p>
-        <figure class="arch">
-          <div class="arch-scroll" tabindex="0" role="group" aria-label="Architecture diagram, scrollable">
-            <svg viewBox="0 0 960 420" role="img" aria-labelledby="arch-title arch-desc" focusable="false">
-              <title id="arch-title">StemStudio architecture</title>
-              <desc id="arch-desc">The browser talks to StemStudio.Web over SignalR and fetches FLAC stems from StemStudio.Api. Web calls the API over HTTP. The API sends jobs to the Python worker and polls them. The worker uses an optional NVIDIA GPU and queries open data services for artwork and band info.</desc>
-              <g class="edges">
-                <path class="edge s-vocals" d="M260 195C305 195 305 80 350 80"/>
-                <path class="edge s-piano" d="M260 225C305 225 305 340 350 340"/>
-                <path class="edge s-drums" d="M470 130V280"/>
-                <path class="edge s-bass" d="M590 340C640 340 640 215 690 215"/>
-                <path class="edge s-guitar" d="M815 270V310"/>
-                <path class="edge s-other" d="M815 160V120"/>
-              </g>
-              <g class="edge-labels">
-                <text x="298" y="112" text-anchor="end">SignalR</text>
-                <text x="306" y="318" text-anchor="end">FLAC stems</text>
-                <text x="482" y="210">HTTP</text>
-                <text x="600" y="380">jobs, polling</text>
-                <text x="827" y="296">CUDA</text>
-                <text x="827" y="146">lookups</text>
-              </g>
-              <g class="node">
-                <rect x="20" y="150" width="240" height="120" rx="6"/>
-                <text class="n-title" x="40" y="190">Your browser</text>
-                <text x="40" y="218">Blazor UI, Radzen</text>
-                <text x="40" y="242">Web Audio engine</text>
-              </g>
-              <g class="node">
-                <rect x="350" y="30" width="240" height="100" rx="6"/>
-                <text class="n-title" x="370" y="68">StemStudio.Web</text>
-                <text x="370" y="96">Blazor Server, port 8080</text>
-              </g>
-              <g class="node">
-                <rect x="350" y="280" width="240" height="120" rx="6"/>
-                <text class="n-title" x="370" y="318">StemStudio.Api</text>
-                <text x="370" y="346">Minimal API, port 8081</text>
-                <text x="370" y="370">EF Core, SQLite, files</text>
-              </g>
-              <g class="node node-worker">
-                <rect x="690" y="160" width="250" height="110" rx="6"/>
-                <text class="n-title" x="710" y="196">Worker</text>
-                <text x="710" y="224">Python 3.12, FastAPI</text>
-                <text x="710" y="248">yt-dlp, ffmpeg, Demucs</text>
-              </g>
-              <g class="node node-soft">
-                <rect x="690" y="310" width="250" height="90" rx="6"/>
-                <text class="n-title" x="710" y="348">NVIDIA GPU</text>
-                <text x="710" y="374">optional, CPU fallback</text>
-              </g>
-              <g class="node node-soft">
-                <rect x="690" y="20" width="250" height="100" rx="6"/>
-                <text class="n-title" x="710" y="56">Open data</text>
-                <text x="710" y="82">MusicBrainz, Wikidata,</text>
-                <text x="710" y="104">Wikipedia, Cover Art</text>
-              </g>
-            </svg>
+        <h2 id="features">{{t.show.title}}</h2>
+        <p class="intro">{{t.show.intro}}</p>
+
+        <article class="theme-row s-guitar" id="theme-hear" aria-labelledby="theme-hear-title">
+          <div class="theme-text reveal">
+            <h3 id="theme-hear-title">{{t.show.hear.title}}</h3>
+            <p class="theme-lead">{{t.show.hear.lead}}</p>
+            <ul class="ticks">
+              <li>{{t.show.hear.p1}}</li>
+              <li>{{t.show.hear.p2}}</li>
+            </ul>
+            <p class="theme-note">{{t.show.hear.note}}</p>
           </div>
-          <figcaption>The Blazor app and the API are .NET 10; the worker separates with Demucs (htdemucs_6s, fallback htdemucs) and detects the beat grid with librosa. Dependencies flow one way and are checked automatically.</figcaption>
+          <div class="theme-media reveal">{{shot.mixer}}</div>
+        </article>
+
+        <article class="theme-row s-drums" id="theme-practice" aria-labelledby="theme-practice-title">
+          <div class="theme-text reveal">
+            <h3 id="theme-practice-title">{{t.show.practice.title}}</h3>
+            <p class="theme-lead">{{t.show.practice.lead}}</p>
+            <ul class="ticks">
+              <li>{{t.show.practice.p1}}</li>
+              <li>{{t.show.practice.p2}}</li>
+              <li>{{t.show.practice.p3}}</li>
+            </ul>
+          </div>
+          <div class="theme-media reveal">{{shot.expert}}</div>
+        </article>
+
+        <article class="theme-row s-vocals" id="theme-learn" aria-labelledby="theme-learn-title">
+          <div class="theme-text reveal">
+            <h3 id="theme-learn-title">{{t.show.learn.title}}</h3>
+            <p class="theme-lead">{{t.show.learn.lead}}</p>
+            <ul class="ticks">
+              <li>{{t.show.learn.p1}}</li>
+              <li>{{t.show.learn.p2}}</li>
+              <li>{{t.show.learn.p3}}</li>
+            </ul>
+            <p class="theme-note">{{t.show.learn.note}}</p>
+          </div>
+          <div class="theme-media reveal">{{shot.track}}</div>
+        </article>
+
+        <article class="theme-row s-piano" id="theme-library" aria-labelledby="theme-library-title">
+          <div class="theme-text reveal">
+            <h3 id="theme-library-title">{{t.show.library.title}}</h3>
+            <p class="theme-lead">{{t.show.library.lead}}</p>
+            <ul class="ticks">
+              <li>{{t.show.library.p1}}</li>
+              <li>{{t.show.library.p2}}</li>
+            </ul>
+          </div>
+          <div class="theme-media theme-trio reveal">{{shot.library}}{{shot.import}}{{shot.tracks}}</div>
+        </article>
+
+        <article class="theme-row s-bass" id="theme-create" aria-labelledby="theme-create-title">
+          <div class="theme-text reveal">
+            <h3 id="theme-create-title">{{t.show.create.title}}</h3>
+            <p class="theme-lead">{{t.show.create.lead}}</p>
+            <ul class="ticks">
+              <li>{{t.show.create.p1}}</li>
+              <li>{{t.show.create.p2}}</li>
+              <li>{{t.show.create.p3}}</li>
+            </ul>
+            <p class="theme-note">{{t.show.create.note}}</p>
+          </div>
+          <div class="theme-media reveal">{{shot.styles}}</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="block levels" id="levels" aria-labelledby="levels-title">
+      <div class="wrap">
+        <h2 id="levels-title">{{t.levels.title}}</h2>
+        <p class="intro">{{t.levels.intro}}</p>
+        <ol class="level-list reveal" role="list">
+          <li class="level level-1">
+            <span class="rack" aria-hidden="true"><i></i><i></i></span>
+            <h3>{{t.levels.b}}</h3>
+            <p>{{t.levels.bt}}</p>
+          </li>
+          <li class="level level-2">
+            <span class="rack" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <h3>{{t.levels.a}}</h3>
+            <p>{{t.levels.at}}</p>
+          </li>
+          <li class="level level-3">
+            <span class="rack" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <h3>{{t.levels.e}}</h3>
+            <p>{{t.levels.et}}</p>
+          </li>
+        </ol>
+        <p class="levels-foot">{{t.levels.foot}}</p>
+      </div>
+    </section>
+
+    <section class="block privacy" id="privacy" aria-labelledby="privacy-title">
+      <div class="wrap privacy-grid">
+        <div class="privacy-head reveal">
+          <h2 id="privacy-title">{{t.privacy.title}}</h2>
+          <p class="privacy-lead">{{t.privacy.lead}}</p>
+        </div>
+        <ul class="ticks privacy-list reveal">
+          <li>{{t.privacy.p1}}</li>
+          <li>{{t.privacy.p2}}</li>
+          <li>{{t.privacy.p3}}</li>
+          <li>{{t.privacy.p4}}</li>
+          <li>{{t.privacy.p5}}</li>
+        </ul>
+        <div class="legal reveal" id="legal">
+          <h3>{{t.privacy.legalTitle}}</h3>
+          <p>{{t.privacy.legal}}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block speed" id="gpu" aria-labelledby="gpu-title">
+      <div class="wrap speed-grid">
+        <div class="speed-text">
+          <h2 id="gpu-title">{{t.gpu.title}}</h2>
+          <p class="theme-lead">{{t.gpu.lead}}</p>
+          <p>{{t.gpu.cpuText}}</p>
+          <p>{{t.gpu.fallback}}</p>
+        </div>
+        <figure class="race" data-race>
+          <p class="race-factor">{{t.gpu.factor}}</p>
+          <dl class="race-bars" aria-label="{{t.gpu.label}}">
+            <div class="race-row race-cpu">
+              <dt>{{t.gpu.cpu}}</dt>
+              <dd><svg class="race-track" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="race-fill" width="1000" height="12" data-race-fill="1"/></svg><span class="race-time">{{t.gpu.min}}</span></dd>
+            </div>
+            <div class="race-row race-gpu">
+              <dt>{{t.gpu.gpu}}</dt>
+              <dd><svg class="race-track" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="race-fill" width="{{gpuBar}}" height="12" data-race-fill="{{gpuRatio}}"/></svg><span class="race-time">{{t.gpu.minGpu}}</span></dd>
+            </div>
+          </dl>
+          <figcaption>{{t.gpu.caption}}</figcaption>
+          <button type="button" class="button race-again" data-race-again hidden>{{t.gpu.again}}</button>
         </figure>
       </div>
     </section>
 
-    <section class="block" id="start" aria-labelledby="start-title">
+    <section class="block soon" id="soon" aria-labelledby="soon-title">
       <div class="wrap">
-        <h2 id="start-title">Quick start</h2>
-        <div class="prose">{{quickStart}}</div>
+        <h2 id="soon-title">{{t.soon.title}}</h2>
+        <p class="intro">{{t.soon.intro}}</p>
+        <ul class="soon-list reveal" role="list">
+          <li class="soon-item" data-roadmap="tempo"><h3>{{t.soon.tempo}}</h3><p>{{t.soon.tempoText}}</p></li>
+          <li class="soon-item" data-roadmap="record"><h3>{{t.soon.record}}</h3><p>{{t.soon.recordText}}</p></li>
+          <li class="soon-item" data-roadmap="tablet"><h3>{{t.soon.tablet}}</h3><p>{{t.soon.tabletText}}</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="block get" id="quick-start" aria-labelledby="start-title">
+      <div class="wrap">
+        <h2 id="start-title">{{t.start.title}}</h2>
+        <p class="intro">{{t.start.intro}}</p>
+        <div class="get-grid" id="start">
+          <div class="need">
+            <h3>{{t.start.needTitle}}</h3>
+            <ul class="ticks">
+              <li>{{t.start.need1}}</li>
+              <li>{{t.start.need2}}</li>
+              <li>{{t.start.need3}}</li>
+              <li>{{t.start.need4}}</li>
+            </ul>
+          </div>
+          <ol class="install" role="list">
+            <li class="install-step">
+              <h3><span class="flow-no">1</span>{{t.start.s1t}}</h3>
+              <p>{{t.start.s1}}</p>
+              <p><a class="button" href="https://docs.docker.com/get-started/get-docker/">{{t.start.s1link}}</a></p>
+            </li>
+            <li class="install-step">
+              <h3><span class="flow-no">2</span>{{t.start.s2t}}</h3>
+              <p>{{t.start.s2}}</p>
+              <p><a class="button" href="{{zipUrl}}">{{t.start.s2link}}</a></p>
+            </li>
+            <li class="install-step">
+              <h3><span class="flow-no">3</span>{{t.start.s3t}}</h3>
+              <p>{{t.start.s3}}</p>
+              {{startCmd}}
+              <p>{{t.start.s3gpu}}</p>
+              {{gpuCmd}}
+            </li>
+            <li class="install-step install-last">
+              <h3><span class="flow-no">4</span>{{t.start.s4t}}</h3>
+              <p class="install-go">{{t.start.s4}}</p>
+            </li>
+          </ol>
+        </div>
         <p class="copy-status" role="status" aria-live="polite" data-copy-status></p>
-      </div>
-    </section>
-
-    <section class="block" id="gpu" aria-labelledby="gpu-title">
-      <div class="wrap">
-        <h2 id="gpu-title">GPU acceleration</h2>
-        {{gpu}}
-      </div>
-    </section>
-
-    <section class="block" id="status" aria-labelledby="status-title">
-      <div class="wrap">
-        <h2 id="status-title">Feature status</h2>
-        <p class="intro">The build order from the roadmap. A feature counts as delivered once its integration run is recorded in the project status.</p>
-        {{timeline}}
-      </div>
-    </section>
-
-    <section class="block" id="manuals" aria-labelledby="manuals-title">
-      <div class="wrap">
-        <h2 id="manuals-title">Manuals</h2>
-        <p class="intro">Both manuals are built from Markdown in the repository and checked against their sources on every change.</p>
-        {{manuals}}
-      </div>
-    </section>
-
-    <section class="block" id="licences" aria-labelledby="licences-title">
-      <div class="wrap">
-        <h2 id="licences-title">Open source and licences</h2>
-        {{licences}}
-      </div>
-    </section>
-
-    <section class="block" id="decisions" aria-labelledby="decisions-title">
-      <div class="wrap">
-        <h2 id="decisions-title">Design decisions</h2>
-        <p class="intro">Architecture decision records, from the first clarifications to the planned composer agent.</p>
-        {{adrs}}
-      </div>
-    </section>
-
-    <section class="block" id="legal" aria-labelledby="legal-title">
-      <div class="wrap narrow">
-        <h2 id="legal-title">Personal practice and privacy</h2>
-        <div class="notice">{{legal}}</div>
-        <p>This website sets no cookies and loads nothing from other servers: no analytics, no trackers, no external fonts. The theme you pick is kept in your browser's local storage and never leaves your device.</p>
-        <p>StemStudio itself is single-user and local. Online lookups for artwork and band info send only the song title, artist, duration and ISRC to the open data services, and you can switch them off.</p>
+        <p class="small">{{t.start.small}}</p>
+        <div class="guide" id="manuals">
+          <p class="guide-text">{{t.start.guideText}}</p>
+          <a class="button button-primary" href="{{root}}{{userManual}}" download>{{t.start.guide}} <span class="meta">({{t.start.guideMeta}})</span></a>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="foot">
     <div class="wrap foot-inner">
-      <p><a href="{{repoUrl}}">StemStudio on GitHub</a>, MIT licence.</p>
-      <p class="build">Generated from commit <a href="{{repoUrl}}/commit/{{sha}}"><code>{{shortSha}}</code></a> of {{date}}.</p>
+      <ul class="foot-links" role="list">
+        <li><a href="{{repoUrl}}">{{t.foot.github}}</a></li>
+        <li><a href="{{licenceUrl}}">{{t.foot.licence}}</a></li>
+        <li><a href="{{thirdPartyUrl}}">{{t.foot.thirdParty}}</a></li>
+        <li><a href="{{root}}{{userManual}}">{{t.foot.user}}</a></li>
+        <li><a href="{{root}}{{techManual}}">{{t.foot.tech}}</a></li>
+        <li><a href="{{root}}developers.html">{{t.foot.dev}}</a></li>
+      </ul>
+      <p class="build">{{t.foot.built}}</p>
     </div>
   </footer>
-  <script src="assets/site.js" defer></script>
+  <script src="{{root}}assets/site.js" defer></script>
+  <script src="{{root}}assets/home.js" defer></script>
 </body>
 </html>
