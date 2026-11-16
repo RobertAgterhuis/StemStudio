@@ -30,7 +30,7 @@ public sealed class FixtureTests
     {
         var tracks = Actions.Tracks;
 
-        (await tracks.ImportFromUrlAsync("https://example.org/a", Token)).SourceUrl.ShouldBe("https://example.org/a");
+        (await tracks.ImportFromUrlAsync("https://youtu.be/dQw4w9WgXcQ", Token)).SourceUrl.ShouldBe("https://youtu.be/dQw4w9WgXcQ");
         (await tracks.RetryTrackAsync(Id("t-fail"), Token)).Id.ShouldBe(Id("t-fail"));
         (await tracks.CancelDetailAsync(Id("t-hero"), Token)).Detail!.Status.ShouldBe(StemStudio.Contracts.Tracks.DetailPhaseStatusDto.Cancelled);
         (await tracks.GetDeviceAsync(Token)).Reachable.ShouldBeTrue();
@@ -38,6 +38,31 @@ public sealed class FixtureTests
         await NotFoundAsync(() => tracks.DeleteTrackAsync(Id("t-enter"), Token));
         await NotFoundAsync(() => tracks.GetTrackAsync(Guid.NewGuid(), Token));
     }
+
+    [Theory]
+    [InlineData("https://evil.example/x")]
+    [InlineData("ftp://www.youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("not a url")]
+    public async Task Tracks_ImportRejectsAUrlOutsideTheAllowListLikeTheApi(string url)
+    {
+        var count = _library.Tracks.Count;
+
+        var problem = await Should.ThrowAsync<AgentActionException>(() => Actions.Tracks.ImportFromUrlAsync(url, Token));
+
+        problem.StatusCode.ShouldBe(400);
+        problem.ProblemCode.ShouldBe("invalid-request");
+        problem.Message.ShouldStartWith("One or more validation errors occurred. url: ");
+        _library.Tracks.Count.ShouldBe(count);
+    }
+
+    [Theory]
+    [InlineData("https://www.youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("https://music.youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("https://m.youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("http://youtube.com/watch?v=dQw4w9WgXcQ")]
+    [InlineData("https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC")]
+    public async Task Tracks_ImportAcceptsTheAllowedHosts(string url) =>
+        (await Actions.Tracks.ImportFromUrlAsync(url, Token)).SourceUrl.ShouldBe(url);
 
     [Fact]
     public async Task Mixes_DuplicateDeleteAndTheSummaryOfADeletedTrack()
