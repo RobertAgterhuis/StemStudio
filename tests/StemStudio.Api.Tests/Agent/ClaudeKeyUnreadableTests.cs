@@ -75,6 +75,27 @@ public sealed class ClaudeKeyUnreadableTests : IDisposable
         run.Failure.Message.ShouldContain(ClaudeKeyProvider.UnreadableReason);
         api.Anthropic.Requests.ShouldBeEmpty();
         (await api.SettingsAsync()).Backend.ShouldBe(AgentBackendDto.Claude);
+
+        // R7: neither the failure nor the run's SSE events carry the stored ciphertext (or any part of its payload).
+        var ciphertext = await CiphertextAsync();
+        var events = string.Empty;
+        await Eventually.WaitUntilAsync(async () => (events = await api.Client.GetStringAsync(ApiRoutes.AgentRunEvents(run.RunId), Ct)).Contains("event: run.", StringComparison.Ordinal));
+        foreach (var text in new[] { run.Failure.Message, events, await api.Client.GetStringAsync(ApiRoutes.AgentRun(run.RunId), Ct) })
+        {
+            text.ShouldNotContain(ciphertext);
+            text.ShouldNotContain(ciphertext[..24]);
+        }
+    }
+
+    private async Task<string> CiphertextAsync()
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(_dataDir, "stemstudio.db"), Pooling = false }.ToString());
+        await connection.OpenAsync(Ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT Ciphertext FROM AgentSecrets;";
+        var ciphertext = (string)(await command.ExecuteScalarAsync(Ct))!;
+        ciphertext.Length.ShouldBeGreaterThan(24);
+        return ciphertext;
     }
 
     [Fact]
