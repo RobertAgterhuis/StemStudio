@@ -15,6 +15,9 @@ specs
 e2e
 tools
 scripts
+# ...except the SoundTouch build script (web image, feature 012), which also ships in the image
+!scripts/build-soundtouch.sh
+!scripts/build-soundtouch.ps1
 docker-compose*.yml
 
 # .NET outputs and test projects (tests run in CI, not in images)
@@ -45,6 +48,13 @@ src/StemStudio.Web/wwwroot/js/web-interop.js
 src/StemStudio.Web/wwwroot/js/web-interop.js.map
 src/StemStudio.Web/wwwroot/js/first-paint.js
 src/StemStudio.Web/wwwroot/js/first-paint.js.map
+src/StemStudio.Web/wwwroot/js/time-stretch-processor.js
+src/StemStudio.Web/wwwroot/js/time-stretch-processor.js.map
+src/StemStudio.Web/wwwroot/js/soundtouch
+src/StemStudio.Web/wwwroot/third-party
+# SoundTouch download and local build output (fetched and built inside the web image)
+third_party/soundtouch/upstream
+third_party/soundtouch/build
 
 # Runtime data
 data
