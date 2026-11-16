@@ -20,6 +20,19 @@ Windows 11 + Docker Desktop, Ollama installed.
 | 010 | **Own lyrics to song**: upload your own lyrics and generate music plus a sung voice | Same generative stack as 009 | 003, 009 |
 | 011 | **AI composer agent in the UI**: give instructions in natural language that the agent executes as StemStudio actions (import, separate, mix, export, transcribe, restyle, generate). LLM backend: local Ollama by default, Claude API optionally when an API key is configured via an environment variable | Orchestrates the capabilities of all previous features, so it comes last | 005-010 |
 
+### Backlog features from [MoSCoW.md](MoSCoW.md) (owner, 2026-11-16)
+
+Every instrument counts equally (MoSCoW principle). The 011 agent gets tools for these features in
+a later agent-tool-catalogue minor version.
+
+| # | Feature | MoSCoW items | Depends on |
+|---|---|---|---|
+| 012 | **Practice tempo**: speed 50-120 % without pitch change and transpose +-12 semitones (SoundTouch, LGPL, WASM), speed trainer loop, count-in/pre-roll | M1, M2, M3 | 001, 006 |
+| 013 | **Library care**: backup and restore of the whole library, storage overview and clean-up | M4, M5 | 001-010 |
+| 014 | **Practice flow**: song sections with one-click loops, score follows playback, setlists, keyboard and foot-pedal control, practice log | S2, S5, S6, S7, S8 | 008, 012 |
+| 015 | **Play-along recording**: record yourself over the mix with latency compensation, takes, listen back, export | S3 | 007, 012 |
+| 016 | **Instrument views**: chords (keys/guitar/vocals), tablature (guitar/bass), drum trainer, singing feedback, transposed parts for B-flat/E-flat/F instruments | S1, S4, S9, S10 | 008, 014, 015 |
+
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.
 
@@ -48,6 +61,12 @@ previous version.
 | 009 Style transfer | 1.8.0 | - | - | 1.8.0 | generator-api 1.0.0 |
 | 010 Lyrics to song | 1.9.0 | - | - | 1.9.0 | generator-api 1.1.0 |
 | 011 AI agent | 1.10.0 | - | 2.2.0 if needed | 1.10.0 | agent tool catalogue 1.0.0 |
+| 012 Practice tempo | 1.11.0 | - | 2.3.0 | 1.11.0 | |
+| 013 Library care | 1.12.0 | 1.7.0 | - | 1.12.0 | backup-archive 1.0.0 |
+| 014 Practice flow | 1.13.0 | 1.8.0 | 2.4.0 | 1.13.0 | |
+| 015 Play-along recording | 1.14.0 | - | 2.5.0 | 1.14.0 | |
+| 016 Instrument views | 1.15.0 | 1.9.0 | 2.6.0 | 1.15.0 | |
 
-Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011. Features in braces
+Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
+{012, 013} -> {014, 015} -> 016 (specs for 012-016 are written in parallel now). Features in braces
 are built in parallel; their contract edits are additive and merged by the CTO.
