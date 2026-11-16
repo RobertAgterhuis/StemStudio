@@ -19,6 +19,8 @@ import { fakeStems, silentDb } from '../support/detail';
 import { requireGeneratorMode } from '../support/generative';
 import { sourceTrack } from '../support/generative-flow';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from '../support/env';
+import { mixSettings, practiceWith } from '../support/practice';
+import { PracticePanel } from '../pages/practice-panel';
 import { oneOf } from '../support/text';
 
 // Feature 011 composer agent (T040, T049, T058, T067, T074, T078b; TEST-STRATEGY 17.4). Run by
@@ -277,6 +279,46 @@ test('undo: a mix saved by the agent is deleted again', { tag: ['@agent', '@us5-
   await agent.undo.click();
   await expect.poll(async () => api.findMix(track.id, 'Agent mix'), { timeout: 30_000 }).toBeUndefined();
   await expect(agent.approvalCard).toHaveCount(0);
+});
+
+// Feature 012 (T047): mixes the agent saves or renames keep the practice tempo (backend-api
+// 1.11.0 `practice`; the agent reads the open mixer through mixer_get_state).
+test('a mix the agent saves from the open mixer keeps its practice tempo', { tag: ['@agent', '@us5-practice-save'] }, async ({
+  api,
+  agent,
+  mixer,
+  page,
+}, testInfo) => {
+  const track = await freshTrack(api, `us5-practice-save-${testInfo.project.name}`);
+  await openMixer(mixer, track.id);
+  await new PracticePanel(page).set(75, -2);
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Save this as Agent practice mix');
+  await agent.expectAnswer(finalText('us5-practice-save'));
+  await agent.expectStep('save_mix_as', 'succeeded');
+  await expect.poll(async () => (await api.findMix(track.id, 'Agent practice mix'))?.id).toBeDefined();
+  const saved = await api.findMix(track.id, 'Agent practice mix');
+  expect((await api.getMix(saved?.id ?? '')).settings.practice).toEqual(practiceWith({ speedPercent: 75, transposeSemitones: -2 }));
+});
+
+test('renaming a mix with practice settings keeps them', { tag: ['@agent', '@us5-practice-rename'] }, async ({
+  api,
+  agent,
+  mixer,
+}, testInfo) => {
+  const track = await freshTrack(api, `us5-practice-rename-${testInfo.project.name}`);
+  const practice = practiceWith({ speedPercent: 80, transposeSemitones: 3, trainer: { enabled: true, startPercent: 60, targetPercent: 90 }, countIn: { bars: 2, everyPass: true } });
+  const loop = { start: 2, end: 6, enabled: true };
+  const mix = await api.createMix(track.id, mixSettings({ name: `Agent practice ${runId()} ${testInfo.project.name}`, practice, loop }));
+  await openMixer(mixer, track.id, mix.id);
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Rename this mix to Agent practice renamed');
+  await agent.expectAnswer(finalText('us5-practice-rename'));
+  await agent.expectStep('rename_mix', 'succeeded');
+  await expect.poll(async () => (await api.getMix(mix.id)).settings.name).toBe('Agent practice renamed');
+  expect((await api.getMix(mix.id)).settings.practice).toEqual(practice);
 });
 
 test('history: a reopened conversation shows its messages, plan and steps', { tag: ['@agent', '@us1-command'] }, async ({
