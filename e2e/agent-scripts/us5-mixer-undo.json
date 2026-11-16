@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "description": "US5 (T074): three mixer changes in one command (parallel calls, no approval); the test undoes them with agent-undo.",
+  "turns": [
+    {
+      "calls": [
+        { "name": "mixer_set_channel", "arguments": { "stem": "drums", "gainDb": -6 } },
+        { "name": "mixer_set_channel", "arguments": { "stem": "bass", "gainDb": -12 } },
+        { "name": "mixer_set_channel", "arguments": { "stem": "vocals", "gainChangeDb": 3 } }
+      ]
+    },
+    { "text": "Drums at -6 dB, bass at -12 dB and the vocals 3 dB louder." }
+  ]
+}

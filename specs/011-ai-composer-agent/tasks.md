@@ -208,7 +208,7 @@ clear unavailable state.
 - [ ] T071 [US5] [backend] Implement to pass T070
 - [ ] T072 [P] [US5] [frontend] Failing bUnit tests: undo button state, conversation rename/delete, history reload restores the view and resumes a running run's stream (FR-002)
 - [ ] T073 [US5] [frontend] Implement to pass T072
-- [ ] T074 [US5] [qa] Author `agent.spec.ts` "undo" (three mixer changes -> undo -> previous fader values via `aria-valuenow`; save-as -> undo -> mix gone) and "history" (reload page, conversation restored)
+- [x] T074 [US5] [qa] Author `agent.spec.ts` "undo" (three mixer changes -> undo -> previous fader values via `aria-valuenow`; save-as -> undo -> mix gone) and "history" (reload page, conversation restored)
 
 **Checkpoint**: HO:us5.
 

@@ -1,7 +1,9 @@
 import {
   ensureBackendNone,
+  expectFaders,
   expectStoredBackend,
   freshTrack,
+  faderValues,
   freshTrackWithoutDetail,
   injectionTrack,
   openMixer,
@@ -220,5 +222,83 @@ test('settings: Claude is not selectable without a key; switch to none and back 
     expect((await agentApi.status()).backend).toBe('fake');
   } finally {
     await restoreBackend(agentApi, restore);
+  }
+});
+
+const undoStems = ['drums', 'bass', 'vocals'] as const;
+
+test('undo: three mixer changes return to their previous values', { tag: ['@agent', '@us5-mixer-undo'] }, async ({
+  api,
+  agent,
+  mixer,
+}, testInfo) => {
+  const track = await freshTrack(api, `us5-undo-${testInfo.project.name}`);
+  await openMixer(mixer, track.id);
+  const before = await faderValues(mixer, undoStems);
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Drums op -6 dB, bas op -12 dB en de zang 3 dB harder');
+  await agent.expectAnswer(finalText('us5-mixer-undo'));
+  await expect(agent.steps('mixer_set_channel')).toHaveCount(3);
+  for (const step of await agent.steps('mixer_set_channel').all()) {
+    await expect(step).toHaveAttribute('data-status', 'succeeded');
+  }
+  const changed = await faderValues(mixer, undoStems);
+  changed.forEach((value, index) => {
+    expect(value, undoStems[index]).not.toBeCloseTo(before[index] ?? 0, 0);
+  });
+
+  await expect(agent.undo).toBeEnabled();
+  await agent.undo.click();
+  await expectFaders(mixer, undoStems, before);
+  await expect(agent.approvalCard).toHaveCount(0);
+  await expect(agent.undo).toBeDisabled({ timeout: 30_000 });
+});
+
+test('undo: a mix saved by the agent is deleted again', { tag: ['@agent', '@us5-save-undo'] }, async ({
+  api,
+  agent,
+  mixer,
+}, testInfo) => {
+  const track = await freshTrack(api, `us5-save-${testInfo.project.name}`);
+  await openMixer(mixer, track.id);
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Save this as Agent mix');
+  await agent.expectAnswer(finalText('us5-save-undo'));
+  await agent.expectStep('save_mix_as', 'succeeded');
+  await expect.poll(async () => (await api.findMix(track.id, 'Agent mix'))?.id).toBeDefined();
+
+  // US5-2: the agent's own fresh mix is deleted without a confirmation card.
+  await agent.undo.click();
+  await expect.poll(async () => api.findMix(track.id, 'Agent mix'), { timeout: 30_000 }).toBeUndefined();
+  await expect(agent.approvalCard).toHaveCount(0);
+});
+
+test('history: a reopened conversation shows its messages, plan and steps', { tag: ['@agent', '@us1-command'] }, async ({
+  api,
+  agent,
+  agentApi,
+  trackPage,
+  page,
+}, testInfo) => {
+  const command = `Find my agent track and mute the drums (${testInfo.project.name})`;
+  const track = await freshTrack(api, `us5-history-${testInfo.project.name}`);
+  await trackPage.goto(track.id);
+  await agent.openNewConversation();
+  await agent.sendCommand(command);
+  await agent.expectAnswer(finalText('us1-command'));
+  const conversationId = await agentApi.latestConversationId();
+  expect((await agentApi.conversation(conversationId)).messages.map((m) => m.role)).toEqual(['user', 'assistant']);
+
+  await page.reload();
+  await agent.open();
+  await agent.conversation(conversationId).click();
+  await expect(agent.conversation(conversationId)).toHaveAttribute('aria-current', 'true');
+  await expect(agent.messages('user')).toHaveText([command]);
+  await expect(agent.messages('assistant')).toContainText([finalText('us1-command')]);
+  await agent.expectPlan(3, 'done');
+  for (const tool of ['search_library', 'open_mixer', 'mixer_set_channel']) {
+    await agent.expectStep(tool, 'succeeded');
   }
 });

@@ -72,6 +72,16 @@ export class AgentApi {
     return okJson<ConversationSummaryDto[]>(await this.request.get('/api/agent/conversations'));
   }
 
+  /**
+   * Id of the newest conversation.
+   * @throws Error when there is none.
+   */
+  async latestConversationId(): Promise<string> {
+    const [latest] = await this.conversations();
+    if (latest === undefined) throw new Error('no agent conversation is stored');
+    return latest.conversationId;
+  }
+
   /** `GET /api/agent/conversations/{id}`. */
   async conversation(conversationId: string): Promise<ConversationDto> {
     return okJson<ConversationDto>(await this.request.get(`/api/agent/conversations/${conversationId}`));

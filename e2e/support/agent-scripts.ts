@@ -10,7 +10,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 /** Every script file (basename without `.json`); the self-test keeps this list and the folder equal. */
-export const agentScripts = ['us1-command', 'us2-delete-mix', 'us2-delete-track', 'us2-detail', 'us2-inject'] as const;
+export const agentScripts = [
+  'us1-command',
+  'us2-delete-mix',
+  'us2-delete-track',
+  'us2-detail',
+  'us2-inject',
+  'us5-mixer-undo',
+  'us5-save-undo',
+] as const;
 
 /** Name of one script. */
 export type AgentScriptName = (typeof agentScripts)[number];
