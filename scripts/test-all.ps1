@@ -6,6 +6,7 @@
 .DESCRIPTION
     .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
     (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+    secret scan (no Claude key or key value in the repo, feature 011),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -38,6 +39,10 @@ $Contracts = 'specs/008-sheet-music/contracts'  # 008 documents contain 006's an
 $RenderVectors = 'specs/007-export-library/contracts/generate_render_vectors.py'  # 008 has no vectors file
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
 $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics-to-song/contracts')
+# Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
+$AgentContracts = 'specs/011-ai-composer-agent/contracts'
+$AgentCoverage = 'tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml'
+$WorkerPython = @('uv', 'run', '--project', 'worker', '--frozen', 'python')
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
@@ -47,6 +52,7 @@ $Steps = @(
     @{ Name = 'dotnet build'; Dir = '.'; Cmd = @('dotnet', 'build', 'StemStudio.slnx', '-c', 'Release') }
     @{ Name = 'dotnet format'; Dir = '.'; Cmd = @('dotnet', 'format', 'StemStudio.slnx', '--verify-no-changes') }
     @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', 'StemStudio.slnx', '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
+    @{ Name = 'agent coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentCoverage) }
     @{ Name = 'worker uv sync'; Dir = 'worker'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
@@ -71,6 +77,9 @@ $Steps = @(
     foreach ($dir in $GenerativeContracts) {
         @{ Name = "contracts lint ($(Split-Path -Leaf (Split-Path -Parent $dir)))"; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$dir/redocly.yaml", "$dir/generator-api.openapi.yaml", "$dir/backend-api.openapi.yaml") }
     }
+    @{ Name = 'contracts lint (011-ai-composer-agent)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$AgentContracts/redocly.yaml", "$AgentContracts/backend-api.openapi.yaml", "$AgentContracts/agent-api.openapi.yaml") }
+    @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
+    @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }

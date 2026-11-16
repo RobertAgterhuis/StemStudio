@@ -64,8 +64,8 @@ init_agent_environment() {
   export StemStudio__Agent__Ollama__BaseUrl="${STEMSTUDIO_OLLAMA_URL:-http://localhost:11434}"
   export StemStudio__Agent__Backend="${STEMSTUDIO_AGENT_BACKEND:-ollama}"
   export STEMSTUDIO_AGENT_FAKE_SCRIPT="${STEMSTUDIO_AGENT_FAKE_SCRIPT:-}"
-  local key_state=unset
-  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then key_state=set; fi
+  local key_state="unset"
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then key_state="set"; fi
   echo "Agent: backend $StemStudio__Agent__Backend; Ollama $StemStudio__Agent__Ollama__BaseUrl; Claude key $key_state"
 }
 
