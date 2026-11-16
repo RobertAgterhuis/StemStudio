@@ -13,6 +13,7 @@
     <Project Path="tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj" />
     <Project Path="tests/StemStudio.Web.Tests/StemStudio.Web.Tests.csproj" />
     <Project Path="tests/StemStudio.Agent.Tests/StemStudio.Agent.Tests.csproj" />
+    <Project Path="tests/StemStudio.AgentEval.Tests/StemStudio.AgentEval.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/agent-eval/StemStudio.AgentEval.csproj" />
