@@ -26,6 +26,8 @@ public abstract class AgentApiTestBase : IDisposable
 
     private protected IUiToolGateway UiGateway { get; } = Substitute.For<IUiToolGateway>();
 
+    private protected ILlmGpuRelease GpuRelease { get; } = Substitute.For<ILlmGpuRelease>();
+
     private protected ApiFactory Factory { get; }
 
     private protected HttpClient Client { get; }
@@ -67,5 +69,6 @@ public abstract class AgentApiTestBase : IDisposable
         services.AddSingleton(RunService);
         services.AddSingleton(StatusService);
         services.AddSingleton(UiGateway);
+        services.AddSingleton(GpuRelease);
     }
 }
