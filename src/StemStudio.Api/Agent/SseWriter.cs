@@ -32,6 +32,7 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
         using var subscription = hub.Subscribe(runId);
         try
         {
+            await response.StartAsync(cancellationToken);
             var last = await ReplayAsync(response, runId, after, cancellationToken);
             if (last is not null)
             {

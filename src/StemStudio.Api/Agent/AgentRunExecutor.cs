@@ -78,8 +78,9 @@ public sealed class AgentRunLifecycle(IRunStore runs, IConversationStore convers
             return;
         }
 
-        await runs.UpdateRunAsync(run with { Status = AgentRunStatusDto.Failed, FailureCode = code, FailureMessage = message, EndedAt = clock.GetUtcNow() }, cancellationToken);
+        // The terminal event is stored before the run turns terminal, so a stream that sees the ended run also replays it.
         await events.PublishAsync(runId, AgentEventTypes.RunFailed, AgentStoreValues.ToJson(new RunFailureDto { Code = code, Message = message }), cancellationToken);
+        await runs.UpdateRunAsync(run with { Status = AgentRunStatusDto.Failed, FailureCode = code, FailureMessage = message, EndedAt = clock.GetUtcNow() }, cancellationToken);
     }
 
     /// <summary>Clears the conversation's active run once the run is terminal.</summary>

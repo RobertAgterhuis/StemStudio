@@ -249,8 +249,17 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         await Service<IRunStore>().SaveApprovalAsync(AgentRecords.Approval(step.Id, runId), Ct);
         await PublishAsync(runId, AgentEventTypes.ApprovalRequested, new ApprovalRequestDto
         {
-            StepId = step.Id, Tool = "split_detail", Risk = ToolRiskDto.Heavy, Arguments = JsonDocument.Parse("{}").RootElement,
-            ArgumentsHash = step.ArgumentsHash, Effect = "Splits drums", Undoable = true, EstimatedMinutes = 6, Device = device, AllowPlanScope = true,
+            StepId = step.Id,
+            Tool = "split_detail",
+            Risk = ToolRiskDto.Heavy,
+            Arguments = JsonDocument.Parse("{}").RootElement,
+            ArgumentsHash = step.ArgumentsHash,
+            Reasons = [AgentDecisionReasons.RiskHeavy],
+            Effect = "Splits drums",
+            Undoable = true,
+            EstimatedMinutes = 6,
+            Device = device,
+            AllowPlanScope = true,
         });
 
         using var response = await Client.GetAsync(ApiRoutes.AgentRun(runId), Ct);

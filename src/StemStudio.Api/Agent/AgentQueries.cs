@@ -50,6 +50,12 @@ public sealed class AgentQueries(AgentDb db, IRunEventLogReader events)
         var requested = (await events.ReadAfterAsync(runId, 0, cancellationToken))
             .Where(e => e.Type == AgentEventTypes.ApprovalRequested)
             .Select(e => AgentStoreValues.FromJson<ApprovalRequestDto>(e.Payload));
-        return requested.LastOrDefault(card => pendingStepIds.Contains(card.StepId));
+        return requested.LastOrDefault(card => pendingStepIds.Contains(card.StepId)) is { } pending ? pending with { Device = DeviceOf(pending.Device) } : null;
     }
+
+    /// <summary>The device of an approval card as the UI shows it: <c>cpu</c> stays <c>cpu</c>, any other device is <c>gpu</c>.</summary>
+    /// <param name="device">Device text of the runner, or null.</param>
+    /// <returns><c>cpu</c>, <c>gpu</c> or null.</returns>
+    public static string? DeviceOf(string? device) =>
+        device is null ? null : string.Equals(device, "cpu", StringComparison.OrdinalIgnoreCase) ? "cpu" : "gpu";
 }
