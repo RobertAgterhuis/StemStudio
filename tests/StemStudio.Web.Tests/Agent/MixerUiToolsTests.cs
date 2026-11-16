@@ -23,7 +23,7 @@ public sealed class MixerUiToolsTests
     [Fact]
     public void Handles_TheMixerTools_AndKnowsItsTrack()
     {
-        MixerUiTools.Names.ShouldBe(["mixer_get_state", "mixer_set_channel", "mixer_set_master", "mixer_reset", "transport", "set_loop", "set_metronome"], ignoreOrder: true);
+        MixerUiTools.Names.ShouldBe(["mixer_get_state", "mixer_set_channel", "mixer_set_master", "mixer_reset", "transport", "set_loop", "set_metronome", "show_karaoke"], ignoreOrder: true);
         (_tools.CanRun("set_loop"), _tools.CanRun("open_track"), _tools.TrackId, _tools.Title).ShouldBe((true, false, TestData.TrackId, "Never Gonna Give You Up"));
     }
 
@@ -205,7 +205,54 @@ public sealed class MixerUiToolsTests
 
     [Fact]
     public async Task UnknownTool_Fails() =>
-        (await RunAsync("show_karaoke")).Error.ShouldBe("The mixer cannot run show_karaoke.");
+        (await RunAsync("save_mix_as")).Error.ShouldBe("The mixer cannot run save_mix_as.");
+
+    [Fact]
+    public async Task ShowKaraoke_TurnsTheBannerOn_AndReturnsPreviousAndCurrent()
+    {
+        _controls.KaraokeVisible = false;
+
+        var result = await RunAsync("show_karaoke", """{"enabled":true}""");
+
+        (result.Ok, _controls.KaraokeVisible).ShouldBe((true, true));
+        _controls.Calls.ShouldBe(["karaoke on", "refresh"]);
+        var json = Json(result);
+        (json.GetProperty("previous").GetBoolean(), json.GetProperty("current").GetBoolean()).ShouldBe((false, true));
+    }
+
+    [Fact]
+    public async Task ShowKaraoke_Off_HidesTheBanner_EvenWithoutSyncedLyrics()
+    {
+        _controls.HasSyncedLyrics = false;
+
+        var result = await RunAsync("show_karaoke", """{"enabled":false}""");
+
+        (result.Ok, _controls.KaraokeVisible).ShouldBe((true, false));
+        _controls.Calls.ShouldBe(["karaoke off", "refresh"]);
+        (Json(result).GetProperty("previous").GetBoolean(), Json(result).GetProperty("current").GetBoolean()).ShouldBe((true, false));
+    }
+
+    [Fact]
+    public async Task ShowKaraoke_AlreadyInTheWantedState_ChangesNothing()
+    {
+        var result = await RunAsync("show_karaoke", """{"enabled":true}""");
+
+        _controls.Calls.ShouldBe(["refresh"]);
+        (Json(result).GetProperty("previous").GetBoolean(), Json(result).GetProperty("current").GetBoolean()).ShouldBe((true, true));
+    }
+
+    [Theory]
+    [InlineData("""{"enabled":true}""", "This track has no synced lyrics, so the karaoke banner cannot be shown.")]
+    [InlineData("{}", "The argument 'enabled' is required.")]
+    public async Task ShowKaraoke_WithoutSyncedLyricsOrArgument_Fails(string json, string error)
+    {
+        (_controls.HasSyncedLyrics, _controls.KaraokeVisible) = (false, false);
+
+        var result = await RunAsync("show_karaoke", json);
+
+        (result.Ok, result.Error, _controls.KaraokeVisible).ShouldBe((false, error, false));
+        _controls.Calls.ShouldBeEmpty();
+    }
 
     [Fact]
     public void Arguments_ReadNumbersBooleansTextAndIds()

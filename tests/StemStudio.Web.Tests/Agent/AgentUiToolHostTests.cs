@@ -33,10 +33,12 @@ public sealed class AgentUiToolHostTests : PageTestContext
         Host.OpenMixId(TestData.TrackId).ShouldBeNull();
     }
 
-    [Fact]
-    public async Task MixerTool_WithoutAnOpenMixer_SaysTheMixerIsNotOpen()
+    [Theory]
+    [InlineData("mixer_set_master", """{"gainDb":-3}""")]
+    [InlineData("show_karaoke", """{"enabled":true}""")]
+    public async Task MixerTool_WithoutAnOpenMixer_SaysTheMixerIsNotOpen(string tool, string arguments)
     {
-        var result = await Host.ExecuteAsync(Request("mixer_set_master", """{"gainDb":-3}"""));
+        var result = await Host.ExecuteAsync(Request(tool, arguments));
 
         (result.Ok, result.Error, result.Result).ShouldBe((false, "The mixer of the track is not open", null));
     }

@@ -26,7 +26,13 @@ public sealed class FakeMixerControls : IMixerControls
 
     public bool Playing { get; set; }
 
+    public bool KaraokeVisible { get; set; } = true;
+
+    public bool HasSyncedLyrics { get; set; } = true;
+
     public List<string> Calls { get; } = [];
+
+    public Task SetKaraokeVisibleAsync(bool visible) => Record(visible ? "karaoke on" : "karaoke off", () => KaraokeVisible = visible);
 
     public Task SetVolumeAsync(string stem, double volume) => Record($"volume {stem}", () => State.SetVolume(stem, volume));
 

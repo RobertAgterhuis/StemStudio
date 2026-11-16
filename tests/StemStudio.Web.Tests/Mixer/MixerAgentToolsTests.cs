@@ -94,6 +94,32 @@ public sealed class MixerAgentToolsTests : MixerTestContext
     }
 
     [Fact]
+    public async Task ShowKaraoke_TurnsTheHiddenBannerOn_ThroughTheKaraokeToggle()
+    {
+        JSInterop.Setup<string?>("localStorage.getItem", "stemstudio.karaoke").SetResult("{\"visible\":false,\"size\":\"m\"}");
+        Api.GetLyricsAsync(TestData.TrackId, Arg.Any<CancellationToken>()).Returns(LyricsData.Found());
+        var page = RenderMixer();
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-toggle]").GetAttribute("aria-pressed").ShouldBe("false"));
+
+        var result = await page.InvokeAsync(() => Host.ExecuteAsync(Request("show_karaoke", """{"enabled":true}""")));
+
+        (result.Ok, result.Result!.Value.GetProperty("previous").GetBoolean(), result.Result!.Value.GetProperty("current").GetBoolean()).ShouldBe((true, false, true));
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-toggle]").GetAttribute("aria-pressed").ShouldBe("true"));
+        page.WaitForAssertion(() => Engine.Received(1).AttachKaraokeAsync("karaoke-host", Arg.Any<KaraokeLyrics>(), Arg.Any<KaraokeOptions>()));
+    }
+
+    [Fact]
+    public async Task ShowKaraoke_WithoutSyncedLyrics_FailsReadably()
+    {
+        var page = RenderMixer();
+        page.WaitForAssertion(() => page.Find("[data-testid=karaoke-unavailable]").ShouldNotBeNull());
+
+        var result = await page.InvokeAsync(() => Host.ExecuteAsync(Request("show_karaoke", """{"enabled":true}""")));
+
+        (result.Ok, result.Error).ShouldBe((false, "This track has no synced lyrics, so the karaoke banner cannot be shown."));
+    }
+
+    [Fact]
     public async Task ClosingThePage_RemovesTheTools()
     {
         var page = RenderMixer();
