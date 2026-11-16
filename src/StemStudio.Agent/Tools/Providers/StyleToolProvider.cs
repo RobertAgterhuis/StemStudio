@@ -142,17 +142,22 @@ public sealed class StyleToolProvider : IAgentToolProvider
         return ToolResult.Of(new JsonObject
         {
             ["state"] = Name(status.State),
-            ["reason"] = status.State switch
-            {
-                GenerationAvailabilityDto.Ready => null,
-                GenerationAvailabilityDto.NotInstalled => "The generator is not installed.",
-                _ => "The generator is not available.",
-            },
-            ["device"] = status.Device is { Kind: { } kind } device ? new JsonObject { ["kind"] = Name(kind), ["name"] = TrustedText.SafeName(device.Name) } : null,
+            ["reason"] = StatusReason(status.State),
+            ["device"] = Device(status.Device),
             ["voiceState"] = Name(status.Voice.State),
             ["downloadBytesNeeded"] = status.DownloadBytesNeeded,
         });
     }
+
+    private static string? StatusReason(GenerationAvailabilityDto state) => state switch
+    {
+        GenerationAvailabilityDto.Ready => null,
+        GenerationAvailabilityDto.NotInstalled => "The generator is not installed.",
+        _ => "The generator is not available.",
+    };
+
+    private static JsonObject? Device(Contracts.Health.ProcessingDeviceDto? device) =>
+        device is { Kind: { } kind } ? new JsonObject { ["kind"] = Name(kind), ["name"] = TrustedText.SafeName(device.Name) } : null;
 
     private static async Task<ToolResult> ListStylesAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
@@ -174,18 +179,7 @@ public sealed class StyleToolProvider : IAgentToolProvider
 
     private static async Task<ToolResult> CreateStyleAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
-        var input = new StyleInput
-        {
-            Name = call.Text("name")!,
-            GenreFamily = Parse<GenreFamilyDto>(call.Text("genreFamily"))!.Value,
-            SubGenre = call.Text("subGenre"),
-            TempoFeel = Parse<TempoFeelDto>(call.Text("tempoFeel"))!.Value,
-            Instrumentation = call.Strings("instrumentation"),
-            Moods = call.Strings("moods"),
-            VocalHandling = Parse<VocalHandlingDto>(call.Text("vocalHandling"))!.Value,
-            DefaultStrength = Parse<StrengthDto>(call.Text("defaultStrength"))!.Value,
-            Description = call.Text("description"),
-        };
+        var input = StyleInputOf(call);
         var style = await call.Actions.Styles.CreateStyleAsync(input, cancellationToken);
         return new ToolResult
         {
@@ -194,6 +188,19 @@ public sealed class StyleToolProvider : IAgentToolProvider
             UndoFresh = true,
         };
     }
+
+    private static StyleInput StyleInputOf(ToolInvocation call) => new()
+    {
+        Name = call.Text("name")!,
+        GenreFamily = Parse<GenreFamilyDto>(call.Text("genreFamily"))!.Value,
+        SubGenre = call.Text("subGenre"),
+        TempoFeel = Parse<TempoFeelDto>(call.Text("tempoFeel"))!.Value,
+        Instrumentation = call.Strings("instrumentation"),
+        Moods = call.Strings("moods"),
+        VocalHandling = Parse<VocalHandlingDto>(call.Text("vocalHandling"))!.Value,
+        DefaultStrength = Parse<StrengthDto>(call.Text("defaultStrength"))!.Value,
+        Description = call.Text("description"),
+    };
 
     private static ToolEstimate RestyleEstimate(ToolInvocation call)
     {

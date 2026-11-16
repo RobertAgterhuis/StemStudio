@@ -51,17 +51,25 @@ public sealed class ArtistToolProvider : IAgentToolProvider
         {
             ["status"] = Name(info.Status),
             ["reason"] = info.Reason is null ? null : ReasonText(info.Status),
-            ["reasonDetail"] = info.Reason is null ? null : new JsonObject { [ResultProjector.UntrustedField] = Untrusted(info.Reason) },
+            ["reasonDetail"] = UntrustedError(info.Reason),
             ["artist"] = info.Artist is { } artist ? Artist(artist) : null,
-            ["recording"] = info.Recording is { } recording ? new JsonObject { [ResultProjector.UntrustedField] = Untrusted(recording.Album), ["year"] = recording.Year } : null,
+            ["recording"] = Recording(info.Recording),
         };
-        if (info.Artist?.Summary is { } summary && call.Backend != AgentBackendDto.Claude)
+        AddSummary(projection, info.Artist?.Summary, call.Backend);
+        return ToolResult.Of(projection);
+    }
+
+    private static JsonObject? Recording(RecordingInfoDto? recording) =>
+        recording is null ? null : new JsonObject { [ResultProjector.UntrustedField] = Untrusted(recording.Album), ["year"] = recording.Year };
+
+    /// <summary>The Wikipedia summary (untrusted, at most 500 characters); never sent to Claude.</summary>
+    private static void AddSummary(JsonObject projection, WikipediaSummaryDto? summary, AgentBackendDto backend)
+    {
+        if (summary is not null && backend != AgentBackendDto.Claude)
         {
             projection[ResultProjector.UntrustedField] = ResultProjector.Untrusted(summary.Extract, MaxSummary);
             projection["source"] = $"Wikipedia ({WikipediaSummaryDto.CcBySa40})";
         }
-
-        return ToolResult.Of(projection);
     }
 
     private static string Country(string? country) => string.IsNullOrWhiteSpace(country) ? string.Empty : $"country: {country}; ";

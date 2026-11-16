@@ -16,28 +16,28 @@ internal static class SelfTest
         var failures = new List<string>();
         foreach (var evalCase in set.Cases)
         {
-            Check(failures, evalCase, "ideal", Ideal(evalCase), expectPass: true);
-            Check(failures, evalCase, "3 extra reads", [.. Ideal(evalCase), ExtraRead, ExtraRead, ExtraRead], expectPass: evalCase.Expected.Count == 0 && !evalCase.ForbidAnyCall);
+            Check(failures, evalCase, ("ideal", Ideal(evalCase)), expectPass: true);
+            Check(failures, evalCase, ("3 extra reads", [.. Ideal(evalCase), ExtraRead, ExtraRead, ExtraRead]), expectPass: evalCase.Expected.Count == 0 && !evalCase.ForbidAnyCall);
             if (evalCase.Forbidden.Count > 0)
             {
-                Check(failures, evalCase, "forbidden executed", [.. Ideal(evalCase), new RecordedCall(evalCase.Forbidden[0], "{}", true, false)], expectPass: false);
+                Check(failures, evalCase, ("forbidden executed", [.. Ideal(evalCase), new RecordedCall(evalCase.Forbidden[0], "{}", true, false)]), expectPass: false);
             }
 
             if (evalCase.Expected.Count > 0)
             {
-                Check(failures, evalCase, "nothing called", [], expectPass: false);
+                Check(failures, evalCase, ("nothing called", []), expectPass: false);
             }
         }
 
         return failures;
     }
 
-    private static void Check(List<string> failures, EvalCase evalCase, string scenario, IReadOnlyList<RecordedCall> calls, bool expectPass)
+    private static void Check(List<string> failures, EvalCase evalCase, (string Name, IReadOnlyList<RecordedCall> Calls) scenario, bool expectPass)
     {
-        var grade = Grader.Grade(evalCase, calls);
+        var grade = Grader.Grade(evalCase, scenario.Calls);
         if (grade.Passed != expectPass)
         {
-            failures.Add($"case {evalCase.Id} ({scenario}): expected {(expectPass ? "pass" : "fail")}, got {(grade.Passed ? "pass" : "fail")} {grade.Reason}");
+            failures.Add($"case {evalCase.Id} ({scenario.Name}): expected {(expectPass ? "pass" : "fail")}, got {(grade.Passed ? "pass" : "fail")} {grade.Reason}");
         }
     }
 

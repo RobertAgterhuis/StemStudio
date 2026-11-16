@@ -132,27 +132,32 @@ public sealed class SongToolProvider : IAgentToolProvider
 
     private static async Task<ToolResult> GenerateAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
-        var time = call.Whole("timeSignature");
-        var request = new SongRequest
-        {
-            LyricsId = call.Id("lyricsId"),
-            LyricsText = call.Text("lyricsText"),
-            Title = call.Text("title"),
-            Language = call.Text("language")!,
-            StyleId = call.Id("styleId"),
-            FreeCaption = call.Text("freeCaption"),
-            LeadVoice = Parse<LeadVoiceDto>(call.Text("leadVoice"))!.Value,
-            Delivery = call.Text("delivery"),
-            Instrumental = call.Flag("instrumental") == true,
-            Bpm = call.Whole("bpm"),
-            KeyScale = call.Text("keyScale"),
-            TimeSignature = time is null or 2 or 3 or 4 or 6 ? time?.ToString(System.Globalization.CultureInfo.InvariantCulture) : throw new AgentActionException("Use a time signature of 2, 3, 4 or 6."),
-            DurationSeconds = call.Number("durationSeconds") ?? 120,
-            Takes = call.Whole("takes") ?? 1,
-        };
+        var request = SongRequestOf(call);
         var generation = await call.Actions.Songs.CreateSongAsync(request, cancellationToken);
         return Started(generation, JobPhaseDto.Generation, Estimate("Generate a song", request.DurationSeconds, request.Takes).EstimatedMinutes);
     }
+
+    private static string? TimeSignature(int? time) => time is null or 2 or 3 or 4 or 6
+        ? time?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        : throw new AgentActionException("Use a time signature of 2, 3, 4 or 6.");
+
+    private static SongRequest SongRequestOf(ToolInvocation call) => new()
+    {
+        LyricsId = call.Id("lyricsId"),
+        LyricsText = call.Text("lyricsText"),
+        Title = call.Text("title"),
+        Language = call.Text("language")!,
+        StyleId = call.Id("styleId"),
+        FreeCaption = call.Text("freeCaption"),
+        LeadVoice = Parse<LeadVoiceDto>(call.Text("leadVoice"))!.Value,
+        Delivery = call.Text("delivery"),
+        Instrumental = call.Flag("instrumental") == true,
+        Bpm = call.Whole("bpm"),
+        KeyScale = call.Text("keyScale"),
+        TimeSignature = TimeSignature(call.Whole("timeSignature")),
+        DurationSeconds = call.Number("durationSeconds") ?? 120,
+        Takes = call.Whole("takes") ?? 1,
+    };
 
     private static async Task<ToolResult> ListProfilesAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
