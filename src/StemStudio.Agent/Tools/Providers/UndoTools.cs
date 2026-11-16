@@ -22,5 +22,13 @@ public static class UndoTools
             Schema = ToolSchema.Of(Param.Uuid("trackId")),
             Handler = LyricsToolProvider.RemoveAsync,
         },
+        Tool("011", GenerationTools.DiscardTool, ToolKindDto.Server, ToolRiskDto.Destructive) with
+        {
+            Title = "Discard a generation",
+            Description = "Undo of restyle_track, generate_song and convert_take_voice: cancel while active, then delete.",
+            Schema = ToolSchema.Of(Param.Uuid("generationId")),
+            TargetArgument = "generationId",
+            Handler = GenerationTools.DiscardAsync,
+        },
     ];
 }

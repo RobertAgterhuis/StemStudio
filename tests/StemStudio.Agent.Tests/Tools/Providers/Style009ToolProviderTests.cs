@@ -2,7 +2,6 @@ using NSubstitute;
 using StemStudio.Agent.Policy;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Tests.Fixtures;
-using StemStudio.Agent.Tools;
 using StemStudio.Agent.Tools.Providers;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Generation;
@@ -109,11 +108,12 @@ public sealed class Style009ToolProviderTests
     public void CreateStyle_NamingAnArtist_IsDeniedByTheGuardrail()
     {
         var tool = Tool(new StyleToolProvider(), "create_style");
-        var arguments = Element("""{"name":"Like Metallica","genreFamily":"metal","tempoFeel":"driving","vocalHandling":"keep","defaultStrength":"strong"}""");
+        var arguments = Element("""{"name":"Summer","moods":["in the style of Coldplay"],"genreFamily":"pop","tempoFeel":"driving","vocalHandling":"keep","defaultStrength":"strong"}""");
 
-        var decision = ToolPolicy.Decide(new PolicyInput { Tool = tool, Arguments = arguments, Tainted = false, UserMessages = ["make a style like Metallica"] });
+        var decision = ToolPolicy.Decide(new PolicyInput { Tool = tool, Arguments = arguments, Tainted = false, UserMessages = ["make a summer style"] });
 
-        (decision.Decision, decision.Reasons).ShouldBe((StepDecisionDto.Denied, [AgentDecisionReasons.ArtistImitation]));
+        decision.Decision.ShouldBe(StepDecisionDto.Denied);
+        decision.Reasons.ShouldBe([AgentDecisionReasons.ArtistImitation]);
     }
 
     [Fact]
