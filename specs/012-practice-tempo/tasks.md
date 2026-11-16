@@ -164,7 +164,7 @@ The frontend agent reports the web-interop lane in a separate section with its o
 - [ ] T058 [US3] [audio-engine] Implement the count-in in the controller and the pass scheduler to pass T057
 - [ ] T059 [P] [US3] [frontend] Failing bUnit tests `CountInControlTests`, `CountInIndicatorTests`: `countin-toggle` (Beginner on = 1 bar, Advanced restores the last bar count), `countin-bars`, `countin-every-pass` disabled without a loop, `countin-unavailable` text, `countin-indicator` with `countin-dot-<n>` states, announcements "Count-in" / "Go" only, no pulse with reduced motion, `mixer.countin.toggle` command, help topics `practice-count-in` and glossary `count-in` (FR-012, FR-013, FR-016, FR-017)
 - [ ] T060 [US3] [frontend] Implement `Components/Mixer/Practice/{CountInControl,CountInIndicator}.razor(.cs)`, `FeatureCatalog` `practice.count-in.options`, help topics, related link from `mixer-metronome`, the command, to pass T059
-- [ ] T061 [US3] [qa] Author `e2e/tests/practice-count-in.spec.ts` (P9: 1 bar at 120 BPM = 2.0 s +- 50 ms with the click probe; 2 bars + every pass at 50 % on a 4 s loop; unavailable without a grid; pause cancels) (SC-005)
+- [x] T061 [US3] [qa] Author `e2e/tests/practice-count-in.spec.ts` (P9: 1 bar at 120 BPM = 2.0 s +- 50 ms with the click probe; 2 bars + every pass at 50 % on a 4 s loop; unavailable without a grid; pause cancels) (SC-005)
 
 **Checkpoint**: HO:us3.
 
