@@ -44,6 +44,18 @@ Beat detection assumes a steady tempo and can place the first beat of the bar wr
 Switch to Advanced and use **BPM override**, **offset** and **beats per bar**, or **Reset**
 to go back to the detected values.
 
+## Speed or transpose is disabled or sounds wrong
+
+- *Speed and transpose are unavailable*: the browser could not load the time-stretch module
+  (the message names the reason). Use a current Chrome, Edge or Firefox and reload the mixer;
+  playback keeps working at the original speed and key.
+- *Smeary drums or chipmunk voices*: expected below 70 % or beyond 7 semitones (chapter 5,
+  *Sound quality*).
+- *Dropouts* in the Expert **Stretch** line: the computer could not keep up. Close other
+  programs or collapse detail groups.
+- *The speed trainer or count-in cannot be turned on*: the trainer and *Before every loop
+  pass* need an enabled loop of at least 0.5 s; the count-in needs a beat grid or a manual BPM.
+
 ## Settings and help look wrong
 
 **Reset help and tours** in the preferences restores the welcome panel, hints and tours. To
@@ -89,6 +101,9 @@ one person on one computer. Do not expose its ports to the internet.
 
 **How do I make a backup?** Ask your administrator, or see *Operations* in the technical
 manual: your data lives in Docker volumes that can be backed up.
+
+**Does an export keep my practice speed or key?** No. Exports to the library always use the
+original speed and key; the practice tempo is only for listening and is saved with the mix.
 
 **Which browsers are supported?** Chrome, Edge and Firefox are tested; Safari works on a
 best-effort basis.

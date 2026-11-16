@@ -45,6 +45,14 @@ each folder holds a `DELTA.md` with the planned changes.
 | `GET /api/scores/options` | 008: suggested profile, allowed profiles, grid status, default quality and estimates for `trackId` + `channel` or an `assetId` |
 | `POST /api/assets/scores` | 008: queue a score item (202) |
 
+From 012 (backend API 1.11.0) every mix carries `settings.practice`: `speedPercent` 50-120
+(default 100), `transposeSemitones` -12..12 (0), `trainer` {`enabled`, `startPercent` 50-120
+(70), `stepPercent` 1-20 (5), `targetPercent` 50-120 (100) and above the start,
+`passesPerStep` 1-16 (1)} and `countIn` {`bars` 0, 1 or 2, `everyPass`}. An absent or `null`
+`practice` means the defaults, also on `PUT` (so a `PUT` without it resets the practice
+tempo); when present, `trainer` and `countIn` are required. Duplicates copy it; exports,
+stem packs and mix summaries ignore it.
+
 Errors: 400 validation, 404, 409 conflicts (mix name taken, retry of a non-failed track or
 item, delete while processing, less than `MinFreeDiskBytes` free), 413 too large, 415
 unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
@@ -136,10 +144,12 @@ not run.
 ## Agent tools
 
 The agent's tools are defined in `specs/011-ai-composer-agent/contracts/tool-catalogue.md`
-1.0.0: 57 tools of features 001-011 (library, mixes, navigation, open-mixer control, detail
+1.3.0: 57 tools of features 001-011 (library, mixes, navigation, open-mixer control, detail
 separation, device, help, artist info, lyrics, export, transcription, styles, songs and
 own-voice conversion). Each tool has a fixed risk class in code (read, change, job, heavy,
 destructive). A request offers at most 32 tools: the core group plus the groups of the page
 context, minus tools whose service is unavailable. Server tools call the API; UI tools (mixer,
 transport, loop, metronome, navigation) are executed by the Web app and report back through
-`ui-results` within 15 s.
+`ui-results` within 15 s. From catalogue 1.3.0 (012) `get_mix` and `mixer_get_state` show the
+practice tempo read-only as numbers, and `save_mix_as`, `update_mix` and its `restore_mix`
+undo keep it unchanged; no tool changes the practice tempo yet.

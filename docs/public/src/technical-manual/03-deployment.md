@@ -25,6 +25,38 @@ Kestrel serves directly without a reverse proxy. A proxy added later must accept
 bodies of at least 200 MiB plus multipart overhead. Containers run as non-root users (the
 worker as uid/gid 10001).
 
+## SoundTouch module (012)
+
+The practice tempo needs `soundtouch.wasm` (SoundTouch 2.4.1, LGPL-2.1, plus StemStudio's ABI
+shim). The **web image builds it itself**: an offline (`--network=none`) emsdk 6.0.13 stage,
+pinned by digest in `third_party/soundtouch/soundtouch.lock`, verifies the release tarball's
+SHA-256 and writes `/app/wwwroot/js/soundtouch/soundtouch.wasm` (served as
+`application/wasm`) together with the LGPL folder `/third-party/soundtouch/` (`index.html`,
+`COPYING.TXT`, `NOTICE.md`, `README.md`, the lock, the source tarball, the shim, the header,
+both build scripts and `SHA256SUMS`).
+
+Outside Docker (development, `scripts/dev.*`, unit tests) build it once:
+
+```
+scripts/build-soundtouch.sh                        # Docker, pinned emsdk image, offline compile
+pwsh scripts/build-soundtouch.ps1                  # the same on Windows
+scripts/build-soundtouch.sh --local                # an activated local emsdk 6.0.13 instead of Docker
+scripts/build-soundtouch.sh --verify-reproducible  # build twice, fail unless the SHA-256 match
+```
+
+The output (`src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm`, about 30 KB, no
+imports, 13 exports) is git-ignored. Without it the mixer still works; speed and transpose
+then show *unavailable*. Two builds from the same lock are bit-identical (checked in CI).
+
+**Replacing the module (LGPL-2.1 section 6):** rebuild SoundTouch (modified or not) with the
+shim as described in `third_party/soundtouch/README.md` and mount the file over
+`/app/wwwroot/js/soundtouch/soundtouch.wasm` in the web container. The processor checks
+`st_abi_version() == 1`. `scripts/check-soundtouch-served.{sh,ps1} [BASE_URL]` verifies that a
+running installation serves the module and the complete source package.
+
+No Content-Security-Policy is set today; a CSP added later must allow `'wasm-unsafe-eval'`
+for the worklet.
+
 ## GPU variant
 
 ```

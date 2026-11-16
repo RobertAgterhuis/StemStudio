@@ -49,6 +49,13 @@ via Demucs; direct from 007), soxr (LGPL-2.1, via librosa), the GPL/LGPL transit
 dependencies of spotDL (mutagen, unidecode, text-unidecode, pykakasi, spotapi; metadata only)
 and, from 008, verovio (LGPL-3.0) and cairosvg (LGPL-3.0+).
 
+From 012, **SoundTouch 2.4.1 (LGPL-2.1)**, unmodified and pinned by SHA-256, is compiled with
+StemStudio's ABI shim (LGPL-2.1-or-later) into the separate, replaceable
+`js/soundtouch/soundtouch.wasm`. StemStudio's own engine and worklet stay MIT and contain no
+SoundTouch code; every binary distribution ships the complete corresponding source at
+`/third-party/soundtouch/index.html` (ADR-021). The emsdk 6.0.13 image (MIT/NCSA) is a
+build tool only.
+
 ## Notable permissive components
 
 yt-dlp (Unlicense), spotDL (MIT), Radzen Blazor (MIT), driver.js (MIT), Markdig (BSD-2),

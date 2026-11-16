@@ -19,7 +19,9 @@ failed. Retry is allowed only from failed.
 **Mix**: track id, name (1 to 100 characters, unique per track ignoring case), master volume,
 channels (stem, volume 0 to 1, default 0.8, pan −1 to 1, mute, solo), metronome (enabled,
 volume, BPM override 30 to 300, offset −2000 to 2000 ms, beats per bar), loop (start, end,
-enabled), expanded parents and detail channels.
+enabled), expanded parents and detail channels; from 012 the practice tempo (speed 50 to
+120 %, transpose −12 to +12, speed trainer start/step/target/passes, count-in bars 0 to 2 and
+before every pass), stored as nullable JSON; `NULL` reads as the defaults.
 
 **Track artwork and metadata (005)**: the chosen picture (source `user`, `spotify`,
 `embedded`, `coverartarchive` or `youtube`, version) and the best automatic one, the lookup
@@ -59,6 +61,7 @@ hash (existing tracks are not migrated).
 | `20261115200748_AddLyricsAndVoices` | 010 | `LyricsSheets`, `VoiceProfiles`, `AudioHashes` |
 | `20261116064402_AddAgent` | 011 | `AgentSettings` (one row: backend, models, Claude model and effort, limits, notice acknowledgement; never the key), `Conversations`, `ConversationMessages`, `AgentRuns` (status, backend, model, taint, counters, usage), `RunSteps` (tool, arguments, risk, decision and reasons, status, result), `Approvals` (bound to the arguments hash, 24 h expiry), `RunEvents` (SSE replay), `UndoEntries` (inverse calls, `ExpectedUpdatedAt`). Unreleased id kept after the T080 regeneration: development databases that applied an earlier 011 `AddAgent` must be recreated |
 | `20261116165940_AddAgentSecrets` | 011 claude-key | `AgentSecrets` (name, Data Protection ciphertext, last four characters, purpose version, save time; never the key in plain text) |
+| `20261116211814_AddMixPractice` | 012 | `Mixes.Practice` (nullable JSON: speed, transpose, trainer, count-in); older mixes keep `NULL` = defaults |
 
 ## File layout
 

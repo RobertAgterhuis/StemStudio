@@ -17,7 +17,8 @@ it later, download it or use it elsewhere for your own practice.
     ignoring mute and solo, with the master volume applied. At least one channel must be
     ticked.
 
-The metronome is never included. After **Save to library** in the dialog it confirms *"Saved "<name>" to the
+The metronome is never included, and an export always uses the original speed and key,
+whatever the practice tempo (chapter 5) is set to; the dialog says so. After **Save to library** in the dialog it confirms *"Saved "<name>" to the
 library. It is being prepared in the background."* with a link **Open in library**. The
 default name is the song title followed by the contents, for example *drums, raw* or
 *vocals + bass, mixed*.

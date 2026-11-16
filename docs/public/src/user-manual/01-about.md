@@ -2,7 +2,7 @@
 
 This manual explains StemStudio for the people who use it: musicians who want to practise
 along with a song by turning instruments up, down or off. It covers the complete product as
-planned in features 001 to 011. Features that are still being built are clearly marked, so
+planned in features 001 to 012. Features that are still being built are clearly marked, so
 you always know what you can use today.
 
 ## Feature status

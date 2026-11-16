@@ -35,8 +35,15 @@ For the <kbd>G</kbd> sequences, press the second key within one second.
 | <kbd>M</kbd> / <kbd>S</kbd> | Mute / solo the selected channel |
 | <kbd>Mod</kbd>+<kbd>S</kbd> | Save the mix |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | Save the mix as a new mix |
+| <kbd>-</kbd> / <kbd>=</kbd> (or <kbd>+</kbd>) | Practice speed −5 % / +5 % |
+| <kbd>,</kbd> / <kbd>.</kbd> | Transpose −1 / +1 semitone |
+| <kbd>R</kbd> | Original speed and key |
+| <kbd>C</kbd> | Count-in on or off |
+| <kbd>T</kbd> | Speed trainer on or off (Advanced) |
 
-A focused fader also responds to the arrow keys and <kbd>PgUp</kbd>/<kbd>PgDn</kbd>.
+A focused fader also responds to the arrow keys and <kbd>PgUp</kbd>/<kbd>PgDn</kbd>; the
+focused speed slider moves 1 % with the arrow keys and 10 % with <kbd>PgUp</kbd>/<kbd>PgDn</kbd>.
+The shortcut overlay lists the practice keys in their own *Practice* group.
 
 ## The command palette
 

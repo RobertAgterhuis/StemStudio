@@ -4,7 +4,7 @@ This manual describes how StemStudio is built, deployed, operated and developed.
 for whoever installs and maintains StemStudio and for the agent team that builds it. The
 user-facing behaviour is described in the companion *User Manual*.
 
-It covers the final product of features 001 to 011. Sections about a feature that is not
+It covers the final product of features 001 to 012. Sections about a feature that is not
 delivered yet carry the marker <span class="planned">In development</span> and describe the
 approved specification and plan (`specs/NNN-*/spec.md`, `plan.md`, `contracts/DELTA.md` and
 the related ADR). Contract versions and file names in those sections are planned values and
