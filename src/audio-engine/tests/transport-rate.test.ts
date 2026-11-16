@@ -248,3 +248,23 @@ describe('karaoke clock at a rate (no karaoke change)', () => {
     expect(clock.positionMs()).toBe(3000);
   });
 });
+
+describe('explicit passes in the transport', () => {
+  const planner = { first: (offset: number, heardWhen: number) => ({ heardWhen, offset, duration: 1, rate: 1, latency: 0 }) };
+
+  it('ignores launch while not playing', () => {
+    const { ctx, transport } = makeTransport();
+    transport.launch({ heardWhen: 1, offset: 0, duration: 1, rate: 1, latency: 0 });
+    expect(ctx.startedSources()).toHaveLength(0);
+  });
+
+  it('starts no late buffer inside the gap after a pass', async () => {
+    const { ctx, transport } = makeTransport();
+    transport.setPlanner(planner);
+    expect(transport.passes).toBe(true);
+    await transport.play();
+    ctx.currentTime = 1.5;
+    transport.addBuffers(new Map<ChannelId, AudioBuffer>([['drums.kick', ctx.createBuffer(2, 44100 * 5, 44100) as unknown as AudioBuffer]]), 1.5);
+    expect(ctx.startedSources()).toHaveLength(1);
+  });
+});

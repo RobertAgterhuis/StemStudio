@@ -259,3 +259,34 @@ describe('trainer lifecycle', () => {
     expect(running(rig).every((s) => s.loop && s.startCalls[0]?.duration === undefined)).toBe(true);
   });
 });
+
+describe('pass edge cases', () => {
+  it('a transpose change before the first pass starts applies to it', async () => {
+    const rig = await trainerRig();
+    await rig.engine.play();
+    await rig.engine.setPractice({ ...TRAINER, transposeSemitones: 1 });
+    expect(stageOf(rig).pitches.at(-1)).toEqual({ factor: pitchFactor(50, 1), atFrame: Math.round(0.02 * SR) });
+  });
+
+  it('moving the loop away from the position restarts the passes at the new A', async () => {
+    const rig = await trainerRig();
+    await rig.engine.play();
+    await run(rig, 1);
+    rig.engine.setLoop({ start: 6, end: 8, enabled: true });
+    running(rig).forEach((source) => {
+      expect(source.startCalls[0]).toMatchObject({ offset: 6, duration: 2 });
+    });
+  });
+
+  it('enabling the trainer while the stage is already engaged restarts once into pass 1', async () => {
+    const rig = await loadedPracticeRig();
+    rig.engine.setLoop({ start: A, end: B, enabled: true });
+    await rig.engine.setPractice(practice({ speedPercent: 80 }));
+    await rig.engine.play();
+    rig.ctx.currentTime = 2;
+    const resets = stageOf(rig).resets;
+    await rig.engine.setPractice({ ...TRAINER, speedPercent: 80 });
+    expect(stageOf(rig).resets).toBe(resets + 1);
+    expect(running(rig).every((s) => s.playbackRate.value === 0.5 && s.startCalls[0]?.duration !== undefined)).toBe(true);
+  });
+});

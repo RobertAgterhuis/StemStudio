@@ -12,7 +12,8 @@ import { UNAVAILABLE_PREFIX, type FailureAware } from '../stretch/worklet-stage'
 import type { Transport, TransportListener } from '../transport';
 import type { PlaybackState, PracticeSettings, PracticeStatus, StretchState, TimeStretchStage } from '../types';
 import { DEFAULT_PRACTICE, validatePractice } from './settings';
-import { liveChangeTimes, type LiveChangeTimes } from './tempo';
+import { PassMode, type Tempo } from './pass-mode';
+import { CHANGE_LEAD_SECONDS, liveChangeTimes, type LiveChangeTimes } from './tempo';
 
 /** Interval of the underrun poll while playing (ms); UI diagnostics only. */
 export const UNDERRUN_POLL_MS = 100;
@@ -54,9 +55,25 @@ export class PracticeController implements TransportListener {
   private reportedUnderruns = 0;
   private poll: ReturnType<typeof setInterval> | undefined;
   private disposed = false;
+  private restarts = 0;
+  private transpose = 0;
+  private readonly passMode: PassMode;
 
   /** @param host - Engine parts. */
-  public constructor(private readonly host: PracticeHost) {}
+  public constructor(private readonly host: PracticeHost) {
+    this.passMode = new PassMode({
+      context: host.context,
+      transport: host.transport,
+      settings: () => this.settings,
+      tempoFor: (speed) => this.tempoFor(speed),
+      stage: () => this.active,
+      gap: () => 0,
+      applied: (pitch) => {
+        this.applied = pitch;
+      },
+      changed: host.changed,
+    });
+  }
 
   /**
    * Validates and applies settings; loads the stage first when they need it.
@@ -69,7 +86,21 @@ export class PracticeController implements TransportListener {
       await this.ensureStage(settings);
     }
     this.settings = settings;
+    const restart = this.passMode.configure(settings);
+    const restarts = this.restarts;
     this.retarget();
+    this.transpose = settings.transposeSemitones;
+    if (restart && this.restarts === restarts) {
+      this.host.transport.restart();
+    }
+    this.host.changed();
+  }
+
+  /** The loop changed (after the transport applied it): passes may start, stop or restart. */
+  public onLoopChanged(): void {
+    if (this.passMode.loopChanged()) {
+      this.host.transport.restart();
+    }
     this.host.changed();
   }
 
@@ -79,16 +110,18 @@ export class PracticeController implements TransportListener {
 
   /** @returns The current snapshot. */
   public status(): PracticeStatus {
-    const { speedPercent, transposeSemitones, trainer, countIn } = this.settings;
+    const { speedPercent, transposeSemitones, countIn } = this.settings;
     const tempo = this.host.countIn();
+    const trainer = this.passMode.trainerStatus();
+    const runs = trainer.state === 'running' || trainer.state === 'target';
     return {
-      speedPercent,
+      speedPercent: runs ? trainer.speedPercent : speedPercent,
       transposeSemitones,
       stretch: this.stretch,
       stretchReason: this.reason,
       latencyMs: this.active === null ? 0 : this.latencyOf(this.active, this.applied) * 1000,
       underruns: this.underruns(),
-      trainer: { state: 'off', pass: 0, speedPercent: trainer.startPercent },
+      trainer,
       countIn: { available: tempo.available, active: false, beatsRemaining: 0, beatsTotal: countIn.bars * tempo.beatsPerBar },
     };
   }
@@ -101,10 +134,12 @@ export class PracticeController implements TransportListener {
     }
     this.underrunBase = this.stage?.underruns() ?? 0;
     this.reportedUnderruns = 0;
+    this.passMode.trackLoaded();
   }
 
   /** Transport restart hook: bypass at neutral settings, else reset the stage and set the pitch for the new start. */
   public onRestart(): void {
+    this.restarts += 1;
     if (!this.engaged) {
       return;
     }
@@ -122,6 +157,7 @@ export class PracticeController implements TransportListener {
   /** {@inheritDoc TransportListener.onStateChanged} */
   public onStateChanged(state: PlaybackState): void {
     clearInterval(this.poll);
+    this.passMode.onState(state);
     if (state === 'playing') {
       this.poll = setInterval(this.pollUnderruns, UNDERRUN_POLL_MS);
     } else {
@@ -138,6 +174,7 @@ export class PracticeController implements TransportListener {
   public dispose(): void {
     this.disposed = true;
     clearInterval(this.poll);
+    this.passMode.dispose();
     this.stage?.dispose();
   }
 
@@ -235,6 +272,10 @@ export class PracticeController implements TransportListener {
 
   private liveChange(stage: TimeStretchStage, target: Target): void {
     const { transport } = this.host;
+    if (transport.passes) {
+      this.passTranspose(stage);
+      return;
+    }
     const base = this.changeBase(this.host.context.currentTime);
     if (base.at === null && this.unchanged(target)) {
       return;
@@ -269,9 +310,21 @@ export class PracticeController implements TransportListener {
     return target.rate === this.host.transport.timing.rate && target.pitch === this.applied;
   }
 
+  /** During explicit passes only the transpose applies live (each pass keeps its rate). */
+  private passTranspose(stage: TimeStretchStage): void {
+    if (this.settings.transposeSemitones !== this.transpose) {
+      this.passMode.transposeLive(stage, this.host.context.currentTime + CHANGE_LEAD_SECONDS);
+    }
+  }
+
   private target(): Target {
-    const { speedPercent, transposeSemitones } = this.settings;
-    return { rate: speedRate(speedPercent), pitch: pitchFactor(speedPercent, transposeSemitones) };
+    const speed = this.passMode.speedFor(this.settings.speedPercent);
+    return { rate: speedRate(speed), pitch: pitchFactor(speed, this.settings.transposeSemitones) };
+  }
+
+  private tempoFor(speedPercent: number): Tempo {
+    const pitch = pitchFactor(speedPercent, this.settings.transposeSemitones);
+    return { rate: speedRate(speedPercent), latency: this.active === null ? 0 : this.latencyOf(this.active, pitch), pitch };
   }
 
   private latencyOf(stage: TimeStretchStage, pitch: number): number {

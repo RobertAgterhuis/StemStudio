@@ -216,6 +216,7 @@ export class Engine implements AudioEngine {
   public setLoop(loop: LoopRegion): void {
     this.alive();
     setLoopChecked(this.parts.transport, loop);
+    this.practice.onLoopChanged();
     this.parts.karaoke.redraw();
   }
 

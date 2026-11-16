@@ -10,7 +10,7 @@
  *
  * @packageDocumentation
  */
-import { AnchorQueue, anchorOf, rateOf, type TransportAnchor } from './anchors';
+import { AnchorQueue, anchorOf, rateOf, trackAt, type TransportAnchor } from './anchors';
 import { NO_LOOP, applyLoop, isInside, wrapPosition } from './loop';
 import { trackDuration, type ChannelBuffers } from './stem-loader';
 import type { ChannelId, LoopRegion, PlaybackState } from './types';
@@ -65,10 +65,42 @@ export interface RateChange extends TransportTiming {
   readonly anchor: TransportAnchor;
 }
 
+/** One set of sources started together (contract 2.3.0 "Explicit passes"). */
+export interface PassSpec extends TransportTiming {
+  /** Heard context time of `offset` (sources start `latency` earlier). */
+  readonly heardWhen: number;
+  /** Track time of the first frame. */
+  readonly offset: number;
+  /** Track seconds to play; absent = an open start with the native loop (back to normal playback). */
+  readonly duration?: number;
+}
+
+/** Decides the first pass of every start of all sources while explicit passes are used. */
+export interface PassPlanner {
+  /**
+   * @param offset - Track position of the start.
+   * @param heardWhen - Earliest heard start time.
+   * @returns The first pass.
+   */
+  first(offset: number, heardWhen: number): PassSpec;
+}
+
 interface PendingChange {
   readonly at: number;
   readonly heard: TransportAnchor;
   readonly played: TransportAnchor;
+}
+
+/** Start of one source: source-side time, track offset and, for a pass, the track seconds to play. */
+interface SourceStart {
+  readonly when: number;
+  readonly offset: number;
+  readonly duration?: number | undefined;
+}
+
+/** @returns The anchor ending `span` context seconds after its `when` (an explicit pass), or unchanged. */
+function withUntil(anchor: TransportAnchor, span: number | undefined): TransportAnchor {
+  return span === undefined ? anchor : { ...anchor, until: anchor.when + span };
 }
 
 /** How long anchors are kept after the next one started (s); covers the karaoke clock reading slightly behind. */
@@ -84,6 +116,8 @@ export class Transport implements TransportClock {
   private sourceStart = 0;
   private current: TransportTiming = { rate: 1, latency: 0 };
   private restartHook: () => void = () => undefined;
+  private planner: PassPlanner | null = null;
+  private readonly ends = new WeakMap<AudioBufferSourceNode, number>();
   private pausedAt = 0;
   private playState: PlaybackState = 'stopped';
   private region: LoopRegion = NO_LOOP;
@@ -136,6 +170,33 @@ export class Transport implements TransportClock {
   /** @param timing - Rate and latency for the next start of all sources (running sources are not changed). */
   public setTiming(timing: TransportTiming): void {
     this.current = { rate: timing.rate, latency: timing.latency };
+  }
+
+  /** @param planner - Explicit-pass planner used by every later start of all sources, or null for normal playback. */
+  public setPlanner(planner: PassPlanner | null): void {
+    this.planner = planner;
+  }
+
+  /** Whether starts go through a pass planner. */
+  public get passes(): boolean {
+    return this.planner !== null;
+  }
+
+  /**
+   * Starts the next pass while playing (created ahead by the pass scheduler); earlier passes keep playing to their end.
+   *
+   * @param spec - Pass to start.
+   */
+  public launch(spec: PassSpec): void {
+    if (this.playState !== 'playing') {
+      return;
+    }
+    const now = this.options.context.currentTime;
+    this.sources = this.sources.filter((source) => (this.ends.get(source) ?? Infinity) > now);
+    this.pending = null;
+    this.startSpec(spec, false);
+    this.prune();
+    this.listeners.forEach((l) => l.onTimingChanged?.());
   }
 
   /**
@@ -254,9 +315,19 @@ export class Transport implements TransportClock {
       return;
     }
     const offset = this.offsetAt(this.played, at);
+    const duration = this.remainingAt(at, offset);
+    if (duration !== undefined && duration <= 0) {
+      return;
+    }
     buffers.forEach((buffer, id) => {
-      this.sources.push(this.startSource(id, buffer, { when: at, offset }));
+      this.sources.push(this.startSource(id, buffer, { when: at, offset, duration }));
     });
+  }
+
+  /** Track seconds left in the pass running at source time `at`; undefined for an open start. */
+  private remainingAt(at: number, offset: number): number | undefined {
+    const anchor = this.played.at(at);
+    return anchor.until === undefined ? undefined : trackAt(anchor, anchor.until) - offset;
   }
 
   /**
@@ -272,7 +343,7 @@ export class Transport implements TransportClock {
   public setLoop(region: LoopRegion): void {
     const position = this.position();
     this.region = region;
-    if (this.playState === 'playing') {
+    if (this.playState === 'playing' && this.planner === null) {
       this.applyRunningLoop(position, region);
     }
   }
@@ -338,30 +409,53 @@ export class Transport implements TransportClock {
     const { rate, latency } = this.current;
     const earliest = this.options.context.currentTime + this.options.startDelaySeconds + latency;
     const when = Math.max(at ?? earliest, earliest);
-    this.sourceStart = when - latency;
-    this.heard.reset(anchorOf(when, offset, rate));
-    this.played.reset(anchorOf(this.sourceStart, offset, rate));
+    const spec = this.planner?.first(offset, when) ?? { heardWhen: when, offset, rate, latency };
     this.pending = null;
-    const start = { when: this.sourceStart, offset };
+    this.startSpec(spec, true);
+  }
+
+  /** Starts every buffer for one pass (or an open start) and records its anchors. */
+  private startSpec(spec: PassSpec, fresh: boolean): void {
+    const start = spec.heardWhen - spec.latency;
+    const span = spec.duration === undefined ? undefined : spec.duration / spec.rate;
+    this.record(this.heard, withUntil(anchorOf(spec.heardWhen, spec.offset, spec.rate), span), fresh);
+    this.record(this.played, withUntil(anchorOf(start, spec.offset, spec.rate), span), fresh);
+    this.current = { rate: spec.rate, latency: spec.latency };
+    this.sourceStart = fresh ? start : this.sourceStart;
     const started = [...this.buffers].map(([name, buffer]) => ({
-      source: this.startSource(name, buffer, start),
+      source: this.startSource(name, buffer, { when: start, offset: spec.offset, duration: spec.duration }),
       duration: buffer.duration,
     }));
-    this.sources = started.map((s) => s.source);
-    this.watchEnd(started.reduce((a, b) => (b.duration > a.duration ? b : a)).source);
+    this.sources = [...(fresh ? [] : this.sources), ...started.map((s) => s.source)];
+    if (spec.duration === undefined) {
+      this.watchEnd(started.reduce((a, b) => (b.duration > a.duration ? b : a)).source);
+    }
+  }
+
+  private record(queue: AnchorQueue, anchor: TransportAnchor, fresh: boolean): void {
+    if (fresh) {
+      queue.reset(anchor);
+    } else {
+      queue.push(anchor);
+    }
   }
 
   private offsetAt(queue: AnchorQueue, time: number): number {
     return Math.min(wrapPosition(queue.positionAt(time), this.region), this.length);
   }
 
-  private startSource(name: ChannelId, buffer: AudioBuffer, start: { when: number; offset: number }): AudioBufferSourceNode {
+  private startSource(name: ChannelId, buffer: AudioBuffer, start: SourceStart): AudioBufferSourceNode {
     const source = this.options.context.createBufferSource();
     source.buffer = buffer;
-    applyLoop(source, this.region);
+    applyLoop(source, start.duration === undefined ? this.region : NO_LOOP);
     this.applyRate(source, start.when);
     source.connect(this.options.output(name));
-    source.start(start.when, start.offset);
+    if (start.duration === undefined) {
+      source.start(start.when, start.offset);
+    } else {
+      source.start(start.when, start.offset, start.duration);
+      this.ends.set(source, start.when + start.duration / source.playbackRate.value);
+    }
     return source;
   }
 
