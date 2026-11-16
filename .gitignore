@@ -40,3 +40,7 @@ src/web-interop/coverage/
 
 # Local-only author mapping used by scripts/publish-github.* (never committed)
 .publish.mailmap
+
+# Local files of other AI coding tools (not part of the project)
+.agents/
+.codex/
