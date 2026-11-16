@@ -93,20 +93,22 @@ public sealed class MixPracticePersistenceTests
     [Fact]
     public async Task DatabaseFromBefore012_MigratesAndItsMixesLoadWithTheDefaults()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"stemstudio-011-{Guid.NewGuid():N}.db");
-        var connectionString = $"Data Source={path};Pooling=False";
-        try
+        await WithFileDatabaseAsync(async connectionString =>
         {
             await SqliteTestDatabase.MigrateLegacyAsync(connectionString, LastMigrationBefore012);
             var mixId = await InsertLegacyMixAsync(connectionString);
 
             await using var db = await SqliteTestDatabase.CreateAsync(connectionString);
-            await using var read = db.NewContext();
-            read.Database.GetPendingMigrations().ShouldBeEmpty();
-            var mix = (await new MixRepository(read).FindAsync(mixId, Ct))!;
-            mix.Practice.ShouldBe(PracticeSettings.Default);
-            mix.Name.ShouldBe("Guitar practice");
-            (await db.ScalarAsync("SELECT Practice IS NULL FROM Mixes")).ShouldBe("1");
+            await AssertLegacyMixLoadsWithDefaultsAsync(db, mixId);
+        });
+    }
+
+    private static async Task WithFileDatabaseAsync(Func<string, Task> test)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"stemstudio-011-{Guid.NewGuid():N}.db");
+        try
+        {
+            await test($"Data Source={path};Pooling=False");
         }
         finally
         {
@@ -115,17 +117,29 @@ public sealed class MixPracticePersistenceTests
         }
     }
 
+    private const string LegacyMixSql = """
+        INSERT INTO Mixes (Id, TrackId, Name, NormalizedName, MasterVolume, CreatedAt, UpdatedAt, Channels, Loop, Metronome, Expanded, DetailChannels)
+        VALUES ($mix, $track, 'Guitar practice', 'GUITAR PRACTICE', 1.0, '2026-11-14 13:00:00', '2026-11-14 13:00:00', '[]', NULL,
+            '{"BeatsPerBar":4,"BpmOverride":null,"Enabled":true,"OffsetMs":0,"Volume":0.7}', '[]', '[]')
+        """;
+
+    private static async Task AssertLegacyMixLoadsWithDefaultsAsync(SqliteTestDatabase db, Guid mixId)
+    {
+        await using var read = db.NewContext();
+        read.Database.GetPendingMigrations().ShouldBeEmpty();
+        var mix = (await new MixRepository(read).FindAsync(mixId, Ct))!;
+        mix.Practice.ShouldBe(PracticeSettings.Default);
+        mix.Name.ShouldBe("Guitar practice");
+        (await db.ScalarAsync("SELECT Practice IS NULL FROM Mixes")).ShouldBe("1");
+    }
+
     private static async Task<Guid> InsertLegacyMixAsync(string connectionString)
     {
         var mixId = Guid.NewGuid();
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync(Ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO Mixes (Id, TrackId, Name, NormalizedName, MasterVolume, CreatedAt, UpdatedAt, Channels, Loop, Metronome, Expanded, DetailChannels)
-            VALUES ($mix, $track, 'Guitar practice', 'GUITAR PRACTICE', 1.0, '2026-11-14 13:00:00', '2026-11-14 13:00:00', '[]', NULL,
-                '{"BeatsPerBar":4,"BpmOverride":null,"Enabled":true,"OffsetMs":0,"Volume":0.7}', '[]', '[]')
-            """;
+        command.CommandText = LegacyMixSql;
         command.Parameters.AddWithValue("$mix", mixId.ToString("D").ToUpperInvariant());
         command.Parameters.AddWithValue("$track", LegacyTrackId);
         await command.ExecuteNonQueryAsync(Ct);

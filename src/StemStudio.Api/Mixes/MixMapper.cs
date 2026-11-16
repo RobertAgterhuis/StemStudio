@@ -32,12 +32,11 @@ public static class MixMapper
     public static MixSettingsDto ToDto(MixSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var metronome = settings.Metronome;
         return new MixSettingsDto(
             settings.Name,
             settings.MasterVolume,
             settings.Channels.Select(c => new ChannelSettingsDto(c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
-            new MetronomeSettingsDto(metronome.Enabled, metronome.Volume, metronome.BpmOverride, metronome.OffsetMs, metronome.BeatsPerBar),
+            ToDto(settings.Metronome),
             settings.Loop is { } loop ? new LoopRegionDto(loop.Start, loop.End, loop.Enabled) : null)
         {
             Expanded = settings.Expanded.ToList(),
@@ -45,6 +44,9 @@ public static class MixMapper
             Practice = ToDto(settings.Practice),
         };
     }
+
+    private static MetronomeSettingsDto ToDto(MetronomeSettings metronome) =>
+        new(metronome.Enabled, metronome.Volume, metronome.BpmOverride, metronome.OffsetMs, metronome.BeatsPerBar);
 
     /// <summary>Maps a DTO whose required parts are present (checked by <see cref="MixValidator"/>).</summary>
     /// <param name="dto">The DTO.</param>
