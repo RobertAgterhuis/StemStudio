@@ -33,9 +33,8 @@
 .ss-practice-value {
   min-width: 3.5rem;
   color: var(--ss-color-ink);
-  font-family: var(--ss-num);
   font-size: var(--ss-type-body-size);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--ss-num);
   text-align: center;
 }
 
@@ -60,8 +59,7 @@
 
 .ss-practice-bpm {
   color: var(--ss-color-muted);
-  font-family: var(--ss-num);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--ss-num);
 }
 
 .ss-practice-hint,
@@ -78,7 +76,7 @@
 }
 
 .ss-practice-diagnostics {
-  font-family: var(--ss-num);
+  font-variant-numeric: var(--ss-num);
 }
 
 .ss-practice-sub {
@@ -122,9 +120,8 @@
 
 .ss-countin-number {
   min-width: 2ch;
-  font-family: var(--ss-num);
   font-size: var(--ss-type-title-size);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--ss-num);
   text-align: center;
 }
 
