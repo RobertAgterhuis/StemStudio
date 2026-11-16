@@ -44,3 +44,12 @@ def test_other_production_clones_stay_errors() -> None:
     (finding,) = evaluate([Clone("src/StemStudio.Agent/Policy/Gate.cs", 1, "src/A/B.cs", 5, 7)])
     assert finding.severity is Severity.ERROR
     assert "data copy" not in finding.message
+
+
+def test_a_listed_mirror_is_a_warning_with_its_reason() -> None:
+    mirror = "src/StemStudio.Agent/Policy/ImitationGuard.cs"
+    clone = Clone(mirror, 43, "src/StemStudio.Domain/Styles/StyleTextGuard.cs", 69, 31)
+    (finding,) = evaluate([clone])
+    assert finding.severity is Severity.WARNING
+    assert finding.message.endswith(f"(mirror: {duplication.MIRRORS[mirror]})")
+    assert all(reason.strip() for reason in duplication.MIRRORS.values())

@@ -3,8 +3,8 @@
 Configuration lives in ``tools/quality/.jscpd.json`` (``minLines: 6``). A clone that touches
 production code (``src/``, ``worker/src/``, ``generator/src/``, not tests) fails the gate; clones
 only between test files, clones between worker and generator production code (two services
-that may not share code) and clones touching a listed data copy (``DATA_COPIES``, feature 011)
-are reported as warnings.
+that may not share code), clones touching a listed data copy (``DATA_COPIES``, feature 011) and
+clones touching a listed mirror (``MIRRORS``, feature 011) are reported as warnings.
 
 Usage::
 
@@ -82,6 +82,27 @@ DATA_COPIES: dict[str, str] = {}
 
 A clone touching one of them is a warning that names the reason.
 """
+
+
+MIRRORS: dict[str, str] = {
+    "src/StemStudio.Agent/Policy/ImitationGuard.cs": (
+        "agent pre-check mirrors the 009 imitation matching of StemStudio.Domain, "
+        "which StemStudio.Agent may not reference"
+    ),
+    "src/StemStudio.Agent/Policy/ProvenanceChecker.cs": (
+        "agent pre-check mirrors the 010 lyrics normalisation of StemStudio.Domain, "
+        "which StemStudio.Agent may not reference"
+    ),
+}
+"""Production files that mirror logic of a project they may not reference (path -> mandatory
+reason, CTO decision at the 011 integration T080; the referenced original stays authoritative).
+
+A clone touching one of them is a warning that names the reason.
+"""
+
+
+def _mirror_reason(clone: Clone) -> str | None:
+    return MIRRORS.get(clone.first) or MIRRORS.get(clone.second)
 
 
 def _data_copy_reason(clone: Clone) -> str | None:
@@ -176,7 +197,10 @@ def _warning_note(clone: Clone) -> str:
     if clone.cross_service:
         return CROSS_SERVICE_NOTE
     reason = _data_copy_reason(clone)
-    return f"(data copy: {reason})" if reason else ""
+    if reason:
+        return f"(data copy: {reason})"
+    mirror = _mirror_reason(clone)
+    return f"(mirror: {mirror})" if mirror else ""
 
 
 def run(root: Path, paths: Sequence[Path], runner: Runner = subprocess_runner) -> DuplicationResult:
