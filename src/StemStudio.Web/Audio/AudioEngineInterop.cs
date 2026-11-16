@@ -14,6 +14,7 @@ namespace StemStudio.Web.Audio;
 /// <param name="options">Web options; <see cref="StemStudioWebOptions.PublicApiBaseUrl"/> resolves stem URLs for the browser.</param>
 public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOptions> options) : IAudioEngine
 {
+    private const string UnavailablePrefix = "Time stretch unavailable:";
     private IJSObjectReference? _module;
     private IJSObjectReference? _engine;
     private DotNetObjectReference<AudioEngineInterop>? _self;
@@ -95,14 +96,31 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     public Task DetachKaraokeAsync() => _engine is null ? Task.CompletedTask : Call(EngineMethods.DetachKaraoke);
 
     /// <inheritdoc />
-    public Task SetPracticeAsync(PracticeSettingsDto settings) => throw new NotImplementedException();
+    public async Task SetPracticeAsync(PracticeSettingsDto settings)
+    {
+        var engine = Engine;
+        try
+        {
+            await engine.InvokeVoidAsync(EngineMethods.SetPractice, settings);
+        }
+        catch (JSException ex) when (ex.Message.StartsWith(UnavailablePrefix, StringComparison.Ordinal))
+        {
+            PracticeChanged?.Invoke(this, PracticeStatus.ForUnavailable(UnavailableReason(ex.Message)));
+        }
+        catch (JSException ex)
+        {
+            throw new AudioEngineException(ex.Message, ex);
+        }
+    }
 
     /// <inheritdoc />
-    public Task<PracticeStatus> GetPracticeStatusAsync() => throw new NotImplementedException();
+    public Task<PracticeStatus> GetPracticeStatusAsync() =>
+        Guard(() => Engine.InvokeAsync<PracticeStatus>(EngineMethods.GetPracticeStatus).AsTask());
 
     /// <summary>Engine callback <c>OnPracticeChanged</c> (contract 2.3.0).</summary>
     /// <param name="status">The engine's snapshot.</param>
-    public void OnPracticeChanged(PracticeStatus status) => PracticeChanged?.Invoke(this, null!);
+    [JSInvokable]
+    public void OnPracticeChanged(PracticeStatus status) => PracticeChanged?.Invoke(this, status);
 
     /// <summary>Engine callback <c>OnPositionChanged</c>.</summary>
     /// <param name="seconds">The transport position.</param>
@@ -131,6 +149,9 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
         _self?.Dispose();
         _self = null;
     }
+
+    // "Time stretch unavailable: <reason>" (contract 2.3.0); Blazor appends the JS stack after a line break.
+    private static string UnavailableReason(string message) => message[UnavailablePrefix.Length..].Split('\n')[0].Trim();
 
     private EngineStem Stem(string name, string url) => new(name, new Uri(options.Value.PublicApiBaseUrl, url).ToString());
 
