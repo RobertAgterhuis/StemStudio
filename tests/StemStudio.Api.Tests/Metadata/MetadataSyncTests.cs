@@ -45,6 +45,41 @@ public sealed class MetadataSyncTests : ApiTestBase
     }
 
     [Fact]
+    public async Task AnUploadWithoutAnArtist_StoresItsTagArtist_SoTheStyleGuardKnowsIt()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
+        ReportStandard(new WorkerSourceMetadata("song-file", null, null, DurationSeconds: 200, LookupTitle: "Song", LookupArtist: "Tag Band"));
+
+        await Factory.SyncTracksAsync();
+
+        (await Factory.FindTrackAsync(track.Id))!.Artist.ShouldBe("Tag Band");
+    }
+
+    [Fact]
+    public async Task AReportedArtist_WinsOverTheTagArtist()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
+        ReportStandard(new WorkerSourceMetadata("Song", "Uploader", null, DurationSeconds: 200, LookupArtist: "Tag Band"));
+
+        await Factory.SyncTracksAsync();
+
+        (await Factory.FindTrackAsync(track.Id))!.Artist.ShouldBe("Uploader");
+    }
+
+    [Fact]
+    public async Task TheCompletionOfAnUpload_KeepsItsTagArtist()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.UrlTrack());
+        Worker.OnGetJob = id => Task.FromResult<WorkerJob?>(FakeWorkerClient.Job(id, WorkerJobState.Completed, 100));
+        Worker.OnGetResult = id => Task.FromResult(FakeWorkerClient.Result(id) with { Metadata = new WorkerSourceMetadata("song-file", null, null, LookupArtist: "Tag Band") });
+
+        await Factory.SyncTracksAsync();
+
+        var synced = (await Factory.FindTrackAsync(track.Id))!;
+        (synced.Status, synced.Artist).ShouldBe((TrackStatus.Completed, "Tag Band"));
+    }
+
+    [Fact]
     public async Task AStandardPollWithoutADuration_DoesNotScheduleALookup()
     {
         var track = await Factory.SeedAsync(SyncTestData.UrlTrack());

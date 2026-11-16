@@ -101,7 +101,7 @@ unchanged through the 009 import flow).
 - [ ] T030 [US1] [backend] Implement to pass T029
 - [x] T031 [P] [US1] [frontend] Failing bUnit tests `NewSongPageTests.cs`: lyrics editor (paste, upload, char counter, "Add sections"), language, style select (009 library) or free caption, lead voice, delivery, instrumental, bpm/key/duration/takes, density warning, generate, errors, personal-use + responsibility notice, help links; take list reuses 009 components with `take-vocal-badge-*` (FR-001, FR-002, FR-014, FR-016)
 - [x] T032 [US1] [frontend] Implement `Pages/NewSong.razor`, `Shared/{LyricsEditor,VocalBadge}.razor`, help entries `help.lyrics.*`, `help.song.*` to pass T031
-- [x] T033 [US1] [qa] Author `e2e/tests/song.spec.ts` (`@generative`, fake stack): paste sample lyrics -> add sections -> pick "Pop rock" -> generate -> take with `data-vocal="synthetic"` plays; invalid lyrics (empty, too long) refused
+- [x] T033 [US1] [qa] Author `e2e/tests/song.spec.ts` (`@generative`, fake stack): paste sample lyrics -> add sections -> pick "Classic soul" -> generate -> take with `data-vocal="synthetic"` plays; invalid lyrics (empty, too long) refused
 
 **Checkpoint**: HO:us1.
 

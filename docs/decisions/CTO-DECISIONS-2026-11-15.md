@@ -20,3 +20,5 @@ decided as follows; the owner can review and reverse any of them.
 | 009 | Worker GPU file lease: polling (not strict FIFO), CPU fallbacks after releasing the file lease, unreadable lock file -> GPU without cross-container lease | Accepted; ADR-018 D3 wording to be aligned in the 009 integration |
 | 009/010 | Clones between worker and generator production code (config env helpers, DeviceInfo/Problem schemas) | Accepted as flagged warnings (separate services may not import each other; no shared package in the plan) |
 | 010 | WebM/Opus voice samples cannot be read by soundfile | Decode with ffmpeg via an argument list (no shell); this meets the intent of "never a shell" |
+| 010 | Spec/quickstart name a "Pop rock" preset that the 24-preset catalogue (3 per family) does not have | Spec, quickstart and T033 now name "Classic soul"; the catalogue keeps its balanced families. Free-caption "Pop rock" examples in the generator contract stay (they are captions, not presets) |
+| 010 | Upload without a lookup result: the imitation guard did not know the artist | The upload's embedded artist tag is stored in `Track.Artist` when no lookup supplies one (009/010 closeout) |

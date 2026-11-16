@@ -35,11 +35,11 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
         }
     }
 
-    /// <summary>Copies title and artist; once the duration is known the online lookup (FR-003, ADR-014 D3) and the lyrics search (006 FR-001) are scheduled.</summary>
+    /// <summary>Copies title and artist (an upload's tag artist when none is reported); once the duration is known the online lookup (FR-003, ADR-014 D3) and the lyrics search (006 FR-001) are scheduled.</summary>
     private void ApplyMetadata(Track track, WorkerSourceMetadata metadata)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        track.ApplyMetadata(new SourceMetadata(metadata.Title, metadata.Artist), now);
+        track.ApplyMetadata(MetadataMapper.ToSource(metadata), now);
         if (metadata.DurationSeconds is not null)
         {
             track.ScheduleLookup(MetadataMapper.ToQuery(metadata), now);
