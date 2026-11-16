@@ -1154,6 +1154,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("ExpectedUpdatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("Fresh")
                         .HasColumnType("INTEGER");
 

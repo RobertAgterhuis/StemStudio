@@ -64,6 +64,7 @@ internal static class StepMapping
         ActionTool = entry.Action.Tool,
         ActionArguments = entry.Action.Arguments,
         Fresh = entry.Fresh,
+        ExpectedUpdatedAt = AgentStoreValues.Utc(entry.ExpectedUpdatedAt),
         Status = entry.Status.ToString(),
     };
 
@@ -79,6 +80,7 @@ internal static class StepMapping
         Kind = AgentStoreValues.Parse<UndoKindDto>(entity.Kind),
         Action = new UndoAction { Tool = entity.ActionTool, Arguments = entity.ActionArguments },
         Fresh = entity.Fresh,
+        ExpectedUpdatedAt = AgentStoreValues.Offset(entity.ExpectedUpdatedAt),
         Status = AgentStoreValues.Parse<UndoEntryStatus>(entity.Status),
     };
 

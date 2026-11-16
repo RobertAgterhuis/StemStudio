@@ -202,6 +202,7 @@ namespace StemStudio.Persistence.Migrations
                     ActionTool = table.Column<string>(type: "TEXT", maxLength: 64, nullable: false),
                     ActionArguments = table.Column<string>(type: "TEXT", maxLength: 8192, nullable: false),
                     Fresh = table.Column<bool>(type: "INTEGER", nullable: false),
+                    ExpectedUpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Status = table.Column<string>(type: "TEXT", maxLength: 16, nullable: false)
                 },
                 constraints: table =>
