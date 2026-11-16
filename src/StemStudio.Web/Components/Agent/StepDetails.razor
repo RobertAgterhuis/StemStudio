@@ -1,0 +1,20 @@
+@* Progress bar (agent-step-progress-<seq>) and readable error (agent-step-error-<seq>) of a step; shared by the row and
+   the Beginner view. *@
+
+@if (Step.Progress is { } progress)
+{
+    <div class="ss-agent-progress" role="progressbar" data-testid="@($"agent-step-progress-{Step.Seq}")" aria-label="@($"{Step.Tool} progress")"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progress">
+        <span class="ss-agent-progress-fill" style="@($"width: {progress}%")"></span>
+    </div>
+}
+@if (Step.Error is { } error)
+{
+    <p class="ss-agent-step-error" data-testid="@($"agent-step-error-{Step.Seq}")">@error</p>
+}
+
+@code {
+    /// <summary>The step.</summary>
+    [Parameter, EditorRequired]
+    public AgentStepDto Step { get; set; } = default!;
+}

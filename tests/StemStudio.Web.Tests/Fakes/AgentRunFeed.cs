@@ -6,7 +6,7 @@ using StemStudio.Web.Agent;
 namespace StemStudio.Web.Tests.Fakes;
 
 /// <summary>A live run stream a test pushes events into (the fake side of <c>GET /api/agent/runs/{id}/events</c>).</summary>
-public sealed class AgentStream
+public sealed class AgentRunFeed
 {
     private readonly Channel<AgentEvent> _channel = Channel.CreateUnbounded<AgentEvent>();
     private int _seq;
@@ -20,20 +20,20 @@ public sealed class AgentStream
         return _channel.Reader.ReadAllAsync(ct);
     }
 
-    public AgentStream Push(string type, object data)
+    public AgentRunFeed Push(string type, object data)
     {
         _channel.Writer.TryWrite(new AgentEvent(++_seq, type, JsonSerializer.SerializeToElement(data, JsonSerializerOptions.Web)));
         return this;
     }
 
-    public AgentStream Started(AgentBackendDto backend = AgentBackendDto.Ollama, string model = "qwen3.5:9b", bool fallback = false) =>
+    public AgentRunFeed Started(AgentBackendDto backend = AgentBackendDto.Ollama, string model = "qwen3.5:9b", bool fallback = false) =>
         Push(AgentEventTypes.RunStarted, new RunStartedEventDto { RunId = AgentData.RunId, Backend = backend, Model = model, UsingFallback = fallback });
 
-    public AgentStream Text(string text) => Push(AgentEventTypes.TextDelta, new TextDeltaEventDto { Text = text });
+    public AgentRunFeed Text(string text) => Push(AgentEventTypes.TextDelta, new TextDeltaEventDto { Text = text });
 
-    public AgentStream Completed() => Push(AgentEventTypes.RunCompleted, new RunCompletedEventDto { RunId = AgentData.RunId, MessageId = AgentData.MessageId });
+    public AgentRunFeed Completed() => Push(AgentEventTypes.RunCompleted, new RunCompletedEventDto { RunId = AgentData.RunId, MessageId = AgentData.MessageId });
 
-    public AgentStream Failed(string message, string? fix = null, string code = AgentFailureCodes.Timeout) =>
+    public AgentRunFeed Failed(string message, string? fix = null, string code = AgentFailureCodes.Timeout) =>
         Push(AgentEventTypes.RunFailed, new RunFailureDto { Code = code, Message = message, Fix = fix });
 
     public void Fail(Exception error) => _channel.Writer.TryComplete(error);

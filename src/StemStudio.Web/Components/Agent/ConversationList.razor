@@ -1,0 +1,29 @@
+@* Conversation list (ui-test-ids agent-conversation-list), newest first as the API returns them; the open one has
+   aria-current="true". *@
+
+<nav class="ss-agent-conversations" aria-label="Conversations" data-testid="agent-conversation-list">
+    <ul>
+        @foreach (var conversation in Conversations)
+        {
+            var id = conversation.ConversationId;
+            <li @key="id">
+                <button type="button" class="ss-text-button" data-testid="@($"agent-conversation-{id:D}")"
+                        aria-current="@(id == OpenId ? "true" : null)" @onclick="() => OnSelect.InvokeAsync(id)">@conversation.Title</button>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+    /// <summary>The conversations, newest first.</summary>
+    [Parameter]
+    public IReadOnlyList<ConversationSummaryDto> Conversations { get; set; } = [];
+
+    /// <summary>The open conversation, or null.</summary>
+    [Parameter]
+    public Guid? OpenId { get; set; }
+
+    /// <summary>An entry was chosen.</summary>
+    [Parameter]
+    public EventCallback<Guid> OnSelect { get; set; }
+}

@@ -98,6 +98,7 @@ public sealed class AgentPanelTests : PageTestContext
 
         Id(cut, "agent-input").KeyDown(new KeyboardEventArgs { Key = "Enter", ShiftKey = true });
         Type(cut, "line one\n");
+        Type(cut, "line one\nline two");
         Id(cut, "agent-input").KeyDown(new KeyboardEventArgs { Key = "Enter" });
         Type(cut, "line one\nline two\n");
 

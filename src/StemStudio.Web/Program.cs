@@ -31,6 +31,7 @@ builder.Services.AddScoped<PageCommands>();
 builder.Services.AddScoped<ShellOverlays>();
 builder.Services.AddScoped<KaraokePreferences>();
 builder.Services.AddScoped<GenerationStatusSource>();
+builder.Services.AddScoped<AgentPanelState>();
 builder.Services.AddScoped<ITourLauncher>(services => services.GetRequiredService<TourService>());
 
 // Help content is validated once at start-up (contracts/help-content.md 1): invalid content fails fast.

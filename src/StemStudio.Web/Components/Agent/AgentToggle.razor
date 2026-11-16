@@ -1,0 +1,18 @@
+@* Layout toggle of the agent panel (agent-toggle, aria-expanded), in the context bar on every page (FR-001). *@
+@implements IDisposable
+@inject AgentPanelState State
+
+<button type="button" class="ss-bar-button" data-testid="agent-toggle" data-help-id="agent-panel"
+        aria-expanded="@(State.IsOpen ? "true" : "false")" aria-controls="agent-panel" @onclick="State.Toggle">
+    <span class="rzi" aria-hidden="true">smart_toy</span><span class="ss-bar-label">Agent</span>
+</button>
+
+@code {
+    /// <inheritdoc />
+    protected override void OnInitialized() => State.Changed += OnChanged;
+
+    /// <inheritdoc />
+    public void Dispose() => State.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+}

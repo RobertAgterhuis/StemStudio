@@ -50,6 +50,11 @@ public static class FeatureCatalog
         new("journey.rail", Beginner, Beginner, "journey"),
         new("help.inline-hints", Beginner, Beginner, "levels"),
         new("help.tour-offers", Beginner, Expert, "tours"),
+        new("agent.steps", Advanced, null, "agent-panel"),
+        new("agent.steps-compact", Beginner, Beginner, "agent-panel"),
+        new("agent.conversation-actions", Advanced, null, "agent-panel"),
+        new("agent.usage", Advanced, null, "agent-backends"),
+        new("agent.tool-log", Expert, null, "agent-panel"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

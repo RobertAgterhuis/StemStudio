@@ -1,0 +1,53 @@
+@* Composer agent panel (US1, FR-001; ui-test-ids 1.10.0): conversations, messages with the streamed answer, the plan,
+   the steps (rows from Advanced, progress and errors at every level), the run error and the composer. Logic lives in
+   AgentPanelState; this component only renders it. *@
+@implements IDisposable
+
+<aside id="agent-panel" class="ss-agent" data-testid="agent-panel" data-help-id="agent-panel" aria-label="Composer agent">
+    <header class="ss-agent-head">
+        <h2 class="ss-heading ss-agent-title">Composer agent</h2>
+        <BackendBadge Backend="State.Backend" Model="@State.Model" Fallback="State.UsingFallback" Reason="@State.Run?.ModelReason" />
+        <button type="button" class="ss-bar-button" data-testid="agent-new-conversation" @onclick="State.NewConversationAsync">
+            <span class="rzi" aria-hidden="true">add_comment</span><span class="ss-bar-label">New</span>
+        </button>
+        <button type="button" class="ss-bar-button" aria-label="Close agent panel" @onclick="State.Close">
+            <span class="rzi" aria-hidden="true">close</span>
+        </button>
+    </header>
+    <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" OnSelect="State.SelectConversationAsync" />
+    <div class="ss-agent-log">
+        <MessageList Messages="State.Messages" Streaming="@StreamingText" />
+        @if (State.Run is { } run)
+        {
+            <PlanView Plan="run.Plan" />
+            <StepList Steps="run.Steps" />
+            @if (run.Failure is { } failure)
+            {
+                <div class="ss-agent-run-error" role="alert" data-testid="agent-run-error">
+                    <p>@failure.Message</p>
+                    @if (failure.Fix is { } fix)
+                    {
+                        <p class="ss-agent-fix">@fix</p>
+                    }
+                </div>
+            }
+        }
+    </div>
+    @if (State.Error is { } error)
+    {
+        <p class="ss-agent-error" role="alert" data-testid="agent-error">@error</p>
+    }
+    <div class="ss-agent-compose">
+        <label class="ss-sr-only" for="agent-input">Command for the agent</label>
+        <textarea id="agent-input" class="ss-agent-input" data-testid="agent-input" rows="2" maxlength="@AgentContractLimits.MessageMaxLength"
+                  placeholder="Ask the agent, e.g. &quot;Make the vocals 3 dB quieter&quot;" disabled="@(!State.IsReady)"
+                  value="@Input" @oninput="OnInputAsync" @onkeydown="OnKeyDown"></textarea>
+        <div class="ss-agent-actions">
+            @if (State.IsRunActive)
+            {
+                <button type="button" class="ss-text-button" data-testid="agent-cancel" @onclick="State.CancelAsync">Cancel</button>
+            }
+            <RadzenButton Text="Send" Icon="send" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="!State.CanSend(Input)" Click="SendAsync" data-testid="agent-send" />
+        </div>
+    </div>
+</aside>

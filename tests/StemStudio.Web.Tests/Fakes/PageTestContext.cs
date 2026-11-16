@@ -74,7 +74,7 @@ public abstract class PageTestContext : BunitContext
     protected IAgentApiClient AgentApi { get; } = Substitute.For<IAgentApiClient>();
 
     /// <summary>The event stream every run of <see cref="AgentApi"/> returns.</summary>
-    protected AgentStream AgentEvents { get; } = new();
+    protected AgentRunFeed AgentEvents { get; } = new();
 
     protected AgentPanelState Panel => Services.GetRequiredService<AgentPanelState>();
 

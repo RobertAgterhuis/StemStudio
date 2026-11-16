@@ -1,0 +1,16 @@
+@* One step row (agent-step-<seq> with data-tool, data-status, data-risk) with its progress and error. *@
+
+<li class="@($"ss-agent-step ss-agent-status-{Status}")" data-testid="@($"agent-step-{Step.Seq}")" data-tool="@Step.Tool"
+    data-status="@Status" data-risk="@AgentWire.Name(Step.Risk)">
+    <span class="ss-agent-step-tool">@Step.Tool</span>
+    <span class="ss-agent-step-status">@Status.Replace('_', ' ')</span>
+    <StepDetails Step="Step" />
+</li>
+
+@code {
+    /// <summary>The step.</summary>
+    [Parameter, EditorRequired]
+    public AgentStepDto Step { get; set; } = default!;
+
+    private string Status => AgentWire.Name(Step.Status);
+}

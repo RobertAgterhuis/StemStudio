@@ -1,0 +1,28 @@
+@* Steps of the run: full rows from Advanced (agent-step-<seq>); Beginner sees the plan plus each step's progress and
+   error only (spec Clarifications; ui-test-ids 1.10.0 levels). *@
+
+@if (Steps.Count > 0)
+{
+    <LevelGate Feature="agent.steps">
+        <ol class="ss-agent-steps" aria-label="Steps">
+            @foreach (var step in Steps)
+            {
+                <StepRow @key="step.StepId" Step="step" />
+            }
+        </ol>
+    </LevelGate>
+    <LevelGate Feature="agent.steps-compact">
+        <div class="ss-agent-steps">
+            @foreach (var step in Steps)
+            {
+                <StepDetails @key="step.StepId" Step="step" />
+            }
+        </div>
+    </LevelGate>
+}
+
+@code {
+    /// <summary>The steps in order.</summary>
+    [Parameter]
+    public IReadOnlyList<AgentStepDto> Steps { get; set; } = [];
+}

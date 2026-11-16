@@ -1,0 +1,35 @@
+@* Backend badge (ui-test-ids agent-backend-badge): backend, model and whether the Ollama fallback model is in use. *@
+
+<span class="ss-agent-badge" data-testid="agent-backend-badge" data-backend="@BackendName" data-model="@(Model ?? string.Empty)"
+      data-fallback="@(Fallback ? "true" : "false")" title="@Reason">
+    <span class="rzi" aria-hidden="true">@(Backend == AgentBackendDto.Claude ? "cloud" : "memory")</span>
+    <span>@Label</span>
+</span>
+
+@code {
+    /// <summary>The backend, or null before the status is known.</summary>
+    [Parameter]
+    public AgentBackendDto? Backend { get; set; }
+
+    /// <summary>The model id, or null.</summary>
+    [Parameter]
+    public string? Model { get; set; }
+
+    /// <summary>True while the fallback model is used.</summary>
+    [Parameter]
+    public bool Fallback { get; set; }
+
+    /// <summary>Why the model changed, shown as the tooltip.</summary>
+    [Parameter]
+    public string? Reason { get; set; }
+
+    private string BackendName => Backend is { } backend ? AgentWire.Name(backend) : "none";
+
+    private string Label => Backend switch
+    {
+        AgentBackendDto.Claude => $"Claude {Model}",
+        AgentBackendDto.Ollama => Fallback ? $"Local {Model} (fallback)" : $"Local {Model}",
+        AgentBackendDto.Fake => "Test backend",
+        _ => "Agent off",
+    };
+}

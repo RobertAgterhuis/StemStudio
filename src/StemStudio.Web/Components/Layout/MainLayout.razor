@@ -28,6 +28,10 @@
                 }
             </main>
         </div>
+        @if (Agent.IsOpen)
+        {
+            <AgentPanel />
+        }
         @if (Help.IsOpen)
         {
             <HelpPanel />
