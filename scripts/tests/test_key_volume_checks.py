@@ -32,27 +32,27 @@ services:
 """
 
 
+API_ENVIRONMENT = {
+    "StemStudio__DataProtection__KeyRingDir": "/keys",
+    "StemStudio__Agent__KeyEntry__InternalCaller": "web",
+    "ANTHROPIC_API_KEY": None,
+}
+API_VOLUMES = [
+    {"type": "volume", "source": "api-data", "target": "/data"},
+    {"type": "volume", "source": "api-keys", "target": "/keys"},
+]
+
+
 def good_config() -> dict[str, Any]:
     """A resolved `docker compose config --format json` document that passes every check."""
-    return {
-        "services": {
-            "api": {
-                "environment": {
-                    "StemStudio__DataProtection__KeyRingDir": "/keys",
-                    "StemStudio__Agent__KeyEntry__InternalCaller": "web",
-                    "ANTHROPIC_API_KEY": None,
-                },
-                "volumes": [
-                    {"type": "volume", "source": "api-data", "target": "/data"},
-                    {"type": "volume", "source": "api-keys", "target": "/keys"},
-                ],
-            },
-            "web": {"volumes": [{"type": "volume", "source": "web-keys", "target": "/k"}]},
-            "worker": {"volumes": [{"type": "volume", "source": "api-data", "target": "/library"}]},
-            "generator": {},
-        },
-        "volumes": {"api-data": {}, "api-keys": {"name": "stemstudio_api-keys"}, "web-keys": {}},
+    services = {
+        "api": {"environment": dict(API_ENVIRONMENT), "volumes": copy.deepcopy(API_VOLUMES)},
+        "web": {"volumes": [{"type": "volume", "source": "web-keys", "target": "/k"}]},
+        "worker": {"volumes": [{"type": "volume", "source": "api-data", "target": "/library"}]},
+        "generator": {},
     }
+    volumes = {"api-data": {}, "api-keys": {"name": "stemstudio_api-keys"}, "web-keys": {}}
+    return {"services": services, "volumes": volumes}
 
 
 def test_good_inputs_pass_every_check() -> None:
@@ -81,7 +81,11 @@ def test_api_must_mount_the_volume_at_keys() -> None:
 
 def test_api_mount_must_be_a_named_volume() -> None:
     config = good_config()
-    config["services"]["api"]["volumes"][1] = {"type": "bind", "source": "api-keys", "target": "/keys"}
+    config["services"]["api"]["volumes"][1] = {
+        "type": "bind",
+        "source": "api-keys",
+        "target": "/keys",
+    }
     assert kvc.check_api_mount(config) is not None
 
 
@@ -96,7 +100,9 @@ def test_missing_api_service_fails_the_api_checks() -> None:
 def test_no_other_service_mounts_the_volume(service: str) -> None:
     config = good_config()
     config["services"][service] = {
-        "volumes": [{"type": "volume", "source": "api-keys", "target": "/elsewhere", "read_only": True}]
+        "volumes": [
+            {"type": "volume", "source": "api-keys", "target": "/elsewhere", "read_only": True}
+        ]
     }
     problem = kvc.check_only_api_mounts(config)
     assert problem is not None
@@ -105,13 +111,17 @@ def test_no_other_service_mounts_the_volume(service: str) -> None:
 
 def test_no_other_service_mounts_anything_at_keys() -> None:
     config = good_config()
-    config["services"]["web"]["volumes"].append({"type": "volume", "source": "x", "target": "/keys"})
+    config["services"]["web"]["volumes"].append(
+        {"type": "volume", "source": "x", "target": "/keys"}
+    )
     assert "web" in (kvc.check_only_api_mounts(config) or "")
 
 
 def test_api_must_not_mount_the_volume_twice() -> None:
     config = good_config()
-    config["services"]["api"]["volumes"].append({"type": "volume", "source": "api-keys", "target": "/k2"})
+    config["services"]["api"]["volumes"].append(
+        {"type": "volume", "source": "api-keys", "target": "/k2"}
+    )
     assert kvc.check_only_api_mounts(config) is not None
 
 
@@ -215,7 +225,14 @@ def write_inputs(tmp_path: Path, config: dict[str, Any]) -> list[str]:
     compose.write_text(GOOD_COMPOSE_TEXT, encoding="utf-8")
     config_path = tmp_path / "config.json"
     config_path.write_text(json.dumps(config), encoding="utf-8")
-    return ["--config", str(config_path), "--dockerfile", str(dockerfile), "--compose-file", str(compose)]
+    return [
+        "--config",
+        str(config_path),
+        "--dockerfile",
+        str(dockerfile),
+        "--compose-file",
+        str(compose),
+    ]
 
 
 def test_main_passes_and_prints_one_line_per_check(
