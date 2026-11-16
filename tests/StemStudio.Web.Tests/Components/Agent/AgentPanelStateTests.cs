@@ -24,6 +24,56 @@ public sealed class AgentPanelStateTests : PageTestContext
     }
 
     [Fact]
+    public async Task NewConversation_DuringTheFirstLoad_IsNotReplacedByTheNewestStoredOne()
+    {
+        var list = new TaskCompletionSource<IReadOnlyList<ConversationSummaryDto>>();
+        AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns(list.Task);
+        StoredOther();
+
+        var load = Panel.LoadAsync();
+        await Panel.NewConversationAsync();
+        list.SetResult([AgentData.Summary(AgentData.OtherConversationId)]);
+        await load;
+
+        (Panel.ConversationId, Panel.Messages.Count).ShouldBe((AgentData.ConversationId, 0));
+    }
+
+    [Fact]
+    public async Task NewConversation_StillBeingCreated_WhenTheFirstLoadEnds_Wins()
+    {
+        var created = new TaskCompletionSource<ConversationDto>();
+        AgentApi.CreateConversationAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(created.Task);
+        AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns([AgentData.Summary(AgentData.OtherConversationId)]);
+        StoredOther();
+
+        var creating = Panel.NewConversationAsync();
+        await Panel.LoadAsync();
+        created.SetResult(AgentData.Conversation());
+        await creating;
+
+        (Panel.ConversationId, Panel.Messages.Count).ShouldBe((AgentData.ConversationId, 0));
+    }
+
+    [Fact]
+    public async Task NewConversation_WhileTheNewestStoredOneIsStillLoading_Wins()
+    {
+        var stored = new TaskCompletionSource<ConversationDto>();
+        AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns([AgentData.Summary(AgentData.OtherConversationId)]);
+        AgentApi.GetConversationAsync(AgentData.OtherConversationId, Arg.Any<CancellationToken>()).Returns(stored.Task);
+
+        var load = Panel.LoadAsync();
+        await Panel.NewConversationAsync();
+        stored.SetResult(AgentData.Conversation(AgentData.OtherConversationId, messages: [AgentData.Message(1, MessageRoleDto.User, "Verwijder deze track")]));
+        await load;
+
+        (Panel.ConversationId, Panel.Messages.Count).ShouldBe((AgentData.ConversationId, 0));
+    }
+
+    private void StoredOther() =>
+        AgentApi.GetConversationAsync(AgentData.OtherConversationId, Arg.Any<CancellationToken>())
+            .Returns(AgentData.Conversation(AgentData.OtherConversationId, messages: [AgentData.Message(1, MessageRoleDto.User, "Verwijder deze track")]));
+
+    [Fact]
     public async Task Cancel_WithoutARun_CallsNothing()
     {
         await Panel.CancelAsync();
