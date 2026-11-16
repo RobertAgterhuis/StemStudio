@@ -95,6 +95,16 @@ built before 012-021, its delta keeps the label 1.21.0 and the CTO merges the ea
 deltas onto it in feature order, so no allocated number is reused. Constitution 1.4.0 was
 ratified by the owner on 2026-11-16.
 
+**Full-document labels after an out-of-order merge (concrete rule, 012 Phase 0, 2026-11-16).** A
+full document (backend-api, ui-test-ids) produced by merging a feature's delta carries **that
+feature's allocated label**, also when a higher label is already merged: labels identify the set of
+merged deltas, never an order. The backend document lists the merged labels in
+`info.x-stemstudio-contains`. Consumers compare documents by containment (`check_superset.py`, the
+contract tests), never by numeric order; the newest full document is the one of the feature merged
+last. Sequence on `main`: 1.10.0 (011) -> 1.21.0 (011 claude-key) -> **1.11.0** (012 = 1.21.0 + the
+012 delta) -> 1.12.0 (013 = 1.11.0 + 013) -> ... Audio-engine follows the same rule; 2.2.0 stays
+unused (011 needed no engine change), so 012's engine document is 2.3.0.
+
 Feature 022 (owner request 2026-11-16, design in `specs/022-library-folders/`, ADR-036 proposed)
 takes the next free minors after the 011 follow-up "claude-key" (backend-api 1.21.0 and ui-test-ids
 1.21.0, merged to `main` 2026-11-16): backend-api **1.22.0**, ui-test-ids **1.22.0** and

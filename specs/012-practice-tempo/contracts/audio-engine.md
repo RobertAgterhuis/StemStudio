@@ -131,10 +131,12 @@ attachMeter(target: ChannelId | 'master', elementId: string): void;
 - End of track (no loop): the engine stops, sets position 0 and reports state `stopped`.
 - 2.3.0: the anchor carries a rate `r = speedPercent / 100` (1 at neutral) and maps **heard**
   (output) context time to track time: `position(t) = offset + (t - when) * r`, wrapped into the
-  loop. While the stretch stage is engaged its fixed delay `L = D / sampleRate` is compensated by
-  starting every source `L` earlier (`source.start(when - L, offset)`, `when >= currentTime + L +
-  startDelay`), so the metronome, the karaoke clock and `getPosition()` keep using the anchor
-  unchanged. At neutral settings `r = 1`, `L = 0`: the 2.1.0 formula.
+  loop. While the stretch stage is engaged its heard latency `L(p) = (D + c(p)) / sampleRate` is
+  compensated by starting every source `L(p)` earlier (`source.start(when - L(p), offset)`,
+  `when >= currentTime + L(p) + startDelay`), so the metronome, the karaoke clock and
+  `getPosition()` keep using the anchor unchanged. `D` is the fixed FIFO delay and `c(p)` the
+  content offset of SoundTouch at pitch factor `p` (section "Stretch stage"; Phase 0 P0-1). At
+  neutral settings `r = 1`, `L = 0`: the 2.1.0 formula.
 
 ## Loop (FR-013)
 
@@ -381,20 +383,25 @@ type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPract
   `startDelay + L`, faded over 10 ms). While paused/stopped it is silent.
 - Once engaged the stage stays in the graph until the next transport restart (`play()` from
   paused/stopped, `seek`, `loadTrack`) at neutral settings, where it is bypassed (`L = 0`) again.
-  At pitch factor 1 SoundTouch passes audio through unchanged (2.3.0 TDStretch fix), so returning
-  to 100 %/0 st while playing causes no gap.
+  At pitch factor 1 SoundTouch passes audio through practically unchanged (P0-1: max error
+  3.2e-6, no time offset), so returning to 100 %/0 st while playing causes no gap.
 - Every restart of the sources while engaged (`play()`, `seek`, engaging, explicit-pass start
   after a count-in gap) first calls `stage.reset()` so no audio of the previous position is heard;
   a pass that follows the previous one without a gap does **not** reset (seamless loop).
 
 ### Live changes (no gap)
 
-- A speed or transpose change while engaged and playing takes effect at the heard time
-  `T = currentTime + L + 0.02` (s): every running source gets
-  `playbackRate.setValueAtTime(r, T - L)` (the same value and time for every source: sample lock
-  is kept), the stage gets `setPitch(2^(st/12) / r, round((T - L) * sampleRate))`, and the anchor
-  is re-anchored at `T` (`offset = position(T)` under the old rate, new rate `r`). Changes arriving
-  before `T` replace the pending one (the UI may send at most one change per 50 ms while dragging).
+- A speed or transpose change while engaged and playing enters the stage at context time
+  `U = currentTime + 0.02` (s): every running source gets `playbackRate.setValueAtTime(r, U)` (the
+  same value and time for every source: sample lock is kept) and the stage gets
+  `setPitch(p, round(U * sampleRate))` with the new factor `p`. It is heard from
+  `T = U + D / sampleRate`; the anchor is re-anchored to
+  `{when: T + c(p) / sampleRate, offset: positionOld(T + c(pOld) / sampleRate), rate: r}` (the
+  position may jump by the difference of the two content offsets, at most ~50 ms; every later
+  start uses `L(p)`). Changes arriving before `U` replace the pending one (the UI may send at most
+  one change per 50 ms while dragging). Heard change latency: `0.02 + D / sampleRate + c(p) /
+  sampleRate` <= 0.17 s plus the device output latency (SC-001 250 ms; P0-2 measured 87-151 ms at
+  the stage output in Chromium).
 - Pitch factor `p = 2^(transposeSemitones / 12) / (speedPercent / 100)`; range 0.42..4.0.
 - `OnPositionChanged` keeps reporting track seconds; `OnPracticeChanged` fires after every applied
   change, trainer step, count-in beat, stretch state change and underrun burst (at most 10 Hz).
@@ -403,15 +410,32 @@ type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPract
 
 - One stereo SoundTouch instance on the summed mix (never per stem: per-stem WSOLA would pick
   different splice points per stem and break the <= 1 ms sample lock, and costs up to 20x CPU).
-- SoundTouch settings: float samples, `setRate(1)`, `setTempo(1)`, `setPitch(p)`, quick seek
-  off, anti-alias filter on, `SETTING_SEQUENCE_MS`/`SEEKWINDOW_MS` automatic, `OVERLAP_MS` 8
-  (research.md R-04; Phase 0 may tune).
-- **Fixed delay D**: the processor keeps a FIFO and outputs input frame `n` at output frame
-  `n + D` regardless of SoundTouch's momentary output count; `D = STRETCH_DELAY_FRAMES`, a
-  constant fixed in Phase 0 (>= the largest initial latency over the pitch range + 2 render
-  quanta, rounded up to 128; expected 6,144-10,112 frames = 139-229 ms; hard limit 230 ms). FIFO empty -> silence and
-  `underruns++`; FIFO above `D + 1024` -> the oldest surplus frames are dropped (counted with the
-  underruns). `reset()` clears SoundTouch and the FIFO and refills `D` frames of silence.
+- SoundTouch settings, sent once after `st_create` with `st_set_setting`: `SETTING_USE_QUICKSEEK`
+  (2) = 0, `SETTING_USE_AA_FILTER` (0) = 1, `SETTING_AA_FILTER_LENGTH` (1) = 64, `SETTING_OVERLAP_MS`
+  (5) = 8; sequence and seek window stay automatic; then `st_set_pitch(p)` (tempo and rate stay 1).
+  Build flag `SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER` is mandatory (`soundtouch.lock`).
+- **Fixed delay D**: the processor keeps a FIFO prefilled with `D` frames of silence and appends
+  everything SoundTouch outputs, so SoundTouch output frame `m` is played at stage output frame
+  `m + D` regardless of SoundTouch's momentary output count; `D = STRETCH_DELAY_FRAMES = 5120`
+  frames (116.1 ms at 44.1 kHz; Phase 0 P0-1: largest initial latency 4,852 frames and largest
+  measured output lag 4,736 frames over factors 0.42..4.0 incl. 120 jumps 0.42 <-> 4, + 2 render
+  quanta, rounded up to 128). FIFO empty -> silence and `underruns++`; FIFO above `D + 1024` -> the
+  oldest surplus frames are dropped (counted with the underruns). `reset()` clears SoundTouch and the
+  FIFO and refills `D` frames of silence. The engine requests `sampleRate` 44100; `D` is defined in
+  frames at that rate.
+- **Content offset c(p)**: WSOLA places the audio of input frame `n` near SoundTouch output frame
+  `n - c(p)` (measured mean: +32 ms at p = 0.42, 0 at p = 1, -28 ms at p = 2, -40 ms at p = 4;
+  per-onset spread up to +-23 ms, inherent to WSOLA). The engine compensates the mean with the
+  constant model `c(p) = round(STRETCH_CONTENT_FRAMES_PER_OCTAVE * log2(p))`,
+  `STRETCH_CONTENT_FRAMES_PER_OCTAVE = -1100` (`stretch/constants.ts`); heard latency
+  `L(p) = (D + c(p)) / sampleRate` (66-147 ms over the product range). `PracticeStatus.latencyMs`
+  reports `L(p)` in ms.
+- **When a pitch change applies**: SoundTouch applies `setPitch` to every sample it has not processed
+  yet, including buffered input. The processor therefore keeps the counters `inFrames` (frames put
+  since the last reset) and `outFrames` (frames received) and calls `st_set_pitch` in the first
+  quantum where `outFrames + (inFrames - outFrames) / 2 >= atFrame - firstFrame` (`firstFrame` =
+  context frame of the first input after the last reset). P0-1: wrong-pitch time around a combined
+  speed change 12-23 ms with this rule versus 70-81 ms when applying at `atFrame` on input.
 - Message protocol on `port` (JSON): main -> processor `{type: 'pitch', value, atFrame}`,
   `{type: 'reset'}`, `{type: 'dispose'}`; processor -> main `{type: 'ready', latencyFrames}`,
   `{type: 'error', message}`, `{type: 'stats', underruns}` (at most 4 Hz). Until `ready` the
@@ -421,9 +445,12 @@ type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPract
 
 ### WASM ABI (binding for `third_party/soundtouch/shim/` and `src/audio-engine/src/stretch/abi.ts`)
 
-`soundtouch.wasm` is a standalone module (`emcc -O3 -sSTANDALONE_WASM --no-entry`, no JS glue,
-no imports except `wasi_snapshot_preview1.proc_exit`/`fd_write` stubs and `env.emscripten_notify_memory_growth`
-that the processor provides as no-ops) exporting C functions:
+`soundtouch.wasm` is a standalone reactor module (`em++ -O3 -sSTANDALONE_WASM --no-entry`, flags
+in `third_party/soundtouch/soundtouch.lock`, no JS glue, 30 KB). Phase 0: the module has **no
+imports**; the processor instantiates it with `WebAssembly.instantiate(bytes, {})` and must call the
+export `_initialize()` once before any other export. C header:
+`third_party/soundtouch/include/stemstudio_soundtouch.h`. Linear memory is fixed at 4 MiB (one
+stereo instance uses about 0.3 MiB; 1.8 MiB stay free). Exported C functions:
 
 | Export | Signature | Meaning |
 |---|---|---|
@@ -523,7 +550,9 @@ the karaoke DOM).
 - Node WASM suite (`npm run test:wasm`, runs only when `soundtouch.wasm` was built; CI builds it):
   loads the real module through the same `abi.ts`, checks a 440 Hz sine at pitch factors
   0.5/1/2 (FFT peak within 1 %), identity at factor 1 (after the delay, max error < 1e-4), the
-  measured initial latency <= `STRETCH_DELAY_FRAMES - 256`, and throughput >= 10x real time for
+  measured initial latency <= `STRETCH_DELAY_FRAMES - 256`, the output lag never above
+  `STRETCH_DELAY_FRAMES - 256` across 100 pitch jumps 0.42 <-> 4 (no drift), the mean content offset
+  at factors 0.5 and 2 within 25 ms of `c(p)`, and throughput >= 10x real time for
   stereo 44.1 kHz on the CI runner.
 - Playwright (real browsers, real WASM): ui-test-ids 1.11.0 `practice-*`, `countin-*`,
   `trainer-*` ids, an output probe (tests tap `destination` connections) for pitch, the transport

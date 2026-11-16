@@ -1,7 +1,8 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API
-  version: 1.11.0-delta.1
+  version: 1.11.0
+  x-stemstudio-contains: [1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, 1.9.0, 1.10.0, 1.21.0, 1.11.0]
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -69,16 +70,42 @@ info:
       vocal (`GET .../takes/{index}/vocal`); `Generation.song` / `voiceConversion`,
       `GenerationTake.vocal`, `Track.origin.vocal` / `voiceProfileName` / `lyricsSheetId`;
       `GenerationStatus.voice` (the singer service). See ADR-019.
-      1.10.0 (additive, feature 011) - AI composer agent (`/api/agent/*`), defined in
-      `specs/011-ai-composer-agent/contracts/agent-api.openapi.yaml` and merged into this
-      document unchanged in 012 Phase 0 (T003) once 011's full 1.10.0 exists. See ADR-020.
-      1.11.0 (additive, feature 012) - practice tempo: optional `MixSettings.practice`
-      (`PracticeSettings`: speed 50-120 %, transpose -12..+12 semitones, speed trainer, count-in).
-      Absent in a request = the defaults; always present in responses; mixes saved before 1.11.0
-      return the defaults (100 %, 0 semitones, trainer off, no count-in). Practice settings never
-      affect exports (`ExportMix` unchanged). See ADR-021.
-      This document (`1.11.0-delta.1`) is 1.9.0 plus the 1.11.0 additions; it becomes `1.11.0`
-      when the 1.10.0 agent paths are merged (specs/012-practice-tempo/contracts/DELTA.md 1).
+      1.10.0 (additive, feature 011) - AI composer agent (`/api/agent/*`, tag `agent`): status
+      (always 200, each probe at most 2 s), settings (Ollama by default; Claude opt-in only with
+      `ANTHROPIC_API_KEY` in the environment and an acknowledged notice; or none), connection
+      test, tool registry view, conversations, messages (202 + run), undo, runs, the SSE stream
+      `GET /api/agent/runs/{runId}/events` (`id` = event seq, replay with `after` or
+      `Last-Event-ID`, `: keep-alive` every 15 s, closes after a terminal event; decoded events
+      `AgentRunEvent`), approvals bound to the SHA-256 of the canonical step arguments, UI tool
+      results and cancel. No endpoint ever returns, logs or echoes the API key or any part of it.
+      One active run at a time (409 `run-active`). Merged unchanged from
+      `agent-api.openapi.yaml` 1.10.0-delta.1; the shared `ProblemDetails`,
+      `ValidationProblemDetails`, `ValidationProblem` and `NotFound` keep their 1.9.0 definitions.
+      No 1.9.0 entry changes. See ADR-020. Pre-release additions within 1.10.0 (011 follow-ups,
+      2026-11-16, before release, applied to the delta as well): `DecisionReason`
+      `risk-check-failed`; `ApprovalRequest.device` restricted to `cpu` | `gpu` | null.
+      1.21.0 (additive, 011 follow-up claude-key; constitution 1.4.0, ADR-035) - the Claude key can be
+      stored encrypted in Settings: `GET`/`PUT`/`DELETE /api/agent/settings/claude-key` (write-only;
+      `PUT`/`DELETE` local-only), `ClaudeStatus.key` (sources, state, last four, save time),
+      `TestAgentBackendRequest.claudeKeySource`, `BackendTestResult.keySource`, `403 local-only` on
+      `testAgentBackend` (Claude case); problem types `claude-key-invalid`, `invalid-body`, `local-only`,
+      `key-store-unavailable`. `ClaudeStatus.keyConfigured` now means "a usable key is available"
+      (environment or a readable stored key); the environment variable still wins. Merged unchanged
+      from `backend-api.claude-key.openapi.yaml` 1.21.0-delta.2; the shared components keep their 1.10.0
+      definitions. No other 1.10.0 entry changes. Pre-release text changes within 1.21.0 (integration,
+      2026-11-16, T053): `updateAgentSettings` describes "a usable Claude key" from either source instead
+      of `ANTHROPIC_API_KEY`; the `KeyStoreUnavailable` example detail is the API's text (delta too). The
+      numbers 1.11.0-1.20.0 stay allocated to 012-021 (ROADMAP contract version allocation).
+      1.11.0 (additive, feature 012; ADR-021) - practice tempo: optional `MixSettings.practice`
+      (`PracticeSettings`: speed 50-120 %, transpose -12..+12 semitones, `SpeedTrainerSettings`,
+      `CountInSettings`; example `MixSettingsWithPractice`). Absent in a request = the defaults;
+      always present in responses; mixes saved before 1.11.0 return the defaults (100 %, 0
+      semitones, trainer off, no count-in). Practice settings never affect exports (`ExportMix`
+      unchanged). No other entry changes. Merge order (ROADMAP "Contract version allocation"): the
+      011 follow-up 1.21.0 was built before 012, so this full document is 1.21.0 plus the 012
+      additions and carries 012's allocated label 1.11.0; labels identify the merged deltas, not an
+      order. Full documents on `main`: 1.10.0 -> 1.21.0 -> 1.11.0 (this) -> 1.12.0 (013) ...
+      `x-stemstudio-contains` lists every delta label merged into this document.
   license:
     name: MIT
     identifier: MIT
@@ -111,6 +138,8 @@ tags:
     description: Own lyrics sheets and songs generated from them (1.9.0).
   - name: voices
     description: Own-voice profiles with consent and voice conversion of song takes (1.9.0).
+  - name: agent
+    description: The AI composer agent - chat commands executed as StemStudio actions (1.10.0, feature 011); Claude key in Settings (1.21.0).
   - name: health
     description: Liveness and the processing device.
 paths:
@@ -2305,6 +2334,477 @@ paths:
           $ref: '#/components/responses/NotFound'
         '416':
           $ref: '#/components/responses/RangeNotSatisfiable'
+  /api/agent/status:
+    get:
+      tags: [agent]
+      operationId: getAgentStatus
+      summary: Readiness of the selected backend (always 200; each probe at most 2 s).
+      description: Unchanged operation; its `claude` member now carries `key` (ClaudeKeyStatus). Never contacts Anthropic.
+      responses:
+        '200':
+          description: The status; never contains the key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatus'
+  /api/agent/settings:
+    get:
+      tags: [agent]
+      operationId: getAgentSettings
+      summary: The agent settings (defaults when never saved).
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSettings'
+    put:
+      tags: [agent]
+      operationId: updateAgentSettings
+      summary: Change the backend, models, effort or limits.
+      description: |
+        Omitted fields keep their value. `backend: claude` needs a usable Claude key - the
+        `ANTHROPIC_API_KEY` environment variable or a readable key stored in Settings
+        (`/api/agent/settings/claude-key`); otherwise 409 `claude-not-configured` - and the
+        acknowledged notice (422 `notice-not-acknowledged`; send `acknowledgeClaudeNotice: true` in
+        the same or an earlier request). Ollama models must be
+        installed with the `tools` capability (422 `model-unavailable`). `fake` cannot be selected
+        here (environment only).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentSettingsRequest'
+      responses:
+        '200':
+          description: The saved settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSettings'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+        '422':
+          $ref: '#/components/responses/AgentUnprocessable'
+  /api/agent/settings/claude-key:
+    get:
+      tags: [agent]
+      operationId: getClaudeKeyStatus
+      summary: Status of the Claude key (sources, last four, save time); never the key.
+      description: Not local-only (it reveals nothing secret). Never contacts Anthropic.
+      responses:
+        '200':
+          description: The key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+    put:
+      tags: [agent]
+      operationId: storeClaudeKey
+      summary: Store or replace the Claude key, encrypted (local-only, write-only).
+      description: |
+        The key is trimmed, format-checked (prefix `sk-ant-`, 40-256 characters of `A-Z a-z 0-9 - _`,
+        not an admin key), encrypted with ASP.NET Core Data Protection and stored; an existing
+        stored key is replaced in the same transaction. Does **not** contact Anthropic and does not
+        change the selected backend or the notice acknowledgement. Bodies over 1 KiB: 413. The
+        value never appears in any response, including validation problems. When
+        `ANTHROPIC_API_KEY` is set, the stored key is kept but the environment key stays active
+        (`state: environment`, `stored: readable`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreClaudeKeyRequest'
+      responses:
+        '200':
+          description: Stored; the resulting key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+        '400':
+          $ref: '#/components/responses/InvalidBody'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+        '413':
+          $ref: '#/components/responses/ClaudeKeyTooLarge'
+        '422':
+          $ref: '#/components/responses/ClaudeKeyInvalid'
+        '503':
+          $ref: '#/components/responses/KeyStoreUnavailable'
+    delete:
+      tags: [agent]
+      operationId: deleteClaudeKey
+      summary: Delete the stored Claude key (local-only, idempotent).
+      description: |
+        Removes the stored ciphertext; the environment variable is not affected. Does not change the
+        selected backend; when Claude is selected and no key remains, `GET /api/agent/status`
+        reports it not ready with "Switch to Local". An unreadable stored key can be deleted too.
+      responses:
+        '200':
+          description: Deleted (or nothing was stored); the resulting key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+  /api/agent/settings/test:
+    post:
+      tags: [agent]
+      operationId: testAgentBackend
+      summary: Test the connection to a backend without generating text.
+      description: |
+        Ollama: version and model capabilities. Claude: only the free model lookup
+        `GET /v1/models/{id}`, and only on this explicit call; never in CI. 1.21.0: for Claude the
+        optional `claudeKeySource` picks the key to test (`active` default); the Claude case is
+        local-only (`403 local-only`). The result's `keySource` names the key that was tested.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestAgentBackendRequest'
+      responses:
+        '200':
+          description: The test result (also when the backend failed; see `ok`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackendTestResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+  /api/agent/tools:
+    get:
+      tags: [agent]
+      operationId: listAgentTools
+      summary: Registry view of the tools for a page context, sorted by name.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 40
+        - name: trackId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Available and unavailable tools (contracts/tool-catalogue.md).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgentToolInfo'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/agent/conversations:
+    get:
+      tags: [agent]
+      operationId: listConversations
+      summary: Conversations, newest first.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: before
+          in: query
+          required: false
+          description: Only conversations updated before this time (paging).
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: One page of conversations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationSummary'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+    post:
+      tags: [agent]
+      operationId: createConversation
+      summary: Start a new conversation.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              description: URL of the new conversation.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/agent/conversations/{conversationId}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    get:
+      tags: [agent]
+      operationId: getConversation
+      summary: A conversation with its messages and run summaries.
+      responses:
+        '200':
+          description: The conversation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [agent]
+      operationId: renameConversation
+      summary: Rename a conversation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameConversationRequest'
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/AgentUnprocessable'
+    delete:
+      tags: [agent]
+      operationId: deleteConversation
+      summary: Delete a conversation with its runs, steps, approvals, undo entries and events.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+  /api/agent/conversations/{conversationId}/messages:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    post:
+      tags: [agent]
+      operationId: sendAgentMessage
+      summary: Send a command; stores the message and queues a run.
+      description: |
+        503 `backend-unavailable` carries the `AgentStatus` in the extension member `agentStatus`
+        (the RFC 9457 member `status` stays the HTTP status; DELTA.md draft said `status`).
+        409 `run-active` while another run is active; 422 for an empty text or more than 4,000
+        characters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendAgentMessageRequest'
+      responses:
+        '202':
+          description: Message stored, run queued; follow `GET /api/agent/runs/{runId}/events`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMessageAccepted'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+        '422':
+          $ref: '#/components/responses/AgentUnprocessable'
+        '503':
+          description: The selected backend is not ready (`backend-unavailable`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BackendUnavailableProblem'
+  /api/agent/conversations/{conversationId}/undo:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    post:
+      tags: [agent]
+      operationId: undoLastAgentAction
+      summary: Undo the newest undoable command of the conversation as a new run.
+      responses:
+        '202':
+          description: Undo run queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunAccepted'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+  /api/agent/runs/{runId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    get:
+      tags: [agent]
+      operationId: getAgentRun
+      summary: Snapshot of a run (status, plan, steps, pending approval, usage).
+      responses:
+        '200':
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/agent/runs/{runId}/events:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    get:
+      tags: [agent]
+      operationId: streamAgentRunEvents
+      summary: Server-sent events of a run, with replay.
+      description: |
+        Each event is `id: <seq>`, `event: <type>`, `data: <JSON>` (decoded form: schema
+        `AgentRunEvent`). Every stored event with a seq larger than `after` (or `Last-Event-ID`) is
+        replayed first, then live events follow. A `: keep-alive` comment is sent every 15 s. The
+        stream ends after `run.completed`, `run.failed`, `run.cancelled` or `run.interrupted`.
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: string
+            pattern: '^[0-9]+$'
+      responses:
+        '200':
+          description: The event stream (`text/event-stream`, UTF-8).
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/AgentRunEvent'
+              example: |
+                id: 1
+                event: run.started
+                data: {"runId":"0b9d3c6e-2f4a-4c8b-9e1d-7a6b5c4d3e2f","backend":"ollama","model":"qwen3.5:9b","usingFallback":false}
+
+                id: 2
+                event: text.delta
+                data: {"text":"Muting the drums."}
+
+                : keep-alive
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/agent/runs/{runId}/approvals/{stepId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/StepId'
+    post:
+      tags: [agent]
+      operationId: decideAgentApproval
+      summary: Approve or reject a pending step (idempotent; the first decision wins).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideApprovalRequest'
+      responses:
+        '200':
+          description: The stored approval state (also for a repeated decision).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalState'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+  /api/agent/runs/{runId}/ui-results/{stepId}:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+      - $ref: '#/components/parameters/StepId'
+    post:
+      tags: [agent]
+      operationId: submitAgentUiResult
+      summary: Result of a UI tool executed by the open page (UI tool round trip).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitUiResultRequest'
+      responses:
+        '204':
+          description: Accepted; the run continues.
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
+  /api/agent/runs/{runId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      tags: [agent]
+      operationId: cancelAgentRun
+      summary: Cancel a run, optionally with the jobs it started.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelAgentRunRequest'
+      responses:
+        '202':
+          description: Cancellation accepted; the snapshot after cancelling.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AgentConflict'
 components:
   parameters:
     LyricsId:
@@ -2385,6 +2885,27 @@ components:
         format: uuid
     AssetId:
       name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    StepId:
+      name: stepId
       in: path
       required: true
       schema:
@@ -4925,6 +5446,1080 @@ components:
         textNl:
           type: string
           maxLength: 1000
+    BackendUnavailableProblem:
+      description: 503 `backend-unavailable`; the extension member `agentStatus` says why and how to fix it.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [agentStatus]
+          properties:
+            agentStatus:
+              $ref: '#/components/schemas/AgentStatus'
+    AgentBackend:
+      type: string
+      enum: [ollama, claude, none, fake]
+      description: ollama (local, default), claude (paid, opt-in), none (agent off), fake (tests/E2E, environment only).
+    ClaudeModel:
+      type: string
+      enum: [claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5]
+    ClaudeEffort:
+      type: string
+      enum: [low, medium, high]
+    AgentRunStatus:
+      type: string
+      enum: [queued, running, awaiting_approval, awaiting_ui, waiting_job, completed, failed, cancelled, interrupted]
+      description: completed, failed, cancelled and interrupted are terminal.
+    AgentStepStatus:
+      type: string
+      enum: [planned, awaiting_approval, running, awaiting_ui, waiting_job, succeeded, failed, rejected, rejected_invalid, skipped, expired, undone]
+    StepDecision:
+      type: string
+      enum: [auto, approval_required, denied]
+    ToolKind:
+      type: string
+      enum: [server, ui, meta]
+    ToolRisk:
+      type: string
+      enum: [read, change, job, heavy, destructive]
+    UndoKind:
+      type: string
+      enum: [none, inverse, compensate]
+    PlanItemStatus:
+      type: string
+      enum: [pending, running, done, failed, skipped]
+    ApprovalDecision:
+      type: string
+      enum: [approve, reject]
+    ApprovalScope:
+      type: string
+      enum: [once, plan_heavy]
+    ApprovalStatus:
+      type: string
+      enum: [pending, approved, rejected, expired]
+    MessageRole:
+      type: string
+      enum: [user, assistant]
+    JobPhase:
+      type: string
+      enum: [standard, detail, lyrics, export, transcription, restyle, generation]
+      description: restyle and generation are used once features 009 and 010 are delivered.
+    DecisionReason:
+      type: string
+      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation, risk-check-failed]
+      description: |
+        Why a step needs approval or was denied (data-model 4.2, 6). `risk-check-failed`: the tool's
+        dynamic heavy-risk check (e.g. the size of an export) could not be evaluated, so the step is
+        escalated to heavy and requires approval; such a step is never covered by a `plan_heavy`
+        approval.
+    ArgumentsHash:
+      type: string
+      pattern: '^[0-9a-f]{64}$'
+      description: SHA-256 (lower-case hex) of the canonical arguments (sorted keys, no whitespace).
+    JsonObject:
+      type: object
+      description: A JSON object (tool arguments or a compact result projection, at most 8 KB / 4 KB).
+      additionalProperties: true
+    OllamaModelInfo:
+      type: object
+      required: [name, sizeBytes, tools]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 0
+        tools:
+          type: boolean
+    OllamaStatus:
+      type: object
+      required: [reachable, version, models, defaultPresent, fallbackPresent]
+      additionalProperties: false
+      properties:
+        reachable:
+          type: boolean
+        version:
+          type: [string, 'null']
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/OllamaModelInfo'
+        defaultPresent:
+          type: boolean
+        fallbackPresent:
+          type: boolean
+    ClaudeKeyInvalidProblem:
+      description: 422 `claude-key-invalid`; `reason` names the failed rule. Never contains the value.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [reason]
+          properties:
+            reason:
+              type: string
+              enum: [empty, prefix, length, characters, admin-key]
+    ClaudeKeySource:
+      type: string
+      enum: [environment, stored]
+      description: environment = `ANTHROPIC_API_KEY` of the API (wins); stored = saved in Settings, encrypted.
+    ClaudeKeyState:
+      type: string
+      enum: [not-configured, environment, stored, stored-unreadable]
+      description: |
+        Summary for the UI (data-model 3): `environment` whenever the variable is set;
+        else `stored` when the stored key decrypts; else `stored-unreadable` when a stored key
+        exists but cannot be decrypted on this installation; else `not-configured`.
+    StoredClaudeKeyState:
+      type: string
+      enum: [absent, readable, unreadable]
+      description: State of the stored key, independent of the environment variable.
+    ClaudeKeyStatus:
+      type: object
+      description: |
+        Never contains the key. `lastFour` is the last four characters of the **active** key
+        (null when none is usable); `storedLastFour` those of the stored key (also when it is
+        overridden or unreadable). `reason`/`fix` are readable texts for `stored-unreadable` and
+        an unavailable key store, else null.
+      required: [configured, source, state, lastFour, stored, storedLastFour, storedAt, storeAvailable, reason, fix]
+      additionalProperties: false
+      properties:
+        configured:
+          type: boolean
+          description: A usable key is available (same value as `ClaudeStatus.keyConfigured`).
+        source:
+          oneOf:
+            - $ref: '#/components/schemas/ClaudeKeySource'
+            - type: 'null'
+        state:
+          $ref: '#/components/schemas/ClaudeKeyState'
+        lastFour:
+          type: [string, 'null']
+          pattern: '^[A-Za-z0-9_-]{4}$'
+        stored:
+          $ref: '#/components/schemas/StoredClaudeKeyState'
+        storedLastFour:
+          type: [string, 'null']
+          pattern: '^[A-Za-z0-9_-]{4}$'
+        storedAt:
+          type: [string, 'null']
+          format: date-time
+        storeAvailable:
+          type: boolean
+          description: False when the key ring directory cannot be used; storing then answers 503.
+        reason:
+          type: [string, 'null']
+          examples: ['The stored key cannot be read on this installation (the encryption keys are missing or different, e.g. after a restore on another computer).']
+        fix:
+          type: [string, 'null']
+          examples: ['Enter the key again.']
+      examples:
+        - configured: true
+          source: stored
+          state: stored
+          lastFour: wXyZ
+          stored: readable
+          storedLastFour: wXyZ
+          storedAt: '2026-11-16T15:40:00Z'
+          storeAvailable: true
+          reason: null
+          fix: null
+        - configured: false
+          source: null
+          state: stored-unreadable
+          lastFour: null
+          stored: unreadable
+          storedLastFour: wXyZ
+          storedAt: '2026-11-02T09:12:00Z'
+          storeAvailable: true
+          reason: The stored key cannot be read on this installation (the encryption keys are missing or different, e.g. after a restore on another computer).
+          fix: Enter the key again.
+    StoreClaudeKeyRequest:
+      type: object
+      description: Write-only. The server trims whitespace; the value is never echoed or logged.
+      required: [apiKey]
+      additionalProperties: false
+      properties:
+        apiKey:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 512
+          description: The Anthropic API key (prefix `sk-ant-`). 40-256 characters after trimming; the stricter rules are checked by the server (422 `claude-key-invalid`).
+    ClaudeKeyTestSource:
+      type: string
+      enum: [active, stored, environment]
+      description: Which key a Claude test uses; `active` follows the precedence (environment first).
+    ClaudeStatus:
+      type: object
+      description: Never contains the key; `key` (1.21.0) gives its sources and last four characters.
+      required: [keyConfigured, noticeAcknowledged, model, key]
+      additionalProperties: false
+      properties:
+        keyConfigured:
+          type: boolean
+          description: A usable key is available (environment, or a readable stored key since 1.21.0).
+        noticeAcknowledged:
+          type: boolean
+        model:
+          $ref: '#/components/schemas/ClaudeModel'
+        key:
+          $ref: '#/components/schemas/ClaudeKeyStatus'
+    AgentStatus:
+      type: object
+      required: [backend, ready, activeModel, usingFallback, reason, fix, ollama, claude]
+      additionalProperties: false
+      properties:
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        ready:
+          type: boolean
+        activeModel:
+          type: [string, 'null']
+        usingFallback:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          examples: ['Ollama not reachable at http://host.docker.internal:11434']
+        fix:
+          type: [string, 'null']
+          examples: ['ollama pull qwen3.5:9b (6.6 GB)']
+        ollama:
+          $ref: '#/components/schemas/OllamaStatus'
+        claude:
+          $ref: '#/components/schemas/ClaudeStatus'
+    AgentLimits:
+      type: object
+      required: [maxModelTurns, maxToolCalls, maxInvalidCalls, turnTimeoutSeconds, claudeTurnTimeoutSeconds, claudeMaxInputTokensPerRun, claudeMaxOutputTokensPerRun, maxJobWaitMinutes]
+      additionalProperties: false
+      properties:
+        maxModelTurns:
+          type: integer
+          minimum: 1
+          maximum: 30
+          default: 12
+        maxToolCalls:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+        maxInvalidCalls:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+        turnTimeoutSeconds:
+          type: integer
+          minimum: 10
+          maximum: 600
+          default: 120
+        claudeTurnTimeoutSeconds:
+          type: integer
+          minimum: 10
+          maximum: 600
+          default: 180
+        claudeMaxInputTokensPerRun:
+          type: integer
+          minimum: 1000
+          maximum: 1000000
+          default: 60000
+        claudeMaxOutputTokensPerRun:
+          type: integer
+          minimum: 500
+          maximum: 128000
+          default: 8000
+        maxJobWaitMinutes:
+          type: integer
+          minimum: 1
+          maximum: 180
+          default: 45
+    AgentSettings:
+      type: object
+      required: [backend, ollamaModel, ollamaFallbackModel, ollamaThink, claudeModel, claudeEffort, claudeNoticeAcknowledged, limits, updatedAt]
+      additionalProperties: false
+      properties:
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        ollamaModel:
+          type: string
+          maxLength: 100
+          default: qwen3.5:9b
+        ollamaFallbackModel:
+          type: string
+          maxLength: 100
+          default: qwen3.5:4b
+        ollamaThink:
+          type: boolean
+          default: false
+        claudeModel:
+          $ref: '#/components/schemas/ClaudeModel'
+        claudeEffort:
+          $ref: '#/components/schemas/ClaudeEffort'
+        claudeNoticeAcknowledged:
+          type: boolean
+        limits:
+          $ref: '#/components/schemas/AgentLimits'
+        updatedAt:
+          type: string
+          format: date-time
+    UpdateAgentSettingsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        backend:
+          oneOf:
+            - type: string
+              enum: [ollama, claude, none]
+            - type: 'null'
+        ollamaModel:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 100
+        ollamaFallbackModel:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 100
+        ollamaThink:
+          type: [boolean, 'null']
+        claudeModel:
+          oneOf:
+            - $ref: '#/components/schemas/ClaudeModel'
+            - type: 'null'
+        claudeEffort:
+          oneOf:
+            - $ref: '#/components/schemas/ClaudeEffort'
+            - type: 'null'
+        limits:
+          oneOf:
+            - $ref: '#/components/schemas/AgentLimits'
+            - type: 'null'
+        acknowledgeClaudeNotice:
+          type: boolean
+          default: false
+    TestAgentBackendRequest:
+      type: object
+      required: [backend]
+      additionalProperties: false
+      properties:
+        backend:
+          type: string
+          enum: [ollama, claude]
+        claudeKeySource:
+          $ref: '#/components/schemas/ClaudeKeyTestSource'
+    BackendTestResult:
+      type: object
+      required: [backend, ok, latencyMs, detail]
+      additionalProperties: false
+      properties:
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        ok:
+          type: boolean
+        latencyMs:
+          type: integer
+          minimum: 0
+        detail:
+          type: string
+        keySource:
+          description: Claude only (1.21.0) - the key that was tested; absent for Ollama.
+          $ref: '#/components/schemas/ClaudeKeySource'
+    AgentToolInfo:
+      type: object
+      required: [name, feature, kind, risk, undo, available, unavailableReason, title, description]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z][a-z0-9_]*$'
+        feature:
+          type: string
+          pattern: '^0[0-9]{2}$'
+        kind:
+          $ref: '#/components/schemas/ToolKind'
+        risk:
+          $ref: '#/components/schemas/ToolRisk'
+        undo:
+          $ref: '#/components/schemas/UndoKind'
+        available:
+          type: boolean
+        unavailableReason:
+          type: [string, 'null']
+        title:
+          type: string
+        description:
+          type: string
+    PageContext:
+      type: object
+      required: [page]
+      additionalProperties: false
+      properties:
+        page:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: import, tracks, track, mixer, mixes, library, styles, generations, lyrics, songs, voices, settings, help (selects the tool groups, tool catalogue 1.0.0).
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+    ConversationSummary:
+      type: object
+      required: [conversationId, title, createdAt, updatedAt, lastRunStatus]
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 120
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastRunStatus:
+          oneOf:
+            - $ref: '#/components/schemas/AgentRunStatus'
+            - type: 'null'
+    Conversation:
+      allOf:
+        - $ref: '#/components/schemas/ConversationSummary'
+        - type: object
+          required: [messages, runs]
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentMessage'
+            runs:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentRunSummary'
+    AgentMessage:
+      type: object
+      required: [messageId, seq, role, text, context, runId, createdAt]
+      additionalProperties: false
+      properties:
+        messageId:
+          type: string
+          format: uuid
+        seq:
+          type: integer
+          minimum: 1
+        role:
+          $ref: '#/components/schemas/MessageRole'
+        text:
+          type: string
+          maxLength: 16000
+        context:
+          $ref: '#/components/schemas/PageContext'
+        runId:
+          type: [string, 'null']
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    AgentRunSummary:
+      type: object
+      required: [runId, messageId, status, startedAt, endedAt]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        messageId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AgentRunStatus'
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+    CreateConversationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: [string, 'null']
+          maxLength: 120
+    RenameConversationRequest:
+      type: object
+      required: [title]
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+    SendAgentMessageRequest:
+      type: object
+      required: [text, context]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        context:
+          $ref: '#/components/schemas/PageContext'
+    AgentMessageAccepted:
+      type: object
+      required: [runId, messageId]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        messageId:
+          type: string
+          format: uuid
+    AgentRunAccepted:
+      type: object
+      required: [runId]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+    TokenUsage:
+      type: object
+      required: [inputTokens, outputTokens, cachedInputTokens]
+      additionalProperties: false
+      properties:
+        inputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
+        cachedInputTokens:
+          type: integer
+          minimum: 0
+    RunFailure:
+      type: object
+      required: [code, message, fix]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum: [backend-unavailable, limit-reached, invalid-calls, timeout, refusal, budget-exhausted, internal]
+        message:
+          type: string
+          maxLength: 500
+        fix:
+          type: [string, 'null']
+    PlanItem:
+      type: object
+      required: [index, title, tool, status]
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        title:
+          type: string
+          maxLength: 120
+        tool:
+          type: [string, 'null']
+        status:
+          $ref: '#/components/schemas/PlanItemStatus'
+    JobRef:
+      type: object
+      required: [trackId, jobId, phase]
+      additionalProperties: false
+      properties:
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        jobId:
+          type: [string, 'null']
+        phase:
+          $ref: '#/components/schemas/JobPhase'
+    AgentStep:
+      type: object
+      required: [stepId, seq, tool, kind, risk, undo, arguments, argumentsHash, planIndex, decision, decisionReasons, status, resultSummary, error, job, progress, estimatedMinutes, startedAt, endedAt]
+      additionalProperties: false
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        seq:
+          type: integer
+          minimum: 1
+        tool:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/ToolKind'
+        risk:
+          $ref: '#/components/schemas/ToolRisk'
+        undo:
+          $ref: '#/components/schemas/UndoKind'
+        arguments:
+          $ref: '#/components/schemas/JsonObject'
+        argumentsHash:
+          $ref: '#/components/schemas/ArgumentsHash'
+        planIndex:
+          type: [integer, 'null']
+          minimum: 0
+        decision:
+          $ref: '#/components/schemas/StepDecision'
+        decisionReasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionReason'
+        status:
+          $ref: '#/components/schemas/AgentStepStatus'
+        resultSummary:
+          oneOf:
+            - $ref: '#/components/schemas/JsonObject'
+            - type: 'null'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        job:
+          oneOf:
+            - $ref: '#/components/schemas/JobRef'
+            - type: 'null'
+        progress:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 100
+        estimatedMinutes:
+          type: [number, 'null']
+          minimum: 0
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+    ApprovalRequest:
+      type: object
+      description: A pending confirmation card (also the data of `approval.requested`).
+      required: [stepId, tool, risk, arguments, argumentsHash, reasons, effect, undoable, estimatedMinutes, device, allowPlanScope]
+      additionalProperties: false
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        tool:
+          type: string
+        risk:
+          $ref: '#/components/schemas/ToolRisk'
+        arguments:
+          $ref: '#/components/schemas/JsonObject'
+        argumentsHash:
+          $ref: '#/components/schemas/ArgumentsHash'
+        reasons:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DecisionReason'
+        effect:
+          type: string
+          maxLength: 500
+        undoable:
+          type: boolean
+        estimatedMinutes:
+          type: [number, 'null']
+          minimum: 0
+        device:
+          type: [string, 'null']
+          enum: [cpu, gpu, null]
+          description: |
+            Processing device code of a heavy job: `cpu` or `gpu` (the values of the backend's
+            `ProcessingDeviceKind`); null when the step is not heavy or the device is unknown. Not a
+            readable device name such as a GPU model.
+        allowPlanScope:
+          type: boolean
+    ApprovalState:
+      type: object
+      required: [stepId, status, scope, decidedAt]
+      additionalProperties: false
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ApprovalStatus'
+        scope:
+          $ref: '#/components/schemas/ApprovalScope'
+        decidedAt:
+          type: [string, 'null']
+          format: date-time
+    AgentRun:
+      type: object
+      required: [runId, conversationId, status, backend, model, tainted, plan, steps, pendingApproval, usage, failure, startedAt, endedAt]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AgentRunStatus'
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        model:
+          type: string
+        tainted:
+          type: boolean
+        plan:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PlanItem'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentStep'
+        pendingApproval:
+          oneOf:
+            - $ref: '#/components/schemas/ApprovalRequest'
+            - type: 'null'
+        usage:
+          $ref: '#/components/schemas/TokenUsage'
+        failure:
+          oneOf:
+            - $ref: '#/components/schemas/RunFailure'
+            - type: 'null'
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+    DecideApprovalRequest:
+      type: object
+      required: [decision, argumentsHash]
+      additionalProperties: false
+      properties:
+        decision:
+          $ref: '#/components/schemas/ApprovalDecision'
+        scope:
+          oneOf:
+            - $ref: '#/components/schemas/ApprovalScope'
+            - type: 'null'
+        argumentsHash:
+          $ref: '#/components/schemas/ArgumentsHash'
+    SubmitUiResultRequest:
+      type: object
+      required: [ok]
+      additionalProperties: false
+      properties:
+        ok:
+          type: boolean
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/JsonObject'
+            - type: 'null'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+    CancelAgentRunRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        cancelJobs:
+          type: boolean
+          default: false
+    RunStartedEvent:
+      type: object
+      required: [runId, backend, model, usingFallback]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        model:
+          type: string
+        usingFallback:
+          type: boolean
+    ModelChangedEvent:
+      type: object
+      required: [model, usingFallback, reason]
+      additionalProperties: false
+      properties:
+        model:
+          type: string
+        usingFallback:
+          type: boolean
+        reason:
+          type: string
+    PlanUpdatedEvent:
+      type: object
+      required: [plan]
+      additionalProperties: false
+      properties:
+        plan:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PlanItem'
+    TextDeltaEvent:
+      type: object
+      required: [text]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+    StepUpdatedEvent:
+      type: object
+      required: [stepId, status, progress, resultSummary, error]
+      additionalProperties: false
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/AgentStepStatus'
+        progress:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 100
+        resultSummary:
+          oneOf:
+            - $ref: '#/components/schemas/JsonObject'
+            - type: 'null'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+    UiRequestedEvent:
+      type: object
+      required: [stepId, tool, arguments, timeoutSeconds]
+      additionalProperties: false
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        tool:
+          type: string
+        arguments:
+          $ref: '#/components/schemas/JsonObject'
+        timeoutSeconds:
+          type: integer
+          const: 15
+    RunCompletedEvent:
+      type: object
+      required: [runId, messageId]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        messageId:
+          type: string
+          format: uuid
+    RunCancelledEvent:
+      type: object
+      required: [runId, cancelledJobs]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+        cancelledJobs:
+          type: array
+          items:
+            type: string
+    RunInterruptedEvent:
+      type: object
+      required: [runId]
+      additionalProperties: false
+      properties:
+        runId:
+          type: string
+          format: uuid
+    AgentRunEvent:
+      description: |
+        One decoded server-sent event: `id` is the SSE `id:` line, `event` the `event:` line and
+        `data` the parsed `data:` line. On the wire the stream is plain `text/event-stream`.
+      oneOf:
+        - $ref: '#/components/schemas/RunStartedEnvelope'
+        - $ref: '#/components/schemas/ModelChangedEnvelope'
+        - $ref: '#/components/schemas/PlanUpdatedEnvelope'
+        - $ref: '#/components/schemas/TextDeltaEnvelope'
+        - $ref: '#/components/schemas/StepCreatedEnvelope'
+        - $ref: '#/components/schemas/StepUpdatedEnvelope'
+        - $ref: '#/components/schemas/ApprovalRequestedEnvelope'
+        - $ref: '#/components/schemas/ApprovalResolvedEnvelope'
+        - $ref: '#/components/schemas/UiRequestedEnvelope'
+        - $ref: '#/components/schemas/UsageUpdatedEnvelope'
+        - $ref: '#/components/schemas/RunCompletedEnvelope'
+        - $ref: '#/components/schemas/RunFailedEnvelope'
+        - $ref: '#/components/schemas/RunCancelledEnvelope'
+        - $ref: '#/components/schemas/RunInterruptedEnvelope'
+      discriminator:
+        propertyName: event
+        mapping:
+          run.started: '#/components/schemas/RunStartedEnvelope'
+          model.changed: '#/components/schemas/ModelChangedEnvelope'
+          plan.updated: '#/components/schemas/PlanUpdatedEnvelope'
+          text.delta: '#/components/schemas/TextDeltaEnvelope'
+          step.created: '#/components/schemas/StepCreatedEnvelope'
+          step.updated: '#/components/schemas/StepUpdatedEnvelope'
+          approval.requested: '#/components/schemas/ApprovalRequestedEnvelope'
+          approval.resolved: '#/components/schemas/ApprovalResolvedEnvelope'
+          ui.requested: '#/components/schemas/UiRequestedEnvelope'
+          usage.updated: '#/components/schemas/UsageUpdatedEnvelope'
+          run.completed: '#/components/schemas/RunCompletedEnvelope'
+          run.failed: '#/components/schemas/RunFailedEnvelope'
+          run.cancelled: '#/components/schemas/RunCancelledEnvelope'
+          run.interrupted: '#/components/schemas/RunInterruptedEnvelope'
+    EventId:
+      type: integer
+      minimum: 1
+      description: Event sequence number within the run (SSE `id:`).
+    RunStartedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: run.started
+        data:
+          $ref: '#/components/schemas/RunStartedEvent'
+    ModelChangedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: model.changed
+        data:
+          $ref: '#/components/schemas/ModelChangedEvent'
+    PlanUpdatedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: plan.updated
+        data:
+          $ref: '#/components/schemas/PlanUpdatedEvent'
+    TextDeltaEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: text.delta
+        data:
+          $ref: '#/components/schemas/TextDeltaEvent'
+    StepCreatedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: step.created
+        data:
+          $ref: '#/components/schemas/AgentStep'
+    StepUpdatedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: step.updated
+        data:
+          $ref: '#/components/schemas/StepUpdatedEvent'
+    ApprovalRequestedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: approval.requested
+        data:
+          $ref: '#/components/schemas/ApprovalRequest'
+    ApprovalResolvedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: approval.resolved
+        data:
+          $ref: '#/components/schemas/ApprovalState'
+    UiRequestedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: ui.requested
+        data:
+          $ref: '#/components/schemas/UiRequestedEvent'
+    UsageUpdatedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: usage.updated
+        data:
+          $ref: '#/components/schemas/TokenUsage'
+    RunCompletedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: run.completed
+        data:
+          $ref: '#/components/schemas/RunCompletedEvent'
+    RunFailedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: run.failed
+        data:
+          $ref: '#/components/schemas/RunFailure'
+    RunCancelledEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: run.cancelled
+        data:
+          $ref: '#/components/schemas/RunCancelledEvent'
+    RunInterruptedEnvelope:
+      type: object
+      required: [id, event, data]
+      properties:
+        id:
+          $ref: '#/components/schemas/EventId'
+        event:
+          const: run.interrupted
+        data:
+          $ref: '#/components/schemas/RunInterruptedEvent'
   responses:
     ValidationProblem:
       description: Invalid input; `errors` names the offending fields with a message the user can act on.
@@ -5486,6 +7081,89 @@ components:
                 title: Not an own recording
                 status: 422
                 detail: This file is audio from your StemStudio library. Record or upload your own voice instead.
+    AgentConflict:
+      description: |
+        Conflict with the current state; `type` ends in one of `claude-not-configured`,
+        `run-active`, `approval-not-pending`, `arguments-changed`, `ui-result-not-expected`,
+        `nothing-to-undo`, `run-ended`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/run-active
+            title: A command is already running
+            status: 409
+            detail: Wait for the current command to finish or cancel it.
+    AgentUnprocessable:
+      description: |
+        Well-formed but not acceptable; `type` ends in `notice-not-acknowledged`,
+        `model-unavailable` or `validation` (with `errors`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/model-unavailable
+            title: Model not available
+            status: 422
+            detail: qwen3.5:9b is not installed in Ollama. Run "ollama pull qwen3.5:9b" (6.6 GB).
+    InvalidBody:
+      description: The body is not a JSON object with `apiKey` (`invalid-body`); fixed text, never quotes the body.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/invalid-body
+            title: Invalid request body
+            status: 400
+            detail: Send a JSON object with the field apiKey.
+    LocalOnly:
+      description: Refused because the request does not come from the computer StemStudio runs on (`local-only`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/local-only
+            title: Only on this computer
+            status: 403
+            detail: The Claude key can only be entered on the computer StemStudio runs on.
+    ClaudeKeyTooLarge:
+      description: The body is larger than 1 KiB (named apart from the upload `PayloadTooLarge` of 1.0.0).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Request body too large
+            status: 413
+    ClaudeKeyInvalid:
+      description: |
+        The value is not a well-formed Claude API key (`claude-key-invalid`); the extension member
+        `reason` says which rule failed. The value is never repeated.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ClaudeKeyInvalidProblem'
+          example:
+            type: https://stemstudio.local/problems/claude-key-invalid
+            title: Not a Claude API key
+            status: 422
+            detail: The key must start with sk-ant- and be 40-256 characters (letters, digits, - and _).
+            reason: prefix
+    KeyStoreUnavailable:
+      description: The key ring directory is missing, not writable or inside the library, backups, app or a repository (`key-store-unavailable`). The environment variable still works.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/key-store-unavailable
+            title: Key store not available
+            status: 503
+            detail: "The key store is not available: the key ring directory is missing or not writable. The ANTHROPIC_API_KEY environment variable still works."
   examples:
     QueuedTrack:
       value:

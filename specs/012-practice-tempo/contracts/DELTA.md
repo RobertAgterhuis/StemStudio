@@ -6,7 +6,7 @@ contract (1.0.0), the web-interop contract (1.0.0) and the render vectors (1.0.0
 **unchanged**. Every change is additive ("newer contains older"): all older operations, schemas,
 engine calls and ids keep their meaning.
 
-## Status (012 spec, 2026-11-16)
+## Status (012 spec, 2026-11-16; superseded by section 5 "Phase 0 outcome")
 
 | Contract | Base on this branch | 012 document | State |
 |---|---|---|---|
@@ -81,7 +81,25 @@ links `/third-party/soundtouch/` (SoundTouch, LGPL-2.1). Existing topics gain a 
 (`reviewed: "012"`). Tours: `mixer-basics` gains a step on `practice-speed` (tour `version` 2),
 `mixer-advanced` a step on `practice-speed-trainer` (tour `version` 2).
 
-## 5. Phase 0 outcome
+## 5. Phase 0 outcome (architect, 2026-11-16, tasks.md T001-T007)
 
-*To be filled in by tasks.md T001-T003 (measured `STRETCH_DELAY_FRAMES`, SIMD decision, merged
-contract versions).*
+| Contract | Version | Document | Notes |
+|---|---|---|---|
+| Backend API | **1.11.0** | [backend-api.openapi.yaml](backend-api.openapi.yaml) | = the full **1.21.0** on `main` (011 + claude-key follow-up) + the 012 additions unchanged; label 1.11.0 per the ROADMAP rule "full-document labels after an out-of-order merge"; `info.x-stemstudio-contains` lists the merged labels. Redocly 2.78.0: valid, 9 warnings (all `operation-4xx-response`, identical to 1.21.0). `check_superset.py`: **superset: yes** against 1.21.0 (new default) and 1.9.0; against 011's 1.10.0 it reports exactly the 6 entries 1.21.0 itself changed (inherited) |
+| UI test ids | **1.11.0** | [ui-test-ids.md](ui-test-ids.md) | = 1.21.0 + [ui-test-ids.delta.md](ui-test-ids.delta.md) unchanged (section "Additions in 1.11.0"); example text of `practice-stretch-status` now "latency 106 ms" |
+| Audio engine | **2.3.0** | [audio-engine.md](audio-engine.md), `src/audio-engine/src/types.ts` | 2.2.0 stays unused (011 needed no engine change). Phase 0 refinements below |
+| WASM ABI | **1** | audio-engine.md "WASM ABI", `third_party/soundtouch/include/stemstudio_soundtouch.h` | no imports; `_initialize` called once first |
+| C# | - | `StemStudio.Contracts/Mixes/{PracticeSettingsDto,SpeedTrainerSettingsDto,CountInSettingsDto,PracticeLimits}.cs`, `MixSettingsDto.Practice` | |
+
+Refinements of the engine contract from the spikes (binding for the wave; ADR-021 "Phase 0 outcome"):
+
+1. `STRETCH_DELAY_FRAMES = 5120` (116.1 ms at 44.1 kHz).
+2. Heard latency `L(p) = (D + c(p)) / sampleRate`, `c(p) = round(-1100 * log2(p))` frames
+   (`STRETCH_CONTENT_FRAMES_PER_OCTAVE`): sources start `L(p)` early; live changes enter the stage
+   at `U = now + 0.02`, are heard from `T = U + D / sampleRate` and re-anchor to
+   `when = T + c(p) / sampleRate`. `PracticeStatus.latencyMs` = `L(p)` in ms.
+3. The processor applies a pitch message when `outFrames + (inFrames - outFrames) / 2 >= atFrame -
+   firstFrame` (not at the input frame).
+4. SoundTouch settings ids/values fixed (quick seek 0, AA filter 1 with 64 taps, overlap 8 ms);
+   build flag `SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER` mandatory.
+5. The Node WASM suite also checks "no drift over 100 jumps" and the mean content offset at 0.5/2.
