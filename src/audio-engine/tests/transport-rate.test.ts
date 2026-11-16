@@ -6,6 +6,19 @@ import { makeTransport } from './mocks/transport-rig';
 /** Rate-aware transport anchor (contract 2.3.0 "Transport", data-model 4; FR-004, FR-005). */
 const L = 0.116;
 
+function nth(sources: MockAudioBufferSourceNode[], index: number): MockAudioBufferSourceNode {
+  const source = sources.at(index);
+  if (source === undefined) {
+    throw new Error(`no source ${String(index)}`);
+  }
+  return source;
+}
+
+function startOf(source: MockAudioBufferSourceNode): { when: number; offset: number } {
+  const call = source.startCalls[0];
+  return { when: call?.when ?? Number.NaN, offset: call?.offset ?? Number.NaN };
+}
+
 function rateCalls(source: MockAudioBufferSourceNode): readonly (readonly number[])[] {
   return source.playbackRate.calls.filter((c) => c.method === 'setValueAtTime').map((c) => c.args);
 }
@@ -38,9 +51,9 @@ describe('transport timing at rate r and latency L', () => {
     transport.setLoop({ start: 1, end: 2, enabled: true });
     transport.setTiming({ rate: 2, latency: 0 });
     await transport.play();
-    const [source] = ctx.startedSources();
-    expect([source?.loop, source?.loopStart, source?.loopEnd, source?.playbackRate.value]).toEqual([true, 1, 2, 2]);
-    expect(source?.startCalls).toEqual([{ when: 0.1, offset: 1 }]);
+    const source = nth(ctx.startedSources(), 0);
+    expect([source.loop, source.loopStart, source.loopEnd, source.playbackRate.value]).toEqual([true, 1, 2, 2]);
+    expect(source.startCalls).toEqual([{ when: 0.1, offset: 1 }]);
     expect(transport.positionAt(0.1 + 0.75)).toBeCloseTo(1.5, 9);
     expect(transport.positionAt(0.1 + 1.25)).toBeCloseTo(1.5, 9);
   });
@@ -62,10 +75,10 @@ describe('transport timing at rate r and latency L', () => {
     transport.setTiming({ rate: 1.2, latency: 0.08 });
     ctx.currentTime = 5;
     await transport.play();
-    const last = ctx.startedSources().at(-1);
-    expect(last?.startCalls[0]?.when).toBeCloseTo(5.1, 9);
-    expect(last?.startCalls[0]?.offset).toBeCloseTo(1, 9);
-    expect(last?.playbackRate.value).toBe(1.2);
+    const last = nth(ctx.startedSources(), -1);
+    expect(startOf(last).when).toBeCloseTo(5.1, 9);
+    expect(startOf(last).offset).toBeCloseTo(1, 9);
+    expect(last.playbackRate.value).toBe(1.2);
     expect(transport.anchor()?.when).toBeCloseTo(5.18, 9);
   });
 
@@ -180,12 +193,12 @@ describe('addBuffers on a rate/latency anchor', () => {
     transport.retime({ rate: 0.8, latency: 0.12, at: 2.02, anchor: { when: 2.26, offset: 1.0, rate: 0.8 } });
     expect(transport.startTimeAfter(0.01)).toBeCloseTo(2.01, 9);
     transport.addBuffers(new Map<ChannelId, AudioBuffer>([['drums.kick', ctx.createBuffer(2, 44100, 44100) as unknown as AudioBuffer]]), 2.01);
-    const late = ctx.startedSources().at(-1);
-    expect(late?.startCalls[0]?.when).toBe(2.01);
-    expect(late?.startCalls[0]?.offset).toBeCloseTo((2.01 - 0.1) * 0.5, 9);
-    expect(late?.playbackRate.value).toBe(0.8);
-    expect(rateCalls(late as MockAudioBufferSourceNode)).toEqual([[0.8, 2.02]]);
-    expect(late?.playbackRate.calls[0]?.method).toBe('setValueAtTime');
+    const late = nth(ctx.startedSources(), -1);
+    expect(startOf(late).when).toBe(2.01);
+    expect(startOf(late).offset).toBeCloseTo((2.01 - 0.1) * 0.5, 9);
+    expect(late.playbackRate.value).toBe(0.8);
+    expect(rateCalls(late)).toEqual([[0.8, 2.02]]);
+    expect(late.playbackRate.calls.map((c) => c.method)).toEqual(['setValueAtTime']);
   });
 
   it('startTimeAfter is never before the first source start', async () => {
@@ -193,5 +206,33 @@ describe('addBuffers on a rate/latency anchor', () => {
     transport.setTiming({ rate: 1, latency: L });
     await transport.play();
     expect(transport.startTimeAfter(0.01)).toBeCloseTo(0.1, 9);
+  });
+});
+
+describe('restart (engaging the stretch stage)', () => {
+  it('restarts every source at the heard position with the new timing while playing', async () => {
+    const { ctx, transport } = makeTransport();
+    transport.restart();
+    expect(ctx.startedSources()).toHaveLength(0);
+    expect(transport.anchors()).toEqual([]);
+    await transport.play();
+    ctx.currentTime = 3.1;
+    transport.setTiming({ rate: 0.5, latency: L });
+    transport.restart();
+    const last = ctx.startedSources().at(-1);
+    expect(last?.startCalls[0]?.when).toBeCloseTo(3.2, 9);
+    expect(last?.startCalls[0]?.offset).toBeCloseTo(3, 9);
+    expect(transport.anchor()).toEqual({ when: 3.2 + L, offset: 3, rate: 0.5 });
+  });
+
+  it('re-bases both queues on a loop change, keeping a pending change', async () => {
+    const { ctx, transport } = makeTransport();
+    await transport.play();
+    ctx.currentTime = 5;
+    transport.retime({ rate: 0.5, latency: 0, at: 5.02, anchor: { when: 5.02, offset: 4.92, rate: 0.5 } });
+    transport.setLoop({ start: 2, end: 20, enabled: true });
+    expect(transport.anchors().map((a) => a.when)).toEqual([5, 5.02]);
+    ctx.currentTime = 6.02;
+    expect(transport.position()).toBeCloseTo(5.42, 9);
   });
 });
