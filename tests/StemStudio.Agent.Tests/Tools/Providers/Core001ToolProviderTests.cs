@@ -35,6 +35,7 @@ public sealed class Core001ToolProviderTests
             ["unsaved"] = true,
             ["position"] = 12.5,
             ["playing"] = false,
+            ["karaoke"] = true,
             ["settings"] = JsonSerializer.SerializeToNode(settings, Web),
         };
         return Task.FromResult(new UiToolResult { Ok = true, Result = state.ToJsonString() });
@@ -204,6 +205,22 @@ public sealed class Core001ToolProviderTests
         Json(result.Projection).ShouldBe($$"""{"mixId":"{{MixId}}","name":"Loud drums"}""");
         (result.Undo!.Tool, result.UndoFresh).ShouldBe(("delete_mix", true));
         UndoGuard.Split(result.Undo.Arguments).ShouldBe(($$"""{"mixId":"{{MixId}}"}""", new UndoGuard(MixId, Dtos.At)));
+    }
+
+    [Fact]
+    public async Task SaveAndUpdate_SetTheName_WhenTheMixerReportsAnEmptyName()
+    {
+        CreateMixRequest? created = null;
+        MixSettingsDto? updated = null;
+        _actions.Mixes.CreateMixAsync(Arg.Do<CreateMixRequest>(request => created = request), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Mine"));
+        _actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Practice"));
+        _actions.Mixes.UpdateMixAsync(MixId, Arg.Do<MixSettingsDto>(settings => updated = settings), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId));
+        var frontend = OpenMixer(Dtos.Settings(string.Empty));
+
+        await InvokeAsync(T("save_mix_as"), $$"""{"trackId":"{{TrackId}}","name":"Mine","fromOpenMixer":true}""", _actions, frontend);
+        await InvokeAsync(T("update_mix"), $$"""{"mixId":"{{MixId}}","fromOpenMixer":true}""", _actions, frontend);
+
+        (created!.Settings.Name, updated!.Name).ShouldBe(("Mine", "Practice"));
     }
 
     [Fact]
