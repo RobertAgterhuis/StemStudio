@@ -50,6 +50,7 @@ public sealed class Core001ToolProvider : IAgentToolProvider
         Server("delete_track", ToolRiskDto.Destructive, Core001Handlers.DeleteTrackAsync) with
         {
             Title = "Delete a track", Description = "Delete a track with its stems and mixes. Cannot be undone; the user must confirm.", Schema = ToolSchema.Of(TrackId), TargetArgument = "trackId",
+            Estimator = Core001Handlers.DeleteTrackEffectAsync,
         },
         Ui("open_track", ToolRiskDto.Read) with { Title = "Open a track", Description = "Open the track page in the browser.", Schema = ToolSchema.Of(TrackId) },
         Ui("open_mixer", ToolRiskDto.Read) with

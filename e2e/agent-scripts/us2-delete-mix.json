@@ -1,7 +1,8 @@
 {
   "version": 1,
-  "description": "US2 (T049): delete the mix loaded in the open mixer (destructive -> approval card); the test approves.",
+  "description": "US2 (T049): delete the mix loaded in the open mixer (destructive -> approval card); the test approves. delete_mix is not offered on the mixer page (tool catalogue 1.0.0 page profiles), so the model first navigates to the mixes page.",
   "turns": [
+    { "calls": [{ "name": "navigate", "arguments": { "page": "mixes" } }] },
     { "calls": [{ "name": "delete_mix", "arguments": { "mixId": "{{context.mixId}}" } }] },
     { "text": "The mix is deleted." }
   ]

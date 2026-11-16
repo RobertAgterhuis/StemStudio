@@ -50,6 +50,13 @@ internal static class Core001Handlers
         return new ToolResult { Projection = new JsonObject { ["trackId"] = track.Id.ToString(), ["status"] = Name(track.Status), ["jobRef"] = JobRef(job) }, Job = job };
     }
 
+    /// <summary>The delete card names the track (US2-1); the title is shown to the user only, never to the model.</summary>
+    public static async Task<ToolEstimate> DeleteTrackEffectAsync(ToolInvocation call, CancellationToken cancellationToken)
+    {
+        var track = await call.Actions.Tracks.GetTrackAsync(call.RequiredId("trackId"), cancellationToken);
+        return new ToolEstimate($"Delete the track {track.Title} with its stems and mixes. This cannot be undone.");
+    }
+
     public static async Task<ToolResult> DeleteTrackAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
         await call.Actions.Tracks.DeleteTrackAsync(call.RequiredId("trackId"), cancellationToken);
