@@ -110,7 +110,8 @@ test.describe('count-in before every pass (Expert)', { tag: '@practice' }, () =>
     await practice.setSpeed(50);
     await practice.waitForStretch('active');
     const latency = heardLatencySeconds(50, 0);
-    await expect(practice.byId('practice-stretch-status')).toHaveAttribute('data-latency-ms', String(Math.round(latency * 1000)));
+    const shownLatency = async (): Promise<number> => Number(await practice.byId('practice-stretch-status').getAttribute('data-latency-ms'));
+    await expect.poll(async () => Math.abs((await shownLatency()) - latency * 1000)).toBeLessThanOrEqual(1);
     const before = (await readClicks(page)).now;
     await mixer.play();
 

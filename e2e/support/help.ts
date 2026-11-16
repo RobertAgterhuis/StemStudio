@@ -189,3 +189,16 @@ export async function blurActiveElement(page: Page): Promise<void> {
     if (active instanceof HTMLElement) active.blur();
   });
 }
+
+/**
+ * Reference queries of the help topics added by feature 012 (ui-test-ids 1.11.0 "Help markers":
+ * `practice-speed`, `practice-transpose`, `practice-count-in`, `practice-speed-trainer`,
+ * `practice-sound-quality`).
+ */
+export const practiceReferenceQueries: Readonly<Record<string, string>> = {
+  'slow down': 'practice-speed',
+  transpose: 'practice-transpose',
+  'count-in': 'practice-count-in',
+  'speed trainer': 'practice-speed-trainer',
+  'sound quality': 'practice-sound-quality',
+};
