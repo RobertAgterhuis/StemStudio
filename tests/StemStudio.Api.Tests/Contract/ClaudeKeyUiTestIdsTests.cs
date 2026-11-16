@@ -50,6 +50,18 @@ public sealed partial class ClaudeKeyUiTestIdsTests
         added.ShouldContain("settings-agent-claude-key-delete-confirm");
     }
 
+    [Theory]
+    [InlineData("agent-unavailable-switch-to-local")]
+    [InlineData("agent-key-changed")]
+    public void AgentPanelIds_AreDefinedOnceInDeltaAndMergedAndNotIn1100(string id)
+    {
+        var row = $"| Agent panel | `{id}` |";
+
+        Delta.Value.Count(line => line.StartsWith(row, StringComparison.Ordinal)).ShouldBe(1);
+        Merged.Value.Count(line => line.StartsWith(row, StringComparison.Ordinal)).ShouldBe(1);
+        Base.Value.ShouldNotContain(line => line.Contains($"`{id}`", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Merged_RecordsTheChangelogLine()
     {
