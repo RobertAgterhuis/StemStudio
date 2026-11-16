@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -7,6 +8,7 @@ using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
+using StemStudio.Persistence;
 using StemStudio.Persistence.Agent;
 using StemStudio.TestDoubles.ClaudeKey;
 
@@ -35,6 +37,7 @@ public sealed class ClaudeKeyReplaceDeleteTests : IDisposable
         var after = (await RowAsync()).ShouldNotBeNull();
         after.Ciphertext.ShouldNotBe(before!.Ciphertext);
         (after.LastFour, after.StoredAt).ShouldBe(("STO2", ApiFactory.Start.AddMinutes(5).UtcDateTime));
+        (await RowCountAsync(_api)).ShouldBe(1);
     }
 
     [Fact]
@@ -83,6 +86,7 @@ public sealed class ClaudeKeyReplaceDeleteTests : IDisposable
             using var deleted = await other.DeleteKeyAsync();
 
             (await deleted.BodyAsync<ClaudeKeyStatusDto>()).ShouldBe(ClaudeKeyStatusDto.NotConfigured);
+            (await RowCountAsync(other)).ShouldBe(0);
         }
         finally
         {
@@ -119,6 +123,9 @@ public sealed class ClaudeKeyReplaceDeleteTests : IDisposable
         await ContractAssert.MatchesAsync(refused, "deleteClaudeKey");
         (await _api.StatusAsync()).Stored.ShouldBe(StoredClaudeKeyStateDto.Readable);
     }
+
+    private static Task<int> RowCountAsync(ClaudeKeyApi api) => api.Factory.WithScopeAsync(sp =>
+        sp.GetRequiredService<StemStudioDbContext>().Set<AgentSecretEntity>().CountAsync(Ct));
 
     private Task<AgentSecretEntity?> RowAsync() => _api.Factory.WithScopeAsync(sp =>
         Task.FromResult(sp.GetRequiredService<IAgentSecretStore>().Find(AgentSecretEntity.ClaudeApiKeyName)));
