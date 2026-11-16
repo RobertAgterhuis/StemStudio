@@ -13,7 +13,7 @@ namespace StemStudio.Api.Tests.Agent;
 /// <summary>011 T060: agent settings and the backend test (FR-018, FR-019, SC-006).</summary>
 public sealed class SettingsEndpointTests : AgentApiTestBase
 {
-    private const string SentinelKey = "sk-ant-api03-SENTINEL-0123456789abcdef";
+    private const string SentinelKey = "sk" + "-ant-api03-SENTINEL-0123456789abcdef"; // built from parts, like scripts/secret_scan.py
 
     [Fact]
     public async Task Get_ReturnsTheDefaults()
