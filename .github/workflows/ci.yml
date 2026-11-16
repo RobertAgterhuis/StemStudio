@@ -462,6 +462,8 @@ jobs:
         working-directory: e2e
         run: |
           npm ci --no-audit --no-fund
+          # "chromium" installs the full build next to the headless shell; the 010 recording spec
+          # (fake microphone) needs the full build via channel 'chromium' (support/fake-microphone.ts).
           npx playwright install --with-deps chromium firefox
       - name: Playwright (retries 0, everything except @real and @restart)
         working-directory: e2e
