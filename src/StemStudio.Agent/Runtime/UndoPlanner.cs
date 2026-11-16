@@ -108,7 +108,14 @@ internal static class UndoRecorder
     public static IReadOnlyList<UndoEntry> Entries(RunState state, RunStep step, ToolResult result) =>
         state.IsUndo || step.UndoKind == UndoKindDto.None ? [] : [.. result.AllUndo.Select(action => Entry(state, step, result, action))];
 
-    private static UndoEntry Entry(RunState state, RunStep step, ToolResult result, UndoAction action) => new()
+    /// <summary>One entry; a mix guard of the provider (<c>$expect</c>) becomes <see cref="UndoEntry.ExpectedUpdatedAt"/>.</summary>
+    private static UndoEntry Entry(RunState state, RunStep step, ToolResult result, UndoAction action)
+    {
+        var (arguments, guard) = UndoGuard.Split(action.Arguments);
+        return NewEntry(state, step, result, action with { Arguments = arguments }) with { ExpectedUpdatedAt = guard?.UpdatedAt };
+    }
+
+    private static UndoEntry NewEntry(RunState state, RunStep step, ToolResult result, UndoAction action) => new()
     {
         Id = Guid.NewGuid(),
         ConversationId = state.Run.ConversationId,

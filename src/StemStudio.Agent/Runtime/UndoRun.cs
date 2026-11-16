@@ -50,7 +50,7 @@ internal sealed class UndoRun(AgentServices services, RunEvents events, StepExec
     /// <summary>Applies one entry; returns why it was not undone, or null when it was.</summary>
     private async Task<string?> ApplyAsync(RunState state, UndoEntry entry, CancellationToken cancellationToken)
     {
-        var (arguments, guard) = UndoGuard.Split(entry.Action.Arguments);
+        var (arguments, guard) = UndoGuard.For(entry);
         var tool = FindTool(entry.Action.Tool);
         if ((tool is null ? NotAvailable : await TargetChangedAsync(guard, cancellationToken)) is { } blocked)
         {
