@@ -1,23 +1,23 @@
 {
   "schema": 1,
   "builtAt": "2026-11-16",
-  "sourceHash": "0d58cdc70c46d4203be42b9797485f80df62883c9ab43074ad66f82e9912bd01",
+  "sourceHash": "2f04ad14aa4083fff3228a6ad08e2d955ded4cb616dcba589782aacde3a96174",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 34,
-      "bytes": 1140216
+      "bytes": 1141192
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 41,
-      "bytes": 1520829
+      "bytes": 1520792
     }
   ],
   "inputs": [
     {
       "path": "docs/ROADMAP.md",
-      "sha256": "09c7c5f28d106c0f294b5d3dd63f60831a32811c9cdf7d98fb7e86264e710603"
+      "sha256": "5e5cdeeb8c0f4bf681c16852b5119e9adc648c46659cd6ae938840a8141df5d6"
     },
     {
       "path": "docs/STATUS.md",
