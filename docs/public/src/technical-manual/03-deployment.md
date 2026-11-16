@@ -40,7 +40,7 @@ WSL, or the NVIDIA Container Toolkit on Linux. Verify the host with
 StemStudio with `scripts/gpu-smoke.ps1` (or `.sh`). The CPU image is about 3.4 GB, the GPU
 image about 11.5 GB.
 
-## Generative services <span class="planned">In development</span>
+## Generative services
 
 Features 009 and 010 add opt-in overrides; the default stack does not change:
 
@@ -52,6 +52,11 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml \
 This adds the `generator` (about 15 GB image) and `singer` (7 to 8 GB) services without host
 ports, plus the volumes `generator-data`, `singer-data` and the shared `gpu-lease` volume.
 `docker-compose.generative-fake.yml` runs a fake generator without torch or GPU for tests.
+The weights are expected in the `model-cache` volume (`/models/acestep`, `/models/soulx`, each
+with `REVISION` and `SHA256SUMS`); `scripts/generative-smoke.{sh,ps1}` checks the images and
+the weights. Measured on the reference machine (RTX 5070 Ti 16 GB, weights present): a 45 s
+song 50.6 s cold (VRAM +10.5 GB), a 30 s restyle 15.7 s (+4.8 GB), a 10 s voice conversion
+25.5 s (+3.4 GB), all on the GPU without CPU fallback.
 
 ## Non-Docker development start
 
@@ -112,7 +117,7 @@ run (RTX 5070 Ti, 8 CPU threads): `BasicPitchCpu` 0.05, `PianoCrnnCpu` 0.45, `Pi
 worker image installs the Leipzig music font (OFL-1.1) for Verovio; check it with
 `scripts/check-worker-fonts.{sh,ps1}`.
 
-Planned settings of later features <span class="planned">In development</span>:
+Settings of the generative services (009, 010):
 
 | Variable | Feature | Default | Meaning |
 |---|---|---|---|
@@ -120,6 +125,11 @@ Planned settings of later features <span class="planned">In development</span>:
 | `STEMSTUDIO_GPU_LEASE_FILE` | 009 | `/gpu-lease/gpu.lock` | Cross-container GPU lease |
 | `STEMSTUDIO_GPU_LEASE_WAIT_SECONDS` | 009 | `900` | Worker wait before CPU fallback |
 | `STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS` | 009 | `600` | Generator wait for free VRAM |
+
+Planned settings of later features <span class="planned">In development</span>:
+
+| Variable | Feature | Default | Meaning |
+|---|---|---|---|
 | `STEMSTUDIO_AGENT_BACKEND` | 011 | `ollama` | `ollama`, `claude`, `none` (`fake` in tests) |
 | `STEMSTUDIO_OLLAMA_URL` | 011 | `http://host.docker.internal:11434` | Ollama on the host |
 | `ANTHROPIC_API_KEY` | 011 | unset | Enables the optional Claude backend; see below |

@@ -46,8 +46,8 @@ their provenance when the track is deleted; the API then reports `trackAvailable
 | `20261115152313_AddAssets` | 007 | Table `Assets` (export library: kind, name, status, progress, error, worker job, audio facts, provenance, nullable `TrackId`, size, files; indexes on `CreatedAt`, `Status`, `TrackId`) |
 | `20261115163349_AddTrackLyrics` | 006 | `TrackLyrics` table (document, state, offset, alignment job and estimate), `Tracks.LyricsStatus` |
 | `20261115171827_AddScoreFacts` | 008 | `Assets.Score` (profile, quality, key, grid, warnings, page count) |
-| `AddGenerativeStyles` (planned) | 009 | `Styles`, `Generations`, `GenerationTakes`, `Tracks.Origin` |
-| `AddLyricsAndVoices` (planned) | 010 | `LyricsSheets`, `VoiceProfiles`, `AudioHashes` |
+| `20261115190101_AddGenerativeStyles` | 009 | `Styles`, `Generations`, `GenerationTakes`, `Tracks.Origin` |
+| `20261115200748_AddLyricsAndVoices` | 010 | `LyricsSheets`, `VoiceProfiles`, `AudioHashes` |
 | `AddAgent` (planned) | 011 | Agent settings, conversations, runs, steps, approvals, undo, events |
 
 ## File layout

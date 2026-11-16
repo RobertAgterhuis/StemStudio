@@ -176,3 +176,28 @@ Next: feature 003 GPU acceleration (docs/ROADMAP.md).
 | Close-out fixes | test typing for mypy (`tests/engraving`), the export bit-depth select shows the backend default (24-bit for a mix, 16-bit for stems), help `online-lookups` and `export-formats` corrected to match the code; after merging `main`, the 8 `library--*` baselines were regenerated (main's nowrap Status column) and the whole set compared on a fresh isolated stack (`stemstudio-e2e5`): **visual 86/86, a11y 112/112** |
 | Licences | music21 (+ chardet, joblib, jsonpickle, webcolors), verovio (LGPL-3.0-only, unmodified), cairosvg (LGPL-3.0+, unmodified) with cairocffi, cssselect2, tinycss2, webencodings, defusedxml, pypdf, torchlibrosa, soxr (direct), vendored basic-pitch (Apache-2.0 + NOTICE) and piano_transcription (MIT) subsets, Leipzig font (OFL-1.1), fontTools (build stage only); weights basic-pitch (Apache-2.0) and piano CRNN (CC BY 4.0, Kong et al.) with SHA-256 |
 | Not done | quickstart M2-M10 with "Hero of the Day" on the real stack and the SC-006 first-time-user check (owner); a library score row has no row-level Download (files are in the facts panel); formal `/speckit-analyze` pass |
+
+## Feature 009 style transfer and the style library (2026-11-16)
+
+| Check | Result |
+|---|---|
+| Wave | architect Phase 0, generative, backend, frontend, devops, qa, quality-gate merged on `009-010-generative` (shared with 010); integration run by qa on an isolated fake stack (`docs/handoffs/qa-009-010-integration.md`); CTO close-out merged `main` (001-008) into the branch |
+| `scripts/test-all.ps1` | integration run 42/42; close-out run: see the 010 row below (one run for both) |
+| Playwright, isolated fake stacks (retries 0) | `test:styles` 36/36 (default stack) and 27 + 8 skipped (fake `ready`); `test:generative` per fake mode: `ready` 65, `oom` 65, `oom-twice` 8, `busy` 8, `slow` 51, `no-gpu` 4, `unvoiced-sample` 8 (the rest skipped as other modes); generator restart 4/4; `@ux` 74/74, legacy 66/66 |
+| Ethics | E-01..E-07 green: presets without imitation phrases, every imitation case refused (`400 imitation`), library artists refused, genre words accepted, AI labels on every take (app and FLAC tags), personal-use notice |
+| Real GPU (RTX 5070 Ti, weights present, throwaway containers) | restyle of a 30 s range ("Jazz trio", strength 0.55): **15.7 s** incl. reload after idle unload, VRAM +4.8 GB (peak 7.8 GB); no CPU fallback; FLAC tags `AI_GENERATED=true`, `GENERATOR=ACE-Step 1.5 (19671f4...)`, `STEMSTUDIO_GENERATION`, `STEMSTUDIO_TAKE` |
+| Accessibility, Lighthouse, visual | axe 130 passed + restyle dialog 6/6 on a fake `ready` stack, 0 violations; Lighthouse all budgets (Mixer LCP 413 ms, CLS 0.023); visual: see close-out |
+| Integration fixes | generator/singer images never started (`main:create`), restyle dialog unreachable Start (scroll), `/voices` overflow at 320 px, multipart uploads with parameters or empty types (`StemStudioApiClient`), quality-gate units |
+| Close-out | merge of `main`: one KaraokeBanner fix (main's, verified by the 006/008 run) and one e2e fixture layout (`support/test.ts`; `generative-test.ts` extends it); an upload's tag artist is stored as the track artist so the imitation guard knows it with lookups off (test-first); help search results keyed by topic; "Pop rock" (not in the catalogue) replaced by "Classic soul" in the 010 spec (CTO decision) |
+| Licences | ACE-Step 1.5 code (MIT, commit) and weights (MIT, revision + SHA-256), generator image runtime incl. torchao (BSD-3-Clause upstream), pytorch-wavelets (MIT upstream), frozendict (LGPL-3.0-only, accepted as an unmodified separate library), NVIDIA CUDA 12.8 wheels (ADR-011) |
+| Not done | owner listening check (quickstart Q9, SC-004); full quickstart Q3-Q8 on the reference machine (image size, first download, full-song restyle; T082); the 6 restyle-dialog baselines run only on a fake generator stack, not in CI; formal `/speckit-analyze` pass |
+
+## Feature 010 songs from your own lyrics (2026-11-16)
+
+| Check | Result |
+|---|---|
+| Wave | same branch and integration run as 009 |
+| Playwright | song, lyrics sheets and voice profiles inside the `test:generative` runs above (fake microphone in the full Chromium build); consent C-01..C-09 green (Save disabled without consent, `consent-required`/`consent-outdated`, EN+NL record, library audio refused `422 library-audio`, too short/long/unvoiced, no "Use my voice" without vocals, profile label on converted takes, delete with and without takes, disk walk after deletion) |
+| Real GPU (RTX 5070 Ti) | 45 s song from own lyrics (en, 2 blocks, seed 7): **50.6 s** cold, VRAM +10.5 GB (peak 13.5 GB), `vocal: synthetic`, `AI_VOICE=synthetic`; voice conversion of a 10 s sung target with a 20 s own-voice prompt: **25.5 s**, VRAM +3.4 GB, `AI_VOICE=converted`, `AI_VOICE_PROFILE` on mix and vocal; no CPU fallback |
+| Licences | SoulX-Singer code (Apache-2.0, commit) and weights `model-svc.pt`, RMVPE, whisper-base (Apache-2.0, revisions + SHA-256); singer runtime incl. soxr (LGPL-2.1+) and transformers 4.41.2; VoiceStudio not used |
+| Not done | owner listening checks (SC-003) and the full quickstart V3-V8 (3-minute songs, Dutch, own-voice profile from a real recording; T060); formal `/speckit-analyze` pass |

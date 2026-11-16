@@ -39,7 +39,7 @@ The worker probes the GPU once at start-up and never fails to start because of i
 after 2 s). Measured on an RTX 5070 Ti: standard plus detail separation of a 4:22 song in
 3.7 minutes against 31.5 minutes on the CPU.
 
-## Cross-container lease <span class="planned">In development</span>
+## Cross-container lease
 
 From feature 009 several containers share one GPU. A `flock` lease on
 `/gpu-lease/gpu.lock` in the shared `gpu-lease` volume serialises the GPU worker and the
