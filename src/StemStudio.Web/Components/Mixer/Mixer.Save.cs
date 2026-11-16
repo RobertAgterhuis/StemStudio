@@ -90,6 +90,21 @@ public sealed partial class Mixer
         }
     }
 
+    // The agent saved this mixer (save_mix_as, update_mix): the same end state as the page's own save.
+    private async Task MarkSavedByAgentAsync(Guid mixId)
+    {
+        var (mix, _) = await ApiCall.TryAsync(() => Api.GetMixAsync(mixId));
+        if (mix is null || mix.TrackId != State!.TrackId)
+        {
+            return;
+        }
+
+        State.MarkSaved(mix);
+        MixError = null;
+        Navigation.NavigateTo($"tracks/{State.TrackId}/mixer?mixId={mix.Id}", replace: true);
+        StateHasChanged();
+    }
+
     private async Task CreateAsync(string name)
     {
         try

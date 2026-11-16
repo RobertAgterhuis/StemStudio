@@ -84,6 +84,43 @@ public sealed class MixerUiToolsTests
     }
 
     [Fact]
+    public async Task SetChannel_GainAboveTheFaderMaximum_ReportsTheAppliedValue_AndClamped()
+    {
+        var result = await RunAsync("mixer_set_channel", """{"stem":"vocals","gainChangeDb":3}""");
+
+        var json = Json(result);
+        json.GetProperty("previous").GetProperty("gainDb").GetDouble().ShouldBe(-1.9);
+        json.GetProperty("current").GetProperty("gainDb").GetDouble().ShouldBe(0);
+        json.GetProperty("clamped").GetBoolean().ShouldBeTrue();
+        json.GetProperty("requestedGainDb").GetDouble().ShouldBe(1.1);
+        json.GetProperty("maxGainDb").GetDouble().ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("""{"stem":"vocals","gainDb":-6}""")]
+    [InlineData("""{"stem":"vocals","mute":true}""")]
+    public async Task SetChannel_WithinTheFaderRange_IsNotClamped(string arguments)
+    {
+        var json = Json(await RunAsync("mixer_set_channel", arguments));
+
+        json.GetProperty("clamped").GetBoolean().ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SetMaster_GainAboveTheFaderMaximum_ReportsTheAppliedValue_AndClamped()
+    {
+        var json = Json(await RunAsync("mixer_set_master", """{"gainChangeDb":3}"""));
+
+        (json.GetProperty("previous").GetDouble(), json.GetProperty("current").GetDouble()).ShouldBe((0, 0));
+        json.GetProperty("clamped").GetBoolean().ShouldBeTrue();
+        json.GetProperty("requestedGainDb").GetDouble().ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task SetMaster_WithinTheFaderRange_IsNotClamped() =>
+        Json(await RunAsync("mixer_set_master", """{"gainDb":-6}""")).GetProperty("clamped").GetBoolean().ShouldBeFalse();
+
+    [Fact]
     public async Task SetMaster_AbsoluteAndRelative()
     {
         var absolute = await RunAsync("mixer_set_master", """{"gainDb":-6}""");

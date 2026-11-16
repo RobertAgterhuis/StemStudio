@@ -17,6 +17,9 @@ public sealed partial class AgentPanel
     /// <summary>How often the open panel refreshes the backend status (US3, FR-023).</summary>
     public static readonly TimeSpan StatusInterval = TimeSpan.FromSeconds(10);
 
+    // A C# string: an entity in a Razor attribute value is rendered literally (B1).
+    private const string InputPlaceholder = "Ask the agent, e.g. \"Make the vocals 3 dB quieter\"";
+
     private readonly CancellationTokenSource _stop = new();
     private ElementReference _heading;
     private IAsyncDisposable? _focus;

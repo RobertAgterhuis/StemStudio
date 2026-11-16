@@ -31,6 +31,18 @@ public sealed class WebHostTests(WebApplicationFactory<Program> factory) : IClas
     }
 
     [Fact]
+    public async Task GetUnknownRoute_Returns404_WithTheAppShell()
+    {
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/import", UriKind.Relative), TestContext.Current.CancellationToken);
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        html.ShouldContain("blazor.web.js");
+    }
+
+    [Fact]
     public void ApiClient_UsesConfiguredServerSideBaseUrl()
     {
         var services = factory.Services;

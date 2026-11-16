@@ -131,6 +131,12 @@ public interface IMixerControls
     /// <returns>A task that completes when the choice is applied.</returns>
     Task SetKaraokeVisibleAsync(bool visible);
 
+    /// <summary>Records that the agent saved the open mixer as <paramref name="mixId"/>: the page reads the mix and, when
+    /// it belongs to its track, marks it saved and loaded, as its own Save as does.</summary>
+    /// <param name="mixId">The saved mix.</param>
+    /// <returns>A task that completes when recorded (a mix that cannot be read changes nothing).</returns>
+    Task MarkSavedAsync(Guid mixId);
+
     /// <summary>Re-renders the page after agent changes.</summary>
     /// <returns>A task that completes when queued.</returns>
     Task RefreshAsync();

@@ -56,6 +56,10 @@ builder.Services.AddHttpClient<IAgentApiClient, AgentApiClient>(
     (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
 
 var app = builder.Build();
+
+// An address without an endpoint (for example /import) renders the not-found page in the app shell instead of an
+// empty 404 body: https://learn.microsoft.com/aspnet/core/blazor/fundamentals/navigation?view=aspnetcore-10.0#not-found-responses
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapGet("/health", () => TypedResults.Ok(new { status = "ok" }));

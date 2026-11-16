@@ -42,6 +42,11 @@ public sealed class AgentUiToolHost(NavigationUiTools layout, TimeProvider time)
     /// <returns>The mix id.</returns>
     public Guid? OpenMixId(Guid trackId) => _mixer?.TrackId == trackId ? _mixer.MixId : null;
 
+    /// <summary>Tells the open mixer that the agent saved its settings as <paramref name="mixId"/> (save_mix_as, update_mix).</summary>
+    /// <param name="mixId">The saved mix.</param>
+    /// <returns>A task that completes when the mixer has recorded the save (at once without an open mixer).</returns>
+    public Task MixSavedAsync(Guid mixId) => _mixer?.MixSavedAsync(mixId) ?? Task.CompletedTask;
+
     /// <summary>Runs one requested UI tool.</summary>
     /// <param name="request">The <c>ui.requested</c> data.</param>
     /// <returns>The result body for <c>POST /api/agent/runs/{id}/ui-results/{stepId}</c>.</returns>

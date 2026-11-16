@@ -67,7 +67,8 @@ public sealed partial class HelpCoverageTests : PageTestContext
     [Fact]
     public void EveryPage_HasExactlyOneScreenTopic()
     {
-        foreach (var route in PageRoutes())
+        // The not-found page is no screen: it only links back to the app.
+        foreach (var route in PageRoutes().Where(r => r != "/not-found"))
         {
             Catalog.Topics.Count(t => t.Route == route).ShouldBe(1, $"screen topics for {route}");
         }
