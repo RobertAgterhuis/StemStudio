@@ -12,7 +12,8 @@ either source.
 
 > 1.21.0 (additive, 011 follow-up claude-key) - Claude key part of the settings agent section:
 > status with source and last four, key field, save, replace, cancel, delete with confirmation,
-> test, local-only notice, environment-override note and error. All earlier ids are unchanged.
+> test, local-only notice, environment-override note and error; agent panel "Switch to local"
+> inside `agent-unavailable` and the key-changed note. All earlier ids are unchanged.
 
 ## Ids
 
@@ -35,6 +36,16 @@ All on the Settings page (`/settings`), inside the Claude part of the agent sect
 | `settings-agent-claude-key-test-result` | result text; attribute `data-ok` = `true` / `false`, `data-key-source` = `environment` / `stored` | after a test |
 | `settings-agent-claude-key-local-only` | notice "The Claude key can only be entered on the computer StemStudio runs on"; all key controls disabled | page opened under a non-loopback host name, or the API answered `403 local-only` |
 | `settings-agent-claude-key-error` | readable error of the key endpoints (422 reason text, 503 key store, 413) - never the value | after a failed action |
+
+### Agent panel
+
+Agent panel (layout, all levels; added in 1.21.0 before its release, frontend us-p2 request). The
+1.10.0 `agent-switch-to-local` stays the button inside `agent-run-error` only.
+
+| Area | `data-testid` | Element / attributes | Present when |
+|---|---|---|---|
+| Agent panel | `agent-unavailable-switch-to-local` | button "Switch to local" inside `agent-unavailable`; selects the local backend (`PUT /api/agent/settings` `backend: ollama`) | the selected backend is Claude and it is not ready (no usable key, key deleted or `stored-unreadable`) |
+| Agent panel | `agent-key-changed` | note (`role="status"`) "Key changed - applies to the next command. The active run keeps the key it started with; cancel it to use the new key now." (CK-FR-016) | a key was saved, replaced or deleted while a run is active; removed when that run ends |
 
 ## Help topic
 
