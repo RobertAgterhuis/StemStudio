@@ -102,10 +102,10 @@ The frontend agent reports the web-interop lane in a separate section with its o
 
 ### frontend (tests first)
 
-- [ ] T029 [P] [frontend] Failing tests: `IAudioEngine.SetPracticeAsync(PracticeSettingsDto)`, `GetPracticeStatusAsync()`, `[JSInvokable] OnPracticeChanged(PracticeStatus)` raising an event on the UI thread; `JSException` "Time stretch unavailable" mapped to an unavailable status (no crash); `PracticeStatus` record mirrors the engine JSON (FR-009)
-- [ ] T030 [frontend] Implement `Audio/{IAudioEngine,AudioEngineInterop,EngineMethods,PracticeStatus}.cs` additions to pass T029
-- [ ] T031 [P] [frontend] Failing tests `MixerStatePracticeTests`: load from `MixDto` (old mix -> defaults), dirty tracking, DTO mapping both ways, neutral settings -> no `SetPracticeAsync` on open, coalescing to at most one engine call per 50 ms while dragging (UI-side throttle only, not audible timing), `effectiveBpm` and `qualityHint` rules of data-model 3 (FR-008, FR-014, SC-007)
-- [ ] T032 [frontend] Implement `Mixer/{MixerState.Practice.cs,PracticeRules.cs}` to pass T031
+- [x] T029 [P] [frontend] Failing tests: `IAudioEngine.SetPracticeAsync(PracticeSettingsDto)`, `GetPracticeStatusAsync()`, `[JSInvokable] OnPracticeChanged(PracticeStatus)` raising an event on the UI thread; `JSException` "Time stretch unavailable" mapped to an unavailable status (no crash); `PracticeStatus` record mirrors the engine JSON (FR-009)
+- [x] T030 [frontend] Implement `Audio/{IAudioEngine,AudioEngineInterop,EngineMethods,PracticeStatus}.cs` additions to pass T029
+- [x] T031 [P] [frontend] Failing tests `MixerStatePracticeTests`: load from `MixDto` (old mix -> defaults), dirty tracking, DTO mapping both ways, neutral settings -> no `SetPracticeAsync` on open, coalescing to at most one engine call per 50 ms while dragging (UI-side throttle only, not audible timing), `effectiveBpm` and `qualityHint` rules of data-model 3 (FR-008, FR-014, SC-007)
+- [x] T032 [frontend] Implement `Mixer/{MixerState.Practice.cs,PracticeRules.cs}` to pass T031
 
 **Checkpoint**: HO:foundational for audio-engine, backend, frontend (incl. nothing for web-interop yet).
 

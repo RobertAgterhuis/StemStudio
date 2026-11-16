@@ -98,18 +98,13 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     /// <inheritdoc />
     public async Task SetPracticeAsync(PracticeSettingsDto settings)
     {
-        var engine = Engine;
         try
         {
-            await engine.InvokeVoidAsync(EngineMethods.SetPractice, settings);
+            await Call(EngineMethods.SetPractice, settings);
         }
-        catch (JSException ex) when (ex.Message.StartsWith(UnavailablePrefix, StringComparison.Ordinal))
+        catch (AudioEngineException ex) when (ex.Message.StartsWith(UnavailablePrefix, StringComparison.Ordinal))
         {
             PracticeChanged?.Invoke(this, PracticeStatus.ForUnavailable(UnavailableReason(ex.Message)));
-        }
-        catch (JSException ex)
-        {
-            throw new AudioEngineException(ex.Message, ex);
         }
     }
 
