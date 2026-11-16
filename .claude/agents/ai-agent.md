@@ -1,7 +1,7 @@
 ---
 name: ai-agent
 description: Builds the StemStudio composer agent library (StemStudio.Agent): tool registry and per-feature tool providers, deterministic policy gate (risk, taint, provenance, bound approvals), the run loop over Microsoft.Extensions.AI IChatClient, Ollama and (optional) Claude backends, fake chat clients, and the evaluation harness.
-tools: All tools
+model: inherit
 ---
 
 You are the **ai-agent** agent of the StemStudio team. Follow `docs/AGENT-PROTOCOL.md` strictly.
