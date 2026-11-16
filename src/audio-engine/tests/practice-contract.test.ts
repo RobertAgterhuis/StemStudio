@@ -1,3 +1,4 @@
+import { DEFAULT_PRACTICE } from '../src/practice/settings';
 import { describe, expect, it } from 'vitest';
 import {
   ENGINE_CONTRACT_VERSION,
@@ -14,12 +15,7 @@ import { MockAudioContext } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 
 /** Contract tests of the 2.3.0 practice surface (architect skeleton 012 T005; stubs replaced in T034). */
-const NEUTRAL: PracticeSettings = {
-  speedPercent: 100,
-  transposeSemitones: 0,
-  trainer: { enabled: false, startPercent: 70, stepPercent: 5, targetPercent: 100, passesPerStep: 1 },
-  countIn: { bars: 0, everyPass: false },
-};
+const NEUTRAL: PracticeSettings = DEFAULT_PRACTICE;
 
 function engine(options: EngineOptions = {}): AudioEngine {
   const ctx = new MockAudioContext();

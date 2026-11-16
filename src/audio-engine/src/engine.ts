@@ -275,17 +275,15 @@ export class Engine implements AudioEngine {
       return;
     }
     this.disposed = true;
-    this.parts.transport.dispose();
-    this.groups.dispose();
-    this.parts.mixer.dispose();
-    this.parts.notifier.dispose();
-    this.parts.meters.dispose();
-    this.parts.karaoke.detach();
-    this.parts.frames.dispose();
-    this.parts.metronome.dispose();
-    this.practice.dispose();
-    this.practiceNotifier.dispose();
-    await this.parts.context.close();
+    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context } = this.parts;
+    [transport, this.groups, mixer, notifier, meters].forEach((part) => {
+      part.dispose();
+    });
+    karaoke.detach();
+    [frames, metronome, this.practice, this.practiceNotifier].forEach((part) => {
+      part.dispose();
+    });
+    await context.close();
   }
 
   private createPractice(options: EngineOptions): PracticeController {

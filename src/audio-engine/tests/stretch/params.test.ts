@@ -1,3 +1,4 @@
+import { DEFAULT_PRACTICE } from '../../src/practice/settings';
 import { describe, expect, it } from 'vitest';
 import {
   CHANGE_LEAD_SECONDS,
@@ -18,12 +19,7 @@ import {
 } from '../../src/stretch/params';
 import type { PracticeSettings } from '../../src/types';
 
-const NEUTRAL: PracticeSettings = {
-  speedPercent: 100,
-  transposeSemitones: 0,
-  trainer: { enabled: false, startPercent: 70, stepPercent: 5, targetPercent: 100, passesPerStep: 1 },
-  countIn: { bars: 0, everyPass: false },
-};
+const NEUTRAL: PracticeSettings = DEFAULT_PRACTICE;
 
 function practice(partial: Partial<PracticeSettings>): PracticeSettings {
   return { ...NEUTRAL, ...partial };

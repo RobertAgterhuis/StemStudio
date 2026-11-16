@@ -12,7 +12,7 @@ import { UNAVAILABLE_PREFIX, type FailureAware } from '../stretch/worklet-stage'
 import type { Transport, TransportListener } from '../transport';
 import type { PlaybackState, PracticeSettings, PracticeStatus, StretchState, TimeStretchStage } from '../types';
 import { DEFAULT_PRACTICE, validatePractice } from './settings';
-import { liveChangeTimes } from './tempo';
+import { liveChangeTimes, type LiveChangeTimes } from './tempo';
 
 /** Interval of the underrun poll while playing (ms); UI diagnostics only. */
 export const UNDERRUN_POLL_MS = 100;
@@ -234,25 +234,30 @@ export class PracticeController implements TransportListener {
   }
 
   private liveChange(stage: TimeStretchStage, target: Target): void {
-    const { transport, context } = this.host;
-    const base = this.changeBase(context.currentTime);
+    const { transport } = this.host;
+    const base = this.changeBase(this.host.context.currentTime);
     if (base.at === null && this.unchanged(target)) {
       return;
     }
     transport.cancelPending();
-    const times = liveChangeTimes({
-      now: context.currentTime,
-      pendingAt: base.at,
-      delayFrames: stage.latencyFrames,
-      sampleRate: context.sampleRate,
-      fromPitch: base.before,
-      toPitch: target.pitch,
-    });
+    const times = this.changeTimes(stage, base, target.pitch);
     stage.setPitch(target.pitch, times.atFrame);
     const anchor = anchorOf(times.heardWhen, transport.positionAt(times.sampleAt), target.rate);
     transport.retime({ rate: target.rate, latency: this.latencyOf(stage, target.pitch), at: times.at, anchor });
     this.pending = { at: times.at, before: base.before };
     this.applied = target.pitch;
+  }
+
+  private changeTimes(stage: TimeStretchStage, base: { at: number | null; before: number }, pitch: number): LiveChangeTimes {
+    const { context } = this.host;
+    return liveChangeTimes({
+      now: context.currentTime,
+      pendingAt: base.at,
+      delayFrames: stage.latencyFrames,
+      sampleRate: context.sampleRate,
+      fromPitch: base.before,
+      toPitch: pitch,
+    });
   }
 
   /** `U` and pitch before a change that has not entered the stage yet (it is replaced), else none and the applied pitch. */

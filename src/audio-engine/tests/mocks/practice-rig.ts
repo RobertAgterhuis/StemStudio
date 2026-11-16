@@ -1,4 +1,5 @@
 import { createEngine } from '../../src/index';
+import { DEFAULT_PRACTICE } from '../../src/practice/settings';
 import { FakeStretchStage } from '../../src/stretch/fake-stage';
 import type { AudioEngine, BeatGrid, PracticeSettings, PracticeStatus, TimeStretchStage } from '../../src/types';
 import { MockAudioContext, type MockAudioBufferSourceNode } from './audio-context';
@@ -6,12 +7,7 @@ import { FakeDotNetRef } from './dotnet-ref';
 import { FetchStub } from './fetch';
 
 /** Neutral practice settings (the defaults of `PracticeSettingsDto`). */
-export const NEUTRAL: PracticeSettings = {
-  speedPercent: 100,
-  transposeSemitones: 0,
-  trainer: { enabled: false, startPercent: 70, stepPercent: 5, targetPercent: 100, passesPerStep: 1 },
-  countIn: { bars: 0, everyPass: false },
-};
+export const NEUTRAL: PracticeSettings = DEFAULT_PRACTICE;
 
 /** Practice settings with overrides (nested objects merged). */
 export function practice(partial: {
