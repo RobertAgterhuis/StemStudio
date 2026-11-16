@@ -15,6 +15,9 @@ public sealed class AgentUiToolHost(NavigationUiTools layout)
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private const string MixerNotOpen = "The mixer of the track is not open";
+
+    /// <summary>How long a mixer tool right after <c>open_mixer</c> waits for the mixer page to register its tools.</summary>
+    public static TimeSpan MixerOpenWait { get; } = TimeSpan.FromSeconds(10);
     private MixerUiTools? _mixer;
 
     /// <summary>True while a mixer page has registered its tools.</summary>

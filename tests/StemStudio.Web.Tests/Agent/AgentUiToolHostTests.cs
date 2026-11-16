@@ -44,6 +44,34 @@ public sealed class AgentUiToolHostTests : PageTestContext
     }
 
     [Fact]
+    public async Task MixerTool_RightAfterOpenMixer_WaitsUntilTheMixerPageRegisters()
+    {
+        await Host.ExecuteAsync(Request("open_mixer", $$"""{"trackId":"{{TestData.TrackId}}"}"""));
+        var controls = new FakeMixerControls();
+
+        var pending = Host.ExecuteAsync(Request("mixer_set_channel", """{"stem":"drums","mute":true}"""));
+        pending.IsCompleted.ShouldBeFalse();
+        using var registration = Host.RegisterMixer(new MixerUiTools(controls));
+        var result = await pending.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        (result.Ok, result.Error).ShouldBe((true, null));
+        controls.State.Channel("drums").Mute.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task MixerTool_AfterOpenMixer_FailsWhenTheMixerDoesNotOpenInTime()
+    {
+        await Host.ExecuteAsync(Request("open_mixer", $$"""{"trackId":"{{TestData.TrackId}}"}"""));
+
+        var pending = Host.ExecuteAsync(Request("mixer_get_state"));
+        Time.Advance(AgentUiToolHost.MixerOpenWait);
+        var result = await pending.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        (result.Ok, result.Error).ShouldBe((false, "The mixer of the track is not open"));
+        (await Host.ExecuteAsync(Request("mixer_get_state"))).Error.ShouldBe("The mixer of the track is not open");
+    }
+
+    [Fact]
     public async Task MixerTool_ForAnotherTrack_SaysThatMixerIsNotOpen()
     {
         using var registration = Host.RegisterMixer(new MixerUiTools(new FakeMixerControls()));
