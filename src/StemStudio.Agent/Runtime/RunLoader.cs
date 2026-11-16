@@ -16,42 +16,44 @@ internal static class RunLoader
         }
 
         var messages = await services.Conversations.GetMessagesAsync(run.ConversationId, cancellationToken);
-        var command = messages.FirstOrDefault(message => message.Id == run.UserMessageId);
-        if (command is null)
-        {
-            return null;
-        }
-
-        var settings = await services.Settings.GetAsync(cancellationToken);
-        return new RunState
-        {
-            Run = run,
-            Command = command,
-            History = [.. messages.Where(message => message.Seq < command.Seq)],
-            UserMessages = [.. messages.Where(message => message.Role == MessageRoleDto.User).Select(message => message.Text)],
-            Limits = settings.Limits,
-            Page = command.Context.Page.Trim().ToLowerInvariant(),
-        };
+        return messages.FirstOrDefault(message => message.Id == run.UserMessageId) is { } command
+            ? State(run, command, messages, await services.Settings.GetAsync(cancellationToken))
+            : null;
     }
+
+    private static RunState State(AgentRun run, ConversationMessage command, IReadOnlyList<ConversationMessage> messages, AgentSettings settings) => new()
+    {
+        Run = run,
+        Command = command,
+        History = [.. messages.Where(message => message.Seq < command.Seq)],
+        UserMessages = [.. messages.Where(message => message.Role == MessageRoleDto.User).Select(message => message.Text)],
+        Limits = settings.Limits,
+        Page = command.Context.Page.Trim().ToLowerInvariant(),
+    };
 
     /// <summary>Appends the run's answer as the assistant message (at most 16,000 characters).</summary>
     public static async Task<ConversationMessage> AppendAnswerAsync(AgentServices services, RunState state, CancellationToken cancellationToken)
     {
         var messages = await services.Conversations.GetMessagesAsync(state.Run.ConversationId, cancellationToken);
+        var message = Answer(services, state, messages.Count == 0 ? 1 : messages.Max(item => item.Seq) + 1);
+        await services.Conversations.AppendMessageAsync(message, cancellationToken);
+        return message;
+    }
+
+    private static ConversationMessage Answer(AgentServices services, RunState state, int seq)
+    {
         var text = state.Answer.ToString().Trim();
-        var message = new ConversationMessage
+        return new ConversationMessage
         {
             Id = Guid.NewGuid(),
             ConversationId = state.Run.ConversationId,
-            Seq = messages.Count == 0 ? 1 : messages.Max(item => item.Seq) + 1,
+            Seq = seq,
             Role = MessageRoleDto.Assistant,
             Text = text.Length > AgentContractLimits.AssistantMessageMaxLength ? text[..AgentContractLimits.AssistantMessageMaxLength] : text,
             Context = state.Command.Context,
             RunId = state.RunId,
             CreatedAt = services.Time.GetUtcNow(),
         };
-        await services.Conversations.AppendMessageAsync(message, cancellationToken);
-        return message;
     }
 
     /// <summary>Clears the conversation's active run when it is this run.</summary>

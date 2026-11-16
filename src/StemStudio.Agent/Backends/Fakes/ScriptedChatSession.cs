@@ -44,18 +44,23 @@ public sealed class ScriptedChatSession(string scriptJson) : IAgentChatSession
             return scriptJson;
         }
 
-        var values = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [TrackPlaceholder] = context.Command.TrackId?.ToString() ?? string.Empty,
-            [MixPlaceholder] = context.Command.MixId?.ToString() ?? string.Empty,
-        };
-        foreach (var call in turns.OfType<JsonObject>().Select(turn => turn["calls"]).OfType<JsonArray>().SelectMany(calls => calls.OfType<JsonObject>()))
+        var values = Values(context);
+        foreach (var call in Calls(turns))
         {
             call["arguments"] = Replace(call["arguments"], values);
         }
 
         return script.ToJsonString();
     }
+
+    private static Dictionary<string, string> Values(ChatTurnContext context) => new(StringComparer.Ordinal)
+    {
+        [TrackPlaceholder] = context.Command.TrackId?.ToString() ?? string.Empty,
+        [MixPlaceholder] = context.Command.MixId?.ToString() ?? string.Empty,
+    };
+
+    private static IEnumerable<JsonObject> Calls(JsonArray turns) =>
+        turns.OfType<JsonObject>().Select(turn => turn["calls"]).OfType<JsonArray>().SelectMany(calls => calls.OfType<JsonObject>());
 
     private static JsonNode? Replace(JsonNode? node, Dictionary<string, string> values) => node switch
     {

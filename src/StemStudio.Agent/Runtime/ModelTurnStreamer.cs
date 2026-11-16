@@ -25,15 +25,15 @@ internal sealed class ModelTurnStreamer(RunEvents events, TimeProvider time)
         {
             throw new RunStopException(AgentFailureCodes.Timeout, $"The model did not answer within {limit.Seconds} seconds.");
         }
-        catch (HttpRequestException exception)
+        catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
         {
-            throw new RunStopException(AgentFailureCodes.BackendUnavailable, "The language model could not be reached.", exception);
-        }
-        catch (InvalidOperationException exception)
-        {
-            throw new RunStopException(AgentFailureCodes.Internal, "The language model did not return an answer.", exception);
+            throw Stop(exception);
         }
     }
+
+    private static RunStopException Stop(Exception exception) => exception is HttpRequestException
+        ? new RunStopException(AgentFailureCodes.BackendUnavailable, "The language model could not be reached.", exception)
+        : new RunStopException(AgentFailureCodes.Internal, "The language model did not return an answer.", exception);
 
     private async Task<ChatResponse> ReadAsync(Guid runId, ChatTurn turn, TurnRequest request, CancellationToken cancellationToken)
     {
@@ -44,15 +44,23 @@ internal sealed class ModelTurnStreamer(RunEvents events, TimeProvider time)
         {
             updates.Add(update);
             pending.Append(update.Text);
-            if (pending.Length > 0 && time.GetElapsedTime(flushedAt) >= CoalesceInterval)
-            {
-                await FlushAsync(runId, pending, cancellationToken);
-                flushedAt = time.GetTimestamp();
-            }
+            flushedAt = await CoalesceAsync(runId, pending, flushedAt, cancellationToken);
         }
 
         await FlushAsync(runId, pending, cancellationToken);
         return updates.ToChatResponse();
+    }
+
+    /// <summary>Flushes the pending text once the coalescing interval has passed; returns the new flush time.</summary>
+    private async Task<long> CoalesceAsync(Guid runId, StringBuilder pending, long flushedAt, CancellationToken cancellationToken)
+    {
+        if (pending.Length == 0 || time.GetElapsedTime(flushedAt) < CoalesceInterval)
+        {
+            return flushedAt;
+        }
+
+        await FlushAsync(runId, pending, cancellationToken);
+        return time.GetTimestamp();
     }
 
     private async Task FlushAsync(Guid runId, StringBuilder pending, CancellationToken cancellationToken)

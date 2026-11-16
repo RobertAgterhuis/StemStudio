@@ -69,19 +69,8 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     private async Task<ProjectedResult> DecideAndRunAsync(RunState state, PreparedCall call, CancellationToken cancellationToken)
     {
         var prepared = await EscalateAsync(state, call, cancellationToken);
-        var decision = await PreconditionAsync(state, prepared, cancellationToken)
-            ?? ToolPolicy.Decide(PolicyFor(state, prepared) with { LibraryArtists = await LibraryArtistsAsync(prepared, cancellationToken) });
-        var status = decision.Decision switch
-        {
-            StepDecisionDto.Denied => AgentStepStatusDto.Failed,
-            StepDecisionDto.ApprovalRequired => AgentStepStatusDto.AwaitingApproval,
-            _ => AgentStepStatusDto.Running,
-        };
-        var planIndex = await _plan.LinkAsync(state, prepared.Tool!, cancellationToken);
-        var step = prepared.ToStep(state.RunId, ++state.StepSeq, status) with { Decision = decision.Decision, DecisionReasons = decision.Reasons, Error = decision.Refusal, PlanIndex = planIndex };
-        step = Started(step, status);
-        await services.Runs.SaveStepAsync(step, cancellationToken);
-        await events.StepCreatedAsync(step, cancellationToken);
+        var decision = await DecideAsync(state, prepared, cancellationToken);
+        var step = await CreateStepAsync(state, prepared, decision, cancellationToken);
         return decision.Decision switch
         {
             StepDecisionDto.Denied => ResultProjector.Error(decision.Refusal!),
@@ -89,6 +78,29 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
             _ => await RunAsync(state, step, prepared, cancellationToken),
         };
     }
+
+    /// <summary>A failed precondition denies the step; otherwise the deterministic policy decides.</summary>
+    private async Task<PolicyDecision> DecideAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken) =>
+        await PreconditionAsync(state, prepared, cancellationToken)
+            ?? ToolPolicy.Decide(PolicyFor(state, prepared) with { LibraryArtists = await LibraryArtistsAsync(prepared, cancellationToken) });
+
+    private async Task<RunStep> CreateStepAsync(RunState state, PreparedCall prepared, PolicyDecision decision, CancellationToken cancellationToken)
+    {
+        var status = StatusOf(decision.Decision);
+        var planIndex = await _plan.LinkAsync(state, prepared.Tool!, cancellationToken);
+        var step = prepared.ToStep(state.RunId, ++state.StepSeq, status) with { Decision = decision.Decision, DecisionReasons = decision.Reasons, Error = decision.Refusal, PlanIndex = planIndex };
+        step = Started(step, status);
+        await services.Runs.SaveStepAsync(step, cancellationToken);
+        await events.StepCreatedAsync(step, cancellationToken);
+        return step;
+    }
+
+    private static AgentStepStatusDto StatusOf(StepDecisionDto decision) => decision switch
+    {
+        StepDecisionDto.Denied => AgentStepStatusDto.Failed,
+        StepDecisionDto.ApprovalRequired => AgentStepStatusDto.AwaitingApproval,
+        _ => AgentStepStatusDto.Running,
+    };
 
     private async Task<ProjectedResult> AskThenRunAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
     {
@@ -117,16 +129,16 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     }
 
     /// <summary>A failed precondition denies the step with its fixed message (before any card or job).</summary>
-    private async Task<PolicyDecision?> PreconditionAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken)
-    {
-        if (prepared.Tool!.Precondition is not { } precondition)
-        {
-            return null;
-        }
+    private Task<PolicyDecision?> PreconditionAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken) =>
+        prepared.Tool!.Precondition is { } precondition
+            ? CheckAsync(precondition, ServerInvocation(state, prepared), cancellationToken)
+            : Task.FromResult<PolicyDecision?>(null);
 
+    private static async Task<PolicyDecision?> CheckAsync(ToolPrecondition precondition, ToolInvocation invocation, CancellationToken cancellationToken)
+    {
         try
         {
-            await precondition(new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend }, cancellationToken);
+            await precondition(invocation, cancellationToken);
             return null;
         }
         catch (AgentActionException failed)
@@ -134,6 +146,9 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
             return new PolicyDecision(StepDecisionDto.Denied, [], PortErrors.From(failed).ModelError ?? failed.Message);
         }
     }
+
+    private ToolInvocation ServerInvocation(RunState state, PreparedCall prepared) =>
+        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
 
     /// <summary>The artists of the library for the artist-imitation guardrail (only for tools with free style text).</summary>
     private async Task<IReadOnlyList<string?>> LibraryArtistsAsync(PreparedCall prepared, CancellationToken cancellationToken)
@@ -160,19 +175,28 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
             return prepared;
         }
 
-        var heavy = prepared with { Tool = prepared.Tool with { Risk = ToolRiskDto.Heavy } };
         try
         {
-            var invocation = new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
-            return await heavyWhen(invocation, cancellationToken) ? heavy : prepared;
+            return await heavyWhen(ServerInvocation(state, prepared), cancellationToken) ? Heavy(prepared) : prepared;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (IsFailure(exception, cancellationToken))
         {
-            // Fail closed: an unknown size is treated as heavy (approval, no plan grant); the cause is logged, never shown.
-            RunLog.RiskCheckFailed(services.Logger, state.RunId, prepared.Tool.Name, exception);
-            return heavy with { RiskCheckFailed = true };
+            return CheckFailed(state, prepared, exception);
         }
     }
+
+    private static PreparedCall Heavy(PreparedCall prepared) => prepared with { Tool = prepared.Tool! with { Risk = ToolRiskDto.Heavy } };
+
+    /// <summary>Fail closed: an unknown size is treated as heavy (approval, no plan grant); the cause is logged, never shown.</summary>
+    private PreparedCall CheckFailed(RunState state, PreparedCall prepared, Exception exception)
+    {
+        RunLog.RiskCheckFailed(services.Logger, state.RunId, prepared.Tool!.Name, exception);
+        return Heavy(prepared) with { RiskCheckFailed = true };
+    }
+
+    /// <summary>Any exception except a cancellation of the run itself.</summary>
+    private static bool IsFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested;
 
     private RunStep Started(RunStep step, AgentStepStatusDto status) =>
         status == AgentStepStatusDto.Running ? step with { StartedAt = services.Time.GetUtcNow() } : step;
@@ -196,7 +220,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         {
             result = await InvokeAsync(state, step, prepared, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (IsFailure(exception, cancellationToken))
         {
             return await FailStepAsync(state, step, StepFailure.From(exception, services.Logger, state.RunId, step.Tool), cancellationToken);
         }
@@ -209,12 +233,16 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         await FinishAsync(step with { Status = AgentStepStatusDto.Failed, Error = Cap(failure.StepError) }, null, cancellationToken);
         await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Failed, cancellationToken);
         var result = failure.ModelResult();
-        if (result.Tainted && !state.Run.Tainted)
+        await MarkTaintedAsync(state, result.Tainted, cancellationToken);
+        return result;
+    }
+
+    private async Task MarkTaintedAsync(RunState state, bool tainted, CancellationToken cancellationToken)
+    {
+        if (tainted && !state.Run.Tainted)
         {
             await SaveRunAsync(state, state.Run with { Tainted = true }, cancellationToken);
         }
-
-        return result;
     }
 
     private Task<ToolResult> InvokeAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken) => prepared.Tool!.Kind switch
@@ -242,10 +270,12 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         }
 
         var element = RunEvents.Element(answer.Result);
-        var result = prepared.Tool!.MapUiResult?.Invoke(prepared.Validation.Arguments, element)
-            ?? ToolResult.Of(JsonNode.Parse(answer.Result ?? "{}") ?? new JsonObject());
-        return WithUiUndo(step, element, result);
+        return WithUiUndo(step, element, MapUi(prepared, element, answer.Result));
     }
+
+    private static ToolResult MapUi(PreparedCall prepared, JsonElement? element, string? json) =>
+        prepared.Tool!.MapUiResult?.Invoke(prepared.Validation.Arguments, element)
+            ?? ToolResult.Of(JsonNode.Parse(json ?? "{}") ?? new JsonObject());
 
     private async Task<UiToolResult> RequestUiAsync(RunState state, RunStep step, UiCall call, CancellationToken cancellationToken)
     {
@@ -265,18 +295,22 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     private async Task<ProjectedResult> SucceedAsync(RunState state, RunStep step, ToolResult result, CancellationToken cancellationToken)
     {
         var projected = ResultProjector.Project(result.Projection);
-        if (projected.Tainted && !state.Run.Tainted)
-        {
-            await SaveRunAsync(state, state.Run with { Tainted = true }, cancellationToken);
-        }
-
+        await MarkTaintedAsync(state, projected.Tainted, cancellationToken);
         PageTransitions.Apply(state, step);
-        var done = step with { Status = AgentStepStatusDto.Succeeded, Job = result.Job ?? step.Job, EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes, Progress = result.Progress ?? step.Progress };
+        var done = Succeeded(step, result);
         await FinishAsync(done, projected.Json, cancellationToken);
         await RecordUndoAsync(UndoRecorder.Entries(state, done, result), cancellationToken);
         await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Done, cancellationToken);
         return projected;
     }
+
+    private static RunStep Succeeded(RunStep step, ToolResult result) => step with
+    {
+        Status = AgentStepStatusDto.Succeeded,
+        Job = result.Job ?? step.Job,
+        EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes,
+        Progress = result.Progress ?? step.Progress,
+    };
 
     private async Task<ProjectedResult> FinishAsync(RunStep step, string? resultJson, CancellationToken cancellationToken)
     {

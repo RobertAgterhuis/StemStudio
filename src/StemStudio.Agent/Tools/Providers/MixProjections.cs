@@ -36,19 +36,23 @@ internal static class MixProjections
     /// <summary>Maps the page's <c>mixer_get_state</c> result (settings in the MixSettingsDto shape) to the dB projection.</summary>
     public static ToolResult State(JsonElement arguments, JsonElement? result)
     {
-        var page = result is { ValueKind: JsonValueKind.Object } value ? value : default;
-        if (page.ValueKind != JsonValueKind.Object || !page.TryGetProperty("settings", out var settings))
+        if (result is not { ValueKind: JsonValueKind.Object } page || !page.TryGetProperty("settings", out var settings))
         {
             return ToolResult.Of(JsonNode.Parse(result?.GetRawText() ?? "{}")!);
         }
 
+        return ToolResult.Of(Settings(settings.Deserialize<MixSettingsDto>(Json)!, PageFields(page)));
+    }
+
+    private static JsonObject PageFields(JsonElement page)
+    {
         var projection = new JsonObject();
         foreach (var name in new[] { "trackId", "mixId", "unsaved", "position", "playing", "karaoke" })
         {
             projection[name] = page.TryGetProperty(name, out var field) ? JsonNode.Parse(field.GetRawText()) : null;
         }
 
-        return ToolResult.Of(Settings(settings.Deserialize<MixSettingsDto>(Json)!, projection));
+        return projection;
     }
 
     /// <summary>Reads the open mixer's settings through the UI (save_mix_as, update_mix).</summary>

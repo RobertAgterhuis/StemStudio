@@ -32,12 +32,7 @@ public sealed class AgentRunService : IAgentRunService
     public async Task<ApprovalStateDto> DecideAsync(Guid runId, Guid stepId, DecideApprovalRequest decision, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(decision);
-        var approval = await _services.Runs.GetApprovalAsync(stepId, cancellationToken);
-        if (approval is null || approval.RunId != runId)
-        {
-            throw new KeyNotFoundException("The approval does not exist.");
-        }
-
+        var approval = await FindApprovalAsync(runId, stepId, cancellationToken);
         if (approval.Status is ApprovalStatusDto.Approved or ApprovalStatusDto.Rejected)
         {
             return ApprovalDecisions.State(approval);
@@ -49,6 +44,12 @@ public sealed class AgentRunService : IAgentRunService
         await _events.PublishAsync(runId, AgentEventTypes.ApprovalResolved, ApprovalDecisions.State(decided), cancellationToken);
         _coordination.Approvals.Complete(decided);
         return ApprovalDecisions.State(decided);
+    }
+
+    private async Task<Approval> FindApprovalAsync(Guid runId, Guid stepId, CancellationToken cancellationToken)
+    {
+        var approval = await _services.Runs.GetApprovalAsync(stepId, cancellationToken);
+        return approval is not null && approval.RunId == runId ? approval : throw new KeyNotFoundException("The approval does not exist.");
     }
 
     /// <inheritdoc />

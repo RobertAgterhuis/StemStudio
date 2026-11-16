@@ -65,15 +65,23 @@ internal sealed class MetaToolRunner(AgentServices services, RunEvents events, R
 
     private async Task<ToolResult> WaitAsync(RunState state, RunStep step, JsonElement arguments, CancellationToken cancellationToken)
     {
-        var job = new JobRef
-        {
-            Phase = JsonSerializer.Deserialize<JobPhaseDto>(JsonSerializer.Serialize(arguments.GetProperty("phase").GetString())),
-            TrackId = arguments.TryGetProperty("trackId", out var track) ? Guid.Parse(track.GetString()!) : null,
-            JobId = arguments.TryGetProperty("jobId", out var id) ? id.GetString() : null,
-        };
+        var job = JobOf(arguments);
         var wait = new JobWait(job, TimeSpan.FromMinutes(state.Limits.MaxJobWaitMinutes)) { OnProgress = (poll, token) => ProgressAsync(state, step with { Job = job }, poll, token) };
         var result = await _jobs.WaitAsync(wait, cancellationToken);
         await SetRunStatusAsync(state, AgentRunStatusDto.Running, cancellationToken);
+        return new ToolResult { Projection = Projection(result), Job = job, Progress = result.Progress };
+    }
+
+    private static JobRef JobOf(JsonElement arguments) => new()
+    {
+        Phase = JsonSerializer.Deserialize<JobPhaseDto>(JsonSerializer.Serialize(arguments.GetProperty("phase").GetString())),
+        TrackId = arguments.TryGetProperty("trackId", out var track) ? Guid.Parse(track.GetString()!) : null,
+        JobId = arguments.TryGetProperty("jobId", out var id) ? id.GetString() : null,
+    };
+
+    /// <summary>Status and progress (trusted), the readable error and any external text marked untrusted.</summary>
+    private static JsonObject Projection(JobPoll result)
+    {
         var projection = new JsonObject { ["status"] = result.Status, ["progress"] = result.Progress };
         if (result.Error is { } error)
         {
@@ -85,7 +93,7 @@ internal sealed class MetaToolRunner(AgentServices services, RunEvents events, R
             projection[ResultProjector.UntrustedField] = external;
         }
 
-        return new ToolResult { Projection = projection, Job = job, Progress = result.Progress };
+        return projection;
     }
 
     private async Task ProgressAsync(RunState state, RunStep step, JobPoll poll, CancellationToken cancellationToken)

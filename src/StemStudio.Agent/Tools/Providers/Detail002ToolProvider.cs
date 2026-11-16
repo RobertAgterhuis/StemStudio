@@ -53,17 +53,18 @@ public sealed class Detail002ToolProvider : IAgentToolProvider
         var estimate = await EstimateAsync(call, cancellationToken);
         var track = await call.Actions.Tracks.StartDetailAsync(call.RequiredId("trackId"), cancellationToken);
         var job = new JobRef { TrackId = track.Id, Phase = JobPhaseDto.Detail };
-        var projection = new JsonObject
-        {
-            ["trackId"] = track.Id.ToString(),
-            ["detailStatus"] = Name(track.Detail.Status),
-            ["estimatedMinutes"] = estimate.EstimatedMinutes,
-            ["device"] = estimate.Device,
-            ["jobRef"] = JobRef(job),
-        };
         var undo = Undo("cancel_detail_separation", new JsonObject { ["trackId"] = track.Id.ToString() });
-        return new ToolResult { Projection = projection, Job = job, EstimatedMinutes = estimate.EstimatedMinutes, Undo = undo };
+        return new ToolResult { Projection = Started(track, estimate, job), Job = job, EstimatedMinutes = estimate.EstimatedMinutes, Undo = undo };
     }
+
+    private static JsonObject Started(TrackDto track, ToolEstimate estimate, JobRef job) => new()
+    {
+        ["trackId"] = track.Id.ToString(),
+        ["detailStatus"] = Name(track.Detail.Status),
+        ["estimatedMinutes"] = estimate.EstimatedMinutes,
+        ["device"] = estimate.Device,
+        ["jobRef"] = JobRef(job),
+    };
 
     private static async Task<ToolResult> CancelAsync(ToolInvocation call, CancellationToken cancellationToken)
     {

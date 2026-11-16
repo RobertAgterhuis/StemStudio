@@ -29,7 +29,7 @@ internal static class TrackProjections
     };
 
     /// <summary>The get_track projection.</summary>
-    public static JsonObject Details(TrackDto track) => new()
+    public static JsonObject Details(TrackDto track) => Analysis(track, new JsonObject
     {
         ["trackId"] = track.Id.ToString(),
         [ResultProjector.UntrustedField] = Untrusted(ResultProjector.Join(track.Title, track.Artist)),
@@ -37,12 +37,20 @@ internal static class TrackProjections
         ["stage"] = TrustedText.Code(track.Stage),
         ["progress"] = track.Progress,
         ["error"] = UntrustedError(track.Error),
-        ["bpm"] = track.BeatGrid?.Bpm,
-        ["timeSignature"] = track.BeatGrid is { } grid ? $"{grid.BeatsPerBar}/4" : null,
-        ["stems"] = new JsonArray([.. track.Stems.Where(stem => TrustedText.IsChannel(stem.Name)).Select(stem => (JsonNode)JsonValue.Create(stem.Name))]),
-        ["detailStatus"] = Name(track.Detail.Status),
-        ["device"] = track.Device is { } device ? (device.Kind == ProcessingDeviceKindDto.Gpu ? $"GPU ({TrustedText.SafeName(device.Name) ?? "unknown"})" : "CPU") : null,
-        ["lyricsStatus"] = Name(track.LyricsStatus),
-        ["metadataStatus"] = Name(track.Metadata.Status),
-    };
+    });
+
+    private static JsonObject Analysis(TrackDto track, JsonObject details)
+    {
+        details["bpm"] = track.BeatGrid?.Bpm;
+        details["timeSignature"] = track.BeatGrid is { } grid ? $"{grid.BeatsPerBar}/4" : null;
+        details["stems"] = new JsonArray([.. track.Stems.Where(stem => TrustedText.IsChannel(stem.Name)).Select(stem => (JsonNode)JsonValue.Create(stem.Name))]);
+        details["detailStatus"] = Name(track.Detail.Status);
+        details["device"] = Device(track);
+        details["lyricsStatus"] = Name(track.LyricsStatus);
+        details["metadataStatus"] = Name(track.Metadata.Status);
+        return details;
+    }
+
+    private static string? Device(TrackDto track) =>
+        track.Device is { } device ? (device.Kind == ProcessingDeviceKindDto.Gpu ? $"GPU ({TrustedText.SafeName(device.Name) ?? "unknown"})" : "CPU") : null;
 }

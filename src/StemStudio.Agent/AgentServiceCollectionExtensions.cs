@@ -67,6 +67,14 @@ public static class AgentServiceCollectionExtensions
 
     private static void AddTools(IServiceCollection services)
     {
+        AddProviders(services);
+        services.TryAddSingleton(sp => new AgentToolRegistry(sp.GetServices<IAgentToolProvider>()));
+        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp)));
+        services.TryAddSingleton(sp => new ToolCatalog(sp.GetRequiredService<AgentToolRegistry>(), sp.GetRequiredService<ServiceStatusReader>()));
+    }
+
+    private static void AddProviders(IServiceCollection services)
+    {
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, MetaToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, Core001ToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, Detail002ToolProvider>());
@@ -78,9 +86,6 @@ public static class AgentServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, ScoreToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, StyleToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, SongToolProvider>());
-        services.TryAddSingleton(sp => new AgentToolRegistry(sp.GetServices<IAgentToolProvider>()));
-        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp)));
-        services.TryAddSingleton(sp => new ToolCatalog(sp.GetRequiredService<AgentToolRegistry>(), sp.GetRequiredService<ServiceStatusReader>()));
     }
 
     private static void AddRuntime(IServiceCollection services)

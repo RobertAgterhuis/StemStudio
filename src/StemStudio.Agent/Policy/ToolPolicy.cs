@@ -1,4 +1,5 @@
 using System.Text.Json;
+using StemStudio.Agent.Tools;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Policy;
@@ -28,7 +29,7 @@ public static class ToolPolicy
             return denial;
         }
 
-        if (input.Tool.Risk == ToolRiskDto.Read || input.Tool.Kind == ToolKindDto.Meta)
+        if (NeverAsks(input.Tool))
         {
             return PolicyDecision.Auto;
         }
@@ -36,6 +37,9 @@ public static class ToolPolicy
         var reasons = Reasons(input);
         return reasons.Count == 0 || CoveredByPlan(input, reasons) ? PolicyDecision.Auto : new PolicyDecision(StepDecisionDto.ApprovalRequired, reasons, null);
     }
+
+    /// <summary>Read tools and meta tools run without approval (after the guardrails).</summary>
+    private static bool NeverAsks(AgentToolDescriptor tool) => tool.Risk == ToolRiskDto.Read || tool.Kind == ToolKindDto.Meta;
 
     private static PolicyDecision? Guardrail(PolicyInput input)
     {

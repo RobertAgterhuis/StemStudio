@@ -68,14 +68,9 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
 
     private static ApprovalVerdict Verdict(RunState state, PreparedCall prepared, Approval? decided)
     {
-        if (decided is null)
+        if (decided is null || !ApprovalBinding.Matches(decided, prepared.Validation.Hash))
         {
-            return ApprovalVerdict.Expired;
-        }
-
-        if (!ApprovalBinding.Matches(decided, prepared.Validation.Hash))
-        {
-            return ApprovalVerdict.Rejected;
+            return decided is null ? ApprovalVerdict.Expired : ApprovalVerdict.Rejected;
         }
 
         if (ApprovalBinding.Grant(decided, prepared.Tool!.Name, SingleTarget(prepared)) is { } grant)
@@ -95,14 +90,16 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
 
         try
         {
-            var invocation = new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
-            return await estimator(invocation, cancellationToken);
+            return await estimator(Invocation(state, prepared), cancellationToken);
         }
         catch (AgentActionException)
         {
             return null;
         }
     }
+
+    private ToolInvocation Invocation(RunState state, PreparedCall prepared) =>
+        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
 
     private static bool AllowsPlanScope(RunState state, PreparedCall prepared) =>
         prepared.Tool!.Risk == ToolRiskDto.Heavy && state.Run.Plan.Any(item => item.Tool == prepared.Tool.Name) && SingleTarget(prepared) is not null;

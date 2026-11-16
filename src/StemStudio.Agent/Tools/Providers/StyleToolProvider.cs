@@ -74,15 +74,7 @@ public sealed class StyleToolProvider : IAgentToolProvider
         {
             Title = "Restyle a track",
             Description = "Render a part of a track (10-480 s, default range mode) in another style, chosen by styleId from list_styles. GPU job: the user must confirm. Wait with wait_for_job phase restyle and the generationId.",
-            Schema = ToolSchema.Of(
-                Param.Uuid("trackId"),
-                Param.Uuid("styleId").Describe("Style id from list_styles; never a name."),
-                Param.Choice("mode", "range", "inPlace").Optional(),
-                Param.Number("rangeStartSeconds", 0, 36_000).Optional(),
-                Param.Number("rangeEndSeconds", 0, 36_000).Optional(),
-                Param.List("includedStems", Param.Choice("stem", "vocals", "drums", "bass", "guitar", "piano", "other"), 1, 6).Optional(),
-                Param.Choice("strength", Strengths).Optional(),
-                Param.Whole("takes", 1, 2).Optional()),
+            Schema = RestyleSchema(),
             UndoKind = UndoKindDto.Compensate,
             TargetArgument = "trackId",
             Handler = RestyleAsync,
@@ -202,6 +194,16 @@ public sealed class StyleToolProvider : IAgentToolProvider
         Description = call.Text("description"),
     };
 
+    private static ToolSchema RestyleSchema() => ToolSchema.Of(
+        Param.Uuid("trackId"),
+        Param.Uuid("styleId").Describe("Style id from list_styles; never a name."),
+        Param.Choice("mode", "range", "inPlace").Optional(),
+        Param.Number("rangeStartSeconds", 0, 36_000).Optional(),
+        Param.Number("rangeEndSeconds", 0, 36_000).Optional(),
+        Param.List("includedStems", Param.Choice("stem", "vocals", "drums", "bass", "guitar", "piano", "other"), 1, 6).Optional(),
+        Param.Choice("strength", Strengths).Optional(),
+        Param.Whole("takes", 1, 2).Optional());
+
     private static ToolEstimate RestyleEstimate(ToolInvocation call)
     {
         var span = call.Number("rangeEndSeconds") is { } end && call.Number("rangeStartSeconds") is { } start ? end - start : (double?)null;
@@ -211,19 +213,20 @@ public sealed class StyleToolProvider : IAgentToolProvider
     private static async Task<ToolResult> RestyleAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
         var trackId = call.RequiredId("trackId");
-        var request = new RestyleRequest
-        {
-            StyleId = call.RequiredId("styleId"),
-            Mode = Parse<RestyleModeDto>(call.Text("mode")) ?? RestyleModeDto.Range,
-            RangeStartSeconds = call.Number("rangeStartSeconds"),
-            RangeEndSeconds = call.Number("rangeEndSeconds"),
-            IncludedStems = call.Strings("includedStems") is { Count: > 0 } stems ? stems : null,
-            Strength = Parse<StrengthDto>(call.Text("strength")),
-            Takes = call.Whole("takes") ?? 1,
-        };
-        var generation = await call.Actions.Generations.CreateRestyleAsync(trackId, request, cancellationToken);
+        var generation = await call.Actions.Generations.CreateRestyleAsync(trackId, RestyleRequestOf(call), cancellationToken);
         return Started(generation, JobPhaseDto.Restyle, RestyleEstimate(call).EstimatedMinutes, trackId);
     }
+
+    private static RestyleRequest RestyleRequestOf(ToolInvocation call) => new()
+    {
+        StyleId = call.RequiredId("styleId"),
+        Mode = Parse<RestyleModeDto>(call.Text("mode")) ?? RestyleModeDto.Range,
+        RangeStartSeconds = call.Number("rangeStartSeconds"),
+        RangeEndSeconds = call.Number("rangeEndSeconds"),
+        IncludedStems = call.Strings("includedStems") is { Count: > 0 } stems ? stems : null,
+        Strength = Parse<StrengthDto>(call.Text("strength")),
+        Takes = call.Whole("takes") ?? 1,
+    };
 
     private static async Task<ToolResult> ListGenerationsAsync(ToolInvocation call, CancellationToken cancellationToken)
     {

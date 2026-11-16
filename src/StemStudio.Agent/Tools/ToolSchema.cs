@@ -105,15 +105,8 @@ public sealed record ToolParameter
     public JsonObject ToJsonSchema()
     {
         var schema = new JsonObject { ["type"] = TypeName(Type) };
-        Add(schema, "description", Description);
-        Add(schema, "format", Format);
-        Add(schema, "pattern", Pattern);
-        AddNumber(schema, "minimum", Minimum);
-        AddNumber(schema, "maximum", Maximum);
-        AddNumber(schema, "minLength", MinLength);
-        AddNumber(schema, "maxLength", MaxLength);
-        AddNumber(schema, "minItems", MinItems);
-        AddNumber(schema, "maxItems", MaxItems);
+        AddTexts(schema);
+        AddLimits(schema);
         if (Enum is { } values)
         {
             schema["enum"] = new JsonArray([.. values.Select(value => (JsonNode)JsonValue.Create(value))]);
@@ -125,6 +118,23 @@ public sealed record ToolParameter
         }
 
         return Type == ParameterType.Record ? ToolSchema.AddProperties(schema, Properties) : schema;
+    }
+
+    private void AddTexts(JsonObject schema)
+    {
+        Add(schema, "description", Description);
+        Add(schema, "format", Format);
+        Add(schema, "pattern", Pattern);
+    }
+
+    private void AddLimits(JsonObject schema)
+    {
+        AddNumber(schema, "minimum", Minimum);
+        AddNumber(schema, "maximum", Maximum);
+        AddNumber(schema, "minLength", MinLength);
+        AddNumber(schema, "maxLength", MaxLength);
+        AddNumber(schema, "minItems", MinItems);
+        AddNumber(schema, "maxItems", MaxItems);
     }
 
     private static string TypeName(ParameterType type) => type switch

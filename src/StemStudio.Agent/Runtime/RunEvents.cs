@@ -33,7 +33,20 @@ internal sealed class RunEvents(IRunEventSink sink)
         }, cancellationToken);
 
     /// <summary>The contract view of a step.</summary>
-    public static AgentStepDto ToDto(RunStep step) => new()
+    public static AgentStepDto ToDto(RunStep step) => Required(step) with
+    {
+        PlanIndex = step.PlanIndex,
+        DecisionReasons = step.DecisionReasons,
+        ResultSummary = Element(step.ResultSummary),
+        Error = step.Error,
+        Job = step.Job is { } job ? new JobRefDto { TrackId = job.TrackId, JobId = job.JobId, Phase = job.Phase } : null,
+        Progress = step.Progress,
+        EstimatedMinutes = step.EstimatedMinutes,
+        StartedAt = step.StartedAt,
+        EndedAt = step.EndedAt,
+    };
+
+    private static AgentStepDto Required(RunStep step) => new()
     {
         StepId = step.Id,
         Seq = step.Seq,
@@ -43,17 +56,8 @@ internal sealed class RunEvents(IRunEventSink sink)
         Undo = step.UndoKind,
         Arguments = Element(step.Arguments) ?? default,
         ArgumentsHash = step.ArgumentsHash,
-        PlanIndex = step.PlanIndex,
         Decision = step.Decision,
-        DecisionReasons = step.DecisionReasons,
         Status = step.Status,
-        ResultSummary = Element(step.ResultSummary),
-        Error = step.Error,
-        Job = step.Job is { } job ? new JobRefDto { TrackId = job.TrackId, JobId = job.JobId, Phase = job.Phase } : null,
-        Progress = step.Progress,
-        EstimatedMinutes = step.EstimatedMinutes,
-        StartedAt = step.StartedAt,
-        EndedAt = step.EndedAt,
     };
 
     /// <summary>The contract view of a plan.</summary>

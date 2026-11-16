@@ -87,23 +87,31 @@ public sealed class SongToolProvider : IAgentToolProvider
     private static AgentToolDescriptor Create(string name, ToolRiskDto risk) =>
         Tool(F, name, ToolKindDto.Server, risk) with { Group = ToolGroup.Create, Availability = ToolAvailability.GenerationService };
 
-    private static ToolSchema SongSchema() => ToolSchema.Of(
-            Param.Uuid("lyricsId").Optional(),
-            Param.Text("lyricsText", 1, 4096).Optional(),
-            Param.Text("title", 1, 80).Optional(),
-            Language,
-            Param.Uuid("styleId").Optional(),
-            Param.Text("freeCaption", 1, 300).Optional(),
-            Param.Choice("leadVoice", "female", "male", "any"),
-            Param.Text("delivery", 1, 40).Optional(),
-            Param.Flag("instrumental").Optional(),
-            Param.Whole("bpm", 40, 220).Optional(),
-            Param.Text("keyScale", 1, 20).Optional(),
-            Param.Whole("timeSignature", 2, 6).Optional().Describe("2, 3, 4 or 6."),
-            Param.Number("durationSeconds", 10, 480).Optional(),
-            Param.Whole("takes", 1, 2).Optional())
+    private static ToolSchema SongSchema() => ToolSchema.Of([.. SongTextParameters(), .. SongMusicParameters()])
         .AtMostOne("lyricsId", "lyricsText")
         .AtMostOne("styleId", "freeCaption");
+
+    private static ToolParameter[] SongTextParameters() =>
+    [
+        Param.Uuid("lyricsId").Optional(),
+        Param.Text("lyricsText", 1, 4096).Optional(),
+        Param.Text("title", 1, 80).Optional(),
+        Language,
+        Param.Uuid("styleId").Optional(),
+        Param.Text("freeCaption", 1, 300).Optional(),
+        Param.Choice("leadVoice", "female", "male", "any"),
+        Param.Text("delivery", 1, 40).Optional(),
+    ];
+
+    private static ToolParameter[] SongMusicParameters() =>
+    [
+        Param.Flag("instrumental").Optional(),
+        Param.Whole("bpm", 40, 220).Optional(),
+        Param.Text("keyScale", 1, 20).Optional(),
+        Param.Whole("timeSignature", 2, 6).Optional().Describe("2, 3, 4 or 6."),
+        Param.Number("durationSeconds", 10, 480).Optional(),
+        Param.Whole("takes", 1, 2).Optional(),
+    ];
 
     private static async Task<ToolResult> ListSheetsAsync(ToolInvocation call, CancellationToken cancellationToken)
     {
@@ -141,16 +149,20 @@ public sealed class SongToolProvider : IAgentToolProvider
         ? time?.ToString(System.Globalization.CultureInfo.InvariantCulture)
         : throw new AgentActionException("Use a time signature of 2, 3, 4 or 6.");
 
-    private static SongRequest SongRequestOf(ToolInvocation call) => new()
+    private static SongRequest SongRequestOf(ToolInvocation call) => MusicOf(call) with
     {
         LyricsId = call.Id("lyricsId"),
         LyricsText = call.Text("lyricsText"),
         Title = call.Text("title"),
-        Language = call.Text("language")!,
         StyleId = call.Id("styleId"),
         FreeCaption = call.Text("freeCaption"),
-        LeadVoice = Parse<LeadVoiceDto>(call.Text("leadVoice"))!.Value,
         Delivery = call.Text("delivery"),
+    };
+
+    private static SongRequest MusicOf(ToolInvocation call) => new()
+    {
+        Language = call.Text("language")!,
+        LeadVoice = Parse<LeadVoiceDto>(call.Text("leadVoice"))!.Value,
         Instrumental = call.Flag("instrumental") == true,
         Bpm = call.Whole("bpm"),
         KeyScale = call.Text("keyScale"),

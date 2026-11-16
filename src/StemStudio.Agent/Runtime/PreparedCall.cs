@@ -39,14 +39,22 @@ internal sealed record PreparedCall(FunctionCallContent Call, AgentToolDescripto
         Id = Guid.NewGuid(),
         RunId = runId,
         Seq = seq,
-        CallId = Call.CallId.Length > CallIdMaxLength ? Call.CallId[..CallIdMaxLength] : Call.CallId,
+        CallId = StepCallId,
         Tool = Call.Name,
-        Kind = Tool?.Kind ?? ToolKindDto.Server,
-        Risk = Tool?.Risk ?? ToolRiskDto.Read,
-        UndoKind = Tool?.UndoKind ?? UndoKindDto.None,
+        Kind = StepKind,
+        Risk = StepRisk,
+        UndoKind = StepUndoKind,
         Arguments = Validation.Canonical,
         ArgumentsHash = Validation.Hash,
         Decision = StepDecisionDto.Auto,
         Status = status,
     };
+
+    private string StepCallId => Call.CallId.Length > CallIdMaxLength ? Call.CallId[..CallIdMaxLength] : Call.CallId;
+
+    private ToolKindDto StepKind => Tool?.Kind ?? ToolKindDto.Server;
+
+    private ToolRiskDto StepRisk => Tool?.Risk ?? ToolRiskDto.Read;
+
+    private UndoKindDto StepUndoKind => Tool?.UndoKind ?? UndoKindDto.None;
 }

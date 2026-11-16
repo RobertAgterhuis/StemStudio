@@ -34,17 +34,22 @@ internal sealed class ApprovalWaiter
         _pending[stepId] = (signal, allowPlanScope);
         try
         {
-            using var expiry = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var expired = Task.Delay(Approval.Lifetime, time, expiry.Token);
-            var first = await Task.WhenAny(signal.Task, expired);
-            await expiry.CancelAsync();
-            cancellationToken.ThrowIfCancellationRequested();
-            return first == signal.Task ? await signal.Task : null;
+            return await RaceAsync(signal.Task, time, cancellationToken);
         }
         finally
         {
             _pending.TryRemove(stepId, out _);
         }
+    }
+
+    private static async Task<Approval?> RaceAsync(Task<Approval> decision, TimeProvider time, CancellationToken cancellationToken)
+    {
+        using var expiry = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var expired = Task.Delay(Approval.Lifetime, time, expiry.Token);
+        var first = await Task.WhenAny(decision, expired);
+        await expiry.CancelAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+        return first == decision ? await decision : null;
     }
 
     /// <summary>Hands the decision to the waiting runner.</summary>

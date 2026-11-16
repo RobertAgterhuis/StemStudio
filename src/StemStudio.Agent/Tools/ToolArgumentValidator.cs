@@ -36,11 +36,13 @@ public static class ToolArgumentValidator
         }
 
         var canonical = CanonicalJson.Canonicalize(arguments);
-        if (Encoding.UTF8.GetByteCount(canonical) > AgentContractLimits.ArgumentsMaxBytes)
-        {
-            return Invalid(arguments, "Arguments exceed the 8 KB limit.");
-        }
+        return Encoding.UTF8.GetByteCount(canonical) > AgentContractLimits.ArgumentsMaxBytes
+            ? Invalid(arguments, "Arguments exceed the 8 KB limit.")
+            : Checked(schema, arguments, canonical);
+    }
 
+    private static ArgumentValidation Checked(ToolSchema schema, JsonElement arguments, string canonical)
+    {
         var errors = new List<string>();
         CheckObject(schema.Parameters, arguments, string.Empty, errors);
         CheckRules(schema.Rules, arguments, errors);
@@ -56,11 +58,11 @@ public static class ToolArgumentValidator
     private static bool TryParseObject(string? json, out JsonElement arguments)
     {
         arguments = EmptyObject;
-        if (string.IsNullOrWhiteSpace(json) || json.Trim() == "null")
-        {
-            return true;
-        }
+        return string.IsNullOrWhiteSpace(json) || json.Trim() == "null" || TryParse(json, out arguments);
+    }
 
+    private static bool TryParse(string json, out JsonElement arguments)
+    {
         try
         {
             using var document = JsonDocument.Parse(json);
@@ -69,6 +71,7 @@ public static class ToolArgumentValidator
         }
         catch (JsonException)
         {
+            arguments = EmptyObject;
             return false;
         }
     }
@@ -156,15 +159,15 @@ public static class ToolArgumentValidator
         }
 
         var number = value.GetDouble();
-        if (parameter.Type == ParameterType.WholeNumber && number % 1 != 0)
-        {
-            return $"Argument '{name}' must be a whole number.";
-        }
+        return parameter.Type == ParameterType.WholeNumber && number % 1 != 0
+            ? $"Argument '{name}' must be a whole number."
+            : RangeError(parameter, number, name);
+    }
 
-        return number < (parameter.Minimum ?? double.MinValue) || number > (parameter.Maximum ?? double.MaxValue)
+    private static string? RangeError(ToolParameter parameter, double number, string name) =>
+        number < (parameter.Minimum ?? double.MinValue) || number > (parameter.Maximum ?? double.MaxValue)
             ? $"Argument '{name}' must be between {Format(parameter.Minimum)} and {Format(parameter.Maximum)}."
             : null;
-    }
 
     private static string Format(double? number) => number?.ToString(CultureInfo.InvariantCulture) ?? "any";
 
@@ -175,19 +178,27 @@ public static class ToolArgumentValidator
             return $"Argument '{name}' must be an array.";
         }
 
-        var count = value.GetArrayLength();
-        if (count < (parameter.MinItems ?? 0) || count > (parameter.MaxItems ?? int.MaxValue))
+        if (CountError(parameter, value.GetArrayLength(), name) is { } error)
         {
-            return $"Argument '{name}' must have {parameter.MinItems ?? 0} to {parameter.MaxItems ?? int.MaxValue} items.";
+            return error;
         }
 
-        var index = 0;
-        foreach (var item in value.EnumerateArray())
-        {
-            CheckValue(parameter.Items!, item, $"{name}[{index++}]", errors);
-        }
-
+        CheckItems(parameter.Items!, value, name, errors);
         return null;
+    }
+
+    private static string? CountError(ToolParameter parameter, int count, string name) =>
+        count < (parameter.MinItems ?? 0) || count > (parameter.MaxItems ?? int.MaxValue)
+            ? $"Argument '{name}' must have {parameter.MinItems ?? 0} to {parameter.MaxItems ?? int.MaxValue} items."
+            : null;
+
+    private static void CheckItems(ToolParameter item, JsonElement list, string name, List<string> errors)
+    {
+        var index = 0;
+        foreach (var element in list.EnumerateArray())
+        {
+            CheckValue(item, element, $"{name}[{index++}]", errors);
+        }
     }
 
     private static string? CheckRecord(ToolParameter parameter, JsonElement value, string name, List<string> errors)
@@ -205,15 +216,18 @@ public static class ToolArgumentValidator
     {
         foreach (var rule in rules)
         {
-            var present = rule.Names.Count(name => arguments.TryGetProperty(name, out var value) && value.ValueKind != JsonValueKind.Null);
-            if (rule.Kind == SchemaRuleKind.AtMostOne && present > 1)
+            if (RuleError(rule, Present(rule, arguments)) is { } error)
             {
-                errors.Add($"Use only one of {string.Join(", ", rule.Names)}.");
-            }
-            else if (rule.Kind == SchemaRuleKind.AtLeastOne && present == 0)
-            {
-                errors.Add($"One of {string.Join(", ", rule.Names)} is required.");
+                errors.Add(error);
             }
         }
     }
+
+    private static int Present(SchemaRule rule, JsonElement arguments) =>
+        rule.Names.Count(name => arguments.TryGetProperty(name, out var value) && value.ValueKind != JsonValueKind.Null);
+
+    private static string? RuleError(SchemaRule rule, int present) =>
+        rule.Kind == SchemaRuleKind.AtMostOne && present > 1 ? $"Use only one of {string.Join(", ", rule.Names)}."
+        : rule.Kind == SchemaRuleKind.AtLeastOne && present == 0 ? $"One of {string.Join(", ", rule.Names)} is required."
+        : null;
 }

@@ -1,5 +1,7 @@
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Assets;
+using StemStudio.Contracts.Mixes;
+using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Agent.Tools.Providers;
 
@@ -11,18 +13,27 @@ internal static class ExportRequests
         var mix = call.Text("mode") == "mix";
         var mixId = call.Id("mixId");
         var settings = mix && mixId is null ? await MixProjections.ReadOpenMixerAsync(call, cancellationToken) : null;
-        return new CreateAudioExportRequest
-        {
-            TrackId = call.RequiredId("trackId"),
-            Mode = mix ? ExportModeDto.Mix : ExportModeDto.Raw,
-            Channels = call.Strings("channels") is { Count: > 0 } channels ? channels : null,
-            MixId = mix ? mixId : null,
-            Mix = settings is null ? null : new ExportMixDto(settings.MasterVolume, settings.Channels) { Expanded = settings.Expanded, DetailChannels = settings.DetailChannels },
-            Range = Range(call),
-            Format = Format(call),
-            Name = call.Text("name"),
-        };
+        return Request(call, mix, mixId, settings);
     }
+
+    private static CreateAudioExportRequest Request(ToolInvocation call, bool mix, Guid? mixId, MixSettingsDto? settings) => new()
+    {
+        TrackId = call.RequiredId("trackId"),
+        Mode = mix ? ExportModeDto.Mix : ExportModeDto.Raw,
+        Channels = Channels(call),
+        MixId = mix ? mixId : null,
+        Mix = OpenMix(settings),
+        Range = Range(call),
+        Format = Format(call),
+        Name = call.Text("name"),
+    };
+
+    private static IReadOnlyList<string>? Channels(ToolInvocation call) => call.Strings("channels") is { Count: > 0 } channels ? channels : null;
+
+    /// <summary>The open mixer's sound for a mix export (the settings' name is not part of it).</summary>
+    private static ExportMixDto? OpenMix(MixSettingsDto? settings) => settings is null
+        ? null
+        : new ExportMixDto(settings.MasterVolume, settings.Channels) { Expanded = settings.Expanded, DetailChannels = settings.DetailChannels };
 
     public static ExportFormatDto Format(ToolInvocation call)
     {
@@ -74,9 +85,11 @@ internal static class ExportSizes
     {
         var track = await call.Actions.Tracks.GetTrackAsync(call.RequiredId("trackId"), cancellationToken);
         var seconds = Seconds(call) ?? track.DurationSeconds ?? DefaultSeconds;
-        var count = files ?? (track.Stems.Count > 0 ? track.Stems.Count : StandardStems) * (call.Flag("includeDetail") == true ? DetailFactor : 1);
-        return (long)(seconds * BytesPerSecond(ExportRequests.Format(call)) * count);
+        return (long)(seconds * BytesPerSecond(ExportRequests.Format(call)) * FileCount(call, files, track));
     }
+
+    private static int FileCount(ToolInvocation call, int? files, TrackDto track) =>
+        files ?? (track.Stems.Count > 0 ? track.Stems.Count : StandardStems) * (call.Flag("includeDetail") == true ? DetailFactor : 1);
 
     private static double? Seconds(ToolInvocation call) => call.Arguments.TryGetProperty("range", out var range)
         ? range.GetProperty("endSeconds").GetDouble() - range.GetProperty("startSeconds").GetDouble()

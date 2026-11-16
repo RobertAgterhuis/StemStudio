@@ -46,22 +46,19 @@ public static class CanonicalJson
 
     private static void Write(Utf8JsonWriter writer, JsonElement element)
     {
-        switch (element.ValueKind)
+        Action<Utf8JsonWriter, JsonElement> write = element.ValueKind switch
         {
-            case JsonValueKind.Object:
-                WriteObject(writer, element);
-                break;
-            case JsonValueKind.Array:
-                WriteArray(writer, element);
-                break;
-            case JsonValueKind.String:
-                writer.WriteStringValue(element.GetString());
-                break;
-            default:
-                writer.WriteRawValue(element.GetRawText());
-                break;
-        }
+            JsonValueKind.Object => WriteObject,
+            JsonValueKind.Array => WriteArray,
+            JsonValueKind.String => WriteString,
+            _ => WriteRaw,
+        };
+        write(writer, element);
     }
+
+    private static void WriteString(Utf8JsonWriter writer, JsonElement element) => writer.WriteStringValue(element.GetString());
+
+    private static void WriteRaw(Utf8JsonWriter writer, JsonElement element) => writer.WriteRawValue(element.GetRawText());
 
     private static void WriteObject(Utf8JsonWriter writer, JsonElement element)
     {

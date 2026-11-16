@@ -51,7 +51,7 @@ internal sealed class UndoRun(AgentServices services, RunEvents events, StepExec
     private async Task<string?> ApplyAsync(RunState state, UndoEntry entry, CancellationToken cancellationToken)
     {
         var (arguments, guard) = UndoGuard.Split(entry.Action.Arguments);
-        var tool = services.Registry.Find(entry.Action.Tool) ?? UndoTools.All.FirstOrDefault(item => item.Name == entry.Action.Tool);
+        var tool = FindTool(entry.Action.Tool);
         if ((tool is null ? NotAvailable : await TargetChangedAsync(guard, cancellationToken)) is { } blocked)
         {
             return blocked;
@@ -60,6 +60,8 @@ internal sealed class UndoRun(AgentServices services, RunEvents events, StepExec
         var step = await steps.ExecuteUndoAsync(state, Prepare(state, tool!, arguments), cancellationToken);
         return step.Status == AgentStepStatusDto.Succeeded ? await AppliedAsync(entry, cancellationToken) : step.Error ?? "the step did not run";
     }
+
+    private AgentToolDescriptor? FindTool(string name) => services.Registry.Find(name) ?? UndoTools.All.FirstOrDefault(item => item.Name == name);
 
     private async Task<string?> AppliedAsync(UndoEntry entry, CancellationToken cancellationToken)
     {
@@ -75,13 +77,11 @@ internal sealed class UndoRun(AgentServices services, RunEvents events, StepExec
         return new PreparedCall(new FunctionCallContent($"undo-{state.StepSeq + 1}", tool.Name), tool, validation);
     }
 
-    private async Task<string?> TargetChangedAsync(UndoGuard? guard, CancellationToken cancellationToken)
-    {
-        if (guard is null)
-        {
-            return null;
-        }
+    private Task<string?> TargetChangedAsync(UndoGuard? guard, CancellationToken cancellationToken) =>
+        guard is null ? Task.FromResult<string?>(null) : MixChangedAsync(guard, cancellationToken);
 
+    private async Task<string?> MixChangedAsync(UndoGuard guard, CancellationToken cancellationToken)
+    {
         try
         {
             var mix = await services.Actions.Mixes.GetMixAsync(guard.MixId, cancellationToken);

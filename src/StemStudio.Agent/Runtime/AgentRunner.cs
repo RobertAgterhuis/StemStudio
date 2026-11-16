@@ -44,14 +44,16 @@ public sealed class AgentRunner
     /// <returns>A task.</returns>
     public async Task ExecuteAsync(Guid runId, CancellationToken cancellationToken)
     {
-        var state = await RunLoader.LoadAsync(_services, runId, cancellationToken);
-        if (state is null)
+        if (await RunLoader.LoadAsync(_services, runId, cancellationToken) is { } state)
         {
-            return;
+            await RunAndEndAsync(state, cancellationToken);
         }
+    }
 
+    private async Task RunAndEndAsync(RunState state, CancellationToken cancellationToken)
+    {
         var outcome = RunOutcome.Internal;
-        using var control = _coordination.Controls.Register(runId, cancellationToken);
+        using var control = _coordination.Controls.Register(state.RunId, cancellationToken);
         try
         {
             outcome = await RunGuardedAsync(state, control);
@@ -64,16 +66,9 @@ public sealed class AgentRunner
 
     private async Task<RunOutcome> RunGuardedAsync(RunState state, RunControl control)
     {
-        var cancellationToken = control.Token;
         try
         {
-            await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
-            return state.IsUndo ? await _undo.ExecuteAsync(state, cancellationToken) : await LoopAsync(state, cancellationToken);
-        }
-        catch (RunStopException stop)
-        {
-            LogCause(state, stop.InnerException);
-            return RunOutcome.Fail(stop.Code, stop.Message);
+            return await StartAsync(state, control.Token);
         }
         catch (OperationCanceledException)
         {
@@ -81,9 +76,22 @@ public sealed class AgentRunner
         }
         catch (Exception exception)
         {
-            LogCause(state, exception);
-            return RunOutcome.Internal;
+            return Failed(state, exception);
         }
+    }
+
+    private async Task<RunOutcome> StartAsync(RunState state, CancellationToken cancellationToken)
+    {
+        await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
+        return state.IsUndo ? await _undo.ExecuteAsync(state, cancellationToken) : await LoopAsync(state, cancellationToken);
+    }
+
+    /// <summary>A stop ends the run with its code; anything else is an internal failure (cause logged, never shown).</summary>
+    private RunOutcome Failed(RunState state, Exception exception)
+    {
+        var stop = exception as RunStopException;
+        LogCause(state, stop is null ? exception : stop.InnerException);
+        return stop is null ? RunOutcome.Internal : RunOutcome.Fail(stop.Code, stop.Message);
     }
 
     private async Task<RunOutcome> LoopAsync(RunState state, CancellationToken cancellationToken)
@@ -171,14 +179,23 @@ public sealed class AgentRunner
     {
         state.Transcript.AddRange(response.Messages);
         state.Answer.Append(response.Text);
-        var usage = response.Usage is { } details ? new TokenUsage(details.InputTokenCount ?? 0, details.OutputTokenCount ?? 0, details.CachedInputTokenCount ?? 0) : null;
+        var usage = UsageOf(response);
         await SaveAsync(state, state.Run with { ModelTurns = state.Run.ModelTurns + 1, Usage = usage is null ? state.Run.Usage : state.Run.Usage.Add(usage) }, cancellationToken);
         if (usage is not null)
         {
-            var total = state.Run.Usage;
-            var dto = new TokenUsageDto { InputTokens = total.InputTokens, OutputTokens = total.OutputTokens, CachedInputTokens = total.CachedInputTokens };
-            await _events.PublishAsync(state.RunId, AgentEventTypes.UsageUpdated, dto, cancellationToken);
+            await PublishUsageAsync(state, cancellationToken);
         }
+    }
+
+    private static TokenUsage? UsageOf(ChatResponse response) => response.Usage is { } details
+        ? new TokenUsage(details.InputTokenCount ?? 0, details.OutputTokenCount ?? 0, details.CachedInputTokenCount ?? 0)
+        : null;
+
+    private Task PublishUsageAsync(RunState state, CancellationToken cancellationToken)
+    {
+        var total = state.Run.Usage;
+        var dto = new TokenUsageDto { InputTokens = total.InputTokens, OutputTokens = total.OutputTokens, CachedInputTokens = total.CachedInputTokens };
+        return _events.PublishAsync(state.RunId, AgentEventTypes.UsageUpdated, dto, cancellationToken);
     }
 
     private async Task ExecuteCallsAsync(RunState state, IReadOnlyList<FunctionCallContent> calls, CancellationToken cancellationToken)

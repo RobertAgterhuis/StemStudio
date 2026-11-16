@@ -21,29 +21,40 @@ public sealed class ExportToolProvider : IAgentToolProvider
     private static readonly ToolParameter Format = Param.Choice("format", "flac", "wav", "mp3");
     private static readonly ToolParameter Channel = new() { Name = "channel", Type = ParameterType.Text, Pattern = ContractLimits.ChannelIdPattern };
 
+    private static readonly ToolSchema AudioSchema = ToolSchema.Of(
+        TrackId,
+        Param.Choice("mode", "raw", "mix"),
+        Param.List("channels", Channel, 1, 20).Optional(),
+        Param.Uuid("mixId").Optional(),
+        Format,
+        Param.Whole("bitDepth", 16, 24).Optional().Describe("16 or 24 (wav/flac)."),
+        Param.Whole("mp3BitrateKbps", 192, 320).Optional().Describe("192, 256 or 320 (mp3)."),
+        Param.Record("range", Param.Number("startSeconds", 0, 36_000), Param.Number("endSeconds", 0, 36_000)).Optional(),
+        Param.Text("name", 1, 100).Optional());
+
     /// <inheritdoc />
     public IEnumerable<AgentToolDescriptor> GetTools() =>
     [
+        ExportAudioTool(),
+        ExportStemPackTool(),
+        ListExportsTool(),
+        DeleteExportTool(),
+    ];
+
+    private static AgentToolDescriptor ExportAudioTool() =>
         Tool(F, "export_audio", ToolKindDto.Server, ToolRiskDto.Job) with
         {
             Title = "Export audio",
             Description = "Export a track as an audio file: mode raw (chosen channels, e.g. only vocals) or mix (what the user hears: the open mixer, or a saved mixId). Optional range in seconds and a name.",
-            Schema = ToolSchema.Of(
-                TrackId,
-                Param.Choice("mode", "raw", "mix"),
-                Param.List("channels", Channel, 1, 20).Optional(),
-                Param.Uuid("mixId").Optional(),
-                Format,
-                Param.Whole("bitDepth", 16, 24).Optional().Describe("16 or 24 (wav/flac)."),
-                Param.Whole("mp3BitrateKbps", 192, 320).Optional().Describe("192, 256 or 320 (mp3)."),
-                Param.Record("range", Param.Number("startSeconds", 0, 36_000), Param.Number("endSeconds", 0, 36_000)).Optional(),
-                Param.Text("name", 1, 100).Optional()),
+            Schema = AudioSchema,
             Group = ToolGroup.Tracks,
             UndoKind = UndoKindDto.Compensate,
             Handler = ExportAsync,
             HeavyWhen = (call, cancellationToken) => ExportSizes.AboveLimitAsync(call, 1, cancellationToken),
             Estimator = (call, cancellationToken) => ExportSizes.EstimateAsync(call, 1, cancellationToken),
-        },
+        };
+
+    private static AgentToolDescriptor ExportStemPackTool() =>
         Tool(F, "export_stem_pack", ToolKindDto.Server, ToolRiskDto.Job) with
         {
             Title = "Export a stem pack",
@@ -54,7 +65,9 @@ public sealed class ExportToolProvider : IAgentToolProvider
             Handler = StemPackAsync,
             HeavyWhen = (call, cancellationToken) => ExportSizes.AboveLimitAsync(call, null, cancellationToken),
             Estimator = (call, cancellationToken) => ExportSizes.EstimateAsync(call, null, cancellationToken),
-        },
+        };
+
+    private static AgentToolDescriptor ListExportsTool() =>
         Tool(F, "list_exports", ToolKindDto.Server, ToolRiskDto.Read) with
         {
             Title = "List exports",
@@ -62,7 +75,9 @@ public sealed class ExportToolProvider : IAgentToolProvider
             Schema = ToolSchema.Of(TrackId.Optional(), Param.Text("query", 1, 100).Optional()),
             Group = ToolGroup.Library,
             Handler = ListAsync,
-        },
+        };
+
+    private static AgentToolDescriptor DeleteExportTool() =>
         Tool(F, "delete_export", ToolKindDto.Server, ToolRiskDto.Destructive) with
         {
             Title = "Delete an export",
@@ -71,8 +86,7 @@ public sealed class ExportToolProvider : IAgentToolProvider
             Group = ToolGroup.Library,
             TargetArgument = "assetId",
             Handler = DeleteAsync,
-        },
-    ];
+        };
 
     internal static async Task<ToolResult> DeleteAsync(ToolInvocation call, CancellationToken cancellationToken)
     {

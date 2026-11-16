@@ -16,24 +16,34 @@ public sealed class ScoreToolProvider : IAgentToolProvider
     private const int MaxScores = 20;
     private const double DefaultMinutes = 2;
 
+    private static readonly ToolSchema TranscribeSchema = ToolSchema.Of(
+        Param.Uuid("trackId"),
+        new ToolParameter { Name = "channel", Type = ParameterType.Text, Pattern = ContractLimits.ChannelIdPattern, Description = "A stem, e.g. bass, or parent.detail." },
+        Param.Choice("profile", "vocals", "bass", "guitar", "keys", "piano", "drums").Optional().Describe("Default: the suggested profile of the channel."),
+        Param.Choice("quality", "accurate", "fast").Optional().Describe("Piano only."));
+
     /// <inheritdoc />
     public IEnumerable<AgentToolDescriptor> GetTools() =>
     [
+        TranscribeStemTool(),
+        ListScoresTool(),
+        DeleteScoreTool(),
+    ];
+
+    private static AgentToolDescriptor TranscribeStemTool() =>
         Tool(F, "transcribe_stem", ToolKindDto.Server, ToolRiskDto.Heavy) with
         {
             Title = "Transcribe a stem to sheet music",
             Description = "Make sheet music (PDF, MusicXML, MIDI) of one channel of a track, e.g. bass or vocals. Long job: the user must confirm.",
-            Schema = ToolSchema.Of(
-                Param.Uuid("trackId"),
-                new ToolParameter { Name = "channel", Type = ParameterType.Text, Pattern = ContractLimits.ChannelIdPattern, Description = "A stem, e.g. bass, or parent.detail." },
-                Param.Choice("profile", "vocals", "bass", "guitar", "keys", "piano", "drums").Optional().Describe("Default: the suggested profile of the channel."),
-                Param.Choice("quality", "accurate", "fast").Optional().Describe("Piano only.")),
+            Schema = TranscribeSchema,
             Group = ToolGroup.Tracks,
             UndoKind = UndoKindDto.Compensate,
             TargetArgument = "trackId",
             Handler = TranscribeAsync,
             Estimator = EstimateAsync,
-        },
+        };
+
+    private static AgentToolDescriptor ListScoresTool() =>
         Tool(F, "list_scores", ToolKindDto.Server, ToolRiskDto.Read) with
         {
             Title = "List sheet music",
@@ -41,7 +51,9 @@ public sealed class ScoreToolProvider : IAgentToolProvider
             Schema = ToolSchema.Of(Param.Uuid("trackId").Optional()),
             Group = ToolGroup.Library,
             Handler = ListAsync,
-        },
+        };
+
+    private static AgentToolDescriptor DeleteScoreTool() =>
         Tool(F, "delete_score", ToolKindDto.Server, ToolRiskDto.Destructive) with
         {
             Title = "Delete sheet music",
@@ -50,8 +62,7 @@ public sealed class ScoreToolProvider : IAgentToolProvider
             Group = ToolGroup.Library,
             TargetArgument = "assetId",
             Handler = ExportToolProvider.DeleteAsync,
-        },
-    ];
+        };
 
     private static async Task<ToolEstimate> EstimateAsync(ToolInvocation call, CancellationToken cancellationToken)
     {

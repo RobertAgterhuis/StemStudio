@@ -96,20 +96,21 @@ public sealed class JobWaiter(IStemStudioActions actions, TimeProvider time)
         while (true)
         {
             var poll = await JobStatusReader.ReadAsync(actions, wait.Job, cancellationToken);
-            if (poll.IsTerminal)
+            if (Final(wait, poll, started) is { } final)
             {
-                return poll;
-            }
-
-            if (time.GetElapsedTime(started) >= wait.MaxWait)
-            {
-                return new JobPoll(JobPoll.Timeout, poll.Progress, $"The job did not finish within {wait.MaxWait.TotalMinutes:0} minute(s).");
+                return final;
             }
 
             await (wait.OnProgress?.Invoke(poll, cancellationToken) ?? Task.CompletedTask);
             await Task.Delay(PollInterval, time, cancellationToken);
         }
     }
+
+    /// <summary>The terminal reading, a timeout once the maximum wait has elapsed, or null to keep polling.</summary>
+    private JobPoll? Final(JobWait wait, JobPoll poll, long started) =>
+        poll.IsTerminal ? poll
+        : time.GetElapsedTime(started) >= wait.MaxWait ? new JobPoll(JobPoll.Timeout, poll.Progress, $"The job did not finish within {wait.MaxWait.TotalMinutes:0} minute(s).")
+        : null;
 }
 
 /// <summary>Reads a job's state from the feature's endpoint (track, asset or generation; tool catalogue <c>wait_for_job</c>).</summary>
@@ -196,15 +197,17 @@ public static class JobStatusReader
         }
 
         var generation = await actions.Generations.GetGenerationAsync(generationId, cancellationToken);
-        var status = generation.Status switch
-        {
-            GenerationStateDto.Completed => JobPoll.Completed,
-            GenerationStateDto.Failed => JobPoll.Failed,
-            GenerationStateDto.Cancelled => JobPoll.Cancelled,
-            _ => JobPoll.Running,
-        };
+        var status = Generation(generation.Status);
         return generation.Error is { } error && status == JobPoll.Failed
             ? new JobPoll(status, generation.Progress, JobPoll.GenerationMessage(error.Code)) { Untrusted = error.Message }
             : JobPoll.External(status, generation.Progress, null);
     }
+
+    private static string Generation(GenerationStateDto status) => status switch
+    {
+        GenerationStateDto.Completed => JobPoll.Completed,
+        GenerationStateDto.Failed => JobPoll.Failed,
+        GenerationStateDto.Cancelled => JobPoll.Cancelled,
+        _ => JobPoll.Running,
+    };
 }

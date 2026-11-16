@@ -28,21 +28,28 @@ internal static class JobCanceller
     {
         try
         {
-            switch (job.Phase)
-            {
-                case JobPhaseDto.Detail when job.TrackId is { } trackId:
-                    await actions.Tracks.CancelDetailAsync(trackId, CancellationToken.None);
-                    return true;
-                case JobPhaseDto.Restyle or JobPhaseDto.Generation when Guid.TryParse(job.JobId, out var generationId):
-                    await actions.Generations.CancelGenerationAsync(generationId, CancellationToken.None);
-                    return true;
-                default:
-                    return false;
-            }
+            return await CancelAsync(actions, job);
         }
         catch (AgentActionException)
         {
             return false;
         }
+    }
+
+    private static async Task<bool> CancelAsync(IStemStudioActions actions, JobRef job)
+    {
+        if (job.Phase == JobPhaseDto.Detail && job.TrackId is { } trackId)
+        {
+            await actions.Tracks.CancelDetailAsync(trackId, CancellationToken.None);
+            return true;
+        }
+
+        if ((job.Phase is JobPhaseDto.Restyle or JobPhaseDto.Generation) && Guid.TryParse(job.JobId, out var generationId))
+        {
+            await actions.Generations.CancelGenerationAsync(generationId, CancellationToken.None);
+            return true;
+        }
+
+        return false;
     }
 }
