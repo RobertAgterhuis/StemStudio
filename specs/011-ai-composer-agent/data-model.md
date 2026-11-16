@@ -66,7 +66,7 @@ ai-agent) as plain records with no EF dependency. The backend maps them in
 | `Arguments` | JSON (canonical: sorted keys, no whitespace) <= 8 KB | validated against the schema before any decision |
 | `ArgumentsHash` | SHA-256 hex of the canonical arguments | approval binding (FR-015) |
 | `PlanIndex?` | int | link to a plan item |
-| `Decision` | `auto` \| `approval_required` \| `denied` | `denied` for policy denials (e.g. guardrail), never executed |
+| `Decision` | `auto` \| `approval_required` \| `denied` | `denied` for policy denials (guardrails `artist-imitation`, `lyrics-not-from-user`), never executed: the step ends `failed` with the readable refusal as `Error` and the model gets that refusal as the tool result |
 | `DecisionReasons` | list of codes: `risk-heavy`, `risk-destructive`, `tainted`, `url-not-from-user`, `lyrics-not-from-user`, `artist-imitation`, `undo-compensation` | shown on the card |
 | `Status` | `planned` \| `awaiting_approval` \| `running` \| `awaiting_ui` \| `waiting_job` \| `succeeded` \| `failed` \| `rejected` \| `rejected_invalid` \| `skipped` \| `expired` \| `undone` | |
 | `ResultSummary` | JSON projection <= 4 KB | what the model saw |
@@ -114,7 +114,10 @@ log apply.
 Description, ArgumentSchema (JSON Schema), ResultProjection, UntrustedFields, Availability
 (Always | Feature(NNN) | Service(name) | Mixer), EstimatedDuration? (for heavy cards) }`.
 Registered by one `IAgentToolProvider` per feature (`CoreToolProvider` (001), `DetailToolProvider`
-(002), `DeviceToolProvider` (003), later `HelpToolProvider` (004) ... `SongToolProvider` (010)).
+(002), `DeviceToolProvider` (003), `HelpToolProvider` (004), `ArtistToolProvider` (005), `LyricsToolProvider` (006),
+`ExportToolProvider` (007), `ScoreToolProvider` (008), `StyleToolProvider` (009: styles, restyles, generations) and
+`SongToolProvider` (010: lyrics sheets, songs, own voice)). Each descriptor also carries its `Group` (`core`, `mixer`,
+`tracks`, `library`, `create`; tool catalogue 1.0.0 "Selection per request").
 `AgentToolRegistry.For(context)` returns the available descriptors, ordered by name (stable for
 prompt caching).
 
@@ -122,7 +125,8 @@ prompt caching).
 
 ```text
 Decide(descriptor, args, run, conversation) ->
-  if guardrail violated (artist imitation, lyrics not from user for generate_song)  -> denied
+  if guardrail violated (artist imitation in free text of create_style / generate_song;
+     lyrics text of save_lyrics_sheet / generate_song not in a user message)       -> denied
   reasons = []
   if risk in {heavy, destructive}                                    -> reasons += risk-*
   if risk in {change, job} and run.Tainted                           -> reasons += tainted

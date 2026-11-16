@@ -11,14 +11,18 @@ are in ADR-020 (`docs/decisions/ADR-020-ai-composer-agent.md`); measurements in
 [research.md](research.md). Phase 0 part 1 (2026-11-15, on top of 001-008) is **executed**:
 packages pinned and verified (research F-12..F-15), `StemStudio.Agent` skeleton, Contracts DTOs,
 standalone agent API delta `contracts/agent-api.openapi.yaml`, tool catalogue 1.0.0 and eval set
-1.0.0 (009/010 pending), UI test id delta, `.claude/agents/ai-agent.md`. Part 2 (merge into backend
-API 1.10.0, 009/010 tools, UI test ids minor) follows the 009/010 Phase 0.
+1.0.0 (009/010 pending), UI test id delta, `.claude/agents/ai-agent.md`. Part 2 (2026-11-16, on local
+`main` with 001-010 delivered) is **executed**: backend API **1.10.0** (= 1.9.0 + the delta, unchanged),
+UI test ids **1.10.0**, tool catalogue **1.0.0 final** (57 tools incl. 15 for 009/010, page-context
+groups for the 32-tool cap), eval set 1.0.0 final (30 scored + S1-S3), 009/010 ports, wave lanes in
+tasks.md. Constitution 1.3.0/1.3.1 is ratified (CTO decisions 2026-11-15), so `[amend]` no longer
+blocks: the Claude backend stays opt-in via `ANTHROPIC_API_KEY` only, Ollama is the default.
 
 ## Summary
 
 A chat panel on every page sends commands to a server-side agent in the API. The agent
 (`StemStudio.Agent`, Microsoft.Extensions.AI `IChatClient`) runs its own tool loop: the model
-proposes calls to a registry of feature tools (26 for 001-003, 43 when 004-010 are delivered);
+proposes calls to a registry of feature tools (57 for 001-011, at most 32 offered per request by page context);
 a deterministic policy gate validates arguments, checks provenance and taint, and asks the user
 to approve heavy and destructive calls (and any state change after external text entered the
 run); server tools call StemStudio's own public HTTP API over loopback, UI tools are executed by
@@ -79,7 +83,7 @@ registry that grows by one provider per feature.
 | - | Tech & security | Key via env var only (never files/DB/logs/responses; automated scan SC-006); loopback calls reuse every API validator; no shell/file/URL tools; prompt-injection gate (taint + provenance + bound approvals); input sizes limited (message 4,000 chars, args 8 KB, results 4 KB). Stack deviation (new library + LLM SDKs) recorded in ADR-020. | PASS |
 | - | Workflow | Spec Kit flow; new owner role `ai-agent` with disjoint paths (draft below); hand-offs per checkpoint (ADR-008). | PASS |
 
-**Post-design re-check (after Phase 1)**: PASS; amendment pending for IV (Claude only).
+**Post-design re-check (after Phase 1)**: PASS; amendment pending for IV (Claude only). **Re-check after Phase 0 part 2**: PASS; amendment ratified (constitution 1.3.0, CTO decisions 2026-11-15).
 
 ### Constitution amendment draft (for the CTO; `/speckit-constitution`, version 1.2.0 -> 1.3.0, MINOR)
 
