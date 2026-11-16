@@ -23,7 +23,8 @@ public static class AgentServiceCollectionExtensions
     /// <summary>
     /// Registers the agent library: <see cref="IAgentRunService"/> (one <see cref="AgentRunService"/> singleton, which holds
     /// the approval waits and run cancellations in memory), <see cref="IAgentStatusService"/>, <see cref="IUiToolGateway"/>,
-    /// <see cref="ILlmGpuRelease"/>, <see cref="IEnvironmentReader"/>, the tool registry, the backends (one Ollama
+    /// <see cref="ILlmGpuRelease"/>, <see cref="IEnvironmentReader"/>, <see cref="IClaudeKeyProvider"/> (over the host's
+    /// <see cref="IStoredClaudeKeyReader"/>, or a reader without a store when the host registers none), the tool registry, the backends (one Ollama
     /// <see cref="HttpClient"/>, Claude, the fake script session) and the model selector. Every registration uses
     /// <c>TryAdd</c>; the host registers the four stores, <see cref="IRunEventSink"/>, <see cref="IStemStudioActions"/> and
     /// <see cref="IGpuActivity"/> (an idle default is added) itself, before or after this call.
@@ -53,7 +54,9 @@ public static class AgentServiceCollectionExtensions
 
     private static void AddChat(IServiceCollection services)
     {
-        services.TryAddSingleton(sp => new ClaudeChatClientFactory(sp.GetRequiredService<IEnvironmentReader>()));
+        services.TryAddSingleton<IClaudeKeyProvider>(sp => new ClaudeKeyProvider(
+            sp.GetRequiredService<IEnvironmentReader>(), sp.GetService<IStoredClaudeKeyReader>() ?? NoStoredClaudeKeyReader.Instance));
+        services.TryAddSingleton(sp => new ClaudeChatClientFactory(sp.GetRequiredService<IClaudeKeyProvider>()));
         services.TryAddSingleton(sp => new ClaudeBackendProbe(sp.GetRequiredService<ClaudeChatClientFactory>(), Time(sp)));
         services.TryAddSingleton(sp => new ChatBackends
         {

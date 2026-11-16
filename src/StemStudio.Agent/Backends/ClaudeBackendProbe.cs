@@ -6,8 +6,8 @@ using StemStudio.Contracts.Agent;
 namespace StemStudio.Agent.Backends;
 
 /// <summary>
-/// Claude status without any request (key present? notice acknowledged? model), and the explicit "Test connection": the free
-/// model lookup <c>GET /v1/models/{id}</c>, nothing generated (FR-019, FR-023).
+/// Claude status without any request (key state from <see cref="Ports.IClaudeKeyProvider"/>, notice acknowledged, model), and the
+/// explicit "Test connection": the free model lookup <c>GET /v1/models/{id}</c>, nothing generated (FR-019, FR-023, CK-FR-008).
 /// </summary>
 /// <param name="factory">Claude client factory.</param>
 /// <param name="time">Clock (latency, 2 s budget).</param>
@@ -22,11 +22,13 @@ public sealed class ClaudeBackendProbe(ClaudeChatClientFactory factory, TimeProv
     public ClaudeStatusDto Status(AgentSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        var key = ClaudeKeyStatus.ToDto(factory.Keys.Resolve());
         return new ClaudeStatusDto
         {
-            KeyConfigured = factory.KeyConfigured,
+            KeyConfigured = key.Configured,
             NoticeAcknowledged = settings.ClaudeNoticeAcknowledgedAt is not null,
             Model = settings.ClaudeModel,
+            Key = key,
         };
     }
 
@@ -54,7 +56,7 @@ public sealed class ClaudeBackendProbe(ClaudeChatClientFactory factory, TimeProv
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try
         {
-            await factory.Client().Models.Retrieve(model, cancellationToken: linked.Token);
+            await factory.Client(factory.ActiveKey()).Models.Retrieve(model, cancellationToken: linked.Token);
             return (true, $"Claude answered; model {model} is available.");
         }
         catch (Exception exception) when (Failure(exception, cancellationToken) is { } text)

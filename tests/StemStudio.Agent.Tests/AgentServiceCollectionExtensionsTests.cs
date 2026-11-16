@@ -7,6 +7,7 @@ using StemStudio.Agent.Runtime;
 using StemStudio.Agent.Tests.Fakes;
 using StemStudio.Agent.Tools;
 using StemStudio.Contracts.Agent;
+using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Agent.Tests;
 
@@ -151,7 +152,42 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
         using var provider = Host(new FakeEnvironment()).BuildServiceProvider();
 
         provider.GetRequiredService<ChatBackends>().Claude.ShouldBeOfType<ClaudeChatSession>();
-        provider.GetRequiredService<ClaudeChatClientFactory>().KeyConfigured.ShouldBeFalse();
+        provider.GetRequiredService<ClaudeChatClientFactory>().Keys.Resolve().Configured.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TheKeyProvider_IsShared_AndUsesTheHostsStoredKeyReader()
+    {
+        var services = Host(new FakeEnvironment());
+        var stored = new FakeStoredClaudeKeyReader
+        {
+            Current = new StoredClaudeKey
+            {
+                State = StoredClaudeKeyStateDto.Readable,
+                Key = StemStudio.Agent.Model.ClaudeApiKey.Parse(ClaudeKeySentinels.Stored).Key,
+                LastFour = "STO1",
+                StoreAvailable = true,
+            },
+        };
+        services.AddSingleton<IStoredClaudeKeyReader>(stored);
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true });
+
+        var keys = provider.GetRequiredService<IClaudeKeyProvider>();
+
+        keys.ShouldBeOfType<ClaudeKeyProvider>();
+        provider.GetRequiredService<ClaudeChatClientFactory>().Keys.ShouldBeSameAs(keys);
+        (keys.Resolve().State, keys.Resolve().LastFour).ShouldBe((ClaudeKeyStateDto.Stored, "STO1"));
+    }
+
+    [Fact]
+    public void WithoutAStoredKeyReader_OnlyTheEnvironmentKeyCounts()
+    {
+        using var provider = Host(FakeEnvironment.WithKey()).BuildServiceProvider();
+
+        var resolution = provider.GetRequiredService<IClaudeKeyProvider>().Resolve();
+
+        (resolution.State, resolution.Stored, resolution.StoreAvailable).ShouldBe((ClaudeKeyStateDto.Environment, StoredClaudeKeyStateDto.Absent, false));
+        NoStoredClaudeKeyReader.Instance.Read().ShouldBeSameAs(NoStoredClaudeKeyReader.Instance.Read());
     }
 
     [Fact]

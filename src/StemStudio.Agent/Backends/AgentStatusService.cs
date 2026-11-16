@@ -91,7 +91,7 @@ public sealed class AgentStatusService(IAgentSettingsStore settings, IGpuActivit
     {
         if (!claude.KeyConfigured)
         {
-            return NotReady(ClaudeErrors.KeyMissing, "Set ANTHROPIC_API_KEY in the shell that starts StemStudio, then restart it.");
+            return NotReady(ClaudeErrors.KeyUnusable(claude.Key.Reason, null), claude.Key.Fix ?? ClaudeErrors.KeyMissingFix);
         }
 
         return claude.NoticeAcknowledged
