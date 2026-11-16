@@ -6,9 +6,11 @@ OllamaSharp and Anthropic packages; ``StemStudio.Web`` and ``StemStudio.Persiste
 reference ``StemStudio.Agent``; ``StemStudio.Api`` may.
 
 Namespaces: only ``src/StemStudio.Agent/Backends/**`` uses the ``OllamaSharp`` and ``Anthropic``
-namespaces; ``src/StemStudio.Agent/Policy/**`` references neither ``StemStudio.Agent.Backends``
-nor ``StemStudio.Agent.Runtime``. Enum members, identifiers, comments and strings that merely
-contain the words are not references.
+namespaces; ``src/StemStudio.Agent/Policy/**`` is an allow-list (CTO decision, T080): inside
+``StemStudio.Agent`` it references only ``Agent.Model``, ``Agent.Tools`` and the data-only
+``Agent.Resources`` (plan.md: Policy references only Model and Tools; Resources holds the embedded
+009 lexicon). Enum members, identifiers, comments and strings that merely contain the words are
+not references.
 
 Ownership: ``Ports/`` and ``Model/`` are the architect's, the rest of the library, its tests and
 ``tools/agent-eval/`` belong to ``ai-agent``.
@@ -24,6 +26,7 @@ from common import DEFAULT_ROOTS, REPO_ROOT, Severity, owner_of
 from components import COMPONENTS
 from dependency_check import (
     DOTNET_ALLOWED,
+    DOTNET_FOLDER_ALLOWED,
     DOTNET_FOLDER_EXEMPT,
     DOTNET_FOLDER_FORBIDDEN,
     DOTNET_PACKAGES_ALLOWED,
@@ -167,10 +170,10 @@ def test_only_backends_is_exempt_from_the_sdk_namespaces() -> None:
     assert DOTNET_FOLDER_EXEMPT["StemStudio.Agent"] == frozenset({"StemStudio.Agent/Backends"})
 
 
-def test_policy_forbids_backends_and_runtime() -> None:
-    assert DOTNET_FOLDER_FORBIDDEN["StemStudio.Agent/Policy"] == frozenset(
-        {"StemStudio.Agent.Backends", "StemStudio.Agent.Runtime"}
-    )
+def test_policy_is_an_allow_list_of_model_tools_and_resources() -> None:
+    allowed = {"StemStudio.Agent.Model", "StemStudio.Agent.Tools", "StemStudio.Agent.Resources"}
+    assert DOTNET_FOLDER_ALLOWED["StemStudio.Agent/Policy"] == ("StemStudio.Agent", frozenset(allowed))
+    assert "StemStudio.Agent/Policy" not in DOTNET_FOLDER_FORBIDDEN
 
 
 SDK = "forbidden dependency StemStudio.Agent -> "
@@ -229,11 +232,25 @@ POLICY = "forbidden dependency StemStudio.Agent/Policy -> "
         ),
         (
             "class G\n{\n    StemStudio.Agent.Runtime.RunLoop? _l;\n}\n",
-            (POLICY + "StemStudio.Agent.Runtime", 3, "ai-agent"),
+            (POLICY + "StemStudio.Agent.Runtime.RunLoop", 3, "ai-agent"),
+        ),
+        ("using StemStudio.Agent.Ports;\n", (POLICY + "StemStudio.Agent.Ports", 1, "ai-agent")),
+        (
+            "class G\n{\n    StemStudio.Agent.Ports.IRunStore? _s;\n}\n",
+            (POLICY + "StemStudio.Agent.Ports.IRunStore", 3, "ai-agent"),
+        ),
+        ("using StemStudio.Agent;\n", (POLICY + "StemStudio.Agent", 1, "ai-agent")),
+        (
+            "using StemStudio.Agent.RuntimeOptions;\n",
+            (POLICY + "StemStudio.Agent.RuntimeOptions", 1, "ai-agent"),
+        ),
+        (
+            "using StemStudio.Agent.ModelExtras;\n",
+            (POLICY + "StemStudio.Agent.ModelExtras", 1, "ai-agent"),
         ),
     ],
 )
-def test_policy_may_not_reference_backends_or_runtime(
+def test_policy_may_reference_nothing_else_of_the_agent(
     tmp_path: Path, text: str, expected: tuple[str, int, str]
 ) -> None:
     assert _agent_findings(tmp_path, "Policy/Gate.cs", text) == [expected]
@@ -255,13 +272,16 @@ ALLOWED_POLICY = """namespace StemStudio.Agent.Policy;
 
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Tools;
-using StemStudio.Agent.RuntimeOptions;
+using StemStudio.Agent.Tools.Providers;
+using StemStudio.Agent.Resources;
 using StemStudio.Contracts.Agent;
 
 // Never use OllamaSharp or Anthropic here; see "using OllamaSharp;" in Backends.
 sealed class Gate
 {
     string Name = "Anthropic.Models";
+    string Runtime = "StemStudio.Agent.Runtime";
+    StemStudio.Agent.Policy.ToolPolicy? Self;
     AgentBackendDto Kind = AgentBackendDto.Anthropic;
     string OllamaModel = "qwen";
     int AnthropicKeyLength;
