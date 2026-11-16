@@ -1,0 +1,266 @@
+"""Tests for scripts/key_volume_checks.py (011 follow-up claude-key, T019; CK-FR-003, CK-FR-005)."""
+
+import copy
+import io
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+import key_volume_checks as kvc
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+GOOD_DOCKERFILE = """\
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+RUN dotnet publish
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+RUN mkdir -p /data \\
+ && install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys
+USER $APP_UID
+VOLUME ["/data", "/keys"]
+"""
+
+GOOD_COMPOSE_TEXT = """\
+services:
+  api:
+    environment:
+      # PowerShell: $env:ANTHROPIC_API_KEY = Read-Host -MaskInput
+      - StemStudio__DataProtection__KeyRingDir=/keys
+      - ANTHROPIC_API_KEY
+"""
+
+
+def good_config() -> dict[str, Any]:
+    """A resolved `docker compose config --format json` document that passes every check."""
+    return {
+        "services": {
+            "api": {
+                "environment": {
+                    "StemStudio__DataProtection__KeyRingDir": "/keys",
+                    "StemStudio__Agent__KeyEntry__InternalCaller": "web",
+                    "ANTHROPIC_API_KEY": None,
+                },
+                "volumes": [
+                    {"type": "volume", "source": "api-data", "target": "/data"},
+                    {"type": "volume", "source": "api-keys", "target": "/keys"},
+                ],
+            },
+            "web": {"volumes": [{"type": "volume", "source": "web-keys", "target": "/k"}]},
+            "worker": {"volumes": [{"type": "volume", "source": "api-data", "target": "/library"}]},
+            "generator": {},
+        },
+        "volumes": {"api-data": {}, "api-keys": {"name": "stemstudio_api-keys"}, "web-keys": {}},
+    }
+
+
+def test_good_inputs_pass_every_check() -> None:
+    results = kvc.run_checks(good_config(), GOOD_DOCKERFILE, [GOOD_COMPOSE_TEXT])
+    assert [problem for _, problem in results] == [None] * len(results)
+    assert len(results) == 9
+
+
+def test_volume_must_be_declared() -> None:
+    config = good_config()
+    del config["volumes"]["api-keys"]
+    assert "api-keys" in (kvc.check_volume_declared(config) or "")
+
+
+def test_volume_check_without_top_level_volumes() -> None:
+    config = good_config()
+    del config["volumes"]
+    assert kvc.check_volume_declared(config) is not None
+
+
+def test_api_must_mount_the_volume_at_keys() -> None:
+    config = good_config()
+    config["services"]["api"]["volumes"][1]["target"] = "/data/keys"
+    assert "/keys" in (kvc.check_api_mount(config) or "")
+
+
+def test_api_mount_must_be_a_named_volume() -> None:
+    config = good_config()
+    config["services"]["api"]["volumes"][1] = {"type": "bind", "source": "api-keys", "target": "/keys"}
+    assert kvc.check_api_mount(config) is not None
+
+
+def test_missing_api_service_fails_the_api_checks() -> None:
+    config = good_config()
+    del config["services"]["api"]
+    assert kvc.check_api_mount(config) is not None
+    assert kvc.check_key_ring_env(config) is not None
+
+
+@pytest.mark.parametrize("service", ["worker", "web", "generator", "singer"])
+def test_no_other_service_mounts_the_volume(service: str) -> None:
+    config = good_config()
+    config["services"][service] = {
+        "volumes": [{"type": "volume", "source": "api-keys", "target": "/elsewhere", "read_only": True}]
+    }
+    problem = kvc.check_only_api_mounts(config)
+    assert problem is not None
+    assert service in problem
+
+
+def test_no_other_service_mounts_anything_at_keys() -> None:
+    config = good_config()
+    config["services"]["web"]["volumes"].append({"type": "volume", "source": "x", "target": "/keys"})
+    assert "web" in (kvc.check_only_api_mounts(config) or "")
+
+
+def test_api_must_not_mount_the_volume_twice() -> None:
+    config = good_config()
+    config["services"]["api"]["volumes"].append({"type": "volume", "source": "api-keys", "target": "/k2"})
+    assert kvc.check_only_api_mounts(config) is not None
+
+
+def test_short_syntax_strings_are_ignored_safely() -> None:
+    config = good_config()
+    config["services"]["web"]["volumes"].append("api-keys:/keys")
+    assert kvc.check_only_api_mounts(config) is not None
+
+
+def test_key_ring_env_must_be_keys() -> None:
+    config = good_config()
+    config["services"]["api"]["environment"]["StemStudio__DataProtection__KeyRingDir"] = "/data/k"
+    problem = kvc.check_key_ring_env(config)
+    assert problem is not None
+    assert "/data/k" in problem
+
+
+def test_key_ring_env_missing() -> None:
+    config = good_config()
+    del config["services"]["api"]["environment"]["StemStudio__DataProtection__KeyRingDir"]
+    assert kvc.check_key_ring_env(config) is not None
+
+
+def test_environment_as_list_is_understood() -> None:
+    config = good_config()
+    config["services"]["api"]["environment"] = [
+        "StemStudio__DataProtection__KeyRingDir=/keys",
+        "StemStudio__Agent__KeyEntry__InternalCaller=web",
+        "ANTHROPIC_API_KEY",
+    ]
+    assert kvc.check_key_ring_env(config) is None
+    assert kvc.check_internal_caller_env(config) is None
+
+
+def test_internal_caller_must_be_web() -> None:
+    config = good_config()
+    config["services"]["api"]["environment"]["StemStudio__Agent__KeyEntry__InternalCaller"] = "api"
+    assert kvc.check_internal_caller_env(config) is not None
+
+
+def test_internal_caller_service_must_exist() -> None:
+    config = good_config()
+    del config["services"]["web"]
+    assert "web" in (kvc.check_internal_caller_env(config) or "")
+
+
+def test_dockerfile_must_create_keys_0700_for_the_app_user() -> None:
+    text = GOOD_DOCKERFILE.replace("-m 0700", "-m 0755")
+    assert kvc.check_dockerfile_keys_dir(text) is not None
+
+
+def test_dockerfile_keys_dir_must_be_in_the_runtime_stage() -> None:
+    build_only = (
+        'FROM sdk AS build\nRUN install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys\n'
+        "FROM aspnet AS runtime\nUSER $APP_UID\n"
+    )
+    assert kvc.check_dockerfile_keys_dir(build_only) is not None
+
+
+def test_dockerfile_accepts_braced_app_uid() -> None:
+    text = GOOD_DOCKERFILE.replace('"$APP_UID"', "${APP_UID}")
+    assert kvc.check_dockerfile_keys_dir(text) is None
+
+
+def test_dockerfile_must_declare_the_keys_volume() -> None:
+    assert kvc.check_dockerfile_volume(GOOD_DOCKERFILE.replace(', "/keys"', "")) is not None
+
+
+def test_dockerfile_must_run_as_the_app_user() -> None:
+    assert kvc.check_dockerfile_user(GOOD_DOCKERFILE.replace("USER $APP_UID\n", "")) is not None
+
+
+def test_dockerfile_user_root_after_app_user_fails() -> None:
+    assert kvc.check_dockerfile_user(GOOD_DOCKERFILE + "USER root\n") is not None
+
+
+def test_claude_key_must_stay_a_bare_pass_through() -> None:
+    assert kvc.check_claude_key_pass_through([GOOD_COMPOSE_TEXT]) is None
+    missing = GOOD_COMPOSE_TEXT.replace("      - ANTHROPIC_API_KEY\n", "")
+    assert kvc.check_claude_key_pass_through([missing]) is not None
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}",
+        "      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}",
+        "      - ANTHROPIC_API_KEY=dummy",
+    ],
+)
+def test_claude_key_value_in_any_compose_file_fails(line: str) -> None:
+    problem = kvc.check_claude_key_pass_through([GOOD_COMPOSE_TEXT, f"services:\n{line}\n"])
+    assert problem is not None
+    assert "dummy" not in problem
+
+
+def write_inputs(tmp_path: Path, config: dict[str, Any]) -> list[str]:
+    dockerfile = tmp_path / "api.Dockerfile"
+    dockerfile.write_text(GOOD_DOCKERFILE, encoding="utf-8")
+    compose = tmp_path / "docker-compose.yml"
+    compose.write_text(GOOD_COMPOSE_TEXT, encoding="utf-8")
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    return ["--config", str(config_path), "--dockerfile", str(dockerfile), "--compose-file", str(compose)]
+
+
+def test_main_passes_and_prints_one_line_per_check(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert kvc.main(write_inputs(tmp_path, good_config())) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 9
+    assert all(line.startswith("ok   ") for line in lines)
+
+
+def test_main_fails_and_never_prints_the_claude_key_value(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config = copy.deepcopy(good_config())
+    marker = "pass-through-value-" + "x" * 12
+    config["services"]["api"]["environment"]["ANTHROPIC_API_KEY"] = marker
+    config["services"]["api"]["environment"]["StemStudio__DataProtection__KeyRingDir"] = "/data"
+    assert kvc.main(write_inputs(tmp_path, config)) == 1
+    out = capsys.readouterr().out
+    assert "FAIL api StemStudio__DataProtection__KeyRingDir" in out
+    assert marker not in out
+
+
+def test_main_reads_the_config_from_stdin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    args = write_inputs(tmp_path, good_config())
+    args[1] = "-"
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(good_config())))
+    assert kvc.main(args) == 0
+    assert "FAIL" not in capsys.readouterr().out
+
+
+def test_main_rejects_a_config_that_is_not_an_object(tmp_path: Path) -> None:
+    args = write_inputs(tmp_path, good_config())
+    Path(args[1]).write_text("[]", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        kvc.main(args)
+
+
+def test_repository_files_pass_the_static_checks() -> None:
+    dockerfile = (REPO_ROOT / "docker" / "api.Dockerfile").read_text(encoding="utf-8")
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert kvc.check_dockerfile_keys_dir(dockerfile) is None
+    assert kvc.check_dockerfile_volume(dockerfile) is None
+    assert kvc.check_dockerfile_user(dockerfile) is None
+    assert kvc.check_claude_key_pass_through([compose]) is None

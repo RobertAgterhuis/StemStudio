@@ -1,0 +1,61 @@
+# Tool configuration for the tested devops check scripts in scripts/ (currently
+# key_volume_checks.py, 011 follow-up claude-key T019). This is not a package: the checks run in
+# the small quality-gate environment (`uv run --project tools/quality ...`), which provides pytest,
+# pytest-cov, ruff and mypy (only its tools are used; its own pytest settings are not).
+#   uv run --project tools/quality --frozen pytest -c scripts/pyproject.toml --cov --cov-branch \
+#       --cov-config=scripts/pyproject.toml scripts/tests
+#   uv run --project tools/quality --frozen ruff check --config scripts/pyproject.toml scripts/key_volume_checks.py scripts/tests
+#   uv run --project tools/quality --frozen mypy --config-file scripts/pyproject.toml scripts/key_volume_checks.py scripts/tests
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
+
+[tool.coverage.run]
+source = ["key_volume_checks"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PTH", "RET", "ARG", "PL", "S",
+    "D", "C90", "T20", "ERA", "RUF",
+]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["key_volume_checks"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5
+
+[tool.ruff.lint.pylint]
+max-args = 4
+max-statements = 15
+max-branches = 5
+max-returns = 4
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004", "ARG"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+explicit_package_bases = true
+mypy_path = "scripts"
