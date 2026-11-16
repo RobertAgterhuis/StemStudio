@@ -34,7 +34,7 @@ class Spec:
 
 GENERATORS = [
     pytest.param(
-        Spec(generate_fixtures, "manifest.json", "music_100bpm_20s.mp3", "8 fixtures"), id="001"
+        Spec(generate_fixtures, "manifest.json", "music_100bpm_20s.mp3", "9 fixtures"), id="001"
     ),
     pytest.param(
         Spec(

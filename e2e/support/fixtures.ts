@@ -14,6 +14,7 @@ export type FixtureName =
   | 'music_100bpm_20s.flac'
   | 'upload_4mb.wav'
   | 'silence_5s.wav'
+  | 'tone_440hz_20s.flac'
   | 'corrupt.mp3'
   | 'unsupported.ogg';
 
@@ -22,7 +23,7 @@ export type DetailFixtureName = 'detail_10s_band.wav';
 
 /** Known facts of one fixture, as written by `generate_fixtures.py`. */
 export interface FixtureFacts {
-  readonly kind: 'click' | 'music' | 'silence' | 'corrupt' | 'unsupported';
+  readonly kind: 'click' | 'music' | 'tone' | 'silence' | 'corrupt' | 'unsupported';
   readonly format: string;
   readonly durationSeconds: number | null;
   readonly sampleRate: number | null;
@@ -31,6 +32,10 @@ export interface FixtureFacts {
   readonly beatsPerBar: number | null;
   readonly beatTimes: readonly number[];
   readonly downbeatTimes: readonly number[];
+  /** Frequency of a `tone` fixture (feature 012 pitch oracle); absent for every other kind. */
+  readonly frequencyHz?: number;
+  /** Peak level of a `tone` fixture in dBFS; absent for every other kind. */
+  readonly peakDbfs?: number;
 }
 
 /** Shape of `tests/fixtures/manifest.json`. */

@@ -35,6 +35,9 @@ MANIFEST_VERSION = 1
 CLICK_SECONDS = 0.06
 FIRST_BEAT_SECONDS = 0.5
 MUSIC_SEED = 20_261_114
+TONE_HZ = 440.0
+TONE_DBFS = -12.0
+TONE_FADE_SECONDS = 0.01
 FFMPEG_CODEC_ARGS: tuple[str, ...] = ("-c:a", "libmp3lame", "-b:a", "192k")
 # Bass root plus a triad per bar (Hz): Am - F - C - G.
 PROGRESSION: tuple[tuple[float, ...], ...] = (
@@ -81,7 +84,7 @@ class Fixture:
 
     Attributes:
         name: File name inside the output directory; the suffix selects the encoder.
-        kind: ``click``, ``music``, ``silence``, ``corrupt`` or ``unsupported``.
+        kind: ``click``, ``music``, ``tone``, ``silence``, ``corrupt`` or ``unsupported``.
         duration_s: Length in seconds, or None for files that are not decodable audio.
         rhythm: The pulse of ``click`` and ``music`` fixtures, None otherwise.
     """
@@ -98,6 +101,7 @@ CATALOGUE: tuple[Fixture, ...] = (
     Fixture("music_100bpm_20s.mp3", "music", 20.0, Rhythm(100, 4, 20.0)),
     Fixture("music_100bpm_20s.flac", "music", 20.0, Rhythm(100, 4, 20.0)),
     Fixture("upload_4mb.wav", "music", 24.0, Rhythm(110, 4, 24.0)),
+    Fixture("tone_440hz_20s.flac", "tone", 20.0),
     Fixture("silence_5s.wav", "silence", 5.0),
     Fixture("corrupt.mp3", "corrupt", None),
     Fixture("unsupported.ogg", "unsupported", None),
@@ -188,6 +192,14 @@ def render_music(rhythm: Rhythm, seed: int = MUSIC_SEED) -> Audio:
     return _stereo(0.8 * mix / np.max(np.abs(mix)))
 
 
+def render_tone(duration_s: float) -> Audio:
+    """A steady stereo sine of ``TONE_HZ`` at ``TONE_DBFS`` peak, 10 ms fades (012 pitch oracle)."""
+    t = np.arange(_frames(duration_s), dtype=np.float64) / SAMPLE_RATE
+    fade = np.minimum(1.0, np.minimum(t, t[::-1]) / TONE_FADE_SECONDS)
+    amplitude = 10 ** (TONE_DBFS / 20)
+    return _stereo(amplitude * np.sin(2 * np.pi * TONE_HZ * t) * fade)
+
+
 def _require_rhythm(fixture: Fixture) -> Rhythm:
     if fixture.rhythm is None:
         raise FixtureGenerationError(f"{fixture.name}: a {fixture.kind} fixture needs a rhythm")
@@ -213,6 +225,7 @@ def _unsupported_ogg(_fixture: Fixture) -> bytes:
 RENDERERS: dict[str, Callable[[Fixture], Audio | bytes]] = {
     "click": lambda f: render_clicks(_require_rhythm(f)),
     "music": lambda f: render_music(_require_rhythm(f)),
+    "tone": lambda f: render_tone(f.duration_s or 0.0),
     "silence": _silence,
     "corrupt": _corrupt_mp3,
     "unsupported": _unsupported_ogg,
@@ -278,6 +291,11 @@ def _rhythm_facts(rhythm: Rhythm | None) -> dict[str, Any]:
     }
 
 
+def _tone_facts(fixture: Fixture) -> dict[str, Any]:
+    """``frequencyHz`` and ``peakDbfs`` of a ``tone`` fixture; nothing for the other kinds."""
+    return {"frequencyHz": TONE_HZ, "peakDbfs": TONE_DBFS} if fixture.kind == "tone" else {}
+
+
 def manifest_entry(fixture: Fixture) -> dict[str, Any]:
     """The manifest facts of one fixture (camelCase, as read by the TypeScript E2E suite)."""
     audio = fixture.duration_s is not None
@@ -288,6 +306,7 @@ def manifest_entry(fixture: Fixture) -> dict[str, Any]:
         "sampleRate": SAMPLE_RATE if audio else None,
         "channels": 2 if audio else None,
         **_rhythm_facts(fixture.rhythm),
+        **_tone_facts(fixture),
     }
 
 
