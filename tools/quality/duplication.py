@@ -2,8 +2,9 @@
 
 Configuration lives in ``tools/quality/.jscpd.json`` (``minLines: 6``). A clone that touches
 production code (``src/``, ``worker/src/``, ``generator/src/``, not tests) fails the gate; clones
-only between test files, and clones between worker and generator production code (two services
-that may not share code), are reported as warnings.
+only between test files, clones between worker and generator production code (two services
+that may not share code) and clones touching a listed data copy (``DATA_COPIES``, feature 011)
+are reported as warnings.
 
 Usage::
 
@@ -76,6 +77,20 @@ SERVICE_ROOTS = ("worker/src/", "generator/src/")
 
 CROSS_SERVICE_NOTE = "(cross-service: worker and generator may not share code)"
 
+DATA_COPIES: dict[str, str] = {
+    "src/StemStudio.Agent/Policy/ImitationLexicon.cs": (
+        "C# copy of the 009 v1 imitation lexicon; StemStudio.Agent may not reference Domain"
+    ),
+}
+"""Production files that hold copied data, not logic (path -> mandatory reason, feature 011).
+
+A clone touching one of them is a warning that names the reason.
+"""
+
+
+def _data_copy_reason(clone: Clone) -> str | None:
+    return DATA_COPIES.get(clone.first) or DATA_COPIES.get(clone.second)
+
 
 def _service(path: str) -> str | None:
     if not is_production(path):
@@ -144,18 +159,28 @@ def _normalise(name: str, root: Path) -> str:
 def evaluate(clones: Sequence[Clone]) -> list[Finding]:
     """Return one finding per clone: error in production code, warning in test-only code.
 
-    A cross-service clone (worker <-> generator production code) is a warning with a note.
+    A cross-service clone (worker <-> generator production code) and a clone touching a listed
+    data copy are warnings with a note.
     """
     return [_clone_finding(clone) for clone in clones]
 
 
 def _clone_finding(clone: Clone) -> Finding:
     message = f"{clone.lines} duplicated lines, also in {clone.second}:{clone.second_line}"
-    if clone.cross_service:
-        message = f"{message} {CROSS_SERVICE_NOTE}"
-    error = clone.in_production and not clone.cross_service
+    note = _warning_note(clone)
+    if note:
+        message = f"{message} {note}"
+    error = clone.in_production and not note
     severity = Severity.ERROR if error else Severity.WARNING
     return Finding("duplication", severity, clone.first, clone.first_line, message, clone.lines)
+
+
+def _warning_note(clone: Clone) -> str:
+    """Why a production clone is only a warning (empty: it is not)."""
+    if clone.cross_service:
+        return CROSS_SERVICE_NOTE
+    reason = _data_copy_reason(clone)
+    return f"(data copy: {reason})" if reason else ""
 
 
 def run(root: Path, paths: Sequence[Path], runner: Runner = subprocess_runner) -> DuplicationResult:

@@ -20,7 +20,7 @@ import pytest
 from repo_tree import write_file
 
 import dependency_check
-from common import REPO_ROOT, Severity, owner_of
+from common import DEFAULT_ROOTS, REPO_ROOT, Severity, owner_of
 from components import COMPONENTS
 from dependency_check import (
     DOTNET_ALLOWED,
@@ -71,22 +71,19 @@ def test_api_may_reference_agent_but_web_and_persistence_may_not() -> None:
     assert "StemStudio.Agent" not in DOTNET_ALLOWED["StemStudio.Persistence"]
 
 
+CLEAN_GRAPH = {
+    "StemStudio.Contracts": (),
+    "StemStudio.Domain": (),
+    "StemStudio.Persistence": ("StemStudio.Domain",),
+    "StemStudio.Agent": ("StemStudio.Contracts",),
+    "StemStudio.Api": ("StemStudio.Contracts", "StemStudio.Persistence", "StemStudio.Agent"),
+    "StemStudio.Web": ("StemStudio.Contracts",),
+}
+
+
 def test_agent_graph_is_clean(tmp_path: Path) -> None:
-    _project(tmp_path, "StemStudio.Contracts")
-    _project(tmp_path, "StemStudio.Domain")
-    _project(tmp_path, "StemStudio.Persistence", ("StemStudio.Domain",))
-    _project(
-        tmp_path,
-        "StemStudio.Agent",
-        ("StemStudio.Contracts",),
-        ("Microsoft.Extensions.AI", "OllamaSharp", "Anthropic"),
-    )
-    _project(
-        tmp_path,
-        "StemStudio.Api",
-        ("StemStudio.Contracts", "StemStudio.Domain", "StemStudio.Persistence", "StemStudio.Agent"),
-    )
-    _project(tmp_path, "StemStudio.Web", ("StemStudio.Contracts",))
+    for name, refs in CLEAN_GRAPH.items():
+        _project(tmp_path, name, refs, ("Microsoft.Extensions.AI", "OllamaSharp", "Anthropic"))
     assert dependency_check.run(tmp_path) == []
 
 
@@ -319,3 +316,10 @@ def test_agent_component_row() -> None:
     (row,) = [c for c in COMPONENTS if c.name == "Agent"]
     assert row.prefixes == ("src/StemStudio.Agent/",)
     assert row.contains("src/StemStudio.Agent/Policy/PolicyGate.cs", test=False)
+
+
+def test_agent_eval_harness_is_measured() -> None:
+    assert "tools/agent-eval" in DEFAULT_ROOTS
+    (row,) = [c for c in COMPONENTS if c.name == "tools/agent-eval"]
+    assert row.contains("tools/agent-eval/Program.cs", test=False)
+    assert row.contains("tools/agent-eval/tests/GradingTests.cs", test=True)

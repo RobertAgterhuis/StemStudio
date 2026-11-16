@@ -102,6 +102,28 @@ forbidden name matches itself and every namespace below it, never a longer name
 partially qualified name that relies on the enclosing namespace (`Generation.SongService` written
 inside `namespace StemStudio.Api.Voices`); review catches those.
 
+Feature 011 (composer agent): project map `Api -> Agent -> Contracts`, `Web` and `Persistence`
+never reference `StemStudio.Agent`. Package rule (`DOTNET_PACKAGES_ALLOWED`): the
+`PackageReference`s of `StemStudio.Agent.csproj` must belong to the families
+`Microsoft.Extensions.AI`, `OllamaSharp` or `Anthropic` (a family name also allows
+`<name>.<anything>`, never a longer name such as `OllamaSharpExtras`); the error reads
+`forbidden package StemStudio.Agent -> <package>`. SDK namespaces: every C# file of
+`src/StemStudio.Agent/` except `Backends/**` (`DOTNET_FOLDER_EXEMPT`) must not reference the
+`OllamaSharp` or `Anthropic` namespaces (using directives of any kind and qualified names count;
+`AgentBackendDto.Anthropic`, an enum member `Anthropic` or the identifier `OllamaModel` do not).
+`StemStudio.Agent/Policy` -/- `StemStudio.Agent.Backends`, `StemStudio.Agent.Runtime`. Same gap
+as above: `Runtime.RunLoop` written inside `namespace StemStudio.Agent.Policy` is not detected.
+Owners: `src/StemStudio.Agent/{Ports,Model}/` and the csproj are the architect's, the rest of the
+library, `tests/StemStudio.Agent.Tests/` and `tools/agent-eval/` belong to `ai-agent`; the
+library is the `Agent` row of the component table. `tools/agent-eval` (the eval harness) is a
+default root and its own component row (measured, not production code).
+
+Data copies (`duplication.DATA_COPIES`, feature 011): a production file that holds copied data,
+not logic, is listed with a mandatory reason; a clone touching it is a warning ending in
+`(data copy: <reason>)`. Listed: `src/StemStudio.Agent/Policy/ImitationLexicon.cs`, the C# copy of
+the 009 v1 imitation lexicon (`StemStudio.Agent` may not reference Domain; the architect may
+replace it with embedded `.txt` resources, then the entry goes).
+
 Generator (features 009/010, `GENERATOR_ALLOWED`): `generator/src/stemstudio_generator` follows
 `api -> jobs -> ports <- {engines, devices, audio}`; `engines`, `devices` and `audio` import only
 `ports`, `schemas` and `config`, `jobs` the same, `api` additionally `jobs`; `ports`, `schemas`
