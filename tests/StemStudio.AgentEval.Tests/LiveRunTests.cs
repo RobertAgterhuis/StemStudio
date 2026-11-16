@@ -23,6 +23,21 @@ public sealed class LiveRunTests
         results.Count.ShouldBe(Repo.EvalSet.Cases.Count);
     }
 
+    [Theory]
+    [InlineData("17", "retry_track")]
+    [InlineData("27", "export_audio")]
+    public async Task LibraryTitlesTaintTheRun_SoTheChangeAfterASearchIsApprovedAndExecuted(string id, string tool)
+    {
+        var evalCase = Repo.Case(id);
+
+        var run = await Runner(null).RunAsync(evalCase);
+
+        evalCase.Approval.ShouldBe(ApprovalAnswer.Approve);
+        run.Cards.ShouldBeGreaterThan(0);
+        run.Calls.Single(call => call.Tool == tool).Executed.ShouldBeTrue();
+        run.Grade.Passed.ShouldBeTrue();
+    }
+
     [Fact]
     public async Task TheUndoCase_WithoutItsPrelude_Fails()
     {
