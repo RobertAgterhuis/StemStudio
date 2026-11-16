@@ -34,6 +34,8 @@ public static class ClaudeKeyEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge).ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        group.MapDelete(string.Empty, DeleteAsync).LocalOnly()
+            .WithName("deleteClaudeKey").Produces<ClaudeKeyStatusDto>().ProducesProblem(StatusCodes.Status403Forbidden);
         return app;
     }
 
@@ -67,6 +69,14 @@ public static class ClaudeKeyEndpoints
         }
 
         await services.Writer.StoreAsync(key, cancellationToken);
+        services.Keys.Invalidate();
+        return TypedResults.Ok(ClaudeKeyStatus.ToDto(services.Keys.Resolve()));
+    }
+
+    // Removes the stored key, readable or not; the environment key and the selected backend stay as they are.
+    private static async Task<IResult> DeleteAsync(ClaudeKeyStoreServices services, CancellationToken cancellationToken)
+    {
+        await services.Writer.DeleteAsync(cancellationToken);
         services.Keys.Invalidate();
         return TypedResults.Ok(ClaudeKeyStatus.ToDto(services.Keys.Resolve()));
     }
