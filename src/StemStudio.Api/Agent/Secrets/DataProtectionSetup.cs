@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Agent.Backends;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Storage;
 
@@ -48,7 +49,8 @@ public static class DataProtectionSetup
 
     /// <summary>
     /// Registers <see cref="ProtectedClaudeKeyStore"/> as the singleton behind <see cref="IStoredClaudeKeyReader"/> and
-    /// <see cref="IStoredClaudeKeyWriter"/> (needs <see cref="AddClaudeKeyProtection"/> and the persistence registrations).
+    /// <see cref="IStoredClaudeKeyWriter"/>, the agent library's <see cref="ClaudeKeyProvider"/> unless one is registered, and
+    /// the HTTP logging interceptor of the key route (needs <see cref="AddClaudeKeyProtection"/> and the persistence registrations).
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <returns>The service collection.</returns>
@@ -60,6 +62,9 @@ public static class DataProtectionSetup
         services.AddSingleton<ProtectedClaudeKeyStore>();
         services.AddSingleton<IStoredClaudeKeyReader>(sp => sp.GetRequiredService<ProtectedClaudeKeyStore>());
         services.AddSingleton<IStoredClaudeKeyWriter>(sp => sp.GetRequiredService<ProtectedClaudeKeyStore>());
+        services.TryAddSingleton<IClaudeKeyProvider, ClaudeKeyProvider>();
+        services.AddSingleton<ClaudeKeyStoreServices>();
+        services.AddHttpLoggingInterceptor<KeyEndpointLoggingInterceptor>();
         return services;
     }
 

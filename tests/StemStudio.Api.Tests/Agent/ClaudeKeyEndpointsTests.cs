@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Agent.Backends;
-using StemStudio.Api.Agent;
 using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
@@ -274,9 +273,9 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
     public void KeyRoute_DisablesHttpLoggingInItsMetadata()
     {
         var endpoints = _api.Factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
-            .Where(endpoint => endpoint.RoutePattern.RawText == ApiRoutes.AgentClaudeKey).ToList();
+            .Where(endpoint => endpoint.RoutePattern.RawText?.TrimEnd('/') == ApiRoutes.AgentClaudeKey).ToList();
 
-        endpoints.Count.ShouldBeGreaterThanOrEqualTo(2);
+        endpoints.Select(endpoint => endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName).ShouldContain("storeClaudeKey");
         endpoints.ShouldAllBe(endpoint => endpoint.Metadata.GetMetadata<HttpLoggingAttribute>()!.LoggingFields == HttpLoggingFields.None);
     }
 

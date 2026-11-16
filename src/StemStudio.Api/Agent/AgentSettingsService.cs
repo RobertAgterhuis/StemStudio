@@ -7,17 +7,16 @@ namespace StemStudio.Api.Agent;
 
 /// <summary>
 /// <c>GET/PUT /api/agent/settings</c> and <c>POST /api/agent/settings/test</c> (FR-018, FR-019, SC-006). Claude is accepted only
-/// when <c>ANTHROPIC_API_KEY</c> is present and the notice is acknowledged; the key is only checked for presence, never stored,
-/// logged or returned. Ollama models are validated against the probe only when they change (CI has no Ollama).
+/// when a usable key is available (<c>ANTHROPIC_API_KEY</c> or the stored key, 011 follow-up claude-key) and the notice is
+/// acknowledged; the key is only checked for presence here, never logged or returned. Ollama models are validated against the
+/// probe only when they change (CI has no Ollama).
 /// </summary>
 /// <param name="settings">Settings store (the stored choice; the runtime reads it through <see cref="IAgentSettingsStore"/>).</param>
 /// <param name="probe">Status probe (Ollama model list, backend test).</param>
-/// <param name="environment">Reads <c>ANTHROPIC_API_KEY</c> for presence only.</param>
+/// <param name="keys">Key provider (presence of a usable key only).</param>
 /// <param name="clock">Clock.</param>
-public sealed class AgentSettingsService(EfAgentSettingsStore settings, AgentStatusProbe probe, IEnvironmentReader environment, TimeProvider clock)
+public sealed class AgentSettingsService(EfAgentSettingsStore settings, AgentStatusProbe probe, IClaudeKeyProvider keys, TimeProvider clock)
 {
-    /// <summary>Name of the key variable (read for presence only).</summary>
-    public const string KeyVariable = "ANTHROPIC_API_KEY";
 
     /// <summary>The settings.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -72,9 +71,10 @@ public sealed class AgentSettingsService(EfAgentSettingsStore settings, AgentSta
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(environment.GetVariable(KeyVariable)))
+        if (!keys.Resolve().Configured)
         {
-            return AgentProblems.Conflict(AgentProblemTypes.ClaudeNotConfigured, "Claude is not configured: export ANTHROPIC_API_KEY in the shell that starts StemStudio.");
+            return AgentProblems.Conflict(AgentProblemTypes.ClaudeNotConfigured,
+                "Claude is not configured: enter the key in Settings or export ANTHROPIC_API_KEY in the shell that starts StemStudio.");
         }
 
         return merged.ClaudeNoticeAcknowledgedAt is null

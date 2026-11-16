@@ -1,5 +1,6 @@
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent.Secrets;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent;
@@ -87,15 +88,22 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
     }
 
     private async Task<AgentStatusDto> FallbackAsync(string reason, CancellationToken cancellationToken) =>
-        Fallback(await settings.GetAsync(cancellationToken), reason);
+        Fallback(await settings.GetAsync(cancellationToken), reason, KeyStatus());
 
-    private static AgentStatusDto Fallback(AgentSettings current, string reason) => new()
+    // 011 follow-up claude-key: the fallback still reports the key status (never the key).
+    private ClaudeKeyStatusDto KeyStatus() =>
+        services.GetService<IClaudeKeyProvider>() is { } keys ? ClaudeKeyStatusMapping.ToDto(keys.Resolve()) : ClaudeKeyStatusDto.NotConfigured;
+
+    private static AgentStatusDto Fallback(AgentSettings current, string reason, ClaudeKeyStatusDto key) => new()
     {
         Backend = current.Backend,
         Ready = false,
         UsingFallback = false,
         Reason = reason,
         Ollama = new OllamaStatusDto { Reachable = false, DefaultPresent = false, FallbackPresent = false },
-        Claude = new ClaudeStatusDto { KeyConfigured = false, NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null, Model = current.ClaudeModel },
+        Claude = new ClaudeStatusDto
+        {
+            KeyConfigured = key.Configured, NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null, Model = current.ClaudeModel, Key = key,
+        },
     };
 }

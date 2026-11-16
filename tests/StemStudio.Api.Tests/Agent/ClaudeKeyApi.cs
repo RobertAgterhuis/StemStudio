@@ -25,7 +25,17 @@ internal sealed class ClaudeKeyApi : IDisposable
 
     public ClaudeKeyApi(string? dataDir = null, string? keyRingDir = null, bool httpLogging = false)
     {
-        var settings = keyRingDir is null ? new Dictionary<string, string?>() : new Dictionary<string, string?> { [DataProtectionSetup.KeyRingDirKey] = keyRingDir };
+        var settings = new Dictionary<string, string?>();
+        if (keyRingDir is not null)
+        {
+            settings[DataProtectionSetup.KeyRingDirKey] = keyRingDir;
+        }
+
+        if (httpLogging)
+        {
+            settings["Logging:LogLevel:Microsoft.AspNetCore.HttpLogging"] = "Information";
+        }
+
         StatusService.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentStatuses.Ready());
         Factory = new ApiFactory(dataDir) { Settings = settings, ConfigureServices = services => Register(services, httpLogging) };
         _client = new Lazy<HttpClient>(Factory.CreateClient);
