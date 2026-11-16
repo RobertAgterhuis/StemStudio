@@ -192,7 +192,10 @@ test.describe('range validation', { tag: '@export' }, () => {
 });
 
 test.describe('stem pack', { tag: '@export' }, () => {
-  test('six raw items appear and all become ready (fake track without detail)', async ({ trackPage, exportDialog, assetsApi }) => {
+  test('six raw items appear and all become ready (fake track without detail)', async ({ api, trackPage, exportDialog, assetsApi }) => {
+    // "Include detail stems" is offered once the fake detail phase has ended (5 s steps in CI).
+    test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 3 * renderMs);
+    await api.waitForDetail(track.id, ['completed', 'failed', 'cancelled', 'none'], detailPhaseTimeoutMs);
     const before = (await assetsApi.list({ trackId: track.id })).total;
     await trackPage.goto(track.id);
     await exportDialog.openForStemPack();

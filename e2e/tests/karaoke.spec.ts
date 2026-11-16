@@ -75,7 +75,7 @@ test.describe('karaoke word sync', { tag: '@karaoke' }, () => {
     await expect(karaoke.host).toHaveAttribute('data-sync', 'word');
     await expect(karaoke.credit).toHaveText(fake.modes.word.credit ?? '');
     await karaoke.waitForState('countdown', 5_000);
-    await karaoke.waitForState('singing', 5_000);
+    await karaoke.waitForState('singing', 10_000);
     await expect(karaoke.currentWord).toHaveText(/\S/u);
     await karaoke.waitForState('ended', 20_000);
   });

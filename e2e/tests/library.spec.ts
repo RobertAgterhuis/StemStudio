@@ -4,6 +4,7 @@ import { detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from '../support/env';
 import { expect, test } from '../support/test';
 import { fixturePath } from '../support/fixtures';
 import { uniqueWavCopy } from '../support/unique-audio';
+import { ensurePlainTrack } from '../support/ux-data';
 
 // Feature 007 US3 (007:T053; FR-007..FR-009, FR-012; quickstart X8). Items are created through
 // the API (the dialog is covered by export.spec.ts); the library page is driven through the UI.
@@ -17,9 +18,10 @@ async function saveRaw(assetsApi: AssetsApi, track: TrackDto, stem: string, form
 
 test.describe('library management', { tag: '@library' }, () => {
   test('filter, rename (download name follows) and delete (gone after reload)', async ({ api, assetsApi, library, page }, testInfo) => {
-    test.setTimeout(fakeJobTimeoutMs + 4 * renderMs);
+    test.setTimeout(2 * fakeJobTimeoutMs + detailPhaseTimeoutMs + 4 * renderMs);
     const track = await api.ensureCompleted('music_100bpm_20s.flac', fakeJobTimeoutMs);
-    const other = await api.ensureCompleted('click_120bpm_4-4_12s.wav', fakeJobTimeoutMs);
+    // The click fixture is the shared plain track (detail phase cancelled) of the 004/008 specs.
+    const other = await ensurePlainTrack(api);
     const [bass, drums, vocals] = [
       await saveRaw(assetsApi, track, 'bass', 'flac'),
       await saveRaw(assetsApi, track, 'drums', 'wav'),
