@@ -98,10 +98,10 @@ all lanes below begin in parallel from the Phase 0 commit.
 
 ### backend (tests first)
 
-- [ ] T018 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentPersistenceTests.cs`: round trip of settings, conversation, messages, run (plan, usage, taint), steps (canonical args, hash), approvals, undo entries, run events (seq order, `after` query); a 010-schema database migrates and loads with defaults (file SQLite) (FR-002)
-- [ ] T019 [backend] Implement entities, configurations and migration `AddAgent` to pass T018
-- [ ] T020 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/StoresTests.cs`: `EfConversationStore` / `EfAgentSettingsStore` implement the ports (mapping Agent records <-> entities); one-active-run rule (409); settings defaults from `StemStudio__Agent__*`; start-up marks non-terminal runs `interrupted` and pending approvals `expired`
-- [ ] T021 [backend] Implement `src/StemStudio.Api/Agent/Stores/*`, `AgentStartupRecovery` to pass T020
+- [x] T018 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentPersistenceTests.cs`: round trip of settings, conversation, messages, run (plan, usage, taint), steps (canonical args, hash), approvals, undo entries, run events (seq order, `after` query); a 010-schema database migrates and loads with defaults (file SQLite) (FR-002)
+- [x] T019 [backend] Implement entities, configurations and migration `AddAgent` to pass T018
+- [x] T020 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/StoresTests.cs`: `EfConversationStore` / `EfAgentSettingsStore` implement the ports (mapping Agent records <-> entities); one-active-run rule (409); settings defaults from `StemStudio__Agent__*`; start-up marks non-terminal runs `interrupted` and pending approvals `expired`
+- [x] T021 [backend] Implement `src/StemStudio.Api/Agent/Stores/*`, `AgentStartupRecovery` to pass T020
 
 ### frontend (tests first)
 
