@@ -4,7 +4,8 @@ using StemStudio.Web.Api;
 namespace StemStudio.Web.Agent;
 
 /// <summary>
-/// Typed client for the composer agent endpoints <c>/api/agent/*</c> (backend API 1.10.0, contracts/DELTA.md section 1).
+/// Typed client for the composer agent endpoints <c>/api/agent/*</c> (backend API 1.10.0, contracts/DELTA.md section 1;
+/// the Claude key calls of 1.21.0, 011 follow-up claude-key).
 /// Every method throws <see cref="ApiException"/> with the mapped problem details on failure; the API key is never
 /// part of any request or response.
 /// </summary>
@@ -31,6 +32,25 @@ public interface IAgentApiClient
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The test result.</returns>
     Task<BackendTestResultDto> TestBackendAsync(AgentBackendDto backend, CancellationToken cancellationToken = default);
+
+    /// <summary><c>GET /api/agent/settings/claude-key</c> (1.21.0): the key status; never the key.</summary>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The key status.</returns>
+    Task<ClaudeKeyStatusDto> GetClaudeKeyStatusAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <c>PUT /api/agent/settings/claude-key</c> (1.21.0, local-only, write-only): stores or replaces the key, encrypted.
+    /// Never contacts Anthropic and does not change the selected backend.
+    /// </summary>
+    /// <param name="apiKey">The key as typed; it is sent once and never kept or logged by the client.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The resulting key status.</returns>
+    Task<ClaudeKeyStatusDto> StoreClaudeKeyAsync(string apiKey, CancellationToken cancellationToken = default);
+
+    /// <summary><c>DELETE /api/agent/settings/claude-key</c> (1.21.0, local-only, idempotent): removes the stored key.</summary>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The resulting key status.</returns>
+    Task<ClaudeKeyStatusDto> DeleteClaudeKeyAsync(CancellationToken cancellationToken = default);
 
     /// <summary><c>GET /api/agent/tools</c>: the registry view for a page context.</summary>
     /// <param name="page">The page name, or null.</param>

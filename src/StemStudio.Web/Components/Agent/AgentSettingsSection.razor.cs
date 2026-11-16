@@ -28,12 +28,14 @@ public sealed partial class AgentSettingsSection
 
     private bool KeyConfigured => Status?.Claude.KeyConfigured == true;
 
+    private ClaudeKeyStatusDto ClaudeKey => Status?.Claude.Key ?? ClaudeKeyStatusDto.NotConfigured;
+
     private string OllamaText => Status?.Ollama is { Reachable: true } ollama
         ? $"Reachable, version {ollama.Version}. Models: {string.Join(", ", ollama.Models.Select(m => m.Tools ? m.Name : $"{m.Name} (no tools)"))}."
         : "Not reachable. Start Ollama on this computer.";
 
     private string ClaudeText => KeyConfigured
-        ? "API key configured in the API's environment."
+        ? "A usable Claude API key is available (see Claude API key below)."
         : "Not configured: set ANTHROPIC_API_KEY in the environment of the StemStudio API (for example export it in the shell that starts StemStudio) and restart the API.";
 
     /// <inheritdoc />
@@ -55,6 +57,12 @@ public sealed partial class AgentSettingsSection
     {
         Form!.Backend = backend;
         Saved = false;
+    }
+
+    private async Task KeyChangedAsync(ClaudeKeyStatusDto key)
+    {
+        Status = Status! with { Claude = Status.Claude with { Key = key, KeyConfigured = key.Configured } };
+        await Panel.RefreshStatusAsync();
     }
 
     private async Task TestAsync()

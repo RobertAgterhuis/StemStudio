@@ -1,0 +1,31 @@
+@* Claude API key part of the agent settings (011 follow-up claude-key, CK-FR-014; ui-test-ids 1.21.0
+   settings-agent-claude-key-*): status (never the key, at most its last four characters), a password field that is never
+   pre-filled and is emptied after every save attempt, and readable errors. Logic in the code-behind, texts in
+   ClaudeKeyText and ClaudeKeyErrors. *@
+
+<div class="ss-claude-key" role="group" aria-labelledby="claude-key-title" data-testid="settings-agent-claude-key">
+    <h4 id="claude-key-title" class="ss-agent-settings-title">Claude API key</h4>
+    <p data-testid="settings-agent-claude-key-status" aria-live="polite" data-state="@AgentWire.Name(Key.State)"
+       data-source="@ClaudeKeyText.Source(Key)" data-stored="@AgentWire.Name(Key.Stored)">@ClaudeKeyText.Status(Key)</p>
+    @if (ClaudeKeyText.IsOverridden(Key))
+    {
+        <p class="ss-claude-key-note" data-testid="settings-agent-claude-key-env-override">@ClaudeKeyText.EnvironmentOverride(Key)</p>
+    }
+    @if (ShowsInput)
+    {
+        <div class="ss-field">
+            <label for="claude-key-input">Claude API key</label>
+            @* No value binding: the typed key only travels from the browser to the circuit; @key recreates the field to empty it. *@
+            <input @key="_generation" id="claude-key-input" class="rz-textbox" type="password" autocomplete="off" spellcheck="false"
+                   maxlength="@AgentContractLimits.ClaudeKeyRequestMaxLength" @oninput="OnInput" data-testid="settings-agent-claude-key-input" />
+        </div>
+        <div class="ss-agent-settings-actions">
+            <RadzenButton Text="@SaveText" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(!CanSave)" Click="SaveAsync"
+                          data-testid="settings-agent-claude-key-save" />
+        </div>
+    }
+    @if (Error is { } error)
+    {
+        <p class="ss-agent-error" role="alert" data-testid="settings-agent-claude-key-error">@error</p>
+    }
+</div>
