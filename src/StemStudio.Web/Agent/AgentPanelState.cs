@@ -48,14 +48,17 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
     /// <summary>The readable error of the last panel call, or null.</summary>
     public string? Error { get; private set; }
 
-    /// <summary>The backend the badge shows (the run's, else the status').</summary>
-    public AgentBackendDto? Backend => Run?.Backend ?? Status?.Backend;
+    /// <summary>The backend the badge shows (the run's, else the status'; the status' while the agent is unavailable).</summary>
+    public AgentBackendDto? Backend => BadgeRun?.Backend ?? Status?.Backend;
 
     /// <summary>The model the badge shows.</summary>
-    public string? Model => Run?.Model ?? Status?.ActiveModel;
+    public string? Model => BadgeRun?.Model ?? Status?.ActiveModel;
 
     /// <summary>True when the badge shows the fallback model.</summary>
-    public bool UsingFallback => Run?.Backend is not null ? Run.UsingFallback : Status?.UsingFallback == true;
+    public bool UsingFallback => BadgeRun?.Backend is not null ? BadgeRun.UsingFallback : Status?.UsingFallback == true;
+
+    /// <summary>The run the badge describes: none while the agent is unavailable (a restored run's backend is history).</summary>
+    private AgentRunView? BadgeRun => Status is { Ready: false } ? null : Run;
 
     /// <summary>The stream consumer of the followed run (tests await it).</summary>
     internal Task Following { get; private set; } = Task.CompletedTask;
