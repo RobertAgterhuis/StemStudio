@@ -16,7 +16,8 @@
 # Desktop must allow at least 20 GB (check: docker info --format "{{.MemTotal}}").
 # STEMSTUDIO_SEPARATOR=fake also fakes the detail phase (STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS per
 # parent step, default 1; set 0 for the fastest runs).
-# No secrets are used or needed. Kestrel serves directly (no reverse proxy), so the API's own
+# No secrets are needed (the optional Claude key of feature 011 comes from your shell only, see
+# below). Kestrel serves directly (no reverse proxy), so the API's own
 # upload limit (200 MiB) applies; a proxy added later must allow >= 200 MiB + multipart overhead.
 #
 # Online lookups (feature 005; specs/005-artwork-band-info/quickstart.md), worker only, all optional:
@@ -43,6 +44,24 @@
 #                                           at first use
 #   STEMSTUDIO_TRANSCRIBE_THREADS=1..64     intra-op threads of the transcribe lane (default 8)
 #   The image installs the Leipzig music font (check: scripts/check-worker-fonts.{sh,ps1}).
+# AI composer agent (feature 011; specs/011-ai-composer-agent/quickstart.md), api only, optional:
+#   STEMSTUDIO_AGENT_BACKEND=ollama|claude|none|fake   initial backend (default ollama) when no
+#                                           settings row exists; the settings page changes it later
+#   STEMSTUDIO_OLLAMA_URL=http://...        default http://host.docker.internal:11434. Ollama is
+#                                           OPTIONAL and runs on the host, not in compose; without
+#                                           it the app works and the agent panel says why it is off.
+#                                           The api reaches the host via extra_hosts host-gateway.
+#   ANTHROPIC_API_KEY                       Claude (paid, opt-in) only. Passed through from your
+#                                           shell when set; no value is ever written in a file.
+#                                           Set it for one shell session only, never in .env:
+#                                             bash:       read -rs ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY
+#                                             PowerShell: $env:ANTHROPIC_API_KEY = Read-Host -MaskInput
+#                                           then docker compose up -d (api is recreated with it).
+#   STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/<name>.json   E2E only, with STEMSTUDIO_AGENT_BACKEND=fake:
+#                                           scripted model turns from e2e/agent-scripts/ (mounted
+#                                           read-only at /scripts; format agent-script.schema.json).
+#                                           Git Bash on Windows: prefix MSYS_NO_PATHCONV=1, or the
+#                                           /scripts path is rewritten into a Windows path.
 
 name: stemstudio
 
@@ -97,15 +116,28 @@ services:
       context: .
       dockerfile: docker/api.Dockerfile
     image: stemstudio/api:local
+    # List form (not a mapping) so the Claude key can be a bare pass-through entry (DELTA.md 7).
     environment:
-      ASPNETCORE_HTTP_PORTS: "8081"
-      StemStudio__DataDir: /data
-      StemStudio__WorkerBaseUrl: http://worker:8000
-      StemStudio__WebOrigin: http://localhost:8080
+      - ASPNETCORE_HTTP_PORTS=8081
+      - StemStudio__DataDir=/data
+      - StemStudio__WorkerBaseUrl=http://worker:8000
+      - StemStudio__WebOrigin=http://localhost:8080
+      # Feature 011 (AI composer agent): Ollama on the host, initial backend, E2E fake script.
+      - StemStudio__Agent__Ollama__BaseUrl=${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}
+      - StemStudio__Agent__Backend=${STEMSTUDIO_AGENT_BACKEND:-ollama}
+      - STEMSTUDIO_AGENT_FAKE_SCRIPT=${STEMSTUDIO_AGENT_FAKE_SCRIPT:-}
+      # Bare name: the host's value when set, otherwise the variable is absent in the container.
+      - ANTHROPIC_API_KEY
+    # host.docker.internal resolves to the host on Linux too (Docker Desktop has it built in).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8081:8081"
     volumes:
       - api-data:/data
+      # E2E fake agent scripts (qa, e2e/agent-scripts/*.json); read-only, ignored unless the
+      # backend is fake.
+      - ./e2e/agent-scripts:/scripts:ro
     depends_on:
       worker:
         condition: service_healthy

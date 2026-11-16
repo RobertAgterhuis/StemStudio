@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs StemStudio without Docker: worker (uv, :8000), API (dotnet run, :8081), web (dotnet run, :8080).
 # Builds the audio-engine and web-interop bundles first; data lives under <repo>/data. Ctrl+C stops all three.
-# No secrets are read or needed.
+# No secrets are needed; the optional Claude key (feature 011) is inherited from your shell
+# (export ANTHROPIC_API_KEY for this session only) and never written anywhere by this script.
 #
 # Usage: scripts/dev.sh [--fake] [--skip-engine-build] [--smoke-test] [--timeout <seconds>]
 #   --fake               STEMSTUDIO_SEPARATOR=fake (stems are copies of the mix; detail faked; no download)
@@ -53,6 +54,19 @@ init_environment() {
   export StemStudio__PublicApiBaseUrl=http://localhost:8081
   echo "Separator: $STEMSTUDIO_SEPARATOR (fake device $STEMSTUDIO_FAKE_DEVICE); data under $data_dir; models in $STEMSTUDIO_MODEL_DIR"
   init_library_environment "$data_dir/api"
+  init_agent_environment
+}
+
+init_agent_environment() {
+  # Feature 011 (AI composer agent, api only): Ollama is optional and runs on this host; existing
+  # values win. STEMSTUDIO_AGENT_FAKE_SCRIPT (with STEMSTUDIO_AGENT_BACKEND=fake) is a host path,
+  # e.g. "$REPO_ROOT/e2e/agent-scripts/<name>.json". ANTHROPIC_API_KEY passes through unchanged.
+  export StemStudio__Agent__Ollama__BaseUrl="${STEMSTUDIO_OLLAMA_URL:-http://localhost:11434}"
+  export StemStudio__Agent__Backend="${STEMSTUDIO_AGENT_BACKEND:-ollama}"
+  export STEMSTUDIO_AGENT_FAKE_SCRIPT="${STEMSTUDIO_AGENT_FAKE_SCRIPT:-}"
+  local key_state="unset"
+  if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then key_state="set"; fi
+  echo "Agent: backend $StemStudio__Agent__Backend; Ollama $StemStudio__Agent__Ollama__BaseUrl; Claude key $key_state"
 }
 
 init_library_environment() {

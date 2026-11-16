@@ -79,8 +79,8 @@ all lanes below begin in parallel from the Phase 0 commit.
 
 - [x] T007 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `StemStudio.Agent` may reference only `StemStudio.Contracts` and the MEAI/OllamaSharp/Anthropic packages; only `StemStudio.Agent.Backends` may use OllamaSharp/Anthropic namespaces; `StemStudio.Web` and `StemStudio.Persistence` must not reference `StemStudio.Agent`; `Agent.Policy` must not reference `Agent.Backends` or `Agent.Runtime` (plan.md dependency direction)
 - [x] T008 [quality-gate] Implement the rules in `tools/quality/dependency_check.py`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T009 [P] [devops] `docker-compose.yml` api: `extra_hosts: ["host.docker.internal:host-gateway"]`, `StemStudio__Agent__Ollama__BaseUrl: ${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}`, `StemStudio__Agent__Backend: ${STEMSTUDIO_AGENT_BACKEND:-ollama}`, `STEMSTUDIO_AGENT_FAKE_SCRIPT` + read-only mount of `e2e/agent-scripts` for the fake stack, bare `- ANTHROPIC_API_KEY` pass-through (no value anywhere); header comments (Ollama optional on the host, how to export the key in the shell); `scripts/dev.{ps1,sh}` same variables for the non-Docker path (`http://localhost:11434`) (DELTA.md 7, FR-018)
-- [ ] T010 [devops] CI and `scripts/test-all.{ps1,sh}`: build/test `StemStudio.Agent.Tests`, coverage gate for the new component, a contracts-lint step for `specs/011-ai-composer-agent/contracts` (`backend-api.openapi.yaml` 1.10.0 + `agent-api.openapi.yaml`, its `redocly.yaml`; the worker document stays 008's, the generator documents 010's), a secret-scan step asserting no `ANTHROPIC_API_KEY` value or `sk-ant-` pattern in the repo; CI never sets the key (SC-006)
+- [x] T009 [P] [devops] `docker-compose.yml` api: `extra_hosts: ["host.docker.internal:host-gateway"]`, `StemStudio__Agent__Ollama__BaseUrl: ${STEMSTUDIO_OLLAMA_URL:-http://host.docker.internal:11434}`, `StemStudio__Agent__Backend: ${STEMSTUDIO_AGENT_BACKEND:-ollama}`, `STEMSTUDIO_AGENT_FAKE_SCRIPT` + read-only mount of `e2e/agent-scripts` for the fake stack, bare `- ANTHROPIC_API_KEY` pass-through (no value anywhere); header comments (Ollama optional on the host, how to export the key in the shell); `scripts/dev.{ps1,sh}` same variables for the non-Docker path (`http://localhost:11434`) (DELTA.md 7, FR-018)
+- [x] T010 [devops] CI and `scripts/test-all.{ps1,sh}`: build/test `StemStudio.Agent.Tests`, coverage gate for the new component, a contracts-lint step for `specs/011-ai-composer-agent/contracts` (`backend-api.openapi.yaml` 1.10.0 + `agent-api.openapi.yaml`, its `redocly.yaml`; the worker document stays 008's, the generator documents 010's), a secret-scan step asserting no `ANTHROPIC_API_KEY` value or `sk-ant-` pattern in the repo; CI never sets the key (SC-006)
 - [ ] T011 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: fake chat clients, adversarial injection tests, agent E2E scripts, evaluation harness (manual, reference machine), traceability US1..US6 -> test files
 
 ---
@@ -173,7 +173,7 @@ clear unavailable state.
 - [ ] T056 [P] [US3] [frontend] Failing bUnit tests: `agent-unavailable` with reason + fix, input disabled, badge `data-backend`/`data-model`/`data-fallback`; status refresh every 10 s while the panel is open (FR-021, FR-023)
 - [ ] T057 [US3] [frontend] Implement to pass T056
 - [ ] T058 [US3] [qa] Author `agent.spec.ts` "unavailable" (backend none: panel state, rest of the app works) and ensure the default suite runs unchanged with `STEMSTUDIO_AGENT_BACKEND=none` (SC-005)
-- [ ] T059 [US3] [devops] CI e2e job: after the default fake-stack run, run `agent.spec.ts` with `STEMSTUDIO_AGENT_BACKEND=fake` and the unavailable spec with `none`; same in `scripts/test-all.*`
+- [x] T059 [US3] [devops] CI e2e job: after the default fake-stack run, run `agent.spec.ts` with `STEMSTUDIO_AGENT_BACKEND=fake` and the unavailable spec with `none`; same in `scripts/test-all.*`
 
 **Checkpoint**: HO:us3.
 
@@ -238,7 +238,7 @@ clear unavailable state.
 - [ ] T079c [P] [backend] Refactor, XML docs, HO:polish with Api/Persistence coverage
 - [ ] T079d [P] [frontend] Accessibility of the panel (keyboard: Enter sends, Esc closes; live region for streamed text and step status; cards focus the Approve button only after reading - no auto-focus on Approve), HO:polish
 - [ ] T079e [P] [qa] Traceability matrix update, HO:polish
-- [ ] T079f [P] [devops] Validate compose/CI (`docker compose config -q`, `actionlint`), HO:polish
+- [x] T079f [P] [devops] Validate compose/CI (`docker compose config -q`, `actionlint`), HO:polish
 - [x] T079g [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish - done on the lane branch (0 errors); the final run over the merged code is part of the CTO integration T080
 
 ---

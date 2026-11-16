@@ -5,7 +5,9 @@
 
 .DESCRIPTION
     Builds the audio-engine and web-interop bundles first, then starts the three processes with data under <repo>/data.
-    Press Ctrl+C to stop all of them. No secrets are read or needed.
+    Press Ctrl+C to stop all of them. No secrets are needed; the optional Claude key (feature 011)
+    is inherited from your session ($env:ANTHROPIC_API_KEY = Read-Host -MaskInput) and never written
+    anywhere by this script.
 
 .PARAMETER Fake
     Uses the fake separator (STEMSTUDIO_SEPARATOR=fake): stems are copies of the mix, no model download.
@@ -77,6 +79,17 @@ function Initialize-Environment {
     $env:StemStudio__PublicApiBaseUrl = 'http://localhost:8081'
     Write-Host "Separator: $env:STEMSTUDIO_SEPARATOR (fake device $env:STEMSTUDIO_FAKE_DEVICE); data under $dataDir; models in $env:STEMSTUDIO_MODEL_DIR"
     Initialize-LibraryEnvironment (Join-Path $dataDir 'api')
+    Initialize-AgentEnvironment
+}
+
+function Initialize-AgentEnvironment {
+    <# Feature 011 (AI composer agent, api only): Ollama is optional and runs on this host; existing
+       values win. STEMSTUDIO_AGENT_FAKE_SCRIPT (with STEMSTUDIO_AGENT_BACKEND=fake) is a host path,
+       e.g. <repo>/e2e/agent-scripts/<name>.json. ANTHROPIC_API_KEY passes through unchanged. #>
+    $env:StemStudio__Agent__Ollama__BaseUrl = if ($env:STEMSTUDIO_OLLAMA_URL) { $env:STEMSTUDIO_OLLAMA_URL } else { 'http://localhost:11434' }
+    $env:StemStudio__Agent__Backend = if ($env:STEMSTUDIO_AGENT_BACKEND) { $env:STEMSTUDIO_AGENT_BACKEND } else { 'ollama' }
+    $keyState = if ($env:ANTHROPIC_API_KEY) { 'set' } else { 'unset' }
+    Write-Host "Agent: backend $env:StemStudio__Agent__Backend; Ollama $env:StemStudio__Agent__Ollama__BaseUrl; Claude key $keyState"
 }
 
 function Initialize-LibraryEnvironment {
