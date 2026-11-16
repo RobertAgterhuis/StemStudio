@@ -1,5 +1,6 @@
 using StemStudio.Agent;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent.Loopback;
 using StemStudio.Api.Agent.Stores;
 
 namespace StemStudio.Api.Agent;
@@ -33,6 +34,7 @@ public static class AgentRegistration
         services.AddScoped<AgentConversationService>();
         services.AddScoped<AgentMessageService>();
         services.AddScoped<AgentRunEndpointService>();
+        services.AddLoopbackActions(configuration);
         return services;
     }
 }

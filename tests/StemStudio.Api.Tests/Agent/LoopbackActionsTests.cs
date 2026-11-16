@@ -1,16 +1,15 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Loopback;
 using StemStudio.Api.Tests.Mixes;
 using StemStudio.Api.Tests.TestSupport;
-using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Styles;
-using StemStudio.Contracts.Voices;
 using StemStudio.Domain.Voices;
 using StemStudio.Persistence.Repositories;
 
@@ -23,7 +22,7 @@ namespace StemStudio.Api.Tests.Agent;
 public sealed class LoopbackActionsTests : ApiTestBase
 {
     private readonly RecordingHandler _http;
-    private readonly IStemStudioActions _actions;
+    private readonly LoopbackActions _actions;
 
     public LoopbackActionsTests()
     {
@@ -86,9 +85,10 @@ public sealed class LoopbackActionsTests : ApiTestBase
     [Fact]
     public async Task NotFound_IsMarkedAsSuch()
     {
-        var error = await Should.ThrowAsync<AgentActionException>(() => _actions.Tracks.GetTrackAsync(Guid.NewGuid(), Ct));
+        var id = Guid.NewGuid();
+        var error = await Should.ThrowAsync<AgentActionException>(() => _actions.Tracks.GetTrackAsync(id, Ct));
 
-        (error.IsNotFound, error.ProblemCode, error.Message).ShouldBe((true, "not-found", "The track does not exist."));
+        (error.IsNotFound, error.ProblemCode, error.Message).ShouldBe((true, "not-found", $"Track {id} does not exist."));
     }
 
     [Fact]
@@ -123,8 +123,11 @@ public sealed class LoopbackActionsTests : ApiTestBase
     {
         var style = await _actions.Styles.CreateStyleAsync(new StyleInput
         {
-            Name = "Night drive", GenreFamily = GenreFamilyDto.Electronic, TempoFeel = TempoFeelDto.Keep,
-            VocalHandling = VocalHandlingDto.Keep, DefaultStrength = StrengthDto.Balanced,
+            Name = "Night drive",
+            GenreFamily = GenreFamilyDto.Electronic,
+            TempoFeel = TempoFeelDto.Keep,
+            VocalHandling = VocalHandlingDto.Keep,
+            DefaultStrength = StrengthDto.Balanced,
         }, Ct);
 
         (await _actions.Styles.ListStylesAsync(new StyleQuery { Query = "night", Kind = StyleKindDto.User, GenreFamily = GenreFamilyDto.Electronic }, Ct))
@@ -139,8 +142,12 @@ public sealed class LoopbackActionsTests : ApiTestBase
     {
         var error = await Should.ThrowAsync<AgentActionException>(() => _actions.Styles.CreateStyleAsync(new StyleInput
         {
-            Name = "Like Taylor Swift", GenreFamily = GenreFamilyDto.Pop, TempoFeel = TempoFeelDto.Keep,
-            VocalHandling = VocalHandlingDto.Keep, DefaultStrength = StrengthDto.Balanced, Description = "sound like Taylor Swift",
+            Name = "Like Taylor Swift",
+            GenreFamily = GenreFamilyDto.Pop,
+            TempoFeel = TempoFeelDto.Keep,
+            VocalHandling = VocalHandlingDto.Keep,
+            DefaultStrength = StrengthDto.Balanced,
+            Description = "sound like Taylor Swift",
         }, Ct));
 
         error.StatusCode.ShouldBe(400);
@@ -179,7 +186,7 @@ public sealed class LoopbackActionsTests : ApiTestBase
     {
         (await _actions.Generations.GetStatusAsync(Ct)).ShouldNotBeNull();
         (await _actions.Generations.ListGenerationsAsync(new GenerationQuery { Kind = GenerationKindDto.Restyle, SourceTrackId = Guid.Empty }, Ct)).ShouldBeEmpty();
-        (await _actions.Assets.ListAssetsAsync(new AssetQuery { Query = "live", Limit = 5 }, Ct)).Items.ShouldBeEmpty();
+        (await _actions.Assets.ListAssetsAsync(new StemStudio.Agent.Ports.AssetQuery { Query = "live", Limit = 5 }, Ct)).Items.ShouldBeEmpty();
         _http.Requests.Select(r => r.PathAndQuery).ShouldBe(
             ["/api/generation/status", $"/api/generations?kind=restyle&sourceTrackId={Guid.Empty}", "/api/assets?q=live&limit=5"]);
     }
@@ -207,6 +214,23 @@ public sealed class LoopbackActionsTests : ApiTestBase
 
         factory.Services.GetRequiredService<IStemStudioActions>().ShouldBeOfType<LoopbackActions>();
         factory.Services.GetRequiredService<LoopbackClient>().BaseAddress.ShouldBe(new Uri("http://127.0.0.1:5123/"));
+    }
+
+    [Theory]
+    [InlineData(null, "5001;5002", null, "http://127.0.0.1:5001/")]
+    [InlineData(null, null, "8085", "http://127.0.0.1:8085/")]
+    [InlineData(null, null, null, "http://127.0.0.1:8080/")]
+    [InlineData("http://api.local:9000", "5001", null, "http://api.local:9000/")]
+    public void LoopbackBaseUrl_FallsBackToTheHttpPorts(string? configured, string? httpPorts, string? aspNetPorts, string expected)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["HTTP_PORTS"] = httpPorts,
+            ["ASPNETCORE_HTTP_PORTS"] = aspNetPorts,
+        }).Build();
+        var options = new StemStudio.Api.Agent.AgentHostOptions { LoopbackBaseUrl = configured is null ? null : new Uri(configured) };
+
+        LoopbackRegistration.BaseUrl(options, configuration).ShouldBe(new Uri(expected));
     }
 
     private async Task<VoiceProfile> SeedProfileAsync()
