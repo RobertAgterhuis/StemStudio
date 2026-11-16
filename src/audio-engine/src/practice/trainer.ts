@@ -99,9 +99,9 @@ export class SpeedTrainer {
     this.progress = progress;
   }
 
-  /** @returns State, pass and speed. */
+  /** @returns State, pass (1 while waiting for the first pass, data-model 3.2) and speed. */
   public snapshot(): TrainerSnapshot {
-    return { state: this.state(), pass: this.active ? this.progress.pass : 0, speedPercent: this.progress.speed };
+    return { state: this.state(), pass: this.active ? Math.max(1, this.progress.pass) : 0, speedPercent: this.progress.speed };
   }
 
   private state(): TrainerState {
