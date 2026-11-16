@@ -20,7 +20,18 @@ export interface ViolationSummary {
 
 /** Scans the page and returns its violations (empty when compliant). */
 export async function axeViolations(page: Page): Promise<ViolationSummary[]> {
-  const results = await new AxeBuilder({ page }).withTags([...wcagTags]).analyze();
+  return summarise(await new AxeBuilder({ page }).withTags([...wcagTags]).analyze());
+}
+
+/**
+ * Scans only the part of the page under `selector` (for example one settings group in a given
+ * state, 011 follow-up claude-key CK-SC-006) with the same rule tags; nothing is excluded.
+ */
+export async function axeViolationsIn(page: Page, selector: string): Promise<ViolationSummary[]> {
+  return summarise(await new AxeBuilder({ page }).include(selector).withTags([...wcagTags]).analyze());
+}
+
+function summarise(results: Awaited<ReturnType<AxeBuilder['analyze']>>): ViolationSummary[] {
   return results.violations.map((violation) => ({
     rule: violation.id,
     impact: violation.impact ?? 'unknown',
