@@ -16,7 +16,7 @@ describe('SpeedTrainer', () => {
   it('is off when disabled or without a usable loop, waiting when enabled and not playing', () => {
     expect(trainer({ enabled: false }).snapshot()).toEqual({ state: 'off', pass: 0, speedPercent: 70 });
     expect(trainer({}, false).snapshot().state).toBe('off');
-    expect(trainer().snapshot()).toEqual({ state: 'waiting', pass: 0, speedPercent: 70 });
+    expect(trainer().snapshot()).toEqual({ state: 'waiting', pass: 1, speedPercent: 70 });
     expect(trainer().active).toBe(true);
     expect(trainer({}, false).active).toBe(false);
   });
@@ -56,7 +56,7 @@ describe('SpeedTrainer', () => {
     subject.start();
     subject.completePass();
     subject.reset();
-    expect(subject.snapshot()).toEqual({ state: 'waiting', pass: 0, speedPercent: 70 });
+    expect(subject.snapshot()).toEqual({ state: 'waiting', pass: 1, speedPercent: 70 });
     subject.start();
     expect(subject.snapshot().pass).toBe(1);
   });

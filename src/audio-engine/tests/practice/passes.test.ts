@@ -64,7 +64,7 @@ describe('conditions', () => {
 
   it('is waiting before play and running from the first pass', async () => {
     const rig = await trainerRig();
-    expect(rig.engine.getPracticeStatus().trainer).toEqual({ state: 'waiting', pass: 0, speedPercent: 50 });
+    expect(rig.engine.getPracticeStatus().trainer).toEqual({ state: 'waiting', pass: 1, speedPercent: 50 });
     await rig.engine.play();
     expect(rig.engine.getPracticeStatus()).toMatchObject({ speedPercent: 50, trainer: { state: 'running', pass: 1, speedPercent: 50 } });
   });
@@ -174,7 +174,7 @@ describe('trainer lifecycle', () => {
     expect(statuses(rig).at(-1)?.trainer).toEqual({ state: 'waiting', pass: 2, speedPercent: 60 });
     rig.engine.stop();
     await vi.advanceTimersByTimeAsync(200);
-    expect(statuses(rig).at(-1)?.trainer).toEqual({ state: 'waiting', pass: 0, speedPercent: 50 });
+    expect(statuses(rig).at(-1)?.trainer).toEqual({ state: 'waiting', pass: 1, speedPercent: 50 });
   });
 
   it('pausing just before a boundary does not count the unheard pass', async () => {
@@ -191,7 +191,7 @@ describe('trainer lifecycle', () => {
     await rig.engine.play();
     await run(rig, 5);
     rig.engine.stop();
-    expect(rig.engine.getPracticeStatus().trainer).toEqual({ state: 'waiting', pass: 0, speedPercent: 50 });
+    expect(rig.engine.getPracticeStatus().trainer).toEqual({ state: 'waiting', pass: 1, speedPercent: 50 });
     await rig.engine.play();
     await run(rig, 5);
     rig.engine.setLoop({ start: A, end: 5, enabled: true });
