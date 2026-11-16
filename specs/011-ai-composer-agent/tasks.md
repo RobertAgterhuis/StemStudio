@@ -245,7 +245,7 @@ clear unavailable state.
 
 ## Integration wave (CTO, after all wave hand-offs are accepted)
 
-- [ ] T080 [CTO] Merge the owner branches; full build, lint, unit + coverage gates; Playwright default suite + agent specs on the fake stack, unavailable spec with `none` (retries 0) (quickstart A1-A6)
+- [x] T080 [CTO] Merge the owner branches; full build, lint, unit + coverage gates; Playwright default suite + agent specs on the fake stack, unavailable spec with `none` (retries 0) (quickstart A1-A6) - done 2026-11-16, see `docs/handoffs/cto-011-integration.md`
 - [ ] T081a [CTO] Ollama evaluation readiness (before T081, no model download without a note): `GET <ollama>/api/version` and `GET /api/tags` must list `qwen3.5:9b` (default, ~6.6 GB) and `qwen3.5:4b` (fallback, ~3.3 GB) with the `tools` capability (`POST /api/show` for details); if a model is missing, record it in `docs/STATUS.md` and ask the owner before `ollama pull` (large download). Pre-check 2026-11-16 (architect, research F-16): Ollama 0.40.16 on `http://localhost:11434`, both models present with `tools` - nothing to pull
 - [ ] T081 [CTO] Reference machine: quickstart A7-A13; `tools/agent-eval --backend ollama --model qwen3.5:9b --runs 3` (SC-001 over the 30 scored cases, S1-S3 and the injection set 22-24 must all pass; SC-004); GPU coordination check (SC-008); record results in `docs/STATUS.md`; if SC-001 fails, tune tool descriptions with the ai-agent (re-run, keep the report history)
 - [ ] T082 [CTO] [amend] Owner-run A14/A15 with Claude (paid, opt-in; only when the owner exports `ANTHROPIC_API_KEY` in the shell), result in `docs/STATUS.md`
