@@ -30,7 +30,11 @@ public sealed class ClaudeKeyRow(IServiceScopeFactory scopes)
         await using var scope = scopes.CreateAsyncScope();
         var secret = new AgentSecretEntity
         {
-            Name = Name, Ciphertext = ciphertext, LastFour = lastFour, PurposeVersion = ProtectedClaudeKeyStore.PurposeVersion, StoredAt = storedAt,
+            Name = Name,
+            Ciphertext = ciphertext,
+            LastFour = lastFour,
+            PurposeVersion = ProtectedClaudeKeyStore.PurposeVersion,
+            StoredAt = storedAt,
         };
         return await Secrets(scope).UpsertAsync(secret, cancellationToken);
     }

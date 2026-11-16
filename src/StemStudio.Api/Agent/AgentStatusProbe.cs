@@ -104,7 +104,10 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
         Ollama = new OllamaStatusDto { Reachable = false, DefaultPresent = false, FallbackPresent = false },
         Claude = new ClaudeStatusDto
         {
-            KeyConfigured = key.Configured, NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null, Model = current.ClaudeModel, Key = key,
+            KeyConfigured = key.Configured,
+            NoticeAcknowledged = current.ClaudeNoticeAcknowledgedAt is not null,
+            Model = current.ClaudeModel,
+            Key = key,
         },
     };
 }

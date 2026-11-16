@@ -135,8 +135,12 @@ public sealed class ClaudeApiKeyTests
         var key = ClaudeApiKey.Parse(ClaudeKeySentinels.Stored).Key!;
         var resolution = new ClaudeKeyResolution
         {
-            Key = key, Source = ClaudeKeySourceDto.Stored, State = ClaudeKeyStateDto.Stored, LastFour = "STO1",
-            Stored = StoredClaudeKeyStateDto.Readable, StoreAvailable = true,
+            Key = key,
+            Source = ClaudeKeySourceDto.Stored,
+            State = ClaudeKeyStateDto.Stored,
+            LastFour = "STO1",
+            Stored = StoredClaudeKeyStateDto.Readable,
+            StoreAvailable = true,
         };
         var stored = new StoredClaudeKey { State = StoredClaudeKeyStateDto.Readable, Key = key, LastFour = "STO1", StoreAvailable = true };
 
