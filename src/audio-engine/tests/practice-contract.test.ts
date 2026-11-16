@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { PRACTICE_NOT_IMPLEMENTED } from '../src/engine';
 import {
   ENGINE_CONTRACT_VERSION,
   createEngine,
@@ -14,7 +13,7 @@ import {
 import { MockAudioContext } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 
-/** Contract tests of the 2.3.0 practice surface (architect skeleton 012 T005; the stubs are replaced in T034). */
+/** Contract tests of the 2.3.0 practice surface (architect skeleton 012 T005; stubs replaced in T034). */
 const NEUTRAL: PracticeSettings = {
   speedPercent: 100,
   transposeSemitones: 0,
@@ -43,11 +42,18 @@ describe('practice contract 2.3.0 (skeleton)', () => {
     expect(() => engine({ timeStretch: { processorUrl: '/p.js', wasmUrl: '/s.wasm' }, timeStretchFactory: factory })).not.toThrow();
   });
 
-  it('has setPractice and getPracticeStatus stubs until the audio-engine lane implements them', async () => {
-    const subject = engine();
+  it('implements setPractice and getPracticeStatus (neutral settings load nothing)', async () => {
+    let created = 0;
+    const subject = engine({
+      timeStretchFactory: () => {
+        created += 1;
+        return Promise.reject(new Error('not used'));
+      },
+    });
 
-    await expect(subject.setPractice(NEUTRAL)).rejects.toThrow(PRACTICE_NOT_IMPLEMENTED);
-    expect(() => subject.getPracticeStatus()).toThrow(PRACTICE_NOT_IMPLEMENTED);
+    await expect(subject.setPractice(NEUTRAL)).resolves.toBeUndefined();
+    expect(subject.getPracticeStatus()).toMatchObject({ speedPercent: 100, transposeSemitones: 0, stretch: 'bypass', latencyMs: 0 });
+    expect(created).toBe(0);
   });
 
   it('rejects practice calls after dispose like every other method', async () => {
