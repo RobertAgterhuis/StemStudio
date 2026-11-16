@@ -15,6 +15,10 @@
     {
         <p class="ss-claude-key-note" data-testid="settings-agent-claude-key-env-override">@ClaudeKeyText.EnvironmentOverride(Key)</p>
     }
+    @if (Key.Stored == StoredClaudeKeyStateDto.Unreadable)
+    {
+        <p class="ss-agent-notice" data-testid="settings-agent-claude-key-unreadable">@ClaudeKeyText.UnreadableReason(Key) @ClaudeKeyText.UnreadableFix</p>
+    }
     @if (ShowsInput)
     {
         <div class="ss-field">

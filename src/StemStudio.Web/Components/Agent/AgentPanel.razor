@@ -22,6 +22,11 @@
             {
                 <p class="ss-agent-fix">@fix</p>
             }
+            @if (status.Backend == AgentBackendDto.Claude)
+            {
+                @* Claude without a usable key (none, deleted or unreadable, 011 follow-up claude-key): never switched silently. *@
+                <RadzenButton Text="Switch to local" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="State.SwitchToLocalAsync" data-testid="agent-unavailable-switch-to-local" />
+            }
         </div>
     }
     <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" IsActive="State.IsActive" OnSelect="State.SelectConversationAsync"
