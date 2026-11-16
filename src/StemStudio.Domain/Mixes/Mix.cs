@@ -8,6 +8,7 @@ public sealed class Mix
     private List<ChannelSettings> _channels = [];
     private List<string> _expanded = [];
     private List<DetailChannelSettings> _detailChannels = [];
+    private PracticeSettings? _practice;
 
     private Mix()
     {
@@ -46,6 +47,9 @@ public sealed class Mix
     /// <summary>Detail channel settings, at most one per (parent, detail stem) (feature 002).</summary>
     public IReadOnlyList<DetailChannelSettings> DetailChannels => _detailChannels;
 
+    /// <summary>Practice tempo (feature 012); mixes saved before 012 (no stored value) read <see cref="PracticeSettings.Default"/>.</summary>
+    public PracticeSettings Practice => _practice ?? PracticeSettings.Default;
+
     /// <summary>Creation time (UTC).</summary>
     public DateTime CreatedAt { get; private set; }
 
@@ -62,6 +66,7 @@ public sealed class Mix
         Loop = Loop,
         Expanded = Expanded,
         DetailChannels = DetailChannels,
+        Practice = Practice,
     };
 
     /// <summary>Creates a mix after validating the settings against the track.</summary>
@@ -118,7 +123,7 @@ public sealed class Mix
     {
         (Name, NormalizedName) = (settings.Name.Trim(), MixNaming.Normalize(settings.Name));
         (MasterVolume, _channels, Metronome, Loop) = (settings.MasterVolume, settings.Channels.ToList(), settings.Metronome, settings.Loop);
-        (_expanded, _detailChannels) = (settings.Expanded.ToList(), settings.DetailChannels.ToList());
+        (_expanded, _detailChannels, _practice) = (settings.Expanded.ToList(), settings.DetailChannels.ToList(), settings.Practice);
         UpdatedAt = nowUtc;
     }
 }
