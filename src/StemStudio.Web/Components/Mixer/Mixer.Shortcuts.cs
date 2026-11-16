@@ -29,6 +29,7 @@ public sealed partial class Mixer
         _actions.Add(Commands.Register("mixer-save", "Save mix", () => ActionAsync(SaveAsync)));
         _actions.Add(Commands.Register("mixer-save-as", "Save mix as", () => ActionAsync(() => SaveCommandAsync("mixer.save-as"))));
         _actions.Add(Commands.Register("mixer-play", "Play or pause", () => ActionAsync(TogglePlaybackAsync)));
+        RegisterPracticeActions();
     }
 
     private Task ActionAsync(Func<Task> action) => InvokeAsync(async () =>
@@ -66,7 +67,7 @@ public sealed partial class Mixer
         "mixer.channel.select" => Select(channel),
         "mixer.channel.mute" => SelectedStem is { } stem ? ToggleMuteAsync(stem) : Task.CompletedTask,
         "mixer.channel.solo" => SelectedStem is { } soloed ? ToggleSoloAsync(soloed) : Task.CompletedTask,
-        _ => SaveCommandAsync(command),
+        _ => PracticeCommandAsync(command, channel),
     };
 
     private Task SaveCommandAsync(string command)
