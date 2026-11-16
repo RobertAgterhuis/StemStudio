@@ -51,6 +51,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("Persistence", ("src/StemStudio.Persistence/",)),
     Component("Api", ("src/StemStudio.Api/",)),
     Component("Web", ("src/StemStudio.Web/",)),
+    Component("Agent", ("src/StemStudio.Agent/",)),
     Component("worker/ingest", (WORKER + "ingest/",)),
     Component("worker/metadata", (WORKER + "metadata/",)),
     Component("worker/lyrics", (WORKER + "lyrics/",)),
@@ -76,6 +77,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("web-interop", ("src/web-interop/",)),
     Component("e2e", ("e2e/",), scope="all"),
     Component("tools/quality", ("tools/quality/",), scope="all"),
+    Component("tools/agent-eval", ("tools/agent-eval/",), scope="all"),
     Component("Test code (all)", ("",), scope="tests"),
 )
 """Reported components (production code unless the scope says otherwise)."""
