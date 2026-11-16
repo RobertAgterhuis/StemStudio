@@ -9,6 +9,7 @@ public sealed partial class AgentPanelState
     /// <returns>A task that completes when it is created.</returns>
     public async Task NewConversationAsync()
     {
+        _selection++;
         Error = await ApiCall.RunAsync(async () =>
         {
             await CreateConversationAsync();
@@ -22,9 +23,15 @@ public sealed partial class AgentPanelState
     /// <returns>A task that completes when it is loaded.</returns>
     public async Task SelectConversationAsync(Guid conversationId)
     {
+        var selection = ++_selection;
         Error = await ApiCall.RunAsync(async () =>
         {
             var conversation = await api.GetConversationAsync(conversationId);
+            if (selection != _selection)
+            {
+                return; // the user started or opened another conversation meanwhile
+            }
+
             StopFollowing();
             ConversationId = conversation.ConversationId;
             Messages = conversation.Messages;
@@ -35,6 +42,9 @@ public sealed partial class AgentPanelState
         });
         Notify();
     }
+
+    /// <summary>Increases with every user choice of a conversation; a load that was overtaken is dropped.</summary>
+    private int _selection;
 
     private async Task<Guid> CreateConversationAsync()
     {
