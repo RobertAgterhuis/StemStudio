@@ -55,6 +55,12 @@ def good_config() -> dict[str, Any]:
     return {"services": services, "volumes": volumes}
 
 
+# R5 (quality-gate): negative tests assert the exact problem, which names the service,
+# path or rule that is wrong.
+MISSING_KEYS_DIR = 'runtime stage lacks: install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys'
+NOT_APP_USER = "runtime stage does not end as USER $APP_UID"
+
+
 def test_good_inputs_pass_every_check() -> None:
     results = kvc.run_checks(good_config(), GOOD_DOCKERFILE, [GOOD_COMPOSE_TEXT])
     assert [problem for _, problem in results] == [None] * len(results)
@@ -70,7 +76,7 @@ def test_volume_must_be_declared() -> None:
 def test_volume_check_without_top_level_volumes() -> None:
     config = good_config()
     del config["volumes"]
-    assert kvc.check_volume_declared(config) is not None
+    assert kvc.check_volume_declared(config) == "top-level volume 'api-keys' is not declared"
 
 
 def test_api_must_mount_the_volume_at_keys() -> None:
@@ -86,14 +92,14 @@ def test_api_mount_must_be_a_named_volume() -> None:
         "source": "api-keys",
         "target": "/keys",
     }
-    assert kvc.check_api_mount(config) is not None
+    assert kvc.check_api_mount(config) == "api does not mount the named volume 'api-keys' at /keys"
 
 
 def test_missing_api_service_fails_the_api_checks() -> None:
     config = good_config()
     del config["services"]["api"]
-    assert kvc.check_api_mount(config) is not None
-    assert kvc.check_key_ring_env(config) is not None
+    assert kvc.check_api_mount(config) == "service 'api' is missing"
+    assert kvc.check_key_ring_env(config) == "service 'api' is missing"
 
 
 @pytest.mark.parametrize("service", ["worker", "web", "generator", "singer"])
@@ -105,8 +111,7 @@ def test_no_other_service_mounts_the_volume(service: str) -> None:
         ]
     }
     problem = kvc.check_only_api_mounts(config)
-    assert problem is not None
-    assert service in problem
+    assert problem == f"{service} mounts 'api-keys' at /elsewhere"
 
 
 def test_no_other_service_mounts_anything_at_keys() -> None:
@@ -114,7 +119,7 @@ def test_no_other_service_mounts_anything_at_keys() -> None:
     config["services"]["web"]["volumes"].append(
         {"type": "volume", "source": "x", "target": "/keys"}
     )
-    assert "web" in (kvc.check_only_api_mounts(config) or "")
+    assert kvc.check_only_api_mounts(config) == "web mounts 'x' at /keys"
 
 
 def test_api_must_not_mount_the_volume_twice() -> None:
@@ -122,27 +127,28 @@ def test_api_must_not_mount_the_volume_twice() -> None:
     config["services"]["api"]["volumes"].append(
         {"type": "volume", "source": "api-keys", "target": "/k2"}
     )
-    assert kvc.check_only_api_mounts(config) is not None
+    assert kvc.check_only_api_mounts(config) == "api mounts api-keys 2 times"
 
 
 def test_short_syntax_strings_are_ignored_safely() -> None:
     config = good_config()
     config["services"]["web"]["volumes"].append("api-keys:/keys")
-    assert kvc.check_only_api_mounts(config) is not None
+    assert kvc.check_only_api_mounts(config) == "web mounts 'api-keys' at /keys"
 
 
 def test_key_ring_env_must_be_keys() -> None:
     config = good_config()
     config["services"]["api"]["environment"]["StemStudio__DataProtection__KeyRingDir"] = "/data/k"
     problem = kvc.check_key_ring_env(config)
-    assert problem is not None
-    assert "/data/k" in problem
+    assert problem == "StemStudio__DataProtection__KeyRingDir is '/data/k', expected '/keys'"
 
 
 def test_key_ring_env_missing() -> None:
     config = good_config()
     del config["services"]["api"]["environment"]["StemStudio__DataProtection__KeyRingDir"]
-    assert kvc.check_key_ring_env(config) is not None
+    assert kvc.check_key_ring_env(config) == (
+        "StemStudio__DataProtection__KeyRingDir is None, expected '/keys'"
+    )
 
 
 def test_environment_as_list_is_understood() -> None:
@@ -159,18 +165,20 @@ def test_environment_as_list_is_understood() -> None:
 def test_internal_caller_must_be_web() -> None:
     config = good_config()
     config["services"]["api"]["environment"]["StemStudio__Agent__KeyEntry__InternalCaller"] = "api"
-    assert kvc.check_internal_caller_env(config) is not None
+    assert kvc.check_internal_caller_env(config) == (
+        "StemStudio__Agent__KeyEntry__InternalCaller is 'api', expected 'web'"
+    )
 
 
 def test_internal_caller_service_must_exist() -> None:
     config = good_config()
     del config["services"]["web"]
-    assert "web" in (kvc.check_internal_caller_env(config) or "")
+    assert kvc.check_internal_caller_env(config) == "service 'web' is missing"
 
 
 def test_dockerfile_must_create_keys_0700_for_the_app_user() -> None:
     text = GOOD_DOCKERFILE.replace("-m 0700", "-m 0755")
-    assert kvc.check_dockerfile_keys_dir(text) is not None
+    assert kvc.check_dockerfile_keys_dir(text) == MISSING_KEYS_DIR
 
 
 def test_dockerfile_keys_dir_must_be_in_the_runtime_stage() -> None:
@@ -178,7 +186,7 @@ def test_dockerfile_keys_dir_must_be_in_the_runtime_stage() -> None:
         'FROM sdk AS build\nRUN install -d -m 0700 -o "$APP_UID" -g "$APP_UID" /keys\n'
         "FROM aspnet AS runtime\nUSER $APP_UID\n"
     )
-    assert kvc.check_dockerfile_keys_dir(build_only) is not None
+    assert kvc.check_dockerfile_keys_dir(build_only) == MISSING_KEYS_DIR
 
 
 def test_dockerfile_accepts_braced_app_uid() -> None:
@@ -187,21 +195,25 @@ def test_dockerfile_accepts_braced_app_uid() -> None:
 
 
 def test_dockerfile_must_declare_the_keys_volume() -> None:
-    assert kvc.check_dockerfile_volume(GOOD_DOCKERFILE.replace(', "/keys"', "")) is not None
+    problem = kvc.check_dockerfile_volume(GOOD_DOCKERFILE.replace(', "/keys"', ""))
+    assert problem == 'runtime stage lacks VOLUME ["/keys"]'
 
 
 def test_dockerfile_must_run_as_the_app_user() -> None:
-    assert kvc.check_dockerfile_user(GOOD_DOCKERFILE.replace("USER $APP_UID\n", "")) is not None
+    problem = kvc.check_dockerfile_user(GOOD_DOCKERFILE.replace("USER $APP_UID\n", ""))
+    assert problem == NOT_APP_USER
 
 
 def test_dockerfile_user_root_after_app_user_fails() -> None:
-    assert kvc.check_dockerfile_user(GOOD_DOCKERFILE + "USER root\n") is not None
+    assert kvc.check_dockerfile_user(GOOD_DOCKERFILE + "USER root\n") == NOT_APP_USER
 
 
 def test_claude_key_must_stay_a_bare_pass_through() -> None:
     assert kvc.check_claude_key_pass_through([GOOD_COMPOSE_TEXT]) is None
     missing = GOOD_COMPOSE_TEXT.replace("      - ANTHROPIC_API_KEY\n", "")
-    assert kvc.check_claude_key_pass_through([missing]) is not None
+    assert kvc.check_claude_key_pass_through([missing]) == (
+        "no compose file passes ANTHROPIC_API_KEY through as a bare entry"
+    )
 
 
 @pytest.mark.parametrize(
@@ -214,8 +226,9 @@ def test_claude_key_must_stay_a_bare_pass_through() -> None:
 )
 def test_claude_key_value_in_any_compose_file_fails(line: str) -> None:
     problem = kvc.check_claude_key_pass_through([GOOD_COMPOSE_TEXT, f"services:\n{line}\n"])
-    assert problem is not None
-    assert "dummy" not in problem
+    assert problem == (
+        "a compose file assigns ANTHROPIC_API_KEY a value (keep the bare pass-through entry)"
+    )
 
 
 def write_inputs(tmp_path: Path, config: dict[str, Any]) -> list[str]:
@@ -324,8 +337,8 @@ def test_key_ring_inside_repository_or_library_fails(keys: str) -> None:
     repo = PurePosixPath("/home/owner/src/StemStudio")
     library = PurePosixPath("/srv/lib")
     problem = kvc.check_non_docker_key_ring(PurePosixPath(keys), repo, library)
-    assert problem is not None
-    assert keys in problem
+    where = "library /srv/lib" if keys.startswith("/srv") else f"repository {repo}"
+    assert problem == f"key ring {keys} is inside the {where}"
 
 
 def test_main_checks_the_non_docker_default_against_the_repository(
