@@ -28,28 +28,17 @@ public sealed class AgentMessageService(IConversationStore conversations, IRunSt
             return AgentConversationService.ConversationNotFound();
         }
 
-        if (Validate(request) is { } invalid)
-        {
-            return invalid;
-        }
-
-        if (await runs.GetActiveRunAsync(cancellationToken) is not null)
-        {
-            return AgentProblems.RunActive();
-        }
-
-        return await StartAsync(conversation, request!, cancellationToken);
+        return Validate(request) ?? await RunActiveAsync(cancellationToken) ?? await StartAsync(conversation, request!, cancellationToken);
     }
+
+    private async Task<IResult?> RunActiveAsync(CancellationToken cancellationToken) =>
+        await runs.GetActiveRunAsync(cancellationToken) is null ? null : AgentProblems.RunActive();
 
     private async Task<IResult> StartAsync(Conversation conversation, SendAgentMessageRequest request, CancellationToken cancellationToken)
     {
         var messages = await conversations.GetMessagesAsync(conversation.Id, cancellationToken);
         var (run, message) = await factory.CreateAsync(conversation.Id, request, messages.Count + 1, cancellationToken);
-        try
-        {
-            await runs.CreateRunAsync(run, cancellationToken);
-        }
-        catch (InvalidOperationException)
+        if (!await TryCreateRunAsync(run, cancellationToken))
         {
             return AgentProblems.RunActive();
         }
@@ -58,6 +47,20 @@ public sealed class AgentMessageService(IConversationStore conversations, IRunSt
         await conversations.UpdateAsync(Touch(conversation, request.Text, run), cancellationToken);
         executor.Enqueue(run.Id);
         return TypedResults.Accepted((string?)null, new AgentMessageAcceptedDto { RunId = run.Id, MessageId = message.Id });
+    }
+
+    // The store enforces the one-active-run rule; a concurrent send loses with 409.
+    private async Task<bool> TryCreateRunAsync(AgentRun run, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await runs.CreateRunAsync(run, cancellationToken);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static Conversation Touch(Conversation conversation, string text, AgentRun run) => conversation with
@@ -69,16 +72,17 @@ public sealed class AgentMessageService(IConversationStore conversations, IRunSt
 
     private static IResult? Validate(SendAgentMessageRequest? request)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Text) || request.Text.Length > AgentContractLimits.MessageMaxLength)
+        if (!IsWithin(request?.Text, AgentContractLimits.MessageMaxLength))
         {
             return AgentProblems.Unprocessable("text", "Type a command of 1 to 4,000 characters.");
         }
 
-        var page = request.Context?.Page;
-        return string.IsNullOrWhiteSpace(page) || page.Length > AgentContractLimits.PageMaxLength
-            ? AgentProblems.Unprocessable("context.page", "The page context has 1 to 40 characters.")
-            : null;
+        return IsWithin(request!.Context?.Page, AgentContractLimits.PageMaxLength)
+            ? null
+            : AgentProblems.Unprocessable("context.page", "The page context has 1 to 40 characters.");
     }
+
+    private static bool IsWithin(string? value, int maxLength) => !string.IsNullOrWhiteSpace(value) && value.Length <= maxLength;
 }
 
 /// <summary>Builds a queued run and its user message from the current agent settings.</summary>
@@ -102,16 +106,17 @@ public sealed class AgentRunFactory(IAgentSettingsStore settings, TimeProvider c
         var now = clock.GetUtcNow();
         var message = new ConversationMessage
         {
-            Id = Guid.NewGuid(), ConversationId = conversationId, Seq = seq, Role = MessageRoleDto.User, Text = request.Text,
-            Context = request.Context, CreatedAt = now,
+            Id = Guid.NewGuid(), ConversationId = conversationId, Seq = seq, Role = MessageRoleDto.User, Text = request.Text, Context = request.Context, CreatedAt = now,
         };
-        var run = new AgentRun
-        {
-            Id = Guid.NewGuid(), ConversationId = conversationId, UserMessageId = message.Id, Status = AgentRunStatusDto.Queued,
-            Backend = current.Backend, Model = ModelOf(current), Tainted = false, ModelTurns = 0, ToolCalls = 0, InvalidCalls = 0, StartedAt = now,
-        };
+        var run = NewRun(message, current, now);
         return (run, message with { RunId = run.Id });
     }
+
+    private static AgentRun NewRun(ConversationMessage message, AgentSettings current, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(), ConversationId = message.ConversationId, UserMessageId = message.Id, Status = AgentRunStatusDto.Queued,
+        Backend = current.Backend, Model = ModelOf(current), Tainted = false, ModelTurns = 0, ToolCalls = 0, InvalidCalls = 0, StartedAt = now,
+    };
 
     /// <summary>The model the selected backend starts with.</summary>
     /// <param name="current">Settings.</param>

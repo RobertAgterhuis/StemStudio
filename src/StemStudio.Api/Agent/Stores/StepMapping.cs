@@ -1,7 +1,6 @@
 using StemStudio.Agent.Model;
 using StemStudio.Contracts.Agent;
 using StemStudio.Persistence.Agent;
-using static StemStudio.Api.Agent.Stores.AgentStoreValues;
 
 namespace StemStudio.Api.Agent.Stores;
 
@@ -18,6 +17,13 @@ internal static class StepMapping
         entity.RunId = step.RunId;
         entity.Seq = step.Seq;
         entity.CallId = step.CallId;
+        ApplyCall(entity, step);
+        ApplyProgress(entity, step);
+        return entity;
+    }
+
+    private static void ApplyCall(RunStepEntity entity, RunStep step)
+    {
         entity.Tool = step.Tool;
         entity.Kind = step.Kind.ToString();
         entity.Risk = step.Risk.ToString();
@@ -26,9 +32,7 @@ internal static class StepMapping
         entity.ArgumentsHash = step.ArgumentsHash;
         entity.PlanIndex = step.PlanIndex;
         entity.Decision = step.Decision.ToString();
-        entity.DecisionReasons = ToJson(step.DecisionReasons);
-        ApplyProgress(entity, step);
-        return entity;
+        entity.DecisionReasons = AgentStoreValues.ToJson(step.DecisionReasons);
     }
 
     /// <summary>Reads a step row.</summary>
@@ -36,26 +40,12 @@ internal static class StepMapping
     /// <returns>The record.</returns>
     public static RunStep ToRecord(RunStepEntity entity) => new()
     {
-        Id = entity.Id,
-        RunId = entity.RunId,
-        Seq = entity.Seq,
-        CallId = entity.CallId,
-        Tool = entity.Tool,
-        Kind = Parse<ToolKindDto>(entity.Kind),
-        Risk = Parse<ToolRiskDto>(entity.Risk),
-        UndoKind = Parse<UndoKindDto>(entity.UndoKind),
-        Arguments = entity.Arguments,
-        ArgumentsHash = entity.ArgumentsHash,
-        PlanIndex = entity.PlanIndex,
-        Decision = Parse<StepDecisionDto>(entity.Decision),
-        DecisionReasons = FromJson<List<string>>(entity.DecisionReasons),
-        Status = Parse<AgentStepStatusDto>(entity.Status),
-        StartedAt = Offset(entity.StartedAt),
-        EndedAt = Offset(entity.EndedAt),
-        EstimatedMinutes = entity.EstimatedMinutes,
-        ResultSummary = entity.ResultSummary,
-        Error = entity.Error,
-        Progress = entity.Progress,
+        Id = entity.Id, RunId = entity.RunId, Seq = entity.Seq, CallId = entity.CallId, Tool = entity.Tool,
+        Kind = AgentStoreValues.Parse<ToolKindDto>(entity.Kind), Risk = AgentStoreValues.Parse<ToolRiskDto>(entity.Risk), UndoKind = AgentStoreValues.Parse<UndoKindDto>(entity.UndoKind),
+        Arguments = entity.Arguments, ArgumentsHash = entity.ArgumentsHash, PlanIndex = entity.PlanIndex,
+        Decision = AgentStoreValues.Parse<StepDecisionDto>(entity.Decision), DecisionReasons = AgentStoreValues.FromJson<List<string>>(entity.DecisionReasons),
+        Status = AgentStoreValues.Parse<AgentStepStatusDto>(entity.Status), StartedAt = AgentStoreValues.Offset(entity.StartedAt), EndedAt = AgentStoreValues.Offset(entity.EndedAt),
+        EstimatedMinutes = entity.EstimatedMinutes, ResultSummary = entity.ResultSummary, Error = entity.Error, Progress = entity.Progress,
         Job = JobOf(entity),
     };
 
@@ -86,17 +76,17 @@ internal static class StepMapping
         ConversationId = entity.ConversationId,
         RunId = entity.RunId,
         StepId = entity.StepId,
-        Kind = Parse<UndoKindDto>(entity.Kind),
+        Kind = AgentStoreValues.Parse<UndoKindDto>(entity.Kind),
         Action = new UndoAction { Tool = entity.ActionTool, Arguments = entity.ActionArguments },
         Fresh = entity.Fresh,
-        Status = Parse<UndoEntryStatus>(entity.Status),
+        Status = AgentStoreValues.Parse<UndoEntryStatus>(entity.Status),
     };
 
     private static void ApplyProgress(RunStepEntity entity, RunStep step)
     {
         entity.Status = step.Status.ToString();
-        entity.StartedAt = Utc(step.StartedAt);
-        entity.EndedAt = Utc(step.EndedAt);
+        entity.StartedAt = AgentStoreValues.Utc(step.StartedAt);
+        entity.EndedAt = AgentStoreValues.Utc(step.EndedAt);
         entity.EstimatedMinutes = step.EstimatedMinutes;
         entity.ResultSummary = step.ResultSummary;
         entity.Error = step.Error;
@@ -107,5 +97,5 @@ internal static class StepMapping
     }
 
     private static JobRef? JobOf(RunStepEntity entity) =>
-        ParseOptional<JobPhaseDto>(entity.JobPhase) is { } phase ? new JobRef { TrackId = entity.JobTrackId, JobId = entity.JobId, Phase = phase } : null;
+        AgentStoreValues.ParseOptional<JobPhaseDto>(entity.JobPhase) is { } phase ? new JobRef { TrackId = entity.JobTrackId, JobId = entity.JobId, Phase = phase } : null;
 }

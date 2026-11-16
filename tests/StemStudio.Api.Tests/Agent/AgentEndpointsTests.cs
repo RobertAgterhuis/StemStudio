@@ -373,6 +373,18 @@ public sealed class AgentEndpointsTests : AgentApiTestBase
         await ContractAssert.MatchesAsync(unknown, "cancelAgentRun");
     }
 
+    [Fact]
+    public async Task Cancel_ARunUnknownToTheAgent_Is404()
+    {
+        var runId = await StartRunAsync();
+        RunService.CancelAsync(runId, false, Arg.Any<CancellationToken>()).ThrowsAsync(new KeyNotFoundException("gone"));
+
+        using var response = await Client.PostAsJsonAsync(ApiRoutes.AgentCancel(runId), new CancelAgentRunRequest(), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        await ContractAssert.MatchesAsync(response, "cancelAgentRun");
+    }
+
     private async Task<Guid> StartRunAsync()
     {
         var conversation = await CreateConversationAsync();

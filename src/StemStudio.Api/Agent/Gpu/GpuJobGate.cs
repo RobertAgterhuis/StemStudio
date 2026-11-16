@@ -34,13 +34,19 @@ public sealed class GpuJobGate(IServiceProvider services, IAgentSettingsStore se
     /// <returns>A task that never faults because of the release.</returns>
     public Task BeforeGeneratorJobAsync(CancellationToken cancellationToken) => ReleaseAsync(cancellationToken);
 
+    private async Task<ILlmGpuRelease?> ReleaseOfOllamaAsync(CancellationToken cancellationToken) =>
+        services.GetService<ILlmGpuRelease>() is { } release && (await settings.GetAsync(cancellationToken)).Backend == AgentBackendDto.Ollama ? release : null;
+
     private async Task ReleaseAsync(CancellationToken cancellationToken)
     {
-        if (services.GetService<ILlmGpuRelease>() is not { } release || (await settings.GetAsync(cancellationToken)).Backend != AgentBackendDto.Ollama)
+        if (await ReleaseOfOllamaAsync(cancellationToken) is { } release)
         {
-            return;
+            await ReleaseWithinLimitAsync(release, cancellationToken);
         }
+    }
 
+    private async Task ReleaseWithinLimitAsync(ILlmGpuRelease release, CancellationToken cancellationToken)
+    {
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {

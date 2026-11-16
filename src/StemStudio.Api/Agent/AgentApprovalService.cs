@@ -35,16 +35,14 @@ public sealed class AgentApprovalService(IRunStore runs, AgentRunLifecycle lifec
 
     private async Task<IResult> DecideKnownAsync(Guid runId, Guid stepId, DecideApprovalRequest request, CancellationToken cancellationToken)
     {
-        try
+        var decided = await AgentProblems.CallAsync(() => agent.DecideAsync(runId, stepId, request, cancellationToken), "The run has no approval for this step.");
+        if (decided.Problem is { } problem)
         {
-            var state = await agent.DecideAsync(runId, stepId, request, cancellationToken);
-            await lifecycle.ReleaseIfEndedAsync(runId, cancellationToken);
-            return TypedResults.Ok(state);
+            return problem;
         }
-        catch (AgentConflictException conflict)
-        {
-            return AgentProblems.Conflict(conflict.ProblemCode, conflict.Message);
-        }
+
+        await lifecycle.ReleaseIfEndedAsync(runId, cancellationToken);
+        return TypedResults.Ok(decided.Value);
     }
 
     private static bool IsHash(string? value) => value is { Length: 64 } && value.All(c => char.IsAsciiDigit(c) || c is >= 'a' and <= 'f');

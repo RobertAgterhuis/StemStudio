@@ -83,8 +83,7 @@ public sealed class AgentConversationService(IConversationStore conversations, A
     /// <returns>200, 404 or 422.</returns>
     public async Task<IResult> RenameAsync(Guid conversationId, RenameConversationRequest? request, CancellationToken cancellationToken)
     {
-        var title = request?.Title?.Trim() ?? string.Empty;
-        if (title.Length is 0 or > AgentContractLimits.TitleMaxLength)
+        if (ValidTitle(request) is not { } title)
         {
             return AgentProblems.Unprocessable("title", "The title has 1 to 120 characters.");
         }
@@ -118,6 +117,12 @@ public sealed class AgentConversationService(IConversationStore conversations, A
 
         await conversations.DeleteAsync(conversationId, cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    private static string? ValidTitle(RenameConversationRequest? request)
+    {
+        var title = request?.Title?.Trim();
+        return title is { Length: > 0 and <= AgentContractLimits.TitleMaxLength } ? title : null;
     }
 
     /// <summary>404 for an unknown conversation.</summary>

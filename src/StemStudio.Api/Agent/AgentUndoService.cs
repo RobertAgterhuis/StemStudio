@@ -13,43 +13,47 @@ namespace StemStudio.Api.Agent;
 /// <param name="agent">Run service of the agent library.</param>
 public sealed class AgentUndoService(IConversationStore conversations, IRunStore runs, AgentRunExecutor executor, IAgentRunService agent)
 {
+    private const string NotFoundDetail = "The conversation does not exist.";
+
     /// <summary>Starts the undo run.</summary>
     /// <param name="conversationId">Conversation id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202, 404 or 409.</returns>
     public async Task<IResult> UndoAsync(Guid conversationId, CancellationToken cancellationToken)
     {
+        if (await RefusalAsync(conversationId, cancellationToken) is { } refused)
+        {
+            return refused;
+        }
+
+        var planned = await AgentProblems.CallAsync(() => agent.UndoAsync(conversationId, cancellationToken), NotFoundDetail);
+        if (planned.Problem is { } problem)
+        {
+            return problem;
+        }
+
+        await QueueAsync(conversationId, planned.Value, cancellationToken);
+        return TypedResults.Accepted((string?)null, new AgentRunAcceptedDto { RunId = planned.Value });
+    }
+
+    private async Task<IResult?> RefusalAsync(Guid conversationId, CancellationToken cancellationToken)
+    {
         if (await conversations.GetAsync(conversationId, cancellationToken) is null)
         {
             return AgentConversationService.ConversationNotFound();
         }
 
-        if (await runs.GetActiveRunAsync(cancellationToken) is not null)
-        {
-            return AgentProblems.RunActive();
-        }
+        return await runs.GetActiveRunAsync(cancellationToken) is null ? null : AgentProblems.RunActive();
+    }
 
-        Guid runId;
-        try
-        {
-            runId = await agent.UndoAsync(conversationId, cancellationToken);
-        }
-        catch (AgentConflictException conflict)
-        {
-            return AgentProblems.Conflict(conflict.ProblemCode, conflict.Message);
-        }
-        catch (KeyNotFoundException)
-        {
-            return AgentConversationService.ConversationNotFound();
-        }
-
-        // Re-read: the agent library may have touched the conversation while it planned the undo run.
+    // Re-read: the agent library may have touched the conversation while it planned the undo run.
+    private async Task QueueAsync(Guid conversationId, Guid runId, CancellationToken cancellationToken)
+    {
         if (await conversations.GetAsync(conversationId, cancellationToken) is { } conversation)
         {
             await conversations.UpdateAsync(conversation with { ActiveRunId = runId }, cancellationToken);
         }
 
         executor.Enqueue(runId);
-        return TypedResults.Accepted((string?)null, new AgentRunAcceptedDto { RunId = runId });
     }
 }

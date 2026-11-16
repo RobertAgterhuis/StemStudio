@@ -16,7 +16,6 @@ namespace StemStudio.Api.Agent;
 /// <param name="clock">Clock of the keep-alive timer.</param>
 public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider clock)
 {
-    private static readonly TimeSpan KeepAlive = TimeSpan.FromSeconds(AgentContractLimits.KeepAliveSeconds);
 
     /// <summary>Streams the events of a run to the response until the terminal event or the client disconnects.</summary>
     /// <param name="response">The HTTP response.</param>
@@ -29,19 +28,24 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
         ArgumentNullException.ThrowIfNull(response);
         response.ContentType = "text/event-stream; charset=utf-8";
         response.Headers.CacheControl = "no-cache";
-        using var subscription = hub.Subscribe(runId);
         try
         {
-            await response.StartAsync(cancellationToken);
-            var last = await ReplayAsync(response, runId, after, cancellationToken);
-            if (last is not null)
-            {
-                await LiveAsync(response, subscription, last.Value, cancellationToken);
-            }
+            await StreamEventsAsync(response, runId, after, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // The client went away.
+        }
+    }
+
+    // Subscribed before the replay, so no event published in between is lost (live events up to the replayed Seq are skipped).
+    private async Task StreamEventsAsync(HttpResponse response, Guid runId, int after, CancellationToken cancellationToken)
+    {
+        using var subscription = hub.Subscribe(runId);
+        await response.StartAsync(cancellationToken);
+        if (await ReplayAsync(response, runId, after, cancellationToken) is { } last)
+        {
+            await LiveAsync(response, subscription, last, cancellationToken);
         }
     }
 
@@ -56,6 +60,19 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
 
     private async Task<int?> ReplayAsync(HttpResponse response, Guid runId, int after, CancellationToken cancellationToken)
     {
+        if (await WriteStoredAsync(response, runId, after, cancellationToken) is not { } last)
+        {
+            return null;
+        }
+
+        await response.Body.FlushAsync(cancellationToken);
+        var run = await runs.GetRunAsync(runId, cancellationToken);
+        return run is { IsTerminal: true } ? null : last;
+    }
+
+    // The last written Seq, or null when a terminal event was written.
+    private async Task<int?> WriteStoredAsync(HttpResponse response, Guid runId, int after, CancellationToken cancellationToken)
+    {
         var last = after;
         foreach (var stored in await hub.ReadAfterAsync(runId, after, cancellationToken))
         {
@@ -67,35 +84,31 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
             }
         }
 
-        await response.Body.FlushAsync(cancellationToken);
-        var run = await runs.GetRunAsync(runId, cancellationToken);
-        return run is { IsTerminal: true } ? null : last;
+        return last;
     }
 
     private async Task LiveAsync(HttpResponse response, RunEventSubscription subscription, int last, CancellationToken cancellationToken)
     {
-        Task<RunEvent>? pending = null;
-        while (true)
+        var events = new LiveEvents(subscription.Events, clock);
+        var ended = false;
+        while (!ended)
         {
-            pending ??= subscription.Events.ReadAsync(cancellationToken).AsTask();
-            using var tick = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var keepAlive = Task.Delay(KeepAlive, clock, tick.Token);
-            if (await Task.WhenAny(pending, keepAlive) == keepAlive)
-            {
-                await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
-                continue;
-            }
-
-            await tick.CancelAsync();
-            var live = await pending;
-            pending = null;
-            if (live.Seq > last && await WriteLiveAsync(response, live, cancellationToken))
-            {
-                return;
-            }
-
-            last = Math.Max(last, live.Seq);
+            var live = await events.NextAsync(cancellationToken);
+            ended = await WriteNextAsync(response, live, last, cancellationToken);
+            last = Math.Max(last, live?.Seq ?? last);
         }
+    }
+
+    // A keep-alive comment when no event arrived in time; events up to the replayed Seq are skipped. True after the terminal event.
+    private static async Task<bool> WriteNextAsync(HttpResponse response, RunEvent? live, int last, CancellationToken cancellationToken)
+    {
+        if (live is null)
+        {
+            await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
+            return false;
+        }
+
+        return live.Seq > last && await WriteLiveAsync(response, live, cancellationToken);
     }
 
     private static async Task<bool> WriteLiveAsync(HttpResponse response, RunEvent live, CancellationToken cancellationToken)

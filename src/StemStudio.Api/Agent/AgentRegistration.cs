@@ -18,6 +18,17 @@ public static class AgentRegistration
     {
         services.Configure<AgentHostOptions>(configuration.GetSection(AgentHostOptions.SectionName));
         services.AddStemStudioAgent();
+        services.AddAgentStores().AddAgentRuntime().AddAgentEndpointServices();
+        services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
+        services.AddLoopbackActions(configuration);
+        services.AddGpuCoordination();
+        services.DecorateGpuJobClients();
+        return services;
+    }
+
+    // The ports are registered with plain Add after AddStemStudioAgent(), so these registrations win.
+    private static IServiceCollection AddAgentStores(this IServiceCollection services)
+    {
         services.AddSingleton<AgentDb>();
         services.AddSingleton<IConversationStore, EfConversationStore>();
         services.AddSingleton<IRunStore, EfRunStore>();
@@ -26,6 +37,11 @@ public static class AgentRegistration
         services.AddSingleton<RunEventHub>();
         services.AddSingleton<IRunEventSink>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<IRunEventLogReader>(sp => sp.GetRequiredService<RunEventHub>());
+        return services;
+    }
+
+    private static IServiceCollection AddAgentRuntime(this IServiceCollection services)
+    {
         services.AddSingleton<AgentStartupRecovery>();
         services.AddSingleton<AgentQueries>();
         services.AddSingleton<AgentRunLifecycle>();
@@ -33,17 +49,18 @@ public static class AgentRegistration
         services.AddSingleton<SseWriter>();
         services.AddSingleton<AgentRunExecutor>();
         services.AddHostedService(sp => sp.GetRequiredService<AgentRunExecutor>());
+        services.AddSingleton<AgentStatusProbe>();
+        return services;
+    }
+
+    private static IServiceCollection AddAgentEndpointServices(this IServiceCollection services)
+    {
         services.AddScoped<AgentConversationService>();
         services.AddScoped<AgentMessageService>();
         services.AddScoped<AgentRunEndpointService>();
         services.AddScoped<AgentApprovalService>();
-        services.AddSingleton<AgentStatusProbe>();
         services.AddScoped<AgentSettingsService>();
         services.AddScoped<AgentUndoService>();
-        services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
-        services.AddLoopbackActions(configuration);
-        services.AddGpuCoordination();
-        services.DecorateGpuJobClients();
         return services;
     }
 }

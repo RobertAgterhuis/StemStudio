@@ -19,8 +19,7 @@ public sealed class EfRunStore(AgentDb db) : IRunStore, IDisposable
     public async Task CreateRunAsync(AgentRun run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(run);
-        await _createLock.WaitAsync(cancellationToken);
-        try
+        await _createLock.RunExclusiveAsync(async () =>
         {
             if (!run.IsTerminal && await GetActiveRunAsync(cancellationToken) is { } active)
             {
@@ -28,11 +27,8 @@ public sealed class EfRunStore(AgentDb db) : IRunStore, IDisposable
             }
 
             await db.SaveAsync(context => Task.FromResult(context.AgentRuns.Add(RunMapping.Apply(new(), run))), cancellationToken);
-        }
-        finally
-        {
-            _createLock.Release();
-        }
+            return true;
+        }, cancellationToken);
     }
 
     /// <inheritdoc />

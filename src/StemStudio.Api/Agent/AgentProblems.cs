@@ -1,3 +1,4 @@
+using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent;
@@ -39,4 +40,33 @@ public static class AgentProblems
         Title = "One or more validation errors occurred.",
         Status = StatusCodes.Status422UnprocessableEntity,
     });
+
+    /// <summary>
+    /// Calls the agent library and maps its exceptions: <see cref="AgentConflictException"/> to 409 with its problem code (its
+    /// message is the agent library's own text) and <see cref="KeyNotFoundException"/> to 404.
+    /// </summary>
+    /// <typeparam name="T">Result of the call.</typeparam>
+    /// <param name="call">The call.</param>
+    /// <param name="notFoundDetail">Detail of the 404.</param>
+    /// <returns>The value, or the problem to answer.</returns>
+    public static async Task<AgentCallResult<T>> CallAsync<T>(Func<Task<T>> call, string notFoundDetail)
+    {
+        ArgumentNullException.ThrowIfNull(call);
+        try
+        {
+            return new AgentCallResult<T>(await call(), null);
+        }
+        catch (Exception exception) when (exception is AgentConflictException or KeyNotFoundException)
+        {
+            return new AgentCallResult<T>(default, exception is AgentConflictException conflict
+                ? Conflict(conflict.ProblemCode, conflict.Message)
+                : ApiProblems.NotFound(notFoundDetail));
+        }
+    }
 }
+
+/// <summary>Outcome of <see cref="AgentProblems.CallAsync{T}"/>.</summary>
+/// <typeparam name="T">Result of the call.</typeparam>
+/// <param name="Value">The value when the call succeeded.</param>
+/// <param name="Problem">The problem to answer, or null on success.</param>
+public readonly record struct AgentCallResult<T>(T? Value, IResult? Problem);

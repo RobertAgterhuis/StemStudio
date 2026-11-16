@@ -34,18 +34,7 @@ public sealed class AgentStartupRecovery(AgentDb db, IRunEventSink events, TimeP
     /// <returns>The ids of the interrupted runs.</returns>
     public async Task<IReadOnlyList<Guid>> RecoverAsync(CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow().UtcDateTime;
-        var runIds = await db.WithAsync(async context =>
-        {
-            var runs = await EfRunStore.ActiveRuns(context).ToListAsync(cancellationToken);
-            foreach (var run in runs)
-            {
-                await InterruptAsync(context, run, now, cancellationToken);
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-            return runs.Select(run => run.Id).ToList();
-        });
+        var runIds = await InterruptAllAsync(clock.GetUtcNow().UtcDateTime, cancellationToken);
         foreach (var runId in runIds)
         {
             await events.PublishAsync(runId, AgentEventTypes.RunInterrupted, AgentStoreValues.ToJson(new RunInterruptedEventDto { RunId = runId }), cancellationToken);
@@ -53,6 +42,18 @@ public sealed class AgentStartupRecovery(AgentDb db, IRunEventSink events, TimeP
 
         return runIds;
     }
+
+    private Task<List<Guid>> InterruptAllAsync(DateTime now, CancellationToken cancellationToken) => db.WithAsync(async context =>
+    {
+        var runs = await EfRunStore.ActiveRuns(context).ToListAsync(cancellationToken);
+        foreach (var run in runs)
+        {
+            await InterruptAsync(context, run, now, cancellationToken);
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        return runs.Select(run => run.Id).ToList();
+    });
 
     private static async Task InterruptAsync(StemStudioDbContext context, AgentRunEntity run, DateTime now, CancellationToken cancellationToken)
     {

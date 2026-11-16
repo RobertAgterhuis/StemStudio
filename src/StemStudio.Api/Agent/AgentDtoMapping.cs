@@ -61,19 +61,13 @@ public static class AgentDtoMapping
         ArgumentNullException.ThrowIfNull(run);
         return new AgentRunDto
         {
-            RunId = run.Id,
-            ConversationId = run.ConversationId,
-            Status = run.Status,
-            Backend = run.Backend,
-            Model = run.Model,
-            Tainted = run.Tainted,
+            RunId = run.Id, ConversationId = run.ConversationId, Status = run.Status, Backend = run.Backend, Model = run.Model, Tainted = run.Tainted,
             Plan = [.. run.Plan.Select(item => new PlanItemDto { Index = item.Index, Title = item.Title, Tool = item.Tool, Status = item.Status })],
             Steps = [.. steps.Select(ToDto)],
             PendingApproval = pendingApproval,
             Usage = new TokenUsageDto { InputTokens = run.Usage.InputTokens, OutputTokens = run.Usage.OutputTokens, CachedInputTokens = run.Usage.CachedInputTokens },
             Failure = run.FailureCode is null ? null : new RunFailureDto { Code = run.FailureCode, Message = run.FailureMessage ?? string.Empty },
-            StartedAt = run.StartedAt,
-            EndedAt = run.EndedAt,
+            StartedAt = run.StartedAt, EndedAt = run.EndedAt,
         };
     }
 
@@ -85,25 +79,12 @@ public static class AgentDtoMapping
         ArgumentNullException.ThrowIfNull(step);
         return new AgentStepDto
         {
-            StepId = step.Id,
-            Seq = step.Seq,
-            Tool = step.Tool,
-            Kind = step.Kind,
-            Risk = step.Risk,
-            Undo = step.UndoKind,
-            Arguments = Json(step.Arguments),
-            ArgumentsHash = step.ArgumentsHash,
-            PlanIndex = step.PlanIndex,
-            Decision = step.Decision,
-            DecisionReasons = step.DecisionReasons,
-            Status = step.Status,
-            ResultSummary = step.ResultSummary is null ? null : Json(step.ResultSummary),
-            Error = step.Error,
+            StepId = step.Id, Seq = step.Seq, Tool = step.Tool, Kind = step.Kind, Risk = step.Risk, Undo = step.UndoKind,
+            Arguments = Json(step.Arguments), ArgumentsHash = step.ArgumentsHash, PlanIndex = step.PlanIndex,
+            Decision = step.Decision, DecisionReasons = step.DecisionReasons, Status = step.Status,
+            ResultSummary = step.ResultSummary is null ? null : Json(step.ResultSummary), Error = step.Error,
             Job = step.Job is null ? null : new JobRefDto { TrackId = step.Job.TrackId, JobId = step.Job.JobId, Phase = step.Job.Phase },
-            Progress = step.Progress,
-            EstimatedMinutes = step.EstimatedMinutes,
-            StartedAt = step.StartedAt,
-            EndedAt = step.EndedAt,
+            Progress = step.Progress, EstimatedMinutes = step.EstimatedMinutes, StartedAt = step.StartedAt, EndedAt = step.EndedAt,
         };
     }
 

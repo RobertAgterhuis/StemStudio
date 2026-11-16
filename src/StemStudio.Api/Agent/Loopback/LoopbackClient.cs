@@ -59,16 +59,7 @@ public sealed partial class LoopbackClient(HttpClient http)
     {
         using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
         request.Content = body is null ? null : JsonContent.Create(body, body.GetType(), options: Json);
-        HttpResponseMessage response;
-        try
-        {
-            response = await http.SendAsync(request, cancellationToken);
-        }
-        catch (HttpRequestException exception)
-        {
-            throw new AgentActionException(UnreachableMessage, exception);
-        }
-
+        var response = await ReachAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             using (response)
@@ -78,6 +69,18 @@ public sealed partial class LoopbackClient(HttpClient http)
         }
 
         return response;
+    }
+
+    private async Task<HttpResponseMessage> ReachAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await http.SendAsync(request, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new AgentActionException(UnreachableMessage, exception);
+        }
     }
 
     private static async Task<AgentActionException> ProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -113,11 +116,15 @@ public sealed partial class LoopbackClient(HttpClient http)
 
     private static string Readable(LoopbackProblem problem, int status)
     {
-        var errors = problem.Errors?.SelectMany(pair => pair.Value.Select(message => $"{pair.Key}: {message}")) ?? [];
-        var parts = new[] { problem.Detail ?? problem.Title }.Concat(errors).Where(part => !string.IsNullOrWhiteSpace(part));
-        var text = Url().Replace(string.Join(" ", parts), "the address").Trim();
+        var text = Url().Replace(string.Join(" ", Parts(problem)), "the address").Trim();
         text = text.Length == 0 ? $"StemStudio refused the action (HTTP {status})." : text;
         return text.Length <= AgentContractLimits.ErrorMaxLength ? text : text[..AgentContractLimits.ErrorMaxLength];
+    }
+
+    private static IEnumerable<string?> Parts(LoopbackProblem problem)
+    {
+        var errors = problem.Errors?.SelectMany(pair => pair.Value.Select(message => $"{pair.Key}: {message}")) ?? [];
+        return new[] { problem.Detail ?? problem.Title }.Concat(errors).Where(part => !string.IsNullOrWhiteSpace(part));
     }
 
     [GeneratedRegex(@"https?://\S+", RegexOptions.CultureInvariant)]

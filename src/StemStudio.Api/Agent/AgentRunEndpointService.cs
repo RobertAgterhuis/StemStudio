@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
 
@@ -49,14 +50,9 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
     public async Task<IResult> SubmitUiResultAsync(Guid runId, Guid stepId, SubmitUiResultRequest? request, IUiToolGateway gateway)
     {
         ArgumentNullException.ThrowIfNull(gateway);
-        if (Invalid(request) is { } invalid)
+        if ((Invalid(request) ?? await UnknownRunAsync(runId)) is { } refused)
         {
-            return invalid;
-        }
-
-        if (await runs.GetRunAsync(runId, CancellationToken.None) is null)
-        {
-            return RunNotFound();
+            return refused;
         }
 
         var result = new UiToolResult { Ok = request!.Ok, Result = request.Result?.GetRawText(), Error = request.Error };
@@ -79,18 +75,23 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
             return RunNotFound();
         }
 
-        try
+        var cancelJobs = request?.CancelJobs == true;
+        if ((await AgentProblems.CallAsync(() => CancelRunAsync(agent, runId, cancelJobs, cancellationToken), "The run does not exist.")).Problem is { } problem)
         {
-            await agent.CancelAsync(runId, request?.CancelJobs ?? false, cancellationToken);
-        }
-        catch (AgentConflictException conflict)
-        {
-            return AgentProblems.Conflict(conflict.ProblemCode, conflict.Message);
+            return problem;
         }
 
         await lifecycle.ReleaseIfEndedAsync(runId, cancellationToken);
         return TypedResults.Accepted((string?)null, await SnapshotAsync(runId, cancellationToken));
     }
+
+    private static async Task<bool> CancelRunAsync(IAgentRunService agent, Guid runId, bool cancelJobs, CancellationToken cancellationToken)
+    {
+        await agent.CancelAsync(runId, cancelJobs, cancellationToken);
+        return true;
+    }
+
+    private async Task<IResult?> UnknownRunAsync(Guid runId) => await runs.GetRunAsync(runId, CancellationToken.None) is null ? RunNotFound() : null;
 
     /// <summary>404 for an unknown run.</summary>
     /// <returns>The result.</returns>
@@ -108,6 +109,12 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
         }
 
         var steps = await runs.GetStepsAsync(runId, cancellationToken);
+        var pending = await PendingStepsAsync(steps, cancellationToken);
+        return AgentDtoMapping.ToDto(run, steps, await queries.PendingApprovalAsync(runId, pending, cancellationToken));
+    }
+
+    private async Task<HashSet<Guid>> PendingStepsAsync(IReadOnlyList<RunStep> steps, CancellationToken cancellationToken)
+    {
         var pending = new HashSet<Guid>();
         foreach (var step in steps.Where(s => s.Status == AgentStepStatusDto.AwaitingApproval))
         {
@@ -117,7 +124,7 @@ public sealed class AgentRunEndpointService(IRunStore runs, AgentQueries queries
             }
         }
 
-        return AgentDtoMapping.ToDto(run, steps, await queries.PendingApprovalAsync(runId, pending, cancellationToken));
+        return pending;
     }
 
     private static IResult? Invalid(SubmitUiResultRequest? request)

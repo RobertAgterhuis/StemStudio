@@ -1,7 +1,6 @@
 using StemStudio.Agent.Model;
 using StemStudio.Contracts.Agent;
 using StemStudio.Persistence.Agent;
-using static StemStudio.Api.Agent.Stores.AgentStoreValues;
 
 namespace StemStudio.Api.Agent.Stores;
 
@@ -17,16 +16,10 @@ internal static class RunMapping
         entity.Id = run.Id;
         entity.ConversationId = run.ConversationId;
         entity.UserMessageId = run.UserMessageId;
-        entity.Status = run.Status.ToString();
         entity.Backend = run.Backend.ToString();
         entity.Model = run.Model;
-        entity.Tainted = run.Tainted;
-        entity.Plan = ToJson(run.Plan);
+        ApplyState(entity, run);
         ApplyCounters(entity, run);
-        entity.FailureCode = run.FailureCode;
-        entity.FailureMessage = run.FailureMessage;
-        entity.StartedAt = Utc(run.StartedAt);
-        entity.EndedAt = Utc(run.EndedAt);
         return entity;
     }
 
@@ -35,22 +28,13 @@ internal static class RunMapping
     /// <returns>The record.</returns>
     public static AgentRun ToRecord(AgentRunEntity entity) => new()
     {
-        Id = entity.Id,
-        ConversationId = entity.ConversationId,
-        UserMessageId = entity.UserMessageId,
-        Status = Parse<AgentRunStatusDto>(entity.Status),
-        Backend = Parse<AgentBackendDto>(entity.Backend),
-        Model = entity.Model,
-        Tainted = entity.Tainted,
-        Plan = FromJson<List<PlanItem>>(entity.Plan),
-        ModelTurns = entity.ModelTurns,
-        ToolCalls = entity.ToolCalls,
-        InvalidCalls = entity.InvalidCalls,
+        Id = entity.Id, ConversationId = entity.ConversationId, UserMessageId = entity.UserMessageId,
+        Status = AgentStoreValues.Parse<AgentRunStatusDto>(entity.Status), Backend = AgentStoreValues.Parse<AgentBackendDto>(entity.Backend), Model = entity.Model,
+        Tainted = entity.Tainted, Plan = AgentStoreValues.FromJson<List<PlanItem>>(entity.Plan),
+        ModelTurns = entity.ModelTurns, ToolCalls = entity.ToolCalls, InvalidCalls = entity.InvalidCalls,
         Usage = new TokenUsage(entity.InputTokens, entity.OutputTokens, entity.CachedInputTokens),
-        FailureCode = entity.FailureCode,
-        FailureMessage = entity.FailureMessage,
-        StartedAt = Offset(entity.StartedAt),
-        EndedAt = Offset(entity.EndedAt),
+        FailureCode = entity.FailureCode, FailureMessage = entity.FailureMessage,
+        StartedAt = AgentStoreValues.Offset(entity.StartedAt), EndedAt = AgentStoreValues.Offset(entity.EndedAt),
     };
 
     /// <summary>Copies an approval onto a row.</summary>
@@ -64,8 +48,8 @@ internal static class RunMapping
         entity.Status = approval.Status.ToString();
         entity.Scope = approval.Scope.ToString();
         entity.ArgumentsHash = approval.ArgumentsHash;
-        entity.RequestedAt = Utc(approval.RequestedAt);
-        entity.DecidedAt = Utc(approval.DecidedAt);
+        entity.RequestedAt = AgentStoreValues.Utc(approval.RequestedAt);
+        entity.DecidedAt = AgentStoreValues.Utc(approval.DecidedAt);
         return entity;
     }
 
@@ -76,12 +60,23 @@ internal static class RunMapping
     {
         Id = entity.Id,
         RunId = entity.RunId,
-        Status = Parse<ApprovalStatusDto>(entity.Status),
-        Scope = Parse<ApprovalScopeDto>(entity.Scope),
+        Status = AgentStoreValues.Parse<ApprovalStatusDto>(entity.Status),
+        Scope = AgentStoreValues.Parse<ApprovalScopeDto>(entity.Scope),
         ArgumentsHash = entity.ArgumentsHash,
-        RequestedAt = Offset(entity.RequestedAt),
-        DecidedAt = Offset(entity.DecidedAt),
+        RequestedAt = AgentStoreValues.Offset(entity.RequestedAt),
+        DecidedAt = AgentStoreValues.Offset(entity.DecidedAt),
     };
+
+    private static void ApplyState(AgentRunEntity entity, AgentRun run)
+    {
+        entity.Status = run.Status.ToString();
+        entity.Tainted = run.Tainted;
+        entity.Plan = AgentStoreValues.ToJson(run.Plan);
+        entity.FailureCode = run.FailureCode;
+        entity.FailureMessage = run.FailureMessage;
+        entity.StartedAt = AgentStoreValues.Utc(run.StartedAt);
+        entity.EndedAt = AgentStoreValues.Utc(run.EndedAt);
+    }
 
     private static void ApplyCounters(AgentRunEntity entity, AgentRun run)
     {

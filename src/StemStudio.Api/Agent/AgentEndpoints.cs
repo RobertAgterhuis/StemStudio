@@ -27,7 +27,7 @@ public static class AgentEndpoints
         app.MapGet(ApiRoutes.AgentStatus, async (AgentStatusProbe probe, CancellationToken ct) => TypedResults.Ok(await probe.GetAsync(ct)))
             .WithName("getAgentStatus").WithTags(Tag).Produces<AgentStatusDto>();
         app.MapGet(ApiRoutes.AgentTools, ListTools).WithName("listAgentTools").WithTags(Tag).Produces<List<AgentToolInfoDto>>().ProducesValidationProblem();
-        return app.MapSettingsEndpoints().MapConversationEndpoints().MapRunEndpoints();
+        return app.MapSettingsEndpoints().MapConversationEndpoints().MapConversationChangeEndpoints().MapRunEndpoints().MapRunDecisionEndpoints();
     }
 
     private static IEndpointRouteBuilder MapSettingsEndpoints(this IEndpointRouteBuilder app)
@@ -50,6 +50,16 @@ public static class AgentEndpoints
             .WithName("createConversation").WithTags(Tag).Produces<ConversationDto>(StatusCodes.Status201Created).ProducesValidationProblem();
         app.MapGet(ConversationRoute, (Guid conversationId, AgentConversationService service, CancellationToken ct) => service.GetAsync(conversationId, ct))
             .WithName("getConversation").WithTags(Tag).Produces<ConversationDto>().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPost(ConversationRoute + "/messages", (Guid conversationId, SendAgentMessageRequest? request, AgentMessageService service, AgentStatusProbe probe, CancellationToken ct) =>
+                SendAsync(new MessageCall(conversationId, request, service, probe), ct))
+            .WithName("sendAgentMessage").WithTags(Tag).Produces<AgentMessageAcceptedDto>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        return app;
+    }
+
+    private static IEndpointRouteBuilder MapConversationChangeEndpoints(this IEndpointRouteBuilder app)
+    {
         app.MapPatch(ConversationRoute, (Guid conversationId, RenameConversationRequest? request, AgentConversationService service, CancellationToken ct) => service.RenameAsync(conversationId, request, ct))
             .WithName("renameConversation").WithTags(Tag).Produces<ConversationSummaryDto>()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
@@ -59,11 +69,6 @@ public static class AgentEndpoints
         app.MapPost(ConversationRoute + "/undo", (Guid conversationId, AgentUndoService service, CancellationToken ct) => service.UndoAsync(conversationId, ct))
             .WithName("undoLastAgentAction").WithTags(Tag).Produces<AgentRunAcceptedDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
-        app.MapPost(ConversationRoute + "/messages", (Guid conversationId, SendAgentMessageRequest? request, AgentMessageService service, AgentStatusProbe probe, CancellationToken ct) =>
-                SendAsync(new MessageCall(conversationId, request, service, probe), ct))
-            .WithName("sendAgentMessage").WithTags(Tag).Produces<AgentMessageAcceptedDto>(StatusCodes.Status202Accepted)
-            .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity)
-            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
     }
 
@@ -77,6 +82,11 @@ public static class AgentEndpoints
                 service.SubmitUiResultAsync(runId, stepId, request, gateway))
             .WithName("submitAgentUiResult").WithTags(Tag).Produces(StatusCodes.Status204NoContent).ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
+        return app;
+    }
+
+    private static IEndpointRouteBuilder MapRunDecisionEndpoints(this IEndpointRouteBuilder app)
+    {
         app.MapPost(RunRoute + "/approvals/{stepId:guid}", (Guid runId, Guid stepId, DecideApprovalRequest? request, AgentApprovalService service, CancellationToken ct) =>
                 service.DecideAsync(runId, stepId, request, ct))
             .WithName("decideAgentApproval").WithTags(Tag).Produces<ApprovalStateDto>().ProducesValidationProblem()

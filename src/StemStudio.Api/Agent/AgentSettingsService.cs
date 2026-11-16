@@ -30,14 +30,14 @@ public sealed class AgentSettingsService(IAgentSettingsStore settings, AgentStat
     /// <returns>200, 400, 409 or 422.</returns>
     public async Task<IResult> UpdateAsync(UpdateAgentSettingsRequest? request, CancellationToken cancellationToken)
     {
-        if ((AgentSettingsRules.ShapeProblem(request) ?? AgentSettingsRules.LimitProblem(request?.Limits)) is { } invalid)
+        if (AgentSettingsRules.ShapeProblem(request) is { } invalid)
         {
             return invalid;
         }
 
         var current = await settings.GetAsync(cancellationToken);
         var merged = AgentSettingsRules.Merge(current, request!, clock.GetUtcNow());
-        if ((ClaudeProblem(request!, merged) ?? await ModelProblemAsync(current, merged, cancellationToken)) is { } refused)
+        if (await RefusalAsync(request!, current, merged, cancellationToken) is { } refused)
         {
             return refused;
         }
@@ -59,6 +59,9 @@ public sealed class AgentSettingsService(IAgentSettingsStore settings, AgentStat
 
         return TypedResults.Ok(await probe.TestAsync(request.Backend, cancellationToken));
     }
+
+    private async Task<IResult?> RefusalAsync(UpdateAgentSettingsRequest request, AgentSettings current, AgentSettings merged, CancellationToken cancellationToken) =>
+        AgentSettingsRules.LimitProblem(request.Limits) ?? ClaudeProblem(request, merged) ?? await ModelProblemAsync(current, merged, cancellationToken);
 
     // Checked only when the request selects Claude, so limits stay editable after the key was removed from the shell.
     private IResult? ClaudeProblem(UpdateAgentSettingsRequest request, AgentSettings merged)

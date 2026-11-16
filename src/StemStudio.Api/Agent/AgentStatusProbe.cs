@@ -28,22 +28,23 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
     /// <returns>The status (never the key).</returns>
     public async Task<AgentStatusDto> GetAsync(CancellationToken cancellationToken)
     {
-        if (services.GetService<IAgentStatusService>() is not { } status)
-        {
-            return await FallbackAsync(FailureReason, cancellationToken);
-        }
+        var (status, reason) = services.GetService<IAgentStatusService>() is { } probe ? await ProbeAsync(probe, cancellationToken) : (null, FailureReason);
+        return status ?? await FallbackAsync(reason, cancellationToken);
+    }
 
+    private async Task<(AgentStatusDto? Status, string Reason)> ProbeAsync(IAgentStatusService probe, CancellationToken cancellationToken)
+    {
         try
         {
-            return await status.GetStatusAsync(cancellationToken).WaitAsync(Limit, clock, cancellationToken);
+            return (await probe.GetStatusAsync(cancellationToken).WaitAsync(Limit, clock, cancellationToken), FailureReason);
         }
         catch (TimeoutException)
         {
-            return await FallbackAsync(TimeoutReason, cancellationToken);
+            return (null, TimeoutReason);
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            return await FallbackAsync(FailureReason, cancellationToken);
+            return (null, FailureReason);
         }
     }
 

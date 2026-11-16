@@ -43,16 +43,8 @@ public static class AgentSettingsRules
             return null;
         }
 
-        foreach (var (field, value, min, max) in LimitRanges)
-        {
-            var actual = value(limits);
-            if (actual < min || actual > max)
-            {
-                return AgentProblems.Unprocessable(field, $"Must be from {min} to {max}.");
-            }
-        }
-
-        return null;
+        var broken = LimitRanges.Where(range => range.Value(limits) < range.Min || range.Value(limits) > range.Max).ToList();
+        return broken.Count == 0 ? null : AgentProblems.Unprocessable(broken[0].Field, $"Must be from {broken[0].Min} to {broken[0].Max}.");
     }
 
     /// <summary>The settings with the request applied.</summary>
@@ -64,19 +56,25 @@ public static class AgentSettingsRules
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(request);
-        return current with
-        {
-            Backend = request.Backend ?? current.Backend,
-            OllamaModel = request.OllamaModel?.Trim() ?? current.OllamaModel,
-            OllamaFallbackModel = request.OllamaFallbackModel?.Trim() ?? current.OllamaFallbackModel,
-            OllamaThink = request.OllamaThink ?? current.OllamaThink,
-            ClaudeModel = request.ClaudeModel ?? current.ClaudeModel,
-            ClaudeEffort = request.ClaudeEffort ?? current.ClaudeEffort,
-            ClaudeNoticeAcknowledgedAt = request.AcknowledgeClaudeNotice ? now : current.ClaudeNoticeAcknowledgedAt,
-            Limits = request.Limits ?? current.Limits,
-            UpdatedAt = now,
-        };
+        return MergeClaude(MergeOllama(current, request), request, now) with { Limits = request.Limits ?? current.Limits, UpdatedAt = now };
     }
+
+    private static AgentSettings MergeOllama(AgentSettings current, UpdateAgentSettingsRequest request) => current with
+    {
+        Backend = request.Backend ?? current.Backend,
+        OllamaModel = Trimmed(request.OllamaModel) ?? current.OllamaModel,
+        OllamaFallbackModel = Trimmed(request.OllamaFallbackModel) ?? current.OllamaFallbackModel,
+        OllamaThink = request.OllamaThink ?? current.OllamaThink,
+    };
+
+    private static string? Trimmed(string? name) => name?.Trim();
+
+    private static AgentSettings MergeClaude(AgentSettings current, UpdateAgentSettingsRequest request, DateTimeOffset now) => current with
+    {
+        ClaudeModel = request.ClaudeModel ?? current.ClaudeModel,
+        ClaudeEffort = request.ClaudeEffort ?? current.ClaudeEffort,
+        ClaudeNoticeAcknowledgedAt = request.AcknowledgeClaudeNotice ? now : current.ClaudeNoticeAcknowledgedAt,
+    };
 
     /// <summary>The settings DTO (never the key).</summary>
     /// <param name="settings">The settings.</param>
@@ -87,12 +85,8 @@ public static class AgentSettingsRules
         return new AgentSettingsDto
         {
             Backend = settings.Backend,
-            OllamaModel = settings.OllamaModel,
-            OllamaFallbackModel = settings.OllamaFallbackModel,
-            OllamaThink = settings.OllamaThink,
-            ClaudeModel = settings.ClaudeModel,
-            ClaudeEffort = settings.ClaudeEffort,
-            ClaudeNoticeAcknowledged = settings.ClaudeNoticeAcknowledgedAt is not null,
+            OllamaModel = settings.OllamaModel, OllamaFallbackModel = settings.OllamaFallbackModel, OllamaThink = settings.OllamaThink,
+            ClaudeModel = settings.ClaudeModel, ClaudeEffort = settings.ClaudeEffort, ClaudeNoticeAcknowledged = settings.ClaudeNoticeAcknowledgedAt is not null,
             Limits = settings.Limits,
             UpdatedAt = settings.UpdatedAt,
         };
