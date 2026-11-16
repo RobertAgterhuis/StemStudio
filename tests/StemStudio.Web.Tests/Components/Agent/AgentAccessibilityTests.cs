@@ -56,7 +56,10 @@ public sealed class AgentAccessibilityTests : PageTestContext
 
         await shell.InvokeAsync(() => host.ExecuteAsync(new UiRequestedEventDto
         {
-            StepId = AgentData.StepId, Tool = "open_mixer", Arguments = AgentData.Json($$"""{"trackId":"{{AgentData.TrackId}}"}"""), TimeoutSeconds = 15,
+            StepId = AgentData.StepId,
+            Tool = "open_mixer",
+            Arguments = AgentData.Json($$"""{"trackId":"{{AgentData.TrackId}}"}"""),
+            TimeoutSeconds = 15,
         }));
 
         NavigatedTo.ShouldEndWith($"/tracks/{AgentData.TrackId}/mixer");

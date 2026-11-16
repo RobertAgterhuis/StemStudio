@@ -19,8 +19,16 @@ public sealed class NavigationUiTools(NavigationManager navigation, HelpContext 
 
     private static readonly Dictionary<string, string> Pages = new(StringComparer.Ordinal)
     {
-        ["import"] = string.Empty, ["tracks"] = "tracks", ["mixes"] = "mixes", ["library"] = "library", ["styles"] = "styles",
-        ["generations"] = "generations", ["lyrics"] = "lyrics", ["songs"] = "songs/new", ["voices"] = "voices", ["settings"] = "settings",
+        ["import"] = string.Empty,
+        ["tracks"] = "tracks",
+        ["mixes"] = "mixes",
+        ["library"] = "library",
+        ["styles"] = "styles",
+        ["generations"] = "generations",
+        ["lyrics"] = "lyrics",
+        ["songs"] = "songs/new",
+        ["voices"] = "voices",
+        ["settings"] = "settings",
     };
 
     /// <summary>The tool names this handler owns.</summary>
