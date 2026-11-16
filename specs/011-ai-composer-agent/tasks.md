@@ -191,7 +191,7 @@ clear unavailable state.
 - [ ] T064 [P] [US4] [ai-agent] [amend] Failing tests `Backends/ClaudeBackendTests.cs` (stub handler for `api.anthropic.com`): factory uses `ANTHROPIC_API_KEY` from an injected environment reader, model `claude-opus-5-5` default, effort setting, tool mode auto, streaming, max output tokens; per-run token budget stops the run (`budget-exhausted`); refusal and 401/429/5xx mapped to readable `run.failed` with "Switch to local"; probe only reports `keyConfigured` and calls `GET /v1/models/{id}` only on explicit test; a "must not be called" handler proves 0 requests when Claude is not selected (FR-018, FR-020, SC-006)
 - [ ] T065 [US4] [ai-agent] [amend] Implement `Backends/{ClaudeChatClientFactory,ClaudeBackendProbe}.cs` to pass T064
 - [ ] T066 [US4] [frontend] [amend] Usage display (`agent-usage`) and "Switch to local" on Claude failures (bUnit test first, then implementation)
-- [ ] T067 [US4] [qa] Author `agent.spec.ts` "settings" (without key: Claude not selectable; switch to none and back to Ollama on the fake stack)
+- [x] T067 [US4] [qa] Author `agent.spec.ts` "settings" (without key: Claude not selectable; switch to none and back to Ollama on the fake stack)
 
 **Checkpoint**: HO:us4.
 

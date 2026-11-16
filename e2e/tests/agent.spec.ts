@@ -1,4 +1,14 @@
-import { ensureBackendNone, freshTrack, freshTrackWithoutDetail, injectionTrack, openMixer, savedMix } from '../support/agent-flow';
+import {
+  ensureBackendNone,
+  expectStoredBackend,
+  freshTrack,
+  freshTrackWithoutDetail,
+  injectionTrack,
+  openMixer,
+  restoreBackend,
+  savedMix,
+  storedBackendToRestore,
+} from '../support/agent-flow';
 import { finalText } from '../support/agent-scripts';
 import { expect, test } from '../support/agent-test';
 import { isOn } from '../support/controls';
@@ -179,4 +189,36 @@ test('unavailable: backend none shows the reason and the rest of the app works',
   await expect(agent.unavailable).toBeVisible();
   await mixer.play();
   expect(await mixer.maxPeakOver('master', 2_000)).toBeGreaterThan(silentDb);
+});
+
+test('settings: Claude is not selectable without a key; switch to none and back to Ollama', { tag: ['@agent'] }, async ({
+  agentApi,
+  settings,
+  page,
+}) => {
+  const restore = await storedBackendToRestore(agentApi);
+  try {
+    await page.goto('/');
+    await settings.openFromRail();
+    // US4-1, SC-006: CI never sets ANTHROPIC_API_KEY; the page shows presence only, never a key.
+    await expect(settings.claudeStatus).toHaveAttribute('data-key-configured', 'false');
+    await expect(settings.claudeStatus).toContainText('ANTHROPIC_API_KEY');
+    await expect(settings.backend('claude')).toBeDisabled();
+    await expect(page.locator('body')).not.toContainText('sk-ant-');
+
+    await settings.saveBackend('none');
+    await expectStoredBackend(agentApi, 'none');
+    await page.reload();
+    await settings.expectSelected('none');
+
+    await settings.saveBackend('ollama');
+    await expectStoredBackend(agentApi, 'ollama');
+    await page.reload();
+    await settings.expectSelected('ollama');
+    await expect(settings.byId('settings-agent-ollama-status')).toBeVisible();
+    // The test-only fake backend of the environment stays effective (TEST-STRATEGY 17.4).
+    expect((await agentApi.status()).backend).toBe('fake');
+  } finally {
+    await restoreBackend(agentApi, restore);
+  }
 });

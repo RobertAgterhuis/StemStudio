@@ -7,7 +7,7 @@
  */
 import { expect } from '@playwright/test';
 import type { MixerPage } from '../pages/mixer-page';
-import type { AgentApi } from './agent-api';
+import type { AgentApi, StoredAgentBackend } from './agent-api';
 import type { MixDto, MixSettingsDto, StemName, StemStudioApi, TrackDto } from './api';
 import { fakeStems, uniqueBand } from './detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from './env';
@@ -76,6 +76,25 @@ export async function ensureBackendNone(agentApi: AgentApi): Promise<void> {
     expect((await agentApi.putBackend('none')).status()).toBe(200);
   }
   await expect.poll(async () => (await agentApi.status()).backend).toBe('none');
+}
+
+/**
+ * The stored backend to put back after the settings test: the one it found, or `none` when the
+ * stack reported the test-only `fake` (which cannot be stored).
+ */
+export async function storedBackendToRestore(agentApi: AgentApi): Promise<StoredAgentBackend> {
+  const found = (await agentApi.settings()).backend;
+  return found === 'fake' ? 'none' : found;
+}
+
+/** Stores `backend` again (end of the settings test, also when it failed). */
+export async function restoreBackend(agentApi: AgentApi, backend: StoredAgentBackend): Promise<void> {
+  expect((await agentApi.putBackend(backend)).status()).toBe(200);
+}
+
+/** Waits until the stored settings report `backend` (the save goes Web server -> API, not via the browser). */
+export async function expectStoredBackend(agentApi: AgentApi, backend: StoredAgentBackend): Promise<void> {
+  await expect.poll(async () => (await agentApi.settings()).backend).toBe(backend);
 }
 
 function defaultMixSettings(name: string): MixSettingsDto {
