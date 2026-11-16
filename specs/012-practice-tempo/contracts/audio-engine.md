@@ -498,6 +498,11 @@ relinking; `third_party/soundtouch/README.md` explains how).
   at least 0.3 s before `T_{k+1} = T_k + (B - A) / r_k + gap_k` (gap = count-in or 0), so a pass
   without a gap starts sample-exactly where the previous one stops. The first pass starts at the
   current position when it is inside `[A, B)`, else at `A`.
+  *Implemented (ADR-021 E4, clarified in the 012 integration):* the sources of pass k+1 start
+  where those of pass k stop (source time `S_{k+1} = S_k + (B - A) / r_k + gap_k`, no gap or
+  overlap); its heard anchor is `S_{k+1} + L(p_{k+1})`, so a trainer step moves the heard pass
+  start by `L(p_{k+1}) - L(p_k)` (a few ms). A count-in gap is `(N d - (b - A)) / r`: the first
+  click of the next count-in sounds when the previous pass ends.
 - Detail groups decoded during a pass are started on the current pass anchor (2.0.0 rule).
 - Leaving the conditions (loop off, trainer and everyPass off) switches back to the native loop
   at the next pass boundary.

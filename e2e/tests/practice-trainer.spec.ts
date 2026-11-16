@@ -5,7 +5,7 @@ import { installClickProbe, musicStartTimes, readClicks } from '../support/click
 import { isOn } from '../support/controls';
 import { fakeStems } from '../support/detail';
 import { fakeJobTimeoutMs, runId } from '../support/env';
-import { distinctValues, heardLatencySeconds, practiceWith, readWatched, watchAttributes } from '../support/practice';
+import { distinctValues, practiceWith, readWatched, watchAttributes } from '../support/practice';
 import { expect, test } from '../support/test';
 
 // Feature 012 US2 (T054; FR-010, FR-011, FR-014; SC-006; quickstart P8). Fake stack, the 12 s
@@ -49,11 +49,12 @@ test.describe('speed trainer', { tag: '@practice' }, () => {
     await expect(practice.trainerStatus).toHaveAttribute('data-state', 'target');
     await expect(practice.panel).toHaveAttribute('data-speed', '80');
     await expect(practice.speed).toHaveAttribute('aria-readonly', 'true');
-    // Pass k starts at T_k - L(p_k) and lasts (B - A) / r_k (audio-engine.md "Explicit passes").
+    // Passes are gapless in source time (ADR-021 E4, audio-engine.md "Explicit passes"): pass k+1's
+    // sources start exactly where pass k's stop, (B - A) / r_k later; only the heard anchor moves by
+    // L(p_{k+1}) - L(p_k) (5.6 ms for 60 -> 70 %).
     const starts = musicStartTimes(await readClicks(page), before).slice(0, 4);
     const speeds = [60, 70, 80, 80];
-    const latency = (k: number): number => heardLatencySeconds(speeds[k] ?? 100, 0);
-    const expected = [0, 1, 2].map((k) => (loop.end - loop.start) / ((speeds[k] ?? 100) / 100) - (latency(k + 1) - latency(k)));
+    const expected = [0, 1, 2].map((k) => (loop.end - loop.start) / ((speeds[k] ?? 100) / 100));
     const actual = starts.slice(1).map((t, k) => t - (starts[k] ?? t));
     expect(actual).toHaveLength(3);
     test.info().annotations.push({ type: 'pass lengths s', description: JSON.stringify(actual) });
