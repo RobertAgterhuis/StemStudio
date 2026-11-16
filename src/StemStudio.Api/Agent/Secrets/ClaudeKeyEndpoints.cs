@@ -27,7 +27,7 @@ public static class ClaudeKeyEndpoints
     public static IEndpointRouteBuilder MapClaudeKeyEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup(ApiRoutes.AgentClaudeKey).WithTags(Tag).WithHttpLogging(HttpLoggingFields.None);
-        group.MapGet(string.Empty, (IClaudeKeyProvider keys) => TypedResults.Ok(ClaudeKeyStatusMapping.ToDto(keys.Resolve())))
+        group.MapGet(string.Empty, (IClaudeKeyProvider keys) => TypedResults.Ok(ClaudeKeyStatus.ToDto(keys.Resolve())))
             .WithName("getClaudeKeyStatus").Produces<ClaudeKeyStatusDto>();
         group.MapPut(string.Empty, StoreAsync).LocalOnly()
             .WithName("storeClaudeKey").Produces<ClaudeKeyStatusDto>()
@@ -68,7 +68,7 @@ public static class ClaudeKeyEndpoints
 
         await services.Writer.StoreAsync(key, cancellationToken);
         services.Keys.Invalidate();
-        return TypedResults.Ok(ClaudeKeyStatusMapping.ToDto(services.Keys.Resolve()));
+        return TypedResults.Ok(ClaudeKeyStatus.ToDto(services.Keys.Resolve()));
     }
 
     private static ProblemHttpResult Invalid(string reason) => TypedResults.Problem(
@@ -91,31 +91,6 @@ public static class ClaudeKeyEndpoints
 /// <param name="Writer">Write side of the stored key.</param>
 /// <param name="Keys">Key provider (invalidated after every write).</param>
 public sealed record ClaudeKeyStoreServices(ClaudeKeyProtector Protector, IStoredClaudeKeyWriter Writer, IClaudeKeyProvider Keys);
-
-/// <summary>Maps a <see cref="ClaudeKeyResolution"/> to the contract's <c>ClaudeKeyStatus</c> (never the key).</summary>
-public static class ClaudeKeyStatusMapping
-{
-    /// <summary>The status DTO.</summary>
-    /// <param name="resolution">The resolution.</param>
-    /// <returns>The DTO.</returns>
-    public static ClaudeKeyStatusDto ToDto(ClaudeKeyResolution resolution)
-    {
-        ArgumentNullException.ThrowIfNull(resolution);
-        return new ClaudeKeyStatusDto
-        {
-            Configured = resolution.Configured,
-            Source = resolution.Source,
-            State = resolution.State,
-            LastFour = resolution.LastFour,
-            Stored = resolution.Stored,
-            StoredLastFour = resolution.StoredLastFour,
-            StoredAt = resolution.StoredAt,
-            StoreAvailable = resolution.StoreAvailable,
-            Reason = resolution.Reason,
-            Fix = resolution.Fix,
-        };
-    }
-}
 
 /// <summary>Outcome of reading the key request body: the raw value, or the problem to answer.</summary>
 /// <param name="ApiKey">The <c>apiKey</c> string as sent.</param>

@@ -1,6 +1,6 @@
+using StemStudio.Agent.Backends;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
-using StemStudio.Api.Agent.Secrets;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent;
@@ -92,7 +92,7 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
 
     // 011 follow-up claude-key: the fallback still reports the key status (never the key).
     private ClaudeKeyStatusDto KeyStatus() =>
-        services.GetService<IClaudeKeyProvider>() is { } keys ? ClaudeKeyStatusMapping.ToDto(keys.Resolve()) : ClaudeKeyStatusDto.NotConfigured;
+        services.GetService<IClaudeKeyProvider>() is { } keys ? ClaudeKeyStatus.ToDto(keys.Resolve()) : ClaudeKeyStatusDto.NotConfigured;
 
     private static AgentStatusDto Fallback(AgentSettings current, string reason, ClaudeKeyStatusDto key) => new()
     {
