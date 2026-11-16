@@ -28,11 +28,11 @@ public sealed class ClaudeBackendTests
         AgentSettings.Defaults(AgentBackendDto.Claude, RunnerHarness.Start) with { ClaudeModel = model, ClaudeEffort = effort, ClaudeNoticeAcknowledgedAt = RunnerHarness.Start };
 
     private static string Stream(string text, string stopReason = "end_turn", int input = 120, int output = 7) => string.Join("\n\n",
-        Event("message_start", $$"""{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-opus-5-5","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":{{input}},"output_tokens":1}}}"""),
+        Event("message_start", $$$$"""{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-opus-5-5","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":{{{{input}}}},"output_tokens":1}}}"""),
         Event("content_block_start", """{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}"""),
-        Event("content_block_delta", $$"""{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"{{text}}"}}"""),
+        Event("content_block_delta", $$$"""{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"{{{text}}}"}}"""),
         Event("content_block_stop", """{"type":"content_block_stop","index":0}"""),
-        Event("message_delta", $$"""{"type":"message_delta","delta":{"stop_reason":"{{stopReason}}","stop_sequence":null},"usage":{"output_tokens":{{output}}}}"""),
+        Event("message_delta", $$$"""{"type":"message_delta","delta":{"stop_reason":"{{{stopReason}}}","stop_sequence":null},"usage":{"output_tokens":{{{output}}}}}"""),
         Event("message_stop", """{"type":"message_stop"}""")) + "\n\n";
 
     private static string Event(string name, string data) => $"event: {name}\ndata: {data}";
@@ -66,7 +66,8 @@ public sealed class ClaudeBackendTests
         body.GetProperty("output_config").GetProperty("effort").GetString().ShouldBe("high");
         body.GetProperty("thinking").GetProperty("type").GetString().ShouldBe("adaptive");
         body.GetProperty("tool_choice").GetProperty("type").GetString().ShouldBe("auto");
-        stub.Requests.Single().Headers.ShouldContain($"x-api-key: {FakeEnvironment.SentinelKey}");
+        stub.Requests.Single().Headers.ShouldContain(FakeEnvironment.SentinelKey, Case.Sensitive);
+        stub.Requests.Single().Headers.ShouldContain("x-stainless-retry-count: 0");
         environment.Reads.ShouldAllBe(name => name == ClaudeChatClientFactory.KeyVariable);
     }
 
@@ -135,7 +136,7 @@ public sealed class ClaudeBackendTests
     [InlineData(HttpStatusCode.BadRequest, "400")]
     public async Task Runner_HttpErrors_FailReadably_AndNeverLeakTheKey(HttpStatusCode status, string code)
     {
-        var stub = Claude().Json(Messages, $$"""{"type":"error","error":{"type":"x","message":"echo {{FakeEnvironment.SentinelKey}}"}}""", status);
+        var stub = Claude().Json(Messages, $$$"""{"type":"error","error":{"type":"x","message":"echo {{{FakeEnvironment.SentinelKey}}}"}}""", status);
         var logger = new CapturingLogger();
         var harness = ClaudeHarness(stub, logger: logger);
 
@@ -143,7 +144,7 @@ public sealed class ClaudeBackendTests
 
         (run.Status, run.FailureCode).ShouldBe((AgentRunStatusDto.Failed, AgentFailureCodes.BackendUnavailable));
         run.FailureMessage!.ShouldContain(code);
-        run.FailureMessage.ShouldContain("Switch to local");
+        run.FailureMessage!.ShouldContain("Switch to local");
         AssertNoKey(harness, logger, run);
     }
 
@@ -201,7 +202,7 @@ public sealed class ClaudeBackendTests
     [Fact]
     public async Task Test_RejectedKey_IsNotOk_AndNeverEchoesTheKey()
     {
-        var stub = Claude().Json("GET /v1/models/claude-opus-5-5", $$"""{"type":"error","error":{"type":"authentication_error","message":"{{FakeEnvironment.SentinelKey}}"}}""", HttpStatusCode.Unauthorized);
+        var stub = Claude().Json("GET /v1/models/claude-opus-5-5", $$$"""{"type":"error","error":{"type":"authentication_error","message":"{{{FakeEnvironment.SentinelKey}}}"}}""", HttpStatusCode.Unauthorized);
 
         var result = await new ClaudeBackendProbe(Factory(stub), _time).TestAsync(Allowed(), Token);
 

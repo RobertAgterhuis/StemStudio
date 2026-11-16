@@ -29,6 +29,15 @@ public sealed class OllamaBackendProbe(HttpClient http, TimeProvider time)
         [AgentSettings.DefaultOllamaFallbackModel] = "3.4 GB",
     };
 
+    /// <summary>The probe's clock (latency of explicit tests).</summary>
+    public TimeProvider Time => time;
+
+    /// <summary>The pull command of a model, with the download size for the two default models.</summary>
+    /// <param name="model">Model name.</param>
+    /// <returns>For example <c>ollama pull qwen3.5:9b (6.6 GB)</c>.</returns>
+    public static string PullCommand(string model) =>
+        KnownSizes.TryGetValue(model, out var known) ? $"ollama pull {model} ({known})" : $"ollama pull {model}";
+
     /// <summary>Probes Ollama for the selected models.</summary>
     /// <param name="defaultModel">Default model.</param>
     /// <param name="fallbackModel">Fallback model.</param>
@@ -82,8 +91,7 @@ public sealed class OllamaBackendProbe(HttpClient http, TimeProvider time)
         var model = status.Models.FirstOrDefault(item => item.Name == defaultModel);
         if (model is null)
         {
-            var size = KnownSizes.TryGetValue(defaultModel, out var known) ? $" ({known})" : string.Empty;
-            return new OllamaProbeResult(status, false, $"Model {defaultModel} is not pulled.", $"ollama pull {defaultModel}{size}");
+            return new OllamaProbeResult(status, false, $"Model {defaultModel} is not pulled.", PullCommand(defaultModel));
         }
 
         return model.Tools

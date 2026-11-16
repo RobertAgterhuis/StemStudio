@@ -13,7 +13,7 @@ using StemStudio.Contracts.Generation;
 namespace StemStudio.Agent.Tests.Backends;
 
 /// <summary>US3/US4: <see cref="AgentStatusService"/> - status per backend without generating text, explicit tests, tool list.</summary>
-public sealed class AgentStatusServiceTests
+public sealed class AgentStatusServiceTests : IDisposable
 {
     private const string Tags = """{"models":[{"name":"qwen3.5:9b","size":6600000000},{"name":"qwen3.5:4b","size":3400000000}]}""";
     private readonly FakeTimeProvider _time = new(RunnerHarness.Start);
@@ -21,6 +21,8 @@ public sealed class AgentStatusServiceTests
     private readonly StubHttpHandler _claude = new() { Failure = new InvalidOperationException("Claude must not be called.") };
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    public void Dispose() => _claude.Dispose();
 
     private static StubHttpHandler Ollama(string tags = Tags) => new StubHttpHandler()
         .Json("GET /api/version", """{"version":"0.40.1"}""")

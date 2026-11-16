@@ -181,10 +181,11 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         await services.Runs.SaveStepAsync(waiting, cancellationToken);
         await events.StepUpdatedAsync(waiting, cancellationToken);
         await SaveRunAsync(state, state.Run with { Status = AgentRunStatusDto.AwaitingUi }, cancellationToken);
+        var request = new UiToolRequest { RunId = state.RunId, StepId = step.Id, Tool = call.Tool, Arguments = call.Arguments, Timeout = UiTimeout };
+        var pending = services.Ui.RequestAsync(request, cancellationToken);
         var payload = new UiRequestedEventDto { StepId = step.Id, Tool = call.Tool, Arguments = RunEvents.Element(call.Arguments)!.Value, TimeoutSeconds = AgentContractLimits.UiToolTimeoutSeconds };
         await events.PublishAsync(state.RunId, AgentEventTypes.UiRequested, payload, cancellationToken);
-        var request = new UiToolRequest { RunId = state.RunId, StepId = step.Id, Tool = call.Tool, Arguments = call.Arguments, Timeout = UiTimeout };
-        var answer = await services.Ui.RequestAsync(request, cancellationToken);
+        var answer = await pending;
         await SaveRunAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
         return answer;
     }

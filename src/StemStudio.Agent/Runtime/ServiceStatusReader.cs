@@ -15,7 +15,7 @@ public sealed class ServiceStatusReader(IGenerationActions generations, TimeProv
     /// <summary>How long a read status is reused.</summary>
     public static TimeSpan CacheDuration { get; } = TimeSpan.FromSeconds(10);
 
-    private (ServiceAvailability Generation, ServiceAvailability Voice, DateTimeOffset ReadAt)? _cache;
+    private volatile Snapshot? _cache;
 
     /// <summary>The tool context of a page.</summary>
     /// <param name="page">Page context.</param>
@@ -27,6 +27,13 @@ public sealed class ServiceStatusReader(IGenerationActions generations, TimeProv
         return ToolContext.From(page, generation, voice);
     }
 
+    /// <summary>The page context with the last known service states, without reading them (unknown before the first read).</summary>
+    /// <param name="page">Page context.</param>
+    /// <returns>The tool context.</returns>
+    public ToolContext Peek(Contracts.Agent.PageContextDto page) => _cache is { } cached
+        ? ToolContext.From(page, cached.Generation, cached.Voice)
+        : ToolContext.From(page, ServiceAvailability.Unknown, ServiceAvailability.Unknown);
+
     private async Task<(ServiceAvailability Generation, ServiceAvailability Voice)> ReadAsync(CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
@@ -37,7 +44,7 @@ public sealed class ServiceStatusReader(IGenerationActions generations, TimeProv
 
         var status = await TryReadAsync(cancellationToken);
         var result = status is null ? (ServiceAvailability.Unknown, ServiceAvailability.Unknown) : (Map(status.State, status.Reason), Map(status.Voice.State, status.Voice.Reason));
-        _cache = (result.Item1, result.Item2, now);
+        _cache = new Snapshot(result.Item1, result.Item2, now);
         return result;
     }
 
@@ -55,4 +62,6 @@ public sealed class ServiceStatusReader(IGenerationActions generations, TimeProv
 
     private static ServiceAvailability Map(GenerationAvailabilityDto state, string? reason) =>
         state == GenerationAvailabilityDto.Ready ? ServiceAvailability.Available : ServiceAvailability.Unavailable(reason ?? "The generator is not available.");
+
+    private sealed record Snapshot(ServiceAvailability Generation, ServiceAvailability Voice, DateTimeOffset ReadAt);
 }

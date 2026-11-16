@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using StemStudio.Agent.Backends;
 using StemStudio.Agent.Backends.Fakes;
-using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Runtime;
 using StemStudio.Agent.Tests.Fakes;
@@ -37,7 +36,8 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
 
         services.Count(descriptor => descriptor.ServiceType == typeof(IAgentRunService)).ShouldBe(1);
         services.Count(descriptor => descriptor.ServiceType == typeof(AgentRunService)).ShouldBe(1);
-        using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+        using var provider = new TestServiceProvider(services);
+        provider.ResolveAll();
         var run = provider.GetRequiredService<IAgentRunService>();
         run.ShouldBeOfType<AgentRunService>();
         provider.GetRequiredService<IAgentRunService>().ShouldBeSameAs(run);
@@ -53,11 +53,11 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     public void TheEnvironmentReader_IsTheProcessReader_UnlessTheHostReplacesIt()
     {
         var plain = new ServiceCollection().AddStemStudioAgent();
-        using var provider = plain.BuildServiceProvider();
+        using var provider = new TestServiceProvider(plain);
         provider.GetRequiredService<IEnvironmentReader>().ShouldBeOfType<ProcessEnvironmentReader>();
 
         var replaced = Host(FakeEnvironment.WithKey());
-        using var host = replaced.BuildServiceProvider();
+        using var host = new TestServiceProvider(replaced);
         host.GetRequiredService<IEnvironmentReader>().ShouldBeOfType<FakeEnvironment>();
     }
 
@@ -90,14 +90,14 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
         services.Where(descriptor => descriptor.ServiceType == typeof(IRunStore) || descriptor.ServiceType == typeof(IStemStudioActions)
             || descriptor.ServiceType == typeof(IRunEventSink) || descriptor.ServiceType == typeof(IConversationStore)
             || descriptor.ServiceType == typeof(IUndoStore) || descriptor.ServiceType == typeof(IAgentSettingsStore)).ShouldBeEmpty();
-        using var provider = services.BuildServiceProvider();
+        using var provider = new TestServiceProvider(services);
         provider.GetRequiredService<IGpuActivity>().ShouldBeSameAs(gpu);
     }
 
     [Fact]
     public void WithoutAHostGpuActivity_TheGpuCountsAsIdle()
     {
-        using var provider = new ServiceCollection().AddStemStudioAgent().BuildServiceProvider();
+        using var provider = new TestServiceProvider(new ServiceCollection().AddStemStudioAgent());
 
         provider.GetRequiredService<IGpuActivity>().IsHeavyJobActive().ShouldBeFalse();
     }
@@ -109,7 +109,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     public void OneOllamaClient_WithATrailingSlash_AndNoHttpClientTimeout(string? configured, string expected)
     {
         var environment = configured is null ? new FakeEnvironment() : new FakeEnvironment((AgentServiceCollectionExtensions.OllamaBaseUrlVariable, configured));
-        using var provider = Host(environment).BuildServiceProvider();
+        using var provider = new TestServiceProvider(Host(environment));
 
         var connection = provider.GetRequiredService<OllamaConnection>();
 
@@ -122,7 +122,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     public void TheFakeBackendPlaysTheScript_FromTheFileInTheEnvironment()
     {
         File.WriteAllText(_script, """{"version":1,"turns":[{"text":"ok"}]}""");
-        using var provider = Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, _script))).BuildServiceProvider();
+        using var provider = new TestServiceProvider(Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, _script))));
 
         provider.GetRequiredService<ChatBackends>().Fake.ShouldBeOfType<ScriptedChatSession>();
         provider.GetRequiredService<BackendProbes>().FakeAvailable.ShouldBeTrue();
@@ -133,7 +133,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     [InlineData("   ")]
     public void ABlankFakeScript_CountsAsUnset(string value)
     {
-        using var provider = Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, value))).BuildServiceProvider();
+        using var provider = new TestServiceProvider(Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, value))));
 
         provider.GetRequiredService<ChatBackends>().Fake.ShouldBeNull();
         provider.GetRequiredService<BackendProbes>().FakeAvailable.ShouldBeFalse();
@@ -142,7 +142,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     [Fact]
     public void AMissingFakeScriptFile_LeavesTheFakeBackendUnavailable()
     {
-        using var provider = Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, _script + ".missing"))).BuildServiceProvider();
+        using var provider = new TestServiceProvider(Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, _script + ".missing"))));
 
         provider.GetRequiredService<ChatBackends>().Fake.ShouldBeNull();
     }
@@ -150,7 +150,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
     [Fact]
     public void TheClaudeBackend_IsAlwaysWired_ButOnlyUsableWithTheKey()
     {
-        using var provider = Host(new FakeEnvironment()).BuildServiceProvider();
+        using var provider = new TestServiceProvider(Host(new FakeEnvironment()));
 
         provider.GetRequiredService<ChatBackends>().Claude.ShouldBeOfType<ClaudeChatSession>();
         provider.GetRequiredService<ClaudeChatClientFactory>().KeyConfigured.ShouldBeFalse();
@@ -162,7 +162,7 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
         File.WriteAllText(_script, """{"version":1,"turns":[{"text":"Klaar."}]}""");
         var harness = RunnerHarness.Scripted([TestTools.Echo()]);
         var services = Host(new FakeEnvironment((AgentServiceCollectionExtensions.FakeScriptVariable, _script)), harness);
-        using var provider = services.BuildServiceProvider();
+        using var provider = new TestServiceProvider(services);
         await harness.SeedAsync();
 
         await provider.GetRequiredService<IAgentRunService>().ExecuteAsync(harness.Run.Id, TestContext.Current.CancellationToken);

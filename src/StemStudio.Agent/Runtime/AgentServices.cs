@@ -35,6 +35,9 @@ public sealed record AgentServices
     /// <summary>Undo entries.</summary>
     public required IUndoStore Undo { get; init; }
 
+    /// <summary>Service status reader shared with the status service (tool list); null creates one per runner.</summary>
+    public ServiceStatusReader? ServiceStatus { get; init; }
+
     /// <summary>Clock (timeouts, expiry, job polling).</summary>
     public TimeProvider Time { get; init; } = TimeProvider.System;
 

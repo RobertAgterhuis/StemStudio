@@ -52,8 +52,7 @@ public sealed class StubHttpHandler : HttpMessageHandler
     {
         var route = $"{request.Method} {request.RequestUri!.AbsolutePath}";
         var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
-        var headers = string.Join('
-', request.Headers.Select(header => $"{header.Key}: {string.Join(',', header.Value)}"));
+        var headers = string.Join(Environment.NewLine, request.Headers.Select(header => $"{header.Key}: {string.Join(',', header.Value)}"));
         lock (_gate)
         {
             _requests.Add((route, body, headers));

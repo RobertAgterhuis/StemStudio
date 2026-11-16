@@ -33,7 +33,7 @@ public sealed class AgentRunner
         _events = new RunEvents(services.Events);
         _streamer = new ModelTurnStreamer(_events, services.Time);
         _steps = new StepExecutor(services, _events, coordination.Approvals);
-        _status = new ServiceStatusReader(services.Actions.Generations, services.Time);
+        _status = services.ServiceStatus ?? new ServiceStatusReader(services.Actions.Generations, services.Time);
     }
 
     /// <summary>Executes a queued run until it completes or fails; terminal and unknown runs are left alone.</summary>
