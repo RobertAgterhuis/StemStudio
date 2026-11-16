@@ -225,7 +225,7 @@ clear unavailable state.
 - [ ] T077b [P] [US6] [ai-agent] [010] Failing provider tests then implementation: `SongToolProvider` - the 5 tools of "Feature 010" (`list_lyrics_sheets`, `save_lyrics_sheet`, `generate_song`, `list_voice_profiles`, `convert_take_voice`): schemas from `LyricsInput`/`SongRequest`/`VoiceConversionRequest`, `lyrics-not-from-user` denial, never projects lyrics text, person names or sample URLs, no profile creation/deletion or consent, 409 `consent-required`/`consent-outdated` mapped to "Renew the consent on the Voices page", `wait_for_job` phase `generation`; supplementary cases S1-S3 scripted (FR-024, FR-025, FR-026)
 - [ ] T078 [US6] [backend] [006-010] Failing tests then implementation: `ILlmGpuRelease` before each delivered GPU job endpoint of 006-010 (`lyrics/align`, `assets/scores`, `tracks/{id}/restyles`, `songs`, `generations/{id}/retry`, `takes/{index}/voice-conversions`, `takes/{index}/import`; DELTA.md 5) and `IGpuActivity` covers their jobs (or registration as a pre-job hook of the 009 GPU scheduler, if it exists) (FR-022)
 
-- [ ] T078b [US6] [qa] Author `agent.spec.ts` "create" on the fake stack (generator fake, scripts `e2e/agent-scripts/us6-*.json`): restyle request -> approval card `data-risk="heavy"`, approve -> generation row queued; artist-imitation script -> step `failed` with the refusal, no generation created (FR-025)
+- [x] T078b [US6] [qa] Author `agent.spec.ts` "create" on the fake stack (generator fake, scripts `e2e/agent-scripts/us6-*.json`): restyle request -> approval card `data-risk="heavy"`, approve -> generation row queued; artist-imitation script -> step `failed` with the refusal, no generation created (FR-025)
 
 **Checkpoint**: HO:us6.
 

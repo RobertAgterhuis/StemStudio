@@ -15,6 +15,8 @@ import { finalText } from '../support/agent-scripts';
 import { expect, test } from '../support/agent-test';
 import { isOn } from '../support/controls';
 import { fakeStems, silentDb } from '../support/detail';
+import { requireGeneratorMode } from '../support/generative';
+import { sourceTrack } from '../support/generative-flow';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from '../support/env';
 import { oneOf } from '../support/text';
 
@@ -301,4 +303,59 @@ test('history: a reopened conversation shows its messages, plan and steps', { ta
   for (const tool of ['search_library', 'open_mixer', 'mixer_set_channel']) {
     await agent.expectStep(tool, 'succeeded');
   }
+});
+
+/** Id of the 009 preset "Jazz trio" (presets.v1.json), used literally by `us6-restyle.json`. */
+const jazzTrioId = '3f9c2a1e-6b4d-4e8f-a0c2-1d3e5f7a9b01';
+
+test('create: a restyle asks as heavy and queues a generation', { tag: ['@agent', '@us6-restyle', '@generative'] }, async ({
+  api,
+  agent,
+  generationApi,
+  generations,
+  trackPage,
+}) => {
+  requireGeneratorMode('ready');
+  await generationApi.requireState('ready');
+  expect((await generationApi.preset('Jazz trio')).id).toBe(jazzTrioId);
+  const track = await sourceTrack(api);
+  const before = (await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id);
+  await trackPage.goto(track.id);
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Restyle this track as a jazz trio from 2 to 14 seconds');
+  await agent.expectApproval('restyle_track', 'heavy');
+  expect(await agent.approvalReasons()).toContain('risk-heavy');
+  await expect(agent.byId('agent-approval-estimate')).toHaveAttribute('data-device', 'gpu');
+  await expect(agent.byId('agent-approval-arguments')).toContainText(jazzTrioId);
+  expect((await generationApi.list({ sourceTrackId: track.id })).map((g) => g.id), 'nothing runs before Approve').toEqual(before);
+
+  await agent.approve();
+  await agent.expectAnswer(finalText('us6-restyle'));
+  await agent.expectStep('restyle_track', 'succeeded');
+  const generation = await generationApi.waitForNewest({ sourceTrackId: track.id }, before);
+  expect(generation.kind).toBe('restyle');
+  await expect(generations.row(generation.id)).toBeVisible({ timeout: 30_000 });
+  await expect(generations.row(generation.id)).toHaveAttribute('data-kind', 'restyle');
+  await generationApi.cancel(generation.id);
+});
+
+test('create: an artist imitation is refused and starts nothing', { tag: ['@agent', '@us6-imitation', '@generative'] }, async ({
+  agent,
+  generationApi,
+  page,
+}) => {
+  requireGeneratorMode('ready');
+  await generationApi.requireState('ready');
+  const before = (await generationApi.list()).map((g) => g.id);
+  await page.goto('/songs/new');
+  await agent.openNewConversation();
+
+  await agent.sendCommand('Make a song in the style of Metallica');
+  await agent.expectAnswer(finalText('us6-imitation'));
+  // ui-test-ids 1.10.0: a guardrail denial shows no card; the step is failed with the refusal.
+  await agent.expectStep('generate_song', 'failed');
+  await expect(await agent.stepError('generate_song')).toContainText(/artist|genre/i);
+  await expect(agent.approvalCard).toHaveCount(0);
+  expect((await generationApi.list()).map((g) => g.id)).toEqual(before);
 });
