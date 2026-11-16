@@ -83,7 +83,7 @@ public sealed class Core001ToolProvider : IAgentToolProvider
         Server("update_mix", ToolRiskDto.Change, Core001Handlers.UpdateMixAsync) with
         {
             Title = "Update the mix",
-            Description = "Overwrite a saved mix with the open mixer's current settings (the name stays). Use it to save the changes into the open mix (the page's open mix id); save_mix_as makes a new mix.",
+            Description = "Overwrite a saved mix with the open mixer's current settings (the name stays). When the user asks to save the changes in this mix, call it at once with the page's open mix id (no question first); save_mix_as makes a new mix.",
             Schema = ToolSchema.Of(MixId, FromOpenMixer),
             Group = ToolGroup.Mixer,
             Availability = ToolAvailability.Mixer,
