@@ -18,6 +18,8 @@ export const agentScripts = [
   'us2-inject',
   'us5-mixer-undo',
   'us5-save-undo',
+  'us5-practice-save',
+  'us5-practice-rename',
   'us6-restyle',
   'us6-imitation',
 ] as const;

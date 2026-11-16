@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "012 (T047): rename the open saved mix; the test checks that its practice tempo, trainer and count-in stay unchanged.",
+  "turns": [
+    { "calls": [{ "name": "rename_mix", "arguments": { "mixId": "{{context.mixId}}", "name": "Agent practice renamed" } }] },
+    { "text": "The mix is renamed to Agent practice renamed." }
+  ]
+}

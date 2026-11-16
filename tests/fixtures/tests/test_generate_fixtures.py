@@ -22,11 +22,12 @@ CATALOGUE = {
     "music_100bpm_20s.flac",
     "upload_4mb.wav",
     "silence_5s.wav",
+    "tone_440hz_20s.flac",
     "corrupt.mp3",
     "unsupported.ogg",
 }
 PCM_FILES = ["click_120bpm_4-4_12s.wav", "click_90bpm_3-4_12s.wav", "music_100bpm_20s.flac"]
-PCM_FILES += ["upload_4mb.wav", "silence_5s.wav"]
+PCM_FILES += ["upload_4mb.wav", "silence_5s.wav", "tone_440hz_20s.flac"]
 CLICK_FILES = ["click_120bpm_4-4_12s.wav", "click_90bpm_3-4_12s.wav"]
 
 
@@ -95,6 +96,22 @@ def test_downbeats_are_accented(generated: tuple[Path, dict[str, Any]], name: st
     downbeats = set(entry["downbeatTimes"])
     assert len(downbeats) == -(-len(entry["beatTimes"]) // entry["beatsPerBar"])
     assert min(peaks[t] for t in downbeats) > max(p for t, p in peaks.items() if t not in downbeats)
+
+
+def test_tone_is_a_440_hz_sine_at_minus_12_dbfs(generated: tuple[Path, dict[str, Any]]) -> None:
+    out_dir, manifest = generated
+    entry = _entry(manifest, "tone_440hz_20s.flac")
+    audio, rate = sf.read(str(out_dir / "tone_440hz_20s.flac"), dtype="float64")
+    spectrum = np.abs(np.fft.rfft(audio[rate : 3 * rate, 0]))
+    assert np.argmax(spectrum) * rate / (2 * rate) == pytest.approx(entry["frequencyHz"], abs=0.5)
+    assert 20 * np.log10(np.abs(audio).max()) == pytest.approx(entry["peakDbfs"], abs=0.05)
+    assert np.array_equal(audio[:, 0], audio[:, 1])
+    assert entry["bpm"] is None
+
+
+def test_only_the_tone_has_tone_facts(generated: tuple[Path, dict[str, Any]]) -> None:
+    with_tone = {n for n, e in generated[1]["fixtures"].items() if "frequencyHz" in e}
+    assert with_tone == {"tone_440hz_20s.flac"}
 
 
 def test_silence_is_digital_silence(generated: tuple[Path, dict[str, Any]]) -> None:

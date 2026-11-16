@@ -88,10 +88,42 @@ export interface TrackDto {
   readonly durationSeconds?: number | null;
   readonly model?: 'htdemucs_6s' | 'htdemucs' | 'fake' | null;
   readonly stems: readonly { readonly name: StemName; readonly url: string }[];
-  readonly beatGrid?: { readonly bpm: number; readonly beatsPerBar: number } | null;
+  readonly beatGrid?: BeatGridDto | null;
   readonly detail: DetailPhaseDto;
   readonly device?: JobDeviceDto | null;
   readonly updatedAt: string;
+}
+
+/** Contract `BeatGrid`; the 012 specs read the beat times (the older specs only bpm and bars). */
+export interface BeatGridDto {
+  readonly bpm: number;
+  readonly beatsPerBar: number;
+  readonly beats?: readonly number[];
+  readonly downbeats?: readonly number[];
+  readonly reliable?: boolean;
+}
+
+/** Contract `SpeedTrainerSettings` (backend-api 1.11.0, feature 012). */
+export interface SpeedTrainerSettingsDto {
+  readonly enabled: boolean;
+  readonly startPercent: number;
+  readonly stepPercent: number;
+  readonly targetPercent: number;
+  readonly passesPerStep: number;
+}
+
+/** Contract `CountInSettings` (1.11.0): `bars` 0 (off), 1 or 2. */
+export interface CountInSettingsDto {
+  readonly bars: number;
+  readonly everyPass: boolean;
+}
+
+/** Contract `PracticeSettings` (1.11.0): optional in requests, always present in responses. */
+export interface PracticeSettingsDto {
+  readonly speedPercent: number;
+  readonly transposeSemitones: number;
+  readonly trainer: SpeedTrainerSettingsDto;
+  readonly countIn: CountInSettingsDto;
 }
 
 /** Contract `ChannelSettings` (volume 0..1, pan -1..1). */
@@ -128,6 +160,8 @@ export interface MixSettingsDto {
   readonly loop: { readonly start: number; readonly end: number; readonly enabled: boolean } | null;
   readonly expanded?: readonly ParentStemName[];
   readonly detailChannels?: readonly DetailChannelSettingsDto[];
+  /** 1.11.0 (feature 012); absent in requests of the older shapes. */
+  readonly practice?: PracticeSettingsDto;
 }
 
 /** Contract `Mix`. */

@@ -48,6 +48,12 @@ worker, generator and engine are unchanged. **No automated test calls an LLM**: 
 `ScriptedChatClient` / `AdversarialChatClient`; the real model is measured only by the manual
 evaluation harness on the reference machine (17.6).
 
+Feature 012 (practice tempo: speed without pitch change, transpose, speed trainer, count-in) adds
+the SoundTouch time-stretch stage (LGPL-2.1 WASM in an AudioWorklet), the mix field `practice`
+and the practice panel; its additions are marked **(012)** and collected in section 18. Binding
+contracts: `specs/012-practice-tempo/contracts/` (backend **1.11.0**, UI test ids **1.11.0**,
+engine **2.3.0**, WASM ABI 1); worker, generator, web-interop and help-content are unchanged.
+
 ## 1. Test pyramid
 
 ```text
@@ -266,6 +272,7 @@ facts tests rely on. All audio is 44.1 kHz stereo 16-bit unless stated.
 | `music_100bpm_20s.flac` | same audio, FLAC | 100 BPM, 4/4, 20 s | FLAC upload path |
 | `upload_4mb.wav` | music at 110 BPM, ~24 s, ~4.2 MB | 110 BPM, 4/4 | streamed upload (G1) |
 | `silence_5s.wav` | digital silence | no beat grid | unreliable-grid path |
+| `tone_440hz_20s.flac` | **(012)** steady stereo sine 440 Hz, peak -12 dBFS, 10 ms fades; self-generated, CC0 | `frequencyHz` 440, `peakDbfs` -12, no beat grid | pitch oracle of the practice specs (output probe), count-in "no grid" case |
 | `corrupt.mp3` | ID3 header followed by deterministic garbage | not decodable | failed job + retry |
 | `unsupported.ogg` | Ogg signature with an invalid payload | rejected by extension | 415 reject |
 
@@ -1506,4 +1513,133 @@ invalid-JSON bodies, the "Key changed - applies to the next command" panel note,
 STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_AGENT_BACKEND=fake docker compose up -d --build --wait
 (cd e2e && MSYS_NO_PATHCONV=1 npm run test:claude-key)
 # optional: E2E_LAN_BASE_URL=http://<lan-ip>:8080 to choose the non-loopback address
+```
+
+## 18. (012) Practice tempo: speed, transpose, speed trainer, count-in
+
+Binding: `specs/012-practice-tempo/` (spec FR-001..FR-018, SC-001..SC-008, quickstart P1-P14 and
+R1-R3), backend API **1.11.0** (`MixSettings.practice`), UI test ids **1.11.0** (`practice-*`,
+`countin-*`, `trainer-*`, `export-practice-note`), audio engine **2.3.0** ("Practice tempo": D =
+5120 frames, `c(p) = round(-1100 log2 p)`, `L(p) = (D + c(p)) / 44100`, explicit passes, count-in
+formula), WASM ABI 1, ADR-021. Principle: every instrument family counts equally (SC-008).
+
+### 18.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Engine (Vitest, audio-engine) | params and constants, fixed-delay FIFO, processor (pitch-apply midpoint rule, reset, stats), controller (engage, live change, re-anchoring, unavailable fallback), rate-aware transport and metronome, explicit passes, trainer, count-in plan and engine | mocked `AudioContext`/`AudioParam`/`audioWorklet`, fake stage (`timeStretchFactory`), fake `AudioWorkletGlobalScope` + TypeScript fake of the ABI |
+| Engine WASM (Node, `npm run test:wasm`) | real `soundtouch.wasm`: 440 Hz at factors 0.5/1/2 within 1 %, identity, latency <= D - 256, no drift over 100 jumps, content offset within 25 ms of `c(p)`, >= 10x real time | the module built by `scripts/build-soundtouch.*` (CI job `soundtouch`) |
+| Backend (xUnit) | Domain ranges and defaults, JSON column + migration (NULL = defaults), endpoints (absent / null practice = defaults, 400 paths, duplicate), agent loopback round trip | SQLite, WebApplicationFactory |
+| Frontend (bUnit) + web-interop (Vitest) | panel, speed/transpose, count-in, trainer, levels, help markers, announcements, shortcuts `- = , . r c t` | fake `IStemStudioApiClient`, fake `IAudioEngine`, jsdom key events |
+| devops | `check-soundtouch-served.*` (module `application/wasm`, LGPL folder with SHA256SUMS) in CI `e2e` | compose stack |
+| E2E (qa) | `practice-*.spec.ts`, additions to `export.spec.ts`, `help.spec.ts`, `agent.spec.ts`, the a11y and visual matrices | fake stack (`STEMSTUDIO_SEPARATOR=fake`), the probes below |
+| Stack-free self-test | output probe, click probe and practice maths on a blank page with known oscillators and buffers | `e2e/tests/practice-probes.spec.ts` (`@practice @self-test`, both browsers, no stack) |
+
+**Output probe** (`e2e/support/output-probe.ts`). Init scripts wrap `AudioNode.prototype.connect`
+/`disconnect`: every connection to an `AudioDestinationNode` is also made to two analysers of
+that context (fine: `fftSize` 32768 = 0.74 s, 1.35 Hz bins, for frequency; fast: 2048 = 46 ms,
+for change timing and level), feeding a silent sink. The probe hears exactly what reaches the
+speakers (master after the stretch stage, plus the metronome). The dominant frequency is the
+highest bin above 50 Hz, refined by parabolic interpolation over the dB spectrum. A timed
+frequency step performs the action in the page and reports the time to the first of three
+consecutive fast readings that are closer to the new than to the old frequency (the window adds
+up to ~23 ms, so the measurement is conservative).
+
+**Click probe** (`e2e/support/click-probe.ts`). Wraps `AudioBufferSourceNode.start/stop`: clicks
+(buffers < 0.25 s: metronome and count-in) with their planned `start(when)` on the audio clock and
+the peak of their buffer (accent = louder buffer), cancelled when stopped at or before `when`;
+music sources (buffers >= 1 s) with `when`, offset and rate. Clicks bypass the stretch stage, so
+`when` is when they are heard; music sources start `L(p)` before they are heard, which the specs
+add back with the contract formula (`support/practice.ts` `heardLatencySeconds`, cross-checked
+with `practice-stretch-status` `data-latency-ms` at Expert).
+
+**Speed** is measured as the least-squares slope of every change of `transport-position`
+(tenths of a second, at most 10 updates per second) over the measuring window, so a single
+reading's jitter does not count. **Karaoke at other speeds** reuses the 006 karaoke probe with a
+rate-aware reference `offset + (t - L - when) * rate` (`installRateAwareReference`). **Stems in
+sync** under speed is the spread of the anchors `offset - when * rate` of the running stem
+sources (alignment probe of 002), <= 1 ms.
+
+### 18.2 Run matrix
+
+| Stack | Runs |
+|---|---|
+| fake stack (compose default: `STEMSTUDIO_SEPARATOR=fake`, `STEMSTUDIO_FAKE_LYRICS=word`, `cpu`), web image with `soundtouch.wasm` | `npm test` (all `@practice` specs are part of the default suite; the module is built inside the web image, so no new service, variable or profile is needed) or `npm run test:practice` alone; `npm run test:a11y` (`practice.a11y.spec.ts` + screen `mixer-practice`); `npm run test:visual` in the Playwright container (screen `mixer-practice`, new baselines) |
+| fake stack + `scripts/agent-e2e.{sh,ps1} fake` | `agent.spec.ts` `@us5-practice-save`, `@us5-practice-rename` (one api start per script, TEST-STRATEGY 17.4) |
+| other `STEMSTUDIO_FAKE_LYRICS` modes | the karaoke-at-speed cases skip (they need `word`), everything else runs |
+
+`npm run test:legacy` excludes `@practice`. The karaoke-at-speed cases carry `@karaoke` too, so
+`npm run test:lyrics` includes them. The export case carries `@export` and `@practice`.
+
+### 18.3 Fixtures
+
+`tone_440hz_20s.flac` (section 7) is added to `generate_fixtures.py` (kind `tone`; manifest facts
+`frequencyHz`, `peakDbfs`; tests `test_tone_is_a_440_hz_sine_at_minus_12_dbfs`,
+`test_only_the_tone_has_tone_facts`). The fake separator copies the mix into all six stems, so
+the tone is present on every stem; the analyser of the beat grid finds no pulse in it
+(unreliable grid), which the count-in "no grid" case relies on. Count-in and trainer cases use
+`click_120bpm_4-4_12s.wav` (reliable 120 BPM grid; the beat times are read from the track's
+`beatGrid.beats`, the manifest is the fallback); karaoke, metronome spacing, families and export
+use `music_100bpm_20s.flac`; the detail sync case uses `detail_10s_band.wav`.
+
+### 18.4 (012) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 70 % within 250 ms, pitch kept, position/metronome/ball follow (FR-001, FR-003, FR-005, SC-003) | engine controller + rate-aware transport/metronome tests, `test:wasm` | `practice-tempo.spec.ts` speed (P3, 50 % and 120 %), pitch (P4), karaoke at 50/75/120 % and click spacing at 50 % (P7) |
+| US1-2 +2 st within 250 ms at unchanged speed (FR-002, FR-003, SC-001, SC-002) | engine live-change tests | `practice-tempo.spec.ts` pitch (P4: -12, -5, +2, +12, combined with 50 % and 120 %), live changes (P5: six transpose steps <= 250 ms) |
+| US1-3 combined speed + transpose, detail stems in sync (FR-004) | engine passes / detail-group tests | `practice-tempo.spec.ts` "combined 80 % and -3 st" (anchor spread <= 1 ms after expanding drums) |
+| US1-4 quality hint below 70 % / beyond +-7 st, effective tempo (FR-008) | bUnit panel tests | `practice-tempo.spec.ts` quality hint and effective tempo |
+| US1-5 saved and restored; pre-012 mixes at the defaults (FR-014, SC-007) | Domain/Persistence/Api practice tests | `practice-tempo.spec.ts` persistence (P10, incl. duplicate) and neutral (P6: zero requests for the module) |
+| US1-6 module cannot run -> disabled with reason, playback works (FR-009) | engine unavailable fallback, bUnit | `practice-tempo.spec.ts` unavailable (P11: `soundtouch.wasm` 404 and no `AudioWorkletNode`; count-in still works) |
+| US1-7 export note, exports at original speed and key (FR-015) | backend export tests unchanged | `export.spec.ts` "practice tempo" (P12: note, duration = original) |
+| US1-8 shortcuts `-` `=` `,` `.` (FR-017) | web-interop shortcut tests | `practice-levels.spec.ts` shortcuts (also `r`, `c`, `t`; ignored in a text field) |
+| US2-1 / US2-2 trainer passes 60, 70, 80, 80 at the boundaries (FR-010, FR-011, SC-006) | engine `passes` / trainer tests | `practice-trainer.spec.ts` sequence (P8; pass lengths `(B - A)/r_k` within 5 ms) |
+| US2-3 pause keeps, stop resets | engine trainer tests | `practice-trainer.spec.ts` pause/stop |
+| US2-4 no loop / loop < 0.5 s -> disabled with reason; target <= start refused | bUnit `SpeedTrainerPanelTests` | `practice-trainer.spec.ts` needs-loop and error |
+| US2-5 trainer settings saved, progress not | Api practice tests | `practice-trainer.spec.ts` saved settings |
+| US2-6 transpose live while the trainer runs, speed read-only | engine, bUnit | `practice-trainer.spec.ts` pause/stop case (transpose) and sequence case (`aria-readonly`) |
+| US3-1 1 bar: four clicks, accent first, music on the next beat (FR-012, SC-005) | engine `count-in` plan + engine tests | `practice-count-in.spec.ts` 1 bar (P9: spacing within 1 ms, 2.0 +- 0.05 s up to the beat, indicator 4..1) |
+| US3-2 / US3-3 slowed tempo, 2 bars before every pass in silence | engine everyPass gap tests | `practice-count-in.spec.ts` every pass at 50 % (8 clicks 1.0 s apart, 8.0 s up to the beat, pass distance 16 s) |
+| US3-4 no grid and no manual BPM -> unavailable (FR-013) | engine, bUnit | `practice-count-in.spec.ts` availability (tone track; a manual BPM makes it available) |
+| US3-5 pause / seek cancel the count-in | engine count-in engine tests | `practice-count-in.spec.ts` pause and seek |
+| US3-6 metronome off: clicks at the metronome volume | engine | `practice-count-in.spec.ts` 1 bar (metronome switched off first) |
+| FR-006 SoundTouch WASM, licence and source shipped | devops check script, `test:wasm` | - (CI `check-soundtouch-served`, CTO R3) |
+| FR-016 levels, help topics | bUnit levels + help coverage | `practice-levels.spec.ts` Beginner/Advanced/Expert (P13), help markers; `help.spec.ts` 012 reference queries |
+| FR-017 accessibility (keyboard, spoken values, live regions, contrast, reduced motion) | bUnit a11y pass (frontend T064) | `practice-levels.spec.ts` spoken values, slider keys, Tab walk with `:focus-visible`; `a11y/screens.a11y.spec.ts` screen `mixer-practice` (3 levels x 2 themes); `a11y/practice.a11y.spec.ts` count-in running (and no animation with reduced motion), trainer running, unavailable notice |
+| FR-018 audible timing on the audio clock | engine tests (mock clock) | click probe: click and pass times exact within 1 ms / 5 ms |
+| SC-004 20 channels at 50 % for 10 min, CPU budget | P0-2 (architect), `test:wasm` throughput | - (reference machine, CTO R1) |
+| Agent keeps practice (011 tools round-trip `practice`) | `LoopbackMixPracticeTests.cs` (backend) | `agent.spec.ts` `@us5-practice-save` (save_mix_as from the open mixer at 75 % / -2 st), `@us5-practice-rename` (rename keeps speed, transpose, trainer, count-in) |
+
+**Every instrument family (SC-008).** `practice-families.spec.ts` (P14) has one case per family:
+vocals, guitar, bass, keys (stem `piano`), drums and other. Each solos that stem, sets 80 % and
+-2 st and plays: the soloed stem's meter shows signal, another stem is silent, the output probe
+measures signal, the position advances at 0.8x within 2 % and the page reports no error. The
+pitch and speed cases run on the full mix of all six stems, so no family is favoured.
+
+### 18.5 Visual baselines
+
+The screen `mixer-practice` (practice panel engaged at 65 % / +2 st through every-level controls,
+quality hint shown, nothing saved, so the seeded mix library stays unchanged) joins the matrix:
+`mixer-practice--{beginner,advanced,expert}--{dark,light}.png` are new, and every existing mixer
+baseline (`mixer--*`, `mixer-expanded--*`, `export-dialog--*`, `help-panel--mixer--*`,
+`mixer--768--*`) changes because the panel is part of the mixer. The CTO regenerates them in the
+integration wave with the documented flow (section 9: Playwright container, fresh stack,
+`npm run test:visual -- --update-snapshots`) and reviews the diff.
+
+### 18.6 Commands
+
+```bash
+# fixtures (adds tone_440hz_20s.flac) and their tests
+uv run --project worker python tests/fixtures/generate_fixtures.py
+uv run --project worker pytest -c tests/fixtures/pyproject.toml --cov --cov-branch \
+  --cov-config=tests/fixtures/pyproject.toml tests/fixtures/tests
+# stack-free self-test of the 012 probes (both browsers, no docker)
+(cd e2e && npx playwright test tests/practice-probes.spec.ts)
+# fake stack with the module in the web image; then the practice specs (or simply npm test)
+STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait
+scripts/check-soundtouch-served.sh
+(cd e2e && npm run test:practice && npm run test:a11y)
+# agent cases (one api start per script)
+scripts/agent-e2e.sh fake
 ```

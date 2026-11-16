@@ -5,7 +5,8 @@
  *
  * Fixtures are created lazily, so the 005/007 members (metadata and assets clients, artwork,
  * band info, export dialog, library page, scratch page) and the 006/008 members (lyrics and score
- * clients, karaoke banner, lyrics card, score dialog, score items) cost nothing in older specs.
+ * clients, karaoke banner, lyrics card, score dialog, score items) and the 012 practice panel cost
+ * nothing in older specs.
  *
  * @packageDocumentation
  */
@@ -20,6 +21,7 @@ import { LibraryPage } from '../pages/library-page';
 import { LyricsSection } from '../pages/lyrics-section';
 import { MixLibraryPage } from '../pages/mix-library-page';
 import { MixerPage } from '../pages/mixer-page';
+import { PracticePanel } from '../pages/practice-panel';
 import { ScoreDialog } from '../pages/score-dialog';
 import { ScoreItems } from '../pages/score-items';
 import { TrackDetailPage } from '../pages/track-detail-page';
@@ -67,6 +69,8 @@ export interface SuiteFixtures {
   readonly scoreDialog: ScoreDialog;
   /** Score rows of the library (feature 008). */
   readonly scoreItems: ScoreItems;
+  /** Practice tempo panel of the mixer (feature 012). */
+  readonly practice: PracticePanel;
 }
 
 /** Extended Playwright test. */
@@ -137,6 +141,9 @@ export const test = base.extend<SuiteFixtures>({
   },
   scoreItems: async ({ page }, use) => {
     await use(new ScoreItems(page));
+  },
+  practice: async ({ page }, use) => {
+    await use(new PracticePanel(page));
   },
   scratch: async ({ context }, use) => {
     const page = await context.newPage();

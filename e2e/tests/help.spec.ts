@@ -11,6 +11,7 @@ import {
   generativeReferenceQueries,
   generativeScreenTopics,
   lyricsReferenceQueries,
+  practiceReferenceQueries,
   scoreReferenceQueries,
   wrongFirstResults,
 } from '../support/help';
@@ -157,6 +158,14 @@ test('the 006 reference queries return their topic first, and each topic opens',
   await openScreen(page, 'mixer', uxData);
   await expect(help.byId('help-toggle')).toBeVisible();
   await expectTopicsReachable(help, lyricsReferenceQueries);
+});
+
+// Help topics of feature 012 (ui-test-ids 1.11.0 "Help markers"; FR-016). The markers on the
+// practice controls are asserted in practice-levels.spec.ts.
+test('the 012 reference queries return their topic first, and each topic opens', { tag: '@practice' }, async ({ page, help, uxData }) => {
+  await openScreen(page, 'mixer', uxData);
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, practiceReferenceQueries);
 });
 
 test('the 008 reference queries return their topic first, and each topic opens', { tag: '@sheet-music' }, async ({ page, help, uxData }) => {
