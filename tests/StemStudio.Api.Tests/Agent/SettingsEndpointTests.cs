@@ -115,7 +115,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     [Fact]
     public async Task Test_ProbesTheChosenBackend()
     {
-        StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>())
+        StatusService.TestAsync(AgentBackendDto.Ollama, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>())
             .Returns(new BackendTestResultDto { Backend = AgentBackendDto.Ollama, Ok = true, LatencyMs = 42, Detail = "qwen3.5:9b answered" });
 
         using var ok = await Client.PostAsJsonAsync(ApiRoutes.AgentSettingsTest, new { backend = "ollama" }, Ct);
@@ -130,7 +130,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     [Fact]
     public async Task Test_AFailingProbeIsNotOkWithAFixedDetail()
     {
-        StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("http://internal:11434 refused"));
+        StatusService.TestAsync(AgentBackendDto.Ollama, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("http://internal:11434 refused"));
 
         using var response = await Client.PostAsJsonAsync(ApiRoutes.AgentSettingsTest, new { backend = "ollama" }, Ct);
 
@@ -165,7 +165,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     public async Task TheKey_NeverAppearsInResponsesLogsOrTheDatabase()
     {
         UseKey(SentinelKey);
-        StatusService.TestAsync(AgentBackendDto.Claude, Arg.Any<CancellationToken>())
+        StatusService.TestAsync(AgentBackendDto.Claude, ClaudeKeyTestSourceDto.Active, Arg.Any<CancellationToken>())
             .Returns(new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = true, LatencyMs = 1, Detail = "claude-opus-5-5 is available" });
 
         var bodies = new List<string>();

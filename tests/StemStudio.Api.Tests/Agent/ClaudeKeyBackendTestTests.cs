@@ -78,7 +78,7 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
     {
         using var api = new ClaudeKeyApi();
         var expected = new BackendTestResultDto { Backend = AgentBackendDto.Ollama, Ok = true, LatencyMs = 3, Detail = "Ollama answered" };
-        api.StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>()).Returns(expected);
+        api.StatusService.TestAsync(AgentBackendDto.Ollama, ClaudeKeyTestSourceDto.Stored, Arg.Any<CancellationToken>()).Returns(expected);
 
         using var response = await api.SendAsync(Test("""{"backend":"ollama","claudeKeySource":"stored"}""") with { Peer = "192.168.1.20" });
 
@@ -86,16 +86,20 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
         (await response.BodyAsync<BackendTestResultDto>()).ShouldBe(expected);
     }
 
-    [Fact]
-    public async Task ClaudeTestThroughAnotherStatusService_TestsTheActiveKey()
+    [Theory]
+    [InlineData("""{"backend":"claude"}""", ClaudeKeyTestSourceDto.Active)]
+    [InlineData("""{"backend":"claude","claudeKeySource":"stored"}""", ClaudeKeyTestSourceDto.Stored)]
+    [InlineData("""{"backend":"claude","claudeKeySource":"environment"}""", ClaudeKeyTestSourceDto.Environment)]
+    public async Task ClaudeTestThroughAnyStatusService_PassesTheRequestedKeySource(string body, ClaudeKeyTestSourceDto source)
     {
         using var api = new ClaudeKeyApi();
-        var expected = new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = true, LatencyMs = 1, Detail = "ok", KeySource = ClaudeKeySourceDto.Environment };
-        api.StatusService.TestAsync(AgentBackendDto.Claude, Arg.Any<CancellationToken>()).Returns(expected);
+        var expected = new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = true, LatencyMs = 1, Detail = "ok", KeySource = ClaudeKeySourceDto.Stored };
+        api.StatusService.TestAsync(AgentBackendDto.Claude, source, Arg.Any<CancellationToken>()).Returns(expected);
 
-        using var response = await api.SendAsync(Test("""{"backend":"claude"}"""));
+        using var response = await api.SendAsync(Test(body));
 
         (await response.BodyAsync<BackendTestResultDto>()).ShouldBe(expected);
+        await api.StatusService.DidNotReceive().TestAsync(Arg.Any<AgentBackendDto>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
