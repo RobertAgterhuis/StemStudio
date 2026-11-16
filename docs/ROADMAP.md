@@ -37,6 +37,7 @@ a later agent-tool-catalogue minor version.
 | 019 | **Arrangement editor**: cut, repeat and rearrange sections of stems into a practice version, export | C6 | 007, 014 |
 | 021 | **Practice partner and studio bridge**: generate a missing part in key and tempo, amp/pedal simulation for guitar and bass, DAWproject export | C9, C10, C11 | 009, 015, 017, 019 |
 | 020 | **Insights and handouts**: stem quality report with tips; one-click lesson PDF (lyrics, chords, sections, tempo, scores) | C7, C8 | 014, 016 |
+| 023 | **Lyric writing assistant**: on-demand help writing own lyrics (continue, alternatives, rhymes, syllables vs rhythm, titles) and spelling/grammar/flow checks in Dutch and English that always allow poetic licence and propose it; local dictionaries + the 011 agent backends | S13 | 010, 011 (+ claude-key) |
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.
@@ -76,6 +77,7 @@ previous version.
 | 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.2.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
+| 023 Lyric writing assistant | 1.23.0 | - | - | 1.23.0 | agent tool catalogue 1.2.0, agent eval set 1.1.0, lyric-assist-output 1.0.0 |
 
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
 
@@ -83,3 +85,10 @@ Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
 {012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in
 parallel now). Features in braces
 are built in parallel; their contract edits are additive and merged by the CTO.
+
+Feature 023 (lyric writing assistant, owner request 2026-11-16, design in
+`specs/023-lyric-writing-assistant/`, ADR-037 proposed) reserves backend-api **1.23.0**, ui-test-ids
+**1.23.0** and agent tool catalogue **1.2.0**. When 023 was designed, feature 022 (library by artist
+and album, designed in parallel) had not allocated yet; 022 is expected to take **1.22.0** and catalogue
+**1.1.0** (unused if 022 adds no tools; labels are never renumbered). 012-021 hold 1.11.0-1.20.0 and the
+011 claude-key follow-up 1.21.0. The 023 delta is merged on the newest full document at build time.

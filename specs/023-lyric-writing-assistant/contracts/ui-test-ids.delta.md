@@ -1,0 +1,80 @@
+# Contract delta: UI test ids 1.23.0 (feature 023, additive)
+
+Adds the lyric assistant to the 010 lyrics editor (`/lyrics/{id}`, ids `lyrics-title-input`,
+`lyrics-language-select`, `lyrics-text-input`, `lyrics-save`, `lyrics-error` unchanged) and one
+row to the 010 take details. Merged into the full `ui-test-ids.md` 1.23.0 at Phase 0 (T003) on top
+of the newest full document (1.22.0 of 022 when merged first, else 1.21.0). No existing id changes.
+
+Placeholders: `<suggestionId>`, `<markId>`, `<wordId>` are GUIDs in canonical lower-case `D`
+format; `<n>` is a 1-based line number; `<category>` is a `SuggestionCategory` value; `<level>` is
+the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanced, `E` Expert;
+"all" = every level).
+
+| Screen | `data-testid` | Meaning / attributes | Level |
+|---|---|---|---|
+| Lyrics editor | `lyric-assist-pane` | the assistant pane (region, `aria-label="Lyric assistant"`); attribute `data-state` = `idle` \| `running` \| `done` \| `unavailable` | all |
+| Lyrics editor | `lyric-assist-toggle` | shows/hides the pane (does not start anything) | all |
+| Lyrics editor | `lyric-assist-check` | "Check" (spelling, grammar, flow); saves unsaved changes first | all |
+| Lyrics editor | `lyric-assist-devices` | "Suggest devices" (devices and poetic licence) | all |
+| Lyrics editor | `lyric-assist-alternatives` | "Alternatives" for the line at the cursor / selection; count select `lyric-assist-count` (A, E) | all |
+| Lyrics editor | `lyric-assist-continue` | "Continue" after the block at the cursor | all |
+| Lyrics editor | `lyric-assist-titles` | "Title ideas" | A, E |
+| Lyrics editor | `lyric-assist-instruction` | optional instruction input (<= 200 chars) for devices and writing help | all |
+| Lyrics editor | `lyric-assist-cancel` | cancel a running assist (only while running) | all |
+| Lyrics editor | `lyric-assist-progress` | progress bar, `aria-valuenow` 0-100 (blocks done / total) | all |
+| Lyrics editor | `lyric-assist-layers` | the layer/model line ("Spelling: OpenTaal dictionary - grammar and flow: qwen3.5:9b, local"); attributes `data-backend`, `data-model`, `data-fallback` `true`/`false` | A, E |
+| Lyrics editor | `lyric-assist-unavailable` | reason and fix of an unavailable layer or language (contains the 011 fix text) | all |
+| Lyrics editor | `lyric-assist-quality-note` | standing quality note (SC-001), when the status reports one | all |
+| Lyrics editor | `lyric-assist-language-guess` | "Looks like Dutch - set language" (language `unknown`); button `lyric-assist-language-apply` | all |
+| Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics | all |
+| Lyrics editor | `lyric-assist-withheld` | "n suggestions withheld (too close to existing lyrics)" | all |
+| Lyrics editor | `lyric-assist-claude-notice`, `lyric-assist-claude-notice-ack`, `lyric-assist-claude-notice-cancel` | the one-time Claude notice dialog | all |
+| Lyrics editor | `lyric-assist-sensitivity` | radio group: `lyric-assist-sensitivity-loose`, `-balanced`, `-strict` | A, E |
+| Lyrics editor | `lyric-assist-filter-<category>` | category filter toggle (attribute `aria-pressed`); `lyric-assist-filter-all` | A, E |
+| Lyrics editor | `lyric-assist-accept-all` | "Accept all" for the current filter (count in the label) | all |
+| Lyrics editor | `lyric-assist-undo` | undo the newest accept (enabled when `assist.canUndo`) | all |
+| Lyrics editor | `lyric-assist-list` | the suggestion list (`role="listbox"`, `aria-activedescendant`) | all |
+| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`role="option"`); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
+| Lyrics editor | `lyric-suggestion-original-<suggestionId>`, `lyric-suggestion-proposal-<suggestionId>`, `lyric-suggestion-explanation-<suggestionId>` | texts of the entry | all |
+| Lyrics editor | `lyric-suggestion-syllables-<suggestionId>` | "11 -> 9 syllables" (when present) | all |
+| Lyrics editor | `lyric-suggestion-accept-<suggestionId>`, `lyric-suggestion-reject-<suggestionId>` | decide one | all |
+| Lyrics editor | `lyric-suggestion-intentional-<suggestionId>` | "Mark as intentional" (corrections only); scope menu `lyric-suggestion-intentional-scope-<suggestionId>` (word / phrase / line; A, E) | all |
+| Lyrics editor | `lyric-suggestion-add-word-<suggestionId>` | "Add to my words" (spelling only) | A, E |
+| Lyrics editor | `lyric-suggestion-source-<suggestionId>` | source layer and model of the entry | E |
+| Lyrics editor | `lyric-highlight-<suggestionId>` | inline highlight over the text (underline style per category, not colour only); attribute `data-category` | all |
+| Lyrics editor | `lyric-line-provenance-<n>` | marker on a line produced by an accepted suggestion (`data-provenance="accepted-suggestion"`) | all |
+| Lyrics editor | `lyric-assist-live` | polite live region (`aria-live="polite"`) for announcements | all |
+| Lyrics editor | `lyric-syllable-toggle` | shows/hides the syllable gutter | A, E |
+| Lyrics editor | `lyric-syllables-<n>` | syllable count of line `n`; attribute `data-deviates` `true`/`false`, `data-target` | A, E |
+| Lyrics editor | `lyric-rhythm-target` | rhythm target form: `lyric-rhythm-bpm`, `lyric-rhythm-beats`, `lyric-rhythm-bars`, `lyric-rhythm-spb`, `lyric-rhythm-save`, `lyric-rhythm-clear` | A, E |
+| Lyrics editor | `lyric-density` | words per second at the target duration (warning style above 4.0) | A, E |
+| Lyrics editor | `lyric-rhymes-open` | opens the rhyme finder for the word at the cursor | all |
+| Lyrics editor | `lyric-rhymes-panel`, `lyric-rhymes-input`, `lyric-rhymes-result-<word>`, `lyric-rhymes-insert-<word>` | the rhyme finder (results with `data-kind` `perfect`/`near`, `data-syllables`) | all |
+| Lyrics editor | `lyric-marks-open`, `lyric-marks-list`, `lyric-mark-<markId>`, `lyric-mark-delete-<markId>`, `lyric-mark-selection` | intentional marks list; "Mark selection as intentional" | A, E |
+| Lyrics editor | `lyric-words-open`, `lyric-words-list`, `lyric-word-<wordId>`, `lyric-word-delete-<wordId>` | personal word list of the sheet's language | A, E |
+| Lyrics editor | `lyric-assist-log` | assist log (blocks, timings, discarded counts, token usage) | E |
+| Lyrics editor | `lyric-revisions-open`, `lyric-revision-<revision>`, `lyric-revision-restore-<revision>` | revision list | E |
+| Take details (010) | `take-lyrics-assisted` | "Lyrics: n lines AI-assisted" (only when n > 0) | all |
+| Agent panel (011) | `agent-approval-lyrics-diff` | inside `agent-approval-card` for `apply_lyric_suggestions`: one row per change, `agent-approval-lyrics-diff-<suggestionId>` with before/after | all |
+
+## Keyboard (binding for qa and frontend, FR-028)
+
+| Key | Where | Action |
+|---|---|---|
+| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry) |
+| Alt+Enter | focused suggestion | accept |
+| Alt+Backspace | focused suggestion | reject |
+| Alt+I | focused correction | mark as intentional (default scope: word for spelling, phrase otherwise) |
+| Escape | list | back to the text at the suggestion's position |
+| Ctrl+Alt+C | editor | Check |
+
+Announcements in `lyric-assist-live`: check started ("Checking 40 lines"), finished ("Check
+finished: 7 suggestions - 2 spelling, 1 grammar, 3 flow, 1 device"), focused suggestion ("Line 4,
+spelling error: wiet, proposed weet. <explanation>"), accept/reject/undo results.
+
+## Help topics (ids = `data-help-id`, 004 framework)
+
+`lyric-assist` (what it does, on demand, own lyrics only), `lyric-assist-licence` (poetic licence,
+sensitivity, intentional marks, my words), `lyric-assist-devices` (device types), `lyric-assist-rhythm`
+(syllables, rhythm target, density), `lyric-assist-privacy` (local model, Claude notice, what is
+sent), `lyric-assist-limits` (model quality per language, verbatim check limits).

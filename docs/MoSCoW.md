@@ -49,6 +49,7 @@ Important, with clear value, but the product works without them.
 | S10 | **Drum trainer**: drum notation with hit lanes (kick/snare/hi-hat from 002 detail stems) and a "drumless" practice mix in one click | Drummers are a large group of stem-practice users. | Builds on 002 + 008. M |
 | S11 | **Key detection**: song key (and key changes) next to the tempo; the transposed key is shown when 012 transposes | Needed to transpose sensibly and to spell chords; Moises has it. | Part of 016. S |
 | S12 | **Capo mode**: capo position and chord shapes relative to the capo, so the sounding key stays correct; suggests easy capo positions | Guitarists play songs in a comfortable shape; Moises has it. | Part of 016. S |
+| S13 | **Lyric writing assistant** (owner request 2026-11-16): on demand, the AI assistant helps write own lyrics (continue, alternatives, rhymes, syllables against the rhythm, titles) and checks spelling, grammar and flow in Dutch or English, always allowing poetic licence and proposing poetic licence and devices itself | Writers and singers who write their own songs (010) get a co-writer that respects their style. | Own lyrics sheets (010) only, never imported 006 lyrics; local Ollama by default, Claude optional; Hunspell dictionaries as the local baseline. Feature 023. M |
 
 ## Could have
 
@@ -104,4 +105,5 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 - 2026-11-16: every instrument counts equally; C1 and C5 moved to Should (S9, S10) so vocals and drums
   get their own views next to chords and tablature.
 - 2026-11-16 (comparison with Moises): key detection (S11) and capo mode (S12) go into 016; practice partner (C9), amp simulation (C10) and DAWproject export (C11) become feature 021; no video recording (W8).
+- 2026-11-16: lyric writing assistant added as S13 (owner request; own lyrics only, Dutch and English) -> feature 023.
 - 2026-11-16: M1 uses SoundTouch (LGPL-2.1), not Rubber Band (GPL), so StemStudio stays MIT. Any change to SoundTouch itself stays LGPL and is published with its source; the licence goes into THIRD-PARTY-LICENSES.
