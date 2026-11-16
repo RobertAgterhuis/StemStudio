@@ -22,7 +22,12 @@
          documents and the 009 generator document are linked as well so tests can prove they are subsets. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\008-sheet-music\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\011-ai-composer-agent\followups\claude-key\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 012 Phase 0 (T004, agreed one-time edit): the current full backend document is 012's 1.11.0 (= 1.21.0 + 012);
+         the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
+    <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\011-ai-composer-agent\followups\claude-key\contracts\backend-api.openapi.yaml" Link="Contract\011-claude-key\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.md" Link="Contract\012\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.delta.md" Link="Contract\012\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\011-ai-composer-agent\contracts\backend-api.openapi.yaml" Link="Contract\011\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\010-lyrics-to-song\contracts\backend-api.openapi.yaml" Link="Contract\010\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\009-style-transfer\contracts\backend-api.openapi.yaml" Link="Contract\009\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />

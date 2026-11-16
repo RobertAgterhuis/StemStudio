@@ -13,6 +13,10 @@ public sealed partial class EngineContractDriftTests
 {
     private static readonly string TypesTs = File.ReadAllText(RepoFile("src", "audio-engine", "src", "types.ts"));
 
+    // Staged callbacks (architect, 012 Phase 0 T005): in types.ts 2.3.0 but not yet [JSInvokable] in AudioEngineInterop.
+    // The frontend removes each name when it implements it (012 T029/T030: OnPracticeChanged).
+    private static readonly string[] PendingCallbacks = ["OnPracticeChanged"];
+
     [Fact]
     public void EveryInvokedEngineMethod_ExistsInAudioEngineInterface()
     {
@@ -38,13 +42,14 @@ public sealed partial class EngineContractDriftTests
     {
         var match = CallbacksRegex().Match(TypesTs);
         match.Success.ShouldBeTrue();
-        var contractCallbacks = QuotedRegex().Matches(match.Groups[1].Value).Select(m => m.Groups[1].Value).Order().ToList();
+        var contractCallbacks = QuotedRegex().Matches(match.Groups[1].Value).Select(m => m.Groups[1].Value).Except(PendingCallbacks).Order().ToList();
 
         var invokables = typeof(AudioEngineInterop).GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Select(m => m.GetCustomAttribute<JSInvokableAttribute>()?.Identifier ?? (m.IsDefined(typeof(JSInvokableAttribute)) ? m.Name : null))
             .OfType<string>().Order().ToList();
 
         invokables.ShouldBe(contractCallbacks);
+        PendingCallbacks.ShouldAllBe(name => match.Groups[1].Value.Contains($"'{name}'", StringComparison.Ordinal) && !invokables.Contains(name));
     }
 
     [Fact]

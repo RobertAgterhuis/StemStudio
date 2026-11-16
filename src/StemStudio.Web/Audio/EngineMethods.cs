@@ -1,13 +1,13 @@
 namespace StemStudio.Web.Audio;
 
 /// <summary>
-/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.1.0 incl. the karaoke methods).
+/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.3.0; the karaoke methods of 2.1.0 included).
 /// Every identifier the wrapper invokes is listed here so a drift test can compare them with the contract.
 /// </summary>
 internal static class EngineMethods
 {
-    /// <summary>Supported engine contract version.</summary>
-    public const string ContractVersion = "2.1.0";
+    /// <summary>Supported engine contract version (2.3.0 since 012 Phase 0; the practice calls are added by the frontend in 012 T029/T030).</summary>
+    public const string ContractVersion = "2.3.0";
 
     /// <summary>Path of the ES module built by the audio-engine package.</summary>
     public const string ModulePath = "./js/audio-engine.js";

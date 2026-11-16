@@ -33,6 +33,8 @@ import type {
   MetronomeSettings,
   ParentStemName,
   PlaybackState,
+  PracticeSettings,
+  PracticeStatus,
 } from './types';
 
 /** Default delay of the shared `when` (s). */
@@ -41,6 +43,8 @@ export const DEFAULT_START_DELAY_SECONDS = 0.1;
 export const DEFAULT_SCHEDULE_AHEAD_SECONDS = 0.1;
 /** Default scheduler wake-up interval (ms). */
 export const DEFAULT_SCHEDULER_INTERVAL_MS = 25;
+/** Message of the contract 2.3.0 practice stubs; replaced by the implementation (012 tasks.md T034). */
+export const PRACTICE_NOT_IMPLEMENTED = 'Practice tempo is not implemented yet (engine contract 2.3.0)';
 
 interface Parts {
   readonly context: AudioContext;
@@ -245,6 +249,20 @@ export class Engine implements AudioEngine {
   public detachKaraoke(): void {
     this.alive();
     this.parts.karaoke.detach();
+  }
+
+  /** {@inheritDoc AudioEngine.setPractice} */
+  public setPractice(settings: PracticeSettings): Promise<void> {
+    return Promise.resolve(settings).then(() => {
+      this.alive();
+      throw new Error(PRACTICE_NOT_IMPLEMENTED);
+    });
+  }
+
+  /** {@inheritDoc AudioEngine.getPracticeStatus} */
+  public getPracticeStatus(): PracticeStatus {
+    this.alive();
+    throw new Error(PRACTICE_NOT_IMPLEMENTED);
   }
 
   /** {@inheritDoc AudioEngine.dispose} */

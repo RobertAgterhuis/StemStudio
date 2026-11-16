@@ -18,4 +18,7 @@ public sealed record MixSettingsDto(
 
     /// <summary>At most one entry per (parent, detail stem); detail stems without an entry use defaults.</summary>
     public IReadOnlyList<DetailChannelSettingsDto> DetailChannels { get; init; } = [];
+
+    /// <summary>Practice tempo (backend-api 1.11.0); absent in a request = <see cref="PracticeSettingsDto.Default"/>, also for mixes saved before 1.11.0.</summary>
+    public PracticeSettingsDto Practice { get; init; } = PracticeSettingsDto.Default;
 }
