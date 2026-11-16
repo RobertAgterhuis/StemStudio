@@ -36,7 +36,7 @@ public sealed class RunnerHarness
 
     public IChatClient Client { get; }
 
-    public FixedChatSession Session { get; set; }
+    public IAgentChatSession Session { get; set; }
 
     public FakeTimeProvider Time { get; } = new(Start);
 
@@ -70,6 +70,10 @@ public sealed class RunnerHarness
     public ScriptedChatClient Script => (ScriptedChatClient)Client;
 
     public static RunnerHarness Scripted(IEnumerable<AgentToolDescriptor> tools, params ScriptedTurn[] turns) => new(new ScriptedChatClient(turns), tools);
+
+    public void UseSession(IAgentChatSession session) => Session = session;
+
+    public void SetCommandContext(PageContextDto context) => Command = Command with { Context = context };
 
     public AgentServices Services() => new()
     {
