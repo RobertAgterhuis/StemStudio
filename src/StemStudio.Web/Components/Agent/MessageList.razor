@@ -1,0 +1,24 @@
+@* Messages of the open conversation (agent-message-<seq>, data-role) and the answer while it streams (agent-streaming,
+   a polite live region). *@
+
+<ol class="ss-agent-messages" aria-label="Messages">
+    @foreach (var message in Messages)
+    {
+        var role = AgentWire.Name(message.Role);
+        <li @key="message.Seq" class="@($"ss-agent-message ss-agent-message-{role}")" data-testid="@($"agent-message-{message.Seq}")" data-role="@role">@message.Text</li>
+    }
+</ol>
+@if (Streaming is { } text)
+{
+    <p class="ss-agent-message ss-agent-message-assistant" data-testid="agent-streaming" aria-live="polite">@text</p>
+}
+
+@code {
+    /// <summary>The stored messages in order.</summary>
+    [Parameter]
+    public IReadOnlyList<AgentMessageDto> Messages { get; set; } = [];
+
+    /// <summary>The answer text streamed so far, or null when nothing streams.</summary>
+    [Parameter]
+    public string? Streaming { get; set; }
+}

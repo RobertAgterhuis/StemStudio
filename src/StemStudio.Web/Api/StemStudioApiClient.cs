@@ -22,6 +22,8 @@ public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioAp
     /// <summary>JSON options of the backend contract (camelCase; enums carry their own converters).</summary>
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    private readonly ApiTransport _transport = new(http, Json);
+
     /// <inheritdoc />
     public Task<TrackDto> ImportUrlAsync(string url, CancellationToken cancellationToken = default) =>
         SendAsync<TrackDto>(HttpMethod.Post, ApiRoutes.Imports, JsonBody(new ImportUrlRequest(url)), cancellationToken);
@@ -186,37 +188,9 @@ public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioAp
         return new MultipartFormDataContent { { stream, name, file.FileName } };
     }
 
-    private async Task<T> SendAsync<T>(HttpMethod method, string uri, HttpContent? content, CancellationToken ct)
-    {
-        using var response = await SendRawAsync(method, uri, content, ct);
-        var value = await response.Content.ReadFromJsonAsync<T>(Json, ct);
-        return value ?? throw new ApiException(ApiError.FromStatus(response.StatusCode) with { Title = "The server returned an empty response." });
-    }
+    private Task<T> SendAsync<T>(HttpMethod method, string uri, HttpContent? content, CancellationToken ct) =>
+        _transport.SendAsync<T>(method, uri, content, ct);
 
-    private async Task<HttpResponseMessage> SendRawAsync(HttpMethod method, string uri, HttpContent? content, CancellationToken ct)
-    {
-        using var request = new HttpRequestMessage(method, new Uri(uri, UriKind.Relative)) { Content = content };
-        var response = await TransmitAsync(request, ct);
-        if (response.IsSuccessStatusCode)
-        {
-            return response;
-        }
-
-        using (response)
-        {
-            throw new ApiException(await ProblemReader.ReadAsync(response, ct));
-        }
-    }
-
-    private async Task<HttpResponseMessage> TransmitAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        try
-        {
-            return await http.SendAsync(request, ct);
-        }
-        catch (HttpRequestException ex)
-        {
-            throw new ApiException(ApiError.Unreachable, ex);
-        }
-    }
+    private Task<HttpResponseMessage> SendRawAsync(HttpMethod method, string uri, HttpContent? content, CancellationToken ct) =>
+        _transport.SendRawAsync(new HttpRequestMessage(method, new Uri(uri, UriKind.Relative)) { Content = content }, ct);
 }

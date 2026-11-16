@@ -1,0 +1,31 @@
+@* Plan checklist (agent-plan, agent-plan-item-<index> with data-status); exists only when the run has a plan. *@
+
+@if (Plan.Count > 0)
+{
+    <ol class="ss-agent-plan" data-testid="agent-plan" aria-label="Plan">
+        @foreach (var item in Plan)
+        {
+            var status = AgentWire.Name(item.Status);
+            <li @key="item.Index" class="@($"ss-agent-plan-item ss-agent-status-{status}")" data-testid="@($"agent-plan-item-{item.Index}")" data-status="@status">
+                <span class="rzi" aria-hidden="true">@Icon(item.Status)</span>
+                <span>@item.Title</span>
+                <span class="ss-sr-only">(@status)</span>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    /// <summary>The plan items.</summary>
+    [Parameter]
+    public IReadOnlyList<PlanItemDto> Plan { get; set; } = [];
+
+    private static string Icon(PlanItemStatusDto status) => status switch
+    {
+        PlanItemStatusDto.Done => "check_circle",
+        PlanItemStatusDto.Running => "progress_activity",
+        PlanItemStatusDto.Failed => "error",
+        PlanItemStatusDto.Skipped => "block",
+        _ => "radio_button_unchecked",
+    };
+}

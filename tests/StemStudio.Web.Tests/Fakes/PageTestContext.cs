@@ -4,6 +4,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Radzen;
+using StemStudio.Contracts.Agent;
+using StemStudio.Web.Agent;
 using StemStudio.Web.Api;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Help;
@@ -49,8 +51,34 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<HelpContext>();
         Services.AddScoped<KaraokePreferences>();
         Services.AddScoped<StemStudio.Web.Generation.GenerationStatusSource>();
+        Services.AddSingleton(AgentApi);
+        Services.AddScoped<NavigationUiTools>();
+        Services.AddScoped<AgentUiToolHost>();
+        Services.AddScoped<AgentPanelState>();
         GenerativeDefaults();
+        AgentDefaults();
     }
+
+    /// <summary>The agent is ready, has no conversations and streams <see cref="AgentEvents"/> for every run (011).</summary>
+    private void AgentDefaults()
+    {
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentData.Status());
+        AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns([]);
+        AgentApi.CreateConversationAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(AgentData.Conversation());
+        AgentApi.GetConversationAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(call => AgentData.Conversation(call.Arg<Guid>()));
+        AgentApi.SendMessageAsync(Arg.Any<Guid>(), Arg.Any<SendAgentMessageRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new AgentMessageAcceptedDto { RunId = AgentData.RunId, MessageId = AgentData.MessageId });
+        AgentApi.StreamRunEventsAsync(Arg.Any<Guid>(), Arg.Any<int?>(), Arg.Any<CancellationToken>())
+            .Returns(call => AgentEvents.Read(call.ArgAt<int?>(1), call.ArgAt<CancellationToken>(2)));
+    }
+
+    /// <summary>The agent API port (backend API 1.10.0), substituted.</summary>
+    protected IAgentApiClient AgentApi { get; } = Substitute.For<IAgentApiClient>();
+
+    /// <summary>The event stream every run of <see cref="AgentApi"/> returns.</summary>
+    protected AgentRunFeed AgentEvents { get; } = new();
+
+    protected AgentPanelState Panel => Services.GetRequiredService<AgentPanelState>();
 
     /// <summary>Generation features answer "not installed" and empty lists unless a test says otherwise (009/010).</summary>
     private void GenerativeDefaults()

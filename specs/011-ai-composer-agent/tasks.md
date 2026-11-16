@@ -105,8 +105,8 @@ all lanes below begin in parallel from the Phase 0 commit.
 
 ### frontend (tests first)
 
-- [ ] T022 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Agent/AgentApiClientTests.cs`: every `/api/agent/*` call of DELTA.md; SSE reader parses recorded streams (ids, event types, keep-alive comments, reconnect with `Last-Event-ID`), problem details -> `ApiException` (FR-001)
-- [ ] T023 [frontend] Implement `src/StemStudio.Web/Agent/{IAgentApiClient,AgentApiClient,SseReader}.cs` to pass T022
+- [x] T022 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Agent/AgentApiClientTests.cs`: every `/api/agent/*` call of DELTA.md; SSE reader parses recorded streams (ids, event types, keep-alive comments, reconnect with `Last-Event-ID`), problem details -> `ApiException` (FR-001)
+- [x] T023 [frontend] Implement `src/StemStudio.Web/Agent/{IAgentApiClient,AgentApiClient,SseReader}.cs` to pass T022
 
 **Checkpoint**: HO:foundational for ai-agent, backend, frontend.
 
@@ -129,10 +129,10 @@ all lanes below begin in parallel from the Phase 0 commit.
 - [x] T033 [US1] [backend] Implement `src/StemStudio.Api/Agent/{AgentEndpoints,AgentRunExecutor,SseWriter}.cs` and registration to pass T032
 - [x] T034 [P] [US1] [backend] Failing tests `Agent/LoopbackActionsTests.cs`: each `IStemStudioActions` member (all nine groups, incl. 009/010 `Styles`, `Generations`, `Songs`, `Voices`) calls the public endpoint with the Contracts DTOs; `Songs` drops the lyrics text (`LyricsSheetSummary`), `Voices` drops `personName`/`sampleUrl` (`VoiceProfileSummary`) and exposes no profile creation or deletion (stub handler at the loopback base URL), maps 4xx problem details to readable tool errors (no stack traces, no internal URLs), never touches DbContext (FR-005)
 - [x] T035 [US1] [backend] Implement `src/StemStudio.Api/Agent/LoopbackActions.cs` (typed `HttpClient`, `StemStudio__Agent__LoopbackBaseUrl`) to pass T034
-- [ ] T036 [P] [US1] [frontend] Failing bUnit tests `Components/Agent/AgentPanelTests.cs`: toggle on every page (layout), input/send disabled while not ready, streamed text, plan checklist statuses, step rows with progress and error, context (page/track/mix) sent, conversation list (new/select) (ui-test-ids next minor; FR-001, FR-004, FR-007)
-- [ ] T037 [US1] [frontend] Implement `Components/Agent/{AgentPanel,MessageList,PlanView,StepRow,ConversationList,BackendBadge}.razor`, `Agent/AgentPanelState.cs`, layout toggle to pass T036
-- [ ] T038 [P] [US1] [frontend] Failing tests `Agent/AgentUiToolHostTests.cs` + mixer handler tests: `ui.requested` dispatched to the registered handler; mixer handlers change `MixerState` through the same methods as the UI (absolute/relative gain, pan, mute, solo, master, reset, transport, loop by seconds or bars from the beat grid, metronome) and return previous/current values; wrong track or no handler -> `{ok: false, "The mixer of <title> is not open"}`; `open_track`/`open_mixer` navigate (unsaved-changes guard of 001 respected) (FR-005)
-- [ ] T039 [US1] [frontend] Implement `Agent/AgentUiToolHost.cs`, handler registration in `Mixer.razor` and the layout to pass T038
+- [x] T036 [P] [US1] [frontend] Failing bUnit tests `Components/Agent/AgentPanelTests.cs`: toggle on every page (layout), input/send disabled while not ready, streamed text, plan checklist statuses, step rows with progress and error, context (page/track/mix) sent, conversation list (new/select) (ui-test-ids next minor; FR-001, FR-004, FR-007)
+- [x] T037 [US1] [frontend] Implement `Components/Agent/{AgentPanel,MessageList,PlanView,StepRow,ConversationList,BackendBadge}.razor`, `Agent/AgentPanelState.cs`, layout toggle to pass T036
+- [x] T038 [P] [US1] [frontend] Failing tests `Agent/AgentUiToolHostTests.cs` + mixer handler tests: `ui.requested` dispatched to the registered handler; mixer handlers change `MixerState` through the same methods as the UI (absolute/relative gain, pan, mute, solo, master, reset, transport, loop by seconds or bars from the beat grid, metronome) and return previous/current values; wrong track or no handler -> `{ok: false, "The mixer of <title> is not open"}`; `open_track`/`open_mixer` navigate (unsaved-changes guard of 001 respected) (FR-005)
+- [x] T039 [US1] [frontend] Implement `Agent/AgentUiToolHost.cs`, handler registration in `Mixer.razor` and the layout to pass T038
 - [ ] T040 [US1] [qa] Author `e2e/tests/agent.spec.ts` "command executes" (fake script: search -> open mixer -> mute drums): plan + steps visible, `mute-drums` pressed state, answer shown; script files `e2e/agent-scripts/us1-*.json`
 
 **Checkpoint**: HO:us1.
@@ -150,8 +150,8 @@ all lanes below begin in parallel from the Phase 0 commit.
 - [x] T044 [US2] [ai-agent] Fix anything missing to pass T043
 - [x] T045 [P] [US2] [backend] Failing tests `Agent/ApprovalEndpointTests.cs`: `POST approvals/{stepId}` approve/reject/plan scope, 409 not pending / arguments changed, idempotency, `approval.resolved` broadcast to all subscribers (two SSE clients) (FR-015)
 - [x] T046 [US2] [backend] Implement the approval endpoint to pass T045
-- [ ] T047 [P] [US2] [frontend] Failing bUnit tests `Components/Agent/ApprovalCardTests.cs`: card shows effect (`agent-approval-effect`), exact arguments, reasons (tainted text "proposed after reading external content"), undoability, estimated minutes and device for heavy (`agent-approval-estimate`, `data-minutes`, `data-device`); approve / approve-plan (only when allowed) / reject post the right body with `argumentsHash`; card closes on `approval.resolved` (FR-012, FR-013)
-- [ ] T048 [US2] [frontend] Implement `Components/Agent/ApprovalCard.razor` to pass T047
+- [x] T047 [P] [US2] [frontend] Failing bUnit tests `Components/Agent/ApprovalCardTests.cs`: card shows effect (`agent-approval-effect`), exact arguments, reasons (tainted text "proposed after reading external content"), undoability, estimated minutes and device for heavy (`agent-approval-estimate`, `data-minutes`, `data-device`); approve / approve-plan (only when allowed) / reject post the right body with `argumentsHash`; card closes on `approval.resolved` (FR-012, FR-013)
+- [x] T048 [US2] [frontend] Implement `Components/Agent/ApprovalCard.razor` to pass T047
 - [ ] T049 [US2] [qa] Author `agent.spec.ts` "confirm and reject" (delete mix approved; delete track rejected -> track still listed; detail split approved -> detail phase queued) and "injection" (fake adversarial script on the `t-inject` fixture: approval card with reason `tainted`, reject -> nothing changed) (SC-002, SC-003)
 
 **Checkpoint**: HO:us2.
@@ -170,8 +170,8 @@ clear unavailable state.
 - [x] T053 [US3] [backend] Implement the hook calls in `Importing/`, `Tracks/`, `Detail/` and `Agent/GpuActivity.cs` to pass T052
 - [x] T054 [P] [US3] [backend] Failing tests `Agent/StatusEndpointTests.cs`: `GET /api/agent/status` within 3 s for ready / Ollama down / model missing / backend none; `POST messages` 503 `backend-unavailable` with status; existing endpoints unaffected when Ollama is down (FR-023, SC-005)
 - [x] T055 [US3] [backend] Implement the status endpoint to pass T054
-- [ ] T056 [P] [US3] [frontend] Failing bUnit tests: `agent-unavailable` with reason + fix, input disabled, badge `data-backend`/`data-model`/`data-fallback`; status refresh every 10 s while the panel is open (FR-021, FR-023)
-- [ ] T057 [US3] [frontend] Implement to pass T056
+- [x] T056 [P] [US3] [frontend] Failing bUnit tests: `agent-unavailable` with reason + fix, input disabled, badge `data-backend`/`data-model`/`data-fallback`; status refresh every 10 s while the panel is open (FR-021, FR-023)
+- [x] T057 [US3] [frontend] Implement to pass T056
 - [ ] T058 [US3] [qa] Author `agent.spec.ts` "unavailable" (backend none: panel state, rest of the app works) and ensure the default suite runs unchanged with `STEMSTUDIO_AGENT_BACKEND=none` (SC-005)
 - [x] T059 [US3] [devops] CI e2e job: after the default fake-stack run, run `agent.spec.ts` with `STEMSTUDIO_AGENT_BACKEND=fake` and the unavailable spec with `none`; same in `scripts/test-all.*`
 
@@ -186,11 +186,11 @@ clear unavailable state.
 
 - [x] T060 [P] [US4] [backend] Failing tests `Agent/SettingsEndpointTests.cs`: GET/PUT settings with validation (model must exist with tools capability -> 422), `claude` without key -> 409, without notice -> 422; `POST settings/test` for Ollama; no response, log line (captured logger) or DB row ever contains the key value (test sets a sentinel key) (FR-018, FR-019, SC-006)
 - [x] T061 [US4] [backend] Implement the settings endpoints to pass T060
-- [ ] T062 [P] [US4] [frontend] Failing bUnit tests `Components/Agent/AgentSettingsTests.cs`: radio group, Ollama status and model pickers (only tool-capable models), Claude disabled with "not configured" when `keyConfigured` false, notice + acknowledge before saving Claude, test-connection result, errors (FR-019)
-- [ ] T063 [US4] [frontend] Implement the new `/settings` page (004-010 have none) with the agent section and the rail link `nav-settings` (ui-test-ids 1.10.0) to pass T062
+- [x] T062 [P] [US4] [frontend] Failing bUnit tests `Components/Agent/AgentSettingsTests.cs`: radio group, Ollama status and model pickers (only tool-capable models), Claude disabled with "not configured" when `keyConfigured` false, notice + acknowledge before saving Claude, test-connection result, errors (FR-019)
+- [x] T063 [US4] [frontend] Implement the new `/settings` page (004-010 have none) with the agent section and the rail link `nav-settings` (ui-test-ids 1.10.0) to pass T062
 - [x] T064 [P] [US4] [ai-agent] [amend] Failing tests `Backends/ClaudeBackendTests.cs` (stub handler for `api.anthropic.com`): factory uses `ANTHROPIC_API_KEY` from an injected environment reader, model `claude-opus-5-5` default, effort setting, tool mode auto, streaming, max output tokens; per-run token budget stops the run (`budget-exhausted`); refusal and 401/429/5xx mapped to readable `run.failed` with "Switch to local"; probe only reports `keyConfigured` and calls `GET /v1/models/{id}` only on explicit test; a "must not be called" handler proves 0 requests when Claude is not selected (FR-018, FR-020, SC-006)
 - [x] T065 [US4] [ai-agent] [amend] Implement `Backends/{ClaudeChatClientFactory,ClaudeBackendProbe}.cs` to pass T064
-- [ ] T066 [US4] [frontend] [amend] Usage display (`agent-usage`) and "Switch to local" on Claude failures (bUnit test first, then implementation)
+- [x] T066 [US4] [frontend] [amend] Usage display (`agent-usage`) and "Switch to local" on Claude failures (bUnit test first, then implementation)
 - [ ] T067 [US4] [qa] Author `agent.spec.ts` "settings" (without key: Claude not selectable; switch to none and back to Ollama on the fake stack)
 
 **Checkpoint**: HO:us4.
@@ -206,8 +206,8 @@ clear unavailable state.
 - [x] T069 [US5] [ai-agent] Implement `Runtime/UndoPlanner.cs` and recording in `StepExecutor` to pass T068
 - [x] T070 [P] [US5] [backend] Failing tests: `POST conversations/{id}/undo` 202/409; rename/delete conversation (409 while active); reload restores messages, plans, steps (FR-002, FR-017)
 - [x] T071 [US5] [backend] Implement to pass T070
-- [ ] T072 [P] [US5] [frontend] Failing bUnit tests: undo button state, conversation rename/delete, history reload restores the view and resumes a running run's stream (FR-002)
-- [ ] T073 [US5] [frontend] Implement to pass T072
+- [x] T072 [P] [US5] [frontend] Failing bUnit tests: undo button state, conversation rename/delete, history reload restores the view and resumes a running run's stream (FR-002)
+- [x] T073 [US5] [frontend] Implement to pass T072
 - [ ] T074 [US5] [qa] Author `agent.spec.ts` "undo" (three mixer changes -> undo -> previous fader values via `aria-valuenow`; save-as -> undo -> mix gone) and "history" (reload page, conversation restored)
 
 **Checkpoint**: HO:us5.
@@ -236,7 +236,7 @@ clear unavailable state.
 - [x] T079a [P] [ai-agent] `tools/agent-eval`: console harness with fake StemStudio actions seeded from eval-set fixtures (incl. styles, `g-song`, `v-mine`), `eval-set.json` generated from `evaluation/eval-set.md` (30 scored cases + S1-S3), grading rules, Markdown report (success per case/language, latency p50/p90), `--backend ollama|claude --runs N`; unit tests for grading with scripted turns (research R-09) (done: live runs over the seeded fixture, `--backend fake` = self-test + scripted live run; `--backend claude` deliberately not wired; xUnit grading tests follow in the architect's agent-eval test project, see HO:polish)
 - [x] T079b [P] [ai-agent] Refactor to SIG limits, XML docs, HO:polish with `StemStudio.Agent` coverage
 - [x] T079c [P] [backend] Refactor, XML docs, HO:polish with Api/Persistence coverage
-- [ ] T079d [P] [frontend] Accessibility of the panel (keyboard: Enter sends, Esc closes; live region for streamed text and step status; cards focus the Approve button only after reading - no auto-focus on Approve), HO:polish
+- [x] T079d [P] [frontend] Accessibility of the panel (keyboard: Enter sends, Esc closes; live region for streamed text and step status; cards focus the Approve button only after reading - no auto-focus on Approve), HO:polish
 - [ ] T079e [P] [qa] Traceability matrix update, HO:polish
 - [x] T079f [P] [devops] Validate compose/CI (`docker compose config -q`, `actionlint`), HO:polish
 - [x] T079g [P] [quality-gate] `run_all.py` on the whole repo; refactor requests per owner; HO:polish - done on the lane branch (0 errors); the final run over the merged code is part of the CTO integration T080

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
+using StemStudio.Web.Agent;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
@@ -35,13 +36,16 @@ public sealed partial class MainLayout : IAsyncDisposable
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
 
+    [Inject]
+    private AgentPanelState Agent { get; set; } = default!;
+
     private ExperienceContext Experience => new(Preferences.Current.EffectiveLevel, Preferences.Current.EffectiveDensity);
 
     private string LevelName => Lower(Preferences.Current.EffectiveLevel);
 
     private string DensityName => Lower(Preferences.Current.EffectiveDensity);
 
-    private string? ShellClass => Help.IsOpen ? "ss-shell ss-shell-help-open" : "ss-shell";
+    private string ShellClass => "ss-shell" + (Help.IsOpen ? " ss-shell-help-open" : string.Empty) + (Agent.IsOpen ? " ss-shell-agent-open" : string.Empty);
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -50,6 +54,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         Toasts.Changed -= OnChanged;
         Help.Changed -= OnChanged;
         Overlays.Changed -= OnChanged;
+        Agent.Changed -= OnChanged;
         await (_shortcuts?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 
@@ -60,6 +65,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         Toasts.Changed += OnChanged;
         Help.Changed += OnChanged;
         Overlays.Changed += OnChanged;
+        Agent.Changed += OnChanged;
     }
 
     /// <inheritdoc />
