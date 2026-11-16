@@ -50,6 +50,7 @@ internal sealed class FixtureTracks(FixtureLibrary library) : ITrackActions
 
     public Task<TrackDto> ImportFromUrlAsync(string url, CancellationToken cancellationToken)
     {
+        ImportHosts.Check(url);
         var track = FixtureLibrary.Track(Guid.NewGuid(), "Imported track", null) with { SourceUrl = url };
         library.Tracks[track.Id] = track;
         return Task.FromResult(track);
@@ -135,4 +136,23 @@ internal sealed class FixtureLyrics : ILyricsActions
         Task.FromResult(None with { Status = LyricsStatusDto.Found });
 
     public Task<LyricsSummary> RemoveLyricsAsync(Guid trackId, CancellationToken cancellationToken) => Task.FromResult(None);
+}
+
+/// <summary>
+/// The import host allow-list of 001 (<c>SourceUrlParser</c> in the Domain, which the harness does not reference): any other
+/// host, scheme or a malformed URL is the API's 400 validation problem, so the step fails as it does on the real API.
+/// </summary>
+internal static class ImportHosts
+{
+    private const string Rejected = "One or more validation errors occurred. url: Only YouTube video links and Spotify track links are supported. Playlists and albums are not.";
+    private static readonly HashSet<string> Allowed = ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "open.spotify.com"];
+
+    /// <summary>Throws the API's 400 problem unless the URL is http(s) on an allowed host.</summary>
+    public static void Check(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || !Allowed.Contains(uri.Host))
+        {
+            throw new AgentActionException(400, "invalid-request", Rejected);
+        }
+    }
 }
