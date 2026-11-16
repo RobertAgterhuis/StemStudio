@@ -105,8 +105,8 @@ all lanes below begin in parallel from the Phase 0 commit.
 
 ### frontend (tests first)
 
-- [ ] T022 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Agent/AgentApiClientTests.cs`: every `/api/agent/*` call of DELTA.md; SSE reader parses recorded streams (ids, event types, keep-alive comments, reconnect with `Last-Event-ID`), problem details -> `ApiException` (FR-001)
-- [ ] T023 [frontend] Implement `src/StemStudio.Web/Agent/{IAgentApiClient,AgentApiClient,SseReader}.cs` to pass T022
+- [x] T022 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Agent/AgentApiClientTests.cs`: every `/api/agent/*` call of DELTA.md; SSE reader parses recorded streams (ids, event types, keep-alive comments, reconnect with `Last-Event-ID`), problem details -> `ApiException` (FR-001)
+- [x] T023 [frontend] Implement `src/StemStudio.Web/Agent/{IAgentApiClient,AgentApiClient,SseReader}.cs` to pass T022
 
 **Checkpoint**: HO:foundational for ai-agent, backend, frontend.
 
