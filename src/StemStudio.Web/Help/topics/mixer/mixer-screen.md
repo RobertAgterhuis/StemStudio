@@ -5,7 +5,7 @@ area: mixer
 summary: "Play the stems together and change each one: volume, mute, solo, pan, loop and click."
 route: "/tracks/{id}/mixer"
 anchors: ["strip-*"]
-related: [mixer-volume, mixer-mute-solo, mixer-transport, mixer-save]
+related: [mixer-volume, mixer-mute-solo, mixer-transport, mixer-save, practice-speed]
 reviewed: "004"
 ---
 
@@ -13,4 +13,5 @@ Each stem has a channel strip with its coloured tab, a level meter, a volume fad
 Advanced level a pan control. The master strip on the right sets the overall volume.
 
 Above the strips are the [loop](help:mixer-loop) and the [click](help:mixer-metronome); below them the
-[transport](help:mixer-transport). Changes are heard at once. Use [Save](help:mixer-save) to keep a mix.
+[transport](help:mixer-transport). The [practice tempo](help:practice-speed) panel slows the song down or changes its
+key. Changes are heard at once. Use [Save](help:mixer-save) to keep a mix.
