@@ -45,6 +45,12 @@ public sealed record AgentToolDescriptor
     /// <summary>Estimates a heavy step before approval (minutes, device, effect); null when not needed.</summary>
     public ToolEstimator? Estimator { get; init; }
 
+    /// <summary>
+    /// True when this call must be treated as <c>heavy</c> (e.g. an export estimated above 500 MB); evaluated before the
+    /// policy decides. A failing check keeps the declared risk.
+    /// </summary>
+    public ToolEscalation? HeavyWhen { get; init; }
+
     /// <summary>Maps the result of a UI tool to the projection and undo action; null projects the result as is.</summary>
     public UiResultMapper? MapUiResult { get; init; }
 

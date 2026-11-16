@@ -55,7 +55,7 @@ public sealed class Features007And008ToolProviderTests
         CreateAudioExportRequest? sent = null;
         _actions.Assets.CreateAudioExportAsync(Arg.Do<CreateAudioExportRequest>(request => sent = request), Arg.Any<CancellationToken>()).Returns(Asset(AssetId));
 
-        var result = await InvokeAsync(Tool(new ExportToolProvider(), "export_audio"), $$"""{"trackId":"{{TrackId}}","mode":"raw","channels":["vocals"],"format":"wav","bitDepth":24,"range":{"startSeconds":10,"endSeconds":40}}""", _actions);
+        var result = await InvokeAsync(Tool(new ExportToolProvider(), "export_audio"), $$$"""{"trackId":"{{{TrackId}}}","mode":"raw","channels":["vocals"],"format":"wav","bitDepth":24,"range":{"startSeconds":10,"endSeconds":40}}""", _actions);
 
         (sent!.TrackId, sent.Mode, sent.Format, sent.Range).ShouldBe((TrackId, ExportModeDto.Raw, new ExportFormatDto(AudioFileFormatDto.Wav, 24), new RangeDto(10, 40)));
         sent.Channels.ShouldBe(["vocals"]);
@@ -101,7 +101,7 @@ public sealed class Features007And008ToolProviderTests
     {
         var ids = new[] { Guid.NewGuid(), Guid.NewGuid() };
         _actions.Assets.CreateStemPackAsync(Arg.Any<CreateStemPackRequest>(), Arg.Any<CancellationToken>()).Returns(new StemPackDto([Asset(ids[0]), Asset(ids[1])]));
-        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId) with { DurationSeconds = 600 });
+        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId) with { DurationSeconds = 1200 });
         var tool = Tool(new ExportToolProvider(), "export_stem_pack");
 
         var result = await InvokeAsync(tool, $$"""{"trackId":"{{TrackId}}","format":"wav","includeDetail":true}""", _actions);

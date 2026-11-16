@@ -18,6 +18,12 @@ public delegate Task<ToolResult> ToolHandler(ToolInvocation invocation, Cancella
 /// <returns>The estimate.</returns>
 public delegate Task<ToolEstimate> ToolEstimator(ToolInvocation invocation, CancellationToken cancellationToken);
 
+/// <summary>Decides whether a call is escalated to the heavy risk class.</summary>
+/// <param name="invocation">Validated arguments and ports.</param>
+/// <param name="cancellationToken">Cancellation.</param>
+/// <returns>True for heavy.</returns>
+public delegate Task<bool> ToolEscalation(ToolInvocation invocation, CancellationToken cancellationToken);
+
 /// <summary>Maps the result a UI tool returned to the projection and undo action.</summary>
 /// <param name="arguments">Validated arguments.</param>
 /// <param name="result">The page's result object, when any.</param>

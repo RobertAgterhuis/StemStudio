@@ -66,8 +66,9 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         return ResultProjector.Error(prepared.Error);
     }
 
-    private async Task<ProjectedResult> DecideAndRunAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken)
+    private async Task<ProjectedResult> DecideAndRunAsync(RunState state, PreparedCall call, CancellationToken cancellationToken)
     {
+        var prepared = await EscalateAsync(state, call, cancellationToken);
         var decision = ToolPolicy.Decide(PolicyFor(state, prepared));
         var status = decision.Decision switch
         {
@@ -111,6 +112,24 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         {
             await services.Runs.SaveStepAsync(step with { Status = AgentStepStatusDto.Expired, EndedAt = services.Time.GetUtcNow() }, CancellationToken.None);
             throw;
+        }
+    }
+
+    private async Task<PreparedCall> EscalateAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        if (prepared.Tool!.HeavyWhen is not { } heavyWhen || prepared.Tool.Risk == ToolRiskDto.Heavy)
+        {
+            return prepared;
+        }
+
+        try
+        {
+            var invocation = new ToolInvocation { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
+            return await heavyWhen(invocation, cancellationToken) ? prepared with { Tool = prepared.Tool with { Risk = ToolRiskDto.Heavy } } : prepared;
+        }
+        catch (AgentActionException)
+        {
+            return prepared;
         }
     }
 
