@@ -15,36 +15,46 @@ public sealed class GpuReleasingWorkerClient(IWorkerClient inner, GpuJobGate gat
     /// <inheritdoc />
     public async Task<WorkerJob> CreateUrlJobAsync(WorkerUrlJobRequest request, CancellationToken cancellationToken)
     {
-        await gate.BeforeGpuJobAsync(cancellationToken);
-        return await inner.CreateUrlJobAsync(request, cancellationToken);
+        using (await gate.BeforeGpuJobAsync(cancellationToken))
+        {
+            return await inner.CreateUrlJobAsync(request, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
     public async Task<WorkerJob> CreateUploadJobAsync(WorkerUpload upload, CancellationToken cancellationToken)
     {
-        await gate.BeforeGpuJobAsync(cancellationToken);
-        return await inner.CreateUploadJobAsync(upload, cancellationToken);
+        using (await gate.BeforeGpuJobAsync(cancellationToken))
+        {
+            return await inner.CreateUploadJobAsync(upload, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
     public async Task<WorkerDetailJob> CreateDetailJobAsync(string standardJobId, CancellationToken cancellationToken)
     {
-        await gate.BeforeGpuJobAsync(cancellationToken);
-        return await inner.CreateDetailJobAsync(standardJobId, cancellationToken);
+        using (await gate.BeforeGpuJobAsync(cancellationToken))
+        {
+            return await inner.CreateDetailJobAsync(standardJobId, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
     public async Task<WorkerLyricsJob> CreateLyricsAlignJobAsync(WorkerLyricsAlignRequest request, CancellationToken cancellationToken)
     {
-        await gate.BeforeGpuJobAsync(cancellationToken);
-        return await inner.CreateLyricsAlignJobAsync(request, cancellationToken);
+        using (await gate.BeforeGpuJobAsync(cancellationToken))
+        {
+            return await inner.CreateLyricsAlignJobAsync(request, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
     public async Task<WorkerTranscriptionJob> CreateTranscriptionJobAsync(WorkerTranscriptionJobRequest request, CancellationToken cancellationToken)
     {
-        await gate.BeforeGpuJobAsync(cancellationToken);
-        return await inner.CreateTranscriptionJobAsync(request, cancellationToken);
+        using (await gate.BeforeGpuJobAsync(cancellationToken))
+        {
+            return await inner.CreateTranscriptionJobAsync(request, cancellationToken);
+        }
     }
 
     /// <inheritdoc />

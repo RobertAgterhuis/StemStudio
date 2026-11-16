@@ -20,8 +20,10 @@ public class GpuReleasingGeneratorClient(IGeneratorClient inner, GpuJobGate gate
     /// <inheritdoc />
     public async Task<GeneratorJob> CreateRestyleAsync(GeneratorRestyleRequest request, CancellationToken cancellationToken)
     {
-        await gate.BeforeGeneratorJobAsync(cancellationToken);
-        return await inner.CreateRestyleAsync(request, cancellationToken);
+        using (await gate.BeforeGeneratorJobAsync(cancellationToken))
+        {
+            return await inner.CreateRestyleAsync(request, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
@@ -37,15 +39,19 @@ public class GpuReleasingGeneratorClient(IGeneratorClient inner, GpuJobGate gate
     /// <inheritdoc />
     public async Task<GeneratorJob> CreateSongAsync(GeneratorSongParams song, CancellationToken cancellationToken)
     {
-        await gate.BeforeGeneratorJobAsync(cancellationToken);
-        return await inner.CreateSongAsync(song, cancellationToken);
+        using (await gate.BeforeGeneratorJobAsync(cancellationToken))
+        {
+            return await inner.CreateSongAsync(song, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
     public async Task<GeneratorJob> CreateVoiceConversionAsync(GeneratorVoiceConversionRequest request, CancellationToken cancellationToken)
     {
-        await gate.BeforeGeneratorJobAsync(cancellationToken);
-        return await inner.CreateVoiceConversionAsync(request, cancellationToken);
+        using (await gate.BeforeGeneratorJobAsync(cancellationToken))
+        {
+            return await inner.CreateVoiceConversionAsync(request, cancellationToken);
+        }
     }
 
     /// <inheritdoc />
