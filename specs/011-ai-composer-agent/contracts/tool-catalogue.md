@@ -26,6 +26,11 @@ phases `restyle`/`generation`; `navigate` pages of 007-011; page-context tool gr
 cap. The draft `generate_song` arguments (`lyrics` <= 4000, 10-600 s) follow `SongRequest` now
 (`lyricsId` or `lyricsText` <= 4,096, 10-480 s); the draft `restyle_track.strength: 0..1` is the
 `Strength` enum and `section` is `rangeStartSeconds`/`rangeEndSeconds`.
+Pre-release clarifications within 1.0.0 (011 follow-ups, 2026-11-16, catalogue not yet released):
+`mixer_get_state` result as returned by the frontend - `karaoke` is required (no longer optional) and
+`settings` (exactly a `MixSettingsDto`) is added, so `save_mix_as`/`update_mix`/`export_audio` (mode
+`mix`) can send the open mixer's state losslessly; a policy step whose dynamic heavy-risk check
+fails carries the decision reason `risk-check-failed` (backend API 1.10.0).
 
 ## Rules
 
@@ -83,7 +88,7 @@ cap. The draft `generate_song` arguments (`lyrics` <= 4000, 10-600 s) follow `So
 | `delete_mix` | server | destructive | none | `DELETE /api/mixes/{id}` | `mixId` | `{deleted: true}` |
 | `open_track` | ui | read | none | navigate to `/tracks/{id}` | `trackId` | `{opened: true}` |
 | `open_mixer` | ui | read | none | navigate to `/tracks/{id}/mixer` (optionally load `mixId`; the 001 unsaved-changes guard applies and is answered by the user) | `trackId`, `mixId?` | `{opened: true, mixLoaded?}` |
-| `mixer_get_state` | ui | read | none | read the open `MixerState` (+mixer) | - | `{trackId, mixId?, unsaved, channels[...], master, position, playing, loop, metronome, karaoke?}` |
+| `mixer_get_state` | ui | read | none | read the open `MixerState` (+mixer) | - | `{trackId, mixId?, unsaved, channels[...] (dB), master (dB), position, playing, loop, metronome, karaoke, settings}`: `karaoke` (bool) = the karaoke banner is visible; `settings` is exactly a `MixSettingsDto` (camelCase, linear volumes 0..1, `name` = "": the agent sets the name before `save_mix_as` / `update_mix` / `export_audio`) |
 | `mixer_set_channel` | ui | change | inverse | `MixerState` channel setters (+mixer) | `stem` (standard or detail name), `gainDb?: -60..+12` (absolute), `gainChangeDb?: -24..+24` (relative; never both), `pan?: -1..1`, `mute?: bool`, `solo?: bool` | `{stem, previous{...}, current{...}}` |
 | `mixer_set_master` | ui | change | inverse | master fader (+mixer) | `gainDb?` / `gainChangeDb?` | `{previous, current}` |
 | `mixer_reset` | ui | change | inverse | all channels to 0 dB, centre, unmuted, unsoloed (+mixer) | - | `{previous[...]}` |

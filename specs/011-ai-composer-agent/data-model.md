@@ -67,7 +67,7 @@ ai-agent) as plain records with no EF dependency. The backend maps them in
 | `ArgumentsHash` | SHA-256 hex of the canonical arguments | approval binding (FR-015) |
 | `PlanIndex?` | int | link to a plan item |
 | `Decision` | `auto` \| `approval_required` \| `denied` | `denied` for policy denials (guardrails `artist-imitation`, `lyrics-not-from-user`), never executed: the step ends `failed` with the readable refusal as `Error` and the model gets that refusal as the tool result |
-| `DecisionReasons` | list of codes: `risk-heavy`, `risk-destructive`, `tainted`, `url-not-from-user`, `lyrics-not-from-user`, `artist-imitation`, `undo-compensation` | shown on the card |
+| `DecisionReasons` | list of codes: `risk-heavy`, `risk-destructive`, `tainted`, `url-not-from-user`, `lyrics-not-from-user`, `artist-imitation`, `undo-compensation`, `risk-check-failed` | shown on the card; `risk-check-failed` = the tool's dynamic heavy-risk check (e.g. `export_audio` size estimate) threw, so the step is escalated to heavy (approval required, never plan-covered; the cause is only logged) |
 | `Status` | `planned` \| `awaiting_approval` \| `running` \| `awaiting_ui` \| `waiting_job` \| `succeeded` \| `failed` \| `rejected` \| `rejected_invalid` \| `skipped` \| `expired` \| `undone` | |
 | `ResultSummary` | JSON projection <= 4 KB | what the model saw |
 | `Error?` | string <= 500 | readable |
@@ -81,9 +81,15 @@ ai-agent) as plain records with no EF dependency. The backend maps them in
 |---|---|---|
 | `Id` | GUID (= `RunStep.Id`) | |
 | `Status` | `pending` \| `approved` \| `rejected` \| `expired` | first decision wins; later POSTs return the stored decision (idempotent) |
-| `Scope` | `once` \| `plan_heavy` | `plan_heavy` covers later **heavy** steps of the same run whose `Tool` and target id (`trackId`) match a plan item; never destructive steps or compensations |
+| `Scope` | `once` \| `plan_heavy` | a `plan_heavy` grant is bound to the approved step's `Tool` and its target id (`trackId`, or the tool's one target argument), which must be **exactly one JSON string**. It covers later **heavy** steps of the same run with the same `Tool` whose target argument is exactly one string equal to the grant's target and that match a plan item. A grant from a step without such a target is not created (the approval acts as `once`); **target-less heavy steps always ask**, as do array, non-string or null targets. Never destructive steps, compensations, or steps with any reason besides `risk-heavy` (so never `risk-check-failed`) |
 | `ArgumentsHash` | copy of the step's hash | the executor re-checks it before executing |
 | `RequestedAt`, `DecidedAt?` | | pending approvals expire after 24 h or when the run ends |
+
+Rejected or expired step: the step ends `rejected` / `expired` and **only that step's own plan item** (`PlanIndex`)
+becomes `skipped`; the model receives "The user rejected this step." (or the expiry text). The runtime does not
+infer dependencies: later plan items stay `pending` and the model re-plans with `set_plan` (which replaces only
+not-yet-started items, so it may mark the items it drops as `skipped`); the final answer says what was not done
+(spec US2 scenario 4). This is what "dependent steps are marked skipped" means.
 
 ### 4.4 `UndoEntry`
 
@@ -93,6 +99,7 @@ ai-agent) as plain records with no EF dependency. The backend maps them in
 | `Kind` | `inverse` \| `compensate` | |
 | `Action` | `{Tool, Arguments}` | the inverse/compensating call, e.g. `mixer_set_channel` with the previous values, `update_mix` with the previous version, `delete_mix` for a fresh mix, `cancel_detail_separation` |
 | `Fresh` | bool | compensation of an artefact created by this run and not modified since (checked via `updatedAt`): no approval |
+| `ExpectedUpdatedAt?` | timestamp (UTC) | optimistic check for mix targets: the mix's `updatedAt` right after the step; at undo time a different `updatedAt` (tolerance 1 s for storage rounding) makes the entry `obsolete`; null when the target has no version (mixer, loop, jobs). Replaces the reserved `$expect` argument inside `Action.Arguments` |
 | `Status` | `available` \| `applied` \| `obsolete` | `obsolete` when the target changed outside the agent after the step (e.g. mix updated in the UI) or no longer exists |
 
 Undo applies the newest group with `available` entries, in reverse step order, as a new run
@@ -128,11 +135,14 @@ Decide(descriptor, args, run, conversation) ->
   if guardrail violated (artist imitation in free text of create_style / generate_song;
      lyrics text of save_lyrics_sheet / generate_song not in a user message)       -> denied
   reasons = []
-  if risk in {heavy, destructive}                                    -> reasons += risk-*
+  if risk in {heavy, destructive} (static, or HeavyWhen returned true) -> reasons += risk-*
   if risk in {change, job} and run.Tainted                           -> reasons += tainted
   if descriptor has url argument and url not literally in a user message of the conversation
                                                                      -> reasons += url-not-from-user
-  if plan_heavy approval in run covers (tool, target) and reasons == [risk-heavy] -> auto
+  if the descriptor's dynamic heavy-risk check (HeavyWhen) throws    -> step risk = heavy,
+                                         reasons += risk-check-failed (instead of risk-heavy)
+  if plan_heavy grant in run has grant.Tool == tool and target is exactly one string == grant.Target
+     and the step matches a plan item and reasons == [risk-heavy]     -> auto
   reasons empty -> auto, else approval_required(reasons)
 ```
 
