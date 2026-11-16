@@ -81,6 +81,23 @@ export class Mixer {
     return this.expanded.has(parent);
   }
 
+  /**
+   * Inserts the time-stretch stage between the master gain and the master meter, or removes it (contract 2.3.0;
+   * without a stage the graph is exactly the 2.1.0 one).
+   *
+   * @param stage - Stage input/output, or null for the direct connection.
+   */
+  public setStage(stage: { readonly input: AudioNode; readonly output: AudioNode } | null): void {
+    this.master.disconnect();
+    if (stage === null) {
+      this.master.connect(this.masterAnalyser);
+      return;
+    }
+    stage.output.disconnect();
+    this.master.connect(stage.input);
+    stage.output.connect(this.masterAnalyser);
+  }
+
   /** @param volume - Master gain 0..1 (clamped). */
   public setMaster(volume: number): void {
     rampTo(this.master.gain, checkedVolume(volume), this.context.currentTime);

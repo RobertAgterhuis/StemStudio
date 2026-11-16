@@ -4,7 +4,8 @@
  *
  * @packageDocumentation
  */
-import type { TransportAnchor, TransportClock } from '../transport';
+import { rateOf, trackAt, type TransportAnchor } from '../anchors';
+import type { TransportClock } from '../transport';
 import type { LoopRegion } from '../types';
 
 /** A stretch of track time that plays linearly inside a context-time window. */
@@ -15,6 +16,8 @@ export interface Segment {
   readonly trackTo: number;
   /** Context time at which `trackFrom` is heard. */
   readonly contextStart: number;
+  /** Track seconds per context second (contract 2.3.0); click context time = contextStart + (t - trackFrom) / rate. */
+  readonly rate: number;
 }
 
 /** Half-open context-time window `[from, to)`. */
@@ -31,35 +34,40 @@ export const MAX_SEGMENTS = 64;
 /**
  * @param clock - Transport timing view.
  * @param window - Context-time window to cover.
- * @returns Track segments heard during the window (empty when not playing).
+ * @returns Track segments heard during the window (empty when not playing), anchor by anchor of the queue.
  */
 export function segmentsFor(clock: TransportClock, window: TimeWindow): Segment[] {
-  const anchor = clock.anchor();
-  if (anchor === null) {
+  const current = clock.anchor();
+  if (current === null) {
     return [];
   }
-  const from = Math.max(window.from, anchor.when);
-  if (from >= window.to) {
-    return [];
-  }
-  const span = { from: toTrack(anchor, from), to: toTrack(anchor, window.to) };
+  const anchors = clock.anchors?.() ?? [current];
+  return anchors.flatMap((anchor, i) => {
+    const piece = { from: Math.max(window.from, anchor.when), to: Math.min(window.to, pieceEnd(anchor, anchors[i + 1])) };
+    return piece.from < piece.to ? pieceSegments(clock, anchor, piece) : [];
+  });
+}
+
+function pieceEnd(anchor: TransportAnchor, next: TransportAnchor | undefined): number {
+  return Math.min(next?.when ?? Infinity, anchor.until ?? Infinity);
+}
+
+function pieceSegments(clock: TransportClock, anchor: TransportAnchor, piece: TimeWindow): Segment[] {
+  const span = { from: trackAt(anchor, piece.from), to: trackAt(anchor, piece.to) };
   if (clock.loop.enabled) {
     return loopSegments(anchor, clock.loop, span);
   }
-  return [{ trackFrom: span.from, trackTo: Math.min(span.to, clock.duration), contextStart: from }];
-}
-
-function toTrack(anchor: TransportAnchor, contextTime: number): number {
-  return anchor.offset + (contextTime - anchor.when);
+  return [{ trackFrom: span.from, trackTo: Math.min(span.to, clock.duration), contextStart: piece.from, rate: rateOf(anchor) }];
 }
 
 /** Walks the unwrapped track time `u` (offset + elapsed) through the loop cycles. */
 function loopSegments(anchor: TransportAnchor, loop: LoopRegion, span: { from: number; to: number }): Segment[] {
   const segments: Segment[] = [];
+  const rate = rateOf(anchor);
   for (let u = span.from; u < span.to && segments.length < MAX_SEGMENTS; ) {
     const { track, cycleEnd } = locate(u, loop);
     const end = Math.min(cycleEnd, span.to);
-    segments.push({ trackFrom: track, trackTo: track + (end - u), contextStart: anchor.when + (u - anchor.offset) });
+    segments.push({ trackFrom: track, trackTo: track + (end - u), contextStart: anchor.when + (u - anchor.offset) / rate, rate });
     u = cycleEnd;
   }
   return segments;
