@@ -10,24 +10,37 @@ public sealed partial class AgentPanelState
     public async Task NewConversationAsync()
     {
         _selection++;
+        _creating = true;
         Error = await ApiCall.RunAsync(async () =>
         {
             await CreateConversationAsync();
             ShowEmpty();
         });
+        _creating = false;
         Notify();
     }
 
     /// <summary>Opens a stored conversation with its messages.</summary>
     /// <param name="conversationId">The conversation.</param>
     /// <returns>A task that completes when it is loaded.</returns>
-    public async Task SelectConversationAsync(Guid conversationId)
+    public Task SelectConversationAsync(Guid conversationId) => OpenAsync(conversationId, ++_selection, () => true);
+
+    /// <summary>
+    /// Opens the newest conversation when the panel loads, unless the user started or opened one meanwhile (also while
+    /// a new conversation is still being created).
+    /// </summary>
+    private Task OpenNewestAsync(Guid conversationId)
     {
-        var selection = ++_selection;
+        var selection = _selection;
+        return OpenAsync(conversationId, selection, () => !_creating && ConversationId is null);
+    }
+
+    private async Task OpenAsync(Guid conversationId, int selection, Func<bool> stillWanted)
+    {
         Error = await ApiCall.RunAsync(async () =>
         {
             var conversation = await api.GetConversationAsync(conversationId);
-            if (selection != _selection)
+            if (selection != _selection || !stillWanted())
             {
                 return; // the user started or opened another conversation meanwhile
             }
@@ -45,6 +58,9 @@ public sealed partial class AgentPanelState
 
     /// <summary>Increases with every user choice of a conversation; a load that was overtaken is dropped.</summary>
     private int _selection;
+
+    /// <summary>True while <see cref="NewConversationAsync"/> waits for the new conversation.</summary>
+    private bool _creating;
 
     private async Task<Guid> CreateConversationAsync()
     {

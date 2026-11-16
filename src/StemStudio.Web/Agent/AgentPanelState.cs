@@ -86,9 +86,9 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
             Status = await api.GetStatusAsync();
             Conversations = await api.ListConversationsAsync();
         });
-        if (Error is null && ConversationId is null && Conversations.Count > 0)
+        if (Error is null && ConversationId is null && !_creating && Conversations.Count > 0)
         {
-            await SelectConversationAsync(Conversations[0].ConversationId);
+            await OpenNewestAsync(Conversations[0].ConversationId);
             return;
         }
 
