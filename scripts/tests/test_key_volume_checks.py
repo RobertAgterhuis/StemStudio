@@ -3,7 +3,7 @@
 import copy
 import io
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import pytest
@@ -281,3 +281,68 @@ def test_repository_files_pass_the_static_checks() -> None:
     assert kvc.check_dockerfile_volume(dockerfile) is None
     assert kvc.check_dockerfile_user(dockerfile) is None
     assert kvc.check_claude_key_pass_through([compose]) is None
+
+
+# ---------------------------------------------------------------- non-Docker path (T050)
+
+
+def test_default_key_ring_dir_on_windows_uses_local_app_data() -> None:
+    environ = {"LOCALAPPDATA": r"C:\Users\owner\AppData\Local"}
+    path = kvc.default_key_ring_dir("win32", environ, PureWindowsPath(r"C:\Users\owner"))
+    assert path == PureWindowsPath(r"C:\Users\owner\AppData\Local\StemStudio\keys")
+
+
+def test_default_key_ring_dir_on_windows_without_local_app_data() -> None:
+    path = kvc.default_key_ring_dir("win32", {}, PureWindowsPath(r"C:\Users\owner"))
+    assert path == PureWindowsPath(r"C:\Users\owner\AppData\Local\StemStudio\keys")
+
+
+def test_default_key_ring_dir_on_linux_uses_xdg_data_home() -> None:
+    environ = {"XDG_DATA_HOME": "/home/owner/.data"}
+    path = kvc.default_key_ring_dir("linux", environ, PurePosixPath("/home/owner"))
+    assert path == PurePosixPath("/home/owner/.data/stemstudio/keys")
+
+
+@pytest.mark.parametrize("xdg", [None, "", "relative/dir"])
+def test_default_key_ring_dir_on_linux_falls_back_to_local_share(xdg: str | None) -> None:
+    environ = {} if xdg is None else {"XDG_DATA_HOME": xdg}
+    path = kvc.default_key_ring_dir("darwin", environ, PurePosixPath("/home/owner"))
+    assert path == PurePosixPath("/home/owner/.local/share/stemstudio/keys")
+
+
+def test_key_ring_outside_repository_and_library_passes() -> None:
+    repo = PurePosixPath("/home/owner/src/StemStudio")
+    keys = PurePosixPath("/home/owner/.local/share/stemstudio/keys")
+    assert kvc.check_non_docker_key_ring(keys, repo) is None
+
+
+@pytest.mark.parametrize(
+    "keys",
+    ["/home/owner/src/StemStudio", "/home/owner/src/StemStudio/data/api/keys", "/srv/lib/keys"],
+)
+def test_key_ring_inside_repository_or_library_fails(keys: str) -> None:
+    repo = PurePosixPath("/home/owner/src/StemStudio")
+    library = PurePosixPath("/srv/lib")
+    problem = kvc.check_non_docker_key_ring(PurePosixPath(keys), repo, library)
+    assert problem is not None
+    assert keys in problem
+
+
+def test_main_checks_the_non_docker_default_against_the_repository(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "repo" / "inside"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "repo" / "inside"))
+    monkeypatch.delenv("StemStudio__DataProtection__KeyRingDir", raising=False)
+    args = [*write_inputs(tmp_path, good_config()), "--repo-root", str(tmp_path / "repo")]
+    assert kvc.main(args) == 1
+    assert "FAIL non-Docker key ring" in capsys.readouterr().out
+
+
+def test_main_honours_a_key_ring_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("StemStudio__DataProtection__KeyRingDir", str(tmp_path / "outside"))
+    args = [*write_inputs(tmp_path, good_config()), "--repo-root", str(tmp_path / "repo")]
+    assert kvc.main(args) == 0
+    assert "ok   non-Docker key ring" in capsys.readouterr().out
