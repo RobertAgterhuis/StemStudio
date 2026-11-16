@@ -38,6 +38,7 @@ GENERATIVE_CONTRACTS=(specs/009-style-transfer/contracts specs/010-lyrics-to-son
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
 AGENT_CONTRACTS=specs/011-ai-composer-agent/contracts
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
+AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
 SUMMARY=()
 FAILED=0
@@ -62,6 +63,7 @@ step "dotnet build" . dotnet build StemStudio.slnx -c Release
 step "dotnet format" . dotnet format StemStudio.slnx --verify-no-changes
 step "dotnet test + coverage gate" . dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
 step "agent coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_COVERAGE"
+step "agent-eval coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_EVAL_COVERAGE"
 step "worker uv sync" worker uv sync --frozen
 step "worker ruff check" worker uv run --frozen ruff check .
 step "worker ruff format" worker uv run --frozen ruff format --check .

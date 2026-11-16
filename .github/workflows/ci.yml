@@ -60,6 +60,9 @@ jobs:
         run: dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
       - name: StemStudio.Agent is in the gate (report present, line and branch >= 90 %; feature 011)
         run: python3 scripts/coverage_floor.py tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
+      # tools/agent-eval itself is never run in CI (live runs need a model); only its unit tests are.
+      - name: StemStudio.AgentEval is in the gate (report present, line and branch >= 90 %; feature 011)
+        run: python3 scripts/coverage_floor.py tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
       - name: Coverage summary
         if: always()
         shell: python
@@ -77,6 +80,7 @@ jobs:
         if: always()
         with:
           name: coverage-dotnet
+          # every test project, incl. tests/StemStudio.AgentEval.Tests (coverage.{cobertura,opencover}.xml, feature 011)
           path: tests/*/TestResults/coverage/
           if-no-files-found: warn
 

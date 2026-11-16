@@ -47,6 +47,7 @@ $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
 $AgentContracts = 'specs/011-ai-composer-agent/contracts'
 $AgentCoverage = 'tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml'
+$AgentEvalCoverage = 'tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml'
 $WorkerPython = @('uv', 'run', '--project', 'worker', '--frozen', 'python')
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
@@ -58,6 +59,7 @@ $Steps = @(
     @{ Name = 'dotnet format'; Dir = '.'; Cmd = @('dotnet', 'format', 'StemStudio.slnx', '--verify-no-changes') }
     @{ Name = 'dotnet test + coverage gate'; Dir = '.'; Cmd = @('dotnet', 'test', 'StemStudio.slnx', '-c', 'Release', '--no-build', '-p:CollectCoverage=true') }
     @{ Name = 'agent coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentCoverage) }
+    @{ Name = 'agent-eval coverage floor (011)'; Dir = '.'; Cmd = $WorkerPython + @('scripts/coverage_floor.py', $AgentEvalCoverage) }
     @{ Name = 'worker uv sync'; Dir = 'worker'; Cmd = @('uv', 'sync', '--frozen') }
     @{ Name = 'worker ruff check'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
