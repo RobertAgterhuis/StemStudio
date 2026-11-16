@@ -1,0 +1,42 @@
+@* Confirmation of "Delete key" (011 follow-up claude-key US3; ui-test-ids 1.21.0 settings-agent-claude-key-delete-confirm).
+   Focus moves to "Keep key", the safe choice; Escape keeps the key. *@
+
+<div class="ss-agent-notice ss-claude-key-confirm" role="alertdialog" aria-modal="false" aria-labelledby="claude-key-delete-title"
+     aria-describedby="claude-key-delete-text" data-testid="settings-agent-claude-key-delete-confirm" @onkeydown="OnKey">
+    <p id="claude-key-delete-title"><strong>Delete the stored Claude key?</strong></p>
+    <p id="claude-key-delete-text">The encrypted key is removed from this computer. This does not change the selected backend and does not
+        affect ANTHROPIC_API_KEY. Without a key, Claude cannot be used until you enter one again.</p>
+    <div class="ss-agent-settings-actions">
+        <RadzenButton Text="Delete key" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Disabled="Disabled" Click="OnYes"
+                      data-testid="settings-agent-claude-key-delete-confirm-yes" />
+        <button type="button" class="rz-button rz-button-sm rz-light" @ref="_keep" @onclick="OnNo"
+                data-testid="settings-agent-claude-key-delete-confirm-no">Keep key</button>
+    </div>
+</div>
+
+@code {
+    private ElementReference _keep;
+
+    /// <summary>Disables "Delete key" (while deleting or when local-only applies).</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Raised by "Delete key".</summary>
+    [Parameter]
+    public EventCallback OnYes { get; set; }
+
+    /// <summary>Raised by "Keep key" and Escape.</summary>
+    [Parameter]
+    public EventCallback OnNo { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _keep.FocusAsync();
+        }
+    }
+
+    private Task OnKey(KeyboardEventArgs e) => e.Key == "Escape" ? OnNo.InvokeAsync() : Task.CompletedTask;
+}

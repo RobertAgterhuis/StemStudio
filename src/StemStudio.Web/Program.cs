@@ -55,6 +55,9 @@ builder.Services.AddHttpClient<IStemStudioApiClient, StemStudioApiClient>(
 builder.Services.AddHttpClient<IAgentApiClient, AgentApiClient>(
     (services, client) => client.BaseAddress = services.GetRequiredService<IOptions<StemStudioWebOptions>>().Value.ApiBaseUrl);
 
+// Claude key entry only on the computer itself (011 follow-up claude-key, CK-FR-012): the circuit's host-name guard.
+builder.Services.AddScoped<PageOrigin>();
+
 var app = builder.Build();
 app.UseAntiforgery();
 app.MapStaticAssets();
