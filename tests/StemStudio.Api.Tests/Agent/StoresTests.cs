@@ -180,6 +180,18 @@ public sealed class StoresTests : ApiTestBase
     }
 
     [Fact]
+    public async Task FakeBackendFromTheEnvironment_OverridesAStoredRow()
+    {
+        using var factory = new ApiFactory { Settings = new Dictionary<string, string?> { ["StemStudio:Agent:Backend"] = "fake" } };
+        var settings = factory.Services.GetRequiredService<IAgentSettingsStore>();
+        await settings.SaveAsync(AgentSettings.Defaults(AgentBackendDto.Ollama, AgentRecords.T0) with { OllamaModel = "qwen3.5:4b" }, Ct);
+
+        var loaded = await settings.GetAsync(Ct);
+
+        (loaded.Backend, loaded.OllamaModel).ShouldBe((AgentBackendDto.Fake, "qwen3.5:4b"));
+    }
+
+    [Fact]
     public async Task StartUp_InterruptsNonTerminalRunsAndExpiresPendingApprovals()
     {
         var dataDir = Directory.CreateTempSubdirectory("stemstudio-api-").FullName;
