@@ -33,5 +33,18 @@ public sealed class MixConfiguration : IEntityTypeConfiguration<Mix>
         builder.PrimitiveCollection<List<string>>("_expanded").HasColumnName("Expanded");
         builder.Ignore(mix => mix.DetailChannels);
         builder.ComplexCollection<List<DetailChannelSettings>, DetailChannelSettings>("_detailChannels", collection => collection.ToJson("DetailChannels"));
+        ConfigurePractice(builder);
+    }
+
+    /// <summary>Practice tempo (012) as one nullable JSON column; NULL (mixes saved before 012) reads as the defaults in the Domain.</summary>
+    private static void ConfigurePractice(EntityTypeBuilder<Mix> builder)
+    {
+        builder.Ignore(mix => mix.Practice);
+        builder.ComplexProperty<PracticeSettings>("_practice", practice =>
+        {
+            practice.ToJson("Practice");
+            practice.ComplexProperty(settings => settings.Trainer);
+            practice.ComplexProperty(settings => settings.CountIn);
+        });
     }
 }

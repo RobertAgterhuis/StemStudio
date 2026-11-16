@@ -440,6 +440,41 @@ namespace StemStudio.Persistence.Migrations
                                 .HasColumnType("TEXT");
                         });
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "_practice", "StemStudio.Domain.Mixes.Mix._practice#PracticeSettings", b1 =>
+                        {
+                            b1.Property<int>("SpeedPercent");
+
+                            b1.Property<int>("TransposeSemitones");
+
+                            b1.ComplexProperty(typeof(Dictionary<string, object>), "CountIn", "StemStudio.Domain.Mixes.Mix._practice#PracticeSettings.CountIn#CountInSettings", b2 =>
+                                {
+                                    b2.IsRequired();
+
+                                    b2.Property<int>("Bars");
+
+                                    b2.Property<bool>("EveryPass");
+                                });
+
+                            b1.ComplexProperty(typeof(Dictionary<string, object>), "Trainer", "StemStudio.Domain.Mixes.Mix._practice#PracticeSettings.Trainer#SpeedTrainerSettings", b2 =>
+                                {
+                                    b2.IsRequired();
+
+                                    b2.Property<bool>("Enabled");
+
+                                    b2.Property<int>("PassesPerStep");
+
+                                    b2.Property<int>("StartPercent");
+
+                                    b2.Property<int>("StepPercent");
+
+                                    b2.Property<int>("TargetPercent");
+                                });
+
+                            b1
+                                .ToJson("Practice")
+                                .HasColumnType("TEXT");
+                        });
+
                     b.HasKey("Id");
 
                     b.HasIndex("UpdatedAt");
