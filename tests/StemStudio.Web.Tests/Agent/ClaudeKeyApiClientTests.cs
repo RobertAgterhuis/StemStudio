@@ -57,6 +57,21 @@ public sealed class ClaudeKeyApiClientTests : IDisposable
         ex.Error.Extensions["reason"].GetString().ShouldBe(ClaudeKeyInvalidReasons.Prefix);
     }
 
+    [Theory]
+    [InlineData(ClaudeKeyTestSourceDto.Active, "active")]
+    [InlineData(ClaudeKeyTestSourceDto.Stored, "stored")]
+    public async Task TestKey_PostsClaude_WithTheKeySource(ClaudeKeyTestSourceDto source, string wire)
+    {
+        _handler.Json(HttpStatusCode.OK, """{"backend":"claude","ok":true,"latencyMs":412,"detail":"claude-opus-5-5 available","keySource":"stored"}""");
+
+        var result = await _client.TestClaudeKeyAsync(source, Ct);
+
+        (result.Ok, result.KeySource).ShouldBe((true, ClaudeKeySourceDto.Stored));
+        var sent = _handler.Requests.ShouldHaveSingleItem();
+        (sent.Method, sent.PathAndQuery).ShouldBe((HttpMethod.Post, "/api/agent/settings/test"));
+        sent.Body.ShouldBe($$"""{"backend":"claude","claudeKeySource":"{{wire}}"}""");
+    }
+
     [Fact]
     public async Task Delete_ReturnsTheResultingStatus()
     {
