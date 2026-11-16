@@ -144,7 +144,7 @@ all lanes below begin in parallel from the Phase 0 commit.
 **Goal**: no heavy/destructive (or tainted) action without a bound approval.
 **Independent test**: quickstart A5 approval specs; SC-002, SC-003.
 
-- [x] T041 [P] [US2] [ai-agent] Failing tests `Runtime/ApprovalFlowTests.cs`: approval-required step suspends the run (`awaiting_approval`, persisted), resumes on approve with hash re-check, returns "rejected by the user" on reject and marks dependent plan items skipped; expiry; `plan_heavy` scope auto-approves only matching later heavy steps; a second decision returns the stored one (FR-012, FR-015)
+- [x] T041 [P] [US2] [ai-agent] Failing tests `Runtime/ApprovalFlowTests.cs`: approval-required step suspends the run (`awaiting_approval`, persisted), resumes on approve with hash re-check, returns "rejected by the user" on reject and marks the rejected step's own plan item skipped (later items stay pending; the model re-plans, data-model 4.3); expiry; `plan_heavy` scope auto-approves only matching later heavy steps; a second decision returns the stored one (FR-012, FR-015)
 - [x] T042 [US2] [ai-agent] Implement approval suspension/resumption in `AgentRunner`/`StepExecutor` (`IAgentRunService.DecideAsync`) to pass T041
 - [x] T043 [P] [US2] [ai-agent] Failing tests `Runtime/InjectionTests.cs` with `AdversarialChatClient` (calls `delete_track`, `import_from_url(evil)`, `update_mix` whenever it sees `untrusted_text`) across every untrusted source of the catalogue: 0 executions without approval; cards carry reason `tainted`/`url-not-from-user`; eval cases 22-24 scripted (SC-002, FR-013, FR-014)
 - [x] T044 [US2] [ai-agent] Fix anything missing to pass T043
