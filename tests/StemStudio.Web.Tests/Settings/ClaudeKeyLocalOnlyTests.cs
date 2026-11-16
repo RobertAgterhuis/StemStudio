@@ -82,6 +82,21 @@ public sealed class ClaudeKeyLocalOnlyTests : PageTestContext
     }
 
     [Fact]
+    public void FromAnotherHostName_AForgedReplaceOrTestNeverReachesTheApi()
+    {
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(ClaudeKeyData.AgentStatus(ClaudeKeyData.Stored()));
+        OpenedUnder("http://192.168.1.20:8080/");
+        var cut = RenderSettings();
+
+        Id(cut, "settings-agent-claude-key-replace").Click();
+        Id(cut, "settings-agent-claude-key-test").Click();
+
+        Has(cut, "settings-agent-claude-key-input").ShouldBeFalse();
+        AgentApi.DidNotReceive().TestClaudeKeyAsync(Arg.Any<ClaudeKeyTestSourceDto>(), Arg.Any<CancellationToken>());
+        Has(cut, "settings-agent-claude-key-test-result").ShouldBeFalse();
+    }
+
+    [Fact]
     public void ALocalOnlyAnswer_ShowsTheSameNotice_InsteadOfAnError()
     {
         AgentApi.StoreClaudeKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())

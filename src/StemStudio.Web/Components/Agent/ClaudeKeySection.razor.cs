@@ -68,12 +68,15 @@ public sealed partial class ClaudeKeySection
         _generation++;
     }
 
+    // Every handler re-checks its own guard: a disabled button is only a hint, a forged event still reaches the circuit (qa F6).
     private void Replace()
     {
         ClearInput();
-        Editing = true;
+        Editing = !Locked;
         Confirming = false;
     }
+
+    private void Confirm() => Confirming = !Locked;
 
     private void Cancel()
     {
@@ -83,15 +86,21 @@ public sealed partial class ClaudeKeySection
 
     private async Task SaveAsync()
     {
-        var value = _value;
+        var (value, allowed) = (_value, CanSave);
         ClearInput();
-        await ApplyAsync(() => Api.StoreClaudeKeyAsync(value));
+        if (allowed)
+        {
+            await ApplyAsync(() => Api.StoreClaudeKeyAsync(value));
+        }
     }
 
     private async Task DeleteAsync()
     {
         Confirming = false;
-        await ApplyAsync(() => Api.DeleteClaudeKeyAsync());
+        if (!Locked)
+        {
+            await ApplyAsync(() => Api.DeleteClaudeKeyAsync());
+        }
     }
 
     private async Task ApplyAsync(Func<Task<ClaudeKeyStatusDto>> call)

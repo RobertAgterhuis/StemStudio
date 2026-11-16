@@ -45,7 +45,7 @@
         }
         @if (HasStored)
         {
-            <RadzenButton Text="Delete key" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@Locked" Click="() => Confirming = true"
+            <RadzenButton Text="Delete key" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@Locked" Click="Confirm"
                           data-testid="settings-agent-claude-key-delete" />
         }
     </div>

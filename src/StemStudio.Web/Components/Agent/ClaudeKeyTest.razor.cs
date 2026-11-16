@@ -29,6 +29,11 @@ public sealed partial class ClaudeKeyTest
 
     private async Task TestAsync()
     {
+        if (Disabled || _busy)
+        {
+            return;
+        }
+
         _busy = true;
         try
         {
