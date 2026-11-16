@@ -1,5 +1,6 @@
 using StemStudio.Agent;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent.Gpu;
 using StemStudio.Api.Agent.Loopback;
 using StemStudio.Api.Agent.Stores;
 
@@ -36,6 +37,8 @@ public static class AgentRegistration
         services.AddScoped<AgentRunEndpointService>();
         services.AddScoped<AgentApprovalService>();
         services.AddLoopbackActions(configuration);
+        services.AddGpuCoordination();
+        services.DecorateWorkerClient();
         return services;
     }
 }

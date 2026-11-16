@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Tests.Importing;
 using StemStudio.Api.Tests.TestSupport;
@@ -62,6 +61,7 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         using var detail = await Client.PostAsync(ApiRoutes.StartDetail(completed.Id), null, Ct);
 
         (retry.StatusCode, detail.StatusCode).ShouldBe((HttpStatusCode.Accepted, HttpStatusCode.Accepted));
+        await Factory.SyncDetailAsync();
         _order.ShouldBe(["release", "submit", "release", "submit"]);
     }
 
@@ -128,15 +128,12 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         var activity = Service<IGpuActivity>();
         activity.IsHeavyJobActive().ShouldBeFalse();
 
-        var queued = await Factory.SeedAsync(SyncTestData.UrlTrack("ccccccccccc"));
-        Factory.Clock.Advance(TimeSpan.FromSeconds(3));
-        activity.IsHeavyJobActive().ShouldBeTrue("a queued job on an unknown device counts as GPU work");
-
-        await Factory.UpdateTrackAsync(queued.Id, t => t.ApplyDevice(new JobDevice(ProcessingDeviceKind.Cpu, null, true, "out of memory"), SyncTestData.T0));
+        await Factory.SeedAsync(OnDevice("ccccccccccc", new JobDevice(ProcessingDeviceKind.Cpu, null, true, "out of memory")));
         Factory.Clock.Advance(TimeSpan.FromSeconds(3));
         activity.IsHeavyJobActive().ShouldBeFalse("a CPU job does not hold the GPU");
 
-        await Factory.UpdateTrackAsync(queued.Id, t => t.ApplyDevice(new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, null), SyncTestData.T0));
+        await Factory.SeedAsync(OnDevice("hhhhhhhhhhh", new JobDevice(ProcessingDeviceKind.Gpu, Gpu, false, null)));
+        activity.IsHeavyJobActive().ShouldBeFalse("the answer is cached for 2 s");
         Factory.Clock.Advance(TimeSpan.FromSeconds(3));
         activity.IsHeavyJobActive().ShouldBeTrue();
     }
@@ -163,9 +160,16 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
         {
         }
 
-        await Factory.SeedAsync(SyncTestData.UrlTrack("ggggggggggg"));
+        await Factory.SeedAsync(SyncTestData.UrlTrack("ggggggggggg", jobId: null));
 
         Service<IGpuActivity>().IsHeavyJobActive().ShouldBeFalse();
+    }
+
+    private static Track OnDevice(string videoId, JobDevice device)
+    {
+        var track = SyncTestData.UrlTrack(videoId, jobId: null);
+        track.ApplyDevice(device, SyncTestData.T0);
+        return track;
     }
 
     private Task<WorkerJob> Submitted(string jobId) => Task.FromResult(Record("submit", FakeWorkerClient.Job(jobId, WorkerJobState.Queued)));

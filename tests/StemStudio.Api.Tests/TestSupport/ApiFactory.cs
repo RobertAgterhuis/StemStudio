@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using StemStudio.Api.Agent.Gpu;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
@@ -132,6 +133,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
                 new HttpClient(Singer.Handler) { BaseAddress = SingerInstalled ? new Uri("http://singer:8010/") : null }, NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<StemStudio.Api.Generations.ISeedSource>(Seeds);
             ConfigureServices?.Invoke(services);
+            services.DecorateWorkerClient();
         });
     }
 
