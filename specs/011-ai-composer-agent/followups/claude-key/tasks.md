@@ -71,12 +71,12 @@ character (research R-07).
 
 ### backend (tests first)
 
-- [ ] T011 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentSecretStoreTests.cs`: upsert/replace in one transaction, delete idempotent, column limits, migration `AddAgentSecrets` applies on an 011 database (CK-FR-002)
-- [ ] T012 [backend] Implement `AgentSecretEntity`, `AgentSecretStore`, migration `AddAgentSecrets` to pass T011
-- [ ] T013 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/Secrets/DataProtectionSetupTests.cs`: application name `StemStudio.Api` (payload from a provider with the same dir and name decrypts, a different name does not); directory guard refuses `DataDir`, `BackupDir`, content root and a git work tree (temp dirs) -> `storeAvailable` false and the API host still builds; Linux mode tightening to 0700 and the one-time warning when not owner (OS-conditional); DPAPI configured on Windows (OS-conditional) [sec] (CK-FR-003..005)
-- [ ] T014 [backend] Implement `DataProtectionSetup` + `KeyRingDirectory` to pass T013
-- [ ] T015 [P] [backend] Failing tests `Secrets/ProtectedClaudeKeyStoreTests.cs`: round trip; ciphertext from another key ring -> `Unreadable`; corrupted ciphertext -> `Unreadable`; revoked key -> `Unreadable`; `requiresMigration` -> re-protected and saved; `ClaudeKeyUnreadable` logged once per process with the exception type only (captured logger, no message, no ciphertext); the plaintext never in the row [sec] (CK-FR-002, CK-FR-011)
-- [ ] T016 [backend] Implement `ProtectedClaudeKeyStore` (`IStoredClaudeKeyReader`/`Writer`) to pass T015
+- [x] T011 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/Agent/AgentSecretStoreTests.cs`: upsert/replace in one transaction, delete idempotent, column limits, migration `AddAgentSecrets` applies on an 011 database (CK-FR-002)
+- [x] T012 [backend] Implement `AgentSecretEntity`, `AgentSecretStore`, migration `AddAgentSecrets` to pass T011
+- [x] T013 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Agent/Secrets/DataProtectionSetupTests.cs`: application name `StemStudio.Api` (payload from a provider with the same dir and name decrypts, a different name does not); directory guard refuses `DataDir`, `BackupDir`, content root and a git work tree (temp dirs) -> `storeAvailable` false and the API host still builds; Linux mode tightening to 0700 and the one-time warning when not owner (OS-conditional); DPAPI configured on Windows (OS-conditional) [sec] (CK-FR-003..005)
+- [x] T014 [backend] Implement `DataProtectionSetup` + `KeyRingDirectory` to pass T013
+- [x] T015 [P] [backend] Failing tests `Secrets/ProtectedClaudeKeyStoreTests.cs`: round trip; ciphertext from another key ring -> `Unreadable`; corrupted ciphertext -> `Unreadable`; revoked key -> `Unreadable`; `requiresMigration` -> re-protected and saved; `ClaudeKeyUnreadable` logged once per process with the exception type only (captured logger, no message, no ciphertext); the plaintext never in the row [sec] (CK-FR-002, CK-FR-011)
+- [x] T016 [backend] Implement `ProtectedClaudeKeyStore` (`IStoredClaudeKeyReader`/`Writer`) to pass T015
 
 ### quality-gate (tests first)
 
