@@ -68,7 +68,7 @@ previous version.
 | 011 AI agent | 1.10.0 | - | 2.2.0 if needed | 1.10.0 | agent tool catalogue 1.0.0 |
 | 012 Practice tempo | 1.11.0 | - | 2.3.0 | 1.11.0 | |
 | 013 Library care | 1.12.0 | 1.7.0 | - | 1.12.0 | backup-archive 1.0.0 |
-| 014 Practice flow | 1.13.0 | 1.8.0 | 2.4.0 | 1.13.0 | |
+| 014 Practice flow | 1.13.0 | 1.8.0 | 2.4.0 | 1.13.0 | web-interop 1.1.0 |
 | 015 Play-along recording | 1.14.0 | - | 2.5.0 | 1.14.0 | render-vectors 1.1.0 |
 | 016 Instrument views | 1.15.0 | 1.9.0 | 2.6.0 | 1.15.0 | |
 | 017 Effects/controllers | 1.16.0 | - | 2.7.0 | 1.16.0 | |
