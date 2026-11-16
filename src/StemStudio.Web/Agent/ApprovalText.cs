@@ -12,6 +12,7 @@ public static class ApprovalText
     private static readonly Dictionary<string, string> Reasons = new(StringComparer.Ordinal)
     {
         [AgentDecisionReasons.RiskHeavy] = "Long job: it can take minutes and uses the graphics card or the processor",
+        [AgentDecisionReasons.RiskCheckFailed] = "The size could not be checked, so this is treated as a long job: check it before you approve",
         [AgentDecisionReasons.RiskDestructive] = "Deletes or overwrites without undo",
         [AgentDecisionReasons.Tainted] = "Proposed after reading external content (tags, lyrics or online facts): check the arguments",
         [AgentDecisionReasons.UrlNotFromUser] = "The link does not appear in your own messages",
