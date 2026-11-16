@@ -8,8 +8,9 @@
     is started, stopped or changed) and runs scripts/key_volume_checks.py: volume api-keys at
     /keys only in api, StemStudio__DataProtection__KeyRingDir=/keys,
     StemStudio__Agent__KeyEntry__InternalCaller=web, docker/api.Dockerfile creates /keys 0700
-    for $APP_UID and declares VOLUME /keys, ANTHROPIC_API_KEY stays a bare pass-through. The
-    resolved config is piped, never printed. Exit code 0 when every check passes, 1 otherwise.
+    for $APP_UID and declares VOLUME /keys, ANTHROPIC_API_KEY stays a bare pass-through, and
+    the non-Docker key ring of scripts/dev.ps1 (StemStudio__DataProtection__KeyRingDir or the
+    per-user default) is outside the repository and data/ (T050). The resolved config is piped, never printed. Exit code 0 when every check passes, 1 otherwise.
 
 .PARAMETER File
     Compose file(s), as for docker compose -f (default: docker-compose.yml).
@@ -30,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 
 $composeArgs = @('compose')
-$checkArgs = @('scripts/key_volume_checks.py', '--config', '-', '--dockerfile', 'docker/api.Dockerfile')
+$checkArgs = @('scripts/key_volume_checks.py', '--config', '-', '--dockerfile', 'docker/api.Dockerfile', '--repo-root', '.')
 foreach ($path in $File) {
     $composeArgs += @('-f', $path)
     $checkArgs += @('--compose-file', $path)

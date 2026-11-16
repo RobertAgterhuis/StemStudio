@@ -14,7 +14,10 @@ each, exit 1 when any fails:
    ``$APP_UID``;
 7. it declares ``VOLUME`` ``/keys``;
 8. it runs as ``$APP_UID`` (no later ``USER``);
-9. ``ANTHROPIC_API_KEY`` stays a bare pass-through in every compose file (no value assigned).
+9. ``ANTHROPIC_API_KEY`` stays a bare pass-through in every compose file (no value assigned);
+10. with ``--repo-root`` (T050, non-Docker path): the key ring directory of ``scripts/dev.*``
+    (``StemStudio__DataProtection__KeyRingDir`` when set, else the per-user default) is outside
+    the repository and the library ``<repo>/data``.
 
 Input: the resolved ``docker compose config --format json`` (file or ``-`` for stdin), the
 Dockerfile and the compose files. The output never contains an environment value except the
@@ -24,10 +27,11 @@ only.
 
 import argparse
 import json
+import os
 import re
 import sys
-from collections.abc import Callable, Iterable
-from pathlib import Path
+from collections.abc import Callable, Iterable, Mapping
+from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 from typing import Any
 
 VOLUME = "api-keys"
@@ -194,6 +198,46 @@ def run_checks(
     return [(name, check()) for name, check in checks]
 
 
+def default_key_ring_dir(system: str, environ: Mapping[str, str], home: PurePath) -> PurePath:
+    """Return the API's default per-user key ring directory on the non-Docker path (data-model 1).
+
+    Windows: ``%LOCALAPPDATA%/StemStudio/keys``; Linux/macOS: ``$XDG_DATA_HOME/stemstudio/keys``
+    when that is absolute, else ``~/.local/share/stemstudio/keys``.
+    """
+    if system == "win32":
+        local = environ.get("LOCALAPPDATA")
+        root = PureWindowsPath(local) if local else PureWindowsPath(home, "AppData", "Local")
+        return root / "StemStudio" / "keys"
+    xdg = environ.get("XDG_DATA_HOME", "")
+    root_posix = (
+        PurePosixPath(xdg) if xdg.startswith("/") else PurePosixPath(home, ".local", "share")
+    )
+    return root_posix / "stemstudio" / "keys"
+
+
+def check_non_docker_key_ring(
+    keys: PurePath, repo_root: PurePath, library: PurePath | None = None
+) -> str | None:
+    """Return a problem when the key ring is inside the repository or the library.
+
+    The library defaults to ``<repo>/data`` (the data directory of ``scripts/dev.*``).
+    """
+    for name, root in (("repository", repo_root), ("library", library or repo_root / "data")):
+        if keys.is_relative_to(root):
+            return f"key ring {keys} is inside the {name} {root}"
+    return None
+
+
+def _non_docker_result(repo_root: Path) -> tuple[str, str | None]:
+    """Check the override in ``StemStudio__DataProtection__KeyRingDir`` or else the default."""
+    override = os.environ.get(KEY_RING_ENV)
+    default = default_key_ring_dir(sys.platform, os.environ, Path.home())
+    keys = Path(override).resolve() if override else default
+    return "non-Docker key ring outside repository and library", check_non_docker_key_ring(
+        keys, repo_root.resolve()
+    )
+
+
 def _load_config(source: str) -> Config:
     text = sys.stdin.read() if source == "-" else Path(source).read_text(encoding="utf-8")
     config = json.loads(text)
@@ -208,9 +252,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", required=True, help="docker compose config JSON, - = stdin")
     parser.add_argument("--dockerfile", required=True, type=Path)
     parser.add_argument("--compose-file", action="append", required=True, type=Path)
+    parser.add_argument("--repo-root", type=Path, help="also check the non-Docker key ring")
     args = parser.parse_args(argv)
     texts = [path.read_text(encoding="utf-8") for path in args.compose_file]
-    return _report(run_checks(_load_config(args.config), args.dockerfile.read_text("utf-8"), texts))
+    results = run_checks(_load_config(args.config), args.dockerfile.read_text("utf-8"), texts)
+    extra = [_non_docker_result(args.repo_root)] if args.repo_root else []
+    return _report(results + extra)
 
 
 def _report(results: list[tuple[str, str | None]]) -> int:

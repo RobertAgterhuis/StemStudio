@@ -3,7 +3,9 @@
 # Protection key ring of the stored Claude key is the named volume api-keys at /keys, mounted
 # only into api; api has StemStudio__DataProtection__KeyRingDir=/keys and
 # StemStudio__Agent__KeyEntry__InternalCaller=web; docker/api.Dockerfile creates /keys 0700 for
-# $APP_UID and declares VOLUME /keys; ANTHROPIC_API_KEY stays a bare pass-through.
+# $APP_UID and declares VOLUME /keys; ANTHROPIC_API_KEY stays a bare pass-through; the non-Docker
+# key ring of scripts/dev.sh (StemStudio__DataProtection__KeyRingDir or the per-user default) is
+# outside the repository and data/ (T050).
 # Static: reads `docker compose config` (no container is started, stopped or changed) and runs
 # scripts/key_volume_checks.py. The resolved config is piped, never printed. No secrets needed.
 #
@@ -17,7 +19,7 @@ FILES=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--file) FILES+=("$2"); shift ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -25,7 +27,7 @@ done
 [[ ${#FILES[@]} -gt 0 ]] || FILES=(docker-compose.yml)
 
 COMPOSE=(docker compose)
-CHECK=(--dockerfile docker/api.Dockerfile)
+CHECK=(--dockerfile docker/api.Dockerfile --repo-root .)
 for file in "${FILES[@]}"; do
   COMPOSE+=(-f "$file")
   CHECK+=(--compose-file "$file")
