@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
@@ -80,13 +81,36 @@ public sealed partial class ClaudeKeyTestDoubleTests
     }
 
     [Fact]
-    public void Sentinels_SearchFormsCoverPlainBase64AndUtf16()
+    public void Sentinels_SearchFormsStartWithTheValueAndAreUnique()
     {
         var forms = ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored);
 
-        forms.Count.ShouldBe(3);
         forms[0].ShouldBe(ClaudeKeySentinels.Stored);
         forms.ShouldBeUnique();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    public void Sentinels_SearchFormsFindTheKeyInsideALargerBase64Payload(int offset)
+    {
+        foreach (var encoding in new[] { Encoding.UTF8, Encoding.Unicode })
+        {
+            var payload = Convert.ToBase64String([.. Encoding.UTF8.GetBytes(new string('{', offset)), .. encoding.GetBytes(ClaudeKeySentinels.Stored + "\"}")]);
+
+            ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldContain(form => payload.Contains(form, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void Sentinels_SearchFormsFindATruncatedOrMaskedKey()
+    {
+        var masked = "key=" + ClaudeKeySentinels.Stored[ClaudeKeySentinels.Prefix.Length..^4] + "****";
+
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldContain(form => masked.Contains(form, StringComparison.Ordinal));
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldNotContain(form => ClaudeKeySentinels.Replacement.Contains(form, StringComparison.Ordinal));
     }
 
     public static TheoryData<string> Sentinels => new(ClaudeKeySentinels.Environment, ClaudeKeySentinels.Stored, ClaudeKeySentinels.Replacement);
