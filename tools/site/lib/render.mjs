@@ -36,20 +36,18 @@ export function featureCards(bullets, features) {
 
 /**
  * One screenshot pair; only the image of the active theme is displayed (and fetched).
- * @param {{ id: string, title: string, caption: string, images: Record<"light" | "dark", { src: string, width: number, height: number }> }} shot screenshot
- * @returns {string} HTML
+ * @param {{ id: string, images: Record<"light" | "dark", { src: string, width: number, height: number }> }} shot screenshot
+ * @param {string} alt description of the screen (locale string)
+ * @param {{ open: string, theme: string }} words locale words for the link text
+ * @returns {string} HTML (a figure without caption; the page text around it explains the screen)
  */
-function shot(shot) {
+export function screen(shot, alt, words) {
   const img = (theme) => {
     const { src, width, height } = shot.images[theme];
-    const alt = `${shot.title}, ${theme} theme`;
-    return `<a class="shot-link only-${theme}" href="${src}"><img src="${src}" width="${width}" height="${height}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async"></a>`;
+    return `<a class="shot-link only-${theme}" href="${src}"><img src="${src}" width="${width}" height="${height}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async"><span class="sr-only">, ${escapeHtml(theme)} ${escapeHtml(words.theme)}, ${escapeHtml(words.open)}</span></a>`;
   };
-  return `<li class="shot shot-${shot.id}"><figure>${img("dark")}${img("light")}<figcaption><strong>${escapeHtml(shot.title)}</strong> ${escapeHtml(shot.caption)}</figcaption></figure></li>`;
+  return `<div class="shot shot-${shot.id}">${img("dark")}${img("light")}</div>`;
 }
-
-/** @param {Parameters<typeof shot>[0][]} shots screenshots @returns {string} HTML */
-export const gallery = (shots) => `<ul class="shots" role="list">${shots.map(shot).join("")}</ul>`;
 
 /**
  * Roadmap timeline: one grey strand, delivered features branch off in a stem colour.
