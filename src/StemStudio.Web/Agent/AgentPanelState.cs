@@ -116,6 +116,20 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         return Error is null;
     }
 
+    /// <summary>"Switch to local" after a Claude failure: selects Ollama (never silently, FR-020) and reloads the status.</summary>
+    /// <returns>A task that completes when saved and reloaded.</returns>
+    public async Task SwitchToLocalAsync()
+    {
+        Error = await ApiCall.RunAsync(() => api.UpdateSettingsAsync(new UpdateAgentSettingsRequest { Backend = AgentBackendDto.Ollama }));
+        if (Error is null)
+        {
+            await RefreshStatusAsync();
+            return;
+        }
+
+        Notify();
+    }
+
     /// <summary>Reloads the backend status (every 10 s while the panel is open).</summary>
     /// <returns>A task that completes when the status is loaded.</returns>
     public async Task RefreshStatusAsync()

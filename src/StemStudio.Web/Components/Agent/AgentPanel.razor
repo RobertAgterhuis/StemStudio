@@ -31,6 +31,12 @@
         {
             <PlanView Plan="run.Plan" />
             <StepList Steps="run.Steps" />
+            @if (run.Backend == AgentBackendDto.Claude && run.Usage is { } usage)
+            {
+                <LevelGate Feature="agent.usage">
+                    <p class="ss-agent-usage" data-testid="agent-usage">@UsageText(usage)</p>
+                </LevelGate>
+            }
             @if (run.Approval is { } approval)
             {
                 <ApprovalCard @key="approval.StepId" Approval="approval" />
@@ -42,6 +48,10 @@
                     @if (failure.Fix is { } fix)
                     {
                         <p class="ss-agent-fix">@fix</p>
+                    }
+                    @if (run.Backend == AgentBackendDto.Claude)
+                    {
+                        <RadzenButton Text="Switch to local" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="State.SwitchToLocalAsync" data-testid="agent-switch-to-local" />
                     }
                 </div>
             }

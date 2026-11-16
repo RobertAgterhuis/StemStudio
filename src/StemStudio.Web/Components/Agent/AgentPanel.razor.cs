@@ -1,5 +1,7 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using StemStudio.Contracts.Agent;
 using StemStudio.Web.Agent;
 
 namespace StemStudio.Web.Components.Agent;
@@ -57,6 +59,10 @@ public sealed partial class AgentPanel
             // The panel was closed.
         }
     }
+
+    private static string UsageText(TokenUsageDto usage) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"Tokens: {usage.InputTokens:N0} input ({usage.CachedInputTokens:N0} cached), {usage.OutputTokens:N0} output");
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
 
