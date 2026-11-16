@@ -41,7 +41,7 @@ acestep = [
     "numba==0.63.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "scipy==1.17.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "peft==0.18.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
-    "lightning==2.6.1 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "lightning==2.6.6 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "lycoris-lora==3.4.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "modelscope==1.34.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "matplotlib==3.10.8 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
