@@ -97,7 +97,7 @@ public sealed class ClaudeKeyUnreadableTests : PageTestContext
 
         cut.WaitForAssertion(() => Id(cut, "settings-agent-claude-key-status").GetAttribute("data-state").ShouldBe("stored"));
         Has(cut, "settings-agent-claude-key-unreadable").ShouldBeFalse();
-        cut.Markup.ShouldNotContain(ClaudeKeySentinels.Replacement);
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Replacement).ShouldAllBe(form => !cut.Markup.Contains(form, StringComparison.Ordinal));
     }
 
     [Theory]

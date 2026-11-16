@@ -111,7 +111,7 @@ public sealed class ClaudeKeyReplaceDeleteTests : PageTestContext
         Has(cut, "settings-agent-claude-key-input").ShouldBeFalse();
         Id(cut, "settings-agent-claude-key-replace").Click();
         Id(cut, "settings-agent-claude-key-save").HasAttribute("disabled").ShouldBeTrue();
-        cut.Markup.ShouldNotContain(ClaudeKeySentinels.Replacement);
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Replacement).ShouldAllBe(form => !cut.Markup.Contains(form, StringComparison.Ordinal));
         AgentApi.DidNotReceive().StoreClaudeKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
@@ -128,7 +128,7 @@ public sealed class ClaudeKeyReplaceDeleteTests : PageTestContext
         AgentApi.Received(1).StoreClaudeKeyAsync(ClaudeKeySentinels.Replacement, Arg.Any<CancellationToken>());
         Has(cut, "settings-agent-claude-key-input").ShouldBeFalse();
         Has(cut, "settings-agent-claude-key-replace").ShouldBeTrue();
-        cut.Markup.ShouldNotContain(ClaudeKeySentinels.Replacement);
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Replacement).ShouldAllBe(form => !cut.Markup.Contains(form, StringComparison.Ordinal));
     }
 
     [Fact]

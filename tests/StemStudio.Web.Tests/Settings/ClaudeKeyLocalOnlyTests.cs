@@ -59,6 +59,26 @@ public sealed class ClaudeKeyLocalOnlyTests : PageTestContext
         Id(cut, "settings-agent-claude-key-input").HasAttribute("disabled").ShouldBeTrue();
         Id(cut, "settings-agent-claude-key-save").HasAttribute("disabled").ShouldBeTrue();
         Id(cut, "settings-agent-claude-key-status").GetAttribute("data-state").ShouldBe("not-configured");
+
+        // qa F6: even a click that reaches the disabled button (a forged event) never stores, and the markup holds no form.
+        Id(cut, "settings-agent-claude-key-save").Click();
+
+        AgentApi.DidNotReceive().StoreClaudeKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldAllBe(form => !cut.Markup.Contains(form, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FromAnotherHostName_AForgedDeleteNeverReachesTheApi()
+    {
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(ClaudeKeyData.AgentStatus(ClaudeKeyData.Stored()));
+        OpenedUnder("http://192.168.1.20:8080/");
+        var cut = RenderSettings();
+
+        Id(cut, "settings-agent-claude-key-delete").Click();
+        cut.FindAll("[data-testid=settings-agent-claude-key-delete-confirm-yes]").ToList().ForEach(yes => yes.Click());
+
+        AgentApi.DidNotReceive().DeleteClaudeKeyAsync(Arg.Any<CancellationToken>());
+        Id(cut, "settings-agent-claude-key-status").GetAttribute("data-stored").ShouldBe("readable");
     }
 
     [Fact]
@@ -75,7 +95,7 @@ public sealed class ClaudeKeyLocalOnlyTests : PageTestContext
         Has(cut, "settings-agent-claude-key-error").ShouldBeFalse();
         Id(cut, "settings-agent-claude-key-input").HasAttribute("disabled").ShouldBeTrue();
         Id(cut, "settings-agent-claude-key-save").HasAttribute("disabled").ShouldBeTrue();
-        cut.Markup.ShouldNotContain(ClaudeKeySentinels.Stored);
+        ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldAllBe(form => !cut.Markup.Contains(form, StringComparison.Ordinal));
     }
 
     [Fact]

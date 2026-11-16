@@ -19,6 +19,8 @@ public sealed class PageOriginTests
     [InlineData("http://web:8080/", false)]
     [InlineData("http://stemstudio.local:8080/", false)]
     [InlineData("http://localhost.example.com/", false)]
+    [InlineData("http://localhost.:8080/", false)]
+    [InlineData("http://127.0.0.1.:8080/", false)]
     public void OnlyALoopbackHostName_IsLocal(string baseUri, bool local)
     {
         var origin = new PageOrigin(new TestNavigationManager(baseUri));
