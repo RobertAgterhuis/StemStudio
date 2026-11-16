@@ -62,12 +62,15 @@ export type StorageState = Exclude<NonNullable<BrowserContextOptions['storageSta
 /** Local-storage key of the record (data-model.md 1). */
 export const preferencesKey = 'stemstudio.preferences';
 
-/** Content versions of the tours shipped with 004; bump here when a tour file's version changes. */
+/**
+ * Content versions of the shipped tours (004; 012 added a practice step to both mixer tours);
+ * bump here when a tour file's version changes (`tests/preferences-support.spec.ts` checks it).
+ */
 export const tourVersions: Readonly<Record<TourId, number>> = {
   'import-basics': 1,
   'track-basics': 1,
-  'mixer-basics': 1,
-  'mixer-advanced': 1,
+  'mixer-basics': 2,
+  'mixer-advanced': 2,
   'expert-keyboard': 1,
 };
 
