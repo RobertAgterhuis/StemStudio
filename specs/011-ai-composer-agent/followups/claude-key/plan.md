@@ -8,8 +8,8 @@ owner; 011 spec/plan/data-model/contracts; 013 and 018 designs; constitution 1.3
 **Note**: produced by the architect agent (`/speckit-plan` equivalent). **Gate**: no
 implementation task starts before the owner ratifies the constitution amendment 1.4.0 below
 (task T001). **Gate passed**: the owner ratified 1.4.0 on 2026-11-16 and answered Q1 and Q2 (see
-[Owner answers](#owner-answers-2026-11-16)). Until the follow-up ships, 011 behaves as built
-(environment variable only).
+[Owner answers](#owner-answers-2026-11-16)). **Shipped** (integration 2026-11-16): the key comes
+from `ANTHROPIC_API_KEY` (wins) or from Settings, stored encrypted.
 
 ## Summary
 

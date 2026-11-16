@@ -62,9 +62,10 @@ owner are listed at the end of [plan.md](plan.md) ("Owner questions").
   (Apache-2.0, tool calling, 6.6 GB) and `qwen3.5:4b` as the low-VRAM fallback that runs while a
   GPU job holds the GPU; **Claude** (optional, paid per use) with `claude-opus-5-5`; and
   **none** (agent off, every other feature unaffected). The backend is chosen in Settings; Claude
-  can be selected only when `ANTHROPIC_API_KEY` is set in the API's environment. The key is never
-  shown, stored, logged or sent to the browser. *(Key-source rule superseded by constitution 1.4.0
-  once the claude-key follow-up ships, `specs/011-ai-composer-agent/followups/claude-key/`.)*
+  can be selected only when a usable key exists: `ANTHROPIC_API_KEY` in the API's environment
+  (wins) or a key entered in Settings and stored encrypted (constitution 1.4.0, ADR-035, follow-up
+  `specs/011-ai-composer-agent/followups/claude-key/`). The key is never shown, stored in plain
+  text, logged or sent to the browser.
 - Q: What happens when the selected backend is unavailable? → A: the panel shows the status and a
   fix ("Start Ollama", "Model not pulled: run `ollama pull qwen3.5:9b`", "Claude key missing or
   rejected"); the user can switch backend. StemStudio never switches silently from Ollama to the
@@ -359,12 +360,15 @@ fake backend (exact tool calls) and on the reference machine with the local mode
 **Backends**
 
 - **FR-018**: The system MUST support the backends Ollama (default), Claude (optional) and none;
-  the selection and model choices are settings stored locally; the Claude API key MUST come only
-  from the `ANTHROPIC_API_KEY` environment variable of the API and MUST NOT be stored, logged,
-  returned by any endpoint or shown. *(Key sentence superseded by constitution 1.4.0 once the
-  claude-key follow-up ships: CK-FR-001..003 in `specs/011-ai-composer-agent/followups/claude-key/`, folded in by its task T053.)*
+  the selection and model choices are settings stored locally; the Claude API key MUST come from
+  the `ANTHROPIC_API_KEY` environment variable of the API (wins) or from a key entered in Settings
+  and stored encrypted with ASP.NET Core Data Protection, whose key ring lives in its own directory
+  outside the library and backups (CK-FR-001..003, constitution 1.4.0). The key MUST NOT be stored
+  in plain text, logged, returned by any endpoint or shown (at most its last four characters).
+  *(Folded in from the claude-key follow-up, T053, 2026-11-16.)*
 - **FR-019**: Settings MUST show for each backend: availability (reachable / model present /
-  tool support / key configured), the active model, and for Claude the "paid per use" notice with
+  tool support / key status: source, state and last four characters), the active model, and for
+  Claude the "paid per use" notice with
   the list of data sent; selecting Claude MUST require acknowledging the notice once.
 - **FR-020**: The system MUST NOT call the Claude API unless Claude is the selected backend (and,
   for "Test connection", only when the user presses it); it MUST NOT switch automatically between
@@ -424,9 +428,8 @@ fake backend (exact tool calls) and on the reference machine with the local mode
   the panel shows the unavailable state within 3 s.
 - **SC-006**: Without `ANTHROPIC_API_KEY`, CI and the default start make **0** requests to the
   Claude API (verified by a failing HTTP handler in tests); the key never appears in any API
-  response, log line, database row or page (automated scan in tests). *("database row" becomes "in
-  plain text in a database row": superseded by constitution 1.4.0 once the claude-key follow-up
-  ships.)*
+  response, log line or page, and never in plain text in a database row (automated scan in tests;
+  claude-key follow-up CK-SC-001).
 - **SC-007**: Undo restores the previous state for 100 % of reversible actions in the automated
   tests (mixer values, saved mix, overwritten mix, cancelled job).
 - **SC-008**: On the reference machine, a detail separation started while the agent model is

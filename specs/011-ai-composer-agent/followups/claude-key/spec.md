@@ -3,7 +3,7 @@
 **Feature**: follow-up of `specs/011-ai-composer-agent` (AI composer agent)
 **Branch**: `011-claude-key-spec` (design), implementation branch `011-claude-key`
 **Created**: 2026-11-16
-**Status**: Draft (architect). Constitution amendment 1.4.0 in
+**Status**: **Merged** (integrated by the CTO on branch `011-claude-key-spec`, 2026-11-16; folded into the 011 spec FR-018, FR-019, SC-006 by T053). Constitution amendment 1.4.0 in
 [plan.md](plan.md#constitution-amendment-140-ratified-by-the-owner-2026-11-16) was ratified by the
 owner on 2026-11-16 (Q0); Q1 (keep LAN access until 018) and Q2 (keep the ciphertext in backups)
 are answered there.

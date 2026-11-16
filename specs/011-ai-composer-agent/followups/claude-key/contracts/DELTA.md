@@ -3,7 +3,7 @@
 The follow-up adds one resource to the backend API (`/api/agent/settings/claude-key`), extends two
 011 schemas additively, adds UI test ids and changes no other contract.
 
-## Status (merged in Phase 0, 2026-11-16)
+## Status (merged in Phase 0; follow-up integrated 2026-11-16, folder merged)
 
 | Contract | Base | Follow-up document | State |
 |---|---|---|---|
