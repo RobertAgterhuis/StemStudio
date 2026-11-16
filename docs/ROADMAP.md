@@ -69,13 +69,15 @@ previous version.
 | 012 Practice tempo | 1.11.0 | - | 2.3.0 | 1.11.0 | |
 | 013 Library care | 1.12.0 | 1.7.0 | - | 1.12.0 | backup-archive 1.0.0 |
 | 014 Practice flow | 1.13.0 | 1.8.0 | 2.4.0 | 1.13.0 | |
-| 015 Play-along recording | 1.14.0 | - | 2.5.0 | 1.14.0 | |
+| 015 Play-along recording | 1.14.0 | - | 2.5.0 | 1.14.0 | render-vectors 1.1.0 |
 | 016 Instrument views | 1.15.0 | 1.9.0 | 2.6.0 | 1.15.0 | |
 | 017 Effects/controllers | 1.16.0 | - | 2.7.0 | 1.16.0 | |
 | 018 Tablet/remote | 1.17.0 | - | - | 1.17.0 | remote-protocol 1.0.0 |
-| 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.1.0 |
+| 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.2.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
+
+ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
 
 Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
 {012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in
