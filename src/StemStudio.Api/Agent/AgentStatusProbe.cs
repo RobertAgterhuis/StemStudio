@@ -63,7 +63,7 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
         {
             if (services.GetService<IAgentStatusService>() is { } status)
             {
-                return await TestWithAsync(status, backend, claudeKeySource, cancellationToken);
+                return await status.TestAsync(backend, claudeKeySource, cancellationToken);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -73,14 +73,6 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
 
         return new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = FailureReason };
     }
-
-    // The port IAgentStatusService has no key-source parameter yet (cross-owner request to the architect); the agent library's
-    // AgentStatusService offers the overload, any other implementation tests the active key.
-    private static Task<BackendTestResultDto> TestWithAsync(
-        IAgentStatusService status, AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken) =>
-        status is AgentStatusService library
-            ? library.TestAsync(backend, claudeKeySource, cancellationToken)
-            : status.TestAsync(backend, cancellationToken);
 
     /// <summary>503 <c>backend-unavailable</c> with the status, or null when the agent is ready.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
