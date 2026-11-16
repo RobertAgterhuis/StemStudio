@@ -10,7 +10,14 @@ namespace StemStudio.Web.Components.Agent;
 /// </summary>
 public sealed partial class AgentPanel
 {
+    /// <summary>How often the open panel refreshes the backend status (US3, FR-023).</summary>
+    public static readonly TimeSpan StatusInterval = TimeSpan.FromSeconds(10);
+
+    private readonly CancellationTokenSource _stop = new();
     private bool _enterPressed;
+
+    [Inject]
+    private TimeProvider Time { get; set; } = default!;
 
     [Inject]
     private AgentPanelState State { get; set; } = default!;
@@ -20,13 +27,35 @@ public sealed partial class AgentPanel
     private string? StreamingText => State.Run is { Ended: false, Text.Length: > 0 } run ? run.Text : null;
 
     /// <inheritdoc />
-    public void Dispose() => State.Changed -= OnChanged;
+    public void Dispose()
+    {
+        State.Changed -= OnChanged;
+        _stop.Cancel();
+        _stop.Dispose();
+    }
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         State.Changed += OnChanged;
         await State.LoadAsync();
+        _ = RefreshStatusLoopAsync(_stop.Token);
+    }
+
+    private async Task RefreshStatusLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(StatusInterval, Time, ct);
+                await InvokeAsync(State.RefreshStatusAsync);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The panel was closed.
+        }
     }
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);

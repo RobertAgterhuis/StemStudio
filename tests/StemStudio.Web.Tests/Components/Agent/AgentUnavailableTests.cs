@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using Bunit;
 using NSubstitute;
 using StemStudio.Contracts.Agent;
+using StemStudio.Web.Agent;
 using StemStudio.Web.Api;
 using StemStudio.Web.Components.Agent;
 using StemStudio.Web.Experience;
@@ -92,12 +93,12 @@ public sealed class AgentUnavailableTests : PageTestContext
     }
 
     [Fact]
-    public void ClosedPanel_StopsRefreshing()
+    public async Task ClosedPanel_StopsRefreshing()
     {
         var cut = RenderPanel();
         cut.WaitForElement("[data-testid=agent-input]");
 
-        DisposeComponents();
+        await DisposeComponentsAsync();
         Time.Advance(TimeSpan.FromSeconds(30));
 
         AgentApi.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(IAgentApiClient.GetStatusAsync)).ShouldBe(1);

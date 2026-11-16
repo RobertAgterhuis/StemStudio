@@ -222,3 +222,17 @@
   flex-wrap: wrap;
   gap: var(--ss-space-2);
 }
+
+.ss-agent-unavailable {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+}
+
+.ss-agent-unavailable p {
+  margin: 0;
+}
+
+.ss-agent-fix {
+  font-family: var(--ss-num);
+}

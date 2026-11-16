@@ -14,6 +14,16 @@
             <span class="rzi" aria-hidden="true">close</span>
         </button>
     </header>
+    @if (State.Status is { Ready: false } status)
+    {
+        <div class="ss-agent-unavailable" role="status" data-testid="agent-unavailable">
+            <p>@(status.Reason ?? "The agent is not ready.")</p>
+            @if (status.Fix is { } fix)
+            {
+                <p class="ss-agent-fix">@fix</p>
+            }
+        </div>
+    }
     <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" OnSelect="State.SelectConversationAsync" />
     <div class="ss-agent-log">
         <MessageList Messages="State.Messages" Streaming="@StreamingText" />

@@ -101,10 +101,28 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
             return false;
         }
 
-        var context = PageContext();
-        Error = await ApiCall.RunAsync(() => PostAsync(text, context));
+        try
+        {
+            await PostAsync(text, PageContext());
+            Error = null;
+        }
+        catch (ApiException ex)
+        {
+            Error = ex.Error.UserMessage;
+            Status = AgentProblems.StatusOf(ex.Error) ?? Status;
+        }
+
         Notify();
         return Error is null;
+    }
+
+    /// <summary>Reloads the backend status (every 10 s while the panel is open).</summary>
+    /// <returns>A task that completes when the status is loaded.</returns>
+    public async Task RefreshStatusAsync()
+    {
+        var (status, _) = await ApiCall.TryAsync(() => api.GetStatusAsync());
+        Status = status ?? Status;
+        Notify();
     }
 
     /// <summary>Cancels the followed run (the jobs it started keep running).</summary>

@@ -79,38 +79,38 @@ public sealed class ApprovalCardTests : PageTestContext
     }
 
     [Fact]
-    public async Task Approve_PostsOnceWithTheArgumentsHash_AndApproveIsNotFocused()
+    public void Approve_PostsOnceWithTheArgumentsHash_AndApproveIsNotFocused()
     {
         var cut = Request(AgentData.Approval());
 
         Id(cut, "agent-approve").Click();
 
-        await AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
+        cut.WaitForAssertion(() => AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
             Arg.Is<DecideApprovalRequest>(r => r.Decision == ApprovalDecisionDto.Approve && r.Scope == ApprovalScopeDto.Once && r.ArgumentsHash == "sha256:abc"),
-            Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>()));
         Id(cut, "agent-approve").HasAttribute("autofocus").ShouldBeFalse();
     }
 
     [Fact]
-    public async Task ApprovePlan_ExistsOnlyWhenAllowed_AndPostsPlanHeavy()
+    public void ApprovePlan_ExistsOnlyWhenAllowed_AndPostsPlanHeavy()
     {
         var cut = Request(AgentData.Approval(allowPlan: true));
 
         Id(cut, "agent-approve-plan").Click();
 
-        await AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
-            Arg.Is<DecideApprovalRequest>(r => r.Decision == ApprovalDecisionDto.Approve && r.Scope == ApprovalScopeDto.PlanHeavy), Arg.Any<CancellationToken>());
+        cut.WaitForAssertion(() => AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
+            Arg.Is<DecideApprovalRequest>(r => r.Decision == ApprovalDecisionDto.Approve && r.Scope == ApprovalScopeDto.PlanHeavy), Arg.Any<CancellationToken>()));
     }
 
     [Fact]
-    public async Task Reject_PostsRejectWithoutAScope()
+    public void Reject_PostsRejectWithoutAScope()
     {
         var cut = Request(AgentData.Approval());
 
         Id(cut, "agent-reject").Click();
 
-        await AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
-            Arg.Is<DecideApprovalRequest>(r => r.Decision == ApprovalDecisionDto.Reject && r.Scope == null && r.ArgumentsHash == "sha256:abc"), Arg.Any<CancellationToken>());
+        cut.WaitForAssertion(() => AgentApi.Received(1).DecideApprovalAsync(AgentData.RunId, AgentData.StepId,
+            Arg.Is<DecideApprovalRequest>(r => r.Decision == ApprovalDecisionDto.Reject && r.Scope == null && r.ArgumentsHash == "sha256:abc"), Arg.Any<CancellationToken>()));
     }
 
     [Fact]
