@@ -32,13 +32,25 @@ public static class ClaudeKeySentinels
     public static string Build(string marker, string lastFour) =>
         string.Concat(Prefix, "api03-", marker, "-sentinel-", new string('x', 38), lastFour);
 
-    /// <summary>The forms a leak search looks for: the value, its UTF-8 base64 and its UTF-16 (little endian) bytes as base64.</summary>
+    /// <summary>
+    /// The forms a leak search looks for (quality-gate R1): the value; its distinctive middle (without the prefix and the last
+    /// four characters, so a truncated or masked key is found); and the UTF-8 and UTF-16 (little endian) bytes as base64 in all
+    /// three alignments, so the key is also found inside a larger base64 payload (for example a logged JSON body).
+    /// </summary>
     /// <param name="sentinel">A sentinel of this class.</param>
-    /// <returns>The searched forms.</returns>
-    public static IReadOnlyList<string> SearchForms(string sentinel) =>
-    [
-        sentinel,
-        Convert.ToBase64String(Encoding.UTF8.GetBytes(sentinel)),
-        Convert.ToBase64String(Encoding.Unicode.GetBytes(sentinel)),
-    ];
+    /// <returns>The searched forms (the plain value first).</returns>
+    public static IReadOnlyList<string> SearchForms(string sentinel)
+    {
+        ArgumentNullException.ThrowIfNull(sentinel);
+        string[] base64 = [.. new[] { Encoding.UTF8, Encoding.Unicode }.SelectMany(encoding => Base64Alignments(encoding.GetBytes(sentinel)))];
+        return [sentinel, Middle(sentinel), .. base64.Distinct(StringComparer.Ordinal)];
+    }
+
+    // The characters of the base64 text that depend only on the sentinel's bytes, for a payload offset of 0, 1 and 2 bytes:
+    // the first and the last group of four characters may mix in neighbouring bytes, so both are dropped.
+    private static IEnumerable<string> Base64Alignments(byte[] bytes) =>
+        Enumerable.Range(0, 3).Select(pad => Convert.ToBase64String([.. new byte[pad], .. bytes])[4..^4]);
+
+    private static string Middle(string sentinel) =>
+        sentinel.StartsWith(Prefix, StringComparison.Ordinal) ? sentinel[Prefix.Length..^4] : sentinel[..^4];
 }
