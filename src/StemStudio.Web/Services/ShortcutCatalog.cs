@@ -41,4 +41,17 @@ public static class ShortcutCatalog
         new("C", "Count-in on or off"),
         new("T", "Speed trainer on or off (Advanced)"),
     ];
+
+    /// <summary>The overlay groups: everywhere, plus mixer and practice keys on the mixer.</summary>
+    /// <param name="onMixer">True on the mixer page.</param>
+    /// <returns>Title and rows per group.</returns>
+    public static IEnumerable<(string Title, IReadOnlyList<ShortcutRow> Rows)> Groups(bool onMixer)
+    {
+        yield return ("Everywhere", Global);
+        if (onMixer)
+        {
+            yield return ("Mixer", Mixer);
+            yield return ("Practice", Practice);
+        }
+    }
 }

@@ -197,15 +197,21 @@ public sealed class SpeedTrainerPanelTests : PracticeTestContext
         status.QuerySelector("[aria-hidden=true]")!.TextContent.ShouldBe("Pass 3 - ");
     }
 
+    /// <summary>Engine trainer progress, the expected <c>data-state</c> and the expected text.</summary>
+    public static TheoryData<TrainerStatus, string, string> States => new()
+    {
+        { new TrainerStatus(TrainerState.Off, 0, 100), "off", "Off" },
+        { new TrainerStatus(TrainerState.Waiting, 0, 70), "waiting", "Ready - starts at 70 % (target 100 %)" },
+        { new TrainerStatus(TrainerState.Target, 9, 100), "target", "Pass 9 - 100 % (target reached)" },
+    };
+
     [Theory]
-    [InlineData(TrainerState.Off, 0, 100, "off", "Off")]
-    [InlineData(TrainerState.Waiting, 0, 70, "waiting", "Ready - starts at 70 % (target 100 %)")]
-    [InlineData(TrainerState.Target, 9, 100, "target", "Pass 9 - 100 % (target reached)")]
-    public void Status_ShowsEveryState(TrainerState state, int pass, int speed, string name, string text)
+    [MemberData(nameof(States))]
+    public void Status_ShowsEveryState(TrainerStatus trainer, string name, string text)
     {
         var page = RenderWithLoop(trainer: Off with { Enabled = true });
 
-        RaiseStatus(PracticeStatus.Initial with { Stretch = StretchState.Active, Trainer = new TrainerStatus(state, pass, speed) });
+        RaiseStatus(PracticeStatus.Initial with { Stretch = StretchState.Active, Trainer = trainer });
 
         page.WaitForAssertion(() => Id(page, "trainer-status").GetAttribute("data-state").ShouldBe(name));
         Id(page, "trainer-status").TextContent.Trim().ShouldBe(text);

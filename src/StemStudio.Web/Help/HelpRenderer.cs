@@ -82,7 +82,7 @@ public static class HelpRenderer
             case var route when route.StartsWith("route:", StringComparison.Ordinal):
                 link.Url = route["route:".Length..];
                 break;
-            case var web when web.StartsWith("https://", StringComparison.Ordinal) || IsThirdPartyNotice(web):
+            case var web when OpensInNewTab(web):
                 link.GetAttributes().AddProperty("target", "_blank");
                 link.GetAttributes().AddProperty("rel", "noopener");
                 break;
@@ -92,9 +92,11 @@ public static class HelpRenderer
         }
     }
 
-    // Licence and source bundles served by the web app (012: /third-party/soundtouch/index.html); no path traversal.
-    private static bool IsThirdPartyNotice(string url) =>
-        url.StartsWith(ThirdPartyPrefix, StringComparison.Ordinal) && !url.Contains("..", StringComparison.Ordinal);
+    // Web links, and the licence and source bundles served by the web app (012: /third-party/soundtouch/index.html;
+    // no path traversal).
+    private static bool OpensInNewTab(string url) =>
+        url.StartsWith("https://", StringComparison.Ordinal)
+        || (url.StartsWith(ThirdPartyPrefix, StringComparison.Ordinal) && !url.Contains("..", StringComparison.Ordinal));
 
     private static void KeepOrUnwrap(LinkInline link, bool keep)
     {

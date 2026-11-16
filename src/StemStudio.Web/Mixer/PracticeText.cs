@@ -63,8 +63,28 @@ public static class PracticeText
     public static string Unavailable(string? reason) =>
         $"{(string.IsNullOrWhiteSpace(reason) ? UnknownReason : reason.Trim())} {UnavailableSuffix}";
 
+    /// <summary>
+    /// The <c>trainer-status</c> text in two parts: the pass (hidden from the live region, so only speed steps are
+    /// announced) and the speed part, e.g. ("Pass 3 - ", "80 % (target 100 %)").
+    /// </summary>
+    /// <param name="trainer">The engine's trainer progress.</param>
+    /// <param name="settings">The trainer settings (start and target).</param>
+    /// <returns>The two parts.</returns>
+    public static TrainerStatusText TrainerStatus(TrainerStatus trainer, StemStudio.Contracts.Mixes.SpeedTrainerSettingsDto settings) => trainer.State switch
+    {
+        TrainerState.Running => new($"Pass {Number(trainer.Pass)} - ", $"{Percent(trainer.SpeedPercent)} (target {Percent(settings.TargetPercent)})"),
+        TrainerState.Target => new($"Pass {Number(trainer.Pass)} - ", $"{Percent(trainer.SpeedPercent)} (target reached)"),
+        TrainerState.Waiting => new(string.Empty, $"Ready - starts at {Percent(settings.StartPercent)} (target {Percent(settings.TargetPercent)})"),
+        _ => new(string.Empty, "Off"),
+    };
+
     /// <summary>An integer as invariant text.</summary>
     /// <param name="value">The number.</param>
     /// <returns>The text.</returns>
     public static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 }
+
+/// <summary>The two parts of the speed trainer status.</summary>
+/// <param name="Pass">"Pass 3 - " or empty; not announced.</param>
+/// <param name="Speed">The speed part; announced when it changes.</param>
+public sealed record TrainerStatusText(string Pass, string Speed);

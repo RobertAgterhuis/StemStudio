@@ -31,6 +31,16 @@ public sealed partial class Mixer
 
     private Task ResetPracticeAsync() => SubmitPracticeAsync(State!.ResetPractice());
 
+    private Task SetTrainerAsync(SpeedTrainerSettingsDto trainer) => SubmitPracticeAsync(State!.SetTrainer(trainer));
+
+    private Task ToggleTrainerAsync() => SubmitPracticeAsync(State!.ToggleTrainer());
+
+    // The trainer key turns the trainer on only where its switch could (Advanced+, usable loop, stage available).
+    private Task TrainerCommandAsync() =>
+        IsBeginner || (!State!.Practice.Trainer.Enabled && (StretchUnavailable || PracticeRules.LoopProblem(State.Loop) is not null))
+            ? Task.CompletedTask
+            : ToggleTrainerAsync();
+
     private Task SubmitPracticeAsync(PracticeSettingsDto settings) => EngineReady ? PracticeSender.SubmitAsync(settings) : Task.CompletedTask;
 
     private async Task SendPracticeAsync(PracticeSettingsDto settings)
@@ -54,6 +64,7 @@ public sealed partial class Mixer
         "mixer.speed" => SpeedLocked ? Task.CompletedTask : SetSpeedAsync(State!.Practice.SpeedPercent + argument),
         "mixer.transpose" => StretchUnavailable ? Task.CompletedTask : SetTransposeAsync(State!.Practice.TransposeSemitones + argument),
         "mixer.practice.reset" => StretchUnavailable ? Task.CompletedTask : ResetPracticeAsync(),
+        "mixer.trainer.toggle" => TrainerCommandAsync(),
         _ => SaveCommandAsync(command),
     };
 

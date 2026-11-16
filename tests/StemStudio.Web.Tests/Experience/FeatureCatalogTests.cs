@@ -19,6 +19,7 @@ public sealed class FeatureCatalogTests
         { "mixer.meter.db", [E], "mixer-meters" },
         { "mixer.presets", [B, A, E], "mixer-presets" },
         { "practice.speed-reset", [A, E], "practice-speed" },
+        { "practice.trainer", [A, E], "practice-speed-trainer" },
         { "practice.numeric", [E], "practice-speed" },
         { "practice.stretch-status", [E], "practice-sound-quality" },
         { "tracks.search", [A, E], "tracks-library" },
@@ -110,7 +111,7 @@ public sealed class FeatureCatalogTests
         }.Order(StringComparer.Ordinal));
         FeatureCatalog.All.Where(f => !FeatureCatalog.IsVisible(f.Id, B) && f.Max is null)
             .Select(f => f.Id)
-            .ShouldBe(["mixer.pan", "mixer.loop.typed", "mixer.metronome.advanced", "mixer.numeric", "mixer.meter.db", "practice.speed-reset", "practice.numeric", "practice.stretch-status", "tracks.search",
+            .ShouldBe(["mixer.pan", "mixer.loop.typed", "mixer.metronome.advanced", "mixer.numeric", "mixer.meter.db", "practice.speed-reset", "practice.trainer", "practice.numeric", "practice.stretch-status", "tracks.search",
                 "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels", "library.filters", "export.range", "export.stem-pack",
                 "karaoke.size", "karaoke.offset", "karaoke.timing-origin", "lyrics.align-device", "lyrics.refine", "lyrics.remove",
                 "score.detail-stems", "score.key-override", "score.manual-tempo", "score.quality", "score.range",

@@ -104,6 +104,7 @@ public sealed partial class Mixer : IAsyncDisposable
         _engineStarted = true;
         _spaceKey = await Shortcuts.RegisterSpaceAsync(() => InvokeAsync(TogglePlaybackAsync));
         await RegisterKeysAsync();
+        SubscribeEngine();
         await StartEngineAsync(State);
         RegisterAgentTools();
         StateHasChanged();
@@ -111,7 +112,6 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task StartEngineAsync(MixerState state)
     {
-        SubscribeEngine();
         try
         {
             await Engine.InitializeAsync();
