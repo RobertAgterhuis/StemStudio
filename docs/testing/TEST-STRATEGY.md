@@ -1251,7 +1251,7 @@ The real model is exercised only by the manual evaluation harness (17.6, CTO T08
 | Quality gate | dependency direction (`StemStudio.Agent` -> Contracts + MEAI/OllamaSharp/Anthropic only; only `Agent.Backends` uses the SDK namespaces; Web and Persistence never reference the agent; Policy independent of Runtime/Backends) | `tools/quality/tests/` |
 | Devops | secret scan (`sk-ant-` pattern, assigned key values, CI never sets the key), agent coverage floor, contracts lint of the 011 folder, compose config | `scripts/secret_scan.py --self-test`, `scripts/coverage_floor.py` |
 | E2E (qa, `e2e/tests/agent.spec.ts`) | the user-visible flows of US1-US6 on the fake stack with scripted model turns (17.4) and the unavailable state with backend `none` | `STEMSTUDIO_AGENT_BACKEND=fake` + `e2e/agent-scripts/*.json`, fake separator, fake generator (US6) |
-| Stack-free self-test (qa, `e2e/tests/agent-support.spec.ts`, `@self-test`) | every script file is valid against `agent-script.schema.json` 1.0.0, uses only the known placeholders and is listed in `agentScripts`; tag helpers | committed scripts |
+| Stack-free self-test (qa, `e2e/tests/agent-support.spec.ts`, `@self-test`) | every script file is valid against `agent-script.schema.json` 1.0.0 (`support/agent-script-check.ts`), uses only the known placeholders, ends with an answer and is listed in `agentScripts`; every test of `agent.spec.ts` follows the tag rule and every script is used | committed scripts, `agent.spec.ts` source |
 | Evaluation (manual, reference machine) | SC-001 success rate, SC-004 latency, injection set 22-24, S1-S3 with the real model | `tools/agent-eval` (17.6) |
 
 ### 17.2 Fake chat clients
@@ -1309,7 +1309,9 @@ and its host is still checked by the API (400); lyrics from tool results never r
   `@<name>`. Every run plays the script from turn 1, so several tests may share one script, and
   each test sends exactly one model-driven message (undo runs execute recorded inverses without a
   model turn).
-- **Tags**: every agent test carries `@agent`; a scripted test also exactly one `@<script name>`;
+- **Tags** are literal arrays (`{ tag: ['@agent', '@us1-command'] }`; ESLint
+  `playwright/valid-test-tags` refuses computed tags) and no test title contains `@` (Playwright's
+  grep also matches titles). Every agent test carries `@agent`; a scripted test also exactly one `@<script name>`;
   the unavailable test `@agent-unavailable` and no script tag (run by `agent-e2e none`); a test
   that needs the generator also `@generative` (not run by the plain fake passes, 17.5). Tests with
   `@agent` and no script tag run in the final fake pass without a script (settings).
@@ -1408,3 +1410,22 @@ scripts/agent-e2e.sh fake
 # all of the above in a throw-away compose project (ports 8080/8081 free)
 scripts/test-all.sh --agent-e2e
 ```
+
+### 17.9 Status after the qa lane (authored, executed in T080)
+
+`e2e/tests/agent.spec.ts` holds 12 tests (9 scripted over 9 script files, 1 unavailable, 1
+settings, 2 of the scripted ones `@generative`); `agent-support.spec.ts` 9 stack-free self-tests.
+Validated without a stack: `tsc --noEmit`, ESLint (0 warnings), `playwright test --list`, Ajv
+(draft 2020-12) against the script schema. Execution needs these cross-owner items (hand-offs
+`qa-011-us1` .. `qa-011-us6`, consolidated in `qa-011-polish`):
+
+| # | Owner | Item | Blocks |
+|---|---|---|---|
+| 1 | ai-agent | fake backend substitutes `{{context.trackId}}` / `{{context.mixId}}` from the run's message context | all scripted tests |
+| 2 | ai-agent / backend | a fresh turn sequence per run (every run starts at turn 1) | tests sharing a script (`us1-command`) |
+| 3 | backend | with `StemStudio__Agent__Backend=fake` the effective backend is `fake` whatever the stored row | settings test and every later scripted pass |
+| 4 | backend | `PUT settings {backend: ollama}` with unchanged models is accepted without a reachable Ollama | settings test in CI |
+| 5 | devops / CTO | a pass for the `@generative` agent tests on the fake generator stack | `us6-*` |
+| 6 | architect | placeholders recorded in `agent-script.schema.json` and DELTA.md 8 | - (documentation) |
+| 7 | CTO | re-render the 004 visual baselines on the 011 layout | visual suite |
+
