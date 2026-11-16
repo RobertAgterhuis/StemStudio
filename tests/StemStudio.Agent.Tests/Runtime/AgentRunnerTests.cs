@@ -25,7 +25,7 @@ public sealed class AgentRunnerTests
         run.EndedAt.ShouldBe(RunnerHarness.Start);
         harness.Events.Types.ShouldBe([AgentEventTypes.RunStarted, AgentEventTypes.TextDelta, AgentEventTypes.RunCompleted]);
         harness.Events.Payload(AgentEventTypes.TextDelta).GetProperty("text").GetString().ShouldBe("Hallo, ik ben er.");
-        var answer = harness.Conversations.Messages.Last();
+        var answer = harness.Conversations.Messages[^1];
         (answer.Role, answer.Text, answer.RunId, answer.Seq).ShouldBe((MessageRoleDto.Assistant, "Hallo, ik ben er.", run.Id, 2));
         harness.Events.Payload(AgentEventTypes.RunCompleted).GetProperty("messageId").GetGuid().ShouldBe(answer.Id);
         (await harness.Conversations.GetAsync(harness.ConversationId, CancellationToken.None))!.ActiveRunId.ShouldBeNull();
@@ -192,10 +192,10 @@ public sealed class AgentRunnerTests
         var harness = new RunnerHarness(new HangingChatClient(), [Echo()]);
         await harness.SeedAsync();
 
-        var execution = harness.Runner().ExecuteAsync(harness.Run.Id, CancellationToken.None);
+        var execution = harness.Runner().ExecuteAsync(harness.Run.Id, TestContext.Current.CancellationToken);
         await harness.Events.WaitForAsync(AgentEventTypes.RunStarted);
         harness.Time.Advance(TimeSpan.FromSeconds(121));
-        await execution.WaitAsync(TimeSpan.FromSeconds(10));
+        await execution.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var run = (await harness.CurrentRunAsync())!;
         (run.Status, run.FailureCode).ShouldBe((AgentRunStatusDto.Failed, AgentFailureCodes.Timeout));
@@ -346,7 +346,7 @@ public sealed class AgentRunnerTests
         await harness.SeedAsync();
         await harness.Runs.UpdateRunAsync(harness.Run with { Status = AgentRunStatusDto.Cancelled }, CancellationToken.None);
 
-        await harness.Runner().ExecuteAsync(harness.Run.Id, CancellationToken.None);
+        await harness.Runner().ExecuteAsync(harness.Run.Id, TestContext.Current.CancellationToken);
         await harness.Runner().ExecuteAsync(Guid.NewGuid(), CancellationToken.None);
 
         harness.Events.Events.ShouldBeEmpty();
