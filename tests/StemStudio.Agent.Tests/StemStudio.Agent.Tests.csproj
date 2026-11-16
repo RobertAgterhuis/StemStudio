@@ -9,6 +9,10 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
   <ItemGroup>
+    <!-- 011 follow-up claude-key (architect T005): shared test doubles and run-time sentinels, also linked into Api.Tests. -->
+    <Compile Include="..\Shared\ClaudeKey\*.cs" LinkBase="Shared\ClaudeKey" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Script format of the fake backend (contracts/agent-script.schema.json); sample scripts are checked against it. -->
     <None Include="..\..\specs\011-ai-composer-agent\contracts\agent-script.schema.json" Link="Contract\agent-script.schema.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
