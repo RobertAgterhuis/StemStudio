@@ -165,6 +165,18 @@ describe('trainer lifecycle', () => {
     expect(running(rig)[0]?.playbackRate.value).toBe(0.6);
   });
 
+  it('reports the trainer after pause and stop, so the UI leaves the running pass (012 integration)', async () => {
+    const rig = await trainerRig();
+    await rig.engine.play();
+    await run(rig, 5);
+    rig.engine.pause();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(statuses(rig).at(-1)?.trainer).toEqual({ state: 'waiting', pass: 2, speedPercent: 60 });
+    rig.engine.stop();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(statuses(rig).at(-1)?.trainer).toEqual({ state: 'waiting', pass: 0, speedPercent: 50 });
+  });
+
   it('pausing just before a boundary does not count the unheard pass', async () => {
     const rig = await trainerRig();
     await rig.engine.play();
