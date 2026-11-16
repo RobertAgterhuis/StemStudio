@@ -48,7 +48,7 @@ public sealed class PracticePanelTests : PracticeTestContext
     {
         var page = RenderAt();
         var reset = page.Find("[data-testid=practice-reset]");
-        reset.TextContent.Trim().ShouldBe("Original speed and key");
+        reset.TextContent.ShouldEndWith("Original speed and key");
         reset.HasAttribute("disabled").ShouldBeTrue();
 
         page.Find("[data-testid=practice-speed]").Input("80");

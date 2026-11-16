@@ -83,6 +83,8 @@ else
             <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
                           Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
             <MetronomePanel Settings="State.Metronome" Grid="_track?.BeatGrid" OnChange="SetMetronomeAsync" OnReset="ResetMetronomeAsync" />
+            <PracticePanel Settings="State.Practice" Status="PracticeLive" TrackBpm="TrackBpm" OnSpeed="SetSpeedAsync" OnTranspose="SetTransposeAsync"
+                           OnReset="ResetPracticeAsync" />
         </div>
 
         <div class="ss-console-desk">

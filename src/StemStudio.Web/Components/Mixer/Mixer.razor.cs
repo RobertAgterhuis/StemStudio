@@ -71,6 +71,7 @@ public sealed partial class Mixer : IAsyncDisposable
     {
         Engine.PositionChanged -= OnPositionChanged;
         Engine.PlaybackStateChanged -= OnPlaybackStateChanged;
+        ReleasePractice();
         ReleaseAgentTools();
         await (_spaceKey?.DisposeAsync() ?? ValueTask.CompletedTask);
         await ReleaseKeysAsync();
@@ -112,6 +113,7 @@ public sealed partial class Mixer : IAsyncDisposable
     {
         Engine.PositionChanged += OnPositionChanged;
         Engine.PlaybackStateChanged += OnPlaybackStateChanged;
+        Engine.PracticeChanged += OnPracticeChanged;
         try
         {
             await Engine.InitializeAsync();
@@ -147,6 +149,7 @@ public sealed partial class Mixer : IAsyncDisposable
         await Engine.SetMasterAsync(state.MasterVolume);
         await Engine.SetMetronomeAsync(state.Metronome);
         await (state.Loop is { } loop ? Engine.SetLoopAsync(loop) : Task.CompletedTask);
+        await PracticeSender.SubmitAsync(state.Practice);
     }
 
     private void OnPositionChanged(object? sender, double seconds) =>
