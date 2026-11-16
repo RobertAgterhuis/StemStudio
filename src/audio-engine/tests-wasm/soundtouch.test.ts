@@ -97,7 +97,10 @@ function stretched(pitch: number, input: Float32Array): Float32Array {
   return output;
 }
 
-/** Mean of `input onset - output onset` over bursts that are found in both signals (frames). */
+/**
+ * Mean of `output onset - input onset` over bursts found in both signals (frames): the content of input frame `n`
+ * appears near SoundTouch output frame `n + c(p)`, which is why the heard latency is `(D + c(p)) / sampleRate`.
+ */
 function meanContentOffset(pitch: number): number {
   const { signal, onsets } = bursts(54 * 13230, 13230, 882);
   const inputOnsets = envelopeOnsets(signal);
@@ -105,7 +108,7 @@ function meanContentOffset(pitch: number): number {
   expect(inputOnsets).toHaveLength(onsets.length);
   const offsets = inputOnsets.flatMap((n) => {
     const m = outputOnsets.find((candidate) => Math.abs(candidate - n) < 0.1 * RATE);
-    return m === undefined ? [] : [n - m];
+    return m === undefined ? [] : [m - n];
   });
   expect(offsets.length).toBeGreaterThan(45);
   return offsets.reduce((a, b) => a + b, 0) / offsets.length;
@@ -173,11 +176,13 @@ describe.skipIf(!AVAILABLE)('soundtouch.wasm (WASM ABI v1)', () => {
       }
     });
     stream.dispose();
+    console.info(`max output lag over 100 jumps: ${String(stream.maxLag)} frames`);
     expect(stream.maxLag).toBeLessThanOrEqual(LIMIT);
   });
 
   it.each([0.5, 2])('has a mean content offset at factor %f within 25 ms of c(p) (ADR-021 P6)', (pitch) => {
     const mean = meanContentOffset(pitch);
+    console.info(`content offset at ${String(pitch)}: ${(mean / 44.1).toFixed(1)} ms, c(p) ${(contentOffsetFrames(pitch) / 44.1).toFixed(1)} ms`);
     expect(Math.abs(mean - contentOffsetFrames(pitch))).toBeLessThan(0.025 * RATE);
   });
 
@@ -187,6 +192,7 @@ describe.skipIf(!AVAILABLE)('soundtouch.wasm (WASM ABI v1)', () => {
     const started = performance.now();
     stretched(pitch, input);
     const elapsed = (performance.now() - started) / 1000;
+    console.info(`throughput at ${String(pitch)}: ${(seconds / elapsed).toFixed(0)}x real time`);
     expect(seconds / elapsed).toBeGreaterThanOrEqual(10);
   });
 });
