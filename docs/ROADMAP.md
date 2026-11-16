@@ -46,6 +46,9 @@ Cross-cutting, every feature: in-app help entries (004 framework), user-journey 
 - 2026-11-15: AI agent LLM backend is configurable: Ollama (default, local, open models) and Claude
   API (optional, paid per use, key only via environment variable, off when no key is set). This
   needs a constitution amendment for an optional, opt-in paid external service (feature 011).
+- 2026-11-16: the Claude key can also be entered in Settings and stored encrypted in the database
+  (environment variable still wins); needs constitution 1.4.0, proposed, owner ratification required
+  (011 follow-up claude-key).
 - 2026-11-15: Model weights exception (constitution 1.1.0, ADR-009) also applies to the generative
   and transcription models of 008-010.
 
@@ -76,8 +79,17 @@ previous version.
 | 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.2.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
+| 011 follow-up claude-key (Claude key in Settings, encrypted; 2026-11-16) | 1.21.0 | - | - | 1.21.0 | agent tool catalogue unchanged (no key tool) |
 
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
+
+The 011 follow-up "claude-key" (owner decision 2026-11-16, design in
+`specs/011-ai-composer-agent/followups/claude-key/`, ADR-035 proposed) takes the next free minors,
+backend-api **1.21.0** and ui-test-ids **1.21.0**, as standalone deltas. Whatever is built first is
+merged onto the full documents current at that time (as 013 does after 012); if the follow-up is
+built before 012-021, its delta keeps the label 1.21.0 and the CTO merges the earlier-numbered
+deltas onto it in feature order, so no allocated number is reused. It needs constitution 1.4.0
+(proposed, owner ratification required).
 
 Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
 {012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in

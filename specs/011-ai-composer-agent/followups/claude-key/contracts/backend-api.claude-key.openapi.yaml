@@ -1,0 +1,442 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - Claude key delta (feature 011 follow-up "claude-key")
+  version: 1.21.0-delta.1
+  summary: Additive delta of the backend API - write-only Claude API key stored encrypted, key status.
+  description: |
+    * **Standalone, additive delta** of the backend API `agent` tag (ROADMAP allocation: backend
+      API **1.21.0**). Base: the full backend document current when the follow-up is built
+      (011's 1.10.0 or later). Merge rule (contracts/DELTA.md section 1): the three operations of
+      `/api/agent/settings/claude-key` and the schemas `ClaudeKeyStatus`, `ClaudeKeyState`,
+      `ClaudeKeySource`, `StoredClaudeKeyState`, `StoreClaudeKeyRequest`, `ClaudeKeyTestSource`,
+      `ClaudeKeyInvalidProblem` are added; `ClaudeStatus` gains the required member `key`;
+      `TestAgentBackendRequest` gains the optional member `claudeKeySource`; `BackendTestResult`
+      gains the optional member `keySource`; `getAgentStatus` and `testAgentBackend` keep their
+      operation ids, `testAgentBackend` gains a `403`. Every other 1.10.0 operation, schema and
+      behaviour is unchanged; the unchanged schemas this document needs to validate on its own
+      are copied from 1.10.0 verbatim.
+    * Requires constitution **1.4.0** (proposed, owner ratification required): the Claude key may be
+      stored encrypted in the database; only its last four characters, its source and the save time
+      are ever shown.
+    * **Write-only**: no response, problem detail, event or log line ever contains the key or any
+      part of it except `lastFour`. `PUT`/`DELETE` and the Claude key test are **local-only**
+      (`403 local-only` otherwise; spec CK-FR-012). Saving never contacts Anthropic; only
+      `POST /api/agent/settings/test` does, on an explicit request.
+    * Changelog: 1.21.0-delta.1 (additive, 011 follow-up claude-key) - `GET`/`PUT`/`DELETE
+      /api/agent/settings/claude-key`; `ClaudeStatus.key`; `TestAgentBackendRequest.claudeKeySource`;
+      `BackendTestResult.keySource`; problem types `claude-key-invalid`, `invalid-body`,
+      `local-only`, `key-store-unavailable`.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []  # single local user; no authentication; key writes are local-only (spec CK-FR-012)
+tags:
+  - name: agent
+    description: The AI composer agent (1.10.0, feature 011); Claude key endpoints added in 1.21.0.
+paths:
+  /api/agent/status:
+    get:
+      tags: [agent]
+      operationId: getAgentStatus
+      summary: Readiness of the selected backend (always 200; each probe at most 2 s).
+      description: Unchanged operation; its `claude` member now carries `key` (ClaudeKeyStatus). Never contacts Anthropic.
+      responses:
+        '200':
+          description: The status; never contains the key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatus'
+  /api/agent/settings/claude-key:
+    get:
+      tags: [agent]
+      operationId: getClaudeKeyStatus
+      summary: Status of the Claude key (sources, last four, save time); never the key.
+      description: Not local-only (it reveals nothing secret). Never contacts Anthropic.
+      responses:
+        '200':
+          description: The key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+    put:
+      tags: [agent]
+      operationId: storeClaudeKey
+      summary: Store or replace the Claude key, encrypted (local-only, write-only).
+      description: |
+        The key is trimmed, format-checked (prefix `sk-ant-`, 40-256 characters of `A-Z a-z 0-9 - _`,
+        not an admin key), encrypted with ASP.NET Core Data Protection and stored; an existing
+        stored key is replaced in the same transaction. Does **not** contact Anthropic and does not
+        change the selected backend or the notice acknowledgement. Bodies over 1 KiB: 413. The
+        value never appears in any response, including validation problems. When
+        `ANTHROPIC_API_KEY` is set, the stored key is kept but the environment key stays active
+        (`state: environment`, `stored: readable`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreClaudeKeyRequest'
+      responses:
+        '200':
+          description: Stored; the resulting key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+        '400':
+          $ref: '#/components/responses/InvalidBody'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/ClaudeKeyInvalid'
+        '503':
+          $ref: '#/components/responses/KeyStoreUnavailable'
+    delete:
+      tags: [agent]
+      operationId: deleteClaudeKey
+      summary: Delete the stored Claude key (local-only, idempotent).
+      description: |
+        Removes the stored ciphertext; the environment variable is not affected. Does not change the
+        selected backend; when Claude is selected and no key remains, `GET /api/agent/status`
+        reports it not ready with "Switch to Local". An unreadable stored key can be deleted too.
+      responses:
+        '200':
+          description: Deleted (or nothing was stored); the resulting key status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeKeyStatus'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+  /api/agent/settings/test:
+    post:
+      tags: [agent]
+      operationId: testAgentBackend
+      summary: Test the connection to a backend without generating text.
+      description: |
+        Ollama: version and model capabilities. Claude: only the free model lookup
+        `GET /v1/models/{id}`, and only on this explicit call; never in CI. 1.21.0: for Claude the
+        optional `claudeKeySource` picks the key to test (`active` default); the Claude case is
+        local-only (`403 local-only`). The result's `keySource` names the key that was tested.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestAgentBackendRequest'
+      responses:
+        '200':
+          description: The test result (also when the backend failed; see `ok`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackendTestResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '403':
+          $ref: '#/components/responses/LocalOnly'
+components:
+  responses:
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+    InvalidBody:
+      description: The body is not a JSON object with `apiKey` (`invalid-body`); fixed text, never quotes the body.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/invalid-body
+            title: Invalid request body
+            status: 400
+            detail: Send a JSON object with the field apiKey.
+    LocalOnly:
+      description: Refused because the request does not come from the computer StemStudio runs on (`local-only`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/local-only
+            title: Only on this computer
+            status: 403
+            detail: The Claude key can only be entered on the computer StemStudio runs on.
+    PayloadTooLarge:
+      description: The body is larger than 1 KiB.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Request body too large
+            status: 413
+    ClaudeKeyInvalid:
+      description: |
+        The value is not a well-formed Claude API key (`claude-key-invalid`); the extension member
+        `reason` says which rule failed. The value is never repeated.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ClaudeKeyInvalidProblem'
+          example:
+            type: https://stemstudio.local/problems/claude-key-invalid
+            title: Not a Claude API key
+            status: 422
+            detail: The key must start with sk-ant- and be 40-256 characters (letters, digits, - and _).
+            reason: prefix
+    KeyStoreUnavailable:
+      description: The key ring directory is missing, not writable or inside the library, backups, app or a repository (`key-store-unavailable`). The environment variable still works.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/key-store-unavailable
+            title: Key store not available
+            status: 503
+            detail: The key store is not available - its folder is not writable. The ANTHROPIC_API_KEY environment variable still works.
+  schemas:
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+    AgentBackend:
+      type: string
+      enum: [ollama, claude, none, fake]
+      description: ollama (local, default), claude (paid, opt-in), none (agent off), fake (tests/E2E, environment only).
+    ClaudeModel:
+      type: string
+      enum: [claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5]
+    OllamaModelInfo:
+      type: object
+      required: [name, sizeBytes, tools]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 0
+        tools:
+          type: boolean
+    OllamaStatus:
+      type: object
+      required: [reachable, version, models, defaultPresent, fallbackPresent]
+      additionalProperties: false
+      properties:
+        reachable:
+          type: boolean
+        version:
+          type: [string, 'null']
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/OllamaModelInfo'
+        defaultPresent:
+          type: boolean
+        fallbackPresent:
+          type: boolean
+    ClaudeKeyInvalidProblem:
+      description: 422 `claude-key-invalid`; `reason` names the failed rule. Never contains the value.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [reason]
+          properties:
+            reason:
+              type: string
+              enum: [empty, prefix, length, characters, admin-key]
+    ClaudeKeySource:
+      type: string
+      enum: [environment, stored]
+      description: environment = `ANTHROPIC_API_KEY` of the API (wins); stored = saved in Settings, encrypted.
+    ClaudeKeyState:
+      type: string
+      enum: [not-configured, environment, stored, stored-unreadable]
+      description: |
+        Summary for the UI (data-model 3): `environment` whenever the variable is set;
+        else `stored` when the stored key decrypts; else `stored-unreadable` when a stored key
+        exists but cannot be decrypted on this installation; else `not-configured`.
+    StoredClaudeKeyState:
+      type: string
+      enum: [absent, readable, unreadable]
+      description: State of the stored key, independent of the environment variable.
+    ClaudeKeyStatus:
+      type: object
+      description: |
+        Never contains the key. `lastFour` is the last four characters of the **active** key
+        (null when none is usable); `storedLastFour` those of the stored key (also when it is
+        overridden or unreadable). `reason`/`fix` are readable texts for `stored-unreadable` and
+        an unavailable key store, else null.
+      required: [configured, source, state, lastFour, stored, storedLastFour, storedAt, storeAvailable, reason, fix]
+      additionalProperties: false
+      properties:
+        configured:
+          type: boolean
+          description: A usable key is available (same value as `ClaudeStatus.keyConfigured`).
+        source:
+          oneOf:
+            - $ref: '#/components/schemas/ClaudeKeySource'
+            - type: 'null'
+        state:
+          $ref: '#/components/schemas/ClaudeKeyState'
+        lastFour:
+          type: [string, 'null']
+          pattern: '^[A-Za-z0-9_-]{4}$'
+        stored:
+          $ref: '#/components/schemas/StoredClaudeKeyState'
+        storedLastFour:
+          type: [string, 'null']
+          pattern: '^[A-Za-z0-9_-]{4}$'
+        storedAt:
+          type: [string, 'null']
+          format: date-time
+        storeAvailable:
+          type: boolean
+          description: False when the key ring directory cannot be used; storing then answers 503.
+        reason:
+          type: [string, 'null']
+          examples: ['The stored key cannot be read on this installation (the encryption keys are missing or different, e.g. after a restore on another computer).']
+        fix:
+          type: [string, 'null']
+          examples: ['Enter the key again.']
+      examples:
+        - configured: true
+          source: stored
+          state: stored
+          lastFour: wXyZ
+          stored: readable
+          storedLastFour: wXyZ
+          storedAt: '2026-11-16T15:40:00Z'
+          storeAvailable: true
+          reason: null
+          fix: null
+        - configured: false
+          source: null
+          state: stored-unreadable
+          lastFour: null
+          stored: unreadable
+          storedLastFour: wXyZ
+          storedAt: '2026-11-02T09:12:00Z'
+          storeAvailable: true
+          reason: The stored key cannot be read on this installation (the encryption keys are missing or different, e.g. after a restore on another computer).
+          fix: Enter the key again.
+    StoreClaudeKeyRequest:
+      type: object
+      description: Write-only. The server trims whitespace; the value is never echoed or logged.
+      required: [apiKey]
+      additionalProperties: false
+      properties:
+        apiKey:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 512
+          description: The Anthropic API key (prefix `sk-ant-`). 40-256 characters after trimming; the stricter rules are checked by the server (422 `claude-key-invalid`).
+    ClaudeKeyTestSource:
+      type: string
+      enum: [active, stored, environment]
+      description: Which key a Claude test uses; `active` follows the precedence (environment first).
+    ClaudeStatus:
+      type: object
+      description: Never contains the key; `key` (1.21.0) gives its sources and last four characters.
+      required: [keyConfigured, noticeAcknowledged, model, key]
+      additionalProperties: false
+      properties:
+        keyConfigured:
+          type: boolean
+          description: A usable key is available (environment, or a readable stored key since 1.21.0).
+        noticeAcknowledged:
+          type: boolean
+        model:
+          $ref: '#/components/schemas/ClaudeModel'
+        key:
+          $ref: '#/components/schemas/ClaudeKeyStatus'
+    AgentStatus:
+      type: object
+      required: [backend, ready, activeModel, usingFallback, reason, fix, ollama, claude]
+      additionalProperties: false
+      properties:
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        ready:
+          type: boolean
+        activeModel:
+          type: [string, 'null']
+        usingFallback:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          examples: ['Ollama not reachable at http://host.docker.internal:11434']
+        fix:
+          type: [string, 'null']
+          examples: ['ollama pull qwen3.5:9b (6.6 GB)']
+        ollama:
+          $ref: '#/components/schemas/OllamaStatus'
+        claude:
+          $ref: '#/components/schemas/ClaudeStatus'
+    TestAgentBackendRequest:
+      type: object
+      required: [backend]
+      additionalProperties: false
+      properties:
+        backend:
+          type: string
+          enum: [ollama, claude]
+        claudeKeySource:
+          $ref: '#/components/schemas/ClaudeKeyTestSource'
+    BackendTestResult:
+      type: object
+      required: [backend, ok, latencyMs, detail]
+      additionalProperties: false
+      properties:
+        backend:
+          $ref: '#/components/schemas/AgentBackend'
+        ok:
+          type: boolean
+        latencyMs:
+          type: integer
+          minimum: 0
+        detail:
+          type: string
+        keySource:
+          description: Claude only (1.21.0) - the key that was tested; absent for Ollama.
+          $ref: '#/components/schemas/ClaudeKeySource'

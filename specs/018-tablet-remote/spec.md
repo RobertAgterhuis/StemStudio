@@ -536,3 +536,17 @@ verify the computer's mixer opens each track and the remote's stand content foll
   supported set-up.
 - Remote tools for the composer agent (011); recording (015) controlled from the remote.
 - Native apps (W6).
+
+## Cross-feature note: 011 follow-up "claude-key" (architect, 2026-11-16)
+
+Design: `specs/011-ai-composer-agent/followups/claude-key/`. The Claude API key can be stored in
+Settings through `PUT`/`DELETE /api/agent/settings/claude-key`, which are local-only (TCP peer
+loopback or the `web` service, loopback host names, web origin). For 018 this means:
+
+- No remote command, page or content endpoint reads, writes, deletes or tests a secret; the remote
+  protocol stays without secret commands (remote-protocol 1.0.0 unchanged).
+- FR-011 (ports on `127.0.0.1`), FR-013 (remote listener 404 for every API path) and FR-014
+  (host-name allow-lists) are what make "only on the computer itself" a hard boundary; until 018 the
+  follow-up's Web-side check is a host-name guard only (follow-up research R-05, plan.md Q1).
+- 018 security tests add: `PUT /api/agent/settings/claude-key` through the remote listener -> 404;
+  a paired device's WebSocket has no message type that reaches the key.
