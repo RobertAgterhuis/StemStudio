@@ -17,7 +17,8 @@ internal static class LiveEvaluation
         {
             var attempts = await AttemptsAsync(evalCase, runner, runs);
             var result = Median(evalCase, attempts);
-            await log.WriteLineAsync($"case {evalCase.Id}: {(result.Grade.Passed ? "pass" : "FAIL")} {result.Grade.Reason} ({string.Join(" ", attempts.Select(Calls))})");
+            var passed = attempts.Count(attempt => attempt.Grade.Passed);
+            await log.WriteLineAsync($"case {evalCase.Id}: {(result.Grade.Passed ? "pass" : "FAIL")} {passed}/{runs} {result.Grade.Reason} ({string.Join(" ", attempts.Select(Calls))})");
             results.Add(result);
         }
 
