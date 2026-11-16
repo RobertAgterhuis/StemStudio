@@ -70,6 +70,9 @@ public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> op
     /// <summary>Agent run events (feature 011, SSE replay).</summary>
     public DbSet<RunEventEntity> AgentRunEvents => Set<RunEventEntity>();
 
+    /// <summary>Encrypted agent secrets (011 follow-up claude-key): ciphertext only.</summary>
+    public DbSet<AgentSecretEntity> AgentSecrets => Set<AgentSecretEntity>();
+
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

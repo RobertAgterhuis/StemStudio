@@ -855,6 +855,41 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("AgentRuns", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Persistence.Agent.AgentSecretEntity", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ciphertext")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastFour")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT")
+                        .IsFixedLength();
+
+                    b.Property<int>("PurposeVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StoredAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("AgentSecrets", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AgentSecrets_Ciphertext", "length(\"Ciphertext\") BETWEEN 1 AND 2048");
+
+                            t.HasCheckConstraint("CK_AgentSecrets_LastFour", "length(\"LastFour\") = 4");
+
+                            t.HasCheckConstraint("CK_AgentSecrets_Name", "length(\"Name\") BETWEEN 1 AND 40");
+                        });
+                });
+
             modelBuilder.Entity("StemStudio.Persistence.Agent.AgentSettingsEntity", b =>
                 {
                     b.Property<int>("Id")
