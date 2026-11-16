@@ -119,6 +119,112 @@ public sealed class MixerAgentToolsTests : MixerTestContext
         (result.Ok, result.Error).ShouldBe((false, "This track has no synced lyrics, so the karaoke banner cannot be shown."));
     }
 
+    [Theory]
+    [InlineData("save_mix_as")]
+    [InlineData("update_mix")]
+    public async Task AgentSave_ClearsTheUnsavedIndicator_AndKeepsTheSavedMixOpen(string tool)
+    {
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix("Bass practice"));
+        var page = await RenderChangedMixerAsync();
+
+        await RunSaveStepAsync(tool, AgentStepStatusDto.Succeeded, $$"""{"mixId":"{{TestData.MixId}}","name":"Bass practice"}""");
+
+        page.WaitForAssertion(() => page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty());
+        Host.OpenMixId(TestData.TrackId).ShouldBe(TestData.MixId);
+        Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri.ShouldEndWith($"tracks/{TestData.TrackId}/mixer?mixId={TestData.MixId}");
+    }
+
+    [Theory]
+    [InlineData("save_mix_as", AgentStepStatusDto.Failed, """{"mixId":"f1b2c3d4-0000-4000-8000-0000000000ff"}""")]
+    [InlineData("save_mix_as", AgentStepStatusDto.Succeeded, """{"name":"Bass practice"}""")]
+    [InlineData("save_mix_as", AgentStepStatusDto.Succeeded, null)]
+    [InlineData("search_library", AgentStepStatusDto.Succeeded, """{"mixId":"f1b2c3d4-0000-4000-8000-0000000000ff"}""")]
+    public async Task OtherSteps_LeaveTheUnsavedIndicator(string tool, AgentStepStatusDto status, string? summary)
+    {
+        var page = await RenderChangedMixerAsync();
+
+        await RunSaveStepAsync(tool, status, summary);
+
+        page.Find("[data-testid=unsaved-indicator]").ShouldNotBeNull();
+        await Api.DidNotReceive().GetMixAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AgentSave_OfAnotherTracksMix_LeavesTheUnsavedIndicator()
+    {
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix() with { TrackId = Guid.NewGuid() });
+        var page = await RenderChangedMixerAsync();
+
+        await RunSaveStepAsync("save_mix_as", AgentStepStatusDto.Succeeded, $$"""{"mixId":"{{TestData.MixId}}"}""");
+
+        await Api.Received(1).GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>());
+        page.Find("[data-testid=unsaved-indicator]").ShouldNotBeNull();
+        Host.OpenMixId(TestData.TrackId).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task AgentSave_WhenTheMixCannotBeRead_LeavesTheUnsavedIndicator()
+    {
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns<MixDto>(_ => throw new StemStudio.Web.Api.ApiException(StemStudio.Web.Api.ApiError.Unreachable));
+        var page = await RenderChangedMixerAsync();
+
+        await RunSaveStepAsync("save_mix_as", AgentStepStatusDto.Succeeded, $$"""{"mixId":"{{TestData.MixId}}"}""");
+
+        page.Find("[data-testid=unsaved-indicator]").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task AgentSave_WithoutAnOpenMixer_ChangesNothing()
+    {
+        await Panel.LoadAsync();
+        (await Panel.SendAsync("Sla op als Bass practice")).ShouldBeTrue();
+
+        AgentEvents.Started()
+            .Push(AgentEventTypes.StepCreated, AgentData.Step(1, "save_mix_as", AgentStepStatusDto.Running, ToolRiskDto.Change))
+            .Push(AgentEventTypes.StepUpdated, new StepUpdatedEventDto { StepId = AgentData.StepId, Status = AgentStepStatusDto.Succeeded, ResultSummary = AgentData.Json($$"""{"mixId":"{{TestData.MixId}}"}""") })
+            .Completed()
+            .End();
+        await Panel.Following;
+
+        await Api.DidNotReceive().GetMixAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UserSaveAs_WhileTheAgentPanelIsOpen_ClearsTheUnsavedIndicator()
+    {
+        Api.CreateMixAsync(Arg.Any<CreateMixRequest>(), Arg.Any<CancellationToken>()).Returns(TestData.Mix("Bass practice"));
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix("Bass practice"));
+        var page = await RenderChangedMixerAsync();
+
+        await page.Find("[data-testid=mix-save]").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForElement("[data-testid=mix-name-input]").Input("Bass practice");
+        await page.Find("[data-testid=mix-save-confirm]").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        page.WaitForAssertion(() => page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty());
+    }
+
+    private async Task<IRenderedComponent<StemStudio.Web.Components.Mixer.Mixer>> RenderChangedMixerAsync()
+    {
+        var page = RenderMixer();
+        page.WaitForAssertion(() => Host.HasMixer.ShouldBeTrue());
+        await page.InvokeAsync(() => Host.ExecuteAsync(Request("mixer_set_channel", """{"stem":"drums","mute":true}""")));
+        page.WaitForElement("[data-testid=unsaved-indicator]");
+        Panel.Toggle();
+        await Panel.LoadAsync();
+        return page;
+    }
+
+    private async Task RunSaveStepAsync(string tool, AgentStepStatusDto status, string? summary)
+    {
+        (await Panel.SendAsync("Sla op als Bass practice")).ShouldBeTrue();
+        AgentEvents.Started()
+            .Push(AgentEventTypes.StepCreated, AgentData.Step(1, tool, AgentStepStatusDto.Running, ToolRiskDto.Change))
+            .Push(AgentEventTypes.StepUpdated, new StepUpdatedEventDto { StepId = AgentData.StepId, Status = status, ResultSummary = summary is null ? null : AgentData.Json(summary) })
+            .Completed()
+            .End();
+        await Panel.Following;
+    }
+
     [Fact]
     public async Task ClosingThePage_RemovesTheTools()
     {

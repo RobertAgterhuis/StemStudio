@@ -228,6 +228,26 @@ public sealed class AgentPanelTests : PageTestContext
     }
 
     [Fact]
+    public void Input_Placeholder_ShowsRealQuotes()
+    {
+        var cut = RenderPanel();
+
+        Id(cut, "agent-input").GetAttribute("placeholder").ShouldBe("Ask the agent, e.g. \"Make the vocals 3 dB quieter\"");
+    }
+
+    [Fact]
+    public void Badge_AfterTheRunEnded_ShowsTheCurrentStatus_NotTheRunsLastModel()
+    {
+        var cut = SendCommand("Splits verder");
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentData.Status() with { ActiveModel = "qwen3.5:4b", UsingFallback = true });
+
+        AgentEvents.Started().Completed();
+
+        cut.WaitForAssertion(() => Id(cut, "agent-backend-badge").GetAttribute("data-model").ShouldBe("qwen3.5:4b"));
+        Id(cut, "agent-backend-badge").GetAttribute("data-fallback").ShouldBe("true");
+    }
+
+    [Fact]
     public void ConversationList_ListsNewestFirst_AndMarksTheOpenOne()
     {
         AgentApi.ListConversationsAsync(Arg.Any<int>(), Arg.Any<DateTimeOffset?>(), Arg.Any<CancellationToken>()).Returns(

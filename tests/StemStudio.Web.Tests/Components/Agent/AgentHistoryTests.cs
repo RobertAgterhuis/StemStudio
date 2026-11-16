@@ -124,6 +124,19 @@ public sealed class AgentHistoryTests : PageTestContext
     }
 
     [Fact]
+    public void Reload_TheBadgeShowsTheCurrentStatus_NotTheRestoredRunsModel()
+    {
+        Stored(AgentRunStatusDto.Completed, AgentData.Run(AgentRunStatusDto.Completed) with { Model = "qwen3.5:9b" });
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentData.Status() with { ActiveModel = "qwen3.5:4b", UsingFallback = true });
+
+        var cut = RenderPanel();
+
+        cut.WaitForAssertion(() => Id(cut, "agent-message-1").TextContent.ShouldContain("Importeer en splits verder"));
+        cut.WaitForAssertion(() => Id(cut, "agent-backend-badge").GetAttribute("data-model").ShouldBe("qwen3.5:4b"));
+        Id(cut, "agent-backend-badge").GetAttribute("data-fallback").ShouldBe("true");
+    }
+
+    [Fact]
     public void Reload_ResumesARunningRunsStream()
     {
         Stored(AgentRunStatusDto.WaitingJob);
