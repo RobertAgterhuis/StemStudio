@@ -8,7 +8,8 @@
     (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
     secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
-    suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
+    suite (lint, typecheck, list); feature 012: the 012 contract lint + superset check, the soundtouch
+    emsdk pin check and, when soundtouch.wasm has been built, the engine's Node WASM suite (test:wasm). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
 
 .PARAMETER ContinueOnError
@@ -48,7 +49,13 @@ $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics
 $AgentContracts = 'specs/011-ai-composer-agent/contracts'
 # 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta itself.
 $ClaudeKeyContracts = 'specs/011-ai-composer-agent/followups/claude-key/contracts'
-$ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py), quality-gate env
+# Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings); superset check needs PyYAML only.
+$PracticeContracts = 'specs/012-practice-tempo/contracts'
+$PyYamlPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', 'python', '-I')
+# SoundTouch module (012): built by scripts/build-soundtouch.ps1; test:wasm runs only when it exists.
+$SoundTouchWasm = 'src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm'
+$HasSoundTouchWasm = Test-Path -LiteralPath (Join-Path $RepoRoot $SoundTouchWasm)
+$ScriptsCfg = 'scripts/pyproject.toml'  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
 $KeyChecks = @('scripts/key_volume_checks.py', 'scripts/tests')
 $QualityTools = @('uv', 'run', '--project', 'tools/quality', '--frozen')
 # Static key volume check (011 claude-key) for every compose combination CI validates.
@@ -87,6 +94,8 @@ $Steps = @(
     @{ Name = 'engine typecheck'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'engine test:coverage'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'engine build'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'build') }
+    if ($HasSoundTouchWasm) { @{ Name = 'engine test:wasm (012, real soundtouch.wasm)'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'test:wasm') } }
+    @{ Name = 'soundtouch emsdk pin (012)'; Dir = '.'; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/build-soundtouch.ps1', '-CheckPins') }
     @{ Name = 'web-interop npm ci'; Dir = 'src/web-interop'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'web-interop lint'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'lint') }
     @{ Name = 'web-interop typecheck'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'typecheck') }
@@ -98,6 +107,8 @@ $Steps = @(
     }
     @{ Name = 'contracts lint (011-ai-composer-agent)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$AgentContracts/redocly.yaml", "$AgentContracts/backend-api.openapi.yaml", "$AgentContracts/agent-api.openapi.yaml") }
     @{ Name = 'contracts lint (011 claude-key)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$ClaudeKeyContracts/redocly.yaml", "$ClaudeKeyContracts/backend-api.openapi.yaml", "$ClaudeKeyContracts/backend-api.claude-key.openapi.yaml") }
+    @{ Name = 'contracts lint (012-practice-tempo)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$PracticeContracts/redocly.yaml", "$PracticeContracts/backend-api.openapi.yaml") }
+    @{ Name = 'contracts superset (012 contains 1.21.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$PracticeContracts/check_superset.py") }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
@@ -178,6 +189,7 @@ function Invoke-Step {
     }
 }
 
+if (-not $HasSoundTouchWasm) { Write-Host "engine test:wasm skipped: $SoundTouchWasm not built (pwsh scripts/build-soundtouch.ps1)" -ForegroundColor Yellow }
 $summary = [System.Collections.Generic.List[object]]::new()
 foreach ($step in $Steps) {
     $result = Invoke-Step $step
