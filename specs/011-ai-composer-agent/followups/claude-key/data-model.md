@@ -71,6 +71,26 @@ State rule (one function, unit-tested over all combinations):
 `stored` is reported independently (`absent` / `readable` / `unreadable`), so the UI can say "saved
 key not in use while ANTHROPIC_API_KEY is set" and "saved key unreadable".
 
+Decisions confirmed at integration (architect review of the ai-agent lane, T053, 2026-11-16):
+
+- **The environment value is format-checked like a stored key** (`ClaudeApiKey.Parse`). A malformed
+  `ANTHROPIC_API_KEY` (wrong prefix, length, characters, or an admin key) is not used: the state
+  falls through to the stored key or `not-configured`, and `reason` = "ANTHROPIC_API_KEY is set but is
+  not a usable Claude key (rule: <code>), so it is not used." with a fix. Reason: `lastFour` must
+  match `^[A-Za-z0-9_-]{4}$` for every source and an admin key must never be used. 011 accepted any
+  non-blank value; real Anthropic keys are unaffected. Whitespace only = unset.
+- **One `reason`/`fix` pair, most actionable first**: unusable key store > unreadable stored key >
+  malformed environment value. With a usable environment key and an unreadable stored key the
+  unreadable reason/fix is still reported (US5 scenario 4).
+- **`ClaudeErrors.KeyMissing`** (agent status `reason` and the run failure when Claude has no usable
+  key) = "No Claude key is configured: enter it in Settings or set ANTHROPIC_API_KEY. Switch to local
+  ..."; `KeyMissingFix` = "Enter the Claude key in Settings, or set ANTHROPIC_API_KEY in the shell that
+  starts StemStudio and restart it.". An unreadable stored key gives the unreadable reason + "Enter the
+  key again." instead.
+- The 503 `key-store-unavailable` detail is `ClaudeKeyProvider.StoreUnavailableReason(code)` ("The key
+  store is not available: the key ring directory <words>. The ANTHROPIC_API_KEY environment variable
+  still works."); the contract example uses the `not-writable` text.
+
 ## 4. Ports
 
 | Port (`StemStudio.Agent.Ports`) | Implementation (owner) | Purpose |
@@ -78,6 +98,7 @@ key not in use while ANTHROPIC_API_KEY is set" and "saved key unreadable".
 | `IClaudeKeyProvider` `Resolve()` -> `ClaudeKeyResolution`; `KeyFor(ClaudeKeyTestSourceDto)` -> `SelectedClaudeKey?` (explicit test); `Invalidate()` | `ClaudeKeyProvider` (`StemStudio.Agent.Backends`, ai-agent) over `IEnvironmentReader` + `IStoredClaudeKeyReader` | the single source of the key for `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` (replaces their direct `IEnvironmentReader` reads) |
 | `IStoredClaudeKeyReader` `Read()` -> `StoredClaudeKey` (State, Key?, LastFour?, StoredAt?, StoreAvailable, StoreUnavailableReason?) | `ProtectedClaudeKeyStore` (`StemStudio.Api/Agent/Secrets`, backend) | decrypts with Data Protection; maps `CryptographicException` and bad payloads to `Unreadable`; re-protects on `requiresMigration` |
 | `IStoredClaudeKeyWriter` `StoreAsync(ClaudeApiKey, ct)` -> replaced?, `DeleteAsync(ct)` | same class (backend) | write side, used only by the key endpoints |
+| `IAgentStatusService.TestAsync(AgentBackendDto, ClaudeKeyTestSourceDto, CancellationToken)` (011 port, overload added at integration) | `AgentStatusService` (ai-agent) | the explicit test with the requested key source; the API passes `claudeKeySource ?? active` through any implementation |
 | `IAgentSecretStore` (Persistence) `Get/Upsert/Delete(name)` | `AgentSecretStore` (`StemStudio.Persistence/Agent`, backend) | EF access to `AgentSecrets` |
 
 Dependency direction (quality-gate rule): only `StemStudio.Api/Agent/Secrets` references

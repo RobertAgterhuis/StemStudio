@@ -39,6 +39,13 @@ explicitly (research R-02); the app is reachable on the LAN without authenticati
 - **D7 Opt-in unchanged**: storing a key never selects Claude; the notice still applies; only
   **Test key** or a Claude run contacts Anthropic.
 
+- **D8 Key rules shared by both sources** (confirmed at integration, T053): the environment value
+  passes the same format check as a stored key (a malformed or admin `ANTHROPIC_API_KEY` is not
+  used and the status says why); the status carries one `reason`/`fix` pair, most actionable first
+  (unusable key store > unreadable stored key > malformed environment value); with no usable key the
+  reason is "No Claude key is configured: enter it in Settings or set ANTHROPIC_API_KEY." plus the
+  switch-to-local hint. Details: data-model.md section 3.
+
 ## Consequences
 
 - Protects the key against a leaked database file, backups and exports, and against the worker's
