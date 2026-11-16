@@ -9,7 +9,7 @@ import { bursts, envelopeOnsets, noise, peakFrequency, sine } from './signal';
 
 /**
  * Real `soundtouch.wasm` through the same `abi.ts` the processor uses (audio-engine.md 2.3.0 "Testing", SC-002,
- * SC-004). Skipped with a message when the module was not built; `STEMSTUDIO_REQUIRE_WASM=1` turns that into a failure.
+ * SC-004). Skipped with a message when the module was not built; `SOUNDTOUCH_WASM_REQUIRED=1` turns that into a failure.
  */
 const MODULE_PATH =
   process.env.STEMSTUDIO_SOUNDTOUCH_WASM ??
@@ -21,11 +21,11 @@ const LIMIT = STRETCH_DELAY_FRAMES - 256;
 const FACTORS = [0.42, 0.5, 0.71, 1, 1.41, 2, 2.83, 4];
 
 if (!AVAILABLE) {
-  const message = `soundtouch.wasm not found at ${MODULE_PATH}: build it with scripts/build-soundtouch.sh (WASM suite skipped)`;
-  if (process.env.STEMSTUDIO_REQUIRE_WASM === '1') {
+  const message = `soundtouch.wasm not found at ${MODULE_PATH}: build it with scripts/build-soundtouch.sh`;
+  if (process.env.SOUNDTOUCH_WASM_REQUIRED === '1') {
     throw new Error(message);
   }
-  console.warn(message);
+  console.warn(`${message} (WASM suite skipped)`);
 }
 
 let abi: SoundTouchExports;
