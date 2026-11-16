@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/contracts/lyric-assist-output/1.0.0",
+  "title": "Lyric assistant model output (one block)",
+  "description": "Binding output format of the assistant model for one block (ADR-037 D4, research R-05). Ollama: passed as `format`; Claude: the input schema of the single forced tool `emit_suggestions`. The server validates every item (SuggestionValidator) and discards what does not match the real text; nothing here is trusted. Version 1.0.0 (feature 023).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 40,
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "misses": {
+      "description": "Classification of the dictionary misses handed to the model (research R-03 step 5).",
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["line", "word", "verdict"],
+        "properties": {
+          "line": { "type": "integer", "minimum": 1 },
+          "word": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "verdict": { "enum": ["typo", "licence"] },
+          "correction": { "type": ["string", "null"], "maxLength": 40 },
+          "licenceType": { "enum": ["elision", "inversion", "archaism", "sound-spelling", "slang", "code-switch", null] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "severity", "line", "original", "explanation"],
+      "properties": {
+        "type": {
+          "enum": [
+            "spelling.typo", "spelling.capitalisation",
+            "grammar.agreement", "grammar.verb-form", "grammar.word-order", "grammar.homophone", "grammar.other",
+            "flow.stress", "flow.awkward", "flow.repetition", "flow.clarity", "flow.syllable-count",
+            "licence.elision", "licence.inversion", "licence.archaism", "licence.sound-spelling", "licence.slang", "licence.code-switch",
+            "device.end-rhyme", "device.internal-rhyme", "device.assonance", "device.alliteration", "device.imagery", "device.syllable-fit", "device.rhythm",
+            "write.alternative", "write.continuation", "write.title"
+          ]
+        },
+        "severity": { "enum": ["error", "improvement", "idea"] },
+        "line": { "type": "integer", "minimum": 0, "description": "1-based line of the sheet; 0 for titles." },
+        "original": { "type": "string", "maxLength": 400, "description": "Exact text being changed (for write.continuation: empty; for write.title: the current title)." },
+        "proposal": { "type": ["string", "null"], "maxLength": 400 },
+        "explanation": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "rhymeWithLine": { "type": ["integer", "null"], "minimum": 1 },
+        "rhymeWord": { "type": ["string", "null"], "maxLength": 40 }
+      }
+    }
+  }
+}
