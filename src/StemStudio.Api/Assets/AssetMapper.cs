@@ -3,6 +3,7 @@ using StemStudio.Api.Scores;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
+using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Rendering;
@@ -106,6 +107,14 @@ public static class AssetMapper
         Contents = provenance.Contents,
         Recipe = provenance.Recipe is { } recipe ? ToDto(recipe) : null,
         ScoreRecipe = provenance.ScoreRecipe is { } scoreRecipe ? ScoreMapper.ToDto(scoreRecipe) : null,
+        Generation = provenance.Generation is { } generation ? ToDto(generation) : null,
+    };
+
+    private static GenerationProvenanceDto ToDto(GenerationSource generation) => new()
+    {
+        GenerationId = generation.GenerationId,
+        TakeIndex = generation.TakeIndex,
+        Kind = Enum.Parse<GenerationKindDto>(generation.Kind.ToString()),
     };
 
     private static ExportMixDto ToDto(ExportMix mix) =>

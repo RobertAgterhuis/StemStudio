@@ -37,7 +37,22 @@ public enum AssetOrigin
 
     /// <summary>Transcribed to sheet music (feature 008).</summary>
     Transcription,
+
+    /// <summary>A take of a generation (feature 009).</summary>
+    Generation,
 }
+
+/// <summary>A stored generated take for the library (feature 009).</summary>
+/// <param name="Name">Display name.</param>
+/// <param name="Files">The stored files.</param>
+/// <param name="Audio">Audio facts.</param>
+public sealed record GeneratedAudio(string Name, IReadOnlyList<AssetFile> Files, AudioFacts Audio);
+
+/// <summary>The generation and take a library item came from (feature 009).</summary>
+/// <param name="GenerationId">The generation.</param>
+/// <param name="TakeIndex">The take number.</param>
+/// <param name="Kind">The generation kind.</param>
+public sealed record GenerationSource(Guid GenerationId, int TakeIndex, Generations.GenerationKind Kind);
 
 /// <summary>A stored file of a ready item under <c>assets/&lt;id&gt;/</c>.</summary>
 /// <param name="Role">File role, e.g. <c>audio</c>.</param>
@@ -89,4 +104,7 @@ public sealed record Provenance
 
     /// <summary>How a score item was made (origin transcription, feature 008); null for exports.</summary>
     public ScoreRecipe? ScoreRecipe { get; init; }
+
+    /// <summary>The generation of a take item (origin generation, feature 009); null otherwise.</summary>
+    public GenerationSource? Generation { get; init; }
 }

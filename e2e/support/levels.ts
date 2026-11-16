@@ -222,3 +222,65 @@ export const beginnerHiddenScoreDialogIds: readonly string[] = [
 
 /** 1.7.0 dialog ids added at Advanced for a non-piano pitched stem on a reliable grid. */
 export const advancedScoreDialogIds: readonly string[] = ['score-key-override', 'score-range-start', 'score-range-end'];
+// Features 009 (ui-test-ids 1.8.0) and 010 (1.9.0): R7 again; the Beginner columns list the ids
+// below as "not rendered" (the defaults apply). `restyle-stem-<stem>` is per stem of the track.
+
+/** 1.8.0 restyle dialog ids rendered at every level. */
+export const everyLevelRestyleIds: readonly string[] = [
+  'restyle-style-select',
+  'restyle-style-description',
+  'restyle-personal-use-notice',
+  'restyle-start',
+  'restyle-cancel',
+];
+
+/** 1.8.0 restyle dialog ids that Beginner does not render, for the given stems of the track. */
+export function beginnerHiddenRestyleIds(stems: readonly string[]): string[] {
+  return [
+    'restyle-mode-range',
+    'restyle-mode-inplace',
+    'restyle-range-start',
+    'restyle-range-end',
+    ...stems.map((stem) => `restyle-stem-${stem}`),
+    'restyle-strength',
+    'restyle-takes',
+  ];
+}
+
+/** 1.9.0 song page ids rendered at every level (the Advanced options are listed below). */
+export const everyLevelSongIds: readonly string[] = [
+  'song-lyrics-select',
+  'song-lyrics-text',
+  'song-sections-propose',
+  'song-title-input',
+  'song-language-select',
+  'song-style-select',
+  'song-lead-voice',
+  'song-instrumental',
+  'song-duration',
+  'song-generate',
+  'song-personal-use-notice',
+];
+
+/** 1.9.0 song page ids that Beginner does not render. */
+export const beginnerHiddenSongIds: readonly string[] = [
+  'song-free-caption',
+  'song-delivery-input',
+  'song-bpm',
+  'song-key',
+  'song-time-signature',
+  'song-takes',
+];
+
+/** 1.9.0 "Use my voice" dialog ids rendered at every level. */
+export const everyLevelUseMyVoiceIds: readonly string[] = [
+  'take-voice-profile-select',
+  'take-voice-convert-start',
+  'take-voice-convert-cancel',
+];
+
+/** 1.9.0 "Use my voice" dialog ids that Beginner does not render. */
+export const beginnerHiddenUseMyVoiceIds: readonly string[] = ['take-voice-pitch-shift', 'take-voice-auto-shift'];
+
+/** 1.8.0/1.9.0 rail links, rendered at every level. */
+export const generativeNavIds: readonly string[] = ['nav-generations', 'nav-styles', 'nav-songs', 'nav-lyrics', 'nav-voices'];

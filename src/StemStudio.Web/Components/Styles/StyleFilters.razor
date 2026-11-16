@@ -1,0 +1,75 @@
+@* Filters and search of the style library (009 FR-004; ui-test-ids 1.8.0 style-filter-*, style-search): native selects
+   whose first option "All" clears the filter. *@
+@using StemStudio.Contracts.Styles
+@using StemStudio.Web.Styles
+
+<div class="ss-library-tools ss-style-filters" role="search" aria-label="Filter styles">
+    <label class="ss-field">
+        <span class="ss-small">Genre</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Set(() => Filter.Genre = Pick<GenreFamilyDto>(e))" data-testid="style-filter-genre">
+            <option value="">All</option>
+            @foreach (var genre in StyleText.Genres)
+            {
+                <option value="@genre" selected="@(Filter.Genre == genre)">@StyleText.Genre(genre)</option>
+            }
+        </select>
+    </label>
+    <label class="ss-field">
+        <span class="ss-small">Mood</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Set(() => Filter.Mood = Text(e))" data-testid="style-filter-mood">
+            <option value="">All</option>
+            @foreach (var mood in StyleFilter.Moods(Styles))
+            {
+                <option value="@mood" selected="@(Filter.Mood == mood)">@mood</option>
+            }
+        </select>
+    </label>
+    <label class="ss-field">
+        <span class="ss-small">Instrument</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Set(() => Filter.Instrument = Text(e))" data-testid="style-filter-instrument">
+            <option value="">All</option>
+            @foreach (var instrument in StyleFilter.Instruments(Styles))
+            {
+                <option value="@instrument" selected="@(Filter.Instrument == instrument)">@instrument</option>
+            }
+        </select>
+    </label>
+    <label class="ss-field">
+        <span class="ss-small">Kind</span>
+        <select class="rz-dropdown ss-select" @onchange="e => Set(() => Filter.Kind = Pick<StyleKindDto>(e))" data-testid="style-filter-kind">
+            <option value="">All</option>
+            <option value="@StyleKindDto.Preset">Presets</option>
+            <option value="@StyleKindDto.User">Mine</option>
+        </select>
+    </label>
+    <label class="ss-field">
+        <span class="ss-small">Search</span>
+        <input type="search" class="rz-textbox ss-search" placeholder="Name, description or tag" value="@Filter.Search"
+               @oninput="e => Set(() => Filter.Search = (string)e.Value!)" data-testid="style-search" />
+    </label>
+</div>
+
+@code {
+    /// <summary>The whole library (for the tag options).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<StyleDto> Styles { get; set; } = [];
+
+    /// <summary>The filter state, owned by the page.</summary>
+    [Parameter, EditorRequired]
+    public StyleFilter Filter { get; set; } = default!;
+
+    /// <summary>Raised after every change.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task Set(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+
+    private static string? Text(ChangeEventArgs args) => args.Value as string is { Length: > 0 } text ? text : null;
+
+    private static T? Pick<T>(ChangeEventArgs args)
+        where T : struct, Enum => Enum.TryParse<T>(args.Value as string, out var value) ? value : null;
+}

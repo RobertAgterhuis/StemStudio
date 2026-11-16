@@ -1,0 +1,58 @@
+@* "Use my voice" (010 FR-008; ui-test-ids 1.9.0 take-voice-*): converts the AI vocal of a song take to an own voice
+   profile; pitch options from Advanced. Disabled with the singer's reason when it is not ready. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-generative-form" role="dialog" aria-modal="true" aria-labelledby="voice-convert-title" data-help-id="voice-conversion"
+         @onkeydown="OnKeyAsync">
+        <div class="ss-label-row">
+            <h2 id="voice-convert-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Use my voice</h2>
+            <HelpHint HelpId="voice-conversion" />
+        </div>
+        <p class="ss-help">Take @Take.Index of "@GenerationTitles.Of(Generation)" is sung again in your own voice. The melody, timing and words stay.</p>
+
+        @if (Profiles is { Count: > 0 } profiles)
+        {
+            <label class="ss-field">
+                <span class="ss-label">Voice profile</span>
+                <select class="rz-dropdown ss-select" @onchange="e => ProfileId = Guid.Parse((string)e.Value!)" data-testid="take-voice-profile-select">
+                    @foreach (var profile in profiles)
+                    {
+                        <option value="@profile.Id" selected="@(ProfileId == profile.Id)">@profile.DisplayName</option>
+                    }
+                </select>
+            </label>
+            <LevelGate Feature="voice.pitch">
+                <div class="ss-range-row">
+                    <label class="ss-field ss-field-narrow">
+                        <span class="ss-label">Pitch shift (semitones)</span>
+                        <input type="number" min="-12" max="12" step="1" class="rz-textbox" value="@PitchShift"
+                               @onchange="e => PitchShift = StemStudio.Web.Voices.VoiceRules.Pitch(InputValue.Parse(e))" data-testid="take-voice-pitch-shift" />
+                    </label>
+                    <label class="ss-check">
+                        <input type="checkbox" checked="@AutoShift" @onchange="e => AutoShift = e.Value is true" data-testid="take-voice-auto-shift" />
+                        Shift to the register of my voice
+                    </label>
+                </div>
+            </LevelGate>
+        }
+        else if (Profiles is not null)
+        {
+            <p><a href="voices" data-testid="take-voice-profile-select">Make a voice profile of your own singing first</a>.</p>
+        }
+
+        @if (Blocked is not null)
+        {
+            <p id="take-voice-unavailable" class="ss-notice ss-small" role="note" data-testid="take-voice-unavailable">@Blocked</p>
+        }
+        @if (Error is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="take-voice-error">@Error</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="take-voice-convert-cancel" />
+            <RadzenButton Text="Convert" Icon="record_voice_over" IsBusy="Busy" BusyText="Starting..." Disabled="@(!CanStart)"
+                          aria-describedby="@(Blocked is null ? null : "take-voice-unavailable")" Click="StartAsync" data-testid="take-voice-convert-start" />
+        </div>
+    </div>
+</div>

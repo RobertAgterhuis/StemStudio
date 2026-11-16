@@ -1,0 +1,29 @@
+{
+  "generationId": "4a6c8e0b2d3f45a7b9c1d3e5f7a9b1c2",
+  "kind": "voiceConversion",
+  "status": "failed",
+  "progress": 0,
+  "stage": "Failed",
+  "voiceConversion": {
+    "pitchShift": 0,
+    "autoShift": true,
+    "steps": 32,
+    "cfg": 3,
+    "vocalGainDb": 0,
+    "profileName": "My voice"
+  },
+  "takes": [],
+  "warnings": [],
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": {
+    "code": "unvoicedTarget",
+    "message": "The vocal stem of this take has almost no singing (less than 10 % voiced); there is nothing to convert."
+  },
+  "createdAt": "2026-11-15T13:05:00Z",
+  "updatedAt": "2026-11-15T13:05:12Z"
+}

@@ -32,6 +32,14 @@ and 14. Binding contracts: `specs/006-synced-lyrics-karaoke/contracts/` (worker 
 1.6.0, engine 2.1.0, UI test ids 1.6.0) and `specs/008-sheet-music/contracts/` (worker 1.6.0,
 backend 1.7.0, UI test ids 1.7.0).
 
+Features 009 (style transfer with a style library) and 010 (own lyrics to song, music + voice) are
+built in one combined wave; their additions are marked **(009)** / **(010)** and collected in
+sections 15 and 16, including the binding ethics test cases (no artist imitation, AI labels,
+consent, own voice only, deletion: 15.3 and 16.3). Binding contracts:
+`specs/009-style-transfer/contracts/` (generator 1.0.0, backend 1.8.0, UI test ids 1.8.0) and
+`specs/010-lyrics-to-song/contracts/` (generator 1.1.0, backend 1.9.0, UI test ids 1.9.0), each a
+superset of the previous; worker 1.6.0 and engine 2.1.0 are unchanged.
+
 ## 1. Test pyramid
 
 ```text
@@ -939,4 +947,275 @@ STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_LYRICS=plain STEMSTUDIO_FAKE_DEVICE=gp
 (cd e2e && npm run test:sheet-music && npx playwright test --project=chromium --project=firefox tests/sheet-music.spec.ts -g drums)
 # stack-free self-test of the 006/008 helpers (pass without docker)
 (cd e2e && npx playwright test tests/lyrics-score-support.spec.ts)
+```
+
+## 15. (009) Style transfer with a style library
+
+Binding contracts: `specs/009-style-transfer/contracts/` (generator 1.0.0, backend 1.8.0, UI test
+ids 1.8.0); the code follows the 010 documents, which are supersets (generator 1.1.0, backend
+1.9.0, UI test ids 1.9.0; architect Phase 0). Design: ADR-018. Generation is GPU-only; **no test
+needs a GPU** except the marked generator integration test (009:T036, CI-skipped) and the CTO's
+reference-machine validation (009:T082, quickstart Q3-Q9).
+
+### 15.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Generator unit (generative) | device probe, NVML, GPU gate (lease, standard/low-memory profile, wait, `gpuBusy`), job store/scheduler/state machine, restart reconciliation, idle unload, audio sum/FLAC writer with the AI tags, `FakeMusicEngine` modes, ACE-Step adapter mapping, API routes and problems | fake NVML/torch, tmp lock files, fake clock, fake `acestep` module, `FakeMusicEngine` |
+| Generator integration (generative 009:T036, `-m "integration and gpu"`) | real ACE-Step cover of a 10 s fixture: 10 s 48 kHz FLAC with the tags | `tests/fixtures/audio/music_100bpm_20s.flac` (first 10 s); reference machine only |
+| Worker unit (stem-separation) | the cross-container file lease (`STEMSTUDIO_GPU_LEASE_FILE`): wait, CPU fallback after the limit, 003 behaviour unchanged without it | tmp lock files, fake clock |
+| Backend | `Style` rules, `StyleTextGuard` (imitation phrases EN/NL, deny-list, library artists, no false positives), preset catalogue (>= 24, >= 8 families, every preset passes the guard), prompt builder, generation state machine, persistence, generator client (contract examples), restyle/sync/import/status endpoints | stub generator `HttpMessageHandler` with the 22 example copies, fake `IGeneratedAudioLibrary`, `FakeTimeProvider`, SQLite |
+| Frontend (bUnit) | restyle dialog, generation rows, take player, AI badge, take details, style library and editor, status banner and disabled states, levels, help links | fake `IStemStudioApiClient` |
+| E2E (qa) | `styles.spec.ts` (`@styles`), `generation-status.spec.ts` (`@generation-status`, `@generative`), `generative.spec.ts` (`@generative`) on the fake stacks | fake generator (`STEMSTUDIO_GENERATOR=fake`, modes 15.2), fake separator |
+| Stack-free self-test | FLAC Vorbis-comment reader, fake-mode parsing, fixture tables, fake microphone options | `e2e/tests/generative-support.spec.ts` (green without docker) |
+
+**Take checks in every completed E2E case** (`support/generative-flow.ts` `expectAiLabels`, SC-005):
+`aiGenerated: true`; the take file (served by the API) is FLAC with `AI_GENERATED=true`,
+`GENERATOR`, `STEMSTUDIO_GENERATION`, `STEMSTUDIO_TAKE=<index>` (read by `support/flac-tags.ts`),
+`AI_VOICE` exactly when the take has a voice; the take's library item exists with provenance
+origin `generation`. Take playback is a plain `<audio>` (not the mixer engine): "plays" means
+`readyState >= HAVE_CURRENT_DATA` after `load()` (`support/media.ts`), in Chromium and Firefox.
+
+### 15.2 Fake generator modes and run matrix
+
+`STEMSTUDIO_FAKE_GENERATOR_MODE` (generator `config.py`; expectations in
+`tests/fixtures/generative/fake-generator.json`, a qa proposal for generative 009:T020/T021). The
+suite reads `E2E_FAKE_GENERATOR_MODE`, else `STEMSTUDIO_FAKE_GENERATOR_MODE`, else `ready`, and
+skips cases of other modes (`support/generative.ts`). Every case also skips while the stack has
+no 009 backend (`GET /api/generation/status` 404/405), and the `@generative` cases skip unless the
+status is `ready` (or `unavailable` for `no-gpu`), so the default suite stays green on the CPU stack
+(SC-002). Fake stack: `STEMSTUDIO_FAKE_GENERATOR_STEP_SECONDS=1`,
+`STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS=5` (quickstart Q2; devops 009:T009 fake compose).
+
+| Stack | Runs |
+|---|---|
+| default (no generator) | `npm run test:styles`: style library + editor + imitation guard; `generation-status.spec.ts` "without a generator" (`notInstalled`, disabled controls with the reason, `409 not-installed`, the library stays editable, 010 V1) |
+| fake `ready` | `npm run test:generative`: restyle in four interactions (SC-007), options, in place, limits, own style + snapshot, Beginner, import take, delete generation; 010 specs (section 16) |
+| fake `oom` | the same restyle cases (the low-memory retry succeeds, so the take is still produced) |
+| fake `oom-twice` | failed `outOfMemory` with the readable reason, retry makes a new generation that fails the same way, the track is unaffected |
+| fake `busy` | `waitingForGpu` shown, then failed `gpuBusy` "GPU busy: needs X GB, Y GB free" |
+| fake `slow` | cancel while running (no take, retry offered, a new job can start: the lease is released); `npm run test:generative-restart` with `E2E_GENERATIVE_COMPOSE_FILES`: generator restart -> failed `interrupted` -> retry completes |
+| fake `no-gpu` | `unavailable` with the probe reason, controls disabled with it, `409 gpu-required` (restyle and song) |
+| reference machine (CTO 009:T082) | quickstart Q3-Q9: timings (SC-001), VRAM, labels in the real file, import, GPU sharing, free-memory wait, listening check (SC-004) |
+
+### 15.3 Ethics test cases: no artist imitation, AI labels (binding for every owner)
+
+Constitution IV and ADR-018 D8. The case table is `tests/fixtures/generative/ethics-cases.json`
+(hand-maintained, checked by `tests/fixtures/tests/test_generative_fixtures.py`). "spec" cases
+quote the spec and must be refused; "qa-proposal" cases are what qa expects the guard to catch as
+well: the E2E run reports a miss as a soft failure and the hand-off names it (it is never dropped
+silently).
+
+| Id | Rule | Test (level) |
+|---|---|---|
+| E-01 | No preset names an artist, band, song or label, or uses an imitation phrase (FR-003, SC-003) | backend `PresetCatalog` + guard over every preset (unit); E2E `styles.spec.ts` "no preset uses an imitation phrase" (phrases of `presetForbiddenPhrases`) |
+| E-02 | A user style with "in the style of", "sounds like", "voice of" (any case, extra spaces, diacritics) is refused with the field and the reason, problem type `imitation` (FR-005) | backend `StyleTextGuard` tests; E2E editor case (field error shown) and API loop over `imitationRefused` |
+| E-03 | An artist of the user's own library is refused (FR-005) | backend guard with library names; E2E: upload `cover_embedded_10s.mp3` and refuse a description naming the artist the library knows for it: the track's own artist, else its band info artist (fake online `found`: "The Fixture Band", no real artist). Uploads keep `TrackDto.artist` empty (the embedded tag only feeds the 005 lookup), so the tag text "StemStudio Fixtures" itself is not in the guard (qa 009/010 integration, reported) |
+| E-04 | Genre words are not mistaken for names ("Soul ballad", "Rock steady", "Blues shuffle", ...) | backend guard (no false positive on "rock", "soul"); E2E `genreNamesAccepted` loop |
+| E-05 | 010 free caption and delivery pass the same guard (010 FR-010) | backend `SongEndpointTests`; E2E `song.spec.ts` "imitation in a free caption or the delivery" |
+| E-06 | Every take is labelled AI-generated: take badge (text, not colour only), track origin badge, track-list badge, library item origin `generation`, file tags (FR-008, SC-005) | generator FLAC writer tests, backend sync/import tests, bUnit badges; E2E `expectAiLabels` on every completed take, `track-origin-badge`, `track-ai-badge-*` |
+| E-07 | The personal-use notice (personal practice only, AI-generated, no artist imitation) is shown before a restyle (FR-016) | bUnit `RestyleDialog`; E2E restyle case (`restyle-personal-use-notice`) |
+| E-08 | Restyled versions are never published: there is no share or upload feature | review item (CTO), no test |
+
+### 15.4 Fixtures
+
+009 needs no new audio: the restyle source is the 001 fixture `music_100bpm_20s.flac` (20 s, fake
+separation), the library-artist case uses the 005 fixture `cover_embedded_10s.mp3`. New
+hand-maintained tables in `tests/fixtures/generative/` (README there): `ethics-cases.json`
+(15.3, 16.3) and `fake-generator.json` (15.2).
+
+### 15.5 (009) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 restyle with a preset: progress, take of the requested length, playable, in the library (FR-001, FR-002) | `test_generations.py`, `RestyleEndpointTests.cs`, `GenerationSyncServiceTests.cs`, `RestyleDialog` bUnit | `generative.spec.ts` "Jazz trio in four interactions", "range, stems, strength and two takes" |
+| US1-2 cancel: no take, GPU released (FR-007, SC-006) | scheduler/cancel tests, gate tests (lease released) | `generative.spec.ts` cancel (`slow`) |
+| US1-3 failure or OOM -> readable reason, retry (FR-012, SC-006) | fake `oom`/`oom-twice`/`busy`/restart tests in `test_generations.py` | `generative.spec.ts` `oom-twice`, `busy`, restart (`@restart`); `oom` succeeds |
+| US1-4 take details: style, strength, seed, source, range, model, device (FR-006) | take details bUnit | `generative.spec.ts` details of the "Jazz trio" take |
+| US2-1 >= 24 presets in >= 8 families, marked as presets (FR-003, SC-003) | `PresetCatalog` tests | `styles.spec.ts` presets |
+| US2-2 filters and search | `StyleEndpointTests.cs`, `StylesPageTests.cs` | `styles.spec.ts` filter by mood, search, empty state |
+| US2-3 description and default strength shown in the dialog | `RestyleDialog` bUnit | `generative.spec.ts` "Jazz trio" (description, `aria-valuetext`) |
+| US3-1 duplicate a preset -> "<name> (copy)" | `StyleEndpointTests.cs` write side | `styles.spec.ts` duplicate + delete |
+| US3-2 invalid values refused with field and reason (FR-005) | `StyleTextGuard`, write-side tests | `styles.spec.ts` limits, editor, imitation loop, library artist |
+| US3-3 earlier takes keep the style snapshot | `Generation` domain tests, persistence | `generative.spec.ts` "an own style restyles and the take keeps its snapshot" |
+| US3-4 presets read-only | write-side tests (`403`) | `styles.spec.ts` (no edit/delete, `403 preset-read-only`) |
+| US4-1 import a take: separated, same track on repeat (FR-009) | `TakeImportTests.cs` | `generative.spec.ts` import (mixer opens, `200` + same id) |
+| US4-2 AI label and source link on the track page and in the list | bUnit origin badge | `generative.spec.ts` import (`track-origin-badge`, `track-origin-source-link`, `track-ai-badge-*`) |
+| US5-1 in place: source length, only the range differs (FR-014) | generator `inPlace` tests (fake keeps samples outside the range identical) | `generative.spec.ts` in place (take length = track length) |
+| US6-1 default stack: disabled with "not installed" + help link; library usable (FR-010, SC-002) | `GenerationStatusTests.cs`, banner bUnit | `generation-status.spec.ts` "without a generator" |
+| US6-2 no usable GPU: disabled with the reason, `409` (FR-010) | generator `/health`, status service | `generation-status.spec.ts` "generator without a usable GPU" |
+| FR-011 one GPU step at a time across services | gate + worker file-lease tests | CTO Q7 |
+| FR-013 models released when idle | idle-hook test | CTO Q4 (VRAM log) |
+| FR-015 help links | help coverage tests | `help.spec.ts` (`@styles`): 16 reference queries, screen topics, markers; `generative.spec.ts` restyle dialog markers |
+| FR-017 weights pinned, downloaded on first use | adapter tests (revision, SHA-256) | CTO Q3/Q4 |
+| SC-001, SC-004 timings, listening | - | CTO T082/T084 |
+
+## 16. (010) Own lyrics to song (music + voice)
+
+Binding contracts: `specs/010-lyrics-to-song/contracts/` (generator 1.1.0, backend 1.9.0, UI test
+ids 1.9.0). Design: ADR-019. Voice conversion runs in a second container (`singer`, fake in E2E);
+the song model is the 009 generator. Voices may only be the user's own: **no test, fixture or log
+uses a real person's voice**; the suite's "own voice" is the synthetic sung sample of 16.4.
+
+### 16.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Generator unit (generative) | `FakeMusicEngine.song`, `FakeVoiceConverter`, `FakePitchTracker` (tone -> voiced, noise -> 0), remix and normalisation, song API validation, voice-sample check (`checkId`, 10-minute download), SVC adapter mapping, conversion job (tags `AI_VOICE=converted`, `AI_VOICE_PROFILE`; job copies deleted) | fake `acestep`/`soulxsinger` modules, `tests/fixtures/audio/own-voice-20s.wav` / `unvoiced-20s.wav` for the pitch tracker |
+| Generator integration (generative 010:T026/T043, GPU) | real 10 s song; real SVC of `sung-target-10s.wav` with `own-voice-20s.wav` as prompt | reference machine only |
+| Backend | lyrics normaliser/sections/density, voice profile + consent rules, caption builder, persistence + `AudioHashes`, generator/singer clients, song, lyrics, voice-profile, conversion and deletion endpoints, data-directory walk after deletion (SC-006) | stub handlers, SQLite, temp data directory |
+| Frontend (bUnit) | song page, lyrics list/editor, recorder (JS interop mocked), consent panel, voice profiles page, "Use my voice" dialog, vocal badges, levels, help | fake API client, bUnit JS-interop mock |
+| E2E (qa) | `song.spec.ts`, `voice.spec.ts`, `voice-recording.spec.ts` (`@generative`), `generation-status.spec.ts` 010 cases | fake generator + fake singer; fake microphone (16.2) |
+
+### 16.2 Fake microphone and run matrix
+
+`voice-recording.spec.ts` sets worker-scoped launch options (`support/fake-microphone.ts`):
+Chromium `--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<own-voice-20s.wav>`
+and the `microphone` permission per context (a context without it sees a denied prompt:
+`voice-record-unavailable`, Chromium only); Firefox `media.navigator.streams.fake` (a steady tone,
+also voiced for the fake pitch tracker) with the prompt disabled. Upload cases run in both
+browsers without a microphone.
+
+| Stack | Runs |
+|---|---|
+| default (no generator, no singer) | `generation-status.spec.ts`: song generation and voice-profile creation disabled with the reason, `409 not-installed` / `voice-not-installed`, lyrics can be saved (quickstart V1) |
+| fake `ready` (generator + singer) | `song.spec.ts`, `voice.spec.ts`, `voice-recording.spec.ts` |
+| fake `unvoiced-sample` | `voice.spec.ts` "every sample is refused as unvoiced" (quickstart V2) |
+| fake `no-gpu` | `generation-status.spec.ts` song generation refused with the reason |
+| fake `ready` + `E2E_GENERATIVE_COMPOSE_FILES` | `npm run test:generative-restart`: SC-006 disk walk (`docker compose exec -T api|singer find /data -type f`) |
+| reference machine (CTO 010:T060) | quickstart V3-V8 incl. the owner's own recording with consent |
+
+### 16.3 Ethics test cases: consent required, own voice only, deletion (binding for every owner)
+
+Constitution IV, ADR-019 D3/D4, 010 FR-005-FR-009, FR-015, SC-004, SC-006.
+
+| Id | Rule | Test (level) |
+|---|---|---|
+| C-01 | No profile without consent: the checkbox, the typed person name and the profile name are required before Save is enabled (FR-006) | `ConsentPanel` bUnit; E2E `voice.spec.ts` "Save stays disabled until ..." |
+| C-02 | The API checks consent first, before any file is written: `400 consent-required` (unticked), `400 consent-outdated` (statement version not current), `400` (no person name); nothing is stored (SC-004) | `VoiceProfileEndpointTests.cs` (asserts no file in the temp data directory); E2E `voice.spec.ts` API case (no new profile) |
+| C-03 | The consent record (statement version `consent.v1`, statement SHA-256, person name, time, sample SHA-256) is stored and shown on the profile; the statement is shown in English and Dutch (FR-006, US3-5) | domain + persistence tests; E2E consent text (`data-version`, both languages, equal to the contract example) and the profile's `voice-consent-*` |
+| C-04 | Own voice only: StemStudio offers no way to pick a track, stem, take or export as a sample, and an upload byte-identical to stored audio is refused `422 library-audio` (exact-copy guard, not a similarity check) (FR-007, SC-004) | `AudioHashIndex` tests (stem, detail stem, take, take vocal, export, upload); E2E: a downloaded `vocals` stem and a downloaded take are refused (API and UI) |
+| C-05 | Samples need 10-60 s and >= 50 % voiced singing: `422 too-short`, `too-long`, `unvoiced` (FR-005, FR-007) | generator check tests; E2E over every refused voice fixture (`expectedCheck` in `voice-manifest.json`) + UI message for noise |
+| C-06 | "Use my voice" only on song takes with an AI voice (`409 no-vocals` otherwise; not offered on instrumental or restyle takes) (FR-008) | `VoiceConversionTests.cs`, bUnit; E2E `voice.spec.ts` |
+| C-07 | Converted takes are labelled "AI voice: <profile>" (`data-vocal="converted"`, `AI_VOICE=converted`) (FR-011, SC-005) | generator tags, sync tests; E2E "Use my voice" case + `expectAiLabels` |
+| C-08 | Deleting a profile removes its sample and every derived file; converted takes are kept labelled "(profile deleted)" unless "also delete takes" is ticked, then their files and library items go too; queued/running conversions are cancelled (FR-009, US3-4) | `VoiceProfileDeletionTests.cs`; E2E both delete variants (sample URL 404, take audio/library item 404 or kept) |
+| C-09 | After deletion no file derived from the sample remains on disk (SC-006) | backend data-directory walk (unit); E2E `@restart` disk walk; CTO V7 |
+| C-10 | Voice data never leaves the machine (FR-015) | review + no outbound client in the singer path (quality-gate dependency rule); the generator check runs on the CPU locally |
+| C-11 | The song page states personal use, own lyrics only, AI voice label and no artist imitation (FR-016) | bUnit; E2E `song.spec.ts` notice |
+
+### 16.4 Fixtures
+
+`uv run --project worker python tests/fixtures/generate_voice_fixtures.py` (`npm run
+fixtures:generative`) -> `tests/fixtures/audio/` (git-ignored, 44.1 kHz **mono** PCM16) and
+`tests/fixtures/voice-manifest.json` (committed). The voice is the formant synthesiser
+`tests/fixtures/sung_voice.py` (006) singing self-written vowel melodies; CC0. (010:T009 named
+`tests/fixtures/voice/`; the files follow the shared rule of every generator instead: generated
+audio lives in the git-ignored `audio/` folder, the manifest is committed.)
+
+| File | Content | Known facts | Used by |
+|---|---|---|---|
+| `own-voice-20s.wav` | 20 s sung vowels ("la", "mo", "nee", ...), C major, 90 BPM, vibrato | design voiced share 0.84 (reference autocorrelation check >= 0.7); expected check `ok` | voice profile cases, Chromium fake microphone, generator pitch-tracker and SVC prompt tests |
+| `own-voice-6s.wav`, `own-voice-70s.wav` | the same voice, too short / too long | `too-short`, `too-long` | `voice.spec.ts`, generator check tests |
+| `unvoiced-20s.wav` | low-passed white noise | voiced share 0; `unvoiced` | `voice.spec.ts`, fake pitch tracker |
+| `sung-target-10s.wav` | another melody a fourth lower | voiced share 0.73 | generator SVC integration test (010:T043, target) |
+
+Hand-maintained, self-written lyrics (`tests/fixtures/lyrics/`, CC0, checked by
+`test_generative_fixtures.py`): `sample-en.txt` (four blocks, the second repeated as the fourth: the
+section helper should propose verse, chorus, verse, chorus; 93 words = 0.775 words/s at 120 s, the
+density warning starts below 23.25 s), `sample-nl.txt` (Dutch, with `[verse]`/`[chorus]`),
+`sample.lrc` (stamps + an empty-stamp break; expected normalised text in
+`own-lyrics-expected.json`). Over-long texts (4,097 characters) are built in the specs.
+
+### 16.5 (010) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 lyrics + style -> song with an AI voice, playable, in the library (FR-001, FR-011) | `test_acestep_song.py`, `SongEndpointTests.cs`, `NewSongPageTests.cs` | `song.spec.ts` "paste, add sections, Pop rock, generate" |
+| US1-2 "Add sections" proposes markers (FR-002) | `LyricsSections` tests | `song.spec.ts` UI + "the section helper proposes verse and chorus blocks" |
+| US1-3 empty / > 4,096 / unsupported refused (FR-001) | `LyricsNormaliser`, `LyricsEndpointTests.cs` | `song.spec.ts` limits (API `400`, upload `415`, counter + `song-error`) |
+| US1-4 take details: lyrics, style, voice options, seed, model | bUnit | `song.spec.ts` details |
+| Edge: density > 4 words/s warns, may continue | `LyricsDensity`, `SongEndpointTests.cs` (`warnings[]`) | `song.spec.ts` dense text |
+| Edge: Dutch lyrics | caption/language tests | `song.spec.ts` Dutch (`nl`) |
+| US2-1/2 saved lyrics: edits and deletion keep earlier snapshots (FR-003) | `LyricsEndpointTests.cs` | `song.spec.ts` lyrics list (two takes, two texts, sheet deleted) |
+| US3-1 profile only with consent (FR-005, FR-006) | C-01..C-03 | `voice.spec.ts` consent cases; `voice-recording.spec.ts` recording |
+| US3-2 identical library audio, too short/long, unvoiced refused (FR-007) | C-04, C-05 | `voice.spec.ts` refused samples |
+| US3-3 "Use my voice": import + separation, conversion, mix-back, new linked take (FR-008) | `VoiceConversionTests.cs`, `test_soulx_svc.py` | `voice.spec.ts` "Use my voice" |
+| US3-4 deletion with or without the takes (FR-009) | C-08, C-09 | `voice.spec.ts` both delete cases + disk walk |
+| US3-5 profile shows statement, date, sample playback | bUnit | `voice.spec.ts` uploaded profile |
+| US4-1 import a song take: separated, AI label, lyrics link (FR-013) | `TrackOrigin` tests | `song.spec.ts` "an imported song take ..." |
+| US5-1 instrumental: no voice (FR-004) | fake song (`vocal=none`) | `song.spec.ts` instrumental (`data-vocal="none"`, no "Use my voice", no `AI_VOICE`) |
+| Edge: microphone denied -> reason, upload possible | `VoiceRecorder` bUnit | `voice-recording.spec.ts` denied (Chromium) |
+| FR-012 job rules (states, cancel, GPU-only, OOM, retry) | as 009 | `generation-status.spec.ts` `no-gpu`; 009 fault cases cover the shared job path |
+| FR-014 help links | help coverage tests | `help.spec.ts` (`@styles`); `voice.spec.ts` Use-my-voice dialog marker |
+| SC-001-SC-003 timings and listening | - | CTO T060/T062 |
+
+### 16.6 Edits to existing E2E files after the UI merge (done in the 009/010 integration run)
+
+The 009/010 specs use new page objects and `support/generative-test.ts` so that the existing
+fixtures and level set-up stay untouched while other UI work is in flight. Done in the
+009/010 integration run (009:T081, 010:T059), item by item:
+
+1. `support/levels.ts` (+ `journey-levels.spec.ts`): the 1.8.0/1.9.0 ids with their Beginner rule
+   (not rendered: `restyle-mode-*`, `restyle-range-*`, `restyle-stem-*`, `restyle-strength`,
+   `restyle-takes`, `song-free-caption`, `song-delivery-input`, `song-bpm`, `song-key`,
+   `song-time-signature`, `song-takes`, `take-voice-pitch-shift`, `take-voice-auto-shift`).
+2. `support/help.ts` / `tests/help.spec.ts`: help topics `generation-gpu-required`,
+   `styles-library`, `styles-editor`, `restyle-options`, `restyle-strength`,
+   `generation-ai-label`, `generation-personal-use`, `generation-limits`, `lyrics-format`,
+   `lyrics-sections`, `song-options`, `song-language`, `voice-profiles`, `voice-consent`,
+   `voice-conversion` (FR-015 / 010 FR-014).
+3. `pages/track-detail-page.ts`, `pages/track-list-page.ts`: fold in `pages/generated-track.ts`
+   (`track-restyle`, `track-origin-*`, `track-ai-badge-*`, `track-lyrics-link`, `track-vocal-badge`).
+4. `pages/app-shell.ts`: nav links `nav-generations`, `nav-styles`, `nav-songs`, `nav-lyrics`,
+   `nav-voices`.
+5. `support/test.ts` / `feature-test.ts` / `lyrics-test.ts`: optionally fold
+   `generative-test.ts` into the main fixtures.
+6. `support/api.ts`: `TrackDto.origin` / `artist` (now `GeneratedTrackDto` in
+   `support/generation-api.ts`).
+7. `a11y/screens.a11y.spec.ts`, `support/screens.ts`, `visual/`: restyle dialog, style library,
+   song page, voice profiles page with the consent panel (keyboard and screen-reader use, 010
+   FR-014/T058); baselines after the UI merge.
+8. `package.json` `test`: decide whether `@generative` stays in the default run (its cases skip
+   unless a generator is ready) or moves to `--grep-invert`.
+
+Outcome: (1) `support/levels.ts` has the 1.8.0/1.9.0 lists (`everyLevelRestyleIds`,
+`beginnerHiddenRestyleIds`, song, Use-my-voice, `generativeNavIds`); the Beginner cases of
+`generative.spec.ts`, `song.spec.ts` and a new `voice.spec.ts` "use my voice at Beginner" use them
+(the @ux journey specs stay generator-free). (2) `support/help.ts` `generativeReferenceQueries`
+(15 topics + `styles-new`), `generativeScreenTopics`, `generativePageMarkers`; `help.spec.ts` cases
+tagged `@styles`. (3) `pages/generated-track.ts` is gone: `TrackDetailPage` (`originBadge`,
+`originSourceLink`, `lyricsLink`, `vocalBadge`, `gotoLoaded`) and `TrackListPage.aiBadge`. (4)
+`AppShell` `NavTarget` + exported `navPaths`; `help.spec.ts` "the rail links reach ...". (5)
+`generative-test.ts` stays a thin extension (it only adds 009/010 clients and page objects);
+`lyrics-test.ts` now extends `support/test.ts` (`feature-test.ts` was removed by the 005/007 fold,
+which broke every 006-010 spec at load time). (6) kept `GeneratedTrackDto` in
+`support/generation-api.ts` (`api.ts` stays free of generative types). (7) screens
+`style-library`, `song`, `voices` (consent panel open) and `restyle-dialog` in `support/screens.ts`
+(a11y + visual matrices; the restyle dialog skips unless the generator is `ready`), and the three
+pages in the 320 px reflow list. The 6 `restyle-dialog--*` baselines are generated on a FRESH fake
+`ready` stack in the container (`--project=visual --grep restyle-dialog`) and captured as the
+viewport, not full page (a full-page capture stitched the fixed shell around the scrolled dialog
+differently per run); every other baseline comes from the fresh default stack. (8) `@generative` stays in `npm test`: every case skips with a
+reason unless the stack has a ready (or `no-gpu`) generator, so the default run stays green and
+the fake stack runs everything. `test:legacy` also excludes the 006-010 tags and the stack-free
+self-tests (tag `@self-test`), so it is again exactly the 33 + 33 tests of 1.0.0-1.2.0.
+
+### 16.7 Commands (009 + 010)
+
+```bash
+# fixtures: the voice samples (the lyrics and ethics tables are hand-maintained)
+uv run --project worker python tests/fixtures/generate_voice_fixtures.py
+# (009/010) default CPU stack: style library and "not installed" behaviour
+docker compose up -d --build --wait
+(cd e2e && npm run test:styles)
+# (009/010) fake generator + fake singer stack, once per mode (CTO 009:T081, 010:T059)
+STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_GENERATOR=fake STEMSTUDIO_FAKE_GENERATOR_MODE=ready \
+  docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml up -d --build --wait
+(cd e2e && STEMSTUDIO_FAKE_GENERATOR_MODE=ready npm run test:generative)
+#   repeat with oom, oom-twice, busy, slow, no-gpu, unvoiced-sample (and npm run test:styles once)
+# opt-in: generator restart and the SC-006 disk walk (Docker on the host; path-delimiter list)
+(cd e2e && E2E_GENERATIVE_COMPOSE_FILES="../docker-compose.yml:../docker-compose.generative.yml:../docker-compose.generative-fake.yml" \
+  STEMSTUDIO_FAKE_GENERATOR_MODE=slow npm run test:generative-restart)
+# stack-free self-test of the 009/010 helpers (pass without docker)
+(cd e2e && npx playwright test tests/generative-support.spec.ts)
 ```

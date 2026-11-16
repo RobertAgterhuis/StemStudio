@@ -1,0 +1,64 @@
+@* One take of a completed generation (009 FR-006..FR-008; ui-test-ids 1.8.0 take-*): a plain <audio> player (not the
+   mixer engine), the AI-generated label, "Import as track" (a link once imported) and the details. *@
+@using Microsoft.Extensions.Options
+@using StemStudio.Contracts.Generation
+@inject IOptions<StemStudioWebOptions> Options
+@inherits TakeComponent
+
+<li class="ss-take">
+    <div class="ss-take-head">
+        <span class="ss-take-name">Take @Take.Index</span>
+        <AiBadge TestId="@($"take-ai-badge-{Key}")" />
+        @if (Take.Vocal is { } vocal)
+        {
+            <VocalBadge TestId="@($"take-vocal-badge-{Key}")" Vocal="vocal" ProfileName="@Take.VoiceProfileName" />
+        }
+        <span class="ss-small ss-muted ss-num">@TimeText.Duration(Take.DurationSeconds)</span>
+    </div>
+    <audio controls preload="none" src="@Url(Take.AudioUrl)" aria-label="@($"Play take {Take.Index}")" data-testid="@($"take-play-{Key}")"></audio>
+    @if (Take.VocalAudioUrl is { } vocalUrl)
+    {
+        <audio controls preload="none" src="@Url(vocalUrl)" aria-label="@($"Play the converted vocal of take {Take.Index}")"
+               data-testid="@($"take-vocal-play-{Key}")"></audio>
+    }
+    <div class="ss-take-actions">
+        @if (Take.ImportedTrackId is { } trackId)
+        {
+            <a class="ss-row-action" href="@($"tracks/{trackId}")" data-testid="@($"take-import-{Key}")">Open the imported track</a>
+        }
+        else
+        {
+            <RadzenButton Text="Import as track" Icon="library_add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" IsBusy="Importing"
+                          BusyText="Importing..." Disabled="Importing" Click="ImportAsync" data-testid="@($"take-import-{Key}")" />
+        }
+        @if (OffersMyVoice)
+        {
+            <RadzenButton Text="Use my voice" Icon="record_voice_over" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                          Click="() => OnUseMyVoice.InvokeAsync(Take)" data-testid="@($"take-use-my-voice-{Key}")" />
+        }
+    </div>
+    <TakeDetails Generation="Generation" Take="Take" />
+</li>
+
+@code {
+    /// <summary>"Import as track" pressed; the button is busy until the task completes.</summary>
+    [Parameter]
+    public EventCallback<GenerationTakeDto> OnImport { get; set; }
+
+    /// <summary>"Use my voice" pressed (song takes with an AI voice only).</summary>
+    [Parameter]
+    public EventCallback<GenerationTakeDto> OnUseMyVoice { get; set; }
+
+    private bool Importing { get; set; }
+
+    private bool OffersMyVoice => Generation.Kind == GenerationKindDto.Song && Take.Vocal == VocalLabelDto.Synthetic;
+
+    private async Task ImportAsync()
+    {
+        Importing = true;
+        await OnImport.InvokeAsync(Take);
+        Importing = false;
+    }
+
+    private string Url(string relative) => new Uri(Options.Value.PublicApiBaseUrl, relative).ToString();
+}

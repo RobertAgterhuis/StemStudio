@@ -1,7 +1,6 @@
 # Songs from your own lyrics
 
-<span class="planned">In development</span> Feature 010. This chapter describes the
-specified behaviour.
+Feature 010.
 
 Write your own lyrics and let StemStudio generate a complete song with music and a sung
 voice. Optionally, the voice can be converted into **your own voice**, under strict consent
@@ -31,6 +30,9 @@ the chorus. Saved lyrics are kept on the **Lyrics** screen.
 | Tempo and key | 40 to 220 BPM; any key |
 | Duration | 10 seconds to 8 minutes (default 2 minutes) |
 | Takes | 1 or 2 |
+
+On the reference machine (RTX 5070 Ti) a 45-second song with vocals takes about 50 seconds
+from a cold start; converting a 10-second vocal into your voice takes about 25 seconds.
 
 A warning appears when the lyrics are very dense (more than four words per second); you can
 still generate. Choose the language that matches your lyrics for the best pronunciation.

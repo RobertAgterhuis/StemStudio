@@ -1,0 +1,19 @@
+{
+  "kind": "song",
+  "song": {
+    "caption": "Pop rock, driving feel, electric guitars, bass, drums, upbeat, female lead vocal, warm",
+    "lyrics": "[verse]\nSing it loud, sing it free\nEvery note is part of me\n\n[chorus]\nThis little song belongs to me",
+    "instrumental": false,
+    "vocalLanguage": "en",
+    "bpm": null,
+    "keyScale": null,
+    "timeSignature": null,
+    "durationSeconds": 60,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      42
+    ],
+    "thinking": true
+  }
+}

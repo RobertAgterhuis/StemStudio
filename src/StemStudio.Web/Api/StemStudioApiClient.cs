@@ -17,7 +17,7 @@ namespace StemStudio.Web.Api;
 /// typed client on <see cref="StemStudioWebOptions.ApiClientName"/> with the server-side API base URL.
 /// </summary>
 /// <param name="http">The configured HTTP client.</param>
-public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
+public sealed partial class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
 {
     /// <summary>JSON options of the backend contract (camelCase; enums carry their own converters).</summary>
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -176,11 +176,14 @@ public sealed class StemStudioApiClient(HttpClient http) : IStemStudioApiClient
 
     private static JsonContent JsonBody<T>(T value) => JsonContent.Create(value, options: Json);
 
-    private static MultipartFormDataContent MultipartBody(UploadFile file)
+    private static MultipartFormDataContent MultipartBody(UploadFile file, string name = "file")
     {
         var stream = new StreamContent(file.Content);
-        stream.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-        return new MultipartFormDataContent { { stream, "file", file.FileName } };
+        // The recorder's type carries parameters ("audio/webm;codecs=opus"); browsers give "" for unknown extensions (.lrc).
+        stream.Headers.ContentType = MediaTypeHeaderValue.TryParse(file.ContentType, out var type)
+            ? type
+            : new MediaTypeHeaderValue("application/octet-stream");
+        return new MultipartFormDataContent { { stream, name, file.FileName } };
     }
 
     private async Task<T> SendAsync<T>(HttpMethod method, string uri, HttpContent? content, CancellationToken ct)

@@ -8,9 +8,11 @@ ADR-002, ADR-012.
 
 **Note**: Produced by the architect agent (`/speckit-plan` equivalent). Binding design decisions
 are in ADR-020 (`docs/decisions/ADR-020-ai-composer-agent.md`); measurements in
-[research.md](research.md). Phase 0 (contract code and skeleton) is **listed, not executed**: it
-runs at feature start, after 004-010, so the contract versions and the 004-010 tool entries can be
-finalised then.
+[research.md](research.md). Phase 0 part 1 (2026-11-15, on top of 001-008) is **executed**:
+packages pinned and verified (research F-12..F-15), `StemStudio.Agent` skeleton, Contracts DTOs,
+standalone agent API delta `contracts/agent-api.openapi.yaml`, tool catalogue 1.0.0 and eval set
+1.0.0 (009/010 pending), UI test id delta, `.claude/agents/ai-agent.md`. Part 2 (merge into backend
+API 1.10.0, 009/010 tools, UI test ids minor) follows the 009/010 Phase 0.
 
 ## Summary
 
@@ -32,8 +34,9 @@ recorded inverse actions. CI uses scripted fake chat clients; model quality is g
 **Language/Version**: C# 14 / .NET 10 (agent, API, Web). Worker (Python) and audio engine (TS)
 unchanged.
 
-**Primary Dependencies (new)**: Microsoft.Extensions.AI 11.0.0 (MIT), OllamaSharp 5.5.2 (MIT),
-Anthropic 13.8.0 (official C# SDK, Apache-2.0; only after the amendment). Host prerequisite (not
+**Primary Dependencies (new)**: Microsoft.Extensions.AI 10.11.0 (MIT), OllamaSharp 5.5.0 (MIT),
+Anthropic 13.3.0 (official C# SDK, Apache-2.0; constitution 1.3.0) - pinned at Phase 0 (research
+F-12; the research values 11.0.0 / 5.5.2 / 13.8.0 were less than two weeks old). Host prerequisite (not
 shipped): Ollama >= 0.40 (MIT) with `qwen3.5:9b` / `qwen3.5:4b` (Apache-2.0 weights) pulled by the
 user. Versions re-checked at feature start (research section 3).
 
@@ -185,7 +188,7 @@ only namespace that references OllamaSharp/Anthropic; `Agent.Policy` references 
 
 The worker agents (stem-separation, audio-ingest, beat-analysis) and audio-engine have no work.
 
-### Draft agent definition: `.claude/agents/ai-agent.md` (CTO creates it)
+### Agent definition: `.claude/agents/ai-agent.md` (created in Phase 0 part 1, CTO-approved; the file is authoritative)
 
 ```markdown
 ---

@@ -1,0 +1,47 @@
+@page "/songs/new"
+@* A song from own lyrics (010 US1/US5, FR-001..FR-004, FR-014, FR-016; ui-test-ids 1.9.0 song-*): lyrics, options, the
+   personal-use notice and generate (disabled with the reason without a ready generator), then the song generations. *@
+@using StemStudio.Contracts.Generation
+
+<PageTitle>New song - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-generative-form ss-song-page">
+    <header class="ss-page-head" data-help-id="song-options">
+        <div class="ss-label-row"><h1>New song</h1><HelpHint HelpId="song-options" /></div>
+        <p class="ss-help">Turn your own lyrics into a song with music and an AI singing voice.</p>
+    </header>
+    <GenerationStatusBanner />
+
+    @if (LoadError is not null)
+    {
+        <ErrorState TestId="song-load-error" Message="@LoadError" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Form is null)
+    {
+        <Skeleton Lines="6" />
+    }
+    else
+    {
+        <LyricsEditor Form="Form" Busy="Busy" SavedTitle="@SavedTitle" OnSelect="SelectSheet" OnChanged="StateHasChanged" OnPropose="ProposeAsync"
+                      OnSave="SaveLyricsAsync" OnUpload="UploadAsync" />
+        <SongOptions Form="Form" OnChanged="StateHasChanged" />
+
+        <p class="ss-notice ss-small" role="note" data-testid="song-personal-use-notice" data-help-id="generation-personal-use">
+            For personal use only. The song and its singing are AI-generated and labelled "AI voice". Use only your own lyrics
+            (or lyrics you may use); styles and voices never imitate an artist. <HelpHint HelpId="generation-personal-use" />
+        </p>
+        @if (Problem is { } problem)
+        {
+            <div class="ss-error" role="alert" data-testid="song-error" data-field="@problem.Field">@problem.Message</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Generate" Icon="auto_awesome" IsBusy="Busy" BusyText="Starting..." Disabled="@(Busy || DisabledReasonId is not null)"
+                          aria-describedby="@DisabledReasonId" Click="GenerateAsync" data-testid="song-generate" />
+        </div>
+    }
+
+    <section class="ss-panel" aria-labelledby="song-generations-heading" data-testid="song-generations">
+        <h2 id="song-generations-heading" class="ss-heading">Your songs</h2>
+        <GenerationList @ref="List" Query="@(new GenerationQuery(GenerationKindDto.Song))" EmptyText="No songs yet." />
+    </section>
+</div>

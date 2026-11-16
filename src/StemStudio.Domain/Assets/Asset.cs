@@ -96,6 +96,22 @@ public sealed class Asset
         return New(id, AssetKind.Score, name).Started(provenance!, nowUtc);
     }
 
+    /// <summary>Registers a generated take (feature 009): ready at once with its stored file; long names are cut.</summary>
+    /// <param name="id">New identifier.</param>
+    /// <param name="provenance">Where it came from, with its generation.</param>
+    /// <param name="stored">Name (cut to 120 characters), stored files and audio facts (48 kHz).</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <returns>The ready item.</returns>
+    public static Asset CreateGenerated(Guid id, Provenance provenance, GeneratedAudio stored, DateTime nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(stored);
+        Require(provenance, provenance?.Generation is not null, "A generated item needs its generation.");
+        var asset = New(id, AssetKind.Audio, Text.TrimToLength(stored.Name, AssetNaming.MaxNameLength) ?? "Generated take").Started(provenance!, nowUtc);
+        asset.MarkReady(stored.Files, nowUtc);
+        asset.Audio = stored.Audio;
+        return asset;
+    }
+
     private static Asset New(Guid id, AssetKind kind, string name) => new() { Id = id, Kind = kind, Name = AssetNaming.Validate(name), Status = AssetStatus.Queued };
 
     private Asset Started(Provenance provenance, DateTime nowUtc)

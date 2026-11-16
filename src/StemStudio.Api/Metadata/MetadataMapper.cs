@@ -22,6 +22,15 @@ public static class MetadataMapper
             metadata.Isrc);
     }
 
+    /// <summary>Title and artist of a track from reported source metadata; an upload reports no artist, so its tag artist is used (keeps the 009 style guard aware of it).</summary>
+    /// <param name="metadata">Reported source metadata.</param>
+    /// <returns>The title and artist.</returns>
+    public static SourceMetadata ToSource(WorkerSourceMetadata metadata)
+    {
+        ArgumentNullException.ThrowIfNull(metadata);
+        return new SourceMetadata(metadata.Title, metadata.Artist ?? metadata.LookupArtist);
+    }
+
     /// <summary>The metadata job request of a pending lookup.</summary>
     /// <param name="track">A track whose lookup is pending.</param>
     /// <returns>The request.</returns>

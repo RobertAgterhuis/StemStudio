@@ -28,7 +28,7 @@ public sealed class LyricsContractTests
     public void Contracts_HaveTheVersionsOfFeatures006And008()
     {
         Backend006.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.6.0");
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.7.0");
+        Backend008.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.7.0");
         WorkerContract.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.6.0");
     }
 
@@ -37,7 +37,7 @@ public sealed class LyricsContractTests
     public void NewerContracts_ContainTheOlderOnesUnchangedExceptTheNamedEntries(string section)
     {
         ChangedEntries(Backend007, Backend006, section).ShouldBeSubsetOf(TrackEntries);
-        ChangedEntries(Backend006, OpenApiContract.Backend, section).ShouldBeSubsetOf(AssetEntries);
+        ChangedEntries(Backend006, Backend008, section).ShouldBeSubsetOf(AssetEntries);
     }
 
     [Fact]

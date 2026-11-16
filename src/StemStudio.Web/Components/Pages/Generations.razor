@@ -1,0 +1,17 @@
+@page "/generations"
+@* Every generation, newest first (009 FR-007; ui-test-ids 1.8.0): restyles and, with feature 010, songs and voice
+   conversions, with their takes. *@
+
+<PageTitle>Generations - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-generations-page">
+    <header class="ss-page-head" data-help-id="generation-limits">
+        <div class="ss-label-row"><h1>Generations</h1><HelpHint HelpId="generation-limits" /></div>
+        <p class="ss-help" data-testid="generations-limits">
+            Everything made with AI, newest first. The quality varies from take to take, so make two and keep the best. Every
+            take is labelled AI-generated and is for personal use only.
+        </p>
+    </header>
+    <GenerationStatusBanner />
+    <GenerationList Query="@(new GenerationQuery())" EmptyText="Nothing generated yet. Restyle a track from its page." />
+</div>

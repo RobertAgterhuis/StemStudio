@@ -27,6 +27,7 @@ else
                     <span class="ss-meta-status" data-testid="metadata-status" data-status="@MetadataStatusText.Value(Track.Metadata.Status)">@MetadataStatusText.Label(Track.Metadata.Status)</span>
                     <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
                 </div>
+                <TrackOrigin Track="Track" />
                 <ArtworkActions Track="Track" OnChanged="SetTrack" />
             </div>
             <StemRibbon Stems="StemList" TestId="track-ribbon" />
@@ -90,6 +91,7 @@ else
                            OnScore="OpenScore" />
             <LyricsSection Track="Track" />
         }
+        <TrackGenerations Track="Track" />
     </div>
 }
 

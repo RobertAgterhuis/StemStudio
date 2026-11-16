@@ -63,7 +63,7 @@ playable on the page and stored in the personal library, marked as AI-generated.
 **Why this priority**: The owner's core request.
 
 **Independent Test**: With the generative service on the GPU, generate 60 s from the sample lyrics
-with the "Pop rock" preset; a playable take with vocals appears in the library with the
+with the "Classic soul" preset; a playable take with vocals appears in the library with the
 AI-generated and AI-voice labels. With fakes (CI) the same flow completes with a fake take.
 
 **Acceptance Scenarios**:

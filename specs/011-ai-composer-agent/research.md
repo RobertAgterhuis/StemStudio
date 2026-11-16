@@ -23,6 +23,10 @@ cases (kept in the architect's scratchpad, not committed; the evaluation set in
 | F-09 | Unload | `POST /api/chat {model, messages: [], keep_alive: 0}` -> 200 in **6 ms**; `/api/ps` empty; GPU back to 1.5 GB used. Reload from the OS file cache **4.8-5.4 s**. |
 | F-10 | Reachability from containers | `docker run curlimages/curl ... http://host.docker.internal:11434/api/version` -> 0.40.16; also from inside the running `stemstudio-api-1` container (compose network) -> 0.40.16. Docker Desktop resolves `host.docker.internal` by default; compose adds `extra_hosts: ["host.docker.internal:host-gateway"]` for Linux engines. |
 | F-11 | Semantic gap found | "de zang 3 dB harder" was mapped to an **absolute** `gainDb: 3`. Tool design consequence: separate `gainDb` (absolute) and `gainChangeDb` (relative) arguments with descriptions that say so (tool-catalogue, `mixer_set_channel`). |
+| F-12 | Package versions at Phase 0 (2026-11-15, NuGet registration API) | The research values were too new for the >= 2-week rule: Microsoft.Extensions.AI 11.0.0 (published 2026-11-11), OllamaSharp 5.5.2 (2026-11-05), Anthropic 13.8.0 (2026-11-10). **Pinned** the newest qualifying versions: **Microsoft.Extensions.AI 10.11.0** (MIT, 2026-10-14), **OllamaSharp 5.5.0** (MIT licence file in the package, 2026-09-30; requires MEAI >= 10.8.0), **Anthropic 13.3.0** (Apache-2.0, 2026-10-24; requires MEAI.Abstractions >= 10.5.1, targets net8.0/net9.0/netstandard2.0, used from net10.0). All three restore and compile together on net10.0. |
+| F-13 | Ollama options through `IChatClient` (compile + stub-handler spike, no Ollama call) | `ChatOptions.AddOllamaOption(OllamaOption.NumCtx, 16384)` and `AddOllamaOption(OllamaOption.NumGpu, 0)` land in `options.num_ctx` / `options.num_gpu`; `ChatOptions.RawRepresentationFactory = _ => new ChatRequest { Think = false, KeepAlive = "10m" }` lands in top-level `think` / `keep_alive`; `Temperature`, `Tools` (`AIFunctionFactory.CreateDeclaration`, schema with `additionalProperties: false`) map as expected. Captured body: `{"model":"qwen3.5:9b",...,"options":{"num_ctx":16384,"num_gpu":0,"temperature":0.2},"keep_alive":"10m","stream":false,"think":false,"tools":[...]}`. No `DelegatingChatClient` shim is needed. (OllamaSharp 5.5.0 also serialises an empty `CustomHeaders` member; Ollama ignores unknown members.) |
+| F-14 | Anthropic SDK `IChatClient` (compile + stub-handler spike against `http://stub.invalid`, **the Claude API was not called**, dummy key) | `new AnthropicClient { ApiKey = ..., BaseUrl = ..., HttpClient = ... }.AsIChatClient("claude-opus-5-5", 8000, AnthropicThinkingMode.Adaptive)` (namespace `Microsoft.Extensions.AI`, in the Anthropic package). `ChatOptions.Reasoning = new ReasoningOptions { Effort = ReasoningEffort.Low }` becomes `"output_config":{"effort":"low"}`; thinking is sent as `{"type":"adaptive"}`; `ToolMode = Auto` becomes `"tool_choice":{"type":"auto"}`; max output tokens from the factory argument (`"max_tokens":8000`). Thinking display is not set by the integration (API default `omitted`, which StemStudio wants: no reasoning is shown); if it is ever needed, `RawRepresentationFactory` can supply a `MessageCreateParams`. Tests point `BaseUrl` at a stub handler; a "must not be called" handler proves 0 requests when Claude is not selected (T064). |
+| F-15 | Fake chat client | `ScriptedChatClient` (src/StemStudio.Agent/Backends/Fakes) streams text, `FunctionCallContent` (ids `call-<turn>-<n>`) and `UsageContent` per scripted turn; script format `contracts/agent-script.schema.json` 1.0.0 (also the E2E `e2e/agent-scripts/*.json` format). |
 
 ## 2. Decisions
 
@@ -62,8 +66,8 @@ cases (kept in the architect's scratchpad, not committed; the evaluation set in
 
 | Backend | Package (licence) | Model default / fallback | Key settings |
 |---|---|---|---|
-| Ollama (default) | **OllamaSharp 5.5.2** (MIT), `OllamaApiClient : IChatClient` | `qwen3.5:9b` (GPU) / `qwen3.5:4b` (CPU, `num_gpu: 0`) while a heavy GPU job is queued or running | `num_ctx` 16384, `think` false, `temperature` 0.2, `keep_alive` 10m; base URL `StemStudio__Agent__Ollama__BaseUrl` (compose: `http://host.docker.internal:11434`) |
-| Claude (optional) | **Anthropic 13.8.0** (official C# SDK, Apache-2.0), IChatClient integration | `claude-opus-5-5` (owner may choose `claude-sonnet-5-5` / `claude-haiku-5-5` in Expert settings; never chosen automatically) | key only `ANTHROPIC_API_KEY`; adaptive thinking (cannot be disabled on Opus 5.5), effort `low` default for chat-style commands (configurable `low`/`medium`/`high`); `ToolMode` **auto** only (forced `any`/`tool` returns 400 on Opus 5.5); max output 8,000 tokens per turn; streaming |
+| Ollama (default) | **OllamaSharp 5.5.0** (MIT; pinned, F-12), `OllamaApiClient : IChatClient` | `qwen3.5:9b` (GPU) / `qwen3.5:4b` (CPU, `num_gpu: 0`) while a heavy GPU job is queued or running | `num_ctx` 16384, `think` false, `temperature` 0.2, `keep_alive` 10m; base URL `StemStudio__Agent__Ollama__BaseUrl` (compose: `http://host.docker.internal:11434`) |
+| Claude (optional) | **Anthropic 13.3.0** (official C# SDK, Apache-2.0; pinned, F-12), `AsIChatClient` (F-14) | `claude-opus-5-5` (owner may choose `claude-sonnet-5-5` / `claude-haiku-5-5` in Expert settings; never chosen automatically) | key only `ANTHROPIC_API_KEY`; adaptive thinking (cannot be disabled on Opus 5.5), effort `low` default for chat-style commands (configurable `low`/`medium`/`high`); `ToolMode` **auto** only (forced `any`/`tool` returns 400 on Opus 5.5); max output 8,000 tokens per turn; streaming |
 | None | - | - | agent off |
 | Fake (tests, E2E) | own `ScriptedChatClient` | scripted turns from a JSON script | `STEMSTUDIO_AGENT_BACKEND=fake`, `STEMSTUDIO_AGENT_FAKE_SCRIPT` |
 
@@ -80,7 +84,7 @@ cases (kept in the architect's scratchpad, not committed; the evaluation set in
   to another paid model without the owner's explicit choice (FR-020); a refusal ends the run.
   Prompt caching: keep the tool list and system prompt byte-stable and sorted (render order tools
   -> system -> messages) so repeated turns hit the cache.
-- **To verify in Phase 0 (architect, T00x)**: the exact OllamaSharp way to pass `num_gpu`,
+- **Verified in Phase 0 (F-13, F-14; no shim needed)** - original question: the exact OllamaSharp way to pass `num_gpu`,
   `num_ctx`, `think` and `keep_alive` through `ChatOptions` (expected: `ChatOptions`
   additional properties / OllamaSharp option helpers), and the exact Anthropic C# SDK extension
   that returns an `IChatClient` plus how effort and thinking display are set through it (expected:
@@ -173,15 +177,15 @@ cases (kept in the architect's scratchpad, not committed; the evaluation set in
 
 | Name | Version | Licence | Where | URL |
 |---|---|---|---|---|
-| Microsoft.Extensions.AI | 11.0.0 | MIT | StemStudio.Agent | https://github.com/dotnet/extensions |
-| Microsoft.Extensions.AI.Abstractions | 11.0.0 | MIT | StemStudio.Agent (transitive) | same |
-| OllamaSharp | 5.5.2 | MIT | StemStudio.Agent | https://github.com/awaescher/OllamaSharp |
-| Anthropic (official C# SDK) | 13.8.0 | Apache-2.0 | StemStudio.Agent, optional backend (amendment) | https://github.com/anthropics/anthropic-sdk-csharp |
+| Microsoft.Extensions.AI | 10.11.0 (pinned; 11.0.0 too new) | MIT | StemStudio.Agent | https://github.com/dotnet/extensions |
+| Microsoft.Extensions.AI.Abstractions | 10.11.0 (transitive) | MIT | StemStudio.Agent (transitive) | same |
+| OllamaSharp | 5.5.0 (pinned; 5.5.2 too new) | MIT | StemStudio.Agent | https://github.com/awaescher/OllamaSharp |
+| Anthropic (official C# SDK) | 13.3.0 (pinned; 13.8.0 too new) | Apache-2.0 | StemStudio.Agent, optional backend (constitution 1.3.0) | https://github.com/anthropics/anthropic-sdk-csharp |
 | Qwen3.5 9B / 4B weights | via Ollama | Apache-2.0 | host Ollama, pulled by the user | https://huggingface.co/Qwen/Qwen3.5-9B |
 | Ollama (host program) | 0.40.16 | MIT | host prerequisite, not shipped | https://github.com/ollama/ollama |
 
-Versions are the research values of 2026-11-15; the architect re-checks NuGet at feature start
-and pins exact versions centrally (ADR-007).
+Versions re-checked at Phase 0 (F-12) and pinned centrally in `Directory.Packages.props` (ADR-007);
+the newer releases can be taken once they are two weeks old (from 2026-11-25).
 
 ## 4. Open risks
 

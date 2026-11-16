@@ -1,0 +1,26 @@
+@* What a song take was made from (010 US1-4, FR-003): the lyrics snapshot, language, style or free description, voice,
+   tempo, key, beats per bar and length. Rendered inside the take details' description list. *@
+@using StemStudio.Contracts.Generation
+@using StemStudio.Web.Songs
+
+<dt>Lyrics</dt><dd>@Song.Lyrics.Title (@LanguageNames.Of(Song.Lyrics.Language))</dd>
+<dt>Style</dt><dd>@(Song.Style?.Name ?? Song.FreeCaption ?? "Chosen by the model")</dd>
+<dt>Voice</dt><dd>@(Song.Instrumental ? "Instrumental (no vocals)" : VoiceText)</dd>
+<dt>Music</dt><dd>@MusicText</dd>
+<dt>Length</dt><dd class="ss-num">@TimeText.Duration(Song.DurationSeconds)</dd>
+<dt>Text</dt><dd><div class="ss-lyrics-preview ss-take-lyrics" role="region" tabindex="0" aria-label="Lyrics of the take">@Song.Lyrics.Text</div></dd>
+
+@code {
+    /// <summary>The song details.</summary>
+    [Parameter, EditorRequired]
+    public SongDetailsDto Song { get; set; } = default!;
+
+    private string VoiceText => string.Join(", ", new[] { $"{SongText.LeadVoice(Song.Voice.LeadVoice)} lead", Song.Voice.Delivery }.OfType<string>());
+
+    private string MusicText => string.Join(", ", new[]
+    {
+        Song.Bpm is { } bpm ? $"{bpm} BPM" : null,
+        Song.KeyScale,
+        Song.TimeSignature is { } beats ? SongText.TimeSignature(beats) : null,
+    }.OfType<string>().DefaultIfEmpty("Chosen by the model"));
+}

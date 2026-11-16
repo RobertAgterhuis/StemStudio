@@ -122,4 +122,94 @@ public static class ContractLimits
         "A minor", "E minor", "B minor", "F# minor", "C# minor", "G# minor", "D# minor", "A# minor",
         "D minor", "G minor", "C minor", "F minor", "B- minor", "E- minor", "A- minor",
     ];
+
+    /// <summary>Shortest restyle range and song in seconds (features 009 and 010).</summary>
+    public const double MinGenerationSeconds = 10;
+
+    /// <summary>Longest restyle range, in-place track and song in seconds (features 009 and 010).</summary>
+    public const double MaxGenerationSeconds = 480;
+
+    /// <summary>Most takes per generation (feature 009).</summary>
+    public const int MaxTakes = 2;
+
+    /// <summary>Longest style name (feature 009).</summary>
+    public const int StyleNameMaxLength = 60;
+
+    /// <summary>Longest style sub-genre (feature 009).</summary>
+    public const int StyleSubGenreMaxLength = 40;
+
+    /// <summary>Longest style description (feature 009).</summary>
+    public const int StyleDescriptionMaxLength = 300;
+
+    /// <summary>Most instrument or mood tags of a style (feature 009).</summary>
+    public const int StyleMaxTags = 8;
+
+    /// <summary>Longest style tag (feature 009).</summary>
+    public const int StyleTagMaxLength = 30;
+
+    /// <summary>Longest model caption (features 009 and 010).</summary>
+    public const int CaptionMaxLength = 512;
+
+    /// <summary>Most characters of lyrics after normalisation (feature 010).</summary>
+    public const int LyricsSheetMaxLength = 4096;
+
+    /// <summary>Longest lyrics sheet or song title (feature 010).</summary>
+    public const int LyricsTitleMaxLength = 80;
+
+    /// <summary>Largest lyrics upload in bytes (64 KiB, feature 010).</summary>
+    public const long MaxLyricsUploadBytes = 64L * 1024;
+
+    /// <summary>Allowed lyrics upload extensions (lower case, with dot; feature 010).</summary>
+    public static readonly IReadOnlyList<string> LyricsUploadExtensions = [".txt", ".lrc", ".md"];
+
+    /// <summary>Lyrics density in words per second above which the song page warns (feature 010).</summary>
+    public const double LyricsDensityWarningWordsPerSecond = 4.0;
+
+    /// <summary>Longest free caption of a song (feature 010).</summary>
+    public const int FreeCaptionMaxLength = 300;
+
+    /// <summary>Longest delivery text of a song (feature 010).</summary>
+    public const int DeliveryMaxLength = 40;
+
+    /// <summary>Slowest and fastest song tempo (feature 010).</summary>
+    public const int MinSongBpm = 40;
+
+    /// <summary>Fastest song tempo (feature 010).</summary>
+    public const int MaxSongBpm = 220;
+
+    /// <summary>Key of a song, e.g. <c>E minor</c> (feature 010).</summary>
+    public const string SongKeyPattern = "^[A-G](#|b)? (major|minor)$";
+
+    /// <summary>Time signatures of a song (beats per bar; feature 010).</summary>
+    public static readonly IReadOnlyList<string> SongTimeSignatures = ["2", "3", "4", "6"];
+
+    /// <summary>Lyrics languages of ACE-Step 1.5 plus <c>unknown</c> (feature 010; contract <c>LyricsLanguage</c>).</summary>
+    public static readonly IReadOnlyList<string> LyricsLanguages =
+    [
+        "ar", "az", "bg", "bn", "ca", "cs", "da", "de", "el", "en", "es", "fa", "fi", "fr", "he", "hi",
+        "hr", "ht", "hu", "id", "is", "it", "ja", "ko", "la", "lt", "ms", "ne", "nl", "no", "pa", "pl",
+        "pt", "ro", "ru", "sa", "sk", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur", "vi",
+        "yue", "zh", "unknown",
+    ];
+
+    /// <summary>Shortest voice sample in seconds (feature 010).</summary>
+    public const double MinVoiceSampleSeconds = 10;
+
+    /// <summary>Longest voice sample in seconds (feature 010).</summary>
+    public const double MaxVoiceSampleSeconds = 60;
+
+    /// <summary>Largest voice sample upload in bytes (20 MiB, feature 010).</summary>
+    public const long MaxVoiceSampleBytes = 20L * 1024 * 1024;
+
+    /// <summary>Longest voice profile display name (feature 010).</summary>
+    public const int VoiceNameMaxLength = 60;
+
+    /// <summary>Longest person name of a consent (feature 010).</summary>
+    public const int ConsentPersonNameMaxLength = 80;
+
+    /// <summary>Current version of the voice consent statement (feature 010, ADR-019 D3).</summary>
+    public const string ConsentStatementVersion = "consent.v1";
+
+    /// <summary>Largest pitch shift of a voice conversion in semitones (feature 010).</summary>
+    public const int MaxPitchShift = 12;
 }

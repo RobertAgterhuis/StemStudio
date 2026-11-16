@@ -1,0 +1,50 @@
+@* Consent before any voice profile (010 FR-006; ui-test-ids 1.9.0 voice-consent-*, voice-person-name, voice-display-name):
+   the versioned statement in English and Dutch exactly as the API gives it, a checkbox described by it and the typed
+   name of the person whose voice it is. *@
+@using StemStudio.Web.Voices
+
+<fieldset class="ss-fieldset ss-consent">
+    <legend class="ss-label-row"><span class="ss-label">Consent</span><HelpHint HelpId="voice-consent" /></legend>
+    <div id="voice-consent-statement" class="ss-consent-text" data-testid="voice-consent-text" data-version="@Draft.Statement!.Version"
+         data-help-id="voice-consent">
+        <p lang="en">@Draft.Statement.Text</p>
+        <p lang="nl">@Draft.Statement.TextNl</p>
+    </div>
+    <label class="ss-check">
+        <input type="checkbox" checked="@Draft.Consented" aria-describedby="voice-consent-statement"
+               @onchange="e => Set(() => Draft.Consented = e.Value is true)" data-testid="voice-consent-checkbox" />
+        I agree with this statement: it is my own voice.
+    </label>
+    <div class="ss-range-row">
+        <label class="ss-field">
+            <span class="ss-label">Your name (the person singing)</span>
+            <input type="text" class="rz-textbox" maxlength="80" autocomplete="name" value="@Draft.PersonName"
+                   @oninput="e => Set(() => Draft.PersonName = (string)e.Value!)" data-testid="voice-person-name" />
+        </label>
+        <label class="ss-field">
+            <span class="ss-label">Profile name</span>
+            <input type="text" class="rz-textbox" maxlength="60" value="@Draft.DisplayName" @oninput="e => Set(() => Draft.DisplayName = (string)e.Value!)"
+                   data-testid="voice-display-name" />
+        </label>
+    </div>
+    <p class="ss-help ss-small">
+        Only your own voice. The sample, the statement, your name and the date are stored with the profile on this computer and
+        never sent elsewhere. Deleting the profile deletes the sample and everything made from it.
+    </p>
+</fieldset>
+
+@code {
+    /// <summary>The draft with the loaded statement.</summary>
+    [Parameter, EditorRequired]
+    public VoiceDraft Draft { get; set; } = default!;
+
+    /// <summary>Raised after every change (the panel enables Save).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Task Set(Action change)
+    {
+        change();
+        return OnChanged.InvokeAsync();
+    }
+}

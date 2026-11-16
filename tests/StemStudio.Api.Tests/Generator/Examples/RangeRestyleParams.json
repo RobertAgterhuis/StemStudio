@@ -1,0 +1,16 @@
+{
+  "kind": "restyle",
+  "restyle": {
+    "caption": "Jazz swing, swing feel, piano, upright bass, brushed drums, relaxed, warm",
+    "audioCoverStrength": 0.55,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      1234567,
+      7654321
+    ],
+    "mode": "range",
+    "rangeStartSeconds": 60,
+    "rangeEndSeconds": 105
+  }
+}

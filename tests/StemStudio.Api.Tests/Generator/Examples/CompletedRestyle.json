@@ -1,0 +1,64 @@
+{
+  "generationId": "5b0f7e2c9a1d4c3e8f6a2b1d0c9e8f7a",
+  "kind": "restyle",
+  "status": "completed",
+  "progress": 100,
+  "stage": "Completed",
+  "restyle": {
+    "caption": "Jazz swing, swing feel, piano, upright bass, brushed drums, relaxed, warm",
+    "audioCoverStrength": 0.55,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      1234567,
+      7654321
+    ],
+    "mode": "range",
+    "rangeStartSeconds": 60,
+    "rangeEndSeconds": 105
+  },
+  "takes": [
+    {
+      "index": 1,
+      "seed": 1234567,
+      "durationSeconds": 45,
+      "sampleRate": 48000,
+      "sha256": "9c4f2e7d1b3a5c6e8f0a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6",
+      "bytes": 9012345,
+      "peakDbfs": -0.9,
+      "model": {
+        "id": "acestep-v15-turbo",
+        "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+      },
+      "vocal": null,
+      "hasVocalStem": false,
+      "profile": null
+    },
+    {
+      "index": 2,
+      "seed": 7654321,
+      "durationSeconds": 45,
+      "sampleRate": 48000,
+      "sha256": "0a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5",
+      "bytes": 8954321,
+      "peakDbfs": -1.2,
+      "model": {
+        "id": "acestep-v15-turbo",
+        "revision": "19671f406d603126926c1b7e2adc169acbcade22"
+      },
+      "vocal": null,
+      "hasVocalStem": false,
+      "profile": null
+    }
+  ],
+  "warnings": [],
+  "device": {
+    "kind": "gpu",
+    "name": "NVIDIA GeForce RTX 5070 Ti",
+    "cpuFallback": false,
+    "fallbackReason": null
+  },
+  "error": null,
+  "createdAt": "2026-11-15T12:00:00Z",
+  "updatedAt": "2026-11-15T12:00:38Z"
+}

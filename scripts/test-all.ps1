@@ -4,8 +4,8 @@
     Runs every component's lint, test and coverage gate locally (the same commands as CI).
 
 .DESCRIPTION
-    .NET (build, format, tests with the per-component 90 % line+branch gate), worker (ruff, mypy,
-    pytest with coverage), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+    .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
+    (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
     quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E
     suite (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
     Prints a summary and exits 1 when any step failed.
@@ -36,6 +36,8 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Redocly = '@redocly/cli@2.78.0'
 $Contracts = 'specs/008-sheet-music/contracts'  # 008 documents contain 006's and 007's unchanged
 $RenderVectors = 'specs/007-export-library/contracts/generate_render_vectors.py'  # 008 has no vectors file
+# Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
+$GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics-to-song/contracts')
 
 # Each step: name, working dir (relative to the repo root), command. Every component is merged, so a
 # missing folder fails the step instead of skipping it. Commands match .github/workflows/ci.yml.
@@ -50,6 +52,11 @@ $Steps = @(
     @{ Name = 'worker ruff format'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
     @{ Name = 'worker mypy'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'mypy', 'src', 'tests') }
     @{ Name = 'worker pytest + coverage'; Dir = 'worker'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term', '--cov-fail-under=90') }
+    @{ Name = 'generator uv sync'; Dir = 'generator'; Cmd = @('uv', 'sync', '--frozen') }
+    @{ Name = 'generator ruff check'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
+    @{ Name = 'generator ruff format'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }
+    @{ Name = 'generator mypy'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'mypy', 'src', 'tests') }
+    @{ Name = 'generator pytest + coverage'; Dir = 'generator'; Cmd = @('uv', 'run', '--frozen', 'pytest', '--cov', '--cov-branch', '--cov-report=term', '--cov-fail-under=90') }
     @{ Name = 'engine npm ci'; Dir = 'src/audio-engine'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'engine lint'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'lint') }
     @{ Name = 'engine typecheck'; Dir = 'src/audio-engine'; Cmd = @('npm', 'run', 'typecheck') }
@@ -61,6 +68,9 @@ $Steps = @(
     @{ Name = 'web-interop test:coverage'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'web-interop build'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'build') }
     @{ Name = 'contracts lint'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/worker-api.openapi.yaml", "$Contracts/backend-api.openapi.yaml") }
+    foreach ($dir in $GenerativeContracts) {
+        @{ Name = "contracts lint ($(Split-Path -Leaf (Split-Path -Parent $dir)))"; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$dir/redocly.yaml", "$dir/generator-api.openapi.yaml", "$dir/backend-api.openapi.yaml") }
+    }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
     @{ Name = 'quality ruff check'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'check', '.') }
     @{ Name = 'quality ruff format'; Dir = 'tools/quality'; Cmd = @('uv', 'run', '--frozen', 'ruff', 'format', '--check', '.') }

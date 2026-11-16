@@ -1,0 +1,15 @@
+{
+  "kind": "restyle",
+  "restyle": {
+    "caption": "Reggae, laidback feel, offbeat guitar skank, organ, deep bass, one-drop drums, sunny, mellow",
+    "audioCoverStrength": 0.55,
+    "inferenceSteps": 8,
+    "shift": 3,
+    "seeds": [
+      42
+    ],
+    "mode": "inPlace",
+    "rangeStartSeconds": 15,
+    "rangeEndSeconds": 30
+  }
+}

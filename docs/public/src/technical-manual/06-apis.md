@@ -49,12 +49,17 @@ Errors: 400 validation, 404, 409 conflicts (mix name taken, retry of a non-faile
 item, delete while processing, less than `MinFreeDiskBytes` free), 413 too large, 415
 unsupported type, 422 nothing to export, 503 *"Processing service unavailable"*.
 
-### Planned additions <span class="planned">In development</span>
+### Generative endpoints (009, 010)
 
 | Feature | Endpoints |
 |---|---|
 | 009 Style transfer | `GET /api/generation/status`, `/api/styles` CRUD and `…/duplicate`, `POST /api/tracks/{id}/restyles`, `/api/generations` with cancel, retry, take audio and import |
 | 010 Lyrics to song | `/api/lyrics` CRUD, upload and sections, `POST /api/songs`, `/api/voice-profiles`, `GET /api/consent/voice`, `POST …/takes/{n}/voice-conversions` |
+
+### Planned additions <span class="planned">In development</span>
+
+| Feature | Endpoints |
+|---|---|
 | 011 Agent | `/api/agent/status`, `/settings` (+ `/test`), `/tools`, `/conversations` (+ messages, undo), `/runs/{runId}` with SSE `events`, `approvals/{stepId}`, `ui-results/{stepId}`, `cancel` |
 
 ## Worker API (port 8000, internal)
@@ -102,7 +107,7 @@ LRCLIB (006) is on the same allow list (`lrclib.net`); a lyrics lookup asks at m
 2 s of the track. Lyrics never appear in logs: a backend test scans the log output for the fake
 provider's words (FR-010).
 
-## Generator API (port 8010, internal) <span class="planned">In development</span>
+## Generator API (port 8010, internal)
 
 Version 1.0.0 (009): `GET /health`, `POST /v1/generations` (multipart parameters plus 1 to 6
 stems), `GET /v1/generations/{id}`, `POST …/cancel`, `GET …/takes/{index}` (FLAC, Range) and

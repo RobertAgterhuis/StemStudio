@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007 and 006 + 008 Phase 0).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008 and 009 + 010 Phase 0).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -14,11 +14,35 @@ internal static class ContractJson
 
     private static readonly Lazy<OpenApiContract> LazyBackend006 = new(() => Backend("006"));
 
+    private static readonly Lazy<OpenApiContract> LazyBackend008 = new(() => Backend("008"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend009 = new(() => Backend("009"));
+
+    private static readonly Lazy<OpenApiContract> LazyGenerator =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "generator-api.openapi.yaml")));
+
+    private static readonly Lazy<OpenApiContract> LazyGenerator009 =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "009", "generator-api.openapi.yaml")));
+
+    private static readonly string[] TimeMembers = ["createdAt", "updatedAt", "completedAt", "consentedAt"];
+
     /// <summary>The 007 backend document (1.5.0), linked as <c>Contract/007/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend007 => LazyBackend007.Value;
 
     /// <summary>The 006 backend document (1.6.0), linked as <c>Contract/006/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend006 => LazyBackend006.Value;
+
+    /// <summary>The 008 backend document (1.7.0), linked as <c>Contract/008/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend008 => LazyBackend008.Value;
+
+    /// <summary>The 009 backend document (1.8.0), linked as <c>Contract/009/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend009 => LazyBackend009.Value;
+
+    /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
+    public static OpenApiContract GeneratorContract => LazyGenerator.Value;
+
+    /// <summary>The 009 generator document (1.0.0), linked as <c>Contract/009/generator-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Generator009 => LazyGenerator009.Value;
 
     /// <summary>The serializer options of the API (camelCase, string enums by attribute).</summary>
     public static JsonSerializerOptions Web { get; } = new(JsonSerializerDefaults.Web);
@@ -57,6 +81,61 @@ internal static class ContractJson
         return ignoreTimes ? (WithoutTimes(json), WithoutTimes(again)) : (json, again);
     }
 
+    /// <summary>A copy without any date-time member (at every depth); see <see cref="WithoutTimes"/>.</summary>
+    public static JsonNode WithoutAnyTimes(JsonNode node)
+    {
+        var copy = node.DeepClone();
+        Strip(copy);
+        return copy;
+    }
+
+    /// <summary>Serializes <c>T</c> parsed from the backend example back; date-time members removed at every depth.</summary>
+    public static (JsonNode Expected, JsonNode Actual) RoundTripDeep<T>(string example)
+    {
+        var json = Example(example);
+        var again = JsonSerializer.SerializeToNode(json.Deserialize<T>(Web), Web)!;
+        return (WithoutAnyTimes(json), WithoutAnyTimes(again));
+    }
+
+    /// <summary>A generator 1.1.0 example value.</summary>
+    public static JsonNode GeneratorExample(string name) => GeneratorContract.Root["components"]!["examples"]![name]!["value"]!;
+
+    /// <summary>True when <c>Generator/Examples/&lt;file&gt;.json</c> equals the contract JSON.</summary>
+    public static bool IsGeneratorCopyOf(string file, JsonNode? expected) =>
+        JsonNode.DeepEquals(JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Generator", "Examples", file + ".json"))), expected);
+
+    /// <summary>Asserts that every enum's wire names equal the <c>enum</c> of its backend schema, in order.</summary>
+    public static void AssertEnumsMatch(IEnumerable<(Type Enum, string Schema)> pairs)
+    {
+        foreach (var (type, schema) in pairs)
+        {
+            WireNames(type).ShouldBe(Strings(Schema(schema)["enum"]!), schema);
+        }
+    }
+
+    private static void Strip(JsonNode? node)
+    {
+        var children = node switch
+        {
+            JsonObject obj => StripTimes(obj),
+            JsonArray array => [.. array],
+            _ => [],
+        };
+        foreach (var child in children)
+        {
+            Strip(child);
+        }
+    }
+
+    private static List<JsonNode?> StripTimes(JsonObject obj)
+    {
+        foreach (var name in TimeMembers)
+        {
+            obj.Remove(name);
+        }
+
+        return [.. obj.Select(pair => pair.Value)];
+    }
     public static JsonNode Schema(string name) => OpenApiContract.Backend.Root["components"]!["schemas"]![name]!;
 
     public static JsonNode Example(string name) => OpenApiContract.Backend.Root["components"]!["examples"]![name]!["value"]!.DeepClone();

@@ -1,0 +1,48 @@
+# Fake generative services for CI, E2E and local UI work (features 009/010; quickstart Q2 / V2).
+# No GPU, no torch, no model weights: the fake engine of generator/ fakes generations, GPU waits and
+# out-of-memory retries. Add it after docker-compose.generative.yml (the GPU override is not needed):
+#   STEMSTUDIO_SEPARATOR=fake docker compose -f docker-compose.yml -f docker-compose.generative.yml \
+#     -f docker-compose.generative-fake.yml up -d --build --wait
+#
+# Both services run the fake variant of docker/generator.Dockerfile (GENERATOR_VARIANT=fake:
+# the base install of generator/uv.lock, OSI licences only, checked by
+# scripts/check-cpu-image.{sh,ps1} --generator). The singer differs only in its kinds.
+# Settings (your shell):
+#   STEMSTUDIO_FAKE_GENERATOR_MODE=ready|no-gpu|oom|oom-twice|busy|slow|unvoiced-sample   default ready
+#   STEMSTUDIO_FAKE_GENERATOR_STEP_SECONDS=1   seconds per fake step (0 = fastest)
+#   STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS=5       wait limit before gpuBusy (mode busy)
+
+services:
+  # Same one-shot ownership step, from the fake image (no GPU image is built for the fake stack).
+  model-cache-owner:
+    build:
+      args:
+        GENERATOR_VARIANT: fake
+    image: stemstudio/generator:local-fake
+
+  generator:
+    build:
+      args:
+        GENERATOR_VARIANT: fake
+    image: stemstudio/generator:local-fake
+    environment: &fake-env
+      STEMSTUDIO_GENERATOR: fake
+      STEMSTUDIO_FAKE_GENERATOR_MODE: ${STEMSTUDIO_FAKE_GENERATOR_MODE:-ready}
+      STEMSTUDIO_FAKE_GENERATOR_STEP_SECONDS: ${STEMSTUDIO_FAKE_GENERATOR_STEP_SECONDS:-1}
+      STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS: ${STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS:-5}
+      # Blank = no file lease (the fake stack has no GPU worker to share it with).
+      STEMSTUDIO_GPU_LEASE_FILE: ""
+    healthcheck:
+      start_period: 30s
+    deploy: !reset {}
+
+  singer:
+    build:
+      args:
+        GENERATOR_VARIANT: fake
+    image: stemstudio/singer:local-fake
+    environment:
+      <<: *fake-env
+    healthcheck:
+      start_period: 30s
+    deploy: !reset {}

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "rules": "009 FR-003, FR-005, FR-008, SC-003, SC-005; 010 FR-006, FR-007, FR-010, FR-011, SC-004, SC-005. 'spec' cases quote the specs; 'qa-proposal' cases are what qa expects the guard to catch as well (backend 009:T024 decides; a miss is reported, not silently dropped).",
+  "imitationRefused": [
+    { "field": "description", "text": "Warm late-night jazz in the style of a famous crooner", "source": "spec" },
+    { "field": "description", "text": "Big drums, sounds like a stadium band from the eighties", "source": "spec" },
+    { "field": "description", "text": "A soft ballad with the voice of a well-known singer", "source": "spec" },
+    { "field": "name", "text": "In The Style Of Someone", "source": "spec" },
+    { "field": "subGenre", "text": "sounds like radio", "source": "spec" },
+    { "field": "description", "text": "Rustige piano in de stijl van een bekende zanger", "source": "qa-proposal" },
+    { "field": "description", "text": "Gitaarpop die klinkt als de hitlijst", "source": "qa-proposal" },
+    { "field": "description", "text": "Funky bass, SOUNDS   LIKE a famous band", "source": "qa-proposal" },
+    { "field": "description", "text": "Dreamy pop in the stýle of an idol", "source": "qa-proposal" }
+  ],
+  "songTextsRefused": [
+    { "field": "freeCaption", "text": "Upbeat pop in the style of a chart singer", "source": "spec" },
+    { "field": "delivery", "text": "sounds like a famous tenor", "source": "spec" }
+  ],
+  "genreNamesAccepted": [
+    "Soul ballad",
+    "Rock steady groove",
+    "Blues shuffle",
+    "Country waltz",
+    "Heavy metal riffs",
+    "Pop punk energy",
+    "Classical strings",
+    "Folk duo"
+  ],
+  "presetForbiddenPhrases": [
+    "in the style of",
+    "sounds like",
+    "voice of",
+    "in de stijl van",
+    "klinkt als"
+  ],
+  "libraryArtist": {
+    "fixture": "cover_embedded_10s.mp3",
+    "artist": "StemStudio Fixtures",
+    "refusedDescription": "Bright synth pop like StemStudio Fixtures"
+  },
+  "aiLabels": {
+    "flacTags": ["AI_GENERATED", "GENERATOR", "STEMSTUDIO_GENERATION", "STEMSTUDIO_TAKE"],
+    "songVoiceTag": "AI_VOICE",
+    "badgeText": "AI",
+    "convertedProfileDeletedSuffix": "(profile deleted)"
+  },
+  "consent": {
+    "statementVersion": "consent.v1",
+    "textEn": "This is my own voice. I agree that StemStudio uses this recording on this computer to convert generated vocals into my voice. I can delete it at any time.",
+    "textNl": "Dit is mijn eigen stem. Ik ga ermee akkoord dat StemStudio deze opname op deze computer gebruikt om gegenereerde zang om te zetten naar mijn stem. Ik kan de opname op elk moment verwijderen.",
+    "outdatedVersion": "consent.v0"
+  }
+}

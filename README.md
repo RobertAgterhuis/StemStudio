@@ -38,6 +38,10 @@ metronome so you can mute the guitar and play it yourself.
 - **Synced lyrics** (feature 006): a karaoke banner with a bouncing ball under the mixer.
 - **Library and exports** (feature 007): save stems, mixes and stem packs as FLAC, WAV or MP3.
 - **Sheet music** (feature 008): a PDF lead sheet plus MusicXML and MIDI per instrument.
+- **Style transfer** (feature 009, optional, NVIDIA GPU): restyle a song or a range of it with a
+  style from a library of 24 presets or your own styles (ACE-Step 1.5).
+- **Songs from your own lyrics** (feature 010, optional, NVIDIA GPU): write lyrics, generate a
+  sung song, and optionally convert the vocal into your own voice after explicit consent.
 
 ### Online lookups (feature 005, 006)
 
@@ -79,6 +83,24 @@ piano profile uses a 172 MB CRNN model (CC BY 4.0, downloaded at first use); on 
 takes about two minutes for a 4-minute song, on a GPU well under a minute. Limits: no triplets,
 swing, dynamics, articulations, lyrics, chords or tablature; the key is estimated with a
 confidence and can be overridden at Advanced level.
+
+### Style transfer and songs (features 009 and 010, optional)
+
+An optional generator service (ACE-Step 1.5, MIT) restyles a song or a range of it into another
+style and generates complete songs with vocals from your own lyrics; a singer service
+(SoulX-Singer, Apache-2.0) converts a generated vocal into your own voice. Both need an NVIDIA
+GPU (about 8.5 GB free for a low-memory restyle, 14 GB for the standard profile) and are started
+with an extra override; without it the controls are disabled and say why:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml up --build
+```
+
+Measured on an RTX 5070 Ti: a 30 s restyle in about 16 s, a 45 s song in about 51 s (cold), a
+10 s voice conversion in about 26 s. Every take is labelled AI-generated in the app and in the
+file tags (`AI_GENERATED`, `AI_VOICE`). Styles describe music, never artists: imitation phrases
+and artist names are refused. A voice profile needs your own recording (10-60 s) and a signed
+consent statement; library audio is refused as a voice sample. Results are for personal use.
 
 ## Quick start (Docker)
 
@@ -223,6 +245,10 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   alignment quality varies with the vocal stem (words marked low-confidence at Expert level).
 - **Sheet music** is a practice aid: transcription misses or adds notes, detail stems leak, and
   unreliable beat grids need a manual tempo, metre and first downbeat.
+- **Generative features** need an NVIDIA GPU (no CPU fallback) and about 10 GB (ACE-Step) plus
+  3.3 GB (SoulX) of model weights; the generator image is ~15 GB, the singer image 7-8 GB.
+  Results vary per take, lyrics are not always sung exactly as written, and the voice conversion
+  works best with 20-30 s of dry singing.
 - **Detail separation** (drums -> kick/snare/toms/hihat/cymbals, vocals -> lead/backing,
   guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
   leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
@@ -237,7 +263,8 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 > volumes that contain them are not covered. Detail separation credits Ultimate Vocal Remover
 > (UVR) and its developers, and ZFTurbo's Music-Source-Separation-Training. The lyrics and
 > sheet-music models (Whisper large-v3-turbo MIT, basic-pitch Apache-2.0, piano CRNN CC BY 4.0 by
-> Kong et al.) have open licences and are also downloaded on first use.
+> Kong et al.) and the generative models (ACE-Step 1.5 MIT; SoulX-Singer, RMVPE and Whisper base
+> Apache-2.0) have open licences and are also downloaded on first use.
 
 StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components

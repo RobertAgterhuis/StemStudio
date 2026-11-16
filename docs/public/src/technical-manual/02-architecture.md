@@ -16,8 +16,8 @@ product; it must not be exposed to the internet (ADR-002).
 | Contracts (`src/StemStudio.Contracts`) | .NET DTOs | — | Shared wire types for Web and API |
 | Persistence (`src/StemStudio.Persistence`) | EF Core, SQLite | — | DbContext and migrations |
 | Worker (`worker/`) | Python 3.12, FastAPI | 8000 (internal) | Ingest (yt-dlp, spotDL, ffmpeg), Demucs separation, detail models, beat analysis |
-| Generator (`generator/`) <span class="planned">In development</span> | Python 3.12, FastAPI, ACE-Step | 8010 (internal) | Style transfer and song generation (009, 010) |
-| Singer <span class="planned">In development</span> | Python, SoulX-Singer | 8010 (internal) | Voice-sample checks and voice conversion (010) |
+| Generator (`generator/`) | Python 3.12, FastAPI, ACE-Step | 8010 (internal) | Style transfer and song generation (009, 010) |
+| Singer (`generator/`, variant `soulx`) | Python, SoulX-Singer | 8010 (internal) | Voice-sample checks and voice conversion (010) |
 | Agent (`src/StemStudio.Agent`) <span class="planned">In development</span> | .NET library hosted in the API | — | AI composer agent loop and tool registry (011) |
 
 ## Data flow

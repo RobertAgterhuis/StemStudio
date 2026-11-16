@@ -1,0 +1,26 @@
+@* AI voice label of a take or a generated track (010 FR-011; ui-test-ids 1.9.0 take-vocal-badge-*, track-vocal-badge):
+   "No vocals", "AI voice" or "AI voice: <profile>", with data-vocal for tests; text, never colour alone. *@
+@using StemStudio.Contracts.Generation
+
+<span class="ss-vocal-badge" data-testid="@TestId" data-vocal="@WireName.Of(Vocal)" data-help-id="generation-ai-label">@Text</span>
+
+@code {
+    /// <summary>The <c>data-testid</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>The vocal label.</summary>
+    [Parameter, EditorRequired]
+    public VocalLabelDto Vocal { get; set; }
+
+    /// <summary>The voice profile of a converted take.</summary>
+    [Parameter]
+    public string? ProfileName { get; set; }
+
+    private string Text => Vocal switch
+    {
+        VocalLabelDto.None => "No vocals",
+        VocalLabelDto.Converted => $"AI voice: {ProfileName}",
+        _ => "AI voice",
+    };
+}

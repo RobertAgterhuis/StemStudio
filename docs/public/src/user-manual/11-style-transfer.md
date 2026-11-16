@@ -1,7 +1,6 @@
 # Style transfer and the style library
 
-<span class="planned">In development</span> Feature 009. This chapter describes the
-specified behaviour.
+Feature 009.
 
 Hear a song you imported in another style: your rock song as a bossa nova, a jazz trio or
 synthwave. Each result is a **take** that is saved in your library and clearly labelled as
@@ -18,6 +17,10 @@ StemStudio keeps working.
 
 The first use downloads the model (about 10 GB); the job then shows *Downloading model
 (first use)*.
+
+How long it takes, measured on the reference machine (RTX 5070 Ti, 16 GB): a 30-second range
+is restyled in about 16 seconds, including loading the model after it was unloaded while idle.
+Longer ranges and two takes take proportionally longer.
 
 ## Restyling a song
 

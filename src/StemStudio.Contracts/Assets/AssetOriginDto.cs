@@ -13,4 +13,8 @@ public enum AssetOriginDto
     /// <summary>Transcribed to sheet music (feature 008).</summary>
     [JsonStringEnumMemberName("transcription")]
     Transcription,
+
+    /// <summary>A take of a generation (feature 009).</summary>
+    [JsonStringEnumMemberName("generation")]
+    Generation,
 }

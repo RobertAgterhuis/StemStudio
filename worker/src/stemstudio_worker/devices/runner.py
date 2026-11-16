@@ -1,13 +1,17 @@
 """``DeviceRunner`` implementations (ADR-012 D3-D6).
 
-``CpuRunner`` runs every step on the CPU. ``GpuRunner`` holds the GPU lease for each step, reads
-the free GPU memory with NVML and runs the step on the CPU when it does not fit; otherwise it caps
+``CpuRunner`` runs every step on the CPU. ``GpuRunner`` holds the GPU lease for each step and, in
+the GPU image with the optional generator (feature 009, ADR-018 D3), the shared file lease inside
+it; when the file lease is not free within ``gpu_lease_wait_seconds`` the step runs on the CPU with
+the reason "GPU busy with another StemStudio job". With both leases held it reads the free GPU
+memory with NVML and runs the step on the CPU when it does not fit; otherwise it caps
 torch's memory at the free memory for the step (so WSL2 raises out-of-memory instead of spilling
 into shared memory) and retries the step once on the CPU when the GPU attempt runs out of memory.
 Before a step falls back for lack of free memory, the runner first lets the worker release its own
 cached GPU models (the reclaimer, except the step's own model), empties torch's cache and checks
 once more: with a continuous queue the worker never becomes idle, and its resident models would
-otherwise starve its own later steps (T052 finding).
+otherwise starve its own later steps (T052 finding). CPU fallbacks run after the file lease is
+released, so another service can use the GPU meanwhile.
 """
 
 import gc
@@ -16,7 +20,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
-from stemstudio_worker.devices.lease import GpuLease
+from stemstudio_worker.config import GPU_LEASE_BUSY_REASON
+from stemstudio_worker.devices.lease import NO_FILE_LEASE, FileLease, GpuLease
 from stemstudio_worker.devices.nvml import GpuMemory, NvmlReader
 from stemstudio_worker.devices.oom import is_gpu_out_of_memory
 from stemstudio_worker.devices.reasons import not_enough_memory, out_of_memory
@@ -65,11 +70,20 @@ class TorchCudaMemory:
 
 @dataclass(frozen=True, slots=True)
 class GpuTools:
-    """What a GPU runner uses: the NVML reader, torch's memory controls and the lease."""
+    """What a GPU runner uses: the NVML reader, torch's memory controls and the leases."""
 
     nvml: NvmlReader
     memory: TorchMemory
     lease: GpuLease
+    file_lease: FileLease = NO_FILE_LEASE
+    """The cross-container lease (feature 009); :data:`NO_FILE_LEASE` keeps the 003 behaviour."""
+
+
+@dataclass(frozen=True, slots=True)
+class _CpuFallback:
+    """The step has to run on the CPU for ``reason`` (decided while the leases were held)."""
+
+    reason: str
 
 
 class CpuRunner:
@@ -111,17 +125,33 @@ class GpuRunner:
         return self._info
 
     def run[T](self, work: Callable[[str], T], need: GpuNeed) -> tuple[T, DeviceUse]:
-        """Run ``work`` on the GPU when ``need`` fits, else (or after GPU OOM) on the CPU."""
+        """Run ``work`` on the GPU when the leases are free and ``need`` fits, else on the CPU."""
         with self._tools.lease.hold():
-            memory = self._memory()
-            if memory is not None and memory.free_mib < need.memory_mib:
-                memory = self._reclaimed(need)
-            if memory is None:
-                return work("cuda"), self._gpu_use
-            if memory.free_mib < need.memory_mib:
-                reason = not_enough_memory(need.label, need.memory_mib, memory.free_mib)
-                return work("cpu"), _fallback(reason)
-            return self._attempt(work, need, memory)
+            outcome = self._leased(work, need)
+            if isinstance(outcome, _CpuFallback):
+                return work("cpu"), _fallback(outcome.reason)
+            return outcome
+
+    def _leased[T](
+        self, work: Callable[[str], T], need: GpuNeed
+    ) -> tuple[T, DeviceUse] | _CpuFallback:
+        """Take the file lease, then run the GPU attempt (or decide the CPU fallback)."""
+        with self._tools.file_lease.hold() as granted:
+            if not granted:
+                return _CpuFallback(GPU_LEASE_BUSY_REASON)
+            return self._on_gpu(work, need)
+
+    def _on_gpu[T](
+        self, work: Callable[[str], T], need: GpuNeed
+    ) -> tuple[T, DeviceUse] | _CpuFallback:
+        memory = self._memory()
+        if memory is not None and memory.free_mib < need.memory_mib:
+            memory = self._reclaimed(need)
+        if memory is None:
+            return work("cuda"), self._gpu_use
+        if memory.free_mib < need.memory_mib:
+            return _CpuFallback(not_enough_memory(need.label, need.memory_mib, memory.free_mib))
+        return self._attempt(work, need, memory)
 
     def reclaim_with(self, reclaim: Reclaimer) -> None:
         """Use ``reclaim`` to release the worker's own GPU models when a step does not fit."""
@@ -151,7 +181,7 @@ class GpuRunner:
 
     def _attempt[T](
         self, work: Callable[[str], T], need: GpuNeed, memory: GpuMemory
-    ) -> tuple[T, DeviceUse]:
+    ) -> tuple[T, DeviceUse] | _CpuFallback:
         try:
             return self._capped(work, memory), self._gpu_use
         except Exception as exc:
@@ -159,7 +189,7 @@ class GpuRunner:
                 raise
             _LOG.warning("GPU out of memory during %s; retrying on the CPU", need.label)
         self._tools.memory.empty_cache()
-        return work("cpu"), _fallback(out_of_memory(need.label))
+        return _CpuFallback(out_of_memory(need.label))
 
     def _capped[T](self, work: Callable[[str], T], memory: GpuMemory) -> T:
         total = self._info.total_memory_mib or memory.total_mib

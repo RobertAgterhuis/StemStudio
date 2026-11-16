@@ -8,6 +8,9 @@ import { cellState, dynamicMasks, matrixLevels, matrixThemes, requireVisualConta
 requireVisualContainer();
 
 const narrowScreens: readonly ScreenId[] = ['import', 'tracks', 'track', 'mixes', 'library'];
+// The restyle dialog is taller than a full-page capture can stitch around the fixed shell (the
+// stitched frames moved by the page's scroll position from run to run): capture the viewport.
+const viewportScreens: readonly ScreenId[] = ['restyle-dialog'];
 
 for (const theme of matrixThemes) {
   for (const level of matrixLevels) {
@@ -17,7 +20,8 @@ for (const theme of matrixThemes) {
       for (const screen of screenIds) {
         test(`${screen} matches its baseline`, async ({ page, uxData }) => {
           await openScreen(page, screen, uxData);
-          await expect(page).toHaveScreenshot(shotName([screen, level, theme]), { fullPage: true, mask: dynamicMasks(page) });
+          const fullPage = !viewportScreens.includes(screen);
+          await expect(page).toHaveScreenshot(shotName([screen, level, theme]), { fullPage, mask: dynamicMasks(page) });
         });
       }
     });

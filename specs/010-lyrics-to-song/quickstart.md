@@ -18,7 +18,7 @@ As 009 Q2, then `npx playwright test --grep @generative` incl. `song.spec.ts`, `
 
 ## V3 Song from lyrics (SC-001)
 
-GPU generative stack (009 Q3). New song from `tests/fixtures/lyrics/sample-en.txt`, style "Pop rock",
+GPU generative stack (009 Q3). New song from `tests/fixtures/lyrics/sample-en.txt`, style "Classic soul",
 male lead, 60 s, 1 take. Record cold (incl. LM load) and warm times and VRAM
 (`nvidia-smi --query-gpu=memory.used --format=csv,noheader -lms 500`). Targets: <= 90 s warm,
 <= 4 min cold (excluding the first download). Repeat with 3 minutes (<= 4 min warm) and with the

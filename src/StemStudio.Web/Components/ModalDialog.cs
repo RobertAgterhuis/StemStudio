@@ -29,6 +29,13 @@ public abstract class ModalDialog : ComponentBase, IAsyncDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>Raises <paramref name="close"/> when the key is Escape (bind it to the dialog's <c>@onkeydown</c>).</summary>
+    /// <param name="args">The key event.</param>
+    /// <param name="close">The dialog's close or cancel callback.</param>
+    /// <returns>A task.</returns>
+    protected static Task CloseOnEscapeAsync(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, EventCallback close) =>
+        args.Key == "Escape" ? close.InvokeAsync() : Task.CompletedTask;
+
     /// <summary>Remembers the opener; derived dialogs call it first from their own override.</summary>
     /// <returns>A task.</returns>
     protected override async Task OnInitializedAsync() => _returnFocus = await Web.CaptureFocusAsync();

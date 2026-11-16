@@ -1,12 +1,22 @@
-# Contract delta: feature 011 (draft; final versions assigned at feature start)
+# Contract delta: feature 011
 
 Feature 011 adds one group of backend endpoints (`/api/agent/*`), one internal hook in the backend
-(GPU release before heavy jobs), additive UI test ids, and the tool catalogue
-([tool-catalogue.md](tool-catalogue.md)). The worker contract and the audio-engine contract are
-**unchanged**. At feature start the architect writes the full documents
-`contracts/backend-api.openapi.yaml` (backend **1.(N+1).0**, where N is the minor version current
-after features 004-010, additive) and `contracts/ui-test-ids.md` (next minor, additive), validates
-them with Redocly (OpenAPI 3.1), and replaces this file's "draft" markers with the versions.
+(GPU release before heavy jobs), additive UI test ids, the tool catalogue
+([tool-catalogue.md](tool-catalogue.md)) and the fake-backend script format. The worker contract
+and the audio-engine contract are **unchanged**.
+
+## Status (Phase 0 part 1, 2026-11-15)
+
+| Contract | Base on this branch | 011 document | State |
+|---|---|---|---|
+| Backend API | 1.7.0 (`specs/008-sheet-music`) | [agent-api.openapi.yaml](agent-api.openapi.yaml) `1.10.0-delta.1`: standalone, additive, Redocly-valid (OpenAPI 3.1) | **binding for the wave**; merged unchanged into the full `backend-api.openapi.yaml` **1.10.0** after 009 (1.8.0) and 010 (1.9.0) (Phase 0 part 2) |
+| UI test ids | 1.7.0 | [ui-test-ids.delta.md](ui-test-ids.delta.md) (draft delta) | names binding; minor number (expected 1.10.0) fixed at the merge |
+| Tool catalogue | - | [tool-catalogue.md](tool-catalogue.md) **1.0.0** (001-008 binding; 009/010 pending) | binding |
+| Agent script format | - | [agent-script.schema.json](agent-script.schema.json) **1.0.0** | binding (E2E `e2e/agent-scripts/*.json`, unit tests) |
+| Evaluation set | - | [../evaluation/eval-set.md](../evaluation/eval-set.md) **1.0.0** (cases 29-30 pending 009) | binding |
+| C# | - | `src/StemStudio.Contracts/Agent/*` (DTOs, `ApiRoutes.Agent*`), `src/StemStudio.Agent/{Ports,Model}` | binding |
+
+The sections below are the readable summary; on any difference the OpenAPI document wins.
 
 ## 1. Endpoints (backend API, tag `agent`)
 
@@ -26,13 +36,13 @@ the API key or any part of it.
 | `GET /api/agent/conversations/{conversationId}` | `getConversation` | - | `200 Conversation` (messages + run summaries); `404` |
 | `PATCH /api/agent/conversations/{conversationId}` | `renameConversation` | `{title}` | `200 ConversationSummary`; `404`; `422` |
 | `DELETE /api/agent/conversations/{conversationId}` | `deleteConversation` | - | `204`; `404`; `409 run-active` |
-| `POST /api/agent/conversations/{conversationId}/messages` | `sendAgentMessage` | `SendMessageRequest` | `202 {runId, messageId}`; `404`; `409 run-active`; `503 backend-unavailable` (with `AgentStatus` in the problem's `status` extension); `422` (empty / > 4,000 chars) |
+| `POST /api/agent/conversations/{conversationId}/messages` | `sendAgentMessage` | `SendMessageRequest` | `202 {runId, messageId}`; `404`; `409 run-active`; `503 backend-unavailable` (with `AgentStatus` in the problem's extension member `agentStatus`; the RFC 9457 `status` member stays the HTTP status); `422` (empty / > 4,000 chars) |
 | `POST /api/agent/conversations/{conversationId}/undo` | `undoLastAgentAction` | - | `202 {runId}`; `409 nothing-to-undo` / `run-active` |
 | `GET /api/agent/runs/{runId}` | `getAgentRun` | - | `200 AgentRun` (snapshot: status, plan, steps, pending approval, usage) |
 | `GET /api/agent/runs/{runId}/events` | `streamAgentRunEvents` | query `after?` (int); header `Last-Event-ID?` | `200 text/event-stream` (section 3); stream ends after the terminal event; `404` |
 | `POST /api/agent/runs/{runId}/approvals/{stepId}` | `decideAgentApproval` | `{decision: approve\|reject, scope?: once\|plan_heavy, argumentsHash}` | `200 ApprovalState` (idempotent: returns the stored decision); `409 approval-not-pending` (expired/run ended), `409 arguments-changed` (hash mismatch); `404` |
 | `POST /api/agent/runs/{runId}/ui-results/{stepId}` | `submitAgentUiResult` | `{ok: bool, result?: object <= 4 KB, error?: string <= 500}` | `204`; `409 ui-result-not-expected` (already answered or timed out) |
-| `POST /api/agent/runs/{runId}/cancel` | `cancelAgentRun` | `{cancelJobs: bool}` | `202 AgentRun`; `409` when terminal |
+| `POST /api/agent/runs/{runId}/cancel` | `cancelAgentRun` | `{cancelJobs: bool}` | `202 AgentRun`; `409 run-ended` when terminal; `404` |
 
 ## 2. Schemas (summary; full JSON Schema in the OpenAPI document)
 
@@ -114,7 +124,7 @@ request; skipped when the backend is not `ollama` or the worker device is CPU (`
 cache). `IGpuActivity.IsHeavyJobActive()` (backend, from track/detail states) drives the
 fallback-model selection (FR-021).
 
-## 6. UI test ids (additive, next minor of `ui-test-ids.md`)
+## 6. UI test ids (additive, next minor of `ui-test-ids.md`; full table in [ui-test-ids.delta.md](ui-test-ids.delta.md))
 
 | Screen | `data-testid` |
 |---|---|
@@ -131,3 +141,12 @@ fallback-model selection (FR-021).
 - E2E fake stack: `STEMSTUDIO_AGENT_BACKEND=fake`, `STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/<name>.json`
   (mounted from `e2e/agent-scripts/`).
 - CI: no `ANTHROPIC_API_KEY`; a test asserts that no request reaches `api.anthropic.com`.
+
+## 8. Fake-backend script format (`agent-script.schema.json` 1.0.0)
+
+`{version: 1, description?, turns: [{text?, calls?: [{name, arguments?}], usage?: {inputTokens,
+outputTokens, cachedInputTokens}}]}`. Turn *i* answers the *i*-th model request of a run
+(`ScriptedChatClient`, `src/StemStudio.Agent/Backends/Fakes`); a request beyond the last turn fails
+the run. Calls get the ids `call-<turn>-<n>`. Names and arguments are not validated by the script:
+the registry and policy treat them like a real model's output, which is what the injection and
+invalid-call tests need. The E2E stack loads the file named by `STEMSTUDIO_AGENT_FAKE_SCRIPT`.

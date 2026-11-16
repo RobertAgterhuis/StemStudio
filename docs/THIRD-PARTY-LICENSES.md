@@ -131,10 +131,54 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 | text-unidecode 1.3 | Artistic-1.0 / GPL | spotdl |
 | pykakasi 2.3.0 | GPL-3.0+ | spotdl |
 | spotapi 1.2.8 | GPL-3.0 | spotdl (unofficial Spotify web client, metadata only) |
-| certifi, pathspec | MPL-2.0 | requests stack / lizard |
+| certifi, pathspec | MPL-2.0 | requests stack / lizard; certifi also in the singer image |
+| frozendict 2.5.1 | LGPL-3.0-only | ACE-Step 1.5 (generator image only, used unmodified as a separate library) |
+| soxr 1.1.0 (singer image) | LGPL-2.1+ | librosa in the singer image |
 
 **Distribution note:** anyone who redistributes the worker image must comply with the GPL/LGPL
 terms of these components (offer source, keep notices).
+
+## Runtime: Python generator and singer (features 009 and 010, optional, GPU only)
+
+The base install (`generator/pyproject.toml` dependencies; the `fake` image, CI and E2E) uses only
+OSI licences (fastapi, uvicorn, python-multipart, pydantic, soundfile, numpy: MIT/BSD;
+nvidia-ml-py: BSD-3-Clause); CI writes the full report (`licences` job). The GPU images are built
+only on the owner's machine; `scripts/image-licences.sh` lists every distribution in them
+(generator 125, singer 82 distributions, 2026-11-15).
+
+| Component | Version / pin | Licence | Notes |
+|---|---|---|---|
+| ACE-Step 1.5 (code, `generator` image) | git `ca1e85fe9430179831e6bc6be790c332190a3866` | MIT | https://github.com/ace-step/ACE-Step-1.5; vendored nano-vllm: MIT |
+| SoulX-Singer (code, `singer` image) | git `81aeb3ae772c70093c3de74dc23c92d983801ae4` | Apache-2.0 | https://github.com/Soul-AILab/SoulX-Singer; fetched at build time, not copied into this repository |
+| torch / torchvision / torchaudio | 2.10.0 (+cu128) | BSD-3-Clause | |
+| transformers, tokenizers, diffusers, accelerate, safetensors, huggingface-hub, peft | as pinned per image | Apache-2.0 | singer: transformers 4.41.2 / tokenizers 0.19.1 |
+| torchao | 0.16.0 | **BSD-3-Clause** (upstream `LICENSE` of pytorch/ao; the wheel carries no licence metadata) | verified by the CTO in the 009/010 closeout |
+| pytorch-wavelets | 1.3.0 | **MIT** upstream (https://github.com/fbcotter/pytorch_wavelets; PyPI classifier says "Free To Use") | ACE-Step dependency |
+| frozendict | 2.5.1 | **LGPL-3.0-only** | ACE-Step dependency; see copyleft table |
+| vector-quantize-pytorch, lycoris-lora, typer-slim, numba, scipy, matplotlib, tensorboard, pywavelets, lightning, modelscope, librosa, omegaconf, tqdm | as pinned | MIT / BSD / Apache-2.0 | |
+| NVIDIA CUDA 12.8 runtime wheels, `cuda-bindings` 12.9.4 | as locked by torch 2.10.0+cu128 | **NVIDIA proprietary (free)** | system dependency per ADR-011 / constitution 1.3.0, GPU images only |
+
+### Generative model weights (features 009 and 010)
+
+Downloaded once into the `model-cache` volume (`/models/acestep`, `/models/soulx`) by the
+pre-seed step, verified against the `SHA256SUMS` file next to them, never committed or baked into
+an image. All have a stated, open licence; none forbids the use. Generated audio is tagged
+`AI_GENERATED=true` (and `AI_VOICE`), and the SoulX README's "do not impersonate" disclaimer is
+enforced by the consent model of 010 (ADR-019).
+
+| Model | Revision | Main file and SHA-256 | Source | Licence |
+|---|---|---|---|---|
+| ACE-Step 1.5 bundle: DiT `acestep-v15-turbo` | `19671f406d603126926c1b7e2adc169acbcade22` | `acestep-v15-turbo/model.safetensors` `3f6e0797fad420a39bd33979eb6e840e30989e34a3794e843d23b60ec6e422d7` | https://huggingface.co/ACE-Step/Ace-Step1.5 | MIT |
+| ACE-Step 1.5 bundle: lyrics LM `acestep-5Hz-lm-1.7B` (010) | same | `acestep-5Hz-lm-1.7B/model.safetensors` `f161689da73e5ecefa28ff780d51c2d92a00f056d021d7933c779ed5c6cd7db8` | same | MIT |
+| ACE-Step 1.5 bundle: text encoder `Qwen3-Embedding-0.6B` | same | `Qwen3-Embedding-0.6B/model.safetensors` `0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd` | same (upstream https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) | MIT in the bundle; Apache-2.0 upstream |
+| ACE-Step 1.5 bundle: VAE | same | `vae/diffusion_pytorch_model.safetensors` `da17edb604c40deaf09e9b24974e590d1ca83a374070e5d0884cfa4bed9a99b0` | same | MIT |
+| SoulX-Singer SVC | `40493ad90286056c7a9095035164434a79daa8c9` | `model-svc.pt` `38e72d9e15be6eef3cc937daaf81421a7b5b546816786530bb9aa346cee5d43c` | https://huggingface.co/Soul-AILab/SoulX-Singer | Apache-2.0 |
+| RMVPE pitch extractor (SoulX preprocess) | `83dc50289d22a81b1e9998f5b9e111aef7c1fdcd` | `rmvpe/rmvpe.pt` `6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193` | https://huggingface.co/Soul-AILab/SoulX-Singer-Preprocess | Apache-2.0 |
+| Whisper base (SoulX content encoder) | `e37978b90ca9030d5170a5c07aadb050351a65bb` | `whisper-base/model.safetensors` `07cadb9f25677c8d50df603e66a98fbd842cce45047139baeb16e6219a1e807b` | https://huggingface.co/openai/whisper-base | Apache-2.0 |
+
+The full per-file checksums are the `SHA256SUMS` files in the volume (28 files for ACE-Step,
+2 + 11 for SoulX and Whisper base). VoiceStudio (AGPL-3.0, CC BY-NC weights) was reviewed and is
+**not used** (010 research S-02).
 
 ## Online data services (feature 005, FR-014)
 

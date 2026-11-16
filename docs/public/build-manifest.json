@@ -1,17 +1,17 @@
 {
   "schema": 1,
-  "builtAt": "2026-11-15",
-  "sourceHash": "8b96c775fa265445bd82bc2c78c5ec18bf600e4320aaeff727fea0332943ef24",
+  "builtAt": "2026-11-16",
+  "sourceHash": "9ab6ac02fb425374ff9dbf297c0871b18e10e9cc21ad02e7d73d0ca34af7f5be",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 31,
-      "bytes": 1025443
+      "bytes": 1032397
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 40,
-      "bytes": 1507683
+      "bytes": 1504898
     }
   ],
   "inputs": [
@@ -21,7 +21,7 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "68fca38cc937a1de683e519335394069aa28fe556e5a4a6aeb9271a615bc0171"
+      "sha256": "3ab84026e80d11f4e423a79e5c7492b41422f9648d854241c3f41f5a5c07ecc8"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
@@ -61,15 +61,15 @@
     },
     {
       "path": "docs/public/src/technical-manual/02-architecture.md",
-      "sha256": "9db190e7e5f2096f66b6822b67a93ddba84f937349ccddbc1fbe5a9beda5b05c"
+      "sha256": "89b4d7938585e50230d8b3e0189269a91a9f8bc0721ca554bd6cba4f9e1d03ef"
     },
     {
       "path": "docs/public/src/technical-manual/03-deployment.md",
-      "sha256": "54d4013916a79161405fca486ef0f99ac5669f4d774e34e5746cbc6a71d57c42"
+      "sha256": "5a52d60ecf26406ff339c124d44960b62821a208bc77788f0fe6ef3a4f6b3acc"
     },
     {
       "path": "docs/public/src/technical-manual/04-gpu-policy.md",
-      "sha256": "aa9d253137ae8b5f90b6fbabb04489ca607ab0850dfcfa7ab406a92793b14be6"
+      "sha256": "6759e406fba26b5cfdb3938b4acc8957d1422f3b4a755a37f76419fa16f8c68d"
     },
     {
       "path": "docs/public/src/technical-manual/05-models-licences.md",
@@ -77,11 +77,11 @@
     },
     {
       "path": "docs/public/src/technical-manual/06-apis.md",
-      "sha256": "8bd8cd00d771c0527920d6b898799a28602946f018116f6c553ed5cf5fbb54f4"
+      "sha256": "5f9b1ce8eb057933d99dd78a2a0ce5393d8012777bf8c205069e41b3f5037d3d"
     },
     {
       "path": "docs/public/src/technical-manual/07-data-model.md",
-      "sha256": "40f4a1dead26de5994943a2796581e6641abf23bcc04ac3b8145e746f039e167"
+      "sha256": "e63c25924c1918de635a7e085ed492071cce90add653cab0fe526d55a3a355a2"
     },
     {
       "path": "docs/public/src/technical-manual/08-security.md",
@@ -113,7 +113,7 @@
     },
     {
       "path": "docs/public/src/user-manual/02-getting-started.md",
-      "sha256": "77f2c154c2abc3cc0c1596999cceb92295a7e2f710193a72bbcc38c2d672e3fc"
+      "sha256": "ce1f63f0069688516cade0965f41fead42f820470dffda93c87c5e3cd9b50d5f"
     },
     {
       "path": "docs/public/src/user-manual/03-journey-levels.md",
@@ -149,11 +149,11 @@
     },
     {
       "path": "docs/public/src/user-manual/11-style-transfer.md",
-      "sha256": "eca840c18c1240189f049befcb1822c8e2764eb6ddbca2eff764e77b34b3ae27"
+      "sha256": "69b9ae0963b26387d80e3588d7adb5687ed7d2c3f73dbc7cf354d884e312b12f"
     },
     {
       "path": "docs/public/src/user-manual/12-lyrics-to-song.md",
-      "sha256": "ae997833fb10e0ad0cd078aef0c9db157725edb21c993b7a5497198abf4fb966"
+      "sha256": "e33e5fce2d7b8efb2371950a9b1706f42b4f22f491e892aef238b64fe764cc72"
     },
     {
       "path": "docs/public/src/user-manual/13-ai-composer-agent.md",

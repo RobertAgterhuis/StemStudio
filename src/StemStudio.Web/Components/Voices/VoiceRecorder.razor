@@ -1,0 +1,23 @@
+@* In-app recording of a voice sample (010 FR-005; ui-test-ids 1.9.0 voice-record-*): Record / Stop, an m:ss timer and
+   a stop by itself at 60 s. When the microphone cannot be used the reason is shown and upload stays possible. *@
+@inherits PollingComponent
+
+<div class="ss-recorder">
+    <div class="ss-row">
+        <RadzenButton Text="Record" Icon="mic" Disabled="@(Unavailable is not null || IsRecording)" Click="StartAsync" data-testid="voice-record-start" />
+        @if (IsRecording)
+        {
+            <RadzenButton Text="Stop" Icon="stop" ButtonStyle="ButtonStyle.Danger" Click="StopAsync" data-testid="voice-record-stop" />
+        }
+        <span class="ss-num ss-record-timer" role="timer" aria-label="Recording time" data-testid="voice-record-timer">@TimeText.Duration(Elapsed)</span>
+    </div>
+    @if (RecordedSeconds is { } seconds)
+    {
+        <span class="ss-small" role="status" data-testid="voice-record-status">Recorded @TimeText.Duration(seconds). Listen to it below.</span>
+    }
+    @if (Unavailable is not null)
+    {
+        <p class="ss-notice ss-small" role="note" data-testid="voice-record-unavailable">@Unavailable You can upload a recording instead.</p>
+    }
+    <p class="ss-help ss-small">Sing 20 to 30 seconds on your own, without music, in a quiet room. Recording stops by itself after one minute.</p>
+</div>

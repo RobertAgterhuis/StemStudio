@@ -105,9 +105,35 @@ export class TrackDetailPage {
     await this.deleteConfirm.click();
   }
 
+  /** "AI-generated" text badge of a generated track (ui-test-ids 1.8.0). */
+  get originBadge(): Locator {
+    return this.page.getByTestId('track-origin-badge');
+  }
+
+  /** Link to the source track of a restyled take (1.8.0). */
+  get originSourceLink(): Locator {
+    return this.page.getByTestId('track-origin-source-link');
+  }
+
+  /** Link to the lyrics sheet of a generated song (1.9.0). */
+  get lyricsLink(): Locator {
+    return this.page.getByTestId('track-lyrics-link');
+  }
+
+  /** "AI voice" / "AI voice: <name>" of a generated track with a vocal label (1.9.0). */
+  get vocalBadge(): Locator {
+    return this.page.getByTestId('track-vocal-badge');
+  }
+
   /** Opens `/tracks/{id}`. */
   async goto(trackId: string): Promise<void> {
     await this.page.goto(`/tracks/${trackId}`);
+  }
+
+  /** Opens `/tracks/{id}` and waits for the title (the generation section renders with it). */
+  async gotoLoaded(trackId: string): Promise<void> {
+    await this.goto(trackId);
+    await expect(this.page.getByTestId('track-title')).toBeVisible();
   }
 
   /** Waits until the browser shows a track detail URL and returns its track id. */

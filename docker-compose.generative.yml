@@ -1,0 +1,140 @@
+# Optional generative services (features 009 style transfer, 010 lyrics-to-song and own-voice
+# conversion; ADR-018, ADR-019). GPU-only (constitution 1.3.0) and opt-in: it needs the GPU override.
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml up -d --build --wait
+# Smoke test of the running stack: scripts/generative-smoke.{ps1,sh} (009 quickstart Q3).
+#
+# Two services from one code base (generator/) and one Dockerfile (docker/generator.Dockerfile):
+#   generator  GENERATOR_VARIANT=acestep -> stemstudio/generator:local (ACE-Step 1.5, torch
+#              2.10.0+cu128): kinds restyle and song; api env StemStudio__GeneratorBaseUrl.
+#   singer     GENERATOR_VARIANT=soulx -> stemstudio/singer:local (SoulX-Singer-SVC @ 81aeb3a,
+#              transformers 4.41.2): kind voiceConversion and the voice-sample checks; api env
+#              StemStudio__SingerBaseUrl. Separate image because SoulX-SVC and ACE-Step need
+#              incompatible transformers versions (010 research S-05).
+# Neither has a host port (internal network only, like the worker). Both reserve the GPU and mount
+#   model-cache:/models  the shared weights volume (also the worker's): ACE-Step under
+#                        /models/acestep/checkpoints, SoulX-SVC, RMVPE and whisper-base under
+#                        /models/soulx, each with REVISION and SHA256SUMS. Missing weights are
+#                        downloaded there on first use (about 10.1 GB + 3.3 GB).
+#   gpu-lease:/gpu-lease the cross-container GPU lease (ADR-018 D3), shared with the GPU worker
+#                        (docker-compose.gpu.yml): one StemStudio GPU step at a time.
+# Job JSON and scratch files stay in generator-data / singer-data (/data). No secrets are used.
+#
+# Prerequisites: those of docker-compose.gpu.yml, plus a GPU with >= 12 GB free memory for songs
+# (SONG_PLANNED 12,288 MiB; restyle 13,926 MiB standard / 8,602 MiB low-memory profile). The images
+# are large (generator about 8 GB, singer about 7.5 GB content) and contain the proprietary NVIDIA
+# CUDA runtime wheels (system dependency, ADR-011; never in the default images or CI).
+#
+# Optional settings (your shell, all have defaults):
+#   STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS=600   longest wait for enough free GPU memory before gpuBusy
+#   STEMSTUDIO_SVC_MAX_TARGET_SECONDS=480    longest vocal stem accepted for a voice conversion
+# CI and E2E use the fake variant instead: add docker-compose.generative-fake.yml (no GPU, no torch).
+
+services:
+  # One-shot: the generator and the singer run as uid 10001 (like the worker), but weights that were
+  # pre-seeded into model-cache by root (e.g. the 009/010 Phase 0 download of /models/acestep and
+  # /models/soulx) would then be read-only for them (no re-download, no lock or cache files).
+  # This hands those folders (and /models/hf) to 10001 once; later runs only stat them.
+  model-cache-owner:
+    build:
+      context: .
+      dockerfile: docker/generator.Dockerfile
+      args:
+        GENERATOR_VARIANT: acestep
+    image: stemstudio/generator:local
+    user: "0:0"
+    network_mode: none
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        for d in acestep soulx hf; do
+        mkdir -p "/models/$$d";
+        if [ -n "$$(find "/models/$$d" ! -user 10001 -print -quit)" ]; then
+        chown -R 10001:10001 "/models/$$d" && echo "model-cache: /models/$$d handed to uid 10001";
+        fi;
+        done
+    volumes:
+      - model-cache:/models
+    healthcheck:
+      disable: true
+    restart: "no"
+
+  generator:
+    build:
+      context: .
+      dockerfile: docker/generator.Dockerfile
+      args:
+        GENERATOR_VARIANT: acestep
+    image: stemstudio/generator:local
+    environment: &generative-env
+      STEMSTUDIO_GENERATOR: acestep
+      STEMSTUDIO_GENERATOR_KINDS: restyle,song
+      STEMSTUDIO_DATA_DIR: /data
+      STEMSTUDIO_MODEL_DIR: /models
+      HF_HOME: /models/hf
+      STEMSTUDIO_GPU_LEASE_FILE: /gpu-lease/gpu.lock
+      STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS: ${STEMSTUDIO_GPU_MEMORY_WAIT_SECONDS:-600}
+      STEMSTUDIO_SVC_MAX_TARGET_SECONDS: ${STEMSTUDIO_SVC_MAX_TARGET_SECONDS:-480}
+    expose:
+      - "8010"
+    volumes:
+      - generator-data:/data
+      - model-cache:/models
+      - gpu-lease:/gpu-lease
+    healthcheck: &generative-health
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=4).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+      start_interval: 2s
+    deploy: &generative-gpu
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      model-cache-owner:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  singer:
+    build:
+      context: .
+      dockerfile: docker/generator.Dockerfile
+      args:
+        GENERATOR_VARIANT: soulx
+    image: stemstudio/singer:local
+    environment:
+      <<: *generative-env
+      STEMSTUDIO_GENERATOR: soulx
+      STEMSTUDIO_GENERATOR_KINDS: voiceConversion
+    expose:
+      - "8010"
+    volumes:
+      - singer-data:/data
+      - model-cache:/models
+      - gpu-lease:/gpu-lease
+    healthcheck: *generative-health
+    deploy: *generative-gpu
+    depends_on:
+      model-cache-owner:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  api:
+    environment:
+      StemStudio__GeneratorBaseUrl: http://generator:8010
+      StemStudio__SingerBaseUrl: http://singer:8010
+    # Started (not healthy): the API reports "unavailable" until the services answer (FR-010).
+    depends_on:
+      generator:
+        condition: service_started
+      singer:
+        condition: service_started
+
+volumes:
+  generator-data:
+  singer-data:
+  gpu-lease:

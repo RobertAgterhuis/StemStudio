@@ -18,7 +18,7 @@
             @foreach (var hit in hits)
             {
                 var topic = Catalog.Topic(hit.TopicId)!;
-                <li>
+                <li @key="topic.Id">
                     <button type="button" class="ss-help-item" data-testid="@($"help-result-{topic.Id}")" @onclick="() => OnOpen.InvokeAsync(topic.Id)">
                         <span class="ss-help-item-title">@topic.Title</span>
                         <span class="ss-help-item-text">@topic.Summary</span>

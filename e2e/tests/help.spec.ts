@@ -1,13 +1,18 @@
+import { navPaths } from '../pages/app-shell';
 import type { HelpOpener, HelpPanel } from '../pages/help-panel';
 import {
   artworkReferenceQueries,
   blurActiveElement,
   expectHelpMarker,
   exportReferenceQueries,
+  generativePageMarkers,
+  generativeReferenceQueries,
+  generativeScreenTopics,
   lyricsReferenceQueries,
   scoreReferenceQueries,
   wrongFirstResults,
 } from '../support/help';
+import { expectRendered, generativeNavIds } from '../support/levels';
 import { requireLyricsMode } from '../support/lyrics';
 import { levelState } from '../support/preferences';
 import { openScreen, screenTopics, type ScreenId } from '../support/screens';
@@ -101,6 +106,10 @@ async function expectTopicsReachable(help: HelpPanel, queries: Readonly<Record<s
   await help.open('button');
   expect(await wrongFirstResults(help, queries)).toEqual({});
   for (const [query, topicId] of Object.entries(queries)) {
+    // Click only once the list shows this query's results: a result clicked while the previous
+    // list is still being replaced can open another topic.
+    await help.search(query);
+    await expect.poll(() => help.firstResultTopic(), query).toBe(topicId);
     await help.openTopic(query, topicId);
     await expect(help.byId('help-topic-body')).not.toBeEmpty();
   }
@@ -173,6 +182,51 @@ test('the sheet music dialog carries its help markers', { tag: '@sheet-music' },
   await expectHelpMarker(scoreDialog.dialog, 'sheet-music');
   await expectHelpMarker(scoreDialog.byId('score-profile'), 'sheet-music-profiles');
   await expectHelpMarker(scoreDialog.byId('score-key-override'), 'sheet-music-key-tempo');
+});
+
+// Help topics of features 009 and 010 (009 FR-015, 010 FR-014). None needs a generator: tagged
+// @styles, so `npm run test:styles` covers them on every stack.
+test('the 009/010 reference queries return their topic first, and each topic opens', { tag: '@styles' }, async ({ help, page }) => {
+  await page.goto('/styles');
+  // Wait for the page to finish loading: its screen topic would otherwise replace a topic opened early.
+  await expect(page.locator('[data-testid^="style-row-"]').first()).toBeVisible();
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, generativeReferenceQueries);
+});
+
+test('the style, generation, song and voice pages open their screen topic', { tag: '@styles' }, async ({ help, page, shell }) => {
+  for (const [path, topicId] of Object.entries(generativeScreenTopics)) {
+    await page.goto(path);
+    await shell.waitForShell();
+    await help.open('button');
+    await help.expectTopic(topicId);
+    // Escape closes the panel once focus has moved into it (as in the 004 help cases).
+    await expect.poll(() => shell.focusIsInside(help.panel), `${path}: focus moves into the panel`).toBe(true);
+    await help.closeWithEscape();
+  }
+});
+
+test('the rail links reach the generation, style, song, lyrics and voice pages (ui-test-ids 1.8.0, 1.9.0)', { tag: '@styles' }, async ({ page, shell }) => {
+  await page.goto('/');
+  await expectRendered(page, generativeNavIds);
+  for (const target of ['generations', 'styles', 'songs', 'lyrics', 'voices'] as const) {
+    await shell.navigate(target);
+    await expect(page).toHaveURL(navPaths[target]);
+  }
+});
+
+test('the style, generation, song and voice pages carry their help markers', { tag: '@styles' }, async ({ page, shell }) => {
+  for (const [path, topicIds] of Object.entries(generativePageMarkers)) {
+    await page.goto(path);
+    for (const topicId of topicIds) {
+      await expectHelpMarker(shell.root, topicId);
+    }
+  }
+  await page.goto('/voices');
+  await expectHelpMarker(shell.root, 'voice-profiles');
+  await page.getByTestId('voice-new').click();
+  await expect(page.getByTestId('voice-consent-text')).toBeVisible();
+  await expectHelpMarker(shell.root, 'voice-consent');
 });
 
 test.describe('at Beginner', () => {

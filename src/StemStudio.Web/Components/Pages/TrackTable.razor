@@ -17,7 +17,12 @@
             <tr data-testid="@($"track-row-{track.Id}")">
                 <td class="ss-cell-ribbon"><StemRibbon Stems="StemNamesOf(track)" TestId="@($"track-ribbon-{track.Id}")" /></td>
                 <td class="ss-cell-thumb"><TrackArtwork Track="track" Variant="ArtworkVariant.Thumb" TestId="@($"track-thumb-{track.Id}")" /></td>
-                <td class="ss-cell-title"><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a></td>
+                <td class="ss-cell-title"><a href="@($"tracks/{track.Id}")" data-testid="track-link">@track.Title</a>
+                    @if (track.Origin is { AiGenerated: true })
+                    {
+                        <AiBadge TestId="@($"track-ai-badge-{track.Id}")" Text="AI" />
+                    }
+                </td>
                 <td class="ss-muted">@track.Artist</td>
                 <td>
                     <RadzenBadge BadgeStyle="TrackStatusText.Badge(track.Status)" Text="@TrackStatusText.Label(track.Status)" IsPill="true"

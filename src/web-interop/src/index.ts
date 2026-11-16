@@ -1,7 +1,7 @@
 /**
  * StemStudio web-interop entry point (ES module loaded by Blazor via JS interop), contract
  * web-interop.md 1.0.0. The functions live in the topic modules
- * (preferences, theme, shortcuts, tour, focus) and are re-exported here.
+ * (preferences, theme, shortcuts, tour, focus; feature 010: recorder) and are re-exported here.
  *
  * @packageDocumentation
  */
@@ -15,6 +15,8 @@ export { registerShortcuts } from './shortcuts';
 export { startTour } from './tour';
 export { captureFocus, focusedHelpId } from './focus';
 export { startMeterReadouts } from './meters';
+export { recorderUnavailableReason, startRecording, fileUrl, revokeUrl } from './recorder';
+export type { RecordingSession } from './recorder';
 
 /** Version of the web-interop contract implemented by this module. */
 export const WEB_INTEROP_CONTRACT_VERSION: WebInteropContractVersion = '1.0.0';

@@ -1,0 +1,74 @@
+@page "/lyrics"
+@* Saved lyrics sheets (010 US2, FR-003; ui-test-ids 1.9.0 lyrics-*): search, new, edit, delete and "new song from these
+   lyrics". Songs keep a copy of the lyrics they were made from. *@
+@using StemStudio.Web.Songs
+
+<PageTitle>Lyrics - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-lyrics-page">
+    <header class="ss-page-head ss-page-head-row" data-help-id="lyrics-library">
+        <div>
+            <div class="ss-label-row"><h1>Lyrics</h1><HelpHint HelpId="lyrics-library" /></div>
+            <p class="ss-help">Your own lyrics, ready to become a song.</p>
+        </div>
+        <div class="ss-library-tools">
+            <label class="ss-sr-only" for="lyrics-search">Search lyrics</label>
+            <input id="lyrics-search" type="search" class="rz-textbox ss-search" placeholder="Search lyrics" value="@Search"
+                   @oninput="e => Search = (string)e.Value!" data-testid="lyrics-search" />
+            <RadzenButton Text="New lyrics" Icon="add" Click="() => Editing = (true, null)" data-testid="lyrics-new" />
+        </div>
+    </header>
+
+    @if (ActionError is not null)
+    {
+        <ErrorState TestId="lyrics-action-error" Message="@ActionError" />
+    }
+
+    @if (LoadError is not null)
+    {
+        <ErrorState TestId="lyrics-load-error" Message="@LoadError" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Items is null)
+    {
+        <Skeleton Lines="4" />
+    }
+    else if (Visible.Count == 0)
+    {
+        <EmptyState TestId="lyrics-empty" Text="@(Items.Count == 0 ? "No lyrics yet. Write some with New lyrics." : "No lyrics match the search.")" />
+    }
+    else
+    {
+        <table class="ss-table">
+            <thead><tr><th>Title</th><th>Language</th><th>Starts with</th><th><span class="ss-sr-only">Actions</span></th></tr></thead>
+            <tbody>
+                @foreach (var sheet in Visible)
+                {
+                    <tr @key="sheet.Id" data-testid="@($"lyrics-row-{sheet.Id}")" aria-current="@(sheet.Id == Highlight ? "true" : null)"
+                        class="@(sheet.Id == Highlight ? "ss-row-highlight" : null)">
+                        <td>@sheet.Title</td>
+                        <td>@LanguageNames.Of(sheet.Language)</td>
+                        <td class="ss-muted ss-small">@FirstLine(sheet.Text)</td>
+                        <td class="ss-cell-action">
+                            <a class="ss-row-action" href="@($"songs/new?lyricsId={sheet.Id}")" data-testid="@($"lyrics-song-{sheet.Id}")">New song</a>
+                            <button type="button" class="ss-text-button" aria-label="@($"Edit {sheet.Title}")" @onclick="() => Editing = (true, sheet)"
+                                    data-testid="@($"lyrics-edit-{sheet.Id}")">Edit</button>
+                            <button type="button" class="ss-text-button" aria-label="@($"Delete {sheet.Title}")" @onclick="() => Deleting = sheet"
+                                    data-testid="@($"lyrics-delete-{sheet.Id}")">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (Editing.Open)
+{
+    <LyricsSheetDialog Sheet="Editing.Sheet" OnClose="() => Editing = (false, null)" OnSaved="OnSaved" />
+}
+
+@if (Deleting is { } deleting)
+{
+    <ConfirmModal Title="Delete lyrics" TestIdPrefix="lyrics-delete" OnConfirm="DeleteAsync" OnCancel="() => Deleting = null"
+                  Message="@($"Delete the lyrics \"{deleting.Title}\"? Songs made from them keep their own copy.")" />
+}

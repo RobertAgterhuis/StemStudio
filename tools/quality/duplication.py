@@ -1,8 +1,9 @@
 """Duplicated-block detection with jscpd (``npx jscpd@<pinned>``).
 
 Configuration lives in ``tools/quality/.jscpd.json`` (``minLines: 6``). A clone that touches
-production code (``src/``, ``worker/src/``, not tests) fails the gate; clones only between test
-files are reported as warnings.
+production code (``src/``, ``worker/src/``, ``generator/src/``, not tests) fails the gate; clones
+only between test files, and clones between worker and generator production code (two services
+that may not share code), are reported as warnings.
 
 Usage::
 
@@ -57,6 +58,29 @@ class Clone:
     def in_production(self) -> bool:
         """True when either side is production code."""
         return is_production(self.first) or is_production(self.second)
+
+    @property
+    def cross_service(self) -> bool:
+        """True when one side is worker and the other generator production code.
+
+        The two services may not import each other (``dependency_check``), so code they both
+        need (environment parsing, contract mirrors) can only be copied; such a clone is a
+        warning (features 009/010).
+        """
+        services = {_service(self.first), _service(self.second)}
+        return services == set(SERVICE_ROOTS)
+
+
+SERVICE_ROOTS = ("worker/src/", "generator/src/")
+"""Production roots of the two Python services that may not share code."""
+
+CROSS_SERVICE_NOTE = "(cross-service: worker and generator may not share code)"
+
+
+def _service(path: str) -> str | None:
+    if not is_production(path):
+        return None
+    return next((root for root in SERVICE_ROOTS if path.startswith(root)), None)
 
 
 @dataclass(slots=True)
@@ -118,18 +142,20 @@ def _normalise(name: str, root: Path) -> str:
 
 
 def evaluate(clones: Sequence[Clone]) -> list[Finding]:
-    """Return one finding per clone: error in production code, warning in test-only code."""
-    return [
-        Finding(
-            "duplication",
-            Severity.ERROR if clone.in_production else Severity.WARNING,
-            clone.first,
-            clone.first_line,
-            f"{clone.lines} duplicated lines, also in {clone.second}:{clone.second_line}",
-            clone.lines,
-        )
-        for clone in clones
-    ]
+    """Return one finding per clone: error in production code, warning in test-only code.
+
+    A cross-service clone (worker <-> generator production code) is a warning with a note.
+    """
+    return [_clone_finding(clone) for clone in clones]
+
+
+def _clone_finding(clone: Clone) -> Finding:
+    message = f"{clone.lines} duplicated lines, also in {clone.second}:{clone.second_line}"
+    if clone.cross_service:
+        message = f"{message} {CROSS_SERVICE_NOTE}"
+    error = clone.in_production and not clone.cross_service
+    severity = Severity.ERROR if error else Severity.WARNING
+    return Finding("duplication", severity, clone.first, clone.first_line, message, clone.lines)
 
 
 def run(root: Path, paths: Sequence[Path], runner: Runner = subprocess_runner) -> DuplicationResult:

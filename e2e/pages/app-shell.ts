@@ -4,14 +4,23 @@ import type { Level, ThemePreference } from '../support/preferences';
 /** Resolved theme on `app-shell[data-theme]`. */
 export type ResolvedTheme = 'light' | 'dark';
 
-/** Top-level screens reachable from the rail (`nav-<target>`). */
-export type NavTarget = 'import' | 'tracks' | 'mixes' | 'library';
+/**
+ * Top-level screens reachable from the rail (`nav-<target>`); `generations` and `styles` are
+ * ui-test-ids 1.8.0, `songs`, `lyrics` and `voices` 1.9.0.
+ */
+export type NavTarget = 'import' | 'tracks' | 'mixes' | 'library' | 'generations' | 'styles' | 'songs' | 'lyrics' | 'voices';
 
-const navPaths: Readonly<Record<NavTarget, RegExp>> = {
+/** URL each rail link leads to. */
+export const navPaths: Readonly<Record<NavTarget, RegExp>> = {
   import: /\/$/,
   tracks: /\/tracks$/,
   mixes: /\/mixes$/,
   library: /\/library$/,
+  generations: /\/generations$/,
+  styles: /\/styles$/,
+  songs: /\/songs\/new$/,
+  lyrics: /\/lyrics$/,
+  voices: /\/voices$/,
 };
 
 /** App shell of feature 004 (ui-test-ids 1.3.0 "Shell", "Preferences", "Welcome", "Journey"). */
@@ -51,7 +60,7 @@ export class AppShell {
     await this.expectLevel(level);
   }
 
-  /** Rail link (bottom bar under 768 px) of a top-level screen (`nav-library`: ui-test-ids 1.5.0). */
+  /** Rail link (bottom bar under 768 px) of a top-level screen (`nav-library`: ui-test-ids 1.5.0; 009/010 links: 1.8.0/1.9.0). */
   navLink(target: NavTarget): Locator {
     return this.byId(`nav-${target}`);
   }

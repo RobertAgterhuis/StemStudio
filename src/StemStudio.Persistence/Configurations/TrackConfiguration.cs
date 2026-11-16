@@ -23,6 +23,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.ComplexProperty(track => track.BeatGrid, grid => grid.ToJson());
         builder.Property(track => track.DetailPhase).HasConversion(DetailPhaseJson.Converter, DetailPhaseJson.Comparer);
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
+        builder.Property(track => track.Origin).HasConversion(JsonColumn<TrackOrigin>.Converter!, JsonColumn<TrackOrigin>.Comparer!);
         ConfigureArtworkAndMetadata(builder);
     }
 

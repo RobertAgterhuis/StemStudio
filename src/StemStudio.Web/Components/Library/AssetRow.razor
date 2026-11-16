@@ -6,6 +6,10 @@
     class="@(Highlighted ? "ss-row-highlight" : null)">
     <td class="ss-cell-title">
         <span class="ss-asset-name" data-testid="@($"asset-name-{Asset.Id}")">@Asset.Name</span>
+        @if (Asset.Provenance.Origin == AssetOriginDto.Generation)
+        {
+            <AiBadge />
+        }
         <span class="ss-small ss-muted ss-asset-facts">
             <span data-testid="@($"asset-contents-{Asset.Id}")">@Asset.Provenance.Contents</span>@Facts
         </span>
