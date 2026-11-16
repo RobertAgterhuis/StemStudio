@@ -106,6 +106,19 @@ public sealed class ScriptedChatSessionTests
         harness.Runs.Steps.Single().Arguments.ShouldBe($$$"""{"list":["{{{trackId}}}","{{context.mixId}} "],"n":3,"record":{"id":"{{{mixId}}}"},"value":"x"}""");
     }
 
+    [Theory]
+    [InlineData("""{"version":1}""", 0)]
+    [InlineData("""{"version":1,"turns":[{"text":"a"},{"calls":[{"name":"echo"}]}]}""", 2)]
+    public async Task ScriptsWithoutTurnsOrArguments_AreLoadedAsWritten(string script, int turns)
+    {
+        var session = new ScriptedChatSession(script);
+        var run = new RunnerHarness(new ScriptedChatClient([]), [Echo()]).Run;
+
+        var turn = await session.NextTurnAsync(new ChatTurnContext(run, new PageContextDto { Page = "tracks", TrackId = Guid.NewGuid() }), TestContext.Current.CancellationToken);
+
+        turn.Client.ShouldBeOfType<ScriptedChatClient>().RemainingTurns.ShouldBe(turns);
+    }
+
     [Fact]
     public async Task EveryRun_PlaysTheScriptFromTheFirstTurn()
     {
