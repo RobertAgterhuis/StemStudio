@@ -27,6 +27,14 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | Archivo variable font `Archivo[wdth,wght]` (self-hosted) | google/fonts | SIL OFL-1.1 | https://github.com/Omnibus-Type/Archivo |
 | Radzen.Blazor free `software` base theme (customised via `--rz-*` / `--ss-*` tokens; no premium themes, no Radzen Studio) | 13.1.0 | MIT | https://github.com/radzenhq/radzen-blazor |
 
+### AI composer agent (feature 011, `StemStudio.Agent`, used by the API)
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| Microsoft.Extensions.AI (+ `.Abstractions`; pulls in Caching/DependencyInjection/Logging abstractions 10.0.13 and System.Numerics.Tensors 10.0.13, all MIT) | 10.11.0 | MIT | https://github.com/dotnet/extensions |
+| OllamaSharp (Ollama client, `IChatClient` implementation) | 5.5.0 | MIT | https://github.com/awaescher/OllamaSharp |
+| Anthropic (official C# SDK; optional paid backend, constitution 1.3.0 principle IV exception, only called when Claude is selected and `ANTHROPIC_API_KEY` is set) | 13.3.0 | Apache-2.0 | https://github.com/anthropics/anthropic-sdk-csharp |
+
 ## Runtime: Python worker
 
 | Component | Version | Licence | Source |
@@ -196,6 +204,23 @@ never written into exports.
 | Wikipedia REST `page/summary` (https://en.wikipedia.org/api/rest_v1/) | the summary excerpt of the artist article (`STEMSTUDIO_WIKIPEDIA_LANGUAGES`) | **CC BY-SA 4.0** (text) | excerpt shown unmodified with **in-app attribution** (article link, "Wikipedia contributors" history link, licence link, "Excerpt, unmodified"; `band-info-attribution`); never exported |
 | LRCLIB (https://lrclib.net, feature 006) | synced or plain lyrics of the recording (`/api/get`, `/api/search`) | **No data licence stated**; lyrics are copyrighted by their rights holders | lyrics are shown **in the app only** (karaoke banner, lyrics card), never exported, logged or bundled; at most 3 requests per lookup, >= 500 ms apart; personal-practice notice |
 
+## Local AI model host and weights (feature 011, optional, installed by the user)
+
+Not part of StemStudio, its images or this repository. The agent panel works without them and
+says why it is off.
+
+| Component | Version / tag | Licence | Notes |
+|---|---|---|---|
+| Ollama (host prerequisite; runs on the host, not in compose) | reference machine 0.40.16 | MIT | https://github.com/ollama/ollama; reached at `STEMSTUDIO_OLLAMA_URL` (default `http://host.docker.internal:11434`) |
+| Qwen3.5 9B weights (`qwen3.5:9b`, default agent model, ~6.6 GB, Q4_K_M) | Ollama library tag | Apache-2.0 | pulled by the user (`ollama pull qwen3.5:9b`); https://ollama.com/library/qwen3.5 |
+| Qwen3.5 4B weights (`qwen3.5:4b`, local fallback while a GPU job runs, ~3.3 GB, Q4_K_M) | Ollama library tag | Apache-2.0 | pulled by the user (`ollama pull qwen3.5:4b`) |
+
+## Optional external services (feature 011, constitution 1.3.0)
+
+| Service | When it is called | Data sent | Terms |
+|---|---|---|---|
+| Anthropic Claude API (https://api.anthropic.com), default model `claude-opus-5-5`, configurable `claude-sonnet-5-5` | only when the user selects Claude in Settings, acknowledges the "paid per use" notice, and `ANTHROPIC_API_KEY` is set in the API's environment (shell only, never in a file); 0 requests otherwise (SC-006, tested with a failing HTTP handler) | text only: the system prompt, the tool definitions, the user's messages of the bounded context and the tool results (ids, names, statuses, numbers, short descriptions). Never audio, files, the API key, online lyrics (006) or full biographies (005) | paid per use under the user's own Anthropic account and its commercial terms (https://www.anthropic.com/legal); per-run token cap (default 60,000 input + 8,000 output tokens) |
+
 ## Frontend audio engine (build-time only; the shipped bundle contains only StemStudio code)
 
 | Component | Version | Licence |
@@ -218,6 +243,7 @@ never written into exports.
 | coverlet.collector / coverlet.msbuild | 10.1.0 | MIT |
 | bUnit | 2.15.2 | MIT |
 | Microsoft.AspNetCore.Mvc.Testing, TimeProvider.Testing | 10.0.15 / 10.11.0 | MIT |
+| Microsoft.Extensions.DependencyInjection (real container in the `StemStudio.Agent` DI tests, feature 011; test-only) | 10.0.15 | MIT |
 | NSubstitute (+ Analyzers) | 6.2.0 / 1.0.17 | BSD-3-Clause / MIT |
 | Shouldly | 4.3.0 | BSD-3-Clause |
 | YamlDotNet | 18.1.0 | MIT |
