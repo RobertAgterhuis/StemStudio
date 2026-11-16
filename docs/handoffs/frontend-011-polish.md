@@ -85,6 +85,20 @@ Tests: `MixerUiToolsTests` (5 new), `MixerAgentToolsTests` (2 new, page with the
 99.39 %, branch 94.15 % (gate 90/90). `dotnet format --verify-no-changes` clean (also fixed two pre-existing
 whitespace findings); `sig_check.py` on `Agent/`, `Mixer.Agent.cs`, `Karaoke/`: 0 errors, no new warnings.
 
+## Follow-up: mixer_get_state settings (blocking for ai-agent, qa `us5-save-undo`)
+
+`mixer_get_state` now also returns `karaoke` (bool, `IMixerControls.KaraokeVisible`, the banner visibility of the
+show_karaoke work) and `settings`: `MixerState.ToSettings("")`, the same mapping the save-mix flow (`Mixer.Save.cs`)
+and the export flow use, so it is exactly a `MixSettingsDto` serialised camelCase by the host
+(`JsonSerializerDefaults.Web`): `{name: "", masterVolume, channels[{stem, volume, pan, mute, solo}], metronome, loop,
+expanded[], detailChannels[]}` with linear volumes 0..1. The agent sets `name` itself before `POST /api/mixes` /
+`PUT /api/mixes/{id}` / the export body. Full result: `{trackId, mixId?, unsaved, channels[...], master, position,
+playing, loop, metronome, karaoke, settings}` (the existing dB-based `channels`/`master` stay for the model's reading).
+Test: `MixerUiToolsTests.GetState_IncludesTheSaveableSettings_AndTheKaraokeBanner` (red commit first).
+`dotnet test tests/StemStudio.Web.Tests` with coverage: Passed 1701, Failed 0; StemStudio.Web line 99.39 %, branch
+94.15 % (gate 90/90); `MixerUiTools.cs` 100/100. Build `-warnaserror` clean, `dotnet format --verify-no-changes`
+clean; `sig_check.py` on `Agent/`: 0 errors, no new warnings (13 pre-existing).
+
 ## Next owner
 
 CTO (integration wave: merge `011-lane-frontend`, T084a manuals), qa (E2E T040/T049/T058/T067/T074 against the fake backend).
