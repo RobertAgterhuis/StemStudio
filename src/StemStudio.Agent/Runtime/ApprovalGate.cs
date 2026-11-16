@@ -123,7 +123,7 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
         Effect = estimate?.Effect ?? prepared.Tool!.Title,
         Undoable = step.UndoKind != UndoKindDto.None,
         EstimatedMinutes = estimate?.EstimatedMinutes,
-        Device = estimate?.Device,
+        Device = estimate?.DeviceCode,
         AllowPlanScope = allowPlanScope,
     };
 

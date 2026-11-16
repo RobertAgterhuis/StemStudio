@@ -118,4 +118,8 @@ public sealed record ToolResult
 /// <param name="Effect">Readable effect, e.g. "Detail separation of Hero of the Day".</param>
 /// <param name="EstimatedMinutes">Estimated minutes, when known.</param>
 /// <param name="Device">Device text, e.g. "GPU (RTX 4070)".</param>
-public sealed record ToolEstimate(string Effect, double? EstimatedMinutes = null, string? Device = null);
+public sealed record ToolEstimate(string Effect, double? EstimatedMinutes = null, string? Device = null)
+{
+    /// <summary>The device as the approval card carries it: <c>gpu</c> or <c>cpu</c> (null when unknown).</summary>
+    public string? DeviceCode => Device is null ? null : Device.StartsWith("gpu", StringComparison.OrdinalIgnoreCase) ? "gpu" : "cpu";
+}
