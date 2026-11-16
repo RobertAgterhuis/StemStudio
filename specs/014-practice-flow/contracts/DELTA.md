@@ -18,7 +18,7 @@ Phase 0 part 2.
 | Backend API | 1.12.0 (013) | [practice-api.openapi.yaml](practice-api.openapi.yaml) `1.13.0-delta.1`, standalone, Redocly-valid (OpenAPI 3.1; 3 accepted warnings) | `backend-api.openapi.yaml` **1.13.0** = 013's 1.12.0 + this delta, unchanged |
 | Worker API | 1.7.0 (013) | [worker-practice.openapi.yaml](worker-practice.openapi.yaml) `1.8.0-delta.1`, standalone, Redocly-valid | `worker-api.openapi.yaml` **1.8.0** = 013's 1.7.0 + this delta + the `Health`/allow-list additions below |
 | Audio engine | 2.3.0 (012) | [audio-engine.delta.md](audio-engine.delta.md) **2.4.0** | `audio-engine.md` 2.4.0 |
-| Web interop | 1.0.0 (004) | [web-interop.delta.md](web-interop.delta.md) **1.1.0** (not in the roadmap table; CTO records it) | `web-interop.md` 1.1.0 |
+| Web interop | 1.0.0 (004) | [web-interop.delta.md](web-interop.delta.md) **1.1.0** (allocated to 014 in the roadmap by the CTO, 2026-11-16) | `web-interop.md` 1.1.0 |
 | UI test ids | 1.12.0 (013) | [ui-test-ids.delta.md](ui-test-ids.delta.md) (names binding) | `ui-test-ids.md` **1.13.0** |
 | Help content | 1.0.0 | unchanged | - |
 | Agent tool catalogue | 1.0.0 (011) | unchanged; tools for sections/setlists/practice come in a later catalogue minor (roadmap rule) | - |
@@ -41,10 +41,9 @@ Reconciliation items (architect, Phase 0 part 2; none changes 014 behaviour):
 - **R-1** Rename 014's references to 012's actual field/method names (A-012-2..4).
 - **R-2** Shortcut catalogue (CTO decisions 2026-11-16, applied in spec FR-020): 012 owns `-` `=`
   `,` `.` `0` `T` and count-in; 015 owns `R` (record/stop) and `C` (compare), reserved in 014's
-  catalogue until 015 ships. **Open clash**: the CTO assigned `K` to count-in, but `K` is the shipped
-  004 metronome toggle. 014's default keeps metronome `K` and gives count-in `Shift+K`; the CTO
-  confirms or swaps (one line in `keymap-defaults.json` plus 004 help/manual text). If 012's code
-  binds keys of its own, they are removed in favour of the catalogue.
+  catalogue until 015 ships. **Decided** (CTO, 2026-11-16): the metronome keeps `K` (shipped in
+  004), count-in is `Shift+K`; `keymap-defaults.json` (T006) carries exactly these defaults. If 012's
+  code binds keys of its own, they are removed in favour of the catalogue.
 - **R-3** If 012 has a loop-pass callback with region and speed, drop `OnLoopPass` from 2.4.0.
 - **R-4** If 012 defines test ids for the trainer region label, keep them (ui-test-ids delta note).
 - **R-5** Confirm 013's backup/restore treats the new tables as part of the database (no 013

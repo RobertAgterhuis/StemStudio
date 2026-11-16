@@ -1,8 +1,8 @@
 # Contract delta: web-interop 1.1.0 (feature 014)
 
 Status: **binding delta** (014 planning, 2026-11-16). Base: `specs/004-design-system-ux/contracts/web-interop.md`
-**1.0.0**. Not in the roadmap allocation table (an "other" contract); the CTO records 1.1.0 for
-014 in `docs/ROADMAP.md`. Additive: the 1.0.0 call `registerShortcuts(dotnet, scope)` keeps the
+**1.0.0**. An "other" contract; 1.1.0 is allocated to 014 in `docs/ROADMAP.md` (CTO,
+2026-11-16). Default key map: metronome `K`, count-in `Shift+K` (CTO decision, DELTA R-2). Additive: the 1.0.0 call `registerShortcuts(dotnet, scope)` keeps the
 004 key map. ADR-023 D5. Owner: frontend (`src/web-interop/**`).
 
 ## 1. Key map as data

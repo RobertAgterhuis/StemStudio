@@ -176,9 +176,8 @@ Cairo route (no line wrapping, no pagination).
 - **One catalogue for all features**: 014 owns the complete shortcut catalogue
   (`keymap-defaults.json`, with the owning feature per command). 012 (speed `-` `=`, transpose
   `,` `.`, reset `0`, trainer `T`, count-in) and 015 (record `R`, compare `C`, reserved until 015
-  ships) register handlers only (CTO decisions 2026-11-16). The CTO's `K` for count-in clashes with
-  the shipped 004 metronome `K`; 014 keeps metronome `K` and proposes count-in `Shift+K` (open for
-  CTO confirmation, DELTA R-2).
+  ships) register handlers only (CTO decisions 2026-11-16). Count-in vs. the shipped 004 metronome
+  `K`: decided by the CTO (2026-11-16) - the metronome keeps `K`, count-in is `Shift+K` (DELTA R-2).
 - Storage: the browser preferences record of 004 (`localStorage`, schemaVersion 2 adds
   `shortcuts {singleKey, pedalMode, overrides}`), like theme and density: a per-browser,
   per-device setting. Backup of a key map is not needed (defaults are one click away).
@@ -220,8 +219,8 @@ separations. `Health.lanes.practice` reports it.
 - Contracts (all additive, minor bumps): worker 1.8.0 (section, score-view and
   setlist-document jobs; `Health.lanes.practice`; library allow-list + `assets/<id>/score.musicxml`),
   backend 1.13.0 (sections, score views, setlists, practice log, `LoopRegion.sectionId`),
-  engine 2.4.0, ui-test-ids 1.13.0, web-interop 1.1.0 (an "other" contract, not in the roadmap
-  table; the CTO records it), help content unchanged (topics go into the existing areas).
+  engine 2.4.0, ui-test-ids 1.13.0, web-interop 1.1.0 (an "other" contract, allocated to 014 in
+  the roadmap by the CTO, 2026-11-16), help content unchanged (topics go into the existing areas).
 - New dependencies: ReportLab 5.1.x (BSD-3) in the worker; `fonts-dejavu-core` (Debian package,
   Bitstream Vera/DejaVu licence) in the worker image. No new .NET or npm packages.
 - Every instrument family benefits: sections and loops, follow, setlists, pedals and the log are

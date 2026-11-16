@@ -41,5 +41,5 @@
 
 ## Notes
 
-- Open item for the CTO: count-in key (`K` per CTO decision vs. the shipped 004 metronome `K`);
-  the spec proposes `Shift+K` (FR-020 clash note, DELTA R-2).
+- Count-in key decided by the CTO (2026-11-16): metronome keeps `K` (004), count-in is `Shift+K`
+  (FR-020, DELTA R-2).

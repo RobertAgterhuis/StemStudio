@@ -20,8 +20,8 @@ local only, off/delete; new worker lane `practice`; engine `OnLoopPass`.
 
 Cross-feature (CTO messages during the task): 014 owns the complete shortcut catalogue with an
 owner column (004, 012, 014, 015); 015's `R`/`C` are reserved; 012 keys `-` `=` `,` `.` `0` `T`.
-**Clash**: CTO assigned `K` to count-in, but `K` is the shipped 004 metronome toggle; 014 keeps
-metronome `K` and proposes count-in `Shift+K` (needs CTO confirmation, DELTA R-2).
+Count-in vs. the shipped 004 metronome `K`: decided by the CTO (2026-11-16) - metronome keeps
+`K`, count-in is `Shift+K` (DELTA R-2). web-interop 1.1.0 is allocated to 014 in the roadmap.
 
 ## Files changed
 
@@ -61,14 +61,12 @@ None in this round. Planned (Phase 0 part 2 / devops):
 
 User manual: new chapters for sections, score follow, setlists, keyboard and pedals, practice log
 and privacy. Technical manual: `practice` worker lane, `STEMSTUDIO_STRUCTURE_ANALYZER`, worker
-fonts, new API endpoints. ROADMAP: record web-interop 1.1.0 for 014 (T106).
+fonts, new API endpoints. ROADMAP: web-interop 1.1.0 for 014 (recorded by the CTO).
 
 ## Open issues / requests
 
-1. CTO: confirm count-in `Shift+K` (or swap with metronome `K`) - DELTA R-2.
-2. CTO: ADR number 023 is provisional (012/013/015/016 ADRs are written in parallel).
-3. CTO: add web-interop 1.1.0 (014) to the roadmap allocation table.
-4. 012 author: confirm A-012-1..A-012-5 (track-second position at every speed, speed/transpose in
+1. CTO: ADR number 023 is provisional (012/013/015/016 ADRs are written in parallel).
+2. 012 author: confirm A-012-1..A-012-5 (track-second position at every speed, speed/transpose in
    `MixerState`, trainer on the loop region, no loop-pass callback).
 
 ## Next owner

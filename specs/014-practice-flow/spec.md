@@ -392,7 +392,7 @@ recorded.
   | Speed -5 % / +5 % | `-` / `=` (also `+`) | mixer | 012 |
   | Transpose -1 / +1 semitone | `,` / `.` | mixer | 012 |
   | Reset speed and transpose | 0 | mixer | 012 |
-  | Count-in on/off | Shift+K (see clash note) | mixer | 012 |
+  | Count-in on/off | Shift+K | mixer | 012 |
   | Speed trainer on/off | T | mixer | 012 |
   | Loop current section | Shift+L | mixer | 014 |
   | Next / previous section | N / Shift+N | mixer | 014 |
@@ -405,12 +405,9 @@ recorded.
   Pedal default (pedal mode on): right pedal PageDown = play/pause, left pedal PageUp = back to start
   of current section.
 
-  Clash check (architect, 2026-11-16): the CTO resolution assigns **K** to count-in, but K is the
-  004 metronome toggle (shipped, in design-spec 6, the help topic `shortcuts` and E2E tests).
-  Binding both is impossible (one command per chord). Decision: the metronome keeps **K**,
-  count-in gets **Shift+K** (same key family: count-in is a metronome pre-roll). The CTO may swap
-  them (count-in K, metronome Shift+K) with a one-line change of `keymap-defaults.json`; that would
-  change a shipped 004 key and needs a note in the 004 help topic and manuals. No other clashes:
+  Clash check (architect, 2026-11-16; **decided by the CTO, 2026-11-16**): the metronome keeps
+  **K** (shipped in 004: design-spec 6, the help topic `shortcuts`, E2E tests) and count-in gets
+  **Shift+K** (same key family: count-in is a metronome pre-roll). No other clashes:
   `,` `.` `0` `-` `=` `T` `R` `C` `N` `F` `Backspace` are unused by 004; `T` after `G` is part of the
   global G-sequence and does not fire the trainer (the sequence consumes it).
 
