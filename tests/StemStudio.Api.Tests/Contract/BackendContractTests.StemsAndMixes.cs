@@ -139,7 +139,7 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingAgentOperations =
     [
         "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend", "renameConversation", "deleteConversation",
-        "undoLastAgentAction", "decideAgentApproval",
+        "undoLastAgentAction",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
