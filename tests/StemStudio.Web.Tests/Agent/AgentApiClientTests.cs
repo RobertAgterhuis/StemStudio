@@ -113,7 +113,7 @@ public sealed class AgentApiClientTests : IDisposable
 
         (accepted.RunId, accepted.MessageId, undo.RunId).ShouldBe((AgentData.RunId, AgentData.MessageId, AgentData.RunId));
         _handler.Requests[0].PathAndQuery.ShouldBe($"/api/agent/conversations/{Conv}/messages");
-        _handler.Requests[0].Body.ShouldBe($$"""{"text":"Zoek Hero of the Day","context":{"page":"mixer","trackId":"{{AgentData.TrackId}}"}}""");
+        _handler.Requests[0].Body.ShouldBe($$$"""{"text":"Zoek Hero of the Day","context":{"page":"mixer","trackId":"{{{AgentData.TrackId}}}"}}""");
         (_handler.Requests[1].Method, _handler.Requests[1].PathAndQuery).ShouldBe((HttpMethod.Post, $"/api/agent/conversations/{Conv}/undo"));
     }
 

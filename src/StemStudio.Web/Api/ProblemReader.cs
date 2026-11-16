@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace StemStudio.Web.Api;
 
@@ -17,7 +18,11 @@ internal static class ProblemReader
             return ApiError.FromStatus(response.StatusCode);
         }
 
-        return new ApiError(response.StatusCode, problem.Title, problem.Detail, problem.Errors ?? []);
+        return new ApiError(response.StatusCode, problem.Title, problem.Detail, problem.Errors ?? [])
+        {
+            Type = problem.Type,
+            Extensions = problem.Extensions ?? [],
+        };
     }
 
     private static async Task<ProblemBody?> TryReadAsync(HttpResponseMessage response, CancellationToken ct)
@@ -37,5 +42,17 @@ internal static class ProblemReader
         }
     }
 
-    private sealed record ProblemBody(string? Title, string? Detail, Dictionary<string, string[]>? Errors);
+    private sealed class ProblemBody
+    {
+        public string? Type { get; init; }
+
+        public string? Title { get; init; }
+
+        public string? Detail { get; init; }
+
+        public Dictionary<string, string[]>? Errors { get; init; }
+
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? Extensions { get; init; }
+    }
 }
