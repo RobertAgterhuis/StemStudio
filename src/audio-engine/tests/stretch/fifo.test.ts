@@ -114,6 +114,15 @@ describe('DelayFifo underrun and overflow', () => {
     const { left } = readQuantum(fifo);
     expect(left[0]).toBe(2 * MAX_WRITE_FRAMES - 256 + 1);
   });
+
+  it('keeps the newest frames of one write longer than the whole ring', () => {
+    const fifo = new DelayFifo(256);
+    const frames = 3 * MAX_WRITE_FRAMES;
+    fifo.write(ramp(1, frames), frames);
+    expect(fifo.size).toBe(256);
+    expect(fifo.underruns).toBe(256 + frames - 256);
+    expect(readQuantum(fifo).left[0]).toBe(frames - 256 + 1);
+  });
 });
 
 describe('DelayFifo reset', () => {
