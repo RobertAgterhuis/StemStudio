@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using StemStudio.Agent.Backends.Fakes;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Runtime;
@@ -62,9 +63,11 @@ public sealed class UndoPlannerTests
     private static object View(string stem, (double GainDb, double Pan, bool Mute, bool Solo) channel) =>
         new { stem, gainDb = channel.GainDb, pan = channel.Pan, mute = channel.Mute, solo = channel.Solo };
 
-    private RunnerHarness MixerHarness(params ScriptedTurn[] turns)
+    private RunnerHarness MixerHarness(params ScriptedTurn[] turns) => PageHarness("mixer", turns);
+
+    private RunnerHarness PageHarness(string page, params ScriptedTurn[] turns)
     {
-        var harness = new RunnerHarness(new Backends.Fakes.ScriptedChatClient(turns), [], "Drums -6, vocals +2, bass -10", "mixer")
+        var harness = new RunnerHarness(new ScriptedChatClient(turns), [], "Drums -6, vocals +2, bass -10", page)
         {
             Registry = new AgentToolRegistry([new Core001ToolProvider(), new MetaToolProvider()]),
         };
@@ -150,12 +153,25 @@ public sealed class UndoPlannerTests
     }
 
     [Fact]
+    public async Task UndoAsync_StoresTheQueuedRun_BeforeItReturnsItsId()
+    {
+        var harness = MixerHarness(Turn(SetChannel("drums", -6)), Say("Done."));
+        await harness.ExecuteAsync();
+
+        var runId = await new AgentRunService(harness.Services()).UndoAsync(harness.ConversationId, Token);
+
+        var queued = await harness.Runs.GetRunAsync(runId, Token);
+        queued.ShouldNotBeNull();
+        (queued.Status, queued.ConversationId, queued.Model).ShouldBe((AgentRunStatusDto.Queued, harness.ConversationId, UndoPlanner.UndoModel));
+    }
+
+    [Fact]
     public async Task SecondUndo_TakesTheOlderGroup_ThenNothingIsLeft()
     {
         var harness = MixerHarness(Turn(SetChannel("drums", -6)), Say("Done."));
         await harness.ExecuteAsync();
         var service = new AgentRunService(harness.Services());
-        await SecondCommandAsync(harness, service, SetChannel("drums", -12));
+        await SecondCommandAsync(harness, SetChannel("drums", -12));
 
         await UndoAsync(harness, service);
         _channels["drums"].GainDb.ShouldBe(-6);
@@ -216,7 +232,7 @@ public sealed class UndoPlannerTests
     [Fact]
     public async Task InverseOfAVanishedMix_IsObsolete()
     {
-        var harness = MixerHarness(Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
+        var harness = PageHarness("tracks", Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
         harness.Actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Old"));
         harness.Actions.Mixes.UpdateMixAsync(MixId, Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "New"));
         await harness.ExecuteAsync();
@@ -233,7 +249,7 @@ public sealed class UndoPlannerTests
     [Fact]
     public async Task InverseOfAnUnchangedMix_RestoresThePreviousName()
     {
-        var harness = MixerHarness(Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
+        var harness = PageHarness("tracks", Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
         harness.Actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Old"));
         harness.Actions.Mixes.UpdateMixAsync(MixId, Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "New"));
         await harness.ExecuteAsync();
@@ -301,11 +317,12 @@ public sealed class UndoPlannerTests
 
     private readonly List<string> _deleted = [];
 
-    private AgentToolDescriptor Created() => Server("create_thing", _ => new ToolResult
+    private static AgentToolDescriptor Created() => Server("create_thing", _ => new ToolResult
     {
         Projection = new JsonObject { ["id"] = "t1" },
         Undo = new UndoAction { Tool = "delete_thing", Arguments = """{"id":"t1"}""" },
-    }, ToolRiskDto.Job) with { UndoKind = UndoKindDto.Compensate };
+    }, ToolRiskDto.Job) with
+    { UndoKind = UndoKindDto.Compensate };
 
     private AgentToolDescriptor DeleteThing() => Server("delete_thing", invocation =>
     {
@@ -313,15 +330,14 @@ public sealed class UndoPlannerTests
         return ToolResult.Of(new JsonObject { ["deleted"] = true });
     }, ToolRiskDto.Destructive, ToolSchema.Of(Param.Text("id", 1, 10)));
 
-    private async Task SecondCommandAsync(RunnerHarness harness, AgentRunService service, ScriptedCall call)
+    private static async Task SecondCommandAsync(RunnerHarness harness, ScriptedCall call)
     {
-        var script = new Backends.Fakes.ScriptedChatClient([Turn(call), Say("Done again.")]);
+        var script = new ScriptedChatClient([Turn(call), Say("Done again.")]);
         var message = harness.Message(3, MessageRoleDto.User, "Drums -12", "mixer");
         await harness.Conversations.AppendMessageAsync(message, Token);
         var run = harness.Run with { Id = Guid.NewGuid(), UserMessageId = message.Id, Status = AgentRunStatusDto.Queued };
         await harness.Runs.CreateRunAsync(run, Token);
         harness.UseSession(new FixedChatSession(script));
         await new AgentRunService(harness.Services()).ExecuteAsync(run.Id, Token);
-        _ = service;
     }
 }

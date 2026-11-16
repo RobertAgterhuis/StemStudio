@@ -47,6 +47,12 @@ internal sealed class RunState
 
     /// <summary>Page context of the current page.</summary>
     public PageContextDto Context => Command.Context with { Page = Page };
+
+    /// <summary>True for an undo run (no model turns, no new undo entries).</summary>
+    public bool IsUndo => UndoPlanner.IsUndo(Run, Command);
+
+    /// <summary>The undo entry whose call is executing (policy: compensation, fresh).</summary>
+    public UndoEntry? CurrentUndo { get; set; }
 }
 
 /// <summary>Ends a run with a failure code (limits, backend, timeout).</summary>

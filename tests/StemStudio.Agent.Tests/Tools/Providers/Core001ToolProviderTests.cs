@@ -202,7 +202,8 @@ public sealed class Core001ToolProviderTests
         calls.ShouldBe(["mixer_get_state"]);
         (sent!.TrackId, sent.Settings.Name, sent.Settings.MasterVolume).ShouldBe((TrackId, "Loud drums", 0.5));
         Json(result.Projection).ShouldBe($$"""{"mixId":"{{MixId}}","name":"Loud drums"}""");
-        (result.Undo!.Tool, result.Undo.Arguments, result.UndoFresh).ShouldBe(("delete_mix", $$"""{"mixId":"{{MixId}}"}""", true));
+        (result.Undo!.Tool, result.UndoFresh).ShouldBe(("delete_mix", true));
+        UndoGuard.Split(result.Undo.Arguments).ShouldBe(($$"""{"mixId":"{{MixId}}"}""", new UndoGuard(MixId, Dtos.At)));
     }
 
     [Fact]
@@ -229,8 +230,10 @@ public sealed class Core001ToolProviderTests
 
         (sent!.Name, sent.MasterVolume).ShouldBe(("Practice", 0.9));
         result.Projection["updatedAt"].ShouldNotBeNull();
-        result.Undo!.Tool.ShouldBe("update_mix");
-        var undo = JsonDocument.Parse(result.Undo.Arguments).RootElement;
+        result.Undo!.Tool.ShouldBe("restore_mix");
+        var (arguments, guard) = UndoGuard.Split(result.Undo.Arguments);
+        guard.ShouldBe(new UndoGuard(MixId, Dtos.At.AddMinutes(1)));
+        var undo = JsonDocument.Parse(arguments).RootElement;
         undo.GetProperty("mixId").GetString().ShouldBe(MixId.ToString());
         undo.GetProperty("settings").GetProperty("masterVolume").GetDouble().ShouldBe(0.5);
     }
@@ -250,7 +253,7 @@ public sealed class Core001ToolProviderTests
         (duplicate.Undo!.Tool, duplicate.UndoFresh).ShouldBe(("delete_mix", true));
         duplicate.Projection["untrusted_text"]!.GetValue<string>().ShouldBe("Practice (copy)");
         await _actions.Mixes.Received(1).UpdateMixAsync(MixId, Arg.Is<MixSettingsDto>(settings => settings.Name == "Gig"), Arg.Any<CancellationToken>());
-        (rename.Undo!.Tool, rename.Undo.Arguments).ShouldBe(("rename_mix", $$"""{"mixId":"{{MixId}}","name":"Practice"}"""));
+        (rename.Undo!.Tool, UndoGuard.Split(rename.Undo.Arguments).Arguments).ShouldBe(("rename_mix", $$"""{"mixId":"{{MixId}}","name":"Practice"}"""));
         Json(delete.Projection).ShouldBe("""{"deleted":true}""");
         await _actions.Mixes.Received(1).DeleteMixAsync(MixId, Arg.Any<CancellationToken>());
     }

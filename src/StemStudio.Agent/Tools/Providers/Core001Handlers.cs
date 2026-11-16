@@ -78,7 +78,7 @@ internal static class Core001Handlers
         return new ToolResult
         {
             Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), ["name"] = call.Text("name") },
-            Undo = Undo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }),
+            Undo = MixUndo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }, mix),
             UndoFresh = true,
         };
     }
@@ -90,7 +90,7 @@ internal static class Core001Handlers
         var settings = await MixProjections.ReadOpenMixerAsync(call, cancellationToken);
         var mix = await call.Actions.Mixes.UpdateMixAsync(mixId, settings with { Name = previous.Settings.Name }, cancellationToken);
         var undo = new JsonObject { ["mixId"] = mixId.ToString(), ["settings"] = JsonSerializer.SerializeToNode(previous.Settings, Json) };
-        return new ToolResult { Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), ["updatedAt"] = mix.UpdatedAt }, Undo = Undo("update_mix", undo) };
+        return new ToolResult { Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), ["updatedAt"] = mix.UpdatedAt }, Undo = MixUndo(RestoreMixTool, undo, mix) };
     }
 
     public static async Task<ToolResult> DuplicateMixAsync(ToolInvocation call, CancellationToken cancellationToken)
@@ -99,7 +99,7 @@ internal static class Core001Handlers
         return new ToolResult
         {
             Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), [ResultProjector.UntrustedField] = Untrusted(mix.Settings.Name) },
-            Undo = Undo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }),
+            Undo = MixUndo("delete_mix", new JsonObject { ["mixId"] = mix.Id.ToString() }, mix),
             UndoFresh = true,
         };
     }
@@ -112,8 +112,19 @@ internal static class Core001Handlers
         return new ToolResult
         {
             Projection = new JsonObject { ["mixId"] = mix.Id.ToString(), ["name"] = call.Text("name") },
-            Undo = Undo("rename_mix", new JsonObject { ["mixId"] = mixId.ToString(), ["name"] = previous.Settings.Name }),
+            Undo = MixUndo("rename_mix", new JsonObject { ["mixId"] = mixId.ToString(), ["name"] = previous.Settings.Name }, mix),
         };
+    }
+
+    /// <summary>The undo-only tool that puts back a mix version (never offered to the model).</summary>
+    public const string RestoreMixTool = "restore_mix";
+
+    /// <summary>Undo of update_mix: writes the previous version recorded in the undo entry.</summary>
+    public static async Task<ToolResult> RestoreMixAsync(ToolInvocation call, CancellationToken cancellationToken)
+    {
+        var settings = call.Arguments.GetProperty("settings").Deserialize<MixSettingsDto>(Json)!;
+        var mix = await call.Actions.Mixes.UpdateMixAsync(call.RequiredId("mixId"), settings, cancellationToken);
+        return ToolResult.Of(new JsonObject { ["mixId"] = mix.Id.ToString(), ["updatedAt"] = mix.UpdatedAt });
     }
 
     public static async Task<ToolResult> DeleteMixAsync(ToolInvocation call, CancellationToken cancellationToken)

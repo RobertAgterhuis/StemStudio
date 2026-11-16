@@ -38,6 +38,15 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         return new FunctionResultContent(call.CallId, result.Json);
     }
 
+    /// <summary>Executes a recorded undo call (trusted arguments from the undo store) and returns the finished step.</summary>
+    public async Task<RunStep> ExecuteUndoAsync(RunState state, PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        await CountCallAsync(state, cancellationToken);
+        await DecideAndRunAsync(state, prepared, cancellationToken);
+        var steps = await services.Runs.GetStepsAsync(state.RunId, cancellationToken);
+        return steps.MaxBy(step => step.Seq)!;
+    }
+
     private async Task CountCallAsync(RunState state, CancellationToken cancellationToken)
     {
         if (state.Run.ToolCalls >= state.Limits.MaxToolCalls)
@@ -116,6 +125,8 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         UserMessages = state.UserMessages,
         Plan = state.Run.Plan,
         PlanGrants = state.Grants,
+        IsCompensation = state.CurrentUndo?.Kind == UndoKindDto.Compensate,
+        Fresh = state.CurrentUndo?.Fresh == true,
     };
 
     private async Task<ProjectedResult> RunAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
@@ -171,8 +182,9 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         }
 
         var element = RunEvents.Element(answer.Result);
-        return prepared.Tool!.MapUiResult?.Invoke(prepared.Validation.Arguments, element)
+        var result = prepared.Tool!.MapUiResult?.Invoke(prepared.Validation.Arguments, element)
             ?? ToolResult.Of(JsonNode.Parse(answer.Result ?? "{}") ?? new JsonObject());
+        return WithUiUndo(step, element, result);
     }
 
     private async Task<UiToolResult> RequestUiAsync(RunState state, RunStep step, UiCall call, CancellationToken cancellationToken)
@@ -201,6 +213,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         PageTransitions.Apply(state, step);
         var done = step with { Status = AgentStepStatusDto.Succeeded, Job = result.Job ?? step.Job, EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes, Progress = result.Progress ?? step.Progress };
         await FinishAsync(done, projected.Json, cancellationToken);
+        await RecordUndoAsync(UndoRecorder.Entries(state, done, result), cancellationToken);
         await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Done, cancellationToken);
         return projected;
     }
@@ -212,6 +225,17 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         await events.StepUpdatedAsync(finished, cancellationToken);
         return resultJson is null ? ResultProjector.Error(step.Error ?? "The step did not run.") : new ProjectedResult(resultJson, false, false);
     }
+
+    private async Task RecordUndoAsync(IReadOnlyList<UndoEntry> entries, CancellationToken cancellationToken)
+    {
+        if (entries.Count > 0)
+        {
+            await services.Undo.AddAsync(entries, cancellationToken);
+        }
+    }
+
+    private static ToolResult WithUiUndo(RunStep step, JsonElement? page, ToolResult result) =>
+        page is { } answer && step.UndoKind != UndoKindDto.None ? result with { MoreUndo = UiUndo.From(step.Tool, answer) } : result;
 
     private async Task SaveRunAsync(RunState state, AgentRun run, CancellationToken cancellationToken)
     {

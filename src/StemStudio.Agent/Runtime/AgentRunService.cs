@@ -68,7 +68,7 @@ public sealed class AgentRunService : IAgentRunService
 
     /// <inheritdoc />
     public Task<Guid> UndoAsync(Guid conversationId, CancellationToken cancellationToken) =>
-        throw new AgentConflictException(AgentProblemTypes.NothingToUndo, "There is nothing to undo.");
+        UndoPlanner.PlanAsync(_services, conversationId, cancellationToken);
 
     private void CheckDecidable(Approval approval, DecideApprovalRequest decision)
     {

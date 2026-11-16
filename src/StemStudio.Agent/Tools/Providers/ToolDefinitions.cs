@@ -35,6 +35,17 @@ internal static class ToolDefinitions
     /// <summary>An undo action with canonical arguments.</summary>
     public static UndoAction Undo(string tool, JsonObject arguments) => new() { Tool = tool, Arguments = CanonicalJson.Canonicalize(arguments.ToJsonString(Json)) };
 
+    /// <summary>An undo call that applies only while the mix is unchanged since the step (<c>updatedAt</c> guard).</summary>
+    /// <param name="tool">Inverse or compensating tool.</param>
+    /// <param name="arguments">Its arguments.</param>
+    /// <param name="mix">The mix as the step left it.</param>
+    /// <returns>The undo call.</returns>
+    public static UndoAction MixUndo(string tool, JsonObject arguments, StemStudio.Contracts.Mixes.MixDto mix)
+    {
+        arguments[UndoGuard.Property] = new JsonObject { ["mixId"] = mix.Id.ToString(), ["updatedAt"] = mix.UpdatedAt };
+        return Undo(tool, arguments);
+    }
+
     /// <summary>The jobRef projection of a job.</summary>
     public static JsonObject JobRef(JobRef job) => new()
     {

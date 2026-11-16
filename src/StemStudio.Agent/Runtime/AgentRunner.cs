@@ -17,6 +17,7 @@ public sealed class AgentRunner
     private readonly StepExecutor _steps;
     private readonly ServiceStatusReader _status;
     private readonly RunCoordination _coordination;
+    private readonly UndoRun _undo;
 
     /// <summary>Creates the runner.</summary>
     /// <param name="services">Ports and services.</param>
@@ -33,6 +34,7 @@ public sealed class AgentRunner
         _events = new RunEvents(services.Events);
         _streamer = new ModelTurnStreamer(_events, services.Time);
         _steps = new StepExecutor(services, _events, coordination.Approvals);
+        _undo = new UndoRun(services, _events, _steps);
         _status = services.ServiceStatus ?? new ServiceStatusReader(services.Actions.Generations, services.Time);
     }
 
@@ -66,7 +68,7 @@ public sealed class AgentRunner
         try
         {
             await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
-            return await LoopAsync(state, cancellationToken);
+            return state.IsUndo ? await _undo.ExecuteAsync(state, cancellationToken) : await LoopAsync(state, cancellationToken);
         }
         catch (RunStopException stop)
         {

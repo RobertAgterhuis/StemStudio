@@ -102,6 +102,12 @@ public sealed record ToolResult
     /// <summary>The inverse or compensating call recorded for undo.</summary>
     public UndoAction? Undo { get; init; }
 
+    /// <summary>Further inverse calls of the same step (e.g. one per channel of a mixer reset).</summary>
+    public IReadOnlyList<UndoAction> MoreUndo { get; init; } = [];
+
+    /// <summary>Every inverse or compensating call of the step, in recording order.</summary>
+    public IReadOnlyList<UndoAction> AllUndo => Undo is null ? MoreUndo : [Undo, .. MoreUndo];
+
     /// <summary>Final job progress 0-100 (wait_for_job), when any.</summary>
     public int? Progress { get; init; }
 
