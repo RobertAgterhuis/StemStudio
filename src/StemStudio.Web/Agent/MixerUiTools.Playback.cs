@@ -2,7 +2,7 @@ using StemStudio.Contracts.Tracks;
 
 namespace StemStudio.Web.Agent;
 
-/// <summary>Transport, A-B loop (seconds or bars from the beat grid) and metronome tools of the open mixer.</summary>
+/// <summary>Transport, A-B loop (seconds or bars from the beat grid), metronome and karaoke tools of the open mixer.</summary>
 public sealed partial class MixerUiTools
 {
     private async Task<object> TransportAsync(UiToolArguments args)
@@ -71,5 +71,19 @@ public sealed partial class MixerUiTools
         });
         await _controls.RefreshAsync();
         return new { previous, current = State.Metronome };
+    }
+
+    private async Task<object> ShowKaraokeAsync(UiToolArguments args)
+    {
+        var enabled = args.RequiredBool("enabled");
+        if (enabled && !_controls.HasSyncedLyrics)
+        {
+            throw new UiToolException("This track has no synced lyrics, so the karaoke banner cannot be shown.");
+        }
+
+        var previous = _controls.KaraokeVisible;
+        await (previous == enabled ? Task.CompletedTask : _controls.SetKaraokeVisibleAsync(enabled));
+        await _controls.RefreshAsync();
+        return new { previous, current = _controls.KaraokeVisible };
     }
 }

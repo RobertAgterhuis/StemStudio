@@ -57,6 +57,12 @@ public interface IMixerControls
     /// <summary>True while playing.</summary>
     bool Playing { get; }
 
+    /// <summary>True while the karaoke banner is switched on (<c>karaoke-toggle</c> pressed, feature 006).</summary>
+    bool KaraokeVisible { get; }
+
+    /// <summary>True when the track has synced (word or line timed) lyrics the banner can draw.</summary>
+    bool HasSyncedLyrics { get; }
+
     /// <summary>Sets a fader (gain 0..1).</summary>
     /// <param name="stem">The channel.</param>
     /// <param name="volume">The gain.</param>
@@ -119,6 +125,11 @@ public interface IMixerControls
     /// <summary>Turns looping on or off.</summary>
     /// <returns>A task that completes when the engine has it.</returns>
     Task ToggleLoopAsync();
+
+    /// <summary>Switches the karaoke banner on or off, as the <c>karaoke-toggle</c> button does (remembered in this browser).</summary>
+    /// <param name="visible">True to show the banner.</param>
+    /// <returns>A task that completes when the choice is applied.</returns>
+    Task SetKaraokeVisibleAsync(bool visible);
 
     /// <summary>Re-renders the page after agent changes.</summary>
     /// <returns>A task that completes when queued.</returns>

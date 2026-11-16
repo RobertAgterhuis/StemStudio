@@ -3,6 +3,7 @@ using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Agent;
 using StemStudio.Web.Audio;
+using StemStudio.Web.Components.Mixer.Karaoke;
 using StemStudio.Web.Mixer;
 
 namespace StemStudio.Web.Components.Mixer;
@@ -14,6 +15,7 @@ namespace StemStudio.Web.Components.Mixer;
 public sealed partial class Mixer
 {
     private IDisposable? _agentTools;
+    private KaraokeBanner? _karaoke;
 
     [Inject]
     private AgentUiToolHost AgentTools { get; set; } = default!;
@@ -35,6 +37,13 @@ public sealed partial class Mixer
         public double Position => page.Position;
 
         public bool Playing => page.Playback == PlaybackState.Playing;
+
+        // The tools are registered after the first render with a loaded track, so the banner exists.
+        public bool KaraokeVisible => page._karaoke!.IsShown;
+
+        public bool HasSyncedLyrics => page._karaoke!.HasSyncedLyrics;
+
+        public Task SetKaraokeVisibleAsync(bool visible) => page._karaoke!.SetVisibleAsync(visible);
 
         public Task SetVolumeAsync(string stem, double volume) => page.SetVolumeAsync(stem, volume);
 

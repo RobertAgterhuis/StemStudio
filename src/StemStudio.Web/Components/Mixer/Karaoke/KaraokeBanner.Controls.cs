@@ -24,6 +24,21 @@ public sealed partial class KaraokeBanner
 
     private void ToggleFullText() => ShowFullText = !ShowFullText;
 
+    /// <summary>True while the banner is switched on (<c>karaoke-toggle</c> pressed).</summary>
+    public bool IsShown => Visible;
+
+    /// <summary>True when the loaded lyrics are timed, so the banner can draw them.</summary>
+    public bool HasSyncedLyrics => Karaoke is not null;
+
+    /// <summary>Switches the banner on or off like the toggle (the composer agent's <c>show_karaoke</c>, feature 011).</summary>
+    /// <param name="visible">True to show the banner.</param>
+    /// <returns>A task that completes when the choice is stored and the banner re-rendered.</returns>
+    public async Task SetVisibleAsync(bool visible)
+    {
+        await ChangeAsync(Settings with { Visible = visible });
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Task ToggleAsync() => ChangeAsync(Settings with { Visible = !Visible });
 
     private Task OnSizeAsync(ChangeEventArgs args) =>
