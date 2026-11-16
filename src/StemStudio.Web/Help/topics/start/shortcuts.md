@@ -6,7 +6,7 @@ summary: "Use the keyboard for help, the command palette, navigation and every m
 anchors: ["command-palette", "shortcut-overlay"]
 keywords: ["keyboard", "keys", "hotkeys", "palette"]
 related: [mixer-transport, levels]
-reviewed: "004"
+reviewed: "012"
 ---
 
 Shortcuts work outside text fields and dialogs. Mod is Ctrl, or Cmd on a Mac.

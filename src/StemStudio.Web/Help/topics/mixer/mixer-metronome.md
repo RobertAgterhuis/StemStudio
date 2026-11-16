@@ -7,7 +7,7 @@ feature: mixer.metronome.advanced
 anchors: ["mixer-metronome"]
 keywords: ["metronome", "click", "beat", "offset"]
 related: [metronome-offset, beat-grid, practice-count-in]
-reviewed: "004"
+reviewed: "012"
 ---
 
 **Click on/off** plays a click on every beat of the detected [beat grid](help:beat-grid); the first beat of a

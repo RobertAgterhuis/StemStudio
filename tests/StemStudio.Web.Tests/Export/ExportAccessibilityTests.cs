@@ -123,7 +123,8 @@ public sealed class ExportAccessibilityTests : PageTestContext
         foreach (var id in new[] { "library", "export-dialog", "export-formats", "export-range", "export-clipping" })
         {
             var topic = Catalog.Topic(id).ShouldNotBeNull();
-            topic.Reviewed.ShouldBe(id == "library" ? "008" : "007"); // library: re-reviewed for score items (008 T075)
+            // library: re-reviewed for score items (008 T075); export-dialog: practice-tempo note (012 T064).
+            topic.Reviewed.ShouldBe(id switch { "library" => "008", "export-dialog" => "012", _ => "007" });
             topic.Markdown.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length.ShouldBeLessThanOrEqualTo(250, id);
         }
     }

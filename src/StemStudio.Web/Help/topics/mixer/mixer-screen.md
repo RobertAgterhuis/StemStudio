@@ -6,7 +6,7 @@ summary: "Play the stems together and change each one: volume, mute, solo, pan, 
 route: "/tracks/{id}/mixer"
 anchors: ["strip-*"]
 related: [mixer-volume, mixer-mute-solo, mixer-transport, mixer-save, practice-speed]
-reviewed: "004"
+reviewed: "012"
 ---
 
 Each stem has a channel strip with its coloured tab, a level meter, a volume fader, mute and solo, and at
