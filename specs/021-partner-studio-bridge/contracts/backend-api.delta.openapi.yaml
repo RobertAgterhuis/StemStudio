@@ -1,0 +1,1826 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - partner, amp and DAW export delta (feature 021)
+  version: 1.20.0-delta.1
+  summary: Additive delta of the backend API for the practice partner, amp simulation and DAWproject export.
+  description: |
+    * **Standalone, additive delta.** Contains only the operations and schemas that feature 021
+      adds. It is merged unchanged into the full `backend-api.openapi.yaml` **1.20.0** after
+      features 012-020 have fixed their minors (1.11.0-1.19.0). No existing operation, schema or
+      behaviour changes; existing enums gain values (listed under "Enum additions" below).
+    * Base schemas of 009/010 (`Generation`, `Asset`) are referenced from the 010 document
+      (`specs/010-lyrics-to-song/contracts/backend-api.openapi.yaml`); at the merge the references
+      become local. 015 take operations live under `/api/tracks/{trackId}/takes/{takeId}`
+      (assumed path of 015; adjusted at the merge if 015 chose another, the 021 operations keep
+      their names).
+    * Conventions of the backend API apply: JSON camelCase, enum values camelCase strings, UTC ISO
+      8601 times, RFC 9457 problem details with `type` = `https://stemstudio.local/problems/<code>`.
+    * **Enum additions at the merge** (additive): `GenerationKind` + `partner`; `Generation` gains
+      the member `partner` (`PartnerDetails`, null for other kinds); `GenerationTake` gains `fit`
+      (`FitReport` or null) and `partId` (uuid or null); `AssetKind` + `dawProject`; `AssetOrigin`
+      + `dawExport`; `AssetFileRole` + `dawproject`, `report`; `AssetFile.contentType` +
+      `application/vnd.dawproject+zip`, `application/json`; `Provenance` gains `dawExport`
+      (`DawExportProvenance` or null); `ChannelId` pattern gains the alternative `part-[0-9a-f]{8}`;
+      015 `Take` gains `wet` (`TakeWet` or null) and `playWet`.
+    * AI labels: every partner take and part has `aiGenerated: true` (ADR-0211 D6).
+    * Changelog: 1.20.0-delta.1 (additive, feature 021 design) - partner context, partner
+      generations, parts (strips), fit reports; amp catalogue, profiles, cabinet IRs, rig presets,
+      wet takes; DAWproject export. See ADR-0211, ADR-0212, ADR-0213 and contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []  # single local user; no authentication
+tags:
+  - name: partner
+    description: Practice partner - generated parts as extra strips (1.20.0, feature 021).
+  - name: amp
+    description: Amp and pedal simulation - captures, cabinets, rig presets, wet takes (1.20.0, feature 021).
+  - name: daw
+    description: DAWproject export into the asset library (1.20.0, feature 021).
+paths:
+  /api/tracks/{trackId}/partner/context:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [partner]
+      operationId: getPartnerContext
+      summary: What the partner dialog needs for this track (families, tempo, key, sections, availability).
+      description: |
+        Always 200 for an existing track. `available` is false with a readable `reason` when the
+        generator is not installed or not ready, or the track is not ready; the dialog then shows
+        the reason (009 rules). Probes are cached for 5 s (009 `GET /api/generation/status`).
+      responses:
+        '200':
+          description: The context.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerContext'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/partner-parts:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [partner]
+      operationId: createPartnerGeneration
+      summary: Start a partner generation (kind `partner`) for one instrument family.
+      description: |
+        Resolves the context stems (mode `add`: all audible standard stems; `alternative`: all
+        except `replacesChannel`, or its parent for a detail channel), the range (explicit, from
+        `sectionIds`, or the whole song capped at 480 s), tempo, key and chords (from the beat grid
+        and 016 unless given), checks `styleHint` with the imitation guard, builds the caption
+        (data-model 2.3) and submits the job to the generator. Status, cancel, retry, takes and
+        take audio use the 009 generation operations (`/api/generations/{generationId}...`).
+        After completion every take gets an automatic fit check (`GenerationTake.fit`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerRequest'
+            examples:
+              addBass:
+                value: {family: bass, mode: add, takes: 2}
+              alternativeDrumsChorus:
+                value: {family: drums, mode: alternative, replacesChannel: drums, sectionIds: ['7f1d3c52-61a8-4f0e-9c1b-2b5a9a3c0d11'], styleHint: laid-back shuffle feel, takes: 1}
+      responses:
+        '202':
+          description: Accepted; poll `GET /api/generations/{generationId}`.
+          content:
+            application/json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/Generation'
+        '400':
+          $ref: '#/components/responses/Imitation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PartnerConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/generations/{generationId}/takes/{index}/parts:
+    parameters:
+      - $ref: '#/components/parameters/GenerationId'
+      - $ref: '#/components/parameters/TakeIndex'
+    post:
+      tags: [partner]
+      operationId: addPartFromTake
+      summary: Add a finished partner take to the mixer as a part strip (conform job).
+      description: |
+        Creates a part in state `conforming` and starts a worker `conform` job in mode `write`
+        (resample to 44.1 kHz, offset correction up to 250 ms, placement at the range start, pad
+        or trim to the track length, gain match). In mode `alternative` the replaced channel is
+        muted in the mix given by `mixId` (else in no mix; the UI passes its open mix). A take can
+        be added once (`409 part-exists`).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPartRequest'
+      responses:
+        '202':
+          description: Accepted; poll `GET /api/tracks/{trackId}/parts/{partId}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PartnerConflict'
+  /api/tracks/{trackId}/parts:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [partner]
+      operationId: listParts
+      summary: The parts (generated strips) of a track, in creation order.
+      responses:
+        '200':
+          description: The parts.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 16
+                items:
+                  $ref: '#/components/schemas/Part'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/parts/{partId}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/PartId'
+    get:
+      tags: [partner]
+      operationId: getPart
+      summary: One part (poll while `conforming`).
+      responses:
+        '200':
+          description: The part.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [partner]
+      operationId: renamePart
+      summary: Rename a part (1-60 characters, unique per track).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRequest'
+      responses:
+        '200':
+          description: The renamed part.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NameTaken'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [partner]
+      operationId: deletePart
+      summary: Delete a part, its file and its channel entries in every mix of the track.
+      description: The library take it came from stays (007 rule).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/parts/{partId}/retry:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/PartId'
+    post:
+      tags: [partner]
+      operationId: retryPart
+      summary: Retry the conform job of a failed part.
+      responses:
+        '202':
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PartnerConflict'
+  /api/tracks/{trackId}/parts/{partId}/audio:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/PartId'
+    get:
+      tags: [partner]
+      operationId: getPartAudio
+      summary: The conformed part as FLAC; same Range/ETag semantics as stems (001).
+      parameters:
+        - $ref: '#/components/parameters/Range'
+      responses:
+        '200':
+          $ref: '#/components/responses/FlacFile'
+        '206':
+          $ref: '#/components/responses/FlacPartial'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          $ref: '#/components/responses/RangeNotSatisfiable'
+  /api/amp/catalogue:
+    get:
+      tags: [amp]
+      operationId: listAmpCatalogue
+      summary: The curated capture catalogue with licence, size and install state.
+      responses:
+        '200':
+          description: The catalogue (read-only, embedded resource `Amp/catalogue.v1.json`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmpCatalogue'
+  /api/amp/catalogue/{entryId}/install:
+    parameters:
+      - name: entryId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/CatalogueEntryId'
+    post:
+      tags: [amp]
+      operationId: installCatalogueEntry
+      summary: Download a catalogue capture, verify its SHA-256 and store it as a profile.
+      description: |
+        HTTPS only, host must be in the catalogue's `allowedHosts`, no redirect to another host,
+        30 s timeout, at most `sizeBytes` + 1 byte read. Synchronous (captures are small).
+      responses:
+        '201':
+          description: Installed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmpProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+        '422':
+          $ref: '#/components/responses/AmpUnprocessable'
+        '502':
+          $ref: '#/components/responses/CatalogueDownloadFailed'
+  /api/amp/profiles:
+    get:
+      tags: [amp]
+      operationId: listAmpProfiles
+      summary: Installed and uploaded captures.
+      parameters:
+        - name: family
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AmpFamily'
+      responses:
+        '200':
+          description: The profiles, by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 200
+                items:
+                  $ref: '#/components/schemas/AmpProfile'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    post:
+      tags: [amp]
+      operationId: uploadAmpProfile
+      summary: Upload an own `.nam` capture (valid NAM model JSON, supported architecture, at most 16 MiB).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AmpProfileUpload'
+      responses:
+        '201':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmpProfile'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/AmpUnprocessable'
+  /api/amp/profiles/{profileId}:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [amp]
+      operationId: getAmpProfile
+      summary: One profile.
+      responses:
+        '200':
+          description: The profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmpProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [amp]
+      operationId: updateAmpProfile
+      summary: Rename a profile or set its family.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmpProfileUpdate'
+      responses:
+        '200':
+          description: The updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AmpProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NameTaken'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [amp]
+      operationId: deleteAmpProfile
+      summary: Delete a profile and its file; rigs that use it report it in `missingRefs`.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/amp/profiles/{profileId}/file:
+    parameters:
+      - $ref: '#/components/parameters/ProfileId'
+    get:
+      tags: [amp]
+      operationId: getAmpProfileFile
+      summary: The `.nam` file (JSON) for the engine; ETag and conditional GET supported.
+      responses:
+        '200':
+          description: The model file.
+          headers:
+            ETag:
+              description: The SHA-256 of the file in quotes.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                description: NAM model file (validated at upload, data-model 3.1).
+        '304':
+          description: Not modified.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/amp/irs:
+    get:
+      tags: [amp]
+      operationId: listCabinetIrs
+      summary: Uploaded cabinet impulse responses.
+      responses:
+        '200':
+          description: The IRs, by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/CabinetIr'
+    post:
+      tags: [amp]
+      operationId: uploadCabinetIr
+      summary: Upload a cabinet IR (WAV PCM/float, mono or stereo, 44.1/48 kHz, at most 2 s and 5 MiB).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CabinetIrUpload'
+      responses:
+        '201':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CabinetIr'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/AmpUnprocessable'
+  /api/amp/irs/{irId}:
+    parameters:
+      - $ref: '#/components/parameters/IrId'
+    get:
+      tags: [amp]
+      operationId: getCabinetIr
+      summary: One IR.
+      responses:
+        '200':
+          description: The IR.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CabinetIr'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [amp]
+      operationId: renameCabinetIr
+      summary: Rename an IR.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRequest'
+      responses:
+        '200':
+          description: The renamed IR.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CabinetIr'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NameTaken'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [amp]
+      operationId: deleteCabinetIr
+      summary: Delete an IR and its file.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/amp/irs/{irId}/file:
+    parameters:
+      - $ref: '#/components/parameters/IrId'
+    get:
+      tags: [amp]
+      operationId: getCabinetIrFile
+      summary: The IR WAV file; ETag and conditional GET supported.
+      responses:
+        '200':
+          description: The WAV file.
+          content:
+            audio/wav:
+              schema:
+                type: string
+                contentMediaType: audio/wav
+        '304':
+          description: Not modified.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/amp/rigs:
+    get:
+      tags: [amp]
+      operationId: listRigPresets
+      summary: Rig presets (seeded read-only presets first, then user presets by name).
+      responses:
+        '200':
+          description: The presets.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 105
+                items:
+                  $ref: '#/components/schemas/RigPreset'
+    post:
+      tags: [amp]
+      operationId: createRigPreset
+      summary: Save a rig preset.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RigPresetInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RigPreset'
+        '409':
+          $ref: '#/components/responses/NameTaken'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/amp/rigs/{rigId}:
+    parameters:
+      - $ref: '#/components/parameters/RigId'
+    get:
+      tags: [amp]
+      operationId: getRigPreset
+      summary: One rig preset.
+      responses:
+        '200':
+          description: The preset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RigPreset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [amp]
+      operationId: updateRigPreset
+      summary: Replace a user rig preset (seeded presets are read-only).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RigPresetInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RigPreset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [amp]
+      operationId: deleteRigPreset
+      summary: Delete a user rig preset.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+  /api/tracks/{trackId}/takes/{takeId}/wet:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/TakeId'
+    put:
+      tags: [amp]
+      operationId: putTakeWet
+      summary: Store (or replace) the wet file of a 015 take with its rig snapshot.
+      description: |
+        Used by the recorder right after a take with the amp on, and by "print" (re-amp to file).
+        The file must be FLAC or WAV, 44.1 kHz, within 1 ms of the dry take's duration, at most
+        300 MiB. Replacing deletes the previous wet file after the new one is stored. Sets
+        `playWet` to true.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TakeWetUpload'
+      responses:
+        '200':
+          description: Stored; the take's wet member.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TakeWet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/AmpUnprocessable'
+    get:
+      tags: [amp]
+      operationId: getTakeWetAudio
+      summary: The wet file; same Range/ETag semantics as stems.
+      parameters:
+        - $ref: '#/components/parameters/Range'
+      responses:
+        '200':
+          $ref: '#/components/responses/FlacFile'
+        '206':
+          $ref: '#/components/responses/FlacPartial'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          $ref: '#/components/responses/RangeNotSatisfiable'
+    delete:
+      tags: [amp]
+      operationId: deleteTakeWet
+      summary: Delete the wet file (the take plays dry again).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/takes/{takeId}/playback:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - $ref: '#/components/parameters/TakeId'
+    patch:
+      tags: [amp]
+      operationId: setTakePlayback
+      summary: Choose whether the take plays its wet or dry file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [playWet]
+              properties:
+                playWet:
+                  type: boolean
+      responses:
+        '200':
+          description: The take's wet member.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TakeWet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AmpConflict'
+  /api/assets/daw-projects:
+    post:
+      tags: [daw]
+      operationId: createDawProjectExport
+      summary: Export a track (with an optional mix and arrangement) as a DAWproject 1.0 library item.
+      description: |
+        Normalises the request into a `DawExportRecipe`, estimates the size (channels x duration x
+        44,100 x 2 x bytes per sample), refuses with `409 insufficient-disk-space` when free space
+        is below estimate x 2 + 1 GiB, creates an asset of kind `dawProject` (status `queued`),
+        renders every channel with the 007 raw render (worker light lane), builds and validates
+        `project.xml` / `metadata.xml` against the DAWproject 1.0 XSD, writes the ZIP and the
+        report. Poll `GET /api/assets/{assetId}`; download role `dawproject` (and `report`) with
+        `GET /api/assets/{assetId}/files/{role}`. Retry with the 007 retry operation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DawExportRequest'
+            examples:
+              defaults:
+                value: {trackId: 3fa85f64-5717-4562-b3fc-2c963f66afa6}
+              mixAndArrangement:
+                value: {trackId: 3fa85f64-5717-4562-b3fc-2c963f66afa6, mixId: 9b2e0c1e-3f9a-4f57-9f0e-2a8f1c3d4e5f, arrangementId: 1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f, audioFormat: wav, bitDepth: 24, tempoMode: beatGrid}
+      responses:
+        '202':
+          description: Accepted; the library item.
+          content:
+            application/json:
+              schema:
+                $ref: '../../010-lyrics-to-song/contracts/backend-api.openapi.yaml#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/DawConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GenerationId:
+      name: generationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TakeIndex:
+      name: index
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2
+      description: Take number, starting at 1 (009).
+    PartId:
+      name: partId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IrId:
+      name: irId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RigId:
+      name: rigId
+      in: path
+      required: true
+      description: A uuid for user presets or `preset:<slug>` for seeded presets.
+      schema:
+        type: string
+        pattern: '^([0-9a-f-]{36}|preset:[a-z0-9-]{1,40})$'
+    TakeId:
+      name: takeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Range:
+      name: Range
+      in: header
+      required: false
+      schema:
+        type: string
+        example: bytes=0-1048575
+  responses:
+    NotFound:
+      description: Unknown track, generation, take, part, profile, IR, rig, catalogue entry or mix.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+    Imitation:
+      description: '`imitation` - the style hint names an artist or asks to imitate someone (ADR-018 D8).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/imitation
+            title: Style hint not allowed
+            status: 400
+            detail: Describe the sound instead of naming an artist.
+    PartnerConflict:
+      description: |
+        Conflict; `type` ends in one of `not-installed`, `gpu-required`, `track-not-ready`,
+        `too-many-parts` (16 per track), `generation-not-completed`, `not-a-partner-generation`,
+        `part-exists` (this take was already added), `part-not-failed` (retry of a part that did
+        not fail). A missing base model is not a conflict: its download is a job phase.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/gpu-required
+            title: A GPU is required
+            status: 409
+            detail: The practice partner needs the generative service on an NVIDIA GPU. Amp simulation and DAW export still work.
+    NameTaken:
+      description: '`name-taken` - another item of the same kind has this name.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/name-taken
+            title: Name already used
+            status: 409
+    AmpConflict:
+      description: |
+        Conflict; `type` ends in one of `already-installed`, `limit-reached` (200 profiles, 100
+        IRs, 100 rigs), `preset-read-only`, `no-wet-file`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/preset-read-only
+            title: Built-in rig presets cannot be changed
+            status: 409
+            detail: Save a copy under a new name.
+    AmpUnprocessable:
+      description: |
+        Unusable file; `type` ends in one of `invalid-nam` (detail names the problem, e.g. "Not a
+        NAM model file (missing 'weights')"), `unsupported-architecture`, `invalid-ir`
+        (not RIFF/WAVE, unsupported codec, too long, wrong rate), `checksum-mismatch` (catalogue
+        download differs from the recorded SHA-256), `length-mismatch` (wet file vs dry take).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/invalid-nam
+            title: Not a usable NAM capture
+            status: 422
+            detail: Not a NAM model file (missing 'weights').
+    TooLarge:
+      description: '`too-large` - the file exceeds its limit (16 MiB capture, 5 MiB IR, 300 MiB wet take).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/too-large
+            title: File too large
+            status: 413
+    CatalogueDownloadFailed:
+      description: '`catalogue-download-failed` - the catalogue host could not be reached or refused the download.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/catalogue-download-failed
+            title: Download failed
+            status: 502
+            detail: The capture host did not answer within 30 s. Try again later or upload the file yourself.
+    DawConflict:
+      description: Conflict; `type` ends in `track-not-ready`, `insufficient-disk-space`, `arrangement-mismatch` (the arrangement belongs to another track) or `nothing-to-export`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/insufficient-disk-space
+            title: Not enough disk space
+            status: 409
+            detail: The export needs about 0.9 GB; 0.4 GB is free.
+    RangeNotSatisfiable:
+      description: The range lies outside the file; `Content-Range` is `bytes */<size>`.
+      headers:
+        Content-Range:
+          schema:
+            type: string
+    FlacFile:
+      description: The whole file (`audio/flac`, or `audio/wav` for a WAV wet take).
+      headers:
+        ETag:
+          schema:
+            type: string
+        Accept-Ranges:
+          schema:
+            type: string
+            const: bytes
+      content:
+        audio/flac:
+          schema:
+            type: string
+            contentMediaType: audio/flac
+    FlacPartial:
+      description: A byte range of the file.
+      headers:
+        Content-Range:
+          schema:
+            type: string
+      content:
+        audio/flac:
+          schema:
+            type: string
+            contentMediaType: audio/flac
+  schemas:
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+    ChannelId:
+      type: string
+      description: Engine channel id; 021 adds parts `part-<8 hex>` (top-level in the gate rule). Takes use the id scheme of 015.
+      pattern: '^((vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?|part-[0-9a-f]{8}|take-[0-9a-f]{8})$'
+      example: part-1a2b3c4d
+    PartFamily:
+      type: string
+      enum: [drums, percussion, bass, guitar, keys, synth, strings, brass, woodwinds, backingVocals]
+      description: Instrument family of a partner part (data-model 2.2).
+    PartnerMode:
+      type: string
+      enum: [add, alternative]
+    TimeSignature:
+      type: string
+      enum: ['2', '3', '4', '6']
+      description: Beats per bar as in 010 (`6` = 6/8).
+    PartnerContext:
+      type: object
+      additionalProperties: false
+      required: [trackId, available, reason, durationSeconds, maxRangeSeconds, bpm, timeSignature, key, hasBeatGrid, hasChords, sections, families, baseModelPresent, baseModelDownloadBytes]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        available:
+          type: boolean
+          description: True iff the generator is ready and the track is ready.
+        reason:
+          type: [string, 'null']
+          maxLength: 300
+        durationSeconds:
+          type: number
+          minimum: 0
+        maxRangeSeconds:
+          type: number
+          const: 480
+        bpm:
+          type: [number, 'null']
+          minimum: 40
+          maximum: 220
+        timeSignature:
+          oneOf:
+            - $ref: '#/components/schemas/TimeSignature'
+            - type: 'null'
+        key:
+          type: [string, 'null']
+          pattern: '^[A-G](#|b)? (major|minor)$'
+        hasBeatGrid:
+          type: boolean
+        hasChords:
+          type: boolean
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/SectionRef'
+        families:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PartFamilyInfo'
+        baseModelPresent:
+          type: boolean
+          description: False before the first partner job; the dialog shows the download size.
+        baseModelDownloadBytes:
+          type: integer
+          minimum: 0
+    SectionRef:
+      type: object
+      additionalProperties: false
+      required: [id, label, startSeconds, endSeconds]
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          minimum: 0
+    PartFamilyInfo:
+      type: object
+      additionalProperties: false
+      required: [family, defaultName, pitched, suggestedReplaces]
+      properties:
+        family:
+          $ref: '#/components/schemas/PartFamily'
+        defaultName:
+          type: string
+          maxLength: 60
+        pitched:
+          type: boolean
+        suggestedReplaces:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+    PartnerRequest:
+      type: object
+      additionalProperties: false
+      required: [family, mode]
+      properties:
+        family:
+          $ref: '#/components/schemas/PartFamily'
+        mode:
+          $ref: '#/components/schemas/PartnerMode'
+        replacesChannel:
+          description: Required iff `mode` is `alternative`.
+          $ref: '#/components/schemas/ChannelId'
+        range:
+          $ref: '#/components/schemas/TimeRange'
+        sectionIds:
+          type: array
+          description: Consecutive 014 sections; mutually exclusive with `range`.
+          minItems: 1
+          maxItems: 32
+          items:
+            type: string
+            format: uuid
+        bpm:
+          type: number
+          minimum: 40
+          maximum: 220
+        timeSignature:
+          $ref: '#/components/schemas/TimeSignature'
+        key:
+          type: string
+          pattern: '^[A-G](#|b)? (major|minor)$'
+        styleHint:
+          type: string
+          minLength: 1
+          maxLength: 200
+        takes:
+          type: integer
+          minimum: 1
+          maximum: 2
+          default: 1
+        seed:
+          type: integer
+          minimum: 0
+          maximum: 4294967295
+        inferenceSteps:
+          type: integer
+          minimum: 30
+          maximum: 60
+          default: 50
+        guidanceScale:
+          type: number
+          minimum: 1
+          maximum: 15
+          default: 7
+    TimeRange:
+      type: object
+      additionalProperties: false
+      required: [startSeconds, endSeconds]
+      description: 10-480 s long and inside the track.
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+    PartnerDetails:
+      type: object
+      additionalProperties: false
+      description: The `partner` member of `Generation` (kind `partner`), merged into Generation at 1.20.0.
+      required: [trackId, family, mode, replacesChannel, contextChannels, range, sectionLabels, bpm, timeSignature, key, chordsText, styleHint, caption, inferenceSteps, guidanceScale, model]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        family:
+          $ref: '#/components/schemas/PartFamily'
+        mode:
+          $ref: '#/components/schemas/PartnerMode'
+        replacesChannel:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+        contextChannels:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        range:
+          $ref: '#/components/schemas/TimeRange'
+        sectionLabels:
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            maxLength: 40
+        bpm:
+          type: number
+        timeSignature:
+          $ref: '#/components/schemas/TimeSignature'
+        key:
+          type: [string, 'null']
+        chordsText:
+          type: [string, 'null']
+          maxLength: 160
+        styleHint:
+          type: [string, 'null']
+          maxLength: 200
+        caption:
+          type: string
+          maxLength: 512
+        inferenceSteps:
+          type: integer
+        guidanceScale:
+          type: number
+        model:
+          type: string
+          const: acestep-v15-base
+    FitReport:
+      type: object
+      additionalProperties: false
+      description: Fit check of a partner take (data-model 2.5); the `fit` member of `GenerationTake` and of `Part`.
+      required: [offsetMs, offsetConfidence, driftMsPer30s, beatLocked, keyAgreement, detectedKey, chordAgreement, loudnessDbfs, gainDb, veryQuiet, verdict, recommended, notes]
+      properties:
+        offsetMs:
+          type: number
+          minimum: -250
+          maximum: 250
+        offsetConfidence:
+          type: number
+          minimum: 0
+        driftMsPer30s:
+          type: number
+        beatLocked:
+          type: boolean
+        keyAgreement:
+          type: string
+          enum: [agrees, relative, differs, unknown]
+        detectedKey:
+          type: [string, 'null']
+        chordAgreement:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+        loudnessDbfs:
+          type: number
+          maximum: 0
+        gainDb:
+          type: number
+          minimum: -12
+          maximum: 12
+        veryQuiet:
+          type: boolean
+        verdict:
+          type: string
+          enum: [good, fair, poor]
+        recommended:
+          type: boolean
+          description: True on the best take of the generation.
+        notes:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            maxLength: 200
+    AddPartRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mixId:
+          type: [string, 'null']
+          format: uuid
+          description: Mix in which an `alternative` part mutes the replaced channel.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+    PartStatus:
+      type: string
+      enum: [conforming, ready, failed]
+    Part:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, channelId, name, family, status, error, generationId, takeIndex, replacesChannel, durationSeconds, offsetMs, gainDb, fit, audioUrl, aiGenerated, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        channelId:
+          $ref: '#/components/schemas/ChannelId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        family:
+          $ref: '#/components/schemas/PartFamily'
+        status:
+          $ref: '#/components/schemas/PartStatus'
+        error:
+          type: [string, 'null']
+          maxLength: 300
+        generationId:
+          type: [string, 'null']
+          format: uuid
+          description: Null when the source generation was deleted.
+        takeIndex:
+          type: integer
+          minimum: 1
+          maximum: 2
+        replacesChannel:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+        durationSeconds:
+          type: [number, 'null']
+        offsetMs:
+          type: [number, 'null']
+        gainDb:
+          type: [number, 'null']
+        fit:
+          oneOf:
+            - $ref: '#/components/schemas/FitReport'
+            - type: 'null'
+        audioUrl:
+          type: [string, 'null']
+          description: '`/api/tracks/{trackId}/parts/{partId}/audio` when ready.'
+        aiGenerated:
+          type: boolean
+          const: true
+        createdAt:
+          type: string
+          format: date-time
+    RenameRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Parts allow 60 characters, profiles and IRs 80.
+    AmpFamily:
+      type: string
+      enum: [guitar, bass, any]
+    GearType:
+      type: string
+      enum: [amp, pedal, ampCab, ampPedal, ampPedalCab, preamp, studio, unknown]
+    NamArchitecture:
+      type: string
+      enum: [WaveNet, LSTM, ConvNet, Linear, A2]
+    SizeClass:
+      type: string
+      enum: [nano, feather, lite, standard, custom]
+    CatalogueEntryId:
+      type: string
+      pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+      maxLength: 60
+    AmpCatalogue:
+      type: object
+      additionalProperties: false
+      required: [version, reviewed, entries]
+      properties:
+        version:
+          type: integer
+          const: 1
+        reviewed:
+          type: string
+          format: date
+        entries:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/CatalogueEntry'
+    CatalogueEntry:
+      type: object
+      additionalProperties: false
+      description: A curated capture (contracts/amp-catalogue.schema.json) plus its install state.
+      required: [id, title, family, gearType, architecture, sizeClass, modeledBy, licence, licenceUrl, attribution, sourceUrl, sizeBytes, sampleRate, notes, installedProfileId]
+      properties:
+        id:
+          $ref: '#/components/schemas/CatalogueEntryId'
+        title:
+          type: string
+          maxLength: 80
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+        gearType:
+          $ref: '#/components/schemas/GearType'
+        architecture:
+          $ref: '#/components/schemas/NamArchitecture'
+        sizeClass:
+          $ref: '#/components/schemas/SizeClass'
+        modeledBy:
+          type: string
+          maxLength: 120
+        licence:
+          type: string
+          maxLength: 80
+          description: SPDX id (e.g. `CC-BY-4.0`) or the exact licence name.
+        licenceUrl:
+          type: [string, 'null']
+          format: uri
+        attribution:
+          type: string
+          maxLength: 300
+        sourceUrl:
+          type: string
+          format: uri
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 16777216
+        sampleRate:
+          type: integer
+          enum: [44100, 48000, 88200, 96000]
+        notes:
+          type: [string, 'null']
+          maxLength: 300
+        installedProfileId:
+          type: [string, 'null']
+          format: uuid
+    AmpProfile:
+      type: object
+      additionalProperties: false
+      required: [id, name, source, catalogueEntryId, gearType, family, architecture, sizeClass, sampleRate, modeledBy, licence, attribution, sourceUrl, sha256, sizeBytes, inputLevelDbu, outputLevelDbu, fileUrl, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        source:
+          type: string
+          enum: [catalogue, upload]
+        catalogueEntryId:
+          oneOf:
+            - $ref: '#/components/schemas/CatalogueEntryId'
+            - type: 'null'
+        gearType:
+          $ref: '#/components/schemas/GearType'
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+        architecture:
+          $ref: '#/components/schemas/NamArchitecture'
+        sizeClass:
+          $ref: '#/components/schemas/SizeClass'
+        sampleRate:
+          type: integer
+        modeledBy:
+          type: [string, 'null']
+          maxLength: 120
+        licence:
+          type: [string, 'null']
+          maxLength: 200
+        attribution:
+          type: [string, 'null']
+          maxLength: 300
+        sourceUrl:
+          type: [string, 'null']
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        sizeBytes:
+          type: integer
+          minimum: 1
+        inputLevelDbu:
+          type: [number, 'null']
+        outputLevelDbu:
+          type: [number, 'null']
+        fileUrl:
+          type: string
+          description: '`/api/amp/profiles/{profileId}/file`.'
+        createdAt:
+          type: string
+          format: date-time
+    AmpProfileUpload:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: The `.nam` file (JSON text), at most 16 MiB.
+        name:
+          type: string
+          maxLength: 80
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+        licence:
+          type: string
+          maxLength: 200
+          description: Optional user note about where the file came from and its licence.
+        attribution:
+          type: string
+          maxLength: 300
+    AmpProfileUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+    CabinetIr:
+      type: object
+      additionalProperties: false
+      required: [id, name, channels, sampleRate, durationSeconds, sha256, sizeBytes, fileUrl, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        channels:
+          type: integer
+          minimum: 1
+          maximum: 2
+        sampleRate:
+          type: integer
+          enum: [44100, 48000]
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 2
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        sizeBytes:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+        fileUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CabinetIrUpload:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: audio/wav
+        name:
+          type: string
+          maxLength: 80
+    RigSettings:
+      type: object
+      additionalProperties: false
+      description: Amp chain settings (data-model 3.5); `effects` is the 017 strip-effects object, unchanged.
+      required: [version, gate, inputGainDb, pedal, amp, cabinet, outputLevelDb, effects]
+      properties:
+        version:
+          type: integer
+          const: 1
+        gate:
+          type: object
+          additionalProperties: false
+          required: [enabled, thresholdDb, releaseMs]
+          properties:
+            enabled:
+              type: boolean
+            thresholdDb:
+              type: number
+              minimum: -90
+              maximum: 0
+            releaseMs:
+              type: number
+              minimum: 10
+              maximum: 500
+        inputGainDb:
+          $ref: '#/components/schemas/GainDb'
+        pedal:
+          type: object
+          additionalProperties: false
+          required: [profileId, enabled, levelDb]
+          properties:
+            profileId:
+              type: [string, 'null']
+              format: uuid
+            enabled:
+              type: boolean
+            levelDb:
+              $ref: '#/components/schemas/GainDb'
+        amp:
+          type: object
+          additionalProperties: false
+          required: [kind, id, levelDb, tone, drive]
+          properties:
+            kind:
+              type: string
+              enum: [builtin, profile, none]
+            id:
+              type: [string, 'null']
+              description: '`builtin:guitar-clean|guitar-crunch|guitar-lead|bass-drive` or a profile uuid.'
+              pattern: '^(builtin:(guitar-clean|guitar-crunch|guitar-lead|bass-drive)|[0-9a-f-]{36})$'
+            levelDb:
+              $ref: '#/components/schemas/GainDb'
+            tone:
+              type: object
+              additionalProperties: false
+              required: [bass, mid, treble]
+              properties:
+                bass:
+                  $ref: '#/components/schemas/ToneDb'
+                mid:
+                  $ref: '#/components/schemas/ToneDb'
+                treble:
+                  $ref: '#/components/schemas/ToneDb'
+            drive:
+              type: number
+              minimum: 0
+              maximum: 1
+        cabinet:
+          type: object
+          additionalProperties: false
+          required: [kind, id, mix]
+          properties:
+            kind:
+              type: string
+              enum: [builtin, ir, none]
+            id:
+              type: [string, 'null']
+              pattern: '^(builtin:(cab-guitar|cab-bass)|[0-9a-f-]{36})$'
+            mix:
+              type: number
+              minimum: 0
+              maximum: 1
+        outputLevelDb:
+          $ref: '#/components/schemas/GainDb'
+        effects:
+          type: object
+          description: The 017 `StripEffects` settings (schema owned by 017).
+    GainDb:
+      type: number
+      minimum: -24
+      maximum: 24
+    ToneDb:
+      type: number
+      minimum: -12
+      maximum: 12
+    RigPreset:
+      type: object
+      additionalProperties: false
+      required: [id, name, family, readOnly, settings, missingRefs, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          pattern: '^([0-9a-f-]{36}|preset:[a-z0-9-]{1,40})$'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+        readOnly:
+          type: boolean
+        settings:
+          $ref: '#/components/schemas/RigSettings'
+        missingRefs:
+          type: array
+          maxItems: 3
+          description: Deleted profile/IR ids this preset still names; the engine substitutes the built-in clean amp / no cabinet.
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RigPresetInput:
+      type: object
+      additionalProperties: false
+      required: [name, family, settings]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        family:
+          $ref: '#/components/schemas/AmpFamily'
+        settings:
+          $ref: '#/components/schemas/RigSettings'
+    TakeWetUpload:
+      type: object
+      required: [file, rig]
+      properties:
+        file:
+          type: string
+          contentMediaType: audio/flac
+          description: FLAC or WAV, 44.1 kHz, same duration as the dry take (+-1 ms), at most 300 MiB.
+        rig:
+          $ref: '#/components/schemas/RigSettings'
+        printed:
+          type: boolean
+          default: false
+          description: True for "print" (re-amp to file), false for a recording.
+    TakeWet:
+      type: object
+      additionalProperties: false
+      description: The `wet` member of the 015 `Take` (merged at 1.20.0).
+      required: [takeId, audioUrl, durationSeconds, rig, printed, playWet, updatedAt]
+      properties:
+        takeId:
+          type: string
+          format: uuid
+        audioUrl:
+          type: [string, 'null']
+        durationSeconds:
+          type: [number, 'null']
+        rig:
+          oneOf:
+            - $ref: '#/components/schemas/RigSettings'
+            - type: 'null'
+        printed:
+          type: boolean
+        playWet:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    DawAudioFormat:
+      type: string
+      enum: [wav, flac]
+    DawTempoMode:
+      type: string
+      enum: [beatGrid, constant]
+    DawExportRequest:
+      type: object
+      additionalProperties: false
+      required: [trackId]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        arrangementId:
+          type: [string, 'null']
+          format: uuid
+          description: A 019 arrangement of this track; null = the whole song as one clip per channel.
+        channels:
+          type: [array, 'null']
+          minItems: 1
+          maxItems: 80
+          description: Null = every standard stem, every part and (with `includeTakes`) every take; detail stems only when listed.
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        includeTakes:
+          type: boolean
+          default: true
+        audioFormat:
+          $ref: '#/components/schemas/DawAudioFormat'
+        bitDepth:
+          type: integer
+          enum: [16, 24]
+          default: 24
+        tempoMode:
+          $ref: '#/components/schemas/DawTempoMode'
+        includeEffects:
+          type: boolean
+          default: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+    DawExportProvenance:
+      type: object
+      additionalProperties: false
+      description: The `dawExport` member of `Provenance` (asset kind `dawProject`).
+      required: [recipe, summary]
+      properties:
+        recipe:
+          $ref: '#/components/schemas/DawExportRecipe'
+        summary:
+          oneOf:
+            - $ref: '#/components/schemas/DawExportSummary'
+            - type: 'null'
+    DawExportRecipe:
+      type: object
+      additionalProperties: false
+      description: The normalised request (every default filled in).
+      required: [trackId, mixId, arrangementId, channels, includeTakes, audioFormat, bitDepth, tempoMode, includeEffects, name]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        arrangementId:
+          type: [string, 'null']
+          format: uuid
+        channels:
+          type: array
+          minItems: 1
+          maxItems: 80
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        includeTakes:
+          type: boolean
+        audioFormat:
+          $ref: '#/components/schemas/DawAudioFormat'
+        bitDepth:
+          type: integer
+          enum: [16, 24]
+        tempoMode:
+          $ref: '#/components/schemas/DawTempoMode'
+        includeEffects:
+          type: boolean
+        name:
+          type: string
+          maxLength: 120
+    DawExportSummary:
+      type: object
+      additionalProperties: false
+      description: Short form of `report.json` (data-model 4.3), set when ready.
+      required: [dawprojectVersion, tracks, clips, markers, tempoPoints, durationSeconds, notMappedCount, skippedCount, aiGeneratedTracks, valid]
+      properties:
+        dawprojectVersion:
+          type: string
+          const: '1.0'
+        tracks:
+          type: integer
+          minimum: 1
+          maximum: 80
+        clips:
+          type: integer
+          minimum: 1
+        markers:
+          type: integer
+          minimum: 0
+        tempoPoints:
+          type: integer
+          minimum: 0
+        durationSeconds:
+          type: number
+        notMappedCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        aiGeneratedTracks:
+          type: array
+          maxItems: 16
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        valid:
+          type: boolean
+          const: true
+          description: Only XSD-valid exports become ready.

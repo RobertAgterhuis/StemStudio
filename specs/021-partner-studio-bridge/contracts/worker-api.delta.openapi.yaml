@@ -1,0 +1,386 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API - part conform delta (feature 021)
+  version: 1.12.0-delta.1
+  summary: Additive delta of the worker API - fit check and conform of generated partner parts.
+  description: |
+    * **Standalone, additive delta**, merged unchanged into the full `worker-api.openapi.yaml`
+      **1.12.0** after 013 (1.7.0), 014 (1.8.0), 016 (1.9.0), 019 (1.10.0) and 020 (1.11.0).
+      Nothing existing changes.
+    * **Library allow-list additions** (render and conform inputs, ADR-016 D5; same rules: full
+      match, lower-case `D` UUIDs, no `..`, real path inside the library root):
+      `tracks/<uuid>/parts/<uuid>.flac` (021 parts, readable by render and conform jobs). A
+      partner take is read through its existing 007 library path `assets/<uuid>/<name>.flac`
+      (009 registers every take as an asset, so no new pattern is needed for takes).
+    * Conform jobs run in the existing **render lane** (light, FIFO, ADR-016 D6); they are
+      CPU-only, stream in 10 s blocks where possible and need < 300 MB of memory for an 8-minute
+      part. Kept 24 h after they end; after a restart unfinished jobs are `failed` with
+      "interrupted by restart" (as render jobs).
+    * Method (research R-04): onset cross-correlation with the beat grid within +-250 ms, drift
+      from beat tracking, Krumhansl-Schmuckler key, per-beat chord template agreement, RMS
+      loudness of non-silent frames; resampling with soxr (VHQ) to 44.1 kHz; output FLAC 24-bit
+      stereo of exactly `round(trackDurationSeconds x 44100)` frames, with the part placed at
+      `rangeStartSeconds - offsetMs/1000`, silence elsewhere, times `gainDb`, peak-limited to
+      -0.1 dBFS by whole-file scaling if needed (`appliedPeakGainDb`, never silent clipping).
+      FLAC tags of the source take are copied (`AI_GENERATED`, `GENERATOR`,
+      `STEMSTUDIO_GENERATION`, `STEMSTUDIO_PART_FAMILY`).
+    * Changelog: 1.12.0-delta.1 (additive, feature 021) - `POST /v1/conform-jobs`,
+      `GET /v1/conform-jobs/{conformJobId}`, `GET /v1/conform-jobs/{conformJobId}/file`; two
+      allow-list patterns. See ADR-0211 D4.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: internal compose network (no host port)
+security: []
+tags:
+  - name: conform
+    description: Fit check and conform of generated parts (1.12.0, feature 021).
+paths:
+  /v1/conform-jobs:
+    post:
+      tags: [conform]
+      operationId: createConformJob
+      summary: Measure how a generated part fits the song and (mode `write`) produce the conformed part file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConformJobRequest'
+            examples:
+              check:
+                value:
+                  source: assets/0f8fad5b-d9cb-469f-a165-70867728950e/take-1.flac
+                  mode: check
+                  trackDurationSeconds: 212.4
+                  rangeStartSeconds: 0
+                  rangeEndSeconds: 212.4
+                  beatGrid: {bpm: 120, beats: [0.5, 1.0, 1.5, 2.0], downbeats: [0.5, 2.5]}
+                  key: A minor
+                  chords: [{startSeconds: 0.5, endSeconds: 2.5, symbol: Am}]
+                  pitched: true
+                  referenceLoudnessDbfs: -18.2
+      responses:
+        '202':
+          description: Accepted and queued in the render lane.
+          headers:
+            Location:
+              description: URL of the job resource.
+              schema:
+                type: string
+              example: /v1/conform-jobs/c0ffee00c0ffee00c0ffee00c0ffee00
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConformJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/conform-jobs/{conformJobId}:
+    parameters:
+      - $ref: '#/components/parameters/ConformJobId'
+    get:
+      tags: [conform]
+      operationId: getConformJob
+      summary: Status, progress and (when completed) the fit report and output file facts.
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConformJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [conform]
+      operationId: deleteConformJob
+      summary: Delete an ended job and its output file (the API calls this after copying the file).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/JobNotEnded'
+  /v1/conform-jobs/{conformJobId}/file:
+    parameters:
+      - $ref: '#/components/parameters/ConformJobId'
+    get:
+      tags: [conform]
+      operationId: getConformJobFile
+      summary: The conformed part (mode `write`, completed jobs only).
+      responses:
+        '200':
+          description: FLAC 24-bit stereo 44.1 kHz of the track's length.
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/JobNotEnded'
+components:
+  parameters:
+    ConformJobId:
+      name: conformJobId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
+  responses:
+    NotFound:
+      description: Unknown job, or no output file.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InvalidInputPath:
+      description: '`invalid-input-path` - `source` matches no allow-list pattern or leaves the library root.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://stemstudio.local/problems/invalid-input-path
+            title: Invalid input path
+            status: 400
+    InputNotFound:
+      description: '`input-not-found` - the source file does not exist.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationFailed:
+      description: Request body invalid (ranges, beat grid order, chord times).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    JobNotEnded:
+      description: '`job-not-ended` - the job is still queued or running, or has no file (mode `check`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: [string, 'null']
+      additionalProperties: true
+    LibraryPath:
+      type: string
+      maxLength: 200
+      description: Relative library path; for conform a take asset `assets/<uuid>/<name>.flac` or a part `tracks/<uuid>/parts/<uuid>.flac`.
+      pattern: '^(assets/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[a-z][a-z0-9-]{0,31}\.flac|tracks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/parts/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.flac)$'
+    BeatGridInput:
+      type: object
+      additionalProperties: false
+      required: [bpm, beats, downbeats]
+      properties:
+        bpm:
+          type: number
+          minimum: 20
+          maximum: 300
+        beats:
+          type: array
+          maxItems: 20000
+          description: Strictly increasing beat times in seconds.
+          items:
+            type: number
+            minimum: 0
+        downbeats:
+          type: array
+          maxItems: 5000
+          items:
+            type: number
+            minimum: 0
+    ChordSpan:
+      type: object
+      additionalProperties: false
+      required: [startSeconds, endSeconds, symbol]
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          minimum: 0
+        symbol:
+          type: string
+          maxLength: 16
+          description: 016 chord symbol (`Am`, `F#7`, `N` = no chord).
+    ConformJobRequest:
+      type: object
+      additionalProperties: false
+      required: [source, mode, trackDurationSeconds, rangeStartSeconds, rangeEndSeconds, beatGrid, pitched]
+      properties:
+        source:
+          $ref: '#/components/schemas/LibraryPath'
+        mode:
+          type: string
+          enum: [check, write]
+          description: '`check` = fit report only; `write` = fit report + conformed file.'
+        trackDurationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 3600
+        rangeStartSeconds:
+          type: number
+          minimum: 0
+        rangeEndSeconds:
+          type: number
+          exclusiveMinimum: 0
+        beatGrid:
+          oneOf:
+            - $ref: '#/components/schemas/BeatGridInput'
+            - type: 'null'
+          description: Null when the track has no beat grid; offset is then 0 and `beatLocked` false with a note.
+        key:
+          type: [string, 'null']
+          pattern: '^[A-G](#|b)? (major|minor)$'
+        chords:
+          type: [array, 'null']
+          maxItems: 5000
+          items:
+            $ref: '#/components/schemas/ChordSpan'
+        pitched:
+          type: boolean
+          description: False for drums and percussion (no key/chord agreement).
+        referenceLoudnessDbfs:
+          type: [number, 'null']
+          maximum: 0
+          description: Loudness to match (replaced stem or median of the other stems), computed by the API from stored stem facts; null = no gain change.
+    ConformJobStatus:
+      type: string
+      enum: [queued, running, completed, failed]
+    ConformJob:
+      type: object
+      additionalProperties: false
+      required: [conformJobId, status, progress, error, result, createdAt, updatedAt]
+      properties:
+        conformJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        status:
+          $ref: '#/components/schemas/ConformJobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/ConformResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ConformResult:
+      type: object
+      additionalProperties: false
+      required: [fit, file]
+      properties:
+        fit:
+          $ref: '#/components/schemas/FitReportCore'
+        file:
+          oneOf:
+            - $ref: '#/components/schemas/ConformedFile'
+            - type: 'null'
+    FitReportCore:
+      type: object
+      additionalProperties: false
+      description: Backend `FitReport` without `recommended` (the API ranks the takes).
+      required: [offsetMs, offsetConfidence, driftMsPer30s, beatLocked, keyAgreement, detectedKey, chordAgreement, loudnessDbfs, gainDb, veryQuiet, verdict, notes]
+      properties:
+        offsetMs:
+          type: number
+          minimum: -250
+          maximum: 250
+        offsetConfidence:
+          type: number
+          minimum: 0
+        driftMsPer30s:
+          type: number
+        beatLocked:
+          type: boolean
+        keyAgreement:
+          type: string
+          enum: [agrees, relative, differs, unknown]
+        detectedKey:
+          type: [string, 'null']
+        chordAgreement:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+        loudnessDbfs:
+          type: number
+          maximum: 0
+        gainDb:
+          type: number
+          minimum: -12
+          maximum: 12
+        veryQuiet:
+          type: boolean
+        verdict:
+          type: string
+          enum: [good, fair, poor]
+        notes:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            maxLength: 200
+    ConformedFile:
+      type: object
+      additionalProperties: false
+      required: [fileName, contentType, sizeBytes, sha256, durationSeconds, sampleRate, channels, peakDbfs, appliedPeakGainDb]
+      properties:
+        fileName:
+          type: string
+          const: part.flac
+        contentType:
+          type: string
+          const: audio/flac
+        sizeBytes:
+          type: integer
+          minimum: 1
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        durationSeconds:
+          type: number
+        sampleRate:
+          type: integer
+          const: 44100
+        channels:
+          type: integer
+          const: 2
+        peakDbfs:
+          type: number
+          maximum: 0
+        appliedPeakGainDb:
+          type: number
+          maximum: 0

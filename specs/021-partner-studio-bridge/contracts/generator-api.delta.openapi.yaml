@@ -1,0 +1,224 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Generator API - partner delta (feature 021)
+  version: 1.2.0-delta.1
+  summary: Additive delta of the generator API - kind `partner` (ACE-Step 1.5 base, lego task).
+  description: |
+    * **Standalone, additive delta** to `specs/010-lyrics-to-song/contracts/generator-api.openapi.yaml`
+      1.1.0; merged unchanged into the full document **1.2.0** in the 021 Phase 0 (no other
+      feature changes the generator contract in between, roadmap allocation).
+    * `POST /v1/generations` (operation `createGeneration`, unchanged path) accepts a third
+      multipart shape: one part `params` (JSON `PartnerGenerationRequest`) and 1-6 parts
+      `context` (FLAC or WAV, each <= 300 MiB, same sample rate and length within one frame;
+      the stems the part must fit). The service sums the context at unity, runs ACE-Step's
+      `lego` task with `track_name`, the caption, `bpm`, `keyscale`, `timesignature`, the range as
+      repaint window, `inferenceSteps` and `guidanceScale`, one seed per take. If the lego output
+      contains more than the requested track (Phase 0 spike S-01), the engine runs `extract` for
+      the same track on it inside the same GPU lease hold. Takes are FLAC 24-bit stereo 48 kHz of
+      the **context length** (the part is silent outside the range).
+    * The kind needs the **base** DiT (`acestep-v15-base`, MIT); it is downloaded on the first
+      partner job (phase `downloadingModel`) and kept in the shared model cache. At most one DiT
+      is resident; switching kinds between turbo and base unloads the other (stage text
+      "Loading the partner model").
+    * GPU needs (`ports.py`): `PARTNER_NEEDS = (LEGO_BASE, LEGO_BASE_LOWMEM)`, provisional 14,336 /
+      9,216 MiB until S-01. Every 009 rule applies (lease, free-memory profile choice, waiting,
+      one OOM retry with the low-memory profile, cancel).
+    * Served by the `acestep` variant only (`/health.kinds` lists `partner`; the singer answers
+      `409 kindNotServed`).
+    * Validation: range 10-480 s and inside the context (else `422 sourceTooShort`); `trackName`
+      in the enum; caption 1-512 characters; seeds = takes; `inferenceSteps` 30-60;
+      `guidanceScale` 1-15.
+    * FLAC tags: ADR-018 D10 tags with `GENERATOR=ACE-Step 1.5 base (<revision>)`, plus
+      `STEMSTUDIO_PART_FAMILY=<trackName>`; takes report `track` and `vocal`
+      (`synthetic` for `backing_vocals`, else `none`).
+    * Fake engine (`STEMSTUDIO_GENERATOR=fake`): deterministic part = a tone/click pattern at the
+      requested BPM in the range (pitched families: root of `keyscale` as a sine bass/pad; drums:
+      clicks), offset by `STEMSTUDIO_FAKE_PART_OFFSET_MS` (default 37) so the conform path is
+      exercised; fake mode `quiet-part` returns a -60 dBFS part.
+    * Changelog: 1.2.0-delta.1 (additive, feature 021) - `kind: partner`, multipart part
+      `context`, `PartnerParams`, `ModelId` + `acestep-v15-base`, `GeneratedTake.track`,
+      `GeneratorHealth.kinds` may contain `partner`. See ADR-0211.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://generator:8100
+    description: internal compose network (no host port)
+security: []
+tags:
+  - name: generations
+    description: Generation jobs (this delta shows only the partner shape of createGeneration).
+paths:
+  /v1/generations:
+    post:
+      tags: [generations]
+      operationId: createGeneration
+      summary: Queue a generation job (021 shape - kind partner).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PartnerGenerationUpload'
+            encoding:
+              params:
+                contentType: application/json
+              context:
+                contentType: audio/flac, audio/wav, audio/x-wav, application/octet-stream
+      responses:
+        '202':
+          description: Job accepted and queued (the 1.1.0 `Generation`, with the `partner` member).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerGenerationView'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '409':
+          $ref: '#/components/responses/NotServable'
+        '422':
+          $ref: '#/components/responses/SourceTooShort'
+components:
+  responses:
+    InvalidInput:
+      description: '`code: invalidInput` - unreadable context audio or invalid params.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/GeneratorProblem'
+    NotServable:
+      description: '`code: gpuRequired` or `kindNotServed` (singer service).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/GeneratorProblem'
+          example:
+            title: Kind not served
+            status: 409
+            code: kindNotServed
+            detail: This service serves voiceConversion only.
+    SourceTooShort:
+      description: '`code: sourceTooShort` - the range does not lie inside the context audio.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/GeneratorProblem'
+  schemas:
+    GeneratorProblem:
+      type: object
+      required: [title, status, code]
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: string
+          enum: [invalidInput, gpuRequired, sourceTooShort, kindNotServed]
+        detail:
+          type: [string, 'null']
+      additionalProperties: true
+    AceStepTrackName:
+      type: string
+      description: ACE-Step 1.5 lego track classes offered by StemStudio (`fx` and `vocals` are not offered).
+      enum: [drums, percussion, bass, guitar, keyboard, synth, strings, brass, woodwinds, backing_vocals]
+    Seed:
+      type: integer
+      minimum: 0
+      maximum: 4294967295
+    PartnerParams:
+      type: object
+      additionalProperties: false
+      required: [trackName, caption, bpm, timeSignature, rangeStartSeconds, rangeEndSeconds, inferenceSteps, guidanceScale, seeds]
+      properties:
+        trackName:
+          $ref: '#/components/schemas/AceStepTrackName'
+        caption:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Final caption built and guarded by the API (data-model 2.3).
+        bpm:
+          type: number
+          minimum: 40
+          maximum: 220
+        keyscale:
+          type: [string, 'null']
+          pattern: '^[A-G](#|b)? (major|minor)$'
+        timeSignature:
+          type: string
+          enum: ['2', '3', '4', '6']
+        rangeStartSeconds:
+          type: number
+          minimum: 0
+        rangeEndSeconds:
+          type: number
+          exclusiveMinimum: 0
+        inferenceSteps:
+          type: integer
+          minimum: 30
+          maximum: 60
+        guidanceScale:
+          type: number
+          minimum: 1
+          maximum: 15
+        seeds:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/Seed'
+    PartnerGenerationRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, partner]
+      properties:
+        kind:
+          type: string
+          const: partner
+        partner:
+          $ref: '#/components/schemas/PartnerParams'
+    PartnerGenerationUpload:
+      type: object
+      required: [params, context]
+      properties:
+        params:
+          $ref: '#/components/schemas/PartnerGenerationRequest'
+        context:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items:
+            type: string
+            contentMediaType: application/octet-stream
+    PartnerTakeAdditions:
+      type: object
+      additionalProperties: false
+      description: Members added to the 1.1.0 `GeneratedTake` (null/absent for other kinds).
+      required: [track]
+      properties:
+        track:
+          oneOf:
+            - $ref: '#/components/schemas/AceStepTrackName'
+            - type: 'null'
+    PartnerGenerationView:
+      type: object
+      description: 'The 1.1.0 `Generation` (all members unchanged) with `kind` = `partner` and the `partner` member set; takes carry `track`.'
+      required: [generationId, kind, status, partner]
+      properties:
+        generationId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        kind:
+          type: string
+          const: partner
+        status:
+          type: string
+        partner:
+          $ref: '#/components/schemas/PartnerParams'
+        takes:
+          type: array
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/PartnerTakeAdditions'
+      additionalProperties: true

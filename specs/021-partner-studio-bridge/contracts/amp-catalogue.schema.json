@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/schemas/amp-catalogue.v1.json",
+  "title": "StemStudio amp capture catalogue v1 (feature 021, ADR-0212 D4)",
+  "description": "Curated NAM captures downloaded on request. Embedded as StemStudio.Domain/Amp/catalogue.v1.json. Every entry must also appear in docs/THIRD-PARTY-LICENSES.md with the same licence, URL and SHA-256.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "reviewed", "allowedHosts", "entries"],
+  "properties": {
+    "version": { "const": 1 },
+    "reviewed": { "type": "string", "format": "date", "description": "Date of the last licence review." },
+    "allowedHosts": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$" }
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "family", "gearType", "architecture", "sizeClass", "modeledBy", "licence", "licenceUrl", "licenceEvidence", "attribution", "sourceUrl", "downloadUrl", "sha256", "sizeBytes", "sampleRate"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 60 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "family": { "enum": ["guitar", "bass", "any"] },
+        "gearType": { "enum": ["amp", "pedal", "ampCab", "ampPedal", "ampPedalCab", "preamp", "studio", "unknown"] },
+        "architecture": { "enum": ["WaveNet", "LSTM", "ConvNet", "Linear", "A2"] },
+        "sizeClass": { "enum": ["nano", "feather", "lite", "standard", "custom"] },
+        "modeledBy": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "licence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "SPDX id (CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, MIT, Apache-2.0, GPL-3.0-only, CC-BY-NC-4.0, CC-BY-NC-SA-4.0) or 'NOASSERTION' (no licence stated; allowed only under ADR-009 rule 4)."
+        },
+        "licenceUrl": { "type": ["string", "null"], "format": "uri" },
+        "licenceEvidence": { "type": "string", "minLength": 1, "maxLength": 300, "description": "Where the per-file licence statement was found (page section, README line), for the reviewer." },
+        "attribution": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "sourceUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "downloadUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "sampleRate": { "enum": [44100, 48000, 88200, 96000] },
+        "notes": { "type": ["string", "null"], "maxLength": 300 }
+      }
+    }
+  }
+}
