@@ -52,6 +52,8 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<KaraokePreferences>();
         Services.AddScoped<StemStudio.Web.Generation.GenerationStatusSource>();
         Services.AddSingleton(AgentApi);
+        Services.AddScoped<NavigationUiTools>();
+        Services.AddScoped<AgentUiToolHost>();
         Services.AddScoped<AgentPanelState>();
         GenerativeDefaults();
         AgentDefaults();

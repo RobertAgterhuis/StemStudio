@@ -16,7 +16,7 @@ public sealed class MixerUiToolsTests
 
     private static UiToolArguments Args(string json = "{}") => new(AgentData.Json(json));
 
-    private static JsonElement Json(UiToolResult result) => JsonSerializer.SerializeToElement(result.Result, AgentApiClient.Json);
+    private static JsonElement Json(UiToolResult result) => JsonSerializer.SerializeToElement(result.Result, JsonSerializerOptions.Web);
 
     private Task<UiToolResult> RunAsync(string tool, string json = "{}") => _tools.ExecuteAsync(tool, Args(json));
 
@@ -24,7 +24,7 @@ public sealed class MixerUiToolsTests
     public void Handles_TheMixerTools_AndKnowsItsTrack()
     {
         MixerUiTools.Names.ShouldBe(["mixer_get_state", "mixer_set_channel", "mixer_set_master", "mixer_reset", "transport", "set_loop", "set_metronome"], ignoreOrder: true);
-        (_tools.Handles("set_loop"), _tools.Handles("open_track"), _tools.TrackId, _tools.Title).ShouldBe((true, false, TestData.TrackId, "Never Gonna Give You Up"));
+        (_tools.CanRun("set_loop"), _tools.CanRun("open_track"), _tools.TrackId, _tools.Title).ShouldBe((true, false, TestData.TrackId, "Never Gonna Give You Up"));
     }
 
     [Fact]
@@ -212,9 +212,17 @@ public sealed class MixerUiToolsTests
     {
         var args = Args($$"""{"n":1.5,"i":3,"b":true,"s":"x","g":"{{TestData.TrackId}}","bad":"y"}""");
 
-        (args.Number("n"), args.Int("i"), args.Bool("b"), args.Text("s"), args.Id("g")).ShouldBe((1.5, 3, true, "x", TestData.TrackId));
-        (args.Number("missing"), args.Int("bad"), args.Bool("s"), args.Text("n"), args.Id("bad")).ShouldBe((null, null, null, null, null));
+        (args.Number("n"), args.Whole("i"), args.Bool("b"), args.Text("s"), args.Id("g")).ShouldBe((1.5, 3, true, "x", TestData.TrackId));
+        (args.Number("missing"), args.Whole("bad"), args.Bool("s"), args.Text("n"), args.Id("bad")).ShouldBe((null, null, null, null, null));
         new UiToolArguments(AgentData.Json("[]")).Text("x").ShouldBeNull();
+    }
+
+    [Fact]
+    public void UiToolException_HasTheStandardConstructors()
+    {
+        var inner = new InvalidOperationException("cause");
+
+        (new UiToolException().Message.Length > 0, new UiToolException("x", inner).InnerException).ShouldBe((true, inner));
     }
 
     [Fact]

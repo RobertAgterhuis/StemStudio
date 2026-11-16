@@ -1,4 +1,3 @@
-using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Contracts.Agent;
 using StemStudio.Web.Agent;

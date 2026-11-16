@@ -12,7 +12,8 @@ namespace StemStudio.Web.Agent;
 /// <param name="api">The agent API.</param>
 /// <param name="navigation">Gives the page context of a command.</param>
 /// <param name="time">Stamps the user's message until the stored one is loaded.</param>
-public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManager navigation, TimeProvider time) : IDisposable
+/// <param name="host">Runs the UI tools the run requests (<c>ui.requested</c>).</param>
+public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManager navigation, TimeProvider time, AgentUiToolHost host) : IDisposable
 {
     private const string LostConnection = "The connection to the agent run was lost. Reopen the conversation to see its state.";
     private CancellationTokenSource _follow = new();
@@ -100,7 +101,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
             return false;
         }
 
-        var context = AgentPageContexts.From(new Uri(navigation.Uri), new Uri(navigation.BaseUri));
+        var context = PageContext();
         Error = await ApiCall.RunAsync(() => PostAsync(text, context));
         Notify();
         return Error is null;
@@ -163,7 +164,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         {
             await foreach (var e in api.StreamRunEventsAsync(followed.RunId, followed.After, ct))
             {
-                await ApplyAsync(followed.ConversationId, e);
+                await ApplyAsync(followed, e);
             }
         }
         catch (ApiException)
@@ -176,15 +177,33 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         }
     }
 
-    private async Task ApplyAsync(Guid conversationId, AgentEvent e)
+    private PageContextDto PageContext()
+    {
+        var context = AgentPageContexts.From(new Uri(navigation.Uri), new Uri(navigation.BaseUri));
+        return context.TrackId is { } trackId && host.OpenMixId(trackId) is { } mixId ? context with { MixId = mixId } : context;
+    }
+
+    private async Task ApplyAsync(FollowedRun followed, AgentEvent e)
     {
         Run = Run?.Apply(e);
+        if (e.Type == AgentEventTypes.UiRequested)
+        {
+            await RunUiToolAsync(followed.RunId, e.Read<UiRequestedEventDto>());
+        }
+
         if (e.IsTerminal)
         {
-            await ReloadAsync(conversationId);
+            await ReloadAsync(followed.ConversationId);
         }
 
         Notify();
+    }
+
+    // 409 ui-result-not-expected (another tab answered first, or the 15 s passed) needs no message: the step shows it.
+    private async Task RunUiToolAsync(Guid runId, UiRequestedEventDto request)
+    {
+        var result = await host.ExecuteAsync(request);
+        await ApiCall.RunAsync(() => api.SubmitUiResultAsync(runId, request.StepId, result));
     }
 
     private async Task RecoverAsync(Guid runId)
