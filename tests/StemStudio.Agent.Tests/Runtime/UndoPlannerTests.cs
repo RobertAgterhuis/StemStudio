@@ -249,6 +249,44 @@ public sealed class UndoPlannerTests
     }
 
     [Fact]
+    public async Task MixSteps_RecordExpectedUpdatedAt_AndStoreTheUndoCallWithoutTheGuardArgument()
+    {
+        var harness = PageHarness("tracks", Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
+        harness.Actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Old"));
+        harness.Actions.Mixes.UpdateMixAsync(MixId, Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "New") with { UpdatedAt = Dtos.At.AddMinutes(1) });
+
+        await harness.ExecuteAsync();
+
+        var entry = harness.Undo.Entries.Single();
+        entry.ExpectedUpdatedAt.ShouldBe(Dtos.At.AddMinutes(1));
+        entry.Action.Arguments.ShouldBe($$"""{"mixId":"{{MixId}}","name":"Old"}""");
+    }
+
+    [Fact]
+    public async Task LegacyEntryStoredWithTheExpectArgument_IsStillGuarded()
+    {
+        var harness = PageHarness("tracks", Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
+        harness.Actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "Old"));
+        harness.Actions.Mixes.UpdateMixAsync(MixId, Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "New"));
+        await harness.ExecuteAsync();
+        var legacy = harness.Undo.Entries.Single() with
+        {
+            Id = Guid.NewGuid(),
+            RunId = Guid.NewGuid(),
+            ExpectedUpdatedAt = null,
+            Action = new UndoAction { Tool = "rename_mix", Arguments = $$"""{"$expect":{"mixId":"{{MixId}}","updatedAt":"{{Dtos.At:O}}"},"mixId":"{{MixId}}","name":"Old"}""" },
+        };
+        await harness.Undo.AddAsync([legacy], Token);
+        harness.Actions.Mixes.GetMixAsync(MixId, Arg.Any<CancellationToken>()).Returns(Dtos.Mix(MixId, TrackId, "New") with { UpdatedAt = Dtos.At.AddMinutes(5) });
+        harness.Actions.Mixes.ClearReceivedCalls();
+
+        await UndoAsync(harness, new AgentRunService(harness.Services()));
+
+        await harness.Actions.Mixes.DidNotReceive().UpdateMixAsync(Arg.Any<Guid>(), Arg.Any<MixSettingsDto>(), Arg.Any<CancellationToken>());
+        harness.Undo.Entries.Single(entry => entry.Id == legacy.Id).Status.ShouldBe(UndoEntryStatus.Obsolete);
+    }
+
+    [Fact]
     public async Task InverseOfAnUnchangedMix_RestoresThePreviousName()
     {
         var harness = PageHarness("tracks", Turn(Call("rename_mix", $$"""{"mixId":"{{MixId}}","name":"New"}""")), Say("Renamed."));
