@@ -52,6 +52,15 @@ public interface IAgentApiClient
     /// <returns>The resulting key status.</returns>
     Task<ClaudeKeyStatusDto> DeleteClaudeKeyAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// <c>POST /api/agent/settings/test</c> with <c>backend: claude</c> and <c>claudeKeySource</c> (1.21.0, local-only): the free
+    /// model lookup with the chosen key. The only call outside a run that contacts Anthropic; made only on an explicit click.
+    /// </summary>
+    /// <param name="source">The key to test (<c>active</c> follows the precedence).</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The test result with the tested <c>keySource</c>.</returns>
+    Task<BackendTestResultDto> TestClaudeKeyAsync(ClaudeKeyTestSourceDto source, CancellationToken cancellationToken = default);
+
     /// <summary><c>GET /api/agent/tools</c>: the registry view for a page context.</summary>
     /// <param name="page">The page name, or null.</param>
     /// <param name="trackId">The open track, or null.</param>

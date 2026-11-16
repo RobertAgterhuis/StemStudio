@@ -57,6 +57,10 @@ public sealed class AgentApiClient(HttpClient http) : IAgentApiClient
         _transport.SendAsync<ClaudeKeyStatusDto>(HttpMethod.Delete, ApiRoutes.AgentClaudeKey, null, cancellationToken);
 
     /// <inheritdoc />
+    public Task<BackendTestResultDto> TestClaudeKeyAsync(ClaudeKeyTestSourceDto source, CancellationToken cancellationToken = default) =>
+        Post<BackendTestResultDto>(ApiRoutes.AgentSettingsTest, new TestAgentBackendRequest { Backend = AgentBackendDto.Claude, ClaudeKeySource = source }, cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<AgentToolInfoDto>> ListToolsAsync(string? page = null, Guid? trackId = null, CancellationToken cancellationToken = default) =>
         Get<IReadOnlyList<AgentToolInfoDto>>(ApiRoutes.AgentTools + Query(("page", page), ("trackId", trackId?.ToString())), cancellationToken);
 

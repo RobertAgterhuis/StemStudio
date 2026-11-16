@@ -47,6 +47,25 @@ public static class ClaudeKeyText
     public static bool IsOverridden(ClaudeKeyStatusDto key) =>
         key.Source == ClaudeKeySourceDto.Environment && key.Stored != StoredClaudeKeyStateDto.Absent;
 
+    /// <summary>True when "Test key" is offered: a usable key exists (environment or stored) or a readable stored key.</summary>
+    /// <param name="key">The key status.</param>
+    /// <returns>Whether the test is offered.</returns>
+    public static bool CanTest(ClaudeKeyStatusDto key) =>
+        key.State is ClaudeKeyStateDto.Environment or ClaudeKeyStateDto.Stored || key.Stored == StoredClaudeKeyStateDto.Readable;
+
+    /// <summary>True when both keys are usable, so the owner can choose which one to test.</summary>
+    /// <param name="key">The key status.</param>
+    /// <returns>Whether the source choice is offered.</returns>
+    public static bool HasBothKeys(ClaudeKeyStatusDto key) =>
+        key.Source == ClaudeKeySourceDto.Environment && key.Stored == StoredClaudeKeyStateDto.Readable;
+
+    /// <summary>The text of <c>settings-agent-claude-key-test-result</c>.</summary>
+    /// <param name="result">The test result.</param>
+    /// <returns>"Anthropic accepted ..." with the latency, or the readable failure of the API.</returns>
+    public static string TestResult(BackendTestResultDto result) => result.Ok
+        ? $"Anthropic accepted the {KeyName(result.KeySource)} ({result.LatencyMs} ms)."
+        : result.Detail;
+
     /// <summary>The <c>data-source</c> value: the wire name of the source, or empty.</summary>
     /// <param name="key">The key status.</param>
     /// <returns>The attribute value.</returns>
@@ -55,6 +74,13 @@ public static class ClaudeKeyText
     private static string NoKey(ClaudeKeyStatusDto key) => key.StoreAvailable
         ? "No key. Enter the Claude API key below, or set ANTHROPIC_API_KEY in the environment of the StemStudio API."
         : $"No key. {key.Reason ?? "The key store is not available. The ANTHROPIC_API_KEY environment variable still works."}";
+
+    private static string KeyName(ClaudeKeySourceDto? source) => source switch
+    {
+        ClaudeKeySourceDto.Environment => "key from ANTHROPIC_API_KEY",
+        ClaudeKeySourceDto.Stored => "stored key",
+        _ => "key",
+    };
 
     private static string Date(DateTimeOffset? at) =>
         at?.UtcDateTime.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture) ?? "at an unknown time";
