@@ -44,26 +44,34 @@ public sealed class AgentRunner
         var outcome = RunOutcome.Internal;
         try
         {
-            await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
-            outcome = await LoopAsync(state, cancellationToken);
-        }
-        catch (RunStopException stop)
-        {
-            LogCause(state, stop.InnerException);
-            outcome = RunOutcome.Fail(stop.Code, stop.Message);
-        }
-        catch (OperationCanceledException)
-        {
-            outcome = RunOutcome.Cancelled;
-        }
-        catch (Exception exception)
-        {
-            LogCause(state, exception);
-            outcome = RunOutcome.Internal;
+            outcome = await RunGuardedAsync(state, cancellationToken);
         }
         finally
         {
             await EndAsync(state, outcome);
+        }
+    }
+
+    private async Task<RunOutcome> RunGuardedAsync(RunState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
+            return await LoopAsync(state, cancellationToken);
+        }
+        catch (RunStopException stop)
+        {
+            LogCause(state, stop.InnerException);
+            return RunOutcome.Fail(stop.Code, stop.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return RunOutcome.Cancelled;
+        }
+        catch (Exception exception)
+        {
+            LogCause(state, exception);
+            return RunOutcome.Internal;
         }
     }
 

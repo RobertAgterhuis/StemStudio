@@ -96,7 +96,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
             return await FailStepAsync(state, step, StepFailure.From(exception, services.Logger, state.RunId, step.Tool), cancellationToken);
         }
 
-        return await SucceedAsync(state, step, prepared, result, cancellationToken);
+        return await SucceedAsync(state, step, result, cancellationToken);
     }
 
     private async Task<ProjectedResult> FailStepAsync(RunState state, RunStep step, StepFailure failure, CancellationToken cancellationToken)
@@ -125,12 +125,12 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         Actions = services.Actions,
         Context = state.Context,
         Backend = state.Run.Backend,
-        Ui = (tool, arguments, cancellationToken) => RequestUiAsync(state, step, tool, arguments, cancellationToken),
+        Ui = (tool, arguments, cancellationToken) => RequestUiAsync(state, step, new UiCall(tool, arguments), cancellationToken),
     };
 
     private async Task<ToolResult> RunUiToolAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
     {
-        var answer = await RequestUiAsync(state, step, step.Tool, step.Arguments, cancellationToken);
+        var answer = await RequestUiAsync(state, step, new UiCall(step.Tool, step.Arguments), cancellationToken);
         if (!answer.Ok)
         {
             throw new UiToolFailedException(answer.Error ?? StepFailure.PageFailed);
@@ -141,21 +141,21 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
             ?? ToolResult.Of(JsonNode.Parse(answer.Result ?? "{}") ?? new JsonObject());
     }
 
-    private async Task<UiToolResult> RequestUiAsync(RunState state, RunStep step, string tool, string arguments, CancellationToken cancellationToken)
+    private async Task<UiToolResult> RequestUiAsync(RunState state, RunStep step, UiCall call, CancellationToken cancellationToken)
     {
         var waiting = step with { Status = AgentStepStatusDto.AwaitingUi };
         await services.Runs.SaveStepAsync(waiting, cancellationToken);
         await events.StepUpdatedAsync(waiting, cancellationToken);
         await SaveRunAsync(state, state.Run with { Status = AgentRunStatusDto.AwaitingUi }, cancellationToken);
-        var payload = new UiRequestedEventDto { StepId = step.Id, Tool = tool, Arguments = RunEvents.Element(arguments)!.Value, TimeoutSeconds = AgentContractLimits.UiToolTimeoutSeconds };
+        var payload = new UiRequestedEventDto { StepId = step.Id, Tool = call.Tool, Arguments = RunEvents.Element(call.Arguments)!.Value, TimeoutSeconds = AgentContractLimits.UiToolTimeoutSeconds };
         await events.PublishAsync(state.RunId, AgentEventTypes.UiRequested, payload, cancellationToken);
-        var request = new UiToolRequest { RunId = state.RunId, StepId = step.Id, Tool = tool, Arguments = arguments, Timeout = UiTimeout };
+        var request = new UiToolRequest { RunId = state.RunId, StepId = step.Id, Tool = call.Tool, Arguments = call.Arguments, Timeout = UiTimeout };
         var answer = await services.Ui.RequestAsync(request, cancellationToken);
         await SaveRunAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
         return answer;
     }
 
-    private async Task<ProjectedResult> SucceedAsync(RunState state, RunStep step, PreparedCall prepared, ToolResult result, CancellationToken cancellationToken)
+    private async Task<ProjectedResult> SucceedAsync(RunState state, RunStep step, ToolResult result, CancellationToken cancellationToken)
     {
         var projected = ResultProjector.Project(result.Projection);
         if (projected.Tainted && !state.Run.Tainted)
@@ -163,7 +163,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
             await SaveRunAsync(state, state.Run with { Tainted = true }, cancellationToken);
         }
 
-        PageTransitions.Apply(state, step.Tool, prepared.Validation.Arguments);
+        PageTransitions.Apply(state, step);
         var done = step with { Status = AgentStepStatusDto.Succeeded, Job = result.Job ?? step.Job, EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes, Progress = result.Progress ?? step.Progress };
         await FinishAsync(done, projected.Json, cancellationToken);
         await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Done, cancellationToken);
@@ -187,13 +187,20 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
     private static string Cap(string text) => text.Length > AgentContractLimits.ErrorMaxLength ? text[..AgentContractLimits.ErrorMaxLength] : text;
 }
 
+/// <summary>A UI tool call (tool and canonical arguments).</summary>
+/// <param name="Tool">UI tool name.</param>
+/// <param name="Arguments">Canonical JSON arguments.</param>
+internal sealed record UiCall(string Tool, string Arguments);
+
 /// <summary>Page changes caused by navigation tools, so the next turn offers that page's tools (tool catalogue "Selection").</summary>
 internal static class PageTransitions
 {
     /// <summary>Updates the run's page after a successful navigation tool.</summary>
-    public static void Apply(RunState state, string tool, JsonElement arguments)
+    public static void Apply(RunState state, RunStep step)
     {
-        state.Page = tool switch
+        using var document = JsonDocument.Parse(step.Arguments);
+        var arguments = document.RootElement;
+        state.Page = step.Tool switch
         {
             "open_mixer" => "mixer",
             "open_track" => "track",
