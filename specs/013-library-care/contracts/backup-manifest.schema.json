@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stemstudio.local/schemas/backup-manifest/1.0.0",
+  "title": "StemStudio backup manifest 1.0.0",
+  "description": "manifest.json of a StemStudio library backup archive (contracts/backup-archive.md). Readers accept formatVersion 1.x and ignore unknown members of 1.x minors; writers of 1.0.0 write exactly these members.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["format", "formatVersion", "backupId", "createdAt", "app", "schema", "contents", "counts", "totals", "hashAlgorithm", "encryption", "entries", "voiceProfiles", "warnings"],
+  "properties": {
+    "format": { "const": "stemstudio-backup" },
+    "formatVersion": { "type": "string", "pattern": "^1\\.(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})$" },
+    "backupId": { "type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "createdAt": { "type": "string", "format": "date-time", "description": "UTC time of the database snapshot." },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "backendApi"],
+      "properties": {
+        "name": { "const": "StemStudio" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64, "description": "Informational version of the API assembly." },
+        "backendApi": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "Backend API contract version of the writer, e.g. 1.12.0." }
+      }
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "lastMigration", "migrations"],
+      "properties": {
+        "provider": { "const": "sqlite" },
+        "lastMigration": { "$ref": "#/$defs/migrationId" },
+        "migrations": { "type": "array", "minItems": 1, "maxItems": 10000, "items": { "$ref": "#/$defs/migrationId" }, "description": "Every row of __EFMigrationsHistory in order." }
+      }
+    },
+    "contents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["included", "excluded"],
+      "properties": {
+        "included": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/category" } },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["category", "reason"],
+            "properties": {
+              "category": { "$ref": "#/$defs/category" },
+              "reason": { "enum": ["option", "empty"] }
+            }
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tracks", "mixes", "assets", "generations", "styles", "lyricsSheets", "voiceProfiles", "artists"],
+      "properties": {
+        "tracks": { "$ref": "#/$defs/count" },
+        "mixes": { "$ref": "#/$defs/count" },
+        "assets": { "$ref": "#/$defs/count" },
+        "generations": { "$ref": "#/$defs/count" },
+        "styles": { "$ref": "#/$defs/count", "description": "User styles only (presets are recreated by the app)." },
+        "lyricsSheets": { "$ref": "#/$defs/count" },
+        "voiceProfiles": { "$ref": "#/$defs/count" },
+        "artists": { "$ref": "#/$defs/count" },
+        "agentConversations": { "$ref": "#/$defs/count" }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries", "bytes"],
+      "properties": {
+        "entries": { "type": "integer", "minimum": 1, "maximum": 2000000 },
+        "bytes": { "type": "integer", "minimum": 0, "description": "Sum of entries[].sizeBytes (uncompressed)." }
+      }
+    },
+    "hashAlgorithm": { "const": "sha-256" },
+    "encryption": { "const": "none", "description": "Reserved; 1.0.0 archives are not encrypted." },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2000000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "category", "sizeBytes", "sha256"],
+        "properties": {
+          "path": { "$ref": "#/$defs/entryPath" },
+          "category": { "$ref": "#/$defs/category" },
+          "sizeBytes": { "type": "integer", "minimum": 0 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "entity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "id"],
+            "properties": {
+              "type": { "enum": ["track", "asset", "generation", "voiceProfile", "upload"] },
+              "id": { "type": "string", "maxLength": 64 }
+            }
+          }
+        }
+      }
+    },
+    "voiceProfiles": {
+      "type": "array",
+      "description": "Consent proof of every voice profile in the archive (010 rules). Empty when voiceProfiles is excluded.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "displayName", "consent", "samplePath", "sampleSha256"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "consent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["statementVersion", "statementSha256", "personName", "consentedAt"],
+            "properties": {
+              "statementVersion": { "type": "string", "pattern": "^consent\\.v[1-9][0-9]{0,2}$" },
+              "statementSha256": { "$ref": "#/$defs/sha256" },
+              "personName": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "consentedAt": { "type": "string", "format": "date-time" }
+            }
+          },
+          "samplePath": { "$ref": "#/$defs/entryPath" },
+          "sampleSha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "enum": ["missing-file", "changed-after-snapshot", "voice-profile-without-consent", "interrupted-entity"] },
+          "message": { "type": "string", "maxLength": 500 },
+          "entity": { "type": "string", "maxLength": 64 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "category": { "enum": ["database", "stems", "artwork", "pendingUploads", "detailStems", "exports", "scores", "generations", "recordings", "voiceProfiles"], "description": "recordings = play-along takes of feature 015 (reserved in 1.0.0; empty before 015)." },
+    "count": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "migrationId": { "type": "string", "pattern": "^[0-9]{14}_[A-Za-z0-9]{1,120}$" },
+    "entryPath": {
+      "type": "string",
+      "maxLength": 260,
+      "description": "Archive entry name: db/stemstudio.db or files/ + a data-relative path of the layout allow-list (data-model 3.3). The schema checks the shape; the reader checks the full allow-list.",
+      "pattern": "^(db/stemstudio\\.db|files/(tracks|assets|generations|voices|uploads)/[A-Za-z0-9][A-Za-z0-9._/-]{0,240})$",
+      "not": { "pattern": "(^|/)\\.\\.?(/|$)|//|\\.\\." }
+    }
+  }
+}
