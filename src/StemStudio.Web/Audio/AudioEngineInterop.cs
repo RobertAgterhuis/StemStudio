@@ -25,6 +25,9 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
     public event EventHandler<PlaybackState>? PlaybackStateChanged;
 
     /// <inheritdoc />
+    public event EventHandler<PracticeStatus>? PracticeChanged;
+
+    /// <inheritdoc />
     public bool IsInitialized => _engine is not null;
 
     /// <inheritdoc />
@@ -90,6 +93,16 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
 
     /// <inheritdoc />
     public Task DetachKaraokeAsync() => _engine is null ? Task.CompletedTask : Call(EngineMethods.DetachKaraoke);
+
+    /// <inheritdoc />
+    public Task SetPracticeAsync(PracticeSettingsDto settings) => throw new NotImplementedException();
+
+    /// <inheritdoc />
+    public Task<PracticeStatus> GetPracticeStatusAsync() => throw new NotImplementedException();
+
+    /// <summary>Engine callback <c>OnPracticeChanged</c> (contract 2.3.0).</summary>
+    /// <param name="status">The engine's snapshot.</param>
+    public void OnPracticeChanged(PracticeStatus status) => PracticeChanged?.Invoke(this, null!);
 
     /// <summary>Engine callback <c>OnPositionChanged</c>.</summary>
     /// <param name="seconds">The transport position.</param>
