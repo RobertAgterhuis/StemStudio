@@ -23,9 +23,9 @@ internal sealed class ClaudeKeyApi : IDisposable
 {
     private readonly Lazy<HttpClient> _client;
 
-    public ClaudeKeyApi(string? dataDir = null, string? keyRingDir = null, bool httpLogging = false)
+    public ClaudeKeyApi(string? dataDir = null, string? keyRingDir = null, bool httpLogging = false, string? internalCaller = null)
     {
-        var settings = new Dictionary<string, string?>();
+        var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = internalCaller };
         if (keyRingDir is not null)
         {
             settings[DataProtectionSetup.KeyRingDirKey] = keyRingDir;
@@ -48,6 +48,9 @@ internal sealed class ClaudeKeyApi : IDisposable
     public IEnvironmentReader Environment { get; } = Substitute.For<IEnvironmentReader>();
 
     public IAgentStatusService StatusService { get; } = Substitute.For<IAgentStatusService>();
+
+    /// <summary>Name resolution of the internal caller (host name -> addresses).</summary>
+    public Dictionary<string, IPAddress[]> Hosts { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Anthropic stand-in: every request is recorded and answered 500; tests assert it stays empty.</summary>
     public StubHttpMessageHandler Anthropic { get; } = new(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)));
@@ -88,6 +91,7 @@ internal sealed class ClaudeKeyApi : IDisposable
     {
         services.AddSingleton(Environment);
         services.AddSingleton(StatusService);
+        services.AddSingleton<IHostAddressResolver>(new FakeResolver(Hosts));
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ClaudeChatClientFactory>(
             sp, new HttpClient(Anthropic) { BaseAddress = new Uri("http://anthropic.invalid/") }));
         if (httpLogging)
@@ -99,6 +103,12 @@ internal sealed class ClaudeKeyApi : IDisposable
             });
             services.AddSingleton<IStartupFilter, HttpLoggingStartup>();
         }
+    }
+
+    private sealed class FakeResolver(Dictionary<string, IPAddress[]> hosts) : IHostAddressResolver
+    {
+        public Task<IPAddress[]> ResolveAsync(string host, CancellationToken cancellationToken) =>
+            Task.FromResult(hosts.GetValueOrDefault(host) ?? []);
     }
 
     /// <summary>Puts <c>UseHttpLogging</c> in front of the API pipeline, as a host that logs every request would.</summary>
