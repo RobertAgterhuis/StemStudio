@@ -6,7 +6,15 @@ Design only (no product code) for feature 023, owner request 2026-11-16: on-dema
 help and spelling/grammar/flow checks in Dutch and English for own 010 lyrics sheets, with poetic
 licence always allowed and proposed by the assistant. Spec Kit set (spec, plan, research,
 data-model, quickstart, tasks, checklist), contract deltas, model output schema, lyric evaluation
-set, ADR-037 (proposed), MoSCoW S13 and ROADMAP row and version reservation.
+set, ADR-037 (accepted 2026-11-16 with the owner answers), MoSCoW S13 and ROADMAP row and version
+reservation.
+
+Owner answers recorded (2026-11-16, second commit): **Q1 yes** - own-work override of
+`not-own-lyrics` with explicit confirmation (spec US6/FR-031, data-model 2.3, endpoints
+`confirmOwnWork`/`revokeOwnWork`, problem `override-not-applicable`/`statement-outdated`, ui ids
+`lyric-own-work-*`, eval L-V3..L-V5 and agent case S5, tasks T074-T078); **Q2 no for now** -
+decision point T080 if Dutch grammar recall < 60 %; **Q3 yes** - explanations in the sheet's
+language (ADR-037 D11). CTO-DECISIONS lines added. Task count 73 -> **79**.
 
 Key decisions (ADR-037): tool-less assistant inside `StemStudio.Agent` reusing the 011 backends
 (Ollama `qwen3.5:9b` default, CPU fallback `4b`, Claude opt-in with a separate one-time notice);
@@ -28,7 +36,7 @@ on instructions.
   (1.2.0), `lyric-assist-output.schema.json` (1.0.0)
 - `specs/023-lyric-writing-assistant/evaluation/lyric-eval-set.md` (1.0.0: 32 nl + 32 en, 8
   guardrail/injection, 2 performance)
-- `docs/decisions/ADR-037-lyric-writing-assistant.md`
+- `docs/decisions/ADR-037-lyric-writing-assistant.md`, `docs/decisions/CTO-DECISIONS-2026-11-15.md` (3 lines)
 - `docs/MoSCoW.md` (S13 + decision line), `docs/ROADMAP.md` (feature row, allocation row, note)
 
 ## Tests and coverage
@@ -37,7 +45,8 @@ No code; no tests run. Contract checks:
 - `npx @redocly/cli@2.78.0 lint --config specs/023-lyric-writing-assistant/contracts/redocly.yaml
   specs/023-lyric-writing-assistant/contracts/backend-api.delta.openapi.yaml` -> "Your API
   description is valid", 0 errors, 2 documented warnings (`operation-4xx-response` on
-  `getLyricAssistStatus`; `no-unused-components` on `LyricAssistEvent`).
+  `getLyricAssistStatus`; `no-unused-components` on `LyricAssistEvent`). Re-run after the override
+  endpoints were added: same result (valid, 0 errors, 2 warnings).
 - `lyric-assist-output.schema.json`: Draft 2020-12 meta-schema check passed (python `jsonschema`);
   a valid sample validates, an invalid type is rejected.
 
@@ -72,9 +81,9 @@ eval suite, fake scripts for E2E, no new container.
   Claude key handling; no new amendment is needed because the assistant runs in the agent runtime).
 - SC-004 latency is an estimate; T008 measures it on the reference machine (no model was run for
   this design).
-- Owner questions Q1-Q3 in plan.md (override for "matches imported lyrics"; optional LanguageTool if
-  Dutch misses the bar; explanation language).
+- Owner questions Q1-Q3 answered 2026-11-16 (plan.md "Owner decisions"); T080 is the remaining
+  LanguageTool decision point after the eval run.
 
 ## Next owner
 
-CTO (review, owner questions), then architect Phase 0 (T001-T011).
+CTO (review), then architect Phase 0 (T001-T011).

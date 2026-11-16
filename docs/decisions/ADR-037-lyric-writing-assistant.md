@@ -1,6 +1,7 @@
 # ADR-037: Lyric writing assistant (feature 023)
 
-**Status**: Proposed (architect, 2026-11-16; becomes Accepted at the end of Phase 0, T011). ADR
+**Status**: Accepted (owner, 2026-11-16, with the answers to Q1-Q3 below; Phase 0 T011 adds a
+"Phase 0 outcome" note with the measured numbers). ADR
 number provisional: 035 is the 011 claude-key follow-up, 036 is left for feature 022 designed in
 parallel; the CTO renumbers at merge if needed (ROADMAP rule).
 
@@ -27,7 +28,8 @@ MIT-like); syllables (Dutch rules, CMUdict for English, BSD-2-Clause-style); rhy
 Dutch spelling rhyme keys on the OpenTaal word list); licence lexicon, intentional marks, personal
 words. It runs without a model, so the assistant degrades gracefully. **LanguageTool is not used**
 in this feature (1 GB JVM service, many false positives on lyric language); it is a follow-up gated
-by the measured Dutch quality and the owner's decision.
+by the measured Dutch quality: owner decision 2026-11-16 "no for now"; decision point T080 after
+the lyric eval run, triggered only when Dutch grammar recall of `qwen3.5:9b` is below 60 %.
 
 **D3 - Suggestions, never edits.** All output is stored as anchored suggestions (line, UTF-16
 offset, length, original text). The text changes only through accept / accept-all (server copies
@@ -57,6 +59,12 @@ song take snapshots the assisted line count.
 track lyrics (>= 3 lines of 5+ words and >= 25 % of lines) is refused (`not-own-lyrics`). Generated
 text with a 7-word run or a full 5+-word line of library lyrics is withheld. Instructions pass the
 009/011 imitation guard. Lyrics outside the library cannot be detected; documented.
+**Own-work override (owner decision Q1, 2026-11-16):** for a false positive (e.g. the owner's own
+band's song imported as a track) the user may confirm in a dialog that the text is their own work
+(statement `own-work.v1`, typed name, tick box). It is stored per sheet (name, time, matched track
+id and title), shown on the sheet, revocable, and covers only the matched track; it never disables
+the 7-word verbatim hold-back on generated text nor the imitation refusal; no agent tool can create,
+revoke or read it (`PUT/DELETE /api/lyrics/{id}/own-work-override`).
 
 **D8 - Privacy and Claude.** Nothing runs automatically. Without Claude selected nothing leaves the
 machine. With Claude, the first model action requires acknowledging the lyric-assistant notice
@@ -69,6 +77,9 @@ Local targets: recall spelling >= 75 %, grammar >= 60 %, precision >= 80 %, lice
 <= 10 %. A miss for Dutch shows a standing quality note in the pane and triggers the LanguageTool
 owner question. Every suggestion shows its layer and model.
 
+**D11 - Explanation language (owner decision Q3).** Explanations are written in the sheet's
+language; the UI, category names and help stay English (MoSCoW W7).
+
 **D10 - Versions.** backend-api 1.23.0, ui-test-ids 1.23.0, tool catalogue 1.2.0 (1.1.0 reserved
 for 022), agent eval set 1.1.0, lyric-assist-output 1.0.0; all additive.
 
@@ -79,5 +90,5 @@ for 022), agent eval set 1.1.0, lyric-assist-output 1.0.0; all additive.
 - Negative: Dutch grammar quality depends on a 9B local model until measured; Dutch rhymes are
   spelling-based approximations; ~10 MB of vendored dictionary data in the repository; one more
   prompt family to maintain.
-- Follow-ups: optional LanguageTool service (owner Q2); remembering rejections across checks
+- Follow-ups: optional LanguageTool service (only via decision point T080); remembering rejections across checks
   (YAGNI now); more languages (only with open dictionaries and an eval set).

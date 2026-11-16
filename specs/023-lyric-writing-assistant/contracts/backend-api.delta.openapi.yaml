@@ -31,7 +31,7 @@ info:
       settings, assists (check, devices, alternatives, continue, titles) with an SSE event stream,
       suggestions (list, accept, reject, mark intentional), intentional marks, sheet assist
       settings (sensitivity, rhythm target), undo and revisions, syllables, rhymes, personal word
-      list, language guess. See ADR-037 and contracts/DELTA.md.
+      list, language guess, own-work override (owner decision Q1). See ADR-037 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT
@@ -396,6 +396,48 @@ paths:
           $ref: '#/components/responses/ValidationProblem'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/own-work-override:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    put:
+      tags: [lyric-assist]
+      operationId: confirmOwnWork
+      summary: Confirm that the sheet is the user's own work although it matches one library track (owner decision Q1).
+      description: |
+        For a false positive of the `not-own-lyrics` guard (e.g. a song of the user's own band that
+        was imported). Requires the current statement version (`LyricAssistSettings.ownWorkStatementVersion`),
+        the typed name and `confirm: true`. `matchedTrackId` must be a track the sheet currently
+        matches (409 `override-not-applicable` otherwise, also when there is no match at all).
+        Replaces an existing override. The override covers only that track; it never disables the
+        verbatim hold-back on generated text or the imitation refusal. Not an agent tool.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnWorkConfirmRequest'
+      responses:
+        '200':
+          description: The stored override.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnWorkOverride'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/OverrideConflict'
+    delete:
+      tags: [lyric-assist]
+      operationId: revokeOwnWork
+      summary: Revoke the own-work override of the sheet.
+      responses:
+        '204':
+          description: Revoked.
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/lyrics/{lyricsId}/undo:
     parameters:
       - $ref: '#/components/parameters/LyricsId'
@@ -703,6 +745,8 @@ components:
             status: 409
             code: not-own-lyrics
             matchedTrackTitle: Hero of the Day
+            matchedTrackId: 7d1e2f3a-4b5c-4d6e-8f70-91a2b3c4d5e6
+            overridable: true
     AssistEnded:
       description: '`assist-ended` - the assist is already completed, failed or cancelled.'
       content:
@@ -717,6 +761,12 @@ components:
             $ref: '#/components/schemas/AssistProblem'
     UndoConflict:
       description: '`revision-conflict`, `nothing-to-undo` (the newest revision is not an accept), `undo-blocked-by-edit` (`changedLines`: user edits were saved after the accept).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+    OverrideConflict:
+      description: '`override-not-applicable` - the sheet does not currently match `matchedTrackId` (or matches nothing); `revision-conflict` is not used here. `statement-outdated` - `statementVersion` is not the current one.'
       content:
         application/problem+json:
           schema:
@@ -785,12 +835,19 @@ components:
           properties:
             code:
               type: string
-              enum: [revision-conflict, language-unsupported, not-own-lyrics, assist-active, model-unavailable, claude-notice-required, overlapping-suggestions, suggestion-not-open, nothing-to-undo, undo-blocked-by-edit]
+              enum: [revision-conflict, language-unsupported, not-own-lyrics, assist-active, model-unavailable, claude-notice-required, overlapping-suggestions, suggestion-not-open, nothing-to-undo, undo-blocked-by-edit, override-not-applicable, statement-outdated]
             currentRevision:
               type: [integer, 'null']
             matchedTrackTitle:
               type: [string, 'null']
               maxLength: 200
+            matchedTrackId:
+              type: [string, 'null']
+              format: uuid
+              description: '`not-own-lyrics`: the first matching track not covered by an override.'
+            overridable:
+              type: [boolean, 'null']
+              description: '`not-own-lyrics`: true; the editor offers the own-work confirmation (owner decision Q1).'
             activeAssistId:
               type: [string, 'null']
               format: uuid
@@ -936,7 +993,7 @@ components:
     LyricAssistSettings:
       type: object
       additionalProperties: false
-      required: [claudeNoticeAcknowledged, claudeNoticeVersion, claudeNoticeText]
+      required: [claudeNoticeAcknowledged, claudeNoticeVersion, claudeNoticeText, ownWorkStatementVersion, ownWorkStatementText]
       properties:
         claudeNoticeAcknowledged:
           type: boolean
@@ -947,6 +1004,12 @@ components:
           type: string
           example: lyric-claude-notice.v1
         claudeNoticeText:
+          type: string
+          maxLength: 1000
+        ownWorkStatementVersion:
+          type: string
+          example: own-work.v1
+        ownWorkStatementText:
           type: string
           maxLength: 1000
     LyricAssistSettingsUpdate:
@@ -1387,7 +1450,7 @@ components:
       type: object
       additionalProperties: false
       description: Member `assist` of `LyricsSheet` at the merge.
-      required: [sensitivity, openSuggestions, assistedLines, intentionalMarkCount, canUndo]
+      required: [sensitivity, openSuggestions, assistedLines, intentionalMarkCount, canUndo, ownWorkOverride]
       properties:
         sensitivity:
           $ref: '#/components/schemas/Sensitivity'
@@ -1409,6 +1472,10 @@ components:
         canUndo:
           type: boolean
           description: The newest revision is an accept action.
+        ownWorkOverride:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/OwnWorkOverride'
     SheetAssistSettingsUpdate:
       type: object
       additionalProperties: false
@@ -1456,6 +1523,45 @@ components:
           items:
             type: string
             format: uuid
+    OwnWorkConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [matchedTrackId, confirmedBy, statementVersion, confirm]
+      properties:
+        matchedTrackId:
+          type: string
+          format: uuid
+        confirmedBy:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: The typed name of the person confirming.
+        statementVersion:
+          type: string
+          maxLength: 40
+        confirm:
+          type: boolean
+          const: true
+    OwnWorkOverride:
+      type: object
+      additionalProperties: false
+      required: [statementVersion, confirmedBy, confirmedAt, matchedTrackId, matchedTrackTitle]
+      properties:
+        statementVersion:
+          type: string
+          maxLength: 40
+        confirmedBy:
+          type: string
+          maxLength: 80
+        confirmedAt:
+          type: string
+          format: date-time
+        matchedTrackId:
+          type: string
+          format: uuid
+        matchedTrackTitle:
+          type: string
+          maxLength: 200
     IntentionalScope:
       type: string
       enum: [word, phrase, line]

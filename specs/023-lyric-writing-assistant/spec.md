@@ -21,8 +21,8 @@ writes there; never the lyrics of imported songs from 006, for copyright reasons
 Answered by the architect from the owner request, the constitution (1.4.0 on the claude-key
 branch: local-first, Ollama default, Claude opt-in), 010, 011 and the 011 claude-key follow-up.
 Binding design decisions are in ADR-037 (`docs/decisions/ADR-037-lyric-writing-assistant.md`);
-the evidence is in [research.md](research.md). Genuine owner questions are at the end of
-[plan.md](plan.md).
+the evidence is in [research.md](research.md). The owner answered the three open questions on
+2026-11-16 ("Owner answers" below; plan.md "Owner decisions").
 
 - Q: Where does the assistant appear? -> A: in the 010 lyrics editor (`/lyrics/{id}`), as an
   assistant pane next to the text, and as tools of the 011 agent panel ("check my lyrics",
@@ -74,9 +74,9 @@ the evidence is in [research.md](research.md). Genuine owner questions are at th
   which layer and model produced it.
 - Q: Is LanguageTool used? -> A: not in this feature. It is LGPL-2.1 (acceptable as a separate
   service) but needs a Java service of about 1 GB RAM and flags much deliberate lyric language.
-  The Dutch quality of the local model is measured first (evaluation set); if it misses the bar,
-  an optional LanguageTool service is a follow-up that needs the owner's decision (plan.md, owner
-  question Q2).
+  The Dutch quality of the local model is measured first (evaluation set). Owner decision
+  2026-11-16: no LanguageTool for now; the question is reopened only when the lyric eval run shows
+  Dutch grammar recall below 60 % (decision point T080).
 - Q: How do the 011 guardrails apply? -> A: `lyrics-not-from-user` stays unchanged for
   `save_lyrics_sheet` and `generate_song`. The assistant model reads a sheet only on the user's
   explicit request; it has no tools; its output is inert data (schema-validated suggestions). A
@@ -87,7 +87,19 @@ the evidence is in [research.md](research.md). Genuine owner questions are at th
   reproduces library lyrics verbatim is dropped.
 - Q: Language of the explanations? -> A: the language of the sheet (a Dutch sheet gets Dutch
   explanations), because the explanation is about that text. Category names, buttons and all
-  other UI text stay English (MoSCoW W7).
+  other UI text stay English (MoSCoW W7). Confirmed by the owner (2026-11-16).
+
+### Owner answers (2026-11-16)
+
+- Q1: May the owner override the `not-own-lyrics` refusal for a false positive (for example a song
+  of their own band that was imported as a track)? -> A: **yes, with explicit confirmation**: a
+  dialog with the statement that the text is the user's own work, the typed name and a tick box;
+  recorded per sheet (name, time, the matched track); visible on the sheet and revocable. The
+  override covers only the matched track; it never disables the verbatim hold-back on generated
+  text (7-word runs) nor the artist-imitation refusal. The agent cannot create or revoke it.
+- Q2: LanguageTool? -> A: **no, for now**. Decide again after the lyric eval run, triggered only
+  when Dutch grammar recall is below 60 % (T080).
+- Q3: Explanations in the sheet's language? -> A: **yes**; the UI stays English.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -247,12 +259,47 @@ Settings"; a failing HTTP handler proves no request leaves the API.
 4. **Given** any completed check, **When** the user views it, **Then** the layers, the model, the
    duration and (Claude) the token usage are shown (Advanced and Expert).
 
+---
+
+### User Story 6 - Override a false "not my own lyrics" refusal (Priority: P3)
+
+The owner's band once released a song that is also in the library as an imported track with
+downloaded lyrics. Their sheet of that song is refused as "matches imported lyrics". They confirm
+that the text is their own work; from then on the assistant works on that sheet, and the sheet
+shows the override with the track, the name and the date until they revoke it.
+
+**Why this priority**: rare (false positives of the own-lyrics guard), but owner-requested.
+
+**Independent Test**: seed the fake track `t-fake-song` with fake lyrics and save a sheet with that
+text: Check is refused with "This is my own text" offered; confirm with name and tick box; Check
+runs; a scripted model that returns a 9-word run of the fixture lyrics still has it withheld; an
+instruction naming an artist is still refused; revoke -> Check is refused again.
+
+**Acceptance Scenarios**:
+
+1. **Given** a sheet refused with `not-own-lyrics`, **When** the user chooses "This is my own
+   text", **Then** a dialog shows the statement (version `own-work.v1`), the matched track, a name
+   field and a tick box; confirm is enabled only when both are filled.
+2. **Given** a confirmed override, **When** the user checks or asks for writing help, **Then** the
+   assistant runs; the sheet shows "Own work confirmed by <name> on <date> (matches <track>)" with
+   "Revoke".
+3. **Given** an override, **When** generated text contains 7 or more consecutive words of any
+   library lyrics (including the matched track), **Then** it is still withheld; **and when** an
+   instruction names an artist, **Then** it is still refused.
+4. **Given** an override for track A, **When** the sheet later also matches track B, **Then** the
+   assistant is refused again for track B (an override covers only its own matched track).
+5. **Given** an override, **When** the user revokes it, **Then** it is removed and the next
+   assistant action is refused again; a new confirmation is possible.
+6. **Given** the agent, **When** a command asks to confirm or revoke the override, **Then** no tool
+   exists for it and the agent explains that this is done in the lyrics editor.
+
 ### Edge Cases
 
 - **Sheet matches imported lyrics**: when at least 3 lines of 5+ words and at least 25 % of the
   sheet's lines equal lines of a 006 track lyrics in the library, every assistant action is refused
   with "This text matches the lyrics of <track title>. The assistant works on your own lyrics
-  only." (owner question Q1 asks whether an override is wanted).
+  only." The user may override this for their own work with an explicit confirmation (US6,
+  FR-031); the override never disables the verbatim hold-back or the imitation refusal.
 - **Model reproduces existing lyrics**: a generated text (continuation, alternative, replacement,
   title) containing a run of 7+ consecutive words, or a full line of 5+ words, of any 006 lyrics in
   the library is dropped before it is stored or shown; the pane counts "1 suggestion withheld
@@ -300,7 +347,8 @@ Settings"; a failing HTTP handler proves no request leaves the API.
   deterministic counter that sends nothing anywhere.
 - **FR-003**: No endpoint or tool MUST accept 006 track lyrics as assistant input; the system MUST
   refuse assistant actions on a sheet that matches library track lyrics (edge cases thresholds)
-  with the reason `not-own-lyrics`.
+  with the reason `not-own-lyrics`, unless a valid own-work override for the matched track exists
+  (FR-031).
 
 **Check**
 
@@ -404,6 +452,16 @@ Settings"; a failing HTTP handler proves no request leaves the API.
   and does not do, poetic licence and sensitivity, devices, syllables and rhythm target, privacy
   and models (local, Claude), own lyrics only and the limits of the verbatim check.
 
+**Own-work override**
+
+- **FR-031**: The user MUST be able to override a `not-own-lyrics` refusal for a sheet with an
+  explicit confirmation (statement `own-work.v1` shown, typed name 1-80 characters, tick box); the
+  system MUST store per sheet the statement version, the name, the time and the matched track id
+  and title; the override MUST be shown on the sheet and be revocable; it MUST cover only the
+  matched track (a match with another track is refused again); it MUST NOT disable the verbatim
+  hold-back (FR-023) or the imitation refusal (FR-022); the agent MUST NOT be able to create or
+  revoke it.
+
 ### Key Entities
 
 - **Lyrics sheet (010, extended)**: revision number, sensitivity, rhythm target, intentional
@@ -417,6 +475,8 @@ Settings"; a failing HTTP handler proves no request leaves the API.
   withheld counts only).
 - **Intentional mark**: a word, phrase or line text the checker must respect in one sheet.
 - **Personal word**: a word accepted as correct in one language in all sheets.
+- **Own-work override**: per sheet, the user's confirmation that the text is their own work despite
+  matching one library track: statement version, name, time, matched track.
 
 ## Success Criteria *(mandatory)*
 
@@ -428,8 +488,8 @@ Settings"; a failing HTTP handler proves no request leaves the API.
   precision of `error` suggestions >= 80 % per language; false-positive rate on the poetic-licence
   traps <= 10 % at balanced (0 % reported as `error`). With Claude (owner-run, optional) the
   targets are recall >= 85 %, precision >= 90 %. If Dutch misses the local targets, the pane shows
-  a standing "Dutch grammar and flow: limited quality with the local model" note (constitution V)
-  and owner question Q2 applies.
+  a standing "Dutch grammar and flow: limited quality with the local model" note (constitution V);
+  Dutch grammar recall below 60 % triggers the LanguageTool decision point (T080).
 - **SC-002**: 100 % of shown device suggestions that claim a rhyme or a syllable change pass the
   deterministic verification (automated); in an owner rating of 10 device and 10 writing-help
   suggestions per language, the median is at least 3 on a 1-5 scale.
@@ -442,7 +502,8 @@ Settings"; a failing HTTP handler proves no request leaves the API.
   fallback `qwen3.5:4b` while a GPU job runs, the full check within 180 s, with the estimate shown.
 - **SC-005**: In the injection and guardrail cases, 0 tool calls, 0 sheet changes without accept,
   0 shown suggestions containing 7+ consecutive words of library lyrics, and 100 % of
-  artist-imitation instructions refused.
+  artist-imitation instructions refused - with and without an own-work override (FR-031); 0
+  overrides created without the confirmation or by the agent.
 - **SC-006**: Without Claude selected, 0 requests leave the machine during any assistant action
   (failing HTTP handler in tests); with Claude selected, 0 requests before the notice is
   acknowledged.

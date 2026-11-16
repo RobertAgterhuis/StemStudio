@@ -15,8 +15,9 @@
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain (answered in Clarifications and ADR-037; three genuine
-      owner questions are listed in plan.md with safe defaults)
+- [x] No [NEEDS CLARIFICATION] markers remain (answered in Clarifications and ADR-037; the owner
+      answered Q1-Q3 on 2026-11-16: override with confirmation, no LanguageTool for now, explanations
+      in the sheet language)
 - [x] Requirements are testable and unambiguous (limits: 8 lines per block, 300-char explanations,
       200 marks, 5,000 words, 7-word verbatim runs, 25 % / 3 lines sheet guard, 500 ms rhymes)
 - [x] Success criteria are measurable (recall, precision, licence false-positive rate, latency

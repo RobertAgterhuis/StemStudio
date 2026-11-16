@@ -26,7 +26,11 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-unavailable` | reason and fix of an unavailable layer or language (contains the 011 fix text) | all |
 | Lyrics editor | `lyric-assist-quality-note` | standing quality note (SC-001), when the status reports one | all |
 | Lyrics editor | `lyric-assist-language-guess` | "Looks like Dutch - set language" (language `unknown`); button `lyric-assist-language-apply` | all |
-| Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics | all |
+| Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics (track title) | all |
+| Lyrics editor | `lyric-assist-own-work-open` | "This is my own text" on the refusal (only when the problem says `overridable`) | all |
+| Lyrics editor | `lyric-own-work-dialog`, `lyric-own-work-statement`, `lyric-own-work-track`, `lyric-own-work-name`, `lyric-own-work-check`, `lyric-own-work-confirm`, `lyric-own-work-cancel` | confirmation dialog (statement `own-work.v1`, matched track, typed name, tick box; confirm disabled until both set) | all |
+| Lyrics editor | `lyric-own-work-badge` | "Own work confirmed by <name> on <date> (matches <track>)"; attributes `data-track-id`, `data-confirmed-at` | all |
+| Lyrics editor | `lyric-own-work-revoke` | revoke (opens the existing confirm dialog `confirm-dialog-ok` / `confirm-dialog-cancel`) | all |
 | Lyrics editor | `lyric-assist-withheld` | "n suggestions withheld (too close to existing lyrics)" | all |
 | Lyrics editor | `lyric-assist-claude-notice`, `lyric-assist-claude-notice-ack`, `lyric-assist-claude-notice-cancel` | the one-time Claude notice dialog | all |
 | Lyrics editor | `lyric-assist-sensitivity` | radio group: `lyric-assist-sensitivity-loose`, `-balanced`, `-strict` | A, E |

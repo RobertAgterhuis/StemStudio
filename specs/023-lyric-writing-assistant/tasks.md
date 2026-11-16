@@ -55,7 +55,7 @@ test and coverage output.
 - [ ] T008 [architect] Spike S-01 on the reference machine with the ai-agent (Ollama only, no Docker): per-block latency of `qwen3.5:9b` warm and `qwen3.5:4b` on the CPU with the R-05 prompt and `format` schema (5 blocks x 3 runs), JSON validity rate, `think:false`; quick look at 10 Dutch eval cases; update research R-05/R-06 with numbers, confirm or adjust SC-004 and `BlockLines` with an ADR-037 "Phase 0 outcome" note
 - [ ] T009 [P] [architect] Fixtures: `tests/fixtures/lyrics/` (Zomeravond nl, Radio en, 40-line P1/P2, injection sheets, fake-song lyrics), syllable gold lists (300 nl, 300 en words with counts) and rhyme vectors, `e2e/lyric-scripts/*.json` for the quickstart scenarios
 - [ ] T010 [P] [architect] `docs/MoSCoW.md` S13 and `docs/ROADMAP.md` row/allocation (done in design); re-check against 022's final allocation and fix labels if 022 chose differently
-- [ ] T011 [architect] Verify the skeleton: `dotnet build` 0 warnings, all tests and coverage gates, `tools/quality` run; ADR-037 -> Accepted; hand-off `docs/handoffs/architect-023-phase0.md`
+- [ ] T011 [architect] Verify the skeleton: `dotnet build` 0 warnings, all tests and coverage gates, `tools/quality` run; ADR-037 "Phase 0 outcome" note (ADR accepted by the owner 2026-11-16); hand-off `docs/handoffs/architect-023-phase0.md`
 
 ---
 
@@ -146,6 +146,14 @@ test and coverage output.
 
 ---
 
+## Phase 6b: User Story 6 - Own-work override (P3, owner decision Q1)
+
+- [ ] T074 [P] [US6] [backend] Failing tests: `PUT /api/lyrics/{id}/own-work-override` (statement version must be current, name 1-80, `confirm: true`, `matchedTrackId` must be a current match else `409 override-not-applicable`, no match at all -> `409 override-not-applicable`), `DELETE` revokes (204; 404 when none), sheet guard allows only when every matching track equals the override's track (a second track -> `not-own-lyrics` again), the override never disables `VerbatimGuard` (fixture 9-word run still withheld) nor `imitation`, `SheetAssistInfo.ownWorkOverride` in sheet responses, the `not-own-lyrics` problem carries `matchedTrackId` and `overridable`, the override is deleted with the sheet (FR-031, SC-005)
+- [ ] T075 [US6] [backend] Implement T074 (`OwnWorkOverride` owned type in the `AddLyricAssist` migration, `OwnWorkOverrideService`, endpoints, guard change)
+- [ ] T076 [P] [US6] [frontend] Failing bUnit tests: `lyric-assist-own-work-open` on the refusal, dialog (statement text and version from `GET /api/lyric-assist/settings`, matched track, name, tick box; confirm enabled only when both are set; cancel sends nothing), badge `lyric-own-work-badge` with name/date/track, revoke with confirm, refusal shown again after revoke, keyboard and screen-reader labels; no override control in the agent panel (FR-031, FR-028)
+- [ ] T077 [US6] [frontend] Implement T076
+- [ ] T078 [P] [US6] [qa] Playwright "own-work override": quickstart Q5 steps 4-7 (refused -> confirm -> runs; verbatim still withheld; imitation still refused; revoke -> refused again) and agent case S5 (no override tool) on the fake stack
+
 ## Phase 7: Evaluation, polish, review (wave 2)
 
 - [ ] T066 [P] [ai-agent] Failing self-test of `tools/agent-eval --suite lyric` (grading of recall/precision/licence FP/latency with a scripted model; JSON conversion of `lyric-eval-set.md` in sync, test asserts case ids)
@@ -155,6 +163,7 @@ test and coverage output.
 - [ ] T070 [qa] Run the full E2E suite green on the fake stack (T037, T044, T053, T060, T065) + axe; one manual NVDA pass recorded (quickstart Q9); audit the owners' coverage evidence (>= 90 % line and branch per component)
 - [ ] T071 [P] [quality-gate] SIG and static analysis over the 023 paths (unit size, complexity, parameters, duplication, dependency direction Web -> API client -> API -> {Agent, Domain, Persistence}; Domain has no package dependency); Sonar config includes the new paths; refactor requests to owners
 - [ ] T072 [P] [frontend] Help topic texts (6 topics, ui-test-ids.delta.md) and the docs impact notes for the user manual chapter "Lyric assistant"
+- [ ] T080 [CTO] **Decision point LanguageTool** (owner decision Q2, 2026-11-16: no for now): after T068, if Dutch grammar recall of `qwen3.5:9b` on the lyric suite is below 60 %, present the optional local LanguageTool service (LGPL-2.1, Java, ~1 GB RAM, compose profile off by default) to the owner as a separate follow-up with its own ADR note; otherwise record "closed" in CTO-DECISIONS
 - [ ] T073 [CTO] Integration: merge lanes, `docs/public` user and technical manual updates (assistant, privacy, dictionaries, eval suite), PDFs regenerated, THIRD-PARTY-LICENSES (research R-10), STATUS; owner checks quickstart Q8/Q10; owner answers Q1-Q3 recorded
 
 ---
@@ -164,6 +173,8 @@ test and coverage output.
 - Phase 0 (T001-T011) blocks everything. T008 may finish during the wave but before T068.
 - Foundational per lane before its stories: backend T012-T017, ai-agent T018-T021, frontend
   T022-T023, qa T024.
+- US6 (T074-T078) depends on the sheet guard (T047/T048) and the assist endpoint (T028).
+- T080 depends on T068.
 - Stories: US1 first (it creates the assist, suggestion and accept machinery). US2 and US3 depend on
   US1's endpoints (backend T028/T030) and assistant (T032). US4 depends on US1 endpoints and the
   catalogue merge (T004). US5 can run after T028.
@@ -174,9 +185,9 @@ test and coverage output.
 | Wave | Lanes in parallel | Tasks |
 |---|---|---|
 | Phase 0 | architect (1) | T001-T011 |
-| Wave 1 | **backend**, **ai-agent**, **frontend**, **qa** (4) | backend: T012-T017, T025-T030, T038-T039, T045-T048, T056-T057, T061-T062; ai-agent: T018-T021, T031-T032, T040-T041, T049-T050, T054-T055, T066-T067; frontend: T022-T023, T033-T036, T042-T043, T051-T052, T058-T059, T063-T064, T072; qa: T024, T037, T044, T053, T060, T065 (written red against ids and fake scripts, turned green as lanes land) |
+| Wave 1 | **backend**, **ai-agent**, **frontend**, **qa** (4) | backend: T012-T017, T025-T030, T038-T039, T045-T048, T056-T057, T061-T062, T074-T075; ai-agent: T018-T021, T031-T032, T040-T041, T049-T050, T054-T055, T066-T067; frontend: T022-T023, T033-T036, T042-T043, T051-T052, T058-T059, T063-T064, T072, T076-T077; qa: T024, T037, T044, T053, T060, T065, T078 (written red against ids and fake scripts, turned green as lanes land) |
 | Wave 2 | **ai-agent** (T068), **devops** (T069), **qa** (T070), **quality-gate** (T071) (4) | review, eval, E2E green |
-| Integration | CTO | T073 |
+| Integration | CTO | T080 (after T068), T073 |
 
 Worktrees per lane: `.claude/worktrees/023-<lane>` on branches `023-lane-<lane>`; the CTO merges
 in the order backend -> ai-agent -> frontend -> qa -> devops -> quality-gate fixes.
@@ -186,15 +197,15 @@ in the order backend -> ai-agent -> frontend -> qa -> devops -> quality-gate fix
 | Lane | Tasks | Ids |
 |---|---|---|
 | architect | 11 | T001-T011 |
-| backend | 22 | T012-T017, T025-T030, T038-T039, T045-T048, T056-T057, T061-T062 |
+| backend | 24 | T012-T017, T025-T030, T038-T039, T045-T048, T056-T057, T061-T062, T074-T075 |
 | ai-agent | 15 | T018-T021, T031-T032, T040-T041, T049-T050, T054-T055, T066-T068 |
-| frontend | 15 | T022-T023, T033-T036, T042-T043, T051-T052, T058-T059, T063-T064, T072 |
-| qa | 7 | T024, T037, T044, T053, T060, T065, T070 |
+| frontend | 17 | T022-T023, T033-T036, T042-T043, T051-T052, T058-T059, T063-T064, T072, T076-T077 |
+| qa | 8 | T024, T037, T044, T053, T060, T065, T070, T078 |
 | devops | 1 | T069 |
 | quality-gate | 1 | T071 |
-| CTO | 1 | T073 |
-| **Total** | **73** (+0 conditional) | |
+| CTO | 2 | T073, T080 |
+| **Total** | **79** | |
 
-Conditional follow-up (not counted, only if the owner answers Q2 "yes"): optional LanguageTool
-service (devops compose profile, backend `IGrammarRules` adapter, ai-agent eval comparison), as a
-separate 023 follow-up with its own ADR note.
+Possible follow-up (not counted; only if decision point T080 is triggered and the owner then says
+yes): optional LanguageTool service (devops compose profile, backend `IGrammarRules` adapter,
+ai-agent eval comparison), as a separate 023 follow-up with its own ADR note.

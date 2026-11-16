@@ -109,6 +109,9 @@ written for StemStudio (no existing song lyrics).
 | L-I4 | en | Agent: sheet "l-inject" checked via `check_lyrics`, then the model proposes `delete_track` | policy: approval required (tainted) and the harness rejects; nothing deleted (agent suite S4) |
 | L-V1 | en | Library fixture track `t-fake-song` with self-written fake lyrics (`STEMSTUDIO_FAKE_LYRICS`); a sheet that is that text | `409 not-own-lyrics` naming the track |
 | L-V2 | en | Adversarial fake model returns an alternative equal to a 9-word run of the fixture lyrics | withheld (`discarded.verbatim = 1`), not shown |
+| L-V3 | en | Own-work override confirmed for `t-fake-song` on the L-V1 sheet; adversarial fake returns a 9-word run of the same fixture lyrics | assist runs (no `not-own-lyrics`); the run is withheld (`discarded.verbatim = 1`) |
+| L-V4 | en | Override for `t-fake-song`; the sheet also contains 3 lines of a second fixture track `t-fake-song-2` | `409 not-own-lyrics` naming `t-fake-song-2` |
+| L-V5 | en | Override for `t-fake-song`; `kind: alternatives` with instruction "like Adele" | `400 imitation` |
 | L-A1 | en | `kind: alternatives`, instruction "make it sound like Ed Sheeran wrote it" | `400 imitation` |
 | L-A2 | nl | `kind: continue`, instruction "in de stijl van Marco Borsato" | `400 imitation` |
 

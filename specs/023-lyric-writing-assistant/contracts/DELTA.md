@@ -43,6 +43,7 @@ Lint command: see [redocly.yaml](redocly.yaml).
 | `POST /api/lyrics/{lyricsId}/suggestions/{suggestionId}/intentional` | `markSuggestionIntentional` | `201 IntentionalMark` |
 | `GET/POST /api/lyrics/{lyricsId}/intentional-marks`, `DELETE .../{markId}` | `listIntentionalMarks`, `createIntentionalMark`, `deleteIntentionalMark` | max 200 (`409 mark-limit`) |
 | `PUT /api/lyrics/{lyricsId}/assist-settings` | `updateSheetAssistSettings` | sensitivity, rhythm target |
+| `PUT /api/lyrics/{lyricsId}/own-work-override`, `DELETE` same path | `confirmOwnWork`, `revokeOwnWork` | owner decision Q1: confirm own work for the matched track (statement, name, tick); `409 override-not-applicable`; revoke `204`; not agent tools |
 | `POST /api/lyrics/{lyricsId}/undo` | `undoLyricSuggestions` | `409 nothing-to-undo / undo-blocked-by-edit / revision-conflict` |
 | `GET /api/lyrics/{lyricsId}/revisions`, `POST .../revisions/{revision}/restore` | `listLyricsRevisions`, `restoreLyricsRevision` | Expert |
 | `GET /api/lyrics/{lyricsId}/syllables`, `POST /api/lyric-assist/syllables` | `getSheetSyllables`, `countSyllables` | deterministic |

@@ -24,6 +24,7 @@ Core migration `AddLyricAssist` (backend). Domain rules are pure and live in
 | `Sensitivity` | `Loose` \| `Balanced` \| `Strict` | default `Balanced` |
 | `RhythmTarget?` | owned `{Bpm 40-220, BeatsPerBar 2-7, BarsPerLine 1-8, SyllablesPerBeat 0.5-4.0 (step 0.25)}` | optional; all four required when set |
 | `IntentionalMarks` | owned list `IntentionalMark` | max 200 per sheet |
+| `OwnWorkOverride?` | owned `OwnWorkOverride` (2.3) | null by default; at most one per sheet |
 | `AssistedLines` | owned list `{LineText (normalised, <= 400), SuggestionId}` | max 400; computed on accept; pruned on every save to lines still present (a line edited by the user is `user` again, FR-024) |
 
 `LyricsInput` (010) gets an optional `expectedRevision`; when present and different from the
@@ -64,6 +65,23 @@ suggestions of that accept group (status back to `open`, re-anchored) and remove
 `409 undo-blocked-by-edit` with the number of changed lines; the Expert revision list can restore
 any revision explicitly (`POST /api/lyrics/{id}/revisions/{revision}/restore`, cause `Undo`).
 
+### 2.3 OwnWorkOverride (owner decision Q1, FR-031)
+
+| Field | Type | Rules |
+|---|---|---|
+| `StatementVersion` | string | `own-work.v1` (embedded resource, English): "This text is my own work (for example a song of my own band). I confirm that StemStudio may treat it as my own lyrics although it matches the lyrics of an imported track." |
+| `StatementSha256` | string | of the statement text |
+| `ConfirmedBy` | string 1-80 | the typed name (single local user; this is the "who") |
+| `ConfirmedAt` | timestamp | |
+| `MatchedTrackId` | Guid | the track whose 006 lyrics matched at confirmation; must be a current match (else `409 override-not-applicable`) |
+| `MatchedTrackTitle` | string <= 200 | snapshot for display (kept if the track is deleted later) |
+
+Sheet guard with an override: the guard computes all matching tracks; the sheet is allowed when
+every matching track equals `MatchedTrackId`; any other match is refused as before. Deleting the
+matched track keeps the override (harmless). Revoking (`DELETE`) removes the record. The override
+never affects `VerbatimGuard` on generated text or the imitation guard. No agent tool reads or
+writes it; sheet info only reports it.
+
 ## 3. Assist
 
 | Field | Type | Rules |
@@ -92,7 +110,8 @@ any revision explicitly (`POST /api/lyrics/{id}/revisions/{revision}/restore`, c
 Assists and their suggestions of a sheet are kept until the sheet is deleted; per sheet only the
 newest 20 assists are kept (older ones with no open suggestions are deleted).
 
-Synchronous refusals (no assist row is created): `language-unsupported`, `not-own-lyrics`,
+Synchronous refusals (no assist row is created): `language-unsupported`, `not-own-lyrics` (unless
+an own-work override covers every matching track, 2.3),
 `imitation`, `claude-notice-required`, `model-unavailable` (writing kinds and devices when no model
 layer is usable; `Check` still runs with the dictionary layer), `revision-conflict`.
 

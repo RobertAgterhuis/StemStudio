@@ -56,6 +56,12 @@ equivalent); Q7-Q10 on the reference machine with Ollama (and optionally Claude,
 2. Load `e2e/lyric-scripts/adversarial-verbatim.json`: `lyric-assist-withheld` shows 1; the
    withheld text is nowhere in the page.
 3. Sheet `l-inject` with an injection line: suggestions have valid anchors only; nothing else changes.
+4. Own-work override (US6): on the refused sheet of step 1 press `lyric-assist-own-work-open`; the
+   dialog shows the statement and the matched track; confirm stays disabled until name and tick box
+   are set; confirm -> `lyric-own-work-badge` shows name, date and track; Check runs.
+5. With the override, load `adversarial-verbatim.json` again: the 9-word run is still withheld.
+6. With the override, instruction "like Ed Sheeran": still refused (`imitation`).
+7. `lyric-own-work-revoke`: the badge disappears; Check is refused again.
 
 ## Q6 - Local-only and degraded modes (US5, SC-006)
 

@@ -135,17 +135,18 @@ model in `StemStudio.Agent`; UI in Web. Dependencies stay one-way (Web -> API cl
 | 2 | Suggestion persistence with revisions and re-anchoring | accept/reject must survive reloads and agent use; undo as one step; text must never change silently | client-only suggestions: lost on reload, the agent could not apply them, no undo across tabs |
 | 3 | Second prompt family next to the agent loop | the sheet text must not enter the agent model's context; anchored structured output | run everything through the agent: violates the 011 sheet-text rule and gives free text |
 
-## Owner questions (genuine product decisions)
+## Owner decisions (2026-11-16, recorded in docs/decisions/CTO-DECISIONS-2026-11-15.md)
 
-- **Q1 - Override for "matches imported lyrics"?** The design refuses the assistant when a sheet
-  largely equals the lyrics of an imported track in the library (>= 3 long lines and >= 25 %). This
-  follows "never imported lyrics" strictly. Should the owner be able to override it ("this is my own
-  text") for rare false positives? Default without an answer: **no override**.
-- **Q2 - Optional LanguageTool service if Dutch quality falls short?** If the measured Dutch grammar
-  recall or precision of `qwen3.5:9b` misses SC-001, an optional local LanguageTool service (LGPL-2.1,
-  Java, about 1 GB RAM, own compose profile, off by default) could add rule-based Dutch grammar
-  checks. Default without an answer: **not built**; the pane shows the quality note and Claude stays
-  the optional quality path.
-- **Q3 - Explanations in the sheet's language?** The design writes explanations in the language of
-  the lyrics (Dutch sheet -> Dutch explanation) while the UI stays English (W7). Default: **sheet
-  language**.
+- **Q1 - Override for "matches imported lyrics": YES, with explicit confirmation.** For a false
+  positive (e.g. a song of the owner's own band that was imported) the user confirms in a dialog
+  that the text is their own work (statement `own-work.v1`, typed name, tick box). Stored per sheet
+  (name, time, matched track), shown on the sheet, revocable; covers only the matched track; never
+  disables the 7-word verbatim hold-back on generated text nor the artist-imitation refusal; no
+  agent tool (spec US6, FR-031; data-model 2.3; tasks T074-T078).
+- **Q2 - LanguageTool: NO for now.** No LanguageTool service in 023. **Decision point T080**
+  (CTO with the owner) after the reference-machine lyric eval run T068: only if Dutch grammar recall
+  of `qwen3.5:9b` is below 60 %, the optional local LanguageTool service (LGPL-2.1, Java, ~1 GB RAM,
+  own compose profile, off by default) is proposed again as a separate follow-up with its own ADR
+  note; otherwise the question is closed.
+- **Q3 - Explanations in the sheet's language: YES.** Dutch sheet -> Dutch explanations; the UI,
+  category names and help stay English (W7).

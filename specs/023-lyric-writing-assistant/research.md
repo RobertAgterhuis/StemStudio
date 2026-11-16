@@ -35,7 +35,7 @@ spike T008 measures them on the reference machine and updates this file.
 
 **Decision:** WeCantSpell.Hunspell + OpenTaal + SCOWL in process, **no LanguageTool in this
 feature**. Grammar, flow and devices come from the model; LanguageTool stays a measured follow-up
-(owner question Q2) because (a) its value over the model for Dutch is unknown until SC-001 is
+(owner decision 2026-11-16: no for now; decision point T080 if Dutch grammar recall < 60 %) because (a) its value over the model for Dutch is unknown until SC-001 is
 measured, (b) it adds a 1 GB JVM service the owner has not asked for, (c) its rule set needs a
 large lyric-specific suppression list to respect FR-009. The port `IGrammarRules` is **not**
 created now (YAGNI); adding it later is additive.
@@ -136,7 +136,7 @@ expected to be clearly better. No honest number exists yet. Therefore:
   Dutch spelling baseline that does not depend on the model;
 - the pane always shows which layer and model produced a suggestion (FR-005, FR-029);
 - if Dutch misses SC-001 locally, the standing quality note is shown and the owner decides on
-  LanguageTool (Q2); Claude remains the optional quality path (SC-001 Claude targets);
+  LanguageTool (decision point T080, Dutch grammar recall < 60 %); Claude remains the optional quality path (SC-001 Claude targets);
 - `qwen3.5:4b` (fallback while a GPU job runs) is measured too and reported separately; it is not
   gated.
 
@@ -150,6 +150,9 @@ expected to be clearly better. No honest number exists yet. Therefore:
 - **Sheet guard** (before any assistant action): >= 3 matching lines of 5+ words **and** >= 25 % of
   the sheet's non-marker lines -> `not-own-lyrics` with the track title. Thresholds avoid false
   positives on clichés ("I love you baby"); tested with a self-written cliché set.
+- **Own-work override** (owner decision Q1): the user may confirm that a refused sheet is their own
+  work (e.g. their band's song that was imported); the guard then ignores matches with that one
+  track only. The output guard below stays active for every track, including the matched one.
 - **Output guard**: any generated text with a matching 7-word shingle or full line is withheld.
 - **No online check**: sending the user's text to LRCLIB search would leak it; not done.
 - **Limit (documented)**: lyrics that are not in the library cannot be detected; the prompt

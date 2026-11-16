@@ -87,7 +87,7 @@ parallel now). Features in braces
 are built in parallel; their contract edits are additive and merged by the CTO.
 
 Feature 023 (lyric writing assistant, owner request 2026-11-16, design in
-`specs/023-lyric-writing-assistant/`, ADR-037 proposed) reserves backend-api **1.23.0**, ui-test-ids
+`specs/023-lyric-writing-assistant/`, ADR-037 accepted) reserves backend-api **1.23.0**, ui-test-ids
 **1.23.0** and agent tool catalogue **1.2.0**. When 023 was designed, feature 022 (library by artist
 and album, designed in parallel) had not allocated yet; 022 is expected to take **1.22.0** and catalogue
 **1.1.0** (unused if 022 adds no tools; labels are never renumbered). 012-021 hold 1.11.0-1.20.0 and the
