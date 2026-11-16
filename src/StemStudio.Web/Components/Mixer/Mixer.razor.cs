@@ -111,9 +111,7 @@ public sealed partial class Mixer : IAsyncDisposable
 
     private async Task StartEngineAsync(MixerState state)
     {
-        Engine.PositionChanged += OnPositionChanged;
-        Engine.PlaybackStateChanged += OnPlaybackStateChanged;
-        Engine.PracticeChanged += OnPracticeChanged;
+        SubscribeEngine();
         try
         {
             await Engine.InitializeAsync();
@@ -126,6 +124,13 @@ public sealed partial class Mixer : IAsyncDisposable
         {
             EngineError = ex.Message;
         }
+    }
+
+    private void SubscribeEngine()
+    {
+        Engine.PositionChanged += OnPositionChanged;
+        Engine.PlaybackStateChanged += OnPlaybackStateChanged;
+        Engine.PracticeChanged += OnPracticeChanged;
     }
 
     private async Task AttachMetersAsync(MixerState state)
