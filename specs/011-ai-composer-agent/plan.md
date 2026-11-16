@@ -128,7 +128,7 @@ unchanged. Version line: `**Version**: 1.3.0 | **Ratified**: 2026-11-14 | **Last
 specs/011-ai-composer-agent/
 ├── spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md
 ├── checklists/requirements.md
-├── evaluation/eval-set.md          # 30 commands (draft 0.1.0)
+├── evaluation/eval-set.md          # 30 scored commands + S1-S3 (1.0.0 final)
 └── contracts/
     ├── DELTA.md                    # backend /api/agent/*, SSE events, UI tool round trip, ui-test-ids delta
     ├── tool-catalogue.md           # tool names, kinds, risks, undo kinds, availability per feature
@@ -263,7 +263,7 @@ hand-offs with coverage >= 90 % line and branch for `StemStudio.Agent`.
    same runner with scripted (non-LLM) steps -> policy applies (compensating deletes need
    approval unless fresh).
 6. **Restart**: API start-up marks non-terminal runs `interrupted`, approvals `expired`; jobs keep
-   running; the panel offers "Continue".
+   running; the panel offers "Continue" (not delivered in 011: the run shows as interrupted; open follow-up, T084).
 
 ## Complexity Tracking
 
