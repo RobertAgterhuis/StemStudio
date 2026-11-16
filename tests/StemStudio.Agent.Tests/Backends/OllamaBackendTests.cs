@@ -218,6 +218,27 @@ public sealed class OllamaBackendTests
     }
 
     [Fact]
+    public async Task Selector_AJobSubmittedBetweenTurns_SendsTheNextTurnToTheFallbackWithoutGpuLayers()
+    {
+        // B2 (SC-008): the GPU activity is read at every turn, so the turn right after an approved heavy job never loads the
+        // primary model, and the fallback asks Ollama for zero GPU layers.
+        var gpu = Substitute.For<IGpuActivity>();
+        var stub = new StubHttpHandler();
+        var selector = new AgentModelSelector(new InMemorySettingsStore(Settings()), gpu, new ChatBackends { Ollama = new OllamaChatClientFactory(stub.Client()) });
+        var context = new ChatTurnContext(Samples.Run(AgentBackendDto.Ollama), new PageContextDto { Page = "tracks" });
+
+        var before = await selector.NextTurnAsync(context, Token);
+        gpu.IsHeavyJobActive().Returns(true);
+        var after = await selector.NextTurnAsync(context, Token);
+        var body = await SendAsync(stub, after.Client, after.Options!);
+
+        before.Model.ShouldBe("qwen3.5:9b");
+        body.GetProperty("model").GetString().ShouldBe("qwen3.5:4b");
+        body.GetProperty("options").GetProperty("num_gpu").GetInt32().ShouldBe(0);
+        gpu.Received(2).IsHeavyJobActive();
+    }
+
+    [Fact]
     public async Task Selector_None_IsUnavailable_AndFakeUsesTheFakeSession()
     {
         var fake = new ScriptedChatSession("""{"version":1,"turns":[{"text":"x"}]}""");

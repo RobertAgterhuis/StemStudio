@@ -72,6 +72,7 @@ public static class GpuRegistration
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddGpuCoordination(this IServiceCollection services)
     {
+        services.AddSingleton<GpuSubmissions>();
         services.AddSingleton<GpuJobGate>();
         services.AddSingleton<IGpuActivity, GpuActivity>();
         return services;
