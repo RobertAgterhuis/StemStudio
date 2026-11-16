@@ -81,6 +81,30 @@ public sealed class ApprovalFlowTests
     }
 
     [Fact]
+    public async Task ADecisionSentWhileTheCardIsPublished_IsNotLost()
+    {
+        var harness = RunnerHarness.Scripted([Heavy()], Turn(Render(TrackA)), Say("ok"));
+        await harness.SeedAsync();
+        var service = new AgentRunService(harness.Services());
+        Task<ApprovalStateDto>? immediate = null;
+        harness.Events.OnPublish = item =>
+        {
+            if (item.Type == AgentEventTypes.ApprovalRequested)
+            {
+                var card = System.Text.Json.JsonDocument.Parse(item.Payload).RootElement;
+                var request = new DecideApprovalRequest { Decision = ApprovalDecisionDto.Approve, ArgumentsHash = card.GetProperty("argumentsHash").GetString()! };
+                immediate = service.DecideAsync(item.RunId, card.GetProperty("stepId").GetGuid(), request, Token);
+            }
+        };
+
+        await service.ExecuteAsync(harness.Run.Id, Token).WaitAsync(TimeSpan.FromSeconds(10), Token);
+
+        (await immediate!).Status.ShouldBe(ApprovalStatusDto.Approved);
+        _executed.ShouldBe([$"render:{TrackA}"]);
+        (await harness.CurrentRunAsync())!.Status.ShouldBe(AgentRunStatusDto.Completed);
+    }
+
+    [Fact]
     public async Task Approve_ExecutesTheStep_AndResolvesTheCard()
     {
         var harness = RunnerHarness.Scripted([Heavy()], Turn(Render(TrackA)), Say("ok"));
