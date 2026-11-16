@@ -50,6 +50,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("Contracts", ("src/StemStudio.Contracts/",)),
     Component("Persistence", ("src/StemStudio.Persistence/",)),
     Component("Api", ("src/StemStudio.Api/",)),
+    Component("Api/Agent/Secrets", ("src/StemStudio.Api/Agent/Secrets/",)),
     Component("Web", ("src/StemStudio.Web/",)),
     Component("Agent", ("src/StemStudio.Agent/",)),
     Component("worker/ingest", (WORKER + "ingest/",)),
@@ -78,9 +79,14 @@ COMPONENTS: tuple[Component, ...] = (
     Component("e2e", ("e2e/",), scope="all"),
     Component("tools/quality", ("tools/quality/",), scope="all"),
     Component("tools/agent-eval", ("tools/agent-eval/",), scope="all"),
+    Component("scripts", ("scripts/",), scope="all"),
     Component("Test code (all)", ("",), scope="tests"),
 )
-"""Reported components (production code unless the scope says otherwise)."""
+"""Reported components (production code unless the scope says otherwise).
+
+``Api/Agent/Secrets`` (claude-key) is also counted in ``Api``; it is listed on its own because
+the Data Protection confinement rule (``secret_rules.py``) is about that folder.
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,7 +147,8 @@ _HEADER = (
     "Share of unit LOC per band. Size <= 15 / 16-30 / > 30 LOC, complexity <= 5 / 6-10 / > 10, "
     "parameters <= 2 / 3-4 / > 4. Stars (size / complexity / interfacing) are a house "
     "estimate from `tools/quality/risk.py`, not a Sigrid rating. Production code only, except "
-    "e2e and tools/quality (all code) and the test-code row.\n\n"
+    "e2e, tools/quality, tools/agent-eval and scripts (all code) and the test-code row; "
+    "Api/Agent/Secrets is a sub-row of Api.\n\n"
     "| Component | Units | LOC | Size % | Complexity % | Params % | Stars (estimate) | Clones |\n"
     "|---|---:|---:|---|---|---|---|---:|"
 )

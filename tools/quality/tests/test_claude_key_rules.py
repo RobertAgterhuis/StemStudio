@@ -63,7 +63,7 @@ def test_data_protection_inside_the_secrets_folder_is_clean(tmp_path: Path) -> N
 
 
 @pytest.mark.parametrize(
-    ("rel", "text", "line", "owner"),
+    "case",
     [
         (
             "src/StemStudio.Api/Agent/AgentRegistration.cs",
@@ -104,11 +104,12 @@ def test_data_protection_inside_the_secrets_folder_is_clean(tmp_path: Path) -> N
     ],
 )
 def test_data_protection_outside_the_secrets_folder_fails(
-    tmp_path: Path, rel: str, text: str, line: int, owner: str
+    tmp_path: Path, case: tuple[str, str, int, str]
 ) -> None:
-    message, found_line, found_owner = _only(tmp_path, rel, text)
+    rel, text, *expected = case
+    message, line, owner = _only(tmp_path, rel, text)
     assert message.startswith("Data Protection outside src/StemStudio.Api/Agent/Secrets/")
-    assert (found_line, found_owner) == (line, owner)
+    assert [line, owner] == expected
 
 
 def test_each_data_protection_reference_is_one_finding(tmp_path: Path) -> None:
@@ -127,7 +128,7 @@ def test_global_using_of_data_protection_fails_even_in_the_secrets_folder(tmp_pa
     assert (line, owner) == (1, "backend")
 
 
-DP_MENTIONS = '''// Data Protection (Microsoft.AspNetCore.DataProtection) is set up in Agent/Secrets only.
+DP_MENTIONS = '''// Data Protection (Microsoft.AspNetCore.DataProtection) lives in Agent/Secrets.
 /* AddDataProtection() and IDataProtector live there. */
 class Notes
 {
@@ -427,3 +428,8 @@ def test_secrets_folder_has_its_own_component_row() -> None:
     (row,) = [c for c in COMPONENTS if c.name == "Api/Agent/Secrets"]
     assert row.contains(f"{SECRETS}/DataProtectionSetup.cs", test=False)
     assert not row.contains("src/StemStudio.Api/Agent/AgentEndpoints.cs", test=False)
+
+
+def test_logger_message_attribute_without_a_void_method_is_ignored(tmp_path: Path) -> None:
+    text = '[LoggerMessage(EventId = 1, Message = "x")]\nint Count => 1;\n'
+    assert _findings(tmp_path, f"{SECRETS}/A.cs", text) == []

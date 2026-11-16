@@ -38,3 +38,12 @@ def test_agent_eval_is_a_source_and_its_coverage_report_is_imported() -> None:
     report = "tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.opencover.xml"
     patterns = props["sonar.cs.opencover.reportsPaths"].split(",")
     assert any(fnmatch.fnmatch(report, pattern) for pattern in patterns)
+
+
+def test_scripts_are_a_source_and_their_tests_are_tests() -> None:
+    """011 follow-up claude-key: devops' tested check scripts are analysed like tools/quality."""
+    text = (REPO_ROOT / "sonar-project.properties").read_text(encoding="utf-8")
+    props = sonar_args.parse_properties(text)
+    assert "scripts" in props["sonar.sources"].split(",")
+    assert "scripts/tests" in props["sonar.tests"].split(",")
+    assert "scripts/tests/**" in props["sonar.test.inclusions"].split(",")
