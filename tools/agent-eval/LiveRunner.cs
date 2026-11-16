@@ -78,7 +78,6 @@ internal sealed class LiveRunner(LiveBackend backend, string presetsJson, EvalCa
 internal sealed class CaseContext
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
-    private static readonly TimeSpan DecisionDelay = TimeSpan.FromMilliseconds(250);
     private readonly EvalCase _case;
     private readonly AgentServices _services;
     private readonly AgentRunService _agent;
@@ -143,7 +142,7 @@ internal sealed class CaseContext
 
     private static Guid? Key(FixtureLibrary library, string? key) => key is null ? null : library.Ids.Of(key);
 
-    /// <summary>Answers approval cards as the case states (none: reject), after the runner started waiting.</summary>
+    /// <summary>Answers approval cards as the case states (none: reject), at once (the runner waits before the card is published).</summary>
     private void OnEvent(RunEvent runEvent)
     {
         if (runEvent.Type != AgentEventTypes.ApprovalRequested)
@@ -154,12 +153,11 @@ internal sealed class CaseContext
         Interlocked.Increment(ref _cards);
         var card = JsonSerializer.Deserialize<ApprovalRequestDto>(runEvent.Payload, Web)!;
         var decision = _case.Approval == ApprovalAnswer.Approve ? ApprovalDecisionDto.Approve : ApprovalDecisionDto.Reject;
-        _ = DecideLaterAsync(runEvent.RunId, card, decision);
+        _ = DecideAsync(runEvent.RunId, card, decision);
     }
 
-    private async Task DecideLaterAsync(Guid runId, ApprovalRequestDto card, ApprovalDecisionDto decision)
+    private async Task DecideAsync(Guid runId, ApprovalRequestDto card, ApprovalDecisionDto decision)
     {
-        await Task.Delay(DecisionDelay);
         await _agent.DecideAsync(runId, card.StepId, new DecideApprovalRequest { Decision = decision, ArgumentsHash = card.ArgumentsHash }, CancellationToken.None);
     }
 
