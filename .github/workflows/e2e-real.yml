@@ -91,6 +91,8 @@ jobs:
         run: |
           mkdir -p .model-cache/hf .model-cache/torch
           sudo chown -R 10001:10001 .model-cache
+      - name: Install ffmpeg (MP3 fixture encoder)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Generate audio fixtures
         run: uv run --project worker --frozen python tests/fixtures/generate_fixtures.py
       - name: Build and start the stack
