@@ -18,6 +18,7 @@ public sealed class Core001ToolProviderTests
 {
     private static readonly Guid TrackId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly Guid MixId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private readonly Core001ToolProvider _provider = new();
     private readonly IStemStudioActions _actions = Actions();
 
@@ -34,7 +35,7 @@ public sealed class Core001ToolProviderTests
             ["unsaved"] = true,
             ["position"] = 12.5,
             ["playing"] = false,
-            ["settings"] = JsonSerializer.SerializeToNode(settings, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            ["settings"] = JsonSerializer.SerializeToNode(settings, Web),
         };
         return Task.FromResult(new UiToolResult { Ok = true, Result = state.ToJsonString() });
     };
@@ -247,7 +248,7 @@ public sealed class Core001ToolProviderTests
         var delete = await InvokeAsync(T("delete_mix"), $$"""{"mixId":"{{MixId}}"}""", _actions);
 
         (duplicate.Undo!.Tool, duplicate.UndoFresh).ShouldBe(("delete_mix", true));
-        duplicate.Projection["name"]!.GetValue<string>().ShouldBe("Practice (copy)");
+        duplicate.Projection["untrusted_text"]!.GetValue<string>().ShouldBe("Practice (copy)");
         await _actions.Mixes.Received(1).UpdateMixAsync(MixId, Arg.Is<MixSettingsDto>(settings => settings.Name == "Gig"), Arg.Any<CancellationToken>());
         (rename.Undo!.Tool, rename.Undo.Arguments).ShouldBe(("rename_mix", $$"""{"mixId":"{{MixId}}","name":"Practice"}"""));
         Json(delete.Projection).ShouldBe("""{"deleted":true}""");
@@ -258,7 +259,7 @@ public sealed class Core001ToolProviderTests
     public void MixerGetState_IsProjectedInDecibels()
     {
         var page = JsonSerializer.SerializeToNode(new { trackId = TrackId, mixId = MixId, unsaved = false, position = 3.0, playing = true, karaoke = false, settings = Dtos.Settings() },
-            new JsonSerializerOptions(JsonSerializerDefaults.Web))!.ToJsonString();
+            Web)!.ToJsonString();
 
         var result = T("mixer_get_state").MapUiResult!(Element("{}"), Element(page));
 
