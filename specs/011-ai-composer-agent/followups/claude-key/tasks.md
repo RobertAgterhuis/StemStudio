@@ -80,8 +80,8 @@ character (research R-07).
 
 ### quality-gate (tests first)
 
-- [ ] T017 [P] [quality-gate] Failing rule tests in `tools/quality/tests/`: (a) `Microsoft.AspNetCore.DataProtection` referenced only under `src/StemStudio.Api/Agent/Secrets/`; (b) `StoreClaudeKeyRequest` and `ClaudeApiKey` are not `record` types; (c) no logging call with an argument named `apiKey`/`key` in `Agent/Secrets` and `Backends/Claude*` [sec]
-- [ ] T018 [quality-gate] Implement the three rules in `tools/quality/` to pass T017
+- [x] T017 [P] [quality-gate] Failing rule tests in `tools/quality/tests/`: (a) `Microsoft.AspNetCore.DataProtection` referenced only under `src/StemStudio.Api/Agent/Secrets/`; (b) `StoreClaudeKeyRequest` and `ClaudeApiKey` are not `record` types; (c) no logging call with an argument named `apiKey`/`key` in `Agent/Secrets` and `Backends/Claude*` [sec] - done 2026-11-16: `tools/quality/tests/test_claude_key_rules.py` (red 083ed8ff)
+- [x] T018 [quality-gate] Implement the three rules in `tools/quality/` to pass T017 - done 2026-11-16: `tools/quality/secret_rules.py` in `run_all.py` (also: Data Protection `global using` anywhere, the secrets namespace only from the API, no Data Protection package outside the API; owners `ClaudeApiKey` -> ai-agent, `tests/Shared` -> architect, `scripts/` -> devops; `scripts` measured and in Sonar); hand-off `quality-gate-ck-foundational.md`
 
 ### devops (tests first)
 
@@ -139,7 +139,7 @@ character (research R-07).
 - [ ] T048 [qa] Audit: every [sec] test asserts the behaviour (not only status codes); no key-shaped literal in tests or fixtures (`scripts/secret_scan.py`); coverage evidence of all owners; hand-off
 - [ ] T049 [P] [frontend] Help topic `agent-claude-key` (sources, precedence, what is and is not protected in plain words, recovery) with its help-content test; axe checks of the section (WCAG 2.2 AA) (CK-FR-018, CK-SC-006)
 - [ ] T050 [P] [devops] Non-Docker path: `scripts/dev.{ps1,sh}` print the key ring directory; check script asserts the default per-user directory is outside the repository and the library; technical notes for the CTO's manual edit
-- [ ] T051 [quality-gate] SIG report and coverage review of all touched components; review of every [sec] test against plan.md threat model rows T1-T7; `run_all.py` 0 errors; hand-off
+- [x] T051 [quality-gate] SIG report and coverage review of all touched components; review of every [sec] test against plan.md threat model rows T1-T7; `run_all.py` 0 errors; hand-off - done 2026-11-16: integrated snapshot 0 errors / 804 warnings, coverage of all owners >= 90/90, [sec] review with test requests R1-R12 in `quality-gate-ck-polish.md`
 - [ ] T052 **not selected (owner Q1, 2026-11-16: keep LAN access until 018)**. [devops] **Only if the owner chooses Q1 (a)**: publish `8080` and `8081` on `127.0.0.1` (018 FR-011 pulled forward, `STEMSTUDIO_BIND_ADDRESS` override) with the T019 check extended; Playwright container reachability re-checked (018 T003 note)
 
 ## Integration wave (CTO, architect)
