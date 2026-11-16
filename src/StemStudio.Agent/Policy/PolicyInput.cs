@@ -5,9 +5,14 @@ using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Policy;
 
-/// <summary>A plan-scoped approval: later heavy steps on the same target whose tool is in the plan are covered.</summary>
-/// <param name="TargetId">Target of the approved step (its <c>trackId</c>), or null when it had none.</param>
-public sealed record PlanHeavyGrant(string? TargetId);
+/// <summary>
+/// A plan-scoped approval (data-model 4.3): covers later heavy steps of the same run with the same tool and the same
+/// single target id, when that tool is an item of the plan. A grant without a target covers nothing (plan scope is per
+/// target, so target-less heavy tools always ask).
+/// </summary>
+/// <param name="ToolName">Tool of the approved step.</param>
+/// <param name="TargetId">Target of the approved step (its <c>trackId</c>); null never matches.</param>
+public sealed record PlanHeavyGrant(string ToolName, string? TargetId);
 
 /// <summary>Everything the policy needs to decide one call (pure input, data-model 6).</summary>
 public sealed record PolicyInput

@@ -16,13 +16,19 @@ public static class ApprovalBinding
         return approval.Status == ApprovalStatusDto.Approved && string.Equals(approval.ArgumentsHash, argumentsHash, StringComparison.Ordinal);
     }
 
-    /// <summary>The plan-scoped grant of an approved <c>plan_heavy</c> decision, or null.</summary>
+    /// <summary>
+    /// The plan-scoped grant of an approved <c>plan_heavy</c> decision, bound to the approved tool and its single target;
+    /// null when the decision was not a plan-scoped approval or the step had no target (target-less steps always ask).
+    /// </summary>
     /// <param name="approval">The decided approval.</param>
-    /// <param name="targetId">Target of the approved step.</param>
+    /// <param name="toolName">Tool of the approved step.</param>
+    /// <param name="targetId">Target of the approved step (its single string target argument).</param>
     /// <returns>The grant.</returns>
-    public static PlanHeavyGrant? Grant(Approval approval, string? targetId)
+    public static PlanHeavyGrant? Grant(Approval approval, string toolName, string? targetId)
     {
         ArgumentNullException.ThrowIfNull(approval);
-        return approval is { Status: ApprovalStatusDto.Approved, Scope: ApprovalScopeDto.PlanHeavy } ? new PlanHeavyGrant(targetId) : null;
+        return approval.Status == ApprovalStatusDto.Approved && approval.Scope == ApprovalScopeDto.PlanHeavy && targetId is not null
+            ? new PlanHeavyGrant(toolName, targetId)
+            : null;
     }
 }

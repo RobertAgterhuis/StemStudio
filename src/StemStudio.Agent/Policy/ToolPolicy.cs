@@ -78,9 +78,14 @@ public static class ToolPolicy
             return false;
         }
 
-        var target = input.Tool.TargetArgument is { } name ? Texts(input.Arguments, [name]).FirstOrDefault() : null;
-        return input.PlanGrants.Any(grant => grant.TargetId == target);
+        var target = SingleTarget(input);
+        return target is not null && input.PlanGrants.Any(grant => grant.ToolName == input.Tool.Name && grant.TargetId == target);
     }
+
+    private static string? SingleTarget(PolicyInput input) =>
+        input.Tool.TargetArgument is { } name && input.Arguments.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
 
     /// <summary>The string values of the named arguments (strings, or the strings of arrays).</summary>
     /// <param name="arguments">Arguments object.</param>

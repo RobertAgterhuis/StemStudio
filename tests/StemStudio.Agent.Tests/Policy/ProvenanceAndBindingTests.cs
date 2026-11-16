@@ -96,6 +96,8 @@ public sealed class ProvenanceAndBindingTests
         ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy }, "restyle_track", target).ShouldBe(new PlanHeavyGrant("restyle_track", target));
         ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy }, "restyle_track", null).ShouldBeNull();
         ApprovalBinding.Grant(once, "restyle_track", target).ShouldBeNull();
+        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy, Status = ApprovalStatusDto.Pending }, "restyle_track", target).ShouldBeNull();
+        Should.Throw<ArgumentNullException>(() => ApprovalBinding.Grant(null!, "restyle_track", target));
         ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy, Status = ApprovalStatusDto.Rejected }, "restyle_track", target).ShouldBeNull();
     }
 

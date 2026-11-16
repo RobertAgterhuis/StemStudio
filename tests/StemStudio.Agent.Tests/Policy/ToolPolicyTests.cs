@@ -117,6 +117,15 @@ public sealed class ToolPolicyTests
     }
 
     [Fact]
+    public void NonStringUrlOrFreeText_IsIgnoredByTheTextChecks()
+    {
+        var tool = Tool(ToolRiskDto.Change, true) with { ImitationArguments = ["moods"] };
+        var input = new PolicyInput { Tool = tool, Arguments = Json(new { url = 42, moods = new object[] { 7, "calm" } }), Tainted = false, UserMessages = [] };
+
+        ToolPolicy.Decide(input).Decision.ShouldBe(StepDecisionDto.Auto);
+    }
+
+    [Fact]
     public void MetaTool_IsAlwaysAuto()
     {
         var input = new PolicyInput { Tool = Tool(ToolRiskDto.Read, false) with { Kind = ToolKindDto.Meta }, Arguments = Json(new { }), Tainted = true, UserMessages = [] };
