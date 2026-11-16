@@ -1,0 +1,586 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - arrangement delta (feature 019)
+  version: 1.18.0-delta.1
+  summary: Additive delta of the backend API for the arrangement editor (tag arrangements).
+  description: |
+    * **Standalone, additive delta.** New tag `arrangements` with its operations and schemas.
+      Merged into the full `backend-api.openapi.yaml` **1.18.0** in 019 Phase 0 (tasks.md T003) on
+      top of the version current then (018's 1.17.0 by the roadmap allocation). No existing
+      operation changes behaviour for requests that do not use the new fields.
+    * **Additions to existing schemas** are listed in the root extension
+      `x-stemstudio-schema-additions` (applied at the merge): `MixSettings`/`Mix.arrangementId`,
+      `CreateAudioExportRequest.arrangementId` and `.arrangement`, `ExportRecipe.arrangement`.
+      The schemas they reference (`ArrangementInput`, `ArrangementSnapshot`) are defined here.
+    * Conventions of the backend API apply: JSON camelCase, UTC ISO 8601 times, RFC 9457 problem
+      details with `type` = `https://stemstudio.local/problems/<code>`, validation problems with
+      an `errors` map (`<json path>` -> messages, each starting with the code of data-model 2.3).
+    * Every response that carries an arrangement carries its `timeline` (resolved by the server,
+      ADR-028 D3); the stateless `resolveArrangement` serves unsaved editor states.
+    * Law and limits: `specs/019-arrangement-editor/data-model.md` 2-4 and 8; vectors
+      `render-vectors.json` 1.2.0 section `timeline.resolve`.
+    * Changelog: 1.18.0-delta.1 (additive, feature 019 planning round).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []
+tags:
+  - name: arrangements
+    description: Non-destructive practice arrangements of a track (1.18.0, feature 019).
+x-stemstudio-schema-additions:
+  MixSettings:
+    arrangementId:
+      type: [string, 'null']
+      format: uuid
+      description: A saved arrangement of the same track, or null = song order (1.18.0). 422 when it belongs to another track; set to null when the arrangement is deleted.
+  Mix:
+    arrangementId:
+      type: [string, 'null']
+      format: uuid
+  CreateAudioExportRequest:
+    arrangementId:
+      type: [string, 'null']
+      format: uuid
+      description: A saved arrangement of the track (1.18.0). Mutually exclusive with `arrangement`; `range` is then arranged time.
+    arrangement:
+      oneOf:
+        - $ref: '#/components/schemas/ArrangementInput'
+        - type: 'null'
+      description: An unsaved editor state (1.18.0). Mutually exclusive with `arrangementId`.
+  ExportRecipe:
+    arrangement:
+      oneOf:
+        - $ref: '#/components/schemas/ArrangementSnapshot'
+        - type: 'null'
+      description: Snapshot used by the render; retry re-renders from it (1.18.0).
+paths:
+  /api/tracks/{trackId}/arrangements:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [arrangements]
+      operationId: listArrangements
+      summary: List the arrangements of a track (name order).
+      responses:
+        '200':
+          description: The arrangements (summaries, at most 50).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArrangementList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [arrangements]
+      operationId: createArrangement
+      summary: Create an arrangement from a seed (whole song or the 014 sections) or from a full document.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateArrangementRequest'
+            examples:
+              fromSections:
+                value: { name: Chorus drill, seed: sections }
+              fromDocument:
+                $ref: '#/components/examples/CreateFromDocument'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              description: URL of the new arrangement.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Arrangement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/tracks/{trackId}/arrangements/resolve:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [arrangements]
+      operationId: resolveArrangement
+      summary: Validate an (unsaved) arrangement document and return its timeline. Stores nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArrangementInput'
+      responses:
+        '200':
+          description: The resolved timeline.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolvedTimeline'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/arrangements/{arrangementId}:
+    parameters:
+      - $ref: '#/components/parameters/ArrangementId'
+    get:
+      tags: [arrangements]
+      operationId: getArrangement
+      summary: Get an arrangement with its resolved timeline.
+      responses:
+        '200':
+          description: The arrangement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Arrangement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [arrangements]
+      operationId: updateArrangement
+      summary: Replace name and document (optimistic concurrency on `revision`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateArrangementRequest'
+      responses:
+        '200':
+          description: Saved; `revision` incremented.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Arrangement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    delete:
+      tags: [arrangements]
+      operationId: deleteArrangement
+      summary: Delete an arrangement; mixes that use it fall back to song order.
+      responses:
+        '204':
+          description: Deleted (idempotent for the referencing mixes).
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/arrangements/{arrangementId}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/ArrangementId'
+    post:
+      tags: [arrangements]
+      operationId: duplicateArrangement
+      summary: Copy an arrangement (name gets " (copy)", made unique with " (2)", " (3)", ...).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateArrangementRequest'
+      responses:
+        '201':
+          description: The copy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Arrangement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ArrangementId:
+      name: arrangementId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ChannelId:
+      type: string
+      pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+      description: A standard stem or `<parent>.<detail>` (same as the engine's ChannelId).
+    SnapMode:
+      type: string
+      enum: [bars, free]
+      description: '`bars`: region edges on bar lines (default when the grid has downbeats); `free`: any time (Expert).'
+    ArrangementRegion:
+      type: object
+      additionalProperties: false
+      required: [startSeconds, endSeconds, repeat, mutes]
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+          description: Source time. Bars mode - within 1 ms of a bar line (stored as the exact line).
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+          description: Source time, `end - start >= 0.5`, `end <= duration + 0.001`.
+        repeat:
+          type: integer
+          minimum: 1
+          maximum: 16
+          default: 1
+        mutes:
+          type: array
+          uniqueItems: true
+          maxItems: 56
+          description: Channels silent in this region; a parent mutes its detail channels.
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        label:
+          type: [string, 'null']
+          maxLength: 40
+          description: Null or empty = default label (section name, "Bars a-b" or a time range).
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+          description: The 014 section the region was created from (informational).
+    ArrangementInput:
+      type: object
+      additionalProperties: false
+      required: [snap, crossfadeMs, regions]
+      properties:
+        snap:
+          $ref: '#/components/schemas/SnapMode'
+        crossfadeMs:
+          type: integer
+          minimum: 0
+          maximum: 50
+          default: 10
+        regions:
+          type: array
+          minItems: 1
+          maxItems: 64
+          description: At most 256 segments after repeats and 30 minutes arranged length (422 otherwise).
+          items:
+            $ref: '#/components/schemas/ArrangementRegion'
+        name:
+          type: [string, 'null']
+          maxLength: 80
+          description: Only used for texts (export contents) when the document is unsaved.
+    CreateArrangementRequest:
+      type: object
+      additionalProperties: false
+      description: Exactly one of `seed` and `document`.
+      properties:
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+          description: Null = "Arrangement", made unique per track with " (2)", " (3)", ...
+        seed:
+          type: [string, 'null']
+          enum: [song, sections, null]
+          description: '`song` = one region over the song; `sections` = one region per 014 section (409 no-sections when there are none).'
+        document:
+          oneOf:
+            - $ref: '#/components/schemas/ArrangementInput'
+            - type: 'null'
+    UpdateArrangementRequest:
+      type: object
+      additionalProperties: false
+      required: [name, revision, document]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        revision:
+          type: integer
+          minimum: 1
+          description: The revision the editor started from; a different stored revision is 409 arrangement-conflict.
+        document:
+          $ref: '#/components/schemas/ArrangementInput'
+    DuplicateArrangementRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 80
+    BarSpan:
+      type: object
+      additionalProperties: false
+      required: [first, last]
+      properties:
+        first:
+          type: integer
+          minimum: 0
+          description: First bar (0 = pickup before the first downbeat).
+        last:
+          type: integer
+          minimum: 0
+    TimelineSegment:
+      type: object
+      additionalProperties: false
+      required: [regionIndex, repeatIndex, arrangedStartFrame, sourceStartFrame, frameCount, mutes, bars]
+      properties:
+        regionIndex:
+          type: integer
+          minimum: 0
+          maximum: 63
+        repeatIndex:
+          type: integer
+          minimum: 0
+          maximum: 15
+        arrangedStartFrame:
+          type: integer
+          minimum: 0
+        sourceStartFrame:
+          type: integer
+          minimum: 0
+        frameCount:
+          type: integer
+          minimum: 22050
+        mutes:
+          type: array
+          description: Effective mutes (channels unknown to the track removed).
+          items:
+            $ref: '#/components/schemas/ChannelId'
+        bars:
+          oneOf:
+            - $ref: '#/components/schemas/BarSpan'
+            - type: 'null'
+    ResolvedTimeline:
+      type: object
+      additionalProperties: false
+      required: [sampleRate, crossfadeFrames, totalFrames, durationSeconds, segments, warnings]
+      properties:
+        sampleRate:
+          type: integer
+          const: 44100
+        crossfadeFrames:
+          type: integer
+          minimum: 0
+          maximum: 2206
+          multipleOf: 2
+        totalFrames:
+          type: integer
+          minimum: 22050
+          maximum: 79380000
+        durationSeconds:
+          type: number
+          minimum: 0.5
+          maximum: 1800
+        segments:
+          type: array
+          minItems: 1
+          maxItems: 256
+          items:
+            $ref: '#/components/schemas/TimelineSegment'
+        warnings:
+          type: array
+          description: '`grid-unreliable`, `bar-lines-changed`, `unknown-channel:<channelId>`.'
+          items:
+            type: string
+            maxLength: 80
+    Arrangement:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, name, revision, document, timeline, stale, usedByMixes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        revision:
+          type: integer
+          minimum: 1
+        document:
+          $ref: '#/components/schemas/ArrangementInput'
+        timeline:
+          $ref: '#/components/schemas/ResolvedTimeline'
+        stale:
+          type: boolean
+          description: Bars mode and the stored edges are no longer on the current bar lines (FR-017).
+        usedByMixes:
+          type: array
+          description: Mixes that reference this arrangement (for the delete confirmation).
+          items:
+            $ref: '#/components/schemas/MixReference'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MixReference:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    ArrangementSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, revision, regionCount, segmentCount, durationSeconds, stale, usedByMixCount, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        revision:
+          type: integer
+        regionCount:
+          type: integer
+          minimum: 1
+          maximum: 64
+        segmentCount:
+          type: integer
+          minimum: 1
+          maximum: 256
+        durationSeconds:
+          type: number
+        stale:
+          type: boolean
+        usedByMixCount:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+    ArrangementList:
+      type: object
+      additionalProperties: false
+      required: [items, limit]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ArrangementSummary'
+        limit:
+          type: integer
+          const: 50
+    ArrangementSnapshot:
+      type: object
+      additionalProperties: false
+      required: [id, name, revision, timeline]
+      description: Stored in an asset recipe (1.18.0); `id`/`revision` are null for an unsaved document.
+      properties:
+        id:
+          type: [string, 'null']
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        revision:
+          type: [integer, 'null']
+        timeline:
+          $ref: '#/components/schemas/ResolvedTimeline'
+    ProblemDetails:
+      type: object
+      required: [title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        currentRevision:
+          type: integer
+          description: Extension member of `arrangement-conflict`.
+      additionalProperties: true
+  responses:
+    NotFound:
+      description: Track or arrangement not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/arrangement-not-found
+            title: Arrangement not found
+            status: 404
+    Conflict:
+      description: |
+        `arrangement-conflict` (stale `revision`, with `currentRevision`), `arrangement-limit`
+        (50 per track), `no-sections` (seed `sections` without 014 sections), `track-not-ready`
+        (the track has no stems yet).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/arrangement-conflict
+            title: The arrangement was changed elsewhere
+            status: 409
+            detail: Revision 4 is stored; you edited revision 3. Reload it or save as a copy.
+            currentRevision: 4
+    ValidationFailed:
+      description: Validation problem; codes per data-model 2.3.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/validation
+            title: The arrangement is not valid
+            status: 422
+            errors:
+              regions[1].startSeconds: ['not-on-bar-line: 9.000 s is not on a bar line (nearest: bar 5 at 8.500 s).']
+              regions: ['too-many-segments: 272 parts after repeats; at most 256.']
+  examples:
+    CreateFromDocument:
+      summary: Verse, chorus four times, outro without vocals
+      value:
+        name: Chorus drill
+        document:
+          snap: bars
+          crossfadeMs: 10
+          regions:
+            - { startSeconds: 8.5, endSeconds: 16.5, repeat: 1, mutes: [], label: Verse }
+            - { startSeconds: 16.5, endSeconds: 24.5, repeat: 4, mutes: [], label: Chorus }
+            - { startSeconds: 24.5, endSeconds: 40.0, repeat: 1, mutes: [vocals], label: Outro }

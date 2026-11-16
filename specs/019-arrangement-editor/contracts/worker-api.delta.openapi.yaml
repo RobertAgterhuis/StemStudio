@@ -1,0 +1,362 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API - arrangement delta (feature 019)
+  version: 1.10.0-delta.1
+  summary: Additive delta of the worker API for rendering arranged timelines (POST /v1/render-jobs).
+  description: |
+    * **Standalone, additive delta.** Only `createRenderJob` and the render schemas it uses are
+      shown; every other operation, schema and behaviour of the base document is unchanged. It is
+      merged into the full `worker-api.openapi.yaml` **1.10.0** in 019 Phase 0 (tasks.md T003) on
+      top of the version current then (016's 1.9.0 by the roadmap allocation).
+    * Copied unchanged from the base (shown so this document validates on its own):
+      `RenderInput`, `RenderRange`, `RenderFormat`, `RenderOutput`, `RenderMetadata`,
+      `RenderJobStatus`, `RenderJob`, `ProblemDetails`.
+    * **Changes (1.10.0)**: (1) `RenderJobRequest.timeline` (new, optional, nullable) with the new
+      schemas `RenderTimeline` and `RenderSegment`; (2) `RenderResult.durationSeconds` maximum
+      900 -> 1800 (an arranged version may be up to 30 minutes; relaxing a response bound is
+      additive for clients); (3) `RenderRange` is in arranged seconds when a timeline is present.
+    * Law: `specs/019-arrangement-editor/data-model.md` 3 and 6, vectors
+      `render-vectors.json` 1.2.0 section `timeline` (`spans`, `samples`). A request without
+      `timeline` (or `timeline: null`) renders exactly as in 1.4.0-1.9.0.
+    * Changelog: 1.10.0-delta.1 (additive, feature 019 planning round).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8000
+    description: worker inside docker compose / local development
+security: []
+tags:
+  - name: render
+    description: Server-side rendering of library files (1.4.0; arranged timelines 1.10.0).
+paths:
+  /v1/render-jobs:
+    post:
+      tags: [render]
+      operationId: createRenderJob
+      summary: Render library files into one audio file, optionally along an arranged timeline (1.10.0).
+      description: |
+        Unchanged from 1.4.0 (allow-listed read-only inputs, render lane, two passes, clip
+        protection) plus the optional `timeline`. With a timeline the output is the arranged
+        version: for every arranged frame each input contributes its runs (data-model 3.3/3.4,
+        `mutedInputs` instead of channel mutes); `range` selects a part of the arranged version;
+        the output length is the arranged length (or the range). Validation of the timeline
+        (indices, frame counts, totals) answers `422` before the job is queued.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderJobRequest'
+            examples:
+              arrangedMix:
+                $ref: '#/components/examples/ArrangedMixRenderRequest'
+      responses:
+        '202':
+          description: Render job accepted and queued.
+          headers:
+            Location:
+              description: URL of the render job status resource.
+              schema:
+                type: string
+              example: /v1/render-jobs/a1b2c3d4e5f60718293a4b5c6d7e8f90
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+components:
+  schemas:
+    RenderTimeline:
+      type: object
+      additionalProperties: false
+      required: [crossfadeFrames, segments]
+      description: |
+        Arranged timeline (1.10.0). Segments are laid end to end in order; the arranged length is
+        the sum of `frameCount`, at most 79,380,000 frames (30 minutes at 44.1 kHz), else 422.
+      properties:
+        crossfadeFrames:
+          type: integer
+          minimum: 0
+          maximum: 4410
+          multipleOf: 2
+          description: Even crossfade length F in frames; 0 = hard cuts.
+        segments:
+          type: array
+          minItems: 1
+          maxItems: 256
+          items:
+            $ref: '#/components/schemas/RenderSegment'
+    RenderSegment:
+      type: object
+      additionalProperties: false
+      required: [sourceStartFrame, frameCount, mutedInputs]
+      properties:
+        sourceStartFrame:
+          type: integer
+          minimum: 0
+          description: First source frame of the segment (all inputs share the source timeline).
+        frameCount:
+          type: integer
+          minimum: 1
+          description: Must be greater than `crossfadeFrames`, else 422.
+        mutedInputs:
+          type: array
+          uniqueItems: true
+          maxItems: 64
+          description: Indices into `inputs` that are silent in this segment; an index >= the number of inputs is a 422.
+          items:
+            type: integer
+            minimum: 0
+            maximum: 63
+    RenderJobRequest:
+      type: object
+      additionalProperties: false
+      required: [inputs, masterGain, output]
+      properties:
+        inputs:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/RenderInput'
+        masterGain:
+          type: number
+          minimum: 0
+          maximum: 1
+        range:
+          oneOf:
+            - $ref: '#/components/schemas/RenderRange'
+            - type: 'null'
+          description: Null renders the whole length (the longest input, or the arranged length with a timeline).
+        output:
+          $ref: '#/components/schemas/RenderOutput'
+        metadata:
+          $ref: '#/components/schemas/RenderMetadata'
+        timeline:
+          oneOf:
+            - $ref: '#/components/schemas/RenderTimeline'
+            - type: 'null'
+          description: New in 1.10.0. Null or absent = song order (behaviour of 1.4.0).
+    RenderResult:
+      type: object
+      additionalProperties: false
+      required: [fileName, contentType, sizeBytes, sha256, durationSeconds, sampleRate, channels, peakDbfs, appliedGainDb]
+      properties:
+        fileName:
+          type: string
+          pattern: '^output\.(flac|wav|mp3)$'
+        contentType:
+          type: string
+          enum: [audio/flac, audio/wav, audio/mpeg]
+        sizeBytes:
+          type: integer
+          minimum: 1
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1800
+          description: Maximum raised from 900 to 1800 in 1.10.0 (arranged versions up to 30 minutes).
+        sampleRate:
+          type: integer
+          const: 44100
+        channels:
+          type: integer
+          const: 2
+        peakDbfs:
+          type: number
+          maximum: 0
+        appliedGainDb:
+          type: number
+          maximum: 0
+    RenderInput:
+      type: object
+      additionalProperties: false
+      required: [path, gain, pan]
+      properties:
+        path:
+          type: string
+          minLength: 1
+          maxLength: 300
+          example: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/drums.flac
+        gain:
+          type: number
+          minimum: 0
+          maximum: 1
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+    RenderRange:
+      type: object
+      additionalProperties: false
+      required: [startSeconds, endSeconds]
+      description: Requires `endSeconds - startSeconds >= 0.5`; with a timeline the seconds are arranged time (1.10.0).
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+    RenderFormat:
+      type: string
+      enum: [flac, wav, mp3]
+    RenderOutput:
+      type: object
+      additionalProperties: false
+      required: [format]
+      properties:
+        format:
+          $ref: '#/components/schemas/RenderFormat'
+        bitDepth:
+          type: integer
+          enum: [16, 24]
+          default: 24
+        mp3BitrateKbps:
+          type: integer
+          enum: [192, 256, 320]
+          default: 320
+        dither:
+          type: boolean
+          default: true
+    RenderMetadata:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: [string, 'null']
+          maxLength: 200
+        artist:
+          type: [string, 'null']
+          maxLength: 200
+        comment:
+          type: [string, 'null']
+          maxLength: 200
+    RenderJobStatus:
+      type: string
+      enum: [queued, running, completed, failed, cancelled]
+    RenderJob:
+      type: object
+      additionalProperties: false
+      required: [renderJobId, status, progress, createdAt, updatedAt]
+      properties:
+        renderJobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        status:
+          $ref: '#/components/schemas/RenderJobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/RenderResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+  responses:
+    ValidationFailed:
+      description: The JSON body does not match the request schema, or the timeline is inconsistent (1.10.0).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Validation failed
+            status: 422
+            detail: The request body is not valid.
+            errors:
+              timeline.segments[2].mutedInputs[0]: ['Input index 6 does not exist (6 inputs).']
+    InvalidInputPath:
+      description: An input path is not on the allow-list or its real path escapes the library root.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: invalid-input-path
+            title: Invalid input path
+            status: 400
+            detail: 'Input path is not allowed: tracks/../stemstudio.db'
+    InputNotFound:
+      description: An allowed input path does not exist; `detail` names it.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: input-not-found
+            title: Input not found
+            status: 404
+            detail: 'Input not found: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/bass.flac'
+  examples:
+    ArrangedMixRenderRequest:
+      summary: Verse, chorus x2 (guitar muted in the second chorus), 10 ms crossfades, to MP3 320
+      value:
+        inputs:
+          - path: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/vocals.flac
+            gain: 0.8
+            pan: 0
+          - path: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/drums.flac
+            gain: 0.8
+            pan: 0
+          - path: tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/stems/guitar.flac
+            gain: 0.7
+            pan: 0.3
+        masterGain: 0.9
+        range: null
+        output:
+          format: mp3
+          mp3BitrateKbps: 320
+        metadata:
+          title: Song - Chorus drill
+          artist: Band
+          comment: 'arranged: Chorus drill'
+        timeline:
+          crossfadeFrames: 442
+          segments:
+            - sourceStartFrame: 374850
+              frameCount: 352800
+              mutedInputs: []
+            - sourceStartFrame: 727650
+              frameCount: 352800
+              mutedInputs: []
+            - sourceStartFrame: 727650
+              frameCount: 352800
+              mutedInputs: [2]

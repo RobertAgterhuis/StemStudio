@@ -1,0 +1,12 @@
+# Lint configuration for the StemStudio OpenAPI 3.1 contract deltas of feature 019.
+# Run from the repo root:
+#   npx @redocly/cli@2.78.0 lint --config specs/019-arrangement-editor/contracts/redocly.yaml \
+#     specs/019-arrangement-editor/contracts/worker-api.delta.openapi.yaml \
+#     specs/019-arrangement-editor/contracts/backend-api.delta.openapi.yaml
+# (Phase 0 T003 adds the full worker-api.openapi.yaml 1.10.0 and backend-api.openapi.yaml 1.18.0.)
+extends:
+  - recommended
+rules:
+  operation-4xx-response: warn
+  no-server-example.com: off
+  no-unused-components: warn
