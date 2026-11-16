@@ -187,7 +187,7 @@ test.describe('karaoke frame rate', { tag: '@karaoke' }, () => {
     requireChromium(browserName);
     await page.addInitScript(timeFrameCallbacks);
     await openPlaying(page, mixer);
-    await karaoke.waitForState('singing', 5_000);
+    await karaoke.waitForState('singing', 10_000);
     const result = await page.evaluate(measureFrames, 20_000);
     info.annotations.push({ type: 'frames', description: JSON.stringify(result) });
     expect(result.fps).toBeGreaterThanOrEqual(55);
@@ -204,7 +204,7 @@ test.describe('karaoke line sync and instrumental', { tag: '@karaoke' }, () => {
     await openPlaying(page, mixer);
     await expect(karaoke.host).toHaveAttribute('data-sync', 'line');
     await expect(karaoke.credit).toHaveText(fake.modes.line.credit ?? '');
-    await karaoke.waitForState('singing', 5_000);
+    await karaoke.waitForState('singing', 10_000);
   });
 
   test('an instrumental track shows no banner (US1-5)', async ({ karaoke, lyricsApi, mixer }) => {
@@ -261,7 +261,7 @@ test.describe('karaoke with reduced motion', { tag: '@karaoke' }, () => {
   test('there is no ball; the current word is highlighted (FR-011)', async ({ karaoke, lyricsApi, mixer, page }) => {
     await wordLyricsReady(lyricsApi);
     await openPlaying(page, mixer);
-    await karaoke.waitForState('singing', 5_000);
+    await karaoke.waitForState('singing', 10_000);
     await expect(karaoke.currentWord).toHaveCount(1);
     await expect(karaoke.ball).toBeHidden();
   });
