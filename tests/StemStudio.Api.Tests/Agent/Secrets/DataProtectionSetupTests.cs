@@ -128,6 +128,46 @@ public sealed class DataProtectionSetupTests : IDisposable
         status.UnavailableReason.ShouldBe(KeyStoreUnavailableReasons.InsideRepository);
     }
 
+    // quality-gate R4: non-normalised spellings of a forbidden place are still refused.
+    [Theory]
+    [InlineData("data/../data/keys", KeyStoreUnavailableReasons.InsideLibrary)]
+    [InlineData("data/./keys", KeyStoreUnavailableReasons.InsideLibrary)]
+    [InlineData("data/keys/", KeyStoreUnavailableReasons.InsideLibrary)]
+    [InlineData("data/", KeyStoreUnavailableReasons.InsideLibrary)]
+    [InlineData("app/../data/keys", KeyStoreUnavailableReasons.InsideLibrary)]
+    [InlineData("backups/./keys/", KeyStoreUnavailableReasons.InsideBackups)]
+    [InlineData("app//keys", KeyStoreUnavailableReasons.InsideApp)]
+    public void NonNormalisedPathOfAForbiddenPlace_IsRefused(string relative, string reason)
+    {
+        var keyDir = Path.Combine(_root.FullName, relative);
+
+        var status = KeyRingDirectory.Prepare(new(keyDir, DataDir, Path.Combine(_root.FullName, "backups"), ContentRoot), FakeModes.Unsupported);
+
+        (status.Available, status.UnavailableReason).ShouldBe((false, reason));
+        Directory.Exists(Path.Combine(DataDir, "keys")).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CaseVariantOfTheLibrary_IsRefusedWhereFileNamesIgnoreCase()
+    {
+        Assert.SkipWhen(OperatingSystem.IsLinux(), "Linux file names are case-sensitive: DATA is another directory there");
+
+        var status = KeyRingDirectory.Prepare(Locations(Path.Combine(_root.FullName, "DATA", "keys")), FakeModes.Unsupported);
+
+        (status.Available, status.UnavailableReason).ShouldBe((false, KeyStoreUnavailableReasons.InsideLibrary));
+    }
+
+    // Decision (R4, CTO integration): a key ring directory that CONTAINS the library, the backups or the app is allowed. The rule
+    // is that the ring never travels with a copy of the library or a backup (T1, T2); a ring above them is not inside either
+    // copy. Data Protection writes only key-*.xml files at the ring's top level and never touches the folders below it.
+    [Fact]
+    public void DirectoryThatContainsTheLibraryAndTheBackups_IsAllowed()
+    {
+        var status = KeyRingDirectory.Prepare(new(_root.FullName, DataDir, Path.Combine(_root.FullName, "backups"), ContentRoot), FakeModes.Unsupported);
+
+        (status.Available, status.UnavailableReason).ShouldBe((true, null));
+    }
+
     [Fact]
     public void SiblingWithACommonPrefix_IsNotInside()
     {

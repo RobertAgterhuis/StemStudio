@@ -14,6 +14,13 @@ Replaces the `ANTHROPIC_API_KEY` row of 011 data-model 1 and adds rows.
 | `StemStudio__DataProtection__KeyRingDir` | Docker: `/keys` (compose); Windows: `%LOCALAPPDATA%\StemStudio\keys`; Linux/macOS: `$XDG_DATA_HOME/stemstudio/keys`, else `~/.local/share/stemstudio/keys` | Data Protection key ring of the API. Must be outside `StemStudio:DataDir`, `StemStudio:BackupDir`, the content root and any git work tree (else key storage is disabled with `key-store-unavailable`). |
 | `StemStudio__Agent__KeyEntry__InternalCaller` | compose: `web`; non-Docker: empty | Host name of the trusted internal caller (the Web app) for the local-only filter; its resolved addresses are accepted besides loopback. |
 
+Placement guard (pinned by `DataProtectionSetupTests`, quality-gate R4, decided at integration): the path is
+normalised first (`..`, `.`, doubled and trailing separators), and compared case-insensitively except on
+Linux, so `data/../data/keys`, `data/keys/` and (Windows, macOS) `DATA\keys` are all `inside-library`. A key
+ring directory that **contains** the library, the backups or the app is allowed: the rule is that the ring
+never travels inside a copy of the library or a backup, and Data Protection writes only `key-*.xml` at the
+ring's top level.
+
 Fixed values (code constants, not configurable): application name `StemStudio.Api`; protector
 purpose `StemStudio.Agent.ClaudeApiKey.v1`; secret name `claude-api-key`; request body limit
 1,024 bytes; key length 40-256 after trimming.
