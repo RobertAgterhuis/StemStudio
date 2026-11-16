@@ -11,7 +11,8 @@ namespace StemStudio.Api.Agent.Stores;
 /// <summary>
 /// EF Core implementation of <see cref="IAgentSettingsStore"/> (feature 011, T021): the single row, or the defaults with the
 /// backend from <c>StemStudio__Agent__Backend</c> while none is saved. <c>StemStudio__Agent__Backend=fake</c> (the E2E test
-/// stack) overrides the stored backend, so a persisted row can never switch the fake stack to a real model.
+/// stack) overrides the stored backend for the agent runtime, so a persisted row can never switch the fake stack to a real
+/// model; the settings endpoints read the stored choice through <see cref="GetStoredAsync"/>.
 /// </summary>
 /// <param name="db">Context per operation.</param>
 /// <param name="options">Host options.</param>
@@ -19,12 +20,19 @@ namespace StemStudio.Api.Agent.Stores;
 public sealed class EfAgentSettingsStore(AgentDb db, IOptions<AgentHostOptions> options, TimeProvider clock) : IAgentSettingsStore
 {
     /// <inheritdoc />
-    public Task<AgentSettings> GetAsync(CancellationToken cancellationToken) => db.WithAsync(async context =>
+    public async Task<AgentSettings> GetAsync(CancellationToken cancellationToken)
+    {
+        var settings = await GetStoredAsync(cancellationToken);
+        return options.Value.InitialBackend() == AgentBackendDto.Fake ? settings with { Backend = AgentBackendDto.Fake } : settings;
+    }
+
+    /// <summary>The stored settings (or the defaults), without the fake-backend override of the environment.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The settings as saved.</returns>
+    public Task<AgentSettings> GetStoredAsync(CancellationToken cancellationToken) => db.WithAsync(async context =>
     {
         var entity = await context.AgentSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var configured = options.Value.InitialBackend();
-        var settings = entity is null ? AgentSettings.Defaults(configured, clock.GetUtcNow()) : ToRecord(entity);
-        return configured == AgentBackendDto.Fake ? settings with { Backend = AgentBackendDto.Fake } : settings;
+        return entity is null ? AgentSettings.Defaults(options.Value.InitialBackend(), clock.GetUtcNow()) : ToRecord(entity);
     });
 
     /// <inheritdoc />

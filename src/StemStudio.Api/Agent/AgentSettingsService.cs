@@ -1,5 +1,6 @@
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent.Stores;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent;
@@ -9,11 +10,11 @@ namespace StemStudio.Api.Agent;
 /// when <c>ANTHROPIC_API_KEY</c> is present and the notice is acknowledged; the key is only checked for presence, never stored,
 /// logged or returned. Ollama models are validated against the probe only when they change (CI has no Ollama).
 /// </summary>
-/// <param name="settings">Settings store.</param>
+/// <param name="settings">Settings store (the stored choice; the runtime reads it through <see cref="IAgentSettingsStore"/>).</param>
 /// <param name="probe">Status probe (Ollama model list, backend test).</param>
 /// <param name="environment">Reads <c>ANTHROPIC_API_KEY</c> for presence only.</param>
 /// <param name="clock">Clock.</param>
-public sealed class AgentSettingsService(IAgentSettingsStore settings, AgentStatusProbe probe, IEnvironmentReader environment, TimeProvider clock)
+public sealed class AgentSettingsService(EfAgentSettingsStore settings, AgentStatusProbe probe, IEnvironmentReader environment, TimeProvider clock)
 {
     /// <summary>Name of the key variable (read for presence only).</summary>
     public const string KeyVariable = "ANTHROPIC_API_KEY";
@@ -22,7 +23,7 @@ public sealed class AgentSettingsService(IAgentSettingsStore settings, AgentStat
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200.</returns>
     public async Task<IResult> GetAsync(CancellationToken cancellationToken) =>
-        TypedResults.Ok(AgentSettingsRules.ToDto(await settings.GetAsync(cancellationToken)));
+        TypedResults.Ok(AgentSettingsRules.ToDto(await settings.GetStoredAsync(cancellationToken)));
 
     /// <summary>Changes the settings.</summary>
     /// <param name="request">The update.</param>
@@ -35,7 +36,7 @@ public sealed class AgentSettingsService(IAgentSettingsStore settings, AgentStat
             return invalid;
         }
 
-        var current = await settings.GetAsync(cancellationToken);
+        var current = await settings.GetStoredAsync(cancellationToken);
         var merged = AgentSettingsRules.Merge(current, request!, clock.GetUtcNow());
         if (await RefusalAsync(request!, current, merged, cancellationToken) is { } refused)
         {

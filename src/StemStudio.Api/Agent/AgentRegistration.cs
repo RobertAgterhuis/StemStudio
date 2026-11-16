@@ -33,7 +33,8 @@ public static class AgentRegistration
         services.AddSingleton<IConversationStore, EfConversationStore>();
         services.AddSingleton<IRunStore, EfRunStore>();
         services.AddSingleton<IUndoStore, EfUndoStore>();
-        services.AddSingleton<IAgentSettingsStore, EfAgentSettingsStore>();
+        services.AddSingleton<EfAgentSettingsStore>();
+        services.AddSingleton<IAgentSettingsStore>(sp => sp.GetRequiredService<EfAgentSettingsStore>());
         services.AddSingleton<RunEventHub>();
         services.AddSingleton<IRunEventSink>(sp => sp.GetRequiredService<RunEventHub>());
         services.AddSingleton<IRunEventLogReader>(sp => sp.GetRequiredService<RunEventHub>());
