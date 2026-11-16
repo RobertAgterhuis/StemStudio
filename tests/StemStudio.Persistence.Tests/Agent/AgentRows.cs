@@ -114,6 +114,7 @@ internal static class AgentRows
         ActionTool = "mixer_set_channel",
         ActionArguments = """{"stem":"drums","mute":false}""",
         Fresh = true,
+        ExpectedUpdatedAt = new DateTime(2026, 11, 16, 8, 0, 1, DateTimeKind.Utc),
         Status = "Available",
     };
 }

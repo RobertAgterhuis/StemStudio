@@ -128,12 +128,14 @@ public sealed class StoresTests : ApiTestBase
         await Runs.UpdateRunAsync(run with { Status = AgentRunStatusDto.Completed }, Ct);
         await Runs.CreateRunAsync(later, Ct);
         await Undo.AddAsync([AgentRecords.Undo(run.ConversationId, run.Id, "a1"), AgentRecords.Undo(run.ConversationId, run.Id, "a2")], Ct);
-        var fresh = AgentRecords.Undo(run.ConversationId, later.Id, "b1") with { Kind = UndoKindDto.Compensate, Fresh = true };
+        var fresh = AgentRecords.Undo(run.ConversationId, later.Id, "b1") with { Kind = UndoKindDto.Compensate, Fresh = true, ExpectedUpdatedAt = new DateTimeOffset(2026, 11, 16, 9, 30, 0, TimeSpan.FromHours(1)) };
         await Undo.AddAsync([fresh, AgentRecords.Undo(run.ConversationId, later.Id, "b2")], Ct);
 
         var available = await Undo.GetAvailableAsync(run.ConversationId, Ct);
         available.Select(e => e.Action.Tool).ShouldBe(["b2", "b1", "a2", "a1"]);
         available[1].ShouldBe(fresh);
+        available[1].ExpectedUpdatedAt!.Value.Offset.ShouldBe(TimeSpan.Zero);
+        available[0].ExpectedUpdatedAt.ShouldBeNull();
 
         await Undo.SetStatusAsync(available[0].Id, UndoEntryStatus.Applied, Ct);
         await Undo.SetStatusAsync(available[1].Id, UndoEntryStatus.Obsolete, Ct);

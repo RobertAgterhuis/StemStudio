@@ -279,6 +279,9 @@ public sealed class UndoEntryEntity
     /// <summary>True when the compensated artefact is fresh (no approval needed).</summary>
     public bool Fresh { get; set; }
 
+    /// <summary>The target mix's <c>updatedAt</c> (UTC) right after the step; null for unversioned targets (data-model 4.4).</summary>
+    public DateTime? ExpectedUpdatedAt { get; set; }
+
     /// <summary>Available, Applied or Obsolete.</summary>
     public string Status { get; set; } = string.Empty;
 }
