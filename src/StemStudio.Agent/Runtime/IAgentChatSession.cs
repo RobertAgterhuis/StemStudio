@@ -10,11 +10,16 @@ namespace StemStudio.Agent.Runtime;
 public interface IAgentChatSession
 {
     /// <summary>Selects the client and model of the next turn.</summary>
-    /// <param name="run">The run (backend, usage so far).</param>
+    /// <param name="context">The run and the page context of its command.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The turn's client.</returns>
-    Task<ChatTurn> NextTurnAsync(AgentRun run, CancellationToken cancellationToken);
+    Task<ChatTurn> NextTurnAsync(ChatTurnContext context, CancellationToken cancellationToken);
 }
+
+/// <summary>What a chat session gets per turn.</summary>
+/// <param name="Run">The run (id, backend, usage so far).</param>
+/// <param name="Command">Page context of the message that started the run.</param>
+public sealed record ChatTurnContext(AgentRun Run, StemStudio.Contracts.Agent.PageContextDto Command);
 
 /// <summary>The client of one model turn.</summary>
 /// <param name="Client">Chat client.</param>

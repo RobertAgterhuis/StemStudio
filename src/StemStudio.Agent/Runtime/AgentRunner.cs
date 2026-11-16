@@ -97,7 +97,7 @@ public sealed class AgentRunner
             throw new RunStopException(AgentFailureCodes.LimitReached, $"The run reached the limit of {state.Limits.MaxModelTurns} model turns.");
         }
 
-        var turn = await _services.Chat.NextTurnAsync(state.Run, cancellationToken);
+        var turn = await _services.Chat.NextTurnAsync(new ChatTurnContext(state.Run, state.Command.Context), cancellationToken);
         using var limit = new TurnLimit(turn.TimeoutSeconds ?? state.Limits.TurnTimeoutSeconds, _services.Time, cancellationToken);
         await AnnounceModelAsync(state, turn, cancellationToken);
         var tools = await OfferedToolsAsync(state, cancellationToken);
