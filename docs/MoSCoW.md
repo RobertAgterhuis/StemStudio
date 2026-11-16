@@ -10,6 +10,15 @@ StemStudio is a practice tool: you import a song, split it into stems, and play 
 proposals below are ranked by how much they help someone **practise an instrument or voice with
 real songs**.
 
+**Principle: every instrument counts equally** (owner, 2026-11-16). StemStudio is for every
+musician (vocals, guitar, bass, keys, drums, and the other instruments the detail models can
+isolate). So:
+
+- features that help *every* instrument come first;
+- an instrument-specific view is never built alone: each family gets its own equivalent in the
+  same feature (see the "instrument views" group below);
+- acceptance tests cover at least one case per instrument family.
+
 ## Must have
 
 These close the biggest gaps for a practice tool.
@@ -36,6 +45,8 @@ Important, with clear value, but the product works without them.
 | S6 | **Setlists**: ordered lists of tracks or mixes for a rehearsal or gig, with notes per song and one-click "next" | Bands and teachers practise in sets. | Backend entity + UI; export as PDF with lyrics/chords. S–M |
 | S7 | **Keyboard and foot-pedal control**: complete shortcuts (play, loop, speed ±, next section) and USB/Bluetooth page-turner pedals, which act as keyboards | Hands are on the instrument. | Mostly frontend; shortcut overview in help. S |
 | S8 | **Practice log**: time practised per song and section, tempo reached in the speed trainer, simple progress chart | Motivation and insight for beginners (004 journeys). | Local only, no tracking outside the machine. S–M |
+| S9 | **Singing feedback**: pitch line of your voice against the lead vocal, per line score in the karaoke banner | Fun and useful for singers; builds on 006 and S3. | Real-time pitch tracking (e.g. an open-source pitch model or YIN in an AudioWorklet). M |
+| S10 | **Drum trainer**: drum notation with hit lanes (kick/snare/hi-hat from 002 detail stems) and a "drumless" practice mix in one click | Drummers are a large group of stem-practice users. | Builds on 002 + 008. M |
 
 ## Could have
 
@@ -43,11 +54,9 @@ Nice ideas; pick them when there is room.
 
 | # | Feature | Why | Notes / size |
 |---|---|---|---|
-| C1 | **Singing feedback**: pitch line of your voice against the lead vocal, per line score in the karaoke banner | Fun and useful for singers; builds on 006 and S3. | Real-time pitch tracking (e.g. an open-source pitch model or YIN in an AudioWorklet). M |
 | C2 | **Per-channel effects**: EQ, compressor and reverb per strip, plus a "practice EQ" preset that cuts a band's frequency range | Makes isolated stems sound better; helps hear a part. | Web Audio nodes; saved in mixes. M |
 | C3 | **MIDI controller support** (Web MIDI): faders, mute/solo and transport on a hardware controller | Hands-on mixing. | Mapping screen; Chromium only. S–M |
 | C4 | **Tablet layout and installable app (PWA)** for the music stand, controlled over the home network | Practising usually happens away from the desk. | Responsive work exists (320 px); add PWA manifest and a LAN-safe "remote" mode. M |
-| C5 | **Drum trainer**: drum notation with hit lanes (kick/snare/hi-hat from 002 detail stems) and a "drumless" practice mix in one click | Drummers are a large group of stem-practice users. | Builds on 002 + 008. M |
 | C6 | **Remix and arrangement editor**: cut, repeat and rearrange sections of stems into a new practice version (e.g. "chorus 4×") | Practice versions and band arrangements. | Non-destructive edit list per mix; export via 007. L |
 | C7 | **Stem quality report**: a bleed and artefact score per stem with a tip ("try the detail model", "use the GPU model") | Explains why a stem sounds bad. | Uses existing separation metrics. S–M |
 | C8 | **Teacher handouts**: one-click PDF with lyrics, chords, sections, tempo and score per instrument for a lesson | Re-uses 006/008/S1/S2 output. | Builds on the docs PDF pipeline. S |
@@ -68,16 +77,23 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 
 ## Suggested order
 
-1. **M1 → M2 → M3** as one "practice tempo" feature: the largest daily win.
+1. **M1 → M2 → M3** as one "practice tempo" feature: the largest daily win, for every instrument.
 2. **M4 + M5** together as "library care".
-3. **S1 + S2** (chords and sections) as one analysis feature; it also improves 011.
-4. Then S3–S8 by owner preference; Could items as filler.
+3. **S2 + S5 + S7 + S8** (sections, score follows playback, hands-free control, practice log):
+   useful for all instruments.
+4. **S3** (play-along recording): the base for feedback on every instrument.
+5. **Instrument views**, built as one feature so no family waits for another:
+   - harmony (keys, guitar, and singers who accompany themselves): **S1** chords;
+   - guitar and bass: **S4** tablature;
+   - drums: **S10** drum trainer;
+   - vocals: **S9** singing feedback;
+   - other instruments (strings, brass, woodwinds): playing from the 008 score with S5, plus a
+     transposed part for B♭/E♭/F instruments in the score export.
+6. Could items as filler.
 
 ## Decisions
 
 - 2026-11-16: no Dutch UI (W7).
+- 2026-11-16: every instrument counts equally; C1 and C5 moved to Should (S9, S10) so vocals and drums
+  get their own views next to chords and tablature.
 - 2026-11-16: M1 uses SoundTouch (LGPL-2.1), not Rubber Band (GPL), so StemStudio stays MIT. Any change to SoundTouch itself stays LGPL and is published with its source; the licence goes into THIRD-PARTY-LICENSES.
-
-## Open questions for the owner
-
-- Which instrument matters most for you? That decides the order of S1, S4 and C5.
