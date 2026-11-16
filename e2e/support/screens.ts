@@ -166,12 +166,17 @@ async function mixerExpandedReady(page: Page): Promise<void> {
 async function mixerPracticeReady(page: Page): Promise<void> {
   await mixerReady(page);
   const speed = page.getByTestId('practice-speed');
+  const panel = page.getByTestId('practice-panel');
   await speed.focus();
   await speed.press('Home');
-  for (let step = 0; step < 15; step++) await speed.press('ArrowRight');
+  await expect(panel).toHaveAttribute('data-speed', '50');
+  // +5 % steps, each confirmed: fast key repeats on the slider can race the server re-render
+  // (a lost step made this screen flaky in the 012 integration run).
+  for (const percent of ['55', '60', '65']) {
+    await page.getByTestId('practice-speed-up').click();
+    await expect(panel).toHaveAttribute('data-speed', percent);
+  }
   for (let step = 0; step < 2; step++) await page.getByTestId('practice-transpose-up').click();
-  const panel = page.getByTestId('practice-panel');
-  await expect(panel).toHaveAttribute('data-speed', '65');
   await expect(panel).toHaveAttribute('data-transpose', '2');
   await expect(panel).toHaveAttribute('data-stretch', 'active', { timeout: 15_000 });
   await expect(page.getByTestId('practice-quality-hint')).toBeVisible();
