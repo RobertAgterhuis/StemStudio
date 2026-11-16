@@ -3,7 +3,7 @@
 @inject IHelpCatalog Catalog
 @inject HelpContext Help
 
-<span class="ss-helptip" @onmouseenter="Show" @onmouseleave="Hide" @onfocusin="Show" @onfocusout="Hide" @onkeydown="Key">
+<span class="ss-helptip" @onmouseenter="PointerIn" @onmouseleave="PointerOut" @onfocusin="FocusIn" @onfocusout="FocusOut" @onkeydown="Key">
     @ChildContent
     @if (Shown && Topic is { } topic)
     {
@@ -25,17 +25,26 @@
 
     private bool Shown { get; set; }
 
+    // The tooltip stays while the pointer or the focus is on the control or the tooltip, so moving
+    // focus to "Learn more" with a click (focusout, then focusin) does not re-create the button.
+    private bool _pointer;
+    private bool _focus;
+
     private HelpTopic? Topic => Catalog.TopicForAnchor(HelpId);
 
-    private void Show() => Shown = true;
+    private void PointerIn() => (_pointer, Shown) = (true, true);
 
-    private void Hide() => Shown = false;
+    private void PointerOut() => (_pointer, Shown) = (false, Shown && _focus);
+
+    private void FocusIn() => (_focus, Shown) = (true, true);
+
+    private void FocusOut() => (_focus, Shown) = (false, Shown && _pointer);
 
     private void Key(KeyboardEventArgs args) => Shown = Shown && args.Key != "Escape";
 
     private Task LearnMoreAsync(string topicId)
     {
-        Shown = false;
+        (Shown, _pointer, _focus) = (false, false, false);
         return Help.ShowAsync(topicId);
     }
 }

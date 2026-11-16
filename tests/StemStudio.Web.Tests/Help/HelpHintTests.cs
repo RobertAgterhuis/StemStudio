@@ -77,6 +77,38 @@ public sealed class HelpHintTests : HelpTestContext
     }
 
     [Fact]
+    public async Task HelpTip_StaysWhileThePointerIsOverIt_SoAClickOnLearnMoreIsNotLost()
+    {
+        // A pointer click on "Learn more" moves focus from the control to the button (focusout, then
+        // focusin). Hiding on that focusout re-created the button, and the click went to a stale handler.
+        var tip = Render<HelpTip>(p => p.Add(t => t.HelpId, "mixer-pan").Add(t => t.ChildContent, Control));
+        var host = tip.Find(".ss-helptip");
+        await host.TriggerEventAsync("onfocusin", new FocusEventArgs());
+        await host.TriggerEventAsync("onmouseenter", new MouseEventArgs());
+        var learnMore = tip.Find("[data-testid=help-learn-more]");
+
+        await tip.Find(".ss-helptip").TriggerEventAsync("onfocusout", new FocusEventArgs());
+
+        tip.Find("[data-testid=help-tooltip-mixer-pan]").ShouldNotBeNull();
+        await learnMore.ClickAsync(new MouseEventArgs());
+        Help.TopicId.ShouldBe("mixer-pan");
+    }
+
+    [Fact]
+    public async Task HelpTip_StaysWhileFocused_WhenThePointerLeaves()
+    {
+        var tip = Render<HelpTip>(p => p.Add(t => t.HelpId, "mixer-pan").Add(t => t.ChildContent, Control));
+        await tip.Find(".ss-helptip").TriggerEventAsync("onfocusin", new FocusEventArgs());
+        await tip.Find(".ss-helptip").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+        await tip.Find(".ss-helptip").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
+        tip.Find("[data-testid=help-tooltip-mixer-pan]").ShouldNotBeNull();
+        await tip.Find(".ss-helptip").TriggerEventAsync("onfocusout", new FocusEventArgs());
+        tip.FindAll("[data-testid=help-tooltip-mixer-pan]").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task HelpTip_WithoutTopic_OnlyRendersTheControl()
     {
         var tip = Render<HelpTip>(p => p.Add(t => t.HelpId, "unknown-marker").Add(t => t.ChildContent, Control));
