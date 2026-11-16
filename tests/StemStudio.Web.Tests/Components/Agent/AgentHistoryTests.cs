@@ -93,6 +93,19 @@ public sealed class AgentHistoryTests : PageTestContext
     }
 
     [Fact]
+    public void Reload_WhileTheAgentIsUnavailable_TheBadgeShowsTheCurrentBackend_NotTheRestoredRuns()
+    {
+        Stored(AgentRunStatusDto.Completed, AgentData.Run(AgentRunStatusDto.Completed) with { Backend = AgentBackendDto.Fake, Model = "scripted" });
+        AgentApi.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentData.Status(ready: false, AgentBackendDto.None));
+
+        var cut = RenderPanel();
+
+        cut.WaitForAssertion(() => Id(cut, "agent-message-1").TextContent.ShouldContain("Importeer en splits verder"));
+        cut.WaitForAssertion(() => Id(cut, "agent-backend-badge").GetAttribute("data-backend").ShouldBe("none"));
+        Id(cut, "agent-backend-badge").GetAttribute("data-model").ShouldBe(string.Empty);
+    }
+
+    [Fact]
     public void Reload_ResumesARunningRunsStream()
     {
         Stored(AgentRunStatusDto.WaitingJob);
