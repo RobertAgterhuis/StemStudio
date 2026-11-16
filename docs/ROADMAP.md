@@ -71,7 +71,7 @@ previous version.
 | 009 Style transfer | 1.8.0 | - | - | 1.8.0 | generator-api 1.0.0 |
 | 010 Lyrics to song | 1.9.0 | - | - | 1.9.0 | generator-api 1.1.0 |
 | 011 AI agent | 1.10.0 | - | 2.2.0 if needed | 1.10.0 | agent tool catalogue 1.0.0 |
-| 012 Practice tempo | 1.11.0 | - | 2.3.0 | 1.11.0 | |
+| 012 Practice tempo | 1.11.0 | - | 2.3.0 | 1.11.0 | agent tool catalogue 1.3.0 (integration: `practice` read-only in `get_mix` / `mixer_get_state`) |
 | 013 Library care | 1.12.0 | 1.7.0 | - | 1.12.0 | backup-archive 1.0.0 |
 | 014 Practice flow | 1.13.0 | 1.8.0 | 2.4.0 | 1.13.0 | web-interop 1.1.0 |
 | 015 Play-along recording | 1.14.0 | - | 2.5.0 | 1.14.0 | render-vectors 1.1.0 |
@@ -123,3 +123,9 @@ Feature 023 (lyric writing assistant, owner request 2026-11-16, design in
 and album, designed in parallel) had not allocated yet; 022 is expected to take **1.22.0** and catalogue
 **1.1.0** (unused if 022 adds no tools; labels are never renumbered). 012-021 hold 1.11.0-1.20.0 and the
 011 claude-key follow-up 1.21.0. The 023 delta is merged on the newest full document at build time.
+
+Feature 012 (integration wave, 2026-11-16, CTO decision while the owner was unavailable) takes agent
+tool catalogue **1.3.0**, the next free catalogue label after 1.1.0 (022) and 1.2.0 (023): additive,
+the `get_mix` and `mixer_get_state` results show the practice tempo read-only (numbers only) and the
+mix tools keep it unchanged. Tools that change the practice tempo remain a later catalogue minor.
+022 and 023 merge their catalogue deltas onto 1.3.0 by containment (labels are never renumbered).

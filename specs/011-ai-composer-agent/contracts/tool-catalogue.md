@@ -1,4 +1,4 @@
-# Contract: Agent tool catalogue (v1.0.0)
+# Contract: Agent tool catalogue (v1.3.0)
 
 Binding for the **ai-agent** agent (tool descriptors, schemas, projections, policy), the
 **backend** agent (loopback client `IStemStudioActions`, GPU release hook) and the **frontend**
@@ -31,6 +31,13 @@ Pre-release clarifications within 1.0.0 (011 follow-ups, 2026-11-16, catalogue n
 `settings` (exactly a `MixSettingsDto`) is added, so `save_mix_as`/`update_mix`/`export_audio` (mode
 `mix`) can send the open mixer's state losslessly; a policy step whose dynamic heavy-risk check
 fails carries the decision reason `risk-check-failed` (backend API 1.10.0).
+**1.3.0** (012 integration, 2026-11-16; additive, no tool added or changed in name, kind, risk or undo;
+label = next free catalogue minor after 1.1.0 (022) and 1.2.0 (023), labels identify merged delta
+sets, docs/ROADMAP.md) - practice tempo (backend API 1.11.0): the `get_mix` and `mixer_get_state`
+projections add a read-only `practice` object `{speedPercent, transposeSemitones, trainer{enabled,
+startPercent, stepPercent, targetPercent, passesPerStep}, countIn{bars, everyPass}}` (numbers and
+flags only, no text); `save_mix_as`, `update_mix` and the `restore_mix` undo carry `settings.practice`
+unchanged. Practice-changing tools stay backlog.
 
 ## Rules
 
@@ -80,7 +87,7 @@ fails carries the decision reason `risk-check-failed` (backend API 1.10.0).
 | `retry_track` | server | job | none | `POST /api/tracks/{id}/retry` | `trackId` | `{trackId, status, jobRef}` |
 | `delete_track` | server | destructive | none | `DELETE /api/tracks/{id}` | `trackId` | `{deleted: true}` |
 | `list_mixes` | server | read | none | `GET /api/mixes` | `trackId?` | `[{mixId, untrusted_text: name, trackId, updatedAt}]` max 20 |
-| `get_mix` | server | read | none | `GET /api/mixes/{id}` | `mixId` | `{mixId, untrusted_text: name, trackId, channels[{stem, gainDb, pan, mute, solo}], master, loop, metronome}` (volume converted to dB) |
+| `get_mix` | server | read | none | `GET /api/mixes/{id}` | `mixId` | `{mixId, untrusted_text: name, trackId, channels[{stem, gainDb, pan, mute, solo}], master, loop, metronome, practice}` (volume converted to dB; `practice` read-only numbers, 1.3.0) |
 | `save_mix_as` | server | change | compensate (fresh: no approval for its own undo) | `POST /api/mixes` with the open mixer's state (read via `mixer_get_state`; +mixer) | `trackId`, `name: string 1..100`, `fromOpenMixer: true` | `{mixId, name}` |
 | `update_mix` | server | change | inverse (previous version kept in the undo entry) | `PUT /api/mixes/{id}` with the open mixer's state (+mixer) | `mixId`, `fromOpenMixer: true` | `{mixId, updatedAt}` |
 | `duplicate_mix` | server | change | compensate (fresh) | `POST /api/mixes/{id}/duplicate` (named "&lt;name&gt; (copy)"; then `rename_mix` when the user named it) | `mixId` | `{mixId, name}` |
@@ -88,7 +95,7 @@ fails carries the decision reason `risk-check-failed` (backend API 1.10.0).
 | `delete_mix` | server | destructive | none | `DELETE /api/mixes/{id}` | `mixId` | `{deleted: true}` |
 | `open_track` | ui | read | none | navigate to `/tracks/{id}` | `trackId` | `{opened: true}` |
 | `open_mixer` | ui | read | none | navigate to `/tracks/{id}/mixer` (optionally load `mixId`; the 001 unsaved-changes guard applies and is answered by the user) | `trackId`, `mixId?` | `{opened: true, mixLoaded?}` |
-| `mixer_get_state` | ui | read | none | read the open `MixerState` (+mixer) | - | `{trackId, mixId?, unsaved, channels[...] (dB), master (dB), position, playing, loop, metronome, karaoke, settings}`: `karaoke` (bool) = the karaoke banner is visible; `settings` is exactly a `MixSettingsDto` (camelCase, linear volumes 0..1, `name` = "": the agent sets the name before `save_mix_as` / `update_mix` / `export_audio`) |
+| `mixer_get_state` | ui | read | none | read the open `MixerState` (+mixer) | - | `{trackId, mixId?, unsaved, channels[...] (dB), master (dB), position, playing, loop, metronome, practice, karaoke, settings}` (`practice` read-only numbers as in `get_mix`, 1.3.0): `karaoke` (bool) = the karaoke banner is visible; `settings` is exactly a `MixSettingsDto` (camelCase, linear volumes 0..1, `name` = "": the agent sets the name before `save_mix_as` / `update_mix` / `export_audio`) |
 | `mixer_set_channel` | ui | change | inverse | `MixerState` channel setters (+mixer) | `stem` (standard or detail name), `gainDb?: -60..+12` (absolute), `gainChangeDb?: -24..+24` (relative; never both), `pan?: -1..1`, `mute?: bool`, `solo?: bool` | `{stem, previous{...}, current{...}}` |
 | `mixer_set_master` | ui | change | inverse | master fader (+mixer) | `gainDb?` / `gainChangeDb?` | `{previous, current}` |
 | `mixer_reset` | ui | change | inverse | all channels to 0 dB, centre, unmuted, unsoloed (+mixer) | - | `{previous[...]}` |

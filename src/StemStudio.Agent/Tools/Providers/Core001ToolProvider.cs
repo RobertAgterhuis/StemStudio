@@ -69,7 +69,7 @@ public sealed class Core001ToolProvider : IAgentToolProvider
         },
         Server("get_mix", ToolRiskDto.Read, Core001Handlers.GetMixAsync) with
         {
-            Title = "Read a mix", Description = "Read a saved mix: channel levels in dB, pan, mute, solo, master, loop and metronome.", Schema = ToolSchema.Of(MixId),
+            Title = "Read a mix", Description = "Read a saved mix: channel levels in dB, pan, mute, solo, master, loop, metronome and practice tempo (speed, transpose, trainer, count-in; no tool changes it).", Schema = ToolSchema.Of(MixId),
         },
         Server("save_mix_as", ToolRiskDto.Change, Core001Handlers.SaveMixAsAsync) with
         {
@@ -108,7 +108,7 @@ public sealed class Core001ToolProvider : IAgentToolProvider
         Ui("mixer_get_state", ToolRiskDto.Read) with
         {
             Title = "Read the mixer",
-            Description = "Read the open mixer: channel levels in dB, pan, mute, solo, master, position, playing, loop, metronome, unsaved changes.",
+            Description = "Read the open mixer: channel levels in dB, pan, mute, solo, master, position, playing, loop, metronome, practice tempo (read-only), unsaved changes.",
             Group = ToolGroup.Mixer,
             Availability = ToolAvailability.Mixer,
             MapUiResult = MixProjections.State,

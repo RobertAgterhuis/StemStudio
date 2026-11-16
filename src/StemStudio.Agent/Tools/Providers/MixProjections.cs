@@ -12,7 +12,7 @@ internal static class MixProjections
     /// <summary>UI tool that reports the open mixer's state.</summary>
     public const string GetStateTool = "mixer_get_state";
 
-    /// <summary>The settings part of a mix projection: channels, master, loop and metronome.</summary>
+    /// <summary>The settings part of a mix projection: channels, master, loop, metronome and practice tempo.</summary>
     public static JsonObject Settings(MixSettingsDto settings, JsonObject target)
     {
         var channels = settings.Channels.Select(channel => Channel(channel.Stem, channel.Volume, channel))
@@ -22,7 +22,21 @@ internal static class MixProjections
         target["loop"] = settings.Loop is { } loop ? new JsonObject { ["startSeconds"] = loop.Start, ["endSeconds"] = loop.End, ["enabled"] = loop.Enabled } : null;
         var metronome = settings.Metronome;
         target["metronome"] = new JsonObject { ["enabled"] = metronome.Enabled, ["volume"] = metronome.Volume, ["beatsPerBar"] = metronome.BeatsPerBar, ["offsetMs"] = metronome.OffsetMs };
+        target["practice"] = Practice(settings.Practice);
         return target;
+    }
+
+    /// <summary>The practice tempo (feature 012), read-only and numbers/flags only (tool catalogue 1.3.0).</summary>
+    private static JsonObject Practice(PracticeSettingsDto practice)
+    {
+        var trainer = practice.Trainer;
+        return new JsonObject
+        {
+            ["speedPercent"] = practice.SpeedPercent,
+            ["transposeSemitones"] = practice.TransposeSemitones,
+            ["trainer"] = new JsonObject { ["enabled"] = trainer.Enabled, ["startPercent"] = trainer.StartPercent, ["stepPercent"] = trainer.StepPercent, ["targetPercent"] = trainer.TargetPercent, ["passesPerStep"] = trainer.PassesPerStep },
+            ["countIn"] = new JsonObject { ["bars"] = practice.CountIn.Bars, ["everyPass"] = practice.CountIn.EveryPass },
+        };
     }
 
     /// <summary>The get_mix projection (the name is user text: untrusted).</summary>
