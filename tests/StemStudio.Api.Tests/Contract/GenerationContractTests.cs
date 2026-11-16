@@ -37,7 +37,7 @@ public sealed class GenerationContractTests
     public void Contracts_HaveTheVersionsOfFeatures009And010()
     {
         Backend009.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.8.0");
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.9.0");
+        Backend010.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.9.0");
         Generator009.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.0.0");
         GeneratorContract.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.1.0");
     }
@@ -47,7 +47,7 @@ public sealed class GenerationContractTests
     public void NewerContracts_ContainTheOlderOnesUnchangedExceptTheNamedEntries(string section)
     {
         ChangedEntries(Backend008, Backend009, section).ShouldBeSubsetOf(Entries009);
-        ChangedEntries(Backend009, OpenApiContract.Backend, section).ShouldBeSubsetOf(Entries010);
+        ChangedEntries(Backend009, Backend010, section).ShouldBeSubsetOf(Entries010);
     }
 
     [Fact]

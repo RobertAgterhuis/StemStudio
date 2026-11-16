@@ -7,9 +7,10 @@ using static StemStudio.Api.Tests.Contract.ContractJson;
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Skeleton tests (architect, feature 011 Phase 0 part 1, T005): the agent DTOs and routes against the standalone delta
-/// <c>specs/011-ai-composer-agent/contracts/agent-api.openapi.yaml</c>, and the rule that the delta is purely additive to
-/// backend-api 1.7.0. The served-document test keeps comparing with 1.7.0 until the 1.10.0 merge (Phase 0 part 2).
+/// Skeleton tests (architect, feature 011 Phase 0, T003/T005): the agent DTOs and routes against backend-api 1.10.0
+/// (<c>specs/011-ai-composer-agent/contracts/backend-api.openapi.yaml</c>), and the merge rule: 1.10.0 contains 010's 1.9.0
+/// unchanged and the standalone delta <c>agent-api.openapi.yaml</c> (1.10.0-delta.1) unchanged, except the four components the
+/// delta shares with 1.9.0, which keep their 1.9.0 definitions.
 /// </summary>
 public sealed class AgentContractTests
 {
@@ -19,6 +20,9 @@ public sealed class AgentContractTests
     private static readonly Guid Id = Guid.Parse("0b9d3c6e-2f4a-4c8b-9e1d-7a6b5c4d3e2f");
     private static readonly DateTimeOffset Now = new(2026, 11, 15, 12, 0, 0, TimeSpan.Zero);
     private static readonly string Hash = new('a', 64);
+
+    // Components the delta defines like 1.9.0 (same schemas; the two responses differ only in description or example text).
+    private static readonly string[] SharedWith190 = ["ValidationProblem", "NotFound", "ProblemDetails", "ValidationProblemDetails"];
 
     public static TheoryData<string> Operations => new(
         "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend", "listAgentTools", "listConversations",
@@ -34,12 +38,43 @@ public sealed class AgentContractTests
     }
 
     [Fact]
-    public void Delta_CollidesWithNothingInBackend170()
+    public void Delta_CollidesWithNothingInBackend190()
     {
-        var existing = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>()).ToHashSet();
+        var existing = Backend010.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>()).ToHashSet();
 
         Delta.Value.Operations.ShouldAllBe(op => !existing.Contains(op.Operation["operationId"]!.GetValue<string>()));
-        Section(Delta.Value.Root, "paths").Select(p => p.Key).ShouldAllBe(path => !Section(OpenApiContract.Backend.Root, "paths").ContainsKey(path));
+        Section(Delta.Value.Root, "paths").Select(p => p.Key).ShouldAllBe(path => !Section(Backend010.Root, "paths").ContainsKey(path));
+    }
+
+    [Fact]
+    public void Backend1100_Is190PlusExactlyTheDeltaOperations()
+    {
+        var expected = Backend010.Operations.Concat(Delta.Value.Operations).Select(Signature);
+
+        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.10.0");
+        OpenApiContract.Backend.Operations.Select(Signature).ShouldBe(expected, ignoreOrder: true);
+        OpenApiContract.Backend.Root["tags"]!.AsArray().Select(tag => tag!["name"]!.GetValue<string>()).ShouldContain("agent");
+    }
+
+    [Theory]
+    [MemberData(nameof(Sections), MemberType = typeof(ContractJson))]
+    public void Backend1100_Contains190Unchanged(string section)
+    {
+        ChangedEntries(Backend010, OpenApiContract.Backend, section).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("paths")]
+    [InlineData("components/parameters")]
+    [InlineData("components/responses")]
+    [InlineData("components/schemas")]
+    public void Backend1100_ContainsTheDeltaUnchangedExceptTheShared190Components(string section)
+    {
+        var merged = Section(OpenApiContract.Backend.Root, section);
+
+        ChangedEntries(Delta.Value, OpenApiContract.Backend, section).ShouldBeSubsetOf(SharedWith190);
+        Section(Delta.Value.Root, section).Select(entry => entry.Key).Where(SharedWith190.Contains)
+            .ShouldAllBe(key => JsonNode.DeepEquals(Section(Backend010.Root, section)[key], merged[key]));
     }
 
     [Theory]
@@ -58,13 +93,13 @@ public sealed class AgentContractTests
     [InlineData(typeof(ApprovalStatusDto), "ApprovalStatus")]
     [InlineData(typeof(MessageRoleDto), "MessageRole")]
     [InlineData(typeof(JobPhaseDto), "JobPhase")]
-    public void Enums_MatchTheDelta(Type enumType, string schema)
+    public void Enums_MatchTheContract(Type enumType, string schema)
     {
         WireNames(enumType).ShouldBe(Strings(AgentSchema(schema)["enum"]!));
     }
 
     [Fact]
-    public void Constants_MatchTheDeltaEnums()
+    public void Constants_MatchTheContractEnums()
     {
         Strings(AgentSchema("DecisionReason")["enum"]!).ShouldBe(ConstantValues(typeof(AgentDecisionReasons)));
         Strings(AgentSchema("RunFailure")["properties"]!["code"]!["enum"]!).ShouldBe(ConstantValues(typeof(AgentFailureCodes)));
@@ -91,7 +126,7 @@ public sealed class AgentContractTests
     }
 
     [Fact]
-    public void Routes_ExistInTheDelta()
+    public void Routes_ExistInTheContract()
     {
         string[] routes =
         [
@@ -99,7 +134,8 @@ public sealed class AgentContractTests
             ApiRoutes.AgentConversation(Id), ApiRoutes.AgentMessages(Id), ApiRoutes.AgentUndo(Id), ApiRoutes.AgentRun(Id),
             ApiRoutes.AgentRunEvents(Id), ApiRoutes.AgentApproval(Id, Id), ApiRoutes.AgentUiResult(Id, Id), ApiRoutes.AgentCancel(Id),
         ];
-        var templates = Section(Delta.Value.Root, "paths").Select(p => p.Key.Replace("{conversationId}", $"{Id}").Replace("{runId}", $"{Id}").Replace("{stepId}", $"{Id}")).ToList();
+        var templates = Section(OpenApiContract.Backend.Root, "paths").Select(p => p.Key)
+            .Where(path => path.StartsWith(ApiRoutes.Agent + "/", StringComparison.Ordinal)).Select(key => key.Replace("{conversationId}", $"{Id}").Replace("{runId}", $"{Id}").Replace("{stepId}", $"{Id}")).ToList();
 
         routes.ShouldBe(templates, ignoreOrder: true);
         ApiRoutes.AgentRunEvents(Id, 7).ShouldBe($"/api/agent/runs/{Id}/events?after=7");
@@ -123,7 +159,7 @@ public sealed class AgentContractTests
     {
         var json = JsonSerializer.SerializeToNode(dto, dto.GetType(), Web);
 
-        SchemaValidator.Validate(Delta.Value, AgentSchema(schema), json).ShouldBeEmpty();
+        SchemaValidator.Validate(OpenApiContract.Backend, AgentSchema(schema), json).ShouldBeEmpty();
     }
 
     [Theory]
@@ -143,7 +179,7 @@ public sealed class AgentContractTests
     {
         var envelope = new JsonObject { ["id"] = 3, ["event"] = eventType, ["data"] = JsonSerializer.SerializeToNode(data, data.GetType(), Web) };
 
-        SchemaValidator.Validate(Delta.Value, AgentSchema("AgentRunEvent"), envelope).ShouldBeEmpty();
+        SchemaValidator.Validate(OpenApiContract.Backend, AgentSchema("AgentRunEvent"), envelope).ShouldBeEmpty();
     }
 
     [Fact]
@@ -205,7 +241,10 @@ public sealed class AgentContractTests
         { AgentEventTypes.UiRequested, new UiRequestedEventDto { StepId = Id, Tool = "mixer_set_channel", Arguments = Object("""{"mute":true,"stem":"drums"}"""), TimeoutSeconds = AgentContractLimits.UiToolTimeoutSeconds } },
     };
 
-    private static JsonNode AgentSchema(string name) => Delta.Value.Root["components"]!["schemas"]![name]!;
+    private static JsonNode AgentSchema(string name) => OpenApiContract.Backend.Root["components"]!["schemas"]![name]!;
+
+    private static string Signature((string Path, string Method, JsonObject Operation) op) =>
+        $"{op.Method} {op.Path} {op.Operation["operationId"]!.GetValue<string>()}";
 
     private static IEnumerable<string> SchemaProperties(JsonNode schema)
     {

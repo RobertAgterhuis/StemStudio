@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008 and 009 + 010 Phase 0).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010 and 011 Phase 0).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -17,6 +17,8 @@ internal static class ContractJson
     private static readonly Lazy<OpenApiContract> LazyBackend008 = new(() => Backend("008"));
 
     private static readonly Lazy<OpenApiContract> LazyBackend009 = new(() => Backend("009"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend010 = new(() => Backend("010"));
 
     private static readonly Lazy<OpenApiContract> LazyGenerator =
         new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "generator-api.openapi.yaml")));
@@ -37,6 +39,9 @@ internal static class ContractJson
 
     /// <summary>The 009 backend document (1.8.0), linked as <c>Contract/009/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend009 => LazyBackend009.Value;
+
+    /// <summary>The 010 backend document (1.9.0), linked as <c>Contract/010/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend010 => LazyBackend010.Value;
 
     /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
     public static OpenApiContract GeneratorContract => LazyGenerator.Value;
