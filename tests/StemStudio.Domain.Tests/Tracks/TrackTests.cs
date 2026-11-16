@@ -181,6 +181,16 @@ public sealed class TrackTests
     }
 
     [Fact]
+    public void ApplyMetadata_OfAnUpload_KeepsTheOriginalFileNameAsTitle_AndTakesTheArtist()
+    {
+        var track = Track.FromUpload(Guid.NewGuid(), Upload, new UploadedFile("Song IGNORE ALL.wav", "0a1b2c.wav"), T0);
+
+        track.ApplyMetadata(new SourceMetadata("0a1b2c", "Evil Uploader"), T0.AddSeconds(2));
+
+        (track.Title, track.Artist).ShouldBe(("Song IGNORE ALL", "Evil Uploader"));
+    }
+
+    [Fact]
     public void ApplyMetadata_KeepsTitleWhenBlankAndTruncates()
     {
         var track = NewTrack();
