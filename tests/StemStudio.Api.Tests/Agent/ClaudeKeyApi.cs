@@ -28,6 +28,9 @@ internal sealed record KeyRequest(HttpMethod Method, string Route)
     public string? Host { get; init; }
 
     public string? Origin { get; init; }
+
+    /// <summary>Further request headers (for example forwarded headers a spoofing client adds).</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } = new Dictionary<string, string>();
 }
 
 /// <summary>Options of <see cref="ClaudeKeyApi"/>.</summary>
@@ -162,6 +165,11 @@ internal sealed class ClaudeKeyApi : IDisposable
         if (key.Origin is not null)
         {
             request.Headers.Add("Origin", key.Origin);
+        }
+
+        foreach (var (name, value) in key.Headers)
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
         }
 
         return await Client.SendAsync(request, Ct);

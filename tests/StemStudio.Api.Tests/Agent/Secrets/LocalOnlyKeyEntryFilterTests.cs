@@ -77,6 +77,7 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
         else
         {
             await ShouldBeLocalOnlyAsync(response);
+            await NothingShouldBeStoredAsync();
         }
     }
 
@@ -90,7 +91,93 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
     {
         using var response = await PutAsync("127.0.0.1", origin: origin);
 
-        response.StatusCode.ShouldBe(accepted ? HttpStatusCode.OK : HttpStatusCode.Forbidden);
+        if (accepted)
+        {
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            return;
+        }
+
+        await ShouldBeLocalOnlyAsync(response);
+        await NothingShouldBeStoredAsync();
+    }
+
+    // qa F4: a refused write never replaces or removes a stored key; R9: every refusal is the local-only problem.
+    [Theory]
+    [InlineData("192.168.1.20", null, null)]
+    [InlineData("127.0.0.1", "stemstudio.lan", null)]
+    [InlineData("127.0.0.1", null, "http://evil.test")]
+    public async Task RefusedWriteOverAStoredKey_KeepsIt(string peer, string? host, string? origin)
+    {
+        using (var stored = await PutAsync("127.0.0.1"))
+        {
+            stored.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var replace = await _api.SendAsync(Put(ClaudeKeySentinels.Replacement) with { Peer = peer, Host = host, Origin = origin });
+        using var delete = await _api.SendAsync(new KeyRequest(HttpMethod.Delete, ApiRoutes.AgentClaudeKey) { Peer = peer, Host = host, Origin = origin });
+
+        await ShouldBeLocalOnlyAsync(replace);
+        await ShouldBeLocalOnlyAsync(delete, "deleteClaudeKey");
+        var status = await _api.StatusAsync();
+        (status.Stored, status.StoredLastFour).ShouldBe((StoredClaudeKeyStateDto.Readable, "STO1"));
+    }
+
+    // R10: the API has no forwarded-headers middleware; a LAN client cannot claim to be loopback or localhost through them.
+    [Theory]
+    [InlineData("X-Forwarded-For", "127.0.0.1")]
+    [InlineData("X-Forwarded-Host", "localhost")]
+    [InlineData("X-Real-IP", "127.0.0.1")]
+    [InlineData("Forwarded", "for=127.0.0.1;host=localhost")]
+    public async Task ForwardedHeaders_CannotSpoofThePeer(string header, string value)
+    {
+        var request = Put(ClaudeKeySentinels.Stored) with
+        {
+            Peer = "192.168.1.20",
+            Headers = new Dictionary<string, string> { [header] = value, ["X-Forwarded-Proto"] = "http" },
+        };
+
+        using var response = await _api.SendAsync(request);
+
+        await ShouldBeLocalOnlyAsync(response);
+        await NothingShouldBeStoredAsync();
+    }
+
+    [Fact]
+    public async Task AllForwardedHeadersTogether_CannotSpoofThePeer()
+    {
+        var request = Put(ClaudeKeySentinels.Stored) with
+        {
+            Peer = "192.168.1.20",
+            Headers = new Dictionary<string, string> { ["X-Forwarded-For"] = "127.0.0.1", ["X-Forwarded-Host"] = "localhost", ["X-Forwarded-Proto"] = "http" },
+        };
+
+        using var response = await _api.SendAsync(request);
+
+        await ShouldBeLocalOnlyAsync(response);
+        await NothingShouldBeStoredAsync();
+    }
+
+    // R8: the browser's first line against cross-site writes (T5) - the CORS policy of the web origin allows GET only, so a
+    // preflight for PUT or DELETE on the key route never lists the method.
+    [Theory]
+    [InlineData("PUT")]
+    [InlineData("DELETE")]
+    [InlineData("POST")]
+    public async Task CorsPreflightForAWrite_NeverAllowsTheMethod(string method)
+    {
+        using var response = await PreflightAsync(method);
+
+        AllowedMethods(response).ShouldNotContain(method);
+        await NothingShouldBeStoredAsync();
+    }
+
+    [Fact]
+    public async Task CorsPreflightForGet_IsAllowedForTheWebOrigin()
+    {
+        using var response = await PreflightAsync("GET");
+
+        AllowedMethods(response).ShouldContain("GET");
+        response.Headers.GetValues("Access-Control-Allow-Origin").ShouldBe(["http://web.test"]);
     }
 
     [Fact]
@@ -99,8 +186,9 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
         using var oversized = await _api.SendAsync(Put(ClaudeKeySentinels.Stored + new string('a', 4096)) with { Peer = "192.168.1.20" });
         using var malformed = await _api.SendAsync(new KeyRequest(HttpMethod.Put, ApiRoutes.AgentClaudeKey) { Body = "not json", Peer = "192.168.1.20" });
 
-        oversized.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        malformed.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        await ShouldBeLocalOnlyAsync(oversized);
+        await ShouldBeLocalOnlyAsync(malformed);
+        await NothingShouldBeStoredAsync();
     }
 
     [Fact]
@@ -168,10 +256,26 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
 
     private static KeyRequest Put(string key) => new(HttpMethod.Put, ApiRoutes.AgentClaudeKey) { Body = "{\"apiKey\":\"" + key + "\"}" };
 
-    private static async Task ShouldBeLocalOnlyAsync(HttpResponseMessage response)
+    private async Task<HttpResponseMessage> PreflightAsync(string method)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Options, ApiRoutes.AgentClaudeKey);
+        request.Headers.Add("Origin", "http://web.test");
+        request.Headers.Add("Access-Control-Request-Method", method);
+        request.Headers.Add("Access-Control-Request-Headers", "content-type");
+        return await _api.Client.SendAsync(request, Ct);
+    }
+
+    private static string[] AllowedMethods(HttpResponseMessage response) =>
+        response.Headers.TryGetValues("Access-Control-Allow-Methods", out var values)
+            ? [.. values.SelectMany(value => value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))]
+            : [];
+
+    private async Task NothingShouldBeStoredAsync() => (await _api.StatusAsync()).Stored.ShouldBe(StoredClaudeKeyStateDto.Absent);
+
+    private static async Task ShouldBeLocalOnlyAsync(HttpResponseMessage response, string operation = "storeClaudeKey")
     {
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        await ContractAssert.MatchesAsync(response, "storeClaudeKey");
+        await ContractAssert.MatchesAsync(response, operation);
         var problem = await response.JsonAsync();
         problem.GetProperty("type").GetString().ShouldBe(AgentProblemTypes.Uri(AgentProblemTypes.LocalOnly));
         problem.GetProperty("detail").GetString().ShouldBe(LocalOnlyKeyEntryFilter.Detail);
