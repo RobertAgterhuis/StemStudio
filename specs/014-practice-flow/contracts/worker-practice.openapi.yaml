@@ -1,0 +1,787 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API - practice lane delta (feature 014)
+  version: 1.8.0-delta.1
+  summary: Additive delta of the worker API - section detection, score views and setlist PDFs on the new `practice` lane.
+  description: |
+    * **Standalone, additive delta.** Merged unchanged into the full
+      `specs/014-practice-flow/contracts/worker-api.openapi.yaml` **1.8.0** after feature 013
+      (1.7.0) has fixed its minor (014 Phase 0 part 2). No existing operation changes. Additive
+      changes to existing schemas, applied at the merge: `Health.lanes.practice` (`LaneHealth`),
+      `Health.structure {analyzer: "stems-novelty" | "fake", version}` and one more entry in the
+      library path allow-list (`ports.LIBRARY_PATH_PATTERNS`): `assets/<uuid>/score.musicxml`.
+    * Conventions of the worker API apply (JSON camelCase, `/v1` prefix, RFC 9457 problems,
+      `400 invalid-input-path` from the path guard before validation, jobs kept 24 h, "interrupted
+      by restart" after a restart). Inputs are paths relative to the read-only library mount
+      (ADR-016 D5); the worker never writes the library.
+    * Lane `practice` (ADR-023 D8): one job at a time, FIFO, for short jobs (section detection
+      1-10 s, score view < 2 s, setlist PDF < 5 s). Job states reuse `RenderJobStatus`.
+    * Changelog: 1.8.0-delta.1 (additive, feature 014 planning).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: docker compose network
+security: []  # internal network only, not published (001 worker contract)
+tags:
+  - name: practice
+    description: Short practice-feature jobs on the `practice` lane (1.8.0, feature 014).
+paths:
+  /v1/section-jobs:
+    post:
+      tags: [practice]
+      operationId: createSectionJob
+      summary: Detect the song sections of a track from its stems and beat grid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionJobRequest'
+            examples:
+              sixStems:
+                $ref: '#/components/examples/SectionJobRequestSixStems'
+      responses:
+        '202':
+          description: Queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /v1/section-jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [practice]
+      operationId: getSectionJob
+      summary: State and, when completed, the result.
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/SectionJobCompleted'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [practice]
+      operationId: deleteSectionJob
+      summary: Cancel and remove (idempotent).
+      responses:
+        '204':
+          description: Removed (or never existed).
+        '400':
+          $ref: '#/components/responses/InvalidJobId'
+  /v1/score-view-jobs:
+    post:
+      tags: [practice]
+      operationId: createScoreViewJob
+      summary: Lay out a score's MusicXML as SVG pages and compute its bar map.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoreViewJobRequest'
+      responses:
+        '202':
+          description: Queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreViewJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /v1/score-view-jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [practice]
+      operationId: getScoreViewJob
+      summary: State and, when completed, pages and bars.
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreViewJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [practice]
+      operationId: deleteScoreViewJob
+      summary: Cancel and remove (idempotent).
+      responses:
+        '204':
+          description: Removed (or never existed).
+        '400':
+          $ref: '#/components/responses/InvalidJobId'
+  /v1/score-view-jobs/{jobId}/pages/{page}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+      - name: page
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+    get:
+      tags: [practice]
+      operationId: getScoreViewPageFile
+      summary: One SVG page (Leipzig font embedded as a data URI).
+      responses:
+        '200':
+          description: The page.
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+  /v1/setlist-document-jobs:
+    post:
+      tags: [practice]
+      operationId: createSetlistDocumentJob
+      summary: Render a setlist as an A4 PDF from the content in the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistDocumentRequest'
+      responses:
+        '202':
+          description: Queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetlistDocumentJob'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /v1/setlist-document-jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [practice]
+      operationId: getSetlistDocumentJob
+      summary: State of the PDF job.
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetlistDocumentJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [practice]
+      operationId: deleteSetlistDocumentJob
+      summary: Cancel and remove (idempotent).
+      responses:
+        '204':
+          description: Removed (or never existed).
+        '400':
+          $ref: '#/components/responses/InvalidJobId'
+  /v1/setlist-document-jobs/{jobId}/file:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [practice]
+      operationId: getSetlistDocumentFile
+      summary: The PDF.
+      responses:
+        '200':
+          description: The PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotCompleted'
+components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{32}$'
+  responses:
+    ValidationProblem:
+      description: The request does not match the schema (pydantic errors in `errors`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    InvalidInputPath:
+      description: A path is not allowed (allow-list or outside the library root).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/invalid-input-path
+            title: Invalid input path
+            status: 400
+    InvalidJobId:
+      description: The job id is not 32 lower-case hex characters.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    InputNotFound:
+      description: An input file does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/input-not-found
+            title: Input not found
+            status: 404
+    NotFound:
+      description: Unknown job or page.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotCompleted:
+      description: '`type` ends in `job-not-completed`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/job-not-completed
+            title: The job has not completed
+            status: 409
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    LibraryPath:
+      type: string
+      minLength: 1
+      maxLength: 300
+      description: Path relative to the library root; checked against the allow-list by the path guard (400).
+    JobStatus:
+      type: string
+      description: Same values as `RenderJobStatus` (007).
+      enum: [queued, running, completed, failed, cancelled]
+    BeatGrid:
+      type: object
+      description: The worker 1.0 beat grid (unshifted track times).
+      required: [bpm, beats, downbeats, beatsPerBar, confidence, reliable]
+      properties:
+        bpm:
+          type: number
+          minimum: 0
+          maximum: 400
+        beats:
+          type: array
+          maxItems: 10000
+          items:
+            type: number
+            minimum: 0
+        downbeats:
+          type: array
+          maxItems: 10000
+          items:
+            type: number
+            minimum: 0
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        reliable:
+          type: boolean
+    TempoGrid:
+      description: The 008 time base of a score (`BeatGridTempo` | `ManualTempo`, discriminator `kind`); identical to worker 1.6.0.
+      type: object
+      required: [kind, bpm, beatsPerBar]
+      properties:
+        kind:
+          type: string
+          enum: [beat-grid, manual]
+        bpm:
+          type: number
+        beatsPerBar:
+          type: integer
+          minimum: 1
+          maximum: 12
+        beats:
+          type: array
+          maxItems: 10000
+          items:
+            type: number
+        downbeats:
+          type: array
+          maxItems: 10000
+          items:
+            type: number
+        firstDownbeatSeconds:
+          type: number
+          minimum: 0
+          maximum: 900
+    StemPaths:
+      type: object
+      additionalProperties: false
+      required: [vocals, drums, bass, other]
+      properties:
+        vocals:
+          $ref: '#/components/schemas/LibraryPath'
+        drums:
+          $ref: '#/components/schemas/LibraryPath'
+        bass:
+          $ref: '#/components/schemas/LibraryPath'
+        other:
+          $ref: '#/components/schemas/LibraryPath'
+        guitar:
+          $ref: '#/components/schemas/LibraryPath'
+        piano:
+          $ref: '#/components/schemas/LibraryPath'
+    DetailPath:
+      type: object
+      additionalProperties: false
+      required: [channel, path]
+      properties:
+        channel:
+          type: string
+          pattern: '^(vocals|drums|guitar|piano|other)\.[a-z][a-z-]{0,31}$'
+        path:
+          $ref: '#/components/schemas/LibraryPath'
+    SectionJobRequest:
+      type: object
+      additionalProperties: false
+      required: [stems, grid, durationSeconds]
+      properties:
+        stems:
+          $ref: '#/components/schemas/StemPaths'
+        details:
+          type: array
+          maxItems: 30
+          default: []
+          items:
+            $ref: '#/components/schemas/DetailPath'
+        grid:
+          oneOf:
+            - $ref: '#/components/schemas/BeatGrid'
+            - type: 'null'
+        durationSeconds:
+          type: number
+          minimum: 1
+          maximum: 900
+        maxSections:
+          type: integer
+          minimum: 1
+          maximum: 64
+          default: 64
+    DetectedSection:
+      type: object
+      additionalProperties: false
+      required: [kind, label, startSeconds, endSeconds, cluster, instrument, confidence]
+      properties:
+        kind:
+          type: string
+          enum: [intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other]
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+        cluster:
+          type: string
+          pattern: '^[A-Z]$'
+        instrument:
+          type: [string, 'null']
+          pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    Warning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [grid-unreliable, no-grid, few-repetitions, no-vocals, merged-to-limit]
+        message:
+          type: string
+          maxLength: 300
+    SectionResult:
+      type: object
+      additionalProperties: false
+      required: [analyzer, snap, sections, warnings]
+      properties:
+        analyzer:
+          type: object
+          additionalProperties: false
+          required: [name, version]
+          properties:
+            name:
+              type: string
+              enum: [stems-novelty, fake]
+            version:
+              type: string
+              maxLength: 20
+        snap:
+          type: string
+          enum: [downbeat, beat, time]
+        sections:
+          type: array
+          minItems: 1
+          maxItems: 64
+          description: Ordered, contiguous, covering 0..durationSeconds.
+          items:
+            $ref: '#/components/schemas/DetectedSection'
+        warnings:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/Warning'
+    SectionJob:
+      type: object
+      additionalProperties: false
+      required: [jobId, status, progress, error, result, createdAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/SectionResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+    ScoreViewJobRequest:
+      type: object
+      additionalProperties: false
+      required: [musicxml, grid, durationSeconds]
+      properties:
+        musicxml:
+          $ref: '#/components/schemas/LibraryPath'
+        grid:
+          $ref: '#/components/schemas/TempoGrid'
+        durationSeconds:
+          type: number
+          minimum: 1
+          maximum: 900
+    BarBox:
+      type: object
+      additionalProperties: false
+      required: [index, number, page, x, y, width, height, startSeconds, endSeconds]
+      description: Box in page fractions; times relative to the score's input start.
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        number:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        width:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        height:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        startSeconds:
+          type: number
+        endSeconds:
+          type: number
+    ScoreViewResult:
+      type: object
+      additionalProperties: false
+      required: [pages, bars, engine]
+      properties:
+        pages:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [page, widthPx, heightPx]
+            properties:
+              page:
+                type: integer
+                minimum: 1
+              widthPx:
+                type: integer
+                minimum: 1
+              heightPx:
+                type: integer
+                minimum: 1
+        bars:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items:
+            $ref: '#/components/schemas/BarBox'
+        engine:
+          type: object
+          additionalProperties: false
+          required: [name, version]
+          properties:
+            name:
+              type: string
+              enum: [verovio]
+            version:
+              type: string
+              maxLength: 40
+    ScoreViewJob:
+      type: object
+      additionalProperties: false
+      required: [jobId, status, progress, error, result, createdAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/ScoreViewResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+    SetlistSongContent:
+      type: object
+      additionalProperties: false
+      required: [position, title, durationSeconds]
+      properties:
+        position:
+          type: integer
+          minimum: 1
+          maximum: 100
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        artist:
+          type: [string, 'null']
+          maxLength: 200
+        bpm:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 400
+        beatsPerBar:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 12
+        key:
+          type: [string, 'null']
+          maxLength: 40
+        durationSeconds:
+          type: number
+          minimum: 0
+        mixName:
+          type: [string, 'null']
+          maxLength: 100
+        note:
+          type: [string, 'null']
+          maxLength: 1000
+        sections:
+          type: array
+          maxItems: 64
+          default: []
+          items:
+            type: object
+            additionalProperties: false
+            required: [label, kind, startSeconds]
+            properties:
+              label:
+                type: string
+                maxLength: 40
+              kind:
+                type: string
+                maxLength: 20
+              startSeconds:
+                type: number
+                minimum: 0
+        lyrics:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [lines, shortened]
+              properties:
+                lines:
+                  type: array
+                  maxItems: 2000
+                  items:
+                    type: string
+                    maxLength: 500
+                shortened:
+                  type: boolean
+            - type: 'null'
+    SetlistDocumentRequest:
+      type: object
+      additionalProperties: false
+      required: [title, generatedAt, options, songs]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+          default: ''
+        generatedAt:
+          type: string
+          format: date-time
+        options:
+          type: object
+          additionalProperties: false
+          required: [includeLyrics, includeSections, includeNotes, pageBreakPerSong]
+          properties:
+            includeLyrics:
+              type: boolean
+            includeSections:
+              type: boolean
+            includeNotes:
+              type: boolean
+            pageBreakPerSong:
+              type: boolean
+        songs:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SetlistSongContent'
+    SetlistDocumentJob:
+      type: object
+      additionalProperties: false
+      required: [jobId, status, progress, error, pages, createdAt]
+      properties:
+        jobId:
+          type: string
+          pattern: '^[0-9a-f]{32}$'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        pages:
+          type: [integer, 'null']
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+  examples:
+    SectionJobRequestSixStems:
+      summary: A 6-stem track with a split guitar and a reliable grid (beats shortened)
+      value:
+        stems:
+          vocals: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/vocals.flac
+          drums: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/drums.flac
+          bass: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/bass.flac
+          other: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/other.flac
+          guitar: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/guitar.flac
+          piano: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/stems/piano.flac
+        details:
+          - {channel: guitar.electric-guitar, path: tracks/3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b/detail/guitar/electric-guitar.flac}
+        grid: {bpm: 120, beats: [0.1, 0.6, 1.1, 1.6, 2.1], downbeats: [0.1, 2.1], beatsPerBar: 4, confidence: 0.91, reliable: true}
+        durationSeconds: 64
+    SectionJobCompleted:
+      summary: Completed detection
+      value:
+        jobId: 0123456789abcdef0123456789abcdef
+        status: completed
+        progress: 1
+        error: null
+        createdAt: '2026-11-16T10:11:50Z'
+        result:
+          analyzer: {name: stems-novelty, version: 1.0.0}
+          snap: downbeat
+          warnings: []
+          sections:
+            - {kind: intro, label: Intro, startSeconds: 0, endSeconds: 8.1, cluster: A, instrument: null, confidence: 0.82}
+            - {kind: verse, label: Verse, startSeconds: 8.1, endSeconds: 24.1, cluster: B, instrument: null, confidence: 0.74}
+            - {kind: chorus, label: Chorus, startSeconds: 24.1, endSeconds: 40.1, cluster: C, instrument: null, confidence: 0.79}
+            - {kind: solo, label: Electric guitar solo, startSeconds: 40.1, endSeconds: 56.1, cluster: D, instrument: guitar.electric-guitar, confidence: 0.66}
+            - {kind: outro, label: Outro, startSeconds: 56.1, endSeconds: 64, cluster: A, instrument: null, confidence: 0.71}

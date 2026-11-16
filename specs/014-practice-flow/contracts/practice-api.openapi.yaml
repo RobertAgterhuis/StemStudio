@@ -1,0 +1,1473 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - practice flow delta (feature 014)
+  version: 1.13.0-delta.1
+  summary: Additive delta of the backend API for song sections, score follow, setlists and the practice log.
+  description: |
+    * **Standalone, additive delta.** This document contains only the operations and schemas that
+      feature 014 adds. It is merged unchanged into the full
+      `specs/014-practice-flow/contracts/backend-api.openapi.yaml` **1.13.0** after features 012
+      (1.11.0) and 013 (1.12.0) have fixed their own minors (014 Phase 0 part 2). No existing
+      operation or behaviour changes; the only change to an existing schema is the optional
+      `LoopRegion.sectionId` (re-declared below in full; it replaces the 1.12.0 `LoopRegion` at
+      the merge).
+    * Conventions of the backend API apply: JSON camelCase, enums lower-case kebab strings, UTC
+      ISO 8601 times, times in seconds as numbers, RFC 9457 problem details with
+      `type` = `https://stemstudio.local/problems/<code>`.
+    * **Practice data is local.** Nothing in this document causes any request to a host other than
+      the local worker; the practice endpoints are read and written only by the local Web app
+      (and the local 011 agent). See ADR-023 D6.
+    * Long work runs in the worker lane `practice` (worker-api 1.8.0): section detection and score
+      views are asynchronous (`202`, then poll the resource); the setlist PDF waits for its short
+      job (at most `StemStudio:Practice:SetlistPdfTimeoutSeconds`, default 30 s).
+    * Changelog: 1.13.0-delta.1 (additive, feature 014 planning) - sections (read, replace,
+      detect), score list per track and score views (bar map + SVG pages), setlists (CRUD,
+      entries, PDF), practice log (settings, sessions, summary, overview, delete),
+      `LoopRegion.sectionId`. See ADR-023 and contracts/DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []  # single local user; no authentication (001 spec Assumptions)
+tags:
+  - name: sections
+    description: Song sections of a track (1.13.0, feature 014).
+  - name: score-follow
+    description: Sheet music that follows playback - score list per track and score views (1.13.0, feature 014).
+  - name: setlists
+    description: Ordered song lists with notes and a PDF export (1.13.0, feature 014).
+  - name: practice
+    description: The local practice log (1.13.0, feature 014).
+paths:
+  /api/tracks/{trackId}/sections:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [sections]
+      operationId: getSections
+      summary: The section set of a track (status `none` when never detected).
+      responses:
+        '200':
+          description: The section set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+              examples:
+                detected:
+                  $ref: '#/components/examples/SectionSetReady'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [sections]
+      operationId: replaceSections
+      summary: Replace the whole ordered list (user edit); sets origin `edited`.
+      description: |
+        Section ids that are sent are kept; sections without `id` get a new id. `revision` must
+        equal the stored revision, otherwise `409 sections-changed` (another window saved first).
+        Rules: 1..64 sections, sorted by start, non-overlapping, `0 <= start < end <= duration`,
+        `end - start >= 1`, label 1..40 characters, `instrument` only for `solo` and only a channel
+        of this track.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionsUpdate'
+      responses:
+        '200':
+          description: The stored section set (revision + 1).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SectionsConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/tracks/{trackId}/sections/detect:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [sections]
+      operationId: detectSections
+      summary: Start (re-)detection on the worker.
+      description: |
+        Replaces the sections when the job completes (new ids, origin `detected`). Edited sections
+        are only replaced with `overwrite: true` (else `409 sections-edited`). Also called by the
+        mixer when the status is `none` (tracks imported before 014).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectSectionsRequest'
+      responses:
+        '202':
+          description: Detection queued; poll `getSections`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SectionsConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/scores:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [score-follow]
+      operationId: listTrackScores
+      summary: Ready sheet-music items of this track (directly or through an exported audio item), newest first.
+      responses:
+        '200':
+          description: The score items with their view status.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 500
+                items:
+                  $ref: '#/components/schemas/TrackScore'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/{assetId}/score-view:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [score-follow]
+      operationId: getScoreView
+      summary: The score view of a score item (status `none` when never made).
+      responses:
+        '200':
+          description: The view; `bars` and `pages` are filled when `status` is `ready`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreView'
+              examples:
+                ready:
+                  $ref: '#/components/examples/ScoreViewReady'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+    post:
+      tags: [score-follow]
+      operationId: createScoreView
+      summary: Make the view (older score items); idempotent while queued or rendering.
+      responses:
+        '202':
+          description: Queued (or already queued/rendering/ready); poll `getScoreView`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreView'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/assets/{assetId}/score-view/pages/{page}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+      - name: page
+        in: path
+        required: true
+        description: 1-based page number.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+    get:
+      tags: [score-follow]
+      operationId: getScoreViewPage
+      summary: One page as SVG, for use as an image (`<img src>`).
+      description: |
+        Headers: `Content-Type: image/svg+xml`, `Cache-Control: private, max-age=31536000,
+        immutable` (the URL carries `?v=<revision>` from `ScoreView.pages[].url`),
+        `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; font-src data:`,
+        `X-Content-Type-Options: nosniff`.
+      responses:
+        '200':
+          description: The SVG page.
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+  /api/setlists:
+    get:
+      tags: [setlists]
+      operationId: listSetlists
+      summary: All setlists, most recently updated first.
+      responses:
+        '200':
+          description: The setlists.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1000
+                items:
+                  $ref: '#/components/schemas/SetlistSummary'
+    post:
+      tags: [setlists]
+      operationId: createSetlist
+      summary: Create an empty setlist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistCreate'
+      responses:
+        '201':
+          description: Created; `Location` header points at the setlist.
+          headers:
+            Location:
+              description: URL of the new setlist.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/setlists/{setlistId}:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    get:
+      tags: [setlists]
+      operationId: getSetlist
+      summary: A setlist with its entries.
+      parameters:
+        - name: acknowledgeRemoved
+          in: query
+          required: false
+          description: True resets `removedEntries` to 0 after the UI showed the notice.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: The setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+              examples:
+                rehearsal:
+                  $ref: '#/components/examples/SetlistRehearsal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [setlists]
+      operationId: updateSetlist
+      summary: Rename and/or change the note.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistUpdate'
+      responses:
+        '200':
+          description: The updated setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [setlists]
+      operationId: deleteSetlist
+      summary: Delete a setlist (tracks and mixes are not touched).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/setlists/{setlistId}/entries:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    put:
+      tags: [setlists]
+      operationId: replaceSetlistEntries
+      summary: Replace the ordered entries (add, remove, reorder, edit notes in one call).
+      description: |
+        0..100 entries in play order. Entry ids that are sent are kept. Each `trackId` must exist
+        (field error `track-not-found`); a `mixId` must belong to that track (field error
+        `mix-track-mismatch`). A track may appear more than once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistEntriesUpdate'
+      responses:
+        '200':
+          description: The updated setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/setlists/{setlistId}/pdf:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    get:
+      tags: [setlists]
+      operationId: getSetlistPdf
+      summary: Render the setlist as an A4 PDF (download).
+      description: |
+        The API collects the content (titles, artist, tempo, length, mix name, notes, sections,
+        lyrics as plain lines, at most 10,000 characters per song) and renders it with the worker's
+        `setlist-document` job, waiting at most the configured timeout. Response header
+        `Content-Disposition: attachment; filename="<setlist name>.pdf"` (sanitised name).
+        Feature 016 adds `chords`.
+      parameters:
+        - name: lyrics
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: sections
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: notes
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: pageBreakPerSong
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: The PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SetlistConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+        '504':
+          $ref: '#/components/responses/DocumentTimeout'
+  /api/practice/settings:
+    get:
+      tags: [practice]
+      operationId: getPracticeSettings
+      summary: Whether the practice log is on, and its size.
+      responses:
+        '200':
+          description: The settings (defaults when never saved).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSettings'
+    put:
+      tags: [practice]
+      operationId: updatePracticeSettings
+      summary: Switch the log on or off; acknowledge the first-use notice.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PracticeSettingsUpdate'
+      responses:
+        '200':
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSettings'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/sessions:
+    get:
+      tags: [practice]
+      operationId: listPracticeSessions
+      summary: Sessions, newest first (Expert view, agent).
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: before
+          in: query
+          required: false
+          description: Only sessions that started before this time (paging).
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: The sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 200
+                items:
+                  $ref: '#/components/schemas/PracticeSession'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [practice]
+      operationId: deletePracticeSessions
+      summary: Delete the practice log of one track, or all of it when `trackId` is absent.
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: How many sessions were deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedCount'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/sessions/{sessionId}:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        description: UUID made by the browser when the session starts.
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [practice]
+      operationId: upsertPracticeSession
+      summary: Create or replace a session with cumulative values (every 30 s while playing and at the end).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PracticeSessionInput'
+      responses:
+        '200':
+          description: The stored session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PracticeConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [practice]
+      operationId: deletePracticeSession
+      summary: Delete one session.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/practice/summary:
+    get:
+      tags: [practice]
+      operationId: getPracticeSummary
+      summary: Totals, minutes per day, per section and tempo reached for one track.
+      parameters:
+        - name: trackId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+        - $ref: '#/components/parameters/UtcOffsetMinutes'
+      responses:
+        '200':
+          description: The summary (zeros when nothing was recorded).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSummary'
+              examples:
+                week:
+                  $ref: '#/components/examples/PracticeSummaryWeek'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/overview:
+    get:
+      tags: [practice]
+      operationId: getPracticeOverview
+      summary: Totals per track, most recently practised first.
+      parameters:
+        - $ref: '#/components/parameters/UtcOffsetMinutes'
+      responses:
+        '200':
+          description: One entry per track with at least one session.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 10000
+                items:
+                  $ref: '#/components/schemas/PracticeTrackTotal'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SetlistId:
+      name: setlistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UtcOffsetMinutes:
+      name: utcOffsetMinutes
+      in: query
+      required: false
+      description: The browser's offset from UTC for day buckets (e.g. 60 for CET, 120 for CEST).
+      schema:
+        type: integer
+        minimum: -840
+        maximum: 840
+        default: 0
+  responses:
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+    NotFound:
+      description: Unknown track, asset, setlist or session.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+    SectionsConflict:
+      description: |
+        `type` ends in `sections-changed` (revision mismatch: "The sections were changed in another
+        window"), `sections-edited` (detect without `overwrite` after edits), `detection-running`,
+        or `track-not-ready` (the track has not completed separation).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/sections-changed
+            title: The sections were changed in another window
+            status: 409
+            detail: Reload the sections and make your change again.
+    ScoreViewConflict:
+      description: '`type` ends in `not-a-score`, `score-not-ready` or `score-view-not-ready`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/score-view-not-ready
+            title: The score view is not ready yet
+            status: 409
+    SetlistConflict:
+      description: '`type` ends in `setlist-empty` (nothing to print).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/setlist-empty
+            title: The setlist has no songs
+            status: 409
+    PracticeConflict:
+      description: '`type` ends in `practice-log-off`: the log is switched off, nothing was stored.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/practice-log-off
+            title: The practice log is off
+            status: 409
+    WorkerUnavailable:
+      description: The worker could not be reached; nothing was queued.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/worker-unavailable
+            title: The processing service is not available
+            status: 503
+    DocumentTimeout:
+      description: The PDF was not ready within the timeout; try again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/document-timeout
+            title: The PDF took too long
+            status: 504
+  schemas:
+    ProblemDetails:
+      type: object
+      description: RFC 9457 problem details. Extension members are allowed.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+    ChannelId:
+      type: string
+      description: A standard stem (`bass`) or a detail stem `<parent>.<detail>` (`guitar.electric-guitar`), as in 002.
+      pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+    SectionKind:
+      type: string
+      enum: [intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other]
+    SectionSetStatus:
+      type: string
+      enum: [none, queued, detecting, ready, failed]
+    SectionWarning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [grid-unreliable, no-grid, few-repetitions, no-vocals, merged-to-limit]
+        message:
+          type: string
+          maxLength: 300
+    Section:
+      type: object
+      additionalProperties: false
+      required: [id, kind, label, startSeconds, endSeconds, instrument, confidence, origin]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/SectionKind'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+        startBar:
+          type: [integer, 'null']
+          minimum: 0
+          description: Bar number of the start when the track has a reliable grid (bar 1 = first downbeat; 0 = lead-in); null otherwise.
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+          description: The leading instrument of a solo; null for other kinds.
+        confidence:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: Detected sections only; null once the user created or changed the section.
+        origin:
+          type: string
+          enum: [detected, user]
+    SectionSet:
+      type: object
+      additionalProperties: false
+      required: [trackId, status, origin, revision, analyzer, snap, warnings, error, sections, updatedAt]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/SectionSetStatus'
+        origin:
+          type: string
+          enum: [detected, edited]
+        revision:
+          type: integer
+          minimum: 0
+        analyzer:
+          type: [string, 'null']
+          description: Name and version of the analyser, e.g. `stems-novelty/1.0.0`.
+          maxLength: 80
+        snap:
+          type: [string, 'null']
+          enum: [downbeat, beat, time, null]
+          description: What boundaries were snapped to by the analyser.
+        warnings:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/SectionWarning'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/Section'
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    SectionInput:
+      type: object
+      additionalProperties: false
+      required: [kind, label, startSeconds, endSeconds]
+      properties:
+        id:
+          type: [string, 'null']
+          format: uuid
+          description: Keep an existing section (and its references); null or absent = new.
+        kind:
+          $ref: '#/components/schemas/SectionKind'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+    SectionsUpdate:
+      type: object
+      additionalProperties: false
+      required: [revision, sections]
+      properties:
+        revision:
+          type: integer
+          minimum: 0
+        sections:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/SectionInput'
+    DetectSectionsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        overwrite:
+          type: boolean
+          default: false
+          description: Required true to replace sections the user has edited.
+    LoopRegion:
+      type: object
+      additionalProperties: false
+      required: [start, end, enabled]
+      description: |
+        Requires 0 <= start < end <= track duration. **1.13.0**: optional `sectionId` - the section
+        the loop was set from (one-click loop), cleared by the UI when A or B is moved by hand. An id
+        that no longer exists is returned as null; the loop stays.
+      properties:
+        start:
+          type: number
+          minimum: 0
+        end:
+          type: number
+          exclusiveMinimum: 0
+        enabled:
+          type: boolean
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+          default: null
+    ScoreProfile:
+      type: string
+      description: The 008 instrument profile.
+      enum: [vocals, bass, guitar, keys, piano, drums]
+    ScoreViewStatus:
+      type: string
+      enum: [none, queued, rendering, ready, failed]
+    TrackScore:
+      type: object
+      additionalProperties: false
+      required: [assetId, name, profile, source, createdAt, viewStatus]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        profile:
+          $ref: '#/components/schemas/ScoreProfile'
+        source:
+          type: string
+          description: Channel id the score was made from, or `asset` for a score made from an exported audio item.
+          maxLength: 40
+        rangeStartSeconds:
+          type: [number, 'null']
+          minimum: 0
+          description: Track time where the score starts (range or exported part); null = whole song.
+        rangeEndSeconds:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        manualTempo:
+          type: boolean
+          default: false
+          description: True when the score was made with a manual tempo instead of the beat grid.
+        createdAt:
+          type: string
+          format: date-time
+        viewStatus:
+          $ref: '#/components/schemas/ScoreViewStatus'
+    ScoreViewPage:
+      type: object
+      additionalProperties: false
+      required: [page, url, widthPx, heightPx]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          maximum: 200
+        url:
+          type: string
+          description: Relative URL of `getScoreViewPage` with a cache-busting `v` query.
+          maxLength: 200
+        widthPx:
+          type: integer
+          minimum: 1
+        heightPx:
+          type: integer
+          minimum: 1
+    ScoreBar:
+      type: object
+      additionalProperties: false
+      required: [index, number, page, x, y, width, height, startSeconds, endSeconds]
+      description: One bar; box in page fractions (0..1 of the page width/height), times in track seconds.
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          description: 0-based position in the score.
+        number:
+          type: integer
+          minimum: 0
+          description: Printed bar number (0 = pickup).
+        page:
+          type: integer
+          minimum: 1
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        width:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        height:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        startSeconds:
+          type: number
+        endSeconds:
+          type: number
+    ScoreView:
+      type: object
+      additionalProperties: false
+      required: [assetId, status, trackId, offsetSeconds, pages, bars, error]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ScoreViewStatus'
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        offsetSeconds:
+          type: number
+          minimum: 0
+          description: Track time of the score's first beat grid point (range start); already added to the bar times.
+        pages:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ScoreViewPage'
+        bars:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: '#/components/schemas/ScoreBar'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+    SetlistCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+          default: ''
+    SetlistUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+    SetlistEntryInput:
+      type: object
+      additionalProperties: false
+      required: [trackId]
+      properties:
+        id:
+          type: [string, 'null']
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        note:
+          type: string
+          maxLength: 1000
+          default: ''
+    SetlistEntriesUpdate:
+      type: object
+      additionalProperties: false
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SetlistEntryInput'
+    SetlistEntry:
+      type: object
+      additionalProperties: false
+      required: [id, position, trackId, trackTitle, artist, mixId, mixName, note, durationSeconds, bpm, sectionCount, hasLyrics]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          minimum: 0
+          maximum: 99
+        trackId:
+          type: string
+          format: uuid
+        trackTitle:
+          type: string
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        mixName:
+          type: [string, 'null']
+          maxLength: 100
+        note:
+          type: string
+          maxLength: 1000
+        durationSeconds:
+          type: [number, 'null']
+          minimum: 0
+        bpm:
+          type: [number, 'null']
+          minimum: 0
+        sectionCount:
+          type: integer
+          minimum: 0
+        hasLyrics:
+          type: boolean
+    Setlist:
+      type: object
+      additionalProperties: false
+      required: [id, name, note, entries, totalSeconds, removedEntries, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+        entries:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SetlistEntry'
+        totalSeconds:
+          type: number
+          minimum: 0
+        removedEntries:
+          type: integer
+          minimum: 0
+          description: Entries removed because their track was deleted, since the last acknowledgement.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SetlistSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, songs, totalSeconds, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        songs:
+          type: integer
+          minimum: 0
+          maximum: 100
+        totalSeconds:
+          type: number
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+    PracticeSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, noticeAcknowledged, sessions, updatedAt]
+      properties:
+        enabled:
+          type: boolean
+          description: Default true; while false every session upsert is refused (409 practice-log-off).
+        noticeAcknowledged:
+          type: boolean
+        sessions:
+          type: integer
+          minimum: 0
+          description: Number of stored sessions.
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    PracticeSettingsUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        enabled:
+          type: boolean
+        noticeAcknowledged:
+          type: boolean
+    PracticeSectionInput:
+      type: object
+      additionalProperties: false
+      required: [kind, label, playedSeconds]
+      properties:
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        kind:
+          type: string
+          description: A section kind, or `none` for time outside any section.
+          enum: [intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other, none]
+        label:
+          type: string
+          maxLength: 40
+        playedSeconds:
+          type: number
+          minimum: 0
+          maximum: 43200
+        loopPasses:
+          type: integer
+          minimum: 0
+          default: 0
+        trainerReachedPercent:
+          type: [number, 'null']
+          minimum: 50
+          maximum: 120
+    PracticeSessionInput:
+      type: object
+      additionalProperties: false
+      required: [trackId, startedAt, endedAt, playedSeconds]
+      description: |
+        Cumulative values of the whole session (the server replaces the stored record). Rules:
+        `startedAt <= endedAt`, `endedAt - startedAt <= 12 h`, `startedAt` at most 5 minutes in the
+        future, `playedSeconds <= (endedAt - startedAt) + 5`, the sum of the sections'
+        `playedSeconds` at most `playedSeconds + 1`, at most 64 section rows.
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        playedSeconds:
+          type: number
+          minimum: 0
+          maximum: 43200
+        loopPasses:
+          type: integer
+          minimum: 0
+          default: 0
+        maxSpeedPercent:
+          type: [number, 'null']
+          minimum: 50
+          maximum: 120
+        sections:
+          type: array
+          maxItems: 64
+          default: []
+          items:
+            $ref: '#/components/schemas/PracticeSectionInput'
+    PracticeSession:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, mixId, startedAt, endedAt, playedSeconds, loopPasses, maxSpeedPercent, sections]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        playedSeconds:
+          type: number
+          minimum: 0
+        loopPasses:
+          type: integer
+          minimum: 0
+        maxSpeedPercent:
+          type: [number, 'null']
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/PracticeSectionInput'
+    PracticeDay:
+      type: object
+      additionalProperties: false
+      required: [date, seconds]
+      properties:
+        date:
+          type: string
+          format: date
+          description: Local day (UTC + utcOffsetMinutes).
+        seconds:
+          type: number
+          minimum: 0
+    PracticeSectionTotal:
+      type: object
+      additionalProperties: false
+      required: [sectionId, kind, label, seconds, loopPasses, bestTrainerPercent, lastPractisedAt]
+      properties:
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        kind:
+          type: string
+          maxLength: 20
+        label:
+          type: string
+          maxLength: 40
+          description: The current label when the section still exists, else the recorded one.
+        seconds:
+          type: number
+          minimum: 0
+        loopPasses:
+          type: integer
+          minimum: 0
+        bestTrainerPercent:
+          type: [number, 'null']
+        lastPractisedAt:
+          type: string
+          format: date-time
+    PracticeTempoPoint:
+      type: object
+      additionalProperties: false
+      required: [date, sectionId, label, percent]
+      properties:
+        date:
+          type: string
+          format: date
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        label:
+          type: string
+          maxLength: 40
+        percent:
+          type: number
+          minimum: 50
+          maximum: 120
+    PracticeSummary:
+      type: object
+      additionalProperties: false
+      required: [trackId, todaySeconds, last7DaysSeconds, totalSeconds, sessions, lastPractisedAt, days, sections, tempo]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        todaySeconds:
+          type: number
+          minimum: 0
+        last7DaysSeconds:
+          type: number
+          minimum: 0
+        totalSeconds:
+          type: number
+          minimum: 0
+        sessions:
+          type: integer
+          minimum: 0
+        lastPractisedAt:
+          type: [string, 'null']
+          format: date-time
+        days:
+          type: array
+          maxItems: 365
+          items:
+            $ref: '#/components/schemas/PracticeDay'
+        sections:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/PracticeSectionTotal'
+        tempo:
+          type: array
+          maxItems: 10000
+          items:
+            $ref: '#/components/schemas/PracticeTempoPoint'
+    PracticeTrackTotal:
+      type: object
+      additionalProperties: false
+      required: [trackId, title, artist, totalSeconds, last7DaysSeconds, sessions, lastPractisedAt]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        totalSeconds:
+          type: number
+          minimum: 0
+        last7DaysSeconds:
+          type: number
+          minimum: 0
+        sessions:
+          type: integer
+          minimum: 0
+        lastPractisedAt:
+          type: string
+          format: date-time
+    DeletedCount:
+      type: object
+      additionalProperties: false
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
+          minimum: 0
+  examples:
+    SectionSetReady:
+      summary: Detected sections of a 6-stem track with a reliable grid
+      value:
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        status: ready
+        origin: detected
+        revision: 1
+        analyzer: stems-novelty/1.0.0
+        snap: downbeat
+        warnings: []
+        error: null
+        updatedAt: '2026-11-16T10:12:00Z'
+        sections:
+          - {id: 0b1c2d3e-0000-4000-8000-000000000001, kind: intro, label: Intro, startSeconds: 0, endSeconds: 8.1, startBar: 0, instrument: null, confidence: 0.82, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000002, kind: verse, label: Verse 1, startSeconds: 8.1, endSeconds: 24.1, startBar: 3, instrument: null, confidence: 0.74, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000003, kind: chorus, label: Chorus 1, startSeconds: 24.1, endSeconds: 40.1, startBar: 11, instrument: null, confidence: 0.79, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000004, kind: solo, label: Guitar solo, startSeconds: 40.1, endSeconds: 56.1, startBar: 19, instrument: guitar, confidence: 0.66, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000005, kind: outro, label: Outro, startSeconds: 56.1, endSeconds: 64.0, startBar: 27, instrument: null, confidence: 0.71, origin: detected}
+    ScoreViewReady:
+      summary: A bass part of 3 bars shown for brevity
+      value:
+        assetId: 9a8b7c6d-1111-4222-8333-444455556666
+        status: ready
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        offsetSeconds: 0
+        error: null
+        pages:
+          - {page: 1, url: /api/assets/9a8b7c6d-1111-4222-8333-444455556666/score-view/pages/1?v=1, widthPx: 840, heightPx: 1188}
+        bars:
+          - {index: 0, number: 0, page: 1, x: 0.0571, y: 0.1012, width: 0.0702, height: 0.0248, startSeconds: 6.1, endSeconds: 8.1}
+          - {index: 1, number: 1, page: 1, x: 0.1273, y: 0.1012, width: 0.1695, height: 0.0248, startSeconds: 8.1, endSeconds: 10.1}
+          - {index: 2, number: 2, page: 1, x: 0.2968, y: 0.1012, width: 0.1544, height: 0.0248, startSeconds: 10.1, endSeconds: 12.1}
+    SetlistRehearsal:
+      summary: Two songs, one with a mix
+      value:
+        id: 5e4d3c2b-aaaa-4bbb-8ccc-dddddddddddd
+        name: Friday rehearsal
+        note: Bring the capo.
+        totalSeconds: 466
+        removedEntries: 0
+        createdAt: '2026-11-14T18:00:00Z'
+        updatedAt: '2026-11-16T09:30:00Z'
+        entries:
+          - {id: 1a2b3c4d-0000-4000-8000-00000000000a, position: 0, trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b, trackTitle: Example song, artist: Example band, mixId: 7c6b5a49-0000-4000-8000-0000000000aa, mixName: 'Play along: bass', note: Start at the bridge, durationSeconds: 222, bpm: 120, sectionCount: 9, hasLyrics: true}
+          - {id: 1a2b3c4d-0000-4000-8000-00000000000b, position: 1, trackId: 4a3b2c1d-4d5a-4e6f-8a9b-0c1d2e3f4a5b, trackTitle: Second song, artist: null, mixId: null, mixName: null, note: Capo 2, durationSeconds: 244, bpm: 96, sectionCount: 7, hasLyrics: false}
+    PracticeSummaryWeek:
+      summary: Two days of practice on one song
+      value:
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        todaySeconds: 720
+        last7DaysSeconds: 1620
+        totalSeconds: 1620
+        sessions: 3
+        lastPractisedAt: '2026-11-16T09:42:00Z'
+        days:
+          - {date: '2026-11-15', seconds: 900}
+          - {date: '2026-11-16', seconds: 720}
+        sections:
+          - {sectionId: 0b1c2d3e-0000-4000-8000-000000000004, kind: solo, label: Guitar solo, seconds: 840, loopPasses: 21, bestTrainerPercent: 90, lastPractisedAt: '2026-11-16T09:42:00Z'}
+        tempo:
+          - {date: '2026-11-15', sectionId: 0b1c2d3e-0000-4000-8000-000000000004, label: Guitar solo, percent: 80}
+          - {date: '2026-11-16', sectionId: 0b1c2d3e-0000-4000-8000-000000000004, label: Guitar solo, percent: 90}
