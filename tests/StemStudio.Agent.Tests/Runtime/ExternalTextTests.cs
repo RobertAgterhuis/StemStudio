@@ -101,4 +101,48 @@ public sealed class ExternalTextTests
         json.GetProperty("error").GetString().ShouldBe("The page could not execute the step.");
         json.GetProperty("untrusted_text").GetString()!.ShouldContain(Injection);
     }
+
+    [Theory]
+    [InlineData(500, null, "StemStudio could not do this step (HTTP 500).")]
+    [InlineData(404, "not-found", "The item does not exist (HTTP 404).")]
+    public async Task PortErrorMessages_ReachTheModelOnlyAsUntrustedText(int status, string? problem, string trusted)
+    {
+        var harness = RunnerHarness.Scripted([Server("boom", _ => throw new AgentActionException(status, problem, Injection))], Turn(Call("boom")), Say("ok"));
+
+        var run = await harness.ExecuteAsync();
+
+        var result = harness.Script.Requests[1].Messages.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result!.ToString()!;
+        var json = System.Text.Json.JsonDocument.Parse(result).RootElement;
+        json.GetProperty("error").GetString().ShouldBe(trusted);
+        json.GetProperty("untrusted_text").GetString().ShouldBe(Injection);
+        run.Tainted.ShouldBeTrue();
+        harness.Runs.Steps.Single().Error.ShouldBe(trusted);
+    }
+
+    [Theory]
+    [InlineData(400, "imitation", "Styles describe genres and sounds, not artists")]
+    [InlineData(409, "consent-required", "Renew the consent for this voice on the Voices page")]
+    [InlineData(409, "consent-outdated", "Renew the consent for this voice on the Voices page")]
+    [InlineData(409, "preset-read-only", "Preset styles cannot be deleted; only your own styles can.")]
+    [InlineData(409, "generation-not-retryable", "Only failed or cancelled generations can be retried.")]
+    public async Task KnownProblems_BecomeFixedReadableMessages_WithoutTaint(int status, string problem, string expected)
+    {
+        var harness = RunnerHarness.Scripted([Server("boom", _ => throw new AgentActionException(status, problem, Injection))], Turn(Call("boom")), Say("ok"));
+
+        var run = await harness.ExecuteAsync();
+
+        harness.Runs.Steps.Single().Error.ShouldBe(expected);
+        run.Tainted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AgentMadeErrors_StayTrusted()
+    {
+        var harness = RunnerHarness.Scripted([Server("boom", _ => throw new AgentActionException("No mixer is open; use open_mixer first."))], Turn(Call("boom")), Say("ok"));
+
+        var run = await harness.ExecuteAsync();
+
+        harness.Runs.Steps.Single().Error.ShouldBe("No mixer is open; use open_mixer first.");
+        run.Tainted.ShouldBeFalse();
+    }
 }
