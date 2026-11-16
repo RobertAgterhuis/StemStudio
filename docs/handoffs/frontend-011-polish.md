@@ -65,11 +65,25 @@ Setup (technical manual): Claude needs `ANTHROPIC_API_KEY` exported in the shell
 ## Open issues / requests
 
 - ai-agent / architect: mixer UI tools have no `trackId` argument; the host accepts an optional one (see us1).
-- `show_karaoke` (+mixer) is not handled by the Web app yet ("No open page can run show_karaoke").
+- ~~`show_karaoke` (+mixer) is not handled by the Web app yet~~ - done, see "Follow-up: show_karaoke" below.
 - The spec's "Continue" for interrupted runs has no contract operation and is not built.
 - backend: resume replays the stream from the first event (`GET .../events` without `after`).
 - qa: E2E can use only ui-test-ids 1.10.0; the extra hooks used in bUnit are an `aria-label="Conversation title"`
   input and `aria-label="Save title"` button for rename, and the class `.ss-agent-step-live`.
+
+## Follow-up: show_karaoke
+
+`show_karaoke {enabled}` (tool catalogue 1.0.0, feature 006, `+mixer`) is now a mixer UI tool (T039 pattern):
+`MixerUiTools.ShowKaraokeAsync` -> `IMixerControls.SetKaraokeVisibleAsync` -> `KaraokeBanner.SetVisibleAsync`, the
+same show/hide choice as `karaoke-toggle` (remembered in `localStorage["stemstudio.karaoke"]`; the banner attaches or
+detaches the engine banner on its next render). Result `{previous, current}` (booleans). `enabled: true` without
+synced (word/line timed) lyrics fails with "This track has no synced lyrics, so the karaoke banner cannot be shown.";
+`enabled: false` always works (the inverse). No open mixer: "The mixer of the track is not open" (host, as for the
+other mixer tools). `mixer_get_state` still omits the optional `karaoke?` field (shape not specified).
+Tests: `MixerUiToolsTests` (5 new), `MixerAgentToolsTests` (2 new, page with the real banner), `AgentUiToolHostTests`
+(no-mixer case). `dotnet test tests/StemStudio.Web.Tests -p:CollectCoverage=true`: Passed 1700, Failed 0; line
+99.39 %, branch 94.15 % (gate 90/90). `dotnet format --verify-no-changes` clean (also fixed two pre-existing
+whitespace findings); `sig_check.py` on `Agent/`, `Mixer.Agent.cs`, `Karaoke/`: 0 errors, no new warnings.
 
 ## Next owner
 
