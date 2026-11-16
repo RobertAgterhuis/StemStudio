@@ -13,8 +13,21 @@ public static class ClaudeErrors
     /// <summary>Appended to every failure text (the panel shows "Switch to local" next to it).</summary>
     public const string SwitchToLocal = "Switch to local to continue with the model on this computer.";
 
-    /// <summary>The key is not set.</summary>
-    public const string KeyMissing = "ANTHROPIC_API_KEY is not set in the environment of StemStudio. " + SwitchToLocal;
+    /// <summary>No key is set: neither <c>ANTHROPIC_API_KEY</c> nor a stored key (011 follow-up claude-key).</summary>
+    public const string KeyMissing = "No Claude key is configured: enter it in Settings or set ANTHROPIC_API_KEY. " + SwitchToLocal;
+
+    /// <summary>Fix shown with <see cref="KeyMissing"/> in the agent status.</summary>
+    public const string KeyMissingFix = "Enter the Claude key in Settings, or set ANTHROPIC_API_KEY in the shell that starts StemStudio and restart it.";
+
+    /// <summary>
+    /// The failure text when no usable key is available: the readable reason of the key state (unreadable stored key,
+    /// unusable key store, malformed environment value) with its fix, or <see cref="KeyMissing"/>. Never contains a key.
+    /// </summary>
+    /// <param name="reason">Reason of the key state, or null when simply nothing is configured.</param>
+    /// <param name="fix">Fix of the key state; left out when null.</param>
+    /// <returns>The text, ending with <see cref="SwitchToLocal"/>.</returns>
+    public static string KeyUnusable(string? reason, string? fix) =>
+        reason is null ? KeyMissing : string.Join(' ', fix is null ? [reason, SwitchToLocal] : [reason, fix, SwitchToLocal]);
 
     /// <summary>The paid-service notice was not acknowledged.</summary>
     public const string NoticeMissing = "The notice about the paid Claude service is not acknowledged in Settings. " + SwitchToLocal;

@@ -174,8 +174,8 @@ public sealed class ProviderEdgeTests
         var down = new StubHttpHandler { Failure = new HttpRequestException("no route") };
         var refused = new StubHttpHandler().Json("GET /v1/models/claude-opus-5-5", "{}", HttpStatusCode.TooManyRequests);
 
-        var unreachable = await new ClaudeBackendProbe(new ClaudeChatClientFactory(FakeEnvironment.WithKey(), down.Client("https://api.anthropic.com/")), time).TestAsync(settings, Token);
-        var limited = await new ClaudeBackendProbe(new ClaudeChatClientFactory(FakeEnvironment.WithKey(), refused.Client("https://api.anthropic.com/")), time).TestAsync(settings, Token);
+        var unreachable = await new ClaudeBackendProbe(new ClaudeChatClientFactory(FakeEnvironment.WithKey().Keys(), down.Client("https://api.anthropic.com/")), time).TestAsync(settings, Token);
+        var limited = await new ClaudeBackendProbe(new ClaudeChatClientFactory(FakeEnvironment.WithKey().Keys(), refused.Client("https://api.anthropic.com/")), time).TestAsync(settings, Token);
 
         unreachable.Detail.ShouldBe(ClaudeErrors.Unreachable);
         limited.Detail.ShouldContain("429");

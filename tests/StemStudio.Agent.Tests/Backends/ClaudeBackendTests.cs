@@ -9,6 +9,7 @@ using StemStudio.Agent.Ports;
 using StemStudio.Agent.Runtime;
 using StemStudio.Agent.Tests.Fakes;
 using StemStudio.Contracts.Agent;
+using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Agent.Tests.Backends;
 
@@ -40,7 +41,7 @@ public sealed class ClaudeBackendTests
     private static StubHttpHandler Claude() => new();
 
     private static ClaudeChatClientFactory Factory(StubHttpHandler stub, IEnvironmentReader? environment = null) =>
-        new(environment ?? FakeEnvironment.WithKey(), stub.Client("https://api.anthropic.com/"));
+        new(new ClaudeKeyProvider(environment ?? FakeEnvironment.WithKey(), new FakeStoredClaudeKeyReader()), stub.Client("https://api.anthropic.com/"));
 
     private static JsonElement LastBody(StubHttpHandler stub) => JsonDocument.Parse(stub.Requests.Last(request => request.Route == Messages).Body).RootElement;
 

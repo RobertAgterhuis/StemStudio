@@ -100,26 +100,29 @@ public sealed class ClaudeKeyProvider : IClaudeKeyProvider
     private static Snapshot Build(string raw, StoredClaudeKey stored)
     {
         var parsed = raw.Length == 0 ? null : ClaudeApiKey.Parse(raw);
-        var environment = parsed is { IsValid: true } ? parsed.Key : null;
+        var environment = parsed?.Key;
         var storedKey = stored.State == StoredClaudeKeyStateDto.Readable ? stored.Key : null;
         var (reason, fix) = Explanation(stored, parsed?.Error);
-        var active = environment ?? storedKey;
-        var resolution = new ClaudeKeyResolution
-        {
-            Key = active,
-            Source = environment is not null ? ClaudeKeySourceDto.Environment : storedKey is not null ? ClaudeKeySourceDto.Stored : null,
-            State = State(environment, storedKey, stored.State),
-            LastFour = active?.LastFour,
-            Stored = stored.State,
-            StoredLastFour = stored.LastFour,
-            StoredAt = stored.StoredAt,
-            StoreAvailable = stored.StoreAvailable,
-            StoreUnavailableReason = stored.StoreUnavailableReason,
-            Reason = reason,
-            Fix = fix,
-        };
+        var state = State(environment, storedKey, stored.State);
+        var resolution = Resolution(Active(environment, storedKey), state, stored) with { Reason = reason, Fix = fix };
         return new Snapshot(raw, resolution, environment, stored with { Key = storedKey });
     }
+
+    private static ClaudeKeyResolution Resolution((ClaudeApiKey? Key, ClaudeKeySourceDto? Source) active, ClaudeKeyStateDto state, StoredClaudeKey stored) => new()
+    {
+        Key = active.Key,
+        Source = active.Source,
+        State = state,
+        LastFour = active.Key?.LastFour,
+        Stored = stored.State,
+        StoredLastFour = stored.LastFour,
+        StoredAt = stored.StoredAt,
+        StoreAvailable = stored.StoreAvailable,
+        StoreUnavailableReason = stored.StoreUnavailableReason,
+    };
+
+    private static (ClaudeApiKey? Key, ClaudeKeySourceDto? Source) Active(ClaudeApiKey? environment, ClaudeApiKey? stored) =>
+        environment is not null ? (environment, ClaudeKeySourceDto.Environment) : (stored, stored is null ? null : ClaudeKeySourceDto.Stored);
 
     private static ClaudeKeyStateDto State(ClaudeApiKey? environment, ClaudeApiKey? stored, StoredClaudeKeyStateDto storedState) =>
         (environment, stored, storedState) switch

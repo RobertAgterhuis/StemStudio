@@ -24,6 +24,16 @@ public sealed class ClaudeApiKey
     private static readonly string KeyPrefix = string.Concat("sk", "-", "ant", "-");
     private static readonly string AdminPrefix = string.Concat(KeyPrefix, "admin");
 
+    // The format rules in the order they are checked; the first failing rule is reported.
+    private static readonly (Func<string, bool> Fails, string Reason)[] Rules =
+    [
+        (value => value.Length == 0, ClaudeKeyInvalidReasons.Empty),
+        (value => !value.StartsWith(KeyPrefix, StringComparison.Ordinal), ClaudeKeyInvalidReasons.Prefix),
+        (value => value.Length is < MinLength or > MaxLength, ClaudeKeyInvalidReasons.Length),
+        (value => !value.All(IsKeyCharacter), ClaudeKeyInvalidReasons.Characters),
+        (value => value.StartsWith(AdminPrefix, StringComparison.OrdinalIgnoreCase), ClaudeKeyInvalidReasons.AdminKey),
+    ];
+
     private readonly string _value;
 
     private ClaudeApiKey(string value)
@@ -60,30 +70,7 @@ public sealed class ClaudeApiKey
     /// <returns><see cref="Redacted"/>.</returns>
     public override string ToString() => Redacted;
 
-    private static string? FailedRule(string trimmed)
-    {
-        if (trimmed.Length == 0)
-        {
-            return ClaudeKeyInvalidReasons.Empty;
-        }
-
-        if (!trimmed.StartsWith(KeyPrefix, StringComparison.Ordinal))
-        {
-            return ClaudeKeyInvalidReasons.Prefix;
-        }
-
-        if (trimmed.Length is < MinLength or > MaxLength)
-        {
-            return ClaudeKeyInvalidReasons.Length;
-        }
-
-        if (!trimmed.All(IsKeyCharacter))
-        {
-            return ClaudeKeyInvalidReasons.Characters;
-        }
-
-        return trimmed.StartsWith(AdminPrefix, StringComparison.OrdinalIgnoreCase) ? ClaudeKeyInvalidReasons.AdminKey : null;
-    }
+    private static string? FailedRule(string trimmed) => Array.Find(Rules, rule => rule.Fails(trimmed)).Reason;
 
     private static bool IsKeyCharacter(char c) => char.IsAsciiLetterOrDigit(c) || c is '-' or '_';
 }

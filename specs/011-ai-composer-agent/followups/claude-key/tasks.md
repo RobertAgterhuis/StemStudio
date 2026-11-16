@@ -94,8 +94,8 @@ character (research R-07).
 
 ## Phase 2: User Stories 1, 2 - Enter the key, see which key is in use (P1) MVP
 
-- [ ] T021 [P] [US1] [ai-agent] Failing tests: `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` read the key only through `IClaudeKeyProvider`; client cache keyed by fingerprint; `ClaudeStatusDto.Key` filled; `keyConfigured` true for a readable stored key; a key change applies to the next run, an active run keeps its client; extend the 011 SC-006 sentinel test to stored keys [sec] (CK-FR-001, CK-FR-008, CK-FR-016)
-- [ ] T022 [US1] [ai-agent] Implement to pass T021
+- [x] T021 [P] [US1] [ai-agent] Failing tests: `ClaudeChatClientFactory`, `ClaudeBackendProbe` and `AgentStatusService` read the key only through `IClaudeKeyProvider`; client cache keyed by fingerprint; `ClaudeStatusDto.Key` filled; `keyConfigured` true for a readable stored key; a key change applies to the next run, an active run keeps its client; extend the 011 SC-006 sentinel test to stored keys [sec] (CK-FR-001, CK-FR-008, CK-FR-016) - done 2026-11-16 (`Backends/ClaudeKeyBackendTests`; red was a build failure against the old factory signature, so T021 and T022 share one commit)
+- [x] T022 [US1] [ai-agent] Implement to pass T021 - done 2026-11-16 (`ClaudeChatClientFactory(IClaudeKeyProvider)`, `ClaudeKeyStatus.ToDto`, `RunKeyPins` in `ClaudeChatSession`, `NoStoredClaudeKeyReader` default, DI)
 - [x] T023 [P] [US1] [backend] Failing tests `Agent/ClaudeKeyEndpointsTests.cs`: `GET` status for all states; `PUT` 200 with the status, 422 per reason with `reason` and without the value, 400 fixed text for bad JSON and missing field, 413 over 1 KiB, 503 when the store is unavailable; no request to the must-not-call Anthropic handler; backend and notice acknowledgement unchanged; `WithHttpLogging(None)` metadata and the logging interceptor (with a global `AddHttpLogging(All)` in the test host nothing of the key route is logged) [sec] (CK-FR-006, CK-FR-008..010, CK-FR-015)
 - [x] T024 [US1] [backend] Implement `ClaudeKeyEndpoints` and `KeyEndpointLoggingInterceptor` to pass T023
 - [ ] T025 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Settings/ClaudeKeySectionTests.cs`: status texts and `data-state`/`data-source`/`data-stored` for every state; env-override note; input `type=password`, `autocomplete=off`, empty after success **and** after failure; save disabled when empty or saving; 422/503/413 messages never contain the value; Beginner level shows the section (CK-FR-014, ui-test-ids 1.21.0)
@@ -118,8 +118,8 @@ character (research R-07).
 
 ## Phase 5: User Story 4 - Test the key on request (P2)
 
-- [ ] T036 [P] [US4] [ai-agent] Failing tests: `ClaudeBackendProbe.TestAsync` with `claudeKeySource` `active`/`stored`/`environment` uses the right key (the stub handler receives the `x-api-key` sentinel of the requested source), `keySource` in the result, missing requested source -> `ok: false` readable detail; exactly one request per test; 401/403/timeout/network texts (CK-FR-007, CK-SC-002)
-- [ ] T037 [US4] [ai-agent] Implement to pass T036
+- [x] T036 [P] [US4] [ai-agent] Failing tests: `ClaudeBackendProbe.TestAsync` with `claudeKeySource` `active`/`stored`/`environment` uses the right key (the stub handler receives the `x-api-key` sentinel of the requested source), `keySource` in the result, missing requested source -> `ok: false` readable detail; exactly one request per test; 401/403/timeout/network texts (CK-FR-007, CK-SC-002) - done 2026-11-16 (`Backends/ClaudeKeySourceTestTests`)
+- [x] T037 [US4] [ai-agent] Implement to pass T036 - done 2026-11-16 (`ClaudeBackendProbe.TestAsync(settings, source, ct)`, `AgentStatusService.TestAsync(backend, claudeKeySource, ct)`; the `IAgentStatusService` port still has only `TestAsync(backend, ct)` = active, port change requested from the architect)
 - [ ] T038 [P] [US4] [backend] Failing tests: `POST /api/agent/settings/test` passes `claudeKeySource`, answers `403 local-only` for the Claude case from a non-local caller, Ollama case unchanged [sec]
 - [ ] T039 [US4] [backend] Implement to pass T038
 - [ ] T040 [P] [US4] [frontend] Failing tests: **Test key** shown per ui-test-ids rules, source choice only when both keys exist, result with `data-ok` and `data-key-source`
