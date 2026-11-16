@@ -21,6 +21,11 @@
     8080/8081 free and the Playwright browsers installed; the project and its volumes are removed
     afterwards.
 
+.PARAMETER AgentE2e
+    Also starts a fake stack (STEMSTUDIO_AGENT_BACKEND=none) as compose project stemstudio-e2e and
+    runs scripts/agent-e2e.ps1 fake, then none (feature 011, T059). Same prerequisites as -Gpu; the
+    project and its volumes are removed afterwards.
+
 .EXAMPLE
     ./scripts/test-all.ps1
 .EXAMPLE
@@ -29,7 +34,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive developer script; console output is the UI.')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Private helpers that only change this script''s own throwaway containers or process environment.')]
 [CmdletBinding()]
-param([switch] $ContinueOnError, [switch] $Gpu)
+param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -111,6 +116,16 @@ if ($Gpu) {
     }
 }
 
+# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none); they
+# recreate only the api of this project.
+if ($AgentE2e) {
+    $agentEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_AGENT_BACKEND = 'none'; COMPOSE_PROJECT_NAME = $E2eProject }
+    $Steps += @{ Name = 'agent e2e: fake stack up'; Dir = '.'; Env = $agentEnv; Cmd = @('docker', 'compose', 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
+    foreach ($backend in 'fake', 'none') {
+        $Steps += @{ Name = "agent e2e: playwright agent.spec.ts ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/agent-e2e.ps1', $backend) }
+    }
+}
+
 function Set-StepEnvironment {
     <# Sets the given process environment variables; returns their previous values. #>
     param([hashtable] $Variables)
@@ -147,6 +162,6 @@ foreach ($step in $Steps) {
     $summary.Add([pscustomobject]@{ Step = $step.Name; Result = $result })
     if ($result -eq 'failed' -and -not $ContinueOnError) { break }
 }
-if ($Gpu) { & docker compose -p $E2eProject down -v | Out-Host }
+if ($Gpu -or $AgentE2e) { & docker compose -p $E2eProject down -v | Out-Host }
 $summary | Format-Table -AutoSize | Out-String | Write-Host
 exit ([int]($summary.Result -contains 'failed'))

@@ -7,21 +7,26 @@
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
 #
-# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e]
+# Usage: scripts/test-all.sh [--continue-on-error] [--gpu-e2e] [--agent-e2e]
 #   --gpu-e2e  also start a fake stack as compose project stemstudio-e2e twice, with a fake GPU
 #              (STEMSTUDIO_FAKE_DEVICE=gpu) and one that runs out of memory (gpu-oom), and run the
 #              Playwright @gpu specs each time (feature 003); needs ports 8080/8081 free and the Playwright
 #              browsers installed; the project and its volumes are removed afterwards
+#   --agent-e2e  also start a fake stack (STEMSTUDIO_AGENT_BACKEND=none) as compose project
+#              stemstudio-e2e and run scripts/agent-e2e.sh fake, then none (feature 011, T059); same
+#              prerequisites, the project and its volumes are removed afterwards
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTINUE=0
 GPU_E2E=0
+AGENT_E2E=0
 E2E_PROJECT=stemstudio-e2e
 for arg in "$@"; do
   case "$arg" in
     --continue-on-error) CONTINUE=1 ;;
     --gpu-e2e) GPU_E2E=1 ;;
+    --agent-e2e) AGENT_E2E=1 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -111,6 +116,14 @@ if [[ $GPU_E2E -eq 1 ]]; then
     step "gpu e2e: fake stack ($mode) up" . env STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_FAKE_DEVICE="$mode" \
       docker compose -p "$E2E_PROJECT" up -d --build --wait --wait-timeout 300
     step "gpu e2e: playwright @gpu ($mode)" e2e env STEMSTUDIO_FAKE_DEVICE="$mode" npm run test:gpu
+  done
+  docker compose -p "$E2E_PROJECT" down -v
+fi
+if [[ $AGENT_E2E -eq 1 ]]; then
+  # The agent passes recreate only the api of this project (COMPOSE_PROJECT_NAME).
+  step "agent e2e: fake stack up" . env STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_AGENT_BACKEND=none     docker compose -p "$E2E_PROJECT" up -d --build --wait --wait-timeout 300
+  for backend in fake none; do
+    step "agent e2e: playwright agent.spec.ts ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/agent-e2e.sh "$backend"
   done
   docker compose -p "$E2E_PROJECT" down -v
 fi

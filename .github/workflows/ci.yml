@@ -456,6 +456,9 @@ jobs:
       # The @detail specs expect a fake detail phase of ~25 s (e2e/support/env.ts): long enough
       # to cancel the shared plain track's phase before it completes.
       STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5
+      # Feature 011: the default suite runs with the agent off (quickstart A6, SC-005); the agent
+      # steps below recreate only the api with fake / none. There is no Ollama and no Claude key here.
+      STEMSTUDIO_AGENT_BACKEND: none
       E2E_BASE_URL: http://localhost:8080
       E2E_API_URL: http://localhost:8081
     steps:
@@ -483,6 +486,8 @@ jobs:
           curl --fail --silent --show-error http://localhost:8081/health
           curl --fail --silent --show-error http://localhost:8080/health
           docker compose exec -T worker python -c "import urllib.request as u; print(u.urlopen('http://127.0.0.1:8000/health').read().decode())"
+      - name: The api container has no Claude key (bare pass-through, CI never sets it; 011 SC-006)
+        run: docker compose exec -T api sh -c 'test -z "${ANTHROPIC_API_KEY+set}"'
       - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
         run: scripts/check-library-mount.sh
       - name: Install Playwright browsers
@@ -508,6 +513,10 @@ jobs:
           docker compose restart api web
           docker compose up -d --wait --wait-timeout 180 api web
           (cd e2e && npm run test:restart)
+      - name: Agent specs with the fake backend, one api start per e2e/agent-scripts file (011 T059, A5)
+        run: scripts/agent-e2e.sh fake
+      - name: Agent unavailable spec with backend none (011 T059, A6, SC-005)
+        run: scripts/agent-e2e.sh none
       - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
         env:
           STEMSTUDIO_FAKE_DEVICE: gpu
