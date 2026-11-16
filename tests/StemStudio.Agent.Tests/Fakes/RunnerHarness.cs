@@ -75,6 +75,8 @@ public sealed class RunnerHarness
 
     public void SetCommandContext(PageContextDto context) => Command = Command with { Context = context };
 
+    public void SetCommandText(string text) => Command = Command with { Text = text };
+
     public AgentServices Services() => new()
     {
         Runs = RunStore ?? Runs,
