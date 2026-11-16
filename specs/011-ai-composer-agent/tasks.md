@@ -152,7 +152,7 @@ all lanes below begin in parallel from the Phase 0 commit.
 - [ ] T046 [US2] [backend] Implement the approval endpoint to pass T045
 - [ ] T047 [P] [US2] [frontend] Failing bUnit tests `Components/Agent/ApprovalCardTests.cs`: card shows effect (`agent-approval-effect`), exact arguments, reasons (tainted text "proposed after reading external content"), undoability, estimated minutes and device for heavy (`agent-approval-estimate`, `data-minutes`, `data-device`); approve / approve-plan (only when allowed) / reject post the right body with `argumentsHash`; card closes on `approval.resolved` (FR-012, FR-013)
 - [ ] T048 [US2] [frontend] Implement `Components/Agent/ApprovalCard.razor` to pass T047
-- [ ] T049 [US2] [qa] Author `agent.spec.ts` "confirm and reject" (delete mix approved; delete track rejected -> track still listed; detail split approved -> detail phase queued) and "injection" (fake adversarial script on the `t-inject` fixture: approval card with reason `tainted`, reject -> nothing changed) (SC-002, SC-003)
+- [x] T049 [US2] [qa] Author `agent.spec.ts` "confirm and reject" (delete mix approved; delete track rejected -> track still listed; detail split approved -> detail phase queued) and "injection" (fake adversarial script on the `t-inject` fixture: approval card with reason `tainted`, reject -> nothing changed) (SC-002, SC-003)
 
 **Checkpoint**: HO:us2.
 
