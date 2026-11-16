@@ -23,6 +23,17 @@ public sealed class LiveRunTests
         results.Count.ShouldBe(Repo.EvalSet.Cases.Count);
     }
 
+    [Fact]
+    public async Task TheLog_ShowsThePassedRunsPerCase()
+    {
+        var evalCase = Repo.Case("3");
+        using var log = new StringWriter();
+
+        await LiveEvaluation.RunAsync(new EvalSet(Repo.EvalSet.Version, [evalCase]), Runner(null), 2, log);
+
+        log.ToString().ShouldStartWith("case 3: pass 2/2 ");
+    }
+
     [Theory]
     [InlineData("17", "retry_track")]
     [InlineData("27", "export_audio")]
