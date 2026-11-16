@@ -198,7 +198,8 @@ export async function blurActiveElement(page: Page): Promise<void> {
 export const practiceReferenceQueries: Readonly<Record<string, string>> = {
   'slow down': 'practice-speed',
   transpose: 'practice-transpose',
-  'count-in': 'practice-count-in',
+  // "count-in" alone ranks the glossary entry first (same title, id tie-break); see PracticeHelpTests.
+  'count-in bars': 'practice-count-in',
   'speed trainer': 'practice-speed-trainer',
   'sound quality': 'practice-sound-quality',
 };

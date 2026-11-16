@@ -96,6 +96,9 @@ test.describe('in the mixer', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await help.open('button');
     await expect(mixer.byId('transport-play')).toBeInViewport();
+    // From 012 the practice panel sits above the strips, so at 800 px height they are reached by
+    // scrolling; the docked panel must still leave them visible and usable.
+    await mixer.strip('vocals').scrollIntoViewIfNeeded();
     await expect(mixer.strip('vocals')).toBeInViewport();
     await mixer.play();
     await expect(mixer.byId('transport-position')).not.toHaveText(/^\s*0?0:00(\.0+)?\b/, { timeout: 5_000 });

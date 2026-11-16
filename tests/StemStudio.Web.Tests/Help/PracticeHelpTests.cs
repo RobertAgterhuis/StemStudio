@@ -72,6 +72,10 @@ public sealed class PracticeHelpTests
     [InlineData("transpose", "practice-transpose")]
     [InlineData("semitone", "semitone")]
     [InlineData("smeary", "practice-sound-quality")]
+    [InlineData("count-in bars", "practice-count-in")]
+    [InlineData("speed trainer", "practice-speed-trainer")]
+    [InlineData("sound quality", "practice-sound-quality")]
+    [InlineData("count-in", "count-in")]
     public void ReferenceQueries_FindThePracticeTopicsFirst(string query, string expected) =>
         new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 
