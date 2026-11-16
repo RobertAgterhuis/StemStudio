@@ -16,7 +16,7 @@ These close the biggest gaps for a practice tool.
 
 | # | Feature | Why | Notes / size |
 |---|---|---|---|
-| M1 | **Slow down without changing pitch** (50–120 % speed) and **transpose** (±12 semitones) for the whole mix, live in the mixer | The most used function in every practice app. The metronome already follows the tempo, but playback speed is fixed today. | Engine work: a time-stretch/pitch-shift AudioWorklet (e.g. Rubber Band (GPL, check) or SoundTouch (LGPL) as WASM, or a phase vocoder of our own). Must stay sample-locked across stems. M–L |
+| M1 | **Slow down without changing pitch** (50–120 % speed) and **transpose** (±12 semitones) for the whole mix, live in the mixer | The most used function in every practice app. The metronome already follows the tempo, but playback speed is fixed today. | Engine work: a time-stretch/pitch-shift AudioWorklet based on **SoundTouch (LGPL-2.1) compiled to WASM** (owner decision 2026-11-16; Rubber Band is GPL and would force the MIT project to GPL). Must stay sample-locked across stems. M–L |
 | M2 | **Speed trainer**: an A-B loop that starts slow and speeds up by n % after each clean pass, up to the target tempo | Turns the loop into a real exercise. Depends on M1. | Mixer setting saved in the mix. S |
 | M3 | **Count-in and pre-roll** before play and before every loop pass (1–2 bars, metronome sound) | You need time to get your hands back on the instrument. | Uses the existing beat grid and metronome. S |
 | M4 | **Backup and restore** of the whole library (database, stems, mixes, lyrics, scores, styles, voice profiles) as one archive | Everything lives in Docker volumes today; losing a volume loses hours of GPU work. | API + worker job; restore checks versions. Voice profiles stay subject to consent rules. M |
@@ -73,7 +73,11 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 3. **S1 + S2** (chords and sections) as one analysis feature; it also improves 011.
 4. Then S3–S8 by owner preference; Could items as filler.
 
+## Decisions
+
+- 2026-11-16: no Dutch UI (W7).
+- 2026-11-16: M1 uses SoundTouch (LGPL-2.1), not Rubber Band (GPL), so StemStudio stays MIT. Any change to SoundTouch itself stays LGPL and is published with its source; the licence goes into THIRD-PARTY-LICENSES.
+
 ## Open questions for the owner
 
-- Is a GPL-licensed time-stretch library (Rubber Band) acceptable, or only LGPL/MIT (SoundTouch, own code)? This decides the approach for M1.
 - Which instrument matters most for you? That decides the order of S1, S4 and C5.
