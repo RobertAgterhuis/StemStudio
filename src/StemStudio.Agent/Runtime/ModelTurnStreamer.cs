@@ -27,11 +27,11 @@ internal sealed class ModelTurnStreamer(RunEvents events, TimeProvider time)
         }
         catch (HttpRequestException exception)
         {
-            throw new RunStopException(AgentFailureCodes.BackendUnavailable, "The language model could not be reached: " + exception.Message);
+            throw new RunStopException(AgentFailureCodes.BackendUnavailable, "The language model could not be reached.", exception);
         }
         catch (InvalidOperationException exception)
         {
-            throw new RunStopException(AgentFailureCodes.Internal, "The language model failed: " + exception.Message);
+            throw new RunStopException(AgentFailureCodes.Internal, "The language model did not return an answer.", exception);
         }
     }
 

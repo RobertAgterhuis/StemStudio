@@ -68,6 +68,9 @@ internal sealed class RunStopException : Exception
     public RunStopException(string message, Exception innerException)
         : base(message, innerException) => Code = AgentFailureCodes.Internal;
 
+    public RunStopException(string code, string message, Exception innerException)
+        : base(message, innerException) => Code = code;
+
     /// <summary>Failure code (AgentFailureCodes).</summary>
     public string Code { get; }
 }

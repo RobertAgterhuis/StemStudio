@@ -41,29 +41,52 @@ public sealed class AgentRunner
             return;
         }
 
+        var outcome = RunOutcome.Internal;
         try
         {
             await SaveAsync(state, state.Run with { Status = AgentRunStatusDto.Running }, cancellationToken);
-            await LoopAsync(state, cancellationToken);
+            outcome = await LoopAsync(state, cancellationToken);
         }
         catch (RunStopException stop)
         {
-            await FailAsync(state, stop, cancellationToken);
+            LogCause(state, stop.InnerException);
+            outcome = RunOutcome.Fail(stop.Code, stop.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            outcome = RunOutcome.Cancelled;
+        }
+        catch (Exception exception)
+        {
+            LogCause(state, exception);
+            outcome = RunOutcome.Internal;
+        }
+        finally
+        {
+            await EndAsync(state, outcome);
         }
     }
 
-    private async Task LoopAsync(RunState state, CancellationToken cancellationToken)
+    private async Task<RunOutcome> LoopAsync(RunState state, CancellationToken cancellationToken)
     {
         while (true)
         {
             var calls = await TurnAsync(state, cancellationToken);
             if (calls.Count == 0)
             {
-                await CompleteAsync(state, cancellationToken);
-                return;
+                var message = await RunLoader.AppendAnswerAsync(_services, state, cancellationToken);
+                return RunOutcome.Completed(message.Id);
             }
 
             await ExecuteCallsAsync(state, calls, cancellationToken);
+        }
+    }
+
+    private void LogCause(RunState state, Exception? exception)
+    {
+        if (exception is not null)
+        {
+            RunLog.RunFailed(_services.Logger, state.RunId, exception);
         }
     }
 
@@ -143,24 +166,25 @@ public sealed class AgentRunner
         state.Transcript.Add(new ChatMessage(ChatRole.Tool, results));
     }
 
-    private async Task CompleteAsync(RunState state, CancellationToken cancellationToken)
+    /// <summary>Records the end exactly once, even when the stores fail (each part is attempted independently).</summary>
+    private async Task EndAsync(RunState state, RunOutcome outcome)
     {
-        var message = await RunLoader.AppendAnswerAsync(_services, state, cancellationToken);
-        await EndAsync(state, state.Run with { Status = AgentRunStatusDto.Completed }, cancellationToken);
-        await _events.PublishAsync(state.RunId, AgentEventTypes.RunCompleted, new RunCompletedEventDto { RunId = state.RunId, MessageId = message.Id }, cancellationToken);
+        var ended = outcome.Apply(state.Run, _services.Time.GetUtcNow());
+        await GuardAsync(state, () => SaveAsync(state, ended, CancellationToken.None));
+        await GuardAsync(state, () => RunLoader.ReleaseConversationAsync(_services, state, CancellationToken.None));
+        await GuardAsync(state, () => _events.PublishAsync(state.RunId, outcome.EventType, outcome.Payload(state.RunId), CancellationToken.None));
     }
 
-    private async Task FailAsync(RunState state, RunStopException stop, CancellationToken cancellationToken)
+    private async Task GuardAsync(RunState state, Func<Task> action)
     {
-        var message = stop.Message.Length > AgentContractLimits.ErrorMaxLength ? stop.Message[..AgentContractLimits.ErrorMaxLength] : stop.Message;
-        await EndAsync(state, state.Run with { Status = AgentRunStatusDto.Failed, FailureCode = stop.Code, FailureMessage = message }, cancellationToken);
-        await _events.PublishAsync(state.RunId, AgentEventTypes.RunFailed, new RunFailureDto { Code = stop.Code, Message = message }, cancellationToken);
-    }
-
-    private async Task EndAsync(RunState state, AgentRun run, CancellationToken cancellationToken)
-    {
-        await SaveAsync(state, run with { EndedAt = _services.Time.GetUtcNow() }, cancellationToken);
-        await RunLoader.ReleaseConversationAsync(_services, state, cancellationToken);
+        try
+        {
+            await action();
+        }
+        catch (Exception exception)
+        {
+            RunLog.EndFailed(_services.Logger, state.RunId, exception);
+        }
     }
 
     private async Task SaveAsync(RunState state, AgentRun run, CancellationToken cancellationToken)

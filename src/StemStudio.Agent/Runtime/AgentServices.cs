@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Tools;
 
@@ -35,4 +37,7 @@ public sealed record AgentServices
 
     /// <summary>Clock (timeouts, expiry, job polling).</summary>
     public TimeProvider Time { get; init; } = TimeProvider.System;
+
+    /// <summary>Server-side log; exception details go only here, never to the run, the events or the model.</summary>
+    public ILogger Logger { get; init; } = NullLogger.Instance;
 }

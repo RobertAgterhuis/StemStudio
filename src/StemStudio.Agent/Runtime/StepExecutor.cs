@@ -86,18 +86,24 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
 
     private async Task<ProjectedResult> RunAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken)
     {
+        ToolResult result;
         try
         {
-            var result = await InvokeAsync(state, step, prepared, cancellationToken);
-            return await SucceedAsync(state, step, prepared, result, cancellationToken);
+            result = await InvokeAsync(state, step, prepared, cancellationToken);
         }
-        catch (AgentActionException exception)
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            var failed = step with { Status = AgentStepStatusDto.Failed, Error = Cap(exception.Message) };
-            await FinishAsync(failed, null, cancellationToken);
-            await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Failed, cancellationToken);
-            return ResultProjector.Error(exception.Message);
+            return await FailStepAsync(state, step, StepFailure.Reason(exception, services.Logger, state.RunId, step.Tool), cancellationToken);
         }
+
+        return await SucceedAsync(state, step, prepared, result, cancellationToken);
+    }
+
+    private async Task<ProjectedResult> FailStepAsync(RunState state, RunStep step, string reason, CancellationToken cancellationToken)
+    {
+        await FinishAsync(step with { Status = AgentStepStatusDto.Failed, Error = Cap(reason) }, null, cancellationToken);
+        await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Failed, cancellationToken);
+        return ResultProjector.Error(reason);
     }
 
     private Task<ToolResult> InvokeAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken) => prepared.Tool!.Kind switch
@@ -188,5 +194,28 @@ internal static class PageTransitions
             "navigate" when arguments.TryGetProperty("page", out var page) && page.ValueKind == JsonValueKind.String => page.GetString()!,
             _ => state.Page,
         };
+    }
+}
+
+/// <summary>Readable, fixed reasons for failed steps; raw exception texts are only logged (never shown to the model).</summary>
+internal static class StepFailure
+{
+    /// <summary>Reason for an unexpected error.</summary>
+    public const string Internal = "The step failed because of an internal error.";
+
+    /// <summary>The reason shown for an exception of a handler or a UI result.</summary>
+    public static string Reason(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool) => exception switch
+    {
+        AgentActionException action => action.Message,
+        JsonException => "The page returned an invalid result.",
+        HttpRequestException => "StemStudio could not be reached.",
+        TimeoutException or OperationCanceledException => "The step timed out.",
+        _ => Logged(exception, logger, runId, tool),
+    };
+
+    private static string Logged(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool)
+    {
+        RunLog.StepFailed(logger, runId, tool, exception);
+        return Internal;
     }
 }
