@@ -46,6 +46,10 @@ metronome so you can mute the guitar and play it yourself.
   drums and loop the chorus", "importeer deze link en splits verder") and a local language model
   (Ollama) plans and carries it out with StemStudio's own tools; heavy and destructive steps ask
   for your confirmation first.
+- **Practice tempo** (feature 012): slow the whole song down to 50 % or speed it up to 120 %
+  without changing its key, transpose it by up to 12 semitones without changing its speed, a
+  speed trainer that loops A-B and gets faster every few passes, and a one- or two-bar count-in.
+  Saved with the mix; exports keep the original speed and key.
 
 ### Online lookups (feature 005, 006)
 
@@ -105,6 +109,18 @@ Measured on an RTX 5070 Ti: a 30 s restyle in about 16 s, a 45 s song in about 5
 file tags (`AI_GENERATED`, `AI_VOICE`). Styles describe music, never artists: imitation phrases
 and artist names are refused. A voice profile needs your own recording (10-60 s) and a signed
 consent statement; library audio is refused as a voice sample. Results are for personal use.
+
+### Practice tempo (feature 012)
+
+The **Practice tempo** panel in the mixer changes the speed (50-120 %, keys `-` / `=`) and the key
+(-12..+12 semitones, keys `,` / `.`) of the whole mix; every stem stays in sync and the click,
+the karaoke ball and the position follow the stretched music. **Original speed and key** (`R`)
+goes back. At Advanced level the **speed trainer** (`T`) loops the A-B part from a start speed up
+to a target in steps, and the **count-in** (`C`) gives one or two bars of clicks before playing,
+optionally before every loop pass. Time stretching uses SoundTouch 2.4.1 (LGPL-2.1) in a
+separate, replaceable `soundtouch.wasm`; the web image builds it offline from a pinned source
+(`scripts/build-soundtouch.{sh,ps1}` for the non-Docker path) and serves the licence and complete
+source at `/third-party/soundtouch/index.html`.
 
 ### AI composer agent (feature 011, optional)
 
@@ -316,6 +332,10 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
   leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
   4-minute song (first use downloads ~1.9 GB of models; Docker needs >= 20 GB memory).
+- **Practice tempo** is a time stretch, not a re-recording: below 70 % attacks get smeary and
+  beyond 7 semitones voices sound unnatural (no formant correction); while it is engaged the
+  sound is about 0.07-0.15 s behind the meters. The speed trainer counts every pass, it cannot
+  hear whether you played cleanly.
 
 ## Licences
 
@@ -333,4 +353,5 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 
 StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components
-pulled in by spotDL, Demucs and librosa.
+pulled in by spotDL, Demucs and librosa, and SoundTouch (LGPL-2.1, feature 012), shipped as a
+separate, replaceable WebAssembly module with its complete source.
