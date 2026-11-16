@@ -78,8 +78,11 @@ export class ClaudeKeySection extends TestIdPage {
     await expect.poll(() => this.fieldIsEmptyOrHidden(), 'field emptied after the save attempt').toBe(true);
   }
 
+  // One snapshot of every matching field (none when hidden): `inputValue()` would wait for a field
+  // that was removed between a count and the read (seen in Firefox after the save re-rendered it).
   private async fieldIsEmptyOrHidden(): Promise<boolean> {
-    return (await this.input.count()) === 0 || (await this.input.inputValue()) === '';
+    const values = await this.input.evaluateAll((fields) => fields.map((field) => (field as HTMLInputElement).value));
+    return values.every((value) => value === '');
   }
 
   /** Presses "Replace key" and saves `key` through the field that opens. */

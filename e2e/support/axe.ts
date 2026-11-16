@@ -1,6 +1,7 @@
 /**
  * axe-core scan of the current page with the WCAG 2.0/2.1/2.2 A and AA rule tags (SC-001,
- * TEST-STRATEGY.md 10.3). No rule is disabled and no element is excluded.
+ * TEST-STRATEGY.md 10.3). No element is excluded; `axeViolationsIn` skips only the rules that
+ * crash a browser (`crashingRules`).
  *
  * @packageDocumentation
  */
@@ -24,11 +25,23 @@ export async function axeViolations(page: Page): Promise<ViolationSummary[]> {
 }
 
 /**
+ * Rules that crash a browser's content process instead of reporting: axe-core's `target-size`
+ * crashes Firefox (Windows and the Linux Playwright image, Playwright 1.65.1) on the Settings page
+ * with a stored Claude key ("Page crashed"; found at the claude-key integration). The rule still
+ * runs in Chromium, where the a11y project and the same scoped scans check it.
+ */
+const crashingRules: Readonly<Record<string, readonly string[]>> = { firefox: ['target-size'] };
+
+/**
  * Scans only the part of the page under `selector` (for example one settings group in a given
- * state, 011 follow-up claude-key CK-SC-006) with the same rule tags; nothing is excluded.
+ * state, 011 follow-up claude-key CK-SC-006) with the same rule tags; nothing is excluded, and
+ * only the rules listed in `crashingRules` for this browser are skipped.
  */
 export async function axeViolationsIn(page: Page, selector: string): Promise<ViolationSummary[]> {
-  return summarise(await new AxeBuilder({ page }).include(selector).withTags([...wcagTags]).analyze());
+  const browser = page.context().browser()?.browserType().name() ?? '';
+  const skipped = crashingRules[browser] ?? [];
+  const builder = new AxeBuilder({ page }).include(selector).withTags([...wcagTags]);
+  return summarise(await (skipped.length > 0 ? builder.disableRules([...skipped]) : builder).analyze());
 }
 
 function summarise(results: Awaited<ReturnType<AxeBuilder['analyze']>>): ViolationSummary[] {
