@@ -42,6 +42,11 @@ public sealed class RunnerHarness
 
     public InMemoryRunStore Runs { get; } = new();
 
+    /// <summary>The run store the runner uses (default: <see cref="Runs"/>).</summary>
+    public IRunStore? RunStore { get; set; }
+
+    public Microsoft.Extensions.Logging.ILogger? Logger { get; init; }
+
     public InMemoryConversationStore Conversations { get; } = new();
 
     public InMemorySettingsStore Settings { get; } = new(AgentSettings.Defaults(AgentBackendDto.Fake, Start));
@@ -68,7 +73,7 @@ public sealed class RunnerHarness
 
     public AgentServices Services() => new()
     {
-        Runs = Runs,
+        Runs = RunStore ?? Runs,
         Conversations = Conversations,
         Settings = Settings,
         Events = Events,
@@ -78,6 +83,7 @@ public sealed class RunnerHarness
         Chat = Session,
         Undo = Undo,
         Time = Time,
+        Logger = Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
     };
 
     public AgentRunner Runner() => new(Services());

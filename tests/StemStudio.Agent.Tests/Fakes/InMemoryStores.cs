@@ -67,8 +67,11 @@ public sealed class InMemoryConversationStore : IConversationStore
     public Task<IReadOnlyList<Conversation>> ListAsync(int limit, DateTimeOffset? before, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Conversation>>([.. _conversations.Values.Take(limit)]);
 
+    public int Updates { get; private set; }
+
     public Task UpdateAsync(Conversation conversation, CancellationToken cancellationToken)
     {
+        Updates++;
         _conversations[conversation.Id] = conversation;
         return Task.CompletedTask;
     }
