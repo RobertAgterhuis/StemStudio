@@ -93,9 +93,10 @@ public sealed class ProvenanceAndBindingTests
         };
         var target = Guid.NewGuid().ToString();
 
-        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy }, target).ShouldBe(new PlanHeavyGrant(target));
-        ApprovalBinding.Grant(once, target).ShouldBeNull();
-        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy, Status = ApprovalStatusDto.Rejected }, target).ShouldBeNull();
+        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy }, "restyle_track", target).ShouldBe(new PlanHeavyGrant("restyle_track", target));
+        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy }, "restyle_track", null).ShouldBeNull();
+        ApprovalBinding.Grant(once, "restyle_track", target).ShouldBeNull();
+        ApprovalBinding.Grant(once with { Scope = ApprovalScopeDto.PlanHeavy, Status = ApprovalStatusDto.Rejected }, "restyle_track", target).ShouldBeNull();
     }
 
     [Fact]

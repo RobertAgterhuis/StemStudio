@@ -74,7 +74,7 @@ public sealed class ToolPolicyTests
             Tainted = tainted,
             UserMessages = [$"Importeer {Url} graag"],
             Plan = [Item("tool_x")],
-            PlanGrants = planCovered ? [new PlanHeavyGrant(TrackA)] : [],
+            PlanGrants = planCovered ? [new PlanHeavyGrant("tool_x", TrackA)] : [],
         };
 
         var decision = ToolPolicy.Decide(input);
@@ -124,17 +124,77 @@ public sealed class ToolPolicyTests
         ToolPolicy.Decide(input).Decision.ShouldBe(StepDecisionDto.Auto);
     }
 
+    private static PolicyInput HeavyCall(object arguments) => new()
+    {
+        Tool = Tool(ToolRiskDto.Heavy, false),
+        Arguments = Json(arguments),
+        Tainted = false,
+        UserMessages = [],
+        Plan = [Item("tool_x"), Item("other_heavy")],
+        PlanGrants = [new PlanHeavyGrant("tool_x", TrackA)],
+    };
+
+    [Fact]
+    public void PlanScope_CoversTheSameToolAndTarget()
+    {
+        ToolPolicy.Decide(HeavyCall(new { trackId = TrackA })).Decision.ShouldBe(StepDecisionDto.Auto);
+    }
+
     [Fact]
     public void PlanScope_CoversOnlyTheSameTargetAndAPlannedTool()
     {
-        var heavy = Tool(ToolRiskDto.Heavy, false);
-        var otherTarget = new PolicyInput { Tool = heavy, Arguments = Json(new { trackId = TrackB }), Tainted = false, UserMessages = [], Plan = [Item("tool_x")], PlanGrants = [new PlanHeavyGrant(TrackA)] };
-        var notPlanned = otherTarget with { Arguments = Json(new { trackId = TrackA }), Plan = [Item("other_tool")] };
-        var noTarget = otherTarget with { Arguments = Json(new { }), PlanGrants = [new PlanHeavyGrant(null)] };
+        var otherTarget = HeavyCall(new { trackId = TrackB });
+        var notPlanned = HeavyCall(new { trackId = TrackA }) with { Plan = [Item("other_tool")] };
 
         ToolPolicy.Decide(otherTarget).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
         ToolPolicy.Decide(notPlanned).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
-        ToolPolicy.Decide(noTarget).Decision.ShouldBe(StepDecisionDto.Auto);
+    }
+
+    [Fact]
+    public void PlanScope_IsBoundToTheApprovedTool_NotAnyPlannedHeavyTool()
+    {
+        var input = HeavyCall(new { trackId = TrackA }) with { Tool = Tool(ToolRiskDto.Heavy, false) with { Name = "other_heavy" } };
+
+        ToolPolicy.Decide(input).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+    }
+
+    [Theory]
+    [MemberData(nameof(SmuggledTargets))]
+    public void PlanScope_RejectsATargetThatIsNotExactlyOneString(string argumentsJson)
+    {
+        var input = HeavyCall(new { }) with { Arguments = JsonDocument.Parse(argumentsJson).RootElement.Clone() };
+
+        ToolPolicy.Decide(input).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+    }
+
+    public static TheoryData<string> SmuggledTargets() => new()
+    {
+        $$"""{"trackId":["{{TrackA}}","{{TrackB}}"]}""",
+        $$"""{"trackId":["{{TrackA}}"]}""",
+        """{"trackId":42}""",
+        """{"trackId":null}""",
+        """{"trackId":{"id":"x"}}""",
+        """{}""",
+    };
+
+    [Fact]
+    public void PlanScope_NeverCoversTargetlessHeavySteps()
+    {
+        var targetless = Tool(ToolRiskDto.Heavy, false) with { TargetArgument = null };
+        var nullGrant = HeavyCall(new { }) with { Tool = targetless, PlanGrants = [new PlanHeavyGrant("tool_x", null)] };
+        var nullTargetArgument = HeavyCall(new { }) with { PlanGrants = [new PlanHeavyGrant("tool_x", null)] };
+
+        ToolPolicy.Decide(nullGrant).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+        ToolPolicy.Decide(nullTargetArgument).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
+    }
+
+    [Fact]
+    public void PlanScope_InjectedCallOnAnotherTrack_StillNeedsApproval()
+    {
+        // An adversarial model that saw an approved plan for track A tries to restyle track B under the same scope.
+        var injected = HeavyCall(new { trackId = TrackB }) with { PlanGrants = [new PlanHeavyGrant("tool_x", TrackA), new PlanHeavyGrant("other_heavy", TrackA)] };
+
+        ToolPolicy.Decide(injected).Decision.ShouldBe(StepDecisionDto.ApprovalRequired);
     }
 
     [Fact]
@@ -147,7 +207,7 @@ public sealed class ToolPolicyTests
             Tainted = false,
             UserMessages = [],
             Plan = [Item("tool_x")],
-            PlanGrants = [new PlanHeavyGrant(TrackA)],
+            PlanGrants = [new PlanHeavyGrant("tool_x", TrackA)],
         };
         var compensation = destructive with { Tool = Tool(ToolRiskDto.Heavy, false), IsCompensation = true };
 
