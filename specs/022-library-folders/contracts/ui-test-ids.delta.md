@@ -9,7 +9,7 @@ against them.
 
 ## Changelog line (for the merged document)
 
-> 1.22.0 (minor, feature 022) - library folders by artist, album and song with art, breadcrumb,
+> 1.22.0 (minor, feature 022; minor with the listed test migration confirmed by the CTO 2026-11-16) - library folders by artist, album and song with art, breadcrumb,
 > grid/list, sort, live search with grouped results and highlights, library info dialog, "All
 > items" view, folder path on items and in the save confirmation. No id is renamed or removed. Two
 > documented behaviour changes on `/library` (section "Changed behaviour"); all other ids are
@@ -32,9 +32,10 @@ level assertion updated likewise.
 
 ## Level visibility (R7-R9 apply)
 
-- **Beginner** renders every id below except: `library-view-all`, `library-sort`,
-  `library-search-scope`, `library-info-edit`, `asset-library-info-<assetId>` and the dialog
-  (`library-info-*`).
+- **Beginner** renders every id below except: `library-view-all`, `library-view-folders`,
+  `library-sort` and `library-search-scope`. The library info ids (`library-info-edit`,
+  `asset-library-info-<assetId>`, `library-info-*`) render at **every level** (owner decision
+  2026-11-16).
 - **Advanced** renders every id below (the level of the existing suite).
 - **Expert** = Advanced (no Expert-only ids).
 
@@ -63,14 +64,14 @@ level assertion updated likewise.
 | Song folder | `song-open-track`, `song-open-mixer` | links to the track page and its mixer; exist only while the track exists (first track when several) | shown |
 | Song folder | `asset-row-<assetId>` and its 1.5.0/1.7.0 ids | the item rows (007 component, unchanged actions) | shown |
 | Items (song folder, search, All items) | `asset-path-<assetId>` | path "Artist > Album > Song" as links (`asset-path-<assetId>` contains three links) | shown |
-| Items | `asset-library-info-<assetId>` | opens the library info dialog for this item | not rendered |
-| Song folder | `library-info-edit` | opens the library info dialog for the song's track (first track when several) | not rendered |
-| Library info dialog | `library-info-dialog` | the dialog; attribute `data-scope` = `track`/`item` | not rendered |
-| Library info dialog | `library-info-artist`, `library-info-album`, `library-info-song` | text inputs (1..200) | not rendered |
-| Library info dialog | `library-info-auto-artist`, `library-info-auto-album`, `library-info-auto-song` | "Automatic" checkboxes; label shows the automatic name and its source | not rendered |
-| Library info dialog | `library-info-save`, `library-info-cancel`, `library-info-reset` | buttons ("Reset" = all automatic) | not rendered |
-| Library info dialog | `library-info-error` | readable reason (400 field messages, 404, 409) | not rendered |
-| Library info dialog | `library-info-lookup` | link "Look up band info again" (track scope; opens the 005 correction on the track page) | not rendered |
+| Items | `asset-library-info-<assetId>` | opens the library info dialog for this item | shown |
+| Song folder | `library-info-edit` | opens the library info dialog for the song's track (first track when several) | shown |
+| Library info dialog | `library-info-dialog` | the dialog; attribute `data-scope` = `track`/`item` | shown |
+| Library info dialog | `library-info-artist`, `library-info-album`, `library-info-song` | text inputs (1..200) | shown |
+| Library info dialog | `library-info-auto-artist`, `library-info-auto-album`, `library-info-auto-song` | "Automatic" checkboxes; label shows the automatic name and its source | shown |
+| Library info dialog | `library-info-save`, `library-info-cancel`, `library-info-reset` | buttons ("Reset" = all automatic) | shown |
+| Library info dialog | `library-info-error` | readable reason (400 field messages, 404, 409) | shown |
+| Library info dialog | `library-info-lookup` | link "Look up band info again" (track scope; opens the 005 correction on the track page) | shown |
 | Library | `library-search` | (1.5.0 id, changed) live search input, every level | shown |
 | Library | `library-search-clear` | clear button; exists only while the box has text | shown |
 | Library | `library-search-status` | polite live region with the result count ("12 results") | shown |
@@ -90,7 +91,7 @@ level assertion updated likewise.
 `library-folders` (on `library-folder-title`: how folders are made, where names come from, unknown
 folders, pictures in-app only), `library-search` (on `library-search`: what the search looks at,
 words, accents, "Only in this folder"), `library-info` (on `library-info-dialog`: automatic vs own
-names, track vs item, band info lookup; Advanced), `library-art` (on `library-folder-art`: which
+names, track vs item, band info lookup; every level), `library-art` (on `library-folder-art`: which
 picture a folder shows, how to change a song picture).
 
 ## Keyboard

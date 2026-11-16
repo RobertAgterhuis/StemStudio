@@ -17,8 +17,8 @@ with `STEMSTUDIO_FAKE_ONLINE=found` or `not-found` for band info).
 4. Type in the search box: results appear while you type (artists, albums, songs, items), matched
    parts highlighted. Try an instrument ("snare", "lead vocals", "strings"), a name without accents
    ("motorhead"), two words ("metallica bass"). Press Escape to return to the folder you were in.
-5. Advanced level: **Edit library info** on a song folder (or on one item) to change artist, album
-   or song name, or tick **Automatic**; **All items** shows the 007 flat list with filters; sort
+5. Any level: **Edit library info** on a song folder (or on one item) to change artist, album
+   or song name, or tick **Automatic**. Advanced level: **All items** shows the 007 flat list with filters; sort
    folders by name, year, recently added, size or items; **Only in this folder** limits the search.
 6. Press `/` on a library page to jump to the search box.
 
@@ -56,8 +56,8 @@ Every `Asset` in any response now has `placement` (`artist`/`album`/`song` with 
       later band info match moves automatic items only.
 - [ ] Deleting the last item removes the song/album/artist folders; a stale deep link shows
       `library-folder-missing`.
-- [ ] Beginner: folders, art, breadcrumb, search and item actions only; Advanced adds sort, All
-      items, scope and library info (R7-R9).
+- [ ] Beginner: folders, art, breadcrumb, search, item actions and library info; Advanced adds
+      sort, All items and scope (R7-R9).
 - [ ] axe: no serious/critical findings on root, artist, album, song, search results and dialog in
       light and dark themes, comfortable and compact (SC-008); screen reader smoke test (NVDA):
       tile names, breadcrumb landmark, result count announced once.

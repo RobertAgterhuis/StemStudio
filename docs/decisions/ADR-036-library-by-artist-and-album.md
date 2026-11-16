@@ -1,6 +1,6 @@
 # ADR-036: Library by artist and album (derived folders, folder art, live search)
 
-- **Status**: Proposed (architect, 2026-11-16; CTO to accept; number may be renumbered at merge)
+- **Status**: Accepted (CTO, 2026-11-16; number may be renumbered at merge)
 - **Date**: 2026-11-16
 - **Decider**: Architect (autonomous mode), to be confirmed by the CTO
 - **Feature**: [specs/022-library-folders](../../specs/022-library-folders/spec.md)
@@ -75,7 +75,9 @@ generator, audio engine, backup archive unchanged.
 - Negative: two bands with the same name share a folder (fix via library info); no folder-own data
   (custom folder pictures, notes) without a later stored-folder design; items of a deleted track
   lose its picture (005 deletes pictures with the track).
-- The UI test-id change on `/library` needs a small, listed migration of existing tests (accepted as
-  a minor because the suite is internal; CTO to confirm).
+- The UI test-id change on `/library` needs a small, listed migration of existing tests (two qa
+  files, one bUnit test); the CTO confirmed 1.22.0 as a minor on 2026-11-16.
+- Owner decisions 2026-11-16: "Edit library info" is available at every journey level including
+  Beginner; the track list (`/tracks`) stays ungrouped; no folder archive download.
 - Follow-ups (not planned): licensed artist photos as first choice of artist art; renaming a whole
-  folder in one action; downloading a folder as an archive.
+  folder in one action. Downloading a folder as an archive is out of scope (owner, 2026-11-16).

@@ -116,7 +116,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T049 [US2] [frontend] `FolderGrid`, `FolderTile`, `FolderArt` components; 8 art tone tokens in the design system (light/dark, letter contrast >= 4.5:1), tile and mosaic styles, compact density (green)
 - [ ] T050 [P] [US2] [frontend] Tests (red) `SongFolder`: 007 `AssetRow`s with play/download/rename/delete/retry unchanged, `asset-path-<id>`, `song-open-track`/`song-open-mixer` only while the track exists, items in instrument order (FR-020)
 - [ ] T051 [US2] [frontend] `SongFolder`, `AssetPath` (also in "All items" rows) (green)
-- [ ] T052 [P] [US2] [frontend] Tests (red) level visibility R7-R9 for every 022 id (Beginner hides `library-sort`, `library-view-all`, scope, library info), Advanced sort select per level (FR-018, FR-035)
+- [ ] T052 [P] [US2] [frontend] Tests (red) level visibility R7-R9 for every 022 id (Beginner hides `library-sort`, `library-view-all`, scope; library info ids render at every level, owner decision 2026-11-16), Advanced sort select per level (FR-018, FR-035)
 - [ ] T053 [US2] [frontend] Level rules and sort select (green)
 - [ ] T054 [P] [US2] [qa] E2E `e2e/tests/library-browse.spec.ts` + `e2e/a11y/library.spec.ts` + visual snapshots: art kinds (cover, mosaic 2/3/4, placeholder, broken image), breadcrumb and keyboard path, grid/list, sorts at Advanced, Beginner path, axe in both themes and densities (US2 scenarios 1-9; SC-005, SC-008)
 
@@ -147,7 +147,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
 - [ ] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
-- [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, Advanced only (FR-031..FR-033)
+- [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
 - [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
 - [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
 

@@ -28,7 +28,8 @@ items), 200 ms debounce; `/library` opens folders, the 007 flat list stays at `/
 - `specs/022-library-folders/{spec,plan,research,data-model,quickstart,tasks}.md`
 - `specs/022-library-folders/checklists/requirements.md`
 - `specs/022-library-folders/contracts/{DELTA.md,backend-api.library-folders.openapi.yaml,redocly.yaml,ui-test-ids.delta.md,tool-catalogue.delta.md}`
-- `docs/decisions/ADR-036-library-by-artist-and-album.md`
+- `docs/decisions/ADR-036-library-by-artist-and-album.md` (Accepted)
+- `docs/decisions/CTO-DECISIONS-2026-11-15.md` (four 022 rows)
 - `docs/MoSCoW.md`, `docs/ROADMAP.md`
 - `docs/handoffs/architect-022-spec.md`
 
@@ -59,15 +60,23 @@ integration wave (T093).
 
 ## Open issues / requests
 
-1. **CTO**: accept ADR-036 and the UI-test-id treatment: `/library` defaults to the folder view and
-   `library-search` becomes visible at Beginner; handled as a 1.22.0 minor with a three-file test
-   migration (T022, frontend test in T046/T052) instead of a major bump. Confirm or ask for a major.
-2. **CTO**: version allocation assumes the claude-key follow-up keeps 1.21.0 (its row lives on branch
-   `011-claude-key-spec`, not yet on `main`; constitution 1.4.0 also lives there). ROADMAP merge of
-   the two branches will touch neighbouring lines.
-3. **CTO**: ADR number 036 assumes ADR-035 (claude-key) - renumber at merge if needed.
-4. Owner questions (genuine product choices, defaults already designed): see the final report.
+Resolved 2026-11-16 (recorded in spec, research, quickstart, checklist, tasks T052/T074, UI-id delta,
+ADR-036 and CTO-DECISIONS):
+
+- Owner Q1: `/tracks` stays ungrouped (out of scope).
+- Owner Q2: "Edit library info" at every level including Beginner; the library info ids render at
+  every level; help topic `library-info` at every level.
+- Owner Q3: no folder archive download (out of scope).
+- CTO: ui-test-ids 1.22.0 stays a minor with the migration of the two qa files and one bUnit test;
+  ADR-036 Accepted.
+
+Still open for the CTO:
+
+1. Version allocation assumes the claude-key follow-up keeps 1.21.0 (its row and constitution 1.4.0
+   live on branch `011-claude-key-spec`); the ROADMAP merge of the two branches touches neighbouring
+   lines.
+2. ADR number 036 assumes ADR-035 (claude-key); renumber at merge if needed.
 
 ## Next owner
 
-CTO (review, owner questions), then architect for Phase 0 part 2 (T002-T005) when 022 is scheduled.
+Architect for Phase 0 part 2 (T002-T005) when 022 is scheduled.

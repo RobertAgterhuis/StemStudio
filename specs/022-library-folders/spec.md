@@ -76,8 +76,12 @@ decisions go to the owner). Binding design: [ADR-036](../../docs/decisions/ADR-0
   0.4 s of the last key press.
 - Q: Does the old flat list disappear? -> A: no; it stays as "All items" (Advanced) with its filters.
 - Q: Beginner path? -> A: Beginner sees folders with art, the breadcrumb, the search box and the
-  item actions (play, download, rename, delete). Sorting, the flat list, "only in this folder" and
-  editing library info are Advanced.
+  item actions (play, download, rename, delete) and "Edit library info" (owner decision
+  2026-11-16: available at every level). Sorting, the flat list and "only in this folder" are
+  Advanced.
+- Q: Should the track list (`/tracks`) be grouped too, and can a whole folder be downloaded? -> A:
+  no (owner, 2026-11-16): `/tracks` stays ungrouped and there is no folder archive download; both
+  are out of scope.
 - Q: Is anything written to disk folders or exported? -> A: no. Downloads keep the 007 behaviour
   (one file per item, named after the item). Folder art is never part of a download.
 
@@ -413,8 +417,9 @@ instrument, open a folder, set an album (approval shown when the run is tainted)
 **Cross-cutting**
 
 - **FR-035**: Every new screen part MUST follow the 004 design system and journey levels: Beginner
-  sees folders, art, breadcrumb, search and item actions; sorting, "All items", "Only in this folder"
-  and library info are Advanced. Each new area MUST have an in-app help topic.
+  sees folders, art, breadcrumb, search, item actions and library info (owner decision 2026-11-16:
+  "Edit library info" at every level); sorting, "All items" and "Only in this folder" are
+  Advanced. Each new area MUST have an in-app help topic.
 - **FR-036**: Every instrument family MUST be served equally by the search (FR-024 has one entry per
   family) and the acceptance tests MUST contain at least one search case per family.
 - **FR-037**: No folder or file MUST be created on the user's disk outside the app's internal
@@ -461,6 +466,7 @@ instrument, open a folder, set an album (approval shown when the run is tainted)
   performance target).
 - The 013 backup copies the database, so the new data is backed up without a format change.
 - A future feature may add licensed artist photos; it would become the first choice of artist art.
-- Out of scope: writing folders to disk, downloading a whole folder as an archive, renaming a whole
+- Out of scope (owner confirmed 2026-11-16 for the track list and the folder archive): writing
+  folders to disk, downloading a whole folder as an archive, renaming a whole
   folder in one step (use library info per track), grouping the track list (`/tracks`) by artist,
   album artist / disc / track number, user-made folders or playlists (setlists are 014).

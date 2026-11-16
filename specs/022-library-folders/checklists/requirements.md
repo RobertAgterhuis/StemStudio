@@ -43,6 +43,7 @@
       no new third-party calls or artist photos (licences)
 - [x] Accessibility: tiles as single named links, breadcrumb landmark, decorative art, highlight not
       by colour alone, polite count announcement, keyboard path (FR-027, SC-008)
-- [x] Journey levels: Beginner simple path defined (FR-035)
+- [x] Journey levels: Beginner simple path defined (FR-035); "Edit library info" at every level
+      (owner decision 2026-11-16)
 - [x] Honesty: limitations documented (same-name bands, no track numbers, deleted tracks lose their
       picture)

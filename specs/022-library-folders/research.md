@@ -246,8 +246,9 @@ contain (from `ExportRecipe.channels` or the resolved plan when `null`) plus "mi
 - Grid: responsive CSS grid of square tiles (160 px), name under the art (two lines, ellipsis,
   full name in the accessible name), counts line; list: rows with a 48 px art, name, counts, size.
   Under 768 px the grid has two columns (004 bottom bar layout); 320 px works (SC 004).
-- Journey levels (004 R7-R9): Beginner - folders, art, breadcrumb, search, grid/list, item actions;
-  Advanced adds sort, "All items", "Only in this folder", "Edit library info"; Expert adds nothing.
+- Journey levels (004 R7-R9): Beginner - folders, art, breadcrumb, search, grid/list, item actions
+  and "Edit library info" (owner decision 2026-11-16: every level); Advanced adds sort, "All items",
+  "Only in this folder"; Expert adds nothing.
 - Item rows inside song folders and search results reuse the 007 `AssetRow` component (same ids),
   so play/download/rename/delete/retry and status polling are unchanged.
 - Shortcut: `/` focuses the library search (scope `library`); registered in 014's shortcut
