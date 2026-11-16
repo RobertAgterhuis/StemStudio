@@ -29,10 +29,25 @@ plan-scoped approval never auto-covers a tainted heavy step.
 | T014 / T015 | e260e63 | 5ff35d3 |
 | T016 / T017 | 153031a | 8e73b7a |
 
+### Security fix after review (coordinator finding on `ToolPolicy.CoveredByPlan`)
+
+A plan-scoped (`plan_heavy`) approval covered more than was approved: (1) only the first string of an array target
+was compared, so a grant for `A` covered `["A","B"]`, and non-string targets yielded null; (2) a null grant target
+matched a null call target, so a target-less grant covered any later target-less heavy step; (3) the grant was not
+bound to the tool, so it covered any other heavy tool in the plan. Fixed: `PlanHeavyGrant(ToolName, TargetId)`,
+`ApprovalBinding.Grant(approval, toolName, targetId)` returns null without a target, and coverage requires the same
+tool plus a target argument that is exactly one JSON string equal to the grant's non-null target. Decision (data-model
+4.3, plan scope is per target): **target-less heavy steps are never plan-covered**.
+
+| Pair | Red | Green |
+|---|---|---|
+| plan-scope bypasses (array / non-string / missing / null target, null-to-null, other tool, injected other track) | 8fa4619 | 9d6da08 |
+
 ## Tests and coverage
 
-`dotnet test tests/StemStudio.Agent.Tests -p:CollectCoverage=true`: **241 passed**, 0 failed.
-`StemStudio.Agent`: **line 98.38 %, branch 90.43 %, method 94.15 %** (gate 90/90 passed). `ToolInvocation` is not yet
+`dotnet test tests/StemStudio.Agent.Tests -p:CollectCoverage=true`: **252 passed**, 0 failed (after the security fix).
+`StemStudio.Agent`: **line 98.53 %, branch 91.39 %, method 94.19 %** (gate 90/90 passed); `Policy/*` **100 % line and
+branch**. `ToolInvocation` is not yet
 exercised (providers arrive in US1).
 
 ## Quality checks
@@ -55,7 +70,9 @@ None (library internals).
 1. **architect**: `ImitationLexicon` duplicates the 009 v1 resource lists because `StemStudio.Agent` may not reference
    Domain. Preferred: link `src/StemStudio.Domain/Styles/{imitation-phrases,artist-denylist,genre-words}.v1.txt` as
    embedded resources in `StemStudio.Agent.csproj` (architect-owned) so the copy can go.
-2. **quality-gate**: the lexicon file is data (no logic); exclude it from duplication if it trips the check.
+2. **architect**: data-model 4.3 / 6 could state explicitly that a `plan_heavy` grant is bound to the approved tool and
+   its single target, and that target-less heavy steps are never plan-covered (my lane does not own data-model.md).
+3. **quality-gate**: the lexicon file is data (no logic); exclude it from duplication if it trips the check.
 
 ## Next owner
 
