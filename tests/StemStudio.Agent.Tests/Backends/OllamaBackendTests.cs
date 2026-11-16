@@ -164,12 +164,22 @@ public sealed class OllamaBackendTests
     }
 
     [Fact]
-    public async Task GpuRelease_SameModelTwice_IsUnloadedOnce_AndErrorsAreSwallowed()
+    public async Task GpuRelease_SameModelTwice_IsUnloadedOnce()
     {
-        var stub = new StubHttpHandler { Failure = new HttpRequestException("down") };
+        var stub = new StubHttpHandler().Json("POST /api/generate", "{}");
         var settings = Settings() with { OllamaFallbackModel = AgentSettings.DefaultOllamaModel };
 
         await new OllamaGpuRelease(stub.Client(), new InMemorySettingsStore(settings), _time).ReleaseAsync(Token);
+
+        stub.Requests.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GpuRelease_UnreachableOllama_IsSwallowed()
+    {
+        var stub = new StubHttpHandler { Failure = new HttpRequestException("down") };
+
+        await Should.NotThrowAsync(() => new OllamaGpuRelease(stub.Client(), new InMemorySettingsStore(Settings()), _time).ReleaseAsync(Token));
 
         stub.Requests.Count.ShouldBe(1);
     }

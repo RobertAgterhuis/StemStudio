@@ -114,7 +114,7 @@ public sealed class AgentRunner
             throw new RunStopException(AgentFailureCodes.LimitReached, $"The run reached the limit of {state.Limits.MaxModelTurns} model turns.");
         }
 
-        var turn = await _services.Chat.NextTurnAsync(new ChatTurnContext(state.Run, state.Command.Context), cancellationToken);
+        var turn = await NextTurnAsync(state, cancellationToken);
         using var limit = new TurnLimit(turn.TimeoutSeconds ?? state.Limits.TurnTimeoutSeconds, _services.Time, cancellationToken);
         await AnnounceModelAsync(state, turn, cancellationToken);
         var tools = await OfferedToolsAsync(state, cancellationToken);
@@ -122,6 +122,18 @@ public sealed class AgentRunner
         var response = await _streamer.StreamAsync(state.RunId, turn, request, limit);
         await RecordTurnAsync(state, response, cancellationToken);
         return [.. response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>()];
+    }
+
+    private async Task<ChatTurn> NextTurnAsync(RunState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _services.Chat.NextTurnAsync(new ChatTurnContext(state.Run, state.Command.Context), cancellationToken);
+        }
+        catch (BackendUnavailableException unavailable)
+        {
+            throw new RunStopException(AgentFailureCodes.BackendUnavailable, unavailable.Message, unavailable);
+        }
     }
 
     private async Task<IReadOnlyList<AgentToolDescriptor>> OfferedToolsAsync(RunState state, CancellationToken cancellationToken) =>
