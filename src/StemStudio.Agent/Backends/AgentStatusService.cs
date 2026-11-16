@@ -21,7 +21,7 @@ public sealed record BackendProbes
 
 /// <summary>
 /// <see cref="IAgentStatusService"/>: the status of the selected backend without generating text (FR-023). Ollama is probed
-/// (at most 2 s) for every backend so Settings can show it; Claude is never contacted here, only on <see cref="TestAsync"/>.
+/// (at most 2 s) for every backend so Settings can show it; Claude is never contacted here, only on <see cref="TestAsync(AgentBackendDto, ClaudeKeyTestSourceDto, CancellationToken)"/>.
 /// </summary>
 /// <param name="settings">Agent settings (the effective backend).</param>
 /// <param name="gpu">GPU activity (Ollama fallback model).</param>
@@ -62,6 +62,14 @@ public sealed class AgentStatusService(IAgentSettingsStore settings, IGpuActivit
             _ => new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = NotTestable },
         };
     }
+
+    /// <summary>Red stub (T036).</summary>
+    /// <param name="backend">Backend.</param>
+    /// <param name="claudeKeySource">Key source.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    public Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken) =>
+        throw new NotImplementedException();
 
     /// <inheritdoc />
     public IReadOnlyList<AgentToolInfoDto> ListTools(PageContextDto context) => tools.List(context);

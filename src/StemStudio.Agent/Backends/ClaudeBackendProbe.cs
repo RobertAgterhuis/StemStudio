@@ -32,6 +32,20 @@ public sealed class ClaudeBackendProbe(ClaudeChatClientFactory factory, TimeProv
         };
     }
 
+    /// <summary>Detail when the stored key is requested but none is readable.</summary>
+    public const string NoStoredKey = "";
+
+    /// <summary>Detail when the environment key is requested but none is usable.</summary>
+    public const string NoEnvironmentKey = "";
+
+    /// <summary>Red stub (T036).</summary>
+    /// <param name="settings">Agent settings.</param>
+    /// <param name="source">Key source.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    public Task<BackendTestResultDto> TestAsync(AgentSettings settings, ClaudeKeyTestSourceDto source, CancellationToken cancellationToken) =>
+        throw new NotImplementedException();
+
     /// <summary>Looks up the selected model on the user's explicit request.</summary>
     /// <param name="settings">Agent settings.</param>
     /// <param name="cancellationToken">Cancellation.</param>
