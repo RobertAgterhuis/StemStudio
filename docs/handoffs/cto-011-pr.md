@@ -68,11 +68,15 @@ Contract versions agree across DELTA.md, `backend-api.openapi.yaml` (1.10.0), `a
 
 ## Commits
 
-232 commits on `main..011-composer-agent` before this hand-off (lane merges with `--no-ff`, integration fixes test-first,
+232 commits on `main..011-composer-agent` before T081 (plus the T081-T084a commits) (lane merges with `--no-ff`, integration fixes test-first,
 T081 description tuning, docs). Author and committer of every commit: `ragterhuis@agterhuis.net`.
 
 ## Final run
 
-Filled in by the last T084a step (`pwsh scripts/test-all.ps1 -ContinueOnError`); see `docs/STATUS.md`.
+`pwsh scripts/test-all.ps1 -ContinueOnError` on `30487640` (after T081-T084a), 2026-11-16: **51/51 steps passed**,
+exit 0, including "agent coverage floor (011)", "agent-eval coverage floor (011)", "quality gate (run_all)" and
+"docs manuals up to date". Tests: Domain 752, Agent 600, AgentEval 134, Persistence 99, Web 1712, Api 1435 (all
+passed); worker, generator, engine, web-interop, quality and fixtures suites green; e2e lint, typecheck and list
+(805 tests in 45 files). `node tools/docs/check.mjs`: manuals up to date.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
