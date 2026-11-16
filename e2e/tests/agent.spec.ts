@@ -1,8 +1,8 @@
-import { freshTrack, freshTrackWithoutDetail, injectionTrack, openMixer, savedMix } from '../support/agent-flow';
+import { ensureBackendNone, freshTrack, freshTrackWithoutDetail, injectionTrack, openMixer, savedMix } from '../support/agent-flow';
 import { finalText } from '../support/agent-scripts';
 import { expect, test } from '../support/agent-test';
 import { isOn } from '../support/controls';
-import { fakeStems } from '../support/detail';
+import { fakeStems, silentDb } from '../support/detail';
 import { detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from '../support/env';
 import { oneOf } from '../support/text';
 
@@ -143,4 +143,40 @@ test('injection: a delete proposed after reading the title is held as tainted', 
   expect(after.status).toBe('completed');
   expect(after.title).toBe(track.title);
   expect(await api.listTracks()).toHaveLength(tracksBefore);
+});
+
+test('unavailable: backend none shows the reason and the rest of the app works', { tag: ['@agent', '@agent-unavailable'] }, async ({
+  api,
+  agent,
+  agentApi,
+  mixer,
+  page,
+}, testInfo) => {
+  await ensureBackendNone(agentApi);
+  const started = Date.now();
+  const status = await agentApi.status();
+  expect(Date.now() - started, 'GET /api/agent/status within 3 s (US3-1)').toBeLessThanOrEqual(3_000);
+  expect(status.ready).toBe(false);
+
+  await page.goto('/');
+  await agent.open();
+  await expect(agent.unavailable).toBeVisible({ timeout: 3_000 });
+  await expect(agent.unavailable).not.toBeEmpty();
+  await expect(agent.badge).toHaveAttribute('data-backend', 'none');
+  await expect(agent.input).toBeDisabled();
+  await expect(agent.send).toBeDisabled();
+
+  const conversationId = await agentApi.createConversation(`Unavailable ${runId()}`);
+  const refused = await agentApi.sendMessage(conversationId, 'Zoek Hero of the Day', 'import');
+  expect(refused.status()).toBe(503);
+  expect(((await refused.json()) as { type: string }).type).toMatch(/backend-unavailable$/);
+  expect(await agentApi.deleteConversation(conversationId)).toBe(204);
+
+  // SC-005: import, separation and the mixer work as before with the panel open.
+  const track = await freshTrack(api, `us3-${testInfo.project.name}`);
+  await openMixer(mixer, track.id);
+  await agent.open();
+  await expect(agent.unavailable).toBeVisible();
+  await mixer.play();
+  expect(await mixer.maxPeakOver('master', 2_000)).toBeGreaterThan(silentDb);
 });

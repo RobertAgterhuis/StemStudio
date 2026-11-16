@@ -172,7 +172,7 @@ clear unavailable state.
 - [ ] T055 [US3] [backend] Implement the status endpoint to pass T054
 - [ ] T056 [P] [US3] [frontend] Failing bUnit tests: `agent-unavailable` with reason + fix, input disabled, badge `data-backend`/`data-model`/`data-fallback`; status refresh every 10 s while the panel is open (FR-021, FR-023)
 - [ ] T057 [US3] [frontend] Implement to pass T056
-- [ ] T058 [US3] [qa] Author `agent.spec.ts` "unavailable" (backend none: panel state, rest of the app works) and ensure the default suite runs unchanged with `STEMSTUDIO_AGENT_BACKEND=none` (SC-005)
+- [x] T058 [US3] [qa] Author `agent.spec.ts` "unavailable" (backend none: panel state, rest of the app works) and ensure the default suite runs unchanged with `STEMSTUDIO_AGENT_BACKEND=none` (SC-005)
 - [ ] T059 [US3] [devops] CI e2e job: after the default fake-stack run, run `agent.spec.ts` with `STEMSTUDIO_AGENT_BACKEND=fake` and the unavailable spec with `none`; same in `scripts/test-all.*`
 
 **Checkpoint**: HO:us3.

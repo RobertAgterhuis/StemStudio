@@ -77,6 +77,21 @@ export class AgentApi {
     return okJson<ConversationDto>(await this.request.get(`/api/agent/conversations/${conversationId}`));
   }
 
+  /** `POST /api/agent/conversations`; returns the new conversation id. */
+  async createConversation(title: string): Promise<string> {
+    return (await okJson<ConversationSummaryDto>(await this.request.post('/api/agent/conversations', { data: { title } }))).conversationId;
+  }
+
+  /** `POST /api/agent/conversations/{id}/messages` (raw response: 202, 409, 422 or 503). */
+  async sendMessage(conversationId: string, text: string, page: string): Promise<APIResponse> {
+    return this.request.post(`/api/agent/conversations/${conversationId}/messages`, { data: { text, context: { page } } });
+  }
+
+  /** `DELETE /api/agent/conversations/{id}`; returns the HTTP status. */
+  async deleteConversation(conversationId: string): Promise<number> {
+    return (await this.request.delete(`/api/agent/conversations/${conversationId}`)).status();
+  }
+
   /** HTTP status of `GET <path>` (for "still exists" / "is gone" assertions). */
   async statusOf(path: string): Promise<number> {
     return (await this.request.get(path)).status();
