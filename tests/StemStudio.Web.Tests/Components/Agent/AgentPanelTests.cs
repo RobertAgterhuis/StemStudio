@@ -235,8 +235,8 @@ public sealed class AgentPanelTests : PageTestContext
             [AgentData.Message(1, MessageRoleDto.User, "Earlier command")]));
         var cut = RenderPanel();
 
-        cut.WaitForAssertion(() => Id(cut, "agent-conversation-list").QuerySelectorAll("button[data-testid^=agent-conversation-]").Length.ShouldBe(2));
-        var entries = Id(cut, "agent-conversation-list").QuerySelectorAll("button[data-testid^=agent-conversation-]");
+        cut.WaitForAssertion(() => Id(cut, "agent-conversation-list").QuerySelectorAll("button[aria-current], button[data-testid^=agent-conversation-]:not([data-testid*=rename]):not([data-testid*=delete])").Length.ShouldBe(2));
+        var entries = Id(cut, "agent-conversation-list").QuerySelectorAll("button[aria-current], button[data-testid^=agent-conversation-]:not([data-testid*=rename]):not([data-testid*=delete])");
         entries[0].TextContent.ShouldContain("Newest");
 
         Id(cut, $"agent-conversation-{AgentData.ConversationId}").Click();
