@@ -95,15 +95,15 @@ public sealed partial class LoopbackClient(HttpClient http)
         return new AgentActionException(status, CodeOf(problem.Type, status), Readable(problem, status));
     }
 
-    private static async Task<LoopbackProblem> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private static async Task<HttpValidationProblemDetails> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         try
         {
-            return await response.Content.ReadFromJsonAsync<LoopbackProblem>(Json, cancellationToken) ?? new LoopbackProblem();
+            return await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(Json, cancellationToken) ?? new HttpValidationProblemDetails();
         }
         catch (JsonException)
         {
-            return new LoopbackProblem();
+            return new HttpValidationProblemDetails();
         }
     }
 
@@ -114,14 +114,14 @@ public sealed partial class LoopbackClient(HttpClient http)
         _ => status switch { 404 => "not-found", 409 => "conflict", 422 => "validation", _ => "invalid-request" },
     };
 
-    private static string Readable(LoopbackProblem problem, int status)
+    private static string Readable(HttpValidationProblemDetails problem, int status)
     {
         var text = Url().Replace(string.Join(" ", Parts(problem)), "the address").Trim();
         text = text.Length == 0 ? $"StemStudio refused the action (HTTP {status})." : text;
         return text.Length <= AgentContractLimits.ErrorMaxLength ? text : text[..AgentContractLimits.ErrorMaxLength];
     }
 
-    private static IEnumerable<string?> Parts(LoopbackProblem problem)
+    private static IEnumerable<string?> Parts(HttpValidationProblemDetails problem)
     {
         var errors = problem.Errors?.SelectMany(pair => pair.Value.Select(message => $"{pair.Key}: {message}")) ?? [];
         return new[] { problem.Detail ?? problem.Title }.Concat(errors).Where(part => !string.IsNullOrWhiteSpace(part));
@@ -129,15 +129,4 @@ public sealed partial class LoopbackClient(HttpClient http)
 
     [GeneratedRegex(@"https?://\S+", RegexOptions.CultureInvariant)]
     private static partial Regex Url();
-
-    private sealed record LoopbackProblem
-    {
-        public string? Type { get; init; }
-
-        public string? Title { get; init; }
-
-        public string? Detail { get; init; }
-
-        public Dictionary<string, string[]>? Errors { get; init; }
-    }
 }

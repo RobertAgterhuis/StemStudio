@@ -29,7 +29,10 @@ public sealed class AgentConversationService(IConversationStore conversations, A
         await conversations.CreateAsync(conversation, cancellationToken);
         return TypedResults.Created(ApiRoutes.AgentConversation(conversation.Id), new ConversationDto
         {
-            ConversationId = conversation.Id, Title = title, CreatedAt = now, UpdatedAt = now,
+            ConversationId = conversation.Id,
+            Title = title,
+            CreatedAt = now,
+            UpdatedAt = now,
         });
     }
 
@@ -71,8 +74,13 @@ public sealed class AgentConversationService(IConversationStore conversations, A
         var summary = AgentDtoMapping.ToSummary(conversation, runs.Count == 0 ? null : runs[^1].Status);
         return TypedResults.Ok(new ConversationDto
         {
-            ConversationId = summary.ConversationId, Title = summary.Title, CreatedAt = summary.CreatedAt, UpdatedAt = summary.UpdatedAt,
-            LastRunStatus = summary.LastRunStatus, Messages = [.. messages.Select(AgentDtoMapping.ToDto)], Runs = [.. runs.Select(AgentDtoMapping.ToSummary)],
+            ConversationId = summary.ConversationId,
+            Title = summary.Title,
+            CreatedAt = summary.CreatedAt,
+            UpdatedAt = summary.UpdatedAt,
+            LastRunStatus = summary.LastRunStatus,
+            Messages = [.. messages.Select(AgentDtoMapping.ToDto)],
+            Runs = [.. runs.Select(AgentDtoMapping.ToSummary)],
         });
     }
 

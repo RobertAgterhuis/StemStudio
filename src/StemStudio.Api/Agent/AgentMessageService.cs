@@ -106,7 +106,13 @@ public sealed class AgentRunFactory(IAgentSettingsStore settings, TimeProvider c
         var now = clock.GetUtcNow();
         var message = new ConversationMessage
         {
-            Id = Guid.NewGuid(), ConversationId = conversationId, Seq = seq, Role = MessageRoleDto.User, Text = request.Text, Context = request.Context, CreatedAt = now,
+            Id = Guid.NewGuid(),
+            ConversationId = conversationId,
+            Seq = seq,
+            Role = MessageRoleDto.User,
+            Text = request.Text,
+            Context = request.Context,
+            CreatedAt = now,
         };
         var run = NewRun(message, current, now);
         return (run, message with { RunId = run.Id });
@@ -114,8 +120,17 @@ public sealed class AgentRunFactory(IAgentSettingsStore settings, TimeProvider c
 
     private static AgentRun NewRun(ConversationMessage message, AgentSettings current, DateTimeOffset now) => new()
     {
-        Id = Guid.NewGuid(), ConversationId = message.ConversationId, UserMessageId = message.Id, Status = AgentRunStatusDto.Queued,
-        Backend = current.Backend, Model = ModelOf(current), Tainted = false, ModelTurns = 0, ToolCalls = 0, InvalidCalls = 0, StartedAt = now,
+        Id = Guid.NewGuid(),
+        ConversationId = message.ConversationId,
+        UserMessageId = message.Id,
+        Status = AgentRunStatusDto.Queued,
+        Backend = current.Backend,
+        Model = ModelOf(current),
+        Tainted = false,
+        ModelTurns = 0,
+        ToolCalls = 0,
+        InvalidCalls = 0,
+        StartedAt = now,
     };
 
     /// <summary>The model the selected backend starts with.</summary>

@@ -40,12 +40,26 @@ internal static class StepMapping
     /// <returns>The record.</returns>
     public static RunStep ToRecord(RunStepEntity entity) => new()
     {
-        Id = entity.Id, RunId = entity.RunId, Seq = entity.Seq, CallId = entity.CallId, Tool = entity.Tool,
-        Kind = AgentStoreValues.Parse<ToolKindDto>(entity.Kind), Risk = AgentStoreValues.Parse<ToolRiskDto>(entity.Risk), UndoKind = AgentStoreValues.Parse<UndoKindDto>(entity.UndoKind),
-        Arguments = entity.Arguments, ArgumentsHash = entity.ArgumentsHash, PlanIndex = entity.PlanIndex,
-        Decision = AgentStoreValues.Parse<StepDecisionDto>(entity.Decision), DecisionReasons = AgentStoreValues.FromJson<List<string>>(entity.DecisionReasons),
-        Status = AgentStoreValues.Parse<AgentStepStatusDto>(entity.Status), StartedAt = AgentStoreValues.Offset(entity.StartedAt), EndedAt = AgentStoreValues.Offset(entity.EndedAt),
-        EstimatedMinutes = entity.EstimatedMinutes, ResultSummary = entity.ResultSummary, Error = entity.Error, Progress = entity.Progress,
+        Id = entity.Id,
+        RunId = entity.RunId,
+        Seq = entity.Seq,
+        CallId = entity.CallId,
+        Tool = entity.Tool,
+        Kind = AgentStoreValues.Parse<ToolKindDto>(entity.Kind),
+        Risk = AgentStoreValues.Parse<ToolRiskDto>(entity.Risk),
+        UndoKind = AgentStoreValues.Parse<UndoKindDto>(entity.UndoKind),
+        Arguments = entity.Arguments,
+        ArgumentsHash = entity.ArgumentsHash,
+        PlanIndex = entity.PlanIndex,
+        Decision = AgentStoreValues.Parse<StepDecisionDto>(entity.Decision),
+        DecisionReasons = AgentStoreValues.FromJson<List<string>>(entity.DecisionReasons),
+        Status = AgentStoreValues.Parse<AgentStepStatusDto>(entity.Status),
+        StartedAt = AgentStoreValues.Offset(entity.StartedAt),
+        EndedAt = AgentStoreValues.Offset(entity.EndedAt),
+        EstimatedMinutes = entity.EstimatedMinutes,
+        ResultSummary = entity.ResultSummary,
+        Error = entity.Error,
+        Progress = entity.Progress,
         Job = JobOf(entity),
     };
 

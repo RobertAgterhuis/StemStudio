@@ -85,8 +85,12 @@ public static class AgentSettingsRules
         return new AgentSettingsDto
         {
             Backend = settings.Backend,
-            OllamaModel = settings.OllamaModel, OllamaFallbackModel = settings.OllamaFallbackModel, OllamaThink = settings.OllamaThink,
-            ClaudeModel = settings.ClaudeModel, ClaudeEffort = settings.ClaudeEffort, ClaudeNoticeAcknowledged = settings.ClaudeNoticeAcknowledgedAt is not null,
+            OllamaModel = settings.OllamaModel,
+            OllamaFallbackModel = settings.OllamaFallbackModel,
+            OllamaThink = settings.OllamaThink,
+            ClaudeModel = settings.ClaudeModel,
+            ClaudeEffort = settings.ClaudeEffort,
+            ClaudeNoticeAcknowledged = settings.ClaudeNoticeAcknowledgedAt is not null,
             Limits = settings.Limits,
             UpdatedAt = settings.UpdatedAt,
         };

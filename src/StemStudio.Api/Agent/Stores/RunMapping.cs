@@ -28,13 +28,22 @@ internal static class RunMapping
     /// <returns>The record.</returns>
     public static AgentRun ToRecord(AgentRunEntity entity) => new()
     {
-        Id = entity.Id, ConversationId = entity.ConversationId, UserMessageId = entity.UserMessageId,
-        Status = AgentStoreValues.Parse<AgentRunStatusDto>(entity.Status), Backend = AgentStoreValues.Parse<AgentBackendDto>(entity.Backend), Model = entity.Model,
-        Tainted = entity.Tainted, Plan = AgentStoreValues.FromJson<List<PlanItem>>(entity.Plan),
-        ModelTurns = entity.ModelTurns, ToolCalls = entity.ToolCalls, InvalidCalls = entity.InvalidCalls,
+        Id = entity.Id,
+        ConversationId = entity.ConversationId,
+        UserMessageId = entity.UserMessageId,
+        Status = AgentStoreValues.Parse<AgentRunStatusDto>(entity.Status),
+        Backend = AgentStoreValues.Parse<AgentBackendDto>(entity.Backend),
+        Model = entity.Model,
+        Tainted = entity.Tainted,
+        Plan = AgentStoreValues.FromJson<List<PlanItem>>(entity.Plan),
+        ModelTurns = entity.ModelTurns,
+        ToolCalls = entity.ToolCalls,
+        InvalidCalls = entity.InvalidCalls,
         Usage = new TokenUsage(entity.InputTokens, entity.OutputTokens, entity.CachedInputTokens),
-        FailureCode = entity.FailureCode, FailureMessage = entity.FailureMessage,
-        StartedAt = AgentStoreValues.Offset(entity.StartedAt), EndedAt = AgentStoreValues.Offset(entity.EndedAt),
+        FailureCode = entity.FailureCode,
+        FailureMessage = entity.FailureMessage,
+        StartedAt = AgentStoreValues.Offset(entity.StartedAt),
+        EndedAt = AgentStoreValues.Offset(entity.EndedAt),
     };
 
     /// <summary>Copies an approval onto a row.</summary>
