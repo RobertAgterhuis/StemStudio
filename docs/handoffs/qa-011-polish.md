@@ -73,7 +73,9 @@ Technical manual (testing chapter, CTO T084a): agent E2E scripts, placeholders, 
    `unsaved-indicator`; the panel survives the `open_mixer` navigation; `agent-input` disabled while
    unavailable; history view restores plan and step rows; Claude status names `ANTHROPIC_API_KEY`.
 7. **architect**: record the placeholders in `agent-script.schema.json` (description) and DELTA.md 8.
-8. **CTO (T080)**: re-render the 004 visual baselines on the 011 layout; run
+8. **CTO (T080)**: re-render the 004 visual baselines on the 011 layout (`agent-toggle` and
+   `nav-settings` change every screen, and the new `settings` screen has no baseline yet:
+   `npm run test:visual -- --update-snapshots`, 6 new `settings--<level>--<theme>.png` files); run
    `npm test` (backend `none`), `scripts/agent-e2e.sh none`, `scripts/agent-e2e.sh fake` and the
    generative agent pass, all with retries 0; `e2e/agent-scripts/` exists, so the compose bind
    mount is satisfied (devops request).
@@ -81,3 +83,31 @@ Technical manual (testing chapter, CTO T084a): agent E2E scripts, placeholders, 
 ## Next owner
 
 CTO (T080).
+
+## Follow-up: `/settings` in the page-enumerating suites (frontend request)
+
+The 011 page `/settings` (ui-test-ids 1.10.0) is added wherever the suite enumerates every page:
+
+- `e2e/support/screens.ts`: screen `settings` (`/settings`, ready when `settings-agent-backend`,
+  `settings-agent-ollama-status` and `settings-agent-claude-status[data-key-configured]` are
+  shown), screen topic `agent-backends`. The a11y and visual matrices (`e2e/a11y/screens.a11y.spec.ts`,
+  `e2e/visual/screens.spec.ts`) pick it up per level x theme (6 + 6 tests); the visual mask adds
+  `settings-agent-ollama-status` (host-dependent Ollama version and models).
+- `e2e/pages/app-shell.ts`: nav target `settings` -> `/settings`.
+- `e2e/support/help.ts` + `e2e/tests/help.spec.ts` (`@agent`): `/settings` opens its screen topic
+  `agent-backends` and carries that marker; the layout renders `agent-toggle` and `nav-settings`
+  and the rail link reaches `/settings`.
+- `e2e/support/levels.ts` + `e2e/tests/feature-levels.spec.ts` (`@agent`): Beginner, Advanced and
+  Expert render `agent-toggle`, `nav-settings` and the level-free settings ids; Beginner renders no
+  model pickers, Advanced no Claude pickers. Positive assertions of the Advanced/Expert pickers are
+  left to `agent.spec.ts` because they depend on the backend state (Ollama reachable, Claude key).
+- No existing assertion lists the header controls, so `agent-toggle` / `nav-settings` are asserted
+  through the new `agentShellIds` list.
+
+Assumption for frontend: the screen topic of `/settings` (help button on that page) is
+`agent-backends`; ui-test-ids 1.10.0 names it as the topic of the page's first section but does
+not state a screen topic explicitly.
+
+Validation in `e2e`: `npx tsc --noEmit` 0 errors; `npx eslint . --max-warnings 0` clean;
+`npx playwright test --list` 805 tests in 45 files (was 783: +12 a11y/visual cells, +5 tests per
+browser project in two projects).
