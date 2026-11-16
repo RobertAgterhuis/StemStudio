@@ -83,6 +83,16 @@ public sealed class RegistryTests
     }
 
     [Fact]
+    public void APageAboveTheCap_IsRejectedAtStartUp()
+    {
+        var tools = Enumerable.Range(0, 33).Select(i => Catalogue.Descriptor(Catalogue.All[0]) with { Name = $"tool_{i:00}" });
+
+        var error = Should.Throw<InvalidOperationException>(() => new AgentToolRegistry([new FixedToolProvider(tools)]));
+
+        error.Message.ShouldContain("33");
+    }
+
+    [Fact]
     public void Registry_RejectsNullProviders()
     {
         Should.Throw<ArgumentNullException>(() => new AgentToolRegistry(null!));
