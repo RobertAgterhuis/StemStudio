@@ -1,6 +1,7 @@
-// Skeleton (architect, 011 Phase 0). The ai-agent implements T079a: fake StemStudio actions seeded from the eval-set fixture,
-// the grading rules of evaluation/eval-set.md, the Markdown report (success per case and language, latency p50/p90).
-// The Claude backend is paid and opt-in (constitution 1.3.0): it runs only on the owner's explicit --backend claude.
+// The evaluation harness of the composer agent (feature 011, research R-09, T079a). `--backend fake` runs the grading
+// self-test over evaluation/eval-set.md as data (eval-set.json) without any model. Live runs against Ollama or Claude
+// (paid, opt-in, constitution 1.3.0: only on the owner's explicit --backend claude) need the seeded fixture actions, which
+// are not implemented yet (see docs/handoffs/ai-agent-011-polish.md).
 using StemStudio.AgentEval;
 
 var (options, error) = EvalOptions.Parse(args);
@@ -10,6 +11,10 @@ if (options is null)
     return 64;
 }
 
-Console.WriteLine($"agent-eval: backend={options.Backend} runs={options.Runs} set={options.EvalSetPath} report={options.ReportPath}");
-Console.Error.WriteLine("The evaluation harness is not implemented yet (tasks.md T079a, owner ai-agent).");
+if (options.Backend == "fake")
+{
+    return SelfTest.Execute(options.EvalSetPath);
+}
+
+Console.Error.WriteLine($"agent-eval: live runs (--backend {options.Backend}) need the seeded fixture actions; not implemented yet (T079a part 2).");
 return 2;
