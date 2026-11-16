@@ -18,6 +18,8 @@ namespace StemStudio.Agent.Runtime;
 internal sealed class StepExecutor(AgentServices services, RunEvents events)
 {
     private static readonly TimeSpan UiTimeout = TimeSpan.FromSeconds(AgentContractLimits.UiToolTimeoutSeconds);
+    private readonly RunPlan _plan = new(services, events);
+    private readonly MetaToolRunner _meta = new(services, events, new RunPlan(services, events));
 
     /// <summary>Executes the call and returns what the model sees.</summary>
     public async Task<FunctionResultContent> ExecuteAsync(RunState state, FunctionCallContent call, IReadOnlyList<AgentToolDescriptor> offered, CancellationToken cancellationToken)
@@ -56,7 +58,8 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
             StepDecisionDto.ApprovalRequired => AgentStepStatusDto.AwaitingApproval,
             _ => AgentStepStatusDto.Running,
         };
-        var step = prepared.ToStep(state.RunId, ++state.StepSeq, status) with { Decision = decision.Decision, DecisionReasons = decision.Reasons, Error = decision.Refusal };
+        var planIndex = await _plan.LinkAsync(state, prepared.Tool!, cancellationToken);
+        var step = prepared.ToStep(state.RunId, ++state.StepSeq, status) with { Decision = decision.Decision, DecisionReasons = decision.Reasons, Error = decision.Refusal, PlanIndex = planIndex };
         step = Started(step, status);
         await services.Runs.SaveStepAsync(step, cancellationToken);
         await events.StepCreatedAsync(step, cancellationToken);
@@ -92,6 +95,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         {
             var failed = step with { Status = AgentStepStatusDto.Failed, Error = Cap(exception.Message) };
             await FinishAsync(failed, null, cancellationToken);
+            await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Failed, cancellationToken);
             return ResultProjector.Error(exception.Message);
         }
     }
@@ -99,7 +103,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
     private Task<ToolResult> InvokeAsync(RunState state, RunStep step, PreparedCall prepared, CancellationToken cancellationToken) => prepared.Tool!.Kind switch
     {
         ToolKindDto.Ui => RunUiToolAsync(state, step, prepared, cancellationToken),
-        ToolKindDto.Meta => throw new AgentActionException("This tool is not available yet."),
+        ToolKindDto.Meta => _meta.ExecuteAsync(state, step, prepared.Validation.Arguments, cancellationToken),
         _ => prepared.Tool.Handler!(Invocation(state, step, prepared), cancellationToken),
     };
 
@@ -148,8 +152,9 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events)
         }
 
         PageTransitions.Apply(state, step.Tool, prepared.Validation.Arguments);
-        var done = step with { Status = AgentStepStatusDto.Succeeded, Job = result.Job ?? step.Job, EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes };
+        var done = step with { Status = AgentStepStatusDto.Succeeded, Job = result.Job ?? step.Job, EstimatedMinutes = result.EstimatedMinutes ?? step.EstimatedMinutes, Progress = result.Progress ?? step.Progress };
         await FinishAsync(done, projected.Json, cancellationToken);
+        await _plan.SetAsync(state, step.PlanIndex, PlanItemStatusDto.Done, cancellationToken);
         return projected;
     }
 

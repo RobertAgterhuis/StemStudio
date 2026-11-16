@@ -102,6 +102,9 @@ public sealed record ToolResult
     /// <summary>The inverse or compensating call recorded for undo.</summary>
     public UndoAction? Undo { get; init; }
 
+    /// <summary>Final job progress 0-100 (wait_for_job), when any.</summary>
+    public int? Progress { get; init; }
+
     /// <summary>True when <see cref="Undo"/> compensates an artefact created by this call (no approval needed while fresh).</summary>
     public bool UndoFresh { get; init; }
 

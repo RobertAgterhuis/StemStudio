@@ -195,7 +195,7 @@ public sealed class JobWaiterTests
 
         var step = harness.Runs.Steps.Single();
         (step.Status, step.Progress, step.Job!.Phase).ShouldBe((AgentStepStatusDto.Succeeded, 100, JobPhaseDto.Standard));
-        step.ResultSummary.ShouldBe("""{"progress":100,"status":"completed"}""");
+        step.ResultSummary.ShouldBe("""{"status":"completed","progress":100}""");
         harness.Events.Payload(AgentEventTypes.StepUpdated).GetProperty("status").GetString().ShouldBe("waiting_job");
         harness.Events.Payload(AgentEventTypes.StepUpdated).GetProperty("progress").GetInt32().ShouldBe(30);
         harness.Script.Requests.Count.ShouldBe(2);
