@@ -31,4 +31,14 @@ public static class ShortcutCatalog
         new("M / S", "Mute or solo the selected channel"),
         new("Mod+S", "Save the mix (Shift: save as)"),
     ];
+
+    /// <summary>Practice tempo keys of the mixer (feature 012, ui-test-ids 1.11.0 "Shortcut commands").</summary>
+    public static IReadOnlyList<ShortcutRow> Practice { get; } =
+    [
+        new("- / =", "Speed -5 % or +5 %"),
+        new(", / .", "Key down or up one semitone"),
+        new("R", "Original speed and key"),
+        new("C", "Count-in on or off"),
+        new("T", "Speed trainer on or off (Advanced)"),
+    ];
 }

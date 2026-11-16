@@ -77,7 +77,7 @@ describe('practice keys in the mixer', () => {
     ['<div role="dialog"><button>x</button></div>'],
   ])('ignores the keys in a typing context or dialog: %s', (html) => {
     document.body.innerHTML = html;
-    const target = document.body.querySelector('button') ?? (document.body.firstElementChild as Element);
+    const target: Element = document.body.querySelector('button') ?? document.body.children[0] ?? document.body;
     const calls = register('mixer');
     for (const key of ['-', '=', ',', '.', 'r', 'c', 't']) {
       press(key, {}, target);

@@ -26,3 +26,8 @@ Shortcuts work outside text fields and dialogs. Mod is Ctrl, or Cmd on a Mac.
 | 1 to 9 | Select a channel |
 | M / S | Mute or solo the selected channel |
 | Mod+S | Save the mix (Shift: save as) |
+| - / = | Practice speed -5 % or +5 % |
+| , / . | Key down or up one semitone |
+| R | Original speed and key |
+| C | Count-in on or off |
+| T | Speed trainer on or off (Advanced) |
