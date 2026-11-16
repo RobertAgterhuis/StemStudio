@@ -33,6 +33,7 @@ builder.Services.AddScoped<KaraokePreferences>();
 builder.Services.AddScoped<GenerationStatusSource>();
 builder.Services.AddScoped<NavigationUiTools>();
 builder.Services.AddScoped<AgentUiToolHost>();
+builder.Services.AddScoped<AgentRunNotifier>();
 builder.Services.AddScoped<AgentPanelState>();
 builder.Services.AddScoped<ITourLauncher>(services => services.GetRequiredService<TourService>());
 

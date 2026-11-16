@@ -1,5 +1,6 @@
 using System.Net;
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using StemStudio.Contracts.Generation;
@@ -28,6 +29,17 @@ public sealed class GenerationListTests : GenerationTestContext
         page.FindAll($"[data-testid=generation-cancel-{Id}]").Count.ShouldBe(1);
         page.FindAll($"[data-testid=generation-retry-{Id}]").ShouldBeEmpty();
         page.FindAll($"[data-testid=generation-delete-{Id}]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AnEndedAgentRun_ReloadsTheList_SoAGenerationTheAgentStartedAppears()
+    {
+        var page = RenderList();
+        Api.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([GenerationData.Generation(GenerationStateDto.Running)]);
+
+        Services.GetRequiredService<StemStudio.Web.Agent.AgentRunNotifier>().RunHasEnded();
+
+        page.WaitForAssertion(() => page.Find($"[data-testid=generation-row-{Id}]").GetAttribute("data-kind").ShouldBe("restyle"));
     }
 
     [Fact]

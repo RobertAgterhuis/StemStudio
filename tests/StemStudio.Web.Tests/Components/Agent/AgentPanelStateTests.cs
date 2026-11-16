@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Bunit;
 using NSubstitute;
 using StemStudio.Contracts.Agent;
@@ -187,6 +188,20 @@ public sealed class AgentPanelStateTests : PageTestContext
 
         cut.Find("[data-testid=agent-plan-item-0] .rzi").TextContent.ShouldBe("error");
         cut.Find("[data-testid=agent-plan-item-1] .rzi").TextContent.ShouldBe("block");
+    }
+
+    [Fact]
+    public async Task AnEndedRun_IsAnnouncedToThePages()
+    {
+        var ended = 0;
+        Services.GetRequiredService<StemStudio.Web.Agent.AgentRunNotifier>().RunEnded += () => ended++;
+        await StartRunAsync();
+
+        AgentEvents.Started().Completed();
+        AgentEvents.End();
+        await Panel.Following;
+
+        ended.ShouldBe(1);
     }
 
     private async Task StartRunAsync()
