@@ -12,8 +12,17 @@ public sealed partial class AgentPanelState
     private IReadOnlyList<AgentRunSummaryDto> _runs = [];
     private bool _nothingToUndo;
 
-    /// <summary>True when the open conversation has a finished run and the API has not said "nothing to undo".</summary>
-    public bool CanUndo => ConversationId is not null && !IsRunActive && !_nothingToUndo && (Run is { Ended: true } || _runs.Any(r => IsEnded(r.Status)));
+    /// <summary>The text of the synthetic user message of an undo run (agent <c>UndoPlanner.UndoText</c>).</summary>
+    private const string UndoCommand = "Undo";
+
+    /// <summary>
+    /// True when the open conversation has a finished run, not every command was undone already (one undo takes one
+    /// command group) and the API has not said "nothing to undo".
+    /// </summary>
+    public bool CanUndo => ConversationId is not null && !IsRunActive && !_nothingToUndo && CommandsLeftToUndo > 0 && (Run is { Ended: true } || _runs.Any(r => IsEnded(r.Status)));
+
+    private int CommandsLeftToUndo =>
+        Messages.Where(m => m.Role == MessageRoleDto.User).Sum(m => m.Text == UndoCommand ? -1 : 1);
 
     /// <summary>True while the conversation's run is active (its delete is disabled).</summary>
     /// <param name="conversation">The conversation.</param>
