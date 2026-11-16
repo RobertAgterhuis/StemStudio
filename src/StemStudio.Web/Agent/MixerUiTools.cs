@@ -5,7 +5,9 @@ namespace StemStudio.Web.Agent;
 /// <summary>
 /// The mixer UI tools of the open mixer page (tool catalogue 1.0.0, feature 001, availability <c>+mixer</c>):
 /// state, channel, master, reset, transport, loop, metronome and the karaoke banner (<c>show_karaoke</c>, feature 006). Changes go through <see cref="IMixerControls"/>
-/// and every change tool returns the previous and the current values (the undo entry of FR-017).
+/// and every change tool returns the previous and the current values (the undo entry of FR-017). The gain tools also
+/// return <c>clamped</c>, <c>requestedGainDb</c> and <c>maxGainDb</c>: <c>current</c> is the level actually applied, so a
+/// request above the fader maximum is reported truthfully (011 O2).
 /// <c>mixer_get_state</c> also returns <c>karaoke</c> (banner visible) and <c>settings</c>: the open mixer as a
 /// <c>MixSettingsDto</c> (linear volumes, empty name), the body the agent sends for save, update and export.
 /// </summary>
@@ -52,6 +54,11 @@ public sealed partial class MixerUiTools : IAgentUiToolHandler
     /// <inheritdoc />
     public bool CanRun(string tool) => Names.Contains(tool);
 
+    /// <summary>Records an agent save of the open mixer (the page reads the mix and clears its unsaved indicator).</summary>
+    /// <param name="mixId">The saved mix.</param>
+    /// <returns>A task that completes when the page has recorded it.</returns>
+    public Task MixSavedAsync(Guid mixId) => _controls.MarkSavedAsync(mixId);
+
     /// <inheritdoc />
     public async Task<UiToolResult> ExecuteAsync(string tool, UiToolArguments arguments)
     {
@@ -96,19 +103,16 @@ public sealed partial class MixerUiTools : IAgentUiToolHandler
         await ToggleWhenAsync(args.Bool("mute"), channel.Mute, () => _controls.ToggleMuteAsync(stem));
         await ToggleWhenAsync(args.Bool("solo"), channel.Solo, () => _controls.ToggleSoloAsync(stem));
         await _controls.RefreshAsync();
-        return new { stem, previous, current = View(channel) };
+        return new { stem, previous, current = View(channel), clamped = Gain.IsCapped(gain), requestedGainDb = Gain.Requested(gain), maxGainDb = Gain.MaxDb };
     }
 
     private async Task<object> SetMasterAsync(UiToolArguments args)
     {
         var previous = Gain.ToDb(State.MasterVolume);
-        if (TargetDb(args, State.MasterVolume) is { } db)
-        {
-            await _controls.SetMasterAsync(Gain.ToVolume(db));
-        }
-
+        var gain = TargetDb(args, State.MasterVolume);
+        await (gain is { } db ? _controls.SetMasterAsync(Gain.ToVolume(db)) : Task.CompletedTask);
         await _controls.RefreshAsync();
-        return new { previous, current = Gain.ToDb(State.MasterVolume) };
+        return new { previous, current = Gain.ToDb(State.MasterVolume), clamped = Gain.IsCapped(gain), requestedGainDb = Gain.Requested(gain), maxGainDb = Gain.MaxDb };
     }
 
     private async Task<object> ResetAsync()

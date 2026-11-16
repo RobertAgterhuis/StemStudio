@@ -72,7 +72,8 @@ public sealed class AgentUsageTests : PageTestContext
 
         cut.WaitForAssertion(() => AgentApi.Received(1).UpdateSettingsAsync(
             Arg.Is<UpdateAgentSettingsRequest>(r => r.Backend == AgentBackendDto.Ollama && !r.AcknowledgeClaudeNotice), Arg.Any<CancellationToken>()));
-        cut.WaitForAssertion(() => AgentApi.Received(2).GetStatusAsync(Arg.Any<CancellationToken>()));
+        // Once on open, once when the run ended, once after the switch.
+        cut.WaitForAssertion(() => AgentApi.Received(3).GetStatusAsync(Arg.Any<CancellationToken>()));
     }
 
     [Fact]

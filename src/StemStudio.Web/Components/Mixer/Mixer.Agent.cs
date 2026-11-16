@@ -71,6 +71,8 @@ public sealed partial class Mixer
 
         public Task ToggleLoopAsync() => page.ToggleLoopAsync();
 
+        public Task MarkSavedAsync(Guid mixId) => page.InvokeAsync(() => page.MarkSavedByAgentAsync(mixId));
+
         public Task RefreshAsync() => page.InvokeAsync(page.StateHasChanged);
     }
 }

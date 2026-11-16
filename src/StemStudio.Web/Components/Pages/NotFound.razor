@@ -1,0 +1,14 @@
+@page "/not-found"
+@layout MainLayout
+@* Not-found page: the router's NotFoundPage for unknown routes (client navigation) and the status code re-execute target
+   of a 404 from the server, so an unknown address shows the app with its navigation instead of a blank page. *@
+
+<PageTitle>Page not found - StemStudio</PageTitle>
+
+<div class="ss-page" data-testid="not-found">
+    <header class="ss-page-head">
+        <h1>Page not found</h1>
+        <p class="ss-help">The page you are looking for does not exist. Use the navigation to go on, or start with an import.</p>
+    </header>
+    <p><a href="" data-testid="not-found-home">Import a song</a></p>
+</div>

@@ -49,7 +49,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
     /// <summary>The readable error of the last panel call, or null.</summary>
     public string? Error { get; private set; }
 
-    /// <summary>The backend the badge shows (the run's, else the status'; the status' while the agent is unavailable).</summary>
+    /// <summary>The backend the badge shows: the active run's, else the current status' (an ended run's model is history).</summary>
     public AgentBackendDto? Backend => BadgeRun?.Backend ?? Status?.Backend;
 
     /// <summary>The model the badge shows.</summary>
@@ -58,8 +58,12 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
     /// <summary>True when the badge shows the fallback model.</summary>
     public bool UsingFallback => BadgeRun?.Backend is not null ? BadgeRun.UsingFallback : Status?.UsingFallback == true;
 
-    /// <summary>The run the badge describes: none while the agent is unavailable (a restored run's backend is history).</summary>
-    private AgentRunView? BadgeRun => Status is { Ready: false } ? null : Run;
+    /// <summary>Why the badge's model changed, or null.</summary>
+    public string? ModelReason => BadgeRun?.ModelReason;
+
+    /// <summary>The run the badge describes: only a run that has not ended, and none while the agent is unavailable
+    /// (an ended or restored run's model is history; the status says what the next command uses).</summary>
+    private AgentRunView? BadgeRun => Status is { Ready: false } || Run is not { Ended: false } ? null : Run;
 
     /// <summary>The stream consumer of the followed run (tests await it).</summary>
     internal Task Following { get; private set; } = Task.CompletedTask;
@@ -144,8 +148,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
     /// <returns>A task that completes when the status is loaded.</returns>
     public async Task RefreshStatusAsync()
     {
-        var (status, _) = await ApiCall.TryAsync(() => api.GetStatusAsync());
-        Status = status ?? Status;
+        await ReloadStatusAsync();
         Notify();
     }
 
@@ -262,14 +265,23 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
             await RunUiToolAsync(followed.RunId, request);
         }
 
+        await RecordSaveAsync(followed, e);
+
         if (e.IsTerminal)
         {
             await ReloadAsync(followed.ConversationId);
+            await ReloadStatusAsync();
             notifier.RunHasEnded();
         }
 
         Notify();
     }
+
+    // A save the replay of a resumed run repeats is not recorded again (the mixer may have changed since).
+    private Task RecordSaveAsync(FollowedRun followed, AgentEvent e) =>
+        Run is { } run && AgentSavedMix.From(run, e) is { } saved && followed.Answered?.Contains(saved.StepId) != true
+            ? host.MixSavedAsync(saved.MixId)
+            : Task.CompletedTask;
 
     // 409 ui-result-not-expected (another tab answered first, or the 15 s passed) needs no message: the step shows it.
     private async Task RunUiToolAsync(Guid runId, UiRequestedEventDto request)
@@ -285,6 +297,9 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         Error = snapshot is null || Run?.Ended != true ? LostConnection : null;
         Notify();
     }
+
+    // A failed status call keeps the last known status.
+    private async Task ReloadStatusAsync() => Status = (await ApiCall.TryAsync(() => api.GetStatusAsync())).Value ?? Status;
 
     private void Notify() => Changed?.Invoke();
 

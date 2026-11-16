@@ -60,6 +60,8 @@ public sealed class FakeMixerControls : IMixerControls
 
     public Task ToggleLoopAsync() => Record("loop-toggle", () => State.ToggleLoop());
 
+    public Task MarkSavedAsync(Guid mixId) => Record($"saved {mixId}", () => { });
+
     public Task RefreshAsync() => Record("refresh", () => { });
 
     private Task Record(string call, Action action)
