@@ -132,3 +132,32 @@ Phase 0 (owner unavailable; decided by the architect for the best practising res
   time 12-23 ms instead of 70-81 ms.
 - **P8 Reactor module.** The module has no imports and exports `_initialize`, which the processor
   calls once (ABI header `third_party/soundtouch/include/stemstudio_soundtouch.h`).
+
+## Implementation notes (audio-engine lane, 2026-11-16)
+
+Owner unavailable; decided by the audio-engine agent for the best result for a musician practising at home.
+None changes `types.ts` 2.3.0 or the WASM ABI.
+
+- **E1 Stage position.** The stage sits between the master gain and the master meter (contract graph: sum ->
+  stage -> master gain). The chain is linear, so the sound is the same; at neutral settings the graph is literally
+  the 2.1.0 one and every pre-012 graph test stays unchanged. Cost: master-fader moves are heard L later while engaged.
+- **E2 Reset on pause/stop.** The stage is also reset when playback pauses or stops, so no 66-147 ms of music
+  trails after pressing pause.
+- **E3 No fade on the engage restart.** Engaging while playing restarts like every seek since 001 (hard stop/start).
+- **E4 Gapless passes in source time.** Pass k+1 starts exactly where pass k stops at the sources; its heard anchor
+  is `S + L(p_{k+1})`. A trainer step therefore moves the heard pass start by the difference of two content offsets
+  (1-2 ms for a 5 % step) instead of overlapping or gapping the audio.
+- **E5 Changes while passes play.** Speed changes of the settings (and disabling the trainer or the every-pass
+  count-in) apply from the next pass boundary (each pass has one rate, R-10); the transpose applies live as a pitch
+  change only (the heard anchor is not shifted by the c(p) difference: <= 2 ms per semitone until the next pass).
+- **E6 Restarts.** Enabling the trainer while playing and every loop change while passes play restart at the heard
+  position (one gap of startDelay + L).
+- **E7 No stage reset between passes, also not after a count-in gap.** The gap carries silence through the stage;
+  a reset would cut the end of the previous pass, which is still being heard.
+- **E8 FIFO overflow** drops the oldest frames back to D (restores the fixed delay) rather than to D + 1024.
+- **E9 Count-in tempo.** With a manual BPM and a beat grid, `b` is the first click of the metronome's constant
+  grid at or after A (so the count matches the metronome); with a manual BPM and no grid, `b = A` (data-model 3.3).
+  When A lies after the last two grid clicks, the last grid interval is used and `b = A`.
+- **E10 Contract text fix requested.** audio-engine.md "Content offset" says input frame n lands near SoundTouch
+  output frame `n - c(p)`; the measurement (and `L(p) = (D + c(p)) / sampleRate`) needs `n + c(p)`. The Node suite
+  measures `output onset - input onset`: 17.5 ms at p = 0.5 (c = 24.9 ms) and -33.1 ms at p = 2 (c = -24.9 ms).

@@ -172,7 +172,7 @@ The frontend agent reports the web-interop lane in a separate section with its o
 
 ## Phase 6: Polish (inside the wave, per owner)
 
-- [ ] T062 [P] [audio-engine] Refactor to SIG limits, TSDoc for every export, `npm run test:coverage` >= 90 % (lines, branches, functions, statements) incl. `stretch/` and `practice/`, `npm run test:wasm` output, HO:polish (dependencies: none new at run time; build tool via devops)
+- [x] T062 [P] [audio-engine] Refactor to SIG limits, TSDoc for every export, `npm run test:coverage` >= 90 % (lines, branches, functions, statements) incl. `stretch/` and `practice/`, `npm run test:wasm` output, HO:polish (dependencies: none new at run time; build tool via devops)
 - [ ] T063 [P] [backend] Refactor, XML docs, Domain/Persistence/Api coverage; if 011 is merged: test that the agent's mix-update tool round-trips `practice` (otherwise a request in the hand-off for the 011 owner); HO:polish
 - [ ] T064 [P] [frontend] Accessibility pass (keyboard order through the practice panel, focus visible, `aria-valuetext`, live regions limited to trainer steps and count-in start/end, contrast >= 4.5:1 in both themes, reduced motion), help review (`reviewed: "012"`), bUnit coverage of `StemStudio.Web` >= 90 %, HO:polish incl. *Docs impact* (user manual: practice tempo section; technical manual: time-stretch architecture, LGPL module, build step, CSP note)
 - [ ] T065 [P] [web-interop] Coverage of `src/web-interop` >= 90 %, lint/tsc clean, shortcut overlay text reviewed; reported in the frontend HO:polish
