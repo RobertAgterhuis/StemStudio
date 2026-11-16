@@ -92,7 +92,8 @@
       "lead": "Loop the hard bit, keep time, and pick up tomorrow where you left off.",
       "p1": "A click on the song's own beat, with its own volume.",
       "p2": "Practice presets set up an exercise in one click: <em>Play along: drums</em>, <em>Karaoke</em>, <em>Focus: vocals</em>, <em>Reset mix</em>.",
-      "p3": "Save, load, duplicate and edit named mixes, with every channel, master, click and loop setting."
+      "p3": "Save, load, duplicate and edit named mixes, with every channel, master, click and loop setting.",
+      "p4": "Slow a song down to 50 % without changing its pitch or move it to another key, let the speed trainer build up the tempo pass by pass, and get a count-in before you play."
     },
     "learn": {
       "title": "Learn the song",
@@ -167,8 +168,6 @@
   "soon": {
     "title": "Coming soon",
     "intro": "In development now. Details can still change before they arrive.",
-    "tempo": "Practice tempo",
-    "tempoText": "Slow a song down without changing its pitch, or move it to another key. With a speed trainer and a count-in.",
     "record": "Record yourself",
     "recordText": "Record your part over the mix, keep your takes and listen back.",
     "tablet": "Tablet and remote",
