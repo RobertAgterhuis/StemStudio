@@ -50,7 +50,9 @@ internal sealed class ClaudeKeyApi : IDisposable
         options ??= new ClaudeKeyApiOptions();
         Anthropic = new StubHttpMessageHandler(request =>
         {
-            AnthropicKeys.AddRange(request.Headers.TryGetValues("x-api-key", out var keys) ? keys : []);
+            AnthropicKeys.AddRange(request.Headers.SelectMany(header => header.Value)
+                .Select(value => value.Replace("Bearer ", string.Empty, StringComparison.Ordinal))
+                .Where(value => value.StartsWith(TestDoubles.ClaudeKey.ClaudeKeySentinels.Prefix, StringComparison.Ordinal)));
             return Task.FromResult(AnthropicReply(request));
         });
         var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = options.InternalCaller };
@@ -92,7 +94,7 @@ internal sealed class ClaudeKeyApi : IDisposable
     /// <summary>The stand-in's answer; tests that expect no request assert <see cref="Anthropic"/> stays empty.</summary>
     public Func<HttpRequestMessage, HttpResponseMessage> AnthropicReply { get; set; } = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
 
-    /// <summary>The <c>x-api-key</c> header of every request the stand-in received.</summary>
+    /// <summary>Every key-shaped header value of the requests the stand-in received.</summary>
     public List<string> AnthropicKeys { get; } = [];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

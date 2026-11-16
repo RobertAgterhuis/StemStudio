@@ -48,6 +48,20 @@ public static class ClaudeKeyEndpoints
         return invocation => filter.InvokeAsync(invocation, next);
     });
 
+    /// <summary>
+    /// Applies the local-only rule to a backend test that tests Claude (1.21.0, CK-FR-012); an Ollama test stays open. The
+    /// request body of this operation holds no key, so it may be bound before the check.
+    /// </summary>
+    /// <param name="builder">The endpoint of <c>testAgentBackend</c>.</param>
+    /// <returns>The endpoint.</returns>
+    public static RouteHandlerBuilder LocalOnlyForClaude(this RouteHandlerBuilder builder) => builder.AddEndpointFilterFactory((factory, next) =>
+    {
+        var filter = factory.ApplicationServices.GetRequiredService<LocalOnlyKeyEntryFilter>();
+        return invocation => invocation.Arguments.OfType<TestAgentBackendRequest>().Any(request => request.Backend == AgentBackendDto.Claude)
+            ? filter.InvokeAsync(invocation, next)
+            : next(invocation);
+    });
+
     private static async Task<IResult> StoreAsync(HttpRequest request, ClaudeKeyStoreServices services, CancellationToken cancellationToken)
     {
         var body = await ClaudeKeyRequestReader.ReadAsync(request, cancellationToken);

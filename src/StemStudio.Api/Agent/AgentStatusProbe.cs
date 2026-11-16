@@ -54,15 +54,16 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
     /// need to load), but a failing or missing agent library yields <c>ok: false</c> with a fixed detail, never an exception text.
     /// </summary>
     /// <param name="backend">ollama or claude.</param>
+    /// <param name="claudeKeySource">Which Claude key to test (1.21.0); ignored for Ollama.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The test result.</returns>
-    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken)
+    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken)
     {
         try
         {
             if (services.GetService<IAgentStatusService>() is { } status)
             {
-                return await status.TestAsync(backend, cancellationToken);
+                return await TestWithAsync(status, backend, claudeKeySource, cancellationToken);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -72,6 +73,14 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
 
         return new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = FailureReason };
     }
+
+    // The port IAgentStatusService has no key-source parameter yet (cross-owner request to the architect); the agent library's
+    // AgentStatusService offers the overload, any other implementation tests the active key.
+    private static Task<BackendTestResultDto> TestWithAsync(
+        IAgentStatusService status, AgentBackendDto backend, ClaudeKeyTestSourceDto claudeKeySource, CancellationToken cancellationToken) =>
+        status is AgentStatusService library
+            ? library.TestAsync(backend, claudeKeySource, cancellationToken)
+            : status.TestAsync(backend, cancellationToken);
 
     /// <summary>503 <c>backend-unavailable</c> with the status, or null when the agent is ready.</summary>
     /// <param name="cancellationToken">Cancellation.</param>

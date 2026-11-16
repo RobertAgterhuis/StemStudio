@@ -57,7 +57,7 @@ public sealed class AgentSettingsService(EfAgentSettingsStore settings, AgentSta
             return ApiProblems.Validation("backend", "Choose ollama or claude.");
         }
 
-        return TypedResults.Ok(await probe.TestAsync(request.Backend, cancellationToken));
+        return TypedResults.Ok(await probe.TestAsync(request.Backend, request.ClaudeKeySource ?? ClaudeKeyTestSourceDto.Active, cancellationToken));
     }
 
     private async Task<IResult?> RefusalAsync(UpdateAgentSettingsRequest request, AgentSettings current, AgentSettings merged, CancellationToken cancellationToken) =>

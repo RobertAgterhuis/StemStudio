@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Agent.Secrets;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 
@@ -38,7 +39,8 @@ public static class AgentEndpoints
             .WithName("updateAgentSettings").WithTags(Tag).Produces<AgentSettingsDto>().ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         app.MapPost(ApiRoutes.AgentSettingsTest, (TestAgentBackendRequest? request, AgentSettingsService service, CancellationToken ct) => service.TestAsync(request, ct))
-            .WithName("testAgentBackend").WithTags(Tag).Produces<BackendTestResultDto>().ProducesValidationProblem();
+            .LocalOnlyForClaude()
+            .WithName("testAgentBackend").WithTags(Tag).Produces<BackendTestResultDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status403Forbidden);
         return app;
     }
 
