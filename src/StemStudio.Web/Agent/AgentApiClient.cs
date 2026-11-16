@@ -50,11 +50,12 @@ public sealed class AgentApiClient(HttpClient http) : IAgentApiClient
 
     /// <inheritdoc />
     public Task<ClaudeKeyStatusDto> StoreClaudeKeyAsync(string apiKey, CancellationToken cancellationToken = default) =>
-        _transport.SendAsync<ClaudeKeyStatusDto>(HttpMethod.Put, ApiRoutes.AgentClaudeKey, Body(new StoreClaudeKeyRequest { ApiKey = apiKey }), cancellationToken);
+        ClaudeKeyProblems.GuardAsync(() =>
+            _transport.SendAsync<ClaudeKeyStatusDto>(HttpMethod.Put, ApiRoutes.AgentClaudeKey, Body(new StoreClaudeKeyRequest { ApiKey = apiKey }), cancellationToken));
 
     /// <inheritdoc />
     public Task<ClaudeKeyStatusDto> DeleteClaudeKeyAsync(CancellationToken cancellationToken = default) =>
-        _transport.SendAsync<ClaudeKeyStatusDto>(HttpMethod.Delete, ApiRoutes.AgentClaudeKey, null, cancellationToken);
+        ClaudeKeyProblems.GuardAsync(() => _transport.SendAsync<ClaudeKeyStatusDto>(HttpMethod.Delete, ApiRoutes.AgentClaudeKey, null, cancellationToken));
 
     /// <inheritdoc />
     public Task<BackendTestResultDto> TestClaudeKeyAsync(ClaudeKeyTestSourceDto source, CancellationToken cancellationToken = default) =>
