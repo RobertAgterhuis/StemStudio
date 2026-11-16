@@ -99,15 +99,20 @@ public sealed class ProtectedClaudeKeyStoreTests : IDisposable
         var host = Host("keys");
         await host.Store.StoreAsync(Key(ClaudeKeySentinels.Stored), Ct);
         host.Store.Read();
+        var ciphertext = Encoding.UTF8.GetBytes(host.Row().ShouldNotBeNull().Ciphertext);
         host.Dispose();
         SqliteConnection.ClearAllPools();
+        var files = Directory.EnumerateFiles(Path.GetDirectoryName(Database)!, "stemstudio.db*").ToList();
 
-        foreach (var file in Directory.EnumerateFiles(Path.GetDirectoryName(Database)!, "stemstudio.db*"))
+        // qa F2: the default rollback journal leaves only the database file; the scan is meaningful because that file holds the row.
+        files.ShouldContain(Database);
+        Contains(await File.ReadAllBytesAsync(Database, Ct), ciphertext).ShouldBeTrue("the scanned database must hold the ciphertext");
+        foreach (var file in files)
         {
             var bytes = await File.ReadAllBytesAsync(file, Ct);
             foreach (var form in ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored))
             {
-                Contains(bytes, Encoding.UTF8.GetBytes(form)).ShouldBeFalse($"{form} in {file}");
+                Contains(bytes, Encoding.UTF8.GetBytes(form)).ShouldBeFalse($"a search form of the sentinel in {file}");
             }
 
             Contains(bytes, Encoding.Unicode.GetBytes(ClaudeKeySentinels.Stored)).ShouldBeFalse(file);
