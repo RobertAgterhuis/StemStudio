@@ -1,7 +1,7 @@
 {
   "minLines": 6,
   "minTokens": 40,
-  "format": ["csharp", "python", "typescript", "tsx", "razor"],
+  "format": ["csharp", "python", "typescript", "tsx", "razor", "cpp"],
   "reporters": ["json"],
   "absolute": true,
   "silent": true,
@@ -23,6 +23,11 @@
     "**/wwwroot/js/audio-engine.js",
     "**/tools/quality/tests/samples/**",
     "**/stemstudio_worker/detail/vendor/**",
-    "**/stemstudio_worker/transcription/vendor/**"
+    "**/stemstudio_worker/transcription/vendor/**",
+    "**/third_party/soundtouch/upstream/**",
+    "**/third_party/soundtouch/build/**",
+    "**/wwwroot/js/time-stretch-processor.js",
+    "**/wwwroot/js/soundtouch/**",
+    "**/wwwroot/third-party/**"
   ]
 }

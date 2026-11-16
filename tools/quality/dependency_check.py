@@ -59,6 +59,17 @@ TypeScript packages (``src/<name>/package.json``, imports in their ``*.ts`` file
 
     web-interop -/- audio-engine   (feature 004: neither package imports the other)
     audio-engine/{transport, mixer} -/- audio-engine/karaoke   (feature 006, module level)
+    audio-engine/{transport, mixer, metronome, karaoke} -/- audio-engine/{practice, stretch}
+    audio-engine/practice -/- audio-engine/karaoke                (feature 012, module level)
+
+Worklet scope (feature 012, file level inside ``src/audio-engine/src/stretch/``)::
+
+    stretch/processor.ts -> stretch/{constants, params, fifo, abi, core} only (any import)
+    stretch/{constants, params, fifo, abi, core} value-import only each other
+
+    The AudioWorklet bundle ``time-stretch-processor.js`` is built from ``processor.ts`` and
+    must hold no DOM or engine code. ``import type``/``export type`` statements are erased by the
+    build, so the non-entry worklet modules may use them (``params`` reads ``PracticeSettings``).
 
     An import is an edge when its specifier is ``@stemstudio/<name>[/...]`` or a relative path
     that leaves the package into ``src/<name>/``; npm packages (``driver.js``) are not edges.
@@ -285,11 +296,43 @@ TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
 }
 """Allowed sibling packages per TypeScript package below ``src/`` (none: they are independent)."""
 
+_PRACTICE = frozenset({"audio-engine/practice", "audio-engine/stretch"})
+
 TS_MODULE_FORBIDDEN: Mapping[str, frozenset[str]] = {
-    "audio-engine/transport": frozenset({"audio-engine/karaoke"}),
-    "audio-engine/mixer": frozenset({"audio-engine/karaoke"}),
+    "audio-engine/transport": frozenset({"audio-engine/karaoke"}) | _PRACTICE,
+    "audio-engine/mixer": frozenset({"audio-engine/karaoke"}) | _PRACTICE,
+    "audio-engine/metronome": _PRACTICE,
+    "audio-engine/karaoke": _PRACTICE,
+    "audio-engine/practice": frozenset({"audio-engine/karaoke"}),
 }
-"""Forbidden module edges inside a TypeScript package (``<package>/<top-level module>``)."""
+"""Forbidden module edges inside a TypeScript package (``<package>/<top-level module>``).
+
+Feature 006: karaoke reads the transport clock, never the other way round. Feature 012: the
+practice controller drives transport, metronome and the stretch stage through narrow views, so
+none of them (nor karaoke) imports ``practice/`` or ``stretch/``; ``practice/`` never imports
+``karaoke/``.
+"""
+
+
+@dataclass(frozen=True, slots=True)
+class WorkletScope:
+    """Files of one folder that run in AudioWorklet scope (file-level allow-list)."""
+
+    package: str
+    folder: str
+    entry: str
+    modules: frozenset[str]
+
+
+TS_WORKLET = WorkletScope(
+    "audio-engine",
+    "stretch",
+    "processor",
+    frozenset({"processor", "constants", "params", "fifo", "abi", "core"}),
+)
+"""Feature 012 worklet scope: ``core`` (the WSOLA driver of audio-engine) joined the plan list."""
+
+_TYPE_ONLY = re.compile(r"\s*(?:import|export)\s+type\b")
 
 _TS_SUFFIXES = (".tsx", ".ts", ".js")
 
@@ -604,6 +647,62 @@ def _ts_module_edges(ts_file: Path, code: Path, package: str, root: Path) -> Ite
                 yield Edge(f"{package}/{source}", f"{package}/{target}", rel_path, line)
 
 
+def check_worklet(src_dir: Path, root: Path, scope: WorkletScope = TS_WORKLET) -> list[Finding]:
+    """Return an error for every import of a worklet file that leaves the worklet scope."""
+    folder = src_dir / scope.package / "src" / scope.folder
+    files = ((folder / f"{name}.ts", name) for name in sorted(scope.modules))
+    return [
+        finding
+        for path, name in files
+        if path.is_file()
+        for finding in _worklet_findings(path, name == scope.entry, scope, root)
+    ]
+
+
+def _worklet_findings(path: Path, strict: bool, scope: WorkletScope, root: Path) -> list[Finding]:
+    text = _TS_COMMENT.sub(_keep_newlines, path.read_text(encoding="utf-8"))
+    rel_path = relative(path, root)
+    return [
+        Finding("dependency", Severity.ERROR, rel_path, line, f"{_WORKLET} {path.name} {message}")
+        for line, message in _worklet_breaches(text, path, strict, scope.modules)
+    ]
+
+
+_WORKLET = "worklet scope:"
+
+
+def _worklet_breaches(
+    text: str, path: Path, strict: bool, modules: frozenset[str]
+) -> Iterator[tuple[int, str]]:
+    """(line, ``must not import <label>``) per import that leaves ``modules``."""
+    for match in _bundled_imports(text, strict):
+        inside, label = _worklet_target(match.group("spec"), path)
+        if not (inside and label in modules):
+            yield text.count("\n", 0, match.start()) + 1, f"must not import {label}"
+
+
+def _bundled_imports(text: str, strict: bool) -> Iterator[re.Match[str]]:
+    """Every import (``strict``) or only those the build keeps (no ``import type``)."""
+    return (m for m in _all_imports(text) if strict or not _TYPE_ONLY.match(m.group()))
+
+
+def _all_imports(text: str) -> Iterator[re.Match[str]]:
+    return (match for pattern in _TS_IMPORTS for match in pattern.finditer(text))
+
+
+def _worklet_target(spec: str, path: Path) -> tuple[bool, str]:
+    """(inside the worklet folder, module label) of an import specifier."""
+    if not spec.startswith("."):
+        return False, spec
+    target = (path.parent / spec).resolve()
+    folder, code = path.parent.resolve(), path.parent.parent.resolve()
+    base = folder if target.is_relative_to(folder) else code
+    label = target.relative_to(base).as_posix() if target.is_relative_to(base) else spec
+    for suffix in _TS_SUFFIXES:
+        label = label.removesuffix(suffix)
+    return base == folder, label
+
+
 def _ts_relative_module(spec: str, ts_file: Path, code: Path) -> str | None:
     """Top-level module a relative specifier points to (None: npm package or outside)."""
     if not spec.startswith("."):
@@ -781,14 +880,21 @@ def run(root: Path) -> list[Finding]:
     folder_edges = read_folder_edges(root / "src", root, folders)
     findings.extend(check_forbidden(folder_edges, DOTNET_FOLDER_FORBIDDEN))
     findings.extend(check_allowed(folder_edges, DOTNET_FOLDER_ALLOWED))
-    findings.extend(check_edges(read_ts_edges(root / "src", root), TS_ALLOWED))
-    module_edges = read_ts_module_edges(root / "src", root)
-    findings.extend(check_forbidden(module_edges, TS_MODULE_FORBIDDEN))
+    findings.extend(check_typescript(root))
     for package in PYTHON_PACKAGES:
         findings.extend(check_package(root, package))
     worker_dir = root / WORKER.path
     if worker_dir.is_dir():
         findings.extend(check_external(read_external_edges(worker_dir, root)))
+    return findings
+
+
+def check_typescript(root: Path) -> list[Finding]:
+    """Check the TypeScript packages: package edges, module edges and the worklet scope."""
+    src_dir = root / "src"
+    findings = check_edges(read_ts_edges(src_dir, root), TS_ALLOWED)
+    findings.extend(check_forbidden(read_ts_module_edges(src_dir, root), TS_MODULE_FORBIDDEN))
+    findings.extend(check_worklet(src_dir, root))
     return findings
 
 

@@ -4,9 +4,9 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 
 | Script | Checks | Fails (exit 1) on | Warns on |
 |---|---|---|---|
-| `sig_check.py` | lizard unit metrics on C#, Python, TypeScript and Razor `@code` | NLOC > 30 (production code), CCN > 10, > 4 parameters | NLOC > 15, CCN > 5, test units > 30 NLOC, `@code` block > 30 lines |
-| `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/`, `worker/src/` or `generator/src/` production code | clones only between test files; worker <-> generator production clones (cross-service) |
-| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, worker import graph, worker third-party imports (`notation`, `engraving`), generator import graph, worker <-> generator imports | forbidden edge, cycle | module or package not in the dependency map |
+| `sig_check.py` | lizard unit metrics on C#, Python, TypeScript, Razor `@code` and C++ (`.cpp`/`.h`, feature 012) | NLOC > 30 (production code), CCN > 10, > 4 parameters | NLOC > 15, CCN > 5, test units > 30 NLOC, `@code` block > 30 lines |
+| `duplication.py` | jscpd 5.4.2 via `npx`, config `.jscpd.json` (min 6 lines, 40 tokens) | any clone touching `src/`, `worker/src/`, `generator/src/` or `third_party/soundtouch/` production code | clones only between test files; worker <-> generator production clones (cross-service) |
+| `dependency_check.py` | .NET `ProjectReference` graph, .NET feature-folder namespace references, TS package imports (`src/*/package.json`), TS module imports inside a package, the AudioWorklet scope of `stretch/` (012), worker import graph, worker third-party imports (`notation`, `engraving`), generator import graph, worker <-> generator imports | forbidden edge, cycle | module or package not in the dependency map |
 | `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
 | `vendor_check.py` | licence records of every package below `detail/vendor/` and `transcription/vendor/` | a package without a `LICENSE`/`LICENCE`/`COPYING` file or without a `NOTICE` file | |
 | `secret_rules.py` | Claude key handling (011 follow-up claude-key): Data Protection namespace/entry points, `global using` and packages; `StemStudio.Api.Agent.Secrets` references; `record` declarations of `ClaudeApiKey`/`StoreClaudeKeyRequest`; log calls and `[LoggerMessage]` methods in `Api/Agent/Secrets/**` and `Agent/Backends/Claude*` | Data Protection outside `src/StemStudio.Api/Agent/Secrets/` (or any `global using` of it), the secrets namespace outside `StemStudio.Api`, a Data Protection package outside the API, a key value type declared as `record`, a log argument named `key`/`apiKey`, a `Reveal()` in a log argument, a `{Key}`/`{ApiKey}` placeholder | |
@@ -56,6 +56,26 @@ TypeScript module rule (feature 006, `TS_MODULE_FORBIDDEN`): inside `src/audio-e
 `karaoke/` through a relative specifier (static, type-only, `export ... from` or dynamic
 `import()`). `karaoke` may read the transport clock, `engine.ts`/`index.ts` compose it, and
 test files are not modules.
+
+Practice tempo (feature 012):
+
+- Module rules: `transport`, `mixer`, `metronome/` and `karaoke/` never import `practice/` or
+  `stretch/`; `practice/` never imports `karaoke/` (same matching as above, type-only included).
+- Worklet scope (`TS_WORKLET`, `check_worklet`): `stretch/processor.ts` (the entry of the
+  AudioWorklet bundle `time-stretch-processor.js`) imports only
+  `stretch/{constants,params,fifo,abi,core}`, type-only imports and npm packages included; those
+  modules value-import only each other (`import type` is erased by the build and may point
+  anywhere, e.g. `params.ts` -> `../types`). The message is
+  `worklet scope: <file> must not import <module>`.
+- C++: `.cpp` and `.h` files are measured with lizard like any other unit; `third_party` is a
+  default root and `third_party/soundtouch/` is production code (hard limits). Our ABI shim
+  `third_party/soundtouch/shim/` (audio-engine) and the header `include/` (architect) are measured;
+  the downloaded upstream source `third_party/soundtouch/upstream/` (SoundTouch 2.4.1, LGPL-2.1)
+  and the build output `third_party/soundtouch/build/` are excluded, as are the generated web
+  outputs `wwwroot/js/time-stretch-processor.js(.map)`, `wwwroot/js/soundtouch/` and
+  `wwwroot/third-party/` (same list in `.jscpd.json`, which also scans `cpp`, and in
+  `sonar.exclusions`/`sonar.cpd.exclusions`). Component rows: `audio-engine/stretch`,
+  `audio-engine/practice` (sub-rows of `audio-engine`) and `soundtouch shim`.
 
 Raw-colour guard (feature 004, FR-003): values are checked per declaration, so selectors (`#id`,
 `.red`), comments, strings, `url()` and custom-property names are ignored; `var()`,

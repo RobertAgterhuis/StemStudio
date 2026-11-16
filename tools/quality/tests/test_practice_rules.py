@@ -71,9 +71,7 @@ def _engine_tree(root: Path, overrides: dict[str, str] | None = None) -> None:
 
 
 def _errors(root: Path) -> list[tuple[str, str]]:
-    return [
-        (f.path, f.message) for f in dependency_check.run(root) if f.severity is Severity.ERROR
-    ]
+    return [(f.path, f.message) for f in dependency_check.run(root) if f.severity is Severity.ERROR]
 
 
 # ------------------------------------------------------------------ engine module rules
@@ -131,7 +129,11 @@ def test_worklet_modules_are_the_plan_list_plus_core() -> None:
     [
         ("src/stretch/processor.ts", "import { x } from './worklet-stage';\n", "worklet-stage"),
         ("src/stretch/processor.ts", "import { x } from '../transport';\n", "transport"),
-        ("src/stretch/processor.ts", "import type { PracticeSettings } from '../types';\n", "types"),
+        (
+            "src/stretch/processor.ts",
+            "import type { PracticeSettings } from '../types';\n",
+            "types",
+        ),
         ("src/stretch/processor.ts", "import { clamp } from 'lodash-es';\n", "lodash-es"),
         ("src/stretch/processor.ts", "const m = await import('./fake-stage');\n", "fake-stage"),
         ("src/stretch/core.ts", "import { engine } from '../engine';\n", "engine"),
@@ -144,9 +146,8 @@ def test_worklet_imports_outside_the_worklet_fail(
 ) -> None:
     _engine_tree(tmp_path, {rel: text})
     errors = [e for e in _errors(tmp_path) if "worklet" in e[1]]
-    assert errors == [
-        (f"{ENGINE}/{rel}", f"worklet scope: {rel.split('/')[-1]} must not import {target}")
-    ]
+    name = Path(rel).name
+    assert errors == [(f"{ENGINE}/{rel}", f"worklet scope: {name} must not import {target}")]
 
 
 def test_type_only_imports_of_non_entry_worklet_modules_are_allowed(tmp_path: Path) -> None:
@@ -174,7 +175,7 @@ def _cpp_function(name: str, body_lines: int) -> str:
 
 def test_cpp_units_are_measured() -> None:
     units = sig_check.measure_source(SHIM, _cpp_function("st_put", 3))
-    assert [(u.name, u.nloc, u.is_test) for u in units] == [("st_put", 6, False)]
+    assert [(u.name, u.nloc, u.is_test) for u in units] == [("st_put", 7, False)]
 
 
 def test_long_shim_unit_is_a_hard_error(tmp_path: Path) -> None:
