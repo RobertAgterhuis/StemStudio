@@ -2,7 +2,7 @@
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
 # (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
-# secret scan (no Claude key or key value in the repo, feature 011),
+# secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
 # quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list). The E2E run itself needs the compose stack (see README / CI).
 # Prints a summary; exits 1 when any step failed.
@@ -37,6 +37,10 @@ RENDER_VECTORS=specs/007-export-library/contracts/generate_render_vectors.py  # 
 GENERATIVE_CONTRACTS=(specs/009-style-transfer/contracts specs/010-lyrics-to-song/contracts)
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
 AGENT_CONTRACTS=specs/011-ai-composer-agent/contracts
+# 011 follow-up claude-key: full backend 1.21.0 (= 1.10.0 + claude-key delta.2) and the delta itself.
+CLAUDE_KEY_CONTRACTS=specs/011-ai-composer-agent/followups/claude-key/contracts
+SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py), quality-gate env
+KEY_CHECKS=(scripts/key_volume_checks.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
@@ -57,6 +61,16 @@ step() {
 uvw() { uv run --project worker --frozen "$@"; }
 # shellcheck disable=SC2329
 uvq() { uv run --frozen "$@"; }
+# shellcheck disable=SC2329
+uvk() { uv run --project tools/quality --frozen "$@"; }
+# Static key volume check (011 claude-key) for every compose combination CI validates.
+# shellcheck disable=SC2329
+key_volume_all() {
+  scripts/check-key-volume.sh &&
+    scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml &&
+    scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml &&
+    scripts/check-key-volume.sh -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml
+}
 
 step "dotnet tool restore" . dotnet tool restore
 step "dotnet build" . dotnet build StemStudio.slnx -c Release
@@ -91,6 +105,8 @@ for dir in "${GENERATIVE_CONTRACTS[@]}"; do
   step "contracts lint (${feature%%/*})" . npx --yes "$REDOCLY" lint --config "$dir/redocly.yaml"     "$dir/generator-api.openapi.yaml" "$dir/backend-api.openapi.yaml"
 done
 step "contracts lint (011-ai-composer-agent)" . npx --yes "$REDOCLY" lint --config "$AGENT_CONTRACTS/redocly.yaml"   "$AGENT_CONTRACTS/backend-api.openapi.yaml" "$AGENT_CONTRACTS/agent-api.openapi.yaml"
+step "contracts lint (011 claude-key)" . npx --yes "$REDOCLY" lint --config "$CLAUDE_KEY_CONTRACTS/redocly.yaml" \
+  "$CLAUDE_KEY_CONTRACTS/backend-api.openapi.yaml" "$CLAUDE_KEY_CONTRACTS/backend-api.claude-key.openapi.yaml"
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
@@ -98,6 +114,11 @@ step "quality ruff check" tools/quality uvq ruff check .
 step "quality ruff format" tools/quality uvq ruff format --check .
 step "quality mypy" tools/quality uvq mypy
 step "quality pytest + coverage" tools/quality uvq pytest --cov --cov-branch --cov-report=term
+step "key volume checks ruff check" . uvk ruff check --config "$SCRIPTS_CFG" "${KEY_CHECKS[@]}"
+step "key volume checks ruff format" . uvk ruff format --config "$SCRIPTS_CFG" --check "${KEY_CHECKS[@]}"
+step "key volume checks mypy" . uvk mypy --config-file "$SCRIPTS_CFG" "${KEY_CHECKS[@]}"
+step "key volume checks pytest + coverage" . uvk pytest -c "$SCRIPTS_CFG" --cov --cov-branch --cov-config="$SCRIPTS_CFG" --cov-report=term scripts/tests
+step "key volume check (compose config, all combinations)" . key_volume_all
 step "quality gate (run_all)" . uv run --project tools/quality --frozen python tools/quality/run_all.py
 step "docs manuals up to date" . node tools/docs/check.mjs
 step "site npm ci (tools/docs markdown-it)" tools/docs npm ci --no-audit --no-fund
