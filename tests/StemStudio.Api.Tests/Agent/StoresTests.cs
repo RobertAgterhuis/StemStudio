@@ -1,8 +1,10 @@
+using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Stores;
 using StemStudio.Api.Tests.TestSupport;
+using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Tests.Agent;
@@ -191,6 +193,19 @@ public sealed class StoresTests : ApiTestBase
         var loaded = await settings.GetAsync(Ct);
 
         (loaded.Backend, loaded.OllamaModel).ShouldBe((AgentBackendDto.Fake, "qwen3.5:4b"));
+    }
+
+    [Fact]
+    public async Task UnderTheFakeEnvironment_TheSettingsEndpointsReadAndWriteTheStoredChoice()
+    {
+        using var factory = new ApiFactory { Settings = new Dictionary<string, string?> { ["StemStudio:Agent:Backend"] = "fake" } };
+        using var client = factory.CreateClient();
+
+        using var put = await client.PutAsJsonAsync(ApiRoutes.AgentSettings, new { backend = "none" }, Ct);
+        var stored = await (await client.GetAsync(ApiRoutes.AgentSettings, Ct)).BodyAsync<AgentSettingsDto>();
+
+        (put.StatusCode, stored.Backend).ShouldBe((System.Net.HttpStatusCode.OK, AgentBackendDto.None));
+        (await factory.Services.GetRequiredService<IAgentSettingsStore>().GetAsync(Ct)).Backend.ShouldBe(AgentBackendDto.Fake);
     }
 
     [Fact]
