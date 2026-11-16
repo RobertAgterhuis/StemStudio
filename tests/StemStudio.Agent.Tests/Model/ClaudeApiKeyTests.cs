@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using StemStudio.Agent.Model;
+using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
 using StemStudio.TestDoubles.ClaudeKey;
 
@@ -122,6 +124,26 @@ public sealed class ClaudeApiKeyTests
             {
                 text.ShouldNotContain(form);
             }
+        }
+    }
+
+    // R12 (quality-gate): JSON serialisation of the key and of the records that hold it never writes the value, so a future public
+    // value property (or a record logged as JSON) is caught.
+    [Fact]
+    public void JsonSerialisation_NeverWritesTheValue()
+    {
+        var key = ClaudeApiKey.Parse(ClaudeKeySentinels.Stored).Key!;
+        var resolution = new ClaudeKeyResolution
+        {
+            Key = key, Source = ClaudeKeySourceDto.Stored, State = ClaudeKeyStateDto.Stored, LastFour = "STO1",
+            Stored = StoredClaudeKeyStateDto.Readable, StoreAvailable = true,
+        };
+        var stored = new StoredClaudeKey { State = StoredClaudeKeyStateDto.Readable, Key = key, LastFour = "STO1", StoreAvailable = true };
+
+        foreach (var json in new[] { JsonSerializer.Serialize(key), JsonSerializer.Serialize(resolution), JsonSerializer.Serialize(stored), JsonSerializer.Serialize(new SelectedClaudeKey(key, ClaudeKeySourceDto.Stored)) })
+        {
+            json.ShouldContain("STO1");
+            ClaudeKeySentinels.SearchForms(ClaudeKeySentinels.Stored).ShouldAllBe(form => !json.Contains(form, StringComparison.Ordinal));
         }
     }
 
