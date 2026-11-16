@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Agent;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Gpu;
@@ -37,6 +38,8 @@ public static class AgentRegistration
         services.AddScoped<AgentRunEndpointService>();
         services.AddScoped<AgentApprovalService>();
         services.AddSingleton<AgentStatusProbe>();
+        services.AddScoped<AgentSettingsService>();
+        services.TryAddSingleton<IEnvironmentReader, ProcessEnvironmentReader>();
         services.AddLoopbackActions(configuration);
         services.AddGpuCoordination();
         services.DecorateWorkerClient();

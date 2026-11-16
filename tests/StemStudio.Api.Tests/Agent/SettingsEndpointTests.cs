@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using StemStudio.Agent.Ports;
+using NSubstitute.ExceptionExtensions;
+using StemStudio.Api.Agent;
 using StemStudio.Api.Tests.Contract;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
@@ -126,6 +126,40 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
     }
 
     [Fact]
+    public async Task Test_AFailingProbeIsNotOkWithAFixedDetail()
+    {
+        StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("http://internal:11434 refused"));
+
+        using var response = await Client.PostAsJsonAsync(ApiRoutes.AgentSettingsTest, new { backend = "ollama" }, Ct);
+
+        await ContractAssert.MatchesAsync(response, "testAgentBackend");
+        var result = await response.BodyAsync<BackendTestResultDto>();
+        (result.Ok, result.Detail).ShouldBe((false, AgentStatusProbe.FailureReason));
+    }
+
+    [Fact]
+    public async Task Put_LimitsStayEditableWithClaudeAfterTheKeyWasRemoved()
+    {
+        UseKey(SentinelKey);
+        using var claude = await PutAsync(new { backend = "claude", acknowledgeClaudeNotice = true });
+        UseKey(null);
+
+        using var limits = await PutAsync(new { limits = AgentLimitsDto.Default with { MaxToolCalls = 7 } });
+        using var again = await PutAsync(new { backend = "claude" });
+
+        (await limits.BodyAsync<AgentSettingsDto>()).Limits.MaxToolCalls.ShouldBe(7);
+        again.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Put_TrimsModelNames()
+    {
+        using var response = await PutAsync(new { ollamaFallbackModel = "  qwen3.5:9b  " });
+
+        (await response.BodyAsync<AgentSettingsDto>()).OllamaFallbackModel.ShouldBe("qwen3.5:9b");
+    }
+
+    [Fact]
     public async Task TheKey_NeverAppearsInResponsesLogsOrTheDatabase()
     {
         UseKey(SentinelKey);
@@ -154,11 +188,7 @@ public sealed class SettingsEndpointTests : AgentApiTestBase
         System.Text.Encoding.UTF8.GetString(database).ShouldNotContain("SENTINEL");
     }
 
-    private void UseKey(string key)
-    {
-        var environment = Service<IEnvironmentReader>();
-        environment.GetVariable("ANTHROPIC_API_KEY").Returns(key);
-    }
+    private void UseKey(string? key) => Environment.GetVariable("ANTHROPIC_API_KEY").Returns(key);
 
     private Task<HttpResponseMessage> PutAsync(object body) => Client.PutAsJsonAsync(ApiRoutes.AgentSettings, body, Ct);
 }

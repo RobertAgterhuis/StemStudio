@@ -27,7 +27,19 @@ public static class AgentEndpoints
         app.MapGet(ApiRoutes.AgentStatus, async (AgentStatusProbe probe, CancellationToken ct) => TypedResults.Ok(await probe.GetAsync(ct)))
             .WithName("getAgentStatus").WithTags(Tag).Produces<AgentStatusDto>();
         app.MapGet(ApiRoutes.AgentTools, ListTools).WithName("listAgentTools").WithTags(Tag).Produces<List<AgentToolInfoDto>>().ProducesValidationProblem();
-        return app.MapConversationEndpoints().MapRunEndpoints();
+        return app.MapSettingsEndpoints().MapConversationEndpoints().MapRunEndpoints();
+    }
+
+    private static IEndpointRouteBuilder MapSettingsEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(ApiRoutes.AgentSettings, (AgentSettingsService service, CancellationToken ct) => service.GetAsync(ct))
+            .WithName("getAgentSettings").WithTags(Tag).Produces<AgentSettingsDto>();
+        app.MapPut(ApiRoutes.AgentSettings, (UpdateAgentSettingsRequest? request, AgentSettingsService service, CancellationToken ct) => service.UpdateAsync(request, ct))
+            .WithName("updateAgentSettings").WithTags(Tag).Produces<AgentSettingsDto>().ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        app.MapPost(ApiRoutes.AgentSettingsTest, (TestAgentBackendRequest? request, AgentSettingsService service, CancellationToken ct) => service.TestAsync(request, ct))
+            .WithName("testAgentBackend").WithTags(Tag).Produces<BackendTestResultDto>().ProducesValidationProblem();
+        return app;
     }
 
     private static IEndpointRouteBuilder MapConversationEndpoints(this IEndpointRouteBuilder app)

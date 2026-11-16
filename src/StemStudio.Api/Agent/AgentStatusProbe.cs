@@ -47,6 +47,30 @@ public sealed class AgentStatusProbe(IServiceProvider services, IAgentSettingsSt
         }
     }
 
+    /// <summary>
+    /// Tests one backend on the user's explicit request (<c>POST /api/agent/settings/test</c>). Not capped at 3 s (a model may
+    /// need to load), but a failing or missing agent library yields <c>ok: false</c> with a fixed detail, never an exception text.
+    /// </summary>
+    /// <param name="backend">ollama or claude.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The test result.</returns>
+    public async Task<BackendTestResultDto> TestAsync(AgentBackendDto backend, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (services.GetService<IAgentStatusService>() is { } status)
+            {
+                return await status.TestAsync(backend, cancellationToken);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            // Falls through to the fixed failure result.
+        }
+
+        return new BackendTestResultDto { Backend = backend, Ok = false, LatencyMs = 0, Detail = FailureReason };
+    }
+
     /// <summary>503 <c>backend-unavailable</c> with the status, or null when the agent is ready.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The problem, or null.</returns>
