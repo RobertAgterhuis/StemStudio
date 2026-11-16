@@ -1,4 +1,4 @@
-# ADR-0211: Practice partner part generation with ACE-Step 1.5 base (feature 021, C9)
+# ADR-025: Practice partner part generation with ACE-Step 1.5 base (feature 021, C9)
 
 - **Status**: Proposed (architect, 2026-11-16; becomes Accepted when the CTO approves the 021 plan;
   the Phase 0 spike S-01 may amend D3 values).

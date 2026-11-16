@@ -26,7 +26,7 @@ info:
       `STEMSTUDIO_GENERATION`, `STEMSTUDIO_PART_FAMILY`).
     * Changelog: 1.12.0-delta.1 (additive, feature 021) - `POST /v1/conform-jobs`,
       `GET /v1/conform-jobs/{conformJobId}`, `GET /v1/conform-jobs/{conformJobId}/file`; two
-      allow-list patterns. See ADR-0211 D4.
+      allow-list patterns. See ADR-025 D4.
   license:
     name: MIT
     identifier: MIT

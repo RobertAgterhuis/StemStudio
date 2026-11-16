@@ -45,7 +45,7 @@ Findings:
   `task_type="lego"` with a `track_name` is **[to measure] S-01**; if not, the pin moves to the
   first commit that does (MIT, same lock rules).
 
-Decision: ACE-Step 1.5 base + lego (ADR-0211 D1). Output handling: S-01 also verifies whether the
+Decision: ACE-Step 1.5 base + lego (ADR-025 D1). Output handling: S-01 also verifies whether the
 lego output is the generated track alone or the full mix; if it is the mix, the engine runs a
 second step `extract` with the same track name on the result (also base-only, same loaded model).
 
@@ -60,7 +60,7 @@ second step `extract` with the same track name on the result (also base-only, sa
 | Stable Audio Open 1.0 | text to audio, up to 47 s | Stability AI Community Licence (not OSI; weights) | no audio context; loops and sounds rather than parts | rejected |
 | YuE / SongBloom | full songs with vocals | YuE CC BY-NC weights (ADR-018) | no part generation | rejected |
 | Anticipatory Music Transformer (symbolic) + SoundFont rendering | MIDI accompaniment infilling, rendered with FluidSynth | Apache-2.0 / Apache-2.0; FluidSynth LGPL-2.1 | CPU-capable, deterministic, but needs MIDI of the song (008 transcription quality) and sounds like a General MIDI synth | backlog ("CPU partner"), not 021 |
-| Rule-based pattern partner (own code) | bass/drum/comping patterns from chords + beat grid, rendered by a small sampler | own MIT code + CC0 samples | CPU-only, predictable; not "AI", limited musically | backlog idea; recorded in ADR-0211 alternatives |
+| Rule-based pattern partner (own code) | bass/drum/comping patterns from chords + beat grid, rendered by a small sampler | own MIT code + CC0 samples | CPU-only, predictable; not "AI", limited musically | backlog idea; recorded in ADR-025 alternatives |
 
 Conclusion: only ACE-Step base offers audio-context-conditioned single-part generation for every
 family under licences that fit constitution IV without a new image.
@@ -142,7 +142,7 @@ Sources: <https://github.com/sdatkinson/NeuralAmpModelerCore> (MIT), NAM model f
   **no SharedArrayBuffer and no COOP/COEP headers** are needed; 64 MB initial WASM heap, 512 MB
   max. The npm package (3.0.7) exports `./engine`, `nam-worklet.js` and `nam-engine.wasm`, but has
   runtime dependencies `lucide-react`, `react-knob-headless` and peer dependencies React 18.
-- Decision (ADR-0212 D2): StemStudio does **not** add the npm package (React runtime dependencies
+- Decision (ADR-030 D2): StemStudio does **not** add the npm package (React runtime dependencies
   in a framework-free engine; its release cadence of 9 versions in 4 days in October 2026 is a
   stability risk). It builds the NeuralAmpModelerCore at a pinned commit with a pinned Emscripten
   (`emscripten/emsdk` image) and its own ~100-line C shim (`nam_create`, `nam_process`,
@@ -210,7 +210,7 @@ NAM-ADS-v1.
   model keeps its original licence.
 - No well-known collection of captures under CC0 or CC BY with per-file attribution was found.
 
-Consequences (ADR-0212 D4): captures are model weights under ADR-009; the curated catalogue admits
+Consequences (ADR-030 D4): captures are model weights under ADR-009; the curated catalogue admits
 only entries that (1) can be downloaded anonymously over HTTPS from a stable URL, (2) state a
 licence for **that file** (CC0, CC BY, CC BY-SA, MIT, Apache-2.0, GPL as data, CC BY-NC*, or
 "no licence stated" per ADR-009 rule 4 only when nothing forbids local use), (3) get a recorded
@@ -266,7 +266,7 @@ Sources: <https://github.com/bitwig/dawproject> README, `Project.xsd`, `MetaData
   Threshold, InputGain, OutputGain, AutoMakeup), `NoiseGate`, `Limiter`. There is **no built-in
   reverb**.
 - The README lists no audio formats; the examples use WAV. Decision: WAV default, FLAC optional
-  with a warning (ADR-0213 D4).
+  with a warning (ADR-034 D4).
 
 ### R-13 DAW support
 
@@ -316,7 +316,7 @@ lists the result.
 
 | Id | Question | Owner | Result feeds |
 |---|---|---|---|
-| S-01 | ACE-Step base lego at the pinned commit: task string, track names, output = track or mix, NVML peak (standard and offload), time for 30/60/180 s, checkpoint size + SHA-256, DiT switch time turbo <-> base | generative + architect | `profiles.py` needs, `WeightsPin`, ADR-0211 Phase 0 outcome, SC-001 |
+| S-01 | ACE-Step base lego at the pinned commit: task string, track names, output = track or mix, NVML peak (standard and offload), time for 30/60/180 s, checkpoint size + SHA-256, DiT switch time turbo <-> base | generative + architect | `profiles.py` needs, `WeightsPin`, ADR-025 Phase 0 outcome, SC-001 |
 | S-02 | Chord text in the caption: chord agreement with/without on 3 songs x bass/keys/guitar | generative | `PartnerCaptionBuilder` flag |
 | S-03 | NAM WASM build: size, `process()` p50/p99 for nano/feather/lite/standard WaveNet and LSTM at 44.1 kHz with the resampler, resampler latency | audio-engine | SC-004, "heavy" marking rule |
 | S-04 | Catalogue curation: licence evidence per entry | architect | `amp-catalogue.v1.json`, THIRD-PARTY-LICENSES |

@@ -14,7 +14,7 @@
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain (all answered in Clarifications, ADR-0211..0213)
+- [x] No [NEEDS CLARIFICATION] markers remain (all answered in Clarifications, ADR-025..0213)
 - [x] Requirements are testable and unambiguous (limits given: 8 min, 250 ms, 16 MiB, 2 s, 30 ms)
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic where possible (SC-004/SC-005 name the budget and

@@ -7,7 +7,7 @@ description: "Task list for feature 021 practice partner and studio bridge (Phas
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [contracts/DELTA.md](contracts/DELTA.md),
-constitution 1.3.1, ADR-0211, ADR-0212, ADR-0213, the merged 009/010/014/015/016/017/019 artefacts.
+constitution 1.3.1, ADR-025, ADR-030, ADR-034, the merged 009/010/014/015/016/017/019 artefacts.
 
 **Tests**: REQUIRED (constitution I). Every implementation task follows its failing-test task
 (red -> green -> refactor), >= 90 % line AND branch per component. Nothing in CI needs a GPU, an
@@ -50,14 +50,14 @@ test and coverage output.
 - [ ] T001 [architect] Merge the three OpenAPI deltas into full documents in `specs/021-partner-studio-bridge/contracts/`: `backend-api.openapi.yaml` 1.20.0 (on 020's 1.19.0; enum/member additions of DELTA.md 1; reconcile the 015 take path and take channel id), `worker-api.openapi.yaml` 1.12.0 (on 1.11.0), `generator-api.openapi.yaml` 1.2.0 (on 010's 1.1.0); external `$ref`s become local; Redocly lint 0 errors
 - [ ] T002 [P] [architect] `contracts/audio-engine.md` 2.9.0 (full document = 2.8.0 + delta) and `src/audio-engine/src/types.ts` additions (`EngineContractVersion '2.9.0'`, `PartChannelId`, `PartSource`, `RigSettings`, `AmpProfileInfo`, `RigStatus`, method signatures, `OnRigStatus`); type-level tests (`tsc --noEmit`)
 - [ ] T003 [P] [architect] Merge `ui-test-ids.delta.md` into the full `ui-test-ids.md` 1.20.0; feature catalogue ids in the 004 design-spec catalogue resource
-- [ ] T004 [architect] S-04 catalogue curation: select 6-10 captures (guitar clean/crunch/high gain/overdrive pedal, bass clean/drive) meeting ADR-0212 D4 with `licenceEvidence`; write `src/StemStudio.Domain/Amp/catalogue.v1.json` (validates against `amp-catalogue.schema.json`); list entries for THIRD-PARTY-LICENSES in the hand-off; fewer entries are acceptable and recorded (FR-017)
+- [ ] T004 [architect] S-04 catalogue curation: select 6-10 captures (guitar clean/crunch/high gain/overdrive pedal, bass clean/drive) meeting ADR-030 D4 with `licenceEvidence`; write `src/StemStudio.Domain/Amp/catalogue.v1.json` (validates against `amp-catalogue.schema.json`); list entries for THIRD-PARTY-LICENSES in the hand-off; fewer entries are acceptable and recorded (FR-017)
 - [ ] T005 [P] [architect] Vendor DAWproject 1.0 `Project.xsd`, `MetaData.xsd` and `LICENSE` (pinned commit + SHA-256) as embedded resources `src/StemStudio.Domain/DawProject/Schemas/`; skeleton test compiles them into an `XmlSchemaSet` (FR-025)
 - [ ] T006 [P] [architect] .NET contract code: `src/StemStudio.Contracts/{Partner,Amp,DawExport}/*` DTOs, enum additions (`GenerationKind.Partner`, `AssetKind.DawProject`, `AssetOrigin.DawExport`, `AssetFileRole.Dawproject/Report`), `ApiRoutes`, `ContractLimits` (data-model 5); serialisation tests against the OpenAPI examples
 - [ ] T007 [P] [architect] Generator skeleton: `schemas.py` (`kind: partner`, `PartnerParams`, `AceStepTrackName`, `ModelId` + `acestep-v15-base`, `GeneratedTake.track`), `ports.py` (`LEGO_BASE`, `LEGO_BASE_LOWMEM`, `PARTNER_NEEDS`, `ACESTEP_BASE_WEIGHTS` pin, `MusicEngine.partner`, `EnginePartner`), `config.py` (`STEMSTUDIO_FAKE_PART_OFFSET_MS`, fake mode `quiet-part`); skeleton tests; contract subset test (1.2.0 superset of 1.1.0)
 - [ ] T008 [P] [architect] Worker skeleton: conform request/result schemas, `library_paths` parts pattern, ports `PartFitAnalyzer`, `PartConformWriter`; skeleton tests
-- [ ] T009 [architect] S-01 spike with the generative agent on the reference machine: lego task string and track names at the pinned ACE-Step commit (move the pin if needed), lego output = track or mix (extract fallback decision), NVML peaks standard/offload, timings 30/60/180 s, DiT swap time, base checkpoint revision + SHA-256; update `ports.py` needs and pins, research.md S-01, ADR-0211 "Phase 0 outcome"
-- [ ] T010 [P] [architect] NAM shim contract `tools/nam-wasm/nam_shim.h` (C API of ADR-0212 D2 with doc comments), `tools/nam-wasm/Dockerfile` (pinned `emscripten/emsdk` tag), `build.sh` skeleton, `src/audio-engine/vendor/nam/PROVENANCE.md` template
-- [ ] T011 [architect] Verify the skeleton: `dotnet build` 0 warnings, all tests + coverage gates, ruff/mypy strict, eslint/tsc, `tools/quality` run; ADR-0211/0212/0213 -> Accepted
+- [ ] T009 [architect] S-01 spike with the generative agent on the reference machine: lego task string and track names at the pinned ACE-Step commit (move the pin if needed), lego output = track or mix (extract fallback decision), NVML peaks standard/offload, timings 30/60/180 s, DiT swap time, base checkpoint revision + SHA-256; update `ports.py` needs and pins, research.md S-01, ADR-025 "Phase 0 outcome"
+- [ ] T010 [P] [architect] NAM shim contract `tools/nam-wasm/nam_shim.h` (C API of ADR-030 D2 with doc comments), `tools/nam-wasm/Dockerfile` (pinned `emscripten/emsdk` tag), `build.sh` skeleton, `src/audio-engine/vendor/nam/PROVENANCE.md` template
+- [ ] T011 [architect] Verify the skeleton: `dotnet build` 0 warnings, all tests + coverage gates, ruff/mypy strict, eslint/tsc, `tools/quality` run; ADR-025/0212/0213 -> Accepted
 - [ ] T012 [architect] Hand-off `docs/handoffs/architect-021-phase0.md` (contracts, lint output, spikes, dependencies + licences)
 
 **Checkpoint**: skeleton green; wave may start.

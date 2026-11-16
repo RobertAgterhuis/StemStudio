@@ -22,10 +22,10 @@ info:
       `application/vnd.dawproject+zip`, `application/json`; `Provenance` gains `dawExport`
       (`DawExportProvenance` or null); `ChannelId` pattern gains the alternative `part-[0-9a-f]{8}`;
       015 `Take` gains `wet` (`TakeWet` or null) and `playWet`.
-    * AI labels: every partner take and part has `aiGenerated: true` (ADR-0211 D6).
+    * AI labels: every partner take and part has `aiGenerated: true` (ADR-025 D6).
     * Changelog: 1.20.0-delta.1 (additive, feature 021 design) - partner context, partner
       generations, parts (strips), fit reports; amp catalogue, profiles, cabinet IRs, rig presets,
-      wet takes; DAWproject export. See ADR-0211, ADR-0212, ADR-0213 and contracts/DELTA.md.
+      wet takes; DAWproject export. See ADR-025, ADR-030, ADR-034 and contracts/DELTA.md.
   license:
     name: MIT
     identifier: MIT

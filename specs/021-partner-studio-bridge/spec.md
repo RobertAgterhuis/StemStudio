@@ -21,7 +21,7 @@ depends on 009/010 (generative stack), 015 (play-along recording), 017 (mixer ef
 
 Answered by the architect from the MoSCoW entries, the constitution (1.3.1), ADR-009, ADR-016,
 ADR-018, ADR-019 and the research in [research.md](research.md). No question was left for the
-owner; every decision is recorded in ADR-0211, ADR-0212 and ADR-0213.
+owner; every decision is recorded in ADR-025, ADR-030 and ADR-034.
 
 - Q: Which model generates a single part that fits the song? -> A: ACE-Step 1.5 **base** DiT
   (`acestep-v15-base`, MIT code and weights) with its **lego** task: it generates one named track
@@ -51,7 +51,7 @@ owner; every decision is recorded in ADR-0211, ADR-0212 and ADR-0213.
 - Q: Which amp profiles ship? -> A: four built-in basic amps written by StemStudio (guitar clean,
   crunch, lead; bass drive) that need no download, plus a curated catalogue of NAM captures that
   are **downloaded on request** (never committed), each with its own recorded licence, source and
-  SHA-256 (admission rules in ADR-0212). Users can add their own `.nam` files and cabinet impulse
+  SHA-256 (admission rules in ADR-030). Users can add their own `.nam` files and cabinet impulse
   responses (WAV).
 - Q: Is the dry signal kept when recording? -> A: yes. With the amp on, a 015 take stores the dry
   (DI) signal and the processed (wet) signal; the take plays the wet file by default and can be
@@ -447,5 +447,5 @@ section 9; every new screen has a help link that opens the right topic.
 - Browser audio on Windows (WASAPI shared mode) typically gives 15-40 ms round-trip latency; ASIO
   is not reachable from a browser. This limit is stated in help (constitution V).
 - Capture profiles are model weights under ADR-009; the catalogue admits only entries whose
-  licence is recorded per entry (ADR-0212).
+  licence is recorded per entry (ADR-030).
 - DAWproject 1.0 is stable (bitwig/dawproject, MIT); the XSD files are vendored with their licence.

@@ -86,7 +86,7 @@ Automated: `e2e/tests/amp.spec.ts`.
    Studio One.
 2. Check and note: tracks and names, audio aligned to bars (grid lines on the downbeats), markers,
    tempo map, arrangement clips, EQ/compressor devices, mute/solo, AI comment.
-3. Record the result in the help topic `daw-compatibility` and in ADR-0213 Phase 0 outcome.
+3. Record the result in the help topic `daw-compatibility` and in ADR-034 Phase 0 outcome.
 
 ## Q10 CPU-only machine (SC-008)
 

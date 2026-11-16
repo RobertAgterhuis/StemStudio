@@ -190,7 +190,7 @@ JSON Schema: [contracts/amp-catalogue.schema.json](contracts/amp-catalogue.schem
 `modeledBy` (creator), `licence` (SPDX id or exact licence name), `licenceUrl`, `attribution`
 (text to show), `sourceUrl` (page), `downloadUrl` (HTTPS, host in `allowedHosts`), `sha256`,
 `sizeBytes`, `sampleRate`, `notes`. Top level: `version: 1`, `reviewed` (date), `allowedHosts`.
-Admission rules in ADR-0212 D4; the catalogue file and `docs/THIRD-PARTY-LICENSES.md` are updated
+Admission rules in ADR-030 D4; the catalogue file and `docs/THIRD-PARTY-LICENSES.md` are updated
 together. Installing: the API downloads `downloadUrl` (no redirects to other hosts, 30 s timeout,
 at most `sizeBytes` + 1 byte), checks SHA-256, validates the file (3.1) and stores the profile.
 

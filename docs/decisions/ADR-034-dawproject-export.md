@@ -1,8 +1,8 @@
-# ADR-0213: DAW export as DAWproject 1.0 in the asset library (feature 021, C11)
+# ADR-034: DAW export as DAWproject 1.0 in the asset library (feature 021, C11)
 
 - **Status**: Proposed (architect, 2026-11-16; Accepted with the 021 plan; S-05 adds the observed
   DAW behaviour).
-- **Numbering**: feature-scoped, see ADR-0211.
+- **Numbering**: feature-scoped, see ADR-025.
 - **Context documents**: `specs/021-partner-studio-bridge/{spec.md, research.md (R-12..R-15),
   data-model.md 4, contracts/dawproject-mapping.md}`, ADR-016 (asset library, render in the
   worker), the 014 (sections), 017 (effects) and 019 (arrangement) designs.

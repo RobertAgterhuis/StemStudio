@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stemstudio.local/schemas/amp-catalogue.v1.json",
-  "title": "StemStudio amp capture catalogue v1 (feature 021, ADR-0212 D4)",
+  "title": "StemStudio amp capture catalogue v1 (feature 021, ADR-030 D4)",
   "description": "Curated NAM captures downloaded on request. Embedded as StemStudio.Domain/Amp/catalogue.v1.json. Every entry must also appear in docs/THIRD-PARTY-LICENSES.md with the same licence, URL and SHA-256.",
   "type": "object",
   "additionalProperties": false,

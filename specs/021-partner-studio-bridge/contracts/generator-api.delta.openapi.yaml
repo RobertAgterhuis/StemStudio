@@ -37,7 +37,7 @@ info:
       exercised; fake mode `quiet-part` returns a -60 dBFS part.
     * Changelog: 1.2.0-delta.1 (additive, feature 021) - `kind: partner`, multipart part
       `context`, `PartnerParams`, `ModelId` + `acestep-v15-base`, `GeneratedTake.track`,
-      `GeneratorHealth.kinds` may contain `partner`. See ADR-0211.
+      `GeneratorHealth.kinds` may contain `partner`. See ADR-025.
   license:
     name: MIT
     identifier: MIT

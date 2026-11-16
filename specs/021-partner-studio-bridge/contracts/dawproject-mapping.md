@@ -1,7 +1,7 @@
 # Contract: StemStudio -> DAWproject 1.0 mapping (v1.0.0, feature 021)
 
 Binding for the backend (`DawProjectBuilder`, `DawExportService`) and for qa's golden files.
-Rationale: ADR-0213, research R-12..R-15. Schema: DAWproject 1.0 `Project.xsd` / `MetaData.xsd`
+Rationale: ADR-034, research R-12..R-15. Schema: DAWproject 1.0 `Project.xsd` / `MetaData.xsd`
 (bitwig/dawproject, MIT), vendored in `src/StemStudio.Domain/DawProject/Schemas/` (Phase 0 T005).
 
 ## 1. Package
