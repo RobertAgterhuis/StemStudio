@@ -189,6 +189,7 @@ export class PracticeController implements TransportListener {
     } else {
       this.active?.reset();
     }
+    this.host.changed();
   }
 
   /** {@inheritDoc TransportListener.onReposition} */
