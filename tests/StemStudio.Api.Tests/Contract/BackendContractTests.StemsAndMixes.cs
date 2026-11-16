@@ -136,7 +136,9 @@ public sealed partial class BackendContractTests
     // Feature 011 (backend 1.10.0, staged in the 011 Phase 0 part 2): the backend removes each id when it serves it -
     // T032 (conversations, messages, runs, events, tools, UI results, cancel), T045 (approvals), T054 (status),
     // T060 (settings, test), T070 (undo, rename, delete).
-    private static readonly string[] PendingAgentOperations = [];
+    // 011 follow-up claude-key (backend 1.21.0, staged in its Phase 0, T002): the backend removes each id when it serves it -
+    // getClaudeKeyStatus and storeClaudeKey in T024, deleteClaudeKey in T033.
+    private static readonly string[] PendingAgentOperations = ["getClaudeKeyStatus", "storeClaudeKey", "deleteClaudeKey"];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

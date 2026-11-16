@@ -17,6 +17,9 @@ public static partial class ApiRoutes
     /// <summary>POST: connection test of a backend.</summary>
     public const string AgentSettingsTest = AgentSettings + "/test";
 
+    /// <summary>GET (status) / PUT (store, local-only) / DELETE (local-only) the Claude key (1.21.0, write-only).</summary>
+    public const string AgentClaudeKey = AgentSettings + "/claude-key";
+
     /// <summary>GET: registry view of the tools.</summary>
     public const string AgentTools = Agent + "/tools";
 

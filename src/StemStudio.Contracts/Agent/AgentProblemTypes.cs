@@ -6,7 +6,7 @@ public static class AgentProblemTypes
     /// <summary>Base URI of every problem type.</summary>
     public const string BaseUri = "https://stemstudio.local/problems/";
 
-    /// <summary>409: Claude selected but ANTHROPIC_API_KEY is not set.</summary>
+    /// <summary>409: Claude selected but no usable key is available (environment variable or, 1.21.0, a readable stored key).</summary>
     public const string ClaudeNotConfigured = "claude-not-configured";
 
     /// <summary>422: Claude selected before the paid-service notice was acknowledged.</summary>
@@ -35,6 +35,18 @@ public static class AgentProblemTypes
 
     /// <summary>409: the run already ended (cancel of a terminal run).</summary>
     public const string RunEnded = "run-ended";
+
+    /// <summary>422 (1.21.0): the value is not a well-formed Claude API key; extension <c>reason</c> (<see cref="ClaudeKeyInvalidReasons"/>).</summary>
+    public const string ClaudeKeyInvalid = "claude-key-invalid";
+
+    /// <summary>400 (1.21.0): the key body is not a JSON object with <c>apiKey</c>; fixed text, never quotes the body.</summary>
+    public const string InvalidBody = "invalid-body";
+
+    /// <summary>403 (1.21.0): key entry or the Claude key test from somewhere other than the computer StemStudio runs on.</summary>
+    public const string LocalOnly = "local-only";
+
+    /// <summary>503 (1.21.0): the key ring directory is missing, not writable or misplaced; the environment variable still works.</summary>
+    public const string KeyStoreUnavailable = "key-store-unavailable";
 
     /// <summary>The full <c>type</c> URI of a problem code.</summary>
     /// <param name="code">A code of this class.</param>

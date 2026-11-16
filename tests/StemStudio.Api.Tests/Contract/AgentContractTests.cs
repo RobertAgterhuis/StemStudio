@@ -7,10 +7,11 @@ using static StemStudio.Api.Tests.Contract.ContractJson;
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Skeleton tests (architect, feature 011 Phase 0, T003/T005): the agent DTOs and routes against backend-api 1.10.0
-/// (<c>specs/011-ai-composer-agent/contracts/backend-api.openapi.yaml</c>), and the merge rule: 1.10.0 contains 010's 1.9.0
-/// unchanged and the standalone delta <c>agent-api.openapi.yaml</c> (1.10.0-delta.1) unchanged, except the four components the
-/// delta shares with 1.9.0, which keep their 1.9.0 definitions.
+/// Skeleton tests (architect, feature 011 Phase 0, T003/T005): the agent DTOs and routes against the current backend document
+/// (1.21.0 since the 011 follow-up claude-key; its additions are proven by <see cref="ClaudeKeyContractTests"/>), and the merge
+/// rule of 1.10.0 (<c>specs/011-ai-composer-agent/contracts/backend-api.openapi.yaml</c>, linked as <c>Contract/011</c>): 1.10.0
+/// contains 010's 1.9.0 unchanged and the standalone delta <c>agent-api.openapi.yaml</c> (1.10.0-delta.1) unchanged, except the
+/// four components the delta shares with 1.9.0, which keep their 1.9.0 definitions.
 /// </summary>
 public sealed class AgentContractTests
 {
@@ -51,16 +52,16 @@ public sealed class AgentContractTests
     {
         var expected = Backend010.Operations.Concat(Delta.Value.Operations).Select(Signature);
 
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.10.0");
-        OpenApiContract.Backend.Operations.Select(Signature).ShouldBe(expected, ignoreOrder: true);
-        OpenApiContract.Backend.Root["tags"]!.AsArray().Select(tag => tag!["name"]!.GetValue<string>()).ShouldContain("agent");
+        Backend011.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.10.0");
+        Backend011.Operations.Select(Signature).ShouldBe(expected, ignoreOrder: true);
+        Backend011.Root["tags"]!.AsArray().Select(tag => tag!["name"]!.GetValue<string>()).ShouldContain("agent");
     }
 
     [Theory]
     [MemberData(nameof(Sections), MemberType = typeof(ContractJson))]
     public void Backend1100_Contains190Unchanged(string section)
     {
-        ChangedEntries(Backend010, OpenApiContract.Backend, section).ShouldBeEmpty();
+        ChangedEntries(Backend010, Backend011, section).ShouldBeEmpty();
     }
 
     [Theory]
@@ -70,9 +71,9 @@ public sealed class AgentContractTests
     [InlineData("components/schemas")]
     public void Backend1100_ContainsTheDeltaUnchangedExceptTheShared190Components(string section)
     {
-        var merged = Section(OpenApiContract.Backend.Root, section);
+        var merged = Section(Backend011.Root, section);
 
-        ChangedEntries(Delta.Value, OpenApiContract.Backend, section).ShouldBeSubsetOf(SharedWith190);
+        ChangedEntries(Delta.Value, Backend011, section).ShouldBeSubsetOf(SharedWith190);
         Section(Delta.Value.Root, section).Select(entry => entry.Key).Where(SharedWith190.Contains)
             .ShouldAllBe(key => JsonNode.DeepEquals(Section(Backend010.Root, section)[key], merged[key]));
     }
@@ -141,7 +142,7 @@ public sealed class AgentContractTests
     {
         string[] routes =
         [
-            ApiRoutes.AgentStatus, ApiRoutes.AgentSettings, ApiRoutes.AgentSettingsTest, ApiRoutes.AgentTools, ApiRoutes.AgentConversations,
+            ApiRoutes.AgentStatus, ApiRoutes.AgentSettings, ApiRoutes.AgentClaudeKey, ApiRoutes.AgentSettingsTest, ApiRoutes.AgentTools, ApiRoutes.AgentConversations,
             ApiRoutes.AgentConversation(Id), ApiRoutes.AgentMessages(Id), ApiRoutes.AgentUndo(Id), ApiRoutes.AgentRun(Id),
             ApiRoutes.AgentRunEvents(Id), ApiRoutes.AgentApproval(Id, Id), ApiRoutes.AgentUiResult(Id, Id), ApiRoutes.AgentCancel(Id),
         ];
@@ -180,7 +181,8 @@ public sealed class AgentContractTests
     {
         var written = JsonSerializer.SerializeToNode(dto, dto.GetType(), Web)!.AsObject().Select(p => p.Key);
 
-        written.ShouldBe(SchemaProperties(AgentSchema(schema)), ignoreOrder: true);
+        // Against 1.10.0: the 1.21.0 optional members (claudeKeySource, keySource) are omitted when null.
+        written.ShouldBe(SchemaProperties(Backend011.Root["components"]!["schemas"]![schema]!), ignoreOrder: true);
     }
 
     [Theory]

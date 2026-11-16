@@ -35,4 +35,10 @@ public static class AgentContractLimits
 
     /// <summary>Seconds between SSE keep-alive comments.</summary>
     public const int KeepAliveSeconds = 15;
+
+    /// <summary>Maximum request body of PUT /api/agent/settings/claude-key in bytes (1.21.0; larger bodies answer 413).</summary>
+    public const int ClaudeKeyBodyBytes = 1024;
+
+    /// <summary>Maximum length of <see cref="StoreClaudeKeyRequest.ApiKey"/> as sent (schema <c>maxLength</c>, before trimming).</summary>
+    public const int ClaudeKeyRequestMaxLength = 512;
 }
