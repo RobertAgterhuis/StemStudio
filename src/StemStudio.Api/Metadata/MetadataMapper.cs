@@ -31,6 +31,18 @@ public static class MetadataMapper
         return new SourceMetadata(metadata.Title, metadata.Artist ?? metadata.LookupArtist);
     }
 
+    /// <summary>The worker-reported title and artist for <paramref name="track"/>: an upload keeps the title of its
+    /// original file name (the worker only sees the stored, hashed file name), so its title is not reported.</summary>
+    /// <param name="track">The track.</param>
+    /// <param name="metadata">Reported source metadata.</param>
+    /// <returns>The title (null keeps the current one) and artist.</returns>
+    public static SourceMetadata ToSource(Track track, WorkerSourceMetadata metadata)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        var source = ToSource(metadata);
+        return track.SourceType == SourceType.Upload ? source with { Title = null } : source;
+    }
+
     /// <summary>The metadata job request of a pending lookup.</summary>
     /// <param name="track">A track whose lookup is pending.</param>
     /// <returns>The request.</returns>

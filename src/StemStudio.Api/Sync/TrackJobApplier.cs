@@ -75,7 +75,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobR
     /// <summary>Completes the track, queues its detail phase (FR-001), schedules a lookup (005) and a lyrics search (006) not started yet and drops the API copy of the upload.</summary>
     private void Finish(Track track, WorkerJobResult result, List<Stem> stored)
     {
-        track.ApplyMetadata(MetadataMapper.ToSource(result.Metadata), Now);
+        track.ApplyMetadata(MetadataMapper.ToSource(track, result.Metadata), Now);
         track.Complete(new TrackCompletion(result.DurationSeconds, result.Model, stored, ToBeatGrid(result.BeatGrid)), Now);
         track.RequestDetail(Now);
         track.ScheduleLookup(MetadataMapper.ToQuery(result.Metadata, result.DurationSeconds), Now);
