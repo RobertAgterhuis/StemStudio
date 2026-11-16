@@ -121,9 +121,12 @@ events. The stream closes after `run.completed` / `run.failed` / `run.cancelled`
 `OllamaGpuRelease`) is called by the backend **before** it submits a GPU-heavy job to the worker:
 `POST /api/imports`, `/api/imports/upload`, `/api/tracks/{id}/retry`, `/api/tracks/{id}/detail`
 and the delivered 006-010 GPU job endpoints `POST /api/tracks/{id}/lyrics/align`, `/api/assets/scores`, `/api/tracks/{id}/restyles`, `/api/songs`, `/api/generations/{id}/retry`, `/api/generations/{id}/takes/{index}/voice-conversions` and `/takes/{index}/import` (backend T078). Best effort, 2 s timeout, never fails the
-request; skipped when the backend is not `ollama` or the worker device is CPU (`GET /api/device`
-cache). `IGpuActivity.IsHeavyJobActive()` (backend, from track/detail states) drives the
-fallback-model selection (FR-021).
+request; skipped when the backend is not `ollama`. For worker jobs it is also skipped when the
+worker device is CPU (`GET /api/device` cache); generator and singer jobs (restyles, songs,
+generation retries, voice conversions) always release, because those services run only on the
+GPU regardless of the worker device. `IGpuActivity.IsHeavyJobActive()` (backend, from track,
+detail, generation, lyrics-alignment and score-transcription states; a conversion still waiting
+for stems does not count) drives the fallback-model selection (FR-021).
 
 ## 6. UI test ids (additive, `ui-test-ids.md` 1.10.0; full table in [ui-test-ids.md](ui-test-ids.md), "Additions in 1.10.0")
 
