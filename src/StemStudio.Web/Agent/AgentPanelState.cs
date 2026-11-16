@@ -83,6 +83,12 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
             Status = await api.GetStatusAsync();
             Conversations = await api.ListConversationsAsync();
         });
+        if (Error is null && ConversationId is null && Conversations.Count > 0)
+        {
+            await SelectConversationAsync(Conversations[0].ConversationId);
+            return;
+        }
+
         Notify();
     }
 
@@ -190,7 +196,8 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         var conversationId = ConversationId ?? await CreateConversationAsync();
         var accepted = await api.SendMessageAsync(conversationId, new SendAgentMessageRequest { Text = text, Context = context });
         Messages = [.. Messages, UserMessage(accepted, text, context)];
-        Follow(conversationId, AgentRunView.Start(accepted.RunId), null);
+        _nothingToUndo = false;
+        Follow(new FollowedRun(conversationId, accepted.RunId, null), AgentRunView.Start(accepted.RunId));
     }
 
     private AgentMessageDto UserMessage(AgentMessageAcceptedDto accepted, string text, PageContextDto context) => new()
@@ -204,11 +211,11 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         CreatedAt = time.GetUtcNow(),
     };
 
-    private void Follow(Guid conversationId, AgentRunView run, int? after)
+    private void Follow(FollowedRun followed, AgentRunView run)
     {
         StopFollowing();
         Run = run;
-        Following = FollowAsync(new FollowedRun(conversationId, run.RunId, after), _follow.Token);
+        Following = FollowAsync(followed, _follow.Token);
     }
 
     private void StopFollowing()
@@ -246,9 +253,9 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
     private async Task ApplyAsync(FollowedRun followed, AgentEvent e)
     {
         Run = Run?.Apply(e);
-        if (e.Type == AgentEventTypes.UiRequested)
+        if (e.Type == AgentEventTypes.UiRequested && e.Read<UiRequestedEventDto>() is var request && followed.Answered?.Contains(request.StepId) != true)
         {
-            await RunUiToolAsync(followed.RunId, e.Read<UiRequestedEventDto>());
+            await RunUiToolAsync(followed.RunId, request);
         }
 
         if (e.IsTerminal)
@@ -276,5 +283,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
 
     private void Notify() => Changed?.Invoke();
 
-    private sealed record FollowedRun(Guid ConversationId, Guid RunId, int? After);
+    /// <summary>A followed run; <paramref name="Answered"/> lists the steps a resumed run no longer waits on (their
+    /// replayed <c>ui.requested</c> events are not executed again).</summary>
+    private sealed record FollowedRun(Guid ConversationId, Guid RunId, int? After, IReadOnlySet<Guid>? Answered = null);
 }

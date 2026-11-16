@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Agent;
 using StemStudio.Web.Agent;
+using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Agent;
 
@@ -23,6 +24,9 @@ public sealed partial class AgentPanel
 
     [Inject]
     private AgentPanelState State { get; set; } = default!;
+
+    [Inject]
+    private IConfirmService Confirm { get; set; } = default!;
 
     private string Input { get; set; } = string.Empty;
 
@@ -77,6 +81,14 @@ public sealed partial class AgentPanel
         if (enter)
         {
             await SendAsync();
+        }
+    }
+
+    private async Task DeleteAsync(Guid conversationId)
+    {
+        if (await Confirm.ConfirmAsync("Delete conversation", "Delete this conversation with its messages and steps? Changes the agent made stay.", "Delete"))
+        {
+            await State.DeleteConversationAsync(conversationId);
         }
     }
 

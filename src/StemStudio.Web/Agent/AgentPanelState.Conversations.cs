@@ -29,6 +29,9 @@ public sealed partial class AgentPanelState
             ConversationId = conversation.ConversationId;
             Messages = conversation.Messages;
             Run = null;
+            _runs = conversation.Runs;
+            _nothingToUndo = false;
+            await RestoreRunAsync(conversation.ConversationId, conversation.Runs.OrderBy(r => r.StartedAt).LastOrDefault()?.RunId);
         });
         Notify();
     }
@@ -46,6 +49,7 @@ public sealed partial class AgentPanelState
         StopFollowing();
         Messages = [];
         Run = null;
+        _runs = [];
     }
 
     // After the terminal event: the stored answer replaces the streamed text; the list shows the new state.

@@ -24,7 +24,8 @@
             }
         </div>
     }
-    <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" OnSelect="State.SelectConversationAsync" />
+    <ConversationList Conversations="State.Conversations" OpenId="State.ConversationId" IsActive="State.IsActive" OnSelect="State.SelectConversationAsync"
+                      OnRename="e => State.RenameConversationAsync(e.Id, e.Title)" OnDelete="DeleteAsync" />
     <div class="ss-agent-log">
         <MessageList Messages="State.Messages" Streaming="@StreamingText" />
         @if (State.Run is { } run)
@@ -67,6 +68,7 @@
                   placeholder="Ask the agent, e.g. &quot;Make the vocals 3 dB quieter&quot;" disabled="@(!State.IsReady)"
                   value="@Input" @oninput="OnInputAsync" @onkeydown="OnKeyDown"></textarea>
         <div class="ss-agent-actions">
+            <button type="button" class="ss-text-button" data-testid="agent-undo" disabled="@(!State.CanUndo)" @onclick="State.UndoAsync">Undo</button>
             @if (State.IsRunActive)
             {
                 <button type="button" class="ss-text-button" data-testid="agent-cancel" @onclick="State.CancelAsync">Cancel</button>

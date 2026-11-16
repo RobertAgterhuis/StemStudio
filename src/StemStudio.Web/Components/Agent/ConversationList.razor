@@ -1,20 +1,41 @@
 @* Conversation list (ui-test-ids agent-conversation-list), newest first as the API returns them; the open one has
-   aria-current="true". *@
+   aria-current="true". From Advanced every entry can be renamed in place (Enter saves, Escape cancels) and deleted
+   (disabled while its run is active). *@
 
 <nav class="ss-agent-conversations" aria-label="Conversations" data-testid="agent-conversation-list">
     <ul>
         @foreach (var conversation in Conversations)
         {
             var id = conversation.ConversationId;
-            <li @key="id">
-                <button type="button" class="ss-text-button" data-testid="@($"agent-conversation-{id:D}")"
-                        aria-current="@(id == OpenId ? "true" : null)" @onclick="() => OnSelect.InvokeAsync(id)">@conversation.Title</button>
+            <li @key="id" class="ss-agent-conversation">
+                @if (_editing == id)
+                {
+                    <input class="ss-agent-title-input" aria-label="Conversation title" maxlength="@AgentContractLimits.TitleMaxLength" value="@_title"
+                           @oninput="SetTitle" @onchange="SetTitle" @onkeydown="e => KeyAsync(e, id)" />
+                    <button type="button" class="ss-bar-button" aria-label="Save title" @onclick="() => SaveAsync(id)">
+                        <span class="rzi" aria-hidden="true">check</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="ss-text-button" data-testid="@($"agent-conversation-{id:D}")"
+                            aria-current="@(id == OpenId ? "true" : null)" @onclick="() => OnSelect.InvokeAsync(id)">@conversation.Title</button>
+                    <LevelGate Feature="agent.conversation-actions">
+                        <button type="button" class="ss-bar-button" aria-label="@($"Rename {conversation.Title}")" data-testid="@($"agent-conversation-rename-{id:D}")"
+                                @onclick="() => StartRename(conversation)"><span class="rzi" aria-hidden="true">edit</span></button>
+                        <button type="button" class="ss-bar-button" aria-label="@($"Delete {conversation.Title}")" data-testid="@($"agent-conversation-delete-{id:D}")"
+                                disabled="@IsActive(conversation)" @onclick="() => OnDelete.InvokeAsync(id)"><span class="rzi" aria-hidden="true">delete</span></button>
+                    </LevelGate>
+                }
             </li>
         }
     </ul>
 </nav>
 
 @code {
+    private Guid? _editing;
+    private string _title = string.Empty;
+
     /// <summary>The conversations, newest first.</summary>
     [Parameter]
     public IReadOnlyList<ConversationSummaryDto> Conversations { get; set; } = [];
@@ -23,7 +44,36 @@
     [Parameter]
     public Guid? OpenId { get; set; }
 
+    /// <summary>True while a conversation's run is active.</summary>
+    [Parameter]
+    public Func<ConversationSummaryDto, bool> IsActive { get; set; } = _ => false;
+
     /// <summary>An entry was chosen.</summary>
     [Parameter]
     public EventCallback<Guid> OnSelect { get; set; }
+
+    /// <summary>A new title was confirmed.</summary>
+    [Parameter]
+    public EventCallback<(Guid Id, string Title)> OnRename { get; set; }
+
+    /// <summary>Delete was pressed (the parent confirms).</summary>
+    [Parameter]
+    public EventCallback<Guid> OnDelete { get; set; }
+
+    private void StartRename(ConversationSummaryDto conversation) => (_editing, _title) = (conversation.ConversationId, conversation.Title);
+
+    private void SetTitle(ChangeEventArgs e) => _title = e.Value?.ToString() ?? string.Empty;
+
+    private Task KeyAsync(KeyboardEventArgs e, Guid id) => e.Key switch
+    {
+        "Enter" => SaveAsync(id),
+        "Escape" => Task.FromResult(_editing = null),
+        _ => Task.CompletedTask,
+    };
+
+    private async Task SaveAsync(Guid id)
+    {
+        _editing = null;
+        await OnRename.InvokeAsync((id, _title));
+    }
 }
