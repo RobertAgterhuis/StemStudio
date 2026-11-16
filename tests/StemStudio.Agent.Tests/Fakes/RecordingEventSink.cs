@@ -22,6 +22,9 @@ public sealed class RecordingEventSink : IRunEventSink
         }
     }
 
+    /// <summary>Called synchronously for every published event (simulates a page that answers immediately).</summary>
+    public Action<RunEvent>? OnPublish { get; set; }
+
     public IReadOnlyList<string> Types => [.. Events.Select(item => item.Type)];
 
     public Task<RunEvent> PublishAsync(Guid runId, string type, string payload, CancellationToken cancellationToken)
@@ -37,6 +40,7 @@ public sealed class RecordingEventSink : IRunEventSink
             _waiters.RemoveAll(waiter => waiter.Type == type);
         }
 
+        OnPublish?.Invoke(stored);
         ready.ForEach(signal => signal.TrySetResult(stored));
         return Task.FromResult(stored);
     }

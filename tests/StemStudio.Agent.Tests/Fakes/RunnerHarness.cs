@@ -73,6 +73,12 @@ public sealed class RunnerHarness
 
     public void UseSession(IAgentChatSession session) => Session = session;
 
+    public IUiToolGateway? UiGateway { get; private set; }
+
+    public void UseUi(IUiToolGateway gateway) => UiGateway = gateway;
+
+    public void UseBackend(AgentBackendDto backend, TokenUsage? usage = null) => Run = Run with { Backend = backend, Usage = usage ?? Run.Usage };
+
     public void SetCommandContext(PageContextDto context) => Command = Command with { Context = context };
 
     public void SetCommandText(string text) => Command = Command with { Text = text };
@@ -84,7 +90,7 @@ public sealed class RunnerHarness
         Settings = Settings,
         Events = Events,
         Actions = Actions,
-        Ui = Ui,
+        Ui = UiGateway ?? Ui,
         Registry = Registry,
         Chat = Session,
         Undo = Undo,

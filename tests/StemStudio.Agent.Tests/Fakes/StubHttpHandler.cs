@@ -7,10 +7,10 @@ namespace StemStudio.Agent.Tests.Fakes;
 public sealed class StubHttpHandler : HttpMessageHandler
 {
     private readonly Dictionary<string, Func<string, Task<HttpResponseMessage>>> _routes = new(StringComparer.Ordinal);
-    private readonly List<(string Route, string Body)> _requests = [];
+    private readonly List<(string Route, string Body, string Headers)> _requests = [];
     private readonly Lock _gate = new();
 
-    public IReadOnlyList<(string Route, string Body)> Requests
+    public IReadOnlyList<(string Route, string Body, string Headers)> Requests
     {
         get
         {
@@ -33,6 +33,13 @@ public sealed class StubHttpHandler : HttpMessageHandler
         return this;
     }
 
+    /// <summary>Answers with a server-sent event stream.</summary>
+    public StubHttpHandler Sse(string route, string events)
+    {
+        _routes[route] = _ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(events, Encoding.UTF8, "text/event-stream") });
+        return this;
+    }
+
     public StubHttpHandler On(string route, Func<string, string> json)
     {
         _routes[route] = body => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json(body), Encoding.UTF8, "application/json") });
@@ -45,9 +52,11 @@ public sealed class StubHttpHandler : HttpMessageHandler
     {
         var route = $"{request.Method} {request.RequestUri!.AbsolutePath}";
         var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
+        var headers = string.Join('
+', request.Headers.Select(header => $"{header.Key}: {string.Join(',', header.Value)}"));
         lock (_gate)
         {
-            _requests.Add((route, body));
+            _requests.Add((route, body, headers));
         }
 
         if (Hang)
