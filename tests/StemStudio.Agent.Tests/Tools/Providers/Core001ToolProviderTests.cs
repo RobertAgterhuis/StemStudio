@@ -45,6 +45,18 @@ public sealed class Core001ToolProviderTests
     public void Tools_MatchTheCatalogue() => MatchesCatalogue(_provider, "001");
 
     [Fact]
+    public async Task DeleteTrack_CardNamesTheTrack_AndSaysItCannotBeUndone()
+    {
+        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId));
+        var tool = T("delete_track");
+
+        var estimate = await tool.Estimator!(Invocation(tool, $$"""{"trackId":"{{TrackId}}"}""", _actions), Token);
+
+        estimate.Effect.ShouldBe("Delete the track Hero of the Day with its stems and mixes. This cannot be undone.");
+        estimate.EstimatedMinutes.ShouldBeNull();
+    }
+
+    [Fact]
     public void Arguments_FollowTheCatalogue()
     {
         Valid(T("mixer_set_channel"), """{"stem":"vocals","gainDb":-60}""").ShouldBeTrue();
