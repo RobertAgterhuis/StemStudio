@@ -186,11 +186,11 @@ clear unavailable state.
 
 - [ ] T060 [P] [US4] [backend] Failing tests `Agent/SettingsEndpointTests.cs`: GET/PUT settings with validation (model must exist with tools capability -> 422), `claude` without key -> 409, without notice -> 422; `POST settings/test` for Ollama; no response, log line (captured logger) or DB row ever contains the key value (test sets a sentinel key) (FR-018, FR-019, SC-006)
 - [ ] T061 [US4] [backend] Implement the settings endpoints to pass T060
-- [ ] T062 [P] [US4] [frontend] Failing bUnit tests `Components/Agent/AgentSettingsTests.cs`: radio group, Ollama status and model pickers (only tool-capable models), Claude disabled with "not configured" when `keyConfigured` false, notice + acknowledge before saving Claude, test-connection result, errors (FR-019)
-- [ ] T063 [US4] [frontend] Implement the new `/settings` page (004-010 have none) with the agent section and the rail link `nav-settings` (ui-test-ids 1.10.0) to pass T062
+- [x] T062 [P] [US4] [frontend] Failing bUnit tests `Components/Agent/AgentSettingsTests.cs`: radio group, Ollama status and model pickers (only tool-capable models), Claude disabled with "not configured" when `keyConfigured` false, notice + acknowledge before saving Claude, test-connection result, errors (FR-019)
+- [x] T063 [US4] [frontend] Implement the new `/settings` page (004-010 have none) with the agent section and the rail link `nav-settings` (ui-test-ids 1.10.0) to pass T062
 - [ ] T064 [P] [US4] [ai-agent] [amend] Failing tests `Backends/ClaudeBackendTests.cs` (stub handler for `api.anthropic.com`): factory uses `ANTHROPIC_API_KEY` from an injected environment reader, model `claude-opus-5-5` default, effort setting, tool mode auto, streaming, max output tokens; per-run token budget stops the run (`budget-exhausted`); refusal and 401/429/5xx mapped to readable `run.failed` with "Switch to local"; probe only reports `keyConfigured` and calls `GET /v1/models/{id}` only on explicit test; a "must not be called" handler proves 0 requests when Claude is not selected (FR-018, FR-020, SC-006)
 - [ ] T065 [US4] [ai-agent] [amend] Implement `Backends/{ClaudeChatClientFactory,ClaudeBackendProbe}.cs` to pass T064
-- [ ] T066 [US4] [frontend] [amend] Usage display (`agent-usage`) and "Switch to local" on Claude failures (bUnit test first, then implementation)
+- [x] T066 [US4] [frontend] [amend] Usage display (`agent-usage`) and "Switch to local" on Claude failures (bUnit test first, then implementation)
 - [ ] T067 [US4] [qa] Author `agent.spec.ts` "settings" (without key: Claude not selectable; switch to none and back to Ollama on the fake stack)
 
 **Checkpoint**: HO:us4.
