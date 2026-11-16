@@ -68,7 +68,7 @@ public sealed record ToolInvocation
     /// <summary>A required GUID argument.</summary>
     /// <param name="name">Argument name.</param>
     /// <returns>The value.</returns>
-    public Guid RequiredId(string name) => Id(name) ?? throw new AgentActionException(400, "validation", $"Argument {name} is required.");
+    public Guid RequiredId(string name) => Id(name) ?? throw new AgentActionException($"Argument {name} is required.");
 
     /// <summary>A number argument or null.</summary>
     /// <param name="name">Argument name.</param>

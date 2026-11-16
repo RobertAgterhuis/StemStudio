@@ -81,7 +81,7 @@ public sealed class ScoreToolProvider : IAgentToolProvider
     {
         var options = await call.Actions.Assets.GetScoreOptionsAsync(call.RequiredId("trackId"), call.Text("channel")!, cancellationToken);
         var profile = Parse<ScoreProfileDto>(call.Text("profile")) ?? options.SuggestedProfile
-            ?? throw new AgentActionException(400, "validation", "Choose a profile for this channel.");
+            ?? throw new AgentActionException("Choose a profile for this channel.");
         return (options, profile, Parse<ScoreQualityDto>(call.Text("quality")) ?? options.DefaultQuality);
     }
 

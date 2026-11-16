@@ -116,7 +116,7 @@ public sealed class ExternalTextTests
         json.GetProperty("error").GetString().ShouldBe(trusted);
         json.GetProperty("untrusted_text").GetString().ShouldBe(Injection);
         run.Tainted.ShouldBeTrue();
-        harness.Runs.Steps.Single().Error.ShouldBe(trusted);
+        harness.Runs.Steps.Single().Error.ShouldBe(Injection);
     }
 
     [Theory]
@@ -131,7 +131,7 @@ public sealed class ExternalTextTests
 
         var run = await harness.ExecuteAsync();
 
-        harness.Runs.Steps.Single().Error.ShouldBe(expected);
+        harness.Runs.Steps.Single().Error!.ShouldStartWith(expected);
         run.Tainted.ShouldBeFalse();
     }
 

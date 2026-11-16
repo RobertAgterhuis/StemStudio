@@ -316,7 +316,8 @@ internal sealed class UiToolFailedException : Exception
 /// </summary>
 /// <param name="StepError">Error stored on the step.</param>
 /// <param name="Untrusted">External text for the model, when any.</param>
-internal sealed record StepFailure(string StepError, string? Untrusted)
+/// <param name="ModelError">Trusted error text for the model when it differs from the step error.</param>
+internal sealed record StepFailure(string StepError, string? Untrusted, string? ModelError = null)
 {
     /// <summary>Reason for an unexpected error.</summary>
     public const string Internal = "The step failed because of an internal error.";
@@ -330,7 +331,7 @@ internal sealed record StepFailure(string StepError, string? Untrusted)
     public static StepFailure From(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool) => exception switch
     {
         UiToolFailedException page => new StepFailure(page.Message, page.Message),
-        AgentActionException action => new StepFailure(action.Message, null),
+        AgentActionException action => PortErrors.From(action),
         JsonException => new StepFailure("The page returned an invalid result.", null),
         HttpRequestException => new StepFailure("StemStudio could not be reached.", null),
         TimeoutException or OperationCanceledException => new StepFailure("The step timed out.", null),
@@ -339,7 +340,7 @@ internal sealed record StepFailure(string StepError, string? Untrusted)
 
     /// <summary>What the model sees.</summary>
     public ProjectedResult ModelResult() => ResultProjector.Untrusted(Untrusted, UntrustedMaxLength) is { } external
-        ? ResultProjector.Project(new JsonObject { ["ok"] = false, ["error"] = PageFailed, [ResultProjector.UntrustedField] = external })
+        ? ResultProjector.Project(new JsonObject { ["ok"] = false, ["error"] = ModelError ?? PageFailed, [ResultProjector.UntrustedField] = external })
         : ResultProjector.Error(StepError);
 
     private static StepFailure Logged(Exception exception, Microsoft.Extensions.Logging.ILogger logger, Guid runId, string tool)

@@ -131,6 +131,6 @@ public sealed class ProjectionEdgeTests
         call.Strings("l").ShouldBe(["a", "b"]);
         (call.Number("missing"), call.Whole("missing"), call.Flag("missing"), call.Text("n")).ShouldBe(((double?)null, (int?)null, (bool?)null, (string?)null));
         call.Strings("missing").ShouldBeEmpty();
-        Should.Throw<AgentActionException>(() => call.RequiredId("t")).StatusCode.ShouldBe(400);
+        Should.Throw<AgentActionException>(() => call.RequiredId("t")).StatusCode.ShouldBe(0);
     }
 }

@@ -41,7 +41,7 @@ internal static class ExportRequests
             : null;
 
     private static int? Allowed(int? value, params int[] allowed) =>
-        value is null || allowed.Contains(value.Value) ? value : throw new AgentActionException(400, "validation", $"Use one of {string.Join(", ", allowed)}.");
+        value is null || allowed.Contains(value.Value) ? value : throw new AgentActionException($"Use one of {string.Join(", ", allowed)}.");
 }
 
 /// <summary>Output size estimates of exports (FR-024: exports above 500 MB need approval).</summary>
