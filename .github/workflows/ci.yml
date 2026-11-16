@@ -430,9 +430,12 @@ jobs:
     name: E2E main flow (compose, fake separator, Playwright)
     needs: [dotnet, worker, generator, audio-engine, web-interop, contracts, quality, e2e-lint]
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       STEMSTUDIO_SEPARATOR: fake
+      # The @detail specs expect a fake detail phase of ~25 s (e2e/support/env.ts): long enough
+      # to cancel the shared plain track's phase before it completes.
+      STEMSTUDIO_FAKE_DETAIL_STEP_SECONDS: 5
       E2E_BASE_URL: http://localhost:8080
       E2E_API_URL: http://localhost:8081
     steps:
@@ -448,7 +451,11 @@ jobs:
       - name: Install ffmpeg (MP3 fixture encoder)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Generate audio fixtures
-        run: uv run --project worker --frozen python tests/fixtures/generate_fixtures.py
+        # Every generator (detail, artwork, lyrics, scores, voices, ...), as in the fake-stack action.
+        run: |
+          for generator in tests/fixtures/generate_*.py; do
+            uv run --project worker --frozen python "${generator}"
+          done
       - name: Start the stack (fake separator) and wait for health
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Health smoke test
@@ -465,6 +472,14 @@ jobs:
           # "chromium" installs the full build next to the headless shell; the 010 recording spec
           # (fake microphone) needs the full build via channel 'chromium' (support/fake-microphone.ts).
           npx playwright install --with-deps chromium firefox
+      - name: Sound server for Firefox (null sink)
+        # Headless Firefox needs a PulseAudio server, or its Web Audio clock never runs (silent
+        # meters, no karaoke landings); Chromium does not. The null sink plays into nothing.
+        run: |
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=ci_null
+          pactl set-default-sink ci_null
       - name: Playwright (retries 0, everything except @real and @restart)
         working-directory: e2e
         run: npm test
