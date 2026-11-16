@@ -30,5 +30,12 @@ public static class UndoTools
             TargetArgument = "generationId",
             Handler = GenerationTools.DiscardAsync,
         },
+        Tool("011", "delete_lyrics_sheet", ToolKindDto.Server, ToolRiskDto.Destructive) with
+        {
+            Title = "Delete a saved lyrics sheet",
+            Description = "Undo of save_lyrics_sheet.",
+            Schema = ToolSchema.Of(Param.Uuid("lyricsId")),
+            Handler = SongToolProvider.DeleteSheetAsync,
+        },
     ];
 }

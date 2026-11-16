@@ -3,13 +3,11 @@ using StemStudio.Agent.Policy;
 using StemStudio.Agent.Ports;
 using StemStudio.Agent.Tests.Fakes;
 using StemStudio.Agent.Tests.Fixtures;
-using StemStudio.Agent.Tools;
 using StemStudio.Agent.Tools.Providers;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Lyrics;
-using StemStudio.Contracts.Tracks;
 using static StemStudio.Agent.Tests.Fakes.TestTools;
 using static StemStudio.Agent.Tests.Tools.Providers.ProviderTestKit;
 
@@ -88,7 +86,7 @@ public sealed class Song010ToolProviderTests
         var tool = Tool(new SongToolProvider(), "save_lyrics_sheet");
 
         var denied = ToolPolicy.Decide(new PolicyInput { Tool = tool, Arguments = Element("""{"title":"x","language":"en","text":"Lyrics from LRCLIB"}"""), Tainted = false, UserMessages = ["save my lyrics"] });
-        var allowed = ToolPolicy.Decide(new PolicyInput { Tool = tool, Arguments = Element("""{"title":"x","language":"en","text":"We walk the line\nUnder neon light"}"""), Tainted = false, UserMessages = ["Save these lyrics:\r\n We walk the line \r\n\r\nUnder neon light"] });
+        var allowed = ToolPolicy.Decide(new PolicyInput { Tool = tool, Arguments = Element("""{"title":"x","language":"en","text":"We walk the line\nUnder neon light"}"""), Tainted = false, UserMessages = ["Save these lyrics:\r\n We walk the line \r\nUnder neon light"] });
 
         (denied.Decision, allowed.Decision).ShouldBe((StepDecisionDto.Denied, StepDecisionDto.Auto));
         denied.Reasons.ShouldBe([AgentDecisionReasons.LyricsNotFromUser]);

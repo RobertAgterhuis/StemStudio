@@ -69,7 +69,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     private async Task<ProjectedResult> DecideAndRunAsync(RunState state, PreparedCall call, CancellationToken cancellationToken)
     {
         var prepared = await EscalateAsync(state, call, cancellationToken);
-        var decision = ToolPolicy.Decide(PolicyFor(state, prepared));
+        var decision = ToolPolicy.Decide(PolicyFor(state, prepared) with { LibraryArtists = await LibraryArtistsAsync(prepared, cancellationToken) });
         var status = decision.Decision switch
         {
             StepDecisionDto.Denied => AgentStepStatusDto.Failed,
@@ -112,6 +112,24 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
         {
             await services.Runs.SaveStepAsync(step with { Status = AgentStepStatusDto.Expired, EndedAt = services.Time.GetUtcNow() }, CancellationToken.None);
             throw;
+        }
+    }
+
+    /// <summary>The artists of the library for the artist-imitation guardrail (only for tools with free style text).</summary>
+    private async Task<IReadOnlyList<string?>> LibraryArtistsAsync(PreparedCall prepared, CancellationToken cancellationToken)
+    {
+        if (prepared.Tool!.ImitationArguments.Count == 0)
+        {
+            return [];
+        }
+
+        try
+        {
+            return [.. (await services.Actions.Tracks.ListTracksAsync(cancellationToken)).Select(track => track.Artist).Distinct(StringComparer.OrdinalIgnoreCase)];
+        }
+        catch (AgentActionException)
+        {
+            return [];
         }
     }
 
