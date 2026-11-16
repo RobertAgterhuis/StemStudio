@@ -202,8 +202,8 @@ clear unavailable state.
 **Goal**: conversations persist; undo reverses the last command group.
 **Independent test**: quickstart A5 undo spec; SC-007.
 
-- [ ] T068 [P] [US5] [ai-agent] Failing tests `Runtime/UndoPlannerTests.cs`: undo entries recorded for executed change/job steps with the inverse/compensation of the catalogue; newest available group undone in reverse order as a new run; fresh compensations auto, others need approval; entries become `obsolete` when the target changed outside the agent (mix `updatedAt`) or vanished; "nothing to undo" (FR-017, SC-007)
-- [ ] T069 [US5] [ai-agent] Implement `Runtime/UndoPlanner.cs` and recording in `StepExecutor` to pass T068
+- [x] T068 [P] [US5] [ai-agent] Failing tests `Runtime/UndoPlannerTests.cs`: undo entries recorded for executed change/job steps with the inverse/compensation of the catalogue; newest available group undone in reverse order as a new run; fresh compensations auto, others need approval; entries become `obsolete` when the target changed outside the agent (mix `updatedAt`) or vanished; "nothing to undo" (FR-017, SC-007)
+- [x] T069 [US5] [ai-agent] Implement `Runtime/UndoPlanner.cs` and recording in `StepExecutor` to pass T068
 - [ ] T070 [P] [US5] [backend] Failing tests: `POST conversations/{id}/undo` 202/409; rename/delete conversation (409 while active); reload restores messages, plans, steps (FR-002, FR-017)
 - [ ] T071 [US5] [backend] Implement to pass T070
 - [ ] T072 [P] [US5] [frontend] Failing bUnit tests: undo button state, conversation rename/delete, history reload restores the view and resumes a running run's stream (FR-002)
