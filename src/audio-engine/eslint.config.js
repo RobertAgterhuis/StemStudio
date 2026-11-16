@@ -42,7 +42,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.ts', 'tests-wasm/**/*.ts'],
     rules: {
       'max-lines-per-function': 'off',
     },
