@@ -70,7 +70,7 @@ public sealed class ApprovalFlowTests
         (approval.Status, approval.ArgumentsHash, approval.RunId).ShouldBe((ApprovalStatusDto.Pending, step.ArgumentsHash, harness.Run.Id));
         var card = harness.Events.Payload(AgentEventTypes.ApprovalRequested);
         card.GetProperty("effect").GetString().ShouldBe("Render a track");
-        card.GetProperty("device").GetString().ShouldBe("GPU (RTX 4070)");
+        card.GetProperty("device").GetString().ShouldBe("gpu");
         card.GetProperty("undoable").GetBoolean().ShouldBeTrue();
         card.GetProperty("allowPlanScope").GetBoolean().ShouldBeFalse();
         card.GetProperty("reasons")[0].GetString().ShouldBe(AgentDecisionReasons.RiskHeavy);

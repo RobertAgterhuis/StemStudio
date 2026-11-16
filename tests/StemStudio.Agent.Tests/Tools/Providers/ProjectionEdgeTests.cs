@@ -107,8 +107,15 @@ public sealed class ProjectionEdgeTests
         var estimate = await detail.Estimator!(Invocation(detail, $$"""{"trackId":"{{TrackId}}"}""", _actions), TestContext.Current.CancellationToken);
 
         Json(device.Projection).ShouldBe("""{"reachable":false,"kind":null,"name":null,"reason":"Worker down"}""");
-        (estimate.EstimatedMinutes, estimate.Device).ShouldBe((30.0, "CPU"));
+        (estimate.EstimatedMinutes, estimate.Device, estimate.DeviceCode).ShouldBe((30.0, "CPU", "cpu"));
     }
+
+    [Theory]
+    [InlineData("GPU (RTX 4070)", "gpu")]
+    [InlineData("gpu", "gpu")]
+    [InlineData("CPU", "cpu")]
+    [InlineData(null, null)]
+    public void Estimate_DeviceCode_IsCpuOrGpu(string? device, string? code) => new ToolEstimate("x", 1, device).DeviceCode.ShouldBe(code);
 
     [Fact]
     public void Invocation_ReadsTypedArguments()
