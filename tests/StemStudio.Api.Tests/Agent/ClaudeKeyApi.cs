@@ -15,6 +15,25 @@ using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Tests.Agent;
 
+/// <summary>Options of <see cref="ClaudeKeyApi"/>.</summary>
+internal sealed record ClaudeKeyApiOptions
+{
+    /// <summary>Data directory to reuse (not deleted by the factory); null = a fresh temp directory.</summary>
+    public string? DataDir { get; init; }
+
+    /// <summary>Key ring directory; null = the factory's sibling of the data directory.</summary>
+    public string? KeyRingDir { get; init; }
+
+    /// <summary>Adds <c>UseHttpLogging</c> with every field in front of the pipeline.</summary>
+    public bool HttpLogging { get; init; }
+
+    /// <summary>Internal caller of the local-only rule.</summary>
+    public string? InternalCaller { get; init; }
+
+    /// <summary>Logs every category at Trace.</summary>
+    public bool TraceLogs { get; init; }
+}
+
 /// <summary>
 /// The API with the real key store and key provider (011 follow-up claude-key): a substitute environment, a substitute agent
 /// status service, and a "must not be called" Anthropic handler behind the Claude client factory.
@@ -23,21 +42,28 @@ internal sealed class ClaudeKeyApi : IDisposable
 {
     private readonly Lazy<HttpClient> _client;
 
-    public ClaudeKeyApi(string? dataDir = null, string? keyRingDir = null, bool httpLogging = false, string? internalCaller = null)
+    public ClaudeKeyApi(ClaudeKeyApiOptions? options = null)
     {
-        var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = internalCaller };
-        if (keyRingDir is not null)
+        options ??= new ClaudeKeyApiOptions();
+        var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = options.InternalCaller };
+        if (options.KeyRingDir is not null)
         {
-            settings[DataProtectionSetup.KeyRingDirKey] = keyRingDir;
+            settings[DataProtectionSetup.KeyRingDirKey] = options.KeyRingDir;
         }
 
-        if (httpLogging)
+        if (options.HttpLogging)
         {
             settings["Logging:LogLevel:Microsoft.AspNetCore.HttpLogging"] = "Information";
         }
 
+        if (options.TraceLogs)
+        {
+            settings["Logging:LogLevel:Default"] = "Trace";
+            settings["Logging:LogLevel:Microsoft"] = "Trace";
+        }
+
         StatusService.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentStatuses.Ready());
-        Factory = new ApiFactory(dataDir) { Settings = settings, ConfigureServices = services => Register(services, httpLogging) };
+        Factory = new ApiFactory(options.DataDir) { Settings = settings, ConfigureServices = services => Register(services, options.HttpLogging) };
         _client = new Lazy<HttpClient>(Factory.CreateClient);
     }
 

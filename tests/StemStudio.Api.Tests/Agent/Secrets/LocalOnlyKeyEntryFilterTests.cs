@@ -14,7 +14,7 @@ namespace StemStudio.Api.Tests.Agent.Secrets;
 public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
 {
     private static readonly IPAddress WebContainer = IPAddress.Parse("172.18.0.5");
-    private readonly ClaudeKeyApi _api = new(internalCaller: "web");
+    private readonly ClaudeKeyApi _api = new(new() { InternalCaller = "web" });
 
     public LocalOnlyKeyEntryFilterTests() => _api.Hosts["web"] = [WebContainer];
 

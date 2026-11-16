@@ -81,13 +81,13 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
         var dataDir = Directory.CreateTempSubdirectory("stemstudio-ck-").FullName;
         try
         {
-            using (var first = new ClaudeKeyApi(dataDir))
+            using (var first = new ClaudeKeyApi(new() { DataDir = dataDir }))
             {
                 using var stored = await first.PutKeyAsync(ClaudeKeySentinels.Stored);
                 stored.StatusCode.ShouldBe(HttpStatusCode.OK);
             }
 
-            using var other = new ClaudeKeyApi(dataDir, keyRingDir: dataDir + "-other-keys");
+            using var other = new ClaudeKeyApi(new() { DataDir = dataDir, KeyRingDir = dataDir + "-other-keys" });
             using var response = await other.GetStatusAsync();
 
             await ContractAssert.MatchesAsync(response, "getClaudeKeyStatus");
@@ -206,7 +206,7 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
         var dataDir = Directory.CreateTempSubdirectory("stemstudio-ck-").FullName;
         try
         {
-            using var api = new ClaudeKeyApi(dataDir, keyRingDir: Path.Combine(dataDir, "keys"));
+            using var api = new ClaudeKeyApi(new() { DataDir = dataDir, KeyRingDir = Path.Combine(dataDir, "keys") });
 
             using var invalid = await api.PutKeyAsync("nope");
             using var response = await api.PutKeyAsync(ClaudeKeySentinels.Stored);
@@ -282,7 +282,7 @@ public sealed class ClaudeKeyEndpointsTests : IDisposable
     [Fact]
     public async Task HostThatLogsEveryRequest_LogsNothingOfTheKeyRoute()
     {
-        using var api = new ClaudeKeyApi(httpLogging: true);
+        using var api = new ClaudeKeyApi(new() { HttpLogging = true });
         using var health = await api.Client.GetAsync(ApiRoutes.Health, Ct);
         using var stored = await api.PutKeyAsync(ClaudeKeySentinels.Stored);
         using var invalid = await api.PutRawAsync("{\"apiKey\": \"" + ClaudeKeySentinels.Replacement);
