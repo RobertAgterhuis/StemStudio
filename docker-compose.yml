@@ -59,7 +59,9 @@
 #                                           then docker compose up -d (api is recreated with it).
 #   STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/<name>.json   E2E only, with STEMSTUDIO_AGENT_BACKEND=fake:
 #                                           scripted model turns from e2e/agent-scripts/ (mounted
-#                                           read-only at /scripts; format agent-script.schema.json)
+#                                           read-only at /scripts; format agent-script.schema.json).
+#                                           Git Bash on Windows: prefix MSYS_NO_PATHCONV=1, or the
+#                                           /scripts path is rewritten into a Windows path.
 
 name: stemstudio
 

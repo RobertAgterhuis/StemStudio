@@ -13,6 +13,8 @@
 # Compose project: COMPOSE_PROJECT_NAME (default: the name in docker-compose.yml). Playwright reads
 # E2E_BASE_URL / E2E_API_URL as for npm test. Exits with the first failing step's code, 2 on usage.
 set -euo pipefail
+# Git Bash on Windows would rewrite /scripts/<name>.json into a Windows path before compose sees it.
+export MSYS_NO_PATHCONV=1
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC=tests/agent.spec.ts

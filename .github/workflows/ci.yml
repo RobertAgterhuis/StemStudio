@@ -390,6 +390,8 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q
           docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.generative.yml config -q
           docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml config -q
+          # Feature 011: the agent variables of the fake E2E stack interpolate (no Claude key is set).
+          STEMSTUDIO_AGENT_BACKEND=fake STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/ci.json docker compose -f docker-compose.yml config -q
       - name: Build the fake generator image (GENERATOR_VARIANT=fake) and run the guard (profile generator)
         run: scripts/check-cpu-image.sh --build --generator stemstudio/generator:ci-fake
       - name: The fake image runs as the non-root user stemstudio (uid 10001)
