@@ -37,7 +37,9 @@ function Invoke-Native {
     param([string] $Directory, [string[]] $Command)
     Push-Location $Directory
     try {
-        & $Command[0] @($Command | Select-Object -Skip 1) | Out-Host
+        # Splat the arguments: an array passed as one argument reaches a .ps1 shim (npx.ps1) as one joined string.
+        $arguments = @($Command | Select-Object -Skip 1)
+        & $Command[0] @arguments | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "$($Command -join ' ') failed with exit code $LASTEXITCODE" }
     }
     finally { Pop-Location }
