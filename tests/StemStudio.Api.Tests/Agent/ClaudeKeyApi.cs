@@ -32,6 +32,9 @@ internal sealed record ClaudeKeyApiOptions
 
     /// <summary>Logs every category at Trace.</summary>
     public bool TraceLogs { get; init; }
+
+    /// <summary>Keeps the agent library's real status service (only for Claude tests against the stand-in; never Ollama).</summary>
+    public bool RealStatusService { get; init; }
 }
 
 /// <summary>
@@ -45,6 +48,11 @@ internal sealed class ClaudeKeyApi : IDisposable
     public ClaudeKeyApi(ClaudeKeyApiOptions? options = null)
     {
         options ??= new ClaudeKeyApiOptions();
+        Anthropic = new StubHttpMessageHandler(request =>
+        {
+            AnthropicKeys.AddRange(request.Headers.TryGetValues("x-api-key", out var keys) ? keys : []);
+            return Task.FromResult(AnthropicReply(request));
+        });
         var settings = new Dictionary<string, string?> { [KeyEntryPolicy.InternalCallerKey] = options.InternalCaller };
         if (options.KeyRingDir is not null)
         {
@@ -63,7 +71,7 @@ internal sealed class ClaudeKeyApi : IDisposable
         }
 
         StatusService.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(AgentStatuses.Ready());
-        Factory = new ApiFactory(options.DataDir) { Settings = settings, ConfigureServices = services => Register(services, options.HttpLogging) };
+        Factory = new ApiFactory(options.DataDir) { Settings = settings, ConfigureServices = services => Register(services, options) };
         _client = new Lazy<HttpClient>(Factory.CreateClient);
     }
 
@@ -78,8 +86,14 @@ internal sealed class ClaudeKeyApi : IDisposable
     /// <summary>Name resolution of the internal caller (host name -> addresses).</summary>
     public Dictionary<string, IPAddress[]> Hosts { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Anthropic stand-in: every request is recorded and answered 500; tests assert it stays empty.</summary>
-    public StubHttpMessageHandler Anthropic { get; } = new(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)));
+    /// <summary>Anthropic stand-in: every request is recorded and answered by <see cref="AnthropicReply"/> (default 500).</summary>
+    public StubHttpMessageHandler Anthropic { get; }
+
+    /// <summary>The stand-in's answer; tests that expect no request assert <see cref="Anthropic"/> stays empty.</summary>
+    public Func<HttpRequestMessage, HttpResponseMessage> AnthropicReply { get; set; } = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
+
+    /// <summary>The <c>x-api-key</c> header of every request the stand-in received.</summary>
+    public List<string> AnthropicKeys { get; } = [];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -113,14 +127,18 @@ internal sealed class ClaudeKeyApi : IDisposable
         Factory.Dispose();
     }
 
-    private void Register(IServiceCollection services, bool httpLogging)
+    private void Register(IServiceCollection services, ClaudeKeyApiOptions options)
     {
         services.AddSingleton(Environment);
-        services.AddSingleton(StatusService);
+        if (!options.RealStatusService)
+        {
+            services.AddSingleton(StatusService);
+        }
+
         services.AddSingleton<IHostAddressResolver>(new FakeResolver(Hosts));
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ClaudeChatClientFactory>(
             sp, new HttpClient(Anthropic) { BaseAddress = new Uri("http://anthropic.invalid/") }));
-        if (httpLogging)
+        if (options.HttpLogging)
         {
             services.AddHttpLogging(options =>
             {
