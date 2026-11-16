@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-16",
-  "sourceHash": "f2702f94579221fdf2ebf7f91b9b9e2ae9dae648fa37e559e88c40693dbc90a8",
+  "sourceHash": "0d58cdc70c46d4203be42b9797485f80df62883c9ab43074ad66f82e9912bd01",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 34,
-      "bytes": 1138786
+      "bytes": 1140216
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 41,
-      "bytes": 1519380
+      "bytes": 1520829
     }
   ],
   "inputs": [
@@ -21,7 +21,7 @@
     },
     {
       "path": "docs/STATUS.md",
-      "sha256": "7d748e48b6f5657fc1c569cf2b388655aec34e036a79f49a31d9a3c022cbdcdc"
+      "sha256": "ea6e08d932c64d051e38f62b11d2d77f308538388ff54b4e2d86049719b6cf2e"
     },
     {
       "path": "docs/design-review/004/help-panel-dark.png",
