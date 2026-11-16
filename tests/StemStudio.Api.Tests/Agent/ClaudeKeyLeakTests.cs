@@ -4,7 +4,6 @@ using System.Text;
 using Microsoft.Data.Sqlite;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
-using StemStudio.Contracts.Agent;
 using StemStudio.TestDoubles.ClaudeKey;
 
 namespace StemStudio.Api.Tests.Agent;
@@ -69,23 +68,13 @@ public sealed class ClaudeKeyLeakTests
     {
         using var select = await api.Client.PutAsJsonAsync(ApiRoutes.AgentSettings, new { backend = "claude", acknowledgeClaudeNotice = true }, Ct);
         select.StatusCode.ShouldBe(HttpStatusCode.OK);
-        using var created = await api.Client.PostAsJsonAsync(ApiRoutes.AgentConversations, new CreateConversationRequest(), Ct);
-        var conversation = await created.BodyAsync<ConversationDto>();
-        using var sent = await api.Client.PostAsJsonAsync(ApiRoutes.AgentMessages(conversation.ConversationId),
-            new SendAgentMessageRequest { Text = "Mute the drums", Context = new PageContextDto { Page = "mixer" } }, Ct);
-        sent.StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        var runId = (await sent.BodyAsync<AgentMessageAcceptedDto>()).RunId;
-
-        await Eventually.WaitUntilAsync(async () => (await RunAsync(api, runId)).EndedAt is not null);
+        var runId = (await api.RunToTheEndAsync()).RunId;
 
         // The terminal event is published right after the run row ends; the replay of an ended run closes the stream.
         var events = string.Empty;
         await Eventually.WaitUntilAsync(async () => (events = await api.Client.GetStringAsync(ApiRoutes.AgentRunEvents(runId), Ct)).Contains("event: run.", StringComparison.Ordinal));
         return [events, await api.Client.GetStringAsync(ApiRoutes.AgentRun(runId), Ct)];
     }
-
-    private static async Task<AgentRunDto> RunAsync(ClaudeKeyApi api, Guid runId) =>
-        (await api.Client.GetFromJsonAsync<AgentRunDto>(ApiRoutes.AgentRun(runId), ApiFactory.Json, Ct))!;
 
     private static void ShouldNotContain(byte[] haystack, string where)
     {

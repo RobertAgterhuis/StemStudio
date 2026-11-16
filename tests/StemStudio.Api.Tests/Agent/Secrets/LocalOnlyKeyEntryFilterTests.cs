@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Tests.Contract;
@@ -53,7 +52,7 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
         using var api = new ClaudeKeyApi();
         api.Hosts["web"] = [WebContainer];
 
-        using var response = await Send(api, HttpMethod.Put, Body(ClaudeKeySentinels.Stored), peer: WebContainer.ToString());
+        using var response = await api.SendAsync(Put(ClaudeKeySentinels.Stored) with { Peer = WebContainer.ToString() });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
@@ -97,8 +96,8 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
     [Fact]
     public async Task Filter_RunsBeforeTheBodyIsRead()
     {
-        using var oversized = await Send(_api, HttpMethod.Put, Body(ClaudeKeySentinels.Stored + new string('a', 4096)), peer: "192.168.1.20");
-        using var malformed = await Send(_api, HttpMethod.Put, "not json", peer: "192.168.1.20");
+        using var oversized = await _api.SendAsync(Put(ClaudeKeySentinels.Stored + new string('a', 4096)) with { Peer = "192.168.1.20" });
+        using var malformed = await _api.SendAsync(new KeyRequest(HttpMethod.Put, ApiRoutes.AgentClaudeKey) { Body = "not json", Peer = "192.168.1.20" });
 
         oversized.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         malformed.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
@@ -107,7 +106,7 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
     [Fact]
     public async Task GetStatus_IsNotFiltered()
     {
-        using var response = await Send(_api, HttpMethod.Get, null, peer: "192.168.1.20", host: "stemstudio.lan", origin: "http://evil.test");
+        using var response = await _api.SendAsync(new KeyRequest(HttpMethod.Get, ApiRoutes.AgentClaudeKey) { Peer = "192.168.1.20", Host = "stemstudio.lan", Origin = "http://evil.test" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -165,31 +164,9 @@ public sealed class LocalOnlyKeyEntryFilterTests : IDisposable
     }
 
     private Task<HttpResponseMessage> PutAsync(string peer, string? host = null, string? origin = null) =>
-        Send(_api, HttpMethod.Put, Body(ClaudeKeySentinels.Stored), peer, host, origin);
+        _api.SendAsync(Put(ClaudeKeySentinels.Stored) with { Peer = peer, Host = host, Origin = origin });
 
-    private static string Body(string key) => "{\"apiKey\":\"" + key + "\"}";
-
-    private static async Task<HttpResponseMessage> Send(ClaudeKeyApi api, HttpMethod method, string? body, string peer, string? host = null, string? origin = null)
-    {
-        using var request = new HttpRequestMessage(method, ApiRoutes.AgentClaudeKey);
-        if (body is not null)
-        {
-            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-        }
-
-        request.Headers.Add(TestPeerStartup.Header, peer);
-        if (host is not null)
-        {
-            request.Headers.Host = host;
-        }
-
-        if (origin is not null)
-        {
-            request.Headers.Add("Origin", origin);
-        }
-
-        return await api.Client.SendAsync(request, Ct);
-    }
+    private static KeyRequest Put(string key) => new(HttpMethod.Put, ApiRoutes.AgentClaudeKey) { Body = "{\"apiKey\":\"" + key + "\"}" };
 
     private static async Task ShouldBeLocalOnlyAsync(HttpResponseMessage response)
     {

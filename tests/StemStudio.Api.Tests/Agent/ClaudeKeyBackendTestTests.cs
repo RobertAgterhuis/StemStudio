@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using NSubstitute;
 using StemStudio.Api.Agent.Secrets;
 using StemStudio.Api.Tests.Contract;
@@ -81,7 +80,7 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
         var expected = new BackendTestResultDto { Backend = AgentBackendDto.Ollama, Ok = true, LatencyMs = 3, Detail = "Ollama answered" };
         api.StatusService.TestAsync(AgentBackendDto.Ollama, Arg.Any<CancellationToken>()).Returns(expected);
 
-        using var response = await Send(api, """{"backend":"ollama","claudeKeySource":"stored"}""", "192.168.1.20", null, null);
+        using var response = await api.SendAsync(Test("""{"backend":"ollama","claudeKeySource":"stored"}""") with { Peer = "192.168.1.20" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.BodyAsync<BackendTestResultDto>()).ShouldBe(expected);
@@ -94,7 +93,7 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
         var expected = new BackendTestResultDto { Backend = AgentBackendDto.Claude, Ok = true, LatencyMs = 1, Detail = "ok", KeySource = ClaudeKeySourceDto.Environment };
         api.StatusService.TestAsync(AgentBackendDto.Claude, Arg.Any<CancellationToken>()).Returns(expected);
 
-        using var response = await Send(api, """{"backend":"claude"}""", "127.0.0.1", null, null);
+        using var response = await api.SendAsync(Test("""{"backend":"claude"}"""));
 
         (await response.BodyAsync<BackendTestResultDto>()).ShouldBe(expected);
     }
@@ -119,25 +118,7 @@ public sealed class ClaudeKeyBackendTestTests : IDisposable
     }
 
     private Task<HttpResponseMessage> TestAsync(string body, string peer = "127.0.0.1", string? host = null, string? origin = null) =>
-        Send(_api, body, peer, host, origin);
+        _api.SendAsync(Test(body) with { Peer = peer, Host = host, Origin = origin });
 
-    private static async Task<HttpResponseMessage> Send(ClaudeKeyApi api, string body, string peer, string? host, string? origin)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, ApiRoutes.AgentSettingsTest)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.Add(TestPeerStartup.Header, peer);
-        if (host is not null)
-        {
-            request.Headers.Host = host;
-        }
-
-        if (origin is not null)
-        {
-            request.Headers.Add("Origin", origin);
-        }
-
-        return await api.Client.SendAsync(request, Ct);
-    }
+    private static KeyRequest Test(string body) => new(HttpMethod.Post, ApiRoutes.AgentSettingsTest) { Body = body };
 }

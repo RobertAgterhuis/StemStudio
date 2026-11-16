@@ -68,7 +68,7 @@ public sealed class ClaudeKeyUnreadableTests : IDisposable
         await StoreAndSelectClaudeAsync();
         using var api = OtherHost();
 
-        var run = await RunToTheEndAsync(api);
+        var run = await api.RunToTheEndAsync();
 
         run.Status.ShouldBe(AgentRunStatusDto.Failed);
         run.Failure.ShouldNotBeNull().Code.ShouldBe(AgentFailureCodes.BackendUnavailable);
@@ -101,18 +101,4 @@ public sealed class ClaudeKeyUnreadableTests : IDisposable
     }
 
     private ClaudeKeyApi OtherHost() => new(new() { DataDir = _dataDir, KeyRingDir = OtherKeyRing });
-
-    private static async Task<AgentRunDto> RunToTheEndAsync(ClaudeKeyApi api)
-    {
-        using var created = await api.Client.PostAsJsonAsync(ApiRoutes.AgentConversations, new CreateConversationRequest(), Ct);
-        var conversation = await created.BodyAsync<ConversationDto>();
-        using var sent = await api.Client.PostAsJsonAsync(ApiRoutes.AgentMessages(conversation.ConversationId),
-            new SendAgentMessageRequest { Text = "Mute the drums", Context = new PageContextDto { Page = "mixer" } }, Ct);
-        sent.StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        var runId = (await sent.BodyAsync<AgentMessageAcceptedDto>()).RunId;
-        AgentRunDto? run = null;
-        await Eventually.WaitUntilAsync(async () =>
-            (run = await api.Client.GetFromJsonAsync<AgentRunDto>(ApiRoutes.AgentRun(runId), ApiFactory.Json, Ct))!.EndedAt is not null);
-        return run!;
-    }
 }

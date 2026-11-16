@@ -15,6 +15,21 @@ using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Tests.Agent;
 
+/// <summary>A request of a local-only test: method, route, body and where it comes from.</summary>
+/// <param name="Method">HTTP method.</param>
+/// <param name="Route">Route.</param>
+internal sealed record KeyRequest(HttpMethod Method, string Route)
+{
+    public string? Body { get; init; }
+
+    /// <summary>Peer address (<see cref="TestPeerStartup"/>); <c>none</c> = no address.</summary>
+    public string Peer { get; init; } = "127.0.0.1";
+
+    public string? Host { get; init; }
+
+    public string? Origin { get; init; }
+}
+
 /// <summary>Options of <see cref="ClaudeKeyApi"/>.</summary>
 internal sealed record ClaudeKeyApiOptions
 {
@@ -109,6 +124,45 @@ internal sealed class ClaudeKeyApi : IDisposable
         Client.PutAsync(ApiRoutes.AgentClaudeKey, new StringContent(body, Encoding.UTF8, mediaType), Ct);
 
     public Task<HttpResponseMessage> DeleteKeyAsync() => Client.DeleteAsync(ApiRoutes.AgentClaudeKey, Ct);
+
+    /// <summary>Sends "Mute the drums" in a new conversation and waits until the run has ended.</summary>
+    public async Task<AgentRunDto> RunToTheEndAsync()
+    {
+        using var created = await Client.PostAsJsonAsync(ApiRoutes.AgentConversations, new CreateConversationRequest(), Ct);
+        var conversation = await created.BodyAsync<ConversationDto>();
+        using var sent = await Client.PostAsJsonAsync(ApiRoutes.AgentMessages(conversation.ConversationId),
+            new SendAgentMessageRequest { Text = "Mute the drums", Context = new PageContextDto { Page = "mixer" } }, Ct);
+        sent.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var runId = (await sent.BodyAsync<AgentMessageAcceptedDto>()).RunId;
+        AgentRunDto? run = null;
+        await Eventually.WaitUntilAsync(async () =>
+            (run = await Client.GetFromJsonAsync<AgentRunDto>(ApiRoutes.AgentRun(runId), ApiFactory.Json, Ct))!.EndedAt is not null);
+        return run!;
+    }
+
+    /// <summary>Sends a request as another peer, with another <c>Host</c> or an <c>Origin</c> (local-only tests).</summary>
+    public async Task<HttpResponseMessage> SendAsync(KeyRequest key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        using var request = new HttpRequestMessage(key.Method, key.Route);
+        if (key.Body is not null)
+        {
+            request.Content = new StringContent(key.Body, Encoding.UTF8, "application/json");
+        }
+
+        request.Headers.Add(TestPeerStartup.Header, key.Peer);
+        if (key.Host is not null)
+        {
+            request.Headers.Host = key.Host;
+        }
+
+        if (key.Origin is not null)
+        {
+            request.Headers.Add("Origin", key.Origin);
+        }
+
+        return await Client.SendAsync(request, Ct);
+    }
 
     public async Task<ClaudeKeyStatusDto> StatusAsync()
     {
