@@ -1,0 +1,1018 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - insights and handouts delta (feature 020)
+  version: 1.19.0-delta.1
+  summary: Additive delta of the backend API for stem quality reports, lesson handouts, practice notes and the gated high-quality vocal re-separation.
+  description: |
+    * **Standalone, additive delta.** Contains only what feature 020 adds. Merged unchanged into
+      the full `specs/020-insights-handouts/contracts/backend-api.openapi.yaml` **1.19.0** in 020
+      Phase 0, on top of 019's 1.18.0. No existing operation, schema or behaviour changes.
+    * Additions to existing schemas (applied at the merge, all additive):
+      `AssetKind` += `handout`; `AssetOrigin` += `handout`; `Asset.handout`
+      (`HandoutFacts | null`, required, null for other kinds); `Provenance.handoutRecipe`
+      (`HandoutRecipe | null`, required, null for other kinds); `listAssets` accepts
+      `kind=handout`; `Track.quality` (`QualityBadge | null`, required); and, only if gate G2
+      passes, `Track.stemSet` (`StemSet`) and `Track.reseparation` (`ReseparationPhase | null`).
+      `getAssetFile` serves the handout `pdf` with the 1.7.0 rule (attachment by default,
+      `inline=true` for the preview).
+    * Schemas repeated from the base (`ChannelId`, `StemName`, `ParentStemName`, `Asset`,
+      `ProblemDetails`, `ValidationProblemDetails`) are copies or placeholders for standalone
+      validity; the base definitions win at the merge.
+    * Conventions: JSON camelCase, enum values lower-case kebab-case, UTC ISO 8601, RFC 9457
+      problem details with `type` = `https://stemstudio.local/problems/<code>`.
+    * Paths tagged `reseparation` exist only if gate G2 passes (research.md R-06).
+    * Changelog: 1.19.0-delta.1 (additive, feature 020 planning). See ADR-029 and DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: local development and docker compose (published port)
+security: []
+tags:
+  - name: insights
+    description: Stem quality report with tips (1.19.0, feature 020).
+  - name: handouts
+    description: Lesson handouts and practice notes (1.19.0, feature 020).
+  - name: reseparation
+    description: High-quality vocal re-separation (1.19.0, feature 020, gated by G2).
+paths:
+  /api/tracks/{trackId}/quality:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [insights]
+      operationId: getQualityReport
+      summary: The track's stem quality report with tips (status `none` when never made).
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityReport'
+              examples:
+                ready:
+                  $ref: '#/components/examples/ReadyQualityReport'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [insights]
+      operationId: requestQualityReport
+      summary: Make (or remake) the quality report of a completed track.
+      description: |
+        Starts a quality job in the worker's insights lane with all standard stems, kept detail
+        stems and rest stems of the track. The previous ready report stays readable until the new
+        one is ready. Automatic runs (after separations) use the same path internally.
+      responses:
+        '202':
+          description: Accepted; the report is `queued`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityReport'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/QualityConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/handouts/options:
+    get:
+      tags: [handouts]
+      operationId: getHandoutOptions
+      summary: Families, ingredients (available or missing) and notation choices for a song or setlist.
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          description: The song (exactly one of `trackId` and `setlistId`).
+          schema:
+            type: string
+            format: uuid
+        - name: setlistId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: family
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/HandoutFamily'
+        - name: transposition
+          in: query
+          required: false
+          description: Only for `melodic`; default `c`.
+          schema:
+            $ref: '#/components/schemas/Transposition'
+      responses:
+        '200':
+          description: The options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandoutOptions'
+              examples:
+                bass:
+                  $ref: '#/components/examples/BassHandoutOptions'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/assets/handouts:
+    post:
+      tags: [handouts]
+      operationId: createHandout
+      summary: Create a handout library item (kind `handout`) for a song or a setlist.
+      description: |
+        The API assembles the handout document (data-model 6.3) and submits a worker handout job;
+        the item is `queued`, then `rendering`, then `ready` with one `pdf` file. Missing optional
+        ingredients never fail the request; they are listed in `handout.omitted`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHandoutRequest'
+            examples:
+              oneClickBass:
+                summary: One click (defaults)
+                value:
+                  source: {trackId: 7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f}
+                  family: bass
+              melodicBFlat:
+                summary: Customised melodic part in B-flat on Letter paper
+                value:
+                  source: {trackId: 7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f}
+                  family: melodic
+                  transposition: b-flat
+                  paper: letter
+                  include: [facts, form-chart, chord-chart, notation, practice-notes]
+              setlist:
+                summary: Band overview for a setlist
+                value:
+                  source: {setlistId: 3a4b5c6d-7e8f-4901-a2b3-c4d5e6f7a8b9}
+                  family: overview
+      responses:
+        '202':
+          description: Accepted; the new library item (kind `handout`, status `queued`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/HandoutConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/practice-notes:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [handouts]
+      operationId: getPracticeNotes
+      summary: The track's practice notes, one per family that has a note.
+      responses:
+        '200':
+          description: The notes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeNotes'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/practice-notes/{family}:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+      - name: family
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/HandoutFamily'
+    put:
+      tags: [handouts]
+      operationId: setPracticeNote
+      summary: Set the practice note of a family; an empty (or whitespace) text deletes it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPracticeNoteRequest'
+      responses:
+        '200':
+          description: The stored note.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeNote'
+        '204':
+          description: The note was deleted (empty text).
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/tracks/{trackId}/reseparation/options:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [reseparation]
+      operationId: getReseparationOptions
+      summary: Whether the high-quality vocal pipeline is available, its estimate and its consequences (G2).
+      responses:
+        '200':
+          description: The options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReseparationOptions'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tracks/{trackId}/reseparation:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [reseparation]
+      operationId: startReseparation
+      summary: Re-separate the track with the high-quality vocal pipeline (G2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartReseparationRequest'
+      responses:
+        '202':
+          description: Accepted; the phase is `queued`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReseparationPhase'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ReseparationConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+    delete:
+      tags: [reseparation]
+      operationId: cancelReseparation
+      summary: Cancel a queued or running re-separation; the original stems stay.
+      responses:
+        '204':
+          description: Cancelled (or nothing was running).
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ChannelId:
+      type: string
+      description: Copy of the base schema.
+      pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+    StemName:
+      type: string
+      description: Copy of the base schema.
+      enum: [vocals, drums, bass, guitar, piano, other]
+    ParentStemName:
+      type: string
+      description: Copy of the base schema.
+      enum: [vocals, drums, guitar, piano, other]
+    Asset:
+      type: object
+      description: Placeholder for the base `Asset` (1.5.0+) with the 1.19.0 additions `handout` and `provenance.handoutRecipe`.
+      additionalProperties: true
+      properties:
+        kind:
+          type: string
+          enum: [audio, score, handout]
+        handout:
+          oneOf:
+            - $ref: '#/components/schemas/HandoutFacts'
+            - type: 'null'
+        provenance:
+          type: object
+          additionalProperties: true
+          properties:
+            handoutRecipe:
+              oneOf:
+                - $ref: '#/components/schemas/HandoutRecipe'
+                - type: 'null'
+    QualityReportStatus:
+      type: string
+      enum: [none, queued, running, ready, failed]
+    QualityLevel:
+      type: string
+      enum: [low, medium, high, unknown]
+    Reliability:
+      type: string
+      enum: [validated, indicative]
+    QualityRating:
+      type: string
+      enum: [good, fair, poor, not-present, unknown]
+    TipCode:
+      type: string
+      description: data-model 5.3. `rerun-high-quality` exists only if G2 passes. There is no GPU re-run tip (FR-006).
+      enum: [not-in-song, use-detail-stem, rerun-high-quality, try-detail-separation, listen-to-rest, hard-to-isolate, clean]
+    TipActionKind:
+      type: string
+      enum: [mute, open-detail, reseparate, split-detail]
+    TipAction:
+      type: object
+      additionalProperties: false
+      required: [kind, channel, parent, child]
+      properties:
+        kind:
+          $ref: '#/components/schemas/TipActionKind'
+        channel:
+          $ref: '#/components/schemas/ChannelId'
+        parent:
+          oneOf:
+            - $ref: '#/components/schemas/ParentStemName'
+            - type: 'null'
+        child:
+          type: [string, 'null']
+          pattern: '^[a-z][a-z-]{0,31}$'
+          description: Detail stem name for `open-detail`.
+    Tip:
+      type: object
+      additionalProperties: false
+      required: [code, text, action]
+      properties:
+        code:
+          $ref: '#/components/schemas/TipCode'
+        text:
+          type: string
+          maxLength: 300
+        action:
+          oneOf:
+            - $ref: '#/components/schemas/TipAction'
+            - type: 'null'
+    BleedView:
+      type: object
+      additionalProperties: false
+      required: [level, index, mainSource, coOccurrence, reliability]
+      properties:
+        level:
+          $ref: '#/components/schemas/QualityLevel'
+        index:
+          type: number
+          minimum: 0
+          maximum: 1
+        mainSource:
+          oneOf:
+            - $ref: '#/components/schemas/StemName'
+            - type: 'null'
+        coOccurrence:
+          type: boolean
+        reliability:
+          $ref: '#/components/schemas/Reliability'
+    ArtefactView:
+      type: object
+      additionalProperties: false
+      required: [level, index, kinds, reliability]
+      properties:
+        level:
+          $ref: '#/components/schemas/QualityLevel'
+        index:
+          type: number
+          minimum: 0
+          maximum: 1
+        kinds:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [flicker, dropouts, model-residual, rest-share]
+        reliability:
+          $ref: '#/components/schemas/Reliability'
+    StemQualityView:
+      type: object
+      additionalProperties: false
+      required: [channel, parent, rating, reason, previousRating, bleed, artefacts, tips]
+      properties:
+        channel:
+          $ref: '#/components/schemas/ChannelId'
+        parent:
+          oneOf:
+            - $ref: '#/components/schemas/ParentStemName'
+            - type: 'null'
+          description: Set for detail and rest stems.
+        rating:
+          $ref: '#/components/schemas/QualityRating'
+        reason:
+          type: string
+          maxLength: 300
+          description: Text of data-model 4.6.
+        previousRating:
+          oneOf:
+            - $ref: '#/components/schemas/QualityRating'
+            - type: 'null'
+          description: Rating of the last ready report before this one (shown as "was Fair").
+        bleed:
+          $ref: '#/components/schemas/BleedView'
+        artefacts:
+          $ref: '#/components/schemas/ArtefactView'
+        tips:
+          type: array
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/Tip'
+    QualitySummary:
+      type: object
+      additionalProperties: false
+      required: [good, fair, poor, notPresent, unknown]
+      properties:
+        good:
+          type: integer
+          minimum: 0
+        fair:
+          type: integer
+          minimum: 0
+        poor:
+          type: integer
+          minimum: 0
+        notPresent:
+          type: integer
+          minimum: 0
+        unknown:
+          type: integer
+          minimum: 0
+    QualityReport:
+      type: object
+      additionalProperties: false
+      required: [status, progress, error, analyzerVersion, measuredAt, outdated, disclaimer, summary, stems]
+      properties:
+        status:
+          $ref: '#/components/schemas/QualityReportStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        analyzerVersion:
+          type: [string, 'null']
+          maxLength: 20
+        measuredAt:
+          type: [string, 'null']
+          format: date-time
+        outdated:
+          type: boolean
+          description: Made with an older analyzer version or before the stems changed.
+        disclaimer:
+          type: string
+          const: These ratings are estimates made from the stems alone, without the original recording. They can be wrong.
+        summary:
+          $ref: '#/components/schemas/QualitySummary'
+        stems:
+          type: array
+          maxItems: 64
+          description: Stems of the last ready report (kept while a new one runs or after a failure).
+          items:
+            $ref: '#/components/schemas/StemQualityView'
+    QualityBadge:
+      type: object
+      additionalProperties: false
+      required: [status, summary, outdated]
+      description: Added to `Track` as `quality` (null when never made).
+      properties:
+        status:
+          $ref: '#/components/schemas/QualityReportStatus'
+        summary:
+          $ref: '#/components/schemas/QualitySummary'
+        outdated:
+          type: boolean
+    HandoutFamily:
+      type: string
+      enum: [overview, vocals, guitar, bass, keys, drums, melodic]
+    Transposition:
+      type: string
+      description: Only for `melodic` (C, B-flat, E-flat, F instruments).
+      enum: [c, b-flat, e-flat, f]
+    Paper:
+      type: string
+      enum: [a4, letter]
+    IngredientCode:
+      type: string
+      enum: [facts, form-chart, chords-over-lyrics, lyrics, chord-chart, notation, practice-notes, practice-progress, setlist-notes]
+    IngredientStatus:
+      type: string
+      enum: [available, missing, not-applicable]
+    IngredientAction:
+      type: string
+      description: Where the UI links a missing ingredient to.
+      enum: [create-score, create-tab, create-drum-notation, create-transposed-part, detect-chords, detect-sections, find-lyrics, split-drums, write-notes]
+    Ingredient:
+      type: object
+      additionalProperties: false
+      required: [code, status, defaultIncluded, text, action]
+      properties:
+        code:
+          $ref: '#/components/schemas/IngredientCode'
+        status:
+          $ref: '#/components/schemas/IngredientStatus'
+        defaultIncluded:
+          type: boolean
+        text:
+          type: string
+          maxLength: 200
+          example: Tablature - not generated yet
+        action:
+          oneOf:
+            - $ref: '#/components/schemas/IngredientAction'
+            - type: 'null'
+    NotationChoice:
+      type: object
+      additionalProperties: false
+      required: [assetId, title, kind, transposition, defaultSelected, songTitle]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 120
+        kind:
+          type: string
+          enum: [score, tab, drums, transposed]
+        transposition:
+          oneOf:
+            - $ref: '#/components/schemas/Transposition'
+            - type: 'null'
+        defaultSelected:
+          type: boolean
+        songTitle:
+          type: string
+          maxLength: 300
+    HandoutOptions:
+      type: object
+      additionalProperties: false
+      required: [kind, family, familyLabel, songs, ingredients, notation, transpositions, defaultPaper, estimateSeconds]
+      properties:
+        kind:
+          type: string
+          enum: [song, setlist]
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        familyLabel:
+          type: string
+          maxLength: 60
+        songs:
+          type: integer
+          minimum: 0
+          maximum: 500
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        notation:
+          type: array
+          maxItems: 400
+          items:
+            $ref: '#/components/schemas/NotationChoice'
+        transpositions:
+          type: array
+          description: Offered transpositions (`melodic` only; empty otherwise).
+          items:
+            $ref: '#/components/schemas/Transposition'
+        defaultPaper:
+          $ref: '#/components/schemas/Paper'
+        estimateSeconds:
+          type: integer
+          minimum: 1
+    HandoutSource:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [trackId]
+          properties:
+            trackId:
+              type: string
+              format: uuid
+        - type: object
+          additionalProperties: false
+          required: [setlistId]
+          properties:
+            setlistId:
+              type: string
+              format: uuid
+    CreateHandoutRequest:
+      type: object
+      additionalProperties: false
+      required: [source, family]
+      properties:
+        source:
+          $ref: '#/components/schemas/HandoutSource'
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        include:
+          type: [array, 'null']
+          uniqueItems: true
+          description: null = the family defaults (data-model 6.2); codes marked `-` for the family are 422.
+          items:
+            $ref: '#/components/schemas/IngredientCode'
+        notationAssetIds:
+          type: [array, 'null']
+          maxItems: 400
+          description: null = the default notation per song; ids must be ready `score` items of the source songs (else 422).
+          items:
+            type: string
+            format: uuid
+        transposition:
+          oneOf:
+            - $ref: '#/components/schemas/Transposition'
+            - type: 'null'
+        paper:
+          oneOf:
+            - $ref: '#/components/schemas/Paper'
+            - type: 'null'
+        name:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 120
+    OmittedIngredient:
+      type: object
+      additionalProperties: false
+      required: [code, reason]
+      properties:
+        code:
+          $ref: '#/components/schemas/IngredientCode'
+        reason:
+          type: string
+          enum: [not-available, not-selected, no-timing]
+    HandoutWarning:
+      type: object
+      additionalProperties: false
+      required: [code, text]
+      properties:
+        code:
+          type: string
+          enum: [missing-glyphs, notation-scaled, notation-unreadable, track-missing]
+        text:
+          type: string
+          maxLength: 300
+    HandoutFacts:
+      type: object
+      additionalProperties: false
+      required: [kind, family, transposition, paper, pages, songs, included, omitted, warnings, outline]
+      description: Added to `Asset` as `handout` (set when a kind `handout` item is ready).
+      properties:
+        kind:
+          type: string
+          enum: [song, setlist]
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        transposition:
+          oneOf:
+            - $ref: '#/components/schemas/Transposition'
+            - type: 'null'
+        paper:
+          $ref: '#/components/schemas/Paper'
+        pages:
+          type: integer
+          minimum: 1
+        songs:
+          type: integer
+          minimum: 1
+          maximum: 50
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientCode'
+        omitted:
+          type: array
+          items:
+            $ref: '#/components/schemas/OmittedIngredient'
+        warnings:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HandoutWarning'
+        outline:
+          type: array
+          maxItems: 1000
+          items:
+            type: string
+            maxLength: 200
+    HandoutRecipe:
+      type: object
+      additionalProperties: false
+      required: [kind, kindLabel, trackId, setlistId, setlistName, family, include, notationAssetIds, transposition, paper]
+      description: Added to `Provenance` as `handoutRecipe`; posting it as a `CreateHandoutRequest` makes the handout again with current data.
+      properties:
+        kind:
+          type: string
+          const: handout
+        kindLabel:
+          type: string
+          enum: [song, setlist]
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        setlistId:
+          type: [string, 'null']
+          format: uuid
+        setlistName:
+          type: [string, 'null']
+          maxLength: 200
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        include:
+          type: [array, 'null']
+          items:
+            $ref: '#/components/schemas/IngredientCode'
+        notationAssetIds:
+          type: [array, 'null']
+          items:
+            type: string
+            format: uuid
+        transposition:
+          oneOf:
+            - $ref: '#/components/schemas/Transposition'
+            - type: 'null'
+        paper:
+          $ref: '#/components/schemas/Paper'
+    PracticeNote:
+      type: object
+      additionalProperties: false
+      required: [family, text, updatedAt]
+      properties:
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        updatedAt:
+          type: string
+          format: date-time
+    PracticeNotes:
+      type: object
+      additionalProperties: false
+      required: [notes]
+      properties:
+        notes:
+          type: array
+          maxItems: 7
+          items:
+            $ref: '#/components/schemas/PracticeNote'
+    SetPracticeNoteRequest:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text:
+          type: string
+          maxLength: 4000
+    SeparationPipeline:
+      type: string
+      enum: [standard, vocals-hq]
+    StemSet:
+      type: object
+      additionalProperties: false
+      required: [pipeline, models, separatedAt]
+      description: Added to `Track` as `stemSet` (G2).
+      properties:
+        pipeline:
+          $ref: '#/components/schemas/SeparationPipeline'
+        models:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+        separatedAt:
+          type: string
+          format: date-time
+    ReseparationStatus:
+      type: string
+      enum: [queued, running, completed, failed, cancelled]
+    ReseparationPhase:
+      type: object
+      additionalProperties: false
+      required: [status, stage, progress, error, pipeline, requestedAt, updatedAt]
+      description: Added to `Track` as `reseparation` (G2; null when never requested).
+      properties:
+        status:
+          $ref: '#/components/schemas/ReseparationStatus'
+        stage:
+          type: [string, 'null']
+          maxLength: 200
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 1000
+        pipeline:
+          $ref: '#/components/schemas/SeparationPipeline'
+        requestedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ReseparationOptions:
+      type: object
+      additionalProperties: false
+      required: [available, reason, modelReady, estimateSeconds, device, hasDetailStems, consequences]
+      properties:
+        available:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          maxLength: 300
+          description: Why it is not available (e.g. "Already separated with the high-quality vocal model.").
+        modelReady:
+          type: boolean
+          description: False means the first run downloads the model.
+        estimateSeconds:
+          type: [integer, 'null']
+          minimum: 1
+        device:
+          type: string
+          enum: [cpu, gpu]
+        hasDetailStems:
+          type: boolean
+        consequences:
+          type: array
+          maxItems: 6
+          items:
+            type: string
+            maxLength: 300
+    StartReseparationRequest:
+      type: object
+      additionalProperties: false
+      required: [pipeline, discardDetail]
+      properties:
+        pipeline:
+          type: string
+          const: vocals-hq
+        discardDetail:
+          type: boolean
+          description: Must be true when the track has detail stems (else 409 `detail-stems-exist`).
+    ProblemDetails:
+      type: object
+      description: Copy of the base schema (RFC 9457).
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
+      additionalProperties: true
+    ValidationProblemDetails:
+      description: Copy of the base schema.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+  responses:
+    NotFound:
+      description: Unknown track, setlist or asset.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Track 7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f does not exist.
+    ValidationProblem:
+      description: Invalid input; `errors` names the offending fields.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            title: One or more validation errors occurred.
+            status: 422
+            errors:
+              include: [chords-over-lyrics is not offered for the drums family.]
+    WorkerUnavailable:
+      description: The worker cannot be reached; nothing was stored.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/worker-unavailable
+            title: Worker unavailable
+            status: 503
+            detail: The processing worker is not reachable. Try again in a moment.
+    QualityConflict:
+      description: '`track-not-ready` (not completed) or `quality-running` (a report is queued or running).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/quality-running
+            title: Quality report already running
+            status: 409
+            detail: A quality report for this track is already being made.
+    HandoutConflict:
+      description: '`track-not-ready`, `setlist-empty` (no available songs), `too-many-songs` (more than 50) or `insufficient-disk-space`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/too-many-songs
+            title: Too many songs
+            status: 409
+            detail: A setlist handout can hold up to 50 songs.
+    ReseparationConflict:
+      description: '`track-not-ready`, `reseparation-running`, `detail-running`, `detail-stems-exist` (without `discardDetail`), `pipeline-unavailable`, `already-high-quality`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/detail-stems-exist
+            title: Detail stems exist
+            status: 409
+            detail: This track has detail stems. Confirm that they may be removed.
+  examples:
+    ReadyQualityReport:
+      summary: A ready report (two stems shown)
+      value:
+        status: ready
+        progress: 100
+        error: null
+        analyzerVersion: 1.0.0
+        measuredAt: '2026-11-16T10:00:15Z'
+        outdated: false
+        disclaimer: These ratings are estimates made from the stems alone, without the original recording. They can be wrong.
+        summary: {good: 3, fair: 2, poor: 0, notPresent: 1, unknown: 0}
+        stems:
+          - channel: other
+            parent: null
+            rating: fair
+            reason: Some sound of guitar is in this stem.
+            previousRating: null
+            bleed: {level: medium, index: 0.19, mainSource: guitar, coOccurrence: false, reliability: validated}
+            artefacts: {level: low, index: 0.2, kinds: [], reliability: validated}
+            tips:
+              - code: try-detail-separation
+                text: Split further (detail separation) may pull apart the instruments mixed into this stem.
+                action: {kind: split-detail, channel: other, parent: other, child: null}
+          - channel: piano
+            parent: null
+            rating: not-present
+            reason: This instrument is probably not in this song; what you hear is spill from other instruments.
+            previousRating: null
+            bleed: {level: high, index: 0.71, mainSource: guitar, coOccurrence: false, reliability: indicative}
+            artefacts: {level: unknown, index: 0.4, kinds: [flicker], reliability: indicative}
+            tips:
+              - code: not-in-song
+                text: Mute this stem; the instrument is probably not in this song.
+                action: {kind: mute, channel: piano, parent: null, child: null}
+    BassHandoutOptions:
+      summary: Bass options with a missing tablature
+      value:
+        kind: song
+        family: bass
+        familyLabel: Bass
+        songs: 1
+        ingredients:
+          - {code: facts, status: available, defaultIncluded: true, text: 'Tempo 120 BPM, 4/4, A minor', action: null}
+          - {code: form-chart, status: available, defaultIncluded: true, text: 7 sections, action: null}
+          - {code: chord-chart, status: available, defaultIncluded: true, text: 4 chords, action: null}
+          - {code: notation, status: available, defaultIncluded: true, text: Bass score; tablature not generated yet, action: create-tab}
+          - {code: practice-notes, status: missing, defaultIncluded: true, text: No notes yet, action: write-notes}
+        notation:
+          - {assetId: 2c3d4e5f-6071-4829-8a0b-c1d2e3f4a5b7, title: Bass - score, kind: score, transposition: null, defaultSelected: true, songTitle: Example Song}
+        transpositions: []
+        defaultPaper: a4
+        estimateSeconds: 6

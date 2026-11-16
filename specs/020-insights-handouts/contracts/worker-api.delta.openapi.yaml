@@ -1,0 +1,1219 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Worker API - insights and handouts delta (feature 020)
+  version: 1.11.0-delta.1
+  summary: Additive delta of the worker API for stem quality reports, lesson handouts and the gated high-quality vocal re-separation.
+  description: |
+    * **Standalone, additive delta.** Contains only what feature 020 adds. It is merged unchanged
+      into the full `specs/020-insights-handouts/contracts/worker-api.openapi.yaml` **1.11.0** in
+      020 Phase 0, on top of 019's 1.10.0. No existing operation, schema or behaviour changes.
+      Schemas repeated here from the base (`ChannelId`, `StemName`, `ParentStemName`,
+      `RenderJobStatus`, `JobDevice`, `ProblemDetails`) are copies for standalone validity; at the
+      merge the base definitions win and the copies are dropped.
+    * Library paths follow the allow-list of `createRenderJob` (1.4.0) extended by
+      `assets/<uuid>/<name>.pdf` and `tracks/<uuid>/artwork/(auto|user)/cover.jpg`
+      (data-model 2.2). Invalid -> `400 invalid-input-path`; missing -> `404 input-not-found`,
+      both checked when the job is created.
+    * Quality and handout jobs run in the new **`insights`** lane (one at a time, FIFO, threads
+      capped by `STEMSTUDIO_INSIGHTS_THREADS`); they never wait behind a separation, a render or
+      a transcription. Jobs are kept for 24 hours after they end; after a restart `queued` and
+      `running` jobs are `failed` with "interrupted by restart". `DELETE` cancels and removes
+      (idempotent `204`).
+    * The handout renderer never uses the network and reads only the files named in the request
+      (ADR-029 D7).
+    * Paths tagged `reseparation` exist **only if Phase 0 gate G2 passes** (research.md R-06);
+      otherwise they and `Health.separationPipelines` are removed before the merge.
+    * Health additions (merged into `Health`): `lanes.insights` (`LaneHealth`), `insights`
+      (`InsightsHealth`), `separationPipelines` (G2).
+    * Changelog: 1.11.0-delta.1 (additive, feature 020 planning) - quality jobs, handout jobs,
+      re-separation jobs (gated), health additions. See ADR-029 and DELTA.md.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://worker:8000
+    description: docker compose network (internal only)
+security: []
+tags:
+  - name: insights
+    description: Reference-free stem quality estimates (1.11.0, feature 020).
+  - name: handouts
+    description: Lesson handout PDFs laid out from a resolved document (1.11.0, feature 020).
+  - name: reseparation
+    description: High-quality vocal re-separation of a completed track (1.11.0, feature 020, gated by G2).
+paths:
+  /v1/quality-jobs:
+    post:
+      tags: [insights]
+      operationId: createQualityJob
+      summary: Estimate bleed and artefacts of every given stem (insights lane).
+      description: |
+        Reads the six standard stems (their sum is the mix) and any detail stems, computes the
+        measures of data-model 4 and returns levels and a rating per stem. Stages and progress:
+        `loading` 0-0.2, `analysing` 0.2-0.9, `rating` 0.9-1.0.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QualityJobRequest'
+            examples:
+              standardAndDetail:
+                $ref: '#/components/examples/QualityRequest'
+      responses:
+        '202':
+          description: Accepted and queued.
+          headers:
+            Location:
+              description: URL of the job.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/quality-jobs/{qualityJobId}:
+    parameters:
+      - $ref: '#/components/parameters/QualityJobId'
+    get:
+      tags: [insights]
+      operationId: getQualityJob
+      summary: Status, progress and result of a quality job.
+      responses:
+        '200':
+          description: Current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedQualityJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [insights]
+      operationId: deleteQualityJob
+      summary: Cancel (when queued or running) and remove a quality job.
+      responses:
+        '204':
+          description: Removed (or did not exist).
+  /v1/handout-jobs:
+    post:
+      tags: [handouts]
+      operationId: createHandoutJob
+      summary: Render a lesson handout PDF from a resolved document (insights lane).
+      description: |
+        The document is complete: the worker performs no lookups. Notice texts must equal the
+        fixed texts of data-model 6.6 (else `422`). Each `notation[].pdfPath` and `artworkPath`
+        is checked against the allow-list. Stages and progress: `layout` 0-0.6, `notation`
+        0.6-0.9, `writing` 0.9-1.0. An unreadable notation file does not fail the job: its pages
+        are replaced by a note and a `notation-unreadable` warning is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HandoutJobRequest'
+            examples:
+              bassSong:
+                $ref: '#/components/examples/BassHandoutRequest'
+      responses:
+        '202':
+          description: Accepted and queued.
+          headers:
+            Location:
+              description: URL of the job.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandoutJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/handout-jobs/{handoutJobId}:
+    parameters:
+      - $ref: '#/components/parameters/HandoutJobId'
+    get:
+      tags: [handouts]
+      operationId: getHandoutJob
+      summary: Status, progress and result of a handout job.
+      responses:
+        '200':
+          description: Current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandoutJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/CompletedHandoutJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [handouts]
+      operationId: deleteHandoutJob
+      summary: Cancel (when queued or running) and remove a handout job and its file.
+      responses:
+        '204':
+          description: Removed (or did not exist).
+  /v1/handout-jobs/{handoutJobId}/file:
+    parameters:
+      - $ref: '#/components/parameters/HandoutJobId'
+    get:
+      tags: [handouts]
+      operationId: getHandoutFile
+      summary: Download the PDF of a completed handout job.
+      responses:
+        '200':
+          description: The PDF; `Content-Length` = `HandoutResult.sizeBytes`.
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/HandoutNotCompleted'
+  /v1/reseparation-jobs:
+    post:
+      tags: [reseparation]
+      operationId: createReseparationJob
+      summary: Re-separate a track's mix (sum of its six stems) with a high-quality pipeline (G2).
+      description: |
+        Runs in the separation queue under the GPU policy of ADR-012 (CPU fallback allowed).
+        Pipeline `vocals-hq`: RoFormer vocal model on the summed input, then `htdemucs_6s` on the
+        instrumental (data-model 2.7). Stages: `loading-model` 0-0.05, `vocals` 0.05-0.45,
+        `instruments` 0.45-0.95, `writing` 0.95-1.0. Results are cached per summed-input hash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReseparationJobRequest'
+      responses:
+        '202':
+          description: Accepted and queued.
+          headers:
+            Location:
+              description: URL of the job.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReseparationJob'
+        '400':
+          $ref: '#/components/responses/InvalidInputPath'
+        '404':
+          $ref: '#/components/responses/InputNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /v1/reseparation-jobs/{reseparationJobId}:
+    parameters:
+      - $ref: '#/components/parameters/ReseparationJobId'
+    get:
+      tags: [reseparation]
+      operationId: getReseparationJob
+      summary: Status, progress, device and result of a re-separation job.
+      responses:
+        '200':
+          description: Current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReseparationJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [reseparation]
+      operationId: deleteReseparationJob
+      summary: Cancel (when queued or running) and remove a re-separation job.
+      responses:
+        '204':
+          description: Removed (or did not exist).
+  /v1/reseparation-jobs/{reseparationJobId}/stems/{stem}:
+    parameters:
+      - $ref: '#/components/parameters/ReseparationJobId'
+      - name: stem
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/StemName'
+    get:
+      tags: [reseparation]
+      operationId: getReseparationStem
+      summary: Download one FLAC stem of a completed re-separation job.
+      responses:
+        '200':
+          description: The FLAC file.
+          content:
+            audio/flac:
+              schema:
+                type: string
+                contentMediaType: audio/flac
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ReseparationNotCompleted'
+components:
+  parameters:
+    QualityJobId:
+      name: qualityJobId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/JobHexId'
+    HandoutJobId:
+      name: handoutJobId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/JobHexId'
+    ReseparationJobId:
+      name: reseparationJobId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/JobHexId'
+  schemas:
+    JobHexId:
+      type: string
+      pattern: '^[0-9a-f]{32}$'
+      example: 0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a
+    LibraryPath:
+      type: string
+      maxLength: 200
+      description: Library-relative path (allow-list of 1.4.0 plus the 1.11.0 additions in data-model 2.2).
+      example: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/vocals.flac
+    ChannelId:
+      type: string
+      description: Copy of the base schema (standard stem or `<parent>.<detail>`).
+      pattern: '^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$'
+    StemName:
+      type: string
+      description: Copy of the base schema.
+      enum: [vocals, drums, bass, guitar, piano, other]
+    ParentStemName:
+      type: string
+      description: Copy of the base schema.
+      enum: [vocals, drums, guitar, piano, other]
+    RenderJobStatus:
+      type: string
+      description: Copy of the base schema; `completed`, `failed` and `cancelled` are terminal.
+      enum: [queued, running, completed, failed, cancelled]
+    JobDevice:
+      type: object
+      description: Copy placeholder of the base `JobDevice` (1.2.0); the base definition wins at the merge.
+      additionalProperties: true
+    LaneHealth:
+      type: object
+      description: Copy of the base schema; merged as `Health.lanes.insights`.
+      additionalProperties: false
+      required: [queued, running]
+      properties:
+        queued:
+          type: integer
+          minimum: 0
+        running:
+          type: boolean
+    InsightsHealth:
+      type: object
+      additionalProperties: false
+      required: [analyzer, analyzerVersion, renderer, fonts]
+      description: Merged as `Health.insights`.
+      properties:
+        analyzer:
+          type: string
+          enum: [real, fake]
+        analyzerVersion:
+          type: string
+          maxLength: 20
+          example: 1.0.0
+        renderer:
+          type: object
+          additionalProperties: false
+          required: [weasyprint, pango]
+          properties:
+            weasyprint:
+              type: [string, 'null']
+              description: Installed WeasyPrint version; null when it cannot be imported (handout jobs then fail readably).
+              example: '70.0'
+            pango:
+              type: [string, 'null']
+              example: 1.56.3
+        fonts:
+          type: object
+          additionalProperties: false
+          required: [archivo, fallback]
+          properties:
+            archivo:
+              type: boolean
+            fallback:
+              type: boolean
+              description: DejaVu Sans available for characters Archivo lacks.
+    SeparationPipelinesHealth:
+      type: object
+      additionalProperties: false
+      required: [vocals-hq]
+      description: Merged as `Health.separationPipelines` (G2 only).
+      properties:
+        vocals-hq:
+          type: string
+          enum: [ready, not-downloaded]
+    QualityInputKind:
+      type: string
+      enum: [standard, detail, rest]
+    QualityInput:
+      type: object
+      additionalProperties: false
+      required: [channel, path, kind]
+      properties:
+        channel:
+          $ref: '#/components/schemas/ChannelId'
+        path:
+          $ref: '#/components/schemas/LibraryPath'
+        kind:
+          $ref: '#/components/schemas/QualityInputKind'
+    DetailParentInput:
+      type: object
+      additionalProperties: false
+      required: [parent, modelResidualDb, reconstructionErrorDb]
+      properties:
+        parent:
+          $ref: '#/components/schemas/ParentStemName'
+        modelResidualDb:
+          type: [number, 'null']
+        reconstructionErrorDb:
+          type: [number, 'null']
+    QualityTitles:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        artist:
+          type: [string, 'null']
+          maxLength: 200
+    QualityJobRequest:
+      type: object
+      additionalProperties: false
+      required: [stems, detailParents, titles]
+      description: All six standard stems must be present exactly once (else 422).
+      properties:
+        stems:
+          type: array
+          minItems: 6
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/QualityInput'
+        detailParents:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/DetailParentInput'
+        titles:
+          $ref: '#/components/schemas/QualityTitles'
+    QualityStage:
+      type: [string, 'null']
+      enum: [loading, analysing, rating, null]
+    QualityLevel:
+      type: string
+      enum: [low, medium, high, unknown]
+    Reliability:
+      type: string
+      description: '`validated` only for stem types and dimensions that passed gate G1 (research.md R-04).'
+      enum: [validated, indicative]
+    QualityRating:
+      type: string
+      enum: [good, fair, poor, not-present, unknown]
+    QualityReasonCode:
+      type: string
+      description: Texts in data-model 4.6.
+      enum: [clean, bleed, bleed-together, artefacts, bleed-and-artefacts, not-present, too-short]
+    ArtefactKind:
+      type: string
+      enum: [flicker, dropouts, model-residual, rest-share]
+    BleedEstimate:
+      type: object
+      additionalProperties: false
+      required: [level, index, mainSource, coOccurrence, reliability]
+      properties:
+        level:
+          $ref: '#/components/schemas/QualityLevel'
+        index:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Leakage share after the co-occurrence guard (data-model 4.2).
+        mainSource:
+          oneOf:
+            - $ref: '#/components/schemas/StemName'
+            - type: 'null'
+        coOccurrence:
+          type: boolean
+        reliability:
+          $ref: '#/components/schemas/Reliability'
+    ArtefactEstimate:
+      type: object
+      additionalProperties: false
+      required: [level, index, kinds, reliability]
+      properties:
+        level:
+          $ref: '#/components/schemas/QualityLevel'
+        index:
+          type: number
+          minimum: 0
+          maximum: 1
+        kinds:
+          type: array
+          uniqueItems: true
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/ArtefactKind'
+        reliability:
+          $ref: '#/components/schemas/Reliability'
+    StemQuality:
+      type: object
+      additionalProperties: false
+      required: [channel, rating, ratingReason, activeSeconds, activeShare, levelDb, bleed, artefacts]
+      properties:
+        channel:
+          $ref: '#/components/schemas/ChannelId'
+        rating:
+          $ref: '#/components/schemas/QualityRating'
+        ratingReason:
+          $ref: '#/components/schemas/QualityReasonCode'
+        activeSeconds:
+          type: number
+          minimum: 0
+        activeShare:
+          type: number
+          minimum: 0
+          maximum: 1
+        levelDb:
+          type: number
+          minimum: -120
+          maximum: 20
+        bleed:
+          $ref: '#/components/schemas/BleedEstimate'
+        artefacts:
+          $ref: '#/components/schemas/ArtefactEstimate'
+    QualityResult:
+      type: object
+      additionalProperties: false
+      required: [analyzerVersion, durationSeconds, stems]
+      properties:
+        analyzerVersion:
+          type: string
+          maxLength: 20
+        durationSeconds:
+          type: number
+          minimum: 0
+        stems:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/StemQuality'
+    QualityJob:
+      type: object
+      additionalProperties: false
+      required: [qualityJobId, status, stage, progress, error, result, createdAt, updatedAt]
+      properties:
+        qualityJobId:
+          $ref: '#/components/schemas/JobHexId'
+        status:
+          $ref: '#/components/schemas/RenderJobStatus'
+        stage:
+          $ref: '#/components/schemas/QualityStage'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/QualityResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    HandoutKind:
+      type: string
+      enum: [song, setlist]
+    HandoutFamily:
+      type: string
+      description: Seven equal families (data-model 6.1).
+      enum: [overview, vocals, guitar, bass, keys, drums, melodic]
+    IngredientCode:
+      type: string
+      description: data-model 6.2.
+      enum: [facts, form-chart, chords-over-lyrics, lyrics, chord-chart, notation, practice-notes, practice-progress, setlist-notes]
+    Paper:
+      type: string
+      enum: [a4, letter]
+    HandoutNotice:
+      type: object
+      additionalProperties: false
+      required: [footer, full]
+      description: Must equal the fixed texts of data-model 6.6 (else 422).
+      properties:
+        footer:
+          type: string
+          maxLength: 80
+        full:
+          type: string
+          maxLength: 1000
+    SetlistEntryBlock:
+      type: object
+      additionalProperties: false
+      required: [position, title, artist, key, tempoBpm, durationSeconds, notes, available]
+      properties:
+        position:
+          type: integer
+          minimum: 1
+          maximum: 500
+        title:
+          type: string
+          maxLength: 300
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        key:
+          type: [string, 'null']
+          maxLength: 40
+        tempoBpm:
+          type: [integer, 'null']
+          minimum: 20
+          maximum: 400
+        durationSeconds:
+          type: [number, 'null']
+          minimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 4000
+        available:
+          type: boolean
+          description: False when the entry's track no longer exists (no song section).
+    SetlistBlock:
+      type: object
+      additionalProperties: false
+      required: [name, notes, entries]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        notes:
+          type: [string, 'null']
+          maxLength: 4000
+        entries:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/SetlistEntryBlock'
+    SongFacts:
+      type: object
+      additionalProperties: false
+      required: [tempoBpm, timeSignature, key, keySource, durationSeconds, transpositionNote]
+      properties:
+        tempoBpm:
+          type: [integer, 'null']
+          minimum: 20
+          maximum: 400
+        timeSignature:
+          type: [string, 'null']
+          pattern: '^[1-9][0-9]?/(2|4|8)$'
+        key:
+          type: [string, 'null']
+          maxLength: 40
+          example: A minor
+        keySource:
+          type: [string, 'null']
+          enum: [chords, score, null]
+        durationSeconds:
+          type: number
+          minimum: 0
+        transpositionNote:
+          type: [string, 'null']
+          maxLength: 120
+          example: Part in B-flat (sounds a major second lower)
+    ChordSymbol:
+      type: string
+      description: ASCII accidentals, e.g. `Bb`, `F#m7`, `C/G` (research.md R-08).
+      pattern: '^[A-G](#|b)?[A-Za-z0-9+#b()-]{0,12}(/[A-G](#|b)?)?$|^N\.C\.$'
+      maxLength: 20
+    HandoutSection:
+      type: object
+      additionalProperties: false
+      required: [name, startSeconds, endSeconds, startBar, bars, chordBars, practiceTempoPercent]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          minimum: 0
+        startBar:
+          type: [integer, 'null']
+          minimum: 0
+        bars:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 999
+        chordBars:
+          type: [array, 'null']
+          maxItems: 999
+          items:
+            type: array
+            maxItems: 8
+            items:
+              $ref: '#/components/schemas/ChordSymbol'
+        practiceTempoPercent:
+          type: [integer, 'null']
+          minimum: 25
+          maximum: 200
+    LyricChord:
+      type: object
+      additionalProperties: false
+      required: [symbol, charIndex]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/ChordSymbol'
+        charIndex:
+          type: integer
+          minimum: 0
+          maximum: 500
+    LyricLine:
+      type: object
+      additionalProperties: false
+      required: [text, section, chords]
+      properties:
+        text:
+          type: string
+          maxLength: 500
+        section:
+          type: [integer, 'null']
+          minimum: 0
+          description: Index into `sections`, or null.
+        chords:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/LyricChord'
+    HandoutLyrics:
+      type: object
+      additionalProperties: false
+      required: [lines, chordPlacement, source]
+      properties:
+        lines:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/LyricLine'
+        chordPlacement:
+          type: string
+          enum: [word, line, none]
+        source:
+          type: string
+          maxLength: 200
+    NotationKind:
+      type: string
+      enum: [score, tab, drums, transposed]
+    HandoutNotation:
+      type: object
+      additionalProperties: false
+      required: [title, kind, pdfPath]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Bass - tablature
+        kind:
+          $ref: '#/components/schemas/NotationKind'
+        pdfPath:
+          $ref: '#/components/schemas/LibraryPath'
+    HandoutSong:
+      type: object
+      additionalProperties: false
+      required: [title, artist, artworkPath, facts, sections, lyrics, chordSymbols, notation, practiceNotes, entryNotes, include]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        artworkPath:
+          oneOf:
+            - $ref: '#/components/schemas/LibraryPath'
+            - type: 'null'
+        facts:
+          $ref: '#/components/schemas/SongFacts'
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/HandoutSection'
+        lyrics:
+          oneOf:
+            - $ref: '#/components/schemas/HandoutLyrics'
+            - type: 'null'
+        chordSymbols:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/ChordSymbol'
+        notation:
+          type: array
+          maxItems: 8
+          items:
+            $ref: '#/components/schemas/HandoutNotation'
+        practiceNotes:
+          type: [string, 'null']
+          maxLength: 4000
+        entryNotes:
+          type: [string, 'null']
+          maxLength: 4000
+        include:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/IngredientCode'
+    HandoutDocument:
+      type: object
+      additionalProperties: false
+      required: [kind, family, familyLabel, title, subtitle, generatedOn, notice, setlist, songs, attributions, appVersion]
+      description: '`setlist` is set iff `kind` = `setlist`; `songs` has exactly one item for `song` and 1-50 for `setlist` (else 422).'
+      properties:
+        kind:
+          $ref: '#/components/schemas/HandoutKind'
+        family:
+          $ref: '#/components/schemas/HandoutFamily'
+        familyLabel:
+          type: string
+          minLength: 1
+          maxLength: 60
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        subtitle:
+          type: [string, 'null']
+          maxLength: 300
+        generatedOn:
+          type: string
+          format: date
+        notice:
+          $ref: '#/components/schemas/HandoutNotice'
+        setlist:
+          oneOf:
+            - $ref: '#/components/schemas/SetlistBlock'
+            - type: 'null'
+        songs:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HandoutSong'
+        attributions:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+        appVersion:
+          type: string
+          maxLength: 40
+    HandoutJobRequest:
+      type: object
+      additionalProperties: false
+      required: [document, paper]
+      properties:
+        document:
+          $ref: '#/components/schemas/HandoutDocument'
+        paper:
+          $ref: '#/components/schemas/Paper'
+    HandoutStage:
+      type: [string, 'null']
+      enum: [layout, notation, writing, null]
+    HandoutWarningCode:
+      type: string
+      enum: [missing-glyphs, notation-scaled, notation-unreadable]
+    HandoutWarning:
+      type: object
+      additionalProperties: false
+      required: [code, text]
+      properties:
+        code:
+          $ref: '#/components/schemas/HandoutWarningCode'
+        text:
+          type: string
+          maxLength: 300
+    HandoutResult:
+      type: object
+      additionalProperties: false
+      required: [fileName, contentType, sizeBytes, sha256, pages, outline, warnings]
+      properties:
+        fileName:
+          type: string
+          const: handout.pdf
+        contentType:
+          type: string
+          const: application/pdf
+        sizeBytes:
+          type: integer
+          minimum: 1
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        pages:
+          type: integer
+          minimum: 1
+        outline:
+          type: array
+          maxItems: 1000
+          items:
+            type: string
+            maxLength: 200
+        warnings:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HandoutWarning'
+    HandoutJob:
+      type: object
+      additionalProperties: false
+      required: [handoutJobId, status, stage, progress, error, result, createdAt, updatedAt]
+      properties:
+        handoutJobId:
+          $ref: '#/components/schemas/JobHexId'
+        status:
+          $ref: '#/components/schemas/RenderJobStatus'
+        stage:
+          $ref: '#/components/schemas/HandoutStage'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/HandoutResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SeparationPipeline:
+      type: string
+      description: '`standard` is the 001 pipeline (never requested here); `vocals-hq` is G2-gated.'
+      enum: [standard, vocals-hq]
+    ReseparationInputs:
+      type: object
+      additionalProperties: false
+      required: [vocals, drums, bass, guitar, piano, other]
+      properties:
+        vocals:
+          $ref: '#/components/schemas/LibraryPath'
+        drums:
+          $ref: '#/components/schemas/LibraryPath'
+        bass:
+          $ref: '#/components/schemas/LibraryPath'
+        guitar:
+          $ref: '#/components/schemas/LibraryPath'
+        piano:
+          $ref: '#/components/schemas/LibraryPath'
+        other:
+          $ref: '#/components/schemas/LibraryPath'
+    ReseparationJobRequest:
+      type: object
+      additionalProperties: false
+      required: [pipeline, inputs]
+      properties:
+        pipeline:
+          type: string
+          const: vocals-hq
+        inputs:
+          $ref: '#/components/schemas/ReseparationInputs'
+    ReseparationStage:
+      type: [string, 'null']
+      enum: [loading-model, vocals, instruments, writing, null]
+    ReseparationStem:
+      type: object
+      additionalProperties: false
+      required: [name, path, sizeBytes]
+      properties:
+        name:
+          $ref: '#/components/schemas/StemName'
+        path:
+          type: string
+          description: Worker URL path of the stem file.
+          example: /v1/reseparation-jobs/0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a/stems/vocals
+        sizeBytes:
+          type: integer
+          minimum: 1
+    ReseparationResult:
+      type: object
+      additionalProperties: false
+      required: [pipeline, models, stems]
+      properties:
+        pipeline:
+          $ref: '#/components/schemas/SeparationPipeline'
+        models:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 120
+        stems:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/ReseparationStem'
+    ReseparationJob:
+      type: object
+      additionalProperties: false
+      required: [reseparationJobId, status, stage, progress, error, device, result, createdAt, updatedAt]
+      properties:
+        reseparationJobId:
+          $ref: '#/components/schemas/JobHexId'
+        status:
+          $ref: '#/components/schemas/RenderJobStatus'
+        stage:
+          $ref: '#/components/schemas/ReseparationStage'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        device:
+          oneOf:
+            - $ref: '#/components/schemas/JobDevice'
+            - type: 'null'
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/ReseparationResult'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProblemDetails:
+      type: object
+      description: Copy of the base schema (RFC 9457).
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: [string, 'null']
+      additionalProperties: true
+  responses:
+    NotFound:
+      description: Unknown job.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Job 0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a does not exist.
+    InvalidInputPath:
+      description: A path does not match the allow-list or resolves outside the library.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/invalid-input-path
+            title: Invalid input path
+            status: 400
+            detail: assets/../secrets.pdf is not an allowed library path.
+    InputNotFound:
+      description: An allowed path does not exist in the library.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/input-not-found
+            title: Input not found
+            status: 404
+            detail: assets/1b2c3d4e-5f60-4718-9a0b-c1d2e3f4a5b6/score.pdf does not exist.
+    ValidationFailed:
+      description: The body is invalid (schema, six standard stems, notice texts, song count).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Validation failed
+            status: 422
+            detail: notice.footer must be the fixed notice text.
+    HandoutNotCompleted:
+      description: The handout job is not completed (yet).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/handout-not-completed
+            title: Handout not completed
+            status: 409
+            detail: Job is in state running.
+    ReseparationNotCompleted:
+      description: The re-separation job is not completed (yet).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/reseparation-not-completed
+            title: Re-separation not completed
+            status: 409
+            detail: Job is in state running.
+  examples:
+    QualityRequest:
+      summary: Six standard stems and a drums detail split
+      value:
+        stems:
+          - {channel: vocals, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/vocals.flac, kind: standard}
+          - {channel: drums, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/drums.flac, kind: standard}
+          - {channel: bass, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/bass.flac, kind: standard}
+          - {channel: guitar, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/guitar.flac, kind: standard}
+          - {channel: piano, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/piano.flac, kind: standard}
+          - {channel: other, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/stems/other.flac, kind: standard}
+          - {channel: drums.kick, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/detail/drums/kick.flac, kind: detail}
+          - {channel: drums.rest, path: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/detail/drums/rest.flac, kind: rest}
+        detailParents:
+          - {parent: drums, modelResidualDb: -25.8, reconstructionErrorDb: -170.0}
+        titles: {title: Example Song, artist: Example Band}
+    CompletedQualityJob:
+      summary: A completed report (two stems shown)
+      value:
+        qualityJobId: 0d1e2f3a4b5c4d6e8f9a0b1c2d3e4f5a
+        status: completed
+        stage: null
+        progress: 1
+        error: null
+        result:
+          analyzerVersion: 1.0.0
+          durationSeconds: 14.2
+          stems:
+            - channel: vocals
+              rating: fair
+              ratingReason: bleed
+              activeSeconds: 182.4
+              activeShare: 0.69
+              levelDb: -6.1
+              bleed: {level: medium, index: 0.18, mainSource: drums, coOccurrence: false, reliability: validated}
+              artefacts: {level: low, index: 0.21, kinds: [], reliability: validated}
+            - channel: piano
+              rating: not-present
+              ratingReason: not-present
+              activeSeconds: 11.0
+              activeShare: 0.04
+              levelDb: -34.5
+              bleed: {level: high, index: 0.71, mainSource: guitar, coOccurrence: false, reliability: indicative}
+              artefacts: {level: unknown, index: 0.4, kinds: [flicker], reliability: indicative}
+        createdAt: '2026-11-16T10:00:00Z'
+        updatedAt: '2026-11-16T10:00:15Z'
+    BassHandoutRequest:
+      summary: Bass handout of one song
+      value:
+        paper: a4
+        document:
+          kind: song
+          family: bass
+          familyLabel: Bass
+          title: Example Song
+          subtitle: Example Band
+          generatedOn: '2026-11-16'
+          notice:
+            footer: For personal practice and teaching only
+            full: This handout was made with StemStudio for your own practice and lessons. The song, its lyrics and its music belong to their rights holders. Do not publish, sell or share it beyond your lesson. Chords, notation and timings were made automatically and may contain errors.
+          setlist: null
+          songs:
+            - title: Example Song
+              artist: Example Band
+              artworkPath: tracks/7d9f2c1e-3b4a-4c5d-8e6f-1a2b3c4d5e6f/artwork/auto/cover.jpg
+              facts: {tempoBpm: 120, timeSignature: 4/4, key: A minor, keySource: chords, durationSeconds: 262.0, transpositionNote: null}
+              sections:
+                - {name: Intro, startSeconds: 0.0, endSeconds: 8.0, startBar: 1, bars: 4, chordBars: [[Am], [F], [C], [G]], practiceTempoPercent: null}
+                - {name: Verse 1, startSeconds: 8.0, endSeconds: 40.0, startBar: 5, bars: 16, chordBars: null, practiceTempoPercent: 85}
+              lyrics: null
+              chordSymbols: [Am, F, C, G]
+              notation:
+                - {title: Bass - tablature, kind: tab, pdfPath: assets/1b2c3d4e-5f60-4718-9a0b-c1d2e3f4a5b6/tab.pdf}
+                - {title: Bass - score, kind: score, pdfPath: assets/2c3d4e5f-6071-4829-8a0b-c1d2e3f4a5b7/score.pdf}
+              practiceNotes: Keep the eighths even in the verse; mute the open A.
+              entryNotes: null
+              include: [facts, form-chart, chord-chart, notation, practice-notes]
+          attributions: [Chords detected automatically (StemStudio)]
+          appVersion: 0.20.0
+    CompletedHandoutJob:
+      summary: A completed handout
+      value:
+        handoutJobId: 1e2f3a4b5c6d4e7f8a9b0c1d2e3f4a5b
+        status: completed
+        stage: null
+        progress: 1
+        error: null
+        result:
+          fileName: handout.pdf
+          contentType: application/pdf
+          sizeBytes: 184211
+          sha256: 9f2c1e3b4a4c5d8e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
+          pages: 5
+          outline: [Example Song, Form, Chord chart, Notation - Bass - tablature, Notation - Bass - score, Practice notes, About this handout]
+          warnings: []
+        createdAt: '2026-11-16T10:05:00Z'
+        updatedAt: '2026-11-16T10:05:04Z'

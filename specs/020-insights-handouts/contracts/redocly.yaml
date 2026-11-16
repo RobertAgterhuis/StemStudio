@@ -1,0 +1,12 @@
+# Lint configuration for the feature 020 contract deltas (OpenAPI 3.1, standalone).
+# Run from the repo root: npx @redocly/cli@2.78.0 lint --config specs/020-insights-handouts/contracts/redocly.yaml \
+#   specs/020-insights-handouts/contracts/worker-api.delta.openapi.yaml specs/020-insights-handouts/contracts/backend-api.delta.openapi.yaml
+extends:
+  - recommended
+rules:
+  # Same rule set as 008. The idempotent DELETEs answer only 204, so they have no 4XX case.
+  operation-4xx-response: warn
+  no-server-example.com: off
+  # Schemas that are merged into existing base schemas (Health.insights, Health.lanes.insights,
+  # Health.separationPipelines, Track.quality, Track.stemSet) have no path in a delta: 5 known warnings.
+  no-unused-components: warn
