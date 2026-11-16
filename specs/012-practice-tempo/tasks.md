@@ -95,10 +95,10 @@ The frontend agent reports the web-interop lane in a separate section with its o
 
 ### backend (tests first)
 
-- [ ] T025 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/PracticeSettingsTests.cs`: defaults, ranges and integer rules, `startPercent < targetPercent` (path `practice.trainer.targetPercent`), trainer/everyPass without a loop valid, `MixSettings.Validate` nests `practice` (FR-014)
-- [ ] T026 [backend] Implement `Domain/Mixes/{PracticeSettings,SpeedTrainerSettings,CountInSettings}.cs` and `MixSettings.Practice` to pass T025
-- [ ] T027 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/MixPracticePersistenceTests.cs`: JSON round trip of `Practice` (nested trainer/count-in), `NULL` reads as defaults, a database at the 010 schema migrates and its mixes load with defaults, duplicate copies `Practice`
-- [ ] T028 [backend] Implement the `MixConfiguration` complex property and migration `AddMixPractice` to pass T027
+- [x] T025 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Mixes/PracticeSettingsTests.cs`: defaults, ranges and integer rules, `startPercent < targetPercent` (path `practice.trainer.targetPercent`), trainer/everyPass without a loop valid, `MixSettings.Validate` nests `practice` (FR-014)
+- [x] T026 [backend] Implement `Domain/Mixes/{PracticeSettings,SpeedTrainerSettings,CountInSettings}.cs` and `MixSettings.Practice` to pass T025
+- [x] T027 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/MixPracticePersistenceTests.cs`: JSON round trip of `Practice` (nested trainer/count-in), `NULL` reads as defaults, a database at the 010 schema migrates and its mixes load with defaults, duplicate copies `Practice`
+- [x] T028 [backend] Implement the `MixConfiguration` complex property and migration `AddMixPractice` to pass T027
 
 ### frontend (tests first)
 
