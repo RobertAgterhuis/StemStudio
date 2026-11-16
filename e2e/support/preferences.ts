@@ -103,13 +103,17 @@ function completedTours(): Record<string, StoredTourRecord> {
   );
 }
 
-/** Storage state holding `record` for the web origin; `null` = empty storage (first run). */
-export function storageStateFor(record: StoredPreferences | null): StorageState {
+/**
+ * Storage state holding `record` for the web origin; `null` = empty storage (first run).
+ * @param origin The origin the record belongs to (default: the origin of `E2E_BASE_URL`); the
+ *   claude-key local-only spec opens the app under a second, non-loopback origin.
+ */
+export function storageStateFor(record: StoredPreferences | null, origin: string = new URL(webBaseUrl).origin): StorageState {
   if (record === null) {
     return { cookies: [], origins: [] };
   }
   const localStorage = [{ name: preferencesKey, value: JSON.stringify(record) }];
-  return { cookies: [], origins: [{ origin: new URL(webBaseUrl).origin, localStorage }] };
+  return { cookies: [], origins: [{ origin, localStorage }] };
 }
 
 /** Storage state for a chosen level (welcome dismissed, tours done unless overridden). */

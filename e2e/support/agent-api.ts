@@ -15,6 +15,20 @@ export type AgentBackend = 'ollama' | 'claude' | 'none' | 'fake';
 /** Backends a settings row may hold (`AgentSettings.backend`). */
 export type StoredAgentBackend = Exclude<AgentBackend, 'fake'>;
 
+/** Contract `ClaudeKeyStatus` (backend API 1.21.0, 011 follow-up claude-key): never the key. */
+export interface ClaudeKeyStatusDto {
+  readonly configured: boolean;
+  readonly source: 'environment' | 'stored' | null;
+  readonly state: 'not-configured' | 'environment' | 'stored' | 'stored-unreadable';
+  readonly lastFour: string | null;
+  readonly stored: 'absent' | 'readable' | 'unreadable';
+  readonly storedLastFour: string | null;
+  readonly storedAt: string | null;
+  readonly storeAvailable: boolean;
+  readonly reason: string | null;
+  readonly fix: string | null;
+}
+
 /** Subset of the contract `AgentStatus`. */
 export interface AgentStatusDto {
   readonly backend: AgentBackend;
@@ -24,7 +38,13 @@ export interface AgentStatusDto {
   readonly reason: string | null;
   readonly fix: string | null;
   readonly ollama: { readonly reachable: boolean };
-  readonly claude: { readonly keyConfigured: boolean; readonly noticeAcknowledged: boolean; readonly model: string };
+  readonly claude: {
+    readonly keyConfigured: boolean;
+    readonly noticeAcknowledged: boolean;
+    readonly model: string;
+    /** 1.21.0 (claude-key). */
+    readonly key: ClaudeKeyStatusDto;
+  };
 }
 
 /** Subset of the contract `AgentSettings`. */
@@ -47,6 +67,9 @@ export interface ConversationDto extends ConversationSummaryDto {
   readonly runs: readonly { readonly runId: string; readonly status: string }[];
 }
 
+/** An `Origin` that is not the Web app's (a page on another device or site). */
+const foreignOrigin = { Origin: 'http://lan-device.invalid:8080' } as const;
+
 /** Typed wrapper around an `APIRequestContext` whose `baseURL` is the API. */
 export class AgentApi {
   /** @param request Context created with `baseURL` = `E2E_API_URL`. */
@@ -65,6 +88,24 @@ export class AgentApi {
   /** `PUT /api/agent/settings` with only the backend (raw response: 200, 409 or 422). */
   async putBackend(backend: StoredAgentBackend): Promise<APIResponse> {
     return this.request.put('/api/agent/settings', { data: { backend } });
+  }
+
+  /** `GET /api/agent/settings/claude-key` (1.21.0): the raw response, so a test can scan its body. */
+  async claudeKeyResponse(): Promise<APIResponse> {
+    return this.request.get('/api/agent/settings/claude-key');
+  }
+
+  /**
+   * `PUT /api/agent/settings/claude-key` sent with a foreign `Origin`: the local-only filter must
+   * refuse it (`403 local-only`) in every topology, Docker or not (CK-FR-012, CK-SC-005).
+   */
+  async putClaudeKeyFromElsewhere(apiKey: string): Promise<APIResponse> {
+    return this.request.put('/api/agent/settings/claude-key', { data: { apiKey }, headers: foreignOrigin });
+  }
+
+  /** `DELETE /api/agent/settings/claude-key` with a foreign `Origin` (must be `403 local-only`). */
+  async deleteClaudeKeyFromElsewhere(): Promise<APIResponse> {
+    return this.request.delete('/api/agent/settings/claude-key', { headers: foreignOrigin });
   }
 
   /** `GET /api/agent/conversations` (newest first). */
