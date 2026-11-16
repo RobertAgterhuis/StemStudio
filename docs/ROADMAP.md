@@ -37,6 +37,7 @@ a later agent-tool-catalogue minor version.
 | 019 | **Arrangement editor**: cut, repeat and rearrange sections of stems into a practice version, export | C6 | 007, 014 |
 | 021 | **Practice partner and studio bridge**: generate a missing part in key and tempo, amp/pedal simulation for guitar and bass, DAWproject export | C9, C10, C11 | 009, 015, 017, 019 |
 | 020 | **Insights and handouts**: stem quality report with tips; one-click lesson PDF (lyrics, chords, sections, tempo, scores) | C7, C8 | 014, 016 |
+| 022 | **Library by artist and album**: saved items filed automatically in Artist > Album > Song folders (in the app only) with folder art, live search over artist, album, song and stem/instrument, library info to correct names | S13 (owner request 2026-11-16) | 005, 007 (013/014 overlaps resolved in the 022 research) |
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.
@@ -76,8 +77,16 @@ previous version.
 | 019 Arrangement editor | 1.18.0 | 1.10.0 | 2.8.0 | 1.18.0 | render-vectors 1.2.0 |
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
+| 022 Library by artist and album (owner request 2026-11-16) | 1.22.0 | - | - | 1.22.0 | agent tool catalogue 1.1.0 |
 
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
+
+Feature 022 (owner request 2026-11-16, design in `specs/022-library-folders/`, ADR-036 proposed)
+takes the next free minors after the 011 follow-up "claude-key" (backend-api 1.21.0 and ui-test-ids
+1.21.0, reserved on branch `011-claude-key-spec`): backend-api **1.22.0**, ui-test-ids **1.22.0** and
+agent tool catalogue **1.1.0** (no other feature changes the catalogue), as standalone deltas merged
+onto the newest full documents when 022 is built. Worker, generator and audio-engine contracts are
+unchanged.
 
 Build order: 003 -> 004 -> {005, 007} -> {006, 008} -> {009 -> 010} -> 011, then
 {012, 013} -> {014, 015} -> 016 -> {017, 018, 019} -> {020, 021} (specs for 012-020 are written in

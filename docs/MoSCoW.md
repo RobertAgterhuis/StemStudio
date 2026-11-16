@@ -49,6 +49,7 @@ Important, with clear value, but the product works without them.
 | S10 | **Drum trainer**: drum notation with hit lanes (kick/snare/hi-hat from 002 detail stems) and a "drumless" practice mix in one click | Drummers are a large group of stem-practice users. | Builds on 002 + 008. M |
 | S11 | **Key detection**: song key (and key changes) next to the tempo; the transposed key is shown when 012 transposes | Needed to transpose sensibly and to spell chords; Moises has it. | Part of 016. S |
 | S12 | **Capo mode**: capo position and chord shapes relative to the capo, so the sounding key stays correct; suggests easy capo positions | Guitarists play songs in a comfortable shape; Moises has it. | Part of 016. S |
+| S13 | **Library by artist and album**: saved items filed automatically in Artist > Album > Song folders (in the app only), with folder art, plus a live search over artist, album, song and stem/instrument | Owner request 2026-11-16: with many songs a flat list is hard to use; finding "every snare I saved" should take one word. | Feature 022; derived folders, 005 covers as folder art, server-side live search. M |
 
 ## Could have
 
@@ -105,3 +106,4 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
   get their own views next to chords and tablature.
 - 2026-11-16 (comparison with Moises): key detection (S11) and capo mode (S12) go into 016; practice partner (C9), amp simulation (C10) and DAWproject export (C11) become feature 021; no video recording (W8).
 - 2026-11-16: M1 uses SoundTouch (LGPL-2.1), not Rubber Band (GPL), so StemStudio stays MIT. Any change to SoundTouch itself stays LGPL and is published with its source; the licence goes into THIRD-PARTY-LICENSES.
+- 2026-11-16: owner request "library by artist and album" added as S13 (Should), feature 022; folders exist in the app only; the live search matches artist, album, song and stem/instrument.

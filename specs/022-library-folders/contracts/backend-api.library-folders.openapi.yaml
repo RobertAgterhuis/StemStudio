@@ -1,0 +1,951 @@
+openapi: 3.1.0
+info:
+  title: StemStudio Backend API - library folders delta (feature 022)
+  version: 1.22.0-delta.1
+  summary: Additive delta of the backend API for the library by artist, album and song, live search and library info.
+  description: |
+    * **Standalone, additive delta.** This document contains only the `library` tag of the backend
+      API, the two `library-info` resources and the new required response member `Asset.placement`.
+      It is merged unchanged into the full `backend-api.openapi.yaml` **1.22.0** on top of the newest
+      full document at build time (1.21.0, or the merge of 012-021 and the claude-key follow-up;
+      docs/ROADMAP.md allocation), see `contracts/DELTA.md` section 1. Schemas that are not changed
+      are referenced from the 011 document (1.10.0, the last full document on `main`). No existing
+      operation changes except that every `Asset` in a response carries `placement`.
+      C# DTOs: `src/StemStudio.Contracts/Library`, routes `ApiRoutes.Library*`.
+    * Conventions of the backend API apply: JSON camelCase, enums lower-case camelCase strings, UTC
+      ISO 8601 times, sizes in bytes, RFC 9457 problem details with
+      `type` = `https://stemstudio.local/problems/<code>`.
+    * **Folders are derived** (ADR-036): a folder exists while at least one library item is filed in
+      it. Folder ids are derived from the normalised names: `ar` (artist), `al` (album) or `so`
+      (song) followed by 16 lower-case hex characters. A folder that lost its last item answers
+      `404 folder-not-found`.
+    * **Revision**: `GET` responses of this tag carry `ETag: "lib-<revision>"`; `If-None-Match` with
+      the current value answers `304`. The UI polls a folder view about once per 2 s while an item in
+      it is queued or rendering (as in 1.5.0).
+    * **Recorded takes** (`provenance.origin = recording`, feature 015) are never part of folders or
+      search.
+    * Changelog: 1.22.0-delta.1 (additive, feature 022) - folder view (`GET /api/library/folders`,
+      `GET /api/library/folders/{folderId}`), live search (`GET /api/library/search`), library info
+      of a track and of an item (`GET`/`PUT`/`DELETE /api/tracks/{trackId}/library-info` and
+      `/api/assets/{assetId}/library-info`), `Asset.placement`. See ADR-036.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8081
+    description: docker compose (host port)
+security: []
+tags:
+  - name: library
+    description: Library folders by artist, album and song, live search and library info (1.22.0).
+paths:
+  /api/library/folders:
+    get:
+      tags: [library]
+      operationId: getLibraryRoot
+      summary: The library root - artist folders with art and counts.
+      parameters:
+        - $ref: '#/components/parameters/FolderSort'
+        - $ref: '#/components/parameters/KindFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/FolderLimit'
+        - $ref: '#/components/parameters/FolderOffset'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: The artist folders (`folder` is null, `breadcrumb` empty).
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryFolderView'
+              examples:
+                root:
+                  $ref: '#/components/examples/RootView'
+        '304':
+          description: Unchanged since the given revision.
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/library/folders/{folderId}:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+    get:
+      tags: [library]
+      operationId: getLibraryFolder
+      summary: An artist, album or song folder with its breadcrumb, child folders and (song level) items.
+      parameters:
+        - $ref: '#/components/parameters/FolderSort'
+        - $ref: '#/components/parameters/KindFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/FolderLimit'
+        - $ref: '#/components/parameters/FolderOffset'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: The folder. At song level `children` is empty and `items` holds the items.
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryFolderView'
+              examples:
+                song:
+                  $ref: '#/components/examples/SongView'
+        '304':
+          description: Unchanged since the given revision.
+        '404':
+          $ref: '#/components/responses/FolderNotFound'
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/library/search:
+    get:
+      tags: [library]
+      operationId: searchLibrary
+      summary: Live search over artist, album, song, stem/instrument and item name.
+      description: |
+        Case- and accent-insensitive. The text is split into words (at most 8, from the first 100
+        characters); every word must occur in at least one field. Folders are hits when at least one
+        word occurs in their own name; items when all words occur across their fields. Groups are
+        ordered by relevance (whole field, start of a word, inside a word), then name.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The search text (1..100 characters after trimming).
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: within
+          in: query
+          required: false
+          description: Only folders and items inside this folder.
+          schema:
+            $ref: '#/components/schemas/FolderId'
+        - name: limit
+          in: query
+          required: false
+          description: Hits per group.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Grouped hits; `totals` count every hit of a group.
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySearchResult'
+              examples:
+                noMatches:
+                  $ref: '#/components/examples/EmptySearch'
+        '304':
+          description: Same query, unchanged library.
+        '404':
+          $ref: '#/components/responses/FolderNotFound'
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/tracks/{trackId}/library-info:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [library]
+      operationId: getTrackLibraryInfo
+      summary: The artist, album and song names used to file the items of a track, and where they come from.
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [library]
+      operationId: setTrackLibraryInfo
+      summary: Set (or reset to automatic with null) the names used to file every item of a track.
+      description: Items with their own names for a level keep them. Returns the new state and how many items moved.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryInfoRequest'
+            example:
+              artist: null
+              album: Ace of Spades
+              song: null
+      responses:
+        '200':
+          description: Saved; the items are re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '400':
+          $ref: '#/components/responses/LibraryInfoInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [library]
+      operationId: resetTrackLibraryInfo
+      summary: Use automatic names for every level of the track again.
+      responses:
+        '200':
+          description: Reset; the items are re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/{assetId}/library-info:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [library]
+      operationId: getAssetLibraryInfo
+      summary: The names used to file one library item, and where they come from.
+      responses:
+        '200':
+          description: The state, with the item's placement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [library]
+      operationId: setAssetLibraryInfo
+      summary: Set (or reset with null) the names used to file one library item.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryInfoRequest'
+            example:
+              artist: null
+              album: null
+              song: Ace of Spades (jazz take)
+      responses:
+        '200':
+          description: Saved; the item is re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '400':
+          $ref: '#/components/responses/LibraryInfoInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotFileable'
+    delete:
+      tags: [library]
+      operationId: resetAssetLibraryInfo
+      summary: Use the track's or automatic names for the item again.
+      responses:
+        '200':
+          description: Reset; the item is re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotFileable'
+components:
+  parameters:
+    TrackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FolderId:
+      name: folderId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FolderId'
+    FolderSort:
+      name: sort
+      in: query
+      required: false
+      description: Order of the child folders. Default `name` for artists and songs, `year` for albums. `year` is accepted only for an artist folder (its albums).
+      schema:
+        $ref: '#/components/schemas/FolderSort'
+    KindFilter:
+      name: kind
+      in: query
+      required: false
+      description: Count and list only items of this kind (folders without such items are left out).
+      schema:
+        $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AssetKind'
+    StatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Count and list only items with this status.
+      schema:
+        $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AssetStatus'
+    FolderLimit:
+      name: limit
+      in: query
+      required: false
+      description: Child folders per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 200
+    FolderOffset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      description: A previously received `ETag`.
+      schema:
+        type: string
+  headers:
+    LibraryETag:
+      description: '`"lib-<revision>"`, the library revision (16 hex).'
+      schema:
+        type: string
+        pattern: '^"lib-[0-9a-f]{16}"$'
+  responses:
+    NotFound:
+      description: Unknown track or item.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+          example:
+            title: Not found
+            status: 404
+            detail: Track 0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a does not exist.
+    FolderNotFound:
+      description: The folder id is well-formed but no item is filed in it (any more).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/folder-not-found
+            title: This folder is empty now
+            status: 404
+            detail: Its items were moved or deleted.
+    LibraryQueryInvalid:
+      description: Invalid folder id, sort, filter, paging or search text (`errors` names the parameter).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ValidationProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/library-query-invalid
+            title: One or more validation errors occurred.
+            status: 422
+            errors:
+              q:
+                - Type at least one letter or digit.
+    LibraryInfoInvalid:
+      description: A name is empty after trimming, longer than 200 characters or contains control characters.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ValidationProblemDetails'
+          example:
+            title: One or more validation errors occurred.
+            status: 400
+            errors:
+              album:
+                - Use 1 to 200 characters, or leave it automatic.
+    NotFileable:
+      description: The item is a recorded play-along take (015); it lives with its track and is not filed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/not-fileable
+            title: Recorded takes are not filed
+            status: 409
+            detail: Recorded takes stay with their track.
+  schemas:
+    FolderId:
+      type: string
+      pattern: '^(ar|al|so)[0-9a-f]{16}$'
+      description: Derived folder id; the prefix is the level (`ar` artist, `al` album, `so` song).
+    FolderLevel:
+      type: string
+      enum: [artist, album, song]
+    FolderSort:
+      type: string
+      enum: [name, year, recent, size, items]
+      description: '`name` A-Z (leading "The" ignored; unknown folders last), `year` (albums; unknown last), `recent` (newest item first), `size` (largest first), `items` (most items first).'
+    PlacementSource:
+      type: string
+      enum: [item, track, match, import, fallback]
+      description: |
+        Where a name comes from: `item` (set by the user for this item), `track` (set by the user
+        for its track), `match` (band info, feature 005), `import` (names reported by the import),
+        `fallback` ("Unknown artist", "Unknown album", the track title, "My songs").
+    FolderRef:
+      type: object
+      additionalProperties: false
+      required: [id, level, name]
+      properties:
+        id:
+          $ref: '#/components/schemas/FolderId'
+        level:
+          $ref: '#/components/schemas/FolderLevel'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+    FolderCounts:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        albums:
+          type: integer
+          minimum: 1
+          description: Artist folders only.
+        songs:
+          type: integer
+          minimum: 1
+          description: Artist and album folders.
+        items:
+          type: integer
+          minimum: 0
+          description: Items counted with the `kind`/`status` filters; 0 only for the root of an empty library.
+    ArtImage:
+      type: object
+      additionalProperties: false
+      required: [thumbUrl, coverUrl]
+      properties:
+        thumbUrl:
+          type: string
+          description: '`/api/tracks/{trackId}/artwork/thumb?v={version}` (160 px, immutable, 1.4.0).'
+        coverUrl:
+          type: string
+          description: '`/api/tracks/{trackId}/artwork/cover?v={version}` (600 px, immutable, 1.4.0).'
+    ArtPlaceholder:
+      type: object
+      additionalProperties: false
+      required: [glyph, tone]
+      properties:
+        glyph:
+          type: string
+          minLength: 1
+          maxLength: 8
+          description: One grapheme (first letter of the name, upper case where the script has case; `?` for unknown folders; a note sign for "My songs").
+        tone:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: Index of the design-system art colour token, derived from the folder key.
+    FolderArtKind:
+      type: string
+      enum: [cover, mosaic, placeholder]
+    FolderArt:
+      type: object
+      additionalProperties: false
+      required: [kind, images, placeholder]
+      description: |
+        Song: the track's picture. Album: the best picture among its songs (005 precedence).
+        Artist: up to 4 album covers (`mosaic` with 2-4 images, `cover` with 1). No picture:
+        `placeholder` with an empty `images`. The placeholder is always given (fallback when an
+        image fails to load). Pictures are shown in the app only (feature 005).
+      properties:
+        kind:
+          $ref: '#/components/schemas/FolderArtKind'
+        images:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/ArtImage'
+        placeholder:
+          $ref: '#/components/schemas/ArtPlaceholder'
+    LibraryFolder:
+      type: object
+      additionalProperties: false
+      required: [id, level, name, nameSource, year, counts, sizeBytes, latestAt, art, trackIds]
+      properties:
+        id:
+          $ref: '#/components/schemas/FolderId'
+        level:
+          $ref: '#/components/schemas/FolderLevel'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Display name (band info spelling when any item was filed from a match, else the most used spelling).
+        nameSource:
+          $ref: '#/components/schemas/PlacementSource'
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+          description: Album folders only (first release year from band info); null otherwise.
+        counts:
+          $ref: '#/components/schemas/FolderCounts'
+        sizeBytes:
+          type: integer
+          minimum: 0
+        latestAt:
+          type: string
+          format: date-time
+          description: '`createdAt` of the newest item inside.'
+        art:
+          $ref: '#/components/schemas/FolderArt'
+        trackIds:
+          type: array
+          maxItems: 10
+          description: Song folders only - existing tracks whose items are inside (to open the track or its mixer); empty otherwise.
+          items:
+            type: string
+            format: uuid
+    LibraryFolderView:
+      type: object
+      additionalProperties: false
+      required: [revision, folder, breadcrumb, children, childrenTotal, items, totalItems, totalSizeBytes, pendingFiling]
+      properties:
+        revision:
+          type: string
+          pattern: '^[0-9a-f]{16}$'
+        folder:
+          oneOf:
+            - $ref: '#/components/schemas/LibraryFolder'
+            - type: 'null'
+          description: Null at the root.
+        breadcrumb:
+          type: array
+          maxItems: 3
+          description: Parent folders from the artist down, excluding the folder itself and the root.
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        children:
+          type: array
+          maxItems: 500
+          description: Child folders (artists at the root, albums in an artist, songs in an album); empty for a song.
+          items:
+            $ref: '#/components/schemas/LibraryFolder'
+        childrenTotal:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 500
+          description: Song level only - its items in instrument order (standard stems, detail stems, mixes, sheet music, generated takes), then newest first.
+          items:
+            $ref: '#/components/schemas/Asset'
+        totalItems:
+          type: integer
+          minimum: 0
+        totalSizeBytes:
+          type: integer
+          minimum: 0
+        pendingFiling:
+          type: integer
+          minimum: 0
+          description: Items not filed yet by the start-up step (the UI shows "Sorting your library").
+    SearchField:
+      type: string
+      enum: [artist, album, song, name, instrument]
+    Highlight:
+      type: object
+      additionalProperties: false
+      required: [field, start, length]
+      properties:
+        field:
+          $ref: '#/components/schemas/SearchField'
+        start:
+          type: integer
+          minimum: 0
+          description: UTF-16 offset in the displayed text of the field (folder name, item name, or the instrument label).
+        length:
+          type: integer
+          minimum: 1
+        label:
+          type: [string, 'null']
+          maxLength: 60
+          description: For `instrument` - the label the offsets refer to (e.g. "Snare").
+    FolderHit:
+      type: object
+      additionalProperties: false
+      required: [folder, path, highlights]
+      properties:
+        folder:
+          $ref: '#/components/schemas/LibraryFolder'
+        path:
+          type: array
+          maxItems: 2
+          description: Parent folders (artist for an album; artist and album for a song).
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        highlights:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Highlight'
+    ItemHit:
+      type: object
+      additionalProperties: false
+      required: [asset, path, highlights, matchedInstruments]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        path:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: Artist, album and song folder of the item.
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        highlights:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Highlight'
+        matchedInstruments:
+          type: array
+          maxItems: 8
+          description: Instrument labels that matched a word (e.g. ["Snare"]).
+          items:
+            type: string
+            maxLength: 60
+    SearchTotals:
+      type: object
+      additionalProperties: false
+      required: [artists, albums, songs, items]
+      properties:
+        artists:
+          type: integer
+          minimum: 0
+        albums:
+          type: integer
+          minimum: 0
+        songs:
+          type: integer
+          minimum: 0
+        items:
+          type: integer
+          minimum: 0
+    LibrarySearchResult:
+      type: object
+      additionalProperties: false
+      required: [query, tokens, revision, artists, albums, songs, items, totals]
+      properties:
+        query:
+          type: string
+          maxLength: 100
+          description: The text that was searched (trimmed, cut to 100 characters).
+        tokens:
+          type: array
+          minItems: 1
+          maxItems: 8
+          description: The folded words that were matched.
+          items:
+            type: string
+        revision:
+          type: string
+          pattern: '^[0-9a-f]{16}$'
+        artists:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        albums:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        songs:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ItemHit'
+        totals:
+          $ref: '#/components/schemas/SearchTotals'
+    LibraryName:
+      type: [string, 'null']
+      minLength: 1
+      maxLength: 200
+      description: A user name for filing (trimmed, no control characters); null = automatic.
+    LibraryInfoRequest:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song]
+      properties:
+        artist:
+          $ref: '#/components/schemas/LibraryName'
+        album:
+          $ref: '#/components/schemas/LibraryName'
+        song:
+          $ref: '#/components/schemas/LibraryName'
+    LibraryInfoLevel:
+      type: object
+      additionalProperties: false
+      required: [value, effective, source, automatic]
+      properties:
+        value:
+          type: [string, 'null']
+          maxLength: 200
+          description: The name the user set at this scope (track or item); null = automatic.
+        effective:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name used for filing now.
+        source:
+          $ref: '#/components/schemas/PlacementSource'
+        automatic:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name automatic filing would use at this scope (shown next to the "Automatic" box).
+    LibraryInfoState:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song, placement, movedItems]
+      properties:
+        artist:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        album:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        song:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        placement:
+          oneOf:
+            - $ref: '#/components/schemas/Placement'
+            - type: 'null'
+          description: The item's placement (item scope); null for a track.
+        movedItems:
+          type: integer
+          minimum: 0
+          description: Items that changed folder (0 for GET).
+    PlacementLevel:
+      type: object
+      additionalProperties: false
+      required: [folderId, name, source]
+      properties:
+        folderId:
+          $ref: '#/components/schemas/FolderId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name this item is filed under (the folder may display another spelling of the same key).
+        source:
+          $ref: '#/components/schemas/PlacementSource'
+    Placement:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song, year, filed]
+      description: Where a library item is filed (1.22.0).
+      properties:
+        artist:
+          $ref: '#/components/schemas/PlacementLevel'
+        album:
+          $ref: '#/components/schemas/PlacementLevel'
+        song:
+          $ref: '#/components/schemas/PlacementLevel'
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+        filed:
+          type: boolean
+          description: False only until the start-up step filed an older item; the names are then the automatic preview.
+    Asset:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, status, progress, error, files, audio, score, provenance, placement, sizeBytes, createdAt, updatedAt]
+      description: |
+        The 1.5.0-1.10.0 `Asset` plus the required member `placement` (1.22.0). The merge replaces
+        the base `Asset` with this schema, keeping any members later features added (DELTA.md 1).
+        `placement` is null only for recorded takes (015), which no `library` operation returns.
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AssetKind'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AssetStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        files:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AssetFile'
+        audio:
+          oneOf:
+            - $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/AudioFacts'
+            - type: 'null'
+        score:
+          oneOf:
+            - $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/ScoreFacts'
+            - type: 'null'
+        provenance:
+          $ref: '../../011-ai-composer-agent/contracts/backend-api.openapi.yaml#/components/schemas/Provenance'
+        placement:
+          oneOf:
+            - $ref: '#/components/schemas/Placement'
+            - type: 'null'
+        sizeBytes:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+  examples:
+    RootView:
+      value:
+        revision: 3f9a0c1d2e4b5a69
+        folder: null
+        breadcrumb: []
+        children:
+          - id: ar1b2c3d4e5f607182
+            level: artist
+            name: Metallica
+            nameSource: match
+            year: null
+            counts:
+              albums: 2
+              songs: 3
+              items: 7
+            sizeBytes: 214958080
+            latestAt: '2026-11-16T10:12:00Z'
+            art:
+              kind: mosaic
+              images:
+                - thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=4f2a9c0e1b3d
+                  coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=4f2a9c0e1b3d
+                - thumbUrl: /api/tracks/5d1c2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d/artwork/thumb?v=8e1d2c3b4a59
+                  coverUrl: /api/tracks/5d1c2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d/artwork/cover?v=8e1d2c3b4a59
+              placeholder:
+                glyph: M
+                tone: 3
+            trackIds: []
+          - id: ar9f8e7d6c5b4a3921
+            level: artist
+            name: Unknown artist
+            nameSource: fallback
+            year: null
+            counts:
+              albums: 1
+              songs: 1
+              items: 1
+            sizeBytes: 30410752
+            latestAt: '2026-11-15T19:40:00Z'
+            art:
+              kind: placeholder
+              images: []
+              placeholder:
+                glyph: '?'
+                tone: 0
+            trackIds: []
+        childrenTotal: 2
+        items: []
+        totalItems: 8
+        totalSizeBytes: 245368832
+        pendingFiling: 0
+    SongView:
+      value:
+        revision: 3f9a0c1d2e4b5a69
+        folder:
+          id: so0a1b2c3d4e5f6071
+          level: song
+          name: Battery
+          nameSource: match
+          year: null
+          counts:
+            items: 3
+          sizeBytes: 92274688
+          latestAt: '2026-11-16T10:12:00Z'
+          art:
+            kind: cover
+            images:
+              - thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=4f2a9c0e1b3d
+                coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=4f2a9c0e1b3d
+            placeholder:
+              glyph: B
+              tone: 5
+          trackIds: [0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a]
+        breadcrumb:
+          - id: ar1b2c3d4e5f607182
+            level: artist
+            name: Metallica
+          - id: al2c3d4e5f60718293
+            level: album
+            name: Master of Puppets
+        children: []
+        childrenTotal: 0
+        items: []
+        totalItems: 3
+        totalSizeBytes: 92274688
+        pendingFiling: 0
+    EmptySearch:
+      value:
+        query: zzz
+        tokens: [zzz]
+        revision: 3f9a0c1d2e4b5a69
+        artists: []
+        albums: []
+        songs: []
+        items: []
+        totals:
+          artists: 0
+          albums: 0
+          songs: 0
+          items: 0
