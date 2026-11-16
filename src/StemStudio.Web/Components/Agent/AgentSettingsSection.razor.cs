@@ -28,7 +28,7 @@ public sealed partial class AgentSettingsSection
 
     private bool KeyConfigured => Status?.Claude.KeyConfigured == true;
 
-    private ClaudeKeyStatusDto ClaudeKey => Status?.Claude.Key ?? ClaudeKeyStatusDto.NotConfigured;
+    private ClaudeKeyStatusDto ClaudeKey => Status!.Claude.Key;
 
     private string OllamaText => Status?.Ollama is { Reachable: true } ollama
         ? $"Reachable, version {ollama.Version}. Models: {string.Join(", ", ollama.Models.Select(m => m.Tools ? m.Name : $"{m.Name} (no tools)"))}."

@@ -98,16 +98,16 @@ character (research R-07).
 - [ ] T022 [US1] [ai-agent] Implement to pass T021
 - [ ] T023 [P] [US1] [backend] Failing tests `Agent/ClaudeKeyEndpointsTests.cs`: `GET` status for all states; `PUT` 200 with the status, 422 per reason with `reason` and without the value, 400 fixed text for bad JSON and missing field, 413 over 1 KiB, 503 when the store is unavailable; no request to the must-not-call Anthropic handler; backend and notice acknowledgement unchanged; `WithHttpLogging(None)` metadata and the logging interceptor (with a global `AddHttpLogging(All)` in the test host nothing of the key route is logged) [sec] (CK-FR-006, CK-FR-008..010, CK-FR-015)
 - [ ] T024 [US1] [backend] Implement `ClaudeKeyEndpoints` and `KeyEndpointLoggingInterceptor` to pass T023
-- [ ] T025 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Settings/ClaudeKeySectionTests.cs`: status texts and `data-state`/`data-source`/`data-stored` for every state; env-override note; input `type=password`, `autocomplete=off`, empty after success **and** after failure; save disabled when empty or saving; 422/503/413 messages never contain the value; Beginner level shows the section (CK-FR-014, ui-test-ids 1.21.0)
-- [ ] T026 [US1] [frontend] Implement `ClaudeKeySection` and the API client methods to pass T025
+- [x] T025 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Settings/ClaudeKeySectionTests.cs`: status texts and `data-state`/`data-source`/`data-stored` for every state; env-override note; input `type=password`, `autocomplete=off`, empty after success **and** after failure; save disabled when empty or saving; 422/503/413 messages never contain the value; Beginner level shows the section (CK-FR-014, ui-test-ids 1.21.0)
+- [x] T026 [US1] [frontend] Implement `ClaudeKeySection` and the API client methods to pass T025
 - [ ] T027 [P] [US1] [backend] Failing test `Agent/ClaudeKeyLeakTests.cs` (written at the start of the story, green at its end): sentinel saved through the API; 0 hits of the sentinel, its base64 and UTF-16 forms in all responses, Trace logs, SSE of a fake Claude run, `stemstudio.db`, `-wal`, `-shm` [sec] (CK-SC-001)
 
 ## Phase 3: User Story 6 - Key entry only on the computer itself (P1)
 
 - [ ] T028 [P] [US6] [backend] Failing tests `Secrets/LocalOnlyKeyEntryFilterTests.cs`: peer loopback v4/v6 accepted; peer = resolved `InternalCaller` accepted; other peer -> 403 `local-only`; `Host` outside the allow-list -> 403; foreign `Origin` -> 403; the filter runs before the body is read; `KeyEntryRefused` log rate-limited, without body; GET status not filtered [sec] (CK-FR-012)
 - [ ] T029 [US6] [backend] Implement `LocalOnlyKeyEntryFilter` to pass T028
-- [ ] T030 [P] [US6] [frontend] Failing tests: `PageOrigin` captures the loopback host of the first request (`localhost`, `127.0.0.1`, `[::1]` accepted; IP, `web`, other names not); non-loopback circuit -> `settings-agent-claude-key-local-only` shown and controls disabled; a `403 local-only` answer shows the same notice [sec] (CK-FR-012)
-- [ ] T031 [US6] [frontend] Implement `PageOrigin` and the notice to pass T030
+- [x] T030 [P] [US6] [frontend] Failing tests: `PageOrigin` captures the loopback host of the first request (`localhost`, `127.0.0.1`, `[::1]` accepted; IP, `web`, other names not); non-loopback circuit -> `settings-agent-claude-key-local-only` shown and controls disabled; a `403 local-only` answer shows the same notice [sec] (CK-FR-012)
+- [x] T031 [US6] [frontend] Implement `PageOrigin` and the notice to pass T030
 
 ## Phase 4: User Story 3 - Replace or delete the stored key (P2)
 
