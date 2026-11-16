@@ -21,7 +21,6 @@ These close the biggest gaps for a practice tool.
 | M3 | **Count-in and pre-roll** before play and before every loop pass (1–2 bars, metronome sound) | You need time to get your hands back on the instrument. | Uses the existing beat grid and metronome. S |
 | M4 | **Backup and restore** of the whole library (database, stems, mixes, lyrics, scores, styles, voice profiles) as one archive | Everything lives in Docker volumes today; losing a volume loses hours of GPU work. | API + worker job; restore checks versions. Voice profiles stay subject to consent rules. M |
 | M5 | **Storage overview and clean-up**: disk use per track (stems, detail stems, exports, generations) and per model cache, with safe "remove derived files" actions | Detail stems and generations grow fast; the owner wants a clean machine. | S–M |
-| M6 | **Dutch user interface** (NL/EN switch), including help topics and manuals | The owner and likely users are Dutch; the UI is English only. | .NET localisation (`IStringLocalizer`), help content per language, PDF manuals per language. M–L |
 
 ## Should have
 
@@ -65,17 +64,16 @@ Explicitly out of scope, to protect the constitution and keep the product focuse
 | W4 | Downloading from sources that need DRM circumvention (Spotify audio, Apple Music, Tidal) | Constitution: DRM is never circumvented; Spotify stays metadata plus a YouTube match. |
 | W5 | Features that need a paid service or paid model to work | Open-source-only principle; the optional Claude backend of 011 is the single, opt-in exception. |
 | W6 | A native desktop or mobile app (Electron, MAUI) | The Blazor web app plus C4 covers the use case at a fraction of the cost. |
+| W7 | Dutch user interface (localisation) | Owner decision 2026-11-16: the UI, help and manuals stay English only. |
 
 ## Suggested order
 
 1. **M1 → M2 → M3** as one "practice tempo" feature: the largest daily win.
 2. **M4 + M5** together as "library care".
 3. **S1 + S2** (chords and sections) as one analysis feature; it also improves 011.
-4. **M6** (Dutch UI) once the screens of 009–011 are stable, so translations are done once.
-5. Then S3–S8 by owner preference; Could items as filler.
+4. Then S3–S8 by owner preference; Could items as filler.
 
 ## Open questions for the owner
 
 - Is a GPL-licensed time-stretch library (Rubber Band) acceptable, or only LGPL/MIT (SoundTouch, own code)? This decides the approach for M1.
-- Dutch UI: Dutch only, or switchable NL/EN?
 - Which instrument matters most for you? That decides the order of S1, S4 and C5.
