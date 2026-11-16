@@ -26,6 +26,7 @@ public static class MixValidator
         Require(errors, dto.Channels is not null, "channels");
         RequireChannels(errors, dto.Channels ?? []);
         RequireDetail(errors, dto);
+        RequirePractice(errors, dto.Practice);
         return errors.Count == 0 ? (MixMapper.ToDomain(dto), errors) : (null, errors);
     }
 
@@ -61,6 +62,13 @@ public static class MixValidator
             var field = string.Create(CultureInfo.InvariantCulture, $"detailChannels[{i}]");
             Require(errors, channels[i] is { Parent: not null, Stem: not null }, field);
         }
+    }
+
+    /// <summary>Absent or null <c>practice</c> means the defaults (012); when present, both groups are required.</summary>
+    private static void RequirePractice(List<DomainError> errors, PracticeSettingsDto? practice)
+    {
+        Require(errors, practice is null || practice.Trainer is not null, "practice.trainer");
+        Require(errors, practice is null || practice.CountIn is not null, "practice.countIn");
     }
 
     private static void Require(List<DomainError> errors, bool present, string field)

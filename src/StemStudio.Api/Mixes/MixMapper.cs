@@ -42,6 +42,7 @@ public static class MixMapper
         {
             Expanded = settings.Expanded.ToList(),
             DetailChannels = settings.DetailChannels.Select(c => new DetailChannelSettingsDto(c.Parent, c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
+            Practice = ToDto(settings.Practice),
         };
     }
 
@@ -60,8 +61,41 @@ public static class MixMapper
             Loop = dto.Loop is { } loop ? new LoopRegion(loop.Start, loop.End, loop.Enabled) : null,
             Expanded = (dto.Expanded ?? []).ToList(),
             DetailChannels = (dto.DetailChannels ?? []).Select(ToDomain).ToList(),
+            Practice = dto.Practice is { } practice ? ToDomain(practice) : PracticeSettings.Default,
         };
     }
+
+    /// <summary>Maps practice settings to the DTO (012).</summary>
+    /// <param name="practice">Domain settings.</param>
+    /// <returns>The DTO.</returns>
+    public static PracticeSettingsDto ToDto(PracticeSettings practice)
+    {
+        ArgumentNullException.ThrowIfNull(practice);
+        var (trainer, countIn) = (practice.Trainer, practice.CountIn);
+        return new PracticeSettingsDto(
+            practice.SpeedPercent,
+            practice.TransposeSemitones,
+            new SpeedTrainerSettingsDto(trainer.Enabled, trainer.StartPercent, trainer.StepPercent, trainer.TargetPercent, trainer.PassesPerStep),
+            new CountInSettingsDto(countIn.Bars, countIn.EveryPass));
+    }
+
+    /// <summary>Maps practice settings whose groups are present (checked by <see cref="MixValidator"/>).</summary>
+    /// <param name="practice">The DTO.</param>
+    /// <returns>Domain settings (not yet validated).</returns>
+    internal static PracticeSettings ToDomain(PracticeSettingsDto practice) => new()
+    {
+        SpeedPercent = practice.SpeedPercent,
+        TransposeSemitones = practice.TransposeSemitones,
+        Trainer = new SpeedTrainerSettings
+        {
+            Enabled = practice.Trainer.Enabled,
+            StartPercent = practice.Trainer.StartPercent,
+            StepPercent = practice.Trainer.StepPercent,
+            TargetPercent = practice.Trainer.TargetPercent,
+            PassesPerStep = practice.Trainer.PassesPerStep,
+        },
+        CountIn = new CountInSettings { Bars = practice.CountIn.Bars, EveryPass = practice.CountIn.EveryPass },
+    };
 
     /// <summary>Maps detail channel settings.</summary>
     /// <param name="channel">The DTO.</param>
