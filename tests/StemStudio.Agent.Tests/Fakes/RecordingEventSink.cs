@@ -30,19 +30,22 @@ public sealed class RecordingEventSink : IRunEventSink
     public Task<RunEvent> PublishAsync(Guid runId, string type, string payload, CancellationToken cancellationToken)
     {
         JsonDocument.Parse(payload).Dispose();
-        RunEvent stored;
-        List<TaskCompletionSource<RunEvent>> ready;
-        lock (_gate)
-        {
-            stored = new RunEvent { RunId = runId, Seq = _events.Count(item => item.RunId == runId) + 1, Type = type, Payload = payload, CreatedAt = DateTimeOffset.UnixEpoch };
-            _events.Add(stored);
-            ready = [.. _waiters.Where(waiter => waiter.Type == type).Select(waiter => waiter.Signal)];
-            _waiters.RemoveAll(waiter => waiter.Type == type);
-        }
-
+        var (stored, ready) = Store(runId, type, payload);
         OnPublish?.Invoke(stored);
         ready.ForEach(signal => signal.TrySetResult(stored));
         return Task.FromResult(stored);
+    }
+
+    private (RunEvent Stored, List<TaskCompletionSource<RunEvent>> Ready) Store(Guid runId, string type, string payload)
+    {
+        lock (_gate)
+        {
+            var stored = new RunEvent { RunId = runId, Seq = _events.Count(item => item.RunId == runId) + 1, Type = type, Payload = payload, CreatedAt = DateTimeOffset.UnixEpoch };
+            _events.Add(stored);
+            List<TaskCompletionSource<RunEvent>> ready = [.. _waiters.Where(waiter => waiter.Type == type).Select(waiter => waiter.Signal)];
+            _waiters.RemoveAll(waiter => waiter.Type == type);
+            return (stored, ready);
+        }
     }
 
     /// <summary>Completes when the <paramref name="count"/>-th event of the type was published.</summary>
@@ -50,20 +53,29 @@ public sealed class RecordingEventSink : IRunEventSink
     {
         while (true)
         {
-            TaskCompletionSource<RunEvent> signal;
-            lock (_gate)
+            var (found, signal) = FindOrWait(type, count);
+            if (found is not null)
             {
-                var matches = _events.Where(item => item.Type == type).ToList();
-                if (matches.Count >= count)
-                {
-                    return matches[count - 1];
-                }
-
-                signal = new TaskCompletionSource<RunEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
-                _waiters.Add((type, signal));
+                return found;
             }
 
-            await signal.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await signal!.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+    }
+
+    private (RunEvent? Found, TaskCompletionSource<RunEvent>? Signal) FindOrWait(string type, int count)
+    {
+        lock (_gate)
+        {
+            var matches = _events.Where(item => item.Type == type).ToList();
+            if (matches.Count >= count)
+            {
+                return (matches[count - 1], null);
+            }
+
+            var signal = new TaskCompletionSource<RunEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _waiters.Add((type, signal));
+            return (null, signal);
         }
     }
 

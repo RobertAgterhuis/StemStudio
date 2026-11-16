@@ -87,9 +87,8 @@ public sealed class AgentServiceCollectionExtensionsTests : IDisposable
         var gpu = Substitute.For<IGpuActivity>();
         services.AddSingleton(gpu);
 
-        services.Where(descriptor => descriptor.ServiceType == typeof(IRunStore) || descriptor.ServiceType == typeof(IStemStudioActions)
-            || descriptor.ServiceType == typeof(IRunEventSink) || descriptor.ServiceType == typeof(IConversationStore)
-            || descriptor.ServiceType == typeof(IUndoStore) || descriptor.ServiceType == typeof(IAgentSettingsStore)).ShouldBeEmpty();
+        Type[] hostPorts = [typeof(IRunStore), typeof(IStemStudioActions), typeof(IRunEventSink), typeof(IConversationStore), typeof(IUndoStore), typeof(IAgentSettingsStore)];
+        services.Where(descriptor => hostPorts.Contains(descriptor.ServiceType)).ShouldBeEmpty();
         using var provider = new TestServiceProvider(services);
         provider.GetRequiredService<IGpuActivity>().ShouldBeSameAs(gpu);
     }

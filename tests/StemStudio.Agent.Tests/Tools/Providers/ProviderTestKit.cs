@@ -33,17 +33,18 @@ public static class ProviderTestKit
     }
 
     /// <summary>Validates the JSON against the tool's schema (must be valid) and runs the handler.</summary>
-    public static async Task<ToolResult> InvokeAsync(AgentToolDescriptor tool, string json, IStemStudioActions actions, UiRequester? ui = null, AgentBackendDto backend = AgentBackendDto.Ollama)
-    {
-        var invocation = Invocation(tool, json, actions, ui, backend);
-        return await tool.Handler!(invocation, TestContext.Current.CancellationToken);
-    }
+    public static Task<ToolResult> InvokeAsync(AgentToolDescriptor tool, string json, IStemStudioActions actions, UiRequester? ui = null) =>
+        RunAsync(tool, Invocation(tool, json, actions, ui));
 
-    public static ToolInvocation Invocation(AgentToolDescriptor tool, string json, IStemStudioActions actions, UiRequester? ui = null, AgentBackendDto backend = AgentBackendDto.Ollama)
+    /// <summary>Runs the handler with an invocation built by <see cref="Invocation"/> (e.g. <c>with { Backend = ... }</c>).</summary>
+    public static async Task<ToolResult> RunAsync(AgentToolDescriptor tool, ToolInvocation invocation) =>
+        await tool.Handler!(invocation, TestContext.Current.CancellationToken);
+
+    public static ToolInvocation Invocation(AgentToolDescriptor tool, string json, IStemStudioActions actions, UiRequester? ui = null)
     {
         var validation = ToolArgumentValidator.Validate(tool.Schema, json);
         validation.IsValid.ShouldBeTrue(validation.Error);
-        return new ToolInvocation { Arguments = validation.Arguments, Actions = actions, Context = new PageContextDto { Page = "tracks" }, Backend = backend, Ui = ui };
+        return new ToolInvocation { Arguments = validation.Arguments, Actions = actions, Context = new PageContextDto { Page = "tracks" }, Backend = AgentBackendDto.Ollama, Ui = ui };
     }
 
     public static bool Valid(AgentToolDescriptor tool, string json) => ToolArgumentValidator.Validate(tool.Schema, json).IsValid;

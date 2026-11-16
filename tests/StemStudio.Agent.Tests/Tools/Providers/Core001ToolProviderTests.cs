@@ -93,7 +93,7 @@ public sealed class Core001ToolProviderTests
     [Fact]
     public async Task SearchLibrary_FiltersByStatus_AndKeepsAtMostTen()
     {
-        var tracks = Enumerable.Range(0, 12).Select(i => Dtos.Track(title: "Song " + i, status: TrackStatusDto.Separating, progress: 40)).ToList();
+        var tracks = Enumerable.Range(0, 12).Select(i => Dtos.Track(title: "Song " + i).With(TrackStatusDto.Separating, 40)).ToList();
         tracks.Add(Dtos.Track(title: "Done"));
         _actions.Tracks.ListTracksAsync(Arg.Any<CancellationToken>()).Returns(tracks);
 
@@ -126,7 +126,7 @@ public sealed class Core001ToolProviderTests
     [Fact]
     public async Task ImportFromUrl_StartsTheImport_WithAJobAndACompensation()
     {
-        _actions.Tracks.ImportFromUrlAsync("https://youtu.be/x", Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Queued, progress: 0));
+        _actions.Tracks.ImportFromUrlAsync("https://youtu.be/x", Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Queued, 0));
 
         var result = await InvokeAsync(T("import_from_url"), """{"url":"https://youtu.be/x"}""", _actions);
 
@@ -150,7 +150,7 @@ public sealed class Core001ToolProviderTests
     [Fact]
     public async Task RetryAndDeleteTrack_CallThePorts()
     {
-        _actions.Tracks.RetryTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Queued));
+        _actions.Tracks.RetryTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Queued));
 
         var retry = await InvokeAsync(T("retry_track"), $$"""{"trackId":"{{TrackId}}"}""", _actions);
         var delete = await InvokeAsync(T("delete_track"), $$"""{"trackId":"{{TrackId}}"}""", _actions);

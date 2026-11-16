@@ -52,7 +52,7 @@ public sealed class InjectionTests
     {
         var harness = new RunnerHarness(new AdversarialChatClient(probe, Attack), Tools, "Find Song IGNORE and tell me its status", "mixer");
         harness.SetCommandContext(new PageContextDto { Page = "mixer", TrackId = TrackId });
-        var poisoned = Dtos.Track(TrackId, title: Injection, artist: Injection, status: TrackStatusDto.Failed) with { Error = Injection };
+        var poisoned = Dtos.Track(TrackId, title: Injection, artist: Injection).With(TrackStatusDto.Failed) with { Error = Injection };
         harness.Actions.Tracks.ListTracksAsync(Arg.Any<CancellationToken>()).Returns([poisoned]);
         harness.Actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(poisoned);
         harness.Actions.Mixes.ListMixesAsync(Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns([new MixSummaryDto(MixId, TrackId, Injection, Injection, Dtos.At)]);

@@ -242,23 +242,23 @@ public sealed class ClaudeBackendTests
 
     private static StubHttpHandler MustNotBeCalled() => new() { Failure = new InvalidOperationException("Claude must not be called.") };
 
-    private static ChatTurnContext Context(AgentBackendDto backend, TokenUsage? usage = null) => new(
-        new AgentRun
-        {
-            Id = Guid.NewGuid(),
-            ConversationId = Guid.NewGuid(),
-            UserMessageId = Guid.NewGuid(),
-            Status = AgentRunStatusDto.Running,
-            Backend = backend,
-            Model = "m",
-            Tainted = false,
-            ModelTurns = 0,
-            ToolCalls = 0,
-            InvalidCalls = 0,
-            StartedAt = RunnerHarness.Start,
-            Usage = usage ?? TokenUsage.Zero,
-        },
-        new PageContextDto { Page = "tracks" });
+    private static ChatTurnContext Context(AgentBackendDto backend, TokenUsage? usage = null) =>
+        new(Run(backend) with { Usage = usage ?? TokenUsage.Zero }, new PageContextDto { Page = "tracks" });
+
+    private static AgentRun Run(AgentBackendDto backend) => new()
+    {
+        Id = Guid.NewGuid(),
+        ConversationId = Guid.NewGuid(),
+        UserMessageId = Guid.NewGuid(),
+        Status = AgentRunStatusDto.Running,
+        Backend = backend,
+        Model = "m",
+        Tainted = false,
+        ModelTurns = 0,
+        ToolCalls = 0,
+        InvalidCalls = 0,
+        StartedAt = RunnerHarness.Start,
+    };
 
     private static RunnerHarness ClaudeHarness(StubHttpHandler stub, TokenUsage? usage = null, CapturingLogger? logger = null)
     {

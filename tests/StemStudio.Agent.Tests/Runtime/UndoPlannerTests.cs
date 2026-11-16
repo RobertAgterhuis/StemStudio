@@ -37,6 +37,14 @@ public sealed class UndoPlannerTests
 
     private static ScriptedCall SetChannel(string stem, double gainDb) => Call("mixer_set_channel", $$"""{"stem":"{{stem}}","gainDb":{{gainDb}}}""");
 
+    private static (double GainDb, double Pan, bool Mute, bool Solo) Applied((double GainDb, double Pan, bool Mute, bool Solo) previous, JsonElement root) => previous with
+    {
+        GainDb = root.TryGetProperty("gainDb", out var gain) ? gain.GetDouble() : previous.GainDb,
+        Pan = root.TryGetProperty("pan", out var pan) ? pan.GetDouble() : previous.Pan,
+        Mute = root.TryGetProperty("mute", out var mute) ? mute.GetBoolean() : previous.Mute,
+        Solo = root.TryGetProperty("solo", out var solo) ? solo.GetBoolean() : previous.Solo,
+    };
+
     /// <summary>A mixer page that applies mixer_set_channel and answers {stem, previous, current} like the frontend.</summary>
     private UiToolResult Mixer(UiToolRequest request)
     {
@@ -49,13 +57,7 @@ public sealed class UndoPlannerTests
         var root = arguments.RootElement;
         var stem = root.GetProperty("stem").GetString()!;
         var previous = _channels[stem];
-        var current = previous with
-        {
-            GainDb = root.TryGetProperty("gainDb", out var gain) ? gain.GetDouble() : previous.GainDb,
-            Pan = root.TryGetProperty("pan", out var pan) ? pan.GetDouble() : previous.Pan,
-            Mute = root.TryGetProperty("mute", out var mute) ? mute.GetBoolean() : previous.Mute,
-            Solo = root.TryGetProperty("solo", out var solo) ? solo.GetBoolean() : previous.Solo,
-        };
+        var current = Applied(previous, root);
         _channels[stem] = current;
         return new UiToolResult { Ok = true, Result = JsonSerializer.Serialize(new { stem, previous = View(stem, previous), current = View(stem, current) }, Web) };
     }

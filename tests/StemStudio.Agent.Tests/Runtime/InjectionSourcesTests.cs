@@ -38,6 +38,13 @@ public sealed class InjectionSourcesTests
     private static IStemStudioActions Poisoned()
     {
         var actions = Actions();
+        PoisonLibrary(actions);
+        PoisonCreations(actions);
+        return actions;
+    }
+
+    private static void PoisonLibrary(IStemStudioActions actions)
+    {
         actions.Artists.GetBandInfoAsync(Id, Arg.Any<CancellationToken>()).Returns(new BandInfoDto { Status = MetadataStatusDto.Found, Artist = new ArtistInfoDto { Mbid = Id, Name = Injection } });
         actions.Assets.ListAssetsAsync(Arg.Any<AssetQuery>(), Arg.Any<CancellationToken>()).Returns(new AssetListDto([Dtos.Asset(Id, AssetStatusDto.Ready, 100, null) with { Name = Injection }], 1, 1));
         actions.Styles.ListStylesAsync(Arg.Any<StyleQuery>(), Arg.Any<CancellationToken>()).Returns([new StyleDto
@@ -45,21 +52,33 @@ public sealed class InjectionSourcesTests
             Id = Id, Kind = StyleKindDto.User, Name = Injection, GenreFamily = GenreFamilyDto.Pop, TempoFeel = TempoFeelDto.Keep,
             VocalHandling = VocalHandlingDto.Keep, DefaultStrength = StrengthDto.Light, CreatedAt = Dtos.At, UpdatedAt = Dtos.At,
         }]);
-        actions.Generations.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([new GenerationDto
-        {
-            Id = Id, Kind = GenerationKindDto.Song, Status = GenerationStateDto.Completed, Progress = 100, CreatedAt = Dtos.At, UpdatedAt = Dtos.At,
-            Song = new SongDetailsDto
-            {
-                Lyrics = new LyricsSnapshotDto { Title = Injection, Language = "en", Text = "secret lyrics" },
-                Voice = new SongVoiceDto { LeadVoice = LeadVoiceDto.Any },
-                DurationSeconds = 60,
-                Caption = "x",
-            },
-        }]);
+    }
+
+    private static void PoisonCreations(IStemStudioActions actions)
+    {
+        actions.Generations.ListGenerationsAsync(Arg.Any<GenerationQuery>(), Arg.Any<CancellationToken>()).Returns([PoisonedSong()]);
         actions.Songs.ListLyricsSheetsAsync(Arg.Any<CancellationToken>()).Returns([new LyricsSheetSummary { LyricsId = Id, Title = Injection, Language = "en", UpdatedAt = Dtos.At }]);
         actions.Voices.ListVoiceProfilesAsync(Arg.Any<CancellationToken>()).Returns([new VoiceProfileSummary { ProfileId = Id, DisplayName = Injection, ConsentStatementVersion = "1", DurationSeconds = 30 }]);
-        return actions;
     }
+
+    private static GenerationDto PoisonedSong() => new()
+    {
+        Id = Id,
+        Kind = GenerationKindDto.Song,
+        Status = GenerationStateDto.Completed,
+        Progress = 100,
+        CreatedAt = Dtos.At,
+        UpdatedAt = Dtos.At,
+        Song = SecretSong(),
+    };
+
+    private static SongDetailsDto SecretSong() => new()
+    {
+        Lyrics = new LyricsSnapshotDto { Title = Injection, Language = "en", Text = "secret lyrics" },
+        Voice = new SongVoiceDto { LeadVoice = LeadVoiceDto.Any },
+        DurationSeconds = 60,
+        Caption = "x",
+    };
 
     [Theory]
     [MemberData(nameof(Sources))]

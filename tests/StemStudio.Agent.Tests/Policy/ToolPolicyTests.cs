@@ -22,19 +22,16 @@ public sealed class ToolPolicyTests
 
     public static TheoryData<ToolRiskDto, bool, UrlCase, bool> Combinations()
     {
+        bool[] flags = [false, true];
         var data = new TheoryData<ToolRiskDto, bool, UrlCase, bool>();
-        foreach (var risk in Enum.GetValues<ToolRiskDto>())
+        var rows = from risk in Enum.GetValues<ToolRiskDto>()
+                   from tainted in flags
+                   from url in Enum.GetValues<UrlCase>()
+                   from planCovered in flags
+                   select (risk, tainted, url, planCovered);
+        foreach (var (risk, tainted, url, planCovered) in rows)
         {
-            foreach (var tainted in new[] { false, true })
-            {
-                foreach (var url in Enum.GetValues<UrlCase>())
-                {
-                    foreach (var planCovered in new[] { false, true })
-                    {
-                        data.Add(risk, tainted, url, planCovered);
-                    }
-                }
-            }
+            data.Add(risk, tainted, url, planCovered);
         }
 
         return data;
@@ -64,48 +61,46 @@ public sealed class ToolPolicyTests
     [MemberData(nameof(Combinations))]
     public void Decide_FollowsTheRiskTaintProvenanceAndPlanScopeTable(ToolRiskDto risk, bool tainted, UrlCase url, bool planCovered)
     {
-        var arguments = url == UrlCase.NoUrl
-            ? Json(new { trackId = TrackA })
-            : Json(new { trackId = TrackA, url = url == UrlCase.FromUser ? Url : "https://evil.example/x" });
-        var input = new PolicyInput
-        {
-            Tool = Tool(risk, url != UrlCase.NoUrl),
-            Arguments = arguments,
-            Tainted = tainted,
-            UserMessages = [$"Importeer {Url} graag"],
-            Plan = [Item("tool_x")],
-            PlanGrants = planCovered ? [new PlanHeavyGrant("tool_x", TrackA)] : [],
-        };
+        var decision = ToolPolicy.Decide(TableInput(risk, tainted, url, planCovered));
 
-        var decision = ToolPolicy.Decide(input);
-
-        var expected = new List<string>();
-        if (risk == ToolRiskDto.Heavy)
-        {
-            expected.Add(AgentDecisionReasons.RiskHeavy);
-        }
-
-        if (risk == ToolRiskDto.Destructive)
-        {
-            expected.Add(AgentDecisionReasons.RiskDestructive);
-        }
-
-        var changes = risk is not ToolRiskDto.Read;
-        if (changes && tainted)
-        {
-            expected.Add(AgentDecisionReasons.Tainted);
-        }
-
-        if (changes && url == UrlCase.NotFromUser)
-        {
-            expected.Add(AgentDecisionReasons.UrlNotFromUser);
-        }
-
+        var expected = ExpectedReasons(risk, tainted, url);
         var coveredByPlan = planCovered && expected.SequenceEqual([AgentDecisionReasons.RiskHeavy]);
         var auto = expected.Count == 0 || coveredByPlan;
         decision.Decision.ShouldBe(auto ? StepDecisionDto.Auto : StepDecisionDto.ApprovalRequired);
         decision.Reasons.ShouldBe(auto ? [] : expected);
         decision.Refusal.ShouldBeNull();
+    }
+
+    private static PolicyInput TableInput(ToolRiskDto risk, bool tainted, UrlCase url, bool planCovered) => new()
+    {
+        Tool = Tool(risk, url != UrlCase.NoUrl),
+        Arguments = url == UrlCase.NoUrl
+            ? Json(new { trackId = TrackA })
+            : Json(new { trackId = TrackA, url = url == UrlCase.FromUser ? Url : "https://evil.example/x" }),
+        Tainted = tainted,
+        UserMessages = [$"Importeer {Url} graag"],
+        Plan = [Item("tool_x")],
+        PlanGrants = planCovered ? [new PlanHeavyGrant("tool_x", TrackA)] : [],
+    };
+
+    /// <summary>The oracle of the table (data-model 6), written independently of the policy code.</summary>
+    private static List<string> ExpectedReasons(ToolRiskDto risk, bool tainted, UrlCase url)
+    {
+        var changes = risk is not ToolRiskDto.Read;
+        var expected = new List<string>();
+        AddWhen(expected, risk == ToolRiskDto.Heavy, AgentDecisionReasons.RiskHeavy);
+        AddWhen(expected, risk == ToolRiskDto.Destructive, AgentDecisionReasons.RiskDestructive);
+        AddWhen(expected, changes && tainted, AgentDecisionReasons.Tainted);
+        AddWhen(expected, changes && url == UrlCase.NotFromUser, AgentDecisionReasons.UrlNotFromUser);
+        return expected;
+    }
+
+    private static void AddWhen(List<string> reasons, bool condition, string reason)
+    {
+        if (condition)
+        {
+            reasons.Add(reason);
+        }
     }
 
     [Fact]

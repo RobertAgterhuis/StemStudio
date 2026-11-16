@@ -41,9 +41,9 @@ public sealed class JobWaiterTests
     public async Task Track_IsPolledEveryTwoSecondsUntilCompleted_ReportingProgress()
     {
         _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(
-            Dtos.Track(TrackId, status: TrackStatusDto.Separating, progress: 10),
-            Dtos.Track(TrackId, status: TrackStatusDto.Separating, progress: 50),
-            Dtos.Track(TrackId, status: TrackStatusDto.Completed, progress: 100));
+            Dtos.Track(TrackId).With(TrackStatusDto.Separating, 10),
+            Dtos.Track(TrackId).With(TrackStatusDto.Separating, 50),
+            Dtos.Track(TrackId).With(TrackStatusDto.Completed, 100));
         var progress = new List<int>();
         var waiter = new JobWaiter(_actions, _time);
 
@@ -61,7 +61,7 @@ public sealed class JobWaiterTests
     [Fact]
     public async Task FailedJob_EndsWithItsError()
     {
-        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Failed, progress: 30) with { Error = "Download failed" });
+        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Failed, 30) with { Error = "Download failed" });
 
         var result = await new JobWaiter(_actions, _time).WaitAsync(new JobWait(Standard, TimeSpan.FromMinutes(1)), Token);
 
@@ -71,7 +71,7 @@ public sealed class JobWaiterTests
     [Fact]
     public async Task MaxWait_EndsWithTimeout()
     {
-        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Separating, progress: 5));
+        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Separating, 5));
         var wait = new JobWaiter(_actions, _time).WaitAsync(new JobWait(Standard, TimeSpan.FromMinutes(1)), Token);
 
         var result = await AdvanceUntilAsync(wait, TimeSpan.FromSeconds(61));
@@ -83,7 +83,7 @@ public sealed class JobWaiterTests
     [Fact]
     public async Task Cancellation_StopsTheWait()
     {
-        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Queued, progress: 0));
+        _actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Queued, 0));
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Token);
         var wait = new JobWaiter(_actions, _time).WaitAsync(new JobWait(Standard, TimeSpan.FromMinutes(1)), cancel.Token);
 
@@ -178,8 +178,8 @@ public sealed class JobWaiterTests
     {
         var harness = RunnerHarness.Scripted([.. new MetaToolProvider().GetTools()], Turn(Call("wait_for_job", $$"""{"phase":"standard","trackId":"{{TrackId}}"}""")), Say("Ready."));
         harness.Actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(
-            Dtos.Track(TrackId, status: TrackStatusDto.Separating, progress: 30),
-            Dtos.Track(TrackId, status: TrackStatusDto.Completed, progress: 100));
+            Dtos.Track(TrackId).With(TrackStatusDto.Separating, 30),
+            Dtos.Track(TrackId).With(TrackStatusDto.Completed, 100));
         await harness.SeedAsync();
 
         var execution = harness.Runner().ExecuteAsync(harness.Run.Id, Token);

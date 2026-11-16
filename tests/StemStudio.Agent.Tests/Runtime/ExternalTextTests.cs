@@ -29,7 +29,7 @@ public sealed class ExternalTextTests
     public async Task TrackJobError_IsUntrusted_WithAFixedTrustedMessage()
     {
         var actions = Substitute.For<IStemStudioActions>();
-        actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Failed) with { Error = Injection });
+        actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Failed) with { Error = Injection });
 
         var poll = await JobStatusReader.ReadAsync(actions, new JobRef { Phase = JobPhaseDto.Standard, TrackId = TrackId }, Token);
 
@@ -77,7 +77,7 @@ public sealed class ExternalTextTests
     public async Task InjectedJobError_ReachesTheModelOnlyAsUntrustedText_AndTaintsTheRun()
     {
         var harness = RunnerHarness.Scripted([.. new MetaToolProvider().GetTools()], Turn(Call("wait_for_job", $$"""{"phase":"standard","trackId":"{{TrackId}}"}""")), Say("It failed."));
-        harness.Actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId, status: TrackStatusDto.Failed) with { Error = Injection });
+        harness.Actions.Tracks.GetTrackAsync(TrackId, Arg.Any<CancellationToken>()).Returns(Dtos.Track(TrackId).With(TrackStatusDto.Failed) with { Error = Injection });
 
         var run = await harness.ExecuteAsync();
 

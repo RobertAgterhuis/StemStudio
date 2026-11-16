@@ -51,13 +51,7 @@ public sealed class StubHttpHandler : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var route = $"{request.Method} {request.RequestUri!.AbsolutePath}";
-        var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
-        var headers = string.Join(Environment.NewLine, request.Headers.Select(header => $"{header.Key}: {string.Join(',', header.Value)}"));
-        lock (_gate)
-        {
-            _requests.Add((route, body, headers));
-        }
-
+        var body = await RecordAsync(route, request, cancellationToken);
         if (Hang)
         {
             await Task.Delay(Timeout.Infinite, cancellationToken);
@@ -69,5 +63,17 @@ public sealed class StubHttpHandler : HttpMessageHandler
         }
 
         return _routes.TryGetValue(route, out var answer) ? await answer(body) : new HttpResponseMessage(HttpStatusCode.NotFound);
+    }
+
+    private async Task<string> RecordAsync(string route, HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
+        var headers = string.Join(Environment.NewLine, request.Headers.Select(header => $"{header.Key}: {string.Join(',', header.Value)}"));
+        lock (_gate)
+        {
+            _requests.Add((route, body, headers));
+        }
+
+        return body;
     }
 }

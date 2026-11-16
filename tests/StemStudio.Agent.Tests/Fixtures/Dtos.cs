@@ -10,22 +10,26 @@ public static class Dtos
 {
     public static readonly DateTimeOffset At = new(2026, 11, 16, 8, 0, 0, TimeSpan.Zero);
 
-    public static TrackDto Track(Guid? id = null, string title = "Hero of the Day", string? artist = "Metallica", TrackStatusDto status = TrackStatusDto.Completed, int progress = 100) => new()
+    private static readonly TrackDto SampleTrack = new()
     {
-        Id = id ?? Guid.NewGuid(),
-        Title = title,
-        Artist = artist,
+        Id = Guid.Empty,
+        Title = "Hero of the Day",
         SourceType = SourceTypeDto.Youtube,
         SourceKey = "yt:abc",
         SourceUrl = "https://www.youtube.com/watch?v=abc",
-        Status = status,
-        Progress = progress,
+        Status = TrackStatusDto.Completed,
+        Progress = 100,
         DurationSeconds = 260,
         Stems = [new StemDto("vocals", "/api/tracks/x/stems/vocals"), new StemDto("drums", "/api/tracks/x/stems/drums")],
         BeatGrid = new BeatGridDto(120, [0.5], [0.5], 4, 0.9, true),
         CreatedAt = At,
         UpdatedAt = At,
     };
+
+    public static TrackDto Track(Guid? id = null, string title = "Hero of the Day", string? artist = "Metallica") =>
+        SampleTrack with { Id = id ?? Guid.NewGuid(), Title = title, Artist = artist };
+
+    public static TrackDto With(this TrackDto track, TrackStatusDto status, int progress = 100) => track with { Status = status, Progress = progress };
 
     public static TrackDto WithDetail(this TrackDto track, DetailPhaseStatusDto status, int progress = 0, string? error = null) =>
         track with { Detail = new DetailPhaseDto { Status = status, Progress = progress, Error = error, Parents = [] } };

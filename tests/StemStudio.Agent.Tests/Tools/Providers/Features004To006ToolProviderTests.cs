@@ -76,7 +76,8 @@ public sealed class Features004To006ToolProviderTests
     {
         _actions.Artists.GetBandInfoAsync(TrackId, Arg.Any<CancellationToken>()).Returns(BandInfo());
 
-        var result = await InvokeAsync(Tool(new ArtistToolProvider(), "get_artist_info"), TrackArgs, _actions, backend: AgentBackendDto.Claude);
+        var tool = Tool(new ArtistToolProvider(), "get_artist_info");
+        var result = await RunAsync(tool, Invocation(tool, TrackArgs, _actions) with { Backend = AgentBackendDto.Claude });
 
         result.Projection.AsObject().ContainsKey("untrusted_text").ShouldBeFalse();
         ResultProjector.Project(result.Projection).Tainted.ShouldBeTrue();
@@ -165,16 +166,18 @@ public sealed class Features004To006ToolProviderTests
     {
         Status = MetadataStatusDto.Found,
         Recording = new RecordingInfoDto("Enter Sandman", "Metallica", 1991),
-        Artist = new ArtistInfoDto
-        {
-            Mbid = Guid.NewGuid(),
-            Name = "Metallica",
-            Type = ArtistTypeDto.Group,
-            Country = "US",
-            BeginYear = 1981,
-            Genres = ["thrash metal", "heavy metal"],
-            Members = [new ArtistMemberDto("James Hetfield"), new ArtistMemberDto("Lars Ulrich")],
-            Summary = new WikipediaSummaryDto { Language = "en", Title = "Metallica", Extract = new string('m', 900), PageUrl = "https://en.wikipedia.org/wiki/Metallica", HistoryUrl = "https://en.wikipedia.org/w/index.php?title=Metallica&action=history" },
-        },
+        Artist = Metallica(),
+    };
+
+    private static ArtistInfoDto Metallica() => new()
+    {
+        Mbid = Guid.NewGuid(),
+        Name = "Metallica",
+        Type = ArtistTypeDto.Group,
+        Country = "US",
+        BeginYear = 1981,
+        Genres = ["thrash metal", "heavy metal"],
+        Members = [new ArtistMemberDto("James Hetfield"), new ArtistMemberDto("Lars Ulrich")],
+        Summary = new WikipediaSummaryDto { Language = "en", Title = "Metallica", Extract = new string('m', 900), PageUrl = "https://en.wikipedia.org/wiki/Metallica", HistoryUrl = "https://en.wikipedia.org/w/index.php?title=Metallica&action=history" },
     };
 }

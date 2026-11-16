@@ -24,6 +24,7 @@ public sealed class CapturingLogger : ILogger
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
+    // sig-exempt: signature fixed by ILogger.Log
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         lock (_gate)

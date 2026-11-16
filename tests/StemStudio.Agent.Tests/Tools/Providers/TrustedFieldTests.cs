@@ -33,22 +33,19 @@ public sealed class TrustedFieldTests
 
     private static void RemoveUntrusted(System.Text.Json.Nodes.JsonNode node)
     {
-        if (node is System.Text.Json.Nodes.JsonObject item)
+        (node as System.Text.Json.Nodes.JsonObject)?.Remove(ResultProjector.UntrustedField);
+        foreach (var child in Children(node))
         {
-            item.Remove(ResultProjector.UntrustedField);
-            foreach (var child in item.Select(property => property.Value).OfType<System.Text.Json.Nodes.JsonNode>().ToList())
-            {
-                RemoveUntrusted(child);
-            }
-        }
-        else if (node is System.Text.Json.Nodes.JsonArray list)
-        {
-            foreach (var child in list.OfType<System.Text.Json.Nodes.JsonNode>())
-            {
-                RemoveUntrusted(child);
-            }
+            RemoveUntrusted(child);
         }
     }
+
+    private static List<System.Text.Json.Nodes.JsonNode> Children(System.Text.Json.Nodes.JsonNode node) => node switch
+    {
+        System.Text.Json.Nodes.JsonObject item => [.. item.Select(property => property.Value).OfType<System.Text.Json.Nodes.JsonNode>()],
+        System.Text.Json.Nodes.JsonArray list => [.. list.OfType<System.Text.Json.Nodes.JsonNode>()],
+        _ => [],
+    };
 
     [Fact]
     public async Task ArtistReason_IsAFixedMessage_AndFreeTextIsUntrusted()
