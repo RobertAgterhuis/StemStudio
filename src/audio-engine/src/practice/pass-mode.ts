@@ -91,14 +91,19 @@ export class PassMode implements PassHost {
       this.scheduler.start();
       return;
     }
-    const undo = this.scheduler.unheardUndo(this.context.currentTime);
-    if (undo !== null) {
-      this.trainer.restore(undo);
-    }
+    this.undoUnheard();
     if (state === 'stopped') {
       this.trainer.reset();
     } else {
       this.trainer.pause();
+    }
+  }
+
+  /** A pass created ahead but never heard does not count. */
+  private undoUnheard(): void {
+    const undo = this.scheduler.unheardUndo(this.context.currentTime);
+    if (undo !== null) {
+      this.trainer.restore(undo);
     }
   }
 

@@ -269,11 +269,13 @@ export class PracticeController implements TransportListener {
     const { transport } = this.host;
     if (this.active === null) {
       this.engageFor(target);
-    } else if (transport.state === 'playing') {
-      this.liveChange(this.active, target);
-    } else {
+    } else if (transport.state !== 'playing') {
       transport.setTiming({ rate: target.rate, latency: this.latencyOf(this.active, target.pitch) });
       this.applied = target.pitch;
+    } else if (transport.passes) {
+      this.passTranspose(this.active);
+    } else {
+      this.liveChange(this.active, target);
     }
   }
 
@@ -299,10 +301,6 @@ export class PracticeController implements TransportListener {
 
   private liveChange(stage: TimeStretchStage, target: Target): void {
     const { transport } = this.host;
-    if (transport.passes) {
-      this.passTranspose(stage);
-      return;
-    }
     const base = this.changeBase(this.host.context.currentTime);
     if (base.at === null && this.unchanged(target)) {
       return;

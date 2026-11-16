@@ -17,6 +17,7 @@ import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
 import { PracticeController } from './practice/controller';
+import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
@@ -66,14 +67,19 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
     startDelaySeconds: options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS,
     output: (id) => mixer.input(id),
   });
-  const notifier = new DotNetNotifier(ref, () => transport.position());
-  transport.addListener(notifier);
+  const notifier = createNotifier(ref, transport);
   const frames = new FrameLoop();
   const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
   const clicks = new ClickPlayer(context);
   const metronome = createMetronome({ context, transport, clicks }, options);
   const karaoke = createKaraoke(context, transport, frames);
   return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke };
+}
+
+function createNotifier(ref: DotNetObjectReference, transport: Transport): DotNetNotifier {
+  const notifier = new DotNetNotifier(ref, () => transport.position());
+  transport.addListener(notifier);
+  return notifier;
 }
 
 function createKaraoke(context: AudioContext, transport: Transport, loop: FrameLoop): Karaoke {
@@ -295,18 +301,12 @@ export class Engine implements AudioEngine {
   private createPractice(options: EngineOptions): PracticeController {
     const { context, transport, mixer } = this.parts;
     const factory = options.timeStretchFactory ?? createWorkletStageFactory({ ...options.timeStretch, fetch: this.fetchFn });
-    const practice = new PracticeController({
-      context,
-      transport,
-      mixer,
-      factory,
-      changed: () => {
-        this.practiceNotifier.changed();
-      },
-      clicks: this.parts.clicks,
-      startDelay: options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS,
-      tempoSource: () => ({ grid: this.grid, metronome: this.metronome }),
-    });
+    const changed = (): void => {
+      this.practiceNotifier.changed();
+    };
+    const startDelay = options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS;
+    const tempoSource = (): TempoSource => ({ grid: this.grid, metronome: this.metronome });
+    const practice = new PracticeController({ context, transport, mixer, factory, changed, clicks: this.parts.clicks, startDelay, tempoSource });
     transport.addListener(practice);
     transport.setRestartHook(() => {
       practice.onRestart();

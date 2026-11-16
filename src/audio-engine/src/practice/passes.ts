@@ -141,22 +141,25 @@ export class PassScheduler implements PassPlanner {
 
   private create(last: PassRecord): void {
     const next = this.host.next();
-    const region = this.host.region();
     const sourceStart = last.sourceEnd + next.gap;
-    const length = region.end - region.start;
-    const spec = { heardWhen: sourceStart + next.latency, offset: region.start, rate: next.rate, latency: next.latency };
-    const launched = next.open ? spec : { ...spec, duration: length };
-    this.host.transport.launch(launched);
-    this.host.scheduled(next.pitch, sourceStart, launched);
-    if (next.open) {
+    const spec = this.specOf(next, sourceStart);
+    this.host.transport.launch(spec);
+    this.host.scheduled(next.pitch, sourceStart, spec);
+    if (spec.duration === undefined) {
       this.host.transport.setPlanner(null);
       this.records = [];
       this.stop();
       return;
     }
-    const sourceEnd = sourceStart + length / next.rate;
-    this.records = this.records.slice(-3);
-    this.records.push({ sourceStart, sourceEnd, heardWhen: spec.heardWhen, label: next.label, undo: next.undo });
+    const sourceEnd = sourceStart + spec.duration / next.rate;
+    this.records = [...this.records.slice(-3), { sourceStart, sourceEnd, heardWhen: spec.heardWhen, label: next.label, undo: next.undo }];
+  }
+
+  /** The next pass from the loop start (an open start with the native loop when leaving the passes). */
+  private specOf(next: NextPass, sourceStart: number): PassSpec {
+    const region = this.host.region();
+    const spec = { heardWhen: sourceStart + next.latency, offset: region.start, rate: next.rate, latency: next.latency };
+    return next.open ? spec : { ...spec, duration: region.end - region.start };
   }
 
   private reportHeard(now: number): void {
