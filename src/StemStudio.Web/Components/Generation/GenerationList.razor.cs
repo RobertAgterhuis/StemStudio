@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using StemStudio.Contracts.Generation;
+using StemStudio.Web.Agent;
 using StemStudio.Web.Api;
 using StemStudio.Web.Generation;
 
@@ -13,6 +14,9 @@ public sealed partial class GenerationList
 
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
+
+    [Inject]
+    private AgentRunNotifier AgentRuns { get; set; } = default!;
 
     /// <summary>The filters (all generations, one kind, or the restyles of one track).</summary>
     [Parameter, EditorRequired]
@@ -49,9 +53,25 @@ public sealed partial class GenerationList
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
+        AgentRuns.RunEnded += OnAgentRunEnded;
         await RefreshAsync(Stopping);
         StartPolling();
     }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        AgentRuns.RunEnded -= OnAgentRunEnded;
+        base.Dispose(disposing);
+    }
+
+    /// <summary>An agent run may have started or removed generations: reload (011 US6).</summary>
+    private void OnAgentRunEnded() => _ = InvokeAsync(async () =>
+    {
+        await RefreshAsync(Stopping);
+        StartPolling();
+        StateHasChanged();
+    });
 
     /// <inheritdoc />
     protected override async Task RefreshAsync(CancellationToken ct)

@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using StemStudio.Contracts.Agent;
 using StemStudio.Web.Api;

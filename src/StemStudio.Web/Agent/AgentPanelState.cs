@@ -13,7 +13,8 @@ namespace StemStudio.Web.Agent;
 /// <param name="navigation">Gives the page context of a command.</param>
 /// <param name="time">Stamps the user's message until the stored one is loaded.</param>
 /// <param name="host">Runs the UI tools the run requests (<c>ui.requested</c>).</param>
-public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManager navigation, TimeProvider time, AgentUiToolHost host) : IDisposable
+/// <param name="notifier">Announces ended runs to the pages (lists reload).</param>
+public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManager navigation, TimeProvider time, AgentUiToolHost host, AgentRunNotifier notifier) : IDisposable
 {
     private const string LostConnection = "The connection to the agent run was lost. Reopen the conversation to see its state.";
     private CancellationTokenSource _follow = new();
@@ -264,6 +265,7 @@ public sealed partial class AgentPanelState(IAgentApiClient api, NavigationManag
         if (e.IsTerminal)
         {
             await ReloadAsync(followed.ConversationId);
+            notifier.RunHasEnded();
         }
 
         Notify();
