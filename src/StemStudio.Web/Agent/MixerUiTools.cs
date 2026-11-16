@@ -6,6 +6,8 @@ namespace StemStudio.Web.Agent;
 /// The mixer UI tools of the open mixer page (tool catalogue 1.0.0, feature 001, availability <c>+mixer</c>):
 /// state, channel, master, reset, transport, loop, metronome and the karaoke banner (<c>show_karaoke</c>, feature 006). Changes go through <see cref="IMixerControls"/>
 /// and every change tool returns the previous and the current values (the undo entry of FR-017).
+/// <c>mixer_get_state</c> also returns <c>karaoke</c> (banner visible) and <c>settings</c>: the open mixer as a
+/// <c>MixSettingsDto</c> (linear volumes, empty name), the body the agent sends for save, update and export.
 /// </summary>
 public sealed partial class MixerUiTools : IAgentUiToolHandler
 {
@@ -79,6 +81,8 @@ public sealed partial class MixerUiTools : IAgentUiToolHandler
         playing = _controls.Playing,
         loop = State.Loop,
         metronome = State.Metronome,
+        karaoke = _controls.KaraokeVisible,
+        settings = State.ToSettings(string.Empty),
     };
 
     private async Task<object> SetChannelAsync(UiToolArguments args)
