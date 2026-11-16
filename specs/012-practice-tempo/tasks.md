@@ -147,7 +147,7 @@ The frontend agent reports the web-interop lane in a separate section with its o
 - [ ] T051 [US2] [audio-engine] Implement `src/practice/passes.ts` and the controller wiring to pass T050
 - [ ] T052 [P] [US2] [frontend] Failing bUnit tests `SpeedTrainerPanelTests`: `trainer-*` ids, disabled without a loop (`trainer-needs-loop` texts incl. the 0.5 s rule) or with the stretch unavailable, `trainer-error` for target <= start, `trainer-status` text/attributes and polite announcement only on speed steps, speed control read-only while running, Advanced/Expert only, `mixer.trainer.toggle` command, help topic `practice-speed-trainer` + tour `mixer-advanced` v2 step (FR-010, FR-016, FR-017)
 - [ ] T053 [US2] [frontend] Implement `Components/Mixer/Practice/SpeedTrainerPanel.razor(.cs)`, `FeatureCatalog` `practice.trainer`, help topic and tour step, the trainer command, to pass T052
-- [ ] T054 [US2] [qa] Author `e2e/tests/practice-trainer.spec.ts` (P8: speed sequence 60, 70, 80, 80; pause keeps, stop resets; no loop -> needs-loop; saved settings restored) (SC-006)
+- [x] T054 [US2] [qa] Author `e2e/tests/practice-trainer.spec.ts` (P8: speed sequence 60, 70, 80, 80; pause keeps, stop resets; no loop -> needs-loop; saved settings restored) (SC-006)
 
 **Checkpoint**: HO:us2.
 
