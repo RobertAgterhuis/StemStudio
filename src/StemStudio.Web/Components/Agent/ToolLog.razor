@@ -1,0 +1,29 @@
+@* Expert tool log (ui-test-ids agent-tool-log): every step's tool, exact arguments and result summary. *@
+
+@if (Steps.Count > 0)
+{
+    <LevelGate Feature="agent.tool-log">
+        <details class="ss-agent-tool-log" data-testid="agent-tool-log">
+            <summary>Tool log</summary>
+            <ol>
+                @foreach (var step in Steps)
+                {
+                    <li @key="step.StepId">
+                        <code>@step.Tool</code> (@AgentWire.Name(step.Decision), @AgentWire.Name(step.Status))
+                        <pre>@step.Arguments.GetRawText()</pre>
+                        @if (step.ResultSummary is { } result)
+                        {
+                            <pre>@result.GetRawText()</pre>
+                        }
+                    </li>
+                }
+            </ol>
+        </details>
+    </LevelGate>
+}
+
+@code {
+    /// <summary>The steps in order.</summary>
+    [Parameter]
+    public IReadOnlyList<AgentStepDto> Steps { get; set; } = [];
+}

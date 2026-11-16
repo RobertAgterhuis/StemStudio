@@ -1,11 +1,11 @@
 @* Composer agent panel (US1, FR-001; ui-test-ids 1.10.0): conversations, messages with the streamed answer, the plan,
    the steps (rows from Advanced, progress and errors at every level), the run error and the composer. Logic lives in
    AgentPanelState; this component only renders it. *@
-@implements IDisposable
+@implements IAsyncDisposable
 
-<aside id="agent-panel" class="ss-agent" data-testid="agent-panel" data-help-id="agent-panel" aria-label="Composer agent">
+<aside id="agent-panel" class="ss-agent" data-testid="agent-panel" data-help-id="agent-panel" aria-label="Composer agent" @onkeydown="OnPanelKey">
     <header class="ss-agent-head">
-        <h2 class="ss-heading ss-agent-title">Composer agent</h2>
+        <h2 class="ss-heading ss-agent-title" tabindex="-1" @ref="_heading">Composer agent</h2>
         <BackendBadge Backend="State.Backend" Model="@State.Model" Fallback="State.UsingFallback" Reason="@State.Run?.ModelReason" />
         <button type="button" class="ss-bar-button" data-testid="agent-new-conversation" @onclick="State.NewConversationAsync">
             <span class="rzi" aria-hidden="true">add_comment</span><span class="ss-bar-label">New</span>
@@ -32,6 +32,7 @@
         {
             <PlanView Plan="run.Plan" />
             <StepList Steps="run.Steps" />
+            <ToolLog Steps="run.Steps" />
             @if (run.Backend == AgentBackendDto.Claude && run.Usage is { } usage)
             {
                 <LevelGate Feature="agent.usage">
@@ -58,6 +59,7 @@
             }
         }
     </div>
+    <p class="ss-sr-only ss-agent-step-live" aria-live="polite">@StepAnnouncement</p>
     @if (State.Error is { } error)
     {
         <p class="ss-agent-error" role="alert" data-testid="agent-error">@error</p>

@@ -65,6 +65,12 @@ public sealed record AgentRunView
     /// <summary>True when the API restarted during the run (<c>run.interrupted</c>).</summary>
     public bool Interrupted { get; init; }
 
+    /// <summary>The step that changed last (announced in the panel's live region), or null.</summary>
+    public Guid? LastStepId { get; init; }
+
+    /// <summary>The step that changed last, or null.</summary>
+    public AgentStepDto? LastStep => Steps.FirstOrDefault(s => s.StepId == LastStepId);
+
     /// <summary>The highest event id applied (resume point).</summary>
     public int LastEventId { get; init; }
 
@@ -103,11 +109,12 @@ public sealed record AgentRunView
         this with { Model = changed.Model, UsingFallback = changed.UsingFallback, ModelReason = changed.Reason };
 
     private AgentRunView WithStep(AgentStepDto step) =>
-        this with { Steps = [.. Steps.Where(s => s.StepId != step.StepId), step] };
+        this with { Steps = [.. Steps.Where(s => s.StepId != step.StepId), step], LastStepId = step.StepId };
 
     private AgentRunView UpdateStep(StepUpdatedEventDto update) => this with
     {
         Steps = [.. Steps.Select(s => s.StepId == update.StepId ? Updated(s, update) : s)],
+        LastStepId = update.StepId,
     };
 
     private static AgentStepDto Updated(AgentStepDto step, StepUpdatedEventDto update) => step with

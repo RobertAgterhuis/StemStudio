@@ -208,7 +208,8 @@ public sealed class AgentPanelTests : PageTestContext
 
         Id(cut, "agent-cancel").Click();
 
-        await AgentApi.Received(1).CancelRunAsync(AgentData.RunId, false, Arg.Any<CancellationToken>());
+        cut.WaitForAssertion(() => AgentApi.Received(1).CancelRunAsync(AgentData.RunId, false, Arg.Any<CancellationToken>()));
+        await Task.CompletedTask;
     }
 
     [Fact]

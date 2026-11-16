@@ -5,7 +5,7 @@
 
 <section class="ss-agent-card" role="group" aria-labelledby="agent-approval-title" data-testid="agent-approval-card" data-help-id="agent-approvals"
          data-tool="@Approval.Tool" data-risk="@AgentWire.Name(Approval.Risk)" data-reasons="@string.Join(',', Approval.Reasons)">
-    <h3 id="agent-approval-title" class="ss-agent-card-title">Confirm: @Approval.Tool</h3>
+    <h3 id="agent-approval-title" class="ss-agent-card-title" tabindex="-1" @ref="_heading">Confirm: @Approval.Tool</h3>
     <p class="ss-agent-card-effect" data-testid="agent-approval-effect">@Approval.Effect</p>
     @if (Approval.Reasons.Count > 0)
     {
@@ -36,10 +36,21 @@
 
 @code {
     private bool _busy;
+    private ElementReference _heading;
 
     /// <summary>The pending approval.</summary>
     [Parameter, EditorRequired]
     public ApprovalRequestDto Approval { get; set; } = default!;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // The heading, not Approve: the user reads the card first (T079d).
+            await _heading.FocusAsync();
+        }
+    }
 
     private Task ApproveAsync() => DecideAsync(ApprovalDecisionDto.Approve, ApprovalScopeDto.Once);
 

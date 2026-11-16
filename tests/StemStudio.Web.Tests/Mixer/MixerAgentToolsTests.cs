@@ -77,6 +77,23 @@ public sealed class MixerAgentToolsTests : MixerTestContext
     }
 
     [Fact]
+    public async Task CommandFromTheMixer_CarriesTheLoadedMixId_EvenWithoutItInTheAddress()
+    {
+        Api.CreateMixAsync(Arg.Any<CreateMixRequest>(), Arg.Any<CancellationToken>()).Returns(TestData.Mix());
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix());
+        var page = RenderMixer(TestData.MixId);
+        page.WaitForAssertion(() => Host.OpenMixId(TestData.TrackId).ShouldBe(TestData.MixId));
+        Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
+        var panel = Services.GetRequiredService<AgentPanelState>();
+        await panel.LoadAsync();
+
+        (await panel.SendAsync("Zet de zang zachter")).ShouldBeTrue();
+
+        await AgentApi.Received(1).SendMessageAsync(Arg.Any<Guid>(),
+            Arg.Is<SendAgentMessageRequest>(r => r.Context.Page == "mixer" && r.Context.TrackId == TestData.TrackId && r.Context.MixId == TestData.MixId), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ClosingThePage_RemovesTheTools()
     {
         var page = RenderMixer();

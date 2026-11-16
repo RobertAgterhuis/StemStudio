@@ -26,7 +26,7 @@ public sealed class AgentAccessibilityTests : PageTestContext
         return cut;
     }
 
-    private void Send(Cut cut)
+    private static void Send(Cut cut)
     {
         Id(cut, "agent-input").Input("Splits verder");
         Id(cut, "agent-send").Click();
@@ -44,6 +44,24 @@ public sealed class AgentAccessibilityTests : PageTestContext
 
         shell.WaitForAssertion(() => shell.FindAll("[data-testid=agent-panel]").ShouldBeEmpty());
         shell.Find("[data-testid=agent-toggle]").GetAttribute("aria-expanded").ShouldBe("false");
+    }
+
+    [Fact]
+    public async Task Panel_StaysOpen_AcrossTheOpenMixerNavigation()
+    {
+        var shell = Render<MainLayout>(p => p.Add(l => l.Body, (RenderFragment)(b => b.AddMarkupContent(0, "<h1>Body</h1>"))));
+        shell.Find("[data-testid=agent-toggle]").Click();
+        shell.WaitForElement("[data-testid=agent-panel]");
+        var host = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<StemStudio.Web.Agent.AgentUiToolHost>(Services);
+
+        await shell.InvokeAsync(() => host.ExecuteAsync(new UiRequestedEventDto
+        {
+            StepId = AgentData.StepId, Tool = "open_mixer", Arguments = AgentData.Json($$"""{"trackId":"{{AgentData.TrackId}}"}"""), TimeoutSeconds = 15,
+        }));
+
+        NavigatedTo.ShouldEndWith($"/tracks/{AgentData.TrackId}/mixer");
+        shell.FindAll("[data-testid=agent-panel]").Count.ShouldBe(1);
+        Panel.IsOpen.ShouldBeTrue();
     }
 
     [Fact]
@@ -111,7 +129,7 @@ public sealed class AgentAccessibilityTests : PageTestContext
 
         foreach (var control in cut.FindAll("button, input, textarea"))
         {
-            var name = control.GetAttribute("aria-label") ?? (control.Id is { Length: > 0 } id ? cut.Find($"label[for={id}]").TextContent : control.TextContent);
+            var name = control.GetAttribute("aria-label") ?? (cut.FindAll($"label[for='{control.Id}']") is [var label, ..] ? label.TextContent : control.TextContent);
             name.Trim().ShouldNotBeNullOrWhiteSpace($"{control.OuterHtml} has no accessible name");
         }
     }

@@ -274,3 +274,11 @@
 .ss-agent-test-result[data-ok="false"] {
   color: var(--ss-color-danger);
 }
+
+.ss-agent-tool-log pre {
+  margin: var(--ss-space-1) 0;
+  overflow-x: auto;
+  font-family: var(--ss-num);
+  font-size: var(--ss-type-small-size);
+  white-space: pre-wrap;
+}

@@ -117,6 +117,7 @@ public sealed class AgentSettingsTests : PageTestContext
         claude.GetAttribute("data-key-configured").ShouldBe("false");
         claude.TextContent.ShouldContain("Not configured");
         claude.TextContent.ShouldContain("ANTHROPIC_API_KEY");
+        claude.TextContent.ShouldContain("export it in the shell");
     }
 
     [Fact]

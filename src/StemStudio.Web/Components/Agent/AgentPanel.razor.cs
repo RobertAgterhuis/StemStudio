@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.Agent;
 using StemStudio.Web.Agent;
+using StemStudio.Web.Interop;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Agent;
@@ -17,6 +18,8 @@ public sealed partial class AgentPanel
     public static readonly TimeSpan StatusInterval = TimeSpan.FromSeconds(10);
 
     private readonly CancellationTokenSource _stop = new();
+    private ElementReference _heading;
+    private IAsyncDisposable? _focus;
     private bool _enterPressed;
 
     [Inject]
@@ -28,16 +31,32 @@ public sealed partial class AgentPanel
     [Inject]
     private IConfirmService Confirm { get; set; } = default!;
 
+    [Inject]
+    private IWebInterop Web { get; set; } = default!;
+
     private string Input { get; set; } = string.Empty;
+
+    private string StepAnnouncement => State.Run?.LastStep is { } step ? $"{step.Tool}: {AgentWire.Name(step.Status).Replace('_', ' ')}" : string.Empty;
 
     private string? StreamingText => State.Run is { Ended: false, Text.Length: > 0 } run ? run.Text : null;
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         State.Changed -= OnChanged;
-        _stop.Cancel();
+        await _stop.CancelAsync();
         _stop.Dispose();
+        await (_focus?.DisposeAsync() ?? ValueTask.CompletedTask);
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _focus = await Web.CaptureFocusAsync();
+            await _heading.FocusAsync();
+        }
     }
 
     /// <inheritdoc />
@@ -69,6 +88,14 @@ public sealed partial class AgentPanel
         $"Tokens: {usage.InputTokens:N0} input ({usage.CachedInputTokens:N0} cached), {usage.OutputTokens:N0} output");
 
     private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnPanelKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            State.Close();
+        }
+    }
 
     private void OnKeyDown(KeyboardEventArgs e) => _enterPressed = e.Key == "Enter" && !e.ShiftKey;
 

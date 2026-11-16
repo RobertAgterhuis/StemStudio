@@ -77,6 +77,7 @@ public sealed class AgentHistoryTests : PageTestContext
         Stored(AgentRunStatusDto.Failed, AgentData.Run(AgentRunStatusDto.Failed) with
         {
             Plan = [new PlanItemDto { Index = 0, Title = "Import the song", Status = PlanItemStatusDto.Failed }],
+            Steps = [AgentData.Step(1, "import_url", AgentStepStatusDto.Failed) with { Error = "No audio found." }],
             Failure = new RunFailureDto { Code = AgentFailureCodes.Timeout, Message = "The model did not answer in time." },
         });
 
@@ -85,6 +86,8 @@ public sealed class AgentHistoryTests : PageTestContext
         cut.WaitForAssertion(() => Id(cut, "agent-run-error").TextContent.ShouldContain("did not answer in time"));
         Id(cut, "agent-message-1").TextContent.ShouldContain("Importeer en splits verder");
         Id(cut, "agent-plan-item-0").GetAttribute("data-status").ShouldBe("failed");
+        Id(cut, "agent-step-1").GetAttribute("data-tool").ShouldBe("import_url");
+        Id(cut, "agent-step-error-1").TextContent.ShouldContain("No audio found.");
         Id(cut, $"agent-conversation-{AgentData.ConversationId}").GetAttribute("aria-current").ShouldBe("true");
         AgentApi.DidNotReceive().StreamRunEventsAsync(Arg.Any<Guid>(), Arg.Any<int?>(), Arg.Any<CancellationToken>());
     }

@@ -34,7 +34,7 @@ public sealed partial class AgentSettingsSection
 
     private string ClaudeText => KeyConfigured
         ? "API key configured in the API's environment."
-        : "Not configured: set ANTHROPIC_API_KEY in the environment of the StemStudio API and restart it.";
+        : "Not configured: set ANTHROPIC_API_KEY in the environment of the StemStudio API (for example export it in the shell that starts StemStudio) and restart the API.";
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
