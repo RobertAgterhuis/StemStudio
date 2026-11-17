@@ -163,7 +163,13 @@ export class LibraryCarePage extends TestIdPage {
     // `storage-sort-<column>` is the sort button inside the column header; `aria-sort` belongs on the `th` (ARIA).
     const button = this.byId(`storage-sort-${column}`);
     const header = button.locator('xpath=ancestor::th[1]');
-    for (let click = 0; click < 3 && (await header.getAttribute('aria-sort')) !== direction; click++) await button.click();
+    // Wait for each click's render before deciding on the next one (a quick second click would reverse the first).
+    for (let click = 0; click < 2; click++) {
+      const current = (await header.getAttribute('aria-sort')) ?? 'none';
+      if (current === direction) break;
+      await button.click();
+      await expect(header).not.toHaveAttribute('aria-sort', current);
+    }
     await expect(header).toHaveAttribute('aria-sort', direction);
   }
 

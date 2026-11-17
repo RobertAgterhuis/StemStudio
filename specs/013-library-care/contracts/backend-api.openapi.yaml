@@ -122,7 +122,10 @@ info:
       new type); while a restore switches the library (seconds), every `/api/*` operation except
       `getLibraryCareStatus` and `getLibraryJob` answers `503` problem type `library-maintenance`
       with `Retry-After: 5` (`GET /health` stays up). Rehydration (worker 1.7.0) is invisible to
-      clients except the stage text "Preparing stems". Merged unchanged from
+      clients except the stage text "Preparing stems". Cross-site guard (CTO integration, T069):
+      every non-GET/HEAD/OPTIONS `/api/*` request whose `Origin` is not the web origin, or with
+      `Sec-Fetch-Site: cross-site`, answers `403` (problem title "Cross-site request refused") (requests
+      without `Origin` and CORS preflights are not affected). Merged unchanged from
       `backend-api.delta.openapi.yaml` 1.12.0-delta.1 (T005): the shared `ProblemDetails`,
       `ValidationProblem` and `NotFound` keep their earlier definitions, the delta's
       `HttpValidationProblemDetails` is the existing `ValidationProblemDetails`; new response
