@@ -182,7 +182,7 @@ and `polish`, with real test and coverage output.
 
 - [ ] T071 [P] [US6] [backend] Failing tests `Domain.Tests/Rendering/TakeExportPlannerTests.cs` and Api export tests: raw take (default range = span, explicit range intersected), mix with `take` (gate, volume, pan), explicit `["take", ...]`, `take-required`, `take-not-in-track`, `take-not-ready`, provenance `contents` and `sourceAssetIds`; render-vectors 1.1.0 consumer (FR-015)
 - [ ] T072 [US6] [backend] Implement the planner and export request additions to pass T071
-- [ ] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
+- [x] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
 - [ ] T074 [P] [US6] [frontend] Failing bUnit tests: export dialog presets from a take row (take only, take + mix), compare translated into explicit mutes, `export-channel-take`, `export-take-saving` (FR-015)
 - [ ] T075 [US6] [frontend] Implement the export presets to pass T074
 - [ ] T076 [P] [US6] [qa] E2E `recording-export.spec.ts`: take only as WAV 24-bit has the take's length and samples; take + mix MP3 appears in the Library with contents starting "Take n"
