@@ -125,6 +125,23 @@ export async function importWithLivePhase(
 }
 
 /**
+ * A unique band copy whose detail phase was cancelled (no detail stems): the "not split" track
+ * of a spec that must not depend on the shared click track. That one is not reliably plain: a
+ * spec that imports the click fixture without cancelling lets its detail phase complete, and the
+ * worker's per-source cache then completes every later import of it at once. Reruns with the
+ * same salt and run id find the same cancelled track.
+ */
+export async function ensureCancelledPhase(api: StemStudioApi, salt: string): Promise<TrackDto> {
+  const track = await api.ensureFileCompleted(uniqueBand(salt), fakeJobTimeoutMs);
+  if (activeStatuses.includes(track.detail.status)) {
+    await api.cancelDetail(track.id);
+  }
+  const settled = await api.waitForDetail(track.id, ['completed', 'failed', 'cancelled', 'none'], detailPhaseTimeoutMs);
+  expect(settled.detail.status, 'the copy must not have detail stems').not.toBe('completed');
+  return settled;
+}
+
+/**
  * Polls a track every 250 ms and returns the milliseconds between the first observation of its
  * standard separation as completed and the first observation of its detail phase as completed
  * (SC-007). Fails if the detail phase ends in another terminal status.

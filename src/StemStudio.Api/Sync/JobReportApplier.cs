@@ -42,7 +42,7 @@ public sealed class JobReportApplier(JobDeviceApplier devices, ArtworkDownloader
         track.ApplyMetadata(MetadataMapper.ToSource(track, metadata), now);
         if (metadata.DurationSeconds is not null)
         {
-            track.ScheduleLookup(MetadataMapper.ToQuery(metadata), now);
+            track.ScheduleLookup(MetadataMapper.ToQuery(track, metadata), now);
             track.ScheduleLyricsLookup(now);
         }
     }

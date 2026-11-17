@@ -55,7 +55,7 @@ public static class PlacementResolver
         return Build(
             Pick(FolderLevel.Artist, [(MatchedArtist(match, track.ArtistMbid), PlacementSource.Match), (metadata.LookupArtist, PlacementSource.Import), (track.Artist, PlacementSource.Import), (provenance.TrackArtist, PlacementSource.Import)]),
             album,
-            Pick(FolderLevel.Song, [(match.RecordingTitle, PlacementSource.Match), (metadata.LookupTitle, PlacementSource.Import), (track.Title, PlacementSource.Import), (provenance.TrackTitle, PlacementSource.Import)]),
+            Pick(FolderLevel.Song, [(match.RecordingTitle, PlacementSource.Match), (track.LookupTitle, PlacementSource.Import), (track.Title, PlacementSource.Import), (provenance.TrackTitle, PlacementSource.Import)]),
             album?.Source == PlacementSource.Match ? YearOf(metadata.Year) : null);
     }
 

@@ -24,7 +24,7 @@ detail group, SC-006).
 | `tests/library-migration.spec.ts` | US1-6; FR-010; SC-003 | `@library @library-db` | `npm run test:library-db` (E2E_COMPOSE=1) |
 | `tests/library-browse.spec.ts` | US2-1..8; SC-005 | `@library` | `npm test` |
 | `a11y/library.a11y.spec.ts` | SC-008 (root, artist, album, song, search, dialog; light/dark x comfortable/compact x Beginner/Advanced) | `@library` | `npm run test:a11y` |
-| `visual/library.spec.ts` | SC-005 (tile art: cover, mosaic 2/3/4) | `@library` | `npm run test:visual` (container; baselines at integration) |
+| `visual/seeded-library-art.spec.ts` (sorts after `screens.spec.ts`: its seed would show in those screens) | SC-005 (tile art: cover, mosaic 2/3/4) | `@library` | `npm run test:visual` (container; baselines at integration) |
 | `tests/library-search.spec.ts` | US3-1..8, 10; FR-022..FR-029; SC-006 | `@library` | `npm test` |
 | `tests/library-search-perf.spec.ts` | US3-1, US3-9; SC-004 (p95 <= 400 ms over 30 typed queries, no late stale results) | `@library @library-db` | `npm run test:library-db` |
 | `tests/library-info.spec.ts` | US4-1..7; FR-030..FR-037 | `@library` | `npm test` (US4-4/5 case only in mode `found`) |

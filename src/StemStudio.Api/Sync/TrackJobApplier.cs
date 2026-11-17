@@ -78,7 +78,7 @@ public sealed class TrackJobApplier(IWorkerClient worker, TrackFiles files, JobR
         track.ApplyMetadata(MetadataMapper.ToSource(track, result.Metadata), Now);
         track.Complete(new TrackCompletion(result.DurationSeconds, result.Model, stored, ToBeatGrid(result.BeatGrid)), Now);
         track.RequestDetail(Now);
-        track.ScheduleLookup(MetadataMapper.ToQuery(result.Metadata, result.DurationSeconds), Now);
+        track.ScheduleLookup(MetadataMapper.ToQuery(track, result.Metadata, result.DurationSeconds), Now);
         track.ScheduleLyricsLookup(Now);
         DeleteUpload(track);
     }
