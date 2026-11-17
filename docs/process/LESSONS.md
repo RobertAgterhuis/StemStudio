@@ -29,6 +29,9 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 - Check every contract role against ARIA at design time: a `listbox` whose options hold buttons violates
   `nested-interactive` (an option may not contain interactive content); use a plain list with focusable entries.
   (023: 12 of 16 axe failures on the suggestion list)
+- Never combine `value="@x"` with a separate `@oninput` on a text field: every render writes the
+  server value over keys still in flight. Use `@bind:get`/`@bind:set` with `@bind:event="oninput"`.
+  (022: the library search lost typed characters; about ten other fields still use the pattern)
 
 ## backend
 
