@@ -6,6 +6,8 @@
   <ItemGroup>
     <!-- 011 follow-up claude-key (architect T005): shared test doubles and run-time sentinels. -->
     <Compile Include="..\Shared\ClaudeKey\*.cs" LinkBase="Shared\ClaudeKey" />
+    <!-- 013 Phase 0 (architect T006): the JSON Schema subset validator shared with StemStudio.Web.Tests (backup manifest schema). -->
+    <Compile Include="..\Shared\JsonSchema\*.cs" LinkBase="Shared\JsonSchema" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
@@ -21,10 +23,19 @@
          the 008 worker document (1.6.0, unchanged) and the 010 generator document (1.1.0, contains 009's 1.0.0); the 005-009 backend
          documents and the 009 generator document are linked as well so tests can prove they are subsets. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\008-sheet-music\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the worker document is 013's 1.7.0 (1.6.0 + storage, cleanup, rehydrate). -->
+    <None Include="..\..\specs\013-library-care\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 012 Phase 0 (T004, agreed one-time edit): the current full backend document is 012's 1.11.0 (= 1.21.0 + 012);
          the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
-    <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the current full backend document is 013's 1.12.0 (= 1.11.0 + 013);
+         012's 1.11.0 stays linked as Contract/012 so PracticeContractTests and LibraryCareContractTests prove both merges. -->
+    <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\backend-api.delta.openapi.yaml" Link="Contract\013\backend-api.delta.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\ui-test-ids.md" Link="Contract\013\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\ui-test-ids.delta.md" Link="Contract\013\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\backup-manifest.schema.json" Link="Contract\013\backup-manifest.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\backup-archive.md" Link="Contract\013\backup-archive.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\011-ai-composer-agent\followups\claude-key\contracts\backend-api.openapi.yaml" Link="Contract\011-claude-key\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.md" Link="Contract\012\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\ui-test-ids.delta.md" Link="Contract\012\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />

@@ -109,7 +109,8 @@ public sealed partial class BackendContractTests
             .ToList();
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
-            .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations).ToList();
+            .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations)
+            .Except(PendingLibraryCareOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
@@ -139,6 +140,16 @@ public sealed partial class BackendContractTests
     // 011 follow-up claude-key (backend 1.21.0, staged in its Phase 0, T002): the backend removes each id when it serves it -
     // getClaudeKeyStatus and storeClaudeKey in T024, deleteClaudeKey in T033.
     private static readonly string[] PendingAgentOperations = [];
+
+    // Feature 013 (backend 1.12.0, staged in the 013 Phase 0, T006): the backend removes each id when it serves it -
+    // T038 (status, backups, estimate, create, get, download, delete, verify, library jobs, cancel), T049 (restore, previous
+    // library, revert, discard), T055 (getStorageOverview), T059 (previewCleanup, executeCleanup).
+    private static readonly string[] PendingLibraryCareOperations =
+    [
+        "getLibraryCareStatus", "listBackups", "createBackup", "estimateBackup", "getBackup", "deleteBackup", "downloadBackup",
+        "verifyBackup", "restoreBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "getPreviousLibrary",
+        "revertRestore", "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup",
+    ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

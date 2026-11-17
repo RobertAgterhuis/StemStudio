@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace StemStudio.Contracts.Tracks;
 
 /// <summary>Detail phase of a track (backend contract 1.2.0+, data-model.md 3.1 and 4.1 of feature 002).</summary>
@@ -29,4 +31,12 @@ public sealed record DetailPhaseDto
 
     /// <summary>Last change of the phase; null when the phase was never requested.</summary>
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the detail stems were removed by a clean-up or left out of a restored backup (1.12.0, feature 013); null otherwise.
+    /// While set, the stem names stay in <see cref="Parents"/>, their URLs answer 404 and "Split further" is accepted for this
+    /// completed phase. Omitted from JSON when null, so phases written before 1.12.0 serialize unchanged.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? FilesRemovedAt { get; init; }
 }

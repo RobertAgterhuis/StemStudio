@@ -1,4 +1,5 @@
 using System.Text.Json;
+using StemStudio.TestDoubles.JsonSchema;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Help;
 using StemStudio.Web.Tests.Skeleton;

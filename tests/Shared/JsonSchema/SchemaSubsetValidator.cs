@@ -1,19 +1,21 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace StemStudio.Web.Tests.Skeleton;
+namespace StemStudio.TestDoubles.JsonSchema;
 
 /// <summary>
 /// Dependency-free validator for the JSON Schema 2020-12 keyword subset used by the 004 help
-/// schemas (contracts/help-content.md 4.1). JsonSchema.Net is excluded (OSMF EULA, not OSI), so the
-/// tests use this subset; any keyword outside it throws <see cref="NotSupportedException"/> so a
-/// schema change can never be silently ignored.
+/// schemas (contracts/help-content.md 4.1) and the 013 backup manifest schema
+/// (specs/013-library-care/contracts/backup-manifest.schema.json; 013 Phase 0 T006 added <c>const</c>,
+/// <c>not</c>, <c>maximum</c> and <c>format</c> as an annotation, and moved the validator to tests/Shared).
+/// JsonSchema.Net is excluded (OSMF EULA, not OSI), so the tests use this subset; any keyword outside it
+/// throws <see cref="NotSupportedException"/> so a schema change can never be silently ignored.
 /// </summary>
 internal sealed class SchemaSubsetValidator
 {
     private delegate void Keyword(SchemaSubsetValidator validator, Context context);
 
-    private static readonly HashSet<string> Annotations = ["$schema", "$id", "title", "description", "$defs"];
+    private static readonly HashSet<string> Annotations = ["$schema", "$id", "title", "description", "$defs", "format"];
 
     private static readonly Dictionary<string, Keyword> ValueKeywords = new(StringComparer.Ordinal)
     {
@@ -23,6 +25,8 @@ internal sealed class SchemaSubsetValidator
         ["minLength"] = (_, c) => CheckLength(c, min: true),
         ["maxLength"] = (_, c) => CheckLength(c, min: false),
         ["minimum"] = (_, c) => CheckMinimum(c),
+        ["maximum"] = (_, c) => CheckMaximum(c),
+        ["const"] = (_, c) => CheckConst(c),
     };
 
     private static readonly Dictionary<string, Keyword> StructureKeywords = new(StringComparer.Ordinal)
@@ -35,6 +39,7 @@ internal sealed class SchemaSubsetValidator
         ["maxItems"] = (_, c) => CheckCount(c, min: false),
         ["uniqueItems"] = (_, c) => CheckUnique(c),
         ["$ref"] = (v, c) => v.CheckRef(c),
+        ["not"] = (v, c) => v.CheckNot(c),
     };
 
     private readonly JsonElement _root;
@@ -115,6 +120,19 @@ internal sealed class SchemaSubsetValidator
     private static void CheckMinimum(Context c) =>
         c.FailIf(c.Instance.ValueKind == JsonValueKind.Number && c.Instance.GetDouble() < c.Value.GetDouble(), $"{c.Instance} is below minimum {c.Value}");
 
+    private static void CheckMaximum(Context c) =>
+        c.FailIf(c.Instance.ValueKind == JsonValueKind.Number && c.Instance.GetDouble() > c.Value.GetDouble(), $"{c.Instance} is above maximum {c.Value}");
+
+    private static void CheckConst(Context c) =>
+        c.FailIf(!JsonElement.DeepEquals(c.Value, c.Instance), $"{c.Instance} is not the constant {c.Value}");
+
+    private void CheckNot(Context c)
+    {
+        var inner = new List<string>();
+        Check(c.Value, c.Instance, c.Path, inner);
+        c.FailIf(inner.Count == 0, $"{c.Instance} matches the 'not' schema {c.Value}");
+    }
+
     private static void CheckRequired(Context c)
     {
         if (c.Instance.ValueKind == JsonValueKind.Object)
@@ -128,13 +146,13 @@ internal sealed class SchemaSubsetValidator
 
     private static void CheckAdditional(Context c)
     {
-        if (c.Value.ValueKind != JsonValueKind.False)
+        if (c.Value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
         {
-            throw new NotSupportedException("Only 'additionalProperties: false' is supported.");
+            throw new NotSupportedException("Only 'additionalProperties: false' or 'true' is supported.");
         }
 
         var declared = c.Schema.TryGetProperty("properties", out var props) ? props : default;
-        foreach (var property in ObjectProperties(c.Instance))
+        foreach (var property in ObjectProperties(c.Instance).Where(_ => c.Value.ValueKind == JsonValueKind.False))
         {
             c.FailIf(declared.ValueKind != JsonValueKind.Object || !declared.TryGetProperty(property.Name, out _), $"property '{property.Name}' is not allowed");
         }

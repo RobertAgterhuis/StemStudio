@@ -35,7 +35,8 @@ public sealed partial class PracticeUiTestIdsTests
         var rows = Delta.Value.Where(line => line.StartsWith("| Mixer", StringComparison.Ordinal) || line.StartsWith("| Export dialog", StringComparison.Ordinal)).ToList();
         var shortcuts = Delta.Value.Where(line => line.StartsWith("| `", StringComparison.Ordinal)).ToList();
 
-        (rows.Count, shortcuts.Count).ShouldBe((26, 7));
+        // 29 = 26 of Phase 0 + the 012 integration disclosure ids (practice-panel-toggle, -body, -summary; 902438c0).
+        (rows.Count, shortcuts.Count).ShouldBe((29, 7));
         rows.Concat(shortcuts).ShouldAllBe(row => Merged.Value.Contains(row));
     }
 
@@ -45,7 +46,7 @@ public sealed partial class PracticeUiTestIdsTests
         var known = Base.Value.Where(line => line.StartsWith('|')).SelectMany(line => line.Split('`')).ToHashSet(StringComparer.Ordinal);
         var added = Ids(Delta.Value).ToList();
 
-        (added.Count, added.Distinct().Count()).ShouldBe((26, 26));
+        (added.Count, added.Distinct().Count()).ShouldBe((29, 29));
         added.Where(known.Contains).ShouldBeEmpty();
         added.ShouldContain("export-practice-note");
     }
