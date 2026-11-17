@@ -19,4 +19,10 @@ public sealed class LibraryCareOptions
 
     /// <summary>File copy buffer in bytes.</summary>
     public int CopyBufferBytes { get; set; } = LibraryCareLimits.DefaultCopyBufferBytes;
+
+    /// <summary>
+    /// Rate limit of backup, verify and restore archive streams in bytes per second; 0 (default) = off. Set only by the E2E
+    /// compose override so a running job can be observed (013 CTO decision).
+    /// </summary>
+    public long ThrottleBytesPerSecond { get; set; }
 }

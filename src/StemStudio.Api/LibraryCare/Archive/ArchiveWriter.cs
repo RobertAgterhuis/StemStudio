@@ -46,6 +46,8 @@ public sealed class ArchiveWriter : IAsyncDisposable
     private readonly FileStream _file;
     private readonly ZipArchive _zip;
     private readonly int _bufferSize;
+    private long _throttle;
+    private TimeProvider _clock = TimeProvider.System;
 
     private ArchiveWriter(FileStream file, int bufferSize)
     {
@@ -59,6 +61,16 @@ public sealed class ArchiveWriter : IAsyncDisposable
     /// <returns>The writer.</returns>
     public static ArchiveWriter Create(string partialPath, int bufferSize) =>
         new(new FileStream(partialPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, bufferSize, FileOptions.Asynchronous), bufferSize);
+
+    /// <summary>Throttles every copied file (<see cref="LibraryCareOptions.ThrottleBytesPerSecond"/>).</summary>
+    /// <param name="bytesPerSecond">The rate; 0 = off.</param>
+    /// <param name="clock">Clock of the delays.</param>
+    /// <returns>This writer.</returns>
+    public ArchiveWriter WithThrottle(long bytesPerSecond, TimeProvider clock)
+    {
+        (_throttle, _clock) = (bytesPerSecond, clock);
+        return this;
+    }
 
     /// <summary>True when an entry with this name is stored without compression.</summary>
     /// <param name="entryName">The entry name.</param>
@@ -165,11 +177,12 @@ public sealed class ArchiveWriter : IAsyncDisposable
         var level = IsStored(entryName) ? CompressionLevel.NoCompression : CompressionLevel.Fastest;
         await using var entry = _zip.CreateEntry(entryName, level).Open();
         await using var hashing = new HashingLimitedStream(entry, long.MaxValue);
+        var target = ByteThrottle.Wrap(hashing, _throttle, _clock);
         var buffer = new byte[_bufferSize];
         int read;
         while ((read = await input.ReadAsync(buffer, cancellationToken)) > 0)
         {
-            await hashing.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             progress?.Report(read);
         }
 

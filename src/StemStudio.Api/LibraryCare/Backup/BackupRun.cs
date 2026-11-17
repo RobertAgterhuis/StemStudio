@@ -61,7 +61,7 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Scrub, "Preparing the database copy", 1, 0, 0, null));
         var warnings = (await new BackupScrubber().ScrubAsync(database, BackupOptionsMapping.Excluded(request.Options), snapshotTime, cancellationToken)).ToList();
         var (plan, migrations) = await ReadPlanAsync(database, cancellationToken);
-        await using var writer = new BackupArchiveWriter(services.Files, options.Value.LibraryCare, services.Paths.BackupsDirectory);
+        await using var writer = new BackupArchiveWriter(services.Files, options.Value.LibraryCare, services.Paths.BackupsDirectory, clock);
         var written = await writer.WriteAsync(new ArchiveJob(partial, database, plan, warnings), context, cancellationToken);
         var manifest = ManifestBuilder.Build(new ManifestInput
         {

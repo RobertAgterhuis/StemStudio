@@ -20,7 +20,8 @@ public sealed record ArchiveJob(string PartialPath, string DatabasePath, BackupP
 /// <param name="files">Free-space seam.</param>
 /// <param name="limits">Library-care limits.</param>
 /// <param name="backupsDirectory">The backups folder.</param>
-public sealed class BackupArchiveWriter(ILibraryFiles files, LibraryCareOptions limits, string backupsDirectory) : IAsyncDisposable
+/// <param name="clock">Clock of the optional throttle.</param>
+public sealed class BackupArchiveWriter(ILibraryFiles files, LibraryCareOptions limits, string backupsDirectory, TimeProvider clock) : IAsyncDisposable
 {
     private ArchiveWriter? _writer;
 
@@ -33,7 +34,7 @@ public sealed class BackupArchiveWriter(ILibraryFiles files, LibraryCareOptions 
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(context);
-        _writer = ArchiveWriter.Create(job.PartialPath, limits.CopyBufferBytes);
+        _writer = ArchiveWriter.Create(job.PartialPath, limits.CopyBufferBytes).WithThrottle(limits.ThrottleBytesPerSecond, clock);
         var sources = new List<SelectedFile> { new(new ArchiveSource(LibraryLayout.DatabaseEntry, BackupCategory.Database, job.DatabasePath, null), "Database") };
         sources.AddRange(job.Plan.Files);
         var progress = new FilesProgress(context, sources);

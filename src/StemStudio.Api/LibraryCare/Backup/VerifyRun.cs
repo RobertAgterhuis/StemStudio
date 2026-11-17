@@ -13,7 +13,9 @@ namespace StemStudio.Api.LibraryCare.Backup;
 /// without restoring anything. A damaged archive completes the job with <c>ok: false</c> and the first problem.
 /// </summary>
 /// <param name="paths">Library-care folders.</param>
-public sealed class VerifyRun(LibraryCarePaths paths)
+/// <param name="options">API options (throttle).</param>
+/// <param name="clock">Clock of the optional throttle.</param>
+public sealed class VerifyRun(LibraryCarePaths paths, Microsoft.Extensions.Options.IOptions<StemStudioApiOptions> options, TimeProvider clock)
 {
     /// <summary>Verifies an archive.</summary>
     /// <param name="fileName">Archive name.</param>
@@ -53,7 +55,7 @@ public sealed class VerifyRun(LibraryCarePaths paths)
     private static bool IsArchiveProblem(LibraryJobErrorCodeDto code) =>
         code is LibraryJobErrorCodeDto.ArchiveCorrupt or LibraryJobErrorCodeDto.ArchiveInvalid or LibraryJobErrorCodeDto.ArchiveUnsafe or LibraryJobErrorCodeDto.ArchiveIncompatible;
 
-    private static async Task VerifyEntriesAsync(ZipArchive zip, BackupManifest manifest, VerifyProgress progress, string staging, CancellationToken cancellationToken)
+    private async Task VerifyEntriesAsync(ZipArchive zip, BackupManifest manifest, VerifyProgress progress, string staging, CancellationToken cancellationToken)
     {
         progress.Begin(manifest);
         foreach (var entry in manifest.Entries)
@@ -64,7 +66,7 @@ public sealed class VerifyRun(LibraryCarePaths paths)
             }
             else
             {
-                await ArchiveReader.CopyVerifiedAsync(zip, entry, Stream.Null, cancellationToken);
+                await ArchiveReader.CopyVerifiedAsync(zip, entry, ByteThrottle.Wrap(Stream.Null, options.Value.LibraryCare.ThrottleBytesPerSecond, clock), cancellationToken);
             }
 
             progress.Done(entry);
