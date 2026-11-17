@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Domain.Lyrics.Assist;
 
 namespace StemStudio.Api.LyricAssist;
@@ -45,6 +46,7 @@ public static class LyricAssistRegistration
         services.AddScoped<LyricLanguageService>();
         services.AddScoped<LyricAssistStatusService>();
         services.AddScoped<OwnWorkOverrideService>();
+        services.TryAddSingleton<StemStudio.Agent.Ports.ILyricAssistActions>(sp => new Agent.Loopback.LoopbackLyricAssistActions(sp.GetRequiredService<Agent.Loopback.LoopbackClient>()));
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
             Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),

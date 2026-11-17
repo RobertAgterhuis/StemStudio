@@ -11,7 +11,8 @@ public sealed record LyricsContent(string Title, string Language, string Text);
 /// <param name="Title">Title.</param>
 /// <param name="Language">Language.</param>
 /// <param name="Text">Normalised text.</param>
-public sealed record LyricsSnapshot(Guid? LyricsId, string Title, string Language, string Text);
+/// <param name="AssistedLineCount">Lines produced by accepted assistant suggestions at snapshot time (feature 023, FR-024; 0 for inline text).</param>
+public sealed record LyricsSnapshot(Guid? LyricsId, string Title, string Language, string Text, int AssistedLineCount = 0);
 
 /// <summary>Own lyrics saved for songs (feature 010, data-model 3.1); not the synced lyrics of a track (006).</summary>
 public sealed partial class LyricsSheet
@@ -67,7 +68,7 @@ public sealed partial class LyricsSheet
 
     /// <summary>The sheet as a song snapshot.</summary>
     /// <returns>The snapshot.</returns>
-    public LyricsSnapshot Snapshot() => new(Id, Title, Language, Text);
+    public LyricsSnapshot Snapshot() => new(Id, Title, Language, Text, AssistedLineNumbers().Count);
 }
 
 /// <summary>Rules of lyrics sheets: title 1-80, a supported language, text 1-4,096 after normalisation.</summary>
