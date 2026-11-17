@@ -1,5 +1,5 @@
 {
-  "$comment": "Default key map (web-interop 1.1.0, feature 014 FR-020; data-model 5.2). Single source for C# (StemStudio.Web/Practice/KeyMapDefaults) and TypeScript (src/web-interop). Keys are KeyboardEvent.key lower-cased (' ' = Space). 'mod' is Ctrl (Cmd on macOS). 'shift' omitted = not checked (named keys and printable non-letters, whose key already differs with Shift). 'reserved' commands hold their chords for a feature not shipped yet (015) and are never dispatched or shown. 'sequences' are fixed two-key sequences (plain 'g' never binds). 'reservedChords' and 'externalChords' (handled outside the key map, e.g. 023's lyrics editor; Alt chords are never bindable) can never be assigned. Edited by the architect; later features add rows (016 next).",
+  "$comment": "Default key map (web-interop 1.1.0, feature 014 FR-020; data-model 5.2). Single source for C# (StemStudio.Web/Practice/KeyMapDefaults) and TypeScript (src/web-interop). Keys are KeyboardEvent.key lower-cased (' ' = Space). 'mod' is Ctrl (Cmd on macOS). 'shift' omitted = not checked (named keys and printable non-letters, whose key already differs with Shift). 'reserved' commands hold their chords for a feature not shipped yet and are never dispatched or shown (015's R and C were released by 014 for the 015 lane, combined round 2026-11-17). 'sequences' are fixed two-key sequences (plain 'g' never binds). 'reservedChords' and 'externalChords' (handled outside the key map, e.g. 023's lyrics editor; Alt chords are never bindable) can never be assigned. Edited by the architect; later features add rows (016 next).",
   "version": "1.1.0",
   "groups": [
     "transport",
@@ -200,7 +200,7 @@
           "shift": false
         }
       ],
-      "reserved": true
+      "reserved": false
     },
     {
       "command": "mixer.compare.cycle",
@@ -214,7 +214,7 @@
           "shift": false
         }
       ],
-      "reserved": true
+      "reserved": false
     },
     {
       "command": "mixer.loop.a",

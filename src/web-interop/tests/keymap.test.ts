@@ -91,12 +91,19 @@ describe('data-driven matching per scope (web-interop 1.1.0 5.2)', () => {
     expect(commands(calls)).toEqual([]);
   });
 
-  it('never dispatches the reserved 015 bindings (R and C)', () => {
-    const { calls } = register(defaultKeyMap('mixer'));
+  it('never dispatches reserved bindings, but their chords stay taken', () => {
+    const held: KeyBinding = { command: 'mixer.future', chords: [{ key: 'r', shift: false }], layer: 'keys', owner: '016', reserved: true };
+    const { calls } = register(map([held, { ...NEXT, chords: [{ key: 'r' }] }]));
     const event = press('r');
-    press('c');
     expect(commands(calls)).toEqual([]);
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('dispatches the released 015 commands R and C', () => {
+    const { calls } = register(defaultKeyMap('mixer'));
+    press('r');
+    press('c');
+    expect(commands(calls)).toEqual(['mixer.record.toggle', 'mixer.compare.cycle']);
   });
 
   it('ignores Alt and the OS key, and the Mod key on macOS is Cmd', () => {

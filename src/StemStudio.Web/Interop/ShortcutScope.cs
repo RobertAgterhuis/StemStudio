@@ -1,6 +1,6 @@
 namespace StemStudio.Web.Interop;
 
-/// <summary>Key map scope of <see cref="IWebInterop.RegisterShortcutsAsync"/> (JS values <c>global</c>, <c>mixer</c>, <c>library</c>).</summary>
+/// <summary>Key map scope of <c>IWebInterop.RegisterShortcutsAsync</c> (JS values <c>global</c>, <c>mixer</c>, <c>library</c>, <c>setlist</c>).</summary>
 public enum ShortcutScope
 {
     /// <summary>Keys valid on every screen.</summary>
@@ -11,4 +11,7 @@ public enum ShortcutScope
 
     /// <summary>Library pages (feature 022): <c>/</c> focuses the library search (web-interop 1.2.0).</summary>
     Library = 2,
+
+    /// <summary>Setlist play mode (feature 014, web-interop 1.1.0): next/previous song.</summary>
+    Setlist = 3,
 }

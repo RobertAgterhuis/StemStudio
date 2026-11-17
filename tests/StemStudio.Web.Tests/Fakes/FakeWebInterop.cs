@@ -1,5 +1,6 @@
 using System.Text.Json;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Tests.Fakes;
 
@@ -67,6 +68,46 @@ public sealed class FakeWebInterop : IWebInterop
         _commands[scope] = onCommand;
         return Register($"shortcuts:{scope}");
     }
+
+    /// <summary>The key map registered or last swapped in per scope (key map overload only).</summary>
+    public Dictionary<ShortcutScope, KeyMap> KeyMaps { get; } = [];
+
+    /// <summary>Number of <c>updateShortcuts</c> calls.</summary>
+    public int KeyMapUpdates { get; private set; }
+
+    /// <summary>The pending chord capture, if any.</summary>
+    public Func<KeyChordData?, Task>? ChordCapture { get; private set; }
+
+    /// <summary>Timeout of the last capture.</summary>
+    public TimeSpan CaptureTimeout { get; private set; }
+
+    public ValueTask<IAsyncDisposable> RegisterShortcutsAsync(ShortcutScope scope, KeyMap keyMap, Func<string, Task> onCommand)
+    {
+        _commands[scope] = onCommand;
+        KeyMaps[scope] = keyMap;
+        return Register($"shortcuts:{scope}");
+    }
+
+    public ValueTask UpdateShortcutsAsync(IAsyncDisposable registration, KeyMap keyMap)
+    {
+        KeyMapUpdates++;
+        if (registration is FakeRegistration { Name: var name } && name.StartsWith("shortcuts:", StringComparison.Ordinal))
+        {
+            KeyMaps[Enum.Parse<ShortcutScope>(name["shortcuts:".Length..])] = keyMap;
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<IAsyncDisposable> CaptureChordAsync(TimeSpan timeout, Func<KeyChordData?, Task> onCaptured)
+    {
+        ChordCapture = onCaptured;
+        CaptureTimeout = timeout;
+        return Register("capture");
+    }
+
+    /// <summary>Simulates the captured chord (null: Escape or timeout).</summary>
+    public Task CaptureAsync(KeyChordData? chord) => ChordCapture!(chord);
 
     public ValueTask<IAsyncDisposable> StartTourAsync(TourRuntime tour, Func<TourEnded, Task> onEnded)
     {

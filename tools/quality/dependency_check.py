@@ -362,6 +362,15 @@ TS_ALLOWED: Mapping[str, frozenset[str] | None] = {
 }
 """Allowed sibling packages per TypeScript package below ``src/`` (none: they are independent)."""
 
+TS_DATA_IMPORTS_ALLOWED: Mapping[str, frozenset[str]] = {
+    "web-interop": frozenset({"StemStudio.Web/wwwroot/js/keymap-defaults.json"}),
+}
+"""Data files (paths below ``src/``) a TypeScript package may import across packages.
+
+Feature 014 (web-interop 1.1.0 sections 5.1/5.4): ``defaultKeyMap`` reads the key map catalogue
+at build time, the same JSON file ``KeyMapDefaults`` reads in C#. Data, not code: no edge.
+"""
+
 _PRACTICE = frozenset({"audio-engine/practice", "audio-engine/stretch"})
 
 TS_MODULE_FORBIDDEN: Mapping[str, frozenset[str]] = {
@@ -811,7 +820,10 @@ def _ts_file_edges(ts_file: Path, package: Path, root: Path) -> Iterator[Edge]:
     rel_path = relative(ts_file, root)
     for pattern in _TS_IMPORTS:
         for match in pattern.finditer(text):
-            target = _ts_target(match.group("spec"), ts_file, package.parent)
+            spec = match.group("spec")
+            if _allowed_data_import(spec, ts_file, package):
+                continue
+            target = _ts_target(spec, ts_file, package.parent)
             if target is not None and target != package.name:
                 line = text.count("\n", 0, match.start()) + 1
                 yield Edge(package.name, target, rel_path, line)
@@ -819,6 +831,18 @@ def _ts_file_edges(ts_file: Path, package: Path, root: Path) -> Iterator[Edge]:
 
 def _keep_newlines(match: re.Match[str]) -> str:
     return "\n" * match.group().count("\n")
+
+
+def _allowed_data_import(spec: str, ts_file: Path, package: Path) -> bool:
+    """True for a relative import of a data file listed in ``TS_DATA_IMPORTS_ALLOWED``."""
+    allowed = TS_DATA_IMPORTS_ALLOWED.get(package.name, frozenset())
+    if not spec.startswith(".") or not allowed:
+        return False
+    try:
+        rel = (ts_file.parent / spec).resolve().relative_to(package.parent.resolve())
+    except ValueError:
+        return False
+    return rel.as_posix() in allowed
 
 
 def _ts_target(spec: str, ts_file: Path, src_dir: Path) -> str | None:

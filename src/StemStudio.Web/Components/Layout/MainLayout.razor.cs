@@ -5,6 +5,7 @@ using StemStudio.Web.Experience;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
 using StemStudio.Web.LibraryCare;
+using StemStudio.Web.Practice;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
@@ -30,7 +31,7 @@ public sealed partial class MainLayout : IAsyncDisposable
     private HelpContext Help { get; set; } = default!;
 
     [Inject]
-    private IWebInterop Web { get; set; } = default!;
+    private ShortcutKeys Keys { get; set; } = default!;
 
     [Inject]
     private ShellOverlays Overlays { get; set; } = default!;
@@ -82,7 +83,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         if (firstRender)
         {
             await Preferences.LoadAsync();
-            _shortcuts = await Web.RegisterShortcutsAsync(ShortcutScope.Global, id => InvokeAsync(() => OnCommandAsync(id)));
+            _shortcuts = await Keys.RegisterAsync(ShortcutScope.Global, id => InvokeAsync(() => OnCommandAsync(id)));
         }
     }
 
