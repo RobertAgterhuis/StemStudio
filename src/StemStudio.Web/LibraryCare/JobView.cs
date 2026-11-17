@@ -8,6 +8,19 @@ namespace StemStudio.Web.LibraryCare;
 /// <param name="Job">The job.</param>
 public sealed record JobView(LibraryJobDto Job)
 {
+    /// <summary>The item word per collection name of a restore report (backend-013-us5 "Contract readings" 2).</summary>
+    private static readonly Dictionary<string, string> ItemWords = new(StringComparer.Ordinal)
+    {
+        ["tracks"] = "Track",
+        ["mixes"] = "Mix",
+        ["styles"] = "Style",
+        ["lyricsSheets"] = "Lyrics sheet",
+        ["voiceProfiles"] = "Voice profile",
+        ["assets"] = "Library item",
+        ["generations"] = "Generation",
+        ["agentConversations"] = "Agent conversation",
+    };
+
     /// <summary>True while queued or running.</summary>
     public bool Active => Job.Status is LibraryJobStatusDto.Queued or LibraryJobStatusDto.Running;
 
@@ -59,14 +72,14 @@ public sealed record JobView(LibraryJobDto Job)
 
     /// <summary>The text of a skipped (or renamed) item of a restore.</summary>
     /// <param name="item">The item.</param>
-    /// <returns>For example "Track \"Song\" skipped: already in your library".</returns>
+    /// <returns>For example "Track \"Song\": already in your library".</returns>
     public static string SkippedText(SkippedItemDto item)
     {
         var name = item.Name is { } n ? $"\"{n}\"" : item.Id;
-        var what = $"{Capital(item.Category)} {name}";
+        var what = $"{ItemWord(item.Category)} {name}";
         return item.RenamedTo is { } renamed
             ? $"{what} added as \"{renamed}\" (the name was taken)"
-            : $"{what} skipped: {Reason(item.Reason)}";
+            : $"{what}: {Reason(item.Reason)}";
     }
 
     private static string Reason(SkippedItemReasonDto reason) => reason switch
@@ -95,5 +108,17 @@ public sealed record JobView(LibraryJobDto Job)
     private static List<string> Lines(IEnumerable<CategoryCountDto> counts) =>
         [.. counts.Select(c => $"{CareText.Category(c.Category)}: {CareText.Count(c.Files, "file")}, {ByteSize.Format(c.Bytes)}")];
 
-    private static string Capital(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+    /// <summary>The item word of a collection name; an unknown name becomes words ("practiceLoops" -> "Practice loop").</summary>
+    private static string ItemWord(string category) =>
+        ItemWords.TryGetValue(category, out var word) ? word
+        : category.Length == 0 ? "Item"
+        : Words(Singular(category));
+
+    private static string Singular(string name) => name.Length > 1 && name.EndsWith('s') && !name.EndsWith("ss", StringComparison.Ordinal) ? name[..^1] : name;
+
+    private static string Words(string camel)
+    {
+        var words = string.Concat(camel.Select(c => char.IsUpper(c) ? $" {char.ToLowerInvariant(c)}" : c.ToString())).TrimStart();
+        return char.ToUpperInvariant(words[0]) + words[1..];
+    }
 }

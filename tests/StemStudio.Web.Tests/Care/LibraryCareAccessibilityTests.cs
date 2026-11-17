@@ -84,7 +84,7 @@ public sealed class LibraryCareAccessibilityTests : PageTestContext
     {
         LibraryCare.GetStorageOverviewAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(StorageData.Overview(workerAvailable: false) with
         {
-            Volumes = [StorageData.Volume(StorageVolumeIdDto.Library), StorageData.Volume(StorageVolumeIdDto.WorkerData, null, null, reason: "down")],
+            Volumes = [StorageData.Volume(StorageVolumeIdDto.Library), StorageData.Volume(StorageVolumeIdDto.WorkerData, null, null) with { Reason = "down" }],
         });
         var page = RenderPage();
 

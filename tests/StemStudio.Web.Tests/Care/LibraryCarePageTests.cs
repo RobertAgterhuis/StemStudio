@@ -387,7 +387,7 @@ public sealed class LibraryCarePageTests : PageTestContext
     public async Task Cancel_CancelsTheActiveJob()
     {
         LibraryCare.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(LibraryCareData.Status(LibraryCareData.Job()));
-        LibraryCare.CancelJobAsync(LibraryCareData.JobId, Arg.Any<CancellationToken>()).Returns(LibraryCareData.Job(status: LibraryJobStatusDto.Cancelled, cancellable: false));
+        LibraryCare.CancelJobAsync(LibraryCareData.JobId, Arg.Any<CancellationToken>()).Returns(LibraryCareData.Job(status: LibraryJobStatusDto.Cancelled) with { Cancellable = false });
         var page = RenderPage();
 
         await Id(page, "library-job-cancel").ClickAsync(new());

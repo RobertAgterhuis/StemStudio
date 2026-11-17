@@ -56,7 +56,7 @@ public sealed class StorageTabTests : PageTestContext
     {
         LibraryCare.GetStorageOverviewAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(StorageData.Overview(workerAvailable: false) with
         {
-            Volumes = [StorageData.Volume(StorageVolumeIdDto.Library), StorageData.Volume(StorageVolumeIdDto.WorkerData, null, null, reason: "worker unavailable")],
+            Volumes = [StorageData.Volume(StorageVolumeIdDto.Library), StorageData.Volume(StorageVolumeIdDto.WorkerData, null, null) with { Reason = "worker unavailable" }],
         });
 
         var tab = RenderTab();
@@ -121,8 +121,8 @@ public sealed class StorageTabTests : PageTestContext
         {
             Categories =
             [
-                StorageData.Category(StorageCategoryDto.RestoreStaging, 1, 1, RegenerabilityDto.Original),
-                StorageData.Category(StorageCategoryDto.WorkerScratch, 1, null, RegenerabilityDto.Regenerable),
+                StorageData.Category(StorageCategoryDto.RestoreStaging, 1, 1),
+                StorageData.Category(StorageCategoryDto.WorkerScratch, 1, null) with { Regenerability = RegenerabilityDto.Regenerable },
             ],
         });
 

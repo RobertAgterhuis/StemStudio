@@ -79,7 +79,7 @@ public sealed class LibraryCareShellTests : PageTestContext
     public void Maintenance_ShowsAnAlertDialog_WithTheFocus_ThatDisappearsByItself()
     {
         LibraryCare.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(
-            LibraryCareData.Status(LibraryCareData.Job(LibraryJobKindDto.Restore, stage: LibraryJobStageDto.Switch, cancellable: false), GateModeDto.Maintenance),
+            LibraryCareData.Status(LibraryCareData.Job(LibraryJobKindDto.Restore, stage: LibraryJobStageDto.Switch) with { Cancellable = false }, GateModeDto.Maintenance),
             LibraryCareData.Status());
         var shell = RenderShell();
 
