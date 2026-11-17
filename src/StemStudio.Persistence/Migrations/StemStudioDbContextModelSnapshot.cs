@@ -118,6 +118,12 @@ namespace StemStudio.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("FiledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FiledVersion")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -161,9 +167,113 @@ namespace StemStudio.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("Files");
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "LibraryInfo", "StemStudio.Domain.Assets.Asset.LibraryInfo#LibraryInfo", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Album")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibraryAlbum");
+
+                            b1.Property<string>("Artist")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibraryArtist");
+
+                            b1.Property<string>("Song")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibrarySong");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Placement", "StemStudio.Domain.Assets.Asset.Placement#Placement", b1 =>
+                        {
+                            b1.Property<string>("Discriminator")
+                                .IsRequired()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<int?>("Year")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("FolderYear");
+
+                            b1.ComplexProperty(typeof(Dictionary<string, object>), "Album", "StemStudio.Domain.Assets.Asset.Placement#Placement.Album#PlacementLevel", b2 =>
+                                {
+                                    b2.IsRequired();
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasMaxLength(400)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderAlbumKey");
+
+                                    b2.Property<string>("Name")
+                                        .IsRequired()
+                                        .HasMaxLength(200)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderAlbum");
+
+                                    b2.Property<string>("Source")
+                                        .IsRequired()
+                                        .HasMaxLength(16)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderAlbumSource");
+                                });
+
+                            b1.ComplexProperty(typeof(Dictionary<string, object>), "Artist", "StemStudio.Domain.Assets.Asset.Placement#Placement.Artist#PlacementLevel", b2 =>
+                                {
+                                    b2.IsRequired();
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasMaxLength(400)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderArtistKey");
+
+                                    b2.Property<string>("Name")
+                                        .IsRequired()
+                                        .HasMaxLength(200)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderArtist");
+
+                                    b2.Property<string>("Source")
+                                        .IsRequired()
+                                        .HasMaxLength(16)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderArtistSource");
+                                });
+
+                            b1.ComplexProperty(typeof(Dictionary<string, object>), "Song", "StemStudio.Domain.Assets.Asset.Placement#Placement.Song#PlacementLevel", b2 =>
+                                {
+                                    b2.IsRequired();
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasMaxLength(400)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderSongKey");
+
+                                    b2.Property<string>("Name")
+                                        .IsRequired()
+                                        .HasMaxLength(200)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderSong");
+
+                                    b2.Property<string>("Source")
+                                        .IsRequired()
+                                        .HasMaxLength(16)
+                                        .HasColumnType("TEXT")
+                                        .HasColumnName("FolderSongSource");
+                                });
+
+                            b1.HasDiscriminator<string>("Discriminator").HasValue("Placement");
+                        });
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("FiledVersion");
 
                     b.HasIndex("Status");
 
@@ -669,6 +779,26 @@ namespace StemStudio.Persistence.Migrations
                             b1
                                 .ToJson("BeatGrid")
                                 .HasColumnType("TEXT");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "LibraryInfo", "StemStudio.Domain.Tracks.Track.LibraryInfo#LibraryInfo", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Album")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibraryAlbum");
+
+                            b1.Property<string>("Artist")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibraryArtist");
+
+                            b1.Property<string>("Song")
+                                .HasMaxLength(200)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("LibrarySong");
                         });
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Metadata", "StemStudio.Domain.Tracks.Track.Metadata#TrackMetadata", b1 =>
