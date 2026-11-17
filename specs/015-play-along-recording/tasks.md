@@ -102,8 +102,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 3: User Story 1 - Record myself over the mix and hear it back (P1)
 
-- [ ] T028 [P] [US1] [audio-engine] Failing tests `tests/recording/input.test.ts`, `monitoring.test.ts`: support reasons (insecure, no AudioWorklet, no getUserMedia), permission query incl. not queryable, constraints of research R-02, error mapping (NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError, rate mismatch), mode availability, `devicechange`, track `ended` -> `OnInputLost`, monitoring routing/volume ramps, `closeInput` rules (FR-001..FR-003, FR-006)
-- [ ] T029 [US1] [audio-engine] Implement `src/recording/{input,monitoring}.ts` to pass T028
+- [x] T028 [P] [US1] [audio-engine] Failing tests `tests/recording/input.test.ts`, `monitoring.test.ts`: support reasons (insecure, no AudioWorklet, no getUserMedia), permission query incl. not queryable, constraints of research R-02, error mapping (NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError, rate mismatch), mode availability, `devicechange`, track `ended` -> `OnInputLost`, monitoring routing/volume ramps, `closeInput` rules (FR-001..FR-003, FR-006)
+- [x] T029 [US1] [audio-engine] Implement `src/recording/{input,monitoring}.ts` to pass T028
 - [ ] T030 [P] [US1] [audio-engine] Failing tests `tests/recording/capture-worklet.test.ts`, `capture.test.ts`: processor channel selection per mode, `currentFrame` stamps, 2,048-frame batches, zero-gain keep-alive connection; receiver gap fill, 30-minute limit, release
 - [ ] T031 [US1] [audio-engine] Implement `src/recording/{capture-worklet,capture}.ts` and the Vite entry to pass T030
 - [ ] T032 [P] [US1] [audio-engine] Failing tests `tests/recording/recorder.test.ts`: state machine, refusals (`recordingSpeed:`, `speedTrainer:`, input not open), 012 count-in start, locked transport controls, mute-original gate, take gated while recording, finishing tail `L + P` + one batch, stop at end of song, `OnRecordingProgress` <= 4 Hz, `captureWav`/`releaseCapture` (FR-004, FR-005, FR-009)

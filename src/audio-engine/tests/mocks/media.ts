@@ -60,6 +60,12 @@ export interface FakeDevice {
   readonly latency?: number;
 }
 
+/** Track settings of a fake device (`latency` is a Chromium extension). */
+function settingsOf(device: FakeDevice): MediaTrackSettings {
+  const { channelCount, deviceId, sampleRate, latency } = device;
+  return { channelCount, deviceId, ...(sampleRate === undefined ? {} : { sampleRate }), ...(latency === undefined ? {} : { latency }) };
+}
+
 /** `navigator.mediaDevices` double. */
 export class FakeMediaDevices extends EventTarget {
   public readonly devices: FakeDevice[] = [
@@ -77,18 +83,18 @@ export class FakeMediaDevices extends EventTarget {
     if (this.failWith !== null) {
       return Promise.reject(new DOMException('fake failure', this.failWith));
     }
-    const audio = constraints.audio as MediaTrackConstraints;
-    const wanted = (audio.deviceId as { exact?: string } | undefined)?.exact;
-    const device = this.devices.find((d) => d.deviceId === wanted) ?? this.devices[0];
-    if (device === undefined) {
-      return Promise.reject(new DOMException('none', 'NotFoundError'));
-    }
+    const device = this.pick(constraints);
     this.granted = true;
-    const { channelCount, sampleRate, latency, deviceId } = device;
-    const stream = new FakeStream([new FakeTrack(device.label, { channelCount, sampleRate, latency, deviceId })]);
+    const stream = new FakeStream([new FakeTrack(device.label, settingsOf(device))]);
     this.streams.push(stream);
     return Promise.resolve(stream as unknown as MediaStream);
   };
+
+  private pick(constraints: MediaStreamConstraints): FakeDevice {
+    const audio = constraints.audio as MediaTrackConstraints;
+    const wanted = (audio.deviceId as { exact?: string } | undefined)?.exact;
+    return this.devices.find((d) => d.deviceId === wanted) ?? this.devices[0] ?? { deviceId: 'default', label: 'Default', channelCount: 1 };
+  }
 
   public enumerateDevices = (): Promise<MediaDeviceInfo[]> =>
     Promise.resolve([
@@ -140,12 +146,12 @@ export class RecordingContext extends WorkletContext {
 
 /** A test {@link MediaEnvironment} over the fakes. */
 export function fakeEnvironment(
-  devices: FakeMediaDevices | undefined = new FakeMediaDevices(),
+  devices: FakeMediaDevices | null = new FakeMediaDevices(),
   overrides: Partial<MediaEnvironment> = {},
 ): MediaEnvironment {
   return {
     secure: true,
-    mediaDevices: devices as unknown as MediaEnvironment['mediaDevices'],
+    mediaDevices: devices ?? undefined,
     permissions: { query: () => Promise.resolve({ state: devices?.granted === true ? 'granted' : 'prompt' }) },
     createWorkletNode: (context, name, options) => (context as unknown as RecordingContext).createWorkletNode(name, options) as unknown as AudioWorkletNode,
     ...overrides,

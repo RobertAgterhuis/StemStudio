@@ -11,6 +11,7 @@ export type MediaDevicesLike = Pick<MediaDevices, 'getUserMedia' | 'enumerateDev
 
 /** The part of `navigator.permissions` the engine uses. */
 export interface PermissionsLike {
+  /** `navigator.permissions.query`. */
   query(descriptor: { readonly name: 'microphone' }): Promise<{ readonly state: string }>;
 }
 

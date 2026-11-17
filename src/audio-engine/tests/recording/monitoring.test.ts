@@ -47,8 +47,9 @@ describe('Monitor', () => {
     const next = ctx.createGain();
     monitor.attach(next as unknown as AudioNode);
     expect(gainOf(ctx, next).gain.value).toBe(0.4);
+    const nextGain = gainOf(ctx, next);
     monitor.attach(null);
-    expect(gainOf(ctx, next).disconnected).toBe(true);
+    expect(nextGain.disconnected).toBe(true);
   });
 
   it('is forced off while suppressed (calibration) and restored afterwards', () => {

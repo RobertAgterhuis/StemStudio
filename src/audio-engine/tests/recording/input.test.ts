@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InputPort, inputConstraints, inputError } from '../../src/recording/input';
 import { checkSupport } from '../../src/recording/support';
-import { FakeMediaDevices, RecordingContext, fakeEnvironment, type FakeStream } from '../mocks/media';
+import { FakeMediaDevices, FakeStream, RecordingContext, fakeEnvironment } from '../mocks/media';
 import { MockAudioContext, type MockAnalyserNode } from '../mocks/audio-context';
 
 /** Input support, devices, opening and loss (contract 2.5.0, research R-02, FR-001..FR-003). */
@@ -36,8 +36,8 @@ describe('checkSupport', () => {
   });
 
   it('checks the secure context first, then getUserMedia, then AudioWorklet', async () => {
-    const insecure = await checkSupport(fakeEnvironment(undefined, { secure: false }), ctx, false);
-    const noMedia = await checkSupport(fakeEnvironment(undefined), ctx, false);
+    const insecure = await checkSupport(fakeEnvironment(null, { secure: false }), ctx, false);
+    const noMedia = await checkSupport(fakeEnvironment(null), ctx, false);
     const noWorklet = await checkSupport(fakeEnvironment(), new MockAudioContext().asAudioContext(), false);
     expect([insecure.reasonCode, noMedia.reasonCode, noWorklet.reasonCode]).toEqual(['insecureContext', 'noMediaDevices', 'noAudioWorklet']);
     expect(insecure.reason).toMatch(/Open StemStudio on the computer it runs on/);
@@ -165,7 +165,7 @@ describe('InputPort', () => {
 
   it('rejects without mediaDevices', async () => {
     const ctx = new RecordingContext();
-    const input = new InputPort({ context: ctx.asAudioContext(), env: fakeEnvironment(undefined), onLost: vi.fn(), onDevicesChanged: vi.fn() });
+    const input = new InputPort({ context: ctx.asAudioContext(), env: fakeEnvironment(null), onLost: vi.fn(), onDevicesChanged: vi.fn() });
     await expect(input.open({ deviceId: null, mode: 'mono-1' })).rejects.toThrow(/^unsupported: /);
     await expect(input.listDevices()).resolves.toEqual([]);
     input.dispose();
@@ -174,9 +174,9 @@ describe('InputPort', () => {
   it('replaces an open input: the old tracks stop and its nodes disconnect', async () => {
     const { input, devices, ctx } = port();
     await input.open({ deviceId: 'usb', mode: 'stereo' });
-    const first = devices.streams[0] as FakeStream;
+    const first = devices.track;
     await input.open({ deviceId: 'mic', mode: 'mono-1' });
-    expect([first.tracks[0]?.stopped, ctx.mediaSources[0]?.disconnected, input.info?.deviceId]).toEqual([true, true, 'mic']);
+    expect([first?.stopped, ctx.mediaSources[0]?.disconnected, input.info?.deviceId]).toEqual([true, true, 'mic']);
   });
 
   it('close stops every track and disconnects; a second close is a no-op', async () => {
@@ -202,6 +202,15 @@ describe('InputPort', () => {
     devices.dispatchEvent(new Event('devicechange'));
     expect(changed).toHaveLength(1);
     await Promise.resolve();
+  });
+
+  it('rejects a stream without audio tracks (notFound) and other source errors (unsupported)', async () => {
+    const empty = port(new FakeMediaDevices(), () => new FakeStream([]) as unknown as MediaStream);
+    await expect(empty.input.open({ deviceId: null, mode: 'mono-1' })).rejects.toThrow(/^notFound: /);
+    const odd = port();
+    odd.ctx.sourceError = 'InvalidStateError';
+    await expect(odd.input.open({ deviceId: 'usb', mode: 'stereo' })).rejects.toThrow(/^unsupported: /);
+    expect(odd.input.rateMismatch).toBe(false);
   });
 
   it('uses the loopback stream instead of a microphone (E2E, research R-13)', async () => {
