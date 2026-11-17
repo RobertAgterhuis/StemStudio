@@ -84,7 +84,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
 - [x] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
 - [x] T023 [P] [qa] Fixtures `tests/fixtures/library/`: tagged upload files and fake-online scenarios for artists with diacritics, "The", featuring, unknown artist/album, a compilation, the same song on two albums, and items of every instrument family and detail group; seeding helpers over the public API; a seeding plan for 5,000 items (database fixture produced by T044's seeder, copied into the API volume by the spec's global setup)
-- [ ] T024 [P] [quality-gate] Dependency rules in `tools/quality/` (Domain.Library depends on nothing outside Domain; Api.Library -> Domain, Persistence, Contracts; Web.Library -> Contracts only; Agent tools -> Ports only) - test first (rule fixture fails), then the rule (FR: constitution II)
+- [x] T024 [P] [quality-gate] Dependency rules in `tools/quality/` (Domain.Library depends on nothing outside Domain; Api.Library -> Domain, Persistence, Contracts; Web.Library -> Contracts only; Agent tools -> Ports only) - test first (rule fixture fails), then the rule (FR: constitution II)
 
 **Checkpoint**: HO:foundational for backend, frontend, ai-agent, qa, quality-gate.
 
