@@ -6,12 +6,12 @@ namespace StemStudio.Web.Library;
 
 /// <summary>What the live search needs from its page: the API call, navigation, focus and the renderer's dispatcher.</summary>
 /// <param name="Search">Runs one search (the token is cancelled when a newer text replaces it).</param>
-/// <param name="Navigate">Changes the URL: <c>(url, replace)</c>; replace while typing, push on Enter.</param>
+/// <param name="Navigate">Changes the URL: <c>(url, replace, history entry state)</c>; replace while typing, push on Enter.</param>
 /// <param name="FocusBox">Moves focus to the search box (after clearing).</param>
 /// <param name="Dispatch">Runs work on the renderer's synchronisation context (timer callbacks arrive on the pool).</param>
 public sealed record LiveSearchPorts(
     Func<LibrarySearchRequest, CancellationToken, Task<LibrarySearchResultDto>> Search,
-    Action<string, bool> Navigate,
+    Action<string, bool, string> Navigate,
     Func<ValueTask> FocusBox,
     Func<Func<Task>, Task> Dispatch);
 
@@ -19,16 +19,17 @@ public sealed record LiveSearchPorts(
 /// The live library search (feature 022, FR-022, FR-026, research R-07): searches from the first character 200 ms after
 /// the last key press (Enter at once), numbers every request and drops answers older than the newest shown, cancels
 /// the request in flight, keeps <c>?q=</c> in the URL (replaced while typing, pushed on Enter) and restores the folder
-/// that was open when the search is cleared.
+/// that was open when the search is cleared. The box owns the text while the user types: URL changes flow one way, from
+/// the text to the URL; a location only puts its text back in the box on a genuine navigation (page load, Back, Forward,
+/// a link), never on the late echo of an own navigation (<see cref="OwnNavigations"/>).
 /// </summary>
 public sealed class LiveSearchController : IDisposable
 {
     /// <summary>The pause after the last key press.</summary>
     public static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(200);
 
-    private const int OwnUrlsKept = 32;
     private readonly LiveSearchPorts _ports;
-    private readonly List<string> _ownUrls = [];
+    private readonly OwnNavigations _own = new();
     private readonly TimeProvider _time;
     private LibraryLocation _origin = LibraryLocation.Root;
     private ITimer? _timer;
@@ -64,16 +65,21 @@ public sealed class LiveSearchController : IDisposable
     /// <summary>True while the text is not blank (results replace the folder view).</summary>
     public bool IsActive => !string.IsNullOrWhiteSpace(Text);
 
-    /// <summary>Takes over a location (page load, Back, a link): the folder to return to and the text of <c>?q=</c>.</summary>
+    /// <summary>
+    /// Takes over a location (page load, Back, a link): the folder to return to and the text of <c>?q=</c>. The echo of an
+    /// own navigation, or the same location reported again, changes nothing.
+    /// </summary>
     /// <param name="location">The current location.</param>
+    /// <param name="state">The location's history entry state (<see cref="Microsoft.AspNetCore.Components.NavigationManager.HistoryEntryState"/>).</param>
     /// <returns>A task that completes when the search of a restored text answered.</returns>
-    public Task StartAsync(LibraryLocation location)
+    public Task StartAsync(LibraryLocation location, string? state = null)
     {
-        _origin = location.WithQuery(null);
-        if (IsOwnEcho(location))
+        if (_own.IsEcho(state))
         {
             return Task.CompletedTask;
         }
+
+        _origin = location.WithQuery(null);
 
         if (Within is not null && Within != location.FolderId)
         {
@@ -167,33 +173,11 @@ public sealed class LiveSearchController : IDisposable
         Cancel();
     }
 
-    // The URL changes this controller asked for come back later as location changes (Blazor Server: one round trip
-    // each); an echo, even one older than the current text, is consumed with the echoes before it and changes nothing.
-    private void Navigate(string url, bool replace)
-    {
-        _ownUrls.Add(url);
-        if (_ownUrls.Count > OwnUrlsKept)
-        {
-            _ownUrls.RemoveAt(0);
-        }
-
-        _ports.Navigate(url, replace);
-    }
-
-    private bool IsOwnEcho(LibraryLocation location)
-    {
-        var index = _ownUrls.IndexOf(location.ToUrl());
-        if (index < 0)
-        {
-            return false;
-        }
-
-        _ownUrls.RemoveRange(0, index + 1);
-        return true;
-    }
+    private void Navigate(string url, bool replace) => _ports.Navigate(url, replace, _own.Next());
 
     private Task ResetAsync()
     {
+        StopTimer();
         Cancel();
         _sequence++;
         (Result, Error, Busy) = (null, null, false);

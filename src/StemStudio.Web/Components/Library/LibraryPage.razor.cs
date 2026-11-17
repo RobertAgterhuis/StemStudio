@@ -81,7 +81,7 @@ public sealed partial class LibraryPage
     protected override Task OnParametersSetAsync()
     {
         Location = LibraryLocation.Parse(Navigation.Uri);
-        return Search.StartAsync(Location);
+        return Search.StartAsync(Location, Navigation.HistoryEntryState);
     }
 
     /// <inheritdoc />
@@ -102,16 +102,18 @@ public sealed partial class LibraryPage
 
     private Task ShowAllAsync() => Search.ShowAllAsync();
 
-    private void Navigate(string url, bool replace) => Navigation.NavigateTo(url, new NavigationOptions { ReplaceHistoryEntry = replace });
+    private void Navigate(string url, bool replace, string state) =>
+        Navigation.NavigateTo(url, new NavigationOptions { ReplaceHistoryEntry = replace, HistoryEntryState = state });
 
-    // Back/forward and links change the URL without new parameters when the route stays the same.
+    // Back/forward and links change the URL without new parameters when the route stays the same; the router also sets
+    // the parameters again after every location change, so the search sees each location twice (it ignores the repeat).
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args) => _ = InvokeAsync(async () =>
     {
         var location = LibraryLocation.Parse(args.Location);
         if (location != Location)
         {
             Location = location;
-            await Search.StartAsync(location);
+            await Search.StartAsync(location, args.HistoryEntryState);
             StateHasChanged();
         }
     });
