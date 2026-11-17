@@ -14,5 +14,9 @@
                        OnCalibrate="OpenCalibration" />
     }
     <RecordButton Session="Session" OnToggle="RecordAsync" OnNormalSpeed="NormalSpeedAsync" OnSaveAgain="SaveAgainAsync" />
+    @if (_calibration is { } run)
+    {
+        <CalibrationDialog Run="run" OnClose="CloseCalibration" OnChanged="Session.RefreshAsync" />
+    }
     @ChildContent
 </section>

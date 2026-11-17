@@ -6,6 +6,8 @@ namespace StemStudio.Web.Components.Recording;
 /// <summary>Code-behind of the recording panel: forwards every control to the <see cref="RecordingSession"/>.</summary>
 public sealed partial class RecordingPanel
 {
+    private CalibrationRun? _calibration;
+
     /// <summary>The mixer's recording session.</summary>
     [Parameter, EditorRequired]
     public RecordingSession Session { get; set; } = default!;
@@ -45,7 +47,13 @@ public sealed partial class RecordingPanel
 
     private Task SaveAgainAsync() => RunAsync(Session.SaveAgainAsync);
 
-    private Task OpenCalibration() => OnCalibrate.InvokeAsync();
+    private Task OpenCalibration()
+    {
+        _calibration = Session.NewCalibration();
+        return OnCalibrate.InvokeAsync();
+    }
+
+    private void CloseCalibration() => _calibration = null;
 
     private async Task RunAsync(Func<Task> action)
     {

@@ -105,6 +105,10 @@ public sealed partial class RecordingSession : IAsyncDisposable
     /// <returns>A task that completes when queued.</returns>
     public Task RefreshAsync() => _host.RefreshAsync();
 
+    /// <summary>A calibration run for the open input (US2), or null without an input.</summary>
+    /// <returns>The run.</returns>
+    public CalibrationRun? NewCalibration() => Input.Input is { } input ? new CalibrationRun(_services.Engine, Latency, input) : null;
+
     /// <summary>The <c>C</c> shortcut: cycles My take / Original / Both (US4).</summary>
     /// <returns>A task that completes when applied.</returns>
     public Task CycleCompareAsync() => Task.CompletedTask;
