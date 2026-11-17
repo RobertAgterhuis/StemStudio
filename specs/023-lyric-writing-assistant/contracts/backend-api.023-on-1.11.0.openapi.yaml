@@ -2840,6 +2840,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/LyricAssistStatus'
   /api/lyric-assist/settings:
+    get:
+      tags: [lyric-assist]
+      operationId: getLyricAssistSettings
+      summary: Read the lyric-assistant settings, the Claude notice text and the own-work statement.
+      description: |
+        Read-only. The UI shows `claudeNoticeText` and `ownWorkStatementText` (with their versions)
+        from here; it never uses the PUT to read them. Added in integration of round 022+023 (pre-release
+        editorial, label unchanged).
+      responses:
+        '200':
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssistSettings'
     put:
       tags: [lyric-assist]
       operationId: updateLyricAssistSettings
