@@ -32,11 +32,16 @@
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        if (_watch is null || _module is null)
+        {
+            return;
+        }
+
         try
         {
-            await (_watch?.InvokeVoidAsync("dispose") ?? ValueTask.CompletedTask);
-            await (_watch?.DisposeAsync() ?? ValueTask.CompletedTask);
-            await (_module?.DisposeAsync() ?? ValueTask.CompletedTask);
+            await _watch.InvokeVoidAsync("dispose");
+            await _watch.DisposeAsync();
+            await _module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
