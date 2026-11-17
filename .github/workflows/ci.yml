@@ -47,6 +47,13 @@ env:
   # here and the superset rule is checked by check_superset.py.
   LIBRARY_CARE_CONTRACTS: specs/013-library-care/contracts
   PYYAML: pyyaml==6.0.3
+  # Feature 022 (backend 1.22.0 = 1.12.0 + library folders) and 023 (backend 1.23.0 = 1.22.0 + lyric
+  # writing assistant): each directory holds its full document, its delta, merge_full.py and redocly.yaml.
+  LIBRARY_FOLDERS_CONTRACTS: specs/022-library-folders/contracts
+  LYRIC_ASSIST_CONTRACTS: specs/023-lyric-writing-assistant/contracts
+  # Pins of the 023 contract checks (versions as in worker/uv.lock): check_output_schema.py, test_merge_full.py.
+  JSONSCHEMA: jsonschema==4.26.0
+  PYTEST: pytest==9.2.0
 
 jobs:
   dotnet:
@@ -73,6 +80,12 @@ jobs:
       # tools/agent-eval itself is never run in CI (live runs need a model); only its unit tests are.
       - name: StemStudio.AgentEval is in the gate (report present, line and branch >= 90 %; feature 011)
         run: python3 scripts/coverage_floor.py tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
+      # Timing asserts skip under coverlet, so the performance budgets (022 SC-004: folder view, index
+      # rebuild, search at 5,000 items) run here without instrumentation: the same Release build, the
+      # coverlet run settings off (RunSettingsFilePath is empty) and no CollectCoverage. The coverage run
+      # above still runs every test, Category=Perf included, only without the timing asserts.
+      - name: Performance budgets, uninstrumented (Category=Perf; 022 SC-004)
+        run: dotnet test tests/StemStudio.Api.Tests -c Release --no-build --filter Category=Perf -p:RunSettingsFilePath=
       - name: Coverage summary
         if: always()
         shell: python
@@ -324,6 +337,16 @@ jobs:
           "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
           "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml"
           "$LIBRARY_CARE_CONTRACTS/worker-api.openapi.yaml"
+      - name: Redocly lint, library folders documents (022; backend 1.22.0 and its delta)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$LIBRARY_FOLDERS_CONTRACTS/redocly.yaml"
+          "$LIBRARY_FOLDERS_CONTRACTS/backend-api.openapi.yaml"
+          "$LIBRARY_FOLDERS_CONTRACTS/backend-api.library-folders.openapi.yaml"
+      - name: Redocly lint, lyric assistant documents (023; backend 1.23.0 and its delta)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$LYRIC_ASSIST_CONTRACTS/redocly.yaml"
+          "$LYRIC_ASSIST_CONTRACTS/backend-api.openapi.yaml"
+          "$LYRIC_ASSIST_CONTRACTS/backend-api.delta.openapi.yaml"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
@@ -334,6 +357,14 @@ jobs:
           check=(uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py")
           "${check[@]}"
           "${check[@]}" "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
+      - name: 022 full backend 1.22.0 is the 013 document plus the 022 delta (merge_full.py --check, freshness and superset)
+        run: uv run --no-project --with "$PYYAML" python -I "$LIBRARY_FOLDERS_CONTRACTS/merge_full.py" --check
+      - name: 023 full backend 1.23.0 is 1.22.0 plus the 023 changes (merge_full.py --check, freshness and superset)
+        run: uv run --no-project --with "$PYYAML" python -I "$LYRIC_ASSIST_CONTRACTS/merge_full.py" --check
+      - name: 023 model output schema and the E2E lyric scripts validate (check_output_schema.py)
+        run: uv run --no-project --with "$JSONSCHEMA" python -I "$LYRIC_ASSIST_CONTRACTS/check_output_schema.py"
+      - name: 023 block merge tests (test_merge_full.py)
+        run: uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest "$LYRIC_ASSIST_CONTRACTS"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -410,10 +441,10 @@ jobs:
           uv run --frozen ruff format --check .
           uv run --frozen mypy
           uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml
-      - name: Devops script checks (011 key_volume_checks.py, 013 backup_folder_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
+      - name: Devops script checks (011 key_volume_checks.py, 013 backup_folder_checks.py, 023 api_image_size_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
         run: |
           cfg=scripts/pyproject.toml
-          checks=(scripts/key_volume_checks.py scripts/backup_folder_checks.py)
+          checks=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py)
           uv run --project tools/quality --frozen ruff check --config "$cfg" "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen ruff format --config "$cfg" --check "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen mypy --config-file "$cfg" "${checks[@]}" scripts/tests
@@ -626,6 +657,11 @@ jobs:
           docker compose exec -T api sh -c 'test "$StemStudio__BackupDir" = /backups && probe=/backups/.ci-probe && touch "$probe" && rm "$probe"'
           docker compose exec -T worker sh -c 'test ! -e /backups'
           docker compose exec -T api sh -c 'test "$StemStudio__LibraryCare__ThrottleBytesPerSecond" -gt 0'
+      - name: The api sees the fake lyric scripts read-only at /lyric-scripts, and the image stays within +15 MB of dictionaries (023 T069)
+        run: |
+          docker compose exec -T api sh -c 'test "$STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT" = /lyric-scripts && ls /lyric-scripts/*.json >/dev/null && ! touch /lyric-scripts/.ci-probe 2>/dev/null'
+          docker compose exec -T worker sh -c 'test ! -e /lyric-scripts'
+          scripts/check-api-image-size.sh --image stemstudio/api:local
       - name: Install Playwright browsers
         working-directory: e2e
         run: |
@@ -653,6 +689,10 @@ jobs:
         run: scripts/agent-e2e.sh fake
       - name: Agent unavailable spec with backend none (011 T059, A6, SC-005)
         run: scripts/agent-e2e.sh none
+      - name: Lyric assistant specs with the fake model and /lyric-scripts (023 T069/T070, quickstart Q1-Q5; npm run test:lyric-assist)
+        run: scripts/lyric-e2e.sh fake
+      - name: Lyric assistant unavailable spec with backend none, no outbound request (023 Q6; npm run test:lyric-assist-none)
+        run: scripts/lyric-e2e.sh none
       - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
         env:
           STEMSTUDIO_FAKE_DEVICE: gpu
