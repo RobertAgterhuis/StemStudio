@@ -19,6 +19,7 @@ using StemStudio.Api.LyricAssist;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
+using StemStudio.Api.Recording;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Security;
 using StemStudio.Api.Storage;
@@ -63,6 +64,7 @@ public static class ApiComposition
         services.AddAgentHost(builder.Configuration);
         services.AddLibraryFolders();
         services.AddLyricAssist();
+        services.AddRecording(builder.Configuration);
         return builder;
     }
 
@@ -131,6 +133,7 @@ public static class ApiComposition
         app.MapLibraryCareEndpoints();
         app.MapLibraryEndpoints();
         app.MapLyricAssistEndpoints();
+        app.MapRecordingEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
