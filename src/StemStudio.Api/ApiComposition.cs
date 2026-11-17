@@ -129,6 +129,7 @@ public static class ApiComposition
     {
         services.AddSingleton<IStemFileStore, StemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
+        services.AddScoped<WorkerCacheRehydrator>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
         services.AddScoped<TrackDeletionService>();

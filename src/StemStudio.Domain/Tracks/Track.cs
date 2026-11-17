@@ -135,6 +135,28 @@ public sealed partial class Track
         UpdatedAt = nowUtc;
     }
 
+    /// <summary>
+    /// Replaces the standard worker job of a completed track with a job re-created from the library stems (feature 013
+    /// rehydration, FR-019), after a restore or a worker cache clean-up.
+    /// </summary>
+    /// <param name="workerJobId">The rehydrated job (32 lower-case hex characters).</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <exception cref="InvalidOperationException">The track is not completed.</exception>
+    public void RehydrateWorkerJob(string workerJobId, DateTime nowUtc)
+    {
+        if (!JobIdPattern().IsMatch(workerJobId))
+        {
+            throw new ArgumentException($"'{workerJobId}' is not a worker job ID.", nameof(workerJobId));
+        }
+
+        if (Status != TrackStatus.Completed)
+        {
+            throw new InvalidOperationException($"Track {Id} is not completed.");
+        }
+
+        (WorkerJobId, UpdatedAt) = (workerJobId, nowUtc);
+    }
+
     /// <summary>Applies a worker status report; backward states are ignored, progress never decreases.</summary>
     /// <param name="progress">Report for a non-terminal state.</param>
     /// <param name="nowUtc">Current time (UTC).</param>

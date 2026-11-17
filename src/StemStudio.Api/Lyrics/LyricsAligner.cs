@@ -11,8 +11,9 @@ namespace StemStudio.Api.Lyrics;
 /// </summary>
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Records the created job.</param>
+/// <param name="rehydrator">Rehydrates the worker cache on a miss (feature 013).</param>
 /// <param name="clock">Clock.</param>
-public sealed class LyricsAligner(IWorkerClient worker, LyricsJobApplier applier, TimeProvider clock)
+public sealed class LyricsAligner(IWorkerClient worker, LyricsJobApplier applier, WorkerCacheRehydrator rehydrator, TimeProvider clock)
 {
     /// <summary>The setting assumed for a worker older than contract 1.5.0.</summary>
     private static readonly WorkerLyricsAlignmentHealth OlderWorker = new() { Auto = AlignAuto.Gpu, ModelCached = false };
@@ -98,7 +99,7 @@ public sealed class LyricsAligner(IWorkerClient worker, LyricsJobApplier applier
     }
 
     private async Task CreateAsync(Track track, CancellationToken cancellationToken) =>
-        applier.ApplySubmission(track, await worker.CreateLyricsAlignJobAsync(ToAlignRequest(track), cancellationToken));
+        applier.ApplySubmission(track, await rehydrator.SubmitAsync(track, standard => worker.CreateLyricsAlignJobAsync(ToAlignRequest(track) with { StandardJobId = standard }, cancellationToken), cancellationToken));
 
     private async Task<(ProcessingDeviceKind Device, WorkerLyricsAlignmentHealth Alignment)> AskWorkerAsync(CancellationToken cancellationToken)
     {

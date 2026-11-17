@@ -72,7 +72,8 @@ public sealed class WorkerCacheRehydratorTests : ApiTestBase
 
         var request = WorkerCacheRehydrator.Request(track);
 
-        (request.SourceType, request.Stems).ShouldBe(("youtube", track.Stems.Select(stem => stem.Name).ToList()));
+        request.SourceType.ShouldBe("youtube");
+        request.Stems.ShouldBe(track.Stems.Select(stem => stem.Name));
         WorkerCacheRehydrator.IsCacheMiss(new WorkerRequestException(HttpStatusCode.Conflict, "x")).ShouldBeTrue();
         WorkerCacheRehydrator.IsCacheMiss(new WorkerRequestException(HttpStatusCode.BadRequest, "x")).ShouldBeFalse();
     }
