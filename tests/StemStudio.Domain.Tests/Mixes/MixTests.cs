@@ -269,6 +269,18 @@ public sealed class MixTests
         return track;
     }
 
+    [Fact]
+    public void RestoredName_UsesTheRestoredSuffix_AndRenameKeepsTheSettings()
+    {
+        MixNaming.RestoredName("Practice", ["practice"]).ShouldBe("Practice (restored)");
+        MixNaming.RestoredName("Practice", ["Practice (restored)"]).ShouldBe("Practice (restored 2)");
+        var mix = Mix.Create(Guid.NewGuid(), CompletedTrack(), Settings("Practice"), T0);
+
+        mix.RenameRestored("Practice (restored)");
+
+        (mix.Name, mix.NormalizedName, mix.UpdatedAt, mix.Channels.Count).ShouldBe(("Practice (restored)", "PRACTICE (RESTORED)", T0, 1));
+    }
+
     internal static MixSettings Settings(string name = "Guitar practice") => new()
     {
         Name = name,

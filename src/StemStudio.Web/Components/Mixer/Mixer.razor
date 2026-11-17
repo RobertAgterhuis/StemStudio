@@ -93,6 +93,14 @@ else
             </PracticePanel>
         </div>
 
+        @if (State.KeepsRemovedDetailSettings)
+        {
+            <p class="ss-notice" role="note" data-testid="mixer-detail-removed" data-help-id="mixer-detail-removed">
+                The detail stems of this track were removed to free space. Their channels are not loaded; the stems they came from play as usual.
+                The mix keeps its detail settings: Split further on the track page brings the detail stems back.
+            </p>
+        }
+
         <div class="ss-console-desk">
             <section class="ss-strips ss-console-strips" aria-label="Channels">
                 @foreach (var channel in State.Channels)

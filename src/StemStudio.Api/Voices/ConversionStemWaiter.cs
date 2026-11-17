@@ -3,6 +3,7 @@ using StemStudio.Api.Generator;
 using StemStudio.Api.Storage;
 using StemStudio.Domain.Generations;
 using StemStudio.Domain.Tracks;
+using StemStudio.Domain.Voices;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Voices;
@@ -24,6 +25,9 @@ public sealed class ConversionStemWaiter(
     /// <summary>Error text when the take could not be separated.</summary>
     public const string NotSeparated = "The take could not be separated into stems.";
 
+    /// <summary>Error text when the profile's stored sample path is outside the data directory.</summary>
+    public const string SampleMissing = "The voice sample of the profile is missing.";
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>Submits the conversion when its stems are ready.</summary>
@@ -36,17 +40,24 @@ public sealed class ConversionStemWaiter(
         var details = conversion.VoiceConversion!;
         var track = await tracks.FindAsync(details.ImportedTrackId!.Value, cancellationToken);
         var profile = details.VoiceProfileId is { } id ? await profiles.FindAsync(id, cancellationToken) : null;
-        if (track is null || track.Status == TrackStatus.Failed || profile is null)
+        var sample = profile is null ? null : data.ContainedPath(profile.SamplePath);
+        if (Problem(track, profile, sample) is { } problem)
         {
-            conversion.Fail(new GenerationError(GenerationErrorCode.EngineError, profile is null ? "The voice profile was deleted." : NotSeparated), Now);
+            conversion.Fail(new GenerationError(GenerationErrorCode.EngineError, problem), Now);
             return;
         }
 
-        if (track.Status == TrackStatus.Completed)
+        if (track!.Status == TrackStatus.Completed)
         {
-            await SubmitAsync(conversion, new GeneratorVoiceConversionRequest(Params(details), Stem(track, "vocals"), SamplePath(profile.SamplePath), Accompaniment(track)), cancellationToken);
+            await SubmitAsync(conversion, new GeneratorVoiceConversionRequest(Params(details), Stem(track, "vocals"), sample!, Accompaniment(track)), cancellationToken);
         }
     }
+
+    private static string? Problem(Track? track, VoiceProfile? profile, string? sample) =>
+        profile is null ? "The voice profile was deleted."
+        : sample is null ? SampleMissing
+        : track is null || track.Status == TrackStatus.Failed ? NotSeparated
+        : null;
 
     private async Task SubmitAsync(Generation conversion, GeneratorVoiceConversionRequest request, CancellationToken cancellationToken)
     {
@@ -71,6 +82,4 @@ public sealed class ConversionStemWaiter(
     private string Stem(Track track, string name) => stems.GetStemPath(track.Id, name);
 
     private List<string> Accompaniment(Track track) => track.Stems.Select(stem => stem.Name).Where(name => name != "vocals").Select(name => Stem(track, name)).ToList();
-
-    private string SamplePath(string relative) => Path.Combine(data.Root, relative.Replace('/', Path.DirectorySeparatorChar));
 }

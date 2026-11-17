@@ -17,6 +17,14 @@ public static class ConsentStatement
 
     /// <summary>SHA-256 of the UTF-8 English statement (64 lower-case hex characters).</summary>
     public static string Sha256 { get; } = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Text)));
+
+    /// <summary>
+    /// Every embedded statement version with its English text and SHA-256 (013 data-model 5.4). Binding for later features: a
+    /// new version adds an entry, it never removes an old one, so archived consent proofs stay verifiable.
+    /// </summary>
+    /// <param name="version">A statement version, e.g. <c>consent.v1</c>.</param>
+    /// <returns>The text and its hash, or null when the version is not embedded.</returns>
+    public static (string Text, string Sha256)? Known(string version) => version == Version ? (Text, Sha256) : null;
 }
 
 /// <summary>The consent record of a voice profile.</summary>

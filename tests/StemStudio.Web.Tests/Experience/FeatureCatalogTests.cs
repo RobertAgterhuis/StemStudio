@@ -59,6 +59,14 @@ public sealed class FeatureCatalogTests
         { "agent.tool-log", [E], "agent-panel" },
         { "agent.models", [A, E], "agent-backends" },
         { "agent.claude-options", [E], "agent-backends" },
+        { "care.backup-options", [A, E], "backup-contents" },
+        { "care.job-bytes", [A, E], "library-care" },
+        { "care.verify", [A, E], "backup-compatibility" },
+        { "care.manifest", [E], "backup-contents" },
+        { "care.track-table", [A, E], "storage-overview" },
+        { "care.top-tracks", [B], "storage-overview" },
+        { "care.worker-entries", [E], "storage-regenerable" },
+        { "care.restore-merge", [A, E], "backup-restore" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -116,7 +124,9 @@ public sealed class FeatureCatalogTests
                 "mixes.search", "track.job-details", "shell.shortcut-overlay-key", "shell.kbd-hints", "artist.details", "artwork.own-picture", "export.format-details", "export.selected-channels", "library.filters", "export.range", "export.stem-pack",
                 "karaoke.size", "karaoke.offset", "karaoke.timing-origin", "lyrics.align-device", "lyrics.refine", "lyrics.remove",
                 "score.detail-stems", "score.key-override", "score.manual-tempo", "score.quality", "score.range",
-                "restyle.options", "song.options", "voice.pitch", "agent.steps", "agent.conversation-actions", "agent.usage", "agent.tool-log", "agent.models", "agent.claude-options"], ignoreOrder: true);
+                "restyle.options", "song.options", "voice.pitch", "agent.steps", "agent.conversation-actions", "agent.usage", "agent.tool-log", "agent.models", "agent.claude-options",
+                "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
+                "care.track-table", "care.worker-entries", "care.restore-merge"], ignoreOrder: true);
     }
 
     [Fact]

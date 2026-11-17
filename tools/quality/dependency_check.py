@@ -36,6 +36,8 @@ Worker (imports inside ``stemstudio_worker``)::
     no other metadata module; nothing imports lyrics or alignment (feature 006: jobs gets the
     LyricsLookup and the Aligner injected); nothing imports transcription, notation or
     engraving (feature 008: composed in main.py); transcription/vendor/** contributes no edges
+    storage -> {jobs, ports, schemas, config} only (feature 013: never separation, detail or
+    api); api may import storage (the storage routes); jobs and the adapters never do
 
 Worker third-party imports (feature 008; the standard library is always allowed)::
 
@@ -223,7 +225,8 @@ PYTHON_ALLOWED: Mapping[str, frozenset[str] | None] = {
     "engraving": frozenset({"ports", "schemas"}),
     "devices": _ADAPTER,
     "jobs": _ADAPTER,
-    "api": _ADAPTER | {"jobs"},
+    "storage": _ADAPTER | {"jobs"},
+    "api": _ADAPTER | {"jobs", "storage"},
     "main": None,
 }
 """Allowed imported top-level modules per worker module; ``None`` = unrestricted."""

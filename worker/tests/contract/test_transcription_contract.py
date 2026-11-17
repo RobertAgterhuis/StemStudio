@@ -72,8 +72,10 @@ def _example(name: str) -> Any:
     return V160.example(name)
 
 
-def test_contract_version_is_1_6_0() -> None:
-    assert CONTRACT_VERSION == V160.root["info"]["version"] == "1.6.0"
+def test_contract_version_is_1_6_0_or_a_superset() -> None:
+    # 013 Phase 0: the code follows 1.7.0, which contains 1.6.0 unchanged (storage contract test).
+    assert V160.root["info"]["version"] == "1.6.0"
+    assert CONTRACT_VERSION == "1.7.0"
 
 
 @pytest.mark.parametrize(

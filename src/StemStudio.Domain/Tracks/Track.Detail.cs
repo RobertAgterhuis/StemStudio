@@ -8,15 +8,25 @@ public sealed partial class Track
     /// <summary>Failure text used when the worker gives no reason.</summary>
     public const string DetailFailedDefault = "Detail separation failed.";
 
+    /// <summary>Stage text of a queued detail phase while the worker cache is rebuilt from the library (feature 013, FR-019).</summary>
+    public const string PreparingStemsStage = "Preparing stems";
+
     /// <summary>The detail phase, or null when it was never requested (status "none").</summary>
     public DetailPhase? DetailPhase { get; private set; }
 
     /// <summary>True while the detail phase is queued or running.</summary>
     public bool IsDetailActive => DetailPhase?.Status is DetailPhaseStatus.Queued or DetailPhaseStatus.Running;
 
-    /// <summary>True when the track is completed and the detail phase is none, failed or cancelled.</summary>
+    /// <summary>
+    /// True when the track is completed and the detail phase is none, failed or cancelled, or completed with removed files
+    /// (feature 013).
+    /// </summary>
     public bool CanStartDetail =>
-        Status == TrackStatus.Completed && DetailPhase?.Status is null or DetailPhaseStatus.Failed or DetailPhaseStatus.Cancelled;
+        Status == TrackStatus.Completed
+        && (DetailPhase?.Status is null or DetailPhaseStatus.Failed or DetailPhaseStatus.Cancelled || DetailPhase.FilesRemovedAt is not null);
+
+    /// <summary>True when the detail phase is completed and its stem files are present (feature 013).</summary>
+    public bool HasDetailFiles => DetailPhase is { Status: DetailPhaseStatus.Completed, FilesRemovedAt: null };
 
     /// <summary>True when the track may be deleted: terminal and no detail phase queued or running (FR-016).</summary>
     public bool CanDelete => IsTerminal && !IsDetailActive;
@@ -31,7 +41,21 @@ public sealed partial class Track
             throw new InvalidOperationException($"The detail phase of track {Id} cannot be started now.");
         }
 
-        SetDetail(new DetailPhase { Status = DetailPhaseStatus.Queued, Stage = "Queued", RequestedAt = nowUtc, UpdatedAt = nowUtc }, nowUtc);
+        var removed = DetailPhase?.FilesRemovedAt;
+        SetDetail(new DetailPhase { Status = DetailPhaseStatus.Queued, Stage = "Queued", FilesRemovedAt = removed, RequestedAt = nowUtc, UpdatedAt = nowUtc }, nowUtc);
+    }
+
+    /// <summary>Records that the detail stem files of the completed phase were removed (feature 013, data-model 5.3); names stay.</summary>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <exception cref="InvalidOperationException">The phase is not completed.</exception>
+    public void RemoveDetailFiles(DateTime nowUtc)
+    {
+        if (DetailPhase is not { Status: DetailPhaseStatus.Completed } phase)
+        {
+            throw new InvalidOperationException($"Track {Id} has no completed detail phase.");
+        }
+
+        SetDetail(phase with { FilesRemovedAt = nowUtc, UpdatedAt = nowUtc }, nowUtc);
     }
 
     /// <summary>Records the worker detail job of the active phase.</summary>
@@ -45,6 +69,19 @@ public sealed partial class Track
         }
 
         SetDetail(RequireActiveDetail() with { WorkerDetailJobId = workerDetailJobId, UpdatedAt = nowUtc }, nowUtc);
+    }
+
+    /// <summary>
+    /// Shows <see cref="PreparingStemsStage"/> on a queued phase while the worker cache is rehydrated (feature 013, FR-019);
+    /// ignored without a queued phase.
+    /// </summary>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    public void MarkDetailPreparingStems(DateTime nowUtc)
+    {
+        if (DetailPhase is { Status: DetailPhaseStatus.Queued } phase)
+        {
+            SetDetail(phase with { Stage = PreparingStemsStage, UpdatedAt = nowUtc }, nowUtc);
+        }
     }
 
     /// <summary>Applies a worker report; ignored without an active phase or for backward states; progress never decreases.</summary>
@@ -74,7 +111,7 @@ public sealed partial class Track
         var phase = RequireActiveDetail();
         DetailCompletionRules.Validate(parents, _stems.Select(stem => stem.Name).ToList());
         var ordered = parents.OrderBy(parent => StemCatalog.Order(parent.Parent)).Select(InDisplayOrder).ToList();
-        SetDetail(Finish(phase, DetailPhaseStatus.Completed, null, nowUtc) with { Progress = 100, Parents = ordered }, nowUtc);
+        SetDetail(Finish(phase, DetailPhaseStatus.Completed, null, nowUtc) with { Progress = 100, Parents = ordered, FilesRemovedAt = null }, nowUtc);
     }
 
     /// <summary>Fails the active phase with a readable reason; progress is kept.</summary>

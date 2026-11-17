@@ -53,6 +53,15 @@ public sealed class StemStudioApiOptions
     /// <summary>Exports are refused (409 <c>insufficient-disk-space</c>) below this many free bytes on the data drive (feature 007).</summary>
     public long MinFreeDiskBytes { get; set; } = StemStudio.Contracts.ContractLimits.MinFreeDiskBytesDefault;
 
+    /// <summary>Backups folder (feature 013, <c>StemStudio__BackupDir</c>; compose: the bind mount <c>/backups</c>); relative paths resolve against the content root.</summary>
+    public string BackupDir { get; set; } = "../../data/backups";
+
+    /// <summary>Display only: the host path of the backups folder shown in the UI (<c>StemStudio__BackupHostDirHint</c>), e.g. <c>./backups</c>.</summary>
+    public string? BackupHostDirHint { get; set; }
+
+    /// <summary>Limits of library care (feature 013, section <c>StemStudio:LibraryCare</c>, data-model 1).</summary>
+    public LibraryCareOptions LibraryCare { get; set; } = new();
+
     /// <summary>Factors of the score estimates (feature 008, section <c>StemStudio:ScoreEstimates</c>, data-model 4.5).</summary>
     public ScoreEstimateOptions ScoreEstimates { get; set; } = new();
 }

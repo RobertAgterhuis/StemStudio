@@ -28,6 +28,10 @@ later features add one GPU-marked integration test each, never run in CI.
 - The C++ ABI shim under `third_party/soundtouch/shim/` is measured for unit size (012); the
   downloaded SoundTouch source (`upstream/`), local build outputs and the generated worklet
   bundle are excluded from SIG and Sonar.
+- Library care rules (013, `library_care_rules.py`): `LibraryCare/` is reached from the older
+  API folders only through its gate; the ZIP helpers `ExtractToDirectory`, `ExtractToFile` and
+  `CreateFromDirectory` are banned; the worker's `storage` package never imports `separation`,
+  `detail` or `api`.
 - The **raw-colour guard** (`css_tokens_check.py`): only
   `src/StemStudio.Web/wwwroot/css/tokens.css` may contain literal colours.
 

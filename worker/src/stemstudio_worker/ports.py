@@ -22,6 +22,8 @@ Each protocol is implemented by a different agent and faked in unit tests:
 * ``PitchTranscriber``: stem-separation (``transcription/``), ``DrumTranscriber`` and ``Notator``:
   beat-analysis (``analysis/drum_onsets.py``, ``notation/``), ``ScoreEngraver``: audio-ingest
   (``engraving/``), feature 008: sheet music (ADR-017)
+* ``StorageMeter``, ``CacheJanitor``, ``LibraryStemReader``: stem-separation (``storage/``),
+  feature 013: the storage report, the cache clean-up and the rehydration source (ADR-022)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -35,13 +37,15 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Protocol, runtime_checkable
+from typing import BinaryIO, Final, Protocol, runtime_checkable
+from uuid import UUID
 
 import numpy as np
 import numpy.typing as npt
 
 from stemstudio_worker.schemas import (
     BASIC_PITCH_MODEL_ID,
+    LIBRARY_UNAVAILABLE_TEXT,
     LYRICS_UNREACHABLE_TEXT,
     LYRICS_UNUSABLE_TEXT,
     NO_NOTES_TEXT,
@@ -72,7 +76,10 @@ from stemstudio_worker.schemas import (
     ScoreWarning,
     SourceType,
     StemName,
+    StorageCleanupRequest,
+    StorageCleanupResult,
     TimedLyrics,
+    WorkerStorage,
 )
 
 DetailAudio = npt.NDArray[np.float32]
@@ -1269,5 +1276,87 @@ class ScoreEngraver(Protocol):
         Raises:
             TranscriptionError: The Leipzig font is missing (``MUSIC_FONT_MISSING_TEXT``) or
                 engraving failed.
+        """
+        ...
+
+
+# ------------------------------------------------------------------ storage (feature 013)
+
+
+class LibraryUnavailableError(WorkerError):
+    """The read-only library mount (``STEMSTUDIO_LIBRARY_DIR``) is unset or unreadable; HTTP 409."""
+
+    def __init__(self) -> None:
+        """Create the error with ``LIBRARY_UNAVAILABLE_TEXT``."""
+        super().__init__(LIBRARY_UNAVAILABLE_TEXT)
+
+
+class StemMissingError(WorkerError):
+    """A library stem of the requested model is missing; HTTP 404 with ``stem``.
+
+    Attributes:
+        stem: The missing stem.
+    """
+
+    def __init__(self, stem: StemName) -> None:
+        """Create the error for ``stem``."""
+        super().__init__(f"The library has no {stem} stem for this track.")
+        self.stem = stem
+
+
+@runtime_checkable
+class StorageMeter(Protocol):
+    """Measures the worker volumes without reading file contents (``GET /v1/storage``)."""
+
+    def measure(self) -> WorkerStorage:
+        """Walk the data and model directories (links are not followed) and report their use.
+
+        Returns:
+            Free/total bytes per volume, the per-audio cache entries with their job ids and
+            ``inUse`` flag, job files, scratch and the model caches per top-level folder.
+            Implementations may cache the report for 30 seconds.
+        """
+        ...
+
+
+@runtime_checkable
+class CacheJanitor(Protocol):
+    """Removes regenerable worker data that no job uses (``POST /v1/storage/cleanup``)."""
+
+    def clean(self, request: StorageCleanupRequest) -> StorageCleanupResult:
+        """Remove the requested cache entries, scratch and old job files under the queue lock.
+
+        Args:
+            request: Entries to remove (``["*"]`` = every entry not in use), ``scratch`` and
+                ``oldJobFiles`` switches.
+
+        Returns:
+            Freed bytes, removed entries and the skipped ones (``inUse``, ``notFound``). Removing
+            an entry also removes its ``cache/by-source`` pointers and marks the standard jobs
+            that referenced it as evicted.
+        """
+        ...
+
+
+@runtime_checkable
+class LibraryStemReader(Protocol):
+    """Opens API library stems from the read-only ``/library`` mount (rehydration, ADR-022 D10)."""
+
+    def open(self, track_id: UUID, stem: StemName) -> BinaryIO:
+        """Open ``<library>/tracks/<track_id>/stems/<stem>.flac`` for binary reading.
+
+        The path is built only from the UUID (``str(track_id)``) and the stem enum; no request
+        string becomes a path component. The caller closes the stream.
+
+        Args:
+            track_id: Backend track id.
+            stem: Stem name.
+
+        Returns:
+            A readable binary stream of the FLAC file.
+
+        Raises:
+            LibraryUnavailableError: The library mount is unset or unreadable.
+            StemMissingError: The stem file does not exist.
         """
         ...

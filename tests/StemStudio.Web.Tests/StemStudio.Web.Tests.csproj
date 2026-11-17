@@ -24,4 +24,8 @@
          doubles need StemStudio.Agent, which the Web app does not reference. -->
     <Compile Include="..\Shared\ClaudeKey\ClaudeKeySentinels.cs" LinkBase="Shared\ClaudeKey" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- JSON Schema subset validator, shared with StemStudio.Api.Tests (moved from Skeleton/ by the architect, 013 Phase 0 T006). -->
+    <Compile Include="..\Shared\JsonSchema\*.cs" LinkBase="Shared\JsonSchema" />
+  </ItemGroup>
 </Project>

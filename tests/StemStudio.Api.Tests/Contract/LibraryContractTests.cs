@@ -11,7 +11,7 @@ namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
 /// Skeleton tests (architect, 022 Phase 0, T002/T003): backend-api 1.22.0 (<c>specs/022-library-folders/contracts/backend-api.openapi.yaml</c>)
-/// is the newest full document (<see cref="Base"/>, 1.11.0) plus exactly the 022 delta (DELTA.md section 1, <c>merge_full.py</c>),
+/// is the newest full document (<see cref="Base"/>, 1.12.0 of 013; 1.11.0 until the 022+023 round merged 013) plus exactly the 022 delta (DELTA.md section 1, <c>merge_full.py</c>),
 /// and the library DTOs, enums, routes, problem types and limits match it. When the CTO re-merges 1.22.0 onto 013's 1.12.0,
 /// only <see cref="Base"/> is re-pointed (every expectation is computed relative to it).
 /// </summary>
@@ -28,7 +28,7 @@ public sealed partial class LibraryContractTests
     };
 
     /// <summary>The full document 1.22.0 was merged onto (012's 1.11.0; 013's 1.12.0 after the CTO re-merge).</summary>
-    private static OpenApiContract Base => Backend012;
+    private static OpenApiContract Base => Backend013;
 
     private static OpenApiContract Delta => Backend022Delta;
 

@@ -1,0 +1,33 @@
+@page "/care"
+@* Library care (013, FR-030-FR-033; ui-test-ids 1.12.0 care-*): Backups and Storage tabs (role="tablist", arrow keys
+   move between them, ?tab=storage selects the second). data-gate follows the library care status. *@
+@implements IDisposable
+
+<PageTitle>Library care - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-care-page" data-testid="care-page" data-gate="@WireName.Of(StatusSource.Gate)" data-help-id="care-page">
+    <header class="ss-page-head">
+        <div class="ss-label-row"><h1>Library care</h1><HelpHint HelpId="care-page" /></div>
+        <p class="ss-help">Back up and restore your whole library, and see where your disk space goes.</p>
+    </header>
+
+    <div class="ss-care-tabs" role="tablist" aria-label="Library care" @onkeydown="OnTabKeyAsync">
+        <button type="button" role="tab" id="care-tab-backups" class="ss-care-tab-button" aria-selected="@Selected(CareTab.Backups)"
+                aria-controls="care-panel" tabindex="@TabIndex(CareTab.Backups)" @ref="_backupsTab" @onclick="() => Select(CareTab.Backups)"
+                data-testid="care-tab-backups">Backups</button>
+        <button type="button" role="tab" id="care-tab-storage" class="ss-care-tab-button" aria-selected="@Selected(CareTab.Storage)"
+                aria-controls="care-panel" tabindex="@TabIndex(CareTab.Storage)" @ref="_storageTab" @onclick="() => Select(CareTab.Storage)"
+                data-testid="care-tab-storage" data-help-id="care-tab-storage">Storage</button>
+    </div>
+
+    <div id="care-panel" role="tabpanel" aria-labelledby="@($"care-tab-{TabName}")" class="ss-care-panel">
+        @if (Tab == CareTab.Backups)
+        {
+            <BackupsTab Status="StatusSource.Current" />
+        }
+        else
+        {
+            <StorageTab Status="StatusSource.Current" />
+        }
+    </div>
+</div>

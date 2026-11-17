@@ -1,0 +1,61 @@
+# Tool configuration of the qa backup fixtures (tests/fixtures/backup, feature 013, T012). Not a
+# package: the generators run in the worker environment (`uv run --project worker ...`), which
+# provides numpy, soundfile, jsonschema, pytest, pytest-cov, ruff and mypy. Same limits as
+# tests/fixtures/pyproject.toml (SIG: complexity 5, 4 parameters, 15 statements).
+# See docs/testing/TEST-STRATEGY.md section 19.
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
+
+[tool.coverage.run]
+source = [
+    "backup_zip", "backup_library", "make_hostile_archives", "make_schema_archives",
+    "compare_library", "reference_validator",
+]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PTH", "RET", "ARG", "PL", "S",
+    "D", "C90", "T20", "ERA", "RUF",
+]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "backup_zip", "backup_library", "make_hostile_archives", "make_schema_archives",
+    "compare_library", "reference_validator",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5
+
+[tool.ruff.lint.pylint]
+max-args = 4
+max-statements = 15
+max-branches = 5
+max-returns = 4
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004", "ARG"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+explicit_package_bases = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR"

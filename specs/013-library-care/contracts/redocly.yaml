@@ -1,5 +1,6 @@
 # Lint configuration for the StemStudio OpenAPI 3.1 contracts (feature 013).
-# Run from the repo root: npx @redocly/cli@2.78.0 lint --config specs/013-library-care/contracts/redocly.yaml #   specs/013-library-care/contracts/backend-api.delta.openapi.yaml specs/013-library-care/contracts/worker-api.openapi.yaml
+# Run from the repo root: npx @redocly/cli@2.78.0 lint --config specs/013-library-care/contracts/redocly.yaml #   specs/013-library-care/contracts/backend-api.openapi.yaml specs/013-library-care/contracts/backend-api.delta.openapi.yaml specs/013-library-care/contracts/worker-api.openapi.yaml
+# Superset check ("newer contains older"): python -I specs/013-library-care/contracts/check_superset.py
 extends:
   - recommended
 rules:

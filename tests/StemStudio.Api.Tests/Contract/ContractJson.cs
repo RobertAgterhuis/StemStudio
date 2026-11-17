@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012 and 022).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012, 013 and 022).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -25,6 +25,11 @@ internal static class ContractJson
     private static readonly Lazy<OpenApiContract> LazyBackend1210 = new(() => Backend("011-claude-key"));
 
     private static readonly Lazy<OpenApiContract> LazyBackend012 = new(() => Backend("012"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend013 = new(() => Backend("013"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend013Delta =
+        new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "013", "backend-api.delta.openapi.yaml")));
 
     private static readonly Lazy<OpenApiContract> LazyBackend022Delta =
         new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "022", "backend-api.library-folders.openapi.yaml")));
@@ -60,6 +65,12 @@ internal static class ContractJson
 
     /// <summary>The 012 backend document (1.11.0), linked as <c>Contract/012/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend012 => LazyBackend012.Value;
+
+    /// <summary>The 013 backend document (1.12.0), linked as <c>Contract/013/backend-api.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend013 => LazyBackend013.Value;
+
+    /// <summary>The standalone 013 delta (1.12.0-delta.1), linked as <c>Contract/013/backend-api.delta.openapi.yaml</c>.</summary>
+    public static OpenApiContract Backend013Delta => LazyBackend013Delta.Value;
 
     /// <summary>The standalone 022 delta (1.22.0-delta.1), linked as <c>Contract/022/backend-api.library-folders.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend022Delta => LazyBackend022Delta.Value;

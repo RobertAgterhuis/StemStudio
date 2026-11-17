@@ -13,4 +13,10 @@ public static class StyleNaming
     /// <param name="takenNames">Names in the library.</param>
     /// <returns>A free name.</returns>
     public static string CopyName(string name, IEnumerable<string> takenNames) => CopyNames.Next(name, takenNames, StyleRules.MaxNameLength);
+
+    /// <summary>"&lt;name&gt; (restored)", numbered when taken, at most 60 characters (013 merge, research R-07).</summary>
+    /// <param name="name">The archived name.</param>
+    /// <param name="takenNames">Names in the library.</param>
+    /// <returns>A free name.</returns>
+    public static string RestoredName(string name, IEnumerable<string> takenNames) => CopyNames.Next(name, takenNames, StyleRules.MaxNameLength, CopyNames.RestoredWord);
 }

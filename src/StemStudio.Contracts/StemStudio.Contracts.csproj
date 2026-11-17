@@ -2,7 +2,8 @@
   <!-- HTTP contract DTOs shared by StemStudio.Api and StemStudio.Web. No dependencies (ADR-002).
        Mirrors specs/011-ai-composer-agent/followups/claude-key/contracts/backend-api.openapi.yaml (1.21.0 = 011's 1.10.0 + the
        claude-key delta) exactly; Agent/ holds the agent DTOs of 1.10.0 (agent-api.openapi.yaml 1.10.0-delta.1) and the Claude key
-       DTOs of 1.21.0 (backend-api.claude-key.openapi.yaml 1.21.0-delta.2). -->
+       DTOs of 1.21.0 (backend-api.claude-key.openapi.yaml 1.21.0-delta.2). Mixes/Practice* follow 012's 1.11.0;
+       LibraryCare/ and DetailPhaseDto.FilesRemovedAt follow specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0). -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Contracts</RootNamespace>
   </PropertyGroup>

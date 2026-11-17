@@ -13,7 +13,7 @@ from referencing.jsonschema import DRAFT202012
 SPEC_PATH = (
     Path(__file__).resolve().parents[3]
     / "specs"
-    / "008-sheet-music"
+    / "013-library-care"
     / "contracts"
     / "worker-api.openapi.yaml"
 )

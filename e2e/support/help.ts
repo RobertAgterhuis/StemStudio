@@ -203,3 +203,20 @@ export const practiceReferenceQueries: Readonly<Record<string, string>> = {
   'speed trainer': 'practice-speed-trainer',
   'sound quality': 'practice-sound-quality',
 };
+
+/**
+ * Reference queries of the help topics added by feature 013 (FR-030, area `mixes`): `library-care`,
+ * `backup-contents`, `backup-folder`, `backup-restore`, `backup-compatibility`, `backup-voice-data`,
+ * `storage-overview`, `storage-regenerable`, `storage-cleanup`. Ranking guarded by LibraryCareHelpTests.
+ */
+export const libraryCareReferenceQueries: Readonly<Record<string, string>> = {
+  'library care': 'library-care',
+  'what a backup contains': 'backup-contents',
+  'backups folder': 'backup-folder',
+  'restore a backup': 'backup-restore',
+  'older backup': 'backup-compatibility',
+  'voice profiles in backups': 'backup-voice-data',
+  'storage overview': 'storage-overview',
+  regenerable: 'storage-regenerable',
+  'free space safely': 'storage-cleanup',
+};

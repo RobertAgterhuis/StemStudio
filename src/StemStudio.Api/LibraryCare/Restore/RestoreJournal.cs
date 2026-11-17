@@ -1,0 +1,345 @@
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using StemStudio.Api.LibraryCare.Archive;
+using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Contracts.LibraryCare;
+
+namespace StemStudio.Api.LibraryCare.Restore;
+
+/// <summary>A move of the switch.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<JournalOp>))]
+public enum JournalOp
+{
+    /// <summary>A live item moved into the previous library.</summary>
+    MoveAside,
+
+    /// <summary>A staged (or previous) item moved into the live library.</summary>
+    MoveIn,
+}
+
+/// <summary>State of a journal.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<JournalState>))]
+public enum JournalState
+{
+    /// <summary>Planned, nothing moved.</summary>
+    Staged,
+
+    /// <summary>Moves in progress.</summary>
+    Switching,
+
+    /// <summary>Every move done.</summary>
+    Committed,
+
+    /// <summary>Moves undone after a failure or a crash.</summary>
+    RolledBack,
+}
+
+/// <summary>One move; paths are relative to the data directory.</summary>
+/// <param name="Op">The move kind.</param>
+/// <param name="From">Source.</param>
+/// <param name="To">Destination.</param>
+/// <param name="Done">Recorded after the move.</param>
+public sealed record JournalStep(JournalOp Op, string From, string To, bool Done);
+
+/// <summary>The journal of a restore or undo (<c>library-care/journal/&lt;restoreId&gt;.json</c>, data-model 5.5).</summary>
+public sealed record RestoreJournalRecord
+{
+    /// <summary>Id of the restore (also the previous library's folder).</summary>
+    public required Guid RestoreId { get; init; }
+
+    /// <summary><c>restore</c> or <c>undo</c>.</summary>
+    public required string Kind { get; init; }
+
+    /// <summary>The moves.</summary>
+    public required IReadOnlyList<JournalStep> Steps { get; init; }
+
+    /// <summary>State.</summary>
+    public required JournalState State { get; init; }
+
+    /// <summary>False for an empty library: the moved-aside files are deleted after the commit.</summary>
+    public required bool KeepPrevious { get; init; }
+
+    /// <summary>Folder (relative) removed after the commit, e.g. the emptied previous library of an undo.</summary>
+    public string? RemoveAfterCommit { get; init; }
+
+    /// <summary>
+    /// The record of the library moved aside, written after the commit; kept in the journal so start-up recovery can write
+    /// it when the process stopped between the commit and the record (null for an empty-library restore).
+    /// </summary>
+    public PreviousLibraryDto? Previous { get; init; }
+}
+
+/// <summary>Builds and validates switch plans.</summary>
+public static partial class JournalPlans
+{
+    /// <summary>Top-level items of a library.</summary>
+    public static IReadOnlyList<string> Items { get; } = ["stemstudio.db", "stemstudio.db-wal", "stemstudio.db-shm", "tracks", "assets", "generations", "voices", "uploads"];
+
+    /// <summary>The plan of a restore: live items aside into <c>previous/&lt;restoreId&gt;</c>, staged items in.</summary>
+    /// <param name="restoreId">Restore id.</param>
+    /// <param name="jobId">The job whose staging folder holds the library.</param>
+    /// <param name="paths">Library-care folders.</param>
+    /// <param name="keepPrevious">False for an empty library.</param>
+    /// <returns>The journal.</returns>
+    public static RestoreJournalRecord Restore(Guid restoreId, Guid jobId, LibraryCarePaths paths, bool keepPrevious)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        var staging = $"library-care/staging/{LibraryCarePaths.Id(jobId)}";
+        var aside = Aside(restoreId, paths);
+        var staged = MoveInOrder.Select(item => (From: item == "stemstudio.db" ? $"{staging}/stemstudio.db" : $"{staging}/files/{item}", To: item))
+            .Where(move => Exists(paths, move.From))
+            .Select(move => new JournalStep(JournalOp.MoveIn, move.From, move.To, false));
+        return new RestoreJournalRecord { RestoreId = restoreId, Kind = "restore", Steps = [.. aside, .. staged], State = JournalState.Staged, KeepPrevious = keepPrevious };
+    }
+
+    /// <summary>The plan of an undo: the restored library aside into <c>previous/&lt;undoId&gt;</c>, the previous library in.</summary>
+    /// <param name="previousId">The previous library.</param>
+    /// <param name="undoId">Id of the undo (the new previous library).</param>
+    /// <param name="paths">Library-care folders.</param>
+    /// <returns>The journal.</returns>
+    public static RestoreJournalRecord Undo(Guid previousId, Guid undoId, LibraryCarePaths paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        var previous = $"library-care/previous/{LibraryCarePaths.Id(previousId)}";
+        var back = MoveInOrder.Where(item => Exists(paths, $"{previous}/{item}")).Select(item => new JournalStep(JournalOp.MoveIn, $"{previous}/{item}", item, false));
+        return new RestoreJournalRecord
+        {
+            RestoreId = undoId,
+            Kind = "undo",
+            Steps = [.. Aside(undoId, paths), .. back],
+            State = JournalState.Staged,
+            KeepPrevious = true,
+            RemoveAfterCommit = previous,
+        };
+    }
+
+    /// <summary>True for a top-level item or a path below <c>library-care/(staging|previous)/GUID</c>.</summary>
+    /// <param name="path">A journal path.</param>
+    /// <returns>True when allowed.</returns>
+    public static bool IsAllowedPath(string path) => Items.Contains(path, StringComparer.Ordinal) || CarePath().IsMatch(path);
+
+    /// <summary>Refuses a journal with a path outside the allowed items.</summary>
+    /// <param name="journal">The journal.</param>
+    /// <returns>The journal.</returns>
+    public static RestoreJournalRecord Validate(RestoreJournalRecord journal)
+    {
+        ArgumentNullException.ThrowIfNull(journal);
+        var paths = journal.Steps.SelectMany(step => new[] { step.From, step.To }).Concat(journal.RemoveAfterCommit is { } extra ? [extra] : []);
+        return paths.All(IsAllowedPath) ? journal : throw ArchiveReader.Unsafe("The restore journal names a path outside the library; nothing was moved.");
+    }
+
+    /// <summary>
+    /// Moves in: the database last, so it appears only with its companions and every folder in place (a connection on the
+    /// live path cannot open, or create, anything before; feature 013 CTO E2E finding).
+    /// </summary>
+    private static IEnumerable<string> MoveInOrder => Items.Skip(1).Append(Items[0]);
+
+    /// <summary>
+    /// Moves aside every existing item; the database's companions always when the database exists, because a connection may
+    /// create them after the plan was made (a missing source is skipped by the switch).
+    /// </summary>
+    private static IEnumerable<JournalStep> Aside(Guid id, LibraryCarePaths paths) => Items
+        .Where(item => Exists(paths, item) || (FreshItems.DatabaseCompanions.Contains(item) && Exists(paths, Items[0])))
+        .Select(item => new JournalStep(JournalOp.MoveAside, item, $"library-care/previous/{LibraryCarePaths.Id(id)}/{item}", false));
+
+    private static bool Exists(LibraryCarePaths paths, string relative) => Path.Exists(Full(paths, relative));
+
+    /// <summary>The absolute path of a journal path.</summary>
+    /// <param name="paths">Library-care folders.</param>
+    /// <param name="relative">The journal path.</param>
+    /// <returns>The absolute path.</returns>
+    public static string Full(LibraryCarePaths paths, string relative)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        return Path.Combine(paths.Data.Root, relative.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    [GeneratedRegex(@"\Alibrary-care/(staging|previous)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/(stemstudio\.db(-wal|-shm)?|files(/(tracks|assets|generations|voices|uploads))?|tracks|assets|generations|voices|uploads))?\z", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex CarePath();
+}
+
+/// <summary>
+/// Journal files and their start-up recovery (research R-07): before <c>committed</c> every move is undone in reverse; after
+/// <c>committed</c> the post-commit steps are finished (folder removal, the previous library's record). A rollback that cannot
+/// put every item back leaves the journal <c>switching</c>, so the next start finishes it; an item created at a live path
+/// during the switch is removed only when it is fresh and empty (<see cref="FreshItems"/>).
+/// </summary>
+/// <param name="paths">Library-care folders.</param>
+/// <param name="retryDelay">Delay between move attempts of a rollback (default 200 ms).</param>
+public sealed class RestoreJournal(LibraryCarePaths paths, TimeSpan? retryDelay = null)
+{
+    /// <summary>Error text of a start-up whose journal could not be rolled back.</summary>
+    public const string RecoveryIncompleteText =
+        "A library switch could not be undone at start-up (a library file is in use or an unexpected file is in the way); nothing was deleted. Free the file and start StemStudio again.";
+
+    /// <summary>Writes a journal (write-through + rename).</summary>
+    /// <param name="journal">The journal.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    public async Task SaveAsync(RestoreJournalRecord journal, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(journal);
+        Directory.CreateDirectory(paths.JournalDirectory);
+        await JsonFiles.WriteAsync(paths.Journal(journal.RestoreId), journal, cancellationToken);
+    }
+
+    /// <summary>The absolute path of a journal path.</summary>
+    /// <param name="relative">The journal path.</param>
+    /// <returns>The absolute path.</returns>
+    public string Full(string relative) => JournalPlans.Full(paths, relative);
+
+    /// <summary>Reads a journal.</summary>
+    /// <param name="restoreId">Restore id.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The journal, or null.</returns>
+    public Task<RestoreJournalRecord?> FindAsync(Guid restoreId, CancellationToken cancellationToken) =>
+        JsonFiles.ReadAsync<RestoreJournalRecord>(paths.Journal(restoreId), cancellationToken);
+
+    /// <summary>
+    /// Rolls back every journal that did not commit, and puts back an item that a rolled-back journal left aside while the live
+    /// path is missing or holds only a fresh, empty item (013 CTO E2E: a rollback before the fix skipped the database).
+    /// </summary>
+    /// <param name="files">File seam.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The number of rolled-back or repaired journals.</returns>
+    /// <exception cref="InvalidOperationException">A journal could not be rolled back completely; it stays open.</exception>
+    public async Task<int> RecoverAsync(ILibraryFiles files, CancellationToken cancellationToken)
+    {
+        var journals = await AllAsync(cancellationToken);
+        var open = journals.Where(journal => journal.State is JournalState.Staged or JournalState.Switching).ToList();
+        var complete = true;
+        foreach (var journal in open)
+        {
+            complete &= await RollBackAsync(JournalPlans.Validate(journal), files, cancellationToken);
+        }
+
+        var repaired = await RepairAllAsync(journals.Where(journal => journal.State == JournalState.RolledBack), files);
+        return complete ? open.Count + repaired : throw new InvalidOperationException(RecoveryIncompleteText);
+    }
+
+    /// <summary>Finishes every committed journal whose post-commit steps did not run (idempotent).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The number of journals that needed a step.</returns>
+    public async Task<int> CompleteCommittedAsync(CancellationToken cancellationToken)
+    {
+        var count = 0;
+        foreach (var journal in (await AllAsync(cancellationToken)).Where(journal => journal.State == JournalState.Committed))
+        {
+            var removed = FinishCommitted(JournalPlans.Validate(journal));
+            var recorded = await RecordPreviousAsync(journal, cancellationToken);
+            count += removed || recorded ? 1 : 0;
+        }
+
+        return count;
+    }
+
+    /// <summary>The post-commit removal: the moved-aside files of an empty library, or the folder the journal names.</summary>
+    /// <param name="journal">A committed journal.</param>
+    /// <returns>True when a folder was removed.</returns>
+    public bool FinishCommitted(RestoreJournalRecord journal)
+    {
+        ArgumentNullException.ThrowIfNull(journal);
+        var remove = journal.KeepPrevious ? journal.RemoveAfterCommit : $"library-care/previous/{LibraryCarePaths.Id(journal.RestoreId)}";
+        if (remove is null || !Directory.Exists(Full(remove)))
+        {
+            return false;
+        }
+
+        Directory.Delete(Full(remove), recursive: true);
+        return true;
+    }
+
+    /// <summary>
+    /// Undoes every move in reverse (idempotent): a moved-in item goes back to staging, a moved-aside item back to its live
+    /// path, replacing a fresh, empty item created there meanwhile. Ends <c>rolledBack</c> only when every item is back;
+    /// otherwise the journal stays <c>switching</c> for start-up recovery.
+    /// </summary>
+    /// <param name="journal">The journal.</param>
+    /// <param name="files">File seam.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>True when every item is back.</returns>
+    public async Task<bool> RollBackAsync(RestoreJournalRecord journal, ILibraryFiles files, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(journal);
+        ArgumentNullException.ThrowIfNull(files);
+        var mover = Mover(files);
+        var complete = true;
+        foreach (var step in journal.Steps.Reverse())
+        {
+            complete &= await UndoAsync(step, mover);
+        }
+
+        await SaveAsync(journal with { State = complete ? JournalState.RolledBack : JournalState.Switching }, cancellationToken);
+        return complete;
+    }
+
+    private JournalMover Mover(ILibraryFiles files) => new(files, retryDelay ?? TimeSpan.FromMilliseconds(200));
+
+    private Task<bool> UndoAsync(JournalStep step, JournalMover mover)
+    {
+        var (from, to) = (Full(step.From), Full(step.To));
+        if (!Path.Exists(to))
+        {
+            return Task.FromResult(true);
+        }
+
+        // A moved-in item's source is in staging or a previous library, where nothing else writes; a live path may hold an
+        // item created after the original was moved aside.
+        return step.Op == JournalOp.MoveIn
+            ? Path.Exists(from) ? Task.FromResult(true) : mover.MoveAsync(to, from, [])
+            : mover.MoveAsync(to, from, [from]);
+    }
+
+    private async Task<int> RepairAllAsync(IEnumerable<RestoreJournalRecord> rolledBack, ILibraryFiles files)
+    {
+        var repaired = 0;
+        foreach (var journal in rolledBack)
+        {
+            repaired += await RepairAsync(JournalPlans.Validate(journal), files) ? 1 : 0;
+        }
+
+        return repaired;
+    }
+
+    private async Task<bool> RepairAsync(RestoreJournalRecord journal, ILibraryFiles files)
+    {
+        var mover = Mover(files);
+        var repaired = false;
+        foreach (var step in journal.Steps.Where(step => step.Op == JournalOp.MoveAside).Reverse())
+        {
+            var (live, aside) = (Full(step.From), Full(step.To));
+            if (Path.Exists(aside) && (!Path.Exists(live) || FreshItems.IsFreshEmpty(live)))
+            {
+                repaired |= await mover.MoveAsync(aside, live, [live]);
+            }
+        }
+
+        return repaired;
+    }
+
+    private async Task<List<RestoreJournalRecord>> AllAsync(CancellationToken cancellationToken)
+    {
+        var journals = new List<RestoreJournalRecord>();
+        if (Directory.Exists(paths.JournalDirectory))
+        {
+            foreach (var file in Directory.EnumerateFiles(paths.JournalDirectory, "*.json"))
+            {
+                journals.AddRange(await JsonFiles.ReadAsync<RestoreJournalRecord>(file, cancellationToken) is { } journal ? [journal] : []);
+            }
+        }
+
+        return journals;
+    }
+
+    private async Task<bool> RecordPreviousAsync(RestoreJournalRecord journal, CancellationToken cancellationToken)
+    {
+        var store = new PreviousLibraryStore(paths);
+        if (journal.Previous is not { } previous || !Directory.Exists(paths.Previous(previous.RestoreId)) || store.HasRecord(previous.RestoreId))
+        {
+            return false;
+        }
+
+        await store.SaveAsync(previous with { SizeBytes = store.SizeOf(previous.RestoreId) }, cancellationToken);
+        return true;
+    }
+}

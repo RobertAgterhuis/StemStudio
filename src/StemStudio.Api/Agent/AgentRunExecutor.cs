@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Stores;
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Api.Agent;
@@ -42,6 +43,7 @@ public sealed partial class AgentRunExecutor(IServiceScopeFactory scopes, AgentR
         try
         {
             await using var scope = scopes.CreateAsyncScope();
+            await (scope.ServiceProvider.GetService<LibraryGate>()?.WaitWhileMaintenanceAsync(stoppingToken) ?? Task.CompletedTask);
             await scope.ServiceProvider.GetRequiredService<IAgentRunService>().ExecuteAsync(runId, stoppingToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested)

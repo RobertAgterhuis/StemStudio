@@ -1,3 +1,4 @@
+using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Tracks;
 using StemStudio.Web.Services;
 
@@ -6,6 +7,16 @@ namespace StemStudio.Web.Mixer;
 /// <summary>Detail stem groups of <see cref="MixerState"/>: expansion and the hidden-channel rule (FR-012, FR-013).</summary>
 public sealed partial class MixerState
 {
+    private readonly DateTimeOffset? _detailFilesRemovedAt;
+    private IReadOnlyList<string> _keptExpanded = [];
+    private IReadOnlyList<DetailChannelSettingsDto> _keptDetailChannels = [];
+
+    /// <summary>True when the clean-up removed the track's detail stems (013 FR-025): no groups, parents play.</summary>
+    public bool DetailRemoved => _detailFilesRemovedAt is not null;
+
+    /// <summary>True when the detail stems are removed but the loaded mix has detail settings (<c>mixer-detail-removed</c>).</summary>
+    public bool KeepsRemovedDetailSettings => DetailRemoved && (_keptExpanded.Count > 0 || _keptDetailChannels.Count > 0);
+
     /// <summary>One group per split parent that exists on the track, in standard display order; all start collapsed.</summary>
     public IReadOnlyList<StemGroupState> Groups { get; }
 
@@ -49,6 +60,15 @@ public sealed partial class MixerState
 
     /// <summary>Every channel: the standard stems first, then the detail channels of each group in display order.</summary>
     public IEnumerable<ChannelState> AllChannels => Channels.Concat(Groups.SelectMany(g => g.Stems.Select(s => s.Channel)));
+
+    // A mix of a track whose detail stems were removed keeps its detail settings: they are saved back unchanged.
+    private void KeepRemovedDetail(MixSettingsDto settings)
+    {
+        if (DetailRemoved)
+        {
+            (_keptExpanded, _keptDetailChannels) = (settings.Expanded, settings.DetailChannels);
+        }
+    }
 
     private static List<StemGroupState> BuildGroups(TrackDto track) =>
         DetailPhaseText.SplitParents(track).Select(StemGroupState.From).ToList();

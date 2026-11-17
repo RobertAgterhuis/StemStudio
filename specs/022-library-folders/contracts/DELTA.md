@@ -93,3 +93,11 @@ python -I specs/022-library-folders/contracts/merge_full.py --check
 npx @redocly/cli@2.78.0 lint --config specs/022-library-folders/contracts/redocly.yaml specs/022-library-folders/contracts/backend-api.library-folders.openapi.yaml specs/022-library-folders/contracts/backend-api.openapi.yaml
 dotnet test tests/StemStudio.Api.Tests --filter "FullyQualifiedName~StemStudio.Api.Tests.Contract"
 ```
+
+**Done at the 022+023 round start (2026-11-17, `main` e8d6a5d8 merged)**: steps 1-3 above were run.
+`backend-api.openapi.yaml` 1.22.0 = 013's 1.12.0 + the delta (`x-stemstudio-contains` ends
+`1.11.0, 1.12.0, 1.22.0`; Redocly: valid, 11 warnings = the 11 of 1.12.0; `--check`: superset of
+1.12.0 and of the delta). `ui-test-ids.md` 1.22.0 = 1.12.0 + the 1.22.0 changelog paragraph + the
+1.22.0 section. `LibraryContractTests.Base` and `LibraryUiTestIdsTests.Base` point to `Contract/013`;
+`LibraryCareContractTests` now checks 013's own linked 1.12.0 (`ContractJson.Backend013`), since the
+current full document is 022's.

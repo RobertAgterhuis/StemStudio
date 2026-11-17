@@ -21,12 +21,22 @@ retried.
 | Volume | Contents | Back up? |
 |---|---|---|
 | `api-data` | SQLite database, uploads, stems, mixes, artwork, library, generations, voices | **Yes**, this is the user's data |
-| `worker-data` | Job files, result cache, temporary work | Optional (cache can be rebuilt) |
+| `worker-data` | Job files, result cache, temporary work | No (rebuilt from the library stems; 013 rehydration) |
 | `model-cache` | Downloaded model weights | Optional (downloaded again on demand) |
 | `web-keys` | ASP.NET data-protection keys | Optional |
 | `generator-data`, `singer-data`, `gpu-lease` (009, 010) | Generator work files, lease file | No |
 
-Back up `api-data` while the stack is stopped, for example:
+From 013 use **Library care** in the app instead: it backs up the running library consistently
+(online database snapshot and a write gate) into the backups folder, verifies archives and
+restores them (empty library, replace with undo, or add what is missing). The manual volume copy
+below remains a fallback for disaster recovery.
+
+At start-up the API first finishes or rolls back an interrupted restore from its journal, then
+marks library jobs that were running as failed (*interrupted by restart*), then applies
+migrations. A previous library kept by a replace restore uses as much space as the library;
+discard it in the app when it is no longer needed.
+
+Manual fallback: back up `api-data` while the stack is stopped, for example:
 
 ```
 docker compose stop
@@ -69,3 +79,21 @@ up the pinned newer version when the project updates it.
   command `interrupted` (its jobs keep running; there is no "Continue" yet, the user sends the
   command again). Development databases that applied an earlier, unreleased 011 `AddAgent`
   migration must be recreated (`docker compose down -v` deletes all data).
+
+## Interrupted library switch
+
+If the API stops at start-up with *"A library switch could not be undone at start-up ... Free the
+file and start StemStudio again."*, a restore or undo could not put every library item back, and
+the API refuses to serve a half-switched library. Nothing was deleted. To recover:
+
+1. Stop the stack (`docker compose stop`) and back up the `api-data` volume (see above).
+2. Open the volume (for example `docker run --rm -it -v stemstudio_api-data:/data alpine sh`) and
+   read the open journal in `/data/library-care/journal/<id>.json`. Each `moveAside` step names a
+   live item (`from`) and where it was put (`to`, under `library-care/previous/<id>/`).
+3. For each item that is still at its `to` path: move away whatever now sits at the live `from`
+   path (it is the file that blocked the rollback; keep it until the library works), then move the
+   item back to `from`.
+4. Start the stack. Recovery finds every item back, closes the journal as rolled back and serves
+   the library. Check the track count in the app, then remove the moved-away file.
+
+Do not delete anything under `library-care/previous/` while a journal is open.

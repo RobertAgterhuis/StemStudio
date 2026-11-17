@@ -1,0 +1,83 @@
+@* Clean-up preview and execution (013 US4, FR-022-FR-025; ui-test-ids 1.12.0 cleanup-*): every planned item with its
+   size and how to get it back, skipped items with the reason, the total, confirm, the freed size, and the readable
+   reason of a refused plan with "Preview again". *@
+@inherits CareDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-care-dialog" role="dialog" aria-modal="true" aria-labelledby="cleanup-dialog-title" data-testid="cleanup-dialog"
+         data-help-id="cleanup-dialog" @onkeydown="OnKeyAsync">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <div class="ss-label-row">
+                <h2 id="cleanup-dialog-title" class="ss-title" tabindex="-1" @ref="InitialFocus">@CleanupText.Title(Request)</h2>
+                <HelpHint HelpId="cleanup-dialog" />
+            </div>
+            <p class="ss-help">Only files StemStudio can make again are removed. Nothing is removed before you confirm.</p>
+
+            @if (Result is { } result)
+            {
+                <div role="status" data-testid="cleanup-result" data-freed-bytes="@result.FreedBytes">
+                    <p>Freed @ByteSize.Format(result.FreedBytes).</p>
+                    @if (result.Failed.Count > 0)
+                    {
+                        <p>Not removed:</p>
+                        <ul class="ss-care-list">
+                            @foreach (var failed in result.Failed)
+                            {
+                                <li>@CleanupText.Name(failed.Kind, failed.Title): @CleanupText.Reason(failed.Reason)</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+            else if (Plan is { } plan)
+            {
+                <ul class="ss-care-list" data-testid="cleanup-plan-items">
+                    @foreach (var item in plan.Items)
+                    {
+                        <li @key="(item.Kind, item.TrackId)" data-testid="@($"cleanup-plan-item-{CleanupText.ItemId(item.Kind, item.TrackId)}")">
+                            @CleanupText.Name(item.Kind, item.Title): @CareText.Count(item.Files, "file"), @ByteSize.Format(item.Bytes). @item.HowToRegenerate
+                        </li>
+                    }
+                </ul>
+                @if (plan.Items.Count == 0)
+                {
+                    <p>There is nothing to remove.</p>
+                }
+                @if (plan.Skipped.Count > 0)
+                {
+                    <div class="ss-notice" data-testid="cleanup-plan-skipped">
+                        <p>Skipped:</p>
+                        <ul class="ss-care-list">
+                            @foreach (var skipped in plan.Skipped)
+                            {
+                                <li>@CleanupText.Name(skipped.Kind, skipped.Title): @CleanupText.Reason(skipped.Reason)</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                <p class="ss-care-estimate" data-testid="cleanup-plan-total" data-bytes="@plan.TotalBytes">Frees @ByteSize.Format(plan.TotalBytes)</p>
+            }
+            else if (Error is null)
+            {
+                <Skeleton Lines="2" />
+            }
+
+            @if (Error is { } error)
+            {
+                <div class="ss-error" role="alert" data-testid="cleanup-error" data-code="@ErrorCode">
+                    @error
+                    <RadzenButton Text="Preview again" Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="PreviewAsync" data-testid="cleanup-repreview" />
+                </div>
+            }
+
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="@(Result is null ? "Cancel" : "Close")" ButtonStyle="ButtonStyle.Light" Click="CloseAsync" data-testid="cleanup-dialog-cancel" />
+                @if (Result is null)
+                {
+                    <RadzenButton Text="Remove" Icon="delete_sweep" ButtonStyle="ButtonStyle.Danger" Disabled="@(!CanConfirm)" IsBusy="Busy" BusyText="Removing..."
+                                  Click="ConfirmAsync" data-testid="cleanup-confirm" />
+                }
+            </div>
+        </FocusTrap>
+    </div>
+</div>

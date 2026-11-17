@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "generator": "tests/fixtures/backup/make_schema_archives.py",
+  "contract": "backup-archive 1.0.0, ui-test-ids 1.12.0 backup-row-<fileName> data-state",
+  "archives": [
+    {
+      "file": "schema-008.zip",
+      "state": "migration",
+      "outcome": "migrated",
+      "summary": "database at 20261115171827_AddScoreFacts (008): track, mix, export",
+      "bytes": 17163,
+      "sha256": "a3d46cf8f00bd807f9ca60983c0ffbbe2f0d4b67a5c2ef6f2d073062c857ac5f"
+    },
+    {
+      "file": "schema-010.zip",
+      "state": "migration",
+      "outcome": "migrated",
+      "summary": "database at 20261115200748_AddLyricsAndVoices (010): track, mix, export, voice profile with consent, lyrics sheet",
+      "bytes": 21111,
+      "sha256": "9a887278cf9c93061ae4ca4c63f0bfaae4e7115aa0a03baa4091415e6feaae0d"
+    },
+    {
+      "file": "schema-newer.zip",
+      "state": "incompatible",
+      "outcome": "archive-incompatible",
+      "summary": "migration history ends with the unknown 20991231235959_FromANewerStemStudio",
+      "bytes": 23256,
+      "sha256": "b628b4c7aefbf570c1ee37f9ce6ff7f8ed20192f4133afe039a8b206b789e5fe"
+    },
+    {
+      "file": "format-2.zip",
+      "state": "incompatible",
+      "outcome": "archive-incompatible",
+      "summary": "manifest formatVersion 2.0.0 (another format major)",
+      "bytes": 23189,
+      "sha256": "bec2b1395fab4684a2fef264f0c0e34df3e842cf4d44d10c8f411b50e0fa27b2"
+    },
+    {
+      "file": "not-a-backup.zip",
+      "state": "unrecognised",
+      "outcome": "archive-invalid",
+      "summary": "a ZIP without manifest.json",
+      "bytes": 162,
+      "sha256": "43980e817c431e44a95ad5f984a37e56a5a6a2feac44383ab10417adab767162"
+    },
+    {
+      "file": "not-a-zip.zip",
+      "state": "unrecognised",
+      "outcome": "archive-invalid",
+      "summary": "plain text named .zip",
+      "bytes": 180,
+      "sha256": "27a333466c8854b03685ba7ee1b3540edd1ba571e60297c4317554991a950d8e"
+    }
+  ]
+}

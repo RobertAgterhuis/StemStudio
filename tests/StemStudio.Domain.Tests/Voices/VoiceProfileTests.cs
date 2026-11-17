@@ -72,6 +72,19 @@ public sealed class VoiceProfileTests
     [Fact]
     public void Naming_NormalisesForUniqueness() => VoiceNaming.Normalize(" My Voice ").ShouldBe("MY VOICE");
 
+    [Fact]
+    public void RestoredName_UsesTheRestoredSuffix_AndRenameKeepsTheRest()
+    {
+        VoiceNaming.RestoredName("My voice", ["my VOICE"]).ShouldBe("My voice (restored)");
+        VoiceNaming.RestoredName("My voice", ["My voice (restored)"]).ShouldBe("My voice (restored 2)");
+        VoiceNaming.RestoredName(new string('v', 60), []).Length.ShouldBe(60);
+        var profile = VoiceProfile.Create(Guid.NewGuid(), Draft("My voice"), T0);
+
+        profile.RenameRestored("My voice (restored)");
+
+        (profile.DisplayName, profile.NormalizedName, profile.CreatedAt).ShouldBe(("My voice (restored)", "MY VOICE (RESTORED)", T0));
+    }
+
     private static VoiceProfileDraft Draft(string name) => new(name, new VoiceConsent("consent.v1", ConsentStatement.Sha256, "Pat Example", T0), Sample());
 
     private static VoiceSample Sample() => new(VoiceSampleSource.Recorded, "voices/x/sample.flac", new string('a', 64), new string('b', 64), 21.4, 0.78);

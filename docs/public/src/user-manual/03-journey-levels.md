@@ -54,6 +54,7 @@ Every new feature follows the same pattern (chapter numbers in brackets):
 | Sheet music (10) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
 | Practice tempo (5) | Speed, transpose, original speed and key, count-in on/off | Also 100 % reset, speed trainer, count-in bars and before every loop pass | Also exact values and the Stretch diagnostics |
 | AI agent (13) | Chat, plan and approvals | Step list with job details, backend badge, conversation actions, Claude usage, model choice | Full tool log, Claude model and effort |
+| Library care (14) | Backup profiles, backup list, download, restore (empty or replace), previous library, storage areas and parts, five largest tracks, the three clean-ups | Also backup options per part, check, add what is missing, track table, clean-up per track, bytes of a running job | Also an archive's contents list and the worker cache entries |
 
 ## Preferences
 

@@ -208,6 +208,9 @@ public sealed partial class BackendContractTests : IDisposable
                 "listAgentTools", "listConversations", "createConversation", "getConversation", "sendAgentMessage", "getAgentRun",
                 "streamAgentRunEvents", "submitAgentUiResult", "cancelAgentRun", "decideAgentApproval", "getAgentStatus", "getAgentSettings", "updateAgentSettings", "testAgentBackend",
                 "renameConversation", "deleteConversation", "undoLastAgentAction", "getClaudeKeyStatus", "storeClaudeKey", "deleteClaudeKey",
+                "getLibraryCareStatus", "listBackups", "createBackup", "estimateBackup", "getBackup", "deleteBackup", "downloadBackup",
+                "verifyBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "restoreBackup", "getPreviousLibrary", "revertRestore",
+                "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup", .. PendingLibraryCareOperations,
                 .. LibraryContractTests.LibraryOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations, .. PendingAgentOperations], ignoreOrder: true);
     }
 

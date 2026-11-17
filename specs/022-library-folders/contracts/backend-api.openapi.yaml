@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: StemStudio Backend API
   version: 1.22.0
-  x-stemstudio-contains: [1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, 1.9.0, 1.10.0, 1.21.0, 1.11.0, 1.22.0]
+  x-stemstudio-contains: [1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, 1.9.0, 1.10.0, 1.21.0, 1.11.0, 1.12.0, 1.22.0]
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -106,6 +106,31 @@ info:
       additions and carries 012's allocated label 1.11.0; labels identify the merged deltas, not an
       order. Full documents on `main`: 1.10.0 -> 1.21.0 -> 1.11.0 (this) -> 1.12.0 (013) ...
       `x-stemstudio-contains` lists every delta label merged into this document.
+      1.12.0 (additive, feature 013; ADR-022) - library care, tags `library-care` and `storage`:
+      `GET /api/library-care/status` (gate mode, active library job, backups folder, restore
+      blockers; also answers during maintenance); `/api/backups` (list, estimate, create, details,
+      download with Range/ETag, verify, delete, restore with `replace` or `merge` and the typed
+      confirmation); `/api/library-jobs` (list, get, cancel; one library job at a time, `409
+      library-job-running`); `/api/library-care/previous` (details, revert = undo restore, discard
+      with `DISCARD`); `GET /api/storage`, `POST /api/storage/cleanup/preview` and
+      `POST /api/storage/cleanup` (two-step clean-up of regenerable data only);
+      `DetailPhase.filesRemovedAt`. Archives live in the backups folder (`StemStudio:BackupDir`,
+      compose bind mount `/backups`), are addressed by file name only and follow backup-archive
+      1.0.0. **Write gate**: while a backup runs, the operations marked
+      `x-stemstudio-write-gate: backupRunning` answer `409` with problem type `backup-running`
+      (operations that already had a `409` or `503` response keep it; the response then carries the
+      new type); while a restore switches the library (seconds), every `/api/*` operation except
+      `getLibraryCareStatus` and `getLibraryJob` answers `503` problem type `library-maintenance`
+      with `Retry-After: 5` (`GET /health` stays up). Rehydration (worker 1.7.0) is invisible to
+      clients except the stage text "Preparing stems". Cross-site guard (CTO integration, T069):
+      every non-GET/HEAD/OPTIONS `/api/*` request whose `Origin` is not the web origin, or with
+      `Sec-Fetch-Site: cross-site`, answers `403` (problem title "Cross-site request refused") (requests
+      without `Origin` and CORS preflights are not affected). Merged unchanged from
+      `backend-api.delta.openapi.yaml` 1.12.0-delta.1 (T005): the shared `ProblemDetails`,
+      `ValidationProblem` and `NotFound` keep their earlier definitions, the delta's
+      `HttpValidationProblemDetails` is the existing `ValidationProblemDetails`; new response
+      `BackupRunning`. No 1.11.0 entry changes except the additive write-gate responses and
+      `DetailPhase.filesRemovedAt`. Full documents on `main`: ... -> 1.11.0 -> 1.12.0 (this).
       1.22.0 (additive, feature 022; ADR-036) - library by artist, album and song: tag `library`
       with the folder view (`GET /api/library/folders`, `GET /api/library/folders/{folderId}`:
       derived artist/album/song folders with art, counts, sort, paging, `ETag`/`304`,
@@ -153,6 +178,10 @@ tags:
     description: Own-voice profiles with consent and voice conversion of song takes (1.9.0).
   - name: agent
     description: The AI composer agent - chat commands executed as StemStudio actions (1.10.0, feature 011); Claude key in Settings (1.21.0).
+  - name: library-care
+    description: Backups, restore and library jobs (1.12.0).
+  - name: storage
+    description: Storage overview and clean-up of regenerable data (1.12.0).
   - name: library
     description: Library folders by artist, album and song, live search and library info (1.22.0).
   - name: health
@@ -355,6 +384,7 @@ paths:
         `queued` or `running` (cancel it first); otherwise 409. The stored upload (if any), the track's stem files and all of its mixes are
         removed. The worker's per-source cache is not touched, so importing the same source again
         may complete instantly.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
@@ -362,6 +392,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/tracks/{trackId}/retry:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -370,6 +402,7 @@ paths:
       operationId: retryTrack
       summary: Retry a failed track (new worker job, status back to queued).
       description: Upload sources can be retried only while the API still holds the uploaded file; otherwise 409.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '202':
           description: A new job was started.
@@ -811,6 +844,7 @@ paths:
             encoding:
               file:
                 contentType: image/jpeg, image/png, image/webp, application/octet-stream
+      x-stemstudio-write-gate: backupRunning
       responses:
         '200':
           description: The track with its new picture.
@@ -862,11 +896,14 @@ paths:
                 detail: The picture has more than 40 megapixels.
         '503':
           $ref: '#/components/responses/WorkerUnavailable'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
     delete:
       tags: [artwork]
       operationId: resetTrackArtwork
       summary: Remove the own picture and go back to the automatic one (1.4.0).
       description: Idempotent; without an own picture the track is returned unchanged.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '200':
           description: The track with the automatic picture (or none).
@@ -876,6 +913,10 @@ paths:
                 $ref: '#/components/schemas/Track'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/tracks/{trackId}/band-info:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -1141,11 +1182,16 @@ paths:
       tags: [assets]
       operationId: deleteAsset
       summary: Delete a library item and its files (an active render is cancelled).
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/assets/{assetId}/retry:
     parameters:
       - $ref: '#/components/parameters/AssetId'
@@ -1697,6 +1743,7 @@ paths:
       tags: [styles]
       operationId: deleteStyle
       summary: Delete a user style (1.8.0); generations keep their snapshot.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
@@ -1704,6 +1751,10 @@ paths:
           $ref: '#/components/responses/PresetReadOnly'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/styles/{styleId}/duplicate:
     parameters:
       - $ref: '#/components/parameters/StyleId'
@@ -1831,11 +1882,16 @@ paths:
       operationId: deleteGeneration
       summary: Delete a generation (1.8.0).
       description: An active generation is cancelled first. Removes the take files and their library items; tracks imported from takes are kept (their `origin` keeps the generation id).
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/generations/{generationId}/cancel:
     parameters:
       - $ref: '#/components/parameters/GenerationId'
@@ -2089,11 +2145,16 @@ paths:
       tags: [songs]
       operationId: deleteLyricsSheet
       summary: Delete a lyrics sheet; songs keep their lyrics snapshot (1.9.0).
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/songs:
     post:
       tags: [songs]
@@ -2236,11 +2297,16 @@ paths:
           schema:
             type: boolean
             default: false
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/BackupRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/voice-profiles/{profileId}/sample:
     parameters:
       - $ref: '#/components/parameters/ProfileId'
@@ -2623,6 +2689,7 @@ paths:
       tags: [agent]
       operationId: deleteConversation
       summary: Delete a conversation with its runs, steps, approvals, undo entries and events.
+      x-stemstudio-write-gate: backupRunning
       responses:
         '204':
           description: Deleted.
@@ -2630,6 +2697,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/AgentConflict'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/agent/conversations/{conversationId}/messages:
     parameters:
       - $ref: '#/components/parameters/ConversationId'
@@ -2820,6 +2889,530 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/AgentConflict'
+  /api/library-care/status:
+    get:
+      tags: [library-care]
+      operationId: getLibraryCareStatus
+      summary: Gate mode, the active library job, the backups folder state and blockers for a restore.
+      description: Always answers, also during maintenance (the UI polls it to leave the maintenance screen).
+      responses:
+        '200':
+          description: Current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryCareStatus'
+              examples:
+                idle:
+                  $ref: '#/components/examples/StatusIdle'
+                backupRunning:
+                  $ref: '#/components/examples/StatusBackupRunning'
+  /api/backups:
+    get:
+      tags: [library-care]
+      operationId: listBackups
+      summary: Archives in the backups folder, newest first, with their manifest summary.
+      description: |
+        Lists every `*.zip` file (not `*.partial`) in the backups folder. A file without a readable
+        manifest is listed with `recognised: false` and the reason. Manifests are read from the
+        central directory (no full read); results are cached per file name, size and modification
+        time.
+      responses:
+        '200':
+          description: The folder state and the archives.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupList'
+              examples:
+                twoArchives:
+                  $ref: '#/components/examples/BackupListTwo'
+    post:
+      tags: [library-care]
+      operationId: createBackup
+      summary: Start a backup of the library into the backups folder.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupOptions'
+            example:
+              detailStems: false
+              exports: true
+              scores: true
+              generations: true
+              voiceProfiles: true
+      responses:
+        '202':
+          description: Backup job accepted.
+          headers:
+            Location:
+              description: URL of the library job.
+              schema:
+                type: string
+              example: /api/library-jobs/8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+              examples:
+                queued:
+                  $ref: '#/components/examples/BackupJobQueued'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '409':
+          description: |
+            `library-job-running` (another library job is active), `backups-folder-unavailable`
+            (missing or not writable; `detail` has the reason), `insufficient-disk-space`
+            (extension members `requiredBytes`, `freeBytes`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://stemstudio.local/problems/insufficient-disk-space
+                title: Not enough free space in the backups folder
+                status: 409
+                detail: The backup needs about 21.4 GB; 12.0 GB is free.
+                requiredBytes: 21474836480
+                freeBytes: 12884901888
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/backups/estimate:
+    get:
+      tags: [library-care]
+      operationId: estimateBackup
+      summary: Size per category and free space for the given options.
+      parameters:
+        - $ref: '#/components/parameters/IncludeDetailStems'
+        - $ref: '#/components/parameters/IncludeExports'
+        - $ref: '#/components/parameters/IncludeScores'
+        - $ref: '#/components/parameters/IncludeGenerations'
+        - $ref: '#/components/parameters/IncludeRecordings'
+        - $ref: '#/components/parameters/IncludeVoiceProfiles'
+      responses:
+        '200':
+          description: The estimate (from a storage walk, at most 30 s old).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupEstimate'
+              examples:
+                defaults:
+                  $ref: '#/components/examples/EstimateDefaults'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/backups/{fileName}:
+    parameters:
+      - $ref: '#/components/parameters/FileName'
+    get:
+      tags: [library-care]
+      operationId: getBackup
+      summary: Details of one archive (manifest summary, consent proofs, compatibility).
+      responses:
+        '200':
+          description: The archive details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: '`archive-invalid`: not a ZIP or no valid manifest.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    delete:
+      tags: [library-care]
+      operationId: deleteBackup
+      summary: Delete an archive from the backups folder.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`archive-in-use`: a library job reads or writes this archive.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/backups/{fileName}/file:
+    parameters:
+      - $ref: '#/components/parameters/FileName'
+    get:
+      tags: [library-care]
+      operationId: downloadBackup
+      summary: Download the archive (resumable).
+      description: Served from disk with `Content-Disposition attachment`, `Accept-Ranges bytes`, `ETag`, `Last-Modified` (same semantics as stems, 1.0.1).
+      parameters:
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          example: bytes=0-1048575
+      responses:
+        '200':
+          description: The whole archive.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: attachment; filename="stemstudio-backup-20261116-142233.zip"
+            ETag:
+              schema:
+                type: string
+          content:
+            application/zip:
+              schema:
+                type: string
+                contentMediaType: application/zip
+        '206':
+          description: A byte range.
+          content:
+            application/zip:
+              schema:
+                type: string
+                contentMediaType: application/zip
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '416':
+          description: Range not satisfiable.
+  /api/backups/{fileName}/verify:
+    parameters:
+      - $ref: '#/components/parameters/FileName'
+    post:
+      tags: [library-care]
+      operationId: verifyBackup
+      summary: Check every entry of an archive (structure, layout, hashes, database integrity) without restoring it.
+      responses:
+        '202':
+          description: Verify job accepted; the report is in `LibraryJob.report` (`VerifyReport`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/LibraryJobRunning'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/backups/{fileName}/restore:
+    parameters:
+      - $ref: '#/components/parameters/FileName'
+    post:
+      tags: [library-care]
+      operationId: restoreBackup
+      summary: Restore an archive (empty library, replace or merge).
+      description: |
+        Validates the whole archive before any change (data-model 3.4), migrates an older schema
+        in staging, then switches the library in one journalled step. `mode: replace` on a
+        non-empty library needs `confirmation: "REPLACE"` and keeps the current library as the
+        previous library (at most one may exist). `mode: merge` adds what is missing (P3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreOptions'
+            examples:
+              replace:
+                value:
+                  mode: replace
+                  voiceProfiles: true
+                  confirmation: REPLACE
+              merge:
+                value:
+                  mode: merge
+                  voiceProfiles: false
+      responses:
+        '202':
+          description: Restore job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+              examples:
+                running:
+                  $ref: '#/components/examples/RestoreJobExtracting'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            `library-job-running`; `backup-running`; `jobs-active` (extension member `activeWork`:
+            `ActiveWork[]`); `previous-library-exists` (discard or undo it first);
+            `insufficient-disk-space` (`requiredBytes`, `freeBytes`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://stemstudio.local/problems/jobs-active
+                title: Jobs are running
+                status: 409
+                detail: Wait for 2 jobs to finish or cancel them, then restore.
+                activeWork:
+                  - kind: export
+                    id: 2f6d8a0c-1b3e-4f5a-9c7d-8e9f0a1b2c3d
+                    title: Song title - vocals
+                  - kind: generation
+                    id: 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
+                    title: Restyle of Song title
+        '422':
+          description: |
+            `confirmation-required` (replace without `confirmation: "REPLACE"`),
+            `archive-incompatible` (format major or newer migrations; extension members
+            `archiveBackendApi`, `unknownMigrations`), `archive-invalid`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/library-jobs:
+    get:
+      tags: [library-care]
+      operationId: listLibraryJobs
+      summary: Recent library jobs, newest first (at most 50 are kept).
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: The jobs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LibraryJob'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/library-jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [library-care]
+      operationId: getLibraryJob
+      summary: Status of a library job (also during maintenance).
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+              examples:
+                backupRunning:
+                  $ref: '#/components/examples/BackupJobRunning'
+                backupCompleted:
+                  $ref: '#/components/examples/BackupJobCompleted'
+                restoreCompleted:
+                  $ref: '#/components/examples/RestoreJobCompleted'
+                restoreFailed:
+                  $ref: '#/components/examples/RestoreJobFailedUnsafe'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/library-jobs/{jobId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    post:
+      tags: [library-care]
+      operationId: cancelLibraryJob
+      summary: Cancel a queued or running library job.
+      description: 'A backup removes its partial file, a restore its staging folder; within 5 seconds the job is `cancelled`. A restore cannot be cancelled once it switches the library (`cancellable` false).'
+      responses:
+        '202':
+          description: Cancellation requested; the job is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`not-cancellable`: terminal, or a restore in the switch or reconcile stage.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /api/library-care/previous:
+    get:
+      tags: [library-care]
+      operationId: getPreviousLibrary
+      summary: The library kept aside by the last replace restore.
+      responses:
+        '200':
+          description: The previous library.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviousLibrary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/library-care/previous/revert:
+    post:
+      tags: [library-care]
+      operationId: revertRestore
+      summary: Undo the last replace restore (switch back to the previous library).
+      description: Runs an `undoRestore` library job with the same journal; the restored library becomes the previous library. Refused while jobs are active.
+      responses:
+        '202':
+          description: Undo job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`library-job-running`, `backup-running`, `jobs-active` (with `activeWork`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/library-care/previous/discard:
+    post:
+      tags: [library-care]
+      operationId: discardPreviousLibrary
+      summary: Permanently delete the previous library.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Confirmation'
+            example:
+              confirmation: DISCARD
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`library-job-running`, `backup-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: '`confirmation-required`: the confirmation is not `DISCARD`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/storage:
+    get:
+      tags: [storage]
+      operationId: getStorageOverview
+      summary: Disk use per category, per track, per model cache, and free space.
+      parameters:
+        - name: refresh
+          in: query
+          required: false
+          description: Bypass the 30-second cache.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: The overview. Parts that cannot be measured carry `reason` instead of numbers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageOverview'
+              examples:
+                small:
+                  $ref: '#/components/examples/StorageSmall'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/storage/cleanup/preview:
+    post:
+      tags: [storage]
+      operationId: previewCleanup
+      summary: Plan a clean-up of regenerable data; nothing is removed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CleanupRequest'
+            example:
+              actions:
+                - kind: detailStems
+                  trackIds: null
+                - kind: leftovers
+      responses:
+        '200':
+          description: The plan, valid for 10 minutes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupPlan'
+              examples:
+                detail:
+                  $ref: '#/components/examples/CleanupPlanDetail'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '409':
+          description: '`backup-running`, `library-job-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
+  /api/storage/cleanup:
+    post:
+      tags: [storage]
+      operationId: executeCleanup
+      summary: Execute a previewed clean-up plan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteCleanupRequest'
+            example:
+              planId: 3c5e7a9b-1d2f-4a6b-8c0d-2e4f6a8b0c1d
+      responses:
+        '200':
+          description: What was removed and what failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '409':
+          description: '`plan-expired` (unknown or older than 10 minutes), `plan-stale` (library changed since the preview), `backup-running`, `library-job-running`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          $ref: '#/components/responses/Maintenance'
   /api/library/folders:
     get:
       tags: [library]
@@ -3155,6 +3748,65 @@ components:
       schema:
         type: string
         format: uuid
+    FileName:
+      name: fileName
+      in: path
+      required: true
+      description: Archive file name in the backups folder.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$'
+      example: stemstudio-backup-20261116-142233.zip
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+    IncludeDetailStems:
+      name: detailStems
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    IncludeExports:
+      name: exports
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    IncludeScores:
+      name: scores
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    IncludeGenerations:
+      name: generations
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    IncludeRecordings:
+      name: recordings
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    IncludeVoiceProfiles:
+      name: voiceProfiles
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
     FolderId:
       name: folderId
       in: path
@@ -3566,6 +4218,14 @@ components:
         updatedAt:
           type: [string, 'null']
           format: date-time
+        filesRemovedAt:
+          type: [string, 'null']
+          format: date-time
+          description: |
+            1.12.0 (feature 013). When set, the detail stems were removed by a clean-up or left out
+            of a restored backup; `parents[].stems` still lists their names, their URLs answer 404,
+            and `POST /api/tracks/{trackId}/detail` ("Split further") is accepted for this completed
+            phase (the field is cleared when the new phase completes). Absent or null otherwise.
     DetailChannelSettings:
       type: object
       additionalProperties: false
@@ -6825,6 +7485,838 @@ components:
           const: run.interrupted
         data:
           $ref: '#/components/schemas/RunInterruptedEvent'
+    Category:
+      type: string
+      description: Archive and storage categories (backup-archive 1.0.0).
+      enum: [database, stems, artwork, pendingUploads, detailStems, exports, scores, generations, recordings, voiceProfiles]
+    StorageCategory:
+      type: string
+      enum: [database, stems, artwork, pendingUploads, detailStems, exports, scores, generations, recordings, voiceProfiles, leftovers, restoreStaging, previousLibrary, workerSeparationCache, workerDetailCache, workerJobFiles, workerScratch]
+    Regenerability:
+      type: string
+      description: '`original` = StemStudio cannot recreate it; `regenerable` = one action (or automatic use) recreates it.'
+      enum: [original, regenerable]
+    LibraryJobKind:
+      type: string
+      enum: [backup, verify, restore, undoRestore]
+    LibraryJobStatus:
+      type: string
+      description: '`completed`, `failed` and `cancelled` are terminal.'
+      enum: [queued, running, completed, failed, cancelled]
+    GateMode:
+      type: string
+      enum: [open, backupRunning, maintenance]
+    FolderState:
+      type: object
+      additionalProperties: false
+      required: [available, writable, hostPathHint, freeBytes, totalBytes, reason]
+      properties:
+        available:
+          type: boolean
+        writable:
+          type: boolean
+        hostPathHint:
+          type: [string, 'null']
+          maxLength: 260
+          description: Display only (`StemStudio:BackupHostDirHint`), e.g. `./backups`.
+        freeBytes:
+          type: [integer, 'null']
+        totalBytes:
+          type: [integer, 'null']
+        reason:
+          type: [string, 'null']
+          maxLength: 300
+          description: Why the folder is not available or not writable, with the fix.
+    ActiveWork:
+      type: object
+      additionalProperties: false
+      required: [kind, id, title]
+      properties:
+        kind:
+          type: string
+          enum: [import, detail, export, score, lyricsAlignment, generation, agentRun]
+        id:
+          type: string
+          maxLength: 64
+        title:
+          type: string
+          maxLength: 300
+    LibraryCareStatus:
+      type: object
+      additionalProperties: false
+      required: [gate, activeJob, backupFolder, previousLibrary, activeWork, libraryEmpty]
+      properties:
+        gate:
+          $ref: '#/components/schemas/GateMode'
+        activeJob:
+          oneOf:
+            - $ref: '#/components/schemas/LibraryJob'
+            - type: 'null'
+        backupFolder:
+          $ref: '#/components/schemas/FolderState'
+        previousLibrary:
+          oneOf:
+            - $ref: '#/components/schemas/PreviousLibrary'
+            - type: 'null'
+        activeWork:
+          type: array
+          description: Queued or running jobs that block a restore.
+          items:
+            $ref: '#/components/schemas/ActiveWork'
+        libraryEmpty:
+          type: boolean
+          description: True when a restore needs no replace (research R-07 definition).
+    BackupOptions:
+      type: object
+      additionalProperties: false
+      description: Optional categories; `database`, `stems`, `artwork` and `pendingUploads` are always included.
+      properties:
+        detailStems:
+          type: boolean
+          default: true
+        exports:
+          type: boolean
+          default: true
+        scores:
+          type: boolean
+          default: true
+        generations:
+          type: boolean
+          default: true
+        recordings:
+          type: boolean
+          default: true
+          description: Play-along takes of feature 015 (user-created originals; empty before 015).
+        voiceProfiles:
+          type: boolean
+          default: true
+    CategorySize:
+      type: object
+      additionalProperties: false
+      required: [category, included, optional, bytes, files, regenerability]
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        included:
+          type: boolean
+        optional:
+          type: boolean
+        bytes:
+          type: integer
+          minimum: 0
+        files:
+          type: integer
+          minimum: 0
+        regenerability:
+          $ref: '#/components/schemas/Regenerability'
+    BackupEstimate:
+      type: object
+      additionalProperties: false
+      required: [totalBytes, categories, folder, enough]
+      properties:
+        totalBytes:
+          type: integer
+          minimum: 0
+          description: Uncompressed size of the archive (audio is stored; the archive is about this size).
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategorySize'
+        folder:
+          $ref: '#/components/schemas/FolderState'
+        enough:
+          type: boolean
+          description: Free space >= totalBytes + 64 MiB.
+    Compatibility:
+      type: object
+      additionalProperties: false
+      required: [restorable, reason, migrationNeeded]
+      properties:
+        restorable:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          maxLength: 300
+        migrationNeeded:
+          type: boolean
+          description: The archive's schema is older; it is migrated in staging.
+    BackupSummary:
+      type: object
+      additionalProperties: false
+      required: [fileName, sizeBytes, modifiedAt, recognised, reason, backupId, createdAt, appVersion, backendApi, formatVersion, included, counts, compatibility]
+      properties:
+        fileName:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$'
+        sizeBytes:
+          type: integer
+        modifiedAt:
+          type: string
+          format: date-time
+        recognised:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          description: Why the file is not recognised (no manifest, not a ZIP).
+        backupId:
+          type: [string, 'null']
+          format: uuid
+        createdAt:
+          type: [string, 'null']
+          format: date-time
+        appVersion:
+          type: [string, 'null']
+        backendApi:
+          type: [string, 'null']
+        formatVersion:
+          type: [string, 'null']
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        counts:
+          oneOf:
+            - $ref: '#/components/schemas/ArchiveCounts'
+            - type: 'null'
+        compatibility:
+          $ref: '#/components/schemas/Compatibility'
+    ArchiveCounts:
+      type: object
+      additionalProperties: false
+      required: [tracks, mixes, assets, generations, styles, lyricsSheets, voiceProfiles]
+      properties:
+        tracks:
+          type: integer
+        mixes:
+          type: integer
+        assets:
+          type: integer
+        generations:
+          type: integer
+        styles:
+          type: integer
+        lyricsSheets:
+          type: integer
+        voiceProfiles:
+          type: integer
+    BackupList:
+      type: object
+      additionalProperties: false
+      required: [folder, archives]
+      properties:
+        folder:
+          $ref: '#/components/schemas/FolderState'
+        archives:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupSummary'
+    VoiceProfileProof:
+      type: object
+      additionalProperties: false
+      description: Consent proof from the manifest (010); shown before a restore.
+      required: [id, displayName, statementVersion, personName, consentedAt, valid, reason]
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+          maxLength: 60
+        statementVersion:
+          type: string
+        personName:
+          type: string
+          maxLength: 80
+        consentedAt:
+          type: string
+          format: date-time
+        valid:
+          type: boolean
+          description: Statement version known and statement SHA-256 matching (the full check runs during restore).
+        reason:
+          type: [string, 'null']
+    ArchiveWarning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [missing-file, changed-after-snapshot, voice-profile-without-consent, interrupted-entity]
+        message:
+          type: string
+          maxLength: 500
+    BackupDetails:
+      type: object
+      additionalProperties: false
+      description: Every member of `BackupSummary` plus the manifest details (one closed object; `BackupSummary` is closed, so it cannot be extended with `allOf`).
+      required: [fileName, sizeBytes, modifiedAt, recognised, reason, backupId, createdAt, appVersion, backendApi, formatVersion, included, counts, compatibility, excluded, entries, totalBytes, schemaLastMigration, voiceProfiles, warnings]
+      properties:
+        fileName:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$'
+        sizeBytes:
+          type: integer
+        modifiedAt:
+          type: string
+          format: date-time
+        recognised:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          description: Why the file is not recognised (no manifest, not a ZIP).
+        backupId:
+          type: [string, 'null']
+          format: uuid
+        createdAt:
+          type: [string, 'null']
+          format: date-time
+        appVersion:
+          type: [string, 'null']
+        backendApi:
+          type: [string, 'null']
+        formatVersion:
+          type: [string, 'null']
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        counts:
+          oneOf:
+            - $ref: '#/components/schemas/ArchiveCounts'
+            - type: 'null'
+        compatibility:
+          $ref: '#/components/schemas/Compatibility'
+        excluded:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        entries:
+          type: integer
+        totalBytes:
+          type: integer
+        schemaLastMigration:
+          type: string
+        voiceProfiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceProfileProof'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveWarning'
+    RestoreOptions:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [replace, merge]
+          description: '`replace` also covers an empty library (nothing is moved aside). `merge` is P3.'
+        voiceProfiles:
+          type: boolean
+          default: true
+          description: false = no voice profile is restored (their converted takes are kept with the name snapshot).
+        confirmation:
+          type: [string, 'null']
+          description: Must be `REPLACE` for `replace` on a non-empty library.
+    Confirmation:
+      type: object
+      additionalProperties: false
+      required: [confirmation]
+      properties:
+        confirmation:
+          type: string
+          maxLength: 16
+    JobError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [interrupted, insufficient-disk-space, backups-folder-unavailable, archive-invalid, archive-incompatible, archive-unsafe, archive-corrupt, migration-failed, io-error]
+        message:
+          type: string
+          maxLength: 500
+    CategoryCount:
+      type: object
+      additionalProperties: false
+      required: [category, items, files, bytes]
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        items:
+          type: integer
+        files:
+          type: integer
+        bytes:
+          type: integer
+    SkippedItem:
+      type: object
+      additionalProperties: false
+      required: [category, id, name, reason]
+      properties:
+        category:
+          type: string
+        id:
+          type: string
+        name:
+          type: [string, 'null']
+        reason:
+          type: string
+          enum: [same-id, same-source, dependency-skipped, consent-invalid, option, missing-file]
+        renamedTo:
+          type: [string, 'null']
+    BackupReport:
+      type: object
+      additionalProperties: false
+      required: [type, fileName, included, entries, bytes, warnings]
+      properties:
+        type:
+          const: backup
+        fileName:
+          type: string
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryCount'
+        entries:
+          type: integer
+        bytes:
+          type: integer
+          description: Archive file size.
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveWarning'
+    VerifyReport:
+      type: object
+      additionalProperties: false
+      required: [type, ok, entriesChecked, bytesChecked, problem]
+      properties:
+        type:
+          const: verify
+        ok:
+          type: boolean
+        entriesChecked:
+          type: integer
+        bytesChecked:
+          type: integer
+        problem:
+          oneOf:
+            - $ref: '#/components/schemas/JobError'
+            - type: 'null'
+    RestoreReport:
+      type: object
+      additionalProperties: false
+      required: [type, mode, restored, skipped, migratedFrom, warnings, previousLibraryKept]
+      properties:
+        type:
+          const: restore
+        mode:
+          type: string
+          enum: [empty, replace, merge, undo]
+        restored:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryCount'
+        skipped:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkippedItem'
+        migratedFrom:
+          type: [string, 'null']
+          description: Last migration of the archive when it was migrated.
+        warnings:
+          type: array
+          items:
+            type: string
+            maxLength: 500
+        previousLibraryKept:
+          type: boolean
+    LibraryJob:
+      type: object
+      additionalProperties: false
+      required: [jobId, kind, status, stage, stageText, progress, bytesDone, bytesTotal, currentItem, etaSeconds, archiveFileName, cancellable, report, error, createdAt, startedAt, finishedAt]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/LibraryJobKind'
+        status:
+          $ref: '#/components/schemas/LibraryJobStatus'
+        stage:
+          type: [string, 'null']
+          enum: [snapshot, scrub, files, manifest, check, validate, extract, database, switch, reconcile, null]
+        stageText:
+          type: [string, 'null']
+          maxLength: 200
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        bytesDone:
+          type: integer
+          minimum: 0
+        bytesTotal:
+          type: integer
+          minimum: 0
+        currentItem:
+          type: [string, 'null']
+          maxLength: 300
+          description: e.g. "Song title - stems"; never a file path or personal content.
+        etaSeconds:
+          type: [integer, 'null']
+        archiveFileName:
+          type: [string, 'null']
+        cancellable:
+          type: boolean
+        report:
+          oneOf:
+            - $ref: '#/components/schemas/BackupReport'
+            - $ref: '#/components/schemas/VerifyReport'
+            - $ref: '#/components/schemas/RestoreReport'
+            - type: 'null'
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/JobError'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        finishedAt:
+          type: [string, 'null']
+          format: date-time
+    PreviousLibrary:
+      type: object
+      additionalProperties: false
+      required: [restoreId, movedAsideAt, sizeBytes, counts, restoredArchive]
+      properties:
+        restoreId:
+          type: string
+          format: uuid
+        movedAsideAt:
+          type: string
+          format: date-time
+        sizeBytes:
+          type: integer
+        counts:
+          $ref: '#/components/schemas/ArchiveCounts'
+        restoredArchive:
+          type: [string, 'null']
+    Volume:
+      type: object
+      additionalProperties: false
+      required: [id, label, freeBytes, totalBytes, sharedWith, reason]
+      properties:
+        id:
+          type: string
+          enum: [library, backups, workerData, modelCache]
+        label:
+          type: string
+        freeBytes:
+          type: [integer, 'null']
+        totalBytes:
+          type: [integer, 'null']
+        sharedWith:
+          type: array
+          description: Other volume ids on the same disk (same total and free bytes).
+          items:
+            type: string
+        reason:
+          type: [string, 'null']
+    StorageCategoryUsage:
+      type: object
+      additionalProperties: false
+      required: [category, bytes, files, regenerability, howToRegenerate, costHint]
+      properties:
+        category:
+          $ref: '#/components/schemas/StorageCategory'
+        bytes:
+          type: [integer, 'null']
+        files:
+          type: [integer, 'null']
+        regenerability:
+          $ref: '#/components/schemas/Regenerability'
+        howToRegenerate:
+          type: [string, 'null']
+          maxLength: 200
+        costHint:
+          type: [string, 'null']
+          maxLength: 120
+    WorkerCacheEntryStorage:
+      type: object
+      additionalProperties: false
+      required: [audioSha256Prefix, bytes, inUse, fromLibrary, trackId]
+      properties:
+        audioSha256Prefix:
+          type: string
+          pattern: '^[0-9a-f]{12}$'
+          description: First 12 hex characters of the worker's cache key (the audio SHA-256).
+        bytes:
+          type: integer
+          minimum: 0
+          description: Standard result, detail result, unfinished detail checkpoints and artwork of the entry.
+        inUse:
+          type: boolean
+          description: A queued or running worker job uses the entry (it is never cleaned while in use).
+        fromLibrary:
+          type: boolean
+          description: Created by a rehydration from the library stems (FR-019).
+        trackId:
+          type: [string, 'null']
+          format: uuid
+          description: The library track whose standard job uses the entry, or null.
+    TrackStorage:
+      type: object
+      additionalProperties: false
+      required: [trackId, title, artist, totalBytes, sourceBytes, stemsBytes, detailStemsBytes, detailFilesRemoved, artworkBytes, exportsBytes, scoresBytes, generationsBytes, recordingsBytes, workerCacheBytes]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        artist:
+          type: [string, 'null']
+        totalBytes:
+          type: integer
+        sourceBytes:
+          type: [integer, 'null']
+          description: Pending upload plus the worker separation cache of the track (null when the worker is unavailable and nothing is pending).
+        stemsBytes:
+          type: integer
+        detailStemsBytes:
+          type: integer
+        detailFilesRemoved:
+          type: boolean
+        artworkBytes:
+          type: integer
+        exportsBytes:
+          type: integer
+        scoresBytes:
+          type: integer
+        generationsBytes:
+          type: integer
+        recordingsBytes:
+          type: integer
+          description: Play-along takes of the track (feature 015; original, never in a clean-up).
+        workerCacheBytes:
+          type: [integer, 'null']
+    ModelCacheUsage:
+      type: object
+      additionalProperties: false
+      required: [id, bytes, models]
+      properties:
+        id:
+          type: string
+          description: Folder under the model cache, e.g. torch, hf, whisper, acestep, soulx.
+        bytes:
+          type: integer
+        models:
+          type: array
+          items:
+            type: string
+    StorageOverview:
+      type: object
+      additionalProperties: false
+      required: [measuredAt, volumes, categories, tracks, unattached, modelCaches, workerEntries, backups, worker]
+      properties:
+        measuredAt:
+          type: string
+          format: date-time
+        volumes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Volume'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageCategoryUsage'
+        tracks:
+          type: array
+          description: Sorted by totalBytes descending.
+          items:
+            $ref: '#/components/schemas/TrackStorage'
+        unattached:
+          type: object
+          additionalProperties: false
+          required: [exportsBytes, scoresBytes, generationsBytes, voiceProfilesBytes, lyricsSheets]
+          properties:
+            exportsBytes:
+              type: integer
+            scoresBytes:
+              type: integer
+            generationsBytes:
+              type: integer
+            voiceProfilesBytes:
+              type: integer
+            lyricsSheets:
+              type: integer
+        modelCaches:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelCacheUsage'
+        workerEntries:
+          type: array
+          description: |
+            Worker cache entries (one per audio file), largest first; empty when the worker is not
+            reachable. Shown at Expert (`storage-worker-entries`). Added editorially before the
+            1.12.0 release (CTO integration 013).
+          items:
+            $ref: '#/components/schemas/WorkerCacheEntryStorage'
+        backups:
+          type: object
+          additionalProperties: false
+          required: [count, bytes, folderAvailable, reason]
+          properties:
+            count:
+              type: integer
+            bytes:
+              type: integer
+            folderAvailable:
+              type: boolean
+            reason:
+              type: [string, 'null']
+        worker:
+          type: object
+          additionalProperties: false
+          required: [available, reason]
+          properties:
+            available:
+              type: boolean
+            reason:
+              type: [string, 'null']
+    CleanupKind:
+      type: string
+      enum: [detailStems, workerCache, leftovers]
+    CleanupAction:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind:
+          $ref: '#/components/schemas/CleanupKind'
+        trackIds:
+          type: [array, 'null']
+          description: null or absent = all tracks (ignored for leftovers).
+          maxItems: 10000
+          items:
+            type: string
+            format: uuid
+    CleanupRequest:
+      type: object
+      additionalProperties: false
+      required: [actions]
+      properties:
+        actions:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/CleanupAction'
+    CleanupItem:
+      type: object
+      additionalProperties: false
+      required: [kind, trackId, title, files, bytes, howToRegenerate]
+      properties:
+        kind:
+          $ref: '#/components/schemas/CleanupKind'
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        title:
+          type: [string, 'null']
+        files:
+          type: integer
+        bytes:
+          type: integer
+        howToRegenerate:
+          type: string
+          maxLength: 200
+    CleanupSkip:
+      type: object
+      additionalProperties: false
+      required: [kind, trackId, title, reason]
+      properties:
+        kind:
+          $ref: '#/components/schemas/CleanupKind'
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        title:
+          type: [string, 'null']
+        reason:
+          type: string
+          enum: [detail-active, job-active, export-active, worker-unavailable, nothing-to-remove]
+    CleanupPlan:
+      type: object
+      additionalProperties: false
+      required: [planId, createdAt, expiresAt, items, skipped, totalBytes]
+      properties:
+        planId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleanupItem'
+        skipped:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleanupSkip'
+        totalBytes:
+          type: integer
+    ExecuteCleanupRequest:
+      type: object
+      additionalProperties: false
+      required: [planId]
+      properties:
+        planId:
+          type: string
+          format: uuid
+    CleanupResult:
+      type: object
+      additionalProperties: false
+      required: [planId, freedBytes, removed, failed]
+      properties:
+        planId:
+          type: string
+          format: uuid
+        freedBytes:
+          type: integer
+        removed:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, trackId, files, bytes]
+            properties:
+              kind:
+                $ref: '#/components/schemas/CleanupKind'
+              trackId:
+                type: [string, 'null']
+                format: uuid
+              files:
+                type: integer
+              bytes:
+                type: integer
+        failed:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleanupSkip'
     FolderId:
       type: string
       pattern: '^(ar|al|so)[0-9a-f]{16}$'
@@ -7861,6 +9353,44 @@ components:
             title: Key store not available
             status: 503
             detail: "The key store is not available: the key ring directory is missing or not writable. The ANTHROPIC_API_KEY environment variable still works."
+    LibraryJobRunning:
+      description: '`library-job-running`: another library job is active.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/library-job-running
+            title: A library job is running
+            status: 409
+            detail: A backup is running; try again when it has finished.
+    Maintenance:
+      description: '`library-maintenance`: a restore is switching the library.'
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          example: 5
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/library-maintenance
+            title: Library is being restored
+            status: 503
+            detail: StemStudio is switching to the restored library; this takes a few seconds.
+    BackupRunning:
+      description: '`backup-running`: a backup is running; operations that delete or replace library files wait until it has finished (1.12.0 write gate).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/backup-running
+            title: A backup is running
+            status: 409
+            detail: A backup is running; try again when it has finished.
     FolderNotFound:
       description: The folder id is well-formed but no item is filed in it (any more).
       content:
@@ -9566,6 +11096,369 @@ components:
         version: consent.v1
         text: This is my own voice. I agree that StemStudio uses this recording on this computer to convert generated vocals into my voice. I can delete it at any time.
         textNl: Dit is mijn eigen stem. Ik ga ermee akkoord dat StemStudio deze opname op deze computer gebruikt om gegenereerde zang om te zetten naar mijn stem. Ik kan de opname op elk moment verwijderen.
+    StatusIdle:
+      value:
+        gate: open
+        activeJob: null
+        backupFolder:
+          available: true
+          writable: true
+          hostPathHint: ./backups
+          freeBytes: 412316860416
+          totalBytes: 1000204886016
+          reason: null
+        previousLibrary: null
+        activeWork: []
+        libraryEmpty: false
+    StatusBackupRunning:
+      value:
+        gate: backupRunning
+        activeJob:
+          jobId: 8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+          kind: backup
+          status: running
+          stage: files
+          stageText: 'Writing stems: 41 of 180'
+          progress: 23
+          bytesDone: 4831838208
+          bytesTotal: 21474836480
+          currentItem: Song title - stems
+          etaSeconds: 212
+          archiveFileName: stemstudio-backup-20261116-142233.zip
+          cancellable: true
+          report: null
+          error: null
+          createdAt: '2026-11-16T14:22:33Z'
+          startedAt: '2026-11-16T14:22:33Z'
+          finishedAt: null
+        backupFolder:
+          available: true
+          writable: true
+          hostPathHint: ./backups
+          freeBytes: 407484956672
+          totalBytes: 1000204886016
+          reason: null
+        previousLibrary: null
+        activeWork: []
+        libraryEmpty: false
+    BackupListTwo:
+      value:
+        folder:
+          available: true
+          writable: true
+          hostPathHint: ./backups
+          freeBytes: 412316860416
+          totalBytes: 1000204886016
+          reason: null
+        archives:
+          - fileName: stemstudio-backup-20261116-142233.zip
+            sizeBytes: 21391450112
+            modifiedAt: '2026-11-16T14:28:10Z'
+            recognised: true
+            reason: null
+            backupId: 5b0f6a3e-2c1d-4e8f-9a7b-1c2d3e4f5a6b
+            createdAt: '2026-11-16T14:22:33Z'
+            appVersion: 1.12.0+5ae61cf
+            backendApi: 1.12.0
+            formatVersion: 1.0.0
+            included: [database, stems, artwork, pendingUploads, exports, scores, generations, voiceProfiles]
+            counts:
+              tracks: 180
+              mixes: 64
+              assets: 40
+              generations: 12
+              styles: 6
+              lyricsSheets: 3
+              voiceProfiles: 1
+            compatibility:
+              restorable: true
+              reason: null
+              migrationNeeded: false
+          - fileName: holiday-photos.zip
+            sizeBytes: 1048576
+            modifiedAt: '2026-11-01T10:00:00Z'
+            recognised: false
+            reason: Not a StemStudio backup (no manifest.json).
+            backupId: null
+            createdAt: null
+            appVersion: null
+            backendApi: null
+            formatVersion: null
+            included: []
+            counts: null
+            compatibility:
+              restorable: false
+              reason: Not a StemStudio backup.
+              migrationNeeded: false
+    EstimateDefaults:
+      value:
+        totalBytes: 21474836480
+        categories:
+          - category: database
+            included: true
+            optional: false
+            bytes: 2097152
+            files: 1
+            regenerability: original
+          - category: stems
+            included: true
+            optional: false
+            bytes: 9663676416
+            files: 1080
+            regenerability: original
+          - category: detailStems
+            included: true
+            optional: true
+            bytes: 10737418240
+            files: 1920
+            regenerability: regenerable
+        folder:
+          available: true
+          writable: true
+          hostPathHint: ./backups
+          freeBytes: 412316860416
+          totalBytes: 1000204886016
+          reason: null
+        enough: true
+    BackupJobQueued:
+      value:
+        jobId: 8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+        kind: backup
+        status: queued
+        stage: null
+        stageText: null
+        progress: 0
+        bytesDone: 0
+        bytesTotal: 0
+        currentItem: null
+        etaSeconds: null
+        archiveFileName: stemstudio-backup-20261116-142233.zip
+        cancellable: true
+        report: null
+        error: null
+        createdAt: '2026-11-16T14:22:33Z'
+        startedAt: null
+        finishedAt: null
+    BackupJobRunning:
+      value:
+        jobId: 8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+        kind: backup
+        status: running
+        stage: files
+        stageText: 'Writing detail stems: 300 of 1920'
+        progress: 61
+        bytesDone: 13100000000
+        bytesTotal: 21474836480
+        currentItem: Another song - detail stems
+        etaSeconds: 140
+        archiveFileName: stemstudio-backup-20261116-142233.zip
+        cancellable: true
+        report: null
+        error: null
+        createdAt: '2026-11-16T14:22:33Z'
+        startedAt: '2026-11-16T14:22:33Z'
+        finishedAt: null
+    BackupJobCompleted:
+      value:
+        jobId: 8e0c1f2a-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+        kind: backup
+        status: completed
+        stage: null
+        stageText: null
+        progress: 100
+        bytesDone: 21474836480
+        bytesTotal: 21474836480
+        currentItem: null
+        etaSeconds: null
+        archiveFileName: stemstudio-backup-20261116-142233.zip
+        cancellable: false
+        report:
+          type: backup
+          fileName: stemstudio-backup-20261116-142233.zip
+          included:
+            - category: stems
+              items: 180
+              files: 1080
+              bytes: 9663676416
+          entries: 3205
+          bytes: 21391450112
+          warnings:
+            - code: changed-after-snapshot
+              message: 1 item changed after the snapshot and is not included.
+        error: null
+        createdAt: '2026-11-16T14:22:33Z'
+        startedAt: '2026-11-16T14:22:33Z'
+        finishedAt: '2026-11-16T14:28:10Z'
+    RestoreJobExtracting:
+      value:
+        jobId: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        kind: restore
+        status: running
+        stage: extract
+        stageText: Unpacking and verifying 812 of 3205
+        progress: 30
+        bytesDone: 6442450944
+        bytesTotal: 21474836480
+        currentItem: Song title - stems
+        etaSeconds: 250
+        archiveFileName: stemstudio-backup-20261116-142233.zip
+        cancellable: true
+        report: null
+        error: null
+        createdAt: '2026-11-16T15:00:00Z'
+        startedAt: '2026-11-16T15:00:00Z'
+        finishedAt: null
+    RestoreJobCompleted:
+      value:
+        jobId: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        kind: restore
+        status: completed
+        stage: null
+        stageText: null
+        progress: 100
+        bytesDone: 21474836480
+        bytesTotal: 21474836480
+        currentItem: null
+        etaSeconds: null
+        archiveFileName: stemstudio-backup-20261116-142233.zip
+        cancellable: false
+        report:
+          type: restore
+          mode: replace
+          restored:
+            - category: stems
+              items: 180
+              files: 1080
+              bytes: 9663676416
+            - category: voiceProfiles
+              items: 1
+              files: 1
+              bytes: 2621440
+          skipped: []
+          migratedFrom: 20261115171827_AddScoreFacts
+          warnings:
+            - 2 jobs were interrupted by the backup and are marked as failed; retry them.
+          previousLibraryKept: true
+        error: null
+        createdAt: '2026-11-16T15:00:00Z'
+        startedAt: '2026-11-16T15:00:00Z'
+        finishedAt: '2026-11-16T15:07:12Z'
+    RestoreJobFailedUnsafe:
+      value:
+        jobId: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+        kind: restore
+        status: failed
+        stage: validate
+        stageText: null
+        progress: 0
+        bytesDone: 0
+        bytesTotal: 0
+        currentItem: null
+        etaSeconds: null
+        archiveFileName: suspicious.zip
+        cancellable: false
+        report: null
+        error:
+          code: archive-unsafe
+          message: 'Entry "files/../../etc/passwd" is outside the library layout; nothing was changed.'
+        createdAt: '2026-11-16T15:00:00Z'
+        startedAt: '2026-11-16T15:00:00Z'
+        finishedAt: '2026-11-16T15:00:01Z'
+    StorageSmall:
+      value:
+        measuredAt: '2026-11-16T14:00:00Z'
+        volumes:
+          - id: library
+            label: Library (Docker disk)
+            freeBytes: 805306368000
+            totalBytes: 1081101176832
+            sharedWith: [workerData, modelCache]
+            reason: null
+          - id: backups
+            label: Backups folder (./backups)
+            freeBytes: 412316860416
+            totalBytes: 1000204886016
+            sharedWith: []
+            reason: null
+        categories:
+          - category: stems
+            bytes: 9663676416
+            files: 1080
+            regenerability: original
+            howToRegenerate: null
+            costHint: null
+          - category: detailStems
+            bytes: 10737418240
+            files: 1920
+            regenerability: regenerable
+            howToRegenerate: Split further on the track page
+            costHint: about 3 minutes per song on the GPU
+          - category: workerSeparationCache
+            bytes: 9900000000
+            files: 1100
+            regenerability: regenerable
+            howToRegenerate: Created again automatically when needed
+            costHint: a few seconds per song
+        tracks:
+          - trackId: 0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f
+            title: Song title
+            artist: Band
+            totalBytes: 742000000
+            sourceBytes: 150000000
+            stemsBytes: 150000000
+            detailStemsBytes: 400000000
+            detailFilesRemoved: false
+            artworkBytes: 120000
+            exportsBytes: 40000000
+            scoresBytes: 300000
+            generationsBytes: 0
+            recordingsBytes: 0
+            workerCacheBytes: 151000000
+        unattached:
+          exportsBytes: 0
+          scoresBytes: 0
+          generationsBytes: 96000000
+          voiceProfilesBytes: 2621440
+          lyricsSheets: 3
+        workerEntries:
+          - audioSha256Prefix: 3f9a1c0e7b2d
+            bytes: 151000000
+            inUse: false
+            fromLibrary: false
+            trackId: 0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f
+        modelCaches:
+          - id: torch
+            bytes: 335544320
+            models: [htdemucs_6s, htdemucs]
+          - id: acestep
+            bytes: 10844792832
+            models: [ace-step-1.5]
+        backups:
+          count: 2
+          bytes: 42782900224
+          folderAvailable: true
+          reason: null
+        worker:
+          available: true
+          reason: null
+    CleanupPlanDetail:
+      value:
+        planId: 3c5e7a9b-1d2f-4a6b-8c0d-2e4f6a8b0c1d
+        createdAt: '2026-11-16T14:05:00Z'
+        expiresAt: '2026-11-16T14:15:00Z'
+        items:
+          - kind: detailStems
+            trackId: 0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f
+            title: Song title
+            files: 16
+            bytes: 400000000
+            howToRegenerate: Split further on the track page (instant while the worker cache has the result)
+        skipped:
+          - kind: detailStems
+            trackId: 6f5e4d3c-2b1a-4f0e-9d8c-7b6a5f4e3d2c
+            title: Another song
+            reason: detail-active
+        totalBytes: 400000000
 
     RootView:
       value:

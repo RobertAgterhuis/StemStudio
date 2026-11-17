@@ -50,7 +50,7 @@ Binding for the **frontend** agent; the **qa** agent writes the 013 specs agains
 | Backup dialog | `backup-voice-notice` | exists when voice profiles are included and at least one exists: "contains voice samples; not encrypted; keep it on a protected drive" | all |
 | Backup dialog | `backup-start`, `backup-dialog-cancel` | buttons; start disabled while `data-enough="false"` | all |
 | Backup dialog | `backup-error` | readable reason (409 codes); attribute `data-code` | all |
-| Library job panel (Backups tab) | `library-job` | panel of the active or last job; attributes `data-kind`, `data-status`, `data-stage` | all |
+| Library job panel (Backups tab) | `library-job` | panel of the active or last job; attributes `data-kind`, `data-status`, `data-stage`, `data-job-id` (added editorially at the 013 integration, so E2E can tell a new job from the last one) | all |
 | Library job panel | `library-job-progress` | `role="progressbar"`, `aria-valuenow` 0-100, `aria-valuetext` "<n> % - <stage text>" | all |
 | Library job panel | `library-job-stage`, `library-job-item`, `library-job-eta`, `library-job-bytes` | stage text, current item, time left, "<done> of <total>" | all (`library-job-bytes`: Advanced, Expert) |
 | Library job panel | `library-job-cancel` | exists while `cancellable` | all |

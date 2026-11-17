@@ -65,7 +65,7 @@ def test_health_reports_fake_separator(api: Api) -> None:
             },
             "font": {"leipzig": False},
         },
-        "contractVersion": "1.6.0",
+        "contractVersion": "1.7.0",
     }
 
 

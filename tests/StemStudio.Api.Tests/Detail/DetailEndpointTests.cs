@@ -205,6 +205,32 @@ public sealed class DetailEndpointTests : ApiTestBase
         Directory.Exists(Path.Combine(Factory.DataDir, "tracks", track.Id.ToString(), "detail")).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task Start_IsAcceptedForACompletedPhaseWithRemovedFiles_AndTheDtoCarriesTheMark()
+    {
+        var removed = SyncTestData.DetailCompleted();
+        removed.RemoveDetailFiles(SyncTestData.T0.AddHours(1));
+        var track = await Factory.SeedAsync(removed);
+
+        using var get = await Client.GetAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+        (await get.BodyAsync<TrackDto>()).Detail.FilesRemovedAt.ShouldBe(new DateTimeOffset(SyncTestData.T0.AddHours(1)));
+        using var response = await PostAsync(ApiRoutes.StartDetail(track.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var phase = await PhaseAsync(track);
+        (phase.Status, phase.FilesRemovedAt).ShouldBe((DetailPhaseStatus.Queued, SyncTestData.T0.AddHours(1)));
+    }
+
+    [Fact]
+    public async Task Dto_OmitsFilesRemovedAtWhenTheFilesArePresent()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.DetailCompleted());
+
+        using var get = await Client.GetAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct);
+
+        (await get.Content.ReadAsStringAsync(Ct)).ShouldNotContain("filesRemovedAt");
+    }
+
     private IDetailStemFileStore DetailFiles => Factory.Services.GetRequiredService<IDetailStemFileStore>();
 
     private static Track WithPhase(string status) => status switch

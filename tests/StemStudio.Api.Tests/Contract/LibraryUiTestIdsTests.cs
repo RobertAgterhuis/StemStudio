@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Merge rule of the UI test ids (architect, 022 Phase 0 T004): the full <c>ui-test-ids.md</c> 1.22.0 is the 1.11.0 document of
-/// 012 unchanged (title and the inserted changelog paragraph aside) plus the 022 <c>ui-test-ids.delta.md</c> from its
+/// Merge rule of the UI test ids (architect, 022 Phase 0 T004; re-based onto 013 at the 022+023 round start): the full <c>ui-test-ids.md</c> 1.22.0 is
+/// the 013 document (1.12.0) unchanged (title and the inserted changelog paragraph aside) plus the 022 <c>ui-test-ids.delta.md</c> from its
 /// "Changed behaviour" section on; nothing is renamed or removed.
 /// </summary>
 public sealed partial class LibraryUiTestIdsTests
@@ -12,7 +12,7 @@ public sealed partial class LibraryUiTestIdsTests
     // The two ids of 1.5.0 the 022 delta lists again (changed behaviour / reused rows), never as new ids.
     private static readonly string[] ReusedIds = ["asset-row-<assetId>", "library-search"];
 
-    private static readonly Lazy<string[]> Base = new(() => Lines("012", "ui-test-ids.md"));
+    private static readonly Lazy<string[]> Base = new(() => Lines("013", "ui-test-ids.md"));
 
     private static readonly Lazy<string[]> Merged = new(() => Lines("022", "ui-test-ids.md"));
 
@@ -21,11 +21,11 @@ public sealed partial class LibraryUiTestIdsTests
     [Fact]
     public void Merged_IsVersion1220()
     {
-        (Base.Value[0], Merged.Value[0]).ShouldBe(("# Contract: UI test ids (v1.11.0)", "# Contract: UI test ids (v1.22.0)"));
+        (Base.Value[0], Merged.Value[0]).ShouldBe(("# Contract: UI test ids (v1.12.0)", "# Contract: UI test ids (v1.22.0)"));
     }
 
     [Fact]
-    public void Merged_Contains1110LinesUnchangedAndInOrder()
+    public void Merged_Contains1120LinesUnchangedAndInOrder()
     {
         var body = Base.Value.Skip(1).ToList();
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Secrets;
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 
@@ -66,7 +67,7 @@ public static class AgentEndpoints
             .WithName("renameConversation").WithTags(Tag).Produces<ConversationSummaryDto>()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         app.MapDelete(ConversationRoute, (Guid conversationId, AgentConversationService service, CancellationToken ct) => service.DeleteAsync(conversationId, ct))
-            .WithName("deleteConversation").WithTags(Tag).Produces(StatusCodes.Status204NoContent)
+            .WithName("deleteConversation").RequireGateOpen().WithTags(Tag).Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapPost(ConversationRoute + "/undo", (Guid conversationId, AgentUndoService service, CancellationToken ct) => service.UndoAsync(conversationId, ct))
             .WithName("undoLastAgentAction").WithTags(Tag).Produces<AgentRunAcceptedDto>(StatusCodes.Status202Accepted)

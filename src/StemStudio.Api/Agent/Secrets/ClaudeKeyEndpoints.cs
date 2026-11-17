@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpLogging;
 using StemStudio.Agent.Backends;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
+using StemStudio.Api.Security;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
 
@@ -46,7 +47,7 @@ public static class ClaudeKeyEndpoints
     {
         var filter = factory.ApplicationServices.GetRequiredService<LocalOnlyKeyEntryFilter>();
         return invocation => filter.InvokeAsync(invocation, next);
-    });
+    }).WithMetadata(OriginCheckedByEndpoint.Instance);
 
     /// <summary>
     /// Applies the local-only rule to a backend test that tests Claude (1.21.0, CK-FR-012); an Ollama test stays open. The
@@ -60,7 +61,7 @@ public static class ClaudeKeyEndpoints
         return invocation => invocation.Arguments.OfType<TestAgentBackendRequest>().Any(request => request.Backend == AgentBackendDto.Claude)
             ? filter.InvokeAsync(invocation, next)
             : next(invocation);
-    });
+    }).WithMetadata(OriginCheckedByEndpoint.Instance);
 
     private static async Task<IResult> StoreAsync(HttpRequest request, ClaudeKeyStoreServices services, CancellationToken cancellationToken)
     {

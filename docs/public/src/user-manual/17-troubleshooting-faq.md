@@ -84,6 +84,18 @@ Everything else in StemStudio keeps working while the agent is unavailable. If t
 something you did not mean, press **Undo**; heavy and destructive steps always wait for your
 approval.
 
+## A backup or restore does not start
+
+- **"The backups folder is not available" or "read-only"**: create the folder (`./backups` next
+  to `docker-compose.yml`, or the folder in `STEMSTUDIO_BACKUP_HOST_DIR`) and make it writable;
+  on Linux `sudo chown 1654 ./backups` (chapter 14).
+- **Not enough space**: the estimate needs the archive size plus a small reserve free in the
+  backups folder; a restore needs the unpacked size free on the library volume.
+- **A restore lists active jobs**: wait for the listed imports, splits, exports or generations,
+  or cancel them, then restore again.
+- **"Not compatible"**: the backup was made by a newer StemStudio. Update StemStudio first.
+- **A previous library exists**: undo or discard it before the next replace restore.
+
 ## Frequently asked questions
 
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
@@ -95,6 +107,10 @@ never audio, and only when you select it.
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
 vocals and the remaining instruments further. Several guitars of the same kind cannot be
 separated from each other.
+
+**How do I move my library to another computer?** Make a backup (chapter 14), copy the
+archive into the backups folder of the other computer and restore it there. A stored Claude
+key must be entered again on the other computer: its encryption keys never leave the first one.
 
 **Can I use StemStudio on several computers or with several people?** StemStudio is made for
 one person on one computer. Do not expose its ports to the internet.

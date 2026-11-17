@@ -39,6 +39,7 @@ def render(data: ReportInput) -> str:
         _tokens(data.findings),
         _vendor(data.findings),
         _secrets(data.findings),
+        _library_care(data.findings),
         _exemptions(data.exemptions),
         _clones(data.clones),
         render_top(data.findings),
@@ -140,6 +141,16 @@ def _secrets(findings: Sequence[Finding]) -> str:
         "Claude key handling",
         "Data Protection only in Api/Agent/Secrets, no record key types, no key in log calls "
         "(`secret_rules.py`).",
+    )
+
+
+def _library_care(findings: Sequence[Finding]) -> str:
+    return _check_section(
+        findings,
+        "library-care",
+        "Library care",
+        "only Api.LibraryCare.Gate outside Api/LibraryCare, no bulk ZIP helpers "
+        "(`library_care_rules.py`).",
     )
 
 

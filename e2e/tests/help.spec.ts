@@ -10,6 +10,7 @@ import {
   generativePageMarkers,
   generativeReferenceQueries,
   generativeScreenTopics,
+  libraryCareReferenceQueries,
   lyricsReferenceQueries,
   practiceReferenceQueries,
   scoreReferenceQueries,
@@ -169,6 +170,14 @@ test('the 012 reference queries return their topic first, and each topic opens',
   await openScreen(page, 'mixer', uxData);
   await expect(help.byId('help-toggle')).toBeVisible();
   await expectTopicsReachable(help, practiceReferenceQueries);
+});
+
+// Help topics of feature 013 (FR-030, area `mixes`). The markers on the Library care controls are
+// asserted in the library-care specs and LibraryCareHelpTests.
+test('the 013 reference queries return their topic first, and each topic opens', { tag: '@library-care' }, async ({ page, help, uxData }) => {
+  await openScreen(page, 'mixes', uxData);
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, libraryCareReferenceQueries);
 });
 
 test('the 008 reference queries return their topic first, and each topic opens', { tag: '@sheet-music' }, async ({ page, help, uxData }) => {

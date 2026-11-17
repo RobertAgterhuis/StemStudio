@@ -6,6 +6,7 @@ user-supplied names are never used.
 
 from dataclasses import dataclass
 from pathlib import Path
+from uuid import UUID
 
 from stemstudio_worker.schemas import DetailStemName, StemName
 
@@ -16,9 +17,12 @@ class DataPaths:
 
     Attributes:
         root: The data directory.
+        library: Read-only root of the API data directory (``STEMSTUDIO_LIBRARY_DIR``, feature
+            007); None when unset.
     """
 
     root: Path
+    library: Path | None = None
 
     @property
     def jobs(self) -> Path:
@@ -37,9 +41,14 @@ class DataPaths:
         """Received upload of a job (``input<ext>``); deleted when terminal."""
         return self.root / "uploads" / job_id
 
+    @property
+    def source_pointers(self) -> Path:
+        """Directory of the ``cache/by-source`` pointers."""
+        return self.root / "cache" / "by-source"
+
     def by_source(self, source_key: str) -> Path:
         """Cache pointer ``{"audioSha256": ...}`` for a source key (``:`` becomes ``_``)."""
-        return self.root / "cache" / "by-source" / f"{source_key.replace(':', '_')}.json"
+        return self.source_pointers / f"{source_key.replace(':', '_')}.json"
 
     @property
     def audio_cache(self) -> Path:
@@ -53,6 +62,19 @@ class DataPaths:
     def cached_artwork(self, audio_sha256: str) -> Path:
         """Source picture kept with a cached result (``info.json`` + the two JPEGs; 005)."""
         return self.by_audio(audio_sha256) / "artwork"
+
+    def rehydrate_staging(self, job_id: str) -> Path:
+        """Staging folder of a rehydration (feature 013); start-up removes every ``*.partial``."""
+        return self.audio_cache / f"{job_id}.partial"
+
+    def library_stem(self, track_id: UUID, stem: StemName) -> Path | None:
+        """``<library>/tracks/<uuid>/stems/<stem>.flac`` (feature 013); None without a library.
+
+        Only the UUID (``str(UUID)``) and the stem enum become path components.
+        """
+        if self.library is None:
+            return None
+        return self.library / "tracks" / str(track_id) / "stems" / f"{stem}.flac"
 
     def stem_file(self, audio_sha256: str, stem: StemName) -> Path:
         """FLAC file of one cached stem."""

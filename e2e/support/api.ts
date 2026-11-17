@@ -226,6 +226,11 @@ export class StemStudioApi {
     return (await this.request.delete(`/api/tracks/${id}`)).status();
   }
 
+  /** `DELETE /api/tracks/{id}`; the raw response (feature 013 reads the `409 backup-running` problem). */
+  async deleteTrackResponse(id: string): Promise<APIResponse> {
+    return this.request.delete(`/api/tracks/${id}`);
+  }
+
   /** Polls `GET /api/tracks/{id}` until the track is completed or failed. */
   async waitForTerminal(id: string, timeoutMs: number): Promise<TrackDto> {
     const status = (): Promise<string> => this.getTrack(id).then((track) => track.status);
@@ -285,6 +290,26 @@ export class StemStudioApi {
   /** `GET /api/mixes/{id}`. */
   async getMix(id: string): Promise<MixDto> {
     return json<MixDto>(await this.request.get(`/api/mixes/${id}`));
+  }
+
+  /** `PUT /api/mixes/{id}` with new settings (body = `MixSettings`); returns the mix. */
+  async updateMix(id: string, settings: MixSettingsDto): Promise<MixDto> {
+    return json<MixDto>(await this.request.put(`/api/mixes/${id}`, { data: settings }));
+  }
+
+  /** `DELETE /api/mixes/{id}`; returns the HTTP status (feature 013 removes a mix before a restore). */
+  async deleteMix(id: string): Promise<number> {
+    return (await this.request.delete(`/api/mixes/${id}`)).status();
+  }
+
+  /** `GET /api/mixes/{id}`; returns the HTTP status only (200 present, 404 gone). */
+  async mixStatus(id: string): Promise<number> {
+    return (await this.request.get(`/api/mixes/${id}`)).status();
+  }
+
+  /** `GET /api/tracks/{id}`; returns the HTTP status only (200 present, 404 gone). */
+  async trackStatus(id: string): Promise<number> {
+    return (await this.request.get(`/api/tracks/${id}`)).status();
   }
 
   /** `POST /api/mixes/{id}/duplicate`; returns the copy. */

@@ -14,9 +14,10 @@ namespace StemStudio.Api.Detail;
 /// <param name="tracks">Track repository (scoped).</param>
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Applies detail job states.</param>
+/// <param name="rehydrator">Rehydrates the worker cache on a miss (feature 013).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class DetailSynchronizer(
-    ITrackRepository tracks, IWorkerClient worker, DetailJobApplier applier, ILogger<DetailSynchronizer> logger)
+    ITrackRepository tracks, IWorkerClient worker, DetailJobApplier applier, WorkerCacheRehydrator rehydrator, ILogger<DetailSynchronizer> logger)
 {
     /// <summary>Synchronises every active detail phase and saves after each track.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -59,12 +60,20 @@ public sealed partial class DetailSynchronizer(
     {
         try
         {
-            await applier.ApplySubmissionAsync(track, await worker.CreateDetailJobAsync(track.WorkerJobId!, cancellationToken), cancellationToken);
+            var submission = await rehydrator.SubmitAsync(
+                track, standard => worker.CreateDetailJobAsync(standard, cancellationToken), () => ShowPreparingStemsAsync(track, cancellationToken), cancellationToken);
+            await applier.ApplySubmissionAsync(track, submission, cancellationToken);
         }
         catch (WorkerRequestException rejection)
         {
             applier.ApplyRejection(track, rejection.Detail);
         }
+    }
+
+    private async Task ShowPreparingStemsAsync(Track track, CancellationToken cancellationToken)
+    {
+        applier.ApplyPreparingStems(track);
+        await tracks.SaveAsync(cancellationToken);
     }
 
     private void LogTransition(Track track, DetailPhaseStatus before)

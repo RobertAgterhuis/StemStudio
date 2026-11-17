@@ -1,0 +1,19 @@
+# E2E override (feature 013, qa specs e2e/tests/library-care-*.spec.ts): slows the api's library
+# jobs (backup, verify, restore copy) so the running-job cases (progress, cancel, write gate,
+# maintenance overlay) can observe them on the small fake-stack library. Test stacks only.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait
+#   (CI sets COMPOSE_FILE=docker-compose.yml:docker-compose.e2e.yml for every later command)
+#
+# Together with it the specs need, in the shell that runs Playwright:
+#   E2E_BACKUP_DIR=<host backups folder>   the folder bind-mounted at /backups
+#                                           (= STEMSTUDIO_BACKUP_HOST_DIR, writable by uid 1654)
+#   E2E_LIBRARY_THROTTLE=1                  enables the cases that need the throttle
+#
+# STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND (default 8 MiB/s): a fake-stack backup of a few tens
+# of MB then takes a few seconds. 0 switches the throttle off (the api's own default).
+
+services:
+  api:
+    environment:
+      - StemStudio__LibraryCare__ThrottleBytesPerSecond=${STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND:-8388608}

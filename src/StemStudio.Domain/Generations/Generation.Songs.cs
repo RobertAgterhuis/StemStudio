@@ -6,6 +6,12 @@ public sealed partial class Generation
     /// <summary>Suffix of a deleted profile's name snapshot.</summary>
     public const string ProfileDeletedSuffix = " (profile deleted)";
 
+    /// <summary>Name suffix of a conversion whose profile was left out of a backup (feature 013).</summary>
+    public const string ProfileNotInBackupSuffix = " (profile not in backup)";
+
+    /// <summary>Name suffix of a conversion whose profile was not restored (feature 013).</summary>
+    public const string ProfileNotRestoredSuffix = " (profile not restored)";
+
     /// <summary>Song details (kind song).</summary>
     public SongDetails? Song { get; private set; }
 
@@ -61,14 +67,21 @@ public sealed partial class Generation
     /// <param name="profileId">The deleted profile.</param>
     /// <param name="nowUtc">Current time (UTC).</param>
     /// <returns>True when this conversion used it.</returns>
-    public bool DetachVoiceProfile(Guid profileId, DateTime nowUtc)
+    public bool DetachVoiceProfile(Guid profileId, DateTime nowUtc) => DetachVoiceProfile(profileId, ProfileDeletedSuffix, nowUtc);
+
+    /// <summary>Forgets a voice profile; the name snapshot stays with the given suffix (feature 013 backup and restore).</summary>
+    /// <param name="profileId">The profile.</param>
+    /// <param name="suffix">Suffix of the name snapshot, e.g. <see cref="ProfileNotRestoredSuffix"/>.</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <returns>True when this conversion used it.</returns>
+    public bool DetachVoiceProfile(Guid profileId, string suffix, DateTime nowUtc)
     {
         if (VoiceConversion?.VoiceProfileId != profileId)
         {
             return false;
         }
 
-        var name = VoiceConversion.VoiceProfileName + ProfileDeletedSuffix;
+        var name = VoiceConversion.VoiceProfileName + suffix;
         (VoiceConversion, VoiceProfileId) = (VoiceConversion with { VoiceProfileId = null, VoiceProfileName = name }, null);
         _takes = _takes.Select(take => take with { VoiceProfileName = take.VoiceProfileName is null ? null : name }).ToList();
         UpdatedAt = nowUtc;

@@ -98,8 +98,14 @@ Example (shortened):
    records, set `journal_mode=DELETE`, run `PRAGMA integrity_check`.
 2. Write `db/stemstudio.db`, then files in category order (database, stems, artwork,
    pendingUploads, detailStems, exports, scores, generations, recordings, voiceProfiles), each hashed while
-   copied; a file that changes size while copied is re-read once, then recorded with a
-   `changed-after-snapshot` warning if it still differs.
+   copied; a file that changes size while copied keeps the bytes that were copied: its entry,
+   `sizeBytes` and `sha256` describe exactly those bytes (the archive stays self-consistent and
+   verifies), and the manifest and the report carry a `changed-after-snapshot` warning for it.
+   (Editorial correction during the 013 integration: the earlier "re-read once" cannot be done in
+   a streamed ZIP - a written entry cannot be replaced, a second entry with the same name is
+   refused by the reader rules, and spooling every file first would halve the throughput of
+   SC-002. Library files other than the database, which is snapshotted, are written once and do
+   not change in normal use.)
 3. Write `README.txt`, then `manifest.json`; close; reopen; compare central directory with the
    manifest (names, sizes, count); rename `.partial` -> `.zip`.
 4. Never write: anything outside the allow-list, model caches, worker or generator data,

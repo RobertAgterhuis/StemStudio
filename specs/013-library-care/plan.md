@@ -2,7 +2,7 @@
 
 **Branch**: `013-library-care` | **Date**: 2026-11-16 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification `/specs/013-library-care/spec.md`; constitution 1.3.1; MoSCoW M4,
+**Input**: Feature specification `/specs/013-library-care/spec.md`; constitution 1.4.0; MoSCoW M4,
 M5; roadmap allocation (backend-api 1.12.0, worker-api 1.7.0, ui-test-ids 1.12.0, backup-archive
 1.0.0); [research.md](research.md); [ADR-022](../../docs/decisions/ADR-022-library-backup-and-storage-care.md).
 
@@ -73,10 +73,10 @@ no encryption (documented).
 | I | Test-first, >= 90 % | Every unit has failing tests first (tasks.md); file-system and journal seams; hostile-archive corpus; crash injection; property test over generated libraries (SC-007); worker meter/janitor/rehydrate with temp dirs; E2E on the fake stack. | PASS |
 | II | SIG 4 stars | New folders `Api/LibraryCare/{Gate,Jobs,Archive,Backup,Restore,Storage,Cleanup}`, `Domain/LibraryCare`, worker `storage/`; pipelines split into small stage classes (snapshot, scrub, select, write, check; validate, extract, database, switch, reconcile); quality-gate rules for layering and banned APIs. | PASS |
 | III | Contracts first | backup-archive 1.0.0 + manifest JSON Schema, backend 1.12.0 delta, worker 1.7.0 full document, ui-test-ids 1.12.0 delta (Redocly 2.78.0 valid); DTOs, `schemas.py` 1.7.0 and ports in Phase 0; ADR-022. | PASS |
-| IV | Open source, lawful use | No new dependencies. Model weights are never put in an archive (ADR-009: no redistribution); consent proofs travel with voice profiles and are checked on restore (010 rules); no secrets in archives (FR-004). | PASS |
+| IV | Open source, lawful use | No new dependencies. Model weights are never put in an archive (ADR-009: no redistribution); consent proofs travel with voice profiles and are checked on restore (010 rules); no secrets in archives (FR-004). Constitution 1.4.0 (paid-service exception condition (2) widened for the stored Claude key, ADR-035): the archive holds only the ciphertext in the database snapshot, never the `api-keys` key ring (T035 cross-feature test). | PASS |
 | V | Simplicity and honesty | Full archives only, no scheduler, no encryption, no incremental backups, no model-cache removal (research R-11); limits shown in help (not encrypted, source audio not kept, worker cache rebuilt). Merge is a cuttable P3. | PASS |
 | - | Tech & security | Archive treated as untrusted input (Microsoft ZIP best practices; data-model 3.4); no free paths in any endpoint; generated path components only; subprocesses: none; secrets never archived; logs without personal content. | PASS |
-| - | Workflow | Owners as below; hand-offs per checkpoint; CTO updates the manuals (constitution 1.3.1). | PASS |
+| - | Workflow | Owners as below; hand-offs per checkpoint; CTO updates the manuals (constitution 1.4.0). | PASS |
 
 **Post-design re-check**: PASS.
 

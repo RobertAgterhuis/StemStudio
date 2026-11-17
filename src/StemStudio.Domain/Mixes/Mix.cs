@@ -84,6 +84,10 @@ public sealed class Mix
         return mix;
     }
 
+    /// <summary>Gives a mix a merge restore adds the free name of <see cref="MixNaming.RestoredName"/>; the settings stay.</summary>
+    /// <param name="name">The new name.</param>
+    public void RenameRestored(string name) => (Name, NormalizedName) = (name, MixNaming.Normalize(name));
+
     /// <summary>Replaces name and settings (validated against the track) and sets <see cref="UpdatedAt"/>.</summary>
     /// <param name="track">The mix's track.</param>
     /// <param name="settings">New name and mixer state.</param>

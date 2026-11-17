@@ -64,7 +64,7 @@ public sealed record ExportTarget(ExportKind Kind, TrackDto Track)
     };
 
     /// <summary>True when the track has split parents with kept detail stems (stem pack: <c>export-include-detail</c>).</summary>
-    public bool HasDetail => Track.Detail.Parents.Any(p => p.Outcome == ParentOutcomeKindDto.Split && p.Stems.Count > 0);
+    public bool HasDetail => Track.Detail.FilesRemovedAt is null && Track.Detail.Parents.Any(p => p.Outcome == ParentOutcomeKindDto.Split && p.Stems.Count > 0);
 
     /// <summary>A raw stem or detail stem of the track page.</summary>
     /// <param name="track">The track.</param>

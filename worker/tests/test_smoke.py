@@ -61,7 +61,7 @@ def test_health_reports_settings(tmp_path: object) -> None:
             },
             "font": {"leipzig": False},
         },
-        "contractVersion": "1.6.0",
+        "contractVersion": "1.7.0",
     }
 
 

@@ -16,4 +16,10 @@ public static class MixNaming
     /// <param name="takenNames">Names already used for the track (any case).</param>
     /// <returns>The copy name.</returns>
     public static string CopyName(string name, IEnumerable<string> takenNames) => CopyNames.Next(name, takenNames, MixSettings.MaxNameLength);
+
+    /// <summary>The first free "&lt;name&gt; (restored)", "(restored 2)", ... of a mix a merge adds (013 research R-07).</summary>
+    /// <param name="name">Name of the archived mix.</param>
+    /// <param name="takenNames">Names already used for the track (any case).</param>
+    /// <returns>The free name.</returns>
+    public static string RestoredName(string name, IEnumerable<string> takenNames) => CopyNames.Next(name, takenNames, MixSettings.MaxNameLength, CopyNames.RestoredWord);
 }

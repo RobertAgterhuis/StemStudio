@@ -50,6 +50,11 @@ metronome so you can mute the guitar and play it yourself.
   without changing its key, transpose it by up to 12 semitones without changing its speed, a
   speed trainer that loops A-B and gets faster every few passes, and a one- or two-bar count-in.
   Saved with the mix; exports keep the original speed and key.
+- **Library care** (feature 013): back up the whole library (database, stems, mixes, exports,
+  sheet music, generations, voice profiles with their consent) into one ZIP in a backups folder,
+  check and download it, and restore it into an empty library, in place of the current one (with
+  undo) or by adding only what is missing. A storage overview shows where the disk space goes and
+  safely removes regenerable files (detail stems, worker caches, leftovers), never originals.
 
 ### Online lookups (feature 005, 006)
 
@@ -121,6 +126,20 @@ optionally before every loop pass. Time stretching uses SoundTouch 2.4.1 (LGPL-2
 separate, replaceable `soundtouch.wasm`; the web image builds it offline from a pinned source
 (`scripts/build-soundtouch.{sh,ps1}` for the non-Docker path) and serves the licence and complete
 source at `/third-party/soundtouch/index.html`.
+
+### Library care (feature 013)
+
+**Library care** (navigation) has two tabs. **Backups** writes a consistent backup of the running
+library to the backups folder: `./backups` next to `docker-compose.yml`, or the folder in
+`STEMSTUDIO_BACKUP_HOST_DIR`. Create it before the first start; on Linux it must be writable by
+the API's user (`sudo chown 1654 backups`). Profiles: complete, or smaller without the regenerable
+detail stems; Advanced users tick each part. Restore checks the whole archive first (sizes,
+SHA-256, layout, database, consent) and changes nothing until that passes; a replace keeps the
+old library aside for **Undo restore** until you discard it. Older archives are migrated; archives
+from a newer StemStudio are refused. **Storage** lists the free space per area, the size and class
+(original or regenerable) of every part, the largest tracks and the model caches, and offers three
+clean-ups with a preview. Archives are not encrypted, and a stored Claude key must be entered again
+on another computer.
 
 ### AI composer agent (feature 011, optional)
 
@@ -332,6 +351,10 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   guitar/piano/other -> instrument families) is experimental: quality varies per song, stems
   leak into each other, organ is part of "keys", and on the CPU it takes about 20 minutes for a
   4-minute song (first use downloads ~1.9 GB of models; Docker needs >= 20 GB memory).
+- **Backups** are not encrypted and are written to one folder at a time; copying them to another
+  drive is up to you (no schedule or cloud target). One library job (backup, check or restore)
+  runs at a time, a restore needs an idle library, and a merge restore never overwrites items you
+  already have.
 - **Practice tempo** is a time stretch, not a re-recording: below 70 % attacks get smeary and
   beyond 7 semitones voices sound unnatural (no formant correction); while it is engaged the
   sound is about 0.07-0.15 s behind the meters. The speed trainer counts every pass, it cannot

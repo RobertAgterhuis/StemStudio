@@ -41,7 +41,7 @@ export function cellState(level: Level, theme: MatrixTheme, practicePanel: Pract
   return levelState(level, { theme, motion: 'reduced' }, practicePanel);
 }
 
-/** Regions whose pixels change on their own: meters, clock, transport state, toasts, players, PDF previews, dates. */
+/** Regions whose pixels change on their own: meters, clock, transport state, toasts, players, PDF previews, detail progress, dates. */
 export function dynamicMasks(page: Page): Locator[] {
   return [
     page.getByTestId(/^meter-/),
@@ -54,6 +54,8 @@ export function dynamicMasks(page: Page): Locator[] {
     page.getByTestId(/^asset-preview-/),
     // Ollama reachability, version and model list of the 011 settings page depend on the host.
     page.getByTestId('settings-agent-ollama-status'),
+    // The cancelled auto detail phase of the plain track stops at whatever step the fake worker reached (0 % or 13 %).
+    page.getByTestId('detail-progress'),
     // The only non-test-id selector of the suite: dates are rendered in <time> (cosmetic mask).
     page.locator('time'),
   ];
