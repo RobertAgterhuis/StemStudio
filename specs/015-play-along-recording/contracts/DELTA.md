@@ -178,3 +178,17 @@ documents are then rebuilt **in feature order** so every label contains exactly 
 4. **render-vectors**: unchanged (ROADMAP allocates 1.1.0 to 015; 014 does not touch it).
 5. Re-run the Phase 0 checks: contract tests, engine tests, Redocly, both superset runs, vectors
    `--check`, `dotnet build` 0 warnings.
+
+### Re-merge outcome (architect, round 014+015 start, 2026-11-17)
+
+Done on branch `014-015-round` after `022-023-round`, `r14-p0-014` (+ 014's own re-merge onto 1.23.0) and
+`r14-p0-015`:
+
+| Contract | Result | Checks |
+|---|---|---|
+| Backend | `backend-api.openapi.yaml` **1.14.0** = 014's 1.13.0 + the delta (`merge_recording_delta.py`, default base now 014's document; new `--check`); `x-stemstudio-contains` `[..., 1.12.0, 1.22.0, 1.23.0, 1.13.0, 1.14.0]`; every anchor unique; the changelog paragraph names the merge order | `--check` up to date; `check_superset.py` (default `OLDER` = 014's 1.13.0) and with the delta: superset yes; Redocly valid (25 warnings, all inherited or the known delta ones); `RecordingContractTests` base = `Contract/014`, `Changed1130Entries` unchanged (014 changes none of 015's schemas) |
+| Engine | `audio-engine.md` **2.5.0** = 014's 2.4.0 + the "Play-along recording" section, the 2.5.0 changelog paragraph and the five callback rows (`git merge-file` 2.3.0/2.4.0/2.5.0, conflicts only at the title, ADR line, changelog and appended sections); `types.ts` `'2.5.0'` with `OnLoopPass` and the five recording callbacks | engine tests (step 3 of the round start) |
+| UI test ids | `ui-test-ids.md` **1.14.0** = 014's 1.13.0 + the 015 changelog paragraph (after 014's) + "Additions in 1.14.0" (after 014's); 014, 022 and 023 add no numbered level rule, so the 015 rule stays **R10** | `RecordingUiTestIdsTests` base = 014's 1.13.0; no 015 id occurs in 1.13.0 |
+| render-vectors | unchanged 1.1.0 | `generate_render_vectors.py --check` up to date |
+
+The current full backend document of the round (linked as `Contract/backend-api.openapi.yaml`) is 1.14.0.

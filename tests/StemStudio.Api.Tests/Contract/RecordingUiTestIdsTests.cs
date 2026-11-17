@@ -1,7 +1,7 @@
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Merge rule of the UI test ids (architect, 015 Phase 0 T002): the full <c>ui-test-ids.md</c> 1.14.0 is 013's 1.12.0 unchanged (title
+/// Merge rule of the UI test ids (architect, 015 Phase 0 T002): the full <c>ui-test-ids.md</c> 1.14.0 is 014's 1.13.0 (re-based at the 014+015 round start; 013's 1.12.0 in Phase 0) unchanged (title
 /// and the inserted changelog line aside) plus the 015 <c>ui-test-ids.delta.md</c> table unchanged; only the delta's level rule is
 /// numbered (R10); nothing is renamed or removed.
 /// </summary>
@@ -9,7 +9,7 @@ public sealed class RecordingUiTestIdsTests
 {
     private const string Section = "## Additions in 1.14.0 (feature 015)";
 
-    private static readonly Lazy<string[]> Base = new(() => Lines("013", "ui-test-ids.md"));
+    private static readonly Lazy<string[]> Base = new(() => Lines("014", "ui-test-ids.md"));
 
     private static readonly Lazy<string[]> Merged = new(() => Lines("015", "ui-test-ids.md"));
 
@@ -18,11 +18,11 @@ public sealed class RecordingUiTestIdsTests
     [Fact]
     public void Merged_IsVersion1140()
     {
-        (Base.Value[0], Merged.Value[0]).ShouldBe(("# Contract: UI test ids (v1.12.0)", "# Contract: UI test ids (v1.14.0)"));
+        (Base.Value[0], Merged.Value[0]).ShouldBe(("# Contract: UI test ids (v1.13.0)", "# Contract: UI test ids (v1.14.0)"));
     }
 
     [Fact]
-    public void Merged_Contains1120LinesUnchangedAndInOrder()
+    public void Merged_Contains1130LinesUnchangedAndInOrder()
     {
         var body = Base.Value.Skip(1).ToList();
 

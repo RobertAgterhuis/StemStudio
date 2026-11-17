@@ -1,12 +1,12 @@
 """Merges the 015 recording delta into a full backend contract (architect, 015 Phase 0 T002).
 
 Usage (repo root):
-``python -I specs/015-play-along-recording/contracts/merge_recording_delta.py [base] [out] [label...]``
-Defaults: base = specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0, the newest full
-document on ``main`` when 015 Phase 0 ran), out = specs/015-play-along-recording/contracts/backend-api.openapi.yaml.
-The re-merge after 022/023 and 014 land (DELTA.md "Re-merge") runs the same script with the newest full
-document (014's 1.13.0) as ``base``; the script is text-based so the base document keeps its formatting, and
-it fails loudly when an anchor is missing or not unique.
+``python -I specs/015-play-along-recording/contracts/merge_recording_delta.py [--check] [base] [out]``
+Defaults: base = specs/014-practice-flow/contracts/backend-api.openapi.yaml (014's 1.13.0 = 023's 1.23.0 +
+014, the newest full document of the 014+015 round; 015 Phase 0 used 013's 1.12.0), out =
+specs/015-play-along-recording/contracts/backend-api.openapi.yaml. The script is text-based so the base
+document keeps its formatting, and it fails loudly when an anchor is missing or not unique. ``--check``
+rebuilds in memory and fails (exit 1) when ``out`` differs from the merge (freshness).
 
 What it does (DELTA.md 1-2): the delta's paths, its new components (colliding response names are renamed
 ``Take*``, the shared ``NotFound``/``ProblemDetails``/``ValidationProblemDetails`` keep the base
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-BASE = Path("specs/013-library-care/contracts/backend-api.openapi.yaml")
+BASE = Path("specs/014-practice-flow/contracts/backend-api.openapi.yaml")
 OUT = Path("specs/015-play-along-recording/contracts/backend-api.openapi.yaml")
 DELTA = Path("specs/015-play-along-recording/contracts/recording-api.openapi.yaml")
 LABEL = "1.14.0"
@@ -57,7 +57,8 @@ CHANGELOG = """      1.14.0 (additive, feature 015; ADR-024) - play-along record
       1.14.0-delta.2 by `merge_recording_delta.py`: the delta's `Conflict`, `BadRequest`,
       `PayloadTooLarge`, `UnsupportedMediaType`, `Unprocessable` and `WorkerUnavailable` responses are
       `Take*` here; `NotFound`, `ProblemDetails` and `ValidationProblemDetails` keep their earlier
-      definitions. No earlier entry changes except these additions.
+      definitions. No earlier entry changes except these additions. Merge order: 014's 1.13.0
+      (= 023's 1.23.0 + 014) + this delta (re-merged at the 014+015 round start, 015 DELTA.md "Re-merge").
 """
 
 
@@ -254,12 +255,18 @@ def merge(base: str, delta: str, labels: str) -> str:
 
 def main(argv: list[str]) -> int:
     """Entry point."""
-    base = Path(argv[1]) if len(argv) > 1 else BASE
-    out = Path(argv[2]) if len(argv) > 2 else OUT
+    check = "--check" in argv[1:]
+    args = [arg for arg in argv[1:] if arg != "--check"]
+    base = Path(args[0]) if args else BASE
+    out = Path(args[1]) if len(args) > 1 else OUT
     merged = merge(base.read_text(encoding="utf-8"), DELTA.read_text(encoding="utf-8"), LABEL)
     document = yaml.safe_load(merged)
     if document["info"]["version"] != LABEL:
         raise SystemExit("version not set")
+    if check:
+        fresh = out.read_text(encoding="utf-8") == merged
+        sys.stdout.write(f"{out}: {'up to date' if fresh else 'NOT the merge (run without --check)'}\n")
+        return 0 if fresh else 1
     out.write_text(merged, encoding="utf-8", newline="\n")
     sys.stdout.write(f"merged {base} + {DELTA.name} -> {out} ({len(document['paths'])} paths)\n")
     return 0

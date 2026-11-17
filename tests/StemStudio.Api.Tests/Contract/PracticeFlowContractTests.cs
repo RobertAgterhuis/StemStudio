@@ -30,6 +30,9 @@ public sealed class PracticeFlowContractTests
     // The full document 1.13.0 was merged onto (merge_full.py of 014); every assertion below proves "base + exactly the 014 delta".
     private static OpenApiContract BaseDocument => Backend023;
 
+    // The 1.13.0 document under test (linked as Contract/014); the current full document is 015's 1.14.0 on top of it.
+    private static OpenApiContract Backend => Backend014;
+
     public static TheoryData<string, string[]> Changed1120Entries => new()
     {
         { "paths", [] },
@@ -68,7 +71,7 @@ public sealed class PracticeFlowContractTests
     [Fact]
     public void Backend_IsLabelled1130AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Backend.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.13.0");
         Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.22.0", "1.23.0", "1.13.0"]);
@@ -79,7 +82,7 @@ public sealed class PracticeFlowContractTests
     [MemberData(nameof(Changed1120Entries))]
     public void Backend1130_Contains1120UnchangedExceptLoopRegion(string section, string[] changed)
     {
-        ChangedEntries(BaseDocument, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(BaseDocument, Backend, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Theory]
@@ -89,13 +92,13 @@ public sealed class PracticeFlowContractTests
         var shared = SharedComponents.Where(c => section.EndsWith(c.Split('/')[0], StringComparison.Ordinal)).Select(c => c.Split('/')[1]);
         var present = section.Split('/').Aggregate((JsonNode?)Backend014Delta.Root, (node, part) => node?[part]) is not null;
 
-        (present ? ChangedEntries(Backend014Delta, OpenApiContract.Backend, section).Except(shared) : []).ShouldBeEmpty();
+        (present ? ChangedEntries(Backend014Delta, Backend, section).Except(shared) : []).ShouldBeEmpty();
     }
 
     [Fact]
     public void Backend1130_AddsTheTwentyTwoPracticeFlowOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(BaseDocument.Operations.Select(Id)).ToList();
+        var added = Backend.Operations.Select(Id).Except(BaseDocument.Operations.Select(Id)).ToList();
 
         added.ShouldBe(Backend014Delta.Operations.Select(Id), ignoreOrder: true);
         added.Count.ShouldBe(22);

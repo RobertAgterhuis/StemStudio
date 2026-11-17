@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: StemStudio Backend API
   version: 1.14.0
-  x-stemstudio-contains: [1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, 1.9.0, 1.10.0, 1.21.0, 1.11.0, 1.12.0, 1.14.0]
+  x-stemstudio-contains: [1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, 1.9.0, 1.10.0, 1.21.0, 1.11.0, 1.12.0, 1.22.0, 1.23.0, 1.13.0, 1.14.0]
   summary: HTTP API used by the StemStudio Blazor app and by the browser audio engine.
   description: |
     * JSON uses camelCase; enums are lower-case strings. C# DTOs: `src/StemStudio.Contracts`.
@@ -131,6 +131,55 @@ info:
       `HttpValidationProblemDetails` is the existing `ValidationProblemDetails`; new response
       `BackupRunning`. No 1.11.0 entry changes except the additive write-gate responses and
       `DetailPhase.filesRemovedAt`. Full documents on `main`: ... -> 1.11.0 -> 1.12.0 (this).
+      1.22.0 (additive, feature 022; ADR-036) - library by artist, album and song: tag `library`
+      with the folder view (`GET /api/library/folders`, `GET /api/library/folders/{folderId}`:
+      derived artist/album/song folders with art, counts, sort, paging, `ETag`/`304`,
+      `404 folder-not-found`), the live search (`GET /api/library/search`: grouped hits with
+      paths and UTF-16 highlight ranges) and library info of a track and of an item
+      (`GET`/`PUT`/`DELETE /api/tracks/{trackId}/library-info` and
+      `/api/assets/{assetId}/library-info`; `409 not-fileable` for recorded takes); the required
+      response member `Asset.placement` (null only for recorded takes; the `Asset` examples carry
+      one). `GET /api/assets` keeps its 1.5.0 semantics. Merged unchanged from
+      `backend-api.library-folders.openapi.yaml` 1.22.0-delta.1; the shared `TrackId`, `AssetId`
+      and `NotFound` keep their base definitions. No other entry changes. Merge order (ROADMAP
+      "Full-document labels after an out-of-order merge"): this document is the newest full document
+      plus the 022 delta and carries 022's allocated label 1.22.0 (`merge_full.py`).
+      1.23.0 (additive, feature 023; ADR-037) - lyric writing assistant (tag `lyric-assist`): status
+      and Claude-notice settings (`/api/lyric-assist/status`, `/api/lyric-assist/settings`), assists
+      (check, devices, alternatives, continue, titles) with an SSE event stream
+      (`/api/lyrics/{lyricsId}/assists`, `/api/lyric-assists/{assistId}[/events|/cancel]`),
+      anchored suggestions (list, accept as one revision and one undo step, reject, mark
+      intentional), intentional marks, sheet assist settings (sensitivity, rhythm target), undo and
+      revisions, syllables, rhymes, the personal word list, a language guess and the own-work
+      override (owner decision Q1). Existing schemas gain only optional request members or new
+      response members: `LyricsSheet.revision` and `LyricsSheet.assist` (`SheetAssistInfo`),
+      `LyricsInput.expectedRevision` (absent = 010 last-write-wins), `LyricsSnapshot.assistedLineCount`,
+      `PageContext.lyricsId`, `DecisionReason` value `lyrics-edit`, `JobPhase` value `lyricAssist`.
+      Merged from `specs/023-lyric-writing-assistant/contracts/backend-api.delta.openapi.yaml`
+      (`1.23.0-delta.1`) unchanged; the delta's `LyricsId`, `NotFound`, `ValidationProblem`,
+      `ProblemDetails`, `ValidationProblemDetails` and `TokenUsage` are the base definitions (same
+      meaning; the base text wins). Base: 1.22.0 (022 = 1.12.0 of 013 + 022), re-based at the 022+023 round start with
+      `merge_full.py` (023 DELTA.md section 5).
+    * **1.13.0 (additive, feature 014) - practice flow.** Song sections per track (read,
+      replace with a revision check, detect on the worker's `practice` lane; detection also
+      starts after a separation completes), the score list of a track and score views (bar
+      map in track seconds + SVG pages served as images with `Content-Security-Policy:
+      default-src 'none'` and `nosniff`), setlists (CRUD, ordered entries with an optional mix
+      and a note, PDF export through the worker), the local practice log (settings, cumulative
+      session upserts, summary, overview, delete) and the optional `LoopRegion.sectionId`.
+      Practice data never leaves the machine. **Library gate (1.12.0)**: no 1.13.0 operation
+      deletes or replaces library files, so none carries `x-stemstudio-write-gate` (they are
+      database edits and job starts, which 013 allows during a backup); every one answers
+      `503 library-maintenance` while a restore switches the library (middleware), and the two
+      new job appliers (sections, score views) skip their ticks during maintenance like every
+      synchroniser. Score-view files live under the asset folder and go with the asset (its
+      gated delete). Merged unchanged from `practice-api.openapi.yaml` 1.13.0-delta.2 (T005):
+      the delta's copies of `ChannelId`, `ProblemDetails`, `ScoreProfile`,
+      `ValidationProblemDetails`, the `AssetId`/`TrackId` parameters and the `NotFound`,
+      `ValidationProblem`, `WorkerUnavailable` responses are the existing components;
+      `LoopRegion` is replaced by the delta's (adds `sectionId`). No other earlier entry
+      changes. Full documents: ... -> 1.12.0 -> 1.22.0 -> 1.23.0 -> 1.13.0 (this;
+      re-based onto 023's 1.23.0 at the 014+015 round start with `merge_full.py`, DELTA.md section 8). See ADR-023.
       1.14.0 (additive, feature 015; ADR-024) - play-along recording, tag `recording`: takes
       (`GET`/`POST /api/tracks/{trackId}/takes`, `POST /api/tracks/{trackId}/takes/delete`,
       `GET`/`PATCH`/`DELETE /api/takes/{takeId}`, `PUT /api/takes/{takeId}/audio`,
@@ -147,7 +196,8 @@ info:
       1.14.0-delta.2 by `merge_recording_delta.py`: the delta's `Conflict`, `BadRequest`,
       `PayloadTooLarge`, `UnsupportedMediaType`, `Unprocessable` and `WorkerUnavailable` responses are
       `Take*` here; `NotFound`, `ProblemDetails` and `ValidationProblemDetails` keep their earlier
-      definitions. No earlier entry changes except these additions.
+      definitions. No earlier entry changes except these additions. Merge order: 014's 1.13.0
+      (= 023's 1.23.0 + 014) + this delta (re-merged at the 014+015 round start, 015 DELTA.md "Re-merge").
   license:
     name: MIT
     identifier: MIT
@@ -186,10 +236,22 @@ tags:
     description: Backups, restore and library jobs (1.12.0).
   - name: storage
     description: Storage overview and clean-up of regenerable data (1.12.0).
+  - name: library
+    description: Library folders by artist, album and song, live search and library info (1.22.0).
   - name: recording
     description: Play-along takes and latency calibrations (1.14.0, feature 015).
   - name: health
     description: Liveness and the processing device.
+  - name: lyric-assist
+    description: On-demand lyric writing assistant for own lyrics sheets (1.23.0, feature 023).
+  - name: sections
+    description: Song sections of a track (1.13.0, feature 014).
+  - name: score-follow
+    description: Sheet music that follows playback - score list per track and score views (1.13.0, feature 014).
+  - name: setlists
+    description: Ordered song lists with notes and a PDF export (1.13.0, feature 014).
+  - name: practice
+    description: The local practice log (1.13.0, feature 014).
 paths:
   /health:
     get:
@@ -2157,6 +2219,8 @@ paths:
           $ref: '#/components/responses/ValidationProblem'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssistConflict'
     delete:
       tags: [songs]
       operationId: deleteLyricsSheet
@@ -3429,6 +3493,1399 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '503':
           $ref: '#/components/responses/Maintenance'
+  /api/library/folders:
+    get:
+      tags: [library]
+      operationId: getLibraryRoot
+      summary: The library root - artist folders with art and counts.
+      parameters:
+        - $ref: '#/components/parameters/FolderSort'
+        - $ref: '#/components/parameters/KindFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/FolderLimit'
+        - $ref: '#/components/parameters/FolderOffset'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: The artist folders (`folder` is null, `breadcrumb` empty).
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryFolderView'
+              examples:
+                root:
+                  $ref: '#/components/examples/RootView'
+        '304':
+          description: Unchanged since the given revision.
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/library/folders/{folderId}:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+    get:
+      tags: [library]
+      operationId: getLibraryFolder
+      summary: An artist, album or song folder with its breadcrumb, child folders and (song level) items.
+      parameters:
+        - $ref: '#/components/parameters/FolderSort'
+        - $ref: '#/components/parameters/KindFilter'
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/FolderLimit'
+        - $ref: '#/components/parameters/FolderOffset'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: The folder. At song level `children` is empty and `items` holds the items.
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryFolderView'
+              examples:
+                song:
+                  $ref: '#/components/examples/SongView'
+        '304':
+          description: Unchanged since the given revision.
+        '404':
+          $ref: '#/components/responses/FolderNotFound'
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/library/search:
+    get:
+      tags: [library]
+      operationId: searchLibrary
+      summary: Live search over artist, album, song, stem/instrument and item name.
+      description: |
+        Case- and accent-insensitive. The text is split into words (at most 8, from the first 100
+        characters); every word must occur in at least one field. Folders are hits when at least one
+        word occurs in their own name; items when all words occur across their fields. Groups are
+        ordered by relevance (whole field, start of a word, inside a word), then name.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The search text (1..100 characters after trimming).
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: within
+          in: query
+          required: false
+          description: Only folders and items inside this folder.
+          schema:
+            $ref: '#/components/schemas/FolderId'
+        - name: limit
+          in: query
+          required: false
+          description: Hits per group.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Grouped hits; `totals` count every hit of a group.
+          headers:
+            ETag:
+              $ref: '#/components/headers/LibraryETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySearchResult'
+              examples:
+                noMatches:
+                  $ref: '#/components/examples/EmptySearch'
+        '304':
+          description: Same query, unchanged library.
+        '404':
+          $ref: '#/components/responses/FolderNotFound'
+        '422':
+          $ref: '#/components/responses/LibraryQueryInvalid'
+  /api/tracks/{trackId}/library-info:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [library]
+      operationId: getTrackLibraryInfo
+      summary: The artist, album and song names used to file the items of a track, and where they come from.
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [library]
+      operationId: setTrackLibraryInfo
+      summary: Set (or reset to automatic with null) the names used to file every item of a track.
+      description: Items with their own names for a level keep them. Returns the new state and how many items moved.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryInfoRequest'
+            example:
+              artist: null
+              album: Ace of Spades
+              song: null
+      responses:
+        '200':
+          description: Saved; the items are re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '400':
+          $ref: '#/components/responses/LibraryInfoInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [library]
+      operationId: resetTrackLibraryInfo
+      summary: Use automatic names for every level of the track again.
+      responses:
+        '200':
+          description: Reset; the items are re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/{assetId}/library-info:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [library]
+      operationId: getAssetLibraryInfo
+      summary: The names used to file one library item, and where they come from.
+      responses:
+        '200':
+          description: The state, with the item's placement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [library]
+      operationId: setAssetLibraryInfo
+      summary: Set (or reset with null) the names used to file one library item.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryInfoRequest'
+            example:
+              artist: null
+              album: null
+              song: Ace of Spades (jazz take)
+      responses:
+        '200':
+          description: Saved; the item is re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '400':
+          $ref: '#/components/responses/LibraryInfoInvalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotFileable'
+    delete:
+      tags: [library]
+      operationId: resetAssetLibraryInfo
+      summary: Use the track's or automatic names for the item again.
+      responses:
+        '200':
+          description: Reset; the item is re-filed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryInfoState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NotFileable'
+  /api/lyric-assist/status:
+    get:
+      tags: [lyric-assist]
+      operationId: getLyricAssistStatus
+      summary: Availability of the assistant layers (dictionary, model) and the Claude notice state.
+      description: |
+        Always 200. The model layer mirrors the 011 agent status (backend, ready, active model,
+        fallback, reason, fix); probes are cached for 2 s like `GET /api/agent/status`. Assistant resources that are not scoped to one sheet live under `/api/lyric-assist/*` and `/api/lyric-assists/{assistId}` (no path ambiguity with the 010 `/api/lyrics/{lyricsId}` routes).
+      responses:
+        '200':
+          description: The status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssistStatus'
+  /api/lyric-assist/settings:
+    get:
+      tags: [lyric-assist]
+      operationId: getLyricAssistSettings
+      summary: Read the lyric-assistant settings, the Claude notice text and the own-work statement.
+      description: |
+        Read-only. The UI shows `claudeNoticeText` and `ownWorkStatementText` (with their versions)
+        from here; it never uses the PUT to read them. Added in integration of round 022+023 (pre-release
+        editorial, label unchanged).
+      responses:
+        '200':
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssistSettings'
+    put:
+      tags: [lyric-assist]
+      operationId: updateLyricAssistSettings
+      summary: Acknowledge (or withdraw) the lyric-assistant Claude notice.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LyricAssistSettingsUpdate'
+      responses:
+        '200':
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssistSettings'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/lyrics/{lyricsId}/assists:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    post:
+      tags: [lyric-assist]
+      operationId: createLyricAssist
+      summary: Start an assistant action on the saved sheet (on demand; nothing runs otherwise).
+      description: |
+        Checks, in this order: sheet exists (404); `expectedRevision` equals the sheet revision
+        (409 `revision-conflict`); language `nl` or `en` (409 `language-unsupported`); own lyrics
+        (409 `not-own-lyrics`, the matching track title in `matchedTrackTitle`); `instruction`
+        passes the imitation guard (400 `imitation`); no other assist running (409
+        `assist-active`, its id in `activeAssistId`); for `devices`, `alternatives`, `continue`
+        and `titles` a usable model layer (409 `model-unavailable` with `reason` and `fix`); with
+        backend `claude` the notice is acknowledged (409 `claude-notice-required`). `check` with
+        no usable model runs the dictionary layer only (the assist lists the model layer as
+        unavailable). Returns at once; progress and suggestions stream on the events endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLyricAssistRequest'
+            example:
+              kind: check
+              expectedRevision: 7
+              categories: [spelling, grammar, flow]
+      responses:
+        '202':
+          description: The assist was created (status `queued`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssist'
+        '400':
+          $ref: '#/components/responses/ValidationOrImitation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssistConflict'
+    get:
+      tags: [lyric-assist]
+      operationId: listLyricAssists
+      summary: The newest assists of a sheet (at most 20), newest first, without suggestions.
+      responses:
+        '200':
+          description: Assist summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items:
+                  $ref: '#/components/schemas/LyricAssistSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyric-assists/{assistId}:
+    parameters:
+      - $ref: '#/components/parameters/AssistId'
+    get:
+      tags: [lyric-assist]
+      operationId: getLyricAssist
+      summary: Snapshot of one assist with its suggestions.
+      responses:
+        '200':
+          description: The assist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyric-assists/{assistId}/events:
+    parameters:
+      - $ref: '#/components/parameters/AssistId'
+    get:
+      tags: [lyric-assist]
+      operationId: streamLyricAssistEvents
+      summary: Server-sent events of one assist (replayable).
+      description: |
+        `text/event-stream` with `id: <seq>`, `event: <type>`, `data: <JSON>` and a
+        `: keep-alive` comment every 15 s; replay with `after` or `Last-Event-ID`; the stream
+        closes after `assist.completed`, `assist.failed` or `assist.cancelled`. Event types and
+        payloads: `LyricAssistEvent` (data-model section 10).
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 20
+      responses:
+        '200':
+          description: The event stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Framed events; each `data` line is a `LyricAssistEvent` payload.
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyric-assists/{assistId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/AssistId'
+    post:
+      tags: [lyric-assist]
+      operationId: cancelLyricAssist
+      summary: Cancel a queued or running assist; suggestions already shown stay open.
+      responses:
+        '202':
+          description: Cancelled (or cancelling).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricAssist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssistEnded'
+  /api/lyrics/{lyricsId}/suggestions:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    get:
+      tags: [lyric-assist]
+      operationId: listLyricSuggestions
+      summary: Suggestions of the sheet, anchored to the current revision.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SuggestionStatus'
+        - name: category
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SuggestionCategory'
+      responses:
+        '200':
+          description: The suggestions (default filter `status=open`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestionList'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/suggestions/accept:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    post:
+      tags: [lyric-assist]
+      operationId: acceptLyricSuggestions
+      summary: Apply one or more open suggestions as one revision and one undo step.
+      description: |
+        The server copies the stored proposals (never text from the request). Stale suggestions
+        are skipped and reported in `stale`; overlapping suggestions in one request are refused
+        (409 `overlapping-suggestions`); a result over 4,096 characters is refused (422
+        `too-long`). Accepting an alternative supersedes its group. Lines produced by an accepted
+        suggestion are recorded as assisted lines.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestionDecisionRequest'
+      responses:
+        '200':
+          description: The new sheet state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SheetConflict'
+        '422':
+          $ref: '#/components/responses/TooLong'
+  /api/lyrics/{lyricsId}/suggestions/reject:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    post:
+      tags: [lyric-assist]
+      operationId: rejectLyricSuggestions
+      summary: Reject one or more open suggestions (the text does not change).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestionDecisionRequest'
+      responses:
+        '200':
+          description: The decided suggestions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestionList'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SheetConflict'
+  /api/lyrics/{lyricsId}/suggestions/{suggestionId}/intentional:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+      - $ref: '#/components/parameters/SuggestionId'
+    post:
+      tags: [lyric-assist]
+      operationId: markSuggestionIntentional
+      summary: Close a correction as intentional and store a mark for its text (word, phrase or line).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkSuggestionIntentionalRequest'
+      responses:
+        '201':
+          description: The created (or existing, identical) mark.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentionalMark'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SheetConflict'
+  /api/lyrics/{lyricsId}/intentional-marks:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    get:
+      tags: [lyric-assist]
+      operationId: listIntentionalMarks
+      summary: Intentional marks of the sheet, with whether each text currently occurs.
+      responses:
+        '200':
+          description: The marks.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 200
+                items:
+                  $ref: '#/components/schemas/IntentionalMark'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [lyric-assist]
+      operationId: createIntentionalMark
+      summary: Mark a word, phrase or line of the sheet as intentional (also from a selection in the editor).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentionalMarkInput'
+      responses:
+        '201':
+          description: The created (or existing, identical) mark.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentionalMark'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/MarkLimit'
+  /api/lyrics/{lyricsId}/intentional-marks/{markId}:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+      - $ref: '#/components/parameters/MarkId'
+    delete:
+      tags: [lyric-assist]
+      operationId: deleteIntentionalMark
+      summary: Remove an intentional mark.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/assist-settings:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    put:
+      tags: [lyric-assist]
+      operationId: updateSheetAssistSettings
+      summary: Set the sheet's sensitivity and rhythm target (does not change the text or revision).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetAssistSettingsUpdate'
+      responses:
+        '200':
+          description: The sheet's assist information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SheetAssistInfo'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/own-work-override:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    put:
+      tags: [lyric-assist]
+      operationId: confirmOwnWork
+      summary: Confirm that the sheet is the user's own work although it matches one library track (owner decision Q1).
+      description: |
+        For a false positive of the `not-own-lyrics` guard (e.g. a song of the user's own band that
+        was imported). Requires the current statement version (`LyricAssistSettings.ownWorkStatementVersion`),
+        the typed name and `confirm: true`. `matchedTrackId` must be a track the sheet currently
+        matches (409 `override-not-applicable` otherwise, also when there is no match at all).
+        Replaces an existing override. The override covers only that track; it never disables the
+        verbatim hold-back on generated text or the imitation refusal. Not an agent tool.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnWorkConfirmRequest'
+      responses:
+        '200':
+          description: The stored override.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnWorkOverride'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/OverrideConflict'
+    delete:
+      tags: [lyric-assist]
+      operationId: revokeOwnWork
+      summary: Revoke the own-work override of the sheet.
+      responses:
+        '204':
+          description: Revoked.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/undo:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    post:
+      tags: [lyric-assist]
+      operationId: undoLyricSuggestions
+      summary: Undo the newest accept action (restores the previous revision and reopens its suggestions).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionRequest'
+      responses:
+        '200':
+          description: The restored sheet state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/UndoConflict'
+  /api/lyrics/{lyricsId}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    get:
+      tags: [lyric-assist]
+      operationId: listLyricsRevisions
+      summary: Stored revisions of the sheet (newest first, at most 50; Expert revision list).
+      responses:
+        '200':
+          description: The revisions (without text).
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 50
+                items:
+                  $ref: '#/components/schemas/LyricsRevisionSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyrics/{lyricsId}/revisions/{revision}/restore:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+      - $ref: '#/components/parameters/Revision'
+    post:
+      tags: [lyric-assist]
+      operationId: restoreLyricsRevision
+      summary: Restore a stored revision as a new revision (cause `undo`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionRequest'
+      responses:
+        '200':
+          description: The restored sheet state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SheetConflict'
+  /api/lyrics/{lyricsId}/syllables:
+    parameters:
+      - $ref: '#/components/parameters/LyricsId'
+    get:
+      tags: [lyric-assist]
+      operationId: getSheetSyllables
+      summary: Syllable report of the saved sheet (deterministic, local).
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyllableReport'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/LanguageUnsupported'
+  /api/lyric-assist/syllables:
+    post:
+      tags: [lyric-assist]
+      operationId: countSyllables
+      summary: Syllable report of unsaved editor text (deterministic, local; for the syllable gutter).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyllableRequest'
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyllableReport'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/lyric-assist/rhymes:
+    get:
+      tags: [lyric-assist]
+      operationId: findRhymes
+      summary: Perfect and near rhymes from local data (no model), within 500 ms.
+      parameters:
+        - name: word
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 40
+        - name: language
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/AssistLanguage'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 60
+            default: 30
+      responses:
+        '200':
+          description: The rhymes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RhymeResult'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/lyric-assist/words:
+    get:
+      tags: [lyric-assist]
+      operationId: listLyricWords
+      summary: The personal word list of one language.
+      parameters:
+        - name: language
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/AssistLanguage'
+      responses:
+        '200':
+          description: The words, alphabetical.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 5000
+                items:
+                  $ref: '#/components/schemas/LyricWord'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+    post:
+      tags: [lyric-assist]
+      operationId: addLyricWord
+      summary: Add a word to the personal word list ("Add to my words").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LyricWordInput'
+      responses:
+        '201':
+          description: The created (or existing) word.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LyricWord'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '409':
+          $ref: '#/components/responses/WordLimit'
+  /api/lyric-assist/words/{wordId}:
+    parameters:
+      - $ref: '#/components/parameters/WordId'
+    delete:
+      tags: [lyric-assist]
+      operationId: deleteLyricWord
+      summary: Remove a word from the personal word list.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/lyric-assist/language-guess:
+    post:
+      tags: [lyric-assist]
+      operationId: guessLyricsLanguage
+      summary: Deterministic Dutch/English guess for a sheet with language `unknown` (dictionary hit ratio).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LanguageGuessRequest'
+      responses:
+        '200':
+          description: The guess.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LanguageGuess'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/tracks/{trackId}/sections:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [sections]
+      operationId: getSections
+      summary: The section set of a track (status `none` when never detected).
+      responses:
+        '200':
+          description: The section set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+              examples:
+                detected:
+                  $ref: '#/components/examples/SectionSetReady'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [sections]
+      operationId: replaceSections
+      summary: Replace the whole ordered list (user edit); sets origin `edited`.
+      description: |
+        Section ids that are sent are kept; sections without `id` get a new id. `revision` must
+        equal the stored revision, otherwise `409 sections-changed` (another window saved first).
+        Rules: 1..64 sections, sorted by start, non-overlapping, `0 <= start < end <= duration`,
+        `end - start >= 1`, label 1..40 characters, `instrument` only for `solo` and only a channel
+        of this track.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionsUpdate'
+      responses:
+        '200':
+          description: The stored section set (revision + 1).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SectionsConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/tracks/{trackId}/sections/detect:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    post:
+      tags: [sections]
+      operationId: detectSections
+      summary: Start (re-)detection on the worker.
+      description: |
+        Replaces the sections when the job completes (new ids, origin `detected`). Edited sections
+        are only replaced with `overwrite: true` (else `409 sections-edited`). Also called by the
+        mixer when the status is `none` (tracks imported before 014).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectSectionsRequest'
+      responses:
+        '202':
+          description: Detection queued; poll `getSections`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SectionsConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/tracks/{trackId}/scores:
+    parameters:
+      - $ref: '#/components/parameters/TrackId'
+    get:
+      tags: [score-follow]
+      operationId: listTrackScores
+      summary: Ready sheet-music items of this track (directly or through an exported audio item), newest first.
+      responses:
+        '200':
+          description: The score items with their view status.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 500
+                items:
+                  $ref: '#/components/schemas/TrackScore'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/{assetId}/score-view:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [score-follow]
+      operationId: getScoreView
+      summary: The score view of a score item (status `none` when never made).
+      responses:
+        '200':
+          description: The view; `bars` and `pages` are filled when `status` is `ready`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreView'
+              examples:
+                ready:
+                  $ref: '#/components/examples/ScoreViewReady'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+    post:
+      tags: [score-follow]
+      operationId: createScoreView
+      summary: Make the view (older score items); idempotent while queued or rendering.
+      responses:
+        '202':
+          description: Queued (or already queued/rendering/ready); poll `getScoreView`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreView'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+  /api/assets/{assetId}/score-view/pages/{page}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+      - name: page
+        in: path
+        required: true
+        description: 1-based page number.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+    get:
+      tags: [score-follow]
+      operationId: getScoreViewPage
+      summary: One page as SVG, for use as an image (`<img src>`).
+      description: |
+        Headers: `Content-Type: image/svg+xml`, `Cache-Control: private, max-age=31536000,
+        immutable` (the URL carries `?v=<revision>` from `ScoreView.pages[].url`),
+        `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; font-src data:`,
+        `X-Content-Type-Options: nosniff`.
+      responses:
+        '200':
+          description: The SVG page.
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ScoreViewConflict'
+  /api/setlists:
+    get:
+      tags: [setlists]
+      operationId: listSetlists
+      summary: All setlists, most recently updated first.
+      responses:
+        '200':
+          description: The setlists.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1000
+                items:
+                  $ref: '#/components/schemas/SetlistSummary'
+    post:
+      tags: [setlists]
+      operationId: createSetlist
+      summary: Create an empty setlist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistCreate'
+      responses:
+        '201':
+          description: Created; `Location` header points at the setlist.
+          headers:
+            Location:
+              description: URL of the new setlist.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/setlists/{setlistId}:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    get:
+      tags: [setlists]
+      operationId: getSetlist
+      summary: A setlist with its entries.
+      parameters:
+        - name: acknowledgeRemoved
+          in: query
+          required: false
+          description: True resets `removedEntries` to 0 after the UI showed the notice.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: The setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+              examples:
+                rehearsal:
+                  $ref: '#/components/examples/SetlistRehearsal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [setlists]
+      operationId: updateSetlist
+      summary: Rename and/or change the note.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistUpdate'
+      responses:
+        '200':
+          description: The updated setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [setlists]
+      operationId: deleteSetlist
+      summary: Delete a setlist (tracks and mixes are not touched).
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/setlists/{setlistId}/entries:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    put:
+      tags: [setlists]
+      operationId: replaceSetlistEntries
+      summary: Replace the ordered entries (add, remove, reorder, edit notes in one call).
+      description: |
+        0..100 entries in play order. Entry ids that are sent are kept. Each `trackId` must exist
+        (field error `track-not-found`); a `mixId` must belong to that track (field error
+        `mix-track-mismatch`). A track may appear more than once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetlistEntriesUpdate'
+      responses:
+        '200':
+          description: The updated setlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setlist'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/setlists/{setlistId}/pdf:
+    parameters:
+      - $ref: '#/components/parameters/SetlistId'
+    get:
+      tags: [setlists]
+      operationId: getSetlistPdf
+      summary: Render the setlist as an A4 PDF (download).
+      description: |
+        The API collects the content (titles, artist, tempo, length, mix name, notes, sections,
+        lyrics as plain lines, at most 10,000 characters per song) and renders it with the worker's
+        `setlist-document` job, waiting at most the configured timeout. Response header
+        `Content-Disposition: attachment; filename="<setlist name>.pdf"` (sanitised name).
+        Feature 016 adds `chords`.
+      parameters:
+        - name: lyrics
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: sections
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: notes
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: pageBreakPerSong
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: The PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                contentMediaType: application/pdf
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SetlistConflict'
+        '503':
+          $ref: '#/components/responses/WorkerUnavailable'
+        '504':
+          $ref: '#/components/responses/DocumentTimeout'
+  /api/practice/settings:
+    get:
+      tags: [practice]
+      operationId: getPracticeLogSettings
+      summary: Whether the practice log is on, and its size.
+      responses:
+        '200':
+          description: The settings (defaults when never saved).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeLogSettings'
+    put:
+      tags: [practice]
+      operationId: updatePracticeLogSettings
+      summary: Switch the log on or off; acknowledge the first-use notice.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PracticeLogSettingsUpdate'
+      responses:
+        '200':
+          description: The stored settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeLogSettings'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/sessions:
+    get:
+      tags: [practice]
+      operationId: listPracticeSessions
+      summary: Sessions, newest first (Expert view, agent).
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: before
+          in: query
+          required: false
+          description: Only sessions that started before this time (paging).
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: The sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 200
+                items:
+                  $ref: '#/components/schemas/PracticeSession'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [practice]
+      operationId: deletePracticeSessions
+      summary: Delete the practice log of one track, or all of it when `trackId` is absent.
+      parameters:
+        - name: trackId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: How many sessions were deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedCount'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/sessions/{sessionId}:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        description: UUID made by the browser when the session starts.
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [practice]
+      operationId: upsertPracticeSession
+      summary: Create or replace a session with cumulative values (every 30 s while playing and at the end).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PracticeSessionInput'
+      responses:
+        '200':
+          description: The stored session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PracticeConflict'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+    delete:
+      tags: [practice]
+      operationId: deletePracticeSession
+      summary: Delete one session.
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/practice/summary:
+    get:
+      tags: [practice]
+      operationId: getPracticeSummary
+      summary: Totals, minutes per day, per section and tempo reached for one track.
+      parameters:
+        - name: trackId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+        - $ref: '#/components/parameters/UtcOffsetMinutes'
+      responses:
+        '200':
+          description: The summary (zeros when nothing was recorded).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PracticeSummary'
+              examples:
+                week:
+                  $ref: '#/components/examples/PracticeSummaryWeek'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
+  /api/practice/overview:
+    get:
+      tags: [practice]
+      operationId: getPracticeOverview
+      summary: Totals per track, most recently practised first.
+      parameters:
+        - $ref: '#/components/parameters/UtcOffsetMinutes'
+      responses:
+        '200':
+          description: One entry per track with at least one session.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 10000
+                items:
+                  $ref: '#/components/schemas/PracticeTrackTotal'
+        '422':
+          $ref: '#/components/responses/ValidationProblem'
   /api/tracks/{trackId}/takes:
     parameters:
       - $ref: '#/components/parameters/TrackId'
@@ -3870,6 +5327,110 @@ components:
       schema:
         type: boolean
         default: true
+    FolderId:
+      name: folderId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FolderId'
+    FolderSort:
+      name: sort
+      in: query
+      required: false
+      description: Order of the child folders. Default `name` for artists and songs, `year` for albums. `year` is accepted only for an artist folder (its albums).
+      schema:
+        $ref: '#/components/schemas/FolderSort'
+    KindFilter:
+      name: kind
+      in: query
+      required: false
+      description: Count and list only items of this kind (folders without such items are left out).
+      schema:
+        $ref: '#/components/schemas/AssetKind'
+    StatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Count and list only items with this status.
+      schema:
+        $ref: '#/components/schemas/AssetStatus'
+    FolderLimit:
+      name: limit
+      in: query
+      required: false
+      description: Child folders per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 200
+    FolderOffset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      description: A previously received `ETag`.
+      schema:
+        type: string
+    AssistId:
+      name: assistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SuggestionId:
+      name: suggestionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MarkId:
+      name: markId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    WordId:
+      name: wordId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Revision:
+      name: revision
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    SetlistId:
+      name: setlistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UtcOffsetMinutes:
+      name: utcOffsetMinutes
+      in: query
+      required: false
+      description: The browser's offset from UTC for day buckets (e.g. 60 for CET, 120 for CEST).
+      schema:
+        type: integer
+        minimum: -840
+        maximum: 840
+        default: 0
     TakeId:
       name: takeId
       in: path
@@ -3937,6 +5498,11 @@ components:
       schema:
         type: string
         const: no-store
+    LibraryETag:
+      description: '`"lib-<revision>"`, the library revision (16 hex).'
+      schema:
+        type: string
+        pattern: '^"lib-[0-9a-f]{16}"$'
   schemas:
     HealthResponse:
       type: object
@@ -4333,6 +5899,13 @@ components:
           exclusiveMinimum: 0
         enabled:
           type: boolean
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+          default: null
+          description: |
+            1.13.0: the section the loop was set from (one-click loop), cleared by the UI when A or
+            B is moved by hand. An id that no longer exists is returned as null; the loop stays.
     MixSettings:
       type: object
       additionalProperties: false
@@ -5033,7 +6606,7 @@ components:
     Asset:
       type: object
       additionalProperties: false
-      required: [id, kind, name, status, progress, error, files, audio, score, provenance, sizeBytes, createdAt, updatedAt]
+      required: [id, kind, name, status, progress, error, files, audio, score, provenance, placement, sizeBytes, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -5072,6 +6645,10 @@ components:
           description: Set when a kind `score` item is ready (1.7.0).
         provenance:
           $ref: '#/components/schemas/Provenance'
+        placement:
+          oneOf:
+            - $ref: '#/components/schemas/Placement'
+            - type: 'null'
         sizeBytes:
           type: integer
           minimum: 0
@@ -6089,11 +7666,17 @@ components:
           minLength: 1
           maxLength: 65536
           description: Raw text; 1-4,096 characters after normalisation.
+        expectedRevision:
+          type: integer
+          minimum: 1
+          description: |
+            1.23.0 (feature 023), optional. The sheet revision the client edited; a different current
+            revision returns `409 revision-conflict`. Absent = 010 behaviour (last write wins).
     LyricsSheet:
       type: object
       additionalProperties: false
-      required: [id, title, language, text, createdAt, updatedAt]
-      description: Own lyrics, normalised (1.9.0).
+      required: [id, title, language, text, createdAt, updatedAt, revision, assist]
+      description: Own lyrics, normalised (1.9.0); `revision` and `assist` since 1.23.0 (feature 023).
       properties:
         id:
           type: string
@@ -6114,6 +7697,12 @@ components:
         updatedAt:
           type: string
           format: date-time
+        revision:
+          type: integer
+          minimum: 1
+          description: 1.23.0 (feature 023). Incremented by every save, accept, undo and restore; sheets created before 1.23.0 start at 1.
+        assist:
+          $ref: '#/components/schemas/SheetAssistInfo'
     LyricsUploadRequest:
       type: object
       required: [file]
@@ -6252,6 +7841,11 @@ components:
         text:
           type: string
           maxLength: 4096
+        assistedLineCount:
+          type: integer
+          minimum: 0
+          default: 0
+          description: 1.23.0 (feature 023). Lines of the snapshot that came from accepted assistant text (take details).
     SongVoice:
       type: object
       additionalProperties: false
@@ -6494,12 +8088,14 @@ components:
       enum: [user, assistant]
     JobPhase:
       type: string
-      enum: [standard, detail, lyrics, export, transcription, restyle, generation]
-      description: restyle and generation are used once features 009 and 010 are delivered.
+      enum: [standard, detail, lyrics, export, transcription, restyle, generation, lyricAssist]
+      description: restyle and generation are used once features 009 and 010 are delivered; `lyricAssist` (1.23.0, feature 023) is a lyric assist run.
     DecisionReason:
       type: string
-      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation, risk-check-failed]
+      enum: [risk-heavy, risk-destructive, tainted, url-not-from-user, lyrics-not-from-user, artist-imitation, undo-compensation, risk-check-failed, lyrics-edit]
       description: |
+        `lyrics-edit` (1.23.0, feature 023): `apply_lyric_suggestions` changes a lyrics sheet; approval
+        is always required and never covered by a plan approval.
         Why a step needs approval or was denied (data-model 4.2, 6). `risk-check-failed`: the tool's
         dynamic heavy-risk check (e.g. the size of an export) could not be evaluated, so the step is
         escalated to heavy and requires approval; such a step is never covered by a `plan_heavy`
@@ -6856,6 +8452,10 @@ components:
         mixId:
           type: [string, 'null']
           format: uuid
+        lyricsId:
+          type: [string, 'null']
+          format: uuid
+          description: 1.23.0 (feature 023). The lyrics sheet open on `/lyrics/{id}`; used by the lyric-assist tools.
     ConversationSummary:
       type: object
       required: [conversationId, title, createdAt, updatedAt, lastRunStatus]
@@ -8345,6 +9945,2014 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CleanupSkip'
+    FolderId:
+      type: string
+      pattern: '^(ar|al|so)[0-9a-f]{16}$'
+      description: Derived folder id; the prefix is the level (`ar` artist, `al` album, `so` song).
+    FolderLevel:
+      type: string
+      enum: [artist, album, song]
+    FolderSort:
+      type: string
+      enum: [name, year, recent, size, items]
+      description: '`name` A-Z (leading "The" ignored; unknown folders last), `year` (albums; unknown last), `recent` (newest item first), `size` (largest first), `items` (most items first).'
+    PlacementSource:
+      type: string
+      enum: [item, track, match, import, fallback]
+      description: |
+        Where a name comes from: `item` (set by the user for this item), `track` (set by the user
+        for its track), `match` (band info, feature 005), `import` (names reported by the import),
+        `fallback` ("Unknown artist", "Unknown album", the track title, "My songs").
+    FolderRef:
+      type: object
+      additionalProperties: false
+      required: [id, level, name]
+      properties:
+        id:
+          $ref: '#/components/schemas/FolderId'
+        level:
+          $ref: '#/components/schemas/FolderLevel'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+    FolderCounts:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        albums:
+          type: integer
+          minimum: 1
+          description: Artist folders only.
+        songs:
+          type: integer
+          minimum: 1
+          description: Artist and album folders.
+        items:
+          type: integer
+          minimum: 0
+          description: Items counted with the `kind`/`status` filters; 0 only for the root of an empty library.
+    ArtImage:
+      type: object
+      additionalProperties: false
+      required: [thumbUrl, coverUrl]
+      properties:
+        thumbUrl:
+          type: string
+          description: '`/api/tracks/{trackId}/artwork/thumb?v={version}` (160 px, immutable, 1.4.0).'
+        coverUrl:
+          type: string
+          description: '`/api/tracks/{trackId}/artwork/cover?v={version}` (600 px, immutable, 1.4.0).'
+    ArtPlaceholder:
+      type: object
+      additionalProperties: false
+      required: [glyph, tone]
+      properties:
+        glyph:
+          type: string
+          minLength: 1
+          maxLength: 8
+          description: One grapheme (first letter of the name, upper case where the script has case; `?` for unknown folders; a note sign for "My songs").
+        tone:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: Index of the design-system art colour token, derived from the folder key.
+    FolderArtKind:
+      type: string
+      enum: [cover, mosaic, placeholder]
+    FolderArt:
+      type: object
+      additionalProperties: false
+      required: [kind, images, placeholder]
+      description: |
+        Song: the track's picture. Album: the best picture among its songs (005 precedence).
+        Artist: up to 4 album covers (`mosaic` with 2-4 images, `cover` with 1). No picture:
+        `placeholder` with an empty `images`. The placeholder is always given (fallback when an
+        image fails to load). Pictures are shown in the app only (feature 005).
+      properties:
+        kind:
+          $ref: '#/components/schemas/FolderArtKind'
+        images:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/ArtImage'
+        placeholder:
+          $ref: '#/components/schemas/ArtPlaceholder'
+    LibraryFolder:
+      type: object
+      additionalProperties: false
+      required: [id, level, name, nameSource, year, counts, sizeBytes, latestAt, art, trackIds]
+      properties:
+        id:
+          $ref: '#/components/schemas/FolderId'
+        level:
+          $ref: '#/components/schemas/FolderLevel'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Display name (band info spelling when any item was filed from a match, else the most used spelling).
+        nameSource:
+          $ref: '#/components/schemas/PlacementSource'
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+          description: Album folders only (first release year from band info); null otherwise.
+        counts:
+          $ref: '#/components/schemas/FolderCounts'
+        sizeBytes:
+          type: integer
+          minimum: 0
+        latestAt:
+          type: string
+          format: date-time
+          description: '`createdAt` of the newest item inside.'
+        art:
+          $ref: '#/components/schemas/FolderArt'
+        trackIds:
+          type: array
+          maxItems: 10
+          description: Song folders only - existing tracks whose items are inside (to open the track or its mixer); empty otherwise.
+          items:
+            type: string
+            format: uuid
+    LibraryFolderView:
+      type: object
+      additionalProperties: false
+      required: [revision, folder, breadcrumb, children, childrenTotal, items, totalItems, totalSizeBytes, pendingFiling]
+      properties:
+        revision:
+          type: string
+          pattern: '^[0-9a-f]{16}$'
+        folder:
+          oneOf:
+            - $ref: '#/components/schemas/LibraryFolder'
+            - type: 'null'
+          description: Null at the root.
+        breadcrumb:
+          type: array
+          maxItems: 3
+          description: Parent folders from the artist down, excluding the folder itself and the root.
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        children:
+          type: array
+          maxItems: 500
+          description: Child folders (artists at the root, albums in an artist, songs in an album); empty for a song.
+          items:
+            $ref: '#/components/schemas/LibraryFolder'
+        childrenTotal:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          maxItems: 500
+          description: Song level only - its items in instrument order (standard stems, detail stems, mixes, sheet music, generated takes), then newest first.
+          items:
+            $ref: '#/components/schemas/Asset'
+        totalItems:
+          type: integer
+          minimum: 0
+        totalSizeBytes:
+          type: integer
+          minimum: 0
+        pendingFiling:
+          type: integer
+          minimum: 0
+          description: Items not filed yet by the start-up step (the UI shows "Sorting your library").
+    SearchField:
+      type: string
+      enum: [artist, album, song, name, instrument]
+    Highlight:
+      type: object
+      additionalProperties: false
+      required: [field, start, length]
+      properties:
+        field:
+          $ref: '#/components/schemas/SearchField'
+        start:
+          type: integer
+          minimum: 0
+          description: UTF-16 offset in the displayed text of the field (folder name, item name, or the instrument label).
+        length:
+          type: integer
+          minimum: 1
+        label:
+          type: [string, 'null']
+          maxLength: 60
+          description: For `instrument` - the label the offsets refer to (e.g. "Snare").
+    FolderHit:
+      type: object
+      additionalProperties: false
+      required: [folder, path, highlights]
+      properties:
+        folder:
+          $ref: '#/components/schemas/LibraryFolder'
+        path:
+          type: array
+          maxItems: 2
+          description: Parent folders (artist for an album; artist and album for a song).
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        highlights:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Highlight'
+    ItemHit:
+      type: object
+      additionalProperties: false
+      required: [asset, path, highlights, matchedInstruments]
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        path:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: Artist, album and song folder of the item.
+          items:
+            $ref: '#/components/schemas/FolderRef'
+        highlights:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Highlight'
+        matchedInstruments:
+          type: array
+          maxItems: 8
+          description: Instrument labels that matched a word (e.g. ["Snare"]).
+          items:
+            type: string
+            maxLength: 60
+    SearchTotals:
+      type: object
+      additionalProperties: false
+      required: [artists, albums, songs, items]
+      properties:
+        artists:
+          type: integer
+          minimum: 0
+        albums:
+          type: integer
+          minimum: 0
+        songs:
+          type: integer
+          minimum: 0
+        items:
+          type: integer
+          minimum: 0
+    LibrarySearchResult:
+      type: object
+      additionalProperties: false
+      required: [query, tokens, revision, artists, albums, songs, items, totals]
+      properties:
+        query:
+          type: string
+          maxLength: 100
+          description: The text that was searched (trimmed, cut to 100 characters).
+        tokens:
+          type: array
+          minItems: 1
+          maxItems: 8
+          description: The folded words that were matched.
+          items:
+            type: string
+        revision:
+          type: string
+          pattern: '^[0-9a-f]{16}$'
+        artists:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        albums:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        songs:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FolderHit'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ItemHit'
+        totals:
+          $ref: '#/components/schemas/SearchTotals'
+    LibraryName:
+      type: [string, 'null']
+      minLength: 1
+      maxLength: 200
+      description: A user name for filing (trimmed, no control characters); null = automatic.
+    LibraryInfoRequest:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song]
+      properties:
+        artist:
+          $ref: '#/components/schemas/LibraryName'
+        album:
+          $ref: '#/components/schemas/LibraryName'
+        song:
+          $ref: '#/components/schemas/LibraryName'
+    LibraryInfoLevel:
+      type: object
+      additionalProperties: false
+      required: [value, effective, source, automatic]
+      properties:
+        value:
+          type: [string, 'null']
+          maxLength: 200
+          description: The name the user set at this scope (track or item); null = automatic.
+        effective:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name used for filing now.
+        source:
+          $ref: '#/components/schemas/PlacementSource'
+        automatic:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name automatic filing would use at this scope (shown next to the "Automatic" box).
+    LibraryInfoState:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song, placement, movedItems]
+      properties:
+        artist:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        album:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        song:
+          $ref: '#/components/schemas/LibraryInfoLevel'
+        placement:
+          oneOf:
+            - $ref: '#/components/schemas/Placement'
+            - type: 'null'
+          description: The item's placement (item scope); null for a track.
+        movedItems:
+          type: integer
+          minimum: 0
+          description: Items that changed folder (0 for GET).
+    PlacementLevel:
+      type: object
+      additionalProperties: false
+      required: [folderId, name, source]
+      properties:
+        folderId:
+          $ref: '#/components/schemas/FolderId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The name this item is filed under (the folder may display another spelling of the same key).
+        source:
+          $ref: '#/components/schemas/PlacementSource'
+    Placement:
+      type: object
+      additionalProperties: false
+      required: [artist, album, song, year, filed]
+      description: Where a library item is filed (1.22.0).
+      properties:
+        artist:
+          $ref: '#/components/schemas/PlacementLevel'
+        album:
+          $ref: '#/components/schemas/PlacementLevel'
+        song:
+          $ref: '#/components/schemas/PlacementLevel'
+        year:
+          type: [integer, 'null']
+          minimum: 1000
+          maximum: 2999
+        filed:
+          type: boolean
+          description: False only until the start-up step filed an older item; the names are then the automatic preview.
+    AssistProblem:
+      description: Problem details of the lyric assistant with its extension members.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          required: [code]
+          properties:
+            code:
+              type: string
+              enum: [revision-conflict, language-unsupported, not-own-lyrics, assist-active, model-unavailable, claude-notice-required, overlapping-suggestions, suggestion-not-open, nothing-to-undo, undo-blocked-by-edit, override-not-applicable, statement-outdated]
+            currentRevision:
+              type: [integer, 'null']
+            matchedTrackTitle:
+              type: [string, 'null']
+              maxLength: 200
+            matchedTrackId:
+              type: [string, 'null']
+              format: uuid
+              description: '`not-own-lyrics`: the first matching track not covered by an override.'
+            overridable:
+              type: [boolean, 'null']
+              description: '`not-own-lyrics`: true; the editor offers the own-work confirmation (owner decision Q1).'
+            activeAssistId:
+              type: [string, 'null']
+              format: uuid
+            reason:
+              type: [string, 'null']
+              maxLength: 500
+            fix:
+              type: [string, 'null']
+              maxLength: 500
+            suggestionIds:
+              type: array
+              maxItems: 100
+              items:
+                type: string
+                format: uuid
+            changedLines:
+              type: [integer, 'null']
+              minimum: 0
+    AssistLanguage:
+      type: string
+      description: Languages of the assistant (a subset of 010 `LyricsLanguage`).
+      enum: [nl, en]
+    Sensitivity:
+      type: string
+      description: '`loose` = errors only; `balanced` (default) = errors and improvements; `strict` = also recognised licences as ideas.'
+      enum: [loose, balanced, strict]
+    AssistKind:
+      type: string
+      enum: [check, devices, alternatives, continue, titles]
+    SuggestionCategory:
+      type: string
+      enum: [spelling, grammar, flow, licence, device, alternative, continuation, title]
+    SuggestionType:
+      type: string
+      description: Closed list (data-model section 4).
+      enum:
+        - spelling.typo
+        - spelling.unknown-word
+        - spelling.capitalisation
+        - grammar.agreement
+        - grammar.verb-form
+        - grammar.word-order
+        - grammar.homophone
+        - grammar.other
+        - flow.stress
+        - flow.awkward
+        - flow.repetition
+        - flow.clarity
+        - flow.syllable-count
+        - licence.elision
+        - licence.inversion
+        - licence.archaism
+        - licence.sound-spelling
+        - licence.slang
+        - licence.code-switch
+        - device.end-rhyme
+        - device.internal-rhyme
+        - device.assonance
+        - device.alliteration
+        - device.imagery
+        - device.syllable-fit
+        - device.rhythm
+        - write.alternative
+        - write.continuation
+        - write.title
+    SuggestionSeverity:
+      type: string
+      enum: [error, improvement, idea]
+    SuggestionStatus:
+      type: string
+      enum: [open, accepted, rejected, intentional, stale, superseded]
+    SuggestionSource:
+      type: string
+      enum: [dictionary, rules, model]
+    SuggestionOperation:
+      type: string
+      enum: [replace, insertAfter, setTitle, none]
+    AssistStatus:
+      type: string
+      enum: [queued, running, completed, failed, cancelled]
+    LayerInfo:
+      type: object
+      additionalProperties: false
+      required: [layer, name, available]
+      properties:
+        layer:
+          type: string
+          enum: [dictionary, rules, model]
+        name:
+          type: string
+          maxLength: 100
+          description: e.g. "OpenTaal (nl)", "SCOWL + CMUdict (en)", "qwen3.5:9b (local)", "Claude (claude-opus-5-5)".
+        available:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          maxLength: 500
+        fix:
+          type: [string, 'null']
+          maxLength: 500
+    LyricAssistStatus:
+      type: object
+      additionalProperties: false
+      required: [languages, dictionary, model, claudeNoticeRequired, assistActive]
+      properties:
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistLanguage'
+        dictionary:
+          $ref: '#/components/schemas/LayerInfo'
+        model:
+          type: object
+          additionalProperties: false
+          required: [backend, ready, usingFallback]
+          properties:
+            backend:
+              type: string
+              enum: [ollama, claude, none, fake]
+            ready:
+              type: boolean
+            activeModel:
+              type: [string, 'null']
+            usingFallback:
+              type: boolean
+            reason:
+              type: [string, 'null']
+              maxLength: 500
+            fix:
+              type: [string, 'null']
+              maxLength: 500
+            qualityNote:
+              type: [string, 'null']
+              maxLength: 300
+              description: Standing quality note, e.g. Dutch grammar with the local model (SC-001).
+        claudeNoticeRequired:
+          type: boolean
+          description: True when the backend is `claude` and the current notice version is not acknowledged.
+        assistActive:
+          type: [string, 'null']
+          format: uuid
+          description: Id of the running assist, if any.
+    LyricAssistSettings:
+      type: object
+      additionalProperties: false
+      required: [claudeNoticeAcknowledged, claudeNoticeVersion, claudeNoticeText, ownWorkStatementVersion, ownWorkStatementText]
+      properties:
+        claudeNoticeAcknowledged:
+          type: boolean
+        claudeNoticeAcknowledgedAt:
+          type: [string, 'null']
+          format: date-time
+        claudeNoticeVersion:
+          type: string
+          example: lyric-claude-notice.v1
+        claudeNoticeText:
+          type: string
+          maxLength: 1000
+        ownWorkStatementVersion:
+          type: string
+          example: own-work.v1
+        ownWorkStatementText:
+          type: string
+          maxLength: 1000
+    LyricAssistSettingsUpdate:
+      type: object
+      additionalProperties: false
+      required: [acknowledgeClaudeNotice]
+      properties:
+        acknowledgeClaudeNotice:
+          type: boolean
+          description: true acknowledges the current notice version; false withdraws the acknowledgement.
+    CreateLyricAssistRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, expectedRevision]
+      properties:
+        kind:
+          $ref: '#/components/schemas/AssistKind'
+        expectedRevision:
+          type: integer
+          minimum: 1
+        categories:
+          type: array
+          description: '`check`: subset of spelling, grammar, flow, licence; `devices`: subset of device, licence; ignored for writing kinds.'
+          maxItems: 5
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/SuggestionCategory'
+        lineFrom:
+          type: [integer, 'null']
+          minimum: 1
+        lineTo:
+          type: [integer, 'null']
+          minimum: 1
+        count:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 5
+          description: alternatives 1-5 (3), continue 1-4 (2), titles 1-5 (5).
+        instruction:
+          type: [string, 'null']
+          maxLength: 200
+          description: Optional mood/theme hint for devices and writing kinds; imitation guard.
+        origin:
+          type: string
+          enum: [editor, agent]
+          default: editor
+          description: Who starts the assist (`LyricAssistSummary.origin`). The editor omits it; the agent loopback sends `agent`.
+        agentRunId:
+          type: [string, 'null']
+          format: uuid
+          description: The agent run that starts the assist; only with `origin` = `agent` (otherwise 400 on `agentRunId`).
+    Anchor:
+      type: object
+      additionalProperties: false
+      required: [line, start, length, original]
+      properties:
+        line:
+          type: integer
+          minimum: 0
+          description: 1-based line in the normalised text; 0 for titles.
+        start:
+          type: integer
+          minimum: 0
+          description: UTF-16 offset within the line.
+        length:
+          type: integer
+          minimum: 0
+        original:
+          type: string
+          maxLength: 400
+    LyricSuggestion:
+      type: object
+      additionalProperties: false
+      required: [suggestionId, assistId, category, type, severity, anchor, operation, explanation, source, status]
+      properties:
+        suggestionId:
+          type: string
+          format: uuid
+        assistId:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/SuggestionCategory'
+        type:
+          $ref: '#/components/schemas/SuggestionType'
+        severity:
+          $ref: '#/components/schemas/SuggestionSeverity'
+        anchor:
+          $ref: '#/components/schemas/Anchor'
+        operation:
+          $ref: '#/components/schemas/SuggestionOperation'
+        proposal:
+          type: [string, 'null']
+          maxLength: 400
+        groupId:
+          type: [string, 'null']
+          format: uuid
+        explanation:
+          type: string
+          minLength: 1
+          maxLength: 300
+        source:
+          $ref: '#/components/schemas/SuggestionSource'
+        model:
+          type: [string, 'null']
+          maxLength: 100
+        syllablesBefore:
+          type: [integer, 'null']
+          minimum: 0
+        syllablesAfter:
+          type: [integer, 'null']
+          minimum: 0
+        rhymeWith:
+          oneOf:
+            - type: 'null'
+            - type: object
+              additionalProperties: false
+              required: [line, word]
+              properties:
+                line:
+                  type: integer
+                  minimum: 1
+                word:
+                  type: string
+                  maxLength: 40
+        status:
+          $ref: '#/components/schemas/SuggestionStatus'
+        decidedAt:
+          type: [string, 'null']
+          format: date-time
+    CategoryCounts:
+      type: object
+      additionalProperties: false
+      required: [spelling, grammar, flow, licence, device, alternative, continuation, title]
+      properties:
+        spelling:
+          type: integer
+          minimum: 0
+        grammar:
+          type: integer
+          minimum: 0
+        flow:
+          type: integer
+          minimum: 0
+        licence:
+          type: integer
+          minimum: 0
+        device:
+          type: integer
+          minimum: 0
+        alternative:
+          type: integer
+          minimum: 0
+        continuation:
+          type: integer
+          minimum: 0
+        title:
+          type: integer
+          minimum: 0
+    DiscardedCounts:
+      type: object
+      additionalProperties: false
+      required: [invalidAnchor, invalidSchema, failedVerification, filtered, verbatim]
+      properties:
+        invalidAnchor:
+          type: integer
+          minimum: 0
+        invalidSchema:
+          type: integer
+          minimum: 0
+        failedVerification:
+          type: integer
+          minimum: 0
+        filtered:
+          type: integer
+          minimum: 0
+        verbatim:
+          type: integer
+          minimum: 0
+          description: Withheld because too close to library lyrics (shown to every level).
+    LyricAssistSummary:
+      type: object
+      description: |
+        An assist without its suggestions. Not closed with `additionalProperties: false`, because `LyricAssist` extends it
+        with `allOf` (a closed base would reject `suggestions`); `LyricAssist` is closed with `unevaluatedProperties: false`
+        and responses carry exactly the listed members (pre-release fix, 023 Phase 0).
+      required: [assistId, lyricsId, sheetRevision, kind, status, language, sensitivity, layers, usingFallback, blocksTotal, blocksDone, blocksSkipped, counts, discarded, origin, createdAt]
+      properties:
+        assistId:
+          type: string
+          format: uuid
+        lyricsId:
+          type: string
+          format: uuid
+        sheetRevision:
+          type: integer
+          minimum: 1
+        kind:
+          $ref: '#/components/schemas/AssistKind'
+        status:
+          $ref: '#/components/schemas/AssistStatus'
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        sensitivity:
+          $ref: '#/components/schemas/Sensitivity'
+        layers:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/LayerInfo'
+        backend:
+          type: [string, 'null']
+          enum: [ollama, claude, fake, null]
+        model:
+          type: [string, 'null']
+          maxLength: 100
+        usingFallback:
+          type: boolean
+        blocksTotal:
+          type: integer
+          minimum: 0
+        blocksDone:
+          type: integer
+          minimum: 0
+        blocksSkipped:
+          type: integer
+          minimum: 0
+        counts:
+          $ref: '#/components/schemas/CategoryCounts'
+        discarded:
+          $ref: '#/components/schemas/DiscardedCounts'
+        usage:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/TokenUsage'
+        origin:
+          type: string
+          enum: [editor, agent]
+        agentRunId:
+          type: [string, 'null']
+          format: uuid
+        failure:
+          oneOf:
+            - type: 'null'
+            - type: object
+              additionalProperties: false
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  enum: [backend-unavailable, budget-exhausted, refusal, timeout, interrupted, internal]
+                message:
+                  type: string
+                  maxLength: 500
+                fix:
+                  type: [string, 'null']
+                  maxLength: 500
+        estimatedSeconds:
+          type: [number, 'null']
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+    LyricAssist:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/LyricAssistSummary'
+        - type: object
+          required: [suggestions]
+          properties:
+            suggestions:
+              type: array
+              maxItems: 400
+              items:
+                $ref: '#/components/schemas/LyricSuggestion'
+    LyricAssistEvent:
+      description: '`data` of one SSE event; the SSE `event` field names the variant (data-model section 10), so the variants are listed with `anyOf` (selected by the event name, not by shape).'
+      anyOf:
+        - title: assist.started
+          type: object
+          required: [assistId, layers, usingFallback, blocksTotal]
+          properties:
+            assistId:
+              type: string
+              format: uuid
+            layers:
+              type: array
+              items:
+                $ref: '#/components/schemas/LayerInfo'
+            backend:
+              type: [string, 'null']
+            model:
+              type: [string, 'null']
+            usingFallback:
+              type: boolean
+            blocksTotal:
+              type: integer
+              minimum: 0
+            estimatedSeconds:
+              type: [number, 'null']
+        - title: assist.progress
+          type: object
+          required: [blocksDone, blocksSkipped, blocksTotal]
+          properties:
+            blocksDone:
+              type: integer
+              minimum: 0
+            blocksSkipped:
+              type: integer
+              minimum: 0
+            blocksTotal:
+              type: integer
+              minimum: 0
+        - title: suggestion.added
+          $ref: '#/components/schemas/LyricSuggestion'
+        - title: assist.note
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [block-skipped, fallback-model, quality-note, verbatim-withheld]
+            message:
+              type: string
+              maxLength: 300
+        - title: usage.updated
+          $ref: '#/components/schemas/TokenUsage'
+        - title: assist.completed
+          type: object
+          required: [counts, discarded, durationMs]
+          properties:
+            counts:
+              $ref: '#/components/schemas/CategoryCounts'
+            discarded:
+              $ref: '#/components/schemas/DiscardedCounts'
+            durationMs:
+              type: integer
+              minimum: 0
+        - title: assist.failed
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+              maxLength: 500
+            fix:
+              type: [string, 'null']
+        - title: assist.cancelled
+          type: object
+          required: [assistId]
+          properties:
+            assistId:
+              type: string
+              format: uuid
+    SuggestionList:
+      type: object
+      additionalProperties: false
+      required: [lyricsId, revision, suggestions]
+      properties:
+        lyricsId:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 1
+        suggestions:
+          type: array
+          maxItems: 400
+          items:
+            $ref: '#/components/schemas/LyricSuggestion'
+    SuggestionDecisionRequest:
+      type: object
+      additionalProperties: false
+      required: [suggestionIds, expectedRevision]
+      properties:
+        suggestionIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+        expectedRevision:
+          type: integer
+          minimum: 1
+    RevisionRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision]
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 1
+    AssistedLine:
+      type: object
+      additionalProperties: false
+      required: [line, suggestionId]
+      properties:
+        line:
+          type: integer
+          minimum: 1
+        suggestionId:
+          type: string
+          format: uuid
+    RhythmTarget:
+      type: object
+      additionalProperties: false
+      required: [bpm, beatsPerBar, barsPerLine, syllablesPerBeat]
+      properties:
+        bpm:
+          type: integer
+          minimum: 40
+          maximum: 220
+        beatsPerBar:
+          type: integer
+          minimum: 2
+          maximum: 7
+        barsPerLine:
+          type: integer
+          minimum: 1
+          maximum: 8
+        syllablesPerBeat:
+          type: number
+          minimum: 0.5
+          maximum: 4
+          multipleOf: 0.25
+    SheetAssistInfo:
+      type: object
+      additionalProperties: false
+      description: Member `assist` of `LyricsSheet` at the merge.
+      required: [sensitivity, openSuggestions, assistedLines, intentionalMarkCount, canUndo, ownWorkOverride]
+      properties:
+        sensitivity:
+          $ref: '#/components/schemas/Sensitivity'
+        rhythmTarget:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/RhythmTarget'
+        openSuggestions:
+          type: integer
+          minimum: 0
+        assistedLines:
+          type: array
+          maxItems: 400
+          items:
+            $ref: '#/components/schemas/AssistedLine'
+        intentionalMarkCount:
+          type: integer
+          minimum: 0
+        canUndo:
+          type: boolean
+          description: The newest revision is an accept action.
+        ownWorkOverride:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/OwnWorkOverride'
+    SheetAssistSettingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        sensitivity:
+          $ref: '#/components/schemas/Sensitivity'
+        rhythmTarget:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/RhythmTarget'
+          description: null clears the target; absent keeps it.
+    AcceptResult:
+      type: object
+      additionalProperties: false
+      required: [lyricsId, revision, title, text, assist, applied, stale]
+      properties:
+        lyricsId:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        text:
+          type: string
+          maxLength: 4096
+        assist:
+          $ref: '#/components/schemas/SheetAssistInfo'
+        applied:
+          type: array
+          items:
+            type: string
+            format: uuid
+        stale:
+          type: array
+          items:
+            type: string
+            format: uuid
+        reopened:
+          type: array
+          description: Suggestions reopened by an undo or restore.
+          items:
+            type: string
+            format: uuid
+    OwnWorkConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [matchedTrackId, confirmedBy, statementVersion, confirm]
+      properties:
+        matchedTrackId:
+          type: string
+          format: uuid
+        confirmedBy:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: The typed name of the person confirming.
+        statementVersion:
+          type: string
+          maxLength: 40
+        confirm:
+          type: boolean
+          const: true
+    OwnWorkOverride:
+      type: object
+      additionalProperties: false
+      required: [statementVersion, confirmedBy, confirmedAt, matchedTrackId, matchedTrackTitle]
+      properties:
+        statementVersion:
+          type: string
+          maxLength: 40
+        confirmedBy:
+          type: string
+          maxLength: 80
+        confirmedAt:
+          type: string
+          format: date-time
+        matchedTrackId:
+          type: string
+          format: uuid
+        matchedTrackTitle:
+          type: string
+          maxLength: 200
+    IntentionalScope:
+      type: string
+      enum: [word, phrase, line]
+    IntentionalMarkInput:
+      type: object
+      additionalProperties: false
+      required: [scope, text]
+      properties:
+        scope:
+          $ref: '#/components/schemas/IntentionalScope'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 400
+          description: word 1-40 without spaces; phrase 1-200; line 1-400; must occur in the current sheet text.
+        note:
+          type: [string, 'null']
+          maxLength: 120
+    MarkSuggestionIntentionalRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, expectedRevision]
+      properties:
+        scope:
+          $ref: '#/components/schemas/IntentionalScope'
+          description: '`word`/`phrase` = the anchor text; `line` = the whole anchor line.'
+        expectedRevision:
+          type: integer
+          minimum: 1
+        note:
+          type: [string, 'null']
+          maxLength: 120
+    IntentionalMark:
+      type: object
+      additionalProperties: false
+      required: [markId, scope, text, inText, createdAt]
+      properties:
+        markId:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/IntentionalScope'
+        text:
+          type: string
+          maxLength: 400
+        note:
+          type: [string, 'null']
+          maxLength: 120
+        inText:
+          type: boolean
+          description: The marked text currently occurs in the sheet.
+        createdAt:
+          type: string
+          format: date-time
+    LyricsRevisionSummary:
+      type: object
+      additionalProperties: false
+      required: [revision, cause, createdAt]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        cause:
+          type: string
+          enum: [created, userSave, accept, undo]
+        acceptGroupId:
+          type: [string, 'null']
+          format: uuid
+        changedLines:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+    SyllableRequest:
+      type: object
+      additionalProperties: false
+      required: [language, text]
+      properties:
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 65536
+          description: Raw editor text; normalised like a 010 save (not stored).
+        rhythmTarget:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/RhythmTarget'
+    SyllableLine:
+      type: object
+      additionalProperties: false
+      required: [line, syllables, isMarker, deviates]
+      properties:
+        line:
+          type: integer
+          minimum: 1
+        syllables:
+          type: integer
+          minimum: 0
+        isMarker:
+          type: boolean
+          description: Section marker or blank line (not counted).
+        section:
+          type: [string, 'null']
+          maxLength: 40
+        sectionMedian:
+          type: [number, 'null']
+        target:
+          type: [integer, 'null']
+        deviates:
+          type: boolean
+          description: More than 2 from the target, or from the section median when there is no target.
+    SyllableReport:
+      type: object
+      additionalProperties: false
+      required: [language, lines]
+      properties:
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        lines:
+          type: array
+          maxItems: 4096
+          items:
+            $ref: '#/components/schemas/SyllableLine'
+        targetDurationSeconds:
+          type: [number, 'null']
+          minimum: 0
+        wordsPerSecond:
+          type: [number, 'null']
+          minimum: 0
+          description: 010 density at the target duration; the UI warns above 4.0.
+    Rhyme:
+      type: object
+      additionalProperties: false
+      required: [word, kind, syllables]
+      properties:
+        word:
+          type: string
+          maxLength: 40
+        kind:
+          type: string
+          enum: [perfect, near]
+        syllables:
+          type: integer
+          minimum: 1
+    RhymeResult:
+      type: object
+      additionalProperties: false
+      required: [word, language, rhymes, source]
+      properties:
+        word:
+          type: string
+          maxLength: 40
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        rhymes:
+          type: array
+          maxItems: 60
+          items:
+            $ref: '#/components/schemas/Rhyme'
+        source:
+          type: string
+          description: e.g. "CMU Pronouncing Dictionary" or "OpenTaal word list, spelling rhyme rules".
+          maxLength: 100
+    LyricWordInput:
+      type: object
+      additionalProperties: false
+      required: [language, word]
+      properties:
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        word:
+          type: string
+          minLength: 1
+          maxLength: 40
+          pattern: '^\S+$'
+    LyricWord:
+      type: object
+      additionalProperties: false
+      required: [wordId, language, word, createdAt]
+      properties:
+        wordId:
+          type: string
+          format: uuid
+        language:
+          $ref: '#/components/schemas/AssistLanguage'
+        word:
+          type: string
+          maxLength: 40
+        createdAt:
+          type: string
+          format: date-time
+    LanguageGuessRequest:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 65536
+    LanguageGuess:
+      type: object
+      additionalProperties: false
+      required: [confidence]
+      properties:
+        language:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/AssistLanguage'
+          description: null when neither language reaches 60 % dictionary hits.
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    SectionKind:
+      type: string
+      enum: [intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other]
+    SectionSetStatus:
+      type: string
+      enum: [none, queued, detecting, ready, failed]
+    SectionWarning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [grid-unreliable, no-grid, few-repetitions, no-vocals, merged-to-limit]
+        message:
+          type: string
+          maxLength: 300
+    Section:
+      type: object
+      additionalProperties: false
+      required: [id, kind, label, startSeconds, endSeconds, instrument, confidence, origin]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/SectionKind'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+        startBar:
+          type: [integer, 'null']
+          minimum: 0
+          description: Bar number of the start when the track has a reliable grid (bar 1 = first downbeat; 0 = lead-in); null otherwise.
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+          description: The leading instrument of a solo; null for other kinds.
+        confidence:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: Detected sections only; null once the user created or changed the section.
+        origin:
+          type: string
+          enum: [detected, user]
+    SectionSet:
+      type: object
+      additionalProperties: false
+      required: [trackId, status, origin, revision, analyzer, snap, warnings, error, sections, updatedAt]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/SectionSetStatus'
+        origin:
+          type: string
+          enum: [detected, edited]
+        revision:
+          type: integer
+          minimum: 0
+        analyzer:
+          type: [string, 'null']
+          description: Name and version of the analyser, e.g. `stems-novelty/1.0.0`.
+          maxLength: 80
+        snap:
+          type: [string, 'null']
+          enum: [downbeat, beat, time, null]
+          description: What boundaries were snapped to by the analyser.
+        warnings:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/SectionWarning'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/Section'
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    SectionInput:
+      type: object
+      additionalProperties: false
+      required: [kind, label, startSeconds, endSeconds]
+      properties:
+        id:
+          type: [string, 'null']
+          format: uuid
+          description: Keep an existing section (and its references); null or absent = new.
+        kind:
+          $ref: '#/components/schemas/SectionKind'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 40
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+        instrument:
+          oneOf:
+            - $ref: '#/components/schemas/ChannelId'
+            - type: 'null'
+    SectionsUpdate:
+      type: object
+      additionalProperties: false
+      required: [revision, sections]
+      properties:
+        revision:
+          type: integer
+          minimum: 0
+        sections:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/SectionInput'
+    DetectSectionsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        overwrite:
+          type: boolean
+          default: false
+          description: Required true to replace sections the user has edited.
+    ScoreViewStatus:
+      type: string
+      enum: [none, queued, rendering, ready, failed]
+    TrackScore:
+      type: object
+      additionalProperties: false
+      required: [assetId, name, profile, source, createdAt, viewStatus]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        profile:
+          $ref: '#/components/schemas/ScoreProfile'
+        source:
+          type: string
+          description: Channel id the score was made from, or `asset` for a score made from an exported audio item.
+          maxLength: 40
+        rangeStartSeconds:
+          type: [number, 'null']
+          minimum: 0
+          description: Track time where the score starts (range or exported part); null = whole song.
+        rangeEndSeconds:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        manualTempo:
+          type: boolean
+          default: false
+          description: True when the score was made with a manual tempo instead of the beat grid.
+        createdAt:
+          type: string
+          format: date-time
+        viewStatus:
+          $ref: '#/components/schemas/ScoreViewStatus'
+    ScoreViewPage:
+      type: object
+      additionalProperties: false
+      required: [page, url, widthPx, heightPx]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          maximum: 200
+        url:
+          type: string
+          description: Relative URL of `getScoreViewPage` with a cache-busting `v` query.
+          maxLength: 200
+        widthPx:
+          type: integer
+          minimum: 1
+        heightPx:
+          type: integer
+          minimum: 1
+    ScoreBar:
+      type: object
+      additionalProperties: false
+      required: [index, number, page, x, y, width, height, startSeconds, endSeconds]
+      description: One bar; box in page fractions (0..1 of the page width/height), times in track seconds.
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          description: 0-based position in the score.
+        number:
+          type: integer
+          minimum: 0
+          description: Printed bar number (0 = pickup).
+        page:
+          type: integer
+          minimum: 1
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        width:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        height:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        startSeconds:
+          type: number
+        endSeconds:
+          type: number
+    ScoreView:
+      type: object
+      additionalProperties: false
+      required: [assetId, status, trackId, offsetSeconds, pages, bars, error]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ScoreViewStatus'
+        trackId:
+          type: [string, 'null']
+          format: uuid
+        offsetSeconds:
+          type: number
+          minimum: 0
+          description: Track time of the score's first beat grid point (range start); already added to the bar times.
+        pages:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ScoreViewPage'
+        bars:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: '#/components/schemas/ScoreBar'
+        error:
+          type: [string, 'null']
+          maxLength: 500
+    SetlistCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+          default: ''
+    SetlistUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+    SetlistEntryInput:
+      type: object
+      additionalProperties: false
+      required: [trackId]
+      properties:
+        id:
+          type: [string, 'null']
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        note:
+          type: string
+          maxLength: 1000
+          default: ''
+    SetlistEntriesUpdate:
+      type: object
+      additionalProperties: false
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SetlistEntryInput'
+    SetlistEntry:
+      type: object
+      additionalProperties: false
+      required: [id, position, trackId, trackTitle, artist, mixId, mixName, note, durationSeconds, bpm, sectionCount, hasLyrics]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          minimum: 0
+          maximum: 99
+        trackId:
+          type: string
+          format: uuid
+        trackTitle:
+          type: string
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        mixName:
+          type: [string, 'null']
+          maxLength: 100
+        note:
+          type: string
+          maxLength: 1000
+        durationSeconds:
+          type: [number, 'null']
+          minimum: 0
+        bpm:
+          type: [number, 'null']
+          minimum: 0
+        sectionCount:
+          type: integer
+          minimum: 0
+        hasLyrics:
+          type: boolean
+    Setlist:
+      type: object
+      additionalProperties: false
+      required: [id, name, note, entries, totalSeconds, removedEntries, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 2000
+        entries:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/SetlistEntry'
+        totalSeconds:
+          type: number
+          minimum: 0
+        removedEntries:
+          type: integer
+          minimum: 0
+          description: Entries removed because their track was deleted, since the last acknowledgement.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SetlistSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, songs, totalSeconds, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        songs:
+          type: integer
+          minimum: 0
+          maximum: 100
+        totalSeconds:
+          type: number
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+    PracticeLogSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, noticeAcknowledged, sessions, updatedAt]
+      properties:
+        enabled:
+          type: boolean
+          description: Default true; while false every session upsert is refused (409 practice-log-off).
+        noticeAcknowledged:
+          type: boolean
+        sessions:
+          type: integer
+          minimum: 0
+          description: Number of stored sessions.
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    PracticeLogSettingsUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        enabled:
+          type: boolean
+        noticeAcknowledged:
+          type: boolean
+    PracticeSectionInput:
+      type: object
+      additionalProperties: false
+      required: [kind, label, playedSeconds]
+      properties:
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        kind:
+          type: string
+          description: A section kind, or `none` for time outside any section.
+          enum: [intro, verse, pre-chorus, chorus, bridge, solo, instrumental, outro, other, none]
+        label:
+          type: string
+          maxLength: 40
+        playedSeconds:
+          type: number
+          minimum: 0
+          maximum: 43200
+        loopPasses:
+          type: integer
+          minimum: 0
+          default: 0
+        trainerReachedPercent:
+          type: [number, 'null']
+          minimum: 50
+          maximum: 120
+    PracticeSessionInput:
+      type: object
+      additionalProperties: false
+      required: [trackId, startedAt, endedAt, playedSeconds]
+      description: |
+        Cumulative values of the whole session (the server replaces the stored record). Rules:
+        `startedAt <= endedAt`, `endedAt - startedAt <= 12 h`, `startedAt` at most 5 minutes in the
+        future, `playedSeconds <= (endedAt - startedAt) + 5`, the sum of the sections'
+        `playedSeconds` at most `playedSeconds + 1`, at most 64 section rows.
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        playedSeconds:
+          type: number
+          minimum: 0
+          maximum: 43200
+        loopPasses:
+          type: integer
+          minimum: 0
+          default: 0
+        maxSpeedPercent:
+          type: [number, 'null']
+          minimum: 50
+          maximum: 120
+        sections:
+          type: array
+          maxItems: 64
+          default: []
+          items:
+            $ref: '#/components/schemas/PracticeSectionInput'
+    PracticeSession:
+      type: object
+      additionalProperties: false
+      required: [id, trackId, mixId, startedAt, endedAt, playedSeconds, loopPasses, maxSpeedPercent, sections]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        mixId:
+          type: [string, 'null']
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        playedSeconds:
+          type: number
+          minimum: 0
+        loopPasses:
+          type: integer
+          minimum: 0
+        maxSpeedPercent:
+          type: [number, 'null']
+        sections:
+          type: array
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/PracticeSectionInput'
+    PracticeDay:
+      type: object
+      additionalProperties: false
+      required: [date, seconds]
+      properties:
+        date:
+          type: string
+          format: date
+          description: Local day (UTC + utcOffsetMinutes).
+        seconds:
+          type: number
+          minimum: 0
+    PracticeSectionTotal:
+      type: object
+      additionalProperties: false
+      required: [sectionId, kind, label, seconds, loopPasses, bestTrainerPercent, lastPractisedAt]
+      properties:
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        kind:
+          type: string
+          maxLength: 20
+        label:
+          type: string
+          maxLength: 40
+          description: The current label when the section still exists, else the recorded one.
+        seconds:
+          type: number
+          minimum: 0
+        loopPasses:
+          type: integer
+          minimum: 0
+        bestTrainerPercent:
+          type: [number, 'null']
+        lastPractisedAt:
+          type: string
+          format: date-time
+    PracticeTempoPoint:
+      type: object
+      additionalProperties: false
+      required: [date, sectionId, label, percent]
+      properties:
+        date:
+          type: string
+          format: date
+        sectionId:
+          type: [string, 'null']
+          format: uuid
+        label:
+          type: string
+          maxLength: 40
+        percent:
+          type: number
+          minimum: 50
+          maximum: 120
+    PracticeSummary:
+      type: object
+      additionalProperties: false
+      required: [trackId, todaySeconds, last7DaysSeconds, totalSeconds, sessions, lastPractisedAt, days, sections, tempo]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        todaySeconds:
+          type: number
+          minimum: 0
+        last7DaysSeconds:
+          type: number
+          minimum: 0
+        totalSeconds:
+          type: number
+          minimum: 0
+        sessions:
+          type: integer
+          minimum: 0
+        lastPractisedAt:
+          type: [string, 'null']
+          format: date-time
+        days:
+          type: array
+          maxItems: 365
+          items:
+            $ref: '#/components/schemas/PracticeDay'
+        sections:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/PracticeSectionTotal'
+        tempo:
+          type: array
+          maxItems: 10000
+          items:
+            $ref: '#/components/schemas/PracticeTempoPoint'
+    PracticeTrackTotal:
+      type: object
+      additionalProperties: false
+      required: [trackId, title, artist, totalSeconds, last7DaysSeconds, sessions, lastPractisedAt]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+        artist:
+          type: [string, 'null']
+          maxLength: 500
+        totalSeconds:
+          type: number
+          minimum: 0
+        last7DaysSeconds:
+          type: number
+          minimum: 0
+        sessions:
+          type: integer
+          minimum: 0
+        lastPractisedAt:
+          type: string
+          format: date-time
+    DeletedCount:
+      type: object
+      additionalProperties: false
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
+          minimum: 0
     RecordingPart:
       type: string
       enum: [none, vocals, guitar, bass, piano, drums, other]
@@ -9395,6 +13003,182 @@ components:
             title: A backup is running
             status: 409
             detail: A backup is running; try again when it has finished.
+    FolderNotFound:
+      description: The folder id is well-formed but no item is filed in it (any more).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/folder-not-found
+            title: This folder is empty now
+            status: 404
+            detail: Its items were moved or deleted.
+    LibraryQueryInvalid:
+      description: Invalid folder id, sort, filter, paging or search text (`errors` names the parameter).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/library-query-invalid
+            title: One or more validation errors occurred.
+            status: 422
+            errors:
+              q:
+                - Type at least one letter or digit.
+    LibraryInfoInvalid:
+      description: A name is empty after trimming, longer than 200 characters or contains control characters.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            title: One or more validation errors occurred.
+            status: 400
+            errors:
+              album:
+                - Use 1 to 200 characters, or leave it automatic.
+    NotFileable:
+      description: The item is a recorded play-along take (015); it lives with its track and is not filed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/not-fileable
+            title: Recorded takes are not filed
+            status: 409
+            detail: Recorded takes stay with their track.
+    ValidationOrImitation:
+      description: Invalid input (`errors` present), or `imitation` - the instruction names an artist or asks to write like someone (ADR-018 D8, ADR-037 D7).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/imitation
+            title: Writing like a real artist is not supported. Describe a mood, theme or style instead.
+            status: 400
+    AssistConflict:
+      description: |
+        `revision-conflict` (the sheet changed; reload), `language-unsupported` (not `nl`/`en`),
+        `not-own-lyrics` (matches library track lyrics; `matchedTrackTitle`), `assist-active`
+        (`activeAssistId`), `model-unavailable` (`reason`, `fix`), `claude-notice-required`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+          example:
+            type: https://stemstudio.local/problems/not-own-lyrics
+            title: This text matches the lyrics of "Hero of the Day". The assistant works on your own lyrics only.
+            status: 409
+            code: not-own-lyrics
+            matchedTrackTitle: Hero of the Day
+            matchedTrackId: 7d1e2f3a-4b5c-4d6e-8f70-91a2b3c4d5e6
+            overridable: true
+    AssistEnded:
+      description: '`assist-ended` - the assist is already completed, failed or cancelled.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    SheetConflict:
+      description: '`revision-conflict` (the sheet changed since `expectedRevision`), `overlapping-suggestions` (`suggestionIds`), `suggestion-not-open` (`suggestionIds`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+    UndoConflict:
+      description: '`revision-conflict`, `nothing-to-undo` (the newest revision is not an accept), `undo-blocked-by-edit` (`changedLines`: user edits were saved after the accept).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+    OverrideConflict:
+      description: '`override-not-applicable` - the sheet does not currently match `matchedTrackId` (or matches nothing); `revision-conflict` is not used here. `statement-outdated` - `statementVersion` is not the current one.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+    TooLong:
+      description: '`too-long` - the result would exceed 4,096 characters after normalisation.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    LanguageUnsupported:
+      description: '`language-unsupported` - the sheet language is not `nl` or `en`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/AssistProblem'
+    MarkLimit:
+      description: '`mark-limit` - the sheet already has 200 intentional marks.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    WordLimit:
+      description: '`word-limit` - the personal word list of this language has 5,000 words.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    SectionsConflict:
+      description: |
+        `type` ends in `sections-changed` (revision mismatch: "The sections were changed in another
+        window"), `sections-edited` (detect without `overwrite` after edits), `detection-running`,
+        or `track-not-ready` (the track has not completed separation).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/sections-changed
+            title: The sections were changed in another window
+            status: 409
+            detail: Reload the sections and make your change again.
+    ScoreViewConflict:
+      description: '`type` ends in `not-a-score`, `score-not-ready` or `score-view-not-ready`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/score-view-not-ready
+            title: The score view is not ready yet
+            status: 409
+    SetlistConflict:
+      description: '`type` ends in `setlist-empty` (nothing to print).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/setlist-empty
+            title: The setlist has no songs
+            status: 409
+    PracticeConflict:
+      description: '`type` ends in `practice-log-off`: the log is switched off, nothing was stored.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/practice-log-off
+            title: The practice log is off
+            status: 409
+    DocumentTimeout:
+      description: The PDF was not ready within the timeout; try again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://stemstudio.local/problems/document-timeout
+            title: The PDF took too long
+            status: 504
     TakeBadRequest:
       description: |
         Unreadable request: `invalid-wav` (not a RIFF/WAVE file or truncated), a missing part,
@@ -9973,6 +13757,21 @@ components:
               format: flac
               bitDepth: 16
               mp3BitrateKbps: null
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 0
         createdAt: '2026-11-15T13:00:00Z'
         updatedAt: '2026-11-15T13:00:00Z'
@@ -10006,6 +13805,21 @@ components:
               format: flac
               bitDepth: 16
               mp3BitrateKbps: null
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 0
         createdAt: '2026-11-15T13:00:00Z'
         updatedAt: '2026-11-15T13:00:02Z'
@@ -10070,6 +13884,21 @@ components:
               format: mp3
               bitDepth: null
               mp3BitrateKbps: 320
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 1824512
         createdAt: '2026-11-15T13:00:00Z'
         updatedAt: '2026-11-15T13:00:10Z'
@@ -10103,6 +13932,21 @@ components:
               format: flac
               bitDepth: 16
               mp3BitrateKbps: null
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 0
         createdAt: '2026-11-15T13:00:00Z'
         updatedAt: '2026-11-15T13:00:31Z'
@@ -10316,6 +14160,21 @@ components:
             keyOverride: null
             tempo: null
             range: null
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 0
         createdAt: '2026-11-15T14:00:00Z'
         updatedAt: '2026-11-15T14:00:00Z'
@@ -10389,6 +14248,21 @@ components:
             keyOverride: null
             tempo: null
             range: null
+        placement:
+          artist:
+            folderId: arb385da54bfe8c6a9
+            name: Rick Astley
+            source: import
+          album:
+            folderId: alb7d8a7e8ed84d5af
+            name: Unknown album
+            source: fallback
+          song:
+            folderId: soc02cef10277ea444
+            name: Never Gonna Give You Up
+            source: import
+          year: null
+          filed: true
         sizeBytes: 602387
         createdAt: '2026-11-15T14:00:00Z'
         updatedAt: '2026-11-15T14:00:15Z'
@@ -10788,6 +14662,15 @@ components:
         text: "[verse]\nSing it loud, sing it free\nEvery note is part of me\n\n\n[chorus]\nThis little song belongs to me"
         createdAt: '2026-11-15T13:00:00Z'
         updatedAt: '2026-11-15T13:00:00Z'
+        revision: 1
+        assist:
+          sensitivity: balanced
+          rhythmTarget: null
+          openSuggestions: 0
+          assistedLines: []
+          intentionalMarkCount: 0
+          canUndo: false
+          ownWorkOverride: null
     SectionProposalExample:
       value:
         text: "[verse]\nSing it loud, sing it free\nEvery note is part of me\n\n[chorus]\nThis little song belongs to me\n\n[verse 2]\nPaper planes and a borrowed tune\n\n[chorus]\nThis little song belongs to me"
@@ -11385,6 +15268,169 @@ components:
             title: Another song
             reason: detail-active
         totalBytes: 400000000
+    RootView:
+      value:
+        revision: 3f9a0c1d2e4b5a69
+        folder: null
+        breadcrumb: []
+        children:
+          - id: ar1b2c3d4e5f607182
+            level: artist
+            name: Metallica
+            nameSource: match
+            year: null
+            counts:
+              albums: 2
+              songs: 3
+              items: 7
+            sizeBytes: 214958080
+            latestAt: '2026-11-16T10:12:00Z'
+            art:
+              kind: mosaic
+              images:
+                - thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=4f2a9c0e1b3d
+                  coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=4f2a9c0e1b3d
+                - thumbUrl: /api/tracks/5d1c2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d/artwork/thumb?v=8e1d2c3b4a59
+                  coverUrl: /api/tracks/5d1c2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d/artwork/cover?v=8e1d2c3b4a59
+              placeholder:
+                glyph: M
+                tone: 3
+            trackIds: []
+          - id: ar9f8e7d6c5b4a3921
+            level: artist
+            name: Unknown artist
+            nameSource: fallback
+            year: null
+            counts:
+              albums: 1
+              songs: 1
+              items: 1
+            sizeBytes: 30410752
+            latestAt: '2026-11-15T19:40:00Z'
+            art:
+              kind: placeholder
+              images: []
+              placeholder:
+                glyph: '?'
+                tone: 0
+            trackIds: []
+        childrenTotal: 2
+        items: []
+        totalItems: 8
+        totalSizeBytes: 245368832
+        pendingFiling: 0
+    SongView:
+      value:
+        revision: 3f9a0c1d2e4b5a69
+        folder:
+          id: so0a1b2c3d4e5f6071
+          level: song
+          name: Battery
+          nameSource: match
+          year: null
+          counts:
+            items: 3
+          sizeBytes: 92274688
+          latestAt: '2026-11-16T10:12:00Z'
+          art:
+            kind: cover
+            images:
+              - thumbUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/thumb?v=4f2a9c0e1b3d
+                coverUrl: /api/tracks/0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a/artwork/cover?v=4f2a9c0e1b3d
+            placeholder:
+              glyph: B
+              tone: 5
+          trackIds: [0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a]
+        breadcrumb:
+          - id: ar1b2c3d4e5f607182
+            level: artist
+            name: Metallica
+          - id: al2c3d4e5f60718293
+            level: album
+            name: Master of Puppets
+        children: []
+        childrenTotal: 0
+        items: []
+        totalItems: 3
+        totalSizeBytes: 92274688
+        pendingFiling: 0
+    EmptySearch:
+      value:
+        query: zzz
+        tokens: [zzz]
+        revision: 3f9a0c1d2e4b5a69
+        artists: []
+        albums: []
+        songs: []
+        items: []
+        totals:
+          artists: 0
+          albums: 0
+          songs: 0
+          items: 0
+
+    SectionSetReady:
+      summary: Detected sections of a 6-stem track with a reliable grid
+      value:
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        status: ready
+        origin: detected
+        revision: 1
+        analyzer: stems-novelty/1.0.0
+        snap: downbeat
+        warnings: []
+        error: null
+        updatedAt: '2026-11-16T10:12:00Z'
+        sections:
+          - {id: 0b1c2d3e-0000-4000-8000-000000000001, kind: intro, label: Intro, startSeconds: 0, endSeconds: 8.1, startBar: 0, instrument: null, confidence: 0.82, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000002, kind: verse, label: Verse 1, startSeconds: 8.1, endSeconds: 24.1, startBar: 3, instrument: null, confidence: 0.74, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000003, kind: chorus, label: Chorus 1, startSeconds: 24.1, endSeconds: 40.1, startBar: 11, instrument: null, confidence: 0.79, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000004, kind: solo, label: Guitar solo, startSeconds: 40.1, endSeconds: 56.1, startBar: 19, instrument: guitar, confidence: 0.66, origin: detected}
+          - {id: 0b1c2d3e-0000-4000-8000-000000000005, kind: outro, label: Outro, startSeconds: 56.1, endSeconds: 64.0, startBar: 27, instrument: null, confidence: 0.71, origin: detected}
+    ScoreViewReady:
+      summary: A bass part of 3 bars shown for brevity
+      value:
+        assetId: 9a8b7c6d-1111-4222-8333-444455556666
+        status: ready
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        offsetSeconds: 0
+        error: null
+        pages:
+          - {page: 1, url: "/api/assets/9a8b7c6d-1111-4222-8333-444455556666/score-view/pages/1?v=1", widthPx: 840, heightPx: 1188}
+        bars:
+          - {index: 0, number: 0, page: 1, x: 0.0571, y: 0.1012, width: 0.0702, height: 0.0248, startSeconds: 6.1, endSeconds: 8.1}
+          - {index: 1, number: 1, page: 1, x: 0.1273, y: 0.1012, width: 0.1695, height: 0.0248, startSeconds: 8.1, endSeconds: 10.1}
+          - {index: 2, number: 2, page: 1, x: 0.2968, y: 0.1012, width: 0.1544, height: 0.0248, startSeconds: 10.1, endSeconds: 12.1}
+    SetlistRehearsal:
+      summary: Two songs, one with a mix
+      value:
+        id: 5e4d3c2b-aaaa-4bbb-8ccc-dddddddddddd
+        name: Friday rehearsal
+        note: Bring the capo.
+        totalSeconds: 466
+        removedEntries: 0
+        createdAt: '2026-11-14T18:00:00Z'
+        updatedAt: '2026-11-16T09:30:00Z'
+        entries:
+          - {id: 1a2b3c4d-0000-4000-8000-00000000000a, position: 0, trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b, trackTitle: Example song, artist: Example band, mixId: 7c6b5a49-0000-4000-8000-0000000000aa, mixName: 'Play along: bass', note: Start at the bridge, durationSeconds: 222, bpm: 120, sectionCount: 9, hasLyrics: true}
+          - {id: 1a2b3c4d-0000-4000-8000-00000000000b, position: 1, trackId: 4a3b2c1d-4d5a-4e6f-8a9b-0c1d2e3f4a5b, trackTitle: Second song, artist: null, mixId: null, mixName: null, note: Capo 2, durationSeconds: 244, bpm: 96, sectionCount: 7, hasLyrics: false}
+    PracticeSummaryWeek:
+      summary: Two days of practice on one song
+      value:
+        trackId: 3f2b8c1e-4d5a-4e6f-8a9b-0c1d2e3f4a5b
+        todaySeconds: 720
+        last7DaysSeconds: 1620
+        totalSeconds: 1620
+        sessions: 3
+        lastPractisedAt: '2026-11-16T09:42:00Z'
+        days:
+          - {date: '2026-11-15', seconds: 900}
+          - {date: '2026-11-16', seconds: 720}
+        sections:
+          - {sectionId: 0b1c2d3e-0000-4000-8000-000000000004, kind: solo, label: Guitar solo, seconds: 840, loopPasses: 21, bestTrainerPercent: 90, lastPractisedAt: '2026-11-16T09:42:00Z'}
+        tempo:
+          - {date: '2026-11-15', sectionId: 0b1c2d3e-0000-4000-8000-000000000004, label: Guitar solo, percent: 80}
+          - {date: '2026-11-16', sectionId: 0b1c2d3e-0000-4000-8000-000000000004, label: Guitar solo, percent: 90}
     SavingTakeExample:
       summary: A take right after upload.
       value:

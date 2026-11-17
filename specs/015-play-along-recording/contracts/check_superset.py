@@ -2,9 +2,9 @@
 
 Usage (repo root):
 ``python -I specs/015-play-along-recording/contracts/check_superset.py [older] [newer]``
-Defaults: older = specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0, the full document on
-``main`` before 015), newer = specs/015-play-along-recording/contracts/backend-api.openapi.yaml (1.14.0 =
-1.12.0 + the 015 delta). Phase 0 also runs it with the delta as ``older``: every delta path and new
+Defaults: older = specs/014-practice-flow/contracts/backend-api.openapi.yaml (014's 1.13.0 = 023's 1.23.0 +
+014, the base of the round-start re-merge; 013's 1.12.0 in 015 Phase 0), newer =
+specs/015-play-along-recording/contracts/backend-api.openapi.yaml (1.14.0 = 1.13.0 + the 015 delta). Phase 0 also runs it with the delta as ``older``: every delta path and new
 component is in 1.14.0 unchanged, except the renamed responses (``RENAMED`` in merge_recording_delta.py),
 the write gate on three take operations and the shared components / merge fragments in ``SHARED``.
 
@@ -24,7 +24,7 @@ from typing import Any
 
 import yaml
 
-OLDER = Path("specs/013-library-care/contracts/backend-api.openapi.yaml")
+OLDER = Path("specs/014-practice-flow/contracts/backend-api.openapi.yaml")
 NEWER = Path("specs/015-play-along-recording/contracts/backend-api.openapi.yaml")
 # 1.14.0 may only add to these (DELTA.md 2).
 ALLOWED = {

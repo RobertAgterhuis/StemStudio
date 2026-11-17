@@ -50,15 +50,39 @@ download, delete, restore dialog, previous library undo/discard) and the Storage
 categories, per-track table, model caches, clean-up dialog), the shell's library-job indicator and
 maintenance overlay, and the "detail stems removed" notices. All 1.11.0 ids are unchanged. Merge
 order: this document is 1.11.0 plus the 013 delta (ROADMAP "Contract version allocation").
+1.22.0 (minor, feature 022; merged from `ui-test-ids.delta.md` by the architect, T004; minor with
+the listed test migration confirmed by the CTO 2026-11-16) - library folders by artist, album and
+song with art, breadcrumb, grid/list, sort, live search with grouped results and highlights,
+library info dialog, "All items" view, folder path on items and in the save confirmation. No id
+is renamed or removed; the documented behaviour changes on `/library` are listed in "Additions in
+1.22.0", section "Changed behaviour of existing ids". Merge order: this document is the newest
+full document (1.12.0, 013) plus the 022 delta and carries 022's allocated label 1.22.0 (labels
+identify the merged deltas, not an order; ROADMAP "Contract version allocation").
+1.23.0 (additive, feature 023; merged from `ui-test-ids.delta.md` by the architect, 023 Phase 0 T003) -
+lyric assistant in the 010 lyrics editor (pane, check, devices, writing help, progress, layers,
+unavailable and quality notes, language guess, not-own refusal and own-work override, withheld
+counter, Claude notice, sensitivity, category filters, suggestion list and entries, highlights,
+line provenance, live region, syllable gutter, rhythm target, density, rhyme finder, intentional
+marks, personal words, assist log, revisions), the take-details row `take-lyrics-assisted` and the
+agent approval diff `agent-approval-lyrics-diff`; keyboard bindings, announcements and six help
+topics. All 1.11.0, 1.12.0 and 1.22.0 ids are unchanged. Merge order: this document is 022's 1.22.0
+(= 013's 1.12.0 + 022) plus the 023 delta and carries 023's label 1.23.0 (re-based at the 022+023
+round start, 023 DELTA.md section 5).
+1.13.0 (additive, feature 014; merged from `specs/014-practice-flow/contracts/ui-test-ids.delta.md` by the
+architect, Phase 0 part 2, T005) - section lane, section editor, trainer region label, score follow panel,
+practice log panel (`practice-log-*`) and Practice page, setlists page, setlist editor, setlist play bar and PDF
+dialog, shortcut settings, pedal setup and the extended shortcut overview. All earlier ids are unchanged; the
+default keys of two 1.11.0 shortcut commands move (section "Additions in 1.13.0", "Changed default keys").
+Merge order: this document is 023's 1.23.0 (= 022's 1.22.0 + 023) plus the 014 delta and carries 014's
+allocated label 1.13.0 (re-based at the 014+015 round start, 014 DELTA.md section 8; ROADMAP "Contract version allocation").
 1.14.0 (additive, feature 015; merged from `specs/015-play-along-recording/contracts/ui-test-ids.delta.md`
 by the architect, T002) - recording panel in the mixer (permission flow, device, input mode, input meter, part,
 mute original, count-in, monitoring, latency status, Record/Stop, status, saving), the calibration dialog, the
 take channel strip (`take` in every stem pattern) with compare and timing adjustment, the Takes panel, export
-dialog presets for a take, the track-delete takes note and two shortcut rows. All 1.12.0 ids are unchanged.
-Merge order: this document is 1.12.0 plus the 015 delta. The 014 delta (1.13.0) is not on `main` yet; when it
-lands, the full document is rebuilt in feature order (1.12.0 + 014 -> 1.13.0, + 015 -> 1.14.0;
-`specs/015-play-along-recording/contracts/DELTA.md` "Re-merge"). The 015 level rule is numbered after
-014's rules at that re-merge; until then it is R10.
+dialog presets for a take, the track-delete takes note and two shortcut rows. All 1.12.0, 1.22.0, 1.23.0 and 1.13.0 ids are unchanged.
+Merge order: this document is 014's 1.13.0 (= 023's 1.23.0 + 014) plus the 015 delta and carries 015's
+allocated label 1.14.0 (re-based at the 014+015 round start, 015 DELTA.md "Re-merge"). 014, 022 and 023 add no
+numbered level rule, so the 015 level rule stays R10.
 
 ## Rules
 
@@ -789,6 +813,250 @@ its level rule.
 | `storage-regenerable` | `storage-category-*` | the regenerable/original table and costs |
 | `storage-cleanup` | `cleanup-dialog` | the three clean-ups, what never gets removed, how to get things back, model caches (manual route) |
 
+## Additions in 1.22.0 (feature 022)
+
+Merged unchanged from [ui-test-ids.delta.md](ui-test-ids.delta.md) (022 design, 2026-11-16).
+
+### Changed behaviour of existing ids (owner request; migration below)
+
+| Id (version) | Before | From 1.22.0 |
+|---|---|---|
+| `/library` screen, ids of 1.5.0/1.7.0 listed under "Library" except `nav-library`, `library-total-size`, `library-empty`, `library-search` | rendered on `/library` | rendered unchanged on **`/library?view=all`** ("All items", Advanced+); `asset-*-<assetId>` ids also render inside song folders and in search results (one row per item on a page) |
+| `library-search` (1.5.0) | Advanced+; "name contains" | rendered at **every level**; the live search of this feature (FR-022..FR-029); still a `<input type="search">` |
+| `library-total-size` (1.5.0) | total of all items | unchanged meaning; shown on the root and in "All items" |
+| `export-saved-open` (1.5.0), `score-saved-open` (1.7.0) | link to the item on `/library` | link to the item in its song folder (`/library/<songFolderId>#asset-<assetId>`); still "the item on the library page" |
+| `library-empty` (1.5.0) | no items or none match | no items in the library (root or "All items"), or none match the "All items" filters; search without matches uses `library-search-empty` |
+
+**Migration** (part of the 022 tasks, red first): qa - `e2e/pages/library-page.ts` opens
+`/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` removes `library-search` from
+`beginnerHiddenLibraryIds`. frontend - `tests/StemStudio.Web.Tests/Library/LibraryManagementTests.cs`
+level assertion updated likewise.
+
+### Level visibility (R7-R9 apply)
+
+- **Beginner** renders every id below except: `library-view-all`, `library-view-folders`,
+  `library-sort` and `library-search-scope`. The library info ids (`library-info-edit`,
+  `asset-library-info-<assetId>`, `library-info-*`) render at **every level** (owner decision
+  2026-11-16).
+- **Advanced** renders every id below (the level of the existing suite).
+- **Expert** = Advanced (no Expert-only ids).
+
+### Ids
+
+`<folderId>` is a folder id (`^(ar|al|so)[0-9a-f]{16}$`); `<assetId>` the item GUID in lower-case
+`D` format; `<group>` one of `artists`, `albums`, `songs`, `items`.
+
+| Screen | `data-testid` | Notes | Beginner |
+|---|---|---|---|
+| Library (`/library`, `/library/{folderId}`) | `library-folders` | the folder view container; attribute `data-level` = `root`/`artist`/`album`/`song` | shown |
+| Library | `library-breadcrumb` | `<nav>` landmark; contains `library-crumb-root` and `library-crumb-<folderId>` per parent; the current folder has `aria-current="page"` | shown |
+| Library | `library-folder-title` | `h1` of the open folder ("Library" at the root) | shown |
+| Library | `library-folder-art` | header art of the open folder (not at the root); attribute `data-art` = `cover`/`mosaic`/`placeholder` | shown |
+| Library | `library-folder-counts` | counts and size of the open folder (text) | shown |
+| Library | `library-layout-grid`, `library-layout-list` | toggle buttons (`aria-pressed`) | shown |
+| Library | `library-sort` | select of the child order (`name`/`year`/`recent`/`size`/`items`) | not rendered |
+| Library | `library-view-all` | link/button "All items" (to `/library?view=all`); in that view `library-view-folders` returns to the folders | not rendered |
+| Library | `library-view-folders` | in "All items": back to the folders | not rendered |
+| Library | `library-filing-pending` | "Sorting your library (n items left)"; exists only while `pendingFiling > 0` | shown |
+| Library | `library-folder-missing` | "This folder is empty now" for an unknown or emptied folder id, with links to the root and the search | shown |
+| Library | `folder-tile-<folderId>` | one link per child folder; attributes `data-level` and `data-art`; accessible name "<name>, <level>, <counts>" | shown |
+| Library | `folder-art-<folderId>` | the tile art (contains 1 `<img>` for cover, 2-4 for mosaic, or the placeholder) | shown |
+| Library | `folder-name-<folderId>`, `folder-counts-<folderId>` | name and counts text of the tile | shown |
+| Library | `folder-year-<folderId>` | album year; exists only for album folders with a year | shown |
+| Song folder | `song-open-track`, `song-open-mixer` | links to the track page and its mixer; exist only while the track exists (first track when several) | shown |
+| Song folder | `asset-row-<assetId>` and its 1.5.0/1.7.0 ids | the item rows (007 component, unchanged actions) | shown |
+| Items (song folder, search, All items) | `asset-path-<assetId>` | path "Artist > Album > Song" as links (`asset-path-<assetId>` contains three links) | shown |
+| Items | `asset-library-info-<assetId>` | opens the library info dialog for this item | shown |
+| Song folder | `library-info-edit` | opens the library info dialog for the song's track (first track when several) | shown |
+| Library info dialog | `library-info-dialog` | the dialog; attribute `data-scope` = `track`/`item` | shown |
+| Library info dialog | `library-info-artist`, `library-info-album`, `library-info-song` | text inputs (1..200) | shown |
+| Library info dialog | `library-info-auto-artist`, `library-info-auto-album`, `library-info-auto-song` | "Automatic" checkboxes; label shows the automatic name and its source | shown |
+| Library info dialog | `library-info-save`, `library-info-cancel`, `library-info-reset` | buttons ("Reset" = all automatic) | shown |
+| Library info dialog | `library-info-error` | readable reason (400 field messages, 404, 409) | shown |
+| Library info dialog | `library-info-lookup` | link "Look up band info again" (track scope; opens the 005 correction on the track page) | shown |
+| Library | `library-search` | (1.5.0 id, changed) live search input, every level | shown |
+| Library | `library-search-clear` | clear button; exists only while the box has text | shown |
+| Library | `library-search-status` | polite live region with the result count ("12 results") | shown |
+| Library | `library-search-scope` | checkbox "Only in this folder"; exists only inside a folder | not rendered |
+| Library | `search-results` | results container while the query is not blank | shown |
+| Library | `search-group-<group>` | a result group with its heading and count; exists only when the group has hits | shown |
+| Library | `search-show-all-<group>` | "Show all N"; exists only when the group has more hits than shown | shown |
+| Library | `search-hit-<folderId>` | a folder hit (link to the folder) with its path | shown |
+| Library | `search-mark` | each highlighted part (`<mark>`); **not unique** (tests count them inside a hit) | shown |
+| Library | `library-search-empty` | "No matches for '...'" with tips and `library-search-empty-clear` | shown |
+| Library | `library-search-error` | readable reason when the search failed (previous results stay) | shown |
+| Export dialog | `export-saved-folder` | inside `export-saved`: the folder path "Artist > Album > Song" (three links) | shown |
+| Sheet music dialog (008) | `score-saved-folder` | inside `score-saved`: the folder path (three links) | shown |
+
+### Help topics (004 framework; topic ids are also `data-help-id` values)
+
+`library-folders` (on `library-folder-title`: how folders are made, where names come from, unknown
+folders, pictures in-app only), `library-search` (on `library-search`: what the search looks at,
+words, accents, "Only in this folder"), `library-info` (on `library-info-dialog`: automatic vs own
+names, track vs item, band info lookup; every level), `library-art` (on `library-folder-art`: which
+picture a folder shows, how to change a song picture).
+
+### Keyboard
+
+`/` focuses `library-search` on the library pages (scope `library`; 014 catalogue row, owner 022);
+Escape in the box clears it and restores the folder; Arrow Down moves to the first result.
+
+## Additions in 1.23.0 (feature 023)
+
+Lyric assistant in the 010 lyrics editor (route `/lyrics/{id}`, a new page; the `/lyrics` list keeps its edit dialog and links each sheet title to the page; the 010 ids `lyrics-title-input`,
+`lyrics-language-select`, `lyrics-text-input`, `lyrics-save`, `lyrics-error` are unchanged), one row in
+the 010 take details and one element in the 011 approval card (design: `specs/023-lyric-writing-assistant/`).
+Every rule above (R1-R9) applies; the Level column is binding (R7-R9).
+
+Placeholders: `<suggestionId>`, `<markId>`, `<wordId>` are GUIDs in canonical lower-case `D`
+format; `<n>` is a 1-based line number; `<category>` is a `SuggestionCategory` value; `<level>` is
+the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanced, `E` Expert;
+"all" = every level).
+
+| Screen | `data-testid` | Meaning / attributes | Level |
+|---|---|---|---|
+| Lyrics editor | `lyric-assist-pane` | the assistant pane (region, `aria-label="Lyric assistant"`); attribute `data-state` = `idle` \| `running` \| `done` \| `unavailable` | all |
+| Lyrics editor | `lyric-assist-toggle` | shows/hides the pane (does not start anything) | all |
+| Lyrics editor | `lyric-assist-check` | "Check" (spelling, grammar, flow); saves unsaved changes first | all |
+| Lyrics editor | `lyric-assist-devices` | "Suggest devices" (devices and poetic licence) | all |
+| Lyrics editor | `lyric-assist-alternatives` | "Alternatives" for the line at the cursor / selection; count select `lyric-assist-count` (A, E) | all |
+| Lyrics editor | `lyric-assist-continue` | "Continue" after the block at the cursor | all |
+| Lyrics editor | `lyric-assist-titles` | "Title ideas" | A, E |
+| Lyrics editor | `lyric-assist-instruction` | optional instruction input (<= 200 chars) for devices and writing help | all |
+| Lyrics editor | `lyric-assist-cancel` | cancel a running assist (only while running) | all |
+| Lyrics editor | `lyric-assist-progress` | progress bar, `aria-valuenow` 0-100 (blocks done / total) | all |
+| Lyrics editor | `lyric-assist-layers` | the layer/model line ("Spelling: OpenTaal dictionary - grammar and flow: qwen3.5:9b, local"); attributes `data-backend`, `data-model`, `data-fallback` `true`/`false` | A, E |
+| Lyrics editor | `lyric-assist-unavailable` | reason and fix of an unavailable layer or language (contains the 011 fix text) | all |
+| Lyrics editor | `lyric-assist-quality-note` | standing quality note (SC-001), when the status reports one | all |
+| Lyrics editor | `lyric-assist-language-guess` | "Looks like Dutch - set language" (language `unknown`); button `lyric-assist-language-apply` | all |
+| Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics (track title) | all |
+| Lyrics editor | `lyric-assist-own-work-open` | "This is my own text" on the refusal (only when the problem says `overridable`) | all |
+| Lyrics editor | `lyric-assist-imitation-refusal` | refusal of an instruction that asks to imitate an artist (`artist-imitation`; text names the rule, no assist is started) | all |
+| Lyrics editor | `lyric-assist-refusal` | any other refusal of a create request (revision conflict, language, model unavailable, notice, assist active); attribute `data-code` = the problem `code` | all |
+| Lyrics editor | `lyric-assist-error` | an unexpected error of the pane (network, server); `role="alert"` | all |
+| Lyrics editor | `lyric-own-work-dialog`, `lyric-own-work-statement`, `lyric-own-work-track`, `lyric-own-work-name`, `lyric-own-work-check`, `lyric-own-work-confirm`, `lyric-own-work-cancel` | confirmation dialog (statement `own-work.v1`, matched track, typed name, tick box; confirm disabled until both set) | all |
+| Lyrics editor | `lyric-own-work-badge` | "Own work confirmed by <name> on <date> (matches <track>)"; attributes `data-track-id`, `data-confirmed-at` | all |
+| Lyrics editor | `lyric-own-work-revoke` | revoke (opens the existing confirm dialog `confirm-dialog-ok` / `confirm-dialog-cancel`) | all |
+| Lyrics editor | `lyric-assist-withheld` | "n suggestions withheld (too close to existing lyrics)" | all |
+| Lyrics editor | `lyric-assist-claude-notice`, `lyric-assist-claude-notice-ack`, `lyric-assist-claude-notice-cancel` | the one-time Claude notice dialog | all |
+| Lyrics editor | `lyric-assist-sensitivity` | radio group: `lyric-assist-sensitivity-loose`, `-balanced`, `-strict` | A, E |
+| Lyrics editor | `lyric-assist-filter-<category>` | category filter toggle (attribute `aria-pressed`); `lyric-assist-filter-all` | A, E |
+| Lyrics editor | `lyric-assist-accept-all` | "Accept all" for the current filter (count in the label) | all |
+| Lyrics editor | `lyric-assist-undo` | undo the newest accept (enabled when `assist.canUndo`) | all |
+| Lyrics editor | `lyric-assist-list` | the suggestion list: a plain list (`<ul role="list">`, no `aria-activedescendant`, not a tab stop itself); rendered only while there are open suggestions. Not a listbox: entries hold buttons (WCAG 4.1.2, axe `nested-interactive`; orchestrator decision 2026-11-17) | all |
+| Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`<li role="listitem">`, `tabindex="-1"` so F8 can focus it, `aria-current="true"` on the focused entry, no `aria-label` other than its visible text); its buttons are in the tab order (Tab); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
+| Lyrics editor | `lyric-suggestion-original-<suggestionId>`, `lyric-suggestion-proposal-<suggestionId>`, `lyric-suggestion-explanation-<suggestionId>` | texts of the entry | all |
+| Lyrics editor | `lyric-suggestion-syllables-<suggestionId>` | "11 -> 9 syllables" (when present) | all |
+| Lyrics editor | `lyric-suggestion-accept-<suggestionId>`, `lyric-suggestion-reject-<suggestionId>` | decide one | all |
+| Lyrics editor | `lyric-suggestion-intentional-<suggestionId>` | "Mark as intentional" (corrections only); scope menu `lyric-suggestion-intentional-scope-<suggestionId>` (word / phrase / line; A, E) | all |
+| Lyrics editor | `lyric-suggestion-add-word-<suggestionId>` | "Add to my words" (spelling only) | A, E |
+| Lyrics editor | `lyric-suggestion-source-<suggestionId>` | source layer and model of the entry | E |
+| Lyrics editor | `lyric-highlight-<suggestionId>` | inline highlight over the text (underline style per category, not colour only); attribute `data-category` | all |
+| Lyrics editor | `lyric-line-provenance-<n>` | marker on a line produced by an accepted suggestion (`data-provenance="accepted-suggestion"`) | all |
+| Lyrics editor | `lyric-assist-live` | polite live region (`aria-live="polite"`) for announcements | all |
+| Lyrics editor | `lyric-syllable-toggle` | shows/hides the syllable gutter | A, E |
+| Lyrics editor | `lyric-syllables-<n>` | syllable count of line `n`; attribute `data-deviates` `true`/`false`, `data-target` | A, E |
+| Lyrics editor | `lyric-rhythm-target` | rhythm target form: `lyric-rhythm-bpm`, `lyric-rhythm-beats`, `lyric-rhythm-bars`, `lyric-rhythm-spb`, `lyric-rhythm-save`, `lyric-rhythm-clear` | A, E |
+| Lyrics editor | `lyric-density` | words per second at the target duration (warning style above 4.0) | A, E |
+| Lyrics editor | `lyric-rhymes-open` | opens the rhyme finder for the word at the cursor | all |
+| Lyrics editor | `lyric-rhymes-panel`, `lyric-rhymes-input`, `lyric-rhymes-result-<word>`, `lyric-rhymes-insert-<word>` | the rhyme finder (results with `data-kind` `perfect`/`near`, `data-syllables`) | all |
+| Lyrics editor | `lyric-marks-open`, `lyric-marks-list`, `lyric-mark-<markId>`, `lyric-mark-delete-<markId>`, `lyric-mark-selection` | intentional marks list; "Mark selection as intentional" | A, E |
+| Lyrics editor | `lyric-words-open`, `lyric-words-list`, `lyric-word-<wordId>`, `lyric-word-delete-<wordId>` | personal word list of the sheet's language | A, E |
+| Lyrics editor | `lyric-assist-log` | assist log (blocks, timings, discarded counts, token usage) | E |
+| Lyrics editor | `lyric-revisions-open`, `lyric-revision-<revision>`, `lyric-revision-restore-<revision>` | revision list | E |
+| Take details (010) | `take-lyrics-assisted` | "Lyrics: n lines AI-assisted" (only when n > 0) | all |
+| Agent panel (011) | `agent-approval-lyrics-diff` | inside `agent-approval-card` for `apply_lyric_suggestions`: one row per change, `agent-approval-lyrics-diff-<suggestionId>` with before/after | all |
+
+### Keyboard (binding for qa and frontend, FR-028)
+
+| Key | Where | Action |
+|---|---|---|
+| F8 / Shift+F8 | editor or list | next / previous open suggestion (moves the text cursor to its highlight and focuses the list entry; the decision keys act on the entry that holds the focus, also when a button of it is focused) |
+| Alt+Enter | focused suggestion | accept |
+| Alt+Backspace | focused suggestion | reject |
+| Alt+I | focused correction | mark as intentional (default scope: word for spelling, phrase otherwise) |
+| Escape | list | back to the text at the suggestion's position |
+| Ctrl+Alt+C | editor | Check |
+
+The list is not a listbox (orchestrator decision 2026-11-17, WCAG 4.1.2 / axe `nested-interactive`):
+Tab reaches every button of every entry; after a decision (key or button) the focus moves to the
+entry that takes the decided one's place.
+
+Announcements in `lyric-assist-live`: check started ("Checking 40 lines"), finished ("Check
+finished: 7 suggestions - 2 spelling, 1 grammar, 3 flow, 1 device"), focused suggestion ("Line 4,
+spelling error: wiet, proposed weet. <explanation>"), accept/reject/undo results.
+
+### Help topics (ids = `data-help-id`, 004 framework; texts by the frontend, T072)
+
+`lyric-assist` (what it does, on demand, own lyrics only), `lyric-assist-licence` (poetic licence,
+sensitivity, intentional marks, my words), `lyric-assist-devices` (device types), `lyric-assist-rhythm`
+(syllables, rhythm target, density), `lyric-assist-privacy` (local model, Claude notice, what is
+sent), `lyric-assist-limits` (model quality per language, verbatim check limits).
+
+## Additions in 1.13.0 (feature 014)
+
+Level visibility rules R7-R9 apply; ids may be placed inside 004's layout. Command ids: the catalogue
+`src/StemStudio.Web/wwwroot/js/keymap-defaults.json` (web-interop 1.1.0 section 5.4).
+
+### Ids
+
+`<sectionId>`, `<setlistId>`, `<entryId>`, `<assetId>`, `<trackId>` are UUIDs; `<command>` is a
+command id of data-model 5.2 with `:` and `.` replaced by `-` (e.g. `mixer-seek--5`,
+`mixer-section-next`); `<n>` a 1-based number.
+
+| Screen | `data-testid` | Element / attributes | Levels |
+|---|---|---|---|
+| Mixer | `section-lane` | list (`role="list"`) of section buttons; attributes `data-status` = `none`/`queued`/`detecting`/`ready`/`failed`, `data-revision` | all |
+| Mixer | `section-<sectionId>` | button in the lane; text = label; attributes `data-kind`, `data-start`, `data-end` (seconds, 1 decimal), `data-current` = `true`/`false`, `data-looped` = `true`/`false`; `aria-pressed` = looped | all |
+| Mixer | `section-status` | status text ("Detecting sections...", "Detected automatically - check and edit", "Tempo grid uncertain - boundaries may be off", failure reason) | all |
+| Mixer | `section-retry` | exists when status is `failed` | all |
+| Mixer | `section-previous`, `section-next`, `section-restart`, `section-loop-current` | transport-row buttons | all |
+| Mixer | `trainer-region-label` | text in the 012 trainer panel naming the loop region: "Region: Guitar solo (0:40-0:56)" with a section loop, "Region: A-B loop (0:40-0:56)" otherwise (DELTA R-4: 012 has no such id) | advanced, expert |
+| Mixer | `section-edit` | opens the section editor | advanced, expert |
+| Mixer | `section-detect-again` | re-detect (confirmation when edited) | expert |
+| Mixer | `section-confidence-<sectionId>` | confidence text ("82 %") | expert |
+| Section editor | `section-editor`, `section-editor-done`, `section-editor-cancel`, `section-editor-error` | panel and actions; error shows 409/422 text | advanced, expert |
+| Section editor | `section-editor-row-<n>` | one row per section in order; children `section-editor-kind-<n>` (select), `section-editor-label-<n>` (text), `section-editor-start-<n>` (bar or time field), `section-editor-instrument-<n>` (select, solos only), `section-editor-delete-<n>`, `section-editor-merge-<n>` (with next) | advanced, expert |
+| Section editor | `section-editor-split` (at playhead), `section-editor-add` | buttons | advanced, expert |
+| Confirm dialog | `section-overwrite-confirm`, `section-overwrite-cancel` | "Replace your edited sections?" | expert |
+| Mixer | `score-panel-toggle` | opens/closes the Score panel (`aria-expanded`) | all |
+| Score panel | `score-panel` | region (`aria-label="Score"`); attributes `data-asset-id`, `data-view-status` | all |
+| Score panel | `score-select` | select of the track's score items (option text "Bass - <name>") | all |
+| Score panel | `score-empty` | "No sheet music for this song yet" with a link to the 008 action | all |
+| Score panel | `score-preparing` | "Preparing the score view..." | all |
+| Score panel | `score-view` | the follower host; engine writes `data-bar-index`, `data-bar-number`, `data-page`, `data-position-ms` | all |
+| Score panel | `score-page-<n>` | page container (`data-score-page`) with the `<img>` | all |
+| Score panel | `score-follow-toggle` | auto-scroll on/off (`aria-pressed`) | all |
+| Score panel | `score-transpose-note` | exists while transpose is not 0 | all |
+| Score panel | `score-tempo-note` | exists for scores made with a manual tempo | all |
+| Score panel | `score-bar-label` | visually hidden live text "Bar 17 of 64" (updated at most once per second, `aria-live="off"` by default; a "Read bar" button `score-read-bar` announces it once) | all |
+| Mixer | `practice-log-panel-toggle`, `practice-log-panel` | Practice log panel (`aria-label="Practice log"`; 012's `practice-panel` is the speed and key panel) | all |
+| Practice log panel | `practice-log-today`, `practice-log-week`, `practice-log-total` | durations as text ("12 min") | all |
+| Practice log panel | `practice-log-sections-table` | table of time per section, trainer best | advanced, expert |
+| Practice log panel | `practice-log-chart-days`, `practice-log-chart-tempo` | charts; each has a sibling `practice-log-chart-days-table` / `practice-log-chart-tempo-table` toggled by `practice-log-chart-as-table` | all (tempo chart: advanced, expert) |
+| Practice log panel | `practice-log-off-note` | "Practice log is off" with `practice-log-turn-on` | all |
+| Practice log panel | `practice-log-notice`, `practice-log-notice-ok`, `practice-log-notice-turn-off` | first-use notice | all |
+| Practice log panel | `practice-log-delete-track`, `practice-log-delete-confirm` | delete this song's log | all |
+| Practice page (`/practice`) | `practice-page`, `practice-enabled` (switch), `practice-delete-all`, `practice-overview-table`, `practice-overview-row-<trackId>`, `practice-sessions` (Expert list), `practice-session-<sessionId>`, `practice-session-delete-<sessionId>` | | all (sessions: expert) |
+| Shell | `nav-setlists`, `nav-practice` | rail links to `/setlists`, `/practice` | all |
+| Setlists page (`/setlists`) | `setlists-page`, `setlist-create`, `setlist-create-name`, `setlist-create-confirm`, `setlist-row-<setlistId>`, `setlist-open-<setlistId>`, `setlist-play-<setlistId>`, `setlist-delete-<setlistId>`, `setlists-empty` | | all |
+| Setlist editor (`/setlists/{id}`) | `setlist-name`, `setlist-note`, `setlist-total`, `setlist-add` (opens track picker `setlist-add-dialog`, items `setlist-add-track-<trackId>`, mix select `setlist-add-mix`, `setlist-add-confirm`), `setlist-entry-<entryId>` (row; `data-position`), `setlist-entry-note-<entryId>`, `setlist-entry-mix-<entryId>`, `setlist-entry-up-<entryId>`, `setlist-entry-down-<entryId>`, `setlist-entry-remove-<entryId>`, `setlist-removed-note`, `setlist-save-error` | | all (note fields, mix select: advanced, expert) |
+| Setlist editor | `setlist-pdf`, `setlist-pdf-dialog`, `setlist-pdf-lyrics`, `setlist-pdf-sections`, `setlist-pdf-notes`, `setlist-pdf-page-break`, `setlist-pdf-download`, `setlist-pdf-error` | PDF export (options: advanced, expert; beginner downloads with defaults) | all |
+| Track / mix actions | `add-to-setlist-<trackId>`, `add-to-setlist-mix-<mixId>` | "Add to setlist" | all |
+| Mixer (setlist play mode) | `setlist-bar` (attributes `data-setlist-id`, `data-position`, `data-count`), `setlist-bar-previous`, `setlist-bar-next`, `setlist-bar-note`, `setlist-bar-exit` | | all |
+| Shortcut overlay | `shortcut-overlay` (existing), `shortcut-group-<group>` (`transport`, `loop-sections`, `speed`, `channels`, `setlist`, `score`, `navigation`), `shortcut-row-<command>` with `data-keys` (e.g. `n|pagedown`) | all |
+| Preferences panel | `pref-single-key` (switch "Single-key shortcuts"), `pref-shortcuts-open` (opens `/settings/shortcuts`) | all |
+| Shortcut settings (`/settings/shortcuts`) | `shortcut-settings`, `shortcut-edit-<command>`, `shortcut-capture` (listening state), `shortcut-capture-cancel`, `shortcut-conflict` (reason text), `shortcut-clear-<command>`, `shortcut-reset-all` | advanced, expert |
+| Shortcut settings | `pedal-setup`, `pedal-mode` (switch), `pedal-preset` (select), `pedal-learn-left`, `pedal-learn-right`, `pedal-left-key`, `pedal-right-key`, `pedal-test` (shows the last pedal command) | advanced, expert |
+
+### Changed default keys (no id changes)
+
+The 1.11.0 table "Shortcut commands" keeps its command ids; from 1.13.0 the default keys come from the
+catalogue (CTO decision 2026-11-16, 014 DELTA.md R-2): `mixer.practice.reset` is `0` (was `r`),
+`mixer.countin.toggle` is `Shift+K` (was `c`); `r` and `c` are held for feature 015
+(`mixer.record.toggle`, `mixer.compare.cycle`) and do nothing until 015 ships. The overlay lists the 012
+commands in the group `speed` (`shortcut-group-speed`).
+
 ## Additions in 1.14.0 (feature 015)
 
 Play-along recording (design: `specs/015-play-along-recording/`). Every rule above (R1-R9) applies:
@@ -867,5 +1135,5 @@ Play-along recording (design: `specs/015-play-along-recording/`). Every rule abo
 
 Help ids (`data-help-id`) used by these elements: data-model.md 5.
 
-**R10** (level rule, 015; renumbered after 014's rules at the re-merge): at level Beginner the ids marked Advanced or Expert are not rendered; at
+**R10** (level rule, 015; 014, 022 and 023 add no numbered rule): at level Beginner the ids marked Advanced or Expert are not rendered; at
 Advanced the Expert ids are not rendered (same mechanism as R7-R9).

@@ -13,7 +13,7 @@ namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
 /// Skeleton tests (architect, 015 Phase 0, T002/T003): backend-api 1.14.0 (<c>specs/015-play-along-recording/contracts/backend-api.openapi.yaml</c>)
-/// is 013's 1.12.0 plus exactly the 015 delta (DELTA.md 1-2 and "Phase 0 outcome"), and the Recording DTOs, routes and limits match it.
+/// is 014's 1.13.0 (re-based at the 014+015 round start, DELTA.md "Re-merge"; 013's 1.12.0 in Phase 0) plus exactly the 015 delta (DELTA.md 1-2 and "Phase 0 outcome"), and the Recording DTOs, routes and limits match it.
 /// </summary>
 public sealed partial class RecordingContractTests
 {
@@ -25,7 +25,7 @@ public sealed partial class RecordingContractTests
 
     private static readonly string[] GatedOperations = ["deleteRecordingTakes", "deleteRecordingTake", "replaceRecordingTakeAudio"];
 
-    public static TheoryData<string, string[]> Changed1120Entries => new()
+    public static TheoryData<string, string[]> Changed1130Entries => new()
     {
         { "paths", ["/api/assets", "/api/assets/{assetId}", "/api/assets/{assetId}/retry"] },
         { "components/schemas", ["AssetOrigin", "Provenance", "CreateAudioExportRequest", "ExportRecipe", "MixSettings", "Track"] },
@@ -61,20 +61,20 @@ public sealed partial class RecordingContractTests
         var info = OpenApiContract.Backend.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.14.0");
-        Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.14.0"]);
+        Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.22.0", "1.23.0", "1.13.0", "1.14.0"]);
     }
 
     [Theory]
-    [MemberData(nameof(Changed1120Entries))]
-    public void Backend1140_Contains1120UnchangedExceptTheAdditions(string section, string[] changed)
+    [MemberData(nameof(Changed1130Entries))]
+    public void Backend1140_Contains1130UnchangedExceptTheAdditions(string section, string[] changed)
     {
-        ChangedEntries(Backend013, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(Backend014, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Fact]
     public void Backend1140_AddsExactlyTheElevenRecordingOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend013.Operations.Select(Id)).ToList();
+        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend014.Operations.Select(Id)).ToList();
 
         added.ShouldBe(RecordingOperations, ignoreOrder: true);
         Backend015Delta.Operations.Select(Id).ShouldBe(RecordingOperations, ignoreOrder: true);
