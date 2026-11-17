@@ -106,7 +106,7 @@ public sealed class SuggestionValidatorTests
     [Fact]
     public void ALicenceNote_IsInformationOnly()
     {
-        var suggestion = Check(Item(SuggestionTypeDto.LicenceArchaism, 8, "Gij zijt", "Jij bent", SuggestionSeverityDto.Error)).Suggestions.Single();
+        var suggestion = Check(Item(SuggestionTypeDto.LicenceArchaism, 8, "Gij zijt", "Jij bent")).Suggestions.Single();
 
         suggestion.Operation.ShouldBe(SuggestionOperationDto.None);
         suggestion.Proposal.ShouldBeNull();

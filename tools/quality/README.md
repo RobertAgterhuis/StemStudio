@@ -227,3 +227,13 @@ Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
 `python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
 `python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`,
 `python tools/quality/secret_rules.py`, `python tools/quality/library_care_rules.py`.
+
+Tool errors are failures, not environment notes: exit 2 means duplication was **not measured**,
+and the summary then reads `quality gate FAIL: ... not measured ... 1 errors`. `duplication.py`
+reports a tool error for a missing `npx`, a non-zero jscpd exit (the error names the last line
+jscpd or npm printed, e.g. `Error: path does not exist: ...`), a missing or unreadable report and a
+report that scanned no source file. Relative `paths` are resolved against the current directory
+(as `sig_check.py` does) before jscpd runs in the repository root; before the 022/023 fix a lane
+folder given relative to another directory made jscpd exit 1 without a reason. `python -I` is not
+supported (it drops the script folder from `sys.path`, so the sibling modules do not import); use
+`uv run --project tools/quality python tools/quality/run_all.py`.

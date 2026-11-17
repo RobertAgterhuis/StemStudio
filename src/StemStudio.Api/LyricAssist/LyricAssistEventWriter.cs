@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Domain.Lyrics.Assist;
 using StemStudio.Persistence.Repositories;
@@ -89,7 +88,7 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
     {
         foreach (var assistEvent in await assists.EventsAsync(assistId, last, cancellationToken))
         {
-            await WriteAsync(response, Format(assistEvent), cancellationToken);
+            await SseText.WriteAsync(response, Format(assistEvent), cancellationToken);
             last = assistEvent.Seq;
             if (LyricAssistEventTypes.IsTerminal(assistEvent.Type))
             {
@@ -118,16 +117,11 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
             return false;
         }
 
-        await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
+        await SseText.WriteAsync(response, SseText.KeepAlive, cancellationToken);
         timer.LastWrite = Stopwatch.GetTimestamp();
         return true;
     }
 
-    private static async Task WriteAsync(HttpResponse response, string text, CancellationToken cancellationToken)
-    {
-        await response.Body.WriteAsync(Encoding.UTF8.GetBytes(text), cancellationToken);
-        await response.Body.FlushAsync(cancellationToken);
-    }
 
     private sealed class StreamTimer
     {

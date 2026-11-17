@@ -7,8 +7,8 @@ namespace StemStudio.Agent.Tests.LyricAssist;
 /// <summary>023 T040 (devices: verified rhymes and syllable fit) and T049 (writing kinds: alternatives, continuation, titles).</summary>
 public sealed class SuggestionValidatorKindsTests
 {
-    private static ModelSuggestionItem Rhyme(SuggestionTypeDto type, int line, string original, string? proposal, int? partnerLine, string? partnerWord) =>
-        Item(type, line, original, proposal, SuggestionSeverityDto.Idea) with { RhymeWithLine = partnerLine, RhymeWord = partnerWord };
+    private static ModelSuggestionItem Rhyme(ModelSuggestionItem idea, int? partnerLine, string? partnerWord) =>
+        idea with { RhymeWithLine = partnerLine, RhymeWord = partnerWord };
 
     private static LyricBlockResult Devices(LyricAssistJob? job = null, params ModelSuggestionItem[] items) =>
         SuggestionValidator.Validate(Context(job ?? Job(AssistKindDto.Devices), Block1), Output(items));
@@ -17,7 +17,7 @@ public sealed class SuggestionValidatorKindsTests
     public void Devices_OnlyDeviceAndLicenceTypes()
     {
         var result = Devices(null,
-            Item(SuggestionTypeDto.DeviceImagery, 8, "de ster", null, SuggestionSeverityDto.Error),
+            Item(SuggestionTypeDto.DeviceImagery, 8, "de ster", null),
             Item(SuggestionTypeDto.LicenceInversion, 9, "Naar huis ik ga", null),
             Item(SuggestionTypeDto.GrammarVerbForm, 10, "word", "wordt"));
 
@@ -33,7 +33,7 @@ public sealed class SuggestionValidatorKindsTests
     public void AVerifiedEndRhyme_CarriesItsPartner()
     {
         // "slaat" (line 10) and "staat" share the last two letters in the fake rhyme check; the partner word is on line 10.
-        var suggestion = Devices(null, Rhyme(SuggestionTypeDto.DeviceEndRhyme, 11, "moe ben", "moe, het is laat", 10, "slaat")).Suggestions.Single();
+        var suggestion = Devices(null, Rhyme(Idea(SuggestionTypeDto.DeviceEndRhyme, 11, "moe ben", "moe, het is laat"), 10, "slaat")).Suggestions.Single();
 
         suggestion.RhymeWith.ShouldBe(new RhymePartnerDto { Line = 10, Word = "slaat" });
         suggestion.Operation.ShouldBe(SuggestionOperationDto.Replace);
@@ -49,7 +49,7 @@ public sealed class SuggestionValidatorKindsTests
     [InlineData("moe slaat", 10, "slaat")]
     public void AWrongRhymeClaim_IsDroppedAsFailedVerification(string proposal, int? partnerLine, string? partnerWord)
     {
-        var result = Devices(null, Rhyme(SuggestionTypeDto.DeviceEndRhyme, 11, "moe ben", proposal, partnerLine, partnerWord));
+        var result = Devices(null, Rhyme(Idea(SuggestionTypeDto.DeviceEndRhyme, 11, "moe ben", proposal), partnerLine, partnerWord));
 
         result.Suggestions.ShouldBeEmpty();
         result.Discarded.FailedVerification.ShouldBe(1);
@@ -59,7 +59,7 @@ public sealed class SuggestionValidatorKindsTests
     public void AnInternalRhyme_MayUseAnyWordOfTheOriginal()
     {
         // No proposal: the original "de straat is leeg" has "straat", which rhymes with "slaat" on line 10.
-        var suggestion = Devices(null, Rhyme(SuggestionTypeDto.DeviceInternalRhyme, 9, "de straat is leeg", null, 10, "slaat")).Suggestions.Single();
+        var suggestion = Devices(null, Rhyme(Idea(SuggestionTypeDto.DeviceInternalRhyme, 9, "de straat is leeg", null), 10, "slaat")).Suggestions.Single();
 
         suggestion.Operation.ShouldBe(SuggestionOperationDto.None);
         suggestion.RhymeWith!.Line.ShouldBe(10);
@@ -72,8 +72,8 @@ public sealed class SuggestionValidatorKindsTests
         var job = Job(AssistKindDto.Devices) with { RhythmTarget = target };
         var line = "en het is zo dat ik eigenlijk wel heel erg moe ben";
 
-        var shorter = Devices(job, Item(SuggestionTypeDto.DeviceSyllableFit, 11, "en het is zo dat ik eigenlijk wel heel erg", "ik ben zo", SuggestionSeverityDto.Idea));
-        var longer = Devices(job, Item(SuggestionTypeDto.DeviceSyllableFit, 11, "moe ben", "ontzettend vermoeid ben ik nu", SuggestionSeverityDto.Idea));
+        var shorter = Devices(job, Idea(SuggestionTypeDto.DeviceSyllableFit, 11, "en het is zo dat ik eigenlijk wel heel erg", "ik ben zo"));
+        var longer = Devices(job, Idea(SuggestionTypeDto.DeviceSyllableFit, 11, "moe ben", "ontzettend vermoeid ben ik nu"));
 
         shorter.Suggestions.Single().SyllablesBefore.ShouldBe(new FakeVerification().CountSyllables(line, AssistLanguageDto.Nl));
         longer.Discarded.FailedVerification.ShouldBe(1);
@@ -82,9 +82,9 @@ public sealed class SuggestionValidatorKindsTests
     [Fact]
     public void SyllableFit_WithoutATarget_MustChangeTheCount()
     {
-        var same = Devices(null, Item(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", "stom", SuggestionSeverityDto.Idea));
-        var changed = Devices(null, Item(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", "stiller", SuggestionSeverityDto.Idea));
-        var none = Devices(null, Item(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", null, SuggestionSeverityDto.Idea));
+        var same = Devices(null, Idea(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", "stom"));
+        var changed = Devices(null, Idea(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", "stiller"));
+        var none = Devices(null, Idea(SuggestionTypeDto.DeviceSyllableFit, 10, "stil", null));
 
         same.Discarded.FailedVerification.ShouldBe(1);
         changed.Suggestions.Count.ShouldBe(1);
@@ -98,7 +98,7 @@ public sealed class SuggestionValidatorKindsTests
         var line = "Naar huis ik ga, de straat is leeg";
 
         var result = SuggestionValidator.Validate(Context(job, Block1), Output(
-            Item(SuggestionTypeDto.WriteAlternative, 9, line, "Ik ga naar huis, de straat is leeg", SuggestionSeverityDto.Error),
+            Item(SuggestionTypeDto.WriteAlternative, 9, line, "Ik ga naar huis, de straat is leeg"),
             Item(SuggestionTypeDto.WriteAlternative, 9, line, "Naar huis, de straten leeg"),
             Item(SuggestionTypeDto.WriteAlternative, 9, line, "Een derde versie"),
             Item(SuggestionTypeDto.WriteAlternative, 10, "de stad word stil", "x")));

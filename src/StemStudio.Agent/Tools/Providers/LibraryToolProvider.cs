@@ -4,7 +4,6 @@ using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
-using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Library;
 using static StemStudio.Agent.Tools.Providers.GenerationTools;
 using static StemStudio.Agent.Tools.Providers.ToolDefinitions;
@@ -92,7 +91,7 @@ public sealed class LibraryToolProvider : IAgentToolProvider
         {
             FolderId = call.Text("folderId"),
             Sort = Parse<FolderSortDto>(call.Text("sort")),
-            Kind = Parse<AssetKindDto>(call.Text("kind")),
+            Kind = Parse<Contracts.Assets.AssetKindDto>(call.Text("kind")),
             Limit = MaxFolderRows,
         };
         var view = await call.Actions.Library.BrowseLibraryFolderAsync(query, cancellationToken);
@@ -197,7 +196,7 @@ public sealed class LibraryToolProvider : IAgentToolProvider
         return row;
     }
 
-    private static JsonNode Item(AssetDto asset) => new JsonObject
+    private static JsonNode Item(Contracts.Assets.AssetDto asset) => new JsonObject
     {
         ["assetId"] = asset.Id.ToString(),
         ["kind"] = Name(asset.Kind),

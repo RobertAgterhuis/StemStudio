@@ -58,9 +58,9 @@ public sealed partial class LyricSuiteTests
     [Fact]
     public async Task Grading_CountsRecallPrecisionAndLicenceFalsePositives()
     {
-        var ideal = await LyricSuite.RunAsync(Set, LyricSuite.IdealModel, 1, TextWriter.Null, Token);
-        var traps = await LyricSuite.RunAsync(Set, LyricSuite.TrapModel, 1, TextWriter.Null, Token);
-        var nothing = await LyricSuite.RunAsync(Set, _ => new ScriptedNothing(), 1, TextWriter.Null, Token);
+        var ideal = await LyricSuite.RunAsync(Set, LyricSuite.IdealModel, new LyricSuiteRuns(1, TextWriter.Null), Token);
+        var traps = await LyricSuite.RunAsync(Set, LyricSuite.TrapModel, new LyricSuiteRuns(1, TextWriter.Null), Token);
+        var nothing = await LyricSuite.RunAsync(Set, _ => new ScriptedNothing(), new LyricSuiteRuns(1, TextWriter.Null), Token);
 
         LyricGrader.Recall(ideal).ShouldBe(1);
         LyricGrader.Recall(nothing).ShouldBe(0);

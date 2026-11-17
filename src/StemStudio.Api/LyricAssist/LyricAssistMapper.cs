@@ -152,50 +152,21 @@ public static class LyricAssistMapper
     /// <summary>The assist summary DTO.</summary>
     /// <param name="assist">Assist.</param>
     /// <returns>The DTO.</returns>
-    public static LyricAssistSummaryDto ToSummary(AssistRun assist) => Fill(new LyricAssistSummaryDto
+    public static LyricAssistSummaryDto ToSummary(AssistRun assist)
     {
-        AssistId = Guid.Empty,
-        LyricsId = Guid.Empty,
-        SheetRevision = 0,
-        Kind = default,
-        Status = default,
-        Language = default,
-        Sensitivity = default,
-        Layers = [],
-        UsingFallback = false,
-        BlocksTotal = 0,
-        BlocksDone = 0,
-        BlocksSkipped = 0,
-        Counts = CategoryCountsDto.None,
-        Discarded = DiscardedCountsDto.None,
-        Origin = default,
-        CreatedAt = default,
-    }, assist);
+        ArgumentNullException.ThrowIfNull(assist);
+        return Summary(assist);
+    }
 
     /// <summary>The assist DTO with its suggestions.</summary>
     /// <param name="assist">Assist.</param>
     /// <param name="suggestions">Its suggestions.</param>
     /// <returns>The DTO.</returns>
-    public static LyricAssistDto ToDto(AssistRun assist, IEnumerable<LyricSuggestion> suggestions) => Fill(new LyricAssistDto
+    public static LyricAssistDto ToDto(AssistRun assist, IEnumerable<LyricSuggestion> suggestions)
     {
-        AssistId = Guid.Empty,
-        LyricsId = Guid.Empty,
-        SheetRevision = 0,
-        Kind = default,
-        Status = default,
-        Language = default,
-        Sensitivity = default,
-        Layers = [],
-        UsingFallback = false,
-        BlocksTotal = 0,
-        BlocksDone = 0,
-        BlocksSkipped = 0,
-        Counts = CategoryCountsDto.None,
-        Discarded = DiscardedCountsDto.None,
-        Origin = default,
-        CreatedAt = default,
-        Suggestions = suggestions.Select(ToDto).ToList(),
-    }, assist);
+        ArgumentNullException.ThrowIfNull(suggestions);
+        return WithSuggestions(ToSummary(assist), suggestions.Select(ToDto).ToList());
+    }
 
     /// <summary>The layer DTO.</summary>
     /// <param name="layer">Layer.</param>
@@ -257,38 +228,63 @@ public static class LyricAssistMapper
         };
     }
 
-    private static T Fill<T>(T dto, AssistRun assist)
-        where T : LyricAssistSummaryDto
+    private static LyricAssistSummaryDto Summary(AssistRun assist) => new()
     {
-        ArgumentNullException.ThrowIfNull(assist);
-        return dto with
-        {
-            AssistId = assist.Id,
-            LyricsId = assist.SheetId,
-            SheetRevision = assist.SheetRevision,
-            Kind = Map<AssistKindDto>(assist.Kind),
-            Status = Map<AssistStatusDto>(assist.Status),
-            Language = ToDto(assist.Language),
-            Sensitivity = Map<SensitivityDto>(assist.Sensitivity),
-            Layers = assist.Layers.Select(ToDto).ToList(),
-            Backend = Backend(assist.Backend),
-            Model = assist.Model,
-            UsingFallback = assist.UsingFallback,
-            BlocksTotal = assist.BlocksTotal,
-            BlocksDone = assist.BlocksDone,
-            BlocksSkipped = assist.BlocksSkipped,
-            Counts = ToDto(assist.Counts),
-            Discarded = ToDto(assist.Discarded),
-            Origin = Map<AssistOriginDto>(assist.Origin),
-            AgentRunId = assist.AgentRunId,
-            Usage = assist.Usage is { } usage ? new TokenUsageDto { InputTokens = usage.InputTokens, OutputTokens = usage.OutputTokens, CachedInputTokens = usage.CachedInputTokens } : null,
-            Failure = Failure(assist),
-            EstimatedSeconds = assist.EstimatedSeconds,
-            CreatedAt = TrackMapper.Utc(assist.CreatedAt),
-            StartedAt = assist.StartedAt is { } started ? TrackMapper.Utc(started) : null,
-            EndedAt = assist.EndedAt is { } ended ? TrackMapper.Utc(ended) : null,
-        };
-    }
+        AssistId = assist.Id,
+        LyricsId = assist.SheetId,
+        SheetRevision = assist.SheetRevision,
+        Kind = Map<AssistKindDto>(assist.Kind),
+        Status = Map<AssistStatusDto>(assist.Status),
+        Language = ToDto(assist.Language),
+        Sensitivity = Map<SensitivityDto>(assist.Sensitivity),
+        Layers = assist.Layers.Select(ToDto).ToList(),
+        Backend = Backend(assist.Backend),
+        Model = assist.Model,
+        UsingFallback = assist.UsingFallback,
+        BlocksTotal = assist.BlocksTotal,
+        BlocksDone = assist.BlocksDone,
+        BlocksSkipped = assist.BlocksSkipped,
+        Counts = ToDto(assist.Counts),
+        Discarded = ToDto(assist.Discarded),
+        Origin = Map<AssistOriginDto>(assist.Origin),
+        AgentRunId = assist.AgentRunId,
+        Usage = assist.Usage is { } usage ? new TokenUsageDto { InputTokens = usage.InputTokens, OutputTokens = usage.OutputTokens, CachedInputTokens = usage.CachedInputTokens } : null,
+        Failure = Failure(assist),
+        EstimatedSeconds = assist.EstimatedSeconds,
+        CreatedAt = TrackMapper.Utc(assist.CreatedAt),
+        StartedAt = assist.StartedAt is { } started ? TrackMapper.Utc(started) : null,
+        EndedAt = assist.EndedAt is { } ended ? TrackMapper.Utc(ended) : null,
+    };
+
+    // LyricAssist = LyricAssistSummary + suggestions (data-model 10): every summary field is copied.
+    private static LyricAssistDto WithSuggestions(LyricAssistSummaryDto summary, IReadOnlyList<LyricSuggestionDto> suggestions) => new()
+    {
+        AssistId = summary.AssistId,
+        LyricsId = summary.LyricsId,
+        SheetRevision = summary.SheetRevision,
+        Kind = summary.Kind,
+        Status = summary.Status,
+        Language = summary.Language,
+        Sensitivity = summary.Sensitivity,
+        Layers = summary.Layers,
+        Backend = summary.Backend,
+        Model = summary.Model,
+        UsingFallback = summary.UsingFallback,
+        BlocksTotal = summary.BlocksTotal,
+        BlocksDone = summary.BlocksDone,
+        BlocksSkipped = summary.BlocksSkipped,
+        Counts = summary.Counts,
+        Discarded = summary.Discarded,
+        Origin = summary.Origin,
+        AgentRunId = summary.AgentRunId,
+        Usage = summary.Usage,
+        Failure = summary.Failure,
+        EstimatedSeconds = summary.EstimatedSeconds,
+        CreatedAt = summary.CreatedAt,
+        StartedAt = summary.StartedAt,
+        EndedAt = summary.EndedAt,
+        Suggestions = suggestions,
+    };
 
     private static AssistFailureDto? Failure(AssistRun assist) => assist.FailureCode is { } code
         ? new AssistFailureDto { Code = Map<AssistFailureCodeDto>(code), Message = assist.FailureMessage ?? code.ToString(), Fix = assist.FailureFix }

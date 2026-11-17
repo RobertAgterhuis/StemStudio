@@ -29,7 +29,7 @@ internal static class IdealOutputs
         var line = LineOf(evalCase, expected.Anchor);
         var original = expected.Anchor ?? evalCase.Lines[line - 1];
         var proposal = expected.Proposals.Count > 0 ? expected.Proposals[0] : Shorter(original);
-        return Item(expected.Types.Count > 0 ? expected.Types[0] : DefaultType(evalCase.Category), "error", line, original, proposal);
+        return Item(expected.Types.Count > 0 ? expected.Types[0] : DefaultType(evalCase.Category), line, original, proposal);
     }
 
     private static JsonObject? Trap(LyricCase evalCase, LicenceTrap trap)
@@ -37,14 +37,14 @@ internal static class IdealOutputs
         var line = trap.Line ?? LineOf(evalCase, trap.Span);
         var text = evalCase.Lines[line - 1];
         var original = trap.Span is { } span && text.Contains(span, StringComparison.OrdinalIgnoreCase) ? text.Substring(text.IndexOf(span, StringComparison.OrdinalIgnoreCase), span.Length) : text.Split(' ')[0];
-        return LyricText.IsMarker(text) ? null : Item("grammar.other", "error", line, original, original + "x");
+        return LyricText.IsMarker(text) ? null : Item("grammar.other", line, original, original + "x");
     }
 
     private static IEnumerable<JsonNode> Creative(LyricCase evalCase) => evalCase.AssistKind switch
     {
-        AssistKindDto.Alternatives => Enumerable.Range(1, evalCase.Count ?? 3).Select(index => Item("write.alternative", "idea", evalCase.Line!.Value, evalCase.Lines[evalCase.Line.Value - 1], $"{evalCase.Lines[evalCase.Line.Value - 1]} ({index})")),
-        AssistKindDto.Continue => [Item("write.continuation", "idea", evalCase.Line!.Value, string.Empty, string.Join('\n', Enumerable.Range(1, evalCase.Count ?? 2).Select(index => $"Nieuwe regel {index}")))],
-        AssistKindDto.Titles => Enumerable.Range(1, evalCase.Count ?? 5).Select(index => Item("write.title", "idea", 0, LyricSuite.Title(evalCase), $"Title {index}")),
+        AssistKindDto.Alternatives => Enumerable.Range(1, evalCase.Count ?? 3).Select(index => Idea("write.alternative", evalCase.Line!.Value, evalCase.Lines[evalCase.Line.Value - 1], $"{evalCase.Lines[evalCase.Line.Value - 1]} ({index})")),
+        AssistKindDto.Continue => [Idea("write.continuation", evalCase.Line!.Value, string.Empty, string.Join('\n', Enumerable.Range(1, evalCase.Count ?? 2).Select(index => $"Nieuwe regel {index}")))],
+        AssistKindDto.Titles => Enumerable.Range(1, evalCase.Count ?? 5).Select(index => Idea("write.title", 0, LyricSuite.Title(evalCase), $"Title {index}")),
         _ => [(JsonNode)Device(evalCase)],
     };
 
@@ -56,11 +56,11 @@ internal static class IdealOutputs
         if (evalCase.ExpectedTypes.Contains("device.syllable-fit"))
         {
             var words = text.Split(' ');
-            return Item("device.syllable-fit", "idea", line, string.Join(' ', words[^3..]), words[^1]);
+            return Idea("device.syllable-fit", line, string.Join(' ', words[^3..]), words[^1]);
         }
 
         var partner = LyricText.LastWord(evalCase.Lines[0])!;
-        var item = Item("device.end-rhyme", "idea", line, text, text + " x" + partner);
+        var item = Idea("device.end-rhyme", line, text, text + " x" + partner);
         item["rhymeWithLine"] = 1;
         item["rhymeWord"] = partner;
         return item;
@@ -88,10 +88,17 @@ internal static class IdealOutputs
         _ => "flow.awkward",
     };
 
-    private static JsonObject Item(string type, string severity, int line, string original, string proposal) => new()
+    private static JsonObject Idea(string type, int line, string original, string proposal)
+    {
+        var item = Item(type, line, original, proposal);
+        item["severity"] = "idea";
+        return item;
+    }
+
+    private static JsonObject Item(string type, int line, string original, string proposal) => new()
     {
         ["type"] = type,
-        ["severity"] = severity,
+        ["severity"] = "error",
         ["line"] = line,
         ["original"] = original,
         ["proposal"] = proposal,

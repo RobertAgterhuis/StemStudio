@@ -31,9 +31,9 @@ public sealed record FolderViewRequest(string? Sort, string? Kind, string? Statu
             Limit = Limit ?? ContractLimits.LibraryFolderPageDefault,
             Offset = Offset ?? 0,
         };
-        Check(errors, query.Sort != FolderSortDto.Year || level == FolderLevel.Artist, "sort", "Sort by year is available for the albums of an artist only.");
-        Check(errors, query.Limit is >= 1 and <= ContractLimits.LibraryFolderPageMax, "limit", $"Must be between 1 and {ContractLimits.LibraryFolderPageMax}.");
-        Check(errors, query.Offset >= 0, "offset", "Must be 0 or more.");
+        QueryParsing.Require(errors, query.Sort != FolderSortDto.Year || level == FolderLevel.Artist, "sort", "Sort by year is available for the albums of an artist only.");
+        QueryParsing.Require(errors, query.Limit is >= 1 and <= ContractLimits.LibraryFolderPageMax, "limit", $"Must be between 1 and {ContractLimits.LibraryFolderPageMax}.");
+        QueryParsing.Require(errors, query.Offset >= 0, "offset", "Must be 0 or more.");
         return query;
     }
 
@@ -45,15 +45,7 @@ public sealed record FolderViewRequest(string? Sort, string? Kind, string? Statu
         }
 
         var valid = FolderId.TryParse(folderId, out var level);
-        Check(errors, valid, "folderId", "Not a folder id (ar, al or so followed by 16 hex characters).");
+        QueryParsing.Require(errors, valid, "folderId", "Not a folder id (ar, al or so followed by 16 hex characters).");
         return valid ? level : null;
-    }
-
-    private static void Check(List<DomainError> errors, bool valid, string field, string message)
-    {
-        if (!valid)
-        {
-            errors.Add(new DomainError(field, message));
-        }
     }
 }

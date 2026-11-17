@@ -25,13 +25,7 @@ public sealed class LibraryBrowseService(LibraryIndex index, ILibraryRepository 
         ArgumentNullException.ThrowIfNull(request);
         var errors = new List<DomainError>();
         var query = request.ToQuery(folderId, errors);
-        if (errors.Count > 0)
-        {
-            return LibraryProblems.QueryInvalid(errors);
-        }
-
-        var snapshot = await SnapshotAsync(cancellationToken);
-        return Respond(snapshot, ifNoneMatch, () => FolderTreeBuilder.View(snapshot, query) is { } view ? TypedResults.Ok(view) : LibraryProblems.FolderNotFound());
+        return await AnswerAsync(errors, ifNoneMatch, snapshot => FolderTreeBuilder.View(snapshot, query) is { } view ? TypedResults.Ok(view) : LibraryProblems.FolderNotFound(), cancellationToken);
     }
 
     /// <summary>The live search.</summary>
@@ -44,13 +38,7 @@ public sealed class LibraryBrowseService(LibraryIndex index, ILibraryRepository 
         ArgumentNullException.ThrowIfNull(request);
         var errors = new List<DomainError>();
         var search = request.ToRequest(errors);
-        if (errors.Count > 0)
-        {
-            return LibraryProblems.QueryInvalid(errors);
-        }
-
-        var snapshot = await SnapshotAsync(cancellationToken);
-        return Respond(snapshot, ifNoneMatch, () => LibrarySearch.Run(snapshot, search) is { } result ? TypedResults.Ok(result) : LibraryProblems.FolderNotFound());
+        return await AnswerAsync(errors, ifNoneMatch, snapshot => LibrarySearch.Run(snapshot, search) is { } result ? TypedResults.Ok(result) : LibraryProblems.FolderNotFound(), cancellationToken);
     }
 
     /// <summary>The current snapshot; starts the background filing when items are unfiled.</summary>
@@ -65,6 +53,23 @@ public sealed class LibraryBrowseService(LibraryIndex index, ILibraryRepository 
         }
 
         return snapshot;
+    }
+
+    /// <summary>422 for a query with errors, else the answer on the current snapshot (with <see cref="Respond"/>).</summary>
+    /// <param name="errors">The query errors.</param>
+    /// <param name="ifNoneMatch">The <c>If-None-Match</c> header.</param>
+    /// <param name="answer">Builds the response from the snapshot.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The response.</returns>
+    private async Task<IResult> AnswerAsync(List<DomainError> errors, string? ifNoneMatch, Func<LibrarySnapshot, IResult> answer, CancellationToken cancellationToken)
+    {
+        if (errors.Count > 0)
+        {
+            return LibraryProblems.QueryInvalid(errors);
+        }
+
+        var snapshot = await SnapshotAsync(cancellationToken);
+        return Respond(snapshot, ifNoneMatch, () => answer(snapshot));
     }
 
     /// <summary>304 when the client has the revision, else the result; both with the library ETag.</summary>

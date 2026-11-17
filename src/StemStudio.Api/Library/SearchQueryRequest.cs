@@ -18,18 +18,10 @@ public sealed record SearchQueryRequest(string? Q, string? Within, int? Limit)
         ArgumentNullException.ThrowIfNull(errors);
         var text = Q?.Trim() ?? string.Empty;
         var limit = Limit ?? ContractLimits.LibrarySearchGroupDefault;
-        Check(errors, text.Length is > 0 and <= ContractLimits.LibrarySearchMaxLength, "q", $"Type 1 to {ContractLimits.LibrarySearchMaxLength} characters.");
-        Check(errors, text.Length == 0 || LibraryKey.IsMeaningful(text), "q", "Type at least one letter or digit.");
-        Check(errors, Within is null || FolderId.TryParse(Within, out _), "within", "Not a folder id (ar, al or so followed by 16 hex characters).");
-        Check(errors, limit is >= 1 and <= ContractLimits.LibrarySearchGroupMax, "limit", $"Must be between 1 and {ContractLimits.LibrarySearchGroupMax}.");
+        QueryParsing.Require(errors, text.Length is > 0 and <= ContractLimits.LibrarySearchMaxLength, "q", $"Type 1 to {ContractLimits.LibrarySearchMaxLength} characters.");
+        QueryParsing.Require(errors, text.Length == 0 || LibraryKey.IsMeaningful(text), "q", "Type at least one letter or digit.");
+        QueryParsing.Require(errors, Within is null || FolderId.TryParse(Within, out _), "within", "Not a folder id (ar, al or so followed by 16 hex characters).");
+        QueryParsing.Require(errors, limit is >= 1 and <= ContractLimits.LibrarySearchGroupMax, "limit", $"Must be between 1 and {ContractLimits.LibrarySearchGroupMax}.");
         return new SearchRequest(text, errors.Count == 0 ? LibrarySearch.Tokenize(text) : [], Within, limit);
-    }
-
-    private static void Check(List<DomainError> errors, bool valid, string field, string message)
-    {
-        if (!valid)
-        {
-            errors.Add(new DomainError(field, message));
-        }
     }
 }

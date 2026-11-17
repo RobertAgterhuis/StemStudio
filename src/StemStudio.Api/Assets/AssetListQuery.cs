@@ -38,19 +38,11 @@ public sealed record AssetListQuery(string? Kind, Guid? TrackId, string? Status,
 
     private void CheckPaging(List<DomainError> errors, AssetQuery query)
     {
-        Check(errors, query.Limit is >= 1 and <= ContractLimits.MaxAssetPageSize, "limit", $"Must be between 1 and {ContractLimits.MaxAssetPageSize}.");
-        Check(errors, query.Offset >= 0, "offset", "Must be 0 or more.");
-        Check(errors, Q is null || Q.Length is >= 1 and <= MaxSearchLength, "q", $"Must be 1 to {MaxSearchLength} characters long.");
+        QueryParsing.Require(errors, query.Limit is >= 1 and <= ContractLimits.MaxAssetPageSize, "limit", $"Must be between 1 and {ContractLimits.MaxAssetPageSize}.");
+        QueryParsing.Require(errors, query.Offset >= 0, "offset", "Must be 0 or more.");
+        QueryParsing.Require(errors, Q is null || Q.Length is >= 1 and <= MaxSearchLength, "q", $"Must be 1 to {MaxSearchLength} characters long.");
     }
 
     private static T? Parse<T>(string? value, string field, List<DomainError> errors)
         where T : struct, Enum => QueryParsing.Enum<T>(value, field, errors);
-
-    private static void Check(List<DomainError> errors, bool valid, string field, string message)
-    {
-        if (!valid)
-        {
-            errors.Add(new DomainError(field, message));
-        }
-    }
 }

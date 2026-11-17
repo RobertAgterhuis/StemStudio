@@ -6,6 +6,11 @@ using StemStudio.Contracts.LyricAssist;
 
 namespace StemStudio.AgentEval.Lyric;
 
+/// <summary>How often the lyric suite runs each case, and where it logs progress.</summary>
+/// <param name="Runs">Repetitions per case.</param>
+/// <param name="Log">Progress log.</param>
+internal sealed record LyricSuiteRuns(int Runs, TextWriter Log);
+
 /// <summary>
 /// The lyric suite (023 research R-09, T066/T067): every case of lyric-eval-set.json runs through the real
 /// <see cref="LyricAssistant"/> (prompt builder, schema parser, validator) with the given model and is graded by
@@ -14,19 +19,19 @@ namespace StemStudio.AgentEval.Lyric;
 /// </summary>
 internal static class LyricSuite
 {
-    /// <summary>Runs every case <paramref name="runs"/> times.</summary>
+    /// <summary>Runs every case <see cref="LyricSuiteRuns.Runs"/> times.</summary>
     /// <param name="set">The set.</param>
     /// <param name="model">The model per case.</param>
-    /// <param name="runs">Repetitions.</param>
-    /// <param name="log">Progress log.</param>
+    /// <param name="runs">Repetitions and progress log.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The grades.</returns>
-    public static async Task<IReadOnlyList<LyricGrade>> RunAsync(LyricEvalSet set, Func<LyricCase, ILyricModel> model, int runs, TextWriter log, CancellationToken cancellationToken)
+    public static async Task<IReadOnlyList<LyricGrade>> RunAsync(LyricEvalSet set, Func<LyricCase, ILyricModel> model, LyricSuiteRuns runs, CancellationToken cancellationToken)
     {
         var grades = new List<LyricGrade>();
+        var log = runs.Log;
         foreach (var evalCase in set.Cases)
         {
-            for (var run = 0; run < runs; run++)
+            for (var run = 0; run < runs.Runs; run++)
             {
                 var grade = await RunCaseAsync(evalCase, model(evalCase), cancellationToken);
                 grades.Add(grade);
@@ -91,8 +96,8 @@ internal static class LyricSuite
     /// <returns>The failures (empty when the grading works).</returns>
     public static async Task<IReadOnlyList<string>> SelfTestAsync(LyricEvalSet set, TextWriter log, CancellationToken cancellationToken)
     {
-        var ideal = await RunAsync(set, IdealModel, 1, TextWriter.Null, cancellationToken);
-        var traps = await RunAsync(set, TrapModel, 1, TextWriter.Null, cancellationToken);
+        var ideal = await RunAsync(set, IdealModel, new LyricSuiteRuns(1, TextWriter.Null), cancellationToken);
+        var traps = await RunAsync(set, TrapModel, new LyricSuiteRuns(1, TextWriter.Null), cancellationToken);
         var failures = new List<string>();
         Expect(failures, LyricGrader.Recall(ideal) == 1, $"ideal recall {LyricGrader.Recall(ideal):P0}");
         Expect(failures, LyricGrader.Precision(ideal) == 1, $"ideal precision {LyricGrader.Precision(ideal):P0}");

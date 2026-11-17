@@ -1,4 +1,3 @@
-using System.Globalization;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Persistence.Repositories;
@@ -52,7 +51,7 @@ public static class LyricAssistEndpoints
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(assists);
         ArgumentNullException.ThrowIfNull(stream);
-        if (!TryPosition(context.Request, out var after))
+        if (!StreamPosition.TryParse(context.Request, out var after))
         {
             return ApiProblems.Validation("after", "after and Last-Event-ID must be whole numbers of 0 or more.");
         }
@@ -64,12 +63,5 @@ public static class LyricAssistEndpoints
 
         await stream.StreamAsync(context.Response, assistId, after, context.RequestAborted);
         return Results.Empty;
-    }
-
-    private static bool TryPosition(HttpRequest request, out int after)
-    {
-        var text = request.Query.TryGetValue("after", out var query) ? query.ToString() : request.Headers["Last-Event-ID"].ToString();
-        after = 0;
-        return text.Length == 0 || int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out after);
     }
 }

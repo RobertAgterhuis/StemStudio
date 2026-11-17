@@ -26,12 +26,12 @@ public static class AssistRequestRules
 
         var kind = LyricAssistMapper.Map<AssistKind>(request.Kind);
         var errors = new List<DomainError>();
-        Check(errors, CategoriesValid(kind, request.Categories), "categories", "These categories do not belong to this kind of help.");
-        Check(errors, RangeValid(request, SheetText.Lines(sheet.Text).Length), "lineFrom", "Choose lines inside the sheet, the first not after the last.");
-        Check(errors, kind != AssistKind.Alternatives || (request.LineFrom is { } from && from == request.LineTo), "lineFrom", "Alternatives need exactly one line.");
-        Check(errors, CountValid(kind, request.Count), "count", "The count is outside the range of this kind of help.");
-        Check(errors, InstructionValid(kind, request.Instruction), "instruction", "An instruction is at most 200 characters, for devices and writing help only.");
-        Check(errors, request.AgentRunId is null || request.Origin == AssistOriginDto.Agent, "agentRunId", "An agent run id belongs only to an assist the agent starts.");
+        QueryParsing.Require(errors, CategoriesValid(kind, request.Categories), "categories", "These categories do not belong to this kind of help.");
+        QueryParsing.Require(errors, RangeValid(request, SheetText.Lines(sheet.Text).Length), "lineFrom", "Choose lines inside the sheet, the first not after the last.");
+        QueryParsing.Require(errors, kind != AssistKind.Alternatives || (request.LineFrom is { } from && from == request.LineTo), "lineFrom", "Alternatives need exactly one line.");
+        QueryParsing.Require(errors, CountValid(kind, request.Count), "count", "The count is outside the range of this kind of help.");
+        QueryParsing.Require(errors, InstructionValid(kind, request.Instruction), "instruction", "An instruction is at most 200 characters, for devices and writing help only.");
+        QueryParsing.Require(errors, request.AgentRunId is null || request.Origin == AssistOriginDto.Agent, "agentRunId", "An agent run id belongs only to an assist the agent starts.");
         return errors;
     }
 
@@ -109,12 +109,4 @@ public static class AssistRequestRules
         AssistKind.Continue => [SuggestionCategory.Continuation],
         _ => [SuggestionCategory.Title],
     };
-
-    private static void Check(List<DomainError> errors, bool valid, string field, string message)
-    {
-        if (!valid)
-        {
-            errors.Add(new DomainError(field, message));
-        }
-    }
 }
