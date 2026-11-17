@@ -47,6 +47,23 @@
             </div>
         </section>
 
+        <section aria-labelledby="storage-cleanup-title">
+            <h2 id="storage-cleanup-title" class="ss-heading">Free space</h2>
+            <p class="ss-help">Remove files StemStudio can make again. You see what goes before anything is removed.</p>
+            <div class="ss-care-actions">
+                <RadzenButton Text="Remove detail stems" Icon="call_merge" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.DetailStems)" data-testid="cleanup-detail-stems" />
+                <RadzenButton Text="Clear worker cache" Icon="cached" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.WorkerCache)" data-testid="cleanup-worker-cache" />
+                <RadzenButton Text="Remove leftovers" Icon="cleaning_services" ButtonStyle="ButtonStyle.Light" Disabled="@(CleanupBlocked is not null)"
+                              aria-describedby="@CleanupReasonId" Click="() => OpenCleanup(CleanupKindDto.Leftovers)" data-testid="cleanup-leftovers" />
+            </div>
+            @if (CleanupBlocked is { } blocked)
+            {
+                <p id="cleanup-blocked-reason" class="ss-help">@blocked</p>
+            }
+        </section>
+
         <section aria-labelledby="storage-parts-title">
             <h2 id="storage-parts-title" class="ss-heading">Parts of the library</h2>
             <div class="ss-care-scroll" tabindex="0" role="region" aria-labelledby="storage-parts-title">
@@ -89,7 +106,16 @@
         <section aria-labelledby="storage-tracks-title">
             <h2 id="storage-tracks-title" class="ss-heading">Tracks</h2>
             <LevelGate Feature="care.track-table">
-                <StorageTracksTable Tracks="overview.Tracks" />
+                <StorageTracksTable Tracks="overview.Tracks">
+                    <Actions Context="track">
+                        @if (track.DetailStemsBytes > 0 && !track.DetailFilesRemoved)
+                        {
+                            <button type="button" class="ss-text-button" disabled="@(CleanupBlocked is not null)" aria-label="@($"Remove the detail stems of {track.Title}")"
+                                    @onclick="() => OpenCleanup(CleanupKindDto.DetailStems, track.TrackId)"
+                                    data-testid="@($"cleanup-track-detail-{track.TrackId}")">Remove detail stems</button>
+                        }
+                    </Actions>
+                </StorageTracksTable>
             </LevelGate>
             <LevelGate Feature="care.top-tracks">
                 <ol class="ss-care-list" data-testid="storage-top-tracks">
@@ -122,3 +148,8 @@
         </section>
     }
 </div>
+
+@if (CleanupRequest is { } request)
+{
+    <CleanupDialog Request="request" OnClose="OnCleanupClosedAsync" />
+}

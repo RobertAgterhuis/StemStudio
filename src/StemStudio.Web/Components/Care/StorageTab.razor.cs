@@ -22,6 +22,12 @@ public sealed partial class StorageTab
 
     private bool Loading { get; set; }
 
+    private CleanupRequestDto? CleanupRequest { get; set; }
+
+    private string? CleanupBlocked => CleanupText.Blocked(Status);
+
+    private string? CleanupReasonId => CleanupBlocked is null ? null : "cleanup-blocked-reason";
+
     /// <inheritdoc />
     protected override Task OnInitializedAsync() => LoadAsync(refresh: false);
 
@@ -30,6 +36,17 @@ public sealed partial class StorageTab
         + $"voice profiles {ByteSize.Format(items.VoiceProfilesBytes)}, {CareText.Count(items.LyricsSheets, "lyrics sheet")}.";
 
     private Task RefreshAsync() => LoadAsync(refresh: true);
+
+    private void OpenCleanup(CleanupKindDto kind, Guid? trackId = null) => CleanupRequest = CleanupText.Request(kind, trackId);
+
+    private async Task OnCleanupClosedAsync(bool removed)
+    {
+        CleanupRequest = null;
+        if (removed)
+        {
+            await LoadAsync(refresh: true);
+        }
+    }
 
     private async Task LoadAsync(bool refresh)
     {

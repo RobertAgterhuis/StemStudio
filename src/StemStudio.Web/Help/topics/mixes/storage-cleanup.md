@@ -3,7 +3,7 @@ id: storage-cleanup
 title: "Freeing space safely"
 area: mixes
 summary: "Remove detail stems, the worker's caches or leftovers after a preview; originals are never removed."
-anchors: []
+anchors: ["cleanup-dialog", "mixer-detail-removed", "detail-files-removed"]
 keywords: ["clean up", "cleanup", "free space", "remove detail stems", "worker cache", "leftovers", "preview"]
 related: [storage-regenerable, storage-overview, detail-stems]
 reviewed: "013"

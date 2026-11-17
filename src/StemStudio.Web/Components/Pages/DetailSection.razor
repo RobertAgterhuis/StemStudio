@@ -30,7 +30,7 @@
     }
 
     <div class="ss-row" data-help-id="detail-cancel-retry">
-        @if (Detail.Status == DetailPhaseStatusDto.None)
+        @if (Detail.Status == DetailPhaseStatusDto.None || (Removed && !Active))
         {
             <RadzenButton Text="Split further" Icon="call_split" Click="OnStart" IsBusy="Busy" BusyText="Queuing..."
                           Disabled="Busy" data-testid="detail-split-further" />
@@ -52,7 +52,12 @@
         <p class="ss-notice" role="note" data-testid="detail-long-notice">@Notice</p>
     }
 
-    @if (Detail.Status == DetailPhaseStatusDto.Completed)
+    @if (Removed)
+    {
+        <p class="ss-notice" role="note" data-testid="detail-files-removed" data-help-id="detail-files-removed">Detail stems removed - Split further to restore them.</p>
+    }
+
+    @if (Detail.Status == DetailPhaseStatusDto.Completed && !Removed)
     {
         <ul class="ss-outcomes" data-help-id="detail-outcomes">
             @foreach (var outcome in Detail.Parents)
