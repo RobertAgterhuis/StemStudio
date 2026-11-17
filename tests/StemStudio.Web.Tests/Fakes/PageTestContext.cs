@@ -57,9 +57,25 @@ public abstract class PageTestContext : BunitContext
         Services.AddScoped<AgentRunNotifier>();
         Services.AddScoped<AgentPanelState>();
         Services.AddScoped<PageOrigin>();
+        Services.AddSingleton(LibraryCare);
+        Services.AddScoped<StemStudio.Web.LibraryCare.LibraryCareStatusSource>();
         GenerativeDefaults();
         AgentDefaults();
+        LibraryCareDefaults();
     }
+
+    /// <summary>The library is idle with one archive and no previous library unless a test says otherwise (013).</summary>
+    private void LibraryCareDefaults()
+    {
+        LibraryCare.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(LibraryCareData.Status());
+        LibraryCare.ListBackupsAsync(Arg.Any<CancellationToken>()).Returns(LibraryCareData.List(LibraryCareData.Summary()));
+        LibraryCare.ListJobsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        LibraryCare.EstimateBackupAsync(Arg.Any<StemStudio.Contracts.LibraryCare.BackupOptionsDto>(), Arg.Any<CancellationToken>()).Returns(LibraryCareData.Estimate());
+        LibraryCare.GetBackupAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call => LibraryCareData.Details(call.Arg<string>()));
+    }
+
+    /// <summary>The library care port (backend API 1.12.0, feature 013), substituted.</summary>
+    protected ILibraryCareClient LibraryCare { get; } = Substitute.For<ILibraryCareClient>();
 
     /// <summary>The agent is ready, has no conversations and streams <see cref="AgentEvents"/> for every run (011).</summary>
     private void AgentDefaults()

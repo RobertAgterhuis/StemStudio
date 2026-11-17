@@ -12,10 +12,13 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.LibraryCare;
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Scores;
+using StemStudio.Api.Security;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Styles;
 using StemStudio.Api.Sync;
@@ -48,10 +51,13 @@ public static class ApiComposition
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddClaudeKeyProtection(builder.Configuration, builder.Environment.ContentRootPath, dataDirectory);
-        services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
+        var connectionString = LiveDatabaseFile.ForLive(ConnectionString(builder.Configuration, dataDirectory));
+        services.AddStemStudioPersistence(connectionString);
+        services.AddSingleton(new LiveDatabase(connectionString));
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
+        services.AddLibraryCare(options, builder.Environment.ContentRootPath);
         services.AddAgentHost(builder.Configuration);
         return builder;
     }
@@ -62,6 +68,7 @@ public static class ApiComposition
         services.AddGeneratorClient(configuration);
         services.AddSingerClient(configuration);
         services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<LibraryGate>();
     }
 
     /// <summary>Creates the data directory, applies migrations and maps middleware and endpoints.</summary>
@@ -71,6 +78,8 @@ public static class ApiComposition
     {
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
+        await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
+        LiveDatabaseFile.EnsureCreated(app.Services.GetRequiredService<LiveDatabase>().ConnectionString);
         app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {
@@ -83,6 +92,8 @@ public static class ApiComposition
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors(CorsPolicy);
+        app.UseCrossSiteRequestGuard();
+        app.UseLibraryGate();
         app.MapOpenApi();
         MapEndpoints(app);
     }
@@ -111,6 +122,7 @@ public static class ApiComposition
         app.MapVoiceEndpoints();
         app.MapAgentEndpoints();
         app.MapClaudeKeyEndpoints();
+        app.MapLibraryCareEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>
@@ -120,6 +132,7 @@ public static class ApiComposition
     {
         services.AddSingleton<IStemFileStore, StemFileStore>();
         services.AddSingleton<IUploadStore, UploadStore>();
+        services.AddScoped<WorkerCacheRehydrator>();
         services.AddScoped<ImportService>();
         services.AddScoped<TrackService>();
         services.AddScoped<TrackDeletionService>();

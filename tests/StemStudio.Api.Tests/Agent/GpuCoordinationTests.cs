@@ -176,6 +176,25 @@ public sealed class GpuCoordinationTests : AgentApiTestBase
     }
 
     [Fact]
+    public async Task TheDecorator_ForwardsTheStorageCallsWithoutTheGate()
+    {
+        // Feature 013 (worker 1.7.0): storage report, clean-up and rehydration are not GPU jobs.
+        var inner = Substitute.For<IWorkerClient>();
+        var client = new GpuReleasingWorkerClient(inner, Service<GpuJobGate>());
+        var cleanup = new WorkerStorageCleanupRequest(["*"], Scratch: true, OldJobFiles: false);
+        var rehydrate = new WorkerRehydrateRequest(Guid.NewGuid(), "youtube", "youtube:x", "htdemucs", ["vocals", "drums", "bass", "other"]);
+
+        await client.GetStorageAsync(Ct);
+        await client.CleanStorageAsync(cleanup, Ct);
+        await client.RehydrateJobAsync(rehydrate, Ct);
+
+        await inner.Received(1).GetStorageAsync(Ct);
+        await inner.Received(1).CleanStorageAsync(cleanup, Ct);
+        await inner.Received(1).RehydrateJobAsync(rehydrate, Ct);
+        Service<IGpuActivity>().IsHeavyJobActive().ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task TheGate_HoldsWhileSubmissionsOverlap()
     {
         var activity = Service<IGpuActivity>();

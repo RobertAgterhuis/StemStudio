@@ -74,6 +74,10 @@ function Initialize-Environment {
     # Fake device of the fake separator (cpu, gpu, gpu-oom; feature 003); an existing value wins.
     if (-not $env:STEMSTUDIO_FAKE_DEVICE) { $env:STEMSTUDIO_FAKE_DEVICE = 'cpu' }
     $env:StemStudio__DataDir = Join-Path $dataDir 'api'
+    # Backups folder (feature 013, FR-005): <repo>/data/backups unless StemStudio__BackupDir is set.
+    if (-not $env:StemStudio__BackupDir) { $env:StemStudio__BackupDir = Join-Path $dataDir 'backups' }
+    if (-not $env:StemStudio__BackupHostDirHint) { $env:StemStudio__BackupHostDirHint = $env:StemStudio__BackupDir }
+    New-Item -ItemType Directory -Force -Path $env:StemStudio__BackupDir | Out-Null
     $env:StemStudio__WorkerBaseUrl = 'http://localhost:8000'
     $env:StemStudio__WebOrigin = 'http://localhost:8080'
     $env:StemStudio__ApiBaseUrl = 'http://localhost:8081'

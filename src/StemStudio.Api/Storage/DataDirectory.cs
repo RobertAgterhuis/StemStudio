@@ -22,4 +22,25 @@ public sealed record DataDirectory(string Root)
     /// <param name="trackId">Track ID.</param>
     /// <returns>The absolute path.</returns>
     public string TrackDirectory(Guid trackId) => Path.Combine(Sub("tracks"), trackId.ToString("D", CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// The absolute path of a stored data-relative path (forward slashes), or null when it would leave the data directory
+    /// (<c>GetFullPath</c> + <c>StartsWith(root + separator)</c>; defence in depth for paths read from the database).
+    /// </summary>
+    /// <param name="relativePath">The stored path.</param>
+    /// <returns>The absolute path, or null.</returns>
+    public string? ContainedPath(string relativePath)
+    {
+        ArgumentNullException.ThrowIfNull(relativePath);
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Root));
+        var full = Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        return full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? full : null;
+    }
+
+    /// <summary>The absolute path of a stored data-relative path that must stay inside the data directory.</summary>
+    /// <param name="relativePath">The stored path.</param>
+    /// <returns>The absolute path.</returns>
+    /// <exception cref="InvalidOperationException">The path leaves the data directory.</exception>
+    public string RequireContainedPath(string relativePath) =>
+        ContainedPath(relativePath) ?? throw new InvalidOperationException("A stored file path points outside the data directory.");
 }

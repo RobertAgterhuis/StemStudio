@@ -198,4 +198,23 @@ public sealed class StyleTests
         StyleNaming.CopyName("Jazz trio", ["jazz TRIO (copy)"]).ShouldBe("Jazz trio (copy 2)");
         StyleNaming.CopyName(new string('n', 60), []).Length.ShouldBe(60);
     }
+
+    [Fact]
+    public void RestoredName_UsesTheRestoredSuffix_AndRenameKeepsTheFields()
+    {
+        StyleNaming.RestoredName("Jazz trio", ["JAZZ TRIO"]).ShouldBe("Jazz trio (restored)");
+        StyleNaming.RestoredName("Jazz trio", ["jazz trio (restored)"]).ShouldBe("Jazz trio (restored 2)");
+        StyleNaming.RestoredName(new string('n', 60), []).Length.ShouldBe(60);
+        var style = StyleTestData.User();
+        var before = (style.GenreFamily, style.Description, style.UpdatedAt, style.Instrumentation.Count);
+
+        style.RenameRestored("Jazz trio (restored)");
+
+        (style.Name, style.NormalizedName).ShouldBe(("Jazz trio (restored)", "JAZZ TRIO (RESTORED)"));
+        (style.GenreFamily, style.Description, style.UpdatedAt, style.Instrumentation.Count).ShouldBe(before);
+    }
+
+    [Fact]
+    public void RenameRestored_OfAPreset_IsRefused() =>
+        Should.Throw<StyleReadOnlyException>(() => StyleTestData.Preset().RenameRestored("x"));
 }

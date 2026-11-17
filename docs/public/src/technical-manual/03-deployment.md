@@ -90,6 +90,25 @@ the weights. Measured on the reference machine (RTX 5070 Ti 16 GB, weights prese
 song 50.6 s cold (VRAM +10.5 GB), a 30 s restyle 15.7 s (+4.8 GB), a 10 s voice conversion
 25.5 s (+3.4 GB), all on the GPU without CPU fallback.
 
+## Backups folder (013)
+
+Backups are written by the API to a host folder that compose bind-mounts at `/backups` (only
+into the `api` service). Create it **before** `docker compose up`, otherwise Docker creates it
+owned by root:
+
+```
+mkdir -p backups
+sudo chown 1654 backups          # Linux only: the API runs as uid 1654 (non-root)
+docker compose up -d
+```
+
+Set `STEMSTUDIO_BACKUP_HOST_DIR` to use another folder, for example an external drive. On
+Docker Desktop for Windows and macOS the bind mount is writable without a `chown`. The API never
+changes host permissions; when the folder is missing or read-only the Backups tab says so with
+the fix. Check a folder with `scripts/check-backup-folder.{sh,ps1}`. Archives are plain ZIP
+files (`stemstudio-backup-<UTC date>-<time>.zip`) that can be copied elsewhere and back; they
+are **not encrypted**.
+
 ## Non-Docker development start
 
 Requirements: .NET SDK 10.0.401+, uv 0.13+ (installs Python 3.12), Node.js 22.22.2+, ffmpeg
@@ -134,6 +153,14 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `STEMSTUDIO_TRANSCRIBER` | worker | `real` (fake with the fake separator) | 008: transcription engine |
 | `STEMSTUDIO_TRANSCRIBE_THREADS` | worker | `8` | 008: intra-op threads of the transcribe lane (1-64) |
 | `StemStudio__ScoreEstimates__*` | api | see below | 008: seconds per audio second of the estimate shown in the score dialog |
+| `STEMSTUDIO_BACKUP_HOST_DIR` | compose | `./backups` | 013: host folder bind-mounted at `/backups`, in the API only; must exist and be writable by uid 1654 on Linux |
+| `StemStudio__BackupDir` | api | compose `/backups` | 013: where archives are written and read |
+| `StemStudio__BackupHostDirHint` | api | compose `${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}` | 013: host path shown to the user (display only) |
+| `StemStudio__LibraryCare__MinFreeMarginBytes` | api | 67108864 (64 MiB) | 013: free space above the estimate before a backup starts |
+| `StemStudio__LibraryCare__StopBelowFreeBytes` | api | 268435456 (256 MiB) | 013: a running backup or restore stops below this free space |
+| `StemStudio__LibraryCare__StorageCacheSeconds` | api | `30` | 013: cache of the storage overview |
+| `StemStudio__LibraryCare__CleanupPlanMinutes` | api | `10` | 013: validity of a clean-up preview |
+| `StemStudio__LibraryCare__ThrottleBytesPerSecond` | api | `0` (off) | 013, **test stacks only** (`docker-compose.e2e.yml`): rate-limits archive streams so E2E can observe a running job |
 
 Online lookups (005) identify themselves with the User-Agent
 `StemStudio/<worker version> ( <STEMSTUDIO_CONTACT_URL> )`, or

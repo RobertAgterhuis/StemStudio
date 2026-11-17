@@ -115,6 +115,14 @@ directories that end in `/` (ignored); (3) `NAME` never equals `.` or `..` and n
 `VoiceProfileService`, `UploadStore`, artwork store) and adjusts `NAME`/depth if a generator
 produces something else; the result is binding.
 
+**T004 result (architect, 2026-11-17, binding)**: every generator matches the patterns unchanged
+(`tests/StemStudio.Api.Tests/LibraryCare/LayoutAllowListTests.cs`: stems of both models, all
+parent/detail pairs, uploads of the three types, both artwork slots, asset files `audio.*` and
+`score.*`, takes `take-<n>.flac`, vocals `vocal-<n>.flac`, voice samples `sample.flac`, generated
+audio `audio.flac`); the detail-name list equals `DetailNames.All`. Rule 3 is expressed in the test
+as look-aheads on `NAME`; backend T014 implements the same patterns in `LibraryLayout` and points the
+test at it.
+
 ### 3.4 Validation on restore (order; first failure stops)
 
 1. File name matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$`; it is a regular file in the backups

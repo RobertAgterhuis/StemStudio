@@ -10,6 +10,7 @@ Owner: quality-gate agent. Enforces constitution principle II (SIG 4 stars) in C
 | `css_tokens_check.py` | raw colours (hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/other colour functions, named colours) in `src/StemStudio.Web/wwwroot/css/**`, `*.razor.css` and Razor `style` attributes/`<style>` blocks; only `wwwroot/css/tokens.css` may hold literals | any raw colour | raw colours in the legacy `wwwroot/app.css` (until T020 retires it) |
 | `vendor_check.py` | licence records of every package below `detail/vendor/` and `transcription/vendor/` | a package without a `LICENSE`/`LICENCE`/`COPYING` file or without a `NOTICE` file | |
 | `secret_rules.py` | Claude key handling (011 follow-up claude-key): Data Protection namespace/entry points, `global using` and packages; `StemStudio.Api.Agent.Secrets` references; `record` declarations of `ClaudeApiKey`/`StoreClaudeKeyRequest`; log calls and `[LoggerMessage]` methods in `Api/Agent/Secrets/**` and `Agent/Backends/Claude*` | Data Protection outside `src/StemStudio.Api/Agent/Secrets/` (or any `global using` of it), the secrets namespace outside `StemStudio.Api`, a Data Protection package outside the API, a key value type declared as `record`, a log argument named `key`/`apiKey`, a `Reveal()` in a log argument, a `{Key}`/`{ApiKey}` placeholder | |
+| `library_care_rules.py` | Library care (feature 013): references to `StemStudio.Api.LibraryCare.*` from other API folders (fully, partially or namespace-relative qualified); bulk ZIP helpers in `src/**` | outside `Api/LibraryCare/` and `ApiComposition.cs` any `LibraryCare` name but `Gate`; a call of `ExtractToDirectory`, `ExtractToFile`, `CreateFromDirectory` (or `...Async`), a `using static` of `ZipFile`/`ZipFileExtensions` | |
 | `run_all.py` | all of the above, optional `--report` Markdown | any error (1); tool missing (2) | |
 | `sonar_args.py` | `sonar-project.properties` -> `/d:` args for `dotnet sonarscanner begin` | | |
 
@@ -169,6 +170,21 @@ production code (environment parsing, contract mirrors such as `DeviceInfo` and 
 **warning** marked `(cross-service: ...)`, not an error; every other production clone, including
 one inside the generator, stays an error.
 
+Library care (feature 013, `library_care_rules.py`, tasks.md T009/T010): (a) inside
+`src/StemStudio.Api` a file outside `LibraryCare/` and the composition root `ApiComposition.cs`
+may reference only `StemStudio.Api.LibraryCare.Gate` (and names below it); `StemStudio.Api.LibraryCare.Backup`,
+`Api.LibraryCare.Restore` and the namespace-relative `LibraryCare.Storage` (which a
+`StemStudio.Api.*` file resolves to the API folder, unlike the gap noted above for the other
+folder rules) are `forbidden dependency on <name>: ...`; `StemStudio.Contracts.LibraryCare` and
+identifiers such as `LibraryCareLimits` are not references. (b) No production file calls the
+bulk `System.IO.Compression` helpers that extract or pack whole trees without per-entry checks
+(`ExtractToDirectory`, `ExtractToFile`, `CreateFromDirectory`, each also `...Async`, as member
+calls) or has a `using static` of `ZipFile`/`ZipFileExtensions`: `banned API <name>: ...`.
+Hostile archives (research R-06) are handled entry by entry; own methods must not reuse those
+names. (c) Worker `storage` (`PYTHON_ALLOWED`): imports only `jobs`, `ports`, `schemas`,
+`config` (never `separation`, `detail` or `api`); `api` may import `storage`; `jobs` and the
+adapters never do. `worker/storage` is its own component row, owned by stem-separation.
+
 ## Commands (repository root)
 
 ```bash
@@ -187,4 +203,4 @@ uv run --directory tools/quality pytest --cov --cov-branch --cov-report=xml
 Single checks: `python tools/quality/sig_check.py [paths] [--json out.json]`,
 `python tools/quality/duplication.py [paths]`, `python tools/quality/dependency_check.py`,
 `python tools/quality/css_tokens_check.py`, `python tools/quality/vendor_check.py`,
-`python tools/quality/secret_rules.py`.
+`python tools/quality/secret_rules.py`, `python tools/quality/library_care_rules.py`.

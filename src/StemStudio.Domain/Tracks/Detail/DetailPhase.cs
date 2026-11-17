@@ -30,6 +30,12 @@ public sealed record DetailPhase
     /// <summary>Where the detail steps ran (feature 003); null before the first parent step, for cached results and older phases.</summary>
     public JobDevice? Device { get; init; }
 
+    /// <summary>
+    /// When the detail stems were removed by a clean-up or left out of a restored backup (feature 013, UTC); null while the
+    /// files are present. Kept while the phase is started again and cleared when it completes.
+    /// </summary>
+    public DateTime? FilesRemovedAt { get; init; }
+
     /// <summary>Time the phase was (re)started (UTC).</summary>
     public required DateTime RequestedAt { get; init; }
 

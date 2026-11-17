@@ -8,9 +8,9 @@ endpoints, a new archive format and additive UI test ids. The audio-engine contr
 
 | Contract | Base | 013 document | Version | State |
 |---|---|---|---|---|
-| Backend API | 1.11.0 (feature 012, not on this branch; latest full document here: 010's 1.9.0 + 011's 1.10.0 delta) | [contracts/backend-api.delta.openapi.yaml](contracts/backend-api.delta.openapi.yaml) `1.12.0-delta.1`, standalone, additive | **1.12.0** | binding; merged unchanged into the full document by T005 |
+| Backend API | 1.11.0 (`specs/012-practice-tempo/contracts/backend-api.openapi.yaml`, merged on `main`) | [contracts/backend-api.delta.openapi.yaml](contracts/backend-api.delta.openapi.yaml) `1.12.0-delta.1` (standalone) merged into the full [contracts/backend-api.openapi.yaml](contracts/backend-api.openapi.yaml) **1.12.0** (T005, 2026-11-17) | **1.12.0** | binding; the full document is the reference for the wave |
 | Worker API | 1.6.0 (`specs/008-sheet-music`; 009-012 do not change it) | [contracts/worker-api.openapi.yaml](contracts/worker-api.openapi.yaml), full document | **1.7.0** | binding |
-| UI test ids | 1.11.0 (012) | [contracts/ui-test-ids.delta.md](contracts/ui-test-ids.delta.md) | **1.12.0** | names binding; merged by T005 |
+| UI test ids | 1.11.0 (012) | [contracts/ui-test-ids.delta.md](contracts/ui-test-ids.delta.md) merged into the full [contracts/ui-test-ids.md](contracts/ui-test-ids.md) **1.12.0** (T005) | **1.12.0** | binding |
 | Backup archive | - | [contracts/backup-archive.md](contracts/backup-archive.md) + [backup-manifest.schema.json](contracts/backup-manifest.schema.json) | **1.0.0** (new) | binding |
 | help-content | 1.0.0 (004) | 9 topics in the existing area `mixes` | unchanged | - |
 | Agent tool catalogue | 1.0.0 (011) | no tools in 013 (roadmap: a later minor) | unchanged | - |
@@ -23,6 +23,40 @@ manifest schema passes the JSON Schema 2020-12 meta-schema check (jsonschema 4.2
 example, rejecting traversal (`..`), `//` and absolute paths.
 
 On any difference between this summary and the documents, the documents win.
+
+### Phase 0 (architect, 2026-11-17)
+
+- **T001**: ADR-022 number checked (012 = ADR-021, 022/023 = ADR-036/037) and **Accepted**; no
+  renumbering. Constitution references updated to 1.4.0.
+- **T005 merge** (`backend-api.openapi.yaml` 1.12.0 = 1.11.0 + the delta, `x-stemstudio-contains`
+  ends `1.11.0, 1.12.0`): every delta path, parameter, schema, response and example copied
+  unchanged, except the shared `ProblemDetails`, `NotFound` and `ValidationProblem` (the 1.11.0
+  definitions stay) and `HttpValidationProblemDetails` (= the existing `ValidationProblemDetails`;
+  references rewritten). `JobId` did not exist in 1.11.0 and keeps its name. `DetailPhaseAddition`
+  became `DetailPhase.properties.filesRemovedAt` (not required, with the description). **Write
+  gate merge rule**: the ten listed operations carry `x-stemstudio-write-gate: backupRunning`;
+  each gains `409` -> new response `BackupRunning` and `503` -> `Maintenance` only where it had no
+  response with that code (an operation keeps its existing `409 Conflict`/`AgentConflict` or `503
+  WorkerUnavailable`, which then also carries the new problem type; the 1.12.0 changelog says so).
+  Redocly 2.78.0: valid, 11 warnings (1.11.0's 9 plus `getLibraryCareStatus` and `listBackups`, all
+  `operation-4xx-response`). `python -I specs/013-library-care/contracts/check_superset.py` ->
+  superset of 1.11.0 (only `DetailPhase` and the ten gated paths grow), and with the delta as
+  `older` -> every delta entry present unchanged.
+- **T005 ui-test-ids**: full 1.12.0 = 1.11.0 + changelog line + section "Additions in 1.12.0
+  (feature 013)" with the delta's template parts, ids and help topics unchanged.
+- **Pre-release correction (T006, label unchanged, delta and full document)**: `BackupDetails` was
+  `allOf: [BackupSummary, {...}]`, but `BackupSummary` is closed (`additionalProperties: false`), so no
+  instance could satisfy it. `BackupDetails` is now one closed object with every `BackupSummary`
+  member plus `excluded`, `entries`, `totalBytes`, `schemaLastMigration`, `voiceProfiles`, `warnings`
+  (same wire shape; C# `BackupDetailsDto : BackupSummaryDto`).
+- **T006 code**: `src/StemStudio.Contracts/LibraryCare/` (50 files: enums with string converters,
+  `required init` records, `LibraryJobReportDto` polymorphic on `type`, `LibraryCareLimits`,
+  `LibraryCareProblemTypes`, `ApiRoutes.LibraryCare.cs`), `DetailPhaseDto.FilesRemovedAt` (omitted from
+  JSON when null, so older phases serialize unchanged). Worker: `LibraryUnavailableError` /
+  `StemMissingError` (data-model 7.2 calls them `LibraryUnavailable` / `StemMissing`; ruff N818).
+- **T003 refinements** (no contract change; research R-04 "Phase 0 results"): WAL check and busy
+  retry for snapshots, WAL after a restore, move retries in the switch; job errors use the existing
+  `io-error` code.
 
 ## 1. Backend API 1.11.0 -> 1.12.0
 

@@ -2,6 +2,8 @@
 
 import threading
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 
 class QueueThread(ABC):
@@ -35,6 +37,15 @@ class QueueThread(ABC):
         """Block until nothing is queued or running; returns False on timeout."""
         with self._changed:
             return self._changed.wait_for(self._idle, timeout)
+
+    @contextmanager
+    def hold(self) -> Iterator[None]:
+        """Hold the queue lock until the block ends: no unit starts, a running one continues.
+
+        Feature 013: the storage clean-up removes cache files while holding it.
+        """
+        with self._changed:
+            yield
 
     def stop(self, timeout: float | None = None) -> None:
         """Stop after the current unit; waits at most ``timeout`` seconds (daemon thread)."""

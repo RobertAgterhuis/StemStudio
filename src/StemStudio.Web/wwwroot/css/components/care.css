@@ -1,0 +1,226 @@
+/* Library care (013): tabs, job panel, backup list, dialogs, storage meters and tables, shell job indicator and
+   maintenance overlay. Every control keeps the 24 px minimum target (WCAG 2.5.8) through --ss-target-min. */
+
+.ss-care-tabs {
+  display: flex;
+  gap: var(--ss-space-1);
+  margin-bottom: var(--ss-space-4);
+  border-bottom: 1px solid var(--ss-color-divider);
+}
+
+.ss-care-tab-button {
+  min-height: max(var(--ss-target-min), 2.75rem);
+  padding: 0 var(--ss-space-4);
+  border: 0;
+  border-bottom: 3px solid var(--ss-color-none);
+  background: var(--ss-color-none);
+  color: var(--ss-color-muted);
+  font: inherit;
+  font-weight: var(--ss-type-label-weight);
+  cursor: pointer;
+}
+
+.ss-care-tab-button[aria-selected="true"] {
+  border-bottom-color: var(--ss-color-ink);
+  color: var(--ss-color-ink);
+}
+
+.ss-care-tab-button:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: -2px;
+}
+
+.ss-care-tab {
+  display: grid;
+  gap: var(--ss-space-5);
+}
+
+.ss-care-new,
+.ss-care-folder p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-3);
+  margin: 0;
+}
+
+/* Progress bar of the library job: a plain track with a fill; the numbers are in the text next to it. */
+.ss-care-progress {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+  outline: 1px solid var(--ss-color-control-border);
+}
+
+.ss-care-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--ss-color-ink);
+  transition: width var(--ss-dur-panel) linear;
+}
+
+.ss-care-job-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-3);
+  margin: 0;
+}
+
+.ss-care-item,
+.ss-care-file {
+  overflow-wrap: anywhere;
+}
+
+.ss-care-file {
+  display: block;
+  font-weight: var(--ss-type-label-weight);
+}
+
+.ss-care-list {
+  margin: 0;
+  padding-left: var(--ss-space-5);
+}
+
+.ss-care-report p,
+.ss-care-warnings h3 {
+  margin: 0 0 var(--ss-space-2);
+}
+
+.ss-care-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+}
+
+.ss-care-actions .ss-text-button:disabled {
+  color: var(--ss-color-muted);
+  cursor: not-allowed;
+}
+
+.ss-danger-text {
+  color: var(--ss-color-danger);
+}
+
+.ss-care-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--ss-space-1) var(--ss-space-4);
+  margin: 0;
+}
+
+.ss-care-facts dt {
+  color: var(--ss-color-muted);
+}
+
+.ss-care-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ss-care-dialog {
+  width: min(36rem, 100%);
+}
+
+.ss-care-fieldset {
+  display: grid;
+  gap: var(--ss-space-1);
+  margin: 0 0 var(--ss-space-3);
+  padding: 0;
+  border: 0;
+}
+
+.ss-care-estimate-table,
+.ss-care-backups,
+.ss-care-storage-table {
+  width: 100%;
+}
+
+/* Tables scroll inside their own box on small screens instead of widening the page (WCAG 1.4.10). */
+.ss-care-scroll {
+  overflow-x: auto;
+}
+
+.ss-focus-sentinel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Shell indicator of a running library job: inline in the context bar, so it never covers a focused control. */
+.ss-care-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-height: var(--ss-target-min);
+  padding: 0 var(--ss-space-3);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-surface);
+  color: var(--ss-color-ink);
+  font-size: var(--ss-type-small-size);
+  text-decoration: none;
+}
+
+.ss-care-indicator:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+}
+
+.ss-care-maintenance {
+  text-align: center;
+}
+
+/* Storage. */
+.ss-care-meter {
+  display: grid;
+  gap: var(--ss-space-1);
+}
+
+.ss-care-meter-bar {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+  outline: 1px solid var(--ss-color-control-border);
+}
+
+.ss-care-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--ss-color-ink);
+}
+
+.ss-care-badge {
+  display: inline-block;
+  padding: 0 var(--ss-space-2);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-care-badge[data-class="regenerable"] {
+  border-style: dashed;
+}
+
+.ss-care-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  min-height: var(--ss-target-min);
+  padding: 0;
+  border: 0;
+  background: var(--ss-color-none);
+  color: inherit;
+  font: inherit;
+  font-weight: var(--ss-type-label-weight);
+  cursor: pointer;
+}
+
+.ss-care-sort:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+}
+
+html[data-motion="reduced"] .ss-care-progress-fill {
+  transition: none;
+}

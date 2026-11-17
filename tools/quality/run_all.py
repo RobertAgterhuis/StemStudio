@@ -1,7 +1,8 @@
 """One-command StemStudio quality gate: metrics, duplication, dependencies, colours, licences.
 
 Checks: SIG unit metrics, duplication, dependency direction, raw colours, the licence records
-of vendored code and the Claude key handling rules (``secret_rules.py``, 011 follow-up claude-key).
+of vendored code, the Claude key handling rules (``secret_rules.py``, 011 follow-up claude-key)
+and the library care rules (``library_care_rules.py``, 013: LibraryCare layering, banned ZIP APIs).
 
 Usage::
 
@@ -20,6 +21,7 @@ from pathlib import Path
 import css_tokens_check
 import dependency_check
 import duplication
+import library_care_rules
 import secret_rules
 import sig_check
 import vendor_check
@@ -40,6 +42,7 @@ class GateResult:
     token_findings: list[Finding] = field(default_factory=list)
     vendor_findings: list[Finding] = field(default_factory=list)
     secret_findings: list[Finding] = field(default_factory=list)
+    library_care_findings: list[Finding] = field(default_factory=list)
 
     @property
     def findings(self) -> list[Finding]:
@@ -51,6 +54,7 @@ class GateResult:
             *self.token_findings,
             *self.vendor_findings,
             *self.secret_findings,
+            *self.library_care_findings,
         ]
 
     @property
@@ -75,6 +79,7 @@ def run(root: Path, paths: Sequence[Path], dup_run: DuplicationRun = duplication
         token_findings=css_tokens_check.run(root),
         vendor_findings=vendor_check.run(root),
         secret_findings=secret_rules.run(root),
+        library_care_findings=library_care_rules.run(root),
     )
 
 

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "purpose": "SC-010 fixture: a play-along take of feature 015 (hidden Audio asset whose provenance origin is 'Recording'). 013 has no such enum member yet; backend unit and property tests insert this row with raw SQL (as the legacy-row persistence tests do) and classify it without deserialising the enum, as data-model 4.3 prescribes. CTO decision 2026-11-17: the stored value is 'Recording' (enums by name, StoredJson.EnumsByName).",
+  "row": {
+    "table": "Assets",
+    "Id": "8f7e6d5c-4b3a-4291-8f0e-1d2c3b4a5968",
+    "Kind": "Audio",
+    "Name": "Library care fixture - take 1",
+    "Status": "Ready",
+    "Progress": 100,
+    "Audio": "{\"Format\":\"Flac\",\"BitDepth\":24,\"Mp3BitrateKbps\":null,\"DurationSeconds\":0.1,\"PeakDbfs\":-20.0,\"AppliedGainDb\":0.0}",
+    "Provenance": "{\"Origin\":\"Recording\",\"TrackId\":\"0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f\",\"TrackTitle\":\"Library care fixture\",\"TrackArtist\":null,\"SourceAssetIds\":[],\"Contents\":\"play-along take 1\"}",
+    "TrackId": "0B7E4F1C-6A2D-4C8E-9F10-2A3B4C5D6E7F",
+    "SizeBytes": 4096,
+    "CreatedAt": "2026-11-16 12:00:00",
+    "UpdatedAt": "2026-11-16 12:00:00",
+    "Files": "[{\"Role\":\"audio\",\"FileName\":\"audio.flac\",\"ContentType\":\"audio/flac\",\"SizeBytes\":4096,\"Sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\"}]"
+  },
+  "file": {
+    "path": "assets/8f7e6d5c-4b3a-4291-8f0e-1d2c3b4a5968/audio.flac",
+    "sizeBytes": 4096,
+    "content": "any 4096 bytes; tests that hash the file write their own content and update Files[0].Sha256"
+  },
+  "expect": {
+    "backupCategory": "recordings",
+    "storageCategory": "recordings",
+    "trackColumn": "recordingsBytes",
+    "includedOnlyBy": "BackupOptions.recordings",
+    "neverCountedAs": ["exports"],
+    "neverInCleanupPlan": true,
+    "scrubbedWhenExcluded": "only by recordings=false; exports=false keeps it"
+  }
+}

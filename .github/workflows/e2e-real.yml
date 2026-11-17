@@ -95,6 +95,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Generate audio fixtures
         run: uv run --project worker --frozen python tests/fixtures/generate_fixtures.py
+      - name: Backups folder for the api (uid 1654, temporary; 013 FR-005)
+        run: |
+          backups="$RUNNER_TEMP/stemstudio-backups"
+          mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
+          echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups" >> "$GITHUB_ENV"
+          echo "E2E_BACKUP_DIR=$backups" >> "$GITHUB_ENV"
+          scripts/check-backup-folder.sh --folder "$backups"
       - name: Build and start the stack
         run: docker compose up -d --build --wait --wait-timeout 600
       - name: Pre-warm the Demucs models (no-op when cached)

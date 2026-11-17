@@ -49,6 +49,10 @@ init_environment() {
   # Fake device of the fake separator (cpu, gpu, gpu-oom; feature 003); existing value wins.
   export STEMSTUDIO_FAKE_DEVICE="${STEMSTUDIO_FAKE_DEVICE:-cpu}"
   export StemStudio__DataDir="$data_dir/api"
+  # Backups folder (feature 013, FR-005): <repo>/data/backups unless StemStudio__BackupDir is set.
+  export StemStudio__BackupDir="${StemStudio__BackupDir:-$data_dir/backups}"
+  export StemStudio__BackupHostDirHint="${StemStudio__BackupHostDirHint:-$StemStudio__BackupDir}"
+  mkdir -p "$StemStudio__BackupDir"
   export StemStudio__WorkerBaseUrl=http://localhost:8000
   export StemStudio__WebOrigin=http://localhost:8080
   export StemStudio__ApiBaseUrl=http://localhost:8081

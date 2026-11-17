@@ -91,7 +91,7 @@ public sealed class VoiceProfileService(
     public async Task<IResult> GetSampleAsync(Guid id, CancellationToken cancellationToken)
     {
         var profile = await profiles.FindAsync(id, cancellationToken);
-        var path = profile is null ? null : Path.Combine(data.Root, profile.SamplePath.Replace('/', Path.DirectorySeparatorChar));
+        var path = profile is null ? null : data.ContainedPath(profile.SamplePath);
         return StemService.ServeFile(path is not null && File.Exists(path) ? new FileInfo(path) : null, $"Voice profile {id} has no sample.");
     }
 
@@ -157,7 +157,7 @@ public sealed class VoiceProfileService(
     {
         var id = Guid.NewGuid();
         var relative = string.Create(CultureInfo.InvariantCulture, $"voices/{id:D}/sample.flac");
-        var path = Path.Combine(data.Root, relative.Replace('/', Path.DirectorySeparatorChar));
+        var path = data.RequireContainedPath(relative);
         await AtomicFile.SaveAsync(path, (stream, ct) => singer.DownloadCheckedSampleAsync(check.CheckId, stream, ct), cancellationToken);
         var sample = draft.Sample with
         {

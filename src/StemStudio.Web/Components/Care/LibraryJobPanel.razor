@@ -1,0 +1,97 @@
+@* The active or last library job (013 US1/US2, FR-006, FR-032; ui-test-ids 1.12.0 library-job-*): progress bar,
+   stage, current item, time left, bytes (Advanced+), cancel, error, report and warnings. Status and stage changes are
+   announced in a polite live region. *@
+
+@{
+    var view = new JobView(Job);
+    var job = Job;
+}
+<section class="ss-panel ss-care-job" aria-labelledby="library-job-title" data-testid="library-job" data-job-id="@job.JobId"
+         data-kind="@WireName.Of(job.Kind)" data-status="@WireName.Of(job.Status)" data-stage="@(job.Stage is { } stage ? WireName.Of(stage) : null)">
+    <h2 id="library-job-title" class="ss-panel-title">@view.Title</h2>
+    <div class="ss-care-progress" role="progressbar" aria-labelledby="library-job-title" aria-valuemin="0" aria-valuemax="100"
+         aria-valuenow="@view.Progress" aria-valuetext="@view.ValueText" data-testid="library-job-progress">
+        <span class="ss-care-progress-fill" style="@($"width: {view.Progress}%")"></span>
+    </div>
+    <p class="ss-care-job-line"><span data-testid="library-job-stage">@view.Stage</span>
+        @if (view.Active && CareText.Eta(job.EtaSeconds) is { } eta)
+        {
+            <span class="ss-muted" data-testid="library-job-eta">@eta</span>
+        }
+    </p>
+    @if (view.Active && job.CurrentItem is { } item)
+    {
+        <p class="ss-small ss-muted ss-care-item" data-testid="library-job-item">@item</p>
+    }
+    @if (view.Bytes is { } bytes)
+    {
+        <LevelGate Feature="care.job-bytes"><p class="ss-small ss-num" data-testid="library-job-bytes">@bytes</p></LevelGate>
+    }
+    @if (job.Cancellable && view.Active)
+    {
+        <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Light" Disabled="Cancelling" Click="CancelAsync" data-testid="library-job-cancel" />
+    }
+    @if (job.Error is { } error)
+    {
+        <div class="ss-error" role="alert" data-testid="library-job-error" data-code="@WireName.Of(error.Code)">@error.Message</div>
+    }
+    else if (CancelError is { } cancelError)
+    {
+        <div class="ss-error" role="alert" data-testid="library-job-error" data-code="@CancelErrorCode">@cancelError</div>
+    }
+    @if (view.ReportSummary is { } summary)
+    {
+        <div class="ss-care-report" data-testid="library-job-report">
+            <p>@summary</p>
+            @if (view.ReportLines.Count > 0)
+            {
+                <ul class="ss-care-list">
+                    @foreach (var line in view.ReportLines)
+                    {
+                        <li>@line</li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+    @if (view.Warnings.Count > 0)
+    {
+        <div class="ss-care-warnings" data-testid="library-job-warnings">
+            <h3 class="ss-label">Warnings and skipped items</h3>
+            <ul class="ss-care-list">
+                @foreach (var warning in view.Warnings)
+                {
+                    <li>@warning</li>
+                }
+            </ul>
+        </div>
+    }
+    <div class="ss-sr-only" role="status" aria-live="polite">@view.Announcement</div>
+</section>
+
+@code {
+    /// <summary>The active or last job.</summary>
+    [Parameter, EditorRequired]
+    public LibraryJobDto Job { get; set; } = default!;
+
+    /// <summary>Cancel pressed; the host calls the API and passes a failure back in <see cref="CancelError"/>.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>Why the cancel was refused (<c>not-cancellable</c>), or null.</summary>
+    [Parameter]
+    public string? CancelError { get; set; }
+
+    /// <summary>The problem code of <see cref="CancelError"/>.</summary>
+    [Parameter]
+    public string? CancelErrorCode { get; set; }
+
+    private bool Cancelling { get; set; }
+
+    private async Task CancelAsync()
+    {
+        Cancelling = true;
+        await OnCancel.InvokeAsync();
+        Cancelling = false;
+    }
+}

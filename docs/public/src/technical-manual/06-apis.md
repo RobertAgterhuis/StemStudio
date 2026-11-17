@@ -86,6 +86,26 @@ allow-list is a `400`). The API key is never returned; problem types are
 `https://stemstudio.local/problems/<code>` (for example `model-unavailable`,
 `notice-not-acknowledged`, `run-active`).
 
+### Library care (013, backend API 1.12.0; tags `library-care`, `storage`)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/library-care/status` | Gate state, active library job, folder state, previous library, work that blocks a restore |
+| `GET /api/backups`, `POST /api/backups` | List archives in the backups folder (newest first, state per archive); start a backup job (202) |
+| `GET /api/backups/estimate` | Size per category for the chosen options, free space, enough or not |
+| `GET /api/backups/{fileName}`, `DELETE /api/backups/{fileName}` | Details (manifest summary, consent proofs); delete (409 `archive-in-use`) |
+| `GET /api/backups/{fileName}/file` | Download (Range, ETag; same CORS policy as stems) |
+| `POST /api/backups/{fileName}/verify` | Verify job: structure, names, every SHA-256, database checks |
+| `POST /api/backups/{fileName}/restore` | Restore job, `mode` `empty`, `replace` (typed `REPLACE`) or `merge`; `409 jobs-active` lists the blocking work |
+| `GET /api/library-care/previous`, `POST …/previous/revert`, `POST …/previous/discard` | The library kept aside by a replace restore: read, undo, discard (typed `DISCARD`) |
+| `GET /api/library-jobs`, `GET /api/library-jobs/{jobId}`, `POST …/{jobId}/cancel` | Library jobs with stage, progress, ETA and report |
+| `GET /api/storage?refresh=` | Storage overview (volumes, categories with class, per track, unattached, model caches, worker cache entries, backups); cached 30 s |
+| `POST /api/storage/cleanup/preview`, `POST /api/storage/cleanup` | Clean-up plan (detail stems, worker cache, leftovers; plan valid 10 minutes) and its execution (`plan-expired`, `plan-stale`) |
+
+`fileName` is the only path-like input and must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$`.
+Problem codes of library jobs: `archive-invalid`, `archive-incompatible`, `archive-unsafe`,
+`archive-corrupt`, `insufficient-disk-space`, `migration-failed`, `io-error`, `cancelled`.
+
 ## Worker API (port 8000, internal)
 
 | Method and path | Purpose |
@@ -102,6 +122,9 @@ allow-list is a `400`). The API key is never returned; problem types are
 | `POST /v1/render-jobs`, `GET /v1/render-jobs/{id}`, `…/file`, `DELETE /v1/render-jobs/{id}` | 007: render lane (export) |
 | `POST /v1/lyrics-jobs`, `GET /v1/lyrics-jobs/{id}`, `…/result`, `POST …/cancel`, `DELETE /v1/lyrics-jobs/{id}` | 006: LRCLIB lookup (network lane) and alignment (GPU/CPU lane, Whisper large-v3-turbo via stable-ts) |
 | `POST /v1/transcription-jobs`, `GET /v1/transcription-jobs/{id}`, `…/files/{role}`, `DELETE /v1/transcription-jobs/{id}` | 008: transcribe lane (basic-pitch, piano CRNN, drum onsets), notation (music21) and engraving (Verovio + CairoSVG, Leipzig font) |
+| `GET /v1/storage` | 013: disk use of the worker data and model volumes (cache entries, job files, scratch, model folders) |
+| `POST /v1/storage/cleanup` | 013: remove cache entries, scratch and old job files no job uses (under the queue lock) |
+| `POST /v1/jobs/rehydrate` | 013: re-create a completed standard job and its cache entry from the library stems (read-only `/library`) |
 
 ### Render lane (007)
 

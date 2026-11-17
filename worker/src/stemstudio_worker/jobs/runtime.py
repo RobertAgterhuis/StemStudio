@@ -235,7 +235,7 @@ class WorkerRuntime:
     @classmethod
     def start_with(cls, settings: WorkerSettings, parts: WorkerParts) -> "WorkerRuntime":
         """Load the jobs, reconcile interrupted ones and start the worker thread."""
-        paths = DataPaths(settings.data_dir)
+        paths = DataPaths(settings.data_dir, settings.render.library_dir)
         context = _load(paths, utc_now)
         lyrics = _lyrics_runner(context, parts.lyrics)
         scheduler = _scheduler(context, parts, lyrics.align)

@@ -33,6 +33,12 @@ info:
     * **Rehydration** (FR-019): when the worker answers a detail-job, lyrics-alignment or other
       request with a cache miss for a track, the API calls worker `POST /v1/jobs/rehydrate` and
       retries once; clients see only a stage text "Preparing stems".
+    * **Cross-site guard** (CTO integration, security review T069; editorial before release):
+      every non-GET/HEAD/OPTIONS `/api/*` request whose `Origin` is not the web origin, or that
+      carries `Sec-Fetch-Site: cross-site`, answers `403` (problem title "Cross-site request refused").
+      Requests without `Origin` (server-side calls, scripts) and CORS preflights are not affected.
+    * **Storage worker entries** (CTO integration): `StorageOverview.workerEntries` lists the
+      worker cache entries (shown at Expert as `storage-worker-entries`).
     * Changelog: 1.12.0-delta.1 (additive, feature 013) - library-care status, backups (list,
       estimate, create, details, download, verify, delete, restore with replace or merge),
       library jobs (status, list, cancel), previous library (details, undo restore, discard),
@@ -942,29 +948,64 @@ components:
           type: string
           maxLength: 500
     BackupDetails:
-      allOf:
-        - $ref: '#/components/schemas/BackupSummary'
-        - type: object
-          required: [excluded, entries, totalBytes, schemaLastMigration, voiceProfiles, warnings]
-          properties:
-            excluded:
-              type: array
-              items:
-                $ref: '#/components/schemas/Category'
-            entries:
-              type: integer
-            totalBytes:
-              type: integer
-            schemaLastMigration:
-              type: string
-            voiceProfiles:
-              type: array
-              items:
-                $ref: '#/components/schemas/VoiceProfileProof'
-            warnings:
-              type: array
-              items:
-                $ref: '#/components/schemas/ArchiveWarning'
+      type: object
+      additionalProperties: false
+      description: Every member of `BackupSummary` plus the manifest details (one closed object; `BackupSummary` is closed, so it cannot be extended with `allOf`).
+      required: [fileName, sizeBytes, modifiedAt, recognised, reason, backupId, createdAt, appVersion, backendApi, formatVersion, included, counts, compatibility, excluded, entries, totalBytes, schemaLastMigration, voiceProfiles, warnings]
+      properties:
+        fileName:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$'
+        sizeBytes:
+          type: integer
+        modifiedAt:
+          type: string
+          format: date-time
+        recognised:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          description: Why the file is not recognised (no manifest, not a ZIP).
+        backupId:
+          type: [string, 'null']
+          format: uuid
+        createdAt:
+          type: [string, 'null']
+          format: date-time
+        appVersion:
+          type: [string, 'null']
+        backendApi:
+          type: [string, 'null']
+        formatVersion:
+          type: [string, 'null']
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        counts:
+          oneOf:
+            - $ref: '#/components/schemas/ArchiveCounts'
+            - type: 'null'
+        compatibility:
+          $ref: '#/components/schemas/Compatibility'
+        excluded:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        entries:
+          type: integer
+        totalBytes:
+          type: integer
+        schemaLastMigration:
+          type: string
+        voiceProfiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceProfileProof'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveWarning'
     RestoreOptions:
       type: object
       additionalProperties: false
@@ -1210,6 +1251,29 @@ components:
         costHint:
           type: [string, 'null']
           maxLength: 120
+    WorkerCacheEntryStorage:
+      type: object
+      additionalProperties: false
+      required: [audioSha256Prefix, bytes, inUse, fromLibrary, trackId]
+      properties:
+        audioSha256Prefix:
+          type: string
+          pattern: '^[0-9a-f]{12}$'
+          description: First 12 hex characters of the worker's cache key (the audio SHA-256).
+        bytes:
+          type: integer
+          minimum: 0
+          description: Standard result, detail result, unfinished detail checkpoints and artwork of the entry.
+        inUse:
+          type: boolean
+          description: A queued or running worker job uses the entry (it is never cleaned while in use).
+        fromLibrary:
+          type: boolean
+          description: Created by a rehydration from the library stems (FR-019).
+        trackId:
+          type: [string, 'null']
+          format: uuid
+          description: The library track whose standard job uses the entry, or null.
     TrackStorage:
       type: object
       additionalProperties: false
@@ -1263,7 +1327,7 @@ components:
     StorageOverview:
       type: object
       additionalProperties: false
-      required: [measuredAt, volumes, categories, tracks, unattached, modelCaches, backups, worker]
+      required: [measuredAt, volumes, categories, tracks, unattached, modelCaches, workerEntries, backups, worker]
       properties:
         measuredAt:
           type: string
@@ -1300,6 +1364,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ModelCacheUsage'
+        workerEntries:
+          type: array
+          description: |
+            Worker cache entries (one per audio file), largest first; empty when the worker is not
+            reachable. Shown at Expert (`storage-worker-entries`). Added editorially before the
+            1.12.0 release (CTO integration 013).
+          items:
+            $ref: '#/components/schemas/WorkerCacheEntryStorage'
         backups:
           type: object
           additionalProperties: false
@@ -1811,6 +1883,12 @@ components:
           generationsBytes: 96000000
           voiceProfilesBytes: 2621440
           lyricsSheets: 3
+        workerEntries:
+          - audioSha256Prefix: 3f9a1c0e7b2d
+            bytes: 151000000
+            inUse: false
+            fromLibrary: false
+            trackId: 0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f
         modelCaches:
           - id: torch
             bytes: 335544320

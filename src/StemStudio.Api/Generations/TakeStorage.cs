@@ -17,11 +17,8 @@ public sealed class TakeStorage(DataDirectory data)
     /// <summary>The absolute path of a relative take path.</summary>
     /// <param name="relativePath">The stored path.</param>
     /// <returns>The absolute path.</returns>
-    public string FullPath(string relativePath)
-    {
-        ArgumentNullException.ThrowIfNull(relativePath);
-        return Path.Combine(data.Root, relativePath.Replace('/', Path.DirectorySeparatorChar));
-    }
+    /// <exception cref="InvalidOperationException">The stored path leaves the data directory.</exception>
+    public string FullPath(string relativePath) => data.RequireContainedPath(relativePath);
 
     /// <summary>Writes a take atomically.</summary>
     /// <param name="relativePath">The stored path.</param>
@@ -31,10 +28,10 @@ public sealed class TakeStorage(DataDirectory data)
     public Task<long> SaveAsync(string relativePath, Func<Stream, CancellationToken, Task> write, CancellationToken cancellationToken) =>
         AtomicFile.SaveAsync(FullPath(relativePath), write, cancellationToken);
 
-    /// <summary>The file of a stored take, if it exists.</summary>
+    /// <summary>The file of a stored take, if it exists inside the data directory.</summary>
     /// <param name="relativePath">The stored path.</param>
     /// <returns>The file or null.</returns>
-    public FileInfo? Find(string relativePath) => File.Exists(FullPath(relativePath)) ? new FileInfo(FullPath(relativePath)) : null;
+    public FileInfo? Find(string relativePath) => data.ContainedPath(relativePath) is { } path && File.Exists(path) ? new FileInfo(path) : null;
 
     /// <summary>Deletes every file of a generation.</summary>
     /// <param name="generationId">The generation.</param>

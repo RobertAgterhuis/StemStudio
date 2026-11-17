@@ -142,7 +142,7 @@ def _blank(fragment: str) -> str:
 def run(root: Path) -> list[Finding]:
     """Check every production C#/Razor file and project file below ``root / "src"``."""
     findings: list[Finding] = []
-    for source in _sources(root):
+    for source in production_sources(root):
         findings.extend(check_data_protection(source))
         findings.extend(check_records(source))
         if in_log_scope(source.path):
@@ -151,7 +151,8 @@ def run(root: Path) -> list[Finding]:
     return findings
 
 
-def _sources(root: Path) -> Iterator[Source]:
+def production_sources(root: Path) -> Iterator[Source]:
+    """Every production C#/Razor file below ``root / "src"`` (also used by library_care_rules)."""
     src = root / "src"
     files = sorted(src.rglob("*.cs")) + sorted(src.rglob("*.razor")) if src.is_dir() else []
     for path in files:

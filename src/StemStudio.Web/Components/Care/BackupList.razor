@@ -1,0 +1,48 @@
+@* The archives in the backups folder, newest first (013 US1/US2; ui-test-ids 1.12.0 backup-list, backup-row-*):
+   compatibility, download straight from the API, details, check (Advanced+), restore and delete. *@
+
+@if (Archives.Count == 0)
+{
+    <EmptyState TestId="backup-empty" Text="@EmptyText" />
+}
+else
+{
+    <table class="ss-table ss-care-backups" data-testid="backup-list">
+        <caption class="ss-sr-only">Backups in the backups folder, newest first</caption>
+        <thead><tr><th scope="col">Backup</th><th scope="col">Size</th><th scope="col">Status</th><th scope="col"><span class="ss-sr-only">Actions</span></th></tr></thead>
+        <tbody>
+            @foreach (var archive in Archives)
+            {
+                var name = archive.FileName;
+                var statusId = $"backup-row-status-{name}";
+                var restoreBlocked = ArchiveRules.RestoreBlocked(archive, JobRunning);
+                <tr @key="name" data-testid="@($"backup-row-{name}")" data-state="@ArchiveRules.State(archive)">
+                    <th scope="row">
+                        <span class="ss-care-file">@name</span>
+                        <span class="ss-small ss-muted">@RowFacts(archive)</span>
+                    </th>
+                    <td class="ss-num">@ByteSize.Format(archive.SizeBytes)</td>
+                    <td id="@statusId" class="ss-small" data-testid="@statusId" data-help-id="@statusId">@CareText.ArchiveStatus(archive)</td>
+                    <td class="ss-care-actions">
+                        <a class="ss-text-button" href="@DownloadUrl(name)" download="@name" aria-label="@($"Download {name}")" data-testid="@($"backup-download-{name}")">Download</a>
+                        <button type="button" class="ss-text-button" aria-label="@($"Details of {name}")" @onclick="() => OnDetails.InvokeAsync(archive)"
+                                data-testid="@($"backup-details-{name}")">Details</button>
+                        <LevelGate Feature="care.verify">
+                            <button type="button" class="ss-text-button" aria-label="@($"Check {name}")" disabled="@(ArchiveRules.VerifyBlocked(archive, JobRunning) is not null)"
+                                    title="@ArchiveRules.VerifyBlocked(archive, JobRunning)" @onclick="() => OnVerify.InvokeAsync(archive)"
+                                    data-testid="@($"backup-verify-{name}")">Check</button>
+                        </LevelGate>
+                        <button type="button" class="ss-text-button" aria-label="@($"Restore {name}")" disabled="@(restoreBlocked is not null)" title="@restoreBlocked"
+                                aria-describedby="@statusId" @onclick="() => OnRestore.InvokeAsync(archive)" data-testid="@($"backup-restore-{name}")">Restore</button>
+                        <button type="button" class="ss-text-button ss-danger-text" aria-label="@($"Delete {name}")" @onclick="() => OnDelete.InvokeAsync(archive)"
+                                data-testid="@($"backup-delete-{name}")">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (JobRunning)
+    {
+        <p class="ss-help">Restore and Check wait until the running library job has finished.</p>
+    }
+}

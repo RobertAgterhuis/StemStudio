@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "generator": "tests/fixtures/backup/make_hostile_archives.py",
+  "contract": "backup-archive 1.0.0, data-model 3.4, research R-06",
+  "archives": [
+    {
+      "file": "valid-base.zip",
+      "vector": "control",
+      "outcome": "restored",
+      "step": 0,
+      "summary": "the valid fixture library (positive control)",
+      "bytes": 23186,
+      "sha256": "52276b6edd5e239e0cbfb0c0aa623846ffca28e6097ef6c307e2230aa535b782"
+    },
+    {
+      "file": "h01-traversal.zip",
+      "vector": "H1",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "entry files/../../etc/passwd",
+      "bytes": 23330,
+      "sha256": "0e29be0047bf697f45cf796fccce28a166c091393c27bcea5753e70657e37c06"
+    },
+    {
+      "file": "h02a-absolute-path.zip",
+      "vector": "H2",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "absolute entry /data/stemstudio.db",
+      "bytes": 23323,
+      "sha256": "5e603fcd6bdbf92b11a229a85531331df4c86e11cd5cb544c54fa06d5138a9ea"
+    },
+    {
+      "file": "h02b-drive-letter.zip",
+      "vector": "H2",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "entry C:\\x",
+      "bytes": 23294,
+      "sha256": "79314d25e8d5b93e90ecb9ce7b7a8958de2793360c8a6eb45a8c92d209498dee"
+    },
+    {
+      "file": "h03-backslash.zip",
+      "vector": "H3",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "backslash separators files\\tracks\\<id>\\stems\\vocals.flac",
+      "bytes": 23420,
+      "sha256": "da6ea98561e2a927a818ab75dc3cde80b0b6e7d1b132dfbbc1cffb5880d85385"
+    },
+    {
+      "file": "h04a-control-character.zip",
+      "vector": "H4",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "entry name with a control character (U+0001)",
+      "bytes": 23424,
+      "sha256": "2ea68438393660ba035ed732dc3721eb03ff50a38b44d9bb0d91aff092fa1c9e"
+    },
+    {
+      "file": "h04b-long-name.zip",
+      "vector": "H4",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "entry name of 290 characters (> 260)",
+      "bytes": 23845,
+      "sha256": "f5502189f442f2366bc188db04271e6787de4ef83f82d07c415c63e61140bcf7"
+    },
+    {
+      "file": "h05-symlink.zip",
+      "vector": "H5",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "vocals stem stored as a Unix symlink (S_IFLNK in the external attributes)",
+      "bytes": 21819,
+      "sha256": "ce93e8d44359243ae22ed7325aa974fa69689bf473f72380e376a0631e52ee02"
+    },
+    {
+      "file": "h06-duplicate-name.zip",
+      "vector": "H6",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "two central-directory records named like the vocals stem",
+      "bytes": 24783,
+      "sha256": "031c02b0f665ee64961d2f981efc91cfbc6d5fdd5ca3c1b1e7a5c28a05288be9"
+    },
+    {
+      "file": "h07-unlisted-entry.zip",
+      "vector": "H7",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "valid-layout entry (own cover) not listed in the manifest",
+      "bytes": 23409,
+      "sha256": "3e8fb0dade11dbc53571d2f3cc218fdd8b162daa749fbeec2a9eb15c2891a270"
+    },
+    {
+      "file": "h08-missing-entry.zip",
+      "vector": "H8",
+      "outcome": "archive-corrupt",
+      "step": 3,
+      "summary": "manifest lists the piano stem; the archive lacks it",
+      "bytes": 21423,
+      "sha256": "aa4dbaca0c7a155846015d8ef7255e047548c6827071f91a69d30acc0db03010"
+    },
+    {
+      "file": "h09-zip-bomb.zip",
+      "vector": "H9",
+      "outcome": "archive-corrupt",
+      "step": 6,
+      "summary": "other stem declares its real size but inflates to 4 MiB; extraction stops at declared size + 1 byte",
+      "bytes": 25859,
+      "sha256": "0609150806338841ee1ab01c518b618a1e021616d83f65a34fb5c25492ad677e"
+    },
+    {
+      "file": "h10-hash-mismatch.zip",
+      "vector": "H10",
+      "outcome": "archive-corrupt",
+      "step": 6,
+      "summary": "one byte of the drums stem flipped; manifest keeps the original SHA-256",
+      "bytes": 23185,
+      "sha256": "102127b3f27ab06cd964b2f4938f1ca8b28719bc7cad429b6346593e6ad01cf7"
+    },
+    {
+      "file": "h11-layout.zip",
+      "vector": "H11",
+      "outcome": "archive-unsafe",
+      "step": 3,
+      "summary": "listed entry files/tracks/<id>/run.sh matches no layout pattern",
+      "bytes": 23457,
+      "sha256": "fcbf6b47b596cc160486a2e85597cc5a621cdcdf364526a5f23b4658a9f9c26e"
+    },
+    {
+      "file": "h12a-manifest-schema.zip",
+      "vector": "H12",
+      "outcome": "archive-invalid",
+      "step": 2,
+      "summary": "manifest fails the JSON Schema (hashAlgorithm md5)",
+      "bytes": 23184,
+      "sha256": "eace5fe0afe5dab3c5c92be5bf357d24d7129f5807b470e365e2f113cc8aecc0"
+    },
+    {
+      "file": "h12b-manifest-format.zip",
+      "vector": "H12",
+      "outcome": "archive-invalid",
+      "step": 2,
+      "summary": "manifest format is not stemstudio-backup",
+      "bytes": 23187,
+      "sha256": "664b91595443976417f8071bf7bfb82e1856bd98ec80efe652c445d2ab898ada"
+    },
+    {
+      "file": "h13a-integrity.zip",
+      "vector": "H13",
+      "outcome": "archive-corrupt",
+      "step": 7,
+      "summary": "database fails PRAGMA integrity_check (index redefined over another column)",
+      "bytes": 23202,
+      "sha256": "cee1a2282b464128cd9c5f8336cf9c0adea0162bf6de6f52e1b73b6d62839b3b"
+    },
+    {
+      "file": "h13b-foreign-database.zip",
+      "vector": "H13",
+      "outcome": "archive-corrupt",
+      "step": 7,
+      "summary": "database is valid SQLite but not a StemStudio schema (no migration history)",
+      "bytes": 15147,
+      "sha256": "59cf43d6e02a31d6b73f83c49088f3c015a0cc6af71984da91e3ef7f55a5f118"
+    },
+    {
+      "file": "h14-stored-path.zip",
+      "vector": "H14",
+      "outcome": "archive-unsafe",
+      "step": 8,
+      "summary": "VoiceProfiles.SamplePath = '../../x' in the archived database",
+      "bytes": 23160,
+      "sha256": "fb1dd91ba00a01fa4752afeeef5135822e90f4b7e81cbb46e75f24b40f768f16"
+    },
+    {
+      "file": "h15-consent-hash.zip",
+      "vector": "H15",
+      "outcome": "profile-dropped",
+      "step": 9,
+      "summary": "voice profile with a wrong consent statement SHA-256: not restored (skipped consent-invalid), the restore continues",
+      "bytes": 23100,
+      "sha256": "32536507ff2fdc74899c6059bb65ad01bb9b7260a8347de5341e1977516002fb"
+    },
+    {
+      "file": "h16-disk-space.zip",
+      "vector": "H16",
+      "outcome": "insufficient-disk-space",
+      "step": 5,
+      "summary": "manifest and Zip64 headers declare a 1 PiB pending upload",
+      "bytes": 23561,
+      "sha256": "27c80f886e1c9f0c9577601a5e09b5131512761a9e8c3b65c0a51366ac5c6f43"
+    },
+    {
+      "file": "h17a-manifest-too-large.zip",
+      "vector": "H17",
+      "outcome": "archive-invalid",
+      "step": 2,
+      "summary": "central directory declares manifest.json as 256 MiB + 1 byte",
+      "bytes": 23187,
+      "sha256": "577f5974f337f19425fa7bfd25ff6ecdda7f4c666480a2003d3000b83e098f97"
+    },
+    {
+      "file": "h17b-entry-count.zip",
+      "vector": "H17",
+      "outcome": "archive-invalid",
+      "step": 2,
+      "summary": "Zip64 end record declares 2,000,001 entries",
+      "bytes": 23261,
+      "sha256": "09a3af712058e083149d02b446d47782418d0b1f72a6eac61a10c7ea4ff62047"
+    }
+  ]
+}

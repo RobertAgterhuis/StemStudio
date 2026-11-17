@@ -472,4 +472,40 @@ internal sealed class FakeWorkerClient : IWorkerClient
 
         return OnDeleteLyrics?.Invoke(lyricsJobId) ?? Task.CompletedTask;
     }
+
+    // Feature 013 (worker 1.7.0): storage report, clean-up and rehydration.
+    public Func<Task<WorkerStorage>>? OnGetStorage { get; set; }
+
+    public Func<WorkerStorageCleanupRequest, Task<WorkerStorageCleanupResult>>? OnCleanStorage { get; set; }
+
+    public Func<WorkerRehydrateRequest, Task<WorkerRehydratedJob>>? OnRehydrate { get; set; }
+
+    public List<WorkerStorageCleanupRequest> CleanupRequests { get; } = [];
+
+    public List<WorkerRehydrateRequest> RehydrateRequests { get; } = [];
+
+    public static WorkerStorage EmptyStorage(DateTimeOffset at) => new(at, [new("data", 1L << 40, 2L << 40), new("models", 1L << 40, 2L << 40)], [], 0, 0, 0, []);
+
+    public Task<WorkerStorage> GetStorageAsync(CancellationToken cancellationToken) =>
+        OnGetStorage?.Invoke() ?? throw new WorkerUnavailableException("No storage report configured.");
+
+    public Task<WorkerStorageCleanupResult> CleanStorageAsync(WorkerStorageCleanupRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            CleanupRequests.Add(request);
+        }
+
+        return OnCleanStorage?.Invoke(request) ?? Task.FromResult(new WorkerStorageCleanupResult(0, request.CacheEntries.Where(e => e != "*").ToList(), []));
+    }
+
+    public Task<WorkerRehydratedJob> RehydrateJobAsync(WorkerRehydrateRequest request, CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            RehydrateRequests.Add(request);
+        }
+
+        return OnRehydrate?.Invoke(request) ?? throw new WorkerUnavailableException("No rehydration configured.");
+    }
 }

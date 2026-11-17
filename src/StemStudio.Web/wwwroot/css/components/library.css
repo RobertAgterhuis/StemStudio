@@ -60,6 +60,17 @@
   width: 7rem;
 }
 
+/* A select sized by a long option (a style or archive name) must shrink with the row, not widen the page
+   (320 px reflow, WCAG 1.4.10; 013 CTO a11y finding on the song page). */
+.ss-range-row > .ss-field {
+  min-width: 0;
+}
+
+.ss-range-row select.ss-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .ss-export-saved {
   padding: var(--ss-space-3);
   border-left: 3px solid var(--ss-color-success);

@@ -107,7 +107,8 @@
       "title": "Your library",
       "lead": "Every song you practise, ready when you are.",
       "p1": "Import from a YouTube link, a Spotify track link or your own MP3, WAV or FLAC file (up to 200 MB and 15 minutes).",
-      "p2": "Save stems, stem packs and mixes as FLAC, WAV or MP3."
+      "p2": "Save stems, stem packs and mixes as FLAC, WAV or MP3.",
+      "p3": "Back up the whole library to one file, restore it with undo, and see where your disk space goes before you free it safely."
     },
     "create": {
       "title": "Create",

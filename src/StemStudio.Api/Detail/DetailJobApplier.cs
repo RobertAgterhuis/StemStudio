@@ -53,6 +53,14 @@ public sealed class DetailJobApplier(IWorkerClient worker, IDetailStemFileStore 
         return ApplyAsync(track, job, cancellationToken);
     }
 
+    /// <summary>Shows the stage "Preparing stems" while the worker cache is rehydrated (feature 013, FR-019).</summary>
+    /// <param name="track">A track whose detail submission is pending.</param>
+    public void ApplyPreparingStems(Track track)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        track.MarkDetailPreparingStems(Now);
+    }
+
     /// <summary>Fails a pending submission that the worker rejected (unknown standard job, stems missing).</summary>
     /// <param name="track">A track whose detail submission is pending.</param>
     /// <param name="reason">The worker's problem detail.</param>

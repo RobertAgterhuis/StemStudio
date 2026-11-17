@@ -1,0 +1,25 @@
+@* The library kept aside by the last replace restore (013 US2, FR-017, FR-026; ui-test-ids 1.12.0 previous-library*):
+   when, size, counts; "Undo restore" switches back; "Discard" deletes it for good after typing DISCARD. *@
+
+<section class="ss-panel ss-care-previous" aria-labelledby="previous-library-title" data-testid="previous-library" data-help-id="previous-library">
+    <h2 id="previous-library-title" class="ss-panel-title">Previous library</h2>
+    <p>Kept aside on @CareText.When(Previous.MovedAsideAt)@RestoredFrom: @ByteSize.Format(Previous.SizeBytes), @CareText.Counts(Previous.Counts).</p>
+    <div class="ss-care-actions">
+        <RadzenButton Text="Undo restore" Icon="undo" Disabled="@(JobRunning || Busy)" Click="UndoAsync" data-testid="previous-library-undo" />
+        <RadzenButton Text="Discard" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined" Disabled="JobRunning"
+                      Click="() => Discarding = true" data-testid="previous-library-discard" />
+    </div>
+    @if (JobRunning)
+    {
+        <p class="ss-help">Undo and Discard wait until the running library job has finished.</p>
+    }
+    @if (Error is { } error)
+    {
+        <div class="ss-error" role="alert" data-testid="previous-library-error" data-code="@ErrorCode">@error</div>
+    }
+</section>
+
+@if (Discarding)
+{
+    <DiscardPreviousDialog OnDiscarded="OnDiscardedAsync" OnClose="() => Discarding = false" />
+}

@@ -105,6 +105,59 @@ restored library never points at missing files:
 | `recordings` (015) | `Assets` of kind `Audio` with provenance origin `recording` deleted (their files live under `assets/<id>/`); latency calibrations stay (database) |
 | `voiceProfiles` | `VoiceProfiles` deleted; conversions detached with the name snapshot "<name> (profile not in backup)" (010 detach rule) |
 
+### Phase 0 results (T003 spike, architect, 2026-11-17)
+
+Throw-away C# file-based program (not committed), run on the reference machine (Core Ultra 9
+285K, Windows 11 Pro 10.0.28000, NVMe) on the Windows host (.NET 10.0.12 runtime, SDK 10.0.401)
+and in a throw-away Linux container (`mcr.microsoft.com/dotnet/sdk:10.0`, Ubuntu 24.04, .NET
+10.0.15, Docker Desktop 29.9.2 / WSL2) with a throw-away named volume at `/data` (ext4 in the
+Docker VM, the same kind as `api-data`) and a bind mount of a scratch folder on the host's E: drive
+at `/backups` (the same kind as the backups folder). Free space checked first (C: 173 GB, E: 611
+GB, Docker VM 754 GB), so the full sizes below were safe; nothing was scaled down. The owner's
+`stemstudio` compose project, its containers and volumes were not touched; the scratch files,
+the container and the volume were removed afterwards. CI (GitHub Actions Linux) was not run in
+Phase 0 (no push); the Linux container covers the same code path, and backend T033 keeps the
+Zip64 path covered in CI through a lowered test threshold seam.
+
+| Check | Windows host | Linux container |
+|---|---|---|
+| One stored entry of 4.5 GiB (4,831,838,208 B) between two small entries, `ZipArchive` `Create` on a seekable `FileStream`, SHA-256 while writing | written in 2.4 s (2,006 MB/s), Zip64 end-of-central-directory record present; read back: 3 entries, `Length` = `CompressedLength` = 4,831,838,208, SHA-256 equal (2,286 MB/s) | `/data`: 2.8 s (1,743 MB/s) write, 3,280 MB/s read, hash equal, Zip64 EOCD present; `/backups` (bind mount): **360 MB/s** write, **213 MB/s** read + hash, hash equal |
+| 70,000 entries (> 65,535), 64 B each | 0.3 s write, Zip64 EOCD present; read back: `Entries.Count` = 70,000, last entry name and content correct | same result (0.1 s) |
+| `BackupDatabase` x 10 of a 205 MB database while a second connection inserts in a loop, **WAL** | median 821 ms, max 3,158 ms per snapshot; snapshot `integrity_check` = `ok`; writer: 13,497 writes, **0 failures**, max write latency 208 ms | median 256 ms, max 477 ms; 4,249 writes, **0 failures**, max write latency 88 ms |
+| Same, **rollback journal (`journal_mode=DELETE`)** | the second snapshot **throws `SQLITE_BUSY` (5, "database is locked")** from `BackupDatabase` itself; the writer does not fail | same |
+| Same-volume `Directory.Move` of `tracks/` (12,000 files, 786 MB, 2,000 folders) to `library-care/previous/<id>/tracks` | 24 ms, all files present, source gone | `/data`: 0.1 ms (rename) |
+| `Directory.Move` while a file inside is open (`FileShare.ReadWrite \| Delete`) | **fails** (`IOException` 0x80070005, access denied) | `/data`: succeeds; `/backups` bind mount: fails (Windows semantics) |
+| `File.Move` of `stemstudio.db` with a pooled (closed) `SqliteConnection` | **fails** (file in use) until `SqliteConnection.ClearAllPools()`, then succeeds | `/data`: succeeds; bind mount: the move reports success but the moved file is not visible at once (move back throws `FileNotFoundException`) |
+
+Consequences (binding for the wave):
+
+1. **Zip64 confirmed** on .NET 10 for both limits on Windows and Linux; the writer needs no
+   switch (`ZipArchive` emits Zip64 when needed). The reader must not rely on the classic EOCD
+   counts (use `Entries`). Decision R-04 stands.
+2. **The live database must be in WAL mode for `BackupDatabase`.** EF Core creates SQLite databases
+   in WAL mode ([Microsoft Learn: SQLite async limitations](https://learn.microsoft.com/dotnet/standard/data/sqlite/async));
+   in rollback-journal mode the backup call itself fails with `SQLITE_BUSY` while a writer is
+   active (it does not retry). `DatabaseSnapshot` (backend T031/T032) therefore (a) reads
+   `PRAGMA journal_mode` of the live database and logs a warning when it is not `wal`, and (b)
+   retries `BackupDatabase` on `SqliteException` code 5/6 up to 5 times with 200 ms, 400 ms, 800 ms,
+   1.6 s, 3.2 s back-off before failing the job with the existing `JobError` code `io-error` (message "The
+   database stayed busy; try again."; no contract change); T031 adds a test for the retry with a writer holding a write transaction.
+3. **A restored database must be switched back to WAL.** The staged copy is written with
+   `journal_mode=DELETE` (single file in the archive, data-model 3.4 step 7); after the switch the
+   API runs `PRAGMA journal_mode=WAL` on the live database before the gate opens (otherwise every
+   later backup could hit consequence 2). Backend T046/T047 (restore switch) own the test.
+4. **The switch only works inside the named volume.** On Linux (`/data` in compose) renames are
+   O(1) and do not care about open handles. On Windows (non-Docker path) and on Docker Desktop
+   bind mounts, a directory with an open file cannot be moved and a pooled SQLite file cannot be
+   moved until `ClearAllPools()`. The switch therefore keeps its order (maintenance gate -> wait
+   for in-flight requests -> `ClearAllPools()` -> journal moves) and retries a failed move up to
+   10 times with 200 ms back-off before rolling back (non-Docker Windows path: stems served to
+   a browser keep a handle until the response ends). When the moves still fail, the job fails
+   with the existing `JobError` code `io-error` and the journal rolls back (no contract change). The data
+   directory is a named volume in compose (never a bind mount); the backups folder (bind mount)
+   is only read during a restore, never renamed into. Backend T046/T047 test the retry and the
+   rollback through `ILibraryFiles`.
+
 ## R-05 Where the archive goes (multi-GB)
 
 A library with detail stems is easily 20-100 GB (a 4-minute song: 6 stems about 150 MB FLAC, 16
@@ -286,6 +339,22 @@ Windows folder is the bottleneck: measured figures for Docker Desktop file shari
 100-300 MB/s for large sequential writes. SC-002 sets a conservative >= 60 MB/s; the CTO measures
 on the reference machine (quickstart V9). Buffer: 1 MiB `FileStream` buffers, `FileOptions.SequentialScan`,
 async I/O; one file at a time (ordered manifest, simple cancel).
+
+**Phase 0 measurement (T003, 2026-11-17, setup as in R-04 "Phase 0 results")**: sequential 4 GiB
+with 1 MiB buffers, SHA-256 while writing, `Flush(true)` at the end.
+
+| Target | Write + SHA-256 | Read + SHA-256 |
+|---|---|---|
+| Windows host, NVMe (C: / E:) | 1,433 / 1,580 MB/s | 2,693 / 2,700 MB/s (cached) |
+| Linux container, named volume `/data` | 1,299 MB/s | 3,652 MB/s (cached) |
+| Linux container, bind mount `/backups` (Windows folder on E:) | **353 MB/s** | **386 MB/s** |
+| ZIP of one 4.5 GiB stored entry to `/backups` | **360 MB/s** | **213 MB/s** (`ZipArchive` read + SHA-256) |
+
+The bind mount is the bottleneck as expected, at about 6x the SC-002 target for writing and 3.5x
+for reading the archive. Expected end-to-end figures: backup about 300 MB/s (reads from `/data` are
+cheap), restore about 200 MB/s (read from `/backups`, extract to staging on `/data`), both well above
+60 MB/s; SC-002 unchanged, the CTO still measures end-to-end on a 20 GB library (quickstart V9).
+Single-threaded hashing is not the limit (> 1.3 GB/s), so the pipeline stays one file at a time.
 
 ## R-13 Throughput of restore and verify
 

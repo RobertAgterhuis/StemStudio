@@ -102,6 +102,11 @@ public static class DetailPhaseText
     /// <returns>The split outcomes.</returns>
     public static IReadOnlyList<ParentOutcomeDto> SplitParents(TrackDto track)
     {
+        if (track.Detail.FilesRemovedAt is not null)
+        {
+            return []; // Detail stems removed by the clean-up (013 FR-025): the parents play, the detail channels are absent.
+        }
+
         var split = track.Detail.Parents
             .Where(p => p.Outcome == ParentOutcomeKindDto.Split && track.Stems.Any(s => s.Name == p.Parent) && OrderedStems(p).Count > 0)
             .DistinctBy(p => p.Parent)

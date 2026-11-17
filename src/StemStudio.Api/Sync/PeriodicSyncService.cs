@@ -1,8 +1,11 @@
+using StemStudio.Api.LibraryCare.Gate;
+
 namespace StemStudio.Api.Sync;
 
 /// <summary>
 /// A background loop that runs one synchronisation pass per tick of a <see cref="PeriodicTimer"/> on the injected
-/// clock, in a fresh scope; a failing pass is logged and retried on the next tick.
+/// clock, in a fresh scope; a failing pass is logged and retried on the next tick. Ticks are skipped while the library gate
+/// is in maintenance (feature 013).
 /// </summary>
 /// <param name="scopes">Scope factory.</param>
 /// <param name="clock">Clock of the timer.</param>
@@ -50,6 +53,11 @@ public abstract partial class PeriodicSyncService(IServiceScopeFactory scopes, T
         try
         {
             await using var scope = scopes.CreateAsyncScope();
+            if (scope.ServiceProvider.GetService<LibraryGate>()?.IsMaintenance == true)
+            {
+                return;
+            }
+
             await PassAsync(scope.ServiceProvider, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

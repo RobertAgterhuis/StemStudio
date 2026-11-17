@@ -67,6 +67,7 @@ COMPONENTS: tuple[Component, ...] = (
     Component("worker/notation", (WORKER + "notation/",)),
     Component("worker/jobs", (WORKER + "jobs/",)),
     Component("worker/api", (WORKER + "api/",)),
+    Component("worker/storage", (WORKER + "storage/",)),
     Component("worker/core", tuple(WORKER + name for name in WORKER_CORE)),
     Component("generator/engines", (GENERATOR + "engines/",)),
     Component("generator/devices", (GENERATOR + "devices/",)),
