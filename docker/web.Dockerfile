@@ -41,6 +41,9 @@ COPY src/web-interop/package.json src/web-interop/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 COPY src/web-interop/ ./
+# Feature 014 (web-interop 1.1.0 section 5.4): catalogue.ts imports the key map catalogue at build time,
+# the same JSON file KeyMapDefaults reads in C#.
+COPY src/StemStudio.Web/wwwroot/js/keymap-defaults.json ../StemStudio.Web/wwwroot/js/keymap-defaults.json
 # vite writes web-interop.js and first-paint.js to ../StemStudio.Web/wwwroot/js/ (see vite.config.ts)
 RUN npm run build
 
