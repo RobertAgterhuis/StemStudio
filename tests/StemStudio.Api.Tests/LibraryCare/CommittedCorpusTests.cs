@@ -154,19 +154,35 @@ public sealed class CommittedCorpusTests : ApiTestBase
         details.Compatibility.Reason.ShouldNotBeNullOrWhiteSpace();
     }
 
-    [Fact]
-    public async Task ValidBase_VerifiesAndRestores()
+    [Theory]
+    [InlineData("valid-base.zip")]
+    [InlineData("schema-008.zip")]
+    [InlineData("schema-010.zip")]
+    public async Task ValidArchives_OfEverySchemaLevel_VerifyAndRestore(string fileName)
     {
-        Copy("valid-base.zip");
+        Copy(fileName);
 
-        using var verify = await Client.PostAsync(ApiRoutes.VerifyBackup("valid-base.zip"), null, Ct);
+        using var verify = await Client.PostAsync(ApiRoutes.VerifyBackup(fileName), null, Ct);
         var report = (await FinishedAsync(verify)).Report.ShouldBeOfType<VerifyReportDto>();
-        using var restore = await Client.PostAsJsonAsync(ApiRoutes.RestoreBackup("valid-base.zip"), Replace, Ct);
+        using var restore = await Client.PostAsJsonAsync(ApiRoutes.RestoreBackup(fileName), Replace, Ct);
         var job = await FinishedAsync(restore);
 
         (report.Ok, report.Problem).ShouldBe((true, null));
         job.Status.ShouldBe(LibraryJobStatusDto.Completed, job.Error?.Message);
     }
+
+    [Theory]
+    [InlineData("table", "Tracks", "Tracks", true)]
+    [InlineData("table", "__EFMigrationsHistory", "__EFMigrationsHistory", true)]
+    [InlineData("table", "sqlite_sequence", "sqlite_sequence", true)]
+    [InlineData("index", "sqlite_autoindex_Tracks_1", "Tracks", true)]
+    [InlineData("table", "Extra", "Extra", false)]
+    [InlineData("index", "IX_Evil", "Tracks", false)]
+    [InlineData("index", "sqlite_autoindex_Extra_1", "Extra", false)]
+    [InlineData("trigger", "Tracks", "Tracks", false)]
+    [InlineData("view", "Tracks", "Tracks", false)]
+    public void KnownSchema_AllowsOnlyTheMigrationsTablesAndIndexes(string type, string name, string table, bool known) =>
+        StemStudio.Api.LibraryCare.Restore.KnownSchema.IsKnown(type, name, table).ShouldBe(known);
 
     private void Copy(string fileName)
     {

@@ -105,10 +105,17 @@ public sealed class StagedDatabaseTests : ApiTestBase
             .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
     }
 
-    // Security review 013 item 2: SQL objects of the archive (triggers, views) would run on later writes; they are refused.
+    // Security review 013 item 2: SQL objects of the archive (triggers, views, virtual or unknown tables and indexes) would run
+    // or hide data on later writes; only the tables and indexes the known migrations create are accepted.
     [Theory]
     [InlineData("CREATE TRIGGER evil AFTER UPDATE ON Tracks BEGIN UPDATE VoiceProfiles SET SamplePath = '../../x'; END")]
     [InlineData("CREATE VIEW evil AS SELECT 1")]
+    [InlineData("  /* x */ create /* y */ VIRTUAL table evil USING fts5(a)")]
+    [InlineData("CREATE VIRTUAL TABLE Styles2 USING fts5(a)")]
+    [InlineData("CrEaTe TrIgGeR evil AFTER INSERT ON Tracks BEGIN SELECT 1; END")]
+    [InlineData("cReAtE tRiGgEr \"evil\" before delete on Tracks begin select 1; end")]
+    [InlineData("CREATE TABLE Extra (Id INTEGER PRIMARY KEY)")]
+    [InlineData("CREATE INDEX IX_Evil ON Tracks (Title)")]
     public async Task ArchivedTriggerOrView_IsUnsafe(string sql)
     {
         await _library.TrackAsync();
