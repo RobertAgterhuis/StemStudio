@@ -158,9 +158,9 @@ and `polish`, with real test and coverage output.
 - [ ] T060 [US4] [audio-engine] Implement `setTakeCompare` to pass T059
 - [ ] T061 [P] [US4] [backend] Failing tests `MixTakeChannelTests.cs`: `MixSettings.take` save/load, stale take id -> null, duplicate copies it, deleting the take nulls it (FR-012)
 - [ ] T062 [US4] [backend] Implement the mix additions to pass T061
-- [ ] T063 [P] [US4] [frontend] Failing bUnit tests `TakeCompareTests.cs`: radio group and toggle, `C` shortcut cycles, aria states, strip settings saved with the mix (FR-012, FR-013, FR-021)
-- [ ] T064 [US4] [frontend] Implement `Components/Recording/TakeCompare` and mix saving to pass T063
-- [ ] T065 [P] [US4] [qa] E2E `recording-compare.spec.ts`: bass take, "My take" -> `meter-bass` at -60 dB and `meter-take` moving; "Original" reverse; saved mix restores the take strip
+- [x] T063 [P] [US4] [frontend] Failing bUnit tests `TakeCompareTests.cs`: radio group and toggle, `C` shortcut cycles, aria states, strip settings saved with the mix (FR-012, FR-013, FR-021)
+- [x] T064 [US4] [frontend] Implement `Components/Recording/TakeCompare` and mix saving to pass T063
+- [x] T065 [P] [US4] [qa] E2E `recording-compare.spec.ts`: bass take, "My take" -> `meter-bass` at -60 dB and `meter-take` moving; "Original" reverse; saved mix restores the take strip
 
 **Checkpoint**: HO:us4 per owner.
 
