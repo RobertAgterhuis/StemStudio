@@ -86,6 +86,15 @@ public sealed partial class SectionLane
     }
 
     /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        if (NeedsPolling && Set is not null)
+        {
+            StartPolling();
+        }
+    }
+
+    /// <inheritdoc />
     protected override Task RefreshAsync(CancellationToken ct) => LoadAsync(Api.GetSectionsAsync(TrackId, ct));
 
     private static string Bool(bool value) => value ? "true" : "false";

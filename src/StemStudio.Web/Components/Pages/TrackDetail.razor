@@ -68,6 +68,7 @@ else
                     @if (ConfirmingDelete)
                     {
                         <span role="alert">This deletes the track, its stems and all of its mixes.</span>
+                        <StemStudio.Web.Components.Recording.TrackDeleteTakesNote Count="Track.TakeCount" />
                         <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger" Click="DeleteAsync" IsBusy="IsDeleting"
                                       BusyText="Deleting..." Disabled="IsDeleting" data-testid="track-delete-confirm" />
                         <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelDelete" Disabled="IsDeleting"

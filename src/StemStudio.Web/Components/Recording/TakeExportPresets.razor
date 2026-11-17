@@ -1,0 +1,12 @@
+@* Take export presets of feature 015 in the export dialog. Stub by the 014 lane (hook request L6, US6); the 015 lane
+   replaces it. Renders nothing. *@
+
+@code {
+    /// <summary>The export form.</summary>
+    [Parameter, EditorRequired]
+    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+
+    /// <summary>Raised when a preset changed the form.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+}

@@ -64,3 +64,24 @@
   flex-wrap: wrap;
   gap: var(--ss-space-1);
 }
+
+.ss-section-confidence {
+  font-size: 0.85em;
+}
+
+.ss-section-editor-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding-inline-start: var(--ss-space-5);
+}
+
+.ss-section-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+  padding-block: var(--ss-space-1);
+  border-block-end: 1px solid var(--ss-color-divider);
+}

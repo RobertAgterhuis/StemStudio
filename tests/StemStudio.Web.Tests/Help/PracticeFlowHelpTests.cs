@@ -17,6 +17,8 @@ public sealed class PracticeFlowHelpTests
     [InlineData("shortcuts", "start", "shortcut-overlay")]
     [InlineData("shortcuts-custom", "start", "shortcut-settings")]
     [InlineData("foot-pedals", "start", "pedal-setup")]
+    [InlineData("mixer-sections-edit", "mixer", "section-editor")]
+    [InlineData("mixer-sections-detection", "mixer", "section-status")]
     public void Topics_Exist_ReviewedFor014_WithTheirAnchors(string id, string area, string? anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
