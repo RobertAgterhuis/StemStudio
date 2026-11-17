@@ -256,6 +256,321 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Generations", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistEvent", b =>
+                {
+                    b.Property<Guid>("AssistId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Seq")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasMaxLength(16384)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("AssistId", "Seq");
+
+                    b.ToTable("LyricAssistEvents", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("AgentRunId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Backend")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BlocksDone")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BlocksSkipped")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BlocksTotal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Categories")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Counts")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Discarded")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("EstimatedSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FailureFix")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Instruction")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Layers")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("LineFrom")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LineTo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sensitivity")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SheetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SheetRevision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Usage")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("UsingFallback")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SheetId", "CreatedAt");
+
+                    b.ToTable("LyricAssists", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricAssistSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClaudeNoticeAcknowledgedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClaudeNoticeVersion")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LyricAssistSettings", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricSuggestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("AcceptGroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Anchor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AssistId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Proposal")
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RhymeWith")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SheetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SyllablesAfter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("SyllablesBefore")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssistId");
+
+                    b.HasIndex("SheetId", "Status");
+
+                    b.ToTable("LyricSuggestions", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricWord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Word")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Language", "Word")
+                        .IsUnique();
+
+                    b.ToTable("LyricWords", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricsSheetRevision", b =>
+                {
+                    b.Property<Guid>("SheetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("AcceptGroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cause")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("SheetId", "Revision");
+
+                    b.ToTable("LyricsSheetRevisions", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Lyrics.LyricsSheet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -268,6 +583,31 @@ namespace StemStudio.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("LastCause")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Created");
+
+                    b.Property<string>("OwnWorkOverride")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Revision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("RhythmTarget")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sensitivity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Balanced");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -1253,6 +1593,117 @@ namespace StemStudio.Persistence.Migrations
                     b.HasIndex("ConversationId", "Ordinal");
 
                     b.ToTable("UndoEntries", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistEvent", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Lyrics.Assist.AssistRun", null)
+                        .WithMany()
+                        .HasForeignKey("AssistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.AssistRun", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Lyrics.LyricsSheet", null)
+                        .WithMany()
+                        .HasForeignKey("SheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricSuggestion", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Lyrics.Assist.AssistRun", null)
+                        .WithMany()
+                        .HasForeignKey("AssistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StemStudio.Domain.Lyrics.LyricsSheet", null)
+                        .WithMany()
+                        .HasForeignKey("SheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.Assist.LyricsSheetRevision", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Lyrics.LyricsSheet", null)
+                        .WithMany()
+                        .HasForeignKey("SheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Lyrics.LyricsSheet", b =>
+                {
+                    b.OwnsMany("StemStudio.Domain.Lyrics.Assist.AssistedLine", "AssistedLines", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<string>("LineText")
+                                .IsRequired()
+                                .HasMaxLength(400)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("SheetId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("SuggestionId")
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("SheetId");
+
+                            b1.ToTable("LyricsAssistedLines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("SheetId");
+                        });
+
+                    b.OwnsMany("StemStudio.Domain.Lyrics.Assist.IntentionalMark", "IntentionalMarks", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<DateTime>("CreatedAt")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Note")
+                                .HasMaxLength(120)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Scope")
+                                .IsRequired()
+                                .HasMaxLength(8)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("SheetId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Text")
+                                .IsRequired()
+                                .HasMaxLength(400)
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("SheetId");
+
+                            b1.ToTable("LyricsIntentionalMarks", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("SheetId");
+                        });
+
+                    b.Navigation("AssistedLines");
+
+                    b.Navigation("IntentionalMarks");
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Lyrics.TrackLyrics", b =>

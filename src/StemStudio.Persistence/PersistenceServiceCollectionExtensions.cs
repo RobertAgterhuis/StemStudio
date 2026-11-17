@@ -25,6 +25,10 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<IVoiceProfileRepository, VoiceProfileRepository>();
         services.AddScoped<IAudioHashRepository, AudioHashRepository>();
         services.AddScoped<IAgentSecretStore, AgentSecretStore>();
+        services.AddScoped<ILyricAssistRepository, LyricAssistRepository>();
+        services.AddScoped<ILyricSuggestionRepository, LyricSuggestionRepository>();
+        services.AddScoped<ILyricsRevisionRepository, LyricsRevisionRepository>();
+        services.AddScoped<ILyricWordRepository, LyricWordRepository>();
         return services;
     }
 }
