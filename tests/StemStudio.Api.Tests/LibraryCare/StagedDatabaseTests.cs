@@ -104,16 +104,30 @@ public sealed class StagedDatabaseTests : ApiTestBase
             .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
     }
 
-    // Security review 013 item 2: SQL objects of the archive (triggers, views, virtual or unknown tables and indexes) would run
-    // or hide data on later writes; only the tables and indexes the known migrations create are accepted.
+    // Security review 013 item 2 (CTO decision "rebuild"): objects other than tables and indexes, non-ordinary tables and
+    // unknown tables are refused by the read-only check, whatever their name.
     [Theory]
     [InlineData("CREATE TRIGGER evil AFTER UPDATE ON Tracks BEGIN UPDATE VoiceProfiles SET SamplePath = '../../x'; END")]
     [InlineData("CREATE VIEW evil AS SELECT 1")]
     [InlineData("  /* x */ create /* y */ VIRTUAL table evil USING fts5(a)")]
     [InlineData("CREATE VIRTUAL TABLE Styles2 USING fts5(a)")]
     [InlineData("CrEaTe TrIgGeR evil AFTER INSERT ON Tracks BEGIN SELECT 1; END")]
-    [InlineData("cReAtE tRiGgEr \"evil\" before delete on Tracks begin select 1; end")]
+    [InlineData("cReAtE tRiGgEr \"__EFMigrationsLock\" before delete on Tracks begin select 1; end")]
     [InlineData("CREATE TABLE Extra (Id INTEGER PRIMARY KEY)")]
+    [InlineData("PRAGMA writable_schema=ON; INSERT INTO sqlite_master VALUES ('view', 'sqlite_stat1', 'sqlite_stat1', 0, 'CREATE VIEW sqlite_stat1 AS SELECT 1'); PRAGMA writable_schema=OFF")]
+    [InlineData("PRAGMA writable_schema=ON; INSERT INTO sqlite_master VALUES ('trigger', 'sqlite_sequence', 'Tracks', 0, 'CREATE TRIGGER sqlite_sequence AFTER INSERT ON Tracks BEGIN SELECT 1; END'); PRAGMA writable_schema=OFF")]
+    public async Task ArchivedTriggerViewOrUnknownTable_IsUnsafe(string sql)
+    {
+        await _library.TrackAsync();
+        var manifest = await StageAsync();
+        await AlterStagedAsync(sql);
+
+        (await Should.ThrowAsync<LibraryJobException>(() => Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct)))
+            .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
+    }
+
+    // Hostile DDL on known tables is neutralised: the restored database is rebuilt from the migrations, only rows are copied.
+    [Theory]
     [InlineData("CREATE INDEX IX_Evil ON Tracks (Title)")]
     [InlineData("ALTER TABLE Tracks ADD COLUMN Evil TEXT GENERATED ALWAYS AS (upper(Title)) VIRTUAL")]
     [InlineData("ALTER TABLE Tracks ADD COLUMN Evil TEXT DEFAULT 'x'")]
@@ -123,18 +137,33 @@ public sealed class StagedDatabaseTests : ApiTestBase
     [InlineData("CREATE TABLE h2 AS SELECT * FROM __EFMigrationsHistory; DROP TABLE __EFMigrationsHistory; "
         + "CREATE TABLE \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, "
         + "\"ProductVersion\" TEXT NOT NULL CHECK (length(ProductVersion) > 0)); INSERT INTO __EFMigrationsHistory SELECT * FROM h2; DROP TABLE h2")]
-    public async Task ArchivedTriggerOrView_IsUnsafe(string sql)
+    public async Task HostileDdlOnKnownTables_IsRebuiltAway(string sql)
+    {
+        var track = await _library.TrackAsync();
+        var manifest = await StageAsync();
+        await AlterStagedAsync(sql);
+
+        await Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct);
+
+        (await SchemaAsync(Db)).ShouldBe(await SchemaAsync(Path.Combine(Factory.DataDir, "stemstudio.db")));
+        await using var context = BackupScrubber.StagedContext(Db);
+        (await context.Tracks.SingleAsync(Ct)).Id.ShouldBe(track.Id);
+    }
+
+    [Fact]
+    public async Task RowsThatDoNotFitTheirSchemaLevel_AreCorrupt()
     {
         await _library.TrackAsync();
         var manifest = await StageAsync();
-        await using (var context = BackupScrubber.StagedContext(Db))
-        {
-            await context.Database.ExecuteSqlRawAsync(sql, Ct);
-        }
+        await AlterStagedAsync("ALTER TABLE Tracks DROP COLUMN Artist");
 
         (await Should.ThrowAsync<LibraryJobException>(() => Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct)))
-            .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
+            .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveCorrupt);
+        File.Exists(Path.Combine(Staging, "stemstudio.rebuilt.db")).ShouldBeFalse();
     }
+
+    [Fact]
+    public void Quote_EscapesEmbeddedQuotes() => DatabaseRebuild.Quote("a\"b").ShouldBe("\"a\"\"b\"");
 
     [Fact]
     public async Task InvalidConsentProof_DropsTheProfileAndDetachesItsConversions()
@@ -180,6 +209,28 @@ public sealed class StagedDatabaseTests : ApiTestBase
         result.Skipped.ShouldBeEmpty();
         await using var context = BackupScrubber.StagedContext(Db);
         (await context.VoiceProfiles.CountAsync(Ct)).ShouldBe(1);
+    }
+
+    private async Task AlterStagedAsync(string sql)
+    {
+        await using var context = BackupScrubber.StagedContext(Db);
+        await context.Database.ExecuteSqlRawAsync(sql, Ct);
+    }
+
+    private static async Task<List<string>> SchemaAsync(string path)
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection(DatabaseSnapshot.StagingConnectionString(path, readOnly: true));
+        await connection.OpenAsync(Ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT type || '|' || name || '|' || coalesce(sql, '') FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name";
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        var rows = new List<string>();
+        while (await reader.ReadAsync(Ct))
+        {
+            rows.Add(reader.GetString(0));
+        }
+
+        return rows;
     }
 
     private StagedDatabase Prepare() => new(Factory.Services.GetRequiredService<MigrationCatalog>(), Factory.Clock);

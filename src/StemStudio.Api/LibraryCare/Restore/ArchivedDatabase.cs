@@ -14,9 +14,9 @@ namespace StemStudio.Api.LibraryCare.Restore;
 /// <summary>
 /// The checks of an archived database that restore and verify share (data-model 3.4 steps 7 and 8): opened read-only with
 /// <c>PRAGMA trusted_schema=OFF</c>, <c>integrity_check</c> = <c>ok</c>, <c>__EFMigrationsHistory</c> equal to
-/// <c>schema.migrations</c>, a schema structurally equal to the one this app's migrations create at that level
-/// (<see cref="ReferenceSchema"/>: no triggers, views, virtual or unknown tables, columns or indexes), and every stored path
-/// inside the layout. Nothing of the archive is migrated or written here.
+/// <c>schema.migrations</c> (every id known to this app, else <c>archive-incompatible</c>), only tables and indexes with
+/// ordinary, known tables (<see cref="KnownSchema"/>), and every stored path inside the layout. Nothing of the archive is
+/// migrated or written here; restore then rebuilds the database from the migrations (<see cref="DatabaseRebuild"/>).
 /// </summary>
 public static class ArchivedDatabase
 {
@@ -24,7 +24,7 @@ public static class ArchivedDatabase
     public const string CorruptText = "The database in the archive is damaged or not a StemStudio library; nothing was changed.";
 
     /// <summary>Message of a database whose schema differs from the one the migrations create.</summary>
-    public const string ObjectsText = "The database in the archive contains triggers, views, tables, columns or indexes that StemStudio never creates; nothing was changed.";
+    public const string ObjectsText = "The database in the archive contains triggers, views or tables that StemStudio never creates; nothing was changed.";
 
     /// <summary>A context on an archived (staged) database file whose connections run with <c>trusted_schema=OFF</c>.</summary>
     /// <param name="path">The file.</param>
@@ -35,7 +35,28 @@ public static class ArchivedDatabase
         .AddInterceptors(UntrustedSchemaInterceptor.Instance)
         .Options);
 
-    /// <summary>Step 7 read-only: integrity, migration history against the manifest, the reference schema of that level.</summary>
+    /// <summary>A hardened connection on an archived database file (<c>trusted_schema=OFF</c>, defensive mode).</summary>
+    /// <param name="path">The file.</param>
+    /// <param name="readOnly">Open read-only.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The open connection (caller disposes).</returns>
+    public static async Task<SqliteConnection> OpenAsync(string path, bool readOnly, CancellationToken cancellationToken)
+    {
+        var connection = new SqliteConnection(DatabaseSnapshot.StagingConnectionString(path, readOnly));
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+            UntrustedSchemaInterceptor.Harden(connection);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+    }
+
+    /// <summary>Step 7 read-only: integrity, migration history against the manifest, known tables and indexes only.</summary>
     /// <param name="database">The staged database file.</param>
     /// <param name="manifest">The archive's manifest.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -44,26 +65,29 @@ public static class ArchivedDatabase
     public static async Task CheckReadOnlyAsync(string database, BackupManifest manifest, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        bool unknown;
+        if (manifest.Schema.Migrations.Any(id => !KnownSchema.Migrations.Contains(id)))
+        {
+            throw new LibraryJobException(LibraryJobErrorCodeDto.ArchiveIncompatible, ManifestRules.IncompatibleText);
+        }
+
+        bool unsafeObjects;
         try
         {
-            await using var connection = new SqliteConnection(DatabaseSnapshot.StagingConnectionString(database, readOnly: true));
-            await connection.OpenAsync(cancellationToken);
-            UntrustedSchemaInterceptor.Harden(connection);
+            await using var connection = await OpenAsync(database, readOnly: true, cancellationToken);
             if (!await DatabaseSnapshot.IsIntactAsync(connection, cancellationToken)
                 || !(await BackupRun.MigrationsAsync(database, cancellationToken)).SequenceEqual(manifest.Schema.Migrations, StringComparer.Ordinal))
             {
                 throw ArchiveReader.Corrupt(CorruptText);
             }
 
-            unknown = !await ReferenceSchema.MatchesAsync(connection, manifest.Schema.Migrations[^1], cancellationToken);
+            unsafeObjects = await KnownSchema.HasUnsafeObjectsAsync(connection, cancellationToken);
         }
         catch (SqliteException)
         {
             throw ArchiveReader.Corrupt(CorruptText);
         }
 
-        if (unknown)
+        if (unsafeObjects)
         {
             throw ArchiveReader.Unsafe(ObjectsText);
         }

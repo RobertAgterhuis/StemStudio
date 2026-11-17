@@ -22,7 +22,8 @@ public sealed record StagedResult(string? MigratedFrom, IReadOnlyList<SkippedIte
 /// <summary>
 /// The database step of a restore (data-model 3.4 steps 7-9, research R-08, R-09): integrity and migration history read-only,
 /// migration of an older schema in staging, stored paths against the layout, consent proofs per profile, and the reconcile
-/// of work that was running when the backup was made (FR-015). The archive's database is data: no SQL from it is executed.
+/// of work that was running when the backup was made (FR-015). The archive's database is data: no SQL from it is executed,
+/// and it is rebuilt from this app's migrations before anything is written (<see cref="DatabaseRebuild"/>).
 /// </summary>
 /// <param name="migrations">Known migrations.</param>
 /// <param name="clock">Clock.</param>
@@ -43,6 +44,7 @@ public sealed class StagedDatabase(IKnownMigrations migrations, TimeProvider clo
         ArgumentNullException.ThrowIfNull(options);
         var database = Path.Combine(stagingRoot, "stemstudio.db");
         await ArchivedDatabase.CheckReadOnlyAsync(database, manifest, cancellationToken);
+        await DatabaseRebuild.RunAsync(database, manifest.Schema.Migrations[^1], cancellationToken);
         var migratedFrom = await MigrateAsync(database, manifest, cancellationToken);
         await using var context = ArchivedDatabase.Context(database);
         await ArchivedDatabase.CheckStoredPathsAsync(context, cancellationToken);
