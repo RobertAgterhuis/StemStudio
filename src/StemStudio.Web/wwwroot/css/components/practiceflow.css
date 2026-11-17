@@ -1,0 +1,66 @@
+/* Practice flow (feature 014): section lane, section editor, score panel, setlists, practice log, shortcut settings.
+   Tokens of the 004 design system only; state is never shown by colour alone (outline, pattern, text). */
+
+.ss-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+}
+
+.ss-section-lane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-section-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-section {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+  padding: var(--ss-space-1) var(--ss-space-2);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ss-section-kind {
+  color: var(--ss-color-muted);
+  font-size: 0.85em;
+}
+
+/* Current: thick inner outline plus a leading bar; looped: primary fill plus a striped pattern. */
+.ss-section-current {
+  box-shadow: inset 0 0 0 2px var(--ss-color-ink);
+  border-inline-start-width: 4px;
+}
+
+.ss-section-looped {
+  border-color: var(--ss-color-primary);
+  background-image: repeating-linear-gradient(135deg, var(--ss-color-sunken) 0 6px, var(--ss-color-raised) 6px 12px);
+}
+
+.ss-section-looped .ss-section-label {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.ss-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+}

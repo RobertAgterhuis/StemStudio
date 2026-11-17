@@ -1,0 +1,55 @@
+@* Song sections in the mixer (014 US1, FR-004..FR-007; ui-test-ids 1.13.0 section-*): a list of section buttons (one click
+   loops the section), the status line, previous / next / restart / loop-current, and slots for the editor actions. *@
+@inherits PollingComponent
+@using StemStudio.Web.Practice
+
+<div class="ss-sections ss-console-panel" role="group" aria-labelledby="sections-title" data-help-id="section-lane">
+    <h2 id="sections-title" class="ss-panel-title">Song sections <HelpHint HelpId="mixer-sections" /></h2>
+    @if (StatusText is { } status)
+    {
+        <p class="ss-muted ss-sections-status" role="status" data-testid="section-status" data-help-id="section-status">@status</p>
+    }
+    @if (Failed)
+    {
+        <RadzenButton Text="Try again" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="RetryAsync" data-testid="section-retry" />
+    }
+    @if (Error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="section-error">@Error</div>
+    }
+    <ul class="ss-section-lane" role="list" aria-label="Sections" data-testid="section-lane" data-status="@WireStatus"
+        data-revision="@(Set?.Revision.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+        @foreach (var section in Sections)
+        {
+            var current = section.Id == Current?.Id;
+            var looped = section.Id == Loop?.SectionId && Loop?.Enabled == true;
+            <li class="ss-section-item">
+                <button type="button" class="@ButtonClass(section, current, looped)" aria-pressed="@Bool(looped)" aria-current="@(current ? "true" : null)"
+                        data-testid="@($"section-{section.Id}")" data-kind="@SectionText.WireKind(section.Kind)"
+                        data-start="@SectionText.Seconds(section.StartSeconds)" data-end="@SectionText.Seconds(section.EndSeconds)"
+                        data-current="@Bool(current)" data-looped="@Bool(looped)" data-help-id="section-button"
+                        @onclick="() => OnLoop.InvokeAsync(section)">
+                    <span class="ss-section-label">@section.Label</span>
+                    <span class="ss-section-kind">@KindText(section)</span>
+                    <span class="ss-sr-only">, @SectionText.Range(Sections, section)@(current ? ", playing now" : null)@(looped ? ", looping" : null)</span>
+                </button>
+                @if (ItemExtra is not null)
+                {
+                    @ItemExtra(section)
+                }
+            </li>
+        }
+    </ul>
+    <div class="ss-section-nav" role="group" aria-label="Section navigation">
+        <RadzenButton Text="Previous section" Icon="skip_previous" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="NoSections"
+                      Click="@(() => OnCommand.InvokeAsync("mixer.section.previous"))" data-testid="section-previous" />
+        <RadzenButton Text="Section start" Icon="first_page" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="NoSections"
+                      Click="@(() => OnCommand.InvokeAsync("mixer.section.restart"))" data-testid="section-restart" />
+        <RadzenButton Text="Next section" Icon="skip_next" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="NoSections"
+                      Click="@(() => OnCommand.InvokeAsync("mixer.section.next"))" data-testid="section-next" />
+        <RadzenButton Text="Loop this section" Icon="repeat_one" Size="ButtonSize.Small" Disabled="NoSections"
+                      Click="@(() => OnCommand.InvokeAsync("mixer.loop.section"))" data-testid="section-loop-current" data-help-id="section-loop-current" />
+        @Actions
+    </div>
+    <InlineHint TopicId="mixer-sections" />
+</div>

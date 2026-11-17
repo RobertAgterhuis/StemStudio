@@ -1,5 +1,6 @@
 @page "/tracks/{Id:guid}/mixer"
 @using StemStudio.Web.Components.Recording
+@using StemStudio.Web.Components.Practice
 
 <PageTitle>Mixer - StemStudio</PageTitle>
 
@@ -81,6 +82,9 @@ else
             <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
         }
 
+        <SectionLane TrackId="Id" Set="State.SectionSet" Position="Position" Loop="State.Loop" OnLoaded="OnSectionsLoaded" OnLoop="LoopSectionAsync"
+                     OnCommand="SectionCommandAsync" />
+
         <div class="ss-console-panels">
             <LoopControls Start="State.LoopStart" End="State.LoopEnd" Enabled="State.LoopEnabled" Error="@State.LoopError"
                           Position="Position" OnStart="SetLoopStartAsync" OnEnd="SetLoopEndAsync" OnToggle="ToggleLoopAsync" />
@@ -90,7 +94,7 @@ else
                 <CountInControl Settings="State.Practice.CountIn" LastBars="State.LastCountInBars" Available="@(TrackBpm is not null)"
                                 LoopProblem="@PracticeRules.LoopProblem(State.Loop)" OnToggle="ToggleCountInAsync" OnBars="SetCountInBarsAsync"
                                 OnEveryPass="SetCountInEveryPassAsync" />
-                <SpeedTrainerPanel Settings="State.Practice.Trainer" Status="PracticeLive.Trainer" LoopProblem="@PracticeRules.LoopProblem(State.Loop)"
+                <SpeedTrainerPanel Settings="State.Practice.Trainer" Status="PracticeLive.Trainer" LoopProblem="@PracticeRules.LoopProblem(State.Loop)" RegionLabel="@TrainerRegion"
                                    Unavailable="StretchUnavailable" OnChange="SetTrainerAsync" OnToggle="ToggleTrainerAsync" />
             </PracticePanel>
         </div>
