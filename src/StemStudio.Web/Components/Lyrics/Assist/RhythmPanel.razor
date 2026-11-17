@@ -1,0 +1,46 @@
+@* Syllable gutter toggle, rhythm target form and density (FR-017; Advanced). The counter runs on this computer only. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<div class="ss-assist-panel" role="group" aria-label="Syllables and rhythm" data-help-id="lyric-assist-rhythm">
+    <RadzenButton Text="Syllables" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-pressed="@(Host.ShowSyllables ? "true" : "false")"
+                  Disabled="Session.Document.AssistLanguage is null" Click="() => RunAsync(_ => Host.ToggleSyllablesAsync())" data-testid="lyric-syllable-toggle" />
+    <form class="ss-assist-rhythm" data-testid="lyric-rhythm-target" @onsubmit="SaveAsync">
+        <label class="ss-field"><span class="ss-small">BPM</span>
+            <input type="number" class="rz-textbox" min="@LyricAssistLimits.MinBpm" max="@LyricAssistLimits.MaxBpm" @bind="_form.Bpm" data-testid="lyric-rhythm-bpm" /></label>
+        <label class="ss-field"><span class="ss-small">Beats per bar</span>
+            <input type="number" class="rz-textbox" min="@LyricAssistLimits.MinBeatsPerBar" max="@LyricAssistLimits.MaxBeatsPerBar" @bind="_form.BeatsPerBar" data-testid="lyric-rhythm-beats" /></label>
+        <label class="ss-field"><span class="ss-small">Bars per line</span>
+            <input type="number" class="rz-textbox" min="@LyricAssistLimits.MinBarsPerLine" max="@LyricAssistLimits.MaxBarsPerLine" @bind="_form.BarsPerLine" data-testid="lyric-rhythm-bars" /></label>
+        <label class="ss-field"><span class="ss-small">Syllables per beat</span>
+            <input type="number" class="rz-textbox" step="@LyricAssistLimits.SyllablesPerBeatStep" min="@LyricAssistLimits.MinSyllablesPerBeat" max="@LyricAssistLimits.MaxSyllablesPerBeat"
+                   @bind="_form.SyllablesPerBeat" data-testid="lyric-rhythm-spb" /></label>
+        <RadzenButton ButtonType="ButtonType.Submit" Text="Save target" Size="ButtonSize.Small" Disabled="Busy" data-testid="lyric-rhythm-save" />
+        <RadzenButton Text="Clear target" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy || Session.Document.Assist.RhythmTarget is null"
+                      Click="ClearAsync" data-testid="lyric-rhythm-clear" />
+    </form>
+    @if (_form.Problem is { } problem)
+    {
+        <p class="ss-error ss-small" role="alert">@problem</p>
+    }
+    @if (Host.Syllables?.Report?.WordsPerSecond is { } density)
+    {
+        <p class="@(density > LyricAssistLimits.DensityWarnWordsPerSecond ? "ss-notice ss-small" : "ss-small")" data-testid="lyric-density">@RhythmForm.DensityText(density, Host.Syllables.Report.TargetDurationSeconds)</p>
+    }
+</div>
+
+@code {
+    private RhythmForm _form = new(null);
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _form = new RhythmForm(Session.Document.Assist.RhythmTarget);
+
+    private Task SaveAsync() => _form.ToTarget() is { } target ? RunAsync(async s => { await s.SetRhythmTargetAsync(target); await Host.CountSyllablesAsync(wait: false); }) : Task.CompletedTask;
+
+    private Task ClearAsync() => RunAsync(async s =>
+    {
+        await s.SetRhythmTargetAsync(null);
+        _form = new RhythmForm(null);
+        await Host.CountSyllablesAsync(wait: false);
+    });
+}

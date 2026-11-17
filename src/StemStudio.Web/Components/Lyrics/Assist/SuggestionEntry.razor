@@ -1,0 +1,63 @@
+@* One suggestion (ui-test-ids lyric-suggestion-*): category and type, original -> proposal, explanation in the sheet's
+   language, syllables, rhyme partner, source (Expert) and the decisions. Every text is model or sheet text: plain text. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+<li id="@OptionId(Suggestion.SuggestionId)" role="option" aria-selected="@(Active ? "true" : "false")" class="ss-assist-entry @(Active ? "is-active" : null)"
+    aria-labelledby="@LabelledBy" @onclick="() => OnSelect.InvokeAsync(Suggestion)"
+    data-testid="@($"lyric-suggestion-{Id}")" data-category="@AssistText.Wire(Suggestion.Category)" data-type="@AssistText.Wire(Suggestion.Type)"
+    data-severity="@AssistText.Wire(Suggestion.Severity)" data-status="@AssistText.Wire(Suggestion.Status)"
+    data-source="@AssistText.Wire(Suggestion.Source)" data-line="@Suggestion.Anchor.Line">
+    <span id="@($"lyric-s-{Id}-label")" class="ss-small ss-assist-type">@Where, @AssistText.Type(Suggestion.Type)</span>
+    <span class="ss-assist-change">
+        <span id="@($"lyric-s-{Id}-original")" class="ss-assist-original" data-testid="@($"lyric-suggestion-original-{Id}")">@Original</span>
+        @if (Suggestion.Proposal is { } proposal)
+        {
+            <span aria-hidden="true"> -> </span>
+            <span id="@($"lyric-s-{Id}-proposal")" class="ss-assist-proposal" data-testid="@($"lyric-suggestion-proposal-{Id}")">@proposal</span>
+        }
+    </span>
+    <span class="ss-small" data-testid="@($"lyric-suggestion-explanation-{Id}")">@Suggestion.Explanation</span>
+    @if (AssistText.Syllables(Suggestion) is { } syllables)
+    {
+        <span class="ss-small ss-num" data-testid="@($"lyric-suggestion-syllables-{Id}")">@syllables</span>
+    }
+    @if (Suggestion.RhymeWith is { } rhyme)
+    {
+        <span class="ss-small">Rhymes with "@rhyme.Word" (line @rhyme.Line)</span>
+    }
+    <LevelGate Feature="lyrics.assist-source">
+        <span class="ss-small ss-muted" data-testid="@($"lyric-suggestion-source-{Id}")">@SourceText</span>
+    </LevelGate>
+    <SuggestionActions Host="Host" Suggestion="Suggestion" />
+</li>
+
+@code {
+    /// <summary>The suggestion.</summary>
+    [Parameter, EditorRequired]
+    public LyricSuggestionDto Suggestion { get; set; } = default!;
+
+    /// <summary>True for the focused entry.</summary>
+    [Parameter]
+    public bool Active { get; set; }
+
+    /// <summary>The entry was clicked.</summary>
+    [Parameter]
+    public EventCallback<LyricSuggestionDto> OnSelect { get; set; }
+
+    /// <summary>The element id of an option.</summary>
+    /// <param name="id">The suggestion.</param>
+    /// <returns>The id.</returns>
+    public static string OptionId(Guid id) => $"lyric-opt-{id}";
+
+    private Guid Id => Suggestion.SuggestionId;
+
+    private string LabelledBy => Suggestion.Proposal is null ? $"lyric-s-{Id}-label lyric-s-{Id}-original" : $"lyric-s-{Id}-label lyric-s-{Id}-original lyric-s-{Id}-proposal";
+
+    private string Where => Suggestion.Anchor.Line == 0 ? "Title" : $"Line {AssistText.Number(Suggestion.Anchor.Line)}";
+
+    private string Original => Suggestion.Anchor.Original.Length > 0 ? Suggestion.Anchor.Original
+        : Suggestion.Operation == SuggestionOperationDto.InsertAfter ? "(new lines)" : Session.Document.Title;
+
+    private string SourceText => Suggestion.Model is { } model ? $"{AssistText.Wire(Suggestion.Source)}: {model}" : AssistText.Wire(Suggestion.Source);
+}

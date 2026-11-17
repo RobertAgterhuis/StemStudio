@@ -45,3 +45,228 @@
   margin: 0 0 var(--ss-space-1);
   overflow-wrap: anywhere;
 }
+
+/* Lyrics editor page with the lyric assistant (feature 023); tokens only. The text area lies over a layer with the same
+   metrics that draws the highlights, so both must keep font, padding and wrapping identical. */
+
+.ss-lyrics-workspace {
+  display: grid;
+  gap: var(--ss-space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 64rem) {
+  .ss-lyrics-workspace.has-pane {
+    grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  }
+}
+
+.ss-lyrics-editor-main,
+.ss-assist {
+  display: grid;
+  gap: var(--ss-space-3);
+  align-content: start;
+  min-width: 0;
+}
+
+.ss-lyric-stack {
+  position: relative;
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+  min-height: 12rem;
+}
+
+.ss-lyric-overlay,
+.ss-lyric-input {
+  font: inherit;
+  font-size: var(--ss-type-body-size);
+  line-height: var(--ss-type-body-line);
+  padding: var(--ss-space-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ss-lyric-overlay {
+  display: grid;
+  color: transparent;
+}
+
+.ss-lyric-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+}
+
+.ss-lyric-gutter {
+  color: var(--ss-color-muted);
+  display: flex;
+  gap: var(--ss-space-1);
+  font-size: var(--ss-type-small-size);
+}
+
+.ss-syllables.is-deviating {
+  color: var(--ss-color-warning);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.ss-provenance {
+  color: var(--ss-color-ink);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-pill);
+  padding: 0 var(--ss-space-1);
+}
+
+.ss-lyric-input {
+  position: absolute;
+  inset: 0 0 0 3rem;
+  width: calc(100% - 3rem);
+  height: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--ss-color-ink);
+  caret-color: var(--ss-color-ink);
+  overflow: hidden;
+}
+
+.ss-lyric-input:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+/* Highlights: the category is told by the underline style (FR-028), not by colour alone. */
+.ss-hl {
+  background: transparent;
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--ss-color-primary);
+}
+
+.ss-hl-spelling { text-decoration-style: wavy; text-decoration-color: var(--ss-color-danger); }
+.ss-hl-grammar { text-decoration-style: double; text-decoration-color: var(--ss-color-warning); }
+.ss-hl-flow { text-decoration-style: dotted; }
+.ss-hl-licence,
+.ss-hl-device { text-decoration-style: dashed; text-decoration-color: var(--ss-color-success); }
+.ss-hl-alternative,
+.ss-hl-continuation,
+.ss-hl-title { text-decoration-style: solid; }
+
+.ss-hl.is-active {
+  background: color-mix(in srgb, var(--ss-color-focus) 20%, transparent);
+}
+
+.ss-assist {
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-surface);
+  padding: var(--ss-space-4);
+}
+
+.ss-assist-actions,
+.ss-assist-filters,
+.ss-assist-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  align-items: center;
+}
+
+.ss-assist-progress {
+  flex: 1 1 8rem;
+  height: var(--ss-space-2);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-color-sunken);
+  overflow: hidden;
+}
+
+.ss-assist-progress-bar {
+  height: 100%;
+  background: var(--ss-color-primary);
+}
+
+.ss-assist-list,
+.ss-assist-rhymes,
+.ss-assist-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-assist-list {
+  max-height: 28rem;
+  overflow-y: auto;
+  scroll-padding-bottom: calc(var(--ss-dock-inset, 0px) + var(--ss-space-2));
+}
+
+.ss-assist-list:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+.ss-assist-entry {
+  display: grid;
+  gap: var(--ss-space-1);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-control);
+  cursor: pointer;
+}
+
+.ss-assist-entry.is-active {
+  border-color: var(--ss-color-focus);
+  box-shadow: inset 4px 0 0 var(--ss-color-focus);
+}
+
+.ss-assist-original {
+  text-decoration: line-through;
+}
+
+.ss-assist-proposal {
+  font-weight: 700;
+}
+
+.ss-assist-rhymes li,
+.ss-assist-plain-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  align-items: center;
+}
+
+.ss-assist-panel {
+  display: grid;
+  gap: var(--ss-space-2);
+}
+
+.ss-assist-rhythm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  align-items: end;
+}
+
+.ss-assist-rhythm .rz-textbox {
+  width: 6rem;
+}
+
+.ss-assist .rz-button,
+.ss-assist .ss-chip,
+.ss-assist input[type="radio"],
+.ss-assist input[type="checkbox"] {
+  min-height: var(--ss-target-min);
+  min-width: var(--ss-target-min);
+}
+
+.ss-agent-lyrics-diff del {
+  color: var(--ss-color-muted);
+}
+
+.ss-agent-lyrics-diff ins {
+  text-decoration: none;
+  font-weight: 700;
+}

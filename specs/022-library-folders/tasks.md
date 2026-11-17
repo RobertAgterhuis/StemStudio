@@ -166,8 +166,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T078 [US5] [ai-agent] Tool implementations in `src/StemStudio.Agent/Tools/Library/` (green)
 - [x] T079 [P] [US5] [backend] Tests (red) loopback `IStemStudioActions` library methods against the endpoints (in-process host)
 - [x] T080 [US5] [backend] `IStemStudioActions` library implementation (green)
-- [ ] T081 [P] [US5] [frontend] Tests (red) UI tool host: `open_library_folder` navigates (unsaved-changes guard), page context `library` for `/library/{folderId}`
-- [ ] T082 [US5] [frontend] UI tool handler (green)
+- [x] T081 [P] [US5] [frontend] Tests (red) UI tool host: `open_library_folder` navigates (unsaved-changes guard), page context `library` for `/library/{folderId}`
+- [x] T082 [US5] [frontend] UI tool handler (green)
 - [x] T083 [P] [US5] [ai-agent] Evaluation cases LIB-01..LIB-05 in `specs/011-ai-composer-agent/evaluation/` and the eval test project (fake chat client scripts)
 
 **Checkpoint**: HO:us5 (ai-agent, backend, frontend).
