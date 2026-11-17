@@ -106,7 +106,8 @@ def test_score_modules_are_mapped() -> None:
 def test_notation_and_engraving_have_third_party_allow_lists() -> None:
     assert PYTHON_EXTERNAL_ALLOWED["notation"] == frozenset({"music21"})
     assert PYTHON_EXTERNAL_ALLOWED["engraving"] == frozenset({"verovio", "cairosvg", "pypdf"})
-    assert set(PYTHON_EXTERNAL_ALLOWED) == {"notation", "engraving"}
+    # 014 T015 adds documents -> reportlab (test_practice_flow_rules.py).
+    assert set(PYTHON_EXTERNAL_ALLOWED) == {"notation", "engraving", "documents"}
 
 
 def test_score_tree_importing_allowed_modules_is_clean(tmp_path: Path) -> None:

@@ -1,3 +1,4 @@
+using StemStudio.Api.Recording;
 using StemStudio.Api.Storage;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -6,15 +7,17 @@ namespace StemStudio.Api.Tracks;
 
 /// <summary>
 /// Deletes a failed or completed track: first the track row and its mixes (one unit of work), then best-effort its stem
-/// files and stored upload. The worker is never called, so its per-source cache stays intact.
+/// files and stored upload. Its recorded takes (feature 015) are deleted in the same unit of work, their files afterwards. The
+/// worker is only called to cancel a take that is still being saved, so its per-source cache stays intact.
 /// </summary>
 /// <param name="tracks">Track repository.</param>
 /// <param name="stems">Stem file store.</param>
 /// <param name="uploads">Upload store.</param>
 /// <param name="generations">Generations (their source track is detached, feature 009).</param>
+/// <param name="takes">Deletes the track's takes (feature 015).</param>
 /// <param name="logger">Logger for file clean-up failures.</param>
 public sealed partial class TrackDeletionService(
-    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, IGenerationRepository generations, ILogger<TrackDeletionService> logger)
+    ITrackRepository tracks, IStemFileStore stems, IUploadStore uploads, IGenerationRepository generations, ITrackTakesCleanup takes, ILogger<TrackDeletionService> logger)
 {
     /// <summary>Title of the 409 problem for a track that is still queued or processing.</summary>
     public const string StillProcessingTitle = "Track is still being processed";
@@ -45,8 +48,10 @@ public sealed partial class TrackDeletionService(
             return conflict;
         }
 
+        var takeAssets = await takes.StageAsync(id, cancellationToken);
         await tracks.RemoveWithMixesAsync(track, cancellationToken);
         await DetachGenerationsAsync(id, cancellationToken);
+        await takes.DeleteFilesAsync(takeAssets, cancellationToken);
         DeleteFiles(track);
         return TypedResults.NoContent();
     }

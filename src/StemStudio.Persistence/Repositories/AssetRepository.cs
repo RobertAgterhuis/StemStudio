@@ -15,6 +15,9 @@ public sealed record AssetQuery
     /// <summary>Only this status.</summary>
     public AssetStatus? Status { get; init; }
 
+    /// <summary>Only this origin; null = every origin except <see cref="AssetOrigin.Recording"/> (feature 015: takes are hidden).</summary>
+    public AssetOrigin? Origin { get; init; }
+
     /// <summary>Case-insensitive "name contains".</summary>
     public string? NameContains { get; init; }
 
@@ -46,6 +49,12 @@ public interface IAssetRepository
     /// <returns>The page (not tracked).</returns>
     Task<AssetPage> ListAsync(AssetQuery query, CancellationToken cancellationToken);
 
+    /// <summary>The items with the given ids, tracked (feature 015: the assets of a track's takes).</summary>
+    /// <param name="ids">Item ids.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The items found.</returns>
+    Task<IReadOnlyList<Asset>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>Queued and rendering items, for the asset synchroniser.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked items.</returns>
@@ -59,6 +68,10 @@ public interface IAssetRepository
     /// <summary>Adds an item; saved with the next save of the scope.</summary>
     /// <param name="asset">New item.</param>
     void Add(Asset asset);
+
+    /// <summary>Removes items; saved with the next save of the scope (feature 015 take deletion).</summary>
+    /// <param name="items">Tracked items.</param>
+    void RemoveRange(IEnumerable<Asset> items);
 
     /// <summary>Removes an item and saves.</summary>
     /// <param name="asset">Tracked item.</param>
@@ -84,12 +97,16 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     public async Task<AssetPage> ListAsync(AssetQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var matching = Filter(context.Assets.AsNoTracking(), query);
+        var matching = Filter(AssetOrigins.Of(context, query.Origin).AsNoTracking(), query);
         var items = await matching.OrderByDescending(asset => asset.CreatedAt).Skip(query.Offset).Take(query.Limit).ToListAsync(cancellationToken);
         var total = await matching.CountAsync(cancellationToken);
         var size = await matching.SumAsync(asset => asset.SizeBytes, cancellationToken);
         return new AssetPage(items, total, size);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Asset>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Assets.Where(asset => ids.Contains(asset.Id)).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Asset>> ListActiveAsync(CancellationToken cancellationToken) =>
@@ -104,6 +121,9 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
 
     /// <inheritdoc />
     public void Add(Asset asset) => context.Assets.Add(asset);
+
+    /// <inheritdoc />
+    public void RemoveRange(IEnumerable<Asset> items) => context.Assets.RemoveRange(items);
 
     /// <inheritdoc />
     public async Task RemoveAsync(Asset asset, CancellationToken cancellationToken)
@@ -129,4 +149,35 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     /// <summary>Escapes the LIKE wildcards; SQLite LIKE ignores ASCII case.</summary>
     private static string Escape(string text) => text.Replace("\\", "\\\\", StringComparison.Ordinal)
         .Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+}
+
+/// <summary>
+/// Origin filters on the provenance JSON in SQL (feature 015): recorded takes (origin <c>Recording</c>) are hidden from the
+/// library list and never filed (022), also for rows a backup restored without their take.
+/// </summary>
+internal static class AssetOrigins
+{
+    /// <summary>The items of one origin, or every item that is not a take.</summary>
+    /// <param name="context">The context.</param>
+    /// <param name="origin">The origin, or null.</param>
+    /// <returns>The composable query.</returns>
+    public static IQueryable<Asset> Of(StemStudioDbContext context, AssetOrigin? origin)
+    {
+        if (origin is not { } value)
+        {
+            return NotRecordings(context);
+        }
+
+        var ids = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.Origin') = {value.ToString()}");
+        return context.Assets.Where(asset => ids.Contains(asset.Id));
+    }
+
+    /// <summary>Every item that is not a recorded take.</summary>
+    /// <param name="context">The context.</param>
+    /// <returns>The composable query.</returns>
+    public static IQueryable<Asset> NotRecordings(StemStudioDbContext context)
+    {
+        var takes = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.Origin') = 'Recording'");
+        return context.Assets.Where(asset => !takes.Contains(asset.Id));
+    }
 }

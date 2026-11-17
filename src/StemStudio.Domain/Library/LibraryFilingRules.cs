@@ -11,15 +11,15 @@ public static class LibraryFilingRules
     private const char Ellipsis = '…';
 
     /// <summary>
-    /// True for every item that lives in a folder. Every origin that exists today is filed; recorded play-along takes
-    /// (feature 015) will add their origin here and are then never filed (FR-001).
+    /// True for every item that lives in a folder: every known origin except recorded play-along takes (feature 015), which
+    /// live in their track's Takes panel and are never filed (FR-001).
     /// </summary>
     /// <param name="provenance">The item's provenance.</param>
     /// <returns>True when the item is filed.</returns>
     public static bool IsFileable(Provenance provenance)
     {
         ArgumentNullException.ThrowIfNull(provenance);
-        return Enum.IsDefined(provenance.Origin);
+        return Enum.IsDefined(provenance.Origin) && provenance.Origin != AssetOrigin.Recording;
     }
 
     /// <summary>True when the item has no current placement (never filed or filed with an older rules version).</summary>

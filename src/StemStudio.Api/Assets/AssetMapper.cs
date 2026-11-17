@@ -7,6 +7,7 @@ using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Rendering;
 
 namespace StemStudio.Api.Assets;
@@ -60,6 +61,7 @@ public static class AssetMapper
             Mix = recipe.Mix is { } mix ? ToDto(mix) : null,
             Range = recipe.Range is { } range ? new RangeDto(range.StartSeconds, range.EndSeconds) : null,
             Format = new ExportFormatDto(ToDto(recipe.Format.Format), recipe.Format.BitDepth, recipe.Format.Mp3BitrateKbps),
+            TakeId = recipe.TakeId,
         };
     }
 
@@ -73,6 +75,7 @@ public static class AssetMapper
         {
             Expanded = (mix.Expanded ?? []).ToList(),
             DetailChannels = (mix.DetailChannels ?? []).Select(MixMapper.ToDomain).ToList(),
+            Take = mix.Take is { } take ? new TakeChannelSettings { TakeId = take.TakeId, Volume = take.Volume, Pan = take.Pan, Mute = take.Mute, Solo = take.Solo } : null,
         };
     }
 
@@ -110,6 +113,7 @@ public static class AssetMapper
         Recipe = provenance.Recipe is { } recipe ? ToDto(recipe) : null,
         ScoreRecipe = provenance.ScoreRecipe is { } scoreRecipe ? ScoreMapper.ToDto(scoreRecipe) : null,
         Generation = provenance.Generation is { } generation ? ToDto(generation) : null,
+        Recording = provenance.Recording is { } recording ? new Contracts.Recording.RecordingRecipeDto { TakeId = recording.TakeId } : null,
     };
 
     private static GenerationProvenanceDto ToDto(GenerationSource generation) => new()
@@ -124,5 +128,6 @@ public static class AssetMapper
         {
             Expanded = mix.Expanded,
             DetailChannels = mix.DetailChannels.Select(c => new DetailChannelSettingsDto(c.Parent, c.Stem, c.Volume, c.Pan, c.Mute, c.Solo)).ToList(),
+            Take = mix.Take is { } take ? new Contracts.Recording.TakeChannelSettingsDto { TakeId = take.TakeId, Volume = take.Volume, Pan = take.Pan, Mute = take.Mute, Solo = take.Solo } : null,
         };
 }

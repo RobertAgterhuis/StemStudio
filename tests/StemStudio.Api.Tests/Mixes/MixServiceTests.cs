@@ -102,5 +102,5 @@ public sealed class MixServiceTests : IDisposable
         domain.Metronome.BeatsPerBar.ShouldBe(3);
     }
 
-    private MixService Service() => new(_tracks, _mixes, new FakeTimeProvider(ApiFactory.Start));
+    private MixService Service() => new(_tracks, _mixes, new FakeTimeProvider(ApiFactory.Start), new MixReferences(Substitute.For<ISectionRepository>(), Substitute.For<IRecordingTakeRepository>()));
 }

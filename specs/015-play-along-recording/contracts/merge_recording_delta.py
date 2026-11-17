@@ -47,7 +47,7 @@ CHANGELOG = """      1.14.0 (additive, feature 015; ADR-024) - play-along record
       `POST /api/takes/{takeId}/retry`) and input-latency calibrations (`/api/recording/calibrations`);
       `AssetOrigin` `recording` with `Provenance.recording` (`RecordingRecipe`, an optional member like `generation`); `listAssets` query `origin` (without it
       `recording` assets are excluded); `409 managed-by-take` on rename/delete/retry of a take's asset;
-      `ExportChannelId` (= `ChannelId` or the literal `take`) for the export channel lists (`ChannelId` itself is unchanged); `CreateAudioExportRequest.takeId`; `MixSettings.take`;
+      `ExportChannelId` (= `ChannelId` or the literal `take`) for the export channel lists (`ChannelId` itself is unchanged); `CreateAudioExportRequest.takeId`, `ExportMix.take` and `ExportRecipe.takeId` (amended in the round); `MixSettings.take`;
       `Track.takeCount`; deleting a track deletes its takes. New problem types: `invalid-wav`,
       `unsupported-wav-format`, `length-mismatch`, `silent-take`, `take-outside-track`,
       `take-limit-reached`, `recording-speed`, `take-not-ready`, `take-not-in-track`, `take-required`,
@@ -166,6 +166,16 @@ def additions(text: str) -> str:
         "type: [string, 'null']", "format: uuid",
         "description: \"1.14.0: the take to export. Raw mode with `channels: [\\\"take\\\"]` (default range = the take's span); in mix mode the take of `mix.take` or the saved mix. Errors: 404 unknown take, 409 `take-not-ready`, 422 `take-not-in-track`, 422 `take-required`.\"",
     ])
+    # Contract amendment (round 014+015, L4 T071, orchestrator decision): an unsaved mixer state sends its take strip as
+    # `ExportMix.take`; the stored recipe names the take (`ExportRecipe.takeId`). Both optional, absent when null.
+    text = in_schema(text, "ExportMix", "      properties:\n        masterVolume:\n",
+                     "      properties:\n        take:\n          oneOf:\n            - $ref: '#/components/schemas/TakeChannelSettings'\n            - type: 'null'\n"
+                     "          description: The take strip of the mixer state (1.14.0); absent or null = no take. Adds channel `take` to the gate evaluation.\n"
+                     "        masterVolume:\n")
+    text = in_schema(text, "ExportRecipe", "      properties:\n        trackId:\n",
+                     "      properties:\n        takeId:\n          type: [string, 'null']\n          format: uuid\n"
+                     "          description: The take the export used (1.14.0); absent or null when no take is in it.\n"
+                     "        trackId:\n")
     text = replace_once(
         text,
         "      operationId: listAssets\n      summary: List library items, newest first (1.5.0).\n      parameters:\n",

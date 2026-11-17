@@ -112,6 +112,35 @@ public sealed partial class Asset
         return asset;
     }
 
+    /// <summary>Creates the queued item of a play-along take (feature 015, data-model 2.2); its render writes <c>audio.flac</c>.</summary>
+    /// <param name="id">New identifier.</param>
+    /// <param name="name">The take name.</param>
+    /// <param name="provenance">Where it came from, with its take.</param>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <returns>The item.</returns>
+    /// <exception cref="DomainValidationException">The name breaks a rule.</exception>
+    public static Asset CreateRecording(Guid id, string name, Provenance provenance, DateTime nowUtc)
+    {
+        Require(provenance, provenance?.Recording is not null && provenance.Origin == AssetOrigin.Recording, "A recording item needs its take.");
+        return New(id, AssetKind.Audio, name).Started(provenance!, nowUtc);
+    }
+
+    /// <summary>
+    /// Queues a new render of a ready or failed item (feature 015 timing adjustment and retry); the stored files stay until the
+    /// new render completes and replaces them.
+    /// </summary>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    /// <exception cref="InvalidOperationException">The item is queued or rendering.</exception>
+    public void Rerender(DateTime nowUtc)
+    {
+        if (IsActive)
+        {
+            throw new InvalidOperationException($"Item {Id} is already {Status}.");
+        }
+
+        (Status, Progress, Error, WorkerJobId, UpdatedAt) = (AssetStatus.Queued, 0, null, null, nowUtc);
+    }
+
     private static Asset New(Guid id, AssetKind kind, string name) => new() { Id = id, Kind = kind, Name = AssetNaming.Validate(name), Status = AssetStatus.Queued };
 
     private Asset Started(Provenance provenance, DateTime nowUtc)

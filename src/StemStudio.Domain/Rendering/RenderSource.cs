@@ -9,6 +9,9 @@ namespace StemStudio.Domain.Rendering;
 /// <param name="Split">Detail stem names per split parent.</param>
 public sealed record RenderSource(Guid TrackId, IReadOnlyList<string> Stems, IReadOnlyDictionary<string, IReadOnlyList<string>> Split)
 {
+    /// <summary>The take the export may use (feature 015), or null.</summary>
+    public RenderTake? Take { get; init; }
+
     /// <summary>The source of a track (split parents only when its detail phase completed).</summary>
     /// <param name="track">The track.</param>
     /// <returns>The source.</returns>

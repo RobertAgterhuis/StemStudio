@@ -53,6 +53,7 @@ public sealed class ExportService(ExportPlanner planner, AssetSubmitter submitte
             TrackTitle = title.Length <= MaxTrackTitleLength ? title : title[..MaxTrackTitleLength],
             TrackArtist = draft.Track.Artist,
             Contents = ExportContents.WithRange(draft.Plan.Contents, draft.Recipe.Range),
+            SourceAssetIds = draft.Plan.SourceAssetIds,
             Recipe = draft.Recipe,
         };
     }

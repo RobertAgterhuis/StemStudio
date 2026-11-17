@@ -310,7 +310,7 @@ public sealed class PracticeFlowPersistenceTests
         await db.ScalarAsync("""UPDATE Mixes SET Loop = '{"Start":10,"End":20,"Enabled":true,"SectionId":"0b1c2d3e-0000-4000-8000-000000000004"}'""");
 
         await using var read = db.NewContext();
-        (await new MixRepository(read).FindAsync(mix.Id, Ct))!.Settings.Loop.ShouldBe(new LoopRegion(10, 20, true));
+        (await new MixRepository(read).FindAsync(mix.Id, Ct))!.Settings.Loop.ShouldBe(new LoopRegion(10, 20, true) { SectionId = Guid.Parse("0b1c2d3e-0000-4000-8000-000000000004") });
     }
 
     internal static TrackSections DetectedSet(Guid trackId)

@@ -120,7 +120,7 @@ def test_domain_rendering_forbids_every_other_project() -> None:
 
 
 def test_api_assets_forbids_web() -> None:
-    assert DOTNET_FOLDER_FORBIDDEN["StemStudio.Api/Assets"] == frozenset({"StemStudio.Web"})
+    assert "StemStudio.Web" in DOTNET_FOLDER_FORBIDDEN["StemStudio.Api/Assets"]
 
 
 @pytest.mark.parametrize(

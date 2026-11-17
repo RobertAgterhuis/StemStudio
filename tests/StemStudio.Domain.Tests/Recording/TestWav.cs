@@ -1,0 +1,85 @@
+using System.Buffers.Binary;
+
+namespace StemStudio.Domain.Tests.Recording;
+
+/// <summary>Builds take WAV files (and hostile variants) for the recording tests.</summary>
+public static class TestWav
+{
+    public static readonly byte[] PcmSubformat =
+        [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71];
+
+    /// <summary>24-bit samples (interleaved) as little-endian bytes.</summary>
+    public static byte[] Samples(params int[] values)
+    {
+        var bytes = new byte[values.Length * 3];
+        for (var i = 0; i < values.Length; i++)
+        {
+            bytes[i * 3] = (byte)values[i];
+            bytes[(i * 3) + 1] = (byte)(values[i] >> 8);
+            bytes[(i * 3) + 2] = (byte)(values[i] >> 16);
+        }
+
+        return bytes;
+    }
+
+    /// <summary>A constant tone of the given frames.</summary>
+    public static byte[] Tone(long frames, int channels = 1, int value = 100_000) =>
+        Samples(Enumerable.Repeat(value, (int)(frames * channels)).ToArray());
+
+    public static byte[] Fmt(ushort format = 1, ushort channels = 1, uint rate = 44_100, ushort bits = 24, ushort? blockAlign = null)
+    {
+        var fmt = new byte[16];
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt, format);
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(2), channels);
+        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(4), rate);
+        BinaryPrimitives.WriteUInt32LittleEndian(fmt.AsSpan(8), rate * (uint)(3 * channels));
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(12), blockAlign ?? (ushort)(3 * channels));
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(14), bits);
+        return fmt;
+    }
+
+    public static byte[] ExtensibleFmt(ushort channels = 1, byte[]? subformat = null)
+    {
+        var fmt = new byte[40];
+        Fmt(0xFFFE, channels).CopyTo(fmt, 0);
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(16), 22);
+        BinaryPrimitives.WriteUInt16LittleEndian(fmt.AsSpan(18), 24);
+        (subformat ?? PcmSubformat).CopyTo(fmt, 24);
+        return fmt;
+    }
+
+    public static byte[] Chunk(string id, byte[] body, uint? declaredSize = null)
+    {
+        var size = declaredSize ?? (uint)body.Length;
+        var pad = body.Length % 2;
+        var chunk = new byte[8 + body.Length + pad];
+        System.Text.Encoding.ASCII.GetBytes(id).CopyTo(chunk, 0);
+        BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(4), size);
+        body.CopyTo(chunk, 8);
+        return chunk;
+    }
+
+    public static byte[] Riff(params byte[][] chunks)
+    {
+        var body = chunks.SelectMany(chunk => chunk).ToArray();
+        var file = new byte[12 + body.Length];
+        "RIFF"u8.CopyTo(file);
+        BinaryPrimitives.WriteUInt32LittleEndian(file.AsSpan(4), (uint)(4 + body.Length));
+        "WAVE"u8.CopyTo(file.AsSpan(8));
+        body.CopyTo(file, 12);
+        return file;
+    }
+
+    /// <summary>A valid take WAV.</summary>
+    public static byte[] Wav(byte[] data, int channels = 1) => Riff(Chunk("fmt ", Fmt(channels: (ushort)channels)), DataChunk(data));
+
+    /// <summary>A data chunk without the RIFF pad byte (data is always the last chunk).</summary>
+    public static byte[] DataChunk(byte[] data, uint? declaredSize = null)
+    {
+        var chunk = new byte[8 + data.Length];
+        "data"u8.CopyTo(chunk);
+        BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(4), declaredSize ?? (uint)data.Length);
+        data.CopyTo(chunk, 8);
+        return chunk;
+    }
+}
