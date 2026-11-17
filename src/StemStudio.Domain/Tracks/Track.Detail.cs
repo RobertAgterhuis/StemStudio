@@ -8,6 +8,9 @@ public sealed partial class Track
     /// <summary>Failure text used when the worker gives no reason.</summary>
     public const string DetailFailedDefault = "Detail separation failed.";
 
+    /// <summary>Stage text of a queued detail phase while the worker cache is rebuilt from the library (feature 013, FR-019).</summary>
+    public const string PreparingStemsStage = "Preparing stems";
+
     /// <summary>The detail phase, or null when it was never requested (status "none").</summary>
     public DetailPhase? DetailPhase { get; private set; }
 
@@ -66,6 +69,19 @@ public sealed partial class Track
         }
 
         SetDetail(RequireActiveDetail() with { WorkerDetailJobId = workerDetailJobId, UpdatedAt = nowUtc }, nowUtc);
+    }
+
+    /// <summary>
+    /// Shows <see cref="PreparingStemsStage"/> on a queued phase while the worker cache is rehydrated (feature 013, FR-019);
+    /// ignored without a queued phase.
+    /// </summary>
+    /// <param name="nowUtc">Current time (UTC).</param>
+    public void MarkDetailPreparingStems(DateTime nowUtc)
+    {
+        if (DetailPhase is { Status: DetailPhaseStatus.Queued } phase)
+        {
+            SetDetail(phase with { Stage = PreparingStemsStage, UpdatedAt = nowUtc }, nowUtc);
+        }
     }
 
     /// <summary>Applies a worker report; ignored without an active phase or for backward states; progress never decreases.</summary>

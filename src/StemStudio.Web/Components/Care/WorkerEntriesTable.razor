@@ -1,23 +1,46 @@
-@* Worker details at Expert (013 US3; ui-test-ids 1.12.0 storage-worker-entries): the worker's caches, job files and
-   scratch space. Backend API 1.12.0 reports them per category, not per cache entry, so the table lists the categories. *@
+@* Worker details at Expert (013 US3; ui-test-ids 1.12.0 storage-worker-entries): one row per worker cache entry
+   (backend-api 1.12.0 StorageOverview.workerEntries), largest first, with the track whose standard job uses it. *@
 
 <table class="ss-table ss-care-storage-table" data-testid="storage-worker-entries">
-    <caption class="ss-label">Worker data</caption>
-    <thead><tr><th scope="col">Part</th><th scope="col">Size</th><th scope="col">Files</th></tr></thead>
+    <caption class="ss-label">Worker cache entries</caption>
+    <thead><tr><th scope="col">Entry</th><th scope="col">Size</th><th scope="col">In use</th><th scope="col">From library</th><th scope="col">Track</th></tr></thead>
     <tbody>
-        @foreach (var part in Categories.Where(c => WireName.Of(c.Category).StartsWith("worker", StringComparison.Ordinal)))
+        @if (Entries.Count == 0)
         {
-            <tr @key="part.Category">
-                <th scope="row">@CareText.Category(part.Category)</th>
-                <td class="ss-num">@StorageView.Size(part.Bytes)</td>
-                <td class="ss-num">@(part.Files?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-")</td>
+            <tr><td colspan="5">No worker cache entries.</td></tr>
+        }
+        @foreach (var entry in Entries)
+        {
+            <tr @key="entry.AudioSha256Prefix">
+                <th scope="row"><code>@entry.AudioSha256Prefix</code></th>
+                <td class="ss-num">@StorageView.Size(entry.Bytes)</td>
+                <td>@YesNo(entry.InUse)</td>
+                <td>@YesNo(entry.FromLibrary)</td>
+                <td>
+                    @if (TitleOf(entry.TrackId) is { } title)
+                    {
+                        <a href="@($"tracks/{entry.TrackId}")">@title</a>
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
+                </td>
             </tr>
         }
     </tbody>
 </table>
 
 @code {
-    /// <summary>Every category of the overview; only the worker ones are listed.</summary>
+    /// <summary>The worker cache entries of the overview.</summary>
     [Parameter, EditorRequired]
-    public IReadOnlyList<StorageCategoryUsageDto> Categories { get; set; } = [];
+    public IReadOnlyList<WorkerCacheEntryStorageDto> Entries { get; set; } = [];
+
+    /// <summary>The per-track rows, for the track titles.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TrackStorageDto> Tracks { get; set; } = [];
+
+    private static string YesNo(bool value) => value ? "Yes" : "No";
+
+    private string? TitleOf(Guid? trackId) => trackId is null ? null : Tracks.FirstOrDefault(track => track.TrackId == trackId)?.Title;
 }

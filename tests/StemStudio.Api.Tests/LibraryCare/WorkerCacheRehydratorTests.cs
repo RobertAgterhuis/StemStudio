@@ -30,6 +30,27 @@ public sealed class WorkerCacheRehydratorTests : ApiTestBase
     }
 
     [Fact]
+    public async Task DetailStart_WhileRehydrating_ShowsTheStagePreparingStems()
+    {
+        var track = await Factory.SeedAsync(SyncTestData.DetailQueued(detailJobId: null));
+        var original = track.WorkerJobId!;
+        string? stageDuringRehydration = null;
+        Worker.OnCreateDetail = standard => standard == original
+            ? throw new WorkerRequestException(HttpStatusCode.Conflict, "Stems are no longer in the worker cache.")
+            : Task.FromResult(FakeWorkerClient.DetailJob(DetailJob, WorkerDetailJobState.Queued));
+        Worker.OnRehydrate = async _ =>
+        {
+            stageDuringRehydration = (await Factory.FindTrackAsync(track.Id))!.DetailPhase!.Stage;
+            return new WorkerRehydratedJob(Rehydrated, new string('a', 64), "completed", "htdemucs_6s", [], ApiFactory.Start);
+        };
+
+        await Factory.SyncDetailAsync();
+
+        stageDuringRehydration.ShouldBe(StemStudio.Domain.Tracks.Track.PreparingStemsStage);
+        StemStudio.Domain.Tracks.Track.PreparingStemsStage.ShouldBe("Preparing stems");
+    }
+
+    [Fact]
     public async Task DetailStart_SecondFailure_SurfacesTheOriginalError()
     {
         var track = await Factory.SeedAsync(SyncTestData.DetailQueued(detailJobId: null));

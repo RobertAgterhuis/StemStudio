@@ -48,6 +48,8 @@ public sealed class StorageOverviewTests : ApiTestBase
         overview.Tracks.Select(t => t.TotalBytes).ShouldBeInOrder(SortDirection.Descending);
         overview.Unattached.VoiceProfilesBytes.ShouldBe(24);
         overview.ModelCaches.ShouldHaveSingleItem().Id.ShouldBe("torch");
+        var entry = overview.WorkerEntries.ShouldHaveSingleItem();
+        (entry.AudioSha256Prefix, entry.Bytes, entry.InUse, entry.FromLibrary, entry.TrackId).ShouldBe((Sha[..12], 553L, false, false, (Guid?)track.Id));
         overview.Worker.Available.ShouldBeTrue();
         overview.Volumes.Select(volume => volume.Id).ShouldBe([StorageVolumeIdDto.Library, StorageVolumeIdDto.Backups, StorageVolumeIdDto.WorkerData, StorageVolumeIdDto.ModelCache]);
         overview.Volumes.Single(volume => volume.Id == StorageVolumeIdDto.WorkerData).SharedWith.ShouldContain("modelCache");
@@ -63,6 +65,7 @@ public sealed class StorageOverviewTests : ApiTestBase
         (overview.Worker.Available, overview.Worker.Reason is not null).ShouldBe((false, true));
         overview.Categories.Single(category => category.Category == StorageCategoryDto.WorkerSeparationCache).Bytes.ShouldBeNull();
         overview.Tracks.Single().WorkerCacheBytes.ShouldBeNull();
+        overview.WorkerEntries.ShouldBeEmpty();
         overview.Volumes.Single(volume => volume.Id == StorageVolumeIdDto.WorkerData).Reason.ShouldNotBeNull();
     }
 
@@ -108,6 +111,21 @@ public sealed class StorageOverviewTests : ApiTestBase
 
         (await response.BodyAsync<StorageOverviewDto>()).Tracks.Count.ShouldBe(500);
         watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public void WorkerEntries_AreLargestFirst_AndOnlyKnownJobsHaveATrack()
+    {
+        var track = SyncTestData.CompletedTrack();
+        var storage = Storage(track.WorkerJobId!) with
+        {
+            CacheEntries = [new(new string('b', 64), 10, 0, 0, 0, ["ffffffffffffffffffffffffffffffff", track.WorkerJobId!], true, true, null), new(Sha, 151, 400, 2, 0, [], false, false, null)],
+        };
+
+        var rows = WorkerEntries.Of(storage, [track]);
+
+        rows.Select(row => (row.Bytes, row.TrackId, row.InUse, row.FromLibrary)).ShouldBe([(553L, (Guid?)null, false, false), (10L, (Guid?)track.Id, true, true)]);
+        WorkerEntries.Of(null, [track]).ShouldBeEmpty();
     }
 
     private static long? Bytes(StorageOverviewDto overview, StorageCategoryDto category) => overview.Categories.Single(usage => usage.Category == category).Bytes;

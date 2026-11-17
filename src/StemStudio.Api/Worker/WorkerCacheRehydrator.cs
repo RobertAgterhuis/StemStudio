@@ -18,8 +18,19 @@ public sealed class WorkerCacheRehydrator(IWorkerClient worker, TimeProvider clo
     /// <param name="submit">The request, given the standard job id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The result.</returns>
-    public async Task<T> SubmitAsync<T>(Track track, Func<string, Task<T>> submit, CancellationToken cancellationToken)
+    public Task<T> SubmitAsync<T>(Track track, Func<string, Task<T>> submit, CancellationToken cancellationToken) =>
+        SubmitAsync(track, submit, static () => Task.CompletedTask, cancellationToken);
+
+    /// <summary>Runs a request for the track's standard job with one rehydration on a cache miss.</summary>
+    /// <typeparam name="T">The result.</typeparam>
+    /// <param name="track">A completed track (changed when rehydrated; the caller saves it).</param>
+    /// <param name="submit">The request, given the standard job id.</param>
+    /// <param name="preparing">Runs once before the rehydration starts (e.g. shows and saves the stage "Preparing stems").</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The result.</returns>
+    public async Task<T> SubmitAsync<T>(Track track, Func<string, Task<T>> submit, Func<Task> preparing, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(preparing);
         ArgumentNullException.ThrowIfNull(track);
         ArgumentNullException.ThrowIfNull(submit);
         try
@@ -28,6 +39,7 @@ public sealed class WorkerCacheRehydrator(IWorkerClient worker, TimeProvider clo
         }
         catch (WorkerRequestException original) when (IsCacheMiss(original) && track.Status == TrackStatus.Completed)
         {
+            await preparing();
             return await RetryAsync(track, submit, original, cancellationToken);
         }
     }

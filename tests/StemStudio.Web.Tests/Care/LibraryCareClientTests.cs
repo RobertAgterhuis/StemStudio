@@ -100,7 +100,7 @@ public sealed class LibraryCareClientTests : IDisposable
         _handler.Respond(HttpStatusCode.OK, """
                 {"measuredAt":"2026-11-17T10:00:00Z","volumes":[],"categories":[],"tracks":[],
                  "unattached":{"exportsBytes":0,"scoresBytes":0,"generationsBytes":0,"voiceProfilesBytes":0,"lyricsSheets":0},
-                 "modelCaches":[],"backups":{"count":0,"bytes":0,"folderAvailable":true,"reason":null},"worker":{"available":false,"reason":"down"}}
+                 "modelCaches":[],"workerEntries":[],"backups":{"count":0,"bytes":0,"folderAvailable":true,"reason":null},"worker":{"available":false,"reason":"down"}}
                 """)
             .Respond(HttpStatusCode.OK, plan)
             .Respond(HttpStatusCode.OK, """{"planId":"11111111-2222-4333-8444-555555555555","freedBytes":9,"removed":[],"failed":[]}""");

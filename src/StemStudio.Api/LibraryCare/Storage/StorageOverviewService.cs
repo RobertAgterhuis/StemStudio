@@ -73,6 +73,7 @@ public sealed class StorageOverviewService(StemStudioDbContext context, LibraryW
             Tracks = [.. tracks.Select(attribution.Row).OrderByDescending(row => row.TotalBytes)],
             Unattached = attribution.Unattached(await context.LyricsSheets.CountAsync(cancellationToken)),
             ModelCaches = [.. (storage?.ModelCaches ?? []).Select(model => new ModelCacheUsageDto { Id = model.Id, Bytes = model.Bytes, Models = model.Models })],
+            WorkerEntries = WorkerEntries.Of(storage, tracks),
             Backups = volumes.Backups(),
             Worker = new WorkerStorageStateDto { Available = storage is not null, Reason = reason },
         };
@@ -95,6 +96,30 @@ public sealed class StorageOverviewService(StemStudioDbContext context, LibraryW
             return (null, "The processing service is not reachable; its disk use cannot be shown.");
         }
     }
+}
+
+/// <summary>The worker cache entries of the overview (<c>workerEntries</c>, shown at Expert).</summary>
+public static class WorkerEntries
+{
+    /// <summary>One row per worker cache entry, largest first, with the track whose standard job uses it.</summary>
+    /// <param name="storage">The worker report, or null when the worker is not reachable.</param>
+    /// <param name="tracks">The library tracks.</param>
+    /// <returns>The rows.</returns>
+    public static IReadOnlyList<WorkerCacheEntryStorageDto> Of(WorkerStorage? storage, IReadOnlyList<Track> tracks)
+    {
+        ArgumentNullException.ThrowIfNull(tracks);
+        var trackByJob = tracks.Where(track => track.WorkerJobId is not null).GroupBy(track => track.WorkerJobId!).ToDictionary(group => group.Key, group => group.First().Id);
+        return [.. (storage?.CacheEntries ?? []).Select(entry => Row(entry, trackByJob)).OrderByDescending(row => row.Bytes)];
+    }
+
+    private static WorkerCacheEntryStorageDto Row(WorkerCacheEntry entry, Dictionary<string, Guid> trackByJob) => new()
+    {
+        AudioSha256Prefix = entry.AudioSha256[..12],
+        Bytes = entry.StandardBytes + entry.DetailBytes + entry.PartialBytes + entry.ArtworkBytes,
+        InUse = entry.InUse,
+        FromLibrary = entry.FromLibrary,
+        TrackId = entry.JobIds.Select(job => trackByJob.TryGetValue(job, out var id) ? id : (Guid?)null).FirstOrDefault(id => id is not null),
+    };
 }
 
 /// <summary>Usage per storage category.</summary>

@@ -161,13 +161,25 @@ public sealed class StorageTabTests : PageTestContext
     }
 
     [Fact]
-    public void WorkerEntries_ListTheWorkerParts()
+    public void WorkerEntries_ListOneRowPerCacheEntry()
     {
         var entries = RenderAt(ExperienceLevel.Expert).Find(Id("storage-worker-entries"));
 
-        entries.QuerySelectorAll("tbody tr").Length.ShouldBe(1);
-        entries.TextContent.ShouldContain("Worker separation cache");
-        entries.TextContent.ShouldContain("2.0 GB");
+        var rows = entries.QuerySelectorAll("tbody tr");
+        rows.Length.ShouldBe(2);
+        rows[0].QuerySelectorAll("th, td").Select(cell => cell.TextContent.Trim()).ShouldBe(["3f9a1c0e7b2d", "2.0 GB", "Yes", "No", "Big song"]);
+        rows[1].QuerySelectorAll("th, td").Select(cell => cell.TextContent.Trim()).ShouldBe(["a1b2c3d4e5f6", "5.0 MB", "No", "Yes", "-"]);
+        rows[0].QuerySelector("a")!.GetAttribute("href").ShouldBe($"tracks/{StorageData.TrackA}");
+        entries.QuerySelectorAll("thead th").Select(cell => cell.GetAttribute("scope")).ShouldAllBe(scope => scope == "col");
+    }
+
+    [Fact]
+    public void WorkerEntries_WithoutEntries_SayThatThereAreNone()
+    {
+        LibraryCare.GetStorageOverviewAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(StorageData.Overview(workerAvailable: false));
+        var tab = RenderAt(ExperienceLevel.Expert);
+
+        tab.Find(Id("storage-worker-entries")).QuerySelector("tbody")!.TextContent.ShouldContain("No worker cache entries.");
     }
 
     [Fact]

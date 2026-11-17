@@ -72,3 +72,29 @@ public sealed class RehydratedWorkerJobTests
         Should.Throw<InvalidOperationException>(() => queued.RehydrateWorkerJob("5d4c3b2a1f0e4d9c8b7a6f5e4d3c2b1a", DetailTestData.T0));
     }
 }
+
+/// <summary>013 FR-019: the stage text of a queued detail phase while the worker cache is rehydrated.</summary>
+public sealed class DetailPreparingStemsTests
+{
+    [Fact]
+    public void MarkDetailPreparingStems_SetsTheStageOfAQueuedPhase()
+    {
+        var track = DetailTestData.Requested();
+        var at = DetailTestData.T0.AddMinutes(5);
+
+        track.MarkDetailPreparingStems(at);
+
+        (track.DetailPhase!.Status, track.DetailPhase.Stage, track.DetailPhase.UpdatedAt).ShouldBe((DetailPhaseStatus.Queued, "Preparing stems", at));
+    }
+
+    [Fact]
+    public void MarkDetailPreparingStems_IsIgnoredWithoutAnActivePhase()
+    {
+        var track = DetailTestData.DetailCompleted();
+        var before = track.DetailPhase;
+
+        track.MarkDetailPreparingStems(DetailTestData.T0.AddHours(3));
+
+        track.DetailPhase.ShouldBe(before);
+    }
+}

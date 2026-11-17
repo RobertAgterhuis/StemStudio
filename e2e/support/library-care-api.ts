@@ -263,6 +263,13 @@ export interface StorageOverviewDto {
     readonly lyricsSheets: number;
   };
   readonly modelCaches: readonly { readonly id: string; readonly bytes: number; readonly models: readonly string[] }[];
+  readonly workerEntries: readonly {
+    readonly audioSha256Prefix: string;
+    readonly bytes: number;
+    readonly inUse: boolean;
+    readonly fromLibrary: boolean;
+    readonly trackId: string | null;
+  }[];
   readonly backups: { readonly count: number; readonly bytes: number; readonly folderAvailable: boolean; readonly reason: string | null };
   readonly worker: { readonly available: boolean; readonly reason: string | null };
 }

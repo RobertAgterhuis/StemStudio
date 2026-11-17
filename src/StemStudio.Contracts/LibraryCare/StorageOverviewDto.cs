@@ -21,6 +21,9 @@ public sealed record StorageOverviewDto
     /// <summary>Model cache folders.</summary>
     public required IReadOnlyList<ModelCacheUsageDto> ModelCaches { get; init; }
 
+    /// <summary>Worker cache entries, largest first; empty when the worker is not reachable.</summary>
+    public required IReadOnlyList<WorkerCacheEntryStorageDto> WorkerEntries { get; init; }
+
     /// <summary>The backups folder.</summary>
     public required BackupsStorageDto Backups { get; init; }
 

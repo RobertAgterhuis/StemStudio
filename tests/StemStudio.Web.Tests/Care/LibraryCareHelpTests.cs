@@ -56,4 +56,17 @@ public sealed class LibraryCareHelpTests
     [InlineData("storage-cleanup", "Never removed")]
     [InlineData("storage-cleanup", "preview again")]
     public void Topics_StateTheLimits(string id, string text) => Catalog.Topic(id)!.Markdown.ShouldContain(text);
+
+    [Theory]
+    [InlineData("library care", "library-care")]
+    [InlineData("what a backup contains", "backup-contents")]
+    [InlineData("backups folder", "backup-folder")]
+    [InlineData("restore a backup", "backup-restore")]
+    [InlineData("older backup", "backup-compatibility")]
+    [InlineData("voice profiles in backups", "backup-voice-data")]
+    [InlineData("storage overview", "storage-overview")]
+    [InlineData("regenerable", "storage-regenerable")]
+    [InlineData("free space safely", "storage-cleanup")]
+    public void ReferenceQueries_FindTheLibraryCareTopicsFirst(string query, string expected) =>
+        new HelpSearch(Catalog).Search(query)[0].TopicId.ShouldBe(expected);
 }

@@ -60,12 +60,20 @@ public sealed partial class DetailSynchronizer(
     {
         try
         {
-            await applier.ApplySubmissionAsync(track, await rehydrator.SubmitAsync(track, standard => worker.CreateDetailJobAsync(standard, cancellationToken), cancellationToken), cancellationToken);
+            var submission = await rehydrator.SubmitAsync(
+                track, standard => worker.CreateDetailJobAsync(standard, cancellationToken), () => ShowPreparingStemsAsync(track, cancellationToken), cancellationToken);
+            await applier.ApplySubmissionAsync(track, submission, cancellationToken);
         }
         catch (WorkerRequestException rejection)
         {
             applier.ApplyRejection(track, rejection.Detail);
         }
+    }
+
+    private async Task ShowPreparingStemsAsync(Track track, CancellationToken cancellationToken)
+    {
+        applier.ApplyPreparingStems(track);
+        await tracks.SaveAsync(cancellationToken);
     }
 
     private void LogTransition(Track track, DetailPhaseStatus before)

@@ -82,6 +82,13 @@ public static class StorageData
         Tracks = tracks ?? [Track(TrackA, "Big song", 900 * MiB, 600 * MiB), Track(TrackB, "Small song", 100 * MiB, removed: true)],
         Unattached = new UnattachedStorageDto { ExportsBytes = 10 * MiB, ScoresBytes = 1 * MiB, GenerationsBytes = 30 * MiB, VoiceProfilesBytes = 2 * MiB, LyricsSheets = 4 },
         ModelCaches = [new ModelCacheUsageDto { Id = "torch", Bytes = 3 * GiB, Models = ["htdemucs_6s", "htdemucs"] }],
+        WorkerEntries = workerAvailable
+            ?
+            [
+                new WorkerCacheEntryStorageDto { AudioSha256Prefix = "3f9a1c0e7b2d", Bytes = 2 * GiB, InUse = true, FromLibrary = false, TrackId = TrackA },
+                new WorkerCacheEntryStorageDto { AudioSha256Prefix = "a1b2c3d4e5f6", Bytes = 5 * MiB, InUse = false, FromLibrary = true, TrackId = null },
+            ]
+            : [],
         Backups = new BackupsStorageDto { Count = 2, Bytes = 4 * GiB, FolderAvailable = true, Reason = null },
         Worker = new WorkerStorageStateDto { Available = workerAvailable, Reason = workerAvailable ? null : "The worker is not running." },
     };

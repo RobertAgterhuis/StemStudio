@@ -111,7 +111,9 @@ test.describe('storage levels and model caches (013 FR-031, US3-4)', { tag: ['@l
     test('shows the worker cache entries; model caches have no delete control', async ({ care, careApi, page }) => {
       await care.goto('storage');
       await expectRendered(page, ['storage-tracks-table', 'storage-worker-entries']);
-      for (const cache of (await careApi.storage(true)).modelCaches) {
+      const overview = await careApi.storage(true);
+      await expect(care.byId('storage-worker-entries').locator('tbody tr')).toHaveCount(Math.max(1, overview.workerEntries.length));
+      for (const cache of overview.modelCaches) {
         const row = care.byId(`storage-model-cache-${cache.id}`);
         await expect(row).toContainText(/Downloaded again at first use/i);
         await expect(row.locator('button')).toHaveCount(0);

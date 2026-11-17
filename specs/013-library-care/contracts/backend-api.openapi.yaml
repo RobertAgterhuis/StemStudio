@@ -7742,6 +7742,29 @@ components:
         costHint:
           type: [string, 'null']
           maxLength: 120
+    WorkerCacheEntryStorage:
+      type: object
+      additionalProperties: false
+      required: [audioSha256Prefix, bytes, inUse, fromLibrary, trackId]
+      properties:
+        audioSha256Prefix:
+          type: string
+          pattern: '^[0-9a-f]{12}$'
+          description: First 12 hex characters of the worker's cache key (the audio SHA-256).
+        bytes:
+          type: integer
+          minimum: 0
+          description: Standard result, detail result, unfinished detail checkpoints and artwork of the entry.
+        inUse:
+          type: boolean
+          description: A queued or running worker job uses the entry (it is never cleaned while in use).
+        fromLibrary:
+          type: boolean
+          description: Created by a rehydration from the library stems (FR-019).
+        trackId:
+          type: [string, 'null']
+          format: uuid
+          description: The library track whose standard job uses the entry, or null.
     TrackStorage:
       type: object
       additionalProperties: false
@@ -7795,7 +7818,7 @@ components:
     StorageOverview:
       type: object
       additionalProperties: false
-      required: [measuredAt, volumes, categories, tracks, unattached, modelCaches, backups, worker]
+      required: [measuredAt, volumes, categories, tracks, unattached, modelCaches, workerEntries, backups, worker]
       properties:
         measuredAt:
           type: string
@@ -7832,6 +7855,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ModelCacheUsage'
+        workerEntries:
+          type: array
+          description: |
+            Worker cache entries (one per audio file), largest first; empty when the worker is not
+            reachable. Shown at Expert (`storage-worker-entries`). Added editorially before the
+            1.12.0 release (CTO integration 013).
+          items:
+            $ref: '#/components/schemas/WorkerCacheEntryStorage'
         backups:
           type: object
           additionalProperties: false
@@ -10552,6 +10583,12 @@ components:
           generationsBytes: 96000000
           voiceProfilesBytes: 2621440
           lyricsSheets: 3
+        workerEntries:
+          - audioSha256Prefix: 3f9a1c0e7b2d
+            bytes: 151000000
+            inUse: false
+            fromLibrary: false
+            trackId: 0b7e4f1c-6a2d-4c8e-9f10-2a3b4c5d6e7f
         modelCaches:
           - id: torch
             bytes: 335544320
