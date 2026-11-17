@@ -6,6 +6,7 @@
  *
  * @packageDocumentation
  */
+import { randomUUID } from 'node:crypto';
 import { test as base, expect } from '@playwright/test';
 import { LibraryCarePage } from '../pages/library-care-page';
 import type { MixDto, StemStudioApi, TrackDto } from './api';
@@ -65,8 +66,10 @@ export interface SeededLibrary {
  */
 export async function seedLibrary(api: StemStudioApi, assetsApi: AssetsApi, salt: string): Promise<SeededLibrary> {
   const track = await api.ensureCompleted('music_100bpm_20s.flac', fakeJobTimeoutMs);
-  const mix = await api.createMix(track.id, mixSettings({ name: `Library care ${runId()} ${salt}` }));
-  const queued = await assetsApi.createExport({ trackId: track.id, mode: 'raw', channels: [...fakeStems], format: { format: 'flac', bitDepth: 16 }, name: `Library care ${runId()} ${salt}` });
+  // The shared track is reused by every spec, so each seed needs its own mix name (409 "name taken" otherwise).
+  const name = `Library care ${runId()} ${salt} ${randomUUID().slice(0, 8)}`;
+  const mix = await api.createMix(track.id, mixSettings({ name }));
+  const queued = await assetsApi.createExport({ trackId: track.id, mode: 'raw', channels: [...fakeStems], format: { format: 'flac', bitDepth: 16 }, name });
   const exported = await assetsApi.waitForReady(queued.id, fakeJobTimeoutMs);
   return { track, mix, exported };
 }

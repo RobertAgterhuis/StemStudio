@@ -109,7 +109,7 @@
                     <Actions Context="track">
                         @if (track.DetailStemsBytes > 0 && !track.DetailFilesRemoved)
                         {
-                            <button type="button" class="ss-text-button" disabled="@(CleanupBlocked is not null)" aria-label="@($"Remove the detail stems of {track.Title}")"
+                            <button type="button" class="ss-text-button" disabled="@(CleanupBlocked is not null)" aria-label="@($"Remove detail stems of {track.Title}")"
                                     @onclick="() => OpenCleanup(CleanupKindDto.DetailStems, track.TrackId)"
                                     data-testid="@($"cleanup-track-detail-{track.TrackId}")">Remove detail stems</button>
                         }

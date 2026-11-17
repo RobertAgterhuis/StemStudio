@@ -82,7 +82,10 @@ test.describe('backup (013 US1)', { tag: ['@library-care', '@backup'] }, () => {
     expect(paths.some((name) => name.startsWith(`files/assets/${seeded.exported.id}/`))).toBe(true);
     expect(paths[0]).toBe('db/stemstudio.db');
     expect(foreignEntries(manifest)).toEqual([]);
-    expect(manifest.contents.included).toEqual(expect.arrayContaining(['database', 'stems', 'artwork', 'pendingUploads', 'detailStems', 'exports', 'scores', 'generations', 'voiceProfiles']));
+    // Complete = every option on: the seeded categories are included, the rest is excluded only
+    // because it is empty (backup-archive 1.0.0 section 3), never as an option.
+    expect(manifest.contents.included).toEqual(expect.arrayContaining(['database', 'stems', 'detailStems', 'exports']));
+    expect(manifest.contents.excluded.filter((item) => item.reason !== 'empty')).toEqual([]);
     expect(manifest.counts.tracks).toBeGreaterThanOrEqual(1);
     expect(manifest.counts.mixes).toBeGreaterThanOrEqual(1);
     await expect(page).toHaveURL(/\/care/);

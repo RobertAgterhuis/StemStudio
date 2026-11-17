@@ -174,6 +174,15 @@ public sealed class StorageTabTests : PageTestContext
     }
 
     [Fact]
+    public void TextButtons_AccessibleNameContainsTheVisibleText()
+    {
+        var buttons = RenderAt(ExperienceLevel.Expert).FindAll("button.ss-text-button[aria-label]");
+
+        buttons.ShouldNotBeEmpty();
+        buttons.ShouldAllBe(button => button.GetAttribute("aria-label")!.Contains(button.TextContent.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void WorkerEntries_WithoutEntries_SayThatThereAreNone()
     {
         LibraryCare.GetStorageOverviewAsync(Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(StorageData.Overview(workerAvailable: false));
