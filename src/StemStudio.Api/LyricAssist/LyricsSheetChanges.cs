@@ -43,7 +43,8 @@ public sealed class LyricsSheetChanges(ILyricsSheetRepository sheets, ILyricsRev
         change(sheet);
         await revisions.AddAsync(LyricsSheetRevision.Of(sheet, cause, acceptGroupId, Now), cancellationToken);
         var resolver = new AnchorResolver(oldText, sheet.Text);
-        foreach (var open in await suggestions.ForSheetAsync(sheet.Id, SuggestionStatus.Open, null, cancellationToken))
+        // The query filters on the stored status; suggestions decided in this unit of work are already closed in memory.
+        foreach (var open in (await suggestions.ForSheetAsync(sheet.Id, SuggestionStatus.Open, null, cancellationToken)).Where(s => s.IsOpen))
         {
             open.Reanchor(oldLanguage == sheet.Language ? resolver.Resolve(open.Anchor) : null);
         }

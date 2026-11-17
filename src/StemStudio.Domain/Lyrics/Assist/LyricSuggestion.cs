@@ -165,10 +165,10 @@ public sealed class LyricSuggestion
 
     /// <summary>Decides the suggestion.</summary>
     /// <param name="status">Accepted, rejected, intentional or superseded.</param>
-    /// <param name="acceptGroupId">The accept action (accepted only).</param>
+    /// <param name="acceptGroupId">The accept action (accepted and superseded only; undo reopens them).</param>
     /// <param name="nowUtc">Current time.</param>
     public void Decide(SuggestionStatus status, Guid? acceptGroupId, DateTime nowUtc) =>
-        (Status, AcceptGroupId, DecidedAt) = (status, status == SuggestionStatus.Accepted ? acceptGroupId : null, nowUtc);
+        (Status, AcceptGroupId, DecidedAt) = (status, status is SuggestionStatus.Accepted or SuggestionStatus.Superseded ? acceptGroupId : null, nowUtc);
 
     /// <summary>Opens the suggestion again (undo of its accept, or a stale anchor that is back).</summary>
     /// <param name="anchor">The anchor in the restored text.</param>

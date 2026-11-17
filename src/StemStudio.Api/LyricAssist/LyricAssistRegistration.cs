@@ -32,6 +32,9 @@ public static class LyricAssistRegistration
         services.AddScoped<LyricModelLayer>();
         services.AddScoped<LyricAssistExecutor>();
         services.AddScoped<LyricAssistEventWriter>();
+        services.AddScoped<SuggestionService>();
+        services.AddScoped<LyricsRevisionService>();
+        services.AddScoped<AssistPreferencesService>();
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
             Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
@@ -44,5 +47,5 @@ public static class LyricAssistRegistration
     /// <summary>Maps the 023 endpoints (tag <c>lyric-assist</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints();
+    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints().MapSuggestionEndpoints();
 }
