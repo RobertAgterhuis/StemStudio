@@ -47,9 +47,9 @@ test.describe('storage numbers (013 US3-1, SC-006)', { tag: ['@library-care', '@
 
   test('original categories link to the screens where items are deleted one by one', async ({ care, page }) => {
     await care.goto('storage');
-    await expect(care.byId('storage-manage-exports')).toHaveAttribute('href', /\/library/);
-    await expect(care.byId('storage-manage-stems')).toHaveAttribute('href', /\/tracks/);
-    await expect(care.byId('storage-manage-recordings')).toHaveAttribute('href', /\/tracks/);
+    await expect(care.byId('storage-manage-exports')).toHaveAttribute('href', /(^|\/)library(\/|$)/);
+    await expect(care.byId('storage-manage-stems')).toHaveAttribute('href', /(^|\/)tracks(\/|$)/);
+    await expect(care.byId('storage-manage-recordings')).toHaveAttribute('href', /(^|\/)tracks(\/|$)/);
     await expectNoIdWithPrefix(page, 'storage-manage-detail-stems');
   });
 });

@@ -76,6 +76,25 @@ public sealed class LibraryCareShellTests : PageTestContext
     }
 
     [Fact]
+    public async Task Refresh_WhileTheLoopWaitsIdle_SwitchesToTheBusyInterval()
+    {
+        // Idle first (10 s wait), then the page starts a job and refreshes: the next poll must come after 2 s, not after
+        // the rest of the idle wait (a cancel or the end of the job would otherwise show up to 10 s late).
+        LibraryCare.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(
+            LibraryCareData.Status(), LibraryCareData.Status(LibraryCareData.Job()), LibraryCareData.Status(LibraryCareData.Job()), LibraryCareData.Status());
+        var shell = RenderShell();
+        shell.WaitForAssertion(() => StatusReads.ShouldBe(1));
+        Time.Advance(TimeSpan.FromSeconds(1));
+
+        await Services.GetRequiredService<LibraryCareStatusSource>().RefreshAsync(Xunit.TestContext.Current.CancellationToken);
+        StatusReads.ShouldBe(2);
+        await Task.Delay(100, Xunit.TestContext.Current.CancellationToken); // let the woken loop arm its next wait
+
+        Time.Advance(TimeSpan.FromSeconds(2));
+        shell.WaitForAssertion(() => StatusReads.ShouldBe(3));
+    }
+
+    [Fact]
     public void Maintenance_ShowsAnAlertDialog_WithTheFocus_ThatDisappearsByItself()
     {
         LibraryCare.GetStatusAsync(Arg.Any<CancellationToken>()).Returns(

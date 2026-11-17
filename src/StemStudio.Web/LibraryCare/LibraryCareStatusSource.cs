@@ -14,6 +14,7 @@ namespace StemStudio.Web.LibraryCare;
 public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvider time) : IAsyncDisposable
 {
     private readonly CancellationTokenSource _stop = new();
+    private CancellationTokenSource _wake = new();
     private Task? _loop;
     private bool _disposed;
 
@@ -48,6 +49,7 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
     {
         await ReadAsync(ct);
         Changed?.Invoke();
+        Wake();
         return Current;
     }
 
@@ -67,6 +69,7 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
         }
 
         _stop.Dispose();
+        _wake.Dispose();
     }
 
     private async Task RunAsync(CancellationToken ct)
@@ -76,13 +79,37 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
             while (true)
             {
                 await PollAsync(ct);
-                await Task.Delay(Busy ? BusyInterval : IdleInterval, time, ct);
+                await WaitAsync(ct);
             }
         }
         catch (OperationCanceledException)
         {
             // Circuit closed.
         }
+    }
+
+    /// <summary>Waits the interval of the current status; a refresh restarts the wait with the interval it read.</summary>
+    private async Task WaitAsync(CancellationToken ct)
+    {
+        while (true)
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _wake.Token);
+            try
+            {
+                await Task.Delay(Busy ? BusyInterval : IdleInterval, time, linked.Token);
+                return;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Woken by RefreshAsync: wait again with the interval of the status it read.
+            }
+        }
+    }
+
+    private void Wake()
+    {
+        // The old source is cancelled, not disposed: the loop may still be linking to it.
+        Interlocked.Exchange(ref _wake, new CancellationTokenSource()).Cancel();
     }
 
     private async Task PollAsync(CancellationToken ct)

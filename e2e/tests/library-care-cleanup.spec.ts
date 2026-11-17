@@ -70,8 +70,11 @@ test.describe('worker cache and rehydration (013 US4, FR-019)', { tag: ['@librar
     test.setTimeout(twoPhases);
     const track = await importWithLivePhase(api, `care-cache-${runId()}-${testInfo.project.name}`);
     await api.stopDetail(track.id, detailPhaseTimeoutMs);
+    // The worker keeps the entry "in use" until the cancelled detail job has really stopped (skip `job-active`).
+    const hasEntry = async (): Promise<boolean> =>
+      (await careApi.preview([{ kind: 'workerCache', trackIds: [track.id] }])).items.some((item) => item.kind === 'workerCache' && item.trackId === track.id);
+    await expect.poll(hasEntry, { timeout: 30_000, intervals: [500, 1000, 2000] }).toBe(true);
     const plan = await careApi.preview([{ kind: 'workerCache', trackIds: [track.id] }]);
-    expect(plan.items.some((item) => item.kind === 'workerCache' && item.trackId === track.id)).toBe(true);
     const result = await careApi.execute(plan.planId);
     expect(result.freedBytes).toBe(plan.totalBytes);
     expect(trackStorage(await careApi.storage(true), track.id).workerCacheBytes).toBe(0);

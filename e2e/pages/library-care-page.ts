@@ -160,8 +160,10 @@ export class LibraryCarePage extends TestIdPage {
 
   /** Clicks a sortable column header until it reports `direction`. */
   async sortBy(column: StorageColumn, direction: 'ascending' | 'descending'): Promise<void> {
-    const header = this.byId(`storage-sort-${column}`);
-    for (let click = 0; click < 3 && (await header.getAttribute('aria-sort')) !== direction; click++) await header.click();
+    // `storage-sort-<column>` is the sort button inside the column header; `aria-sort` belongs on the `th` (ARIA).
+    const button = this.byId(`storage-sort-${column}`);
+    const header = button.locator('xpath=ancestor::th[1]');
+    for (let click = 0; click < 3 && (await header.getAttribute('aria-sort')) !== direction; click++) await button.click();
     await expect(header).toHaveAttribute('aria-sort', direction);
   }
 

@@ -40,6 +40,8 @@ test.describe('merge restore (013 US5)', { tag: ['@library-care', '@merge'] }, (
     const archive = await backupNow(careApi);
     written.add(archive);
 
+    // New imports start an automatic detail phase; a track is deleted only once it is idle (409 otherwise).
+    await waitForNoActiveWork(careApi);
     expect(await api.deleteMix(mix3.id)).toBe(204);
     expect(await api.deleteTrack(track3.id)).toBe(204);
     expect(await styles.deleteStyle(styleB.id)).toBe(204);
