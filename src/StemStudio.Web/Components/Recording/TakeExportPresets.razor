@@ -1,12 +1,37 @@
-@* Take export presets of feature 015 in the export dialog. Stub by the 014 lane (hook request L6, US6); the 015 lane
-   replaces it. Renders nothing. *@
+@* Take presets of the export dialog (FR-015, US6; ui-test-ids 1.14.0 export-source-take-only, export-source-take-mix,
+   export-take-saving). Rendered only when the dialog was opened from a take row. *@
+
+@if (Form.Target.Take is { } take)
+{
+    <fieldset data-help-id="recording-export">
+        <legend class="ss-label">What to save from @take.Name</legend>
+        <label class="ss-check">
+            <input type="radio" name="export-take-source" checked="@(Form.TakePreset == TakeExportPreset.TakeOnly)"
+                   @onchange="() => ChooseAsync(TakeExportPreset.TakeOnly)" data-testid="export-source-take-only" /> Take only (trimmed to the take)
+        </label>
+        <label class="ss-check">
+            <input type="radio" name="export-take-source" checked="@(Form.TakePreset == TakeExportPreset.TakeMix)"
+                   @onchange="() => ChooseAsync(TakeExportPreset.TakeMix)" data-testid="export-source-take-mix" /> Take + mix (what you hear)
+        </label>
+    </fieldset>
+    @if (Form.TakeSaving)
+    {
+        <p class="ss-help" role="status" data-testid="export-take-saving">The take is still being saved. Export it when it shows "Saved".</p>
+    }
+}
 
 @code {
     /// <summary>The export form.</summary>
     [Parameter, EditorRequired]
-    public StemStudio.Web.Export.ExportForm Form { get; set; } = default!;
+    public ExportForm Form { get; set; } = default!;
 
     /// <summary>Raised when a preset changed the form.</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
+
+    private Task ChooseAsync(TakeExportPreset preset)
+    {
+        Form.TakePreset = preset;
+        return OnChanged.InvokeAsync();
+    }
 }

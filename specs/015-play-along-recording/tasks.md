@@ -170,9 +170,9 @@ and `polish`, with real test and coverage output.
 
 - [x] T066 [P] [US5] [backend] Failing tests `UpdateTakeEndpointTests.cs`, `DeleteTakeEndpointTests.cs`, `TrackDeleteCascadeTests.cs`: rename syncs the asset name, star, part change; delete cancels a running render, removes files, hashes and mix references; track delete removes its takes; `Track.takeCount` (FR-014, FR-018)
 - [x] T067 [US5] [backend] Implement `updateRecordingTake`, `deleteRecordingTake`, `TakeDeletion`, `ITrackTakesCleanup` to pass T066
-- [ ] T068 [P] [US5] [frontend] Failing bUnit tests `TakesPanelTests.cs`, `TakeRowTests.cs`: newest first, details per level, select/load, play from start, rename, delete confirm, retry, warnings, total size, `track-delete-takes-note` (FR-014, FR-018)
-- [ ] T069 [US5] [frontend] Implement `TakesPanel`, `TakeRow` and the track delete note to pass T068
-- [ ] T070 [P] [US5] [qa] E2E `recording-manage.spec.ts`: three takes, rename, star, delete one (files gone via the asset endpoint 404), delete the track -> its takes are gone
+- [x] T068 [P] [US5] [frontend] Failing bUnit tests `TakesPanelTests.cs`, `TakeRowTests.cs`: newest first, details per level, select/load, play from start, rename, delete confirm, retry, warnings, total size, `track-delete-takes-note` (FR-014, FR-018)
+- [x] T069 [US5] [frontend] Implement `TakesPanel`, `TakeRow` and the track delete note to pass T068
+- [x] T070 [P] [US5] [qa] E2E `recording-manage.spec.ts`: three takes, rename, star, delete one (files gone via the asset endpoint 404), delete the track -> its takes are gone
 
 **Checkpoint**: HO:us5 per owner.
 
@@ -183,9 +183,9 @@ and `polish`, with real test and coverage output.
 - [x] T071 [P] [US6] [backend] Failing tests `Domain.Tests/Rendering/TakeExportPlannerTests.cs` and Api export tests: raw take (default range = span, explicit range intersected), mix with `take` (gate, volume, pan), explicit `["take", ...]`, `take-required`, `take-not-in-track`, `take-not-ready`, provenance `contents` and `sourceAssetIds`; render-vectors 1.1.0 consumer (FR-015)
 - [x] T072 [US6] [backend] Implement the planner and export request additions to pass T071
 - [x] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
-- [ ] T074 [P] [US6] [frontend] Failing bUnit tests: export dialog presets from a take row (take only, take + mix), compare translated into explicit mutes, `export-channel-take`, `export-take-saving` (FR-015)
-- [ ] T075 [US6] [frontend] Implement the export presets to pass T074
-- [ ] T076 [P] [US6] [qa] E2E `recording-export.spec.ts`: take only as WAV 24-bit has the take's length and samples; take + mix MP3 appears in the Library with contents starting "Take n"
+- [x] T074 [P] [US6] [frontend] Failing bUnit tests: export dialog presets from a take row (take only, take + mix), compare translated into explicit mutes, `export-channel-take`, `export-take-saving` (FR-015)
+- [x] T075 [US6] [frontend] Implement the export presets to pass T074
+- [x] T076 [P] [US6] [qa] E2E `recording-export.spec.ts`: take only as WAV 24-bit has the take's length and samples; take + mix MP3 appears in the Library with contents starting "Take n"
 
 **Checkpoint**: HO:us6 per owner.
 
@@ -197,9 +197,9 @@ and `polish`, with real test and coverage output.
 - [x] T078 [US7] [audio-engine] Implement to pass T077
 - [x] T079 [P] [US7] [backend] Failing tests `ReplaceTakeAudioEndpointTests.cs`: previous audio kept until ready, `alignmentRevision` + 1, `adjustmentSamples` summed, `take-saving` 409, failure keeps the old audio (data-model 2.4)
 - [x] T080 [US7] [backend] Implement `replaceRecordingTakeAudio` to pass T079
-- [ ] T081 [P] [US7] [frontend] Failing bUnit tests `TakeAdjustTests.cs`: Expert only, slider and number (0.1 ms), live playback shift, apply/reset, note (FR-016, FR-020)
-- [ ] T082 [US7] [frontend] Implement `TakeAdjust` to pass T081
-- [ ] T083 [P] [US7] [qa] E2E (Expert): adjust -10.0 ms and apply -> `startSample` 441 lower, revision 1
+- [x] T081 [P] [US7] [frontend] Failing bUnit tests `TakeAdjustTests.cs`: Expert only, slider and number (0.1 ms), live playback shift, apply/reset, note (FR-016, FR-020)
+- [x] T082 [US7] [frontend] Implement `TakeAdjust` to pass T081
+- [x] T083 [P] [US7] [qa] E2E (Expert): adjust -10.0 ms and apply -> `startSample` 441 lower, revision 1
 
 **Checkpoint**: HO:us7 per owner.
 
@@ -207,8 +207,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 10: Polish and cross-cutting
 
-- [ ] T084 [P] [frontend] Help topics (data-model 5, one connection topic per instrument family, privacy, permissions per browser, latency incl. the clap test, speed rule, limits), `FeatureCatalog` entries (data-model 6), shortcut overview rows; help marker tests (FR-019, FR-020)
-- [ ] T085 [P] [qa] a11y (axe on panel, calibration dialog, Takes panel and take strip; keyboard-only record/compare/delete flow; live region; reduced motion), visual baselines of the new panels at 320 px and desktop, Firefox smoke (unsupported or permission states only) (SC-009)
+- [x] T084 [P] [frontend] Help topics (data-model 5, one connection topic per instrument family, privacy, permissions per browser, latency incl. the clap test, speed rule, limits), `FeatureCatalog` entries (data-model 6), shortcut overview rows; help marker tests (FR-019, FR-020)
+- [x] T085 [P] [qa] a11y (axe on panel, calibration dialog, Takes panel and take strip; keyboard-only record/compare/delete flow; live region; reduced motion), visual baselines of the new panels at 320 px and desktop, Firefox smoke (unsupported or permission states only) (SC-009)
 - [ ] T086 [audio-engine, backend, frontend, qa, devops, stem-separation] HO:polish per owner with coverage evidence (counted once per owner)
 - [ ] T087 [quality-gate] `run_all.py --report docs/quality/SIG-REPORT.md` over the 015 code; refactor requests to owners
 - [ ] T088 [CTO] Integration run: all suites (legacy, ux, recording, recording-loopback, a11y, visual), `scripts/test-all.ps1`

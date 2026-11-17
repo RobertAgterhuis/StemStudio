@@ -20,6 +20,7 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
     public const string Channel = "take";
 
     private readonly List<TakeItem> _items = [];
+    private readonly HashSet<TakeItem> _realigned = [];
 
     /// <summary>Raised after the strip changed (take loaded, saved, unloaded or a strip setting), for the mix's take channel.</summary>
     public event Action? StripChanged;
@@ -76,7 +77,13 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
     public async Task ApplyAsync(TakeItem item, RecordingTakeDto take)
     {
         item.Apply(take);
-        if (take.Status != TakeStatusDto.Ready || item.CaptureKey is not { } key)
+        if (take.Status != TakeStatusDto.Ready)
+        {
+            return;
+        }
+
+        await (_realigned.Remove(item) && ReferenceEquals(Loaded, item) ? LoadSavedAsync(item) : Task.CompletedTask);
+        if (item.CaptureKey is not { } key)
         {
             return;
         }
@@ -134,7 +141,8 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
             ? TakeSource.FromCapture(key)
             : TakeSource.FromUrl(audioUrl(item.Take!.AudioUrl!), item.Take.StartSample, item.Take.LengthSamples, item.Take.InputChannels);
         var part = item.Take?.Part ?? item.Upload!.Part;
-        return new LoadTakeRequest(item.Id, source, part, item.Take?.AdjustmentSamples ?? 0);
+        // The stored audio already carries every applied adjustment, so playback starts unshifted (US7).
+        return new LoadTakeRequest(item.Id, source, part);
     }
 
     // Keeps the item objects of takes already shown (the strip refers to one) and drops saved takes the server no longer has.

@@ -2015,7 +2015,7 @@ hash list, and that a rerun is byte-identical and equals the committed manifest.
 | US5 manage takes (FR-014, FR-018) | Api update/delete/cascade, bUnit takes panel and rows | `recording-manage.spec.ts` (rename, star, delete -> asset 404, track delete removes its takes) |
 | US6 export (FR-015) | Domain take export planner, render vectors 1.1.0, bUnit export presets | `recording-export.spec.ts` (take only as WAV 24-bit: length and samples; take + mix MP3 in the Library with contents "Take n") |
 | US7 timing adjustment (FR-016) | engine `setTakeAdjustment`, Api replace-audio, bUnit adjust | `recording-adjust.spec.ts` (Expert: -10.0 ms -> `startSample` 441 lower, revision 1) |
-| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip; keyboard-only record/compare/delete; live region; reduced motion), visual baselines at 320 px and desktop, Firefox smoke |
+| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes), `tests/recording-firefox.spec.ts` (Firefox smoke, project `firefox`) |
 
 SC-002, SC-004, SC-005 and one real input per family need real hardware: CTO owner checks on the
 reference machine (T089), recorded in `docs/STATUS.md`.

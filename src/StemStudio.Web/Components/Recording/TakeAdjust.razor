@@ -1,0 +1,23 @@
+@* Timing adjustment of the take in the strip (FR-016, US7; ui-test-ids 1.14.0 take-adjust slider -200..200 ms, take-adjust-ms
+   (0.1 ms), take-adjust-apply, take-adjust-reset at Expert; take-adjust-note from Advanced). The shift is heard at once;
+   Apply stores it. *@
+
+@if (Takes.Loaded is { Take: { } take })
+{
+    <LevelGate Feature="recording.timing-adjust">
+        <div class="ss-practice-row" role="group" aria-label="Timing of the take" data-help-id="recording-timing">
+            <input type="range" class="ss-pan" min="-200" max="200" step="0.1" value="@Value" aria-label="Take timing in ms"
+                   aria-valuenow="@Value" aria-valuetext="@($"{Value} ms")" @oninput="ChangedAsync" data-testid="take-adjust" />
+            <label class="ss-sr-only" for="take-adjust-ms">Take timing in ms</label>
+            <input id="take-adjust-ms" type="number" class="rz-textbox ss-number" min="-200" max="200" step="0.1" value="@Value"
+                   @onchange="ChangedAsync" data-testid="take-adjust-ms" />
+            <RadzenButton Text="Apply" Size="ButtonSize.Small" Disabled="@(!CanApply(take))" Click="ApplyAsync" data-testid="take-adjust-apply" />
+            <RadzenButton Text="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(Takes.PendingAdjustmentMs == 0)"
+                          Click="ResetAsync" data-testid="take-adjust-reset" />
+        </div>
+    </LevelGate>
+    @if (ShowsNote && TakeLibrary.AdjustmentNote(take) is { } note)
+    {
+        <span class="ss-muted" data-testid="take-adjust-note">@note</span>
+    }
+}

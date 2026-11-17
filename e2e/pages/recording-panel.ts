@@ -160,6 +160,21 @@ export class RecordingPanel {
     await this.byId('confirm-dialog-ok').click();
   }
 
+  /** Renames a take through its row. */
+  async rename(takeId: string, name: string): Promise<void> {
+    await this.byId(`rec-take-rename-${takeId}`).click();
+    await this.byId('rec-take-rename-input').fill(name);
+    await this.byId('rec-take-rename-confirm').click();
+    await expect(this.byId(`rec-take-name-${takeId}`)).toHaveText(name);
+  }
+
+  /** Deletes a take through its row (confirmed). */
+  async deleteTake(takeId: string): Promise<void> {
+    await this.byId(`rec-take-delete-${takeId}`).click();
+    await this.byId('confirm-dialog-ok').click();
+    await expect(this.row(takeId)).toHaveCount(0);
+  }
+
   /** Why Record is disabled, or null. */
   async disabledReason(): Promise<string | null> {
     const reason = this.byId('rec-record-disabled-reason');
