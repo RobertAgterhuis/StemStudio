@@ -8,8 +8,8 @@
 - Docstrings on every public module, class and function (ruff `D` rules clean); the storage
   package docstring states its dependency rule, now enforced by `dependency_check` (T010).
 - Traceability (worker side): FR-019 rehydration -> `tests/storage/test_rehydrate.py`,
-  `tests/api/test_storage_routes.py`; storage overview (SC-006) -> `tests/storage/test_meter.py`;
-  worker clean-up (FR-021..FR-023) -> `tests/storage/test_janitor.py`,
+  `tests/api/test_storage_routes.py`; storage overview (FR-020, SC-006) -> `tests/storage/test_meter.py`;
+  worker clean-up (FR-022, FR-024: in-use entries skipped) -> `tests/storage/test_janitor.py`,
   `test_cleanup_of_every_entry_evicts_the_job`.
 
 ## Tests and coverage
