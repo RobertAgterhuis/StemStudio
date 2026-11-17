@@ -20,6 +20,15 @@ internal static class PortErrors
         ["consent-outdated"] = RenewConsent,
         ["preset-read-only"] = "Preset styles cannot be deleted; only your own styles can.",
         ["generation-not-retryable"] = "Only failed or cancelled generations can be retried.",
+        ["not-own-lyrics"] = "These lyrics match songs in your library. If this is your own text, confirm it in the lyrics editor.",
+        ["language-unsupported"] = "The lyric assistant supports Dutch and English sheets only.",
+        ["assist-active"] = "Another lyric assist is running; wait for it to finish.",
+        ["claude-notice-required"] = "Acknowledge the Claude notice in the lyrics editor first.",
+        ["model-unavailable"] = "The lyric model is not available now; check_lyrics still runs the dictionary check.",
+        ["revision-conflict"] = "The lyrics sheet changed meanwhile; read it again and retry.",
+        ["suggestion-not-open"] = Tools.Providers.LyricAssistToolProvider.NotOpen,
+        ["overlapping-suggestions"] = "Some suggestions change the same text; apply them one at a time.",
+        ["not-fileable"] = Tools.Providers.LibraryToolProvider.NotFileable,
     };
 
     public static StepFailure From(AgentActionException exception)

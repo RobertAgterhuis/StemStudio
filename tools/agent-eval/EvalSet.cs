@@ -39,6 +39,7 @@ internal sealed record EvalCase
     public string? TrackId { get; init; }
 
     public string? MixId { get; init; }
+    public string? LyricsId { get; init; }
 
     public required string Command { get; init; }
 

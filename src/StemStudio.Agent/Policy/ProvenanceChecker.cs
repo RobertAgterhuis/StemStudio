@@ -29,6 +29,17 @@ public static partial class ProvenanceChecker
         return needle.Length > 0 && userMessages.Any(message => NormalizeLyrics(message).Contains(needle, StringComparison.Ordinal));
     }
 
+    /// <summary>True when the word occurs as a whole word (case-insensitive) in a user message.</summary>
+    /// <param name="word">The word argument.</param>
+    /// <param name="userMessages">The user messages of the conversation.</param>
+    /// <returns>True when the user named it.</returns>
+    public static bool WordFromUser(string word, IEnumerable<string> userMessages)
+    {
+        var needle = word.Trim();
+        return needle.Length > 0 && userMessages.Any(message =>
+            WordPattern().Matches(message).Any(match => string.Equals(match.Value.Trim('\'', '’'), needle, StringComparison.OrdinalIgnoreCase)));
+    }
+
     /// <summary>Collapses every whitespace run to one space and trims.</summary>
     /// <param name="text">Text.</param>
     /// <returns>Normalised text.</returns>
@@ -60,6 +71,9 @@ public static partial class ProvenanceChecker
 
         return result;
     }
+
+    [GeneratedRegex(@"[\p{L}\p{M}'’-]+", RegexOptions.CultureInvariant)]
+    private static partial Regex WordPattern();
 
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex Whitespace();

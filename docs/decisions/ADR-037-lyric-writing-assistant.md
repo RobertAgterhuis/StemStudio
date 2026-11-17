@@ -110,3 +110,14 @@ for 022), agent eval set 1.1.0, lyric-assist-output 1.0.0; all additive.
 - **Numbers not yet measured**: spike T008 (block latency, JSON validity, Dutch first look) did not run in
   Phase 0 (machine busy, Docker stack off limits); it moves into the ai-agent lane before T068. SC-004 and
   `BlockLines = 8` stay design estimates until then; a change is configuration only.
+- **T008 spike S-01 (ai-agent, wave 1, 2026-11-17).** Run in a throwaway container of the lane; numbers in research.md
+  "Phase 0 results".
+  - `qwen3.5:9b` warm on the GPU, 40-line sheets in 10 blocks: first block 1.2-5.8 s (nl) and 3.9-22.4 s (en); full
+    sheet 24-32 s (nl) and 36-56 s (en); 6.1 GB VRAM.
+  - JSON with `format`: 70/71 replies valid, and the retry recovered the invalid one.
+  - **SC-004 confirmed for nl**, en full check about 39 s p50. **BlockLines = 8 kept.**
+  - Proposal: merge short sections into blocks of up to 8 lines (about 6 requests), or set the en target to 40 s.
+  - The CPU fallback `qwen3.5:4b` did not produce valid output within the 60 s block timeout (0/19): SC-004's CPU target
+    is open until T068.
+  - Dutch first look of the model layer: weak (recall 0/8 on 8 corrections; typos reported as unlisted `misses`). Expect
+    the standing quality note and owner question Q2 after T068.

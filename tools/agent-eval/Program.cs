@@ -4,6 +4,7 @@
 // plays its ideal transcript (no model). `--backend ollama --model qwen3.5:9b --runs 3` is the SC-001 run on the reference
 // machine (CTO T081). `--backend claude` (paid, opt-in, constitution 1.3.0) is not wired in the harness.
 using StemStudio.AgentEval;
+using StemStudio.AgentEval.Lyric;
 
 var (options, error) = EvalOptions.Parse(args);
 if (options is null)
@@ -16,6 +17,11 @@ if (options.Backend == "claude")
 {
     Console.Error.WriteLine("agent-eval: the paid Claude backend is not wired in the harness; evaluate with --backend ollama.");
     return 2;
+}
+
+if (options.Suite == "lyric")
+{
+    return await LyricCommand.RunAsync(options, Console.Out);
 }
 
 var set = EvalSet.Parse(await File.ReadAllTextAsync(options.EvalSetPath));

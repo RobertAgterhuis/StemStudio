@@ -3,6 +3,7 @@ using StemStudio.Agent.Ports;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.Assets;
 using StemStudio.Contracts.Generation;
+using StemStudio.Contracts.LyricAssist;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Contracts.Tracks;
 
@@ -85,6 +86,9 @@ public sealed class JobWaiter(IStemStudioActions actions, TimeProvider time)
     /// <summary>Polling interval.</summary>
     public static TimeSpan PollInterval { get; } = TimeSpan.FromSeconds(2);
 
+    /// <summary>Lyric assistant endpoints for the phase <c>lyricAssist</c>; null when the host registers none.</summary>
+    public ILyricAssistActions? LyricAssist { get; init; }
+
     /// <summary>Waits for the job.</summary>
     /// <param name="wait">The job and limits.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -95,7 +99,7 @@ public sealed class JobWaiter(IStemStudioActions actions, TimeProvider time)
         var started = time.GetTimestamp();
         while (true)
         {
-            var poll = await JobStatusReader.ReadAsync(actions, wait.Job, cancellationToken);
+            var poll = await JobStatusReader.ReadAsync(actions, wait.Job, cancellationToken, LyricAssist);
             if (Final(wait, poll, started) is { } final)
             {
                 return final;
@@ -120,13 +124,15 @@ public static class JobStatusReader
     /// <param name="actions">StemStudio actions.</param>
     /// <param name="job">The job.</param>
     /// <param name="cancellationToken">Cancellation.</param>
+    /// <param name="lyricAssist">Lyric assistant endpoints (phase <c>lyricAssist</c>).</param>
     /// <returns>The reading.</returns>
-    public static async Task<JobPoll> ReadAsync(IStemStudioActions actions, JobRef job, CancellationToken cancellationToken)
+    public static async Task<JobPoll> ReadAsync(IStemStudioActions actions, JobRef job, CancellationToken cancellationToken, ILyricAssistActions? lyricAssist = null)
     {
         ArgumentNullException.ThrowIfNull(actions);
         ArgumentNullException.ThrowIfNull(job);
         return job.Phase switch
         {
+            JobPhaseDto.LyricAssist => await AssistAsync(lyricAssist, job, cancellationToken),
             JobPhaseDto.Export or JobPhaseDto.Transcription => await AssetAsync(actions, job, cancellationToken),
             JobPhaseDto.Restyle or JobPhaseDto.Generation => await GenerationAsync(actions, job, cancellationToken),
             _ => await TrackAsync(actions, job, cancellationToken),
@@ -171,6 +177,25 @@ public static class JobStatusReader
         LyricsStatusDto.Failed => JobPoll.Fail("The lyrics job failed."),
         _ => new JobPoll(JobPoll.Completed, 100, null),
     };
+
+    /// <summary>An assist (023): queued and running count as running; a failure carries its readable message.</summary>
+    private static async Task<JobPoll> AssistAsync(ILyricAssistActions? lyricAssist, JobRef job, CancellationToken cancellationToken)
+    {
+        if (lyricAssist is null || !Guid.TryParse(job.JobId, out var assistId))
+        {
+            return JobPoll.Fail("wait_for_job needs the jobId of the assist (check_lyrics or suggest_lyric_lines).");
+        }
+
+        var assist = await lyricAssist.GetAssistAsync(assistId, cancellationToken);
+        var progress = assist.BlocksTotal == 0 ? 0 : (int)Math.Round(100.0 * assist.BlocksDone / assist.BlocksTotal);
+        return assist.Status switch
+        {
+            AssistStatusDto.Completed => new JobPoll(JobPoll.Completed, 100, null),
+            AssistStatusDto.Failed => JobPoll.External(JobPoll.Failed, progress, assist.Failure?.Message),
+            AssistStatusDto.Cancelled => new JobPoll(JobPoll.Cancelled, progress, null),
+            _ => new JobPoll(JobPoll.Running, progress, null),
+        };
+    }
 
     private static async Task<JobPoll> AssetAsync(IStemStudioActions actions, JobRef job, CancellationToken cancellationToken)
     {

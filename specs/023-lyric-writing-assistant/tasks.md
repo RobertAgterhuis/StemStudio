@@ -52,7 +52,7 @@ test and coverage output.
 - [x] T005 [P] [architect] .NET contract code `src/StemStudio.Contracts/LyricAssist/*` (all DTOs and enums of the delta, `LyricAssistLimits`, `LyricAssistProblemTypes`, `ApiRoutes.LyricAssist*`), additions to `LyricsSheetDto`, `LyricsInput`, `LyricsSnapshotDto`, agent `PageContextDto`, `DecisionReasons`, `JobPhaseDto`; serialisation tests against the OpenAPI examples
 - [x] T006 [architect] Vendor the dictionaries under `src/StemStudio.Api/LyricAssist/Dictionaries/` (OpenTaal nl, SCOWL en_US + en_GB-ise/ize, CMUdict) with licence files and `PROVENANCE.md` (URL, version/commit, SHA-256, licence chosen); pin WeCantSpell.Hunspell in `Directory.Packages.props` (>= 14 days old); a skeleton test loads each dictionary and checks the SHA-256 (FR-004, research R-02, R-10)
 - [x] T007 [P] [architect] Skeleton: Domain ports (`ISpellChecker`, `ILyricsCorpus`, `IPronunciationLexicon`, `IWordList`) and stub services (data-model, plan structure); `StemStudio.Agent/LyricAssist/ILyricAssistant`, `LyricAssistJob`, `ILyricAssistSink`, `LyricBlock`, `ModelSuggestionItem`; `Fakes/ScriptedLyricModel` script loader (format DELTA.md 4); empty `LyricAssistToolProvider`; build 0 warnings
-- [ ] T008 [architect] Spike S-01 on the reference machine with the ai-agent (Ollama only, no Docker): per-block latency of `qwen3.5:9b` warm and `qwen3.5:4b` on the CPU with the R-05 prompt and `format` schema (5 blocks x 3 runs), JSON validity rate, `think:false`; quick look at 10 Dutch eval cases; update research R-05/R-06 with numbers, confirm or adjust SC-004 and `BlockLines` with an ADR-037 "Phase 0 outcome" note - **moved into the ai-agent lane of the wave** (Phase 0, 2026-11-17: machine busy, Docker stack off limits; research.md "Phase 0 results")
+- [x] T008 [architect] Spike S-01 on the reference machine with the ai-agent (Ollama only, no Docker): per-block latency of `qwen3.5:9b` warm and `qwen3.5:4b` on the CPU with the R-05 prompt and `format` schema (5 blocks x 3 runs), JSON validity rate, `think:false`; quick look at 10 Dutch eval cases; update research R-05/R-06 with numbers, confirm or adjust SC-004 and `BlockLines` with an ADR-037 "Phase 0 outcome" note - **moved into the ai-agent lane of the wave** (Phase 0, 2026-11-17: machine busy, Docker stack off limits; research.md "Phase 0 results")
 - [x] T009 [P] [architect] Fixtures: `tests/fixtures/lyrics/` (Zomeravond nl, Radio en, 40-line P1/P2, injection sheets, fake-song lyrics), syllable gold lists (300 nl, 300 en words with counts) and rhyme vectors, `e2e/lyric-scripts/*.json` for the quickstart scenarios
 - [x] T010 [P] [architect] `docs/MoSCoW.md` S14 and `docs/ROADMAP.md` row/allocation (done in design); re-check against 022's final allocation and fix labels if 022 chose differently - re-checked 2026-11-17: 022 keeps backend/ui-ids 1.22.0 and catalogue 1.1.0, no label change; ROADMAP/MoSCoW untouched (022 architect owns them this phase)
 - [x] T011 [architect] Verify the skeleton: `dotnet build` 0 warnings, all tests and coverage gates, `tools/quality` run; ADR-037 "Phase 0 outcome" note (ADR accepted by the owner 2026-11-16); hand-off `docs/handoffs/architect-023-phase0.md`
@@ -72,10 +72,10 @@ test and coverage output.
 
 ### ai-agent
 
-- [ ] T018 [P] [ai-agent] Failing tests `tests/StemStudio.Agent.Tests/LyricAssist/`: `LyricPromptBuilder` (system prompt with licence rules R-03 step 6, language-specific explanation language, delimiters with a random boundary, whole sheet as context + block marked, dictionary misses listed, intentional marks and sensitivity hints), `LyricOutputParser` (schema-valid JSON, invalid JSON, extra fields, oversize arrays), `SuggestionValidator` (anchor equality, re-find once on the line, category allowed per kind, replacement limits, duplicate merge) (FR-005, FR-021, R-05)
-- [ ] T019 [ai-agent] Implement T018 in `src/StemStudio.Agent/LyricAssist/`
-- [ ] T020 [P] [ai-agent] Failing tests `LyricModelClient`: Ollama request with `format` = the output schema, `think:false`, temperature per kind, `num_ctx` 16384; Claude request with one forced tool `emit_suggestions` and no other tools; model selection via the 011 selector (default, fallback while a heavy GPU job runs); per-block timeout; one retry with a stricter instruction on invalid output, then skip; Claude token caps (20k/4k) stop with `budget-exhausted`; outbound guard: no Claude call unless selected (FR-021, FR-025, FR-026, SC-006)
-- [ ] T021 [ai-agent] Implement T020 (reusing `OllamaChatClientFactory`, `ClaudeChatClientFactory`, `AgentModelSelector`)
+- [x] T018 [P] [ai-agent] Failing tests `tests/StemStudio.Agent.Tests/LyricAssist/`: `LyricPromptBuilder` (system prompt with licence rules R-03 step 6, language-specific explanation language, delimiters with a random boundary, whole sheet as context + block marked, dictionary misses listed, intentional marks and sensitivity hints), `LyricOutputParser` (schema-valid JSON, invalid JSON, extra fields, oversize arrays), `SuggestionValidator` (anchor equality, re-find once on the line, category allowed per kind, replacement limits, duplicate merge) (FR-005, FR-021, R-05)
+- [x] T019 [ai-agent] Implement T018 in `src/StemStudio.Agent/LyricAssist/`
+- [x] T020 [P] [ai-agent] Failing tests `LyricModelClient`: Ollama request with `format` = the output schema, `think:false`, temperature per kind, `num_ctx` 16384; Claude request with one forced tool `emit_suggestions` and no other tools; model selection via the 011 selector (default, fallback while a heavy GPU job runs); per-block timeout; one retry with a stricter instruction on invalid output, then skip; Claude token caps (20k/4k) stop with `budget-exhausted`; outbound guard: no Claude call unless selected (FR-021, FR-025, FR-026, SC-006)
+- [x] T021 [ai-agent] Implement T020 (reusing `OllamaChatClientFactory`, `ClaudeChatClientFactory`, `AgentModelSelector`)
 
 ### frontend
 
@@ -96,8 +96,8 @@ test and coverage output.
 - [x] T028 [US1] [backend] Implement T027 (`LyricAssistEndpoints`, `LyricAssistService`, `LyricAssistEventStream`); round start (013 on `main`): the assist runner awaits `LibraryGate.WaitWhileMaintenanceAsync` before starting a queued assist and between blocks (as `AgentRunExecutor`), with a test in T027
 - [x] T029 [P] [US1] [backend] Failing tests suggestions API: list with filters, accept one / many as one revision and accept group, stale skipped, overlap 409, too-long 422, reject, mark intentional from a suggestion (word/phrase/line), marks CRUD and limits, personal words CRUD, undo (newest accept only, `undo-blocked-by-edit`, reopen suggestions, remove assisted lines), revisions list and restore, `PUT assist-settings` (FR-006 - FR-012)
 - [x] T030 [US1] [backend] Implement T029 (`SuggestionService`, `LyricsRevisionService`, endpoints)
-- [ ] T031 [P] [US1] [ai-agent] Failing tests `LyricAssistant.RunAsync` for `kind: check`: blocks sequential, dictionary misses classified by the model (`misses`), per-block streaming to the sink, progress, notes (block skipped, fallback model), counts and discarded counters, cancellation between blocks, adversarial fake (injection items, fake anchors, oversize text) never produces an invalid suggestion (FR-021, SC-003, SC-005)
-- [ ] T032 [US1] [ai-agent] Implement T031
+- [x] T031 [P] [US1] [ai-agent] Failing tests `LyricAssistant.RunAsync` for `kind: check`: blocks sequential, dictionary misses classified by the model (`misses`), per-block streaming to the sink, progress, notes (block skipped, fallback model), counts and discarded counters, cancellation between blocks, adversarial fake (injection items, fake anchors, oversize text) never produces an invalid suggestion (FR-021, SC-003, SC-005)
+- [x] T032 [US1] [ai-agent] Implement T031
 - [ ] T033 [P] [US1] [frontend] Failing bUnit tests: Check (saves unsaved changes first), progress, streamed suggestions into `lyric-assist-list`, highlights overlay (`lyric-highlight-*`, underline style per category, not colour only), accept / reject / mark intentional (scope menu) / add to my words, accept all for the filter, undo, stale and `revision-conflict` handling (reload + re-anchor), provenance markers, sensitivity radios, category filters, marks and words lists (FR-005 - FR-012, FR-024)
 - [ ] T034 [US1] [frontend] Implement T033
 - [ ] T035 [P] [US1] [frontend] Failing bUnit tests keyboard and screen reader: F8/Shift+F8, Alt+Enter, Alt+Backspace, Alt+I, Escape, Ctrl+Alt+C; `role=listbox/option`, `aria-activedescendant`; live-region texts of ui-test-ids.delta.md (FR-028, SC-008)
@@ -108,8 +108,8 @@ test and coverage output.
 
 - [x] T038 [P] [US2] [backend] Failing tests `SyllableCounterDutch`/`SyllableCounterEnglish` against the gold lists (>= 97 % / >= 95 %), `CmuPronunciationLexicon`, `RhymeKeyDutch`/`RhymeKeyEnglish` vectors, `RhythmTarget` math and section medians, density at the target duration (FR-014, FR-017, SC-007)
 - [x] T039 [US2] [backend] Implement T038
-- [ ] T040 [P] [US2] [ai-agent] Failing tests `kind: devices`: device and licence types only, instruction passed, rhyme claims verified through the Domain rhyme key (wrong ones dropped as `failedVerification`), syllable before/after computed by the counter (claims ignored), target-aware prompt (FR-013, FR-014, SC-002)
-- [ ] T041 [US2] [ai-agent] Implement T040
+- [x] T040 [P] [US2] [ai-agent] Failing tests `kind: devices`: device and licence types only, instruction passed, rhyme claims verified through the Domain rhyme key (wrong ones dropped as `failedVerification`), syllable before/after computed by the counter (claims ignored), target-aware prompt (FR-013, FR-014, SC-002)
+- [x] T041 [US2] [ai-agent] Implement T040
 - [ ] T042 [P] [US2] [frontend] Failing bUnit tests: Suggest devices, selection-scoped requests, device/licence type labels, syllables before -> after, rhyme partner shown, rhythm target form and syllable gutter (`lyric-syllables-<n>` with `data-deviates`, updates after a typing pause through `POST /api/lyric-assist/syllables`), density line (FR-013, FR-017)
 - [ ] T043 [US2] [frontend] Implement T042
 - [ ] T044 [P] [US2] [qa] Playwright "devices": quickstart Q3 steps 1-2
@@ -120,16 +120,16 @@ test and coverage output.
 - [x] T046 [US3] [backend] Implement T045 (`RhymeFinder`, `LanguageGuesser`, endpoints)
 - [x] T047 [P] [US3] [backend] Failing tests `LyricsCorpusIndex` + `VerbatimGuard`: shingles of 7 words and full lines of 5+ words over 006 lyrics, refreshed on lyrics change, sheet guard thresholds (>= 3 lines and >= 25 %; cliché set passes), output guard withholds and counts (FR-003, FR-023, SC-005)
 - [x] T048 [US3] [backend] Implement T047
-- [ ] T049 [P] [US3] [ai-agent] Failing tests writing kinds: alternatives (1-5, one group), continuation (1-4 lines, LF), titles (<= 5, 1-80 chars), temperature 0.8, every generated text passed through the verbatim guard port before the sink (FR-015, FR-023)
-- [ ] T050 [US3] [ai-agent] Implement T049
+- [x] T049 [P] [US3] [ai-agent] Failing tests writing kinds: alternatives (1-5, one group), continuation (1-4 lines, LF), titles (<= 5, 1-80 chars), temperature 0.8, every generated text passed through the verbatim guard port before the sink (FR-015, FR-023)
+- [x] T050 [US3] [ai-agent] Implement T049
 - [ ] T051 [P] [US3] [frontend] Failing bUnit tests: Alternatives (count), Continue, Title ideas (sets the title as one undo step), instruction field, rhyme finder panel (insert at cursor), withheld counter, not-own refusal, imitation refusal message (FR-015, FR-016, FR-022, FR-023)
 - [ ] T052 [US3] [frontend] Implement T051
 - [ ] T053 [P] [US3] [qa] Playwright "writing help" and "guardrails": quickstart Q3 steps 3-6 and Q5
 
 ## Phase 5: User Story 4 - Agent (P2)
 
-- [ ] T054 [P] [US4] [ai-agent] Failing tests `LyricAssistToolProvider` (8 descriptors: kinds, risks, undo, schemas with `additionalProperties:false`, projections without text, `+service lyricModel` for `suggest_lyric_lines`), registry selection for the `lyrics` context (28 tools; other contexts unchanged, cap 32), policy `lyrics-edit` (approval always, never plan-covered, never fresh), `artist-imitation` pre-check on instructions, `find_rhymes.word` provenance, `wait_for_job` phase `lyricAssist`, `PageContext.lyricsId` resolution, injection sheet via the adversarial agent fake (FR-018 - FR-020, SC-005)
-- [ ] T055 [US4] [ai-agent] Implement T054 (provider, loopback `ILyricAssistActions` port, policy rule, eval-set JSON cases 31-35 + S4)
+- [x] T054 [P] [US4] [ai-agent] Failing tests `LyricAssistToolProvider` (8 descriptors: kinds, risks, undo, schemas with `additionalProperties:false`, projections without text, `+service lyricModel` for `suggest_lyric_lines`), registry selection for the `lyrics` context (28 tools; other contexts unchanged, cap 32), policy `lyrics-edit` (approval always, never plan-covered, never fresh), `artist-imitation` pre-check on instructions, `find_rhymes.word` provenance, `wait_for_job` phase `lyricAssist`, `PageContext.lyricsId` resolution, injection sheet via the adversarial agent fake (FR-018 - FR-020, SC-005)
+- [x] T055 [US4] [ai-agent] Implement T054 (provider, loopback `ILyricAssistActions` port, policy rule, eval-set JSON cases 31-35 + S4)
 - [x] T056 [P] [US4] [backend] Failing tests loopback actions for the 8 tools (`LoopbackLyricAssistActions`), and `POST /api/songs` snapshot `assistedLineCount` + take details (FR-024)
 - [x] T057 [US4] [backend] Implement T056
 - [ ] T058 [P] [US4] [frontend] Failing bUnit tests: panel context sends `lyricsId` on `/lyrics/{id}`; `open_lyrics_editor` UI handler (`?assist=` opens the pane); approval card diff `agent-approval-lyrics-diff-*` rendered from the stored suggestions; take details `take-lyrics-assisted` (FR-018, FR-024)
@@ -156,8 +156,8 @@ test and coverage output.
 
 ## Phase 7: Evaluation, polish, review (wave 2)
 
-- [ ] T066 [P] [ai-agent] Failing self-test of `tools/agent-eval --suite lyric` (grading of recall/precision/licence FP/latency with a scripted model; JSON conversion of `lyric-eval-set.md` in sync, test asserts case ids)
-- [ ] T067 [ai-agent] Implement T066 (`tools/agent-eval` suite, `lyric-eval-set.json`, report)
+- [x] T066 [P] [ai-agent] Failing self-test of `tools/agent-eval --suite lyric` (grading of recall/precision/licence FP/latency with a scripted model; JSON conversion of `lyric-eval-set.md` in sync, test asserts case ids)
+- [x] T067 [ai-agent] Implement T066 (`tools/agent-eval` suite, `lyric-eval-set.json`, report)
 - [ ] T068 [ai-agent] Reference-machine run (not CI): lyric suite with `qwen3.5:9b` (3 runs) and `qwen3.5:4b` (1 run), P1/P2 latency; report numbers vs SC-001/SC-004 in the hand-off; if Dutch misses SC-001 set the standing quality note text and flag owner question Q2 to the CTO
 - [ ] T069 [P] [devops] Fake stack: mount `e2e/lyric-scripts/` and set `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` in the E2E compose override and the non-Docker E2E script; CI job keeps no Ollama/Claude; image size check after vendored dictionaries (< +15 MB)
 - [ ] T070 [qa] Run the full E2E suite green on the fake stack (T037, T044, T053, T060, T065) + axe; one manual NVDA pass recorded (quickstart Q9); audit the owners' coverage evidence (>= 90 % line and branch per component)

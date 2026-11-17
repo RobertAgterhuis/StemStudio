@@ -161,6 +161,41 @@ public sealed class LyricModelClientTests : IDisposable
     }
 
     [Fact]
+    public async Task ASwitchToClaudeMidAssist_IsRefused_WithoutAnyClaudeRequest()
+    {
+        var store = new InMemorySettingsStore(AgentSettings.Defaults(AgentBackendDto.Ollama, RunnerHarness.Start) with { ClaudeNoticeAcknowledgedAt = RunnerHarness.Start });
+        var client = new LyricModelClient(store, _gpu, new LyricModelBackends
+        {
+            Ollama = new OllamaChatClientFactory(_ollama.Client()),
+            Claude = new ClaudeChatClientFactory(FakeEnvironment.WithKey().Keys(), _claude.Client("https://api.anthropic.com/")),
+        });
+        OllamaAnswers(Output);
+        var pinned = await client.SelectAsync(Token);
+        await client.CompleteAsync(Request() with { Model = pinned }, Token);
+
+        await store.SaveAsync(store.Current with { Backend = AgentBackendDto.Claude }, Token);
+        var error = await Should.ThrowAsync<LyricAssistException>(() => client.CompleteAsync(Request() with { Model = pinned }, Token));
+
+        error.Code.ShouldBe(AssistFailureCodeDto.BackendUnavailable);
+        error.Message.ShouldBe(LyricModelClient.BackendChanged);
+        _claude.Requests.ShouldBeEmpty();
+        _ollama.Requests.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task TheFallbackModel_MayTakeOverMidAssist_OnTheSameBackend()
+    {
+        OllamaAnswers(Output);
+        var client = Client(AgentBackendDto.Ollama);
+        var pinned = await client.SelectAsync(Token);
+        _gpu.Busy = true;
+
+        var reply = await client.CompleteAsync(Request() with { Model = pinned }, Token);
+
+        reply.Model.UsingFallback.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Options_AreBuiltWithoutAnyRequest()
     {
         LyricModelClient.ClaudeOptions(Request()).MaxOutputTokens.ShouldBe(LyricAssistLimits.DefaultMaxOutputTokensPerAssist);

@@ -80,8 +80,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T017 [backend] EF configurations and migration `AddLibraryFolders` (green) (research R-13)
 - [x] T018 [P] [frontend] Tests (red) API client methods for the 9 new operations against a stub handler (ETag/304 handling, 404 folder-not-found, 422 mapping) and pure helpers `LibraryLocationTests` (routes, `?q=`, `?view=all`, URL building), `HighlightedTextTests` (ranges, overlaps, out-of-range safety), `FolderArtModelTests` (cover/mosaic 2-4/placeholder, `srcset`/`sizes`, tone class)
 - [x] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
-- [ ] T020 [P] [ai-agent] Tests (red) descriptors and JSON schemas of the 4 tools (names, kinds, risk, undo, `additionalProperties: false`, folder id pattern, xor of `trackId`/`assetId`), registry groups and the 32-tool cap per page context (library = 32, others unchanged) (catalogue 1.1.0)
-- [ ] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
+- [x] T020 [P] [ai-agent] Tests (red) descriptors and JSON schemas of the 4 tools (names, kinds, risk, undo, `additionalProperties: false`, folder id pattern, xor of `trackId`/`assetId`), registry groups and the 32-tool cap per page context (library = 32, others unchanged) (catalogue 1.1.0)
+- [x] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
 - [ ] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
 - [ ] T023 [P] [qa] Fixtures `tests/fixtures/library/`: tagged upload files and fake-online scenarios for artists with diacritics, "The", featuring, unknown artist/album, a compilation, the same song on two albums, and items of every instrument family and detail group; seeding helpers over the public API; a seeding plan for 5,000 items (database fixture produced by T044's seeder, copied into the API volume by the spec's global setup)
 - [ ] T024 [P] [quality-gate] Dependency rules in `tools/quality/` (Domain.Library depends on nothing outside Domain; Api.Library -> Domain, Persistence, Contracts; Web.Library -> Contracts only; Agent tools -> Ports only) - test first (rule fixture fails), then the rule (FR: constitution II)
@@ -162,13 +162,13 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 6: User Story 5 - The composer agent knows the folders (P3)
 
-- [ ] T077 [P] [US5] [ai-agent] Tests (red) projections of `browse_library_folder` and `search_library_items` (whitelisted fields, <= 4 KB, names only in `untrusted_text`, run tainted), `open_library_folder` (exactly one of `folderId`/`query`), `set_library_info` (GET before PUT, merged arguments, inverse restores, approval in a tainted run, 409 reason) (FR-034)
-- [ ] T078 [US5] [ai-agent] Tool implementations in `src/StemStudio.Agent/Tools/Library/` (green)
+- [x] T077 [P] [US5] [ai-agent] Tests (red) projections of `browse_library_folder` and `search_library_items` (whitelisted fields, <= 4 KB, names only in `untrusted_text`, run tainted), `open_library_folder` (exactly one of `folderId`/`query`), `set_library_info` (GET before PUT, merged arguments, inverse restores, approval in a tainted run, 409 reason) (FR-034)
+- [x] T078 [US5] [ai-agent] Tool implementations in `src/StemStudio.Agent/Tools/Library/` (green)
 - [x] T079 [P] [US5] [backend] Tests (red) loopback `IStemStudioActions` library methods against the endpoints (in-process host)
 - [x] T080 [US5] [backend] `IStemStudioActions` library implementation (green)
 - [ ] T081 [P] [US5] [frontend] Tests (red) UI tool host: `open_library_folder` navigates (unsaved-changes guard), page context `library` for `/library/{folderId}`
 - [ ] T082 [US5] [frontend] UI tool handler (green)
-- [ ] T083 [P] [US5] [ai-agent] Evaluation cases LIB-01..LIB-05 in `specs/011-ai-composer-agent/evaluation/` and the eval test project (fake chat client scripts)
+- [x] T083 [P] [US5] [ai-agent] Evaluation cases LIB-01..LIB-05 in `specs/011-ai-composer-agent/evaluation/` and the eval test project (fake chat client scripts)
 
 **Checkpoint**: HO:us5 (ai-agent, backend, frontend).
 
@@ -180,7 +180,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T085 [P] [devops] **Conditional**: only if qa (T023/T039/T071) cannot copy the database fixtures into the API volume from the spec's global setup without a compose change - add an opt-in fixture mount to the fake stack (check-first test in the task). Otherwise not executed.
 - [x] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
 - [x] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
-- [ ] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
+- [x] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
 - [ ] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)
 - [ ] T090 [qa] Audit the owners' tests and coverage evidence (HO:polish)
 

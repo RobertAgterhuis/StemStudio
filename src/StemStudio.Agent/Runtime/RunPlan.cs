@@ -54,7 +54,7 @@ internal sealed class RunPlan(AgentServices services, RunEvents events)
 internal sealed class MetaToolRunner(AgentServices services, RunEvents events, RunPlan plan)
 {
     private const int UntrustedMaxLength = 300;
-    private readonly JobWaiter _jobs = new(services.Actions, services.Time);
+    private readonly JobWaiter _jobs = new(services.Actions, services.Time) { LyricAssist = services.LyricAssist };
 
     /// <summary>Executes a meta tool.</summary>
     public Task<ToolResult> ExecuteAsync(RunState state, RunStep step, JsonElement arguments, CancellationToken cancellationToken) => step.Tool switch

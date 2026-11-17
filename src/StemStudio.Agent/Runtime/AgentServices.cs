@@ -23,6 +23,9 @@ public sealed record AgentServices
     /// <summary>StemStudio's public API over loopback.</summary>
     public required IStemStudioActions Actions { get; init; }
 
+    /// <summary>Lyric assistant endpoints (023 tools, wait_for_job phase lyricAssist); null when the host registers none.</summary>
+    public ILyricAssistActions? LyricAssist { get; init; }
+
     /// <summary>UI tool round trip.</summary>
     public required IUiToolGateway Ui { get; init; }
 

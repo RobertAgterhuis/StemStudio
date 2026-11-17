@@ -17,6 +17,9 @@ public sealed record LyricAssistOptions
 
     /// <summary>Timeout of one block with Claude.</summary>
     public TimeSpan ClaudeBlockTimeout { get; init; } = TimeSpan.FromSeconds(90);
+
+    /// <summary>The backend the factory checked (key, notice); the assist stops when the selection differs at its start.</summary>
+    public AgentBackendDto? ExpectedBackend { get; init; }
 }
 
 /// <summary>
@@ -53,6 +56,11 @@ public sealed class LyricAssistant(ILyricModel model, ILyricVerification verific
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(sink);
         var info = model is ILyricModelSelection selection ? await selection.SelectAsync(cancellationToken) : ScriptedInfo;
+        if (_options.ExpectedBackend is { } expected && expected != info.Backend)
+        {
+            throw new LyricAssistException(AssistFailureCodeDto.BackendUnavailable, LyricModelClient.BackendChanged);
+        }
+
         await sink.StartedAsync(info, cancellationToken);
         if (info.UsingFallback)
         {
@@ -121,13 +129,16 @@ public sealed class LyricAssistant(ILyricModel model, ILyricVerification verific
             SystemPrompt = prompt.System,
             UserPrompt = prompt.User,
             Temperature = LyricPromptBuilder.Temperature(run.Job.Kind),
+            Model = run.Info,
             MaxOutputTokens = run.IsClaude ? Math.Max(1, _options.MaxOutputTokensPerAssist - (int)(run.Usage?.OutputTokens ?? 0)) : null,
         };
+        CheckInputBudget(run, prompt);
         using var timeout = new CancellationTokenSource(run.IsClaude ? _options.ClaudeBlockTimeout : _options.LocalBlockTimeout, _time);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try
         {
-            return await model.CompleteAsync(request, linked.Token);
+            var reply = await model.CompleteAsync(request, linked.Token);
+            return run.IsClaude && reply.Usage is null ? reply with { Usage = Estimate(prompt, reply.Json) } : reply;
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -146,12 +157,44 @@ public sealed class LyricAssistant(ILyricModel model, ILyricVerification verific
         }
     }
 
+    /// <summary>Before every Claude call, also the retry: the estimated prompt tokens must fit into what is left of the input cap.</summary>
+    private void CheckInputBudget(AssistRun run, LyricPrompt prompt)
+    {
+        if (!run.IsClaude)
+        {
+            return;
+        }
+
+        var used = run.Usage?.InputTokens ?? 0;
+        if (used + EstimateTokens(prompt.System.Length + prompt.User.Length) > _options.MaxInputTokensPerAssist)
+        {
+            throw new LyricAssistException(
+                AssistFailureCodeDto.BudgetExhausted,
+                $"The Claude limit of this assist would be exceeded ({used} of {_options.MaxInputTokensPerAssist} input tokens used).",
+                "Check fewer lines at a time, or switch to the local model.");
+        }
+    }
+
+    /// <summary>A conservative token estimate (about 3 characters per token) used when Claude reports no usage.</summary>
+    /// <param name="characters">Text length.</param>
+    /// <returns>Estimated tokens.</returns>
+    public static long EstimateTokens(int characters) => (characters + 2) / 3;
+
+    private static TokenUsageDto Estimate(LyricPrompt prompt, string output) => new()
+    {
+        InputTokens = EstimateTokens(prompt.System.Length + prompt.User.Length),
+        OutputTokens = EstimateTokens(output.Length),
+        CachedInputTokens = 0,
+    };
+
     private static LyricBlockResult Skipped(LyricBlock block) => new() { BlockIndex = block.Index, Skipped = true };
 
     /// <summary>State of one assist run (job, model, sink and the summed Claude usage).</summary>
     private sealed class AssistRun(LyricAssistJob job, LyricModelInfo info, ILyricAssistSink sink)
     {
         public LyricAssistJob Job { get; } = job;
+
+        public LyricModelInfo Info { get; } = info;
 
         public ILyricAssistSink Sink { get; } = sink;
 

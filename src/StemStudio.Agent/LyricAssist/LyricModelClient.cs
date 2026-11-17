@@ -43,6 +43,9 @@ public sealed class LyricModelClient(IAgentSettingsStore settings, IGpuActivity 
     /// <summary>Message when no model backend is selected.</summary>
     public const string NoBackend = "No language model is selected for the lyric assistant: choose Local AI (Ollama) in Settings.";
 
+    /// <summary>Message when the backend changed while an assist runs.</summary>
+    public const string BackendChanged = "The model backend changed while the assist was running; start the assist again.";
+
     /// <summary>Description of the forced Claude tool.</summary>
     public const string ToolDescription = "Return the review of the marked block as items and misses.";
 
@@ -65,6 +68,11 @@ public sealed class LyricModelClient(IAgentSettingsStore settings, IGpuActivity 
     {
         ArgumentNullException.ThrowIfNull(request);
         var model = await SelectAsync(cancellationToken);
+        if (request.Model is { } pinned && pinned.Backend != model.Backend)
+        {
+            throw new LyricAssistException(AssistFailureCodeDto.BackendUnavailable, BackendChanged);
+        }
+
         ChatMessage[] messages = [new(ChatRole.System, request.SystemPrompt), new(ChatRole.User, request.UserPrompt)];
         var (client, options) = model.Backend == AgentBackendDto.Claude ? ClaudeCall(model, request) : OllamaCall(model, request);
         var response = await SendAsync(client, messages, options, cancellationToken);

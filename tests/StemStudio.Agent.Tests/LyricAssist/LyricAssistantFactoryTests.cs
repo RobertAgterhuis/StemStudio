@@ -78,6 +78,25 @@ public sealed class LyricAssistantFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task TheResolvedBackend_IsPinned_ASwitchBeforeTheRunStopsIt()
+    {
+        var store = new InMemorySettingsStore(Settings(AgentBackendDto.Ollama));
+        var env = new FakeEnvironment();
+        var model = new LyricModelClient(store, new StemStudio.Agent.Runtime.IdleGpuActivity(), new LyricModelBackends
+        {
+            Ollama = new OllamaChatClientFactory(new StubHttpHandler().Client()),
+            Claude = new ClaudeChatClientFactory(env.Keys(), new StubHttpHandler().Client("https://api.anthropic.com/")),
+        });
+        var factory = new LyricAssistantFactory(new LyricAssistantServices { Settings = store, ClaudeKeys = env.Keys(), Model = model, Verification = new FakeVerification(), Environment = env });
+        var resolution = await factory.ResolveAsync(new LyricAssistModelContext("x", AssistKindDto.Check), Token);
+
+        await store.SaveAsync(Settings(AgentBackendDto.Claude), Token);
+        var error = await Should.ThrowAsync<LyricAssistException>(() => resolution.Assistant!.RunAsync(LyricFixtures.Job(), new RecordingLyricSink(), Token));
+
+        error.Message.ShouldBe(LyricModelClient.BackendChanged);
+    }
+
+    [Fact]
     public async Task Fake_PlaysTheScriptOfTheSheetAndKind()
     {
         await File.WriteAllTextAsync(Path.Combine(_folder, "zomeravond-check.json"), """

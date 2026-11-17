@@ -148,7 +148,10 @@ public sealed class FixtureTests
         var songs = Actions.Songs;
         var sheet = await songs.CreateLyricsSheetAsync(new LyricsInput { Title = "Zomer", Language = "nl", Text = "la la" }, Token);
 
-        (await songs.ListLyricsSheetsAsync(Token)).ShouldBe([sheet]);
+        var listed = await songs.ListLyricsSheetsAsync(Token);
+        listed.Count.ShouldBe(4);
+        listed[^1].ShouldBe(sheet);
+        listed.Select(item => item.Title).ShouldContain("Zomeravond");
         await songs.DeleteLyricsSheetAsync(sheet.LyricsId, Token);
         await NotFoundAsync(() => songs.DeleteLyricsSheetAsync(sheet.LyricsId, Token));
     }

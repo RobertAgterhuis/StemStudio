@@ -32,7 +32,7 @@ internal sealed class FixtureActions(FixtureLibrary library) : IStemStudioAction
 
     public IVoiceActions Voices { get; } = new FixtureVoices(library);
 
-    public ILibraryActions Library { get; } = new FixtureLibraryActions();
+    public ILibraryActions Library { get; } = new FixtureLibraryActions(library);
 
     /// <summary>The 404 of a missing fixture item.</summary>
     public static AgentActionException NotFound(string what) => new(404, "not-found", $"The {what} does not exist.");

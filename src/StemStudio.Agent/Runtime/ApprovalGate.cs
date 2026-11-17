@@ -98,7 +98,7 @@ internal sealed class ApprovalGate(AgentServices services, RunEvents events, App
     }
 
     private ToolInvocation Invocation(RunState state, PreparedCall prepared) =>
-        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, Context = state.Context, Backend = state.Run.Backend };
+        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, LyricAssist = services.LyricAssist, Context = state.Context, Backend = state.Run.Backend };
 
     private static bool AllowsPlanScope(RunState state, PreparedCall prepared) =>
         prepared.Tool!.Risk == ToolRiskDto.Heavy && state.Run.Plan.Any(item => item.Tool == prepared.Tool.Name) && SingleTarget(prepared) is not null;
