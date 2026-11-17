@@ -215,6 +215,25 @@ public sealed class ClaudeKeySectionTests : PageTestContext
         cut.WaitForAssertion(() => Id(cut, "settings-agent-claude-key-status").GetAttribute("data-state").ShouldBe("stored"));
     }
 
+    // r22 flake (E2E local-only save race): the field is emptied BEFORE the save call returns, so an empty field alone does not mean
+    // "saved"; the status changes only with the API's answer. Page objects must wait for the answer (ClaudeKeySection.saveKey).
+    [Fact]
+    public void Save_EmptiesTheFieldAtOnce_ButTheStatusOnlyFollowsTheAnswer()
+    {
+        var pending = new TaskCompletionSource<ClaudeKeyStatusDto>();
+        AgentApi.StoreClaudeKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(pending.Task);
+        var cut = Typed(ClaudeKeySentinels.Stored);
+
+        Id(cut, "settings-agent-claude-key-save").Click();
+
+        cut.WaitForAssertion(() => Id(cut, "settings-agent-claude-key-input").GetAttribute("value").ShouldBeNullOrEmpty());
+        Id(cut, "settings-agent-claude-key-status").GetAttribute("data-state").ShouldBe("not-configured");
+        Has(cut, "settings-agent-claude-key-input").ShouldBeTrue("the field stays until the answer comes");
+        pending.SetResult(ClaudeKeyData.Stored());
+        cut.WaitForAssertion(() => Id(cut, "settings-agent-claude-key-status").GetAttribute("data-state").ShouldBe("stored"));
+        Has(cut, "settings-agent-claude-key-input").ShouldBeFalse();
+    }
+
     public static TheoryData<HttpStatusCode, string, string?, string> Failures() => new()
     {
         { HttpStatusCode.UnprocessableContent, AgentProblemTypes.ClaudeKeyInvalid, ClaudeKeyInvalidReasons.Empty, "Enter the key" },

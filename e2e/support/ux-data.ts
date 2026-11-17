@@ -26,7 +26,7 @@ export const uxMixName = 'UX practice';
 /** Creates (or finds) the shared data. */
 export async function seedUxData(api: StemStudioApi): Promise<UxData> {
   const detailTrack = await ensureDetailCompleted(api);
-  const plainTrack = await ensurePlainTrack(api);
+  const plainTrack = await ensurePlainTrackNewest(api, detailTrack);
   const mixId = await ensureMix(api, detailTrack.id);
   return { detailTrack, plainTrack, mixId };
 }
@@ -41,6 +41,20 @@ export async function ensurePlainTrack(api: StemStudioApi): Promise<TrackDto> {
     await api.cancelDetail(track.id);
   }
   return api.waitForDetail(track.id, ['completed', 'failed', 'cancelled', 'none'], detailPhaseTimeoutMs);
+}
+
+/**
+ * {@link ensurePlainTrack}, imported after the detail track. The tracks screen lists newest first, so its row order (visual
+ * baselines `tracks--*`) is the import order: plain track first. A stack on which another spec imported the click fixture
+ * before the detail band file would flip the two rows (the "first tracks screenshot" flake); the plain track is then removed
+ * and imported again, which gives it a newer `createdAt`. A refused delete (409: the track is in use) keeps the track.
+ */
+async function ensurePlainTrackNewest(api: StemStudioApi, detailTrack: TrackDto): Promise<TrackDto> {
+  const track = await ensurePlainTrack(api);
+  if (Date.parse(track.createdAt) > Date.parse(detailTrack.createdAt) || (await api.deleteTrack(track.id)) !== 204) {
+    return track;
+  }
+  return ensurePlainTrack(api);
 }
 
 async function ensureMix(api: StemStudioApi, trackId: string): Promise<string> {

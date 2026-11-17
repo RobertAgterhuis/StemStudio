@@ -68,7 +68,10 @@ export class ClaudeKeySection extends TestIdPage {
 
   /**
    * Types `key` into the empty field and presses Save; asserts that the field is emptied
-   * afterwards (it stays, empty, after a refused value and is hidden once a key is stored).
+   * afterwards (it stays, empty, after a refused value and is hidden once a key is stored) and
+   * waits until the save call has returned. The component empties the field BEFORE the call
+   * (the typed key must not stay in the DOM), so an empty field alone does not mean "saved":
+   * a test that went on to read the API or restart the stack raced the save round trip.
    */
   async saveKey(key: string): Promise<void> {
     await expect(this.input).toHaveValue('');
@@ -76,6 +79,13 @@ export class ClaudeKeySection extends TestIdPage {
     await expect(this.save).toBeEnabled();
     await this.save.click();
     await expect.poll(() => this.fieldIsEmptyOrHidden(), 'field emptied after the save attempt').toBe(true);
+    await expect.poll(() => this.saveHasReturned(), 'save call returned (field hidden, or an error or the local-only notice shown)').toBe(true);
+  }
+
+  // The call ended when a stored key hides the field, or when a refusal shows its error or the local-only notice.
+  private async saveHasReturned(): Promise<boolean> {
+    const shown = await Promise.all([this.input.count(), this.error.count(), this.byId('settings-agent-claude-key-local-only').count()]);
+    return shown[0] === 0 || shown[1] > 0 || shown[2] > 0;
   }
 
   // One snapshot of every matching field (none when hidden): `inputValue()` would wait for a field
