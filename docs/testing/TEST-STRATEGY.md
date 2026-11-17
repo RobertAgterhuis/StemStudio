@@ -54,6 +54,12 @@ and the practice panel; its additions are marked **(012)** and collected in sect
 contracts: `specs/012-practice-tempo/contracts/` (backend **1.11.0**, UI test ids **1.11.0**,
 engine **2.3.0**, WASM ABI 1); worker, generator, web-interop and help-content are unchanged.
 
+Feature 013 (library care: backup, restore, storage overview, clean-up) adds the backup archive
+format, library jobs, the write gate and maintenance mode, the storage overview and the clean-up
+of regenerable data; its additions are marked **(013)** and collected in section 19. Binding
+contracts: `specs/013-library-care/contracts/` (backend **1.12.0**, worker **1.7.0**, UI test ids
+**1.12.0**, backup-archive **1.0.0** with `backup-manifest.schema.json`), ADR-022.
+
 ## 1. Test pyramid
 
 ```text
@@ -1642,4 +1648,149 @@ scripts/check-soundtouch-served.sh
 (cd e2e && npm run test:practice && npm run test:a11y)
 # agent cases (one api start per script)
 scripts/agent-e2e.sh fake
+```
+
+## 19. (013) Library care: backup, restore, storage overview, clean-up
+
+Binding: `specs/013-library-care/` (spec FR-001..FR-036, SC-001..SC-010, quickstart V1-V10),
+backend API **1.12.0** (`library-care` and `storage` tags, write gate, maintenance), worker API
+**1.7.0** (storage, cleanup, rehydrate), UI test ids **1.12.0** (`care-*`, `backup-*`,
+`restore-*`, `library-job-*`, `previous-library-*`, `storage-*`, `cleanup-*`,
+`library-job-indicator`, `library-maintenance`, `detail-files-removed`, `mixer-detail-removed`),
+backup-archive **1.0.0** + `backup-manifest.schema.json`, ADR-022. Principle: every instrument
+family counts equally (the fixture library has six stems of equal level; no spec singles out a
+family).
+
+### 19.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Domain (xUnit, backend) | `LibraryLayout` allow-list, `StorageClassifier`, `ConsentProof`, `CleanupRules`, `DetailPhase.FilesRemovedAt` | pure |
+| API (xUnit, backend) | write gate and maintenance filter, library jobs and start-up recovery, `ArchiveWriter`/`ArchiveReader`, `DatabaseSnapshot` (WAL, writer holding a transaction), `BackupScrubber`, `ArchiveValidator` + `StagingExtractor` over the **hostile corpus** (19.3), `StagedDatabase` migration of the **schema archives**, `LibrarySwitcher` crash injection after every journal step (SC-005), storage walker byte sums, clean-up planner property test (SC-007), recording classification (SC-010, `recording-asset.json`), merge (P3) | temp data and backups dirs, `FakeTimeProvider`, `IJournalStepHook`, stub worker handler, the committed fixture archives |
+| Worker (pytest, stem-separation) | `StorageMeter`, `CacheJanitor` (skips entries in use), `rehydrate` (422 on stems that do not match the model) | temp dirs, fake clock, fake `disk_usage` |
+| Frontend (bUnit) | Backups and Storage tabs, dialogs, levels (FR-031), live regions, focus trapping, `aria-sort`, maintenance overlay, help markers | fake `ILibraryCareClient` |
+| Fixtures (pytest, qa) | `tests/fixtures/backup`: ZIP writer/reader, the corpus and schema archives, `reference_validator.py` (a Python model of data-model 3.4 that proves each archive fails at its catalogued step and code), `compare_library.py` | committed SQL migration scripts, worker environment |
+| E2E (qa) | `library-care-{backup,restore,storage,cleanup,merge}.spec.ts` against the fake stack; `library-care-archive.spec.ts` stack-free self-test of the archive reader | fake stack + temp backups folder (devops T011), committed fixture archives |
+
+### 19.2 Fixtures (`tests/fixtures/backup`, qa T012)
+
+All archives are generated, deterministic and committed (about 0.6 MB in total), so the .NET
+tests read them without Python. Regenerate with `npm run fixtures:backup` (in `e2e/`) or the two
+commands of 19.7; `schema/README.md` describes how the SQL migration scripts are refreshed when a
+migration is added.
+
+| File | Content |
+|---|---|
+| `backup_zip.py` | byte-level ZIP writer and central-directory reader: raw names (backslashes, control characters, absolute paths kept), Unix mode bits, duplicates, declared sizes that differ from the data, Zip64 sizes and end records, a lying entry count; bounded payload reading |
+| `backup_library.py` | the fixture library (one completed `htdemucs_6s` track with six 0.1 s stems, a mix of all six at equal level, a raw export; from the 010 schema on a voice profile with a complete `consent.v1` record and its sample, and a lyrics sheet) built from `schema/schema-{008,010,head}.sql` (`dotnet ef migrations script`) plus raw SQL inserts in the EF JSON shapes, packed as a backup-archive 1.0.0 archive (manifest last, schema-valid) |
+| `make_hostile_archives.py` -> `archives/valid-base.zip`, `archives/h*.zip`, `hostile-manifest.json` | the positive control and 22 archives for H1-H17 of research R-06, each the control with exactly one defect; the catalogue gives per file the vector, the expected outcome (problem code, `profile-dropped` or `restored`) and the step of data-model 3.4 that must catch it |
+| `make_schema_archives.py` -> `archives/schema-008.zip`, `schema-010.zip`, `schema-newer.zip`, `format-2.zip`, `not-a-backup.zip`, `not-a-zip.zip`, `schema-manifest.json` | SC-009 archives at the 008 (`AddScoreFacts`) and 010 (`AddLyricsAndVoices`) schemas (`data-state="migration"`), an archive with an unknown migration and one with `formatVersion` 2.0.0 (`incompatible`), and two unrecognised files |
+| `compare_library.py` | `dump <archive.zip or data dir> -o x.json` (every row of every table, sorted; SHA-256 of every library file) and `compare before.json after.json` (exit 1 with the differences; job-state columns of rows that were not terminal are ignored, SC-001; `--ignore Table.Column`) |
+| `recording-asset.json` | SC-010: an Audio asset row whose provenance origin is `Recording` (015, not yet an enum member) with its file path and the expected classification (category `recordings`, never `exports`, never in a clean-up plan) |
+| `reference_validator.py` | test-only reference of data-model 3.4 steps 2-9 used by the fixture tests (not product code) |
+
+### 19.3 Hostile corpus (SC-004)
+
+| File | Vector | Expected (step) |
+|---|---|---|
+| `h01-traversal.zip` | H1 `files/../../etc/passwd` | `archive-unsafe` (3) |
+| `h02a-absolute-path.zip`, `h02b-drive-letter.zip` | H2 `/data/stemstudio.db`, `C:\x` | `archive-unsafe` (3) |
+| `h03-backslash.zip` | H3 `files\tracks\...\vocals.flac` | `archive-unsafe` (3) |
+| `h04a-control-character.zip`, `h04b-long-name.zip` | H4 U+0001 in a name; 290 characters | `archive-unsafe` (3) |
+| `h05-symlink.zip` | H5 vocals stem with `S_IFLNK` mode (Unix host) | `archive-unsafe` (3) |
+| `h06-duplicate-name.zip` | H6 two records named like the vocals stem | `archive-unsafe` (3) |
+| `h07-unlisted-entry.zip` | H7 valid-layout own cover not in the manifest | `archive-unsafe` (3) |
+| `h08-missing-entry.zip` | H8 listed piano stem absent | `archive-corrupt` (3) |
+| `h09-zip-bomb.zip` | H9 headers and manifest declare the real size, the stream inflates to 4 MiB | `archive-corrupt` (6): the bounded stream stops at size + 1, or (`System.IO.Compression` stops at the declared length) the hash differs |
+| `h10-hash-mismatch.zip` | H10 one flipped byte | `archive-corrupt` (6) |
+| `h11-layout.zip` | H11 listed `files/tracks/<id>/run.sh` | `archive-unsafe` (3) |
+| `h12a-manifest-schema.zip`, `h12b-manifest-format.zip` | H12 `hashAlgorithm` md5; `format` other | `archive-invalid` (2) |
+| `h13a-integrity.zip`, `h13b-foreign-database.zip` | H13 index redefined in `sqlite_schema` (`PRAGMA integrity_check` fails); valid SQLite without migration history | `archive-corrupt` (7) |
+| `h14-stored-path.zip` | H14 `VoiceProfiles.SamplePath = '../../x'` | `archive-unsafe` (8) |
+| `h15-consent-hash.zip` | H15 wrong statement SHA-256 (database and manifest agree) | profile dropped, skipped `consent-invalid`, restore completes (9) |
+| `h16-disk-space.zip` | H16 1 PiB pending upload declared in manifest and Zip64 headers | `insufficient-disk-space` (5) |
+| `h17a-manifest-too-large.zip`, `h17b-entry-count.zip` | H17 `manifest.json` declared 256 MiB + 1; Zip64 end record declares 2,000,001 entries (`ZipArchive` refuses to open it) | `archive-invalid` (2) |
+
+Checked by `tests/fixtures/backup/tests` (reference validator over every committed file, catalogue
+hashes, determinism, every R-06 vector present) and, read with `System.IO.Compression`, by the
+backend's T042 tests. Binding for the backend: each file refused with its code **before any
+change** (file tree and database byte-identical, SC-004).
+
+### 19.4 E2E rules for the 013 specs (binding for qa and the CTO run)
+
+- **The library is left as it was found.** Every replace restore of a spec is followed by "Undo
+  restore" and "Discard" (`undoAndDiscard`), so later specs see their own tracks; archives a case
+  writes or places are deleted in `afterEach`. The empty-library case (`@fresh-library`) skips
+  unless `GET /api/library-care/status` reports `libraryEmpty` and runs first on a fresh project
+  (`npm run test:library-care-fresh`).
+- **Running-job cases need a throttled stack.** On the fake stack a backup of the seeded library
+  takes well under a second, so cancel, write gate, "restore blocked by a running job" and the
+  maintenance overlay need `StemStudio__LibraryCare__ThrottleBytesPerSecond` (set by the e2e compose
+  override, CTO decision 2026-11-17) and `E2E_LIBRARY_THROTTLE=1`; otherwise they skip with the
+  reason (`requireThrottledJobs`).
+- **Compose access is opt-in.** Cases that read file sizes inside the containers, stop the worker or
+  reset the worker cache carry `@compose` and run only with `E2E_COMPOSE=1`; they target
+  `E2E_COMPOSE_FILE` and `E2E_COMPOSE_PROJECT` (the CTO's separate integration project) and never
+  another project. `npm test` excludes `@compose` and `@fresh-library`.
+- **Fixture archives** are placed into the backups folder through `E2E_BACKUP_DIR` (host folder of
+  the `/backups` bind mount) or, with `E2E_COMPOSE=1`, `docker compose cp`.
+- Archives the stack writes are downloaded and checked with `support/backup-archive.ts`
+  (`archiveProblems`: manifest last and valid against the schema, README present, no unlisted,
+  duplicate or link entries, every SHA-256 and size, totals); `library-care-archive.spec.ts`
+  (`@self-test`, no stack) proves that reader against the committed corpus.
+
+### 19.5 Run matrix
+
+| Stack / variables | Runs |
+|---|---|
+| fake stack (`STEMSTUDIO_SEPARATOR=fake`), temp backups folder, `E2E_BACKUP_DIR` | `npm run test:library-care` (everything but `@compose`, `@fresh-library`; running-job cases skip without the throttle) |
+| + `StemStudio__LibraryCare__ThrottleBytesPerSecond` (override) and `E2E_LIBRARY_THROTTLE=1` | the running-job cases of US1, US2 and US4 |
+| + `E2E_COMPOSE=1`, `E2E_COMPOSE_PROJECT` | `npm run test:library-care-compose` (storage byte sums, worker stopped, rehydration after a worker cache reset) |
+| fresh project (empty library) | `npm run test:library-care-fresh` first |
+| no stack | `npx playwright test tests/library-care-archive.spec.ts` (`@self-test`) |
+
+### 19.6 (013) acceptance scenario -> tests
+
+| Scenario | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1-1 archive, `.partial` until complete, manifest with size and SHA-256, "Verified" (FR-001, FR-005, FR-008) | `ArchiveWriterTests`, `BackupServiceTests` | `library-care-backup.spec.ts` complete backup (schema, every hash, stems, export, database first, no foreign entries, no `.partial`) |
+| US1-2 deletes and clean-ups refused, export still runs (FR-002) | gate filter tests per gated endpoint | `library-care-backup.spec.ts` write gate (API `409 backup-running`, track page text, clean-up preview refused, export completes and is not in the archive) |
+| US1-3 cancel within 5 s, no partial (FR-006, SC-003) | runner cancel tests (20 random moments) | `library-care-backup.spec.ts` cancel |
+| US1-4 not enough space / disk full | estimator and writer free-space tests | - (backend; not reproducible on the shared fake stack) |
+| US1-5 compact backup marks detail phases removed (FR-003) | `BackupScrubberTests` | `library-care-backup.spec.ts` compact (no `/detail/` entry, excluded `option`, archived `DetailPhase.FilesRemovedAt`) |
+| US1-6 restart fails the job, partial gone | `StartupRecoveryTests` | - (CTO V10 style manual run) |
+| US1-7 download with Range (FR-005) | download endpoint tests | `library-care-backup.spec.ts` download (Content-Disposition, ETag, 206, 416) |
+| US2-1 empty library restored directly with counts | `RestoreServiceTests` | `library-care-restore.spec.ts` `@fresh-library` |
+| US2-2 replace with confirmation, undo, discard (FR-012, FR-026) | switcher, previous-library tests | `library-care-restore.spec.ts` replace -> items back, stems play, mix opens, undo, discard |
+| US2-3 refused while jobs are active (FR-013) | `RestoreBlockersTests` | `library-care-restore.spec.ts` blocked while an export runs (throttled) |
+| US2-4 older schema migrated, newer refused (FR-014, SC-009) | `StagedDatabaseTests` over `schema-008.zip`, `schema-010.zip`, `schema-newer.zip` | `library-care-restore.spec.ts` states of the schema archives and restore of `schema-010.zip` |
+| US2-5 damaged / hostile archive refused, library untouched (FR-011, SC-004) | `ArchiveValidatorTests`, `StagingExtractorTests` over 19.3 | `library-care-restore.spec.ts` hostile archives (verify and restore refused with their code, library unchanged) |
+| US2-6 crash during the switch (FR-017, SC-005) | `LibrarySwitcherCrashTests` (every journal step) | - (CTO V10) |
+| US2-7 rehydration before "Split further" (FR-019) | `WorkerCacheRehydratorTests`, worker `rehydrate` tests | `library-care-restore.spec.ts` `@compose` worker cache reset -> Split further completes |
+| US3-1..4 storage overview, worker down, sorting, model caches (FR-020, FR-021, SC-006) | walker, attribution, overview tests | `library-care-storage.spec.ts` (byte sums `@compose`, worker stopped `@compose`, sorting and links, model caches without delete) |
+| US4-1..6 clean-up preview, execute, notices, skip active, stale plan, no originals (FR-022..FR-025, SC-007) | planner property test, executor tests | `library-care-cleanup.spec.ts` |
+| US5-1..3 merge (P3) | `LibraryMergerTests` | `library-care-merge.spec.ts` |
+| FR-009, SC-008 voice profiles only with consent; excluded by option | `ConsentProofTests`, scrubber tests | `library-care-restore.spec.ts` consent proof in the details panel; H15 (`profile-dropped`) |
+| SC-010 recordings never exports, never cleaned | classifier and planner tests with `recording-asset.json` | - (no recording asset can exist before 015) |
+| FR-031 levels, FR-032 accessibility | bUnit level and a11y tests | `library-care-backup.spec.ts` levels and axe on both tabs |
+
+### 19.7 Commands
+
+```bash
+# fixtures: regenerate, then lint, type-check and test them (worker environment)
+uv run --project worker python tests/fixtures/backup/make_hostile_archives.py
+uv run --project worker python tests/fixtures/backup/make_schema_archives.py
+cd tests/fixtures/backup
+uv run --project ../../../worker ruff check . && uv run --project ../../../worker ruff format --check .
+uv run --project ../../../worker mypy --config-file pyproject.toml .
+uv run --project ../../../worker pytest -c pyproject.toml --cov --cov-branch --cov-config=pyproject.toml
+cd -
+# library comparison (SC-001, quickstart V3)
+python -I tests/fixtures/backup/compare_library.py dump backups/<before>.zip -o before.json
+python -I tests/fixtures/backup/compare_library.py dump backups/<after>.zip -o after.json
+python -I tests/fixtures/backup/compare_library.py compare before.json after.json
+# E2E (from e2e/): stack-free self-test, then the fake stack with the e2e override
+npx playwright test tests/library-care-archive.spec.ts
+E2E_BACKUP_DIR=<temp backups folder> npm run test:library-care
+E2E_BACKUP_DIR=<...> E2E_LIBRARY_THROTTLE=1 E2E_COMPOSE=1 E2E_COMPOSE_PROJECT=<project> npm run test:library-care-compose
 ```
