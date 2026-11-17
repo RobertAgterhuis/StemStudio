@@ -46,6 +46,9 @@ public sealed record ExportMix(double MasterVolume, IReadOnlyList<ChannelSetting
 
     /// <summary>Detail channel settings.</summary>
     public IReadOnlyList<DetailChannelSettings> DetailChannels { get; init; } = [];
+
+    /// <summary>The take strip (feature 015), or null.</summary>
+    public TakeChannelSettings? Take { get; init; }
 }
 
 /// <summary>The normalised export request, stored with the item and used again by retry (data-model 4.2).</summary>
@@ -68,4 +71,7 @@ public sealed record ExportRecipe
 
     /// <summary>Resolved output format.</summary>
     public required ExportFormat Format { get; init; }
+
+    /// <summary>The take the export used (feature 015), or null.</summary>
+    public Guid? TakeId { get; init; }
 }

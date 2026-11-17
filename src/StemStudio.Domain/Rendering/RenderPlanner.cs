@@ -18,8 +18,39 @@ public sealed record PlannedInput(string ChannelId, string Path, double Gain, do
 /// <param name="Mode">Raw or mixed.</param>
 public sealed record RenderPlan(IReadOnlyList<PlannedInput> Inputs, double MasterGain, string ChannelText, ExportMode Mode)
 {
+    /// <summary>Library items the export is made from (feature 015: the take's asset when the take is in it).</summary>
+    public IReadOnlyList<Guid> SourceAssetIds { get; init; } = [];
+
     /// <summary>The contents text without a range, e.g. "drums, raw" or "6 channels, mixed".</summary>
     public string Contents => $"{ChannelText}, {(Mode == ExportMode.Raw ? "raw" : "mixed")}";
+}
+
+/// <summary>Thrown when the channel <c>take</c> is listed but the export names no take (422 <c>take-required</c>, feature 015).</summary>
+public sealed class TakeRequiredException : Exception
+{
+    /// <summary>The fixed message.</summary>
+    public const string Text = "The channel 'take' needs a take.";
+
+    /// <summary>Creates the exception.</summary>
+    public TakeRequiredException()
+        : base(Text)
+    {
+    }
+
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">Message.</param>
+    public TakeRequiredException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">Message.</param>
+    /// <param name="innerException">Cause.</param>
+    public TakeRequiredException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
 
 /// <summary>Thrown when no channel of an export would be audible (422 <c>nothing-to-export</c>).</summary>
@@ -63,6 +94,9 @@ public static class RenderPlanner
     /// <summary>Above this many channels the contents text counts them.</summary>
     public const int MaxListedChannels = 4;
 
+    /// <summary>The channel id of the take strip (feature 015 <c>ExportChannelId</c>).</summary>
+    public const string TakeChannelId = "take";
+
     /// <summary>Plans an export.</summary>
     /// <param name="source">The track's channels.</param>
     /// <param name="mode">Raw or mixed.</param>
@@ -71,20 +105,30 @@ public static class RenderPlanner
     /// <returns>The plan.</returns>
     /// <exception cref="DomainValidationException">A channel is unknown, repeated or missing on the track, or a required value is missing.</exception>
     /// <exception cref="NothingToExportException">No channel would be audible.</exception>
+    /// <exception cref="TakeRequiredException">The channel <c>take</c> is listed without a take (feature 015).</exception>
     public static RenderPlan Plan(RenderSource source, ExportMode mode, IReadOnlyList<string>? channels, ExportMix? mix)
     {
         ArgumentNullException.ThrowIfNull(source);
         var selected = Selection(source, mode, channels, mix);
         var inputs = (mode == ExportMode.Raw ? Raw(selected!) : Mixed(source, selected, mix!))
             .Where(input => input.Gain > 0).OrderBy(input => input.Channel.SortKey).ToList();
-        if (inputs.Count == 0)
+        var stems = inputs.Select(input => new PlannedInput(input.Channel.Id, input.Channel.PathFor(source.TrackId), input.Gain, input.Pan)).ToList();
+        var take = TakePlan.Input(source, mode, channels, mix, AnySolo(source, mix, selected));
+        if (stems.Count == 0 && take is null)
         {
             throw new NothingToExportException();
         }
 
-        var planned = inputs.Select(input => new PlannedInput(input.Channel.Id, input.Channel.PathFor(source.TrackId), input.Gain, input.Pan)).ToList();
-        return new RenderPlan(planned, mode == ExportMode.Raw ? 1 : mix!.MasterVolume, ChannelText(planned), mode);
+        return new RenderPlan([.. stems, .. take is null ? [] : new[] { take }], mode == ExportMode.Raw ? 1 : mix!.MasterVolume, TakePlan.Text(ChannelText(stems), take is null ? null : source.Take), mode)
+        {
+            SourceAssetIds = take is null ? [] : [source.Take!.AssetId],
+        };
     }
+
+    /// <summary>True when a visible stem channel or the take is soloed (gate rule v2 with the take strip, feature 015).</summary>
+    private static bool AnySolo(RenderSource source, ExportMix? mix, List<RenderChannel>? selected) =>
+        mix is not null && selected is null
+        && (source.AllChannels().Any(channel => !IsHidden(mix, channel) && Fader(mix, channel).Solo) || (source.Take is not null && mix.Take?.Solo == true));
 
     /// <summary>The mix rules of feature 002 for an export mix (name, metronome and loop do not apply).</summary>
     /// <param name="mix">The export mix.</param>
@@ -122,6 +166,12 @@ public static class RenderPlanner
         for (var i = 0; i < channels.Count; i++)
         {
             var field = string.Create(CultureInfo.InvariantCulture, $"channels[{i}]");
+            if (channels[i] == TakeChannelId)
+            {
+                errors.Check(seen.Add(TakeChannelId), field, "Each channel can be selected only once.");
+                continue;
+            }
+
             if (Check(errors, field, source, channels[i]) is { } channel && Unique(errors, field, seen, channel))
             {
                 selected.Add(channel);
@@ -156,7 +206,7 @@ public static class RenderPlanner
     private static IEnumerable<Weighted> Audible(RenderSource source, ExportMix mix)
     {
         var channels = source.AllChannels().Select(channel => (Channel: channel, Fader: Fader(mix, channel), Hidden: IsHidden(mix, channel))).ToList();
-        var anySolo = channels.Any(channel => !channel.Hidden && channel.Fader.Solo);
+        var anySolo = AnySolo(source, mix, null);
         return channels.Where(channel => !channel.Hidden && !channel.Fader.Mute && (!anySolo || channel.Fader.Solo))
             .Select(channel => Weigh(channel.Channel, channel.Fader));
     }

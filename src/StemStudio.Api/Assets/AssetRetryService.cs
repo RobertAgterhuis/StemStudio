@@ -11,7 +11,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="submitter">Starts the render.</param>
 /// <param name="reader">Maps the item.</param>
 /// <param name="scores">Retries score items (feature 008).</param>
-public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores)
+/// <param name="takes">Resolves a recipe's take again (feature 015).</param>
+public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores, TakeExportResolver takes)
 {
     /// <summary>Re-plans and resubmits a failed item.</summary>
     /// <param name="id">Item ID.</param>
@@ -35,8 +36,15 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
 
     private async Task<IResult> RetryExportAsync(Asset asset, CancellationToken cancellationToken)
     {
-        var track = await tracks.FindAsync(asset.Provenance.Recipe!.TrackId, cancellationToken);
-        var (draft, problem) = ExportPlanner.Replan(track, asset.Provenance.Recipe);
+        var recipe = asset.Provenance.Recipe!;
+        var track = await tracks.FindAsync(recipe.TrackId, cancellationToken);
+        var take = await takes.ResolveAsync(recipe.TakeId, recipe.TrackId, fromSavedMix: false, cancellationToken);
+        if (take.Problem is not null)
+        {
+            return AssetProblems.SourceUnavailable("The take of this item was deleted or is not ready, so it cannot be rendered again.");
+        }
+
+        var (draft, problem) = ExportPlanner.Replan(track, recipe, take.Take);
         return problem ?? await ResubmitAsync(asset, draft!, cancellationToken);
     }
 

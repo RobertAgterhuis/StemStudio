@@ -31,6 +31,7 @@ public static class RecordingRegistration
         services.AddScoped<TakeAssetFinisher>();
         services.AddScoped<CalibrationService>();
         services.AddScoped<Mixes.MixReferences>();
+        services.AddScoped<Assets.TakeExportResolver>();
         return services;
     }
 
