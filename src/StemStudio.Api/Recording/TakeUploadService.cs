@@ -4,63 +4,8 @@ using StemStudio.Contracts.Recording;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Recording;
 using StemStudio.Domain.Tracks;
-using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Recording;
-
-/// <summary>The repositories of the recording services (one scope, one unit of work).</summary>
-/// <param name="Tracks">Tracks.</param>
-/// <param name="Takes">Takes.</param>
-/// <param name="Assets">Library items.</param>
-/// <param name="Mixes">Mixes.</param>
-/// <param name="Calibrations">Calibrations.</param>
-public sealed record TakeData(ITrackRepository Tracks, IRecordingTakeRepository Takes, IAssetRepository Assets, IMixRepository Mixes, IInputCalibrationRepository Calibrations);
-
-/// <summary>Writes and discards a take's capture file.</summary>
-/// <param name="storage">Take files.</param>
-/// <param name="files">Asset folders.</param>
-public sealed class TakeCapture(TakeFiles storage, IAssetFileStore files)
-{
-    /// <summary>
-    /// Writes <c>capture.wav</c> from the spooled data through a temporary file; an existing capture is replaced only by complete,
-    /// audible audio (digital silence is never stored).
-    /// </summary>
-    /// <param name="assetId">The take's asset.</param>
-    /// <param name="header">The upload's format.</param>
-    /// <param name="startSample">Song sample of the first take sample.</param>
-    /// <param name="spoolPath">The spooled data.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>The level facts.</returns>
-    public async Task<PeakScan> WriteAsync(Guid assetId, TakeWavHeader header, long startSample, string spoolPath, CancellationToken cancellationToken)
-    {
-        var target = storage.CapturePath(assetId);
-        var temp = $"{target}.{Guid.NewGuid():N}.tmp";
-        try
-        {
-            PeakScan scan;
-            await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
-            await using (var source = new FileStream(spoolPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true))
-            {
-                scan = await TakeWavPadder.WriteAsync(output, header, startSample, source, cancellationToken);
-            }
-
-            if (!scan.AllZero)
-            {
-                File.Move(temp, target, overwrite: true);
-            }
-
-            return scan;
-        }
-        finally
-        {
-            TakeFiles.TryDelete(temp);
-        }
-    }
-
-    /// <summary>Deletes the asset folder of a take that was not stored.</summary>
-    /// <param name="assetId">The asset.</param>
-    public void Discard(Guid assetId) => files.DeleteAll(assetId);
-}
 
 /// <summary>
 /// <c>createRecordingTake</c> (data-model 2.1-2.4): checks the track and the take limit, streams the upload, validates the
@@ -133,30 +78,35 @@ public sealed class TakeUploadService(TakeData data, TakeUploadReader reader, Ta
             return AssetProblems.Invalid(invalid, "metadata");
         }
 
-        using var held = await gate.EnterAsync(cancellationToken);
+        return await gate.RunAsync(() => StoreLockedAsync(track, new TakeDraft(assetId, upload), cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Count, number, capture, rows and render start under the take lock.</summary>
+    private async Task<IResult> StoreLockedAsync(Track track, TakeDraft draft, CancellationToken cancellationToken)
+    {
         var existing = await data.Takes.ListByTrackAsync(track.Id, cancellationToken);
-        var metadata = upload.Metadata;
-        var check = new TakeCheck(existing.Count, metadata.Speed, metadata.TransposeSemitones, metadata.StartSample, metadata.LengthSamples, upload.Header.Frames, LatencyConversion.TrackSamples(track.DurationSeconds ?? 0));
+        var (metadata, header) = (draft.Upload.Metadata, draft.Upload.Header);
+        var check = new TakeCheck(existing.Count, metadata.Speed, metadata.TransposeSemitones, metadata.StartSample, metadata.LengthSamples, header.Frames, LatencyConversion.TrackSamples(track.DurationSeconds ?? 0));
         var refusal = TakeRules.Check(check);
-        var scan = refusal == TakeRefusal.None ? await capture.WriteAsync(assetId, upload.Header, metadata.StartSample, upload.SpoolPath, cancellationToken) : null;
-        if (refusal != TakeRefusal.None || scan!.AllZero)
+        var scan = refusal == TakeRefusal.None ? await capture.WriteAsync(draft.AssetId, new PaddedCapture(header, metadata.StartSample), draft.Upload.SpoolPath, cancellationToken) : null;
+        if (scan is not { AllZero: false })
         {
-            capture.Discard(assetId);
+            capture.Discard(draft.AssetId);
             return refusal == TakeRefusal.None ? RecordingProblems.Silent() : RecordingProblems.Refused(refusal);
         }
 
-        var values = await ValuesAsync(track, assetId, TakeNaming.NextNumber(existing.Select(take => take.Number)), upload, scan, cancellationToken);
-        return await StartAsync(track, values, cancellationToken);
+        var numbered = draft with { Number = TakeNaming.NextNumber(existing.Select(take => take.Number)), Scan = scan };
+        return await StartAsync(track, await ValuesAsync(track.Id, numbered, cancellationToken), cancellationToken);
     }
 
-    private async Task<NewTake> ValuesAsync(Track track, Guid assetId, int number, TakeUpload<RecordingTakeUploadDto> upload, PeakScan scan, CancellationToken cancellationToken)
+    private async Task<NewTake> ValuesAsync(Guid trackId, TakeDraft draft, CancellationToken cancellationToken)
     {
-        var metadata = upload.Metadata;
+        var (metadata, header) = (draft.Upload.Metadata, draft.Upload.Header);
         return new NewTake
         {
-            TrackId = track.Id,
-            AssetId = assetId,
-            Number = number,
+            TrackId = trackId,
+            AssetId = draft.AssetId,
+            Number = draft.Number,
             Name = metadata.Name,
             Part = TakeUploadRules.ToDomain(metadata.Part),
             SessionId = metadata.SessionId,
@@ -165,13 +115,13 @@ public sealed class TakeUploadService(TakeData data, TakeUploadReader reader, Ta
             StartSample = metadata.StartSample,
             LengthSamples = metadata.LengthSamples,
             InputMode = TakeUploadRules.ToDomain(metadata.InputMode),
-            InputChannels = upload.Header.Channels,
+            InputChannels = header.Channels,
             LatencySamples = metadata.LatencySamples,
             LatencyMethod = TakeUploadRules.ToDomain(metadata.LatencyMethod),
             CalibrationId = await KnownCalibrationAsync(metadata.CalibrationId, cancellationToken),
             DeviceLabel = metadata.DeviceLabel,
-            MixId = await MixOfTrackAsync(metadata.MixId, track.Id, cancellationToken),
-            Scan = scan,
+            MixId = await MixOfTrackAsync(metadata.MixId, trackId, cancellationToken),
+            Scan = draft.Scan!,
             Dropouts = metadata.Dropouts,
             RecordedAt = metadata.RecordedAt.UtcDateTime,
         };
@@ -219,4 +169,16 @@ public sealed class TakeUploadService(TakeData data, TakeUploadReader reader, Ta
             Recording = new RecordingSource(take.Id),
         };
     }
+}
+
+/// <summary>A take being stored: its new asset id, the upload and, once known, its number and level facts.</summary>
+/// <param name="AssetId">The new asset.</param>
+/// <param name="Upload">The read upload.</param>
+public sealed record TakeDraft(Guid AssetId, TakeUpload<RecordingTakeUploadDto> Upload)
+{
+    /// <summary>The take number.</summary>
+    public int Number { get; init; }
+
+    /// <summary>The level facts of the written capture.</summary>
+    public PeakScan? Scan { get; init; }
 }

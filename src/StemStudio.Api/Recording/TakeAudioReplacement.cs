@@ -1,7 +1,6 @@
 using StemStudio.Api.Assets;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Recording;
-using StemStudio.Domain.Assets;
 using StemStudio.Domain.Recording;
 
 namespace StemStudio.Api.Recording;
@@ -26,19 +25,13 @@ public sealed class TakeAudioReplacement(TakeData data, TakeUploadReader reader,
     /// <returns>202 or a problem.</returns>
     public async Task<IResult> ReplaceAsync(Guid takeId, HttpRequest request, CancellationToken cancellationToken)
     {
-        var take = await data.Takes.FindAsync(takeId, cancellationToken);
-        var asset = take is null ? null : await data.Assets.FindAsync(take.AssetId, cancellationToken);
-        if (take is null || asset is null)
+        var stored = await data.FindAsync(takeId, cancellationToken);
+        if (stored is null || stored.Asset.IsActive)
         {
-            return RecordingProblems.TakeNotFound(takeId);
+            return stored is null ? RecordingProblems.TakeNotFound(takeId) : RecordingProblems.Saving();
         }
 
-        if (asset.IsActive)
-        {
-            return RecordingProblems.Saving();
-        }
-
-        var (upload, problem) = await reader.ReadAsync<ReplaceTakeAudioMetadataDto>(request, asset.Id, disk.Admit, cancellationToken);
+        var (upload, problem) = await reader.ReadAsync<ReplaceTakeAudioMetadataDto>(request, stored.Asset.Id, disk.Admit, cancellationToken);
         if (upload is null)
         {
             return problem!;
@@ -46,7 +39,7 @@ public sealed class TakeAudioReplacement(TakeData data, TakeUploadReader reader,
 
         try
         {
-            return await StoreAsync(take, asset, upload, cancellationToken);
+            return await CheckAsync(stored, upload, cancellationToken) ?? await gate.RunAsync(() => StoreLockedAsync(stored, upload, cancellationToken), cancellationToken);
         }
         finally
         {
@@ -54,7 +47,8 @@ public sealed class TakeAudioReplacement(TakeData data, TakeUploadReader reader,
         }
     }
 
-    private async Task<IResult> StoreAsync(RecordingTake take, Asset asset, TakeUpload<ReplaceTakeAudioMetadataDto> upload, CancellationToken cancellationToken)
+    /// <summary>422 for invalid metadata, a length that differs from the WAV or a span outside the track; else null.</summary>
+    private async Task<IResult?> CheckAsync(StoredTake stored, TakeUpload<ReplaceTakeAudioMetadataDto> upload, CancellationToken cancellationToken)
     {
         var metadata = upload.Metadata;
         if (TakeUploadRules.Validate(metadata) is { Count: > 0 } invalid)
@@ -62,26 +56,26 @@ public sealed class TakeAudioReplacement(TakeData data, TakeUploadReader reader,
             return AssetProblems.Invalid(invalid, "metadata");
         }
 
-        var track = await data.Tracks.FindAsync(take.TrackId, cancellationToken);
+        var track = await data.Tracks.FindAsync(stored.Take.TrackId, cancellationToken);
         var trackSamples = LatencyConversion.TrackSamples(track?.DurationSeconds ?? 0);
         var refusal = TakeRules.Check(new TakeCheck(0, 1, 0, metadata.StartSample, metadata.LengthSamples, upload.Header.Frames, trackSamples));
-        if (refusal != TakeRefusal.None)
-        {
-            return RecordingProblems.Refused(refusal);
-        }
+        return refusal == TakeRefusal.None ? null : RecordingProblems.Refused(refusal);
+    }
 
-        using var held = await gate.EnterAsync(cancellationToken);
+    private async Task<IResult> StoreLockedAsync(StoredTake stored, TakeUpload<ReplaceTakeAudioMetadataDto> upload, CancellationToken cancellationToken)
+    {
+        var (take, asset, metadata) = (stored.Take, stored.Asset, upload.Metadata);
         if (asset.IsActive)
         {
             return RecordingProblems.Saving();
         }
 
-        var scan = await capture.WriteAsync(asset.Id, upload.Header, metadata.StartSample, upload.SpoolPath, cancellationToken);
-        return scan.AllZero ? RecordingProblems.Silent() : await RenderAsync(take, asset, metadata, scan, cancellationToken);
-    }
+        var scan = await capture.WriteAsync(asset.Id, new PaddedCapture(upload.Header, metadata.StartSample), upload.SpoolPath, cancellationToken);
+        if (scan.AllZero)
+        {
+            return RecordingProblems.Silent();
+        }
 
-    private async Task<IResult> RenderAsync(RecordingTake take, Asset asset, ReplaceTakeAudioMetadataDto metadata, PeakScan scan, CancellationToken cancellationToken)
-    {
         asset.Rerender(renderer.Now);
         if (await renderer.StartAsync(asset, cancellationToken) is { } unavailable)
         {

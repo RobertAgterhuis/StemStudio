@@ -31,8 +31,6 @@ public sealed class TakeUploadReader(TakeFiles storage, IOptions<RecordingOption
     /// <summary>Largest metadata part.</summary>
     public const int MaxMetadataBytes = 64 * 1024;
 
-    private const int BufferBytes = 64 * 1024;
-
     private long MaxDataBytes => options.Value.MaxUploadBytes;
 
     private long MaxBodyBytes => MaxDataBytes + UploadLimits.MultipartOverheadBytes;
@@ -150,19 +148,8 @@ public sealed class TakeUploadReader(TakeFiles storage, IOptions<RecordingOption
 
     private static async Task SpoolAsync(Stream body, long count, string path, CancellationToken cancellationToken)
     {
-        await using var spool = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferBytes, useAsync: true);
-        var buffer = new byte[BufferBytes];
-        for (var left = count; left > 0;)
-        {
-            var read = await body.ReadAsync(buffer.AsMemory(0, (int)Math.Min(left, buffer.Length)), cancellationToken);
-            if (read == 0)
-            {
-                throw new TakeWavException("The file ends before its audio data does.");
-            }
-
-            await spool.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-            left -= read;
-        }
+        await using var spool = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await new ExactCopy(count).RunAsync(body, spool, cancellationToken);
     }
 
     private async Task<IResult?> MetadataAsync<T>(Stream body, ReadState<T> state, CancellationToken cancellationToken)

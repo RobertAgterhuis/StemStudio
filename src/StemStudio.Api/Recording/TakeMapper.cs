@@ -16,42 +16,82 @@ public static class TakeMapper
     public static RecordingTakeDto ToDto(RecordingTake take, Asset? asset)
     {
         ArgumentNullException.ThrowIfNull(take);
-        return new RecordingTakeDto
+        return WithLevels(Header(take, asset), take) with
         {
-            Id = take.Id,
-            TrackId = take.TrackId,
-            Number = take.Number,
-            Name = take.Name,
-            Part = Enum.Parse<RecordingPartDto>(take.Part.ToString()),
-            Status = Status(asset),
-            Error = asset is { Status: AssetStatus.Failed } ? asset.Error : null,
-            SessionId = take.SessionId,
-            PassIndex = take.PassIndex,
-            Partial = take.Partial,
-            StartSample = take.StartSample,
-            LengthSamples = take.LengthSamples,
-            StartSeconds = LatencyConversion.ToSeconds(take.StartSample),
-            DurationSeconds = LatencyConversion.ToSeconds(take.LengthSamples),
             InputMode = Enum.Parse<InputChannelModeDto>(take.InputMode.ToString()),
             InputChannels = take.InputChannels,
             Latency = Latency(take),
             DeviceLabel = take.DeviceLabel,
             MixId = take.MixId,
             Favorite = take.Favorite,
-            PeakDbfs = take.PeakDbfs,
-            ClippedSamples = take.ClippedSamples,
-            Dropouts = take.Dropouts,
-            Quiet = take.Quiet,
             AdjustmentSamples = take.AdjustmentSamples,
             AlignmentRevision = take.AlignmentRevision,
-            SizeBytes = asset?.SizeBytes ?? 0,
-            AssetId = take.AssetId,
-            AudioUrl = asset is { Files.Count: > 0 } ? ApiRoutes.AssetFile(asset.Id, AssetFileRoles.Audio) : null,
-            RecordedAt = TrackMapper.Utc(take.RecordedAt),
-            CreatedAt = TrackMapper.Utc(take.CreatedAt),
-            UpdatedAt = TrackMapper.Utc(Max(take.UpdatedAt, asset?.UpdatedAt)),
         };
     }
+
+    /// <summary>Every required member at its default; the mapping fills it in groups (keeps each unit small).</summary>
+    private static readonly RecordingTakeDto Blank = new()
+    {
+        Id = Guid.Empty,
+        TrackId = Guid.Empty,
+        Number = 0,
+        Name = string.Empty,
+        Part = RecordingPartDto.None,
+        Status = TakeStatusDto.Saving,
+        SessionId = Guid.Empty,
+        Partial = false,
+        StartSample = 0,
+        LengthSamples = 0,
+        StartSeconds = 0,
+        DurationSeconds = 0,
+        InputMode = InputChannelModeDto.Mono1,
+        InputChannels = 1,
+        Latency = new TakeLatencyDto { Samples = 0, Milliseconds = 0, Method = LatencyMethodDto.Estimated },
+        Favorite = false,
+        PeakDbfs = 0,
+        ClippedSamples = 0,
+        Dropouts = 0,
+        Quiet = false,
+        AdjustmentSamples = 0,
+        AlignmentRevision = 0,
+        SizeBytes = 0,
+        AssetId = Guid.Empty,
+        RecordedAt = default,
+        CreatedAt = default,
+        UpdatedAt = default,
+    };
+
+    private static RecordingTakeDto Header(RecordingTake take, Asset? asset) => Blank with
+    {
+        Id = take.Id,
+        TrackId = take.TrackId,
+        Number = take.Number,
+        Name = take.Name,
+        Part = Enum.Parse<RecordingPartDto>(take.Part.ToString()),
+        Status = Status(asset),
+        Error = asset is { Status: AssetStatus.Failed } ? asset.Error : null,
+        SessionId = take.SessionId,
+        PassIndex = take.PassIndex,
+        Partial = take.Partial,
+        StartSample = take.StartSample,
+        LengthSamples = take.LengthSamples,
+        StartSeconds = LatencyConversion.ToSeconds(take.StartSample),
+        DurationSeconds = LatencyConversion.ToSeconds(take.LengthSamples),
+        SizeBytes = asset?.SizeBytes ?? 0,
+        AssetId = take.AssetId,
+        AudioUrl = asset is { Files.Count: > 0 } ? ApiRoutes.AssetFile(asset.Id, AssetFileRoles.Audio) : null,
+        RecordedAt = TrackMapper.Utc(take.RecordedAt),
+        CreatedAt = TrackMapper.Utc(take.CreatedAt),
+        UpdatedAt = TrackMapper.Utc(Max(take.UpdatedAt, asset?.UpdatedAt)),
+    };
+
+    private static RecordingTakeDto WithLevels(RecordingTakeDto dto, RecordingTake take) => dto with
+    {
+        PeakDbfs = take.PeakDbfs,
+        ClippedSamples = take.ClippedSamples,
+        Dropouts = take.Dropouts,
+        Quiet = take.Quiet,
+    };
 
     /// <summary>The take status of an asset status: queued and rendering are saving.</summary>
     /// <param name="asset">The asset, or null.</param>

@@ -86,7 +86,7 @@ public sealed class PeakAndPaddingTests
         var header = await TakeWavReader.ReadHeaderAsync(source, long.MaxValue, TestContext.Current.CancellationToken);
         var output = new MemoryStream();
 
-        var scan = await TakeWavPadder.WriteAsync(output, header, 25_000, source, TestContext.Current.CancellationToken);
+        var scan = await TakeWavPadder.WriteAsync(output, new PaddedCapture(header, 25_000), source, TestContext.Current.CancellationToken);
 
         var written = output.ToArray();
         written.Length.ShouldBe(44 + (25_000 * 6) + data.Length);
@@ -104,8 +104,12 @@ public sealed class PeakAndPaddingTests
         var source = new MemoryStream(file);
         var header = await TakeWavReader.ReadHeaderAsync(source, long.MaxValue, TestContext.Current.CancellationToken);
 
-        var refused = await Should.ThrowAsync<TakeWavException>(() => TakeWavPadder.WriteAsync(new MemoryStream(), header, 0, source, TestContext.Current.CancellationToken));
+        var refused = await Should.ThrowAsync<TakeWavException>(() => TakeWavPadder.WriteAsync(new MemoryStream(), new PaddedCapture(header, 0), source, TestContext.Current.CancellationToken));
 
         refused.Error.ShouldBe(TakeWavError.Invalid);
     }
+
+    [Fact]
+    public void PaddedCapture_RefusesANegativeStart() =>
+        Should.Throw<ArgumentOutOfRangeException>(() => new PaddedCapture(new TakeWavHeader(1, 3), -1));
 }

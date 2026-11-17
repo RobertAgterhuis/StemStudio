@@ -1,3 +1,4 @@
+using StemStudio.Api.Agent.Stores;
 using Microsoft.Extensions.Options;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Storage;
@@ -78,28 +79,13 @@ public sealed class TakeLock : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    /// <summary>Waits for the lock.</summary>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>Releases the lock when disposed.</returns>
-    public async Task<IDisposable> EnterAsync(CancellationToken cancellationToken)
-    {
-        await _gate.WaitAsync(cancellationToken);
-        return new Release(_gate);
-    }
+    /// <summary>Runs the body while holding the lock.</summary>
+    /// <typeparam name="T">Result of the body.</typeparam>
+    /// <param name="body">The body.</param>
+    /// <param name="cancellationToken">Cancellation of the wait.</param>
+    /// <returns>The body's result.</returns>
+    public Task<T> RunAsync<T>(Func<Task<T>> body, CancellationToken cancellationToken) => _gate.RunExclusiveAsync(body, cancellationToken);
 
     /// <inheritdoc />
     public void Dispose() => _gate.Dispose();
-
-    private sealed class Release(SemaphoreSlim gate) : IDisposable
-    {
-        private int _released;
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _released, 1) == 0)
-            {
-                gate.Release();
-            }
-        }
-    }
 }

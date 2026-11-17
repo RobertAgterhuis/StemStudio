@@ -94,19 +94,13 @@ public sealed class TakeService(TakeData data, TakeFiles storage, TakeRenderer r
     /// <returns>202, 404, 409 or 503.</returns>
     public async Task<IResult> RetryAsync(Guid takeId, CancellationToken cancellationToken)
     {
-        var take = await data.Takes.FindAsync(takeId, cancellationToken);
-        var asset = take is null ? null : await data.Assets.FindAsync(take.AssetId, cancellationToken);
-        if (take is null || asset is null)
+        var stored = await data.FindAsync(takeId, cancellationToken);
+        if (stored is not { Asset.Status: AssetStatus.Failed })
         {
-            return RecordingProblems.TakeNotFound(takeId);
+            return stored is null ? RecordingProblems.TakeNotFound(takeId) : RecordingProblems.NotFailed();
         }
 
-        if (asset.Status != AssetStatus.Failed)
-        {
-            return RecordingProblems.NotFailed();
-        }
-
-        return storage.HasCapture(asset.Id) ? await RerenderAsync(take, asset, cancellationToken) : RecordingProblems.CaptureMissing();
+        return storage.HasCapture(stored.Asset.Id) ? await RerenderAsync(stored.Take, stored.Asset, cancellationToken) : RecordingProblems.CaptureMissing();
     }
 
     private async Task<IResult> RerenderAsync(RecordingTake take, Asset asset, CancellationToken cancellationToken)

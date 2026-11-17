@@ -45,35 +45,60 @@ public static class TakeWavPadder
 
     /// <summary>Writes the padded file and scans the copied audio.</summary>
     /// <param name="output">The destination.</param>
-    /// <param name="header">The validated upload header (the source stream is at its first audio byte).</param>
-    /// <param name="startSample">Song sample of the first take sample (zero frames before it).</param>
-    /// <param name="source">The upload, positioned at the audio data.</param>
+    /// <param name="capture">The validated upload header and the song sample of its first frame.</param>
+    /// <param name="source">The audio data (the upload at its first audio byte, or a spool of the data).</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The level facts of the copied audio.</returns>
-    /// <exception cref="TakeWavException">The upload ends before its declared data size.</exception>
-    public static async Task<PeakScan> WriteAsync(Stream output, TakeWavHeader header, long startSample, Stream source, CancellationToken cancellationToken)
+    /// <exception cref="TakeWavException">The source ends before the declared data size.</exception>
+    public static async Task<PeakScan> WriteAsync(Stream output, PaddedCapture capture, Stream source, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(header);
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentOutOfRangeException.ThrowIfNegative(startSample);
-        await output.WriteAsync(Header(header.Channels, startSample + header.Frames), cancellationToken);
-        var buffer = new byte[BufferBytes];
-        await WriteZerosAsync(output, buffer, startSample * header.BlockAlign, cancellationToken);
-        return await CopyAsync(output, buffer, source, header.DataBytes, cancellationToken);
+        ArgumentNullException.ThrowIfNull(capture);
+        var header = capture.Header;
+        await output.WriteAsync(Header(header.Channels, capture.StartSample + header.Frames), cancellationToken);
+        await WriteZerosAsync(output, capture.StartSample * header.BlockAlign, cancellationToken);
+        var scanner = new PeakScanner();
+        await new ExactCopy(header.DataBytes, scanner).RunAsync(source, output, cancellationToken);
+        return scanner.Result();
     }
 
-    private static async Task WriteZerosAsync(Stream output, byte[] buffer, long count, CancellationToken cancellationToken)
+    private static async Task WriteZerosAsync(Stream output, long count, CancellationToken cancellationToken)
     {
-        for (var left = count; left > 0; left -= buffer.Length)
+        var zeros = new byte[BufferBytes];
+        for (var left = count; left > 0; left -= zeros.Length)
         {
-            await output.WriteAsync(buffer.AsMemory(0, (int)Math.Min(left, buffer.Length)), cancellationToken);
+            await output.WriteAsync(zeros.AsMemory(0, (int)Math.Min(left, zeros.Length)), cancellationToken);
         }
     }
+}
 
-    private static async Task<PeakScan> CopyAsync(Stream output, byte[] buffer, Stream source, long count, CancellationToken cancellationToken)
+/// <summary>The upload header of a capture and the song sample of its first frame (data-model 2.4).</summary>
+/// <param name="Header">The validated WAV header.</param>
+/// <param name="StartSample">Song sample of the first take sample (&gt;= 0).</param>
+public sealed record PaddedCapture(TakeWavHeader Header, long StartSample)
+{
+    /// <summary>The validated start (negative starts are refused before).</summary>
+    public long StartSample { get; } = StartSample >= 0 ? StartSample : throw new ArgumentOutOfRangeException(nameof(StartSample));
+}
+
+/// <summary>Copies exactly <paramref name="count"/> bytes in 64 KiB blocks, optionally scanning them; a short source is an invalid WAV.</summary>
+/// <param name="count">Bytes to copy.</param>
+/// <param name="scanner">Receives every copied byte, or null.</param>
+public sealed class ExactCopy(long count, PeakScanner? scanner = null)
+{
+    private const int BufferBytes = 64 * 1024;
+
+    /// <summary>Copies.</summary>
+    /// <param name="source">The source.</param>
+    /// <param name="destination">The destination.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    /// <exception cref="TakeWavException">The source ends early.</exception>
+    public async Task RunAsync(Stream source, Stream destination, CancellationToken cancellationToken)
     {
-        var scanner = new PeakScanner();
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination);
+        var buffer = new byte[BufferBytes];
         for (var left = count; left > 0;)
         {
             var read = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(left, buffer.Length)), cancellationToken);
@@ -82,11 +107,9 @@ public static class TakeWavPadder
                 throw new TakeWavException("The file ends before its audio data does.");
             }
 
-            scanner.Add(buffer.AsSpan(0, read));
-            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            scanner?.Add(buffer.AsSpan(0, read));
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             left -= read;
         }
-
-        return scanner.Result();
     }
 }

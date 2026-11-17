@@ -36,9 +36,13 @@ public sealed class CalibrationService(IInputCalibrationRepository calibrations,
             return AssetProblems.Invalid(errors);
         }
 
-        using var held = await gate.EnterAsync(cancellationToken);
+        return await gate.RunAsync(() => StoreAsync(input.DeviceLabel, values, cancellationToken), cancellationToken);
+    }
+
+    private async Task<IResult> StoreAsync(string deviceLabel, CalibrationValues values, CancellationToken cancellationToken)
+    {
         var now = clock.GetUtcNow().UtcDateTime;
-        var calibration = await calibrations.FindByLabelAsync(InputCalibration.LabelKey(input.DeviceLabel), cancellationToken);
+        var calibration = await calibrations.FindByLabelAsync(InputCalibration.LabelKey(deviceLabel), cancellationToken);
         if (calibration is null)
         {
             calibration = InputCalibration.Create(Guid.NewGuid(), values, now);
