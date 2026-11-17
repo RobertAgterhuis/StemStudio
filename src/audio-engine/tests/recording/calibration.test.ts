@@ -31,24 +31,34 @@ interface Signal {
 function capture(signal: Signal, schedule: readonly number[] = SCHEDULE): Float32Array {
   const last = schedule.at(-1) ?? 0;
   const out = new Float32Array(last + Math.round(CALIBRATION_TAIL_SECONDS * SR));
-  const random = seededRandom(7);
-  if (signal.noise !== undefined) {
-    for (let i = 0; i < out.length; i++) {
-      // Sum of uniforms: approximately Gaussian with RMS `noise`.
-      out[i] = (random() + random() + random() - 1.5) * 2 * signal.noise;
-    }
-  }
+  addNoise(out, signal.noise ?? 0);
+  const gain = signal.gain ?? 1;
   schedule.forEach((click, k) => {
-    const delay = typeof signal.delays === 'number' ? signal.delays : signal.delays[k];
-    if (delay === null || delay === undefined) {
-      return;
-    }
-    add(out, click + delay, signal.gain ?? 1);
-    if (signal.echo !== undefined) {
-      add(out, click + delay + signal.echo.delay, (signal.gain ?? 1) * signal.echo.gain);
+    const delay = delayOf(signal, k);
+    if (delay !== null) {
+      add(out, click + delay, gain);
+      addEcho(out, click + delay, gain, signal.echo);
     }
   });
   return out;
+}
+
+function addNoise(out: Float32Array, rms: number): void {
+  const random = seededRandom(7);
+  for (let i = 0; i < out.length; i++) {
+    // Sum of uniforms: approximately Gaussian with RMS `rms`.
+    out[i] = (random() + random() + random() - 1.5) * 2 * rms;
+  }
+}
+
+function delayOf(signal: Signal, k: number): number | null {
+  return typeof signal.delays === 'number' ? signal.delays : (signal.delays[k] ?? null);
+}
+
+function addEcho(out: Float32Array, at: number, gain: number, echo: Signal['echo']): void {
+  if (echo !== undefined) {
+    add(out, at + echo.delay, gain * echo.gain);
+  }
 }
 
 function add(out: Float32Array, at: number, gain: number): void {
@@ -105,16 +115,17 @@ describe('chirp template', () => {
 
 describe('estimateLatency', () => {
   it.each([0, 128, 1000, 4410, 20000])('finds an exact delay of %i samples', (delay) => {
-    expect(estimate({ delays: delay })).toEqual({
+    const { inputPeakDbfs, ...rest } = estimate({ delays: delay });
+    expect(rest).toEqual({
       ok: true,
       latencySamples: delay,
       latencyMilliseconds: (delay * 1000) / SR,
       detectedClicks: 8,
       spreadSamples: 0,
-      inputPeakDbfs: expect.closeTo(-6, 1) as unknown as number,
       reason: null,
       warnings: [],
     });
+    expect(inputPeakDbfs).toBeCloseTo(-6, 1);
   });
 
   it.each([
@@ -173,6 +184,7 @@ describe('estimateLatency', () => {
 
   it('never throws for a silent or empty capture', () => {
     expect(estimateLatency(new Float32Array(0), SCHEDULE, TEMPLATE, SR)).toMatchObject({ ok: false, reason: 'noSignal', inputPeakDbfs: -120 });
+    expect(estimateLatency(capture({ delays: 0 }), [], TEMPLATE, SR)).toMatchObject({ ok: false, reason: 'tooFewClicks', detectedClicks: 0 });
   });
 });
 
