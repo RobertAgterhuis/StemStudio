@@ -169,6 +169,9 @@ public sealed class AssistPreferencesService(LyricAssistStores stores, LyricsShe
 
     private static LyricWordDto ToDto(LyricWord word) => new()
     {
-        WordId = word.Id, Language = LyricAssistMapper.ToDto(word.Language), Word = word.Word, CreatedAt = TrackMapper.Utc(word.CreatedAt),
+        WordId = word.Id,
+        Language = LyricAssistMapper.ToDto(word.Language),
+        Word = word.Word,
+        CreatedAt = TrackMapper.Utc(word.CreatedAt),
     };
 }

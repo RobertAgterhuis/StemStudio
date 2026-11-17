@@ -1,7 +1,7 @@
 using Bunit;
 using Bunit.TestDoubles;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using StemStudio.Contracts.Library;
 using StemStudio.Web.Api;

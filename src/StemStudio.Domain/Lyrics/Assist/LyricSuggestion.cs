@@ -135,11 +135,24 @@ public sealed class LyricSuggestion
         ArgumentNullException.ThrowIfNull(draft);
         return new LyricSuggestion
         {
-            Id = id, AssistId = assist.Id, SheetId = assist.SheetId, Category = draft.Category, Type = draft.Type, Severity = draft.Severity,
-            Anchor = draft.Anchor, Operation = draft.Operation, Proposal = Cut(draft.Proposal, MaxProposalLength), GroupId = draft.GroupId,
-            Explanation = Cut(draft.Explanation, MaxExplanationLength) ?? string.Empty, Source = draft.Source, Model = draft.Model,
-            SyllablesBefore = draft.SyllablesBefore, SyllablesAfter = draft.SyllablesAfter, RhymeWith = draft.RhymeWith,
-            Status = SuggestionStatus.Open, CreatedAt = nowUtc,
+            Id = id,
+            AssistId = assist.Id,
+            SheetId = assist.SheetId,
+            Category = draft.Category,
+            Type = draft.Type,
+            Severity = draft.Severity,
+            Anchor = draft.Anchor,
+            Operation = draft.Operation,
+            Proposal = Cut(draft.Proposal, MaxProposalLength),
+            GroupId = draft.GroupId,
+            Explanation = Cut(draft.Explanation, MaxExplanationLength) ?? string.Empty,
+            Source = draft.Source,
+            Model = draft.Model,
+            SyllablesBefore = draft.SyllablesBefore,
+            SyllablesAfter = draft.SyllablesAfter,
+            RhymeWith = draft.RhymeWith,
+            Status = SuggestionStatus.Open,
+            CreatedAt = nowUtc,
         };
     }
 

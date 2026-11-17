@@ -67,9 +67,13 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
         var best = miss.Suggestions.Count > 0 ? miss.Suggestions[0] : null;
         return new SuggestionDraft
         {
-            Type = SuggestionType.SpellingUnknownWord, Severity = SuggestionSeverity.Improvement, Anchor = new Anchor(miss.Line, miss.Start, miss.Word.Length, miss.Word),
-            Operation = best is null ? SuggestionOperation.None : SuggestionOperation.Replace, Proposal = best,
-            Explanation = AssistTexts.Unknown(language, miss.Suggestions), Source = SuggestionSource.Dictionary,
+            Type = SuggestionType.SpellingUnknownWord,
+            Severity = SuggestionSeverity.Improvement,
+            Anchor = new Anchor(miss.Line, miss.Start, miss.Word.Length, miss.Word),
+            Operation = best is null ? SuggestionOperation.None : SuggestionOperation.Replace,
+            Proposal = best,
+            Explanation = AssistTexts.Unknown(language, miss.Suggestions),
+            Source = SuggestionSource.Dictionary,
         };
     }
 
@@ -84,8 +88,14 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
         ArgumentNullException.ThrowIfNull(miss);
         return new SuggestionDraft
         {
-            Type = SuggestionType.SpellingTypo, Severity = SuggestionSeverity.Error, Anchor = new Anchor(miss.Line, miss.Start, miss.Word.Length, miss.Word),
-            Operation = SuggestionOperation.Replace, Proposal = correction, Explanation = AssistTexts.Typo(language, correction), Source = SuggestionSource.Model, Model = model,
+            Type = SuggestionType.SpellingTypo,
+            Severity = SuggestionSeverity.Error,
+            Anchor = new Anchor(miss.Line, miss.Start, miss.Word.Length, miss.Word),
+            Operation = SuggestionOperation.Replace,
+            Proposal = correction,
+            Explanation = AssistTexts.Typo(language, correction),
+            Source = SuggestionSource.Model,
+            Model = model,
         };
     }
 
@@ -175,8 +185,12 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
 
     private static SuggestionDraft Note(int line, LyricToken token, SuggestionType type, AssistLanguage language) => new()
     {
-        Type = type, Severity = SuggestionSeverity.Idea, Anchor = new Anchor(line, token.Start, token.Text.Length, token.Text),
-        Operation = SuggestionOperation.None, Explanation = AssistTexts.Licence(language, type), Source = SuggestionSource.Rules,
+        Type = type,
+        Severity = SuggestionSeverity.Idea,
+        Anchor = new Anchor(line, token.Start, token.Text.Length, token.Text),
+        Operation = SuggestionOperation.None,
+        Explanation = AssistTexts.Licence(language, type),
+        Source = SuggestionSource.Rules,
     };
 
     private static AssistLanguage Other(AssistLanguage language) => language == AssistLanguage.Dutch ? AssistLanguage.English : AssistLanguage.Dutch;

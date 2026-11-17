@@ -53,8 +53,10 @@ public static class LyricAssistRegistration
         services.AddHostedService<LyricAssistStartupRecovery>();
         services.AddScoped(sp => new LyricAssistStores
         {
-            Sheets = sp.GetRequiredService<ILyricsSheetRepository>(), Assists = sp.GetRequiredService<ILyricAssistRepository>(),
-            Suggestions = sp.GetRequiredService<ILyricSuggestionRepository>(), Words = sp.GetRequiredService<ILyricWordRepository>(),
+            Sheets = sp.GetRequiredService<ILyricsSheetRepository>(),
+            Assists = sp.GetRequiredService<ILyricAssistRepository>(),
+            Suggestions = sp.GetRequiredService<ILyricSuggestionRepository>(),
+            Words = sp.GetRequiredService<ILyricWordRepository>(),
         });
         services.AddScoped<AssistEventLog>();
         services.AddScoped<LyricModelLayer>();
@@ -74,9 +76,13 @@ public static class LyricAssistRegistration
         services.AddScoped<OwnWorkOverrideService>();
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
-            Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
-            Corpus = sp.GetRequiredService<LyricsCorpusProvider>(), Imitation = sp.GetRequiredService<Styles.LibraryStyleGuard>(),
-            Events = sp.GetRequiredService<AssistEventLog>(), Runner = sp.GetRequiredService<LyricAssistRunner>(), Clock = sp.GetRequiredService<TimeProvider>(),
+            Stores = sp.GetRequiredService<LyricAssistStores>(),
+            ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
+            Corpus = sp.GetRequiredService<LyricsCorpusProvider>(),
+            Imitation = sp.GetRequiredService<Styles.LibraryStyleGuard>(),
+            Events = sp.GetRequiredService<AssistEventLog>(),
+            Runner = sp.GetRequiredService<LyricAssistRunner>(),
+            Clock = sp.GetRequiredService<TimeProvider>(),
         }));
     }
 }

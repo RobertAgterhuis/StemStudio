@@ -181,8 +181,14 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
         ArgumentNullException.ThrowIfNull(sheet);
         return new AcceptResultDto
         {
-            LyricsId = sheet.Id, Revision = sheet.Revision, Title = sheet.Title, Text = sheet.Text, Assist = await changes.InfoAsync(sheet, cancellationToken),
-            Applied = applied, Stale = stale, Reopened = reopened,
+            LyricsId = sheet.Id,
+            Revision = sheet.Revision,
+            Title = sheet.Title,
+            Text = sheet.Text,
+            Assist = await changes.InfoAsync(sheet, cancellationToken),
+            Applied = applied,
+            Stale = stale,
+            Reopened = reopened,
         };
     }
 
@@ -247,8 +253,12 @@ public static class MarkMapper
         ArgumentNullException.ThrowIfNull(mark);
         return new IntentionalMarkDto
         {
-            MarkId = mark.Id, Scope = LyricAssistMapper.Map<IntentionalScopeDto>(mark.Scope), Text = mark.Text, Note = mark.Note,
-            InText = IntentionalMarkMatcher.Occurs(mark, text), CreatedAt = TrackMapper.Utc(mark.CreatedAt),
+            MarkId = mark.Id,
+            Scope = LyricAssistMapper.Map<IntentionalScopeDto>(mark.Scope),
+            Text = mark.Text,
+            Note = mark.Note,
+            InText = IntentionalMarkMatcher.Occurs(mark, text),
+            CreatedAt = TrackMapper.Utc(mark.CreatedAt),
         };
     }
 }

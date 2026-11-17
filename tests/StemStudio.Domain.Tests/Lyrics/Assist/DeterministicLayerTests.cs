@@ -198,8 +198,13 @@ public sealed class DeterministicLayerTests
 
     private static SuggestionDraft Draft(SuggestionSeverity severity, SuggestionType type = SuggestionType.SpellingTypo) => new()
     {
-        Type = type, Severity = severity, Anchor = new Anchor(1, 3, 4, "wind"), Operation = SuggestionOperation.Replace, Proposal = "x",
-        Explanation = "e", Source = SuggestionSource.Model,
+        Type = type,
+        Severity = severity,
+        Anchor = new Anchor(1, 3, 4, "wind"),
+        Operation = SuggestionOperation.Replace,
+        Proposal = "x",
+        Explanation = "e",
+        Source = SuggestionSource.Model,
     };
 
     /// <summary>Spell checker over word sets; a capitalised form is known when the lower-case one is (like Hunspell).</summary>

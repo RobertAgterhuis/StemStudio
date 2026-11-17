@@ -90,7 +90,12 @@ public sealed class LoopbackLyricAssistActionsTests : AssistTestBase
 
     private static AssistantSuggestion Suggestion(int line, int start, string original, string proposal) => new()
     {
-        Category = SuggestionCategoryDto.Spelling, Type = SuggestionTypeDto.SpellingTypo, Severity = SuggestionSeverityDto.Error,
-        Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original }, Operation = SuggestionOperationDto.Replace, Proposal = proposal, Explanation = "Typo.",
+        Category = SuggestionCategoryDto.Spelling,
+        Type = SuggestionTypeDto.SpellingTypo,
+        Severity = SuggestionSeverityDto.Error,
+        Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original },
+        Operation = SuggestionOperationDto.Replace,
+        Proposal = proposal,
+        Explanation = "Typo.",
     };
 }

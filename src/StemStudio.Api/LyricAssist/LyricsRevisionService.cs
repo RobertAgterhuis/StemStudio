@@ -56,7 +56,9 @@ public sealed class LyricsRevisionService(LyricAssistStores stores, ILyricsRevis
         var list = await revisions.ListAsync(lyricsId, cancellationToken);
         return TypedResults.Ok(list.Select((revision, index) => new LyricsRevisionSummaryDto
         {
-            Revision = revision.Revision, Cause = LyricAssistMapper.Map<RevisionCauseDto>(revision.Cause), AcceptGroupId = revision.AcceptGroupId,
+            Revision = revision.Revision,
+            Cause = LyricAssistMapper.Map<RevisionCauseDto>(revision.Cause),
+            AcceptGroupId = revision.AcceptGroupId,
             ChangedLines = index + 1 < list.Count ? LineDiff.ChangedLines(SheetText.Lines(list[index + 1].Text), SheetText.Lines(revision.Text)) : null,
             CreatedAt = TrackMapper.Utc(revision.CreatedAt),
         }).ToList());

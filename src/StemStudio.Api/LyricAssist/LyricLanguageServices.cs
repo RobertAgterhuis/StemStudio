@@ -111,7 +111,9 @@ public sealed class LyricLanguageService(LyricAssistStores stores, LyricPhonolog
         var found = rhymes.Find(trimmed, LyricAssistMapper.ToDomain(lang), limit ?? LyricAssistLimits.DefaultRhymes);
         return TypedResults.Ok(new RhymeResultDto
         {
-            Word = trimmed, Language = lang, Source = lang == AssistLanguageDto.Nl ? "OpenTaal word list, spelling rhyme rules" : "CMU Pronouncing Dictionary",
+            Word = trimmed,
+            Language = lang,
+            Source = lang == AssistLanguageDto.Nl ? "OpenTaal word list, spelling rhyme rules" : "CMU Pronouncing Dictionary",
             Rhymes = found.Select(r => new RhymeDto { Word = r.Word, Kind = r.Kind == RhymeKind.Perfect ? RhymeKindDto.Perfect : RhymeKindDto.Near, Syllables = r.Syllables }).ToList(),
         });
     }
@@ -150,10 +152,18 @@ public sealed class LyricLanguageService(LyricAssistStores stores, LyricPhonolog
         var report = SyllableReport.Build(text, language, target, phonology);
         return new SyllableReportDto
         {
-            Language = LyricAssistMapper.ToDto(language), TargetDurationSeconds = report.TargetDurationSeconds, WordsPerSecond = report.WordsPerSecond is { } wps ? Math.Round(wps, 3) : null,
+            Language = LyricAssistMapper.ToDto(language),
+            TargetDurationSeconds = report.TargetDurationSeconds,
+            WordsPerSecond = report.WordsPerSecond is { } wps ? Math.Round(wps, 3) : null,
             Lines = report.Lines.Select(l => new SyllableLineDto
             {
-                Line = l.Line, Syllables = l.Syllables, IsMarker = l.IsMarker, Section = l.Section, SectionMedian = l.SectionMedian, Target = l.Target, Deviates = l.Deviates,
+                Line = l.Line,
+                Syllables = l.Syllables,
+                IsMarker = l.IsMarker,
+                Section = l.Section,
+                SectionMedian = l.SectionMedian,
+                Target = l.Target,
+                Deviates = l.Deviates,
             }).ToList(),
         };
     }

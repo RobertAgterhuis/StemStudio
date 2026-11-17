@@ -252,13 +252,21 @@ public sealed class SuggestionEndpointTests : AssistTestBase
     private static AssistantSuggestion Replace(int line, int start, string original, string proposal) => new()
     {
         Category = SuggestionCategoryDto.Spelling,
-        Type = SuggestionTypeDto.SpellingTypo, Severity = SuggestionSeverityDto.Error, Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original },
-        Operation = SuggestionOperationDto.Replace, Proposal = proposal, Explanation = "Better.",
+        Type = SuggestionTypeDto.SpellingTypo,
+        Severity = SuggestionSeverityDto.Error,
+        Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original },
+        Operation = SuggestionOperationDto.Replace,
+        Proposal = proposal,
+        Explanation = "Better.",
     };
 
     private static AssistantSuggestion Note(int line, int start, string original) => Replace(line, start, original, "x") with
     {
-        Category = SuggestionCategoryDto.Licence, Type = SuggestionTypeDto.LicenceSlang, Severity = SuggestionSeverityDto.Idea, Operation = SuggestionOperationDto.None, Proposal = null,
+        Category = SuggestionCategoryDto.Licence,
+        Type = SuggestionTypeDto.LicenceSlang,
+        Severity = SuggestionSeverityDto.Idea,
+        Operation = SuggestionOperationDto.None,
+        Proposal = null,
     };
 
     private Task<(LyricsSheetDto Sheet, IReadOnlyList<Guid> Ids)> SeededAsync(params AssistantSuggestion[] suggestions) => SeededAsync(Text, suggestions);

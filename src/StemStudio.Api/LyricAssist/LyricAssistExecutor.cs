@@ -126,19 +126,31 @@ public sealed class LyricAssistExecutor(
         var words = (await stores.Words.ListAsync(assist.Language, cancellationToken)).Select(word => word.Word).ToList();
         return new AssistRunContext
         {
-            Assist = assist, Filter = new FilterContext(assist.Kind, assist.Sensitivity, sheet.Text, sheet.IntentionalMarks, words, assist.Language),
-            Misses = misses, Suggestions = stores.Suggestions, Events = events, Gate = Gate, Clock = clock, Corpus = await corpus.RefreshAsync(cancellationToken),
+            Assist = assist,
+            Filter = new FilterContext(assist.Kind, assist.Sensitivity, sheet.Text, sheet.IntentionalMarks, words, assist.Language),
+            Misses = misses,
+            Suggestions = stores.Suggestions,
+            Events = events,
+            Gate = Gate,
+            Clock = clock,
+            Corpus = await corpus.RefreshAsync(cancellationToken),
         };
     }
 
     private static LyricAssistStartedEventDto Started(AssistRun assist, ModelLayerState model) => new()
     {
-        AssistId = assist.Id, Layers = assist.Layers.Select(LyricAssistMapper.ToDto).ToList(), Backend = model.Available ? LyricAssistMapper.Wire(model.Backend) : null,
-        UsingFallback = assist.UsingFallback, BlocksTotal = assist.BlocksTotal, EstimatedSeconds = assist.EstimatedSeconds,
+        AssistId = assist.Id,
+        Layers = assist.Layers.Select(LyricAssistMapper.ToDto).ToList(),
+        Backend = model.Available ? LyricAssistMapper.Wire(model.Backend) : null,
+        UsingFallback = assist.UsingFallback,
+        BlocksTotal = assist.BlocksTotal,
+        EstimatedSeconds = assist.EstimatedSeconds,
     };
 
     private LyricAssistCompletedEventDto Completed(AssistRun assist) => new()
     {
-        Counts = LyricAssistMapper.ToDto(assist.Counts), Discarded = LyricAssistMapper.ToDto(assist.Discarded), DurationMs = assist.DurationMs(Now),
+        Counts = LyricAssistMapper.ToDto(assist.Counts),
+        Discarded = LyricAssistMapper.ToDto(assist.Discarded),
+        DurationMs = assist.DurationMs(Now),
     };
 }

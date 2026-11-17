@@ -48,7 +48,13 @@ public sealed class LyricsSheetRevision
         ArgumentNullException.ThrowIfNull(sheet);
         return new LyricsSheetRevision
         {
-            SheetId = sheet.Id, Revision = sheet.Revision, Title = sheet.Title, Text = sheet.Text, Cause = cause, AcceptGroupId = acceptGroupId, CreatedAt = nowUtc,
+            SheetId = sheet.Id,
+            Revision = sheet.Revision,
+            Title = sheet.Title,
+            Text = sheet.Text,
+            Cause = cause,
+            AcceptGroupId = acceptGroupId,
+            CreatedAt = nowUtc,
         };
     }
 }
@@ -181,8 +187,12 @@ public sealed record OwnWorkOverride
         errors.ThrowIfAny();
         return new OwnWorkOverride
         {
-            StatementVersion = CurrentStatementVersion, StatementSha256 = StatementHash, ConfirmedBy = name, ConfirmedAt = nowUtc,
-            MatchedTrackId = track.TrackId, MatchedTrackTitle = Domain.Text.TrimToLength(track.Title, MaxTrackTitleLength) ?? string.Empty,
+            StatementVersion = CurrentStatementVersion,
+            StatementSha256 = StatementHash,
+            ConfirmedBy = name,
+            ConfirmedAt = nowUtc,
+            MatchedTrackId = track.TrackId,
+            MatchedTrackTitle = Domain.Text.TrimToLength(track.Title, MaxTrackTitleLength) ?? string.Empty,
         };
     }
 }

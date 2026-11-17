@@ -191,8 +191,13 @@ public sealed class AssistEntityTests
         var assist = AssistRun.Create(Guid.NewGuid(), sheet, new AssistRequest { Kind = AssistKind.Check }, Now);
         var draft = new SuggestionDraft
         {
-            Type = SuggestionType.SpellingTypo, Severity = SuggestionSeverity.Error, Anchor = new Anchor(1, 0, 4, "line"), Operation = SuggestionOperation.Replace,
-            Proposal = new string('p', 500), Explanation = new string('e', 400), Source = SuggestionSource.Dictionary,
+            Type = SuggestionType.SpellingTypo,
+            Severity = SuggestionSeverity.Error,
+            Anchor = new Anchor(1, 0, 4, "line"),
+            Operation = SuggestionOperation.Replace,
+            Proposal = new string('p', 500),
+            Explanation = new string('e', 400),
+            Source = SuggestionSource.Dictionary,
         };
         var suggestion = LyricSuggestion.Create(Guid.NewGuid(), assist, draft, Now);
         (suggestion.Category, suggestion.Proposal!.Length, suggestion.Explanation.Length, suggestion.IsOpen, suggestion.SheetId)

@@ -19,7 +19,15 @@ public static class DutchPhonology
 
     private static readonly Dictionary<string, int> Exceptions = new(StringComparer.Ordinal)
     {
-        ["team"] = 1, ["cake"] = 1, ["love"] = 1, ["jeans"] = 1, ["steak"] = 1, ["beat"] = 1, ["deadline"] = 2, ["website"] = 2, ["okay"] = 2,
+        ["team"] = 1,
+        ["cake"] = 1,
+        ["love"] = 1,
+        ["jeans"] = 1,
+        ["steak"] = 1,
+        ["beat"] = 1,
+        ["deadline"] = 2,
+        ["website"] = 2,
+        ["okay"] = 2,
         ["museum"] = 3,
     };
 

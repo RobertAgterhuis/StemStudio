@@ -78,9 +78,12 @@ public sealed class LyricAssistStatusService(LyricAssistStores stores, AgentStat
         var acknowledged = settings.HasAcknowledged(LyricAssistLimits.ClaudeNoticeVersion);
         return new LyricAssistSettingsDto
         {
-            ClaudeNoticeAcknowledged = acknowledged, ClaudeNoticeAcknowledgedAt = acknowledged ? TrackMapper.Utc(settings.ClaudeNoticeAcknowledgedAt!.Value) : null,
-            ClaudeNoticeVersion = LyricAssistLimits.ClaudeNoticeVersion, ClaudeNoticeText = ClaudeNoticeText,
-            OwnWorkStatementVersion = OwnWorkOverride.CurrentStatementVersion, OwnWorkStatementText = OwnWorkOverride.StatementText,
+            ClaudeNoticeAcknowledged = acknowledged,
+            ClaudeNoticeAcknowledgedAt = acknowledged ? TrackMapper.Utc(settings.ClaudeNoticeAcknowledgedAt!.Value) : null,
+            ClaudeNoticeVersion = LyricAssistLimits.ClaudeNoticeVersion,
+            ClaudeNoticeText = ClaudeNoticeText,
+            OwnWorkStatementVersion = OwnWorkOverride.CurrentStatementVersion,
+            OwnWorkStatementText = OwnWorkOverride.StatementText,
         };
     }
 }

@@ -39,11 +39,18 @@ public static class LyricAssistJobs
         ArgumentNullException.ThrowIfNull(sheet);
         return new LyricAssistJob
         {
-            AssistId = assist.Id, Kind = LyricAssistMapper.Map<AssistKindDto>(assist.Kind), Language = LyricAssistMapper.ToDto(assist.Language),
-            Sensitivity = LyricAssistMapper.Map<SensitivityDto>(assist.Sensitivity), Title = sheet.Title, Text = sheet.Text,
+            AssistId = assist.Id,
+            Kind = LyricAssistMapper.Map<AssistKindDto>(assist.Kind),
+            Language = LyricAssistMapper.ToDto(assist.Language),
+            Sensitivity = LyricAssistMapper.Map<SensitivityDto>(assist.Sensitivity),
+            Title = sheet.Title,
+            Text = sheet.Text,
             Blocks = blocks.Select(block => Block(block, misses)).ToList(),
             Categories = assist.Categories.Select(c => LyricAssistMapper.Map<SuggestionCategoryDto>(c)).ToList(),
-            LineFrom = assist.LineFrom, LineTo = assist.LineTo, Count = assist.Count, Instruction = assist.Instruction,
+            LineFrom = assist.LineFrom,
+            LineTo = assist.LineTo,
+            Count = assist.Count,
+            Instruction = assist.Instruction,
             RhythmTarget = sheet.RhythmTarget is { } target ? LyricAssistMapper.ToDto(target) : null,
             IntentionalTexts = sheet.IntentionalMarks.Where(mark => IntentionalMarkMatcher.Occurs(mark, sheet.Text)).Select(mark => mark.Text).ToList(),
         };
@@ -51,7 +58,9 @@ public static class LyricAssistJobs
 
     private static LyricBlock Block(SheetBlock block, IReadOnlyList<WordMiss> misses) => new()
     {
-        Index = block.Index, FirstLine = block.FirstLine, LastLine = block.LastLine,
+        Index = block.Index,
+        FirstLine = block.FirstLine,
+        LastLine = block.LastLine,
         Misses = misses.Where(m => m.Line >= block.FirstLine && m.Line <= block.LastLine)
             .Select(m => new DictionaryMiss { Line = m.Line, Start = m.Start, Word = m.Word, Suggestions = m.Suggestions }).ToList(),
     };
