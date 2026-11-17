@@ -194,7 +194,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T081 [US4] [audio-engine] Implement `src/audio-engine/src/score-follow/{follower,cursor,dom,scroll}.ts` and the engine methods to pass T080
 - [ ] T082 [P] [US4] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/ScorePanelTests.cs`: list and select, empty state with link to 008, preparing state polls, pages as `<img>` in `score-page-<n>`, attach/detach on select and track change, follow toggle, transpose note while transpose != 0, manual-tempo note, click a bar seeks, Shift+click sets a bar loop (Advanced), "Read bar" announcement (FR-009..FR-013)
 - [ ] T083 [US4] [frontend] Implement `Components/Practice/ScorePanel.razor` and `mixer.score.*` commands to pass T082
-- [ ] T084 [P] [US4] [qa] E2E `e2e/tests/score-follow.spec.ts`: one score per family (vocals, bass, guitar, piano, drums; fake transcriber + real view) - bar number at known times, loop wrap, 50 % and 120 % speed, range score, manual scroll pause; Chromium trace for SC-004 (US4 scenarios 1-6, FR-033)
+- [x] T084 [P] [US4] [qa] E2E `e2e/tests/score-follow.spec.ts`: one score per family (vocals, bass, guitar, piano, drums; fake transcriber + real view) - bar number at known times, loop wrap, 50 % and 120 % speed, range score, manual scroll pause; Chromium trace for SC-004 (US4 scenarios 1-6, FR-033)
 - [ ] T085 [US4] [frontend] Help topic `mixer-score-follow` (FR-030)
 
 **Checkpoint**: HO:us4.

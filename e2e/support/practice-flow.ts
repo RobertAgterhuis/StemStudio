@@ -57,6 +57,33 @@ export interface SectionInputDto {
   readonly instrument?: string;
 }
 
+/** Contract `ScoreViewStatus`. */
+export type ScoreViewStatus = 'none' | 'queued' | 'rendering' | 'ready' | 'failed';
+
+/** Contract `ScoreBar`. */
+export interface ScoreBarDto {
+  readonly index: number;
+  readonly number: number;
+  readonly page: number;
+  readonly startSeconds: number;
+  readonly endSeconds: number;
+}
+
+/** Contract `ScoreView` (the parts the suite reads). */
+export interface ScoreViewDto {
+  readonly assetId: string;
+  readonly status: ScoreViewStatus;
+  readonly offsetSeconds: number;
+  readonly pages: readonly { readonly page: number; readonly url: string }[];
+  readonly bars: readonly ScoreBarDto[];
+  readonly error: string | null;
+}
+
+/** The bar a track time falls in, or undefined outside the score. */
+export function barAt(view: ScoreViewDto, seconds: number): ScoreBarDto | undefined {
+  return view.bars.find((bar) => bar.startSeconds <= seconds && seconds < bar.endSeconds);
+}
+
 /** The status text the section lane shows for an unreliable grid (ui-test-ids 1.13.0 `section-status`). */
 export const unreliableGridText = 'Tempo grid uncertain - boundaries may be off';
 
@@ -97,6 +124,20 @@ export class PracticeFlowApi {
   /** `PUT /api/tracks/{id}/sections` (raw response: 200, 409 or 422). */
   async replace(trackId: string, revision: number, sections: readonly SectionInputDto[]): Promise<APIResponse> {
     return this.request.put(`/api/tracks/${trackId}/sections`, { data: { revision, sections } });
+  }
+
+  /** `GET /api/assets/{id}/score-view`. */
+  async scoreView(assetId: string): Promise<ScoreViewDto> {
+    return okJson<ScoreViewDto>(await this.request.get(`/api/assets/${assetId}/score-view`));
+  }
+
+  /** Polls until the score view is `ready` (asks for it once when it is `none`). */
+  async waitForScoreView(assetId: string, timeoutMs: number): Promise<ScoreViewDto> {
+    if ((await this.scoreView(assetId)).status === 'none') {
+      await this.request.post(`/api/assets/${assetId}/score-view`);
+    }
+    await expect.poll(async () => (await this.scoreView(assetId)).status, { timeout: timeoutMs, intervals: [250, 500, 1000] }).toBe('ready');
+    return this.scoreView(assetId);
   }
 
   /** Polls until the set is `ready` (or fails the test when it becomes `failed`). */
