@@ -12,15 +12,20 @@ namespace StemStudio.Api.Tracks;
 /// <param name="worker">Worker client.</param>
 /// <param name="uploads">Upload store (retry source for uploads).</param>
 /// <param name="clock">Clock.</param>
-public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, IUploadStore uploads, TimeProvider clock)
+/// <param name="takes">Takes (feature 015 <c>takeCount</c>).</param>
+public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, IUploadStore uploads, TimeProvider clock, IRecordingTakeRepository takes)
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>All tracks, newest first.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 with the tracks.</returns>
-    public async Task<IResult> ListAsync(CancellationToken cancellationToken) =>
-        TypedResults.Ok((await tracks.ListAsync(cancellationToken)).Select(TrackMapper.ToDto).ToList());
+    public async Task<IResult> ListAsync(CancellationToken cancellationToken)
+    {
+        var all = await tracks.ListAsync(cancellationToken);
+        var counts = await takes.CountsAsync([.. all.Select(track => track.Id)], cancellationToken);
+        return TypedResults.Ok(all.Select(track => TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(track.Id) }).ToList());
+    }
 
     /// <summary>One track.</summary>
     /// <param name="id">Track ID.</param>
@@ -35,7 +40,8 @@ public sealed class TrackService(ITrackRepository tracks, IWorkerClient worker, 
         }
 
         await ScheduleOwnLookupAsync(track, cancellationToken);
-        return TypedResults.Ok(TrackMapper.ToDto(track));
+        var counts = await takes.CountsAsync([id], cancellationToken);
+        return TypedResults.Ok(TrackMapper.ToDto(track) with { TakeCount = counts.GetValueOrDefault(id) });
     }
 
     /// <summary>

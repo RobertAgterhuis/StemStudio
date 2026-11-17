@@ -110,6 +110,7 @@ public static class AssetMapper
         Recipe = provenance.Recipe is { } recipe ? ToDto(recipe) : null,
         ScoreRecipe = provenance.ScoreRecipe is { } scoreRecipe ? ScoreMapper.ToDto(scoreRecipe) : null,
         Generation = provenance.Generation is { } generation ? ToDto(generation) : null,
+        Recording = provenance.Recording is { } recording ? new Contracts.Recording.RecordingRecipeDto { TakeId = recording.TakeId } : null,
     };
 
     private static GenerationProvenanceDto ToDto(GenerationSource generation) => new()
