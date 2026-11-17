@@ -70,13 +70,18 @@ def test_stereo_inputs_differ_between_channels(generated: tuple[Path, dict[str, 
         assert np.any(data[:, 0] != data[:, 1]), name
 
 
-def test_inputs_sound_through_the_whole_take_window(generated: tuple[Path, dict[str, Any]]) -> None:
+def _sounds_every_second(path: Path) -> bool:
+    data, _ = sf.read(str(path), dtype="float64")
+    mono = data if data.ndim == 1 else data.mean(axis=1)
+    return all(np.max(np.abs(mono[s * 44_100 : (s + 1) * 44_100])) > 0.05 for s in range(1, 18))
+
+
+@pytest.mark.parametrize("fixture", [f for f in gen.CATALOGUE if f.role == "input"], ids=str)
+def test_inputs_sound_through_the_whole_take_window(
+    generated: tuple[Path, dict[str, Any]], fixture: gen.RecordingFixture
+) -> None:
     out_dir, _ = generated
-    for fixture in (f for f in gen.CATALOGUE if f.role == "input"):
-        data, _ = sf.read(str(out_dir / fixture.name), dtype="float64")
-        mono = data if data.ndim == 1 else data.mean(axis=1)
-        seconds = [mono[s * 44_100 : (s + 1) * 44_100] for s in range(1, 18)]
-        assert all(np.max(np.abs(block)) > 0.05 for block in seconds), fixture.name
+    assert _sounds_every_second(out_dir / fixture.name)
 
 
 def test_hash_list_matches_the_files(generated: tuple[Path, dict[str, Any]]) -> None:
@@ -106,10 +111,13 @@ def test_main_writes_into_the_given_folder(
     code = gen.main(["--out-dir", str(tmp_path), "--manifest", str(tmp_path / "m.json")])
     assert code == 0
     assert (tmp_path / "input-vocals.wav").exists()
-    assert "wrote 8 fixtures" in capsys.readouterr().out
+    assert "8 recording fixtures" in capsys.readouterr().out
 
 
-def test_default_arguments_point_at_the_recording_folder() -> None:
-    args = gen.parse_args([])
-    assert args.out_dir == gen.OUT_DIR
-    assert args.manifest == gen.OUT_DIR / "manifest.json"
+def test_main_defaults_to_the_recording_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(gen, "OUT_DIR", tmp_path)
+    assert gen.main([]) == 0
+    assert (tmp_path / "manifest.json").exists()
+    assert "8 recording fixtures" in capsys.readouterr().out

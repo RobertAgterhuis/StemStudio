@@ -205,18 +205,23 @@ def to_pcm(audio: Audio) -> np.ndarray[Any, np.dtype[np.int16]]:
     return np.round(PEAK * audio * PCM_MAX).astype(np.int16)
 
 
+def peak_dbfs(pcm: np.ndarray[Any, np.dtype[np.int16]]) -> float | None:
+    """Peak of PCM16 samples in dBFS (2 decimals); None for digital silence."""
+    peak = float(np.max(np.abs(pcm))) / PCM_MAX
+    return round(20 * float(np.log10(peak)), 2) if peak > 0 else None
+
+
 def write_fixture(fixture: RecordingFixture, out_dir: Path) -> dict[str, Any]:
     """Writes one file and returns its manifest entry (facts and SHA-256)."""
     pcm = to_pcm(fixture.render())
     target = out_dir / fixture.name
     sf.write(str(target), pcm, SAMPLE_RATE, subtype="PCM_16", format="WAV")
-    peak = float(np.max(np.abs(pcm))) / PCM_MAX
     entry: dict[str, Any] = {
         "family": fixture.family,
         "role": fixture.role,
         "channels": 1 if pcm.ndim == 1 else 2,
         "durationSeconds": SECONDS,
-        "peakDbfs": round(20 * np.log10(peak), 2) if peak > 0 else None,
+        "peakDbfs": peak_dbfs(pcm),
         "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
     }
     if fixture.role == "track":
@@ -237,19 +242,15 @@ def generate(out_dir: Path, manifest_path: Path) -> dict[str, Any]:
     return write_manifest(manifest, manifest_path)
 
 
-def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
-    """Parse ``--out-dir`` and ``--manifest`` (defaults: this folder and its ``manifest.json``)."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
-    parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
-    parser.add_argument("--manifest", type=Path, default=OUT_DIR / "manifest.json")
-    return parser.parse_args(argv)
-
-
 def main(argv: Sequence[str] | None = None) -> int:
-    """Command-line entry point; returns the process exit code."""
-    args = parse_args(argv)
-    manifest = generate(args.out_dir, args.manifest)
-    sys.stdout.write(f"wrote {len(manifest['fixtures'])} fixtures to {args.out_dir}\n")
+    """Command-line entry point (``--out-dir``, ``--manifest``); returns the process exit code."""
+    parser = argparse.ArgumentParser(description="Generate the play-along recording fixtures.")
+    parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
+    parser.add_argument("--manifest", type=Path, default=None)
+    args = parser.parse_args(argv)
+    manifest = generate(args.out_dir, args.manifest or args.out_dir / "manifest.json")
+    count = len(manifest["fixtures"])
+    sys.stdout.write(f"{count} recording fixtures in {args.out_dir}\n")
     return 0
 
 

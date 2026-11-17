@@ -94,25 +94,21 @@ public sealed class RecordingInterop(IRecordingJsHost host) : IRecordingEngine
 
     private async Task Call(string method, params object?[] args)
     {
-        var engine = Engine;
-        await Guard(async () =>
+        try
         {
-            await engine.InvokeVoidAsync(method, args);
-            return true;
-        });
+            await Engine.InvokeVoidAsync(method, args);
+        }
+        catch (JSException ex)
+        {
+            throw RecordingException.FromEngine(ex.Message, ex);
+        }
     }
 
-    private Task<T> Get<T>(string method, params object?[] args)
-    {
-        var engine = Engine;
-        return Guard(() => engine.InvokeAsync<T>(method, args).AsTask());
-    }
-
-    private static async Task<T> Guard<T>(Func<Task<T>> call)
+    private async Task<T> Get<T>(string method, params object?[] args)
     {
         try
         {
-            return await call();
+            return await Engine.InvokeAsync<T>(method, args);
         }
         catch (JSException ex)
         {

@@ -56,35 +56,23 @@ public sealed class RecordingPreferences(IJSRuntime js)
     public Task SaveAsync(RecordingSettings settings) =>
         BrowserStorage.SetAsync(js, StorageKey, JsonSerializer.Serialize(settings, Json));
 
-    /// <summary>Parses a stored record; every invalid field gets its default.</summary>
+    /// <summary>Parses a stored record: missing fields keep their defaults, out-of-range values get them back.</summary>
     /// <param name="stored">The stored JSON, or null.</param>
-    /// <returns>The choices.</returns>
-    public static RecordingSettings Parse(string? stored)
+    /// <returns>The choices; the defaults when the record is unreadable.</returns>
+    public static RecordingSettings Parse(string? stored) => Read(stored) is { } raw ? Validated(raw) : RecordingSettings.Default;
+
+    private static RecordingSettings Validated(RecordingSettings raw) => raw with
     {
-        var raw = Read(stored);
-        if (raw is null)
-        {
-            return RecordingSettings.Default;
-        }
+        DeviceLabel = Label(raw.DeviceLabel),
+        CountInBars = raw.CountInBars is >= 0 and <= 2 ? raw.CountInBars : RecordingSettings.Default.CountInBars,
+        MonitoringVolume = raw.MonitoringVolume is >= 0 and <= 1 ? raw.MonitoringVolume : RecordingSettings.Default.MonitoringVolume,
+    };
 
-        var defaults = RecordingSettings.Default;
-        return new RecordingSettings
-        {
-            DeviceLabel = Label(raw.DeviceLabel),
-            InputMode = raw.InputMode ?? defaults.InputMode,
-            Part = raw.Part ?? defaults.Part,
-            MuteOriginal = raw.MuteOriginal ?? defaults.MuteOriginal,
-            CountInBars = raw.CountInBars is >= 0 and <= 2 ? raw.CountInBars.Value : defaults.CountInBars,
-            Monitoring = raw.Monitoring ?? defaults.Monitoring,
-            MonitoringVolume = raw.MonitoringVolume is >= 0 and <= 1 ? raw.MonitoringVolume.Value : defaults.MonitoringVolume,
-        };
-    }
-
-    private static StoredSettings? Read(string? stored)
+    private static RecordingSettings? Read(string? stored)
     {
         try
         {
-            return stored is null ? null : JsonSerializer.Deserialize<StoredSettings>(stored, Json);
+            return stored is null ? null : JsonSerializer.Deserialize<RecordingSettings>(stored, Json);
         }
         catch (JsonException)
         {
@@ -94,13 +82,4 @@ public sealed class RecordingPreferences(IJSRuntime js)
 
     private static string? Label(string? label) =>
         string.IsNullOrWhiteSpace(label) || label.Length > RecordingLimits.MaxDeviceLabelLength ? null : label;
-
-    private sealed record StoredSettings(
-        string? DeviceLabel,
-        InputChannelModeDto? InputMode,
-        RecordingPartDto? Part,
-        bool? MuteOriginal,
-        int? CountInBars,
-        bool? Monitoring,
-        double? MonitoringVolume);
 }

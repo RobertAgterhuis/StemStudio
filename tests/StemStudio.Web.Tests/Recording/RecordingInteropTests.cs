@@ -246,31 +246,45 @@ public sealed class RecordingInteropTests : IAsyncDisposable
     }
 
     [Fact]
-    public void Callbacks_RouteToTheHub()
+    public void StateCallback_ParsesStates_AndIgnoresUnknownOnes()
     {
         var states = new List<RecordingState>();
-        var progress = new List<RecordingProgress>();
-        IReadOnlyList<CapturedTake>? captured = null;
-        string? lost = null;
-        var changed = 0;
         _recording.Callbacks.ShouldBeSameAs(_audio.RecordingCallbacks);
         _recording.Callbacks.StateChanged += (_, s) => states.Add(s);
-        _recording.Callbacks.ProgressChanged += (_, p) => progress.Add(p);
-        _recording.Callbacks.TakesCaptured += (_, t) => captured = t;
-        _recording.Callbacks.InputLost += (_, r) => lost = r;
-        _recording.Callbacks.InputDevicesChanged += (_, _) => changed++;
 
         _audio.OnRecordingStateChanged("countIn");
         _audio.OnRecordingStateChanged("bogus");
         _audio.OnRecordingStateChanged("finishing");
+
+        states.ShouldBe([RecordingState.CountIn, RecordingState.Finishing]);
+    }
+
+    [Fact]
+    public void ProgressAndTakesCallbacks_RouteToTheHub()
+    {
+        RecordingProgress? progress = null;
+        IReadOnlyList<CapturedTake>? captured = null;
+        _recording.Callbacks.ProgressChanged += (_, p) => progress = p;
+        _recording.Callbacks.TakesCaptured += (_, t) => captured = t;
+
         _audio.OnRecordingProgress(new RecordingProgress(1.5, 2, null));
         _audio.OnTakesCaptured([Take()]);
+
+        progress!.PassIndex.ShouldBe(2);
+        captured!.Single().CaptureKey.ShouldBe("c1");
+    }
+
+    [Fact]
+    public void InputCallbacks_RouteToTheHub()
+    {
+        string? lost = null;
+        var changed = 0;
+        _recording.Callbacks.InputLost += (_, r) => lost = r;
+        _recording.Callbacks.InputDevicesChanged += (_, _) => changed++;
+
         _audio.OnInputLost("ended");
         _audio.OnInputDevicesChanged();
 
-        states.ShouldBe([RecordingState.CountIn, RecordingState.Finishing]);
-        progress.Single().PassIndex.ShouldBe(2);
-        captured!.Single().CaptureKey.ShouldBe("c1");
         lost.ShouldBe("ended");
         changed.ShouldBe(1);
     }
