@@ -96,10 +96,10 @@ public sealed class RestoreForm(LibraryCareStatusDto status)
     };
 
     /// <summary>Takes the <c>activeWork</c> list of a <c>jobs-active</c> answer as the blockers.</summary>
-    /// <param name="error">The refused restore.</param>
-    public void TakeBlockers(ApiError error)
+    /// <param name="error">The refused restore, or null when it was accepted.</param>
+    public void TakeBlockers(ApiError? error)
     {
-        if (error.Code == LibraryCareProblemTypes.JobsActive && error.Extensions.TryGetValue("activeWork", out var work))
+        if (error?.Code == LibraryCareProblemTypes.JobsActive && error.Extensions.TryGetValue("activeWork", out var work))
         {
             Blockers = work.Deserialize<List<ActiveWorkDto>>(Json) ?? [];
         }

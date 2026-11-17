@@ -60,11 +60,7 @@ public sealed partial class RestoreDialog
         var (job, error) = await CareCall.TryAsync(() => Client.RestoreBackupAsync(Archive.FileName, options));
         Busy = false;
         ShowError(error);
-        if (error is not null)
-        {
-            Form.TakeBlockers(error);
-        }
-
+        Form.TakeBlockers(error);
         if (job is not null)
         {
             await OnStarted.InvokeAsync(job);
