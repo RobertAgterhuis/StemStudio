@@ -7,7 +7,11 @@ description: "Task list for feature 015 play-along recording (Phase 0 by the arc
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md) (Phase 0 results 2026-11-17: [contracts/DELTA.md](contracts/DELTA.md) "Phase 0 decisions"),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [contracts/DELTA.md](contracts/DELTA.md),
-the merged 007, 012 and (when merged) 014 artefacts, constitution 1.3.1, ADR-024.
+the merged 007, 012 and 014 artefacts, constitution 1.3.1, ADR-024.
+
+**Round start done** (2026-11-17, branch `014-015-round`): 022+023 and 014 Phase 0 merged, the 015 documents
+re-merged onto 014's 1.13.0 / 2.4.0 (DELTA.md "Re-merge outcome"). The combined wave follows
+`docs/handoffs/cto-r14-lane-plan.md` (lanes L1-L6, which override the owner table below where they differ).
 
 **Tests**: REQUIRED (constitution I). Every implementation task is preceded by a failing-test
 task of the same owner (red commit first, then green). >= 90 % line AND branch per component.
@@ -44,7 +48,7 @@ and `polish`, with real test and coverage output.
 
 - [x] T001 [architect] ADR-024 -> Accepted; check the merged 012 (2.3.0) and 014 (2.4.0) engines against DELTA.md section 3 (segments, processing latency, extra channels, count-in API); record which hooks exist and which the audio-engine lane adds in T015 (ADR-024 "Phase 0 outcome")
 - [x] T002 [architect] Full contracts in `specs/015-play-along-recording/contracts/`: `backend-api.openapi.yaml` 1.14.0 (= 014's 1.13.0 + `recording-api.openapi.yaml` + the `*Additions` merged into their schemas/operations), `ui-test-ids.md` 1.14.0, `render-vectors.json` 1.1.0 (+ `generate_render_vectors.py` take input, `--check`), `redocly.yaml`; Redocly 2.78.0 lint 0 errors
-- [x] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Recording/{RecordingTakeDto, RecordingTakeListDto, RecordingTakeUploadDto, ReplaceTakeAudioMetadataDto, UpdateTakeRequest, DeleteTakesRequest, DeleteTakesResultDto, TakeLatencyDto, InputCalibrationDto, InputCalibrationInput, RecordingPartDto, InputChannelModeDto, LatencyMethodDto, CalibrationMethodDto, TakeStatusDto, TakeChannelSettingsDto, RecordingRecipeDto}.cs`; additions `AssetOriginDto.Recording`, `CreateAudioExportRequest.TakeId`, `MixSettings*.Take`, `TrackDto.TakeCount`; `ApiRoutes.Takes*`/`Calibrations*`; `ContractLimits` (data-model constants, `ChannelIdPattern` with `take`); XML docs; skeleton serialisation tests
+- [x] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Recording/{RecordingTakeDto, RecordingTakeListDto, RecordingTakeUploadDto, ReplaceTakeAudioMetadataDto, UpdateTakeRequest, DeleteTakesRequest, DeleteTakesResultDto, TakeLatencyDto, InputCalibrationDto, InputCalibrationInput, RecordingPartDto, InputChannelModeDto, LatencyMethodDto, CalibrationMethodDto, TakeStatusDto, TakeChannelSettingsDto, RecordingRecipeDto}.cs`; additions `AssetOriginDto.Recording`, `CreateAudioExportRequest.TakeId`, `MixSettings*.Take`, `TrackDto.TakeCount`; `ApiRoutes.Takes*`/`Calibrations*`; `ContractLimits` (data-model constants, `ExportChannelIdPattern` = `ChannelIdPattern` or `take`; `ChannelIdPattern` unchanged, P0-2); XML docs; skeleton serialisation tests
 - [x] T004 [P] [architect] Engine skeleton: `src/audio-engine/src/types.ts` 2.5.0 (audio-engine.delta.md section 1-3), `ENGINE_CONTRACT_VERSION = "2.5.0"`, engine methods rejecting `not implemented: <method>`, `src/recording/capture-worklet.ts` stub + second Vite entry; skeleton tests keep coverage >= 90 %
 - [x] T005 [architect] Spikes on the reference machine (research.md S-01 capture gap-free 10 min Chrome/Edge + Firefox rate-mismatch check; S-02 stream a 240 MB WAV through JS stream interop + API, time it); record results in research.md. **Phase 0 result**: S-01 60 s gap-free in Chromium and Firefox (fake devices) plus the secure-context matrix; S-02 browser half 0.2-0.3 s. The 10-minute real-interface run, CPU and the Firefox rate mismatch move to T089; the circuit + API half of S-02 to the frontend US1 timing test (T043) and T089
 - [x] T006 [architect] Verify the skeleton (`dotnet build` 0 warnings, all tests + coverage gates, engine lint/typecheck/tests, `run_all.py`); hand-off `docs/handoffs/architect-015-phase0.md`
@@ -70,7 +74,7 @@ and `polish`, with real test and coverage output.
 - [ ] T012 [P] [audio-engine] Failing tests `tests/recording/wav.test.ts`: `encodeWav24` header fields, quantisation `clamp(round(x*2^23))` incl. +-1.0 and NaN -> 0, mono/stereo interleave, length, little-endian vectors (FR-011)
 - [ ] T013 [audio-engine] Implement `src/recording/wav.ts` to pass T012
 - [ ] T014 [P] [audio-engine] Failing tests `tests/recording/mapping.test.ts`: `mapCaptureToTakes` without loop, with loop passes, with count-in gaps, negative start dropped, end of track, partial pass >= 1 s kept / < 1 s dropped, frame gaps filled and counted, compensation `L + P` (data-model 3.2, FR-008, FR-010)
-- [ ] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment and tempo-latency hooks if T001 found them missing (no public API change)
+- [ ] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment log (T001 found the anchors pruned; tempo-stage latency is already in the heard anchors, P0-8) with its own unit tests (no public API change)
 - [ ] T016 [P] [audio-engine] Failing tests `tests/recording/calibration.test.ts`: seeded click schedule, chirp template, `estimateLatency` vectors of research R-04 (exact delays 0/128/1,000/4,410/20,000, noise -20/-40 dB, echo, missing clicks, clipping warning, jitter, every failure reason) (FR-007)
 - [ ] T017 [audio-engine] Implement `src/recording/calibration.ts` to pass T016
 - [ ] T018 [P] [audio-engine] Failing tests `tests/recording/compare.test.ts` and `tests/gate.test.ts` additions: `take` is an audible-level channel for `anySolo`; `compareGate` per mode incl. expanded detail channels and part `none` (research R-10)
@@ -84,7 +88,7 @@ and `polish`, with real test and coverage output.
 - [ ] T023 [backend] Implement `src/StemStudio.Domain/Recording/*` to pass T022
 - [ ] T024 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/`: migration `AddRecordingTakes` (tables, indexes, unique `(TrackId, Number)`, cascade on track, set null on mix/calibration), `InputCalibrations` unique label, `Mixes.TakeChannel` JSON round trip
 - [ ] T025 [backend] Implement persistence configuration and migration to pass T024
-- [ ] T025a [P] [backend] Failing tests for the 013/022 integration (DELTA.md 7 "013 implementation notes" and "022"): origin `recording` stored as `Recording` and read back (fixture `tests/fixtures/backup/recording-asset.json` unchanged); backup scrub `recordings=false` removes the take rows and clears `Mixes.TakeChannel`; `InputCalibrations` in the `database` category; merge restore adds `RecordingTakes` only with their asset and `InputCalibrations` by label (live wins); backups never contain `capture.wav`; the three gated endpoints answer `409 backup-running` while a backup runs and `503` during maintenance; 022 `LibraryFilingRules.IsFileable` false for `recording` and `CountPendingAsync`/`PendingAsync` exclude takes (runs once `main` with 022 is merged into the round)
+- [ ] T025a [P] [backend] Failing tests for the 013/022 integration (DELTA.md 7 "013 implementation notes" and "022"): origin `recording` stored as `Recording` and read back (fixture `tests/fixtures/backup/recording-asset.json` unchanged); backup scrub `recordings=false` removes the take rows and clears `Mixes.TakeChannel`; `InputCalibrations` in the `database` category; merge restore adds `RecordingTakes` only with their asset and `InputCalibrations` by label (live wins); backups never contain `capture.wav`; the three gated endpoints answer `409 backup-running` while a backup runs and `503` during maintenance; 022 `LibraryFilingRules.IsFileable` false for `recording` and `CountPendingAsync`/`PendingAsync` exclude takes (022 is merged into the round since the round start)
 - [ ] T025b [backend] Implement T025a (Domain enum member `Recording`, scrubber, merge planner, file selection, `RequireGateOpen`, 022 filing rules and SQL)
 
 ### frontend (tests first)
@@ -213,6 +217,20 @@ and `polish`, with real test and coverage output.
 - [ ] T091 [CTO] Update docs/public manuals and regenerate PDFs (constitution 1.3.1): user manual chapter "Play-along recording" (setup per instrument family, calibration, loop takes, compare, export, privacy, limits), technical manual (endpoints, `StemStudio:Recording:*` settings, browser support, storage layout); `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes
 
 ---
+
+## Acceptance of tasks without a red test (ready check 2026-11-17)
+
+- T084 (help, `FeatureCatalog`, overview rows): the 004 help-content tests list every 015 topic id of
+  data-model 5 (one connection topic per instrument family), each `data-help-id` resolves, `FeatureCatalogTests`
+  show the data-model 6 levels, and the shortcut overview test shows `mixer.record.toggle` / `mixer.compare.cycle`
+  (`reserved: false` in `keymap-defaults.json`, flipped by lane L5 on request, `KeyMapDefaultsTests` updated).
+- T009 (fixtures): `tests/fixtures/tests/` checks each generated file (rate, channels, length, family manifest)
+  and that the generator output is reproducible (hash list).
+- E2E authoring (T044, T051, T058, T065, T070, T076, T083, T085): typecheck and lint in `e2e/`; runs at the
+  mid-wave checkpoint (T044) and in T088.
+- T086: hand-off per owner with the coverage table; T087/T088/T090: commands green as listed; T089: each SC
+  result recorded in `docs/STATUS.md`; T091: `node tools/docs/check.mjs` passes.
+- T108 of 014 (`ManifestBuilder.BackendApiVersion` = `1.14.0`) belongs to lane L4 with the 015 backend tasks.
 
 ## Execution plan per owner (parallel wave)
 

@@ -27,11 +27,11 @@ function engine(): AudioEngine {
 }
 
 describe('practice flow contract 2.4.0 (skeleton)', () => {
-  it('exports version 2.4.0 and the OnLoopPass callback', () => {
+  it('exports version 2.5.0 (contains the 2.4.0 surface) and the OnLoopPass callback', () => {
     const callback: DotNetCallbacks = 'OnLoopPass';
     const pass: LoopPassInfo = { start: 8, end: 24, pass: 1, speedPercent: 75 };
 
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.4.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.5.0');
     expect([callback, pass.pass]).toEqual(['OnLoopPass', 1]);
   });
 

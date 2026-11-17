@@ -13,8 +13,10 @@ constitution 1.3.1, ADR-023.
 ADR-023 (Proposed), standalone contract deltas (backend `1.13.0-delta.1`, worker `1.8.0-delta.1`,
 Redocly-valid), engine 2.4.0, web-interop 1.1.0 and UI-id deltas. **Phase 0 part 2 done**
 (2026-11-17, branch `r14-p0-014` on `main` e8d6a5d8): full documents, contract code, key map catalogue,
-spikes T010/T011 (hand-off `docs/handoffs/architect-014-phase0.md`, DELTA.md 7-8). The wave starts after
-`main` (with 022/023) is merged into the round and the documents are re-merged (DELTA.md 8).
+spikes T010/T011 (hand-off `docs/handoffs/architect-014-phase0.md`, DELTA.md 7-8). **Round start done**
+(2026-11-17, branch `014-015-round`): 022+023 pre-merged, documents re-merged onto 1.23.0 (DELTA.md 8.1), T107
+decided; the combined wave follows `docs/handoffs/cto-r14-lane-plan.md` (lanes L1-L6, which override the owner
+table below where they differ).
 
 **Tests**: REQUIRED (constitution I). Within every owner sequence the test task comes before the
 implementation task it covers (red -> green -> refactor); every owner reports >= 90 % line AND
@@ -61,8 +63,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### Part 2 (after 012 and 013 are merged into main)
 
-- [x] T002 [architect] Worker contract code: `schemas.py` 1.8.0 (`SectionJobRequest`, `StemPaths`, `DetailPath`, `DetectedSection`, `SectionResult`, `SectionJob`, `ScoreViewJobRequest`, `BarBox`, `ScoreViewResult`, `ScoreViewJob`, `SetlistSongContent`, `SetlistDocumentRequest`, `SetlistDocumentJob`, `Health.lanes.practice`, `Health.structure`); `ports.py` (`StructureAnalyzer`, `ScoreViewRenderer`, `ScoreView`, `SetlistDocumentRenderer`, errors, texts, allow-list entry `assets/<uuid>/score.musicxml`); `config.py` (`structure_analyzer`); lock `reportlab` 5.1.x in `pyproject.toml` + `uv.lock` (record what it adds); mypy overrides; skeleton tests `worker/tests/test_practice_contract.py` (schemas round-trip the delta examples) (FR-001, FR-014, FR-018)
-- [x] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/{Sections,ScoreFollow,Setlists,Practice}/*`, `LoopRegionDto.SectionId`, `ApiRoutes.*`, `ContractLimits.*` (DELTA 1); skeleton tests `tests/StemStudio.Api.Tests/Contract/PracticeContractTests.cs` (delta document additive to 1.12.0: no removed path/schema/property); operation ids staged in `PendingPracticeOperations` (FR-008, FR-032)
+- [x] T002 [architect] Worker contract code: `schemas.py` 1.8.0 (`SectionJobRequest`, `StemPaths`, `DetailPath`, `DetectedSection`, `SectionResult`, `SectionJob`, `ScoreViewJobRequest`, `BarBox`, `ScoreViewResult`, `ScoreViewJob`, `SetlistSongContent`, `SetlistDocumentRequest`, `SetlistDocumentJob`, `Health.lanes.practice`, `Health.structure`); `ports.py` (`StructureAnalyzer`, `ScoreViewRenderer`, `ScoreView`, `SetlistDocumentRenderer`, errors, texts, allow-list entry `assets/<uuid>/score.musicxml`); `config.py` (`structure_analyzer`); lock `reportlab` 5.1.x in `pyproject.toml` + `uv.lock` (record what it adds); mypy overrides; skeleton tests `worker/tests/contract/test_practice_contract.py` (schemas round-trip the delta examples) (FR-001, FR-014, FR-018)
+- [x] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/{Sections,ScoreFollow,Setlists,Practice}/*`, `LoopRegionDto.SectionId`, `ApiRoutes.*`, `ContractLimits.*` (DELTA 1); skeleton tests `tests/StemStudio.Api.Tests/Contract/PracticeFlowContractTests.cs` (delta document additive: no removed path/schema/property); operation ids staged in `PendingPracticeFlowOperations` (`BackendContractTests.PracticeFlow.cs`) (FR-008, FR-032)
 - [x] T004 [P] [architect] `src/audio-engine/src/types.ts` 2.4.0 (`ScoreViewPage`, `ScoreViewBar`, `ScoreViewMap`, `ScoreFollowOptions`, `LoopPassInfo`, `DotNetCallbacks` + `OnLoopPass`, the three methods as interface members with TSDoc); engine stubs throwing "not implemented" so `tsc` passes; reconcile A-012-1..A-012-5 (DELTA R-1, R-3)
 - [x] T005 [architect] Full documents: `backend-api.openapi.yaml` 1.13.0 (= 013's 1.12.0 + delta), `worker-api.openapi.yaml` 1.8.0, `audio-engine.md` 2.4.0, `web-interop.md` 1.1.0, `ui-test-ids.md` 1.13.0; Redocly lint clean (known warnings only); ADR-023 -> Accepted; DELTA "Phase 0 outcome" section; R-4, R-5 closed (R-2 decided by the CTO 2026-11-16: metronome `K`, count-in `Shift+K`)
 - [x] T006 [P] [architect] `keymap-defaults.json` (complete catalogue of FR-020 with `owner`, `group`, `reserved`; metronome `k`, count-in `shift+k` as decided by the CTO) under `src/StemStudio.Web/wwwroot/js/` as a project-file-level asset, plus `KeyMapDefaults` loader stub in `StemStudio.Web/Practice/` with a test that every FR-020 row is present and no chord is duplicated (FR-019, FR-020)
@@ -79,7 +81,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 1: Setup (per owner, no story)
 
-- [ ] T014 [P] [devops] Failing check first: `scripts/check-worker-fonts.{ps1,sh}` also requires `fc-list | grep -i "DejaVu Sans"` and `python -c "import reportlab"` as the worker user; then `docker/worker.Dockerfile` installs `fonts-dejavu-core` (both image variants); `docker-compose.yml` passes `STEMSTUDIO_STRUCTURE_ANALYZER` (default empty = automatic); CI `CONTRACTS_DIR` and `scripts/test-all.*` -> `specs/014-practice-flow/contracts` (after T005): Redocly lint of the four 014 documents with `specs/014-practice-flow/contracts/redocly.yaml`, both `check_superset.py` runs (newest full document -> 1.13.0, `practice-api.openapi.yaml` -> 1.13.0) (SC-008)
+- [ ] T014 [P] [devops] Failing check first: `scripts/check-worker-fonts.{ps1,sh}` also requires `fc-list | grep -i "DejaVu Sans"` and `python -c "import reportlab"` as the worker user; then `docker/worker.Dockerfile` installs `fonts-dejavu-core` (both image variants); `docker-compose.yml` passes `STEMSTUDIO_STRUCTURE_ANALYZER` (default empty = automatic); CI and `scripts/test-all.*` (combined round: `CONTRACTS_DIR` -> `specs/015-play-along-recording/contracts`, the newest full backend document 1.14.0, together with 015 T010): Redocly lint of the four 014 documents with `specs/014-practice-flow/contracts/redocly.yaml`, both `check_superset.py` runs (default `OLDER` 1.23.0 -> 1.13.0, `practice-api.openapi.yaml` -> 1.13.0) and `python -I specs/014-practice-flow/contracts/merge_full.py --check`; acceptance: the new CI steps fail on a deliberately broken copy and pass on the branch (SC-008)
 - [ ] T015 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `analysis/structure` imports only `ports`, `schemas`, numpy, scipy, sklearn, librosa, soundfile; `engraving/score_view.py` only `ports`, `schemas`, verovio, stdlib xml; `documents/**` only `ports`, `schemas`, reportlab; `jobs`/`api` import none of them (composition in `main.py`); TS: `src/audio-engine/src/score-follow/**` imports no Blazor interop module; .NET: `Domain.{Sections,Setlists,Practice}` reference nothing from `Api`/`Persistence`
 - [ ] T016 [quality-gate] Implement the rules of T015 in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T017 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: synthetic structured audio for sections (one solo per family, SC-002), score-view and PDF assertions, fake analyser for E2E, a11y (axe-core) and keyboard-only E2E for the new pages, request-log check for SC-009; traceability US1..US6 -> test files
@@ -231,11 +233,22 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T103 [P] [qa] Visual baselines for section lane, score panel, setlist pages, practice panel and shortcut settings (light/dark, 320 px and desktop); a11y suite extended (axe-core, keyboard-only walk of every new page) (FR-031, SC-006)
 - [ ] T104 [qa] Execute the full E2E suite on the fake stack (all 014 specs + regression); hand-off with results
 - [ ] T105 [CTO] Moderated checks: SC-005 (first-time chorus loop), NVDA browse mode on the mixer (SC-006), label quality on the owner's reference songs (record in STATUS)
-- [ ] T107 [backend] (added Phase 0 part 2; **scope pending the CTO decision**, CTO-DECISIONS 014 "merge restore") Failing tests first in `tests/StemStudio.Api.Tests/LibraryCare/`: a merge restore brings the `TrackSections`/`Sections` of every merged track and the `ScoreViews` row plus `assets/<id>/view/` files of every merged score asset; skipped parents skip them; then extend 013's `MergePlanner`/`LibraryMerger` (proposal: setlists and the practice log are not merged in 014, documented) (FR-005, FR-014)
-- [ ] T108 [backend] (added Phase 0 part 2) Failing test first: `ManifestBuilder.BackendApiVersion` is the current contract label `1.13.0` (backups record the API version); then bump it
+- [ ] T107 [backend] (added Phase 0 part 2; **decided 2026-11-17**, CTO-DECISIONS 014 "merge restore"; lane L4 of the combined round, after merging L3's HO:foundational) Failing tests first in `tests/StemStudio.Api.Tests/LibraryCare/`: a merge restore brings the `TrackSections`/`Sections` of every merged track and the `ScoreViews` row plus `assets/<id>/view/` files of every merged score asset; skipped parents skip them; setlists and practice sessions of the archive are **not** merged (test asserts none arrive and the live ones stay); then extend 013's `MergePlanner`/`LibraryMerger` (FR-005, FR-014)
+- [ ] T108 [backend] (added Phase 0 part 2; lane L4) Failing test first: `ManifestBuilder.BackendApiVersion` equals the `info.version` of the current full backend document linked as `Contract/backend-api.openapi.yaml` (combined round: `1.14.0`; backups record the API version); then bump it
 - [ ] T106 [CTO] Manuals (constitution 1.3.1): user manual chapters "Song sections", "Score follows playback", "Setlists", "Keyboard and foot pedals", "Practice log and privacy"; technical manual: `practice` lane, `STEMSTUDIO_STRUCTURE_ANALYZER`, fonts, API list; rebuild PDFs and `build-manifest.json`; `docs/THIRD-PARTY-LICENSES.md` (ReportLab BSD, DejaVu fonts); `docs/ROADMAP.md` (web-interop 1.1.0 for 014); STATUS; README
 
 ---
+
+## Acceptance of tasks without a red test (ready check 2026-11-17)
+
+- Help-topic and tour tasks (T061, T063 help part, T069, T075, T085, T095, T101): the 004 help-content tests
+  (`tests/StemStudio.Web.Tests/Help/**`) list every new topic id of ui-test-ids 1.13.0 / data-model 6, each
+  `data-help-id` marker resolves to a topic, and the help text check passes; tours pass the tour schema test.
+- Documentation tasks (T017, T106): the files named in the task exist with the listed sections;
+  T106 additionally `node tools/docs/check.mjs` passes after the PDF rebuild.
+- E2E authoring tasks (T060, T068, T074, T084, T094, T100): lanes typecheck and lint the spec
+  (`npm run typecheck`, `npm run lint` in `e2e/`); the run against a stack is T104 (or the mid-wave checkpoint).
+- CTO tasks (T105): the result per SC is recorded in `docs/STATUS.md`.
 
 ## Dependencies and execution order
 
