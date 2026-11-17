@@ -1732,6 +1732,8 @@ change** (file tree and database byte-identical, SC-004).
   reset the worker cache carry `@compose` and run only with `E2E_COMPOSE=1`; they target
   `E2E_COMPOSE_FILE` and `E2E_COMPOSE_PROJECT` (the CTO's separate integration project) and never
   another project. `npm test` excludes `@compose` and `@fresh-library`.
+- **Restores need an idle library.** Every import starts an automatic detail phase (feature 002),
+  so restores and "Undo restore" first wait until `activeWork` is empty (`waitForNoActiveWork`).
 - **Fixture archives** are placed into the backups folder through `E2E_BACKUP_DIR` (host folder of
   the `/backups` bind mount) or, with `E2E_COMPOSE=1`, `docker compose cp`.
 - Archives the stack writes are downloaded and checked with `support/backup-archive.ts`
@@ -1748,6 +1750,7 @@ change** (file tree and database byte-identical, SC-004).
 | + `E2E_COMPOSE=1`, `E2E_COMPOSE_PROJECT` | `npm run test:library-care-compose` (storage byte sums, worker stopped, rehydration after a worker cache reset) |
 | fresh project (empty library) | `npm run test:library-care-fresh` first |
 | no stack | `npx playwright test tests/library-care-archive.spec.ts` (`@self-test`) |
+| fake stack, a11y project | `npm run test:a11y` includes `a11y/library-care.a11y.spec.ts` (backup, restore, delete and clean-up dialogs in both themes) |
 
 ### 19.6 (013) acceptance scenario -> tests
 
@@ -1794,3 +1797,64 @@ npx playwright test tests/library-care-archive.spec.ts
 E2E_BACKUP_DIR=<temp backups folder> npm run test:library-care
 E2E_BACKUP_DIR=<...> E2E_LIBRARY_THROTTLE=1 E2E_COMPOSE=1 E2E_COMPOSE_PROJECT=<project> npm run test:library-care-compose
 ```
+
+### 19.8 (013) traceability: requirement -> tests
+
+E2E files: `backup` = `library-care-backup.spec.ts`, `restore` = `library-care-restore.spec.ts`,
+`storage` = `library-care-storage.spec.ts`, `cleanup` = `library-care-cleanup.spec.ts`, `merge` =
+`library-care-merge.spec.ts`, `self` = `library-care-archive.spec.ts`, `a11y` =
+`a11y/library-care.a11y.spec.ts`; fixtures = `tests/fixtures/backup/tests`.
+
+| Requirement | Unit / component (owner tasks) | qa |
+|---|---|---|
+| FR-001 archive format 1.0.0 | T033 manifest/schema tests | backup (schema + hashes), self, fixtures |
+| FR-002 online snapshot, write gate | T031/T032 snapshot (WAL), gate filter | backup write gate |
+| FR-003 categories, estimate, scrub | T034 estimator, T035 scrubber | backup compact (archived `FilesRemovedAt`), levels (estimate rows) |
+| FR-004 never models, worker data, keys, configuration | T035/T048 (secrets grep, key ring) | backup (no foreign entries) |
+| FR-005 backups folder, `.partial`, download | T036/T038 | backup (no `.partial`, Range, ETag) |
+| FR-006 progress, cancel, one job, restart | T037 runner, start-up recovery | backup cancel (throttled), one job at a time |
+| FR-007 free space | T034/T036 | - |
+| FR-008 hashes, post-write check, verify | T036, T045 | backup, restore hostile (verify) |
+| FR-009 consent with every profile | T035 | restore details panel (consent proof), H15 |
+| FR-010 list with compatibility | T044 | restore states |
+| FR-011 validation order, zip-slip, zip-bomb | T042-T045 over the corpus | restore hostile (20 + H16), fixtures (reference validator) |
+| FR-012 empty / replace / merge, previous library | T046/T047, T062/T063 | restore replace + undo + discard, `@fresh-library`, merge |
+| FR-013 refused while jobs run, maintenance | T046/T049 | restore blocked (jobs-active) |
+| FR-014 migration of older schemas | T045 over `schema-008/010.zip` | restore schema-010 migrated, states |
+| FR-015 non-terminal -> "Interrupted by restore", report | T047 reconciler | restore report checks |
+| FR-016 consent proof on restore | T045 consent | H15 (`consent-invalid` skipped) |
+| FR-017 crash-safe switch | T046 crash injection (SC-005) | - (CTO V10) |
+| FR-018 space for restore | T044 | H16 |
+| FR-019 rehydration | T050/T051, worker T029 | restore `@compose` cache reset, cleanup worker cache |
+| FR-020 storage overview | T054/T055 | storage numbers (`@compose`), Storage tab |
+| FR-021 regenerable / original labels | T054 classifier | storage classes |
+| FR-022 clean-up kinds only, never originals | T058 property test (SC-007) | cleanup plan kinds, storage manage links |
+| FR-023 preview + plan id, stale refused | T058/T059 | cleanup stale and unknown plan |
+| FR-024 refused during backup/restore, skip active | T058 | cleanup buttons disabled (throttled), `detail-active` skip; backup write gate (preview 409) |
+| FR-025 detail state "removed", Split further | T058/T059 | cleanup notices, mixer, Split further |
+| FR-026 explicit delete / typed discard | T049 | restore discard, a11y delete confirmation |
+| FR-030 help topics | frontend T040/T052/T056/T060 help coverage | - (help.spec 013 queries: CTO integration, like 012) |
+| FR-031 levels | bUnit level tests | backup levels, storage levels, merge at Beginner |
+| FR-032 keyboard, screen reader | bUnit a11y, frontend T066 walk-through | a11y dialogs (axe both themes, focus trap, Escape returns focus), backup axe on both tabs, progressbar `aria-valuenow`/`aria-valuetext`, `aria-sort`, `role="meter"` |
+| FR-033 test ids | `LibraryCareUiTestIdsTests` | every spec (ids only) |
+| FR-034 no free paths | T014 `LibraryLayout`, quality-gate banned APIs | corpus (names, stored paths) |
+| FR-035 logs without personal content | backend log tests | - |
+| FR-036 manuals | CTO T071 | - |
+| SC-001 round trip | T047 | restore round trip (file hashes, counts); `compare_library.py` for V3 |
+| SC-002 throughput | - | - (CTO V9) |
+| SC-003 cancel <= 5 s | T037 (20 random moments) | backup cancel |
+| SC-004 corpus refused, tree unchanged | T042 | restore hostile, fixtures |
+| SC-005 crash injection | T046 | - |
+| SC-006 storage bytes | T054 | storage numbers (`@compose`) |
+| SC-007 clean-up never removes originals, Split further | T058 property test | cleanup |
+| SC-008 consent | T045/T035 | H15, details panel |
+| SC-009 older schemas | T045 | `schema-008/010.zip`, restore schema-010 |
+| SC-010 recordings | T054/T058 with `recording-asset.json` | fixture tests |
+
+### 19.9 Status after the qa lane (authored, executed in the CTO integration wave)
+
+Every 013 spec is written against the binding contracts and validated statically (type-check,
+lint with the SIG limits, `playwright --list`: 132 tests in 6 files for chromium + firefox, 6 in
+the a11y project). Executed by qa: the fixture generators and their 107 tests, and the stack-free
+`library-care-archive.spec.ts` (7 passed). Restores and "Undo restore" wait until no job is active
+(`waitForNoActiveWork`): every import starts an automatic detail phase (feature 002).
