@@ -18,6 +18,12 @@
       "topic": "mixer-sections",
       "title": "Loop what is playing",
       "text": "Loop this section repeats the part you hear now. Next section moves the loop on."
+    },
+    {
+      "target": "practice-log-panel",
+      "topic": "mixer-practice-log",
+      "title": "See your progress",
+      "text": "Practice log shows how long you practised this song and each section."
     }
   ]
 }
