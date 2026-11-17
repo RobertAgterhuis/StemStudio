@@ -1,0 +1,63 @@
+@* The art of a folder (feature 022, FR-015, FR-016, research R-05): one cover, a 2x2 mosaic of album thumbs or the lettered
+   placeholder on a design-system tone. Pictures are decorative (alt=""; the tile link names the folder), lazy, with fixed
+   width/height so nothing shifts; a picture that fails to load is replaced by the placeholder (or a tone cell). *@
+@inject Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> Options
+
+<div class="@($"ss-folder-art ss-folder-art-{KindName} {Model.ToneClass}")" data-testid="@TestId" data-art="@KindName">
+    @if (Shown == FolderArtKindDto.Cover)
+    {
+        var picture = Model.Pictures[0];
+        <img src="@picture.Src" srcset="@picture.SrcSet" sizes="@Model.Sizes" alt="" width="@Model.Size" height="@Model.Size" loading="lazy"
+             decoding="async" @onerror="() => _failed.Add(0)" />
+    }
+    else if (Shown == FolderArtKindDto.Mosaic)
+    {
+        @for (var i = 0; i < Model.Pictures.Count; i++)
+        {
+            var index = i;
+            @if (_failed.Contains(index))
+            {
+                <span class="ss-folder-art-cell" aria-hidden="true"></span>
+            }
+            else
+            {
+                <img src="@Model.Pictures[index].Src" alt="" width="@Model.CellSize" height="@Model.CellSize" loading="lazy" decoding="async"
+                     @onerror="() => _failed.Add(index)" />
+            }
+        }
+        @for (var i = 0; i < Model.EmptyCells; i++)
+        {
+            <span class="ss-folder-art-cell" aria-hidden="true"></span>
+        }
+    }
+    else
+    {
+        <span class="ss-folder-art-glyph" aria-hidden="true">@Model.Glyph</span>
+    }
+</div>
+
+@code {
+    private readonly HashSet<int> _failed = [];
+
+    /// <summary>The art of the API.</summary>
+    [Parameter, EditorRequired]
+    public FolderArtDto Art { get; set; } = default!;
+
+    /// <summary>The <c>data-testid</c>: <c>folder-art-&lt;folderId&gt;</c> or <c>library-folder-art</c>.</summary>
+    [Parameter, EditorRequired]
+    public string TestId { get; set; } = string.Empty;
+
+    /// <summary>True for 128 px tiles (compact density).</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private FolderArtModel Model { get; set; } = default!;
+
+    // A failed cover shows the placeholder; a mosaic keeps its other pictures.
+    private FolderArtKindDto Shown => Model.Kind == FolderArtKindDto.Cover && _failed.Count > 0 ? FolderArtKindDto.Placeholder : Model.Kind;
+
+    private string KindName => LibraryFolderRequest.Wire(Shown);
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() => Model = FolderArtModel.From(Art, Options.Value.PublicApiBaseUrl, Compact);
+}

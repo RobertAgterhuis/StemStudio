@@ -1,0 +1,36 @@
+@* One child folder (feature 022, FR-014, US2 scenario 7): a single link whose name is "<name>, <level>, <counts>" (the
+   level word is for screen readers only, so the visible text stays part of the name), art, name, album year and
+   counts; in the list layout also the size. *@
+
+<li class="ss-folder-item">
+    <a class="ss-folder-tile" href="@LibraryLocation.FolderUrl(Folder.Id)" data-testid="@($"folder-tile-{Folder.Id}")"
+       data-level="@FolderText.Level(Folder.Level)" data-art="@LibraryFolderRequest.Wire(Folder.Art.Kind)">
+        <FolderArt Art="Folder.Art" TestId="@($"folder-art-{Folder.Id}")" Compact="Compact || Layout == FolderLayout.List" />
+        <span class="ss-folder-text">
+            <span class="ss-folder-name" data-testid="@($"folder-name-{Folder.Id}")">@Folder.Name</span><span class="ss-sr-only">, @FolderText.Level(Folder.Level), </span>
+            @if (Folder.Year is { } year)
+            {
+                <span class="ss-folder-year ss-num" data-testid="@($"folder-year-{Folder.Id}")">@year</span><span class="ss-sr-only">, </span>
+            }
+            <span class="ss-folder-counts ss-small" data-testid="@($"folder-counts-{Folder.Id}")">@FolderText.Counts(Folder.Counts)</span>
+            @if (Layout == FolderLayout.List)
+            {
+                <span class="ss-sr-only">, </span><span class="ss-folder-size ss-small ss-num">@ByteSize.Format(Folder.SizeBytes)</span>
+            }
+        </span>
+    </a>
+</li>
+
+@code {
+    /// <summary>The folder.</summary>
+    [Parameter, EditorRequired]
+    public LibraryFolderDto Folder { get; set; } = default!;
+
+    /// <summary>Grid or list.</summary>
+    [Parameter]
+    public FolderLayout Layout { get; set; }
+
+    /// <summary>True at compact density.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+}

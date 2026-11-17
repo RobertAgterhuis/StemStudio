@@ -1,0 +1,38 @@
+@inherits PollingComponent
+@* "All items" (feature 007 FR-007/FR-008 list, feature 022 FR-021; /library?view=all, Advanced): every saved item,
+   newest first, with the total size, the 007 filters and each item's folder path; items that are still rendering are
+   polled until they are ready or failed. *@
+
+<div class="ss-page ss-page-wide ss-library">
+    <header class="ss-page-head ss-page-head-row" data-help-id="library">
+        <div>
+            <div class="ss-label-row"><h1>Library</h1><HelpHint HelpId="library" /></div>
+            <p class="ss-muted ss-small">Total size <span class="ss-num" data-testid="library-total-size">@ByteSize.Format(TotalSize)</span></p>
+            <LevelGate Feature="library.filters">
+                <a class="ss-library-switch" href="@LibraryLocation.RootPath" data-testid="library-view-folders">Back to the folders</a>
+            </LevelGate>
+        </div>
+        <LibraryFilters Items="Items ?? []" Filter="Filter" OnChanged="StateHasChanged" />
+    </header>
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="library-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+    }
+
+    @if (Items is null)
+    {
+        @if (Error is null)
+        {
+            <Skeleton Lines="4" />
+        }
+    }
+    else if (Visible.Count == 0)
+    {
+        <EmptyState TestId="library-empty" Text="@EmptyText" />
+    }
+    else
+    {
+        <AssetTable Items="Visible" Highlight="Highlight" ShowPath="true" OnReplaced="Replace" OnDeleted="Remove" OnCreated="OnCreatedAsync" />
+    }
+</div>

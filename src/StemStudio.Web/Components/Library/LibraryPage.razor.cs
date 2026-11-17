@@ -1,58 +1,126 @@
 using Microsoft.AspNetCore.Components;
-using StemStudio.Contracts.Assets;
+using Microsoft.AspNetCore.Components.Routing;
 using StemStudio.Web.Api;
-using StemStudio.Web.Services;
+using StemStudio.Web.Experience;
+using StemStudio.Web.Interop;
+using StemStudio.Web.Library;
 
 namespace StemStudio.Web.Components.Library;
 
-/// <summary>Loads the library, keeps it newest first and polls while an item is queued or rendering (feature 007).</summary>
+/// <summary>
+/// Route host of the library: follows the URL (folder, <c>?q=</c>, <c>?view=all</c>), owns the live search and its
+/// announcer, and binds <c>/</c> to the search box while a library page is open (feature 022, FR-022..FR-027, T069).
+/// </summary>
 public sealed partial class LibraryPage
 {
+    /// <summary>The command of the <c>/</c> key in scope <see cref="ShortcutScope.Library"/> (web-interop 1.2.0).</summary>
+    public const string FocusSearchCommand = "library.search.focus";
+
+    private LibrarySearchBox? _box;
+    private SearchResults? _results;
+    private IAsyncDisposable? _shortcuts;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
 
-    /// <summary>The item to highlight (<c>?asset=</c>, from the export confirmation).</summary>
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    [Inject]
+    private TimeProvider Time { get; set; } = default!;
+
+    [Inject]
+    private IWebInterop Web { get; set; } = default!;
+
+    /// <summary>The cascaded level.</summary>
+    [CascadingParameter]
+    public ExperienceContext? Experience { get; set; }
+
+    /// <summary>The open folder (<c>/library/{folderId}</c>), or null at the root.</summary>
+    [Parameter]
+    public string? FolderId { get; set; }
+
+    /// <summary>The item to highlight (<c>?asset=</c>, from confirmations before 1.22.0): opens "All items".</summary>
     [SupplyParameterFromQuery(Name = "asset")]
     public Guid? Highlight { get; set; }
 
-    private IReadOnlyList<AssetDto>? Items { get; set; }
+    private LibraryLocation Location { get; set; } = LibraryLocation.Root;
 
-    private long TotalSize { get; set; }
+    private LiveSearchController Search { get; set; } = default!;
 
-    private string? Error { get; set; }
+    private LibraryAnnouncer Announcer { get; set; } = default!;
 
-    private AssetFilter Filter { get; } = new();
+    private bool ShowAllItems => Highlight is not null || (Location.AllItems && (Experience ?? ExperienceContext.Default).IsVisible("library.filters"));
 
-    private IReadOnlyList<AssetDto> Visible => Filter.Apply(Items ?? []);
-
-    private string EmptyText => Filter.IsActive && Items is { Count: > 0 }
-        ? "No items match the filters."
-        : "No items yet. Save a stem on a track page or what you hear in the mixer.";
+    private string Title => Search.IsActive ? "Search the library" : "Library";
 
     /// <inheritdoc />
-    protected override bool NeedsPolling => Items?.Any(a => a.Status is AssetStatusDto.Queued or AssetStatusDto.Rendering) == true;
-
-    /// <inheritdoc />
-    protected override async Task OnInitializedAsync()
+    public async ValueTask DisposeAsync()
     {
-        await LoadAsync();
-        StartPolling();
+        Navigation.LocationChanged -= OnLocationChanged;
+        Search.Changed -= OnSearchChanged;
+        Announcer.Changed -= OnAnnounced;
+        Search.Dispose();
+        Announcer.Dispose();
+        await (_shortcuts?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 
     /// <inheritdoc />
-    protected override Task RefreshAsync(CancellationToken ct) => LoadAsync();
-
-    private async Task LoadAsync()
+    protected override void OnInitialized()
     {
-        try
+        Search = new LiveSearchController(
+            new LiveSearchPorts((request, ct) => Api.SearchLibraryAsync(request, ct), Navigate, FocusSearchAsync, InvokeAsync),
+            Time);
+        Announcer = new LibraryAnnouncer(Time, InvokeAsync);
+        Search.Changed += OnSearchChanged;
+        Announcer.Changed += OnAnnounced;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    /// <inheritdoc />
+    protected override Task OnParametersSetAsync()
+    {
+        Location = LibraryLocation.Parse(Navigation.Uri);
+        return Search.StartAsync(Location);
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            var list = await Api.ListAssetsAsync(Stopping);
-            (Items, TotalSize, Error) = (list.Items.OrderByDescending(a => a.CreatedAt).ToList(), list.TotalSizeBytes, null);
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
+            _shortcuts = await Web.RegisterShortcutsAsync(ShortcutScope.Library, command => InvokeAsync(() => OnCommandAsync(command)));
         }
     }
+
+    private Task OnCommandAsync(string command) =>
+        command == FocusSearchCommand ? FocusSearchAsync().AsTask() : Task.CompletedTask;
+
+    private ValueTask FocusSearchAsync() => _box?.FocusAsync() ?? ValueTask.CompletedTask;
+
+    private Task FocusFirstResultAsync() => _results?.FocusFirstAsync() ?? Task.CompletedTask;
+
+    private Task ShowAllAsync() => Search.ShowAllAsync();
+
+    private void Navigate(string url, bool replace) => Navigation.NavigateTo(url, new NavigationOptions { ReplaceHistoryEntry = replace });
+
+    // Back/forward and links change the URL without new parameters when the route stays the same.
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args) => _ = InvokeAsync(async () =>
+    {
+        var location = LibraryLocation.Parse(args.Location);
+        if (location != Location)
+        {
+            Location = location;
+            await Search.StartAsync(location);
+            StateHasChanged();
+        }
+    });
+
+    private void OnSearchChanged()
+    {
+        Announcer.Schedule(Search.IsActive ? Search.Result : null);
+        StateHasChanged();
+    }
+
+    private void OnAnnounced() => StateHasChanged();
 }

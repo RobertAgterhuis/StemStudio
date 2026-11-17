@@ -158,3 +158,283 @@
     width: 100%;
   }
 }
+
+/* ---- Library folders, folder art and live search (feature 022; research R-05, R-09). Tokens only. ---- */
+
+/* Eight art tones for the lettered placeholder, mixed from the theme tokens so they follow light, dark and forced
+   colours; the ink letter keeps >= 4.5:1 on every tone in both themes (32 % accent over the surface). */
+:root {
+  --ss-art-tone-0: color-mix(in oklab, var(--ss-color-muted) 32%, var(--ss-color-surface));
+  --ss-art-tone-1: color-mix(in oklab, var(--ss-color-danger) 32%, var(--ss-color-surface));
+  --ss-art-tone-2: color-mix(in oklab, var(--ss-color-warning) 32%, var(--ss-color-surface));
+  --ss-art-tone-3: color-mix(in oklab, var(--ss-color-success) 32%, var(--ss-color-surface));
+  --ss-art-tone-4: color-mix(in oklab, var(--ss-color-focus) 32%, var(--ss-color-surface));
+  --ss-art-tone-5: color-mix(in oklab, var(--ss-color-control-border) 32%, var(--ss-color-surface));
+  --ss-art-tone-6: color-mix(in oklab, color-mix(in oklab, var(--ss-color-success) 50%, var(--ss-color-focus)) 32%, var(--ss-color-surface));
+  --ss-art-tone-7: color-mix(in oklab, color-mix(in oklab, var(--ss-color-danger) 50%, var(--ss-color-control-border)) 32%, var(--ss-color-surface));
+  --ss-art-size: 160px;
+}
+
+.ss-art-tone-0 { --ss-art-tone: var(--ss-art-tone-0); }
+.ss-art-tone-1 { --ss-art-tone: var(--ss-art-tone-1); }
+.ss-art-tone-2 { --ss-art-tone: var(--ss-art-tone-2); }
+.ss-art-tone-3 { --ss-art-tone: var(--ss-art-tone-3); }
+.ss-art-tone-4 { --ss-art-tone: var(--ss-art-tone-4); }
+.ss-art-tone-5 { --ss-art-tone: var(--ss-art-tone-5); }
+.ss-art-tone-6 { --ss-art-tone: var(--ss-art-tone-6); }
+.ss-art-tone-7 { --ss-art-tone: var(--ss-art-tone-7); }
+
+.ss-library-search {
+  display: grid;
+  gap: var(--ss-space-1);
+  max-width: 40rem;
+  margin-bottom: var(--ss-space-4);
+}
+
+.ss-search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-search-row .ss-search {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--ss-control-height);
+}
+
+.ss-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+  margin: 0 0 var(--ss-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.ss-breadcrumb li + li::before {
+  content: ">";
+  margin-right: var(--ss-space-1);
+  color: var(--ss-color-muted);
+}
+
+.ss-breadcrumb a,
+.ss-folder-path a,
+.ss-search-path a {
+  display: inline-block;
+  min-height: var(--ss-target-min);
+  line-height: var(--ss-target-min);
+}
+
+.ss-crumb-ellipsis {
+  display: none;
+}
+
+.ss-folder-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-4);
+  margin-bottom: var(--ss-space-3);
+}
+
+.ss-folder-head-text {
+  min-width: 0;
+}
+
+.ss-folder-head h1 {
+  overflow-wrap: anywhere;
+}
+
+.ss-folder-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-3);
+  margin-bottom: var(--ss-space-4);
+}
+
+.ss-segment[aria-pressed="true"] {
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+}
+
+.ss-library-switch,
+.ss-song-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+}
+
+.ss-song-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-3);
+  margin-bottom: var(--ss-space-3);
+}
+
+.ss-folder-grid,
+.ss-folder-list,
+.ss-search-hits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--ss-art-size), 1fr));
+  gap: var(--ss-space-4);
+}
+
+.ss-folder-list {
+  display: grid;
+  gap: var(--ss-space-1);
+}
+
+.ss-folder-tile {
+  display: grid;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-1);
+  border-radius: var(--ss-radius-panel);
+  color: var(--ss-color-ink);
+  text-decoration: none;
+}
+
+.ss-folder-tile:hover .ss-folder-name {
+  text-decoration: underline;
+}
+
+.ss-folder-list .ss-folder-tile {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.ss-folder-list .ss-folder-art {
+  --ss-art-size: 48px;
+}
+
+.ss-folder-text {
+  display: grid;
+  min-width: 0;
+}
+
+.ss-folder-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-weight: var(--ss-type-label-weight);
+  overflow-wrap: anywhere;
+}
+
+.ss-folder-art {
+  display: grid;
+  overflow: hidden;
+  width: var(--ss-art-size);
+  aspect-ratio: 1;
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-art-tone);
+  place-items: center;
+}
+
+.ss-folder-grid .ss-folder-art {
+  width: 100%;
+  max-width: var(--ss-art-size);
+}
+
+.ss-folder-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ss-folder-art-mosaic {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  place-items: stretch;
+}
+
+.ss-folder-art-cell {
+  background: var(--ss-art-tone);
+}
+
+.ss-folder-art-glyph {
+  color: var(--ss-color-ink);
+  font-size: calc(var(--ss-art-size) * 0.4);
+  font-weight: var(--ss-type-display-weight);
+  line-height: 1;
+}
+
+.ss-search-group {
+  margin-bottom: var(--ss-space-5);
+}
+
+.ss-search-hit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-1) 0;
+}
+
+.ss-search-hit > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+}
+
+/* The match marker is underlined and bold, never colour alone (FR-025). */
+.ss-search-mark {
+  background: var(--ss-color-none);
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.ss-asset-path,
+.ss-asset-matched {
+  display: block;
+}
+
+.ss-asset-table:focus-visible {
+  outline: 2px solid var(--ss-color-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 48rem) {
+  .ss-folder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .ss-crumb-collapsible {
+    display: none;
+  }
+
+  .ss-crumb-ellipsis {
+    display: list-item;
+  }
+
+  .ss-folder-head {
+    align-items: flex-start;
+  }
+
+  .ss-folder-head .ss-folder-art {
+    --ss-art-size: 96px;
+  }
+}
+
+html[data-density="compact"] .ss-library {
+  --ss-art-size: 128px;
+}
+
+/* Under 768 px the rail is a bottom bar: keep focused library controls above it (WCAG 2.4.11). */
+@media (max-width: 48rem) {
+  html:has(.ss-library) {
+    scroll-padding-bottom: calc(var(--ss-transport-height) + var(--ss-space-2));
+  }
+}

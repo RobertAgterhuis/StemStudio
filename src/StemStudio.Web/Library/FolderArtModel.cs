@@ -27,9 +27,9 @@ public sealed class FolderArtModel
 
     private const string ArtworkPathPrefix = "/api/tracks/";
 
-    private FolderArtModel(FolderArtKindDto kind, IReadOnlyList<ArtPicture> pictures, string glyph, int tone, int size)
+    private FolderArtModel(FolderArtKindDto kind, IReadOnlyList<ArtPicture> pictures, ArtPlaceholderDto placeholder, int size)
     {
-        (Kind, Pictures, Glyph, Tone, Size) = (kind, pictures, glyph, tone, size);
+        (Kind, Pictures, Glyph, Tone, Size) = (kind, pictures, placeholder.Glyph, placeholder.Tone, size);
     }
 
     /// <summary>What renders: cover, mosaic or placeholder (also <c>data-art</c>).</summary>
@@ -77,7 +77,7 @@ public sealed class FolderArtModel
             FolderArtKindDto.Mosaic => [.. images.Select(i => new ArtPicture(Absolute(apiBase, i.ThumbUrl), null))],
             _ => [],
         };
-        return new FolderArtModel(kind, pictures, glyph, tone, size);
+        return new FolderArtModel(kind, pictures, new ArtPlaceholderDto { Glyph = glyph, Tone = tone }, size);
     }
 
     private static FolderArtKindDto KindOf(FolderArtKindDto requested, int images) => (requested, images) switch

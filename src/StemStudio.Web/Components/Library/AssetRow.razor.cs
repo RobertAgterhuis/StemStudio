@@ -20,6 +20,14 @@ public sealed partial class AssetRow
     [Parameter]
     public bool Highlighted { get; set; }
 
+    /// <summary>True to show the item's folder path "Artist > Album > Song" (feature 022, <c>asset-path-&lt;assetId&gt;</c>).</summary>
+    [Parameter]
+    public bool ShowPath { get; set; }
+
+    /// <summary>The search hit of this item (feature 022): marks the matched parts, lists the matched instruments.</summary>
+    [Parameter]
+    public StemStudio.Contracts.Library.ItemHitDto? Hit { get; set; }
+
     /// <summary>Rename pressed.</summary>
     [Parameter]
     public EventCallback<AssetDto> OnRename { get; set; }
@@ -39,6 +47,8 @@ public sealed partial class AssetRow
     private string Facts => AssetText.Format(Asset.Audio) is { } format
         ? $" · {format} · {TimeText.Duration(Asset.Audio!.DurationSeconds)} · {ByteSize.Format(Asset.SizeBytes)}"
         : string.Empty;
+
+    private IReadOnlyList<StemStudio.Contracts.Library.HighlightDto> Highlights => Hit?.Highlights ?? [];
 
     private bool IsReadyAudio => Asset is { Kind: AssetKindDto.Audio, Status: AssetStatusDto.Ready };
 

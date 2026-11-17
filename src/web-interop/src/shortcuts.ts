@@ -77,7 +77,10 @@ const MIXER: readonly Binding[] = [
   ...PRACTICE,
 ];
 
-const KEY_MAPS: Readonly<Record<ShortcutScope, readonly Binding[]>> = { global: GLOBAL, mixer: MIXER };
+/** Library pages (feature 022, web-interop 1.2.0): `/` focuses the library search; Mod+/ stays the global overview. */
+const LIBRARY: readonly Binding[] = [{ key: '/', mod: false, command: 'library.search.focus' }];
+
+const KEY_MAPS: Readonly<Record<ShortcutScope, readonly Binding[]>> = { global: GLOBAL, mixer: MIXER, library: LIBRARY };
 
 /** Second keys of the global "G then X" sequences. */
 const GO: Readonly<Record<string, string>> = { i: 'go.import', t: 'go.tracks', m: 'go.mixes' };
@@ -179,7 +182,7 @@ function handle(event: KeyboardEvent, scope: ShortcutScope, sequence: Sequence):
  * Registers the key map of a scope and calls `dotnet.invokeMethodAsync("OnCommand", id)` with a command id.
  *
  * @param dotnet - Receiver of the command ids.
- * @param scope - `global` or `mixer` key map.
+ * @param scope - `global`, `mixer` or `library` key map.
  * @returns Handle that removes the key listener.
  */
 export function registerShortcuts(dotnet: DotNetRef, scope: ShortcutScope): Disposable {

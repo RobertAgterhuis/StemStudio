@@ -67,7 +67,7 @@ public sealed class ExportAccessibilityTests : PageTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(AssetData.Asset(status: status)));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         page.Find($"[data-testid=asset-status-{AssetData.AssetId}]").TextContent.ShouldBe(text);
         EveryControlIsNamed(page.Find("table"));
@@ -78,7 +78,7 @@ public sealed class ExportAccessibilityTests : PageTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(AssetData.Asset()));
         Api.RenameAssetAsync(AssetData.AssetId, "New", Arg.Any<CancellationToken>()).Returns(AssetData.Asset(name: "New"));
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
         await page.Find($"[data-testid=asset-rename-{AssetData.AssetId}]").ClickAsync(new());
 
         await page.Find("[role=dialog]").KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });

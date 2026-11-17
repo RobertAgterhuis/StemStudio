@@ -1,0 +1,35 @@
+@* A table of library items (feature 007 rows, ui-test-ids 1.5.0/1.7.0) with rename, delete, retry and sheet music, used by
+   "All items", song folders and search results (feature 022, FR-020, FR-021). With ShowPath each row also carries its
+   folder path (asset-path-<assetId>). *@
+
+@if (ActionError is not null)
+{
+    <ErrorState TestId="library-action-error" Message="@ActionError" />
+}
+
+<table class="ss-table ss-asset-table" tabindex="-1" @ref="_table">
+    @if (Caption is not null)
+    {
+        <caption class="ss-sr-only">@Caption</caption>
+    }
+    <thead>
+        <tr><th>Item</th><th>Source</th><th>Status</th><th>Created</th><th><span class="ss-sr-only">Play and actions</span></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var asset in Items)
+        {
+            <AssetRow @key="asset.Id" Asset="asset" Highlighted="asset.Id == Highlight" ShowPath="ShowPath" Hit="HitOf(asset)" OnRename="OpenRename" OnDelete="DeleteAsync"
+                      OnRetry="RetryAsync" OnScore="OpenScore" />
+        }
+    </tbody>
+</table>
+
+@if (Renaming is not null)
+{
+    <AssetRenameDialog Name="@Renaming.Name" Error="@RenameError" OnConfirm="RenameAsync" OnCancel="CloseRename" />
+}
+
+@if (Scoring is not null)
+{
+    <ScoreDialog Target="Scoring" OnClose="CloseScore" OnSaved="OnScoreSavedAsync" />
+}

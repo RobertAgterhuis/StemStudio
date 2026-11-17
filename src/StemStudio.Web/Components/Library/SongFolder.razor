@@ -1,0 +1,42 @@
+@* The content of a song folder (feature 022, FR-020): links to the track and its mixer while the track exists, and the
+   items with the unchanged 007 actions in the order of the API (instrument order, then newest first; FR-018). *@
+
+@if (Folder.TrackIds.Count > 0)
+{
+    var trackId = Folder.TrackIds[0];
+    <div class="ss-song-links">
+        <a class="ss-row-action" href="@($"tracks/{trackId}")" data-testid="song-open-track">Open the track</a>
+        <a class="ss-row-action" href="@($"tracks/{trackId}/mixer")" data-testid="song-open-mixer">Open in the mixer</a>
+    </div>
+}
+
+@if (Items.Count == 0)
+{
+    <EmptyState TestId="library-empty" Text="No items in this song folder." />
+}
+else
+{
+    <AssetTable Items="Items" ShowPath="true" Caption="@($"Items of {Folder.Name}")" OnReplaced="OnReplaced" OnDeleted="OnDeleted" OnCreated="OnCreated" />
+}
+
+@code {
+    /// <summary>The song folder.</summary>
+    [Parameter, EditorRequired]
+    public LibraryFolderDto Folder { get; set; } = default!;
+
+    /// <summary>Its items.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AssetDto> Items { get; set; } = [];
+
+    /// <summary>An item changed.</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnReplaced { get; set; }
+
+    /// <summary>An item was deleted.</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnDeleted { get; set; }
+
+    /// <summary>A new item was made (sheet music).</summary>
+    [Parameter]
+    public EventCallback<AssetDto> OnCreated { get; set; }
+}

@@ -1,0 +1,49 @@
+@* Live search results (feature 022, FR-025, FR-027, FR-028): Artists, Albums and Songs as lists of folder hits, Items as
+   007 rows with their path and the matched parts marked; "No matches" with what the search looks at and "Clear search";
+   a failed search shows the reason and keeps the previous results. *@
+
+<section class="ss-search-results" data-testid="search-results" aria-labelledby="search-results-title">
+    <h1 id="search-results-title" class="ss-search-title">Search results</h1>
+
+    @if (Error is not null)
+    {
+        <ErrorState TestId="library-search-error" Message="@Error" Hint="Try again in a moment; the results below are from your previous text." />
+    }
+
+    @if (Result is null)
+    {
+        @if (Error is null)
+        {
+            <Skeleton Lines="3" Label="Searching..." />
+        }
+    }
+    else if (IsEmpty)
+    {
+        <div class="ss-state ss-state-empty" data-testid="library-search-empty">
+            <p class="ss-state-text">No matches for '@Result.Query'.</p>
+            <p class="ss-muted ss-small">The search looks at artist, album and song names, stems and instruments (for example "snare" or "lead vocals") and item names. Accents and capitals do not matter; every word must be found.</p>
+            <RadzenButton Text="Clear search" Icon="close" ButtonStyle="ButtonStyle.Light" Click="OnClear" data-testid="library-search-empty-clear" />
+        </div>
+    }
+    else
+    {
+        @foreach (var (group, title, hits, total) in FolderGroups)
+        {
+            @if (hits.Count > 0)
+            {
+                <SearchGroup @key="group" @ref="_groups[group]" Group="@group" Title="@title" Hits="hits" Total="total" Limit="LimitOf(group)" OnShowAll="() => ShowAllAsync(group)" />
+            }
+        }
+        @if (Result.Items.Count > 0)
+        {
+            <section class="ss-search-group" data-testid="search-group-items" aria-labelledby="search-heading-items">
+                <h2 id="search-heading-items" class="ss-search-heading">Items <span class="ss-muted ss-num">(@Result.Totals.Items)</span></h2>
+                <AssetTable @ref="_items" Items="ShownItems" Hits="ItemHits" ShowPath="true" Caption="Items found" OnReplaced="Changed" OnDeleted="Changed" OnCreated="Changed" />
+                @if (Result.Totals.Items > ShownItems.Count)
+                {
+                    <button type="button" class="ss-link-button" data-testid="search-show-all-items" @onclick="() => ShowAllAsync(ItemsGroup)">Show all @Result.Totals.Items items</button>
+                }
+            </section>
+        }
+    }
+</section>

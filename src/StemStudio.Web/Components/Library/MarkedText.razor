@@ -1,0 +1,31 @@
+@* A text with its matched parts in <mark> (feature 022, FR-025): the marker is underlined and bold, not colour alone
+   (search-mark, not unique). *@
+@foreach (var segment in HighlightedText.Split(Text, Highlights, Field, Label))
+{
+    @if (segment.Marked)
+    {
+        <mark class="ss-search-mark" data-testid="search-mark">@segment.Text</mark>
+    }
+    else
+    {
+        @segment.Text
+    }
+}
+
+@code {
+    /// <summary>The displayed text.</summary>
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>Every highlight of the hit (empty: plain text).</summary>
+    [Parameter]
+    public IReadOnlyList<HighlightDto> Highlights { get; set; } = [];
+
+    /// <summary>The field the text belongs to.</summary>
+    [Parameter]
+    public SearchFieldDto Field { get; set; }
+
+    /// <summary>For instruments: the label the ranges belong to.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+}

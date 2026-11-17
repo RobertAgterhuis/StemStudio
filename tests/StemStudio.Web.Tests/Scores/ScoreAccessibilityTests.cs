@@ -36,7 +36,7 @@ public sealed class ScoreAccessibilityTests : ScoreTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(ScoreData.Asset()));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         var row = page.Find(".ss-score-row");
         row.QuerySelector($"[data-testid=asset-preview-{ScoreData.ScoreId}]")!.GetAttribute("title").ShouldStartWith("Sheet music preview");
@@ -52,7 +52,7 @@ public sealed class ScoreAccessibilityTests : ScoreTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(ScoreData.Asset()));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         var list = page.Find($"[data-testid=asset-score-warnings-{ScoreData.ScoreId}]");
         page.Find($"#{list.GetAttribute("aria-labelledby")}").TextContent.ShouldBe("Warnings");
