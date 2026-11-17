@@ -106,10 +106,76 @@ opens the live database read-write without create mode, so a request during the 
 instead of creating an empty database; only start-up creates it (see Operations, "Interrupted
 library switch").
 
+## Library names and search (022)
+
+Artist, album and song names come from online lookups, tags in uploaded files and from the user, so
+they are **untrusted text**. They are never used in a file path, a SQL statement or markup:
+
+- Names are cut to 200 characters (with "…") and stripped of control characters before they are
+  stored; the key is computed from the cut name with regular expressions that have timeouts.
+  Folder and item pictures are never built from names.
+- A folder id must match `^(ar|al|so)[0-9a-f]{16}$` before it is used, in the
+  API, in the Web app (also before it requests a folder) and in the agent loopback, which escapes
+  the id into one path segment (`../tracks` stays one segment).
+- The search runs in memory over folded strings: no `FromSqlRaw`, no `LIKE`. `q` is limited to 100
+  characters and 8 words (`422 library-query-invalid` beyond that), the result size to 200 per group
+  and highlights to 32 per item.
+- The Web app renders names as text (no `MarkupString`) and accepts a picture URL in folder art only
+  when it is an API artwork path (`/api/tracks/...`, no `..`, no spaces, no absolute or
+  protocol-relative URL); anything else shows the placeholder.
+- `PUT`/`DELETE` of library info are state-changing `/api` requests: a foreign `Origin` or
+  `Sec-Fetch-Site: cross-site` gets `403`, and a restore switch answers `503 library-maintenance`.
+  Path-, markup- and SQL-like names are stored verbatim as display names and create no file or folder.
+- Agent: folder and item names reach the model only as `untrusted_text` and taint the run;
+  `set_library_info` is a `change` tool, so a tainted run needs approval, and it has an inverse.
+
+## Lyric assistant (023)
+
+Threat model: the sheet text, the model's answer and the agent's arguments are all untrusted.
+
+- **Model output is data.** The assistant model has no tools. Its answer must validate against the
+  closed schema `lyric-assist-output` 1.0.0; every anchor is found again in the real saved text,
+  items on markers or blank lines are dropped, and the types, counts and edit distance are limited
+  per kind (a correction may change at most 60 % of a line). Proposal (400 characters), explanation
+  (300), note (300) and model name (100) are length-capped and at most 400 suggestions are stored per
+  assist. Text enters a sheet only through accept, undo or restore of **stored** suggestions of the
+  same sheet; a hostile-output test proves it. Explanations are rendered as text.
+- **Prompt data is delimited.** The sheet, title, instruction and misses go into the user prompt
+  between `<<<NAME boundary>>>` delimiters with 128 random bits per request; a boundary that occurs
+  in the data is refused. The system prompt holds only fixed text and trusted values. Rhyme and
+  syllable claims are recomputed deterministically; claims that fail are dropped.
+- **Own lyrics only.** No endpoint accepts imported (006) track lyrics. Before every assist (and again
+  when it runs, after a save in between) a guard compares the sheet with the stored library lyrics:
+  a sheet is refused (`not-own-lyrics`) when at least 3 lines of 5 or more words **and** 25 % of its
+  lines match, or when 8 lines match. The own-work override covers only the matched track, needs the
+  typed statement and has no agent tool; it never disables the next two rules.
+- **Verbatim withholding and imitation.** Generated text (proposals and explanations) containing a
+  run of 7 or more words or a full line of 5 or more words of library lyrics is withheld and counted
+  (lyrics outside the library cannot be detected). Instructions pass the artist-imitation guard
+  (lexicon plus library artist names) and are refused (`imitation`), with or without an override.
+- **Claude only when selected, after a notice.** The notice (`lyric-claude-notice.v1`) must be
+  acknowledged before any model call and is checked again when the assist runs; the backend is pinned
+  per assist (a call on another backend is refused, so there is no silent switch to Claude);
+  per-assist caps of 20,000 input and 4,000 output tokens are checked before every call, retries
+  included. The key is reached only through the key provider. Without Claude **no request leaves
+  the API**: a failing HTTP handler in the tests proves it for every assist kind.
+- **One assist at a time**, also under concurrent creates (runner admission); the runner waits on the
+  library gate. Event streams have no concurrency cap (single-user app, accepted): they close after
+  30 minutes without events, send keep-alives, close when the sheet is deleted and bound `after`;
+  a reconnect after the terminal event closes at once.
+- **Inputs are bounded**: raw text 65,536 characters, instruction 200, 100 ids per request, words of at
+  most 40 characters, 200 dictionary misses per check. Problem details never echo sheet text, and no
+  sheet text or secret reaches the logs (the runner logs the exception type only).
+- **Agent.** Tool results carry ids, line numbers, categories and counts, never text; the sheet title
+  is `untrusted_text`; `apply_lyric_suggestions` always needs approval (reason `lyrics-edit`), takes
+  only ids of open suggestions of that sheet and shows before and after read from the stored
+  suggestions; `find_rhymes` needs a word that is in a user message; the `origin` of an assist
+  started through the agent is a log label only.
+
 ## Privacy
 
 Audio never leaves the machine. Online lookups (005) send only title, artist, duration and
 ISRC, LRCLIB lyrics lookups (006) title, artist, album and duration, with a User-Agent that contains no personal data, and can be switched off
 with `STEMSTUDIO_ONLINE_LOOKUPS=off`. Lyrics are never logged or included in list responses.
 Voice samples (010) stay local, require recorded consent and are deleted with their profile.
-The Claude backend receives text only.
+The Claude backend receives text only. The lyric assistant (023) sends the text of a sheet to Anthropic only when Claude is the selected backend and the notice was acknowledged; otherwise its dictionaries, syllable counter, rhyme finder and local model run on the computer and nothing leaves it. Library folders (022) send nothing anywhere.

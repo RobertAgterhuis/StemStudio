@@ -32,6 +32,12 @@ later features add one GPU-marked integration test each, never run in CI.
   API folders only through its gate; the ZIP helpers `ExtractToDirectory`, `ExtractToFile` and
   `CreateFromDirectory` are banned; the worker's `storage` package never imports `separation`,
   `detail` or `api`.
+- Library and lyric assistant rules (022, 023, `dependency_check.py`): the folder rules of chapter 2
+  are enforced per folder, also in Razor files (`@using`, `@inject`); `Domain` has no package at all;
+  UI folders must not name `HttpClient` (only `Web/Api` does). The vendored dictionaries
+  (`Api/LyricAssist/Dictionaries/`, about 10 MB of data) and the lyric gold fixtures
+  (`tests/fixtures/lyrics/assist/`) are data: excluded from SIG, jscpd and Sonar. The SIG report has
+  rows `Library (022)` and `Lyric assist (023)`.
 - The **raw-colour guard** (`css_tokens_check.py`): only
   `src/StemStudio.Web/wwwroot/css/tokens.css` may contain literal colours.
 
@@ -54,6 +60,8 @@ on Chromium and Firefox:
 | Lighthouse | `npm run test:lighthouse` | FCP ≤ 1.0 s, LCP ≤ 1.5 s, CLS ≤ 0.05 |
 | `@real` | `npm run test:real` | Real models; weekly workflow `e2e-real.yml` |
 | `@agent` | `scripts/agent-e2e.{ps1,sh} fake` / `none` | Agent panel flows with scripted model turns (one api start per `e2e/agent-scripts/<name>.json`, tag `@<name>`), then the unavailable state with backend `none`; excluded from the default suite |
+| `@lyric-assist` | `scripts/lyric-e2e.{ps1,sh} fake` / `none` | Lyric assistant flows (023) with scripted model answers from `e2e/lyric-scripts/` (mounted read-only at `/lyric-scripts`), then the unavailable state with backend `none`; the Claude case self-skips without a Claude double; excluded from the default suite |
+| `@library-db` | `npm run test:library-db` | 022: a 5,000-item library database swapped into the stopped api (search and folder timing at scale); Chromium, excluded from the default suite |
 
 ## Agent evaluation (011, manual, never in CI)
 
@@ -76,6 +84,32 @@ least 80 % per language; the injection cases 22-24 and S1-S3 must all pass. Refe
 model samples with its default temperature, so results vary between runs. The report history
 is kept in `tools/agent-eval/out/`. `--backend claude` is not wired; the paid backend is
 checked by hand by the owner.
+
+## Performance budgets and contract checks (022, 023)
+
+- **Perf step.** The 022 budgets are timing tests of the API suite (`Category=Perf`, 5,000 items,
+  500 tracks, 150 artists). They only measure uninstrumented code, so inside the coverage run they
+  execute without timing assertions and CI runs them again in their own step after the coverage gate:
+  `dotnet test tests/StemStudio.Api.Tests -c Release --filter Category=Perf -p:RunSettingsFilePath=`
+  (the empty run settings remove the coverlet collector). Budgets: backfill at most 10 s, folder
+  views p95 at most 100 ms, index rebuild median at most 200 ms, search over HTTP p95 at most 50 ms.
+  `scripts/test-all.{ps1,sh}` runs the same step.
+- **Contract checks.** CI lints the 022 and 023 contracts (full document and delta) with Redocly,
+  checks that the merged full documents contain their sources (`merge_full.py --check` of each
+  feature, "superset: yes"), validates the lyric output schema and its samples
+  (`check_output_schema.py`) and runs the contract tests of 023 with pytest.
+- **Image size.** `scripts/check-api-image-size.{sh,ps1}` fails when the vendored dictionaries in the
+  API image exceed 15 MB (they are 7.7 MB).
+- **Lyric evaluation (023, manual, never in CI).** `dotnet run --project tools/agent-eval -- --suite
+  lyric --backend ollama --model qwen3.5:9b --runs 3` runs the 64-case lyric set (32 Dutch, 32
+  English, guardrail and performance sheets) against the real model and prints recall, precision and
+  the licence false-positive rate per language and category, plus latency; CI runs only its self-test
+  with a scripted model. Agent evaluation set 1.1.0 has 40 scored cases (library cases LIB-01 to
+  LIB-05 are scored). Measured on the reference machine in the spike: `qwen3.5:9b` warm needed 24-32 s
+  (Dutch) and 36-56 s (English) for a 40-line sheet, so the English target of 30 s is open (the
+  integration merges short sections into blocks of up to 8 lines to reduce the calls; not measured
+  again), and the Dutch quality of the model layer alone was weak in the first look (the pane shows a
+  standing quality note).
 
 ## Running everything locally
 

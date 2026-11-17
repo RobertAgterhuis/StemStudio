@@ -45,6 +45,43 @@ the tool call, its risk, the policy decision and its result; **approvals** (`pen
 Since 001 changed in 011: an upload's title is its original file name, no longer the stored
 hash (existing tracks are not migrated).
 
+**Library placement (022)**: every library item stores where it is filed, as plain columns on
+`Assets` (EF 10 complex types): the placement `FolderArtist`, `FolderAlbum`, `FolderSong` (display
+name, cut to 200 characters with control characters removed) with their normalised keys
+(`Folder*Key`), where each name came from (`Folder*Source`: item, track, match, import, fallback)
+and `FolderYear`; the item's own names `LibraryArtist`, `LibraryAlbum`, `LibrarySong` (user library
+info, 1 to 200 characters or `NULL` = automatic); `FiledVersion` (the version of the filing rules
+that produced the placement; 0 means "not filed yet", and a version below the current rules is filed again) and
+`FiledAt`. `Tracks` gains the same three `Library*` columns for the user's names for a whole track.
+A shadow column `Placement_Discriminator` is what EF 10 needs for an optional complex type. There
+are **no folder tables**: folders, their counts, sizes and art are computed from the placements in
+memory (`LibraryIndex`), and a folder exists only while an item sits in it. Folder ids are
+`ar`, `al` or `so` plus 16 hex characters of a SHA-256 over the keys. Indexes: `IX_Assets_Folder`
+(artist, album, song keys; created in the migration outside the model because its columns belong to
+a complex property), `IX_Assets_FiledVersion` (the backfill), `IX_Assets_FiledAt` and
+`IX_Assets_UpdatedAt` (the revision stamp). Items keep their placement when their track is deleted.
+
+**Lyric assistant (023)**: `LyricsSheets` (010) gains `Revision` (starts at 1; +1 on every save,
+accept, undo or restore; an EF concurrency token), `Sensitivity` (`Loose`, `Balanced`, `Strict`;
+default `Balanced`), `RhythmTarget` (BPM 40-220, beats per bar 2-7, bars per line 1-8, syllables
+per beat 0.5-4, nullable JSON), `OwnWorkOverride` (statement version and hash, typed name, time,
+matched track id and title; nullable JSON) and `LastCause` (default `Created`). New tables:
+
+| Table | Content |
+|---|---|
+| `LyricAssists` | One assist: sheet and revision, kind, categories, line range, count, instruction (at most 200), sensitivity, language, status (`Queued`, `Running`, `Completed`, `Failed`, `Cancelled`; at most one active; a `Running` assist is `Failed` ("interrupted by restart") at start-up), layers, backend and model, `UsingFallback`, block counts, suggestion counts, discarded counts, token usage, `Origin` (`Editor` or `Agent`) with `AgentRunId`, failure code, message and fix, estimated seconds, times. The newest 20 per sheet are kept |
+| `LyricSuggestions` | One anchored suggestion: assist, sheet, category, type, severity, anchor (line, UTF-16 start, length, original text), proposal or alternatives, explanation (at most 300), source layer and model, status (`open`, `accepted`, `rejected`, `stale`, `superseded`), group id |
+| `LyricsSheetRevisions` | Title and text snapshots with cause (`Created`, `UserSave`, `Accept`, `Undo`) and the accept group; the last 50 per sheet |
+| `LyricsIntentionalMarks` | A word, phrase or line the checker must respect in one sheet (at most 200 per sheet) |
+| `LyricsAssistedLines` | Normalised text (at most 400) of lines that came from an accepted suggestion, with the suggestion id; pruned on every save to the lines still present; the count is snapshotted into a song take |
+| `LyricWords` | The personal word list: word and language, shared by all sheets of that language |
+| `LyricAssistSettings` | One row: the acknowledgement of the lyric Claude notice (time and version; never a key) |
+| `LyricAssistEvents` | The events of an assist for Server-Sent Events replay |
+
+Deleting a sheet cancels its active assist and deletes its assists, suggestions, revisions, marks
+and assisted lines (cascade). Sheets from before 023 load unchanged: their first revision row is
+written at their first change.
+
 ## Migrations
 
 | Migration | Feature | Change |
@@ -62,6 +99,8 @@ hash (existing tracks are not migrated).
 | `20261116064402_AddAgent` | 011 | `AgentSettings` (one row: backend, models, Claude model and effort, limits, notice acknowledgement; never the key), `Conversations`, `ConversationMessages`, `AgentRuns` (status, backend, model, taint, counters, usage), `RunSteps` (tool, arguments, risk, decision and reasons, status, result), `Approvals` (bound to the arguments hash, 24 h expiry), `RunEvents` (SSE replay), `UndoEntries` (inverse calls, `ExpectedUpdatedAt`). Unreleased id kept after the T080 regeneration: development databases that applied an earlier 011 `AddAgent` must be recreated |
 | `20261116165940_AddAgentSecrets` | 011 claude-key | `AgentSecrets` (name, Data Protection ciphertext, last four characters, purpose version, save time; never the key in plain text) |
 | `20261116211814_AddMixPractice` | 012 | `Mixes.Practice` (nullable JSON: speed, transpose, trainer, count-in); older mixes keep `NULL` = defaults |
+| `20261117111150_AddLibraryFolders` | 022 | `Assets`: placement columns (`Folder*`, `Folder*Key`, `Folder*Source`, `FolderYear`, `Placement_Discriminator`), `Library*` names, `FiledVersion`, `FiledAt`; `Tracks`: `Library*` names; indexes `IX_Assets_Folder`, `IX_Assets_FiledVersion`, `IX_Assets_FiledAt`, `IX_Assets_UpdatedAt`. Existing items stay unfiled (`FiledVersion` 0) until the start-up backfill files them |
+| `20261117115929_AddLyricAssist` | 023 | `LyricsSheets`: `Revision` (existing rows 1), `Sensitivity`, `RhythmTarget`, `OwnWorkOverride`, `LastCause`; tables `LyricAssists`, `LyricSuggestions`, `LyricsSheetRevisions`, `LyricsIntentionalMarks`, `LyricsAssistedLines`, `LyricWords`, `LyricAssistSettings`, `LyricAssistEvents`; indexes on assist sheet and status, suggestion assist and status, and unique language and word |
 
 ## File layout
 
@@ -82,6 +121,10 @@ library-care/staging/<jobId>/                              (013, unpacked archiv
 library-care/previous/<id>/                                (013, library kept aside)
 library-care/cleanup/<planId>.json                         (013, clean-up plans)
 ```
+
+The library folders (022) and the lyric assistant (023) add no files to the data folder: their data
+lives in the database and is therefore part of a backup (013); folder art references the existing
+artwork files, and the dictionaries are part of the API image, not of the data volume.
 
 Library care (013) keeps its state in files, not in the database, because a restore replaces
 the database. A track whose detail stems were removed keeps its detail phase with
