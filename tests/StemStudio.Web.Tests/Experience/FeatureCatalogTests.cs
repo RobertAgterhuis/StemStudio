@@ -66,6 +66,7 @@ public sealed class FeatureCatalogTests
         { "care.track-table", [A, E], "storage-overview" },
         { "care.top-tracks", [B], "storage-overview" },
         { "care.worker-entries", [E], "storage-regenerable" },
+        { "care.restore-merge", [A, E], "backup-restore" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -125,7 +126,7 @@ public sealed class FeatureCatalogTests
                 "score.detail-stems", "score.key-override", "score.manual-tempo", "score.quality", "score.range",
                 "restyle.options", "song.options", "voice.pitch", "agent.steps", "agent.conversation-actions", "agent.usage", "agent.tool-log", "agent.models", "agent.claude-options",
                 "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
-                "care.track-table", "care.worker-entries"], ignoreOrder: true);
+                "care.track-table", "care.worker-entries", "care.restore-merge"], ignoreOrder: true);
     }
 
     [Fact]
