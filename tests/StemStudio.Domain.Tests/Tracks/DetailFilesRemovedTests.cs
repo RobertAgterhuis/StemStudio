@@ -1,4 +1,3 @@
-using StemStudio.Domain.Tracks;
 using StemStudio.Domain.Tracks.Detail;
 
 namespace StemStudio.Domain.Tests.Tracks;
@@ -17,7 +16,8 @@ public sealed class DetailFilesRemovedTests
 
         var phase = track.DetailPhase!;
         (phase.Status, phase.FilesRemovedAt, phase.UpdatedAt).ShouldBe((DetailPhaseStatus.Completed, Removed, Removed));
-        phase.Parents.ShouldBe(DetailTestData.DetailCompleted().DetailPhase!.Parents, ignoreOrder: false);
+        phase.Parents.SelectMany(parent => parent.Stems.Select(stem => $"{parent.Parent}/{stem.Name}")).ShouldBe(
+            DetailTestData.DetailCompleted().DetailPhase!.Parents.SelectMany(parent => parent.Stems.Select(stem => $"{parent.Parent}/{stem.Name}")));
         track.HasDetailFiles.ShouldBeFalse();
     }
 
