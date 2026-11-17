@@ -20,9 +20,14 @@ public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository 
     public async Task<IResult> RetryAsync(Guid id, CancellationToken cancellationToken)
     {
         var asset = await assets.FindAsync(id, cancellationToken);
-        if (asset is null || asset.Status != AssetStatus.Failed)
+        if (asset is null)
         {
-            return asset is null ? AssetProblems.NotFound(id) : AssetProblems.NotFailed();
+            return AssetProblems.NotFound(id);
+        }
+
+        if ((AssetOriginPolicy.ManagedElsewhere(asset) ?? (asset.Status != AssetStatus.Failed ? AssetProblems.NotFailed() : null)) is { } refused)
+        {
+            return refused;
         }
 
         return asset.Kind == AssetKind.Score ? await scores.RetryAsync(asset, cancellationToken) : await RetryExportAsync(asset, cancellationToken);

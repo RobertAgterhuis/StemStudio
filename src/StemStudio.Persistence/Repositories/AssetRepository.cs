@@ -49,6 +49,12 @@ public interface IAssetRepository
     /// <returns>The page (not tracked).</returns>
     Task<AssetPage> ListAsync(AssetQuery query, CancellationToken cancellationToken);
 
+    /// <summary>The items with the given ids, tracked (feature 015: the assets of a track's takes).</summary>
+    /// <param name="ids">Item ids.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The items found.</returns>
+    Task<IReadOnlyList<Asset>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>Queued and rendering items, for the asset synchroniser.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The tracked items.</returns>
@@ -62,6 +68,10 @@ public interface IAssetRepository
     /// <summary>Adds an item; saved with the next save of the scope.</summary>
     /// <param name="asset">New item.</param>
     void Add(Asset asset);
+
+    /// <summary>Removes items; saved with the next save of the scope (feature 015 take deletion).</summary>
+    /// <param name="items">Tracked items.</param>
+    void RemoveRange(IEnumerable<Asset> items);
 
     /// <summary>Removes an item and saves.</summary>
     /// <param name="asset">Tracked item.</param>
@@ -95,6 +105,10 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Asset>> ListByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Assets.Where(asset => ids.Contains(asset.Id)).ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Asset>> ListActiveAsync(CancellationToken cancellationToken) =>
         await context.Assets
             .Where(asset => asset.Status == AssetStatus.Queued || asset.Status == AssetStatus.Rendering)
@@ -107,6 +121,9 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
 
     /// <inheritdoc />
     public void Add(Asset asset) => context.Assets.Add(asset);
+
+    /// <inheritdoc />
+    public void RemoveRange(IEnumerable<Asset> items) => context.Assets.RemoveRange(items);
 
     /// <inheritdoc />
     public async Task RemoveAsync(Asset asset, CancellationToken cancellationToken)
