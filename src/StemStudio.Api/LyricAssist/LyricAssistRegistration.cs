@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using StemStudio.Api.Agent.Loopback;
 using StemStudio.Domain.Lyrics.Assist;
+using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.LyricAssist;
 
@@ -14,8 +17,23 @@ public static class LyricAssistRegistration
     /// <returns>The same collection.</returns>
     public static IServiceCollection AddLyricAssist(this IServiceCollection services)
     {
+        AddLanguageData(services);
+        AddRunner(services);
+        AddEndpointServices(services);
+        return services;
+    }
+
+    /// <summary>Maps the 023 endpoints (tag <c>lyric-assist</c>).</summary>
+    /// <param name="app">The route builder.</param>
+    /// <returns>The same route builder.</returns>
+    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) =>
+        app.MapAssistEndpoints().MapSuggestionEndpoints().MapLyricLanguageEndpoints().MapOwnWorkOverrideEndpoints();
+
+    // Dictionaries, CMUdict, phonology, corpus, the verification port and the ai-agent seam (singletons, loaded lazily).
+    private static void AddLanguageData(IServiceCollection services)
+    {
         services.AddOptions<LyricAssistHostOptions>().BindConfiguration(LyricAssistHostOptions.SectionName);
-        services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LyricAssistHostOptions>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<LyricAssistHostOptions>>().Value);
         services.AddSingleton<ISpellChecker>(_ => new HunspellSpellChecker(HunspellSpellChecker.DefaultRoot));
         services.AddSingleton<LyricsCorpusProvider>();
         services.AddSingleton(_ => new CmuPronunciationLexicon(CmuPronunciationLexicon.DefaultPath));
@@ -25,20 +43,28 @@ public static class LyricAssistRegistration
         services.AddSingleton<RhymeFinder>();
         services.AddSingleton<StemStudio.Agent.LyricAssist.ILyricVerification, LyricVerification>();
         StemStudio.Agent.LyricAssist.LyricAssistServiceCollectionExtensions.AddLyricAssistAgent(services);
+        services.TryAddSingleton<StemStudio.Agent.Ports.ILyricAssistActions>(sp => new LoopbackLyricAssistActions(sp.GetRequiredService<LoopbackClient>()));
+    }
+
+    // The background runner, start-up recovery and what a run uses.
+    private static void AddRunner(IServiceCollection services)
+    {
         services.AddSingleton<LyricAssistRunner>();
         services.AddHostedService<LyricAssistStartupRecovery>();
-        services.AddScoped<LyricsSheetChanges>();
-        services.AddScoped<ILyricAssistCanceller, LyricAssistCanceller>();
         services.AddScoped(sp => new LyricAssistStores
         {
-            Sheets = sp.GetRequiredService<Persistence.Repositories.ILyricsSheetRepository>(),
-            Assists = sp.GetRequiredService<Persistence.Repositories.ILyricAssistRepository>(),
-            Suggestions = sp.GetRequiredService<Persistence.Repositories.ILyricSuggestionRepository>(),
-            Words = sp.GetRequiredService<Persistence.Repositories.ILyricWordRepository>(),
+            Sheets = sp.GetRequiredService<ILyricsSheetRepository>(), Assists = sp.GetRequiredService<ILyricAssistRepository>(),
+            Suggestions = sp.GetRequiredService<ILyricSuggestionRepository>(), Words = sp.GetRequiredService<ILyricWordRepository>(),
         });
         services.AddScoped<AssistEventLog>();
         services.AddScoped<LyricModelLayer>();
         services.AddScoped<LyricAssistExecutor>();
+        services.AddScoped<LyricsSheetChanges>();
+        services.AddScoped<ILyricAssistCanceller, LyricAssistCanceller>();
+    }
+
+    private static void AddEndpointServices(IServiceCollection services)
+    {
         services.AddScoped<LyricAssistEventWriter>();
         services.AddScoped<SuggestionService>();
         services.AddScoped<LyricsRevisionService>();
@@ -46,18 +72,11 @@ public static class LyricAssistRegistration
         services.AddScoped<LyricLanguageService>();
         services.AddScoped<LyricAssistStatusService>();
         services.AddScoped<OwnWorkOverrideService>();
-        services.TryAddSingleton<StemStudio.Agent.Ports.ILyricAssistActions>(sp => new Agent.Loopback.LoopbackLyricAssistActions(sp.GetRequiredService<Agent.Loopback.LoopbackClient>()));
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
             Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
             Corpus = sp.GetRequiredService<LyricsCorpusProvider>(), Imitation = sp.GetRequiredService<Styles.LibraryStyleGuard>(),
             Events = sp.GetRequiredService<AssistEventLog>(), Runner = sp.GetRequiredService<LyricAssistRunner>(), Clock = sp.GetRequiredService<TimeProvider>(),
         }));
-        return services;
     }
-
-    /// <summary>Maps the 023 endpoints (tag <c>lyric-assist</c>).</summary>
-    /// <param name="app">The route builder.</param>
-    /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints().MapSuggestionEndpoints().MapLyricLanguageEndpoints().MapOwnWorkOverrideEndpoints();
 }

@@ -88,7 +88,7 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, LyricsShee
             return LyricAssistProblems.RevisionConflict(sheet.Revision);
         }
 
-        await changes.ChangeAsync(sheet, s => s.Update(Content(input), Now), RevisionCause.UserSave, null, cancellationToken);
+        await changes.ChangeAsync(sheet, s => s.Update(Content(input), Now), new RevisionStamp(RevisionCause.UserSave, null), cancellationToken);
         return TypedResults.Ok(await ToDtoAsync(sheet, cancellationToken));
     }
 

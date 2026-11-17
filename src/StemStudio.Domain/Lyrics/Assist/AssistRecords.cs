@@ -245,10 +245,9 @@ public sealed class AssistEvent
     /// <summary>Creates an event.</summary>
     /// <param name="assistId">Assist.</param>
     /// <param name="seq">Sequence number.</param>
-    /// <param name="type">Type.</param>
-    /// <param name="data">JSON payload.</param>
+    /// <param name="payload">Type and JSON data.</param>
     /// <param name="nowUtc">Current time.</param>
     /// <returns>The event.</returns>
-    public static AssistEvent Create(Guid assistId, int seq, string type, string data, DateTime nowUtc) =>
-        new() { AssistId = assistId, Seq = seq, Type = type, Data = data, CreatedAt = nowUtc };
+    public static AssistEvent Create(Guid assistId, int seq, (string Type, string Data) payload, DateTime nowUtc) =>
+        new() { AssistId = assistId, Seq = seq, Type = payload.Type, Data = payload.Data, CreatedAt = nowUtc };
 }

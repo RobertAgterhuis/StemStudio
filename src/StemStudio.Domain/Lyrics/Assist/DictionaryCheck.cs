@@ -38,25 +38,23 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
     /// <summary>Checks the lines of a text.</summary>
     /// <param name="text">Normalised text.</param>
     /// <param name="language">Language.</param>
-    /// <param name="lineFrom">First line or null.</param>
-    /// <param name="lineTo">Last line or null.</param>
+    /// <param name="range">First and last line, or null for the whole text.</param>
     /// <param name="cancellationToken">Cancels between lines.</param>
     /// <returns>Licence notes and misses.</returns>
-    public DictionaryCheckResult Run(string text, AssistLanguage language, int? lineFrom = null, int? lineTo = null, CancellationToken cancellationToken = default)
+    public DictionaryCheckResult Run(string text, AssistLanguage language, (int? From, int? To) range = default, CancellationToken cancellationToken = default)
     {
         var lines = SheetText.Lines(text);
-        var notes = new List<SuggestionDraft>();
-        var misses = new List<WordMiss>();
-        for (var line = Math.Max(lineFrom ?? 1, 1); line <= Math.Min(lineTo ?? lines.Length, lines.Length); line++)
+        var result = new DictionaryCheckResult(new List<SuggestionDraft>(), new List<WordMiss>());
+        for (var line = Math.Max(range.From ?? 1, 1); line <= Math.Min(range.To ?? lines.Length, lines.Length); line++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (SheetText.IsLyric(lines[line - 1]))
             {
-                CheckLine(line, lines[line - 1], language, notes, misses);
+                CheckLine(line, lines[line - 1], language, result);
             }
         }
 
-        return new DictionaryCheckResult(notes, misses);
+        return result;
     }
 
     /// <summary>The suggestion of a miss when no model classifies it: an improvement, never an error (R-03 step 5).</summary>
@@ -95,17 +93,16 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
     /// <param name="miss">The miss.</param>
     /// <param name="type">Licence type.</param>
     /// <param name="language">Language.</param>
-    /// <param name="source">Layer.</param>
-    /// <param name="model">Model name for the model layer.</param>
-    /// <returns>The draft.</returns>
-    public static SuggestionDraft Licence(WordMiss miss, SuggestionType type, AssistLanguage language, SuggestionSource source, string? model = null)
+    /// <returns>The draft (rules layer; the model layer sets its source and model name).</returns>
+    public static SuggestionDraft Licence(WordMiss miss, SuggestionType type, AssistLanguage language)
     {
         ArgumentNullException.ThrowIfNull(miss);
-        return Note(miss.Line, new LyricToken(miss.Start, miss.Word), type, language) with { Source = source, Model = model };
+        return Note(miss.Line, new LyricToken(miss.Start, miss.Word), type, language);
     }
 
-    private void CheckLine(int line, string text, AssistLanguage language, List<SuggestionDraft> notes, List<WordMiss> misses)
+    private void CheckLine(int line, string text, AssistLanguage language, DictionaryCheckResult result)
     {
+        var (notes, misses) = ((List<SuggestionDraft>)result.Notes, (List<WordMiss>)result.Misses);
         foreach (var token in LyricTokens.Of(text).Where(token => token.Text.Length <= MaxWordLength && !token.Text.All(char.IsDigit) && !IsPersonal(token.Text)))
         {
             if (Classify(token.Text, language) is { } licence)

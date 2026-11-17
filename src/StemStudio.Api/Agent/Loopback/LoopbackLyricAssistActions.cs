@@ -63,17 +63,41 @@ public sealed class LoopbackLyricAssistActions(LoopbackClient client) : ILyricAs
 
     private static LyricAssistSummaryDto Summary(LyricAssistDto assist) => new()
     {
-        AssistId = assist.AssistId, LyricsId = assist.LyricsId, SheetRevision = assist.SheetRevision, Kind = assist.Kind, Status = assist.Status, Language = assist.Language,
-        Sensitivity = assist.Sensitivity, Layers = assist.Layers, Backend = assist.Backend, Model = assist.Model, UsingFallback = assist.UsingFallback,
-        BlocksTotal = assist.BlocksTotal, BlocksDone = assist.BlocksDone, BlocksSkipped = assist.BlocksSkipped, Counts = assist.Counts, Discarded = assist.Discarded,
-        Usage = assist.Usage, Origin = assist.Origin, AgentRunId = assist.AgentRunId, Failure = assist.Failure, EstimatedSeconds = assist.EstimatedSeconds,
-        CreatedAt = assist.CreatedAt, StartedAt = assist.StartedAt, EndedAt = assist.EndedAt,
+        AssistId = assist.AssistId,
+        LyricsId = assist.LyricsId,
+        SheetRevision = assist.SheetRevision,
+        Kind = assist.Kind,
+        Status = assist.Status,
+        Language = assist.Language,
+        Sensitivity = assist.Sensitivity,
+        Layers = assist.Layers,
+        Backend = assist.Backend,
+        Model = assist.Model,
+        UsingFallback = assist.UsingFallback,
+        BlocksTotal = assist.BlocksTotal,
+        BlocksDone = assist.BlocksDone,
+        BlocksSkipped = assist.BlocksSkipped,
+        Counts = assist.Counts,
+        Discarded = assist.Discarded,
+        Usage = assist.Usage,
+        Origin = assist.Origin,
+        AgentRunId = assist.AgentRunId,
+        Failure = assist.Failure,
+        EstimatedSeconds = assist.EstimatedSeconds,
+        CreatedAt = assist.CreatedAt,
+        StartedAt = assist.StartedAt,
+        EndedAt = assist.EndedAt,
     };
 
     private static LyricSuggestionRef Ref(LyricSuggestionDto suggestion) => new()
     {
-        SuggestionId = suggestion.SuggestionId, Category = suggestion.Category, Type = suggestion.Type, Severity = suggestion.Severity,
-        Line = suggestion.Anchor.Line, Status = suggestion.Status, Source = suggestion.Source,
+        SuggestionId = suggestion.SuggestionId,
+        Category = suggestion.Category,
+        Type = suggestion.Type,
+        Severity = suggestion.Severity,
+        Line = suggestion.Anchor.Line,
+        Status = suggestion.Status,
+        Source = suggestion.Source,
     };
 
     private static LyricAcceptSummary Accept(AcceptResultDto result) => new() { Revision = result.Revision, Applied = result.Applied.Count, Stale = result.Stale.Count };

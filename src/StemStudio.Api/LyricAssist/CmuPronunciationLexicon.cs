@@ -13,7 +13,7 @@ public sealed class CmuPronunciationLexicon : IPronunciationLexicon
 
     /// <summary>Creates the lexicon over a <c>cmudict.dict</c> file.</summary>
     /// <param name="path">The file.</param>
-    public CmuPronunciationLexicon(string path) => _entries = new(() => Load(path));
+    public CmuPronunciationLexicon(string path) => _entries = new(() => VendoredDataCache.Get("cmudict:" + path, () => Load(path)));
 
     /// <summary>The default file next to the API binaries.</summary>
     public static string DefaultPath { get; } = Path.Combine(HunspellSpellChecker.DefaultRoot, "cmudict", "cmudict.dict");

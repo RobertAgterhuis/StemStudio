@@ -62,6 +62,22 @@ public static class LyricAssistMapper
         return new RhythmTargetDto { Bpm = target.Bpm, BeatsPerBar = target.BeatsPerBar, BarsPerLine = target.BarsPerLine, SyllablesPerBeat = target.SyllablesPerBeat };
     }
 
+    /// <summary>The domain rhythm target of an optional DTO, or the 400 problem of an invalid one.</summary>
+    /// <param name="dto">The DTO or null.</param>
+    /// <param name="target">The target (null for no DTO or an invalid one).</param>
+    /// <returns>The problem, or null when valid or absent.</returns>
+    public static IResult? TargetProblem(RhythmTargetDto? dto, out RhythmTarget? target)
+    {
+        target = dto is null ? null : ToDomain(dto);
+        if (target?.Validate() is { Count: > 0 } errors)
+        {
+            target = null;
+            return ApiProblems.Validation(errors, string.Empty);
+        }
+
+        return null;
+    }
+
     /// <summary>The domain rhythm target.</summary>
     /// <param name="target">DTO.</param>
     /// <returns>The target.</returns>

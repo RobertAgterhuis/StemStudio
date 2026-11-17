@@ -34,13 +34,14 @@ public sealed record SyllableReport(IReadOnlyList<SyllableLine> Lines, double? T
         var counted = lines.Select((line, i) => (Index: i, Text: line, Syllables: phonology.LineSyllables(line, language), Lyric: SheetText.IsLyric(line))).ToList();
         var sections = Sections(lines);
         var medians = counted.Where(l => l.Lyric).GroupBy(l => sections[l.Index].Key).ToDictionary(g => g.Key, g => Median(g.Select(l => l.Syllables)));
-        var result = counted.Select(l => Line(l.Index, l.Syllables, l.Lyric, sections[l.Index], medians, target?.SyllablesPerLine)).ToList();
+        var result = counted.Select(l => Line((l.Index, l.Syllables, l.Lyric), sections[l.Index], medians, target?.SyllablesPerLine)).ToList();
         var duration = target is null ? (double?)null : counted.Count(l => l.Lyric) * target.SecondsPerLine;
         return new SyllableReport(result, duration, duration is > 0 ? LyricsDensity.WordsPerSecond(text, duration.Value) : null);
     }
 
-    private static SyllableLine Line(int index, int syllables, bool lyric, (int Key, string? Name) section, Dictionary<int, double> medians, int? target)
+    private static SyllableLine Line((int Index, int Syllables, bool Lyric) line, (int Key, string? Name) section, Dictionary<int, double> medians, int? target)
     {
+        var (index, syllables, lyric) = line;
         double? median = lyric && medians.TryGetValue(section.Key, out var m) ? m : null;
         var reference = target ?? median;
         var deviates = lyric && reference is { } r && Math.Abs(syllables - r) > MaxDeviation;

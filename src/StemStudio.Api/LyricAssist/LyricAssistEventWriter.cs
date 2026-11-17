@@ -49,64 +49,77 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
     private async Task LoopAsync(HttpResponse response, Guid assistId, int last, CancellationToken cancellationToken)
     {
         var poll = TimeSpan.FromMilliseconds(Math.Max(options.StreamPollMilliseconds, 10));
-        var (lastEvent, lastWrite) = (Stopwatch.GetTimestamp(), Stopwatch.GetTimestamp());
+        var timer = new StreamTimer();
         while (true)
         {
-            var stored = await assists.EventsAsync(assistId, last, cancellationToken);
-            foreach (var assistEvent in stored)
+            var (written, ended) = await WriteStoredAsync(response, assistId, last, cancellationToken);
+            if (ended)
             {
-                await WriteAsync(response, Format(assistEvent), cancellationToken);
-                last = assistEvent.Seq;
-                if (LyricAssistEventTypes.IsTerminal(assistEvent.Type))
-                {
-                    return;
-                }
+                return;
             }
 
-            if (stored.Count > 0)
+            if (written > last)
             {
-                (lastEvent, lastWrite) = (Stopwatch.GetTimestamp(), Stopwatch.GetTimestamp());
+                (last, timer.LastEvent, timer.LastWrite) = (written, Stopwatch.GetTimestamp(), Stopwatch.GetTimestamp());
             }
-            else
+            else if (!await IdleTickAsync(response, assistId, timer, cancellationToken))
             {
-                var (open, written) = await IdleTickAsync(response, assistId, lastEvent, lastWrite, cancellationToken);
-                if (!open)
-                {
-                    return;
-                }
-
-                lastWrite = written;
+                return;
             }
 
             await Task.Delay(poll, cancellationToken);
         }
     }
 
-    // Closes an idle stream (security review) or a stream of a deleted assist; writes the keep-alive comment when due.
-    private async Task<(bool Open, long LastWrite)> IdleTickAsync(HttpResponse response, Guid assistId, long lastEvent, long lastWrite, CancellationToken cancellationToken)
+    // The stored events after the position; the last written seq and whether a terminal event was written.
+    private async Task<(int Last, bool Ended)> WriteStoredAsync(HttpResponse response, Guid assistId, int last, CancellationToken cancellationToken)
     {
-        if (Stopwatch.GetElapsedTime(lastEvent) >= TimeSpan.FromSeconds(options.StreamIdleSeconds))
+        foreach (var assistEvent in await assists.EventsAsync(assistId, last, cancellationToken))
         {
-            return (false, lastWrite);
+            await WriteAsync(response, Format(assistEvent), cancellationToken);
+            last = assistEvent.Seq;
+            if (LyricAssistEventTypes.IsTerminal(assistEvent.Type))
+            {
+                return (last, true);
+            }
         }
 
-        if (Stopwatch.GetElapsedTime(lastWrite) < TimeSpan.FromSeconds(options.KeepAliveSeconds))
+        return (last, false);
+    }
+
+    // Closes an idle stream (security review) or a stream of a deleted assist; writes the keep-alive comment when due.
+    private async Task<bool> IdleTickAsync(HttpResponse response, Guid assistId, StreamTimer timer, CancellationToken cancellationToken)
+    {
+        if (Stopwatch.GetElapsedTime(timer.LastEvent) >= TimeSpan.FromSeconds(options.StreamIdleSeconds))
         {
-            return (true, lastWrite);
+            return false;
+        }
+
+        if (Stopwatch.GetElapsedTime(timer.LastWrite) < TimeSpan.FromSeconds(options.KeepAliveSeconds))
+        {
+            return true;
         }
 
         if (await assists.FindAsync(assistId, cancellationToken) is null)
         {
-            return (false, lastWrite);
+            return false;
         }
 
         await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
-        return (true, Stopwatch.GetTimestamp());
+        timer.LastWrite = Stopwatch.GetTimestamp();
+        return true;
     }
 
     private static async Task WriteAsync(HttpResponse response, string text, CancellationToken cancellationToken)
     {
         await response.Body.WriteAsync(Encoding.UTF8.GetBytes(text), cancellationToken);
         await response.Body.FlushAsync(cancellationToken);
+    }
+
+    private sealed class StreamTimer
+    {
+        public long LastEvent { get; set; } = Stopwatch.GetTimestamp();
+
+        public long LastWrite { get; set; } = Stopwatch.GetTimestamp();
     }
 }

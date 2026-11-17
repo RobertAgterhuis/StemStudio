@@ -40,15 +40,22 @@ public sealed class RhymeFinder(IWordList words, LyricPhonology phonology)
         }
 
         var self = LyricTokens.Key(word);
+        var max = Math.Clamp(limit, 1, MaxLimit);
         var index = _indexes[language].Value;
-        var perfect = index.Perfect(key).Where(w => w != self).Select(w => (Word: w, Kind: RhymeKind.Perfect));
-        var near = index.Near(key).Where(w => w != self).Select(w => (Word: w, Kind: RhymeKind.Near));
-        return perfect.Concat(near)
-            .DistinctBy(r => r.Word)
-            .Select(r => new FoundRhyme(r.Word, r.Kind, phonology.WordSyllables(r.Word, language)))
-            .OrderBy(r => r.Kind).ThenBy(r => r.Syllables).ThenBy(r => r.Word, StringComparer.Ordinal)
-            .Take(Math.Clamp(limit, 1, MaxLimit))
-            .ToList();
+        var perfect = Ranked(index.Perfect(key).Where(w => w != self), RhymeKind.Perfect, language, max);
+        var near = Ranked(index.Near(key).Where(w => w != self && !perfect.Any(p => p.Word == w)).Distinct(StringComparer.Ordinal), RhymeKind.Near, language, max - perfect.Count);
+        return [.. perfect, .. near];
+    }
+
+    // Shorter words first as a cheap proxy before counting syllables, so a frequent vowel never counts thousands of words.
+    private List<FoundRhyme> Ranked(IEnumerable<string> words, RhymeKind kind, AssistLanguage language, int take)
+    {
+        const int Candidates = 400;
+        return take <= 0
+            ? []
+            : [.. words.OrderBy(w => w.Length).ThenBy(w => w, StringComparer.Ordinal).Take(Candidates)
+                .Select(w => new FoundRhyme(w, kind, phonology.WordSyllables(w, language)))
+                .OrderBy(r => r.Syllables).ThenBy(r => r.Word, StringComparer.Ordinal).Take(take)];
     }
 
     private sealed class RhymeIndex

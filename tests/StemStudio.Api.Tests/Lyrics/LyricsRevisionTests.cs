@@ -148,7 +148,12 @@ public sealed class LyricsRevisionTests : ApiTestBase
 
     private static SuggestionDraft Draft(Anchor anchor) => new()
     {
-        Type = SuggestionType.SpellingTypo, Severity = SuggestionSeverity.Error, Anchor = anchor, Operation = SuggestionOperation.Replace,
-        Proposal = "x", Explanation = "e", Source = SuggestionSource.Dictionary,
+        Type = SuggestionType.SpellingTypo,
+        Severity = SuggestionSeverity.Error,
+        Anchor = anchor,
+        Operation = SuggestionOperation.Replace,
+        Proposal = "x",
+        Explanation = "e",
+        Source = SuggestionSource.Dictionary,
     };
 }

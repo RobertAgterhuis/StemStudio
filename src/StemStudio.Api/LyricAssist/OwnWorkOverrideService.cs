@@ -26,18 +26,13 @@ public sealed class OwnWorkOverrideService(LyricAssistStores stores, LyricsCorpu
             return SheetProblems.NotFound(lyricsId);
         }
 
-        if (request is not { Confirm: true })
+        if (RequestProblem(request) is { } problem)
         {
-            return ApiProblems.Validation("confirm", "Tick the box to confirm that this text is your own work.");
-        }
-
-        if (request.StatementVersion != OwnWorkOverride.CurrentStatementVersion)
-        {
-            return LyricAssistProblems.StatementOutdated();
+            return problem;
         }
 
         var matches = VerbatimGuard.MatchingTracks(sheet.Text, await corpus.RefreshAsync(cancellationToken));
-        if (matches.FirstOrDefault(track => track.TrackId == request.MatchedTrackId) is not { } track)
+        if (matches.FirstOrDefault(track => track.TrackId == request!.MatchedTrackId) is not { } track)
         {
             return LyricAssistProblems.OverrideNotApplicable();
         }
@@ -45,7 +40,7 @@ public sealed class OwnWorkOverrideService(LyricAssistStores stores, LyricsCorpu
         OwnWorkOverride ownWork;
         try
         {
-            ownWork = OwnWorkOverride.Create(request.ConfirmedBy, track, clock.GetUtcNow().UtcDateTime);
+            ownWork = OwnWorkOverride.Create(request!.ConfirmedBy, track, clock.GetUtcNow().UtcDateTime);
         }
         catch (DomainValidationException invalid)
         {
@@ -55,6 +50,16 @@ public sealed class OwnWorkOverrideService(LyricAssistStores stores, LyricsCorpu
         sheet.ConfirmOwnWork(ownWork);
         await stores.Sheets.SaveAsync(cancellationToken);
         return TypedResults.Ok(LyricAssistMapper.ToDto(ownWork));
+    }
+
+    private static IResult? RequestProblem(OwnWorkConfirmRequest? request)
+    {
+        if (request is not { Confirm: true })
+        {
+            return ApiProblems.Validation("confirm", "Tick the box to confirm that this text is your own work.");
+        }
+
+        return request.StatementVersion != OwnWorkOverride.CurrentStatementVersion ? LyricAssistProblems.StatementOutdated() : null;
     }
 
     /// <summary>Revokes the override.</summary>

@@ -16,7 +16,7 @@ public sealed class DictionaryWordList(string dutchDic, CmuPronunciationLexicon 
 {
     private const int MaxWordLength = 20;
 
-    private readonly Lazy<IReadOnlyCollection<string>> _dutch = new(() => LoadDutch(dutchDic));
+    private readonly Lazy<IReadOnlyCollection<string>> _dutch = new(() => VendoredDataCache.Get("nl-words:" + dutchDic, () => LoadDutch(dutchDic)));
     private readonly Lazy<IReadOnlyCollection<string>> _english = new(() => english.Words.Where(IsPlain).ToList());
 
     /// <summary>The default <c>nl.dic</c>.</summary>
@@ -86,10 +86,9 @@ public sealed class LyricLanguageService(LyricAssistStores stores, LyricPhonolog
             return ApiProblems.Validation("text", "Send 1 to 65,536 characters of lyrics.");
         }
 
-        var target = request.RhythmTarget is { } dto ? LyricAssistMapper.ToDomain(dto) : null;
-        if (target?.Validate() is { Count: > 0 } errors)
+        if (LyricAssistMapper.TargetProblem(request.RhythmTarget, out var target) is { } problem)
         {
-            return ApiProblems.Validation(errors, string.Empty);
+            return problem;
         }
 
         return TypedResults.Ok(Report(LyricsNormaliser.Normalize(text), LyricAssistMapper.ToDomain(request.Language), target));
@@ -103,22 +102,33 @@ public sealed class LyricLanguageService(LyricAssistStores stores, LyricPhonolog
     public IResult Rhymes(string? word, AssistLanguageDto? language, int? limit)
     {
         var trimmed = word?.Trim() ?? string.Empty;
-        if (trimmed.Length is 0 or > LyricAssistLimits.WordMaxLength || trimmed.Any(char.IsWhiteSpace))
+        if (RhymeProblem(trimmed, language, limit) is { } problem)
         {
-            return ApiProblems.Validation("word", "Enter one word of 1 to 40 characters.");
+            return problem;
         }
 
-        if (language is not { } lang || limit is < 1 or > LyricAssistLimits.MaxRhymes)
-        {
-            return ApiProblems.Validation(language is null ? "language" : "limit", language is null ? "Choose nl or en." : "The limit is 1 to 60.");
-        }
-
+        var lang = language!.Value;
         var found = rhymes.Find(trimmed, LyricAssistMapper.ToDomain(lang), limit ?? LyricAssistLimits.DefaultRhymes);
         return TypedResults.Ok(new RhymeResultDto
         {
             Word = trimmed, Language = lang, Source = lang == AssistLanguageDto.Nl ? "OpenTaal word list, spelling rhyme rules" : "CMU Pronouncing Dictionary",
             Rhymes = found.Select(r => new RhymeDto { Word = r.Word, Kind = r.Kind == RhymeKind.Perfect ? RhymeKindDto.Perfect : RhymeKindDto.Near, Syllables = r.Syllables }).ToList(),
         });
+    }
+
+    private static IResult? RhymeProblem(string word, AssistLanguageDto? language, int? limit)
+    {
+        if (word.Length is 0 or > LyricAssistLimits.WordMaxLength || word.Any(char.IsWhiteSpace))
+        {
+            return ApiProblems.Validation("word", "Enter one word of 1 to 40 characters.");
+        }
+
+        if (language is null)
+        {
+            return ApiProblems.Validation("language", "Choose nl or en.");
+        }
+
+        return limit is < 1 or > LyricAssistLimits.MaxRhymes ? ApiProblems.Validation("limit", "The limit is 1 to 60.") : null;
     }
 
     /// <summary>Guesses Dutch or English.</summary>

@@ -7,8 +7,8 @@ public sealed class SuggestionApplierTests
 {
     private const string Text = "the cat sat\non the mat";
 
-    private static ApplicableSuggestion Replace(int line, int start, string original, string proposal, Guid? group = null) =>
-        new(Guid.NewGuid(), new Anchor(line, start, original.Length, original), SuggestionOperation.Replace, proposal, group);
+    private static ApplicableSuggestion Replace(int line, int start, string original, string proposal) =>
+        new(Guid.NewGuid(), new Anchor(line, start, original.Length, original), SuggestionOperation.Replace, proposal);
 
     [Fact]
     public void SeveralReplacementsOnOneLine_KeepOffsetsValid()
@@ -73,7 +73,7 @@ public sealed class SuggestionApplierTests
     public void SameGroupTwoTitlesAndTwoInserts_Overlap()
     {
         var group = Guid.NewGuid();
-        var alternatives = new[] { Replace(1, 0, "the cat sat", "x", group), Replace(2, 0, "on", "y", group) };
+        var alternatives = new[] { Replace(1, 0, "the cat sat", "x") with { GroupId = group }, Replace(2, 0, "on", "y") with { GroupId = group } };
         var titles = Enumerable.Range(0, 2).Select(_ => new ApplicableSuggestion(Guid.NewGuid(), new Anchor(0, 0, 0, ""), SuggestionOperation.SetTitle, "T")).ToArray();
         var inserts = Enumerable.Range(0, 2).Select(_ => new ApplicableSuggestion(Guid.NewGuid(), new Anchor(2, 10, 0, ""), SuggestionOperation.InsertAfter, "z")).ToArray();
 

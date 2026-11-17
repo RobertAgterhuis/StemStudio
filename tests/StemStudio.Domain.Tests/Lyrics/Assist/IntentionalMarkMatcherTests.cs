@@ -5,7 +5,7 @@ namespace StemStudio.Domain.Tests.Lyrics.Assist;
 /// <summary>023 T012: intentional marks (FR-011): word case-sensitive and whole-word, phrase, line, not in the text.</summary>
 public sealed class IntentionalMarkMatcherTests
 {
-    private static IntentionalMark Mark(IntentionalScope scope, string text) => IntentionalMark.Create(Guid.NewGuid(), scope, text, null, AssistFixtures.Now);
+    private static IntentionalMark Mark(IntentionalScope scope, string text) => IntentionalMark.Create(Guid.NewGuid(), new MarkContent(scope, text, null), AssistFixtures.Now);
 
     [Fact]
     public void Word_IsCaseSensitiveAndWholeWord()
@@ -62,7 +62,7 @@ public sealed class IntentionalMarkMatcherTests
         IntentionalMarkMatcher.IsValidText(IntentionalScope.Phrase, new string('a', 201)).ShouldBeFalse();
         IntentionalMarkMatcher.IsValidText(IntentionalScope.Line, new string('a', 401)).ShouldBeFalse();
         IntentionalMarkMatcher.TextRule(IntentionalScope.Line).ShouldContain("400");
-        Should.Throw<DomainValidationException>(() => IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "a", new string('n', 121), AssistFixtures.Now));
-        IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "a", " note ", AssistFixtures.Now).Note.ShouldBe("note");
+        Should.Throw<DomainValidationException>(() => IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "a", new string('n', 121)), AssistFixtures.Now));
+        IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "a", " note "), AssistFixtures.Now).Note.ShouldBe("note");
     }
 }

@@ -40,14 +40,25 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
     /// <param name="request">Ids and expected revision.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200, 400, 404, 409 or 422.</returns>
-    public async Task<IResult> AcceptAsync(Guid lyricsId, SuggestionDecisionRequest? request, CancellationToken cancellationToken)
+    public Task<IResult> AcceptAsync(Guid lyricsId, SuggestionDecisionRequest? request, CancellationToken cancellationToken) =>
+        WithDecisionAsync(lyricsId, request, decision => AcceptDecidedAsync(decision, cancellationToken), cancellationToken);
+
+    /// <summary>Rejects suggestions (the text does not change).</summary>
+    /// <param name="lyricsId">Sheet id.</param>
+    /// <param name="request">Ids and expected revision.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200, 400, 404 or 409.</returns>
+    public Task<IResult> RejectAsync(Guid lyricsId, SuggestionDecisionRequest? request, CancellationToken cancellationToken) =>
+        WithDecisionAsync(lyricsId, request, decision => RejectDecidedAsync(decision, cancellationToken), cancellationToken);
+
+    private async Task<IResult> WithDecisionAsync(Guid lyricsId, SuggestionDecisionRequest? request, Func<Decision, Task<IResult>> then, CancellationToken cancellationToken)
     {
         var decision = await DecisionAsync(lyricsId, request, cancellationToken);
-        if (decision.Problem is { } problem)
-        {
-            return problem;
-        }
+        return decision.Problem ?? await then(decision);
+    }
 
+    private async Task<IResult> AcceptDecidedAsync(Decision decision, CancellationToken cancellationToken)
+    {
         var (sheet, chosen) = (decision.Sheet!, decision.Suggestions);
         var outcome = SuggestionApplier.Apply(sheet.Title, sheet.Text, [.. chosen.Where(s => s.IsOpen).Select(s => s.ToApplicable())]);
         return outcome switch
@@ -58,19 +69,8 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
         };
     }
 
-    /// <summary>Rejects suggestions (the text does not change).</summary>
-    /// <param name="lyricsId">Sheet id.</param>
-    /// <param name="request">Ids and expected revision.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>200, 400, 404 or 409.</returns>
-    public async Task<IResult> RejectAsync(Guid lyricsId, SuggestionDecisionRequest? request, CancellationToken cancellationToken)
+    private async Task<IResult> RejectDecidedAsync(Decision decision, CancellationToken cancellationToken)
     {
-        var decision = await DecisionAsync(lyricsId, request, cancellationToken);
-        if (decision.Problem is { } problem)
-        {
-            return problem;
-        }
-
         foreach (var suggestion in decision.Suggestions.Where(s => s.IsOpen))
         {
             suggestion.Decide(SuggestionStatus.Rejected, null, Now);
@@ -110,7 +110,7 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
         IntentionalMark mark;
         try
         {
-            mark = IntentionalMark.Create(Guid.NewGuid(), scope, text, request.Note, Now);
+            mark = IntentionalMark.Create(Guid.NewGuid(), new MarkContent(scope, text, request.Note), Now);
         }
         catch (DomainValidationException invalid)
         {
@@ -144,14 +144,15 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
 
         if (applied.Count > 0)
         {
-            await changes.ChangeAsync(sheet, s => s.ApplyAccepted(outcome, Now), RevisionCause.Accept, group, cancellationToken);
+            await changes.ChangeAsync(sheet, s => s.ApplyAccepted(outcome, Now), new RevisionStamp(RevisionCause.Accept, group), cancellationToken);
         }
         else
         {
             await stores.Suggestions.SaveAsync(cancellationToken);
         }
 
-        return await ResultAsync(sheet, outcome.Applied, [.. chosen.Where(s => s.Status == SuggestionStatus.Stale).Select(s => s.Id)], null, cancellationToken);
+        IReadOnlyList<Guid> staleIds = [.. chosen.Where(s => s.Status == SuggestionStatus.Stale).Select(s => s.Id)];
+        return await ResultAsync(sheet, (outcome.Applied, staleIds, null), cancellationToken);
     }
 
     private async Task SupersedeAsync(Guid sheetId, List<LyricSuggestion> applied, Guid group, CancellationToken cancellationToken)
@@ -170,13 +171,13 @@ public sealed class SuggestionService(LyricAssistStores stores, LyricsSheetChang
 
     /// <summary>The sheet state after an accept, undo or restore.</summary>
     /// <param name="sheet">The sheet.</param>
-    /// <param name="applied">Applied ids.</param>
-    /// <param name="stale">Stale ids.</param>
-    /// <param name="reopened">Reopened ids (undo).</param>
+    /// <param name="ids">Applied, stale and reopened (undo) ids.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The result.</returns>
-    public async Task<AcceptResultDto> ResultAsync(LyricsSheet sheet, IReadOnlyList<Guid> applied, IReadOnlyList<Guid> stale, IReadOnlyList<Guid>? reopened, CancellationToken cancellationToken)
+    public async Task<AcceptResultDto> ResultAsync(
+        LyricsSheet sheet, (IReadOnlyList<Guid> Applied, IReadOnlyList<Guid> Stale, IReadOnlyList<Guid>? Reopened) ids, CancellationToken cancellationToken)
     {
+        var (applied, stale, reopened) = ids;
         ArgumentNullException.ThrowIfNull(sheet);
         return new AcceptResultDto
         {

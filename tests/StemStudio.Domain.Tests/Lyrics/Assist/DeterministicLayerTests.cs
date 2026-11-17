@@ -60,7 +60,7 @@ public sealed class DeterministicLayerTests
     {
         var check = new DictionaryCheck(Spelling, ["zelmara"]);
 
-        var result = check.Run("Zelmara\nxyzzy\nqwerty", AssistLanguage.English, 2, 9, TestContext.Current.CancellationToken);
+        var result = check.Run("Zelmara\nxyzzy\nqwerty", AssistLanguage.English, (2, 9), TestContext.Current.CancellationToken);
 
         result.Misses.Select(m => m.Word).ShouldBe(["xyzzy", "qwerty"]);
         result.Notes.ShouldBeEmpty();
@@ -81,7 +81,7 @@ public sealed class DeterministicLayerTests
             d => d.Operation.ShouldBe(SuggestionOperation.None), d => d.Explanation.ShouldBe("The dictionary does not know this word."));
         var typo = DictionaryCheck.Typo(miss, "fluistert", AssistLanguage.English, "qwen3.5:9b");
         (typo.Severity, typo.Source, typo.Model, typo.Anchor).ShouldBe((SuggestionSeverity.Error, SuggestionSource.Model, "qwen3.5:9b", new Anchor(2, 8, 9, "fluisterd")));
-        DictionaryCheck.Licence(miss, SuggestionType.LicenceSlang, AssistLanguage.Dutch, SuggestionSource.Model, "m").Severity.ShouldBe(SuggestionSeverity.Idea);
+        (DictionaryCheck.Licence(miss, SuggestionType.LicenceSlang, AssistLanguage.Dutch) with { Source = SuggestionSource.Model, Model = "m" }).Severity.ShouldBe(SuggestionSeverity.Idea);
     }
 
     [Theory]
@@ -139,7 +139,7 @@ public sealed class DeterministicLayerTests
     [Fact]
     public void Filter_RespectsMarksInChecksAndDevicesOnly()
     {
-        var mark = IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "wind", null, AssistFixtures.Now);
+        var mark = IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "wind", null), AssistFixtures.Now);
         var check = Context(AssistKind.Check, Sensitivity.Strict) with { Marks = [mark] };
         var draft = Draft(SuggestionSeverity.Error) with { Anchor = new Anchor(1, 3, 4, "wind") };
 

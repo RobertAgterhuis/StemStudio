@@ -5,6 +5,11 @@ using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.LyricAssist;
 
+/// <summary>Cause of a new revision and the accept action that produced it.</summary>
+/// <param name="Cause">Cause.</param>
+/// <param name="AcceptGroupId">The accept action, for <see cref="RevisionCause.Accept"/>.</param>
+public sealed record RevisionStamp(RevisionCause Cause, Guid? AcceptGroupId = null);
+
 /// <summary>
 /// Every text or title change of a sheet (user save, accept, undo, restore; FR-007, FR-008): stores the revision before and after,
 /// re-anchors the open suggestions (a language change makes them stale) and saves in one unit of work.
@@ -30,18 +35,18 @@ public sealed class LyricsSheetChanges(ILyricsSheetRepository sheets, ILyricsRev
     /// <summary>Changes the sheet and records the change.</summary>
     /// <param name="sheet">The tracked sheet.</param>
     /// <param name="change">The change (increments the revision).</param>
-    /// <param name="cause">Cause of the new revision.</param>
-    /// <param name="acceptGroupId">The accept action, for <see cref="RevisionCause.Accept"/>.</param>
+    /// <param name="stamp">Cause and accept action of the new revision.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
-    public async Task ChangeAsync(LyricsSheet sheet, Action<LyricsSheet> change, RevisionCause cause, Guid? acceptGroupId, CancellationToken cancellationToken)
+    public async Task ChangeAsync(LyricsSheet sheet, Action<LyricsSheet> change, RevisionStamp stamp, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(stamp);
         ArgumentNullException.ThrowIfNull(sheet);
         ArgumentNullException.ThrowIfNull(change);
         var (oldText, oldLanguage) = (sheet.Text, sheet.Language);
         await revisions.AddAsync(LyricsSheetRevision.Of(sheet, sheet.LastCause, null, Now), cancellationToken);
         change(sheet);
-        await revisions.AddAsync(LyricsSheetRevision.Of(sheet, cause, acceptGroupId, Now), cancellationToken);
+        await revisions.AddAsync(LyricsSheetRevision.Of(sheet, stamp.Cause, stamp.AcceptGroupId, Now), cancellationToken);
         var resolver = new AnchorResolver(oldText, sheet.Text);
         // The query filters on the stored status; suggestions decided in this unit of work are already closed in memory.
         foreach (var open in (await suggestions.ForSheetAsync(sheet.Id, SuggestionStatus.Open, null, cancellationToken)).Where(s => s.IsOpen))

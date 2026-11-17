@@ -34,7 +34,7 @@ public sealed class AssistEventLog(ILyricAssistRepository assists, TimeProvider 
 
         var seq = (_seq.TryGetValue(assistId, out var last) ? last : await assists.LastSeqAsync(assistId, cancellationToken)) + 1;
         _seq[assistId] = seq;
-        await assists.AddEventAsync(AssistEvent.Create(assistId, seq, type, data, clock.GetUtcNow().UtcDateTime), cancellationToken);
+        await assists.AddEventAsync(AssistEvent.Create(assistId, seq, (type, data), clock.GetUtcNow().UtcDateTime), cancellationToken);
         return seq;
     }
 }

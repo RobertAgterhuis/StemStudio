@@ -94,7 +94,11 @@ public sealed class LyricAssistExecutor(
         await events.AppendAsync(assist.Id, LyricAssistEventTypes.Started, Started(assist, model), cancellationToken);
         var misses = assist.Kind == AssistKind.Check ? await DictionaryAsync(assist, sheet, cancellationToken) : [];
         var sink = new AssistSink(await RunContextAsync(assist, sheet, model.Available ? misses : [], cancellationToken)) { Blocks = blocks };
-        await OfferMissesWithoutModelAsync(sink, assist, model, misses, cancellationToken);
+        if (!model.Available)
+        {
+            await sink.OfferUnknownAsync(misses, cancellationToken);
+        }
+
         if (model.Assistant is { } assistant && blocks.Count > 0)
         {
             await assistant.RunAsync(LyricAssistJobs.Build(assist, sheet, blocks, misses), sink, cancellationToken);
@@ -107,7 +111,7 @@ public sealed class LyricAssistExecutor(
     private async Task<IReadOnlyList<WordMiss>> DictionaryAsync(AssistRun assist, LyricsSheet sheet, CancellationToken cancellationToken)
     {
         var words = (await stores.Words.ListAsync(assist.Language, cancellationToken)).Select(word => word.Word).ToHashSet(StringComparer.Ordinal);
-        var result = new DictionaryCheck(spelling, words).Run(sheet.Text, assist.Language, assist.LineFrom, assist.LineTo, cancellationToken);
+        var result = new DictionaryCheck(spelling, words).Run(sheet.Text, assist.Language, (assist.LineFrom, assist.LineTo), cancellationToken);
         var sink = new AssistSink(await RunContextAsync(assist, sheet, [], cancellationToken));
         foreach (var note in result.Notes)
         {
@@ -115,19 +119,6 @@ public sealed class LyricAssistExecutor(
         }
 
         return result.Misses;
-    }
-
-    private static async Task OfferMissesWithoutModelAsync(AssistSink sink, AssistRun assist, ModelLayerState model, IReadOnlyList<WordMiss> misses, CancellationToken cancellationToken)
-    {
-        if (model.Available)
-        {
-            return;
-        }
-
-        foreach (var miss in misses)
-        {
-            await sink.OfferAsync(DictionaryCheck.Unknown(miss, assist.Language), cancellationToken);
-        }
     }
 
     private async Task<AssistRunContext> RunContextAsync(AssistRun assist, LyricsSheet sheet, IReadOnlyList<WordMiss> misses, CancellationToken cancellationToken)

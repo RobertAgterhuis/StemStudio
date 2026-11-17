@@ -21,8 +21,8 @@ public sealed class HunspellSpellChecker : ISpellChecker
     /// <param name="englishFiles">English .dic files relative to the root (default the three SCOWL files).</param>
     public HunspellSpellChecker(string root, IReadOnlyList<string>? dutchFiles = null, IReadOnlyList<string>? englishFiles = null)
     {
-        _dutch = new Lazy<WordList[]>(() => Load(root, dutchFiles ?? DutchFiles));
-        _english = new Lazy<WordList[]>(() => Load(root, englishFiles ?? EnglishFiles));
+        _dutch = new Lazy<WordList[]>(() => Cached(root, dutchFiles ?? DutchFiles));
+        _english = new Lazy<WordList[]>(() => Cached(root, englishFiles ?? EnglishFiles));
     }
 
     /// <summary>The default folder: <c>LyricAssist/Dictionaries</c> next to the API binaries.</summary>
@@ -47,6 +47,9 @@ public sealed class HunspellSpellChecker : ISpellChecker
     private WordList[] Lists(AssistLanguage language) => language == AssistLanguage.Dutch ? _dutch.Value : _english.Value;
 
     private static string Normalize(string? word) => (word ?? string.Empty).Trim().Replace('’', '\'');
+
+    private static WordList[] Cached(string root, IReadOnlyList<string> files) =>
+        VendoredDataCache.Get("hunspell:" + string.Join("|", files.Select(file => Path.Combine(root, file))), () => Load(root, files));
 
     private static WordList[] Load(string root, IReadOnlyList<string> files) =>
         [.. files.Select(file => WordList.CreateFromFiles(Path.Combine(root, file)))];

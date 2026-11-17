@@ -17,7 +17,7 @@ public sealed class SuggestionEndpointTests : AssistTestBase
     [Fact]
     public async Task List_FiltersAndDefaultsToOpen()
     {
-        var (sheet, _) = await SeededAsync(Replace(1, 4, "cat", "dog"), Replace(2, 7, "mat", "rug", SuggestionTypeDto.GrammarOther));
+        var (sheet, _) = await SeededAsync(Replace(1, 4, "cat", "dog"), Replace(2, 7, "mat", "rug") with { Type = SuggestionTypeDto.GrammarOther, Category = SuggestionCategoryDto.Grammar });
 
         using var open = await GetAsync(ApiRoutes.LyricsSuggestions(sheet.Id));
         using var grammar = await GetAsync(ApiRoutes.LyricsSuggestions(sheet.Id, SuggestionStatusDto.Open, SuggestionCategoryDto.Grammar));
@@ -124,8 +124,8 @@ public sealed class SuggestionEndpointTests : AssistTestBase
     {
         var group = Guid.NewGuid();
         var (sheet, ids) = await SeededAsync(
-            Replace(3, 0, "the dog", "a dog", SuggestionTypeDto.WriteAlternative) with { GroupId = group, Category = SuggestionCategoryDto.Alternative },
-            Replace(3, 0, "the dog", "my dog", SuggestionTypeDto.WriteAlternative) with { GroupId = group, Category = SuggestionCategoryDto.Alternative });
+            Replace(3, 0, "the dog", "a dog") with { Type = SuggestionTypeDto.WriteAlternative, GroupId = group, Category = SuggestionCategoryDto.Alternative },
+            Replace(3, 0, "the dog", "my dog") with { Type = SuggestionTypeDto.WriteAlternative, GroupId = group, Category = SuggestionCategoryDto.Alternative });
 
         using var accepted = await PostAsync(ApiRoutes.LyricsSuggestionsAccept(sheet.Id), new SuggestionDecisionRequest { SuggestionIds = [ids[1]], ExpectedRevision = 1 });
         using var all = await GetAsync(ApiRoutes.LyricsSuggestions(sheet.Id, SuggestionStatusDto.Superseded));
@@ -249,10 +249,10 @@ public sealed class SuggestionEndpointTests : AssistTestBase
         (await sheetNow.BodyAsync<LyricsSheetDto>()).Revision.ShouldBe(1);
     }
 
-    private static AssistantSuggestion Replace(int line, int start, string original, string proposal, SuggestionTypeDto type = SuggestionTypeDto.SpellingTypo) => new()
+    private static AssistantSuggestion Replace(int line, int start, string original, string proposal) => new()
     {
-        Category = type.ToString().StartsWith("Grammar", StringComparison.Ordinal) ? SuggestionCategoryDto.Grammar : SuggestionCategoryDto.Spelling,
-        Type = type, Severity = SuggestionSeverityDto.Error, Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original },
+        Category = SuggestionCategoryDto.Spelling,
+        Type = SuggestionTypeDto.SpellingTypo, Severity = SuggestionSeverityDto.Error, Anchor = new AnchorDto { Line = line, Start = start, Length = original.Length, Original = original },
         Operation = SuggestionOperationDto.Replace, Proposal = proposal, Explanation = "Better.",
     };
 

@@ -46,7 +46,7 @@ public sealed class LyricAssistPersistenceTests
         await using var db = await SqliteTestDatabase.CreateAsync();
         var sheet = NewSheet();
         sheet.SetAssistSettings(Sensitivity.Loose, true, new RhythmTarget(92, 4, 2, 1.5));
-        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Phrase, "regel een", "mine", Now));
+        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Phrase, "regel een", "mine"), Now));
         sheet.ConfirmOwnWork(OwnWorkOverride.Create("Robin", new CorpusTrack(Guid.NewGuid(), "Paper Lanterns"), Now));
         var id = Guid.NewGuid();
         sheet.ApplyAccepted(SuggestionApplier.Apply(sheet.Title, sheet.Text, [new ApplicableSuggestion(id, new Anchor(2, 6, 4, "twee"), SuggestionOperation.Replace, "drie")]), Now);
@@ -94,7 +94,7 @@ public sealed class LyricAssistPersistenceTests
         await using var db = await SqliteTestDatabase.CreateAsync();
         await using var context = db.NewContext();
         var sheet = NewSheet();
-        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "regel", null, Now));
+        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "regel", null), Now));
         var sheets = new LyricsSheetRepository(context);
         await sheets.AddAsync(sheet, Ct);
         var assist = await AddAssistWithSuggestionAsync(context, sheet);
@@ -210,7 +210,7 @@ public sealed class LyricAssistPersistenceTests
             Proposal = "regels", Explanation = "Typo", Source = SuggestionSource.Dictionary, RhymeWith = new RhymePartner(2, "twee"),
         }, Now)]);
         await suggestions.SaveAsync(Ct);
-        await repo.AddEventAsync(AssistEvent.Create(assist.Id, 1, "assist.started", "{}", Now), Ct);
+        await repo.AddEventAsync(AssistEvent.Create(assist.Id, 1, ("assist.started", "{}"), Now), Ct);
         return assist;
     }
 

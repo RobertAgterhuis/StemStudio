@@ -71,6 +71,19 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
         await run.Events.AppendAsync(Assist.Id, LyricAssistEventTypes.SuggestionAdded, LyricAssistMapper.ToDto(suggestion), cancellationToken);
     }
 
+    /// <summary>Offers dictionary misses as improvements when no model classifies them (research R-03 step 5).</summary>
+    /// <param name="misses">The misses.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    public async Task OfferUnknownAsync(IEnumerable<WordMiss> misses, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(misses);
+        foreach (var miss in misses)
+        {
+            await OfferAsync(DictionaryCheck.Unknown(miss, run.Filter.Language), cancellationToken);
+        }
+    }
+
     /// <inheritdoc />
     public Task StartedAsync(LyricModelInfo model, CancellationToken cancellationToken)
     {
@@ -122,7 +135,7 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
             {
                 MissVerdict.Keep => null,
                 MissVerdict.Typo when !string.IsNullOrWhiteSpace(verdict.Correction) => DictionaryCheck.Typo(miss, Cut(verdict.Correction, 40), language, model),
-                MissVerdict.Licence => DictionaryCheck.Licence(miss, LicenceType(verdict.LicenceType), language, SuggestionSource.Model, model),
+                MissVerdict.Licence => (DictionaryCheck.Licence(miss, LicenceType(verdict.LicenceType), language) with { Source = SuggestionSource.Model, Model = model }),
                 _ => DictionaryCheck.Unknown(miss, language),
             };
             if (draft is not null)

@@ -58,9 +58,9 @@ public sealed class AssistEntityTests
         sheet.SetAssistSettings(null, true, null);
         sheet.RhythmTarget.ShouldBeNull();
 
-        var mark = IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "line", null, Now);
+        var mark = IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "line", null), Now);
         sheet.AddMark(mark).ShouldBe(mark);
-        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "line", "again", Now)).ShouldBe(mark);
+        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "line", "again"), Now)).ShouldBe(mark);
         (sheet.RemoveMark(mark.Id), sheet.RemoveMark(mark.Id)).ShouldBe((true, false));
 
         var own = OwnWorkOverride.Create(" Robin ", new CorpusTrack(Guid.NewGuid(), "Paper Lanterns"), Now);
@@ -77,10 +77,10 @@ public sealed class AssistEntityTests
         var sheet = AssistFixtures.NewSheet();
         for (var i = 0; i < IntentionalMark.MaxPerSheet; i++)
         {
-            sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, $"w{i}", null, Now)).ShouldNotBeNull();
+            sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, $"w{i}", null), Now)).ShouldNotBeNull();
         }
 
-        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), IntentionalScope.Word, "last", null, Now)).ShouldBeNull();
+        sheet.AddMark(IntentionalMark.Create(Guid.NewGuid(), new MarkContent(IntentionalScope.Word, "last", null), Now)).ShouldBeNull();
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public sealed class AssistEntityTests
         var sheet = AssistFixtures.NewSheet();
         var revision = LyricsSheetRevision.Of(sheet, RevisionCause.Created, null, Now);
         (revision.SheetId, revision.Revision, revision.Text).ShouldBe((sheet.Id, 1, sheet.Text));
-        var e = AssistEvent.Create(Guid.NewGuid(), 3, "assist.progress", "{}", Now);
+        var e = AssistEvent.Create(Guid.NewGuid(), 3, ("assist.progress", "{}"), Now);
         (e.Seq, e.Type, e.Data).ShouldBe((3, "assist.progress", "{}"));
     }
 }

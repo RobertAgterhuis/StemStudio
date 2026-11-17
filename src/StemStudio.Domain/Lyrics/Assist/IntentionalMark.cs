@@ -2,6 +2,12 @@ using System.Text;
 
 namespace StemStudio.Domain.Lyrics.Assist;
 
+/// <summary>What a new intentional mark holds.</summary>
+/// <param name="Scope">Scope.</param>
+/// <param name="Text">Text (normalised by <see cref="IntentionalMark.Create"/>).</param>
+/// <param name="Note">Optional note (at most 120).</param>
+public sealed record MarkContent(IntentionalScope Scope, string Text, string? Note = null);
+
 /// <summary>A word, phrase or line the checker must respect in one sheet (data-model 2.1, FR-011).</summary>
 public sealed class IntentionalMark
 {
@@ -33,15 +39,15 @@ public sealed class IntentionalMark
 
     /// <summary>Creates a mark from validated input.</summary>
     /// <param name="id">Identifier.</param>
-    /// <param name="scope">Scope.</param>
-    /// <param name="text">Text (normalised here).</param>
-    /// <param name="note">Optional note.</param>
+    /// <param name="content">Scope, text (normalised here) and note.</param>
     /// <param name="nowUtc">Current time.</param>
     /// <returns>The mark.</returns>
     /// <exception cref="DomainValidationException">The text or note breaks a rule.</exception>
-    public static IntentionalMark Create(Guid id, IntentionalScope scope, string text, string? note, DateTime nowUtc)
+    public static IntentionalMark Create(Guid id, MarkContent content, DateTime nowUtc)
     {
-        var normalized = IntentionalMarkMatcher.Normalize(text);
+        ArgumentNullException.ThrowIfNull(content);
+        var (scope, note) = (content.Scope, content.Note);
+        var normalized = IntentionalMarkMatcher.Normalize(content.Text);
         var errors = new ValidationErrors();
         errors.Check(IntentionalMarkMatcher.IsValidText(scope, normalized), "text", IntentionalMarkMatcher.TextRule(scope));
         errors.Check((note?.Trim().Length ?? 0) <= MaxNoteLength, "note", "The note can be at most 120 characters.");

@@ -41,7 +41,7 @@ public sealed class AssistPreferencesService(LyricAssistStores stores, LyricsShe
         IntentionalMark mark;
         try
         {
-            mark = IntentionalMark.Create(Guid.NewGuid(), LyricAssistMapper.Map<IntentionalScope>(input?.Scope ?? IntentionalScopeDto.Word), input?.Text ?? string.Empty, input?.Note, Now);
+            mark = IntentionalMark.Create(Guid.NewGuid(), new MarkContent(LyricAssistMapper.Map<IntentionalScope>(input?.Scope ?? IntentionalScopeDto.Word), input?.Text ?? string.Empty, input?.Note), Now);
         }
         catch (DomainValidationException invalid)
         {
@@ -85,10 +85,9 @@ public sealed class AssistPreferencesService(LyricAssistStores stores, LyricsShe
             return SheetProblems.NotFound(lyricsId);
         }
 
-        var target = update?.RhythmTarget is { } dto ? LyricAssistMapper.ToDomain(dto) : null;
-        if (target?.Validate() is { Count: > 0 } errors)
+        if (LyricAssistMapper.TargetProblem(update?.RhythmTarget, out var target) is { } problem)
         {
-            return ApiProblems.Validation(errors, string.Empty);
+            return problem;
         }
 
         sheet.SetAssistSettings(update?.Sensitivity is { } sensitivity ? LyricAssistMapper.Map<Sensitivity>(sensitivity) : null, update?.RhythmTargetSpecified == true, target);

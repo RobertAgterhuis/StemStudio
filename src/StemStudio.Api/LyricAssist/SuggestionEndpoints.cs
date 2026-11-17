@@ -4,6 +4,12 @@ using StemStudio.Contracts.LyricAssist;
 
 namespace StemStudio.Api.LyricAssist;
 
+/// <summary>Route and query of <c>GET /api/lyrics/{lyricsId}/suggestions</c>.</summary>
+/// <param name="LyricsId">Sheet id.</param>
+/// <param name="Status">Status filter (contract name).</param>
+/// <param name="Category">Category filter (contract name).</param>
+public sealed record SuggestionQuery(Guid LyricsId, string? Status, string? Category);
+
 /// <summary>Maps the suggestion, mark, sheet-settings, undo, revision and word routes of backend 1.23.0.</summary>
 public static class SuggestionEndpoints
 {
@@ -15,7 +21,7 @@ public static class SuggestionEndpoints
     /// <returns>The builder.</returns>
     public static IEndpointRouteBuilder MapSuggestionEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet(SheetRoute + "/suggestions", ListAsync).WithName("listLyricSuggestions").WithTags(Tag).Produces<SuggestionListDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapGet(SheetRoute + "/suggestions", ([AsParameters] SuggestionQuery query, SuggestionService service, CancellationToken ct) => ListAsync(query, service, ct)).WithName("listLyricSuggestions").WithTags(Tag).Produces<SuggestionListDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPost(SheetRoute + "/suggestions/accept", (Guid lyricsId, SuggestionDecisionRequest? request, SuggestionService service, CancellationToken ct) => service.AcceptAsync(lyricsId, request, ct))
             .WithName("acceptLyricSuggestions").WithTags(Tag).Produces<AcceptResultDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status422UnprocessableEntity);
@@ -67,15 +73,15 @@ public static class SuggestionEndpoints
     }
 
     /// <summary>Lists suggestions with the contract's enum names in the query.</summary>
-    /// <param name="lyricsId">Sheet id.</param>
-    /// <param name="status">Status filter.</param>
-    /// <param name="category">Category filter.</param>
+    /// <param name="query">Sheet id and filters.</param>
     /// <param name="service">Service.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200, 400 or 404.</returns>
-    public static Task<IResult> ListAsync(Guid lyricsId, string? status, string? category, SuggestionService service, CancellationToken cancellationToken)
+    public static Task<IResult> ListAsync(SuggestionQuery query, SuggestionService service, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(service);
+        var (lyricsId, status, category) = (query.LyricsId, query.Status, query.Category);
         if (!Optional(status, out SuggestionStatusDto? statusValue) || !Optional(category, out SuggestionCategoryDto? categoryValue))
         {
             return Task.FromResult(ApiProblems.Validation(status is not null && !TryParse(status, out SuggestionStatusDto _) ? "status" : "category", "Unknown filter value."));

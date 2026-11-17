@@ -25,12 +25,12 @@ public sealed class LyricsRevisionService(LyricAssistStores stores, ILyricsRevis
     /// <returns>200, 400, 404 or 409.</returns>
     public async Task<IResult> UndoAsync(Guid lyricsId, RevisionRequest? request, CancellationToken cancellationToken)
     {
-        if (await SheetAsync(lyricsId, request, cancellationToken) is { Problem: { } problem })
+        var (problem, sheet) = await SheetAsync(lyricsId, request, cancellationToken);
+        if (problem is not null)
         {
             return problem;
         }
 
-        var sheet = (await stores.Sheets.FindAsync(lyricsId, cancellationToken))!;
         var current = await revisions.FindAsync(sheet.Id, sheet.Revision, cancellationToken);
         var previous = await revisions.FindAsync(sheet.Id, sheet.Revision - 1, cancellationToken);
         if (!sheet.CanUndo || current?.AcceptGroupId is not { } group || previous is null)
@@ -39,9 +39,7 @@ public sealed class LyricsRevisionService(LyricAssistStores stores, ILyricsRevis
         }
 
         var accepted = (await stores.Suggestions.ForSheetAsync(sheet.Id, null, null, cancellationToken)).Where(s => s.AcceptGroupId == group).ToList();
-        await changes.ChangeAsync(sheet, s => s.Restore(previous.Title, previous.Text, [.. accepted.Select(a => a.Id)], clock.GetUtcNow().UtcDateTime), RevisionCause.Undo, null, cancellationToken);
-        var reopened = await ReopenAsync(sheet, accepted, cancellationToken);
-        return TypedResults.Ok(await suggestions.ResultAsync(sheet, [], [], reopened, cancellationToken));
+        return await RestoreToAsync(sheet, previous, accepted, cancellationToken);
     }
 
     /// <summary>The stored revisions, newest first, with the lines changed against the one before.</summary>
@@ -72,20 +70,24 @@ public sealed class LyricsRevisionService(LyricAssistStores stores, ILyricsRevis
     /// <returns>200, 400, 404 or 409.</returns>
     public async Task<IResult> RestoreAsync(Guid lyricsId, int revision, RevisionRequest? request, CancellationToken cancellationToken)
     {
-        if (await SheetAsync(lyricsId, request, cancellationToken) is { Problem: { } problem })
+        var (problem, sheet) = await SheetAsync(lyricsId, request, cancellationToken);
+        if (problem is not null)
         {
             return problem;
         }
 
-        var sheet = (await stores.Sheets.FindAsync(lyricsId, cancellationToken))!;
-        if (await revisions.FindAsync(lyricsId, revision, cancellationToken) is not { } stored)
-        {
-            return ApiProblems.NotFound($"Revision {revision} of these lyrics is not stored.");
-        }
+        return await revisions.FindAsync(lyricsId, revision, cancellationToken) is { } stored
+            ? await RestoreToAsync(sheet, stored, [], cancellationToken)
+            : ApiProblems.NotFound($"Revision {revision} of these lyrics is not stored.");
+    }
 
-        await changes.ChangeAsync(sheet, s => s.Restore(stored.Title, stored.Text, [], clock.GetUtcNow().UtcDateTime), RevisionCause.Undo, null, cancellationToken);
-        var reopened = await ReopenAsync(sheet, [], cancellationToken);
-        return TypedResults.Ok(await suggestions.ResultAsync(sheet, [], [], reopened, cancellationToken));
+    // Restores a stored revision as a new revision (cause undo) and reopens the given and the stale suggestions that fit it again.
+    private async Task<IResult> RestoreToAsync(LyricsSheet sheet, LyricsSheetRevision target, IReadOnlyList<LyricSuggestion> accepted, CancellationToken cancellationToken)
+    {
+        var removed = accepted.Select(a => a.Id).ToList();
+        await changes.ChangeAsync(sheet, s => s.Restore(target.Title, target.Text, removed, clock.GetUtcNow().UtcDateTime), new RevisionStamp(RevisionCause.Undo), cancellationToken);
+        var reopened = await ReopenAsync(sheet, accepted, cancellationToken);
+        return TypedResults.Ok(await suggestions.ResultAsync(sheet, ([], [], reopened), cancellationToken));
     }
 
     private async Task<IResult> RefuseUndoAsync(LyricsSheet sheet, CancellationToken cancellationToken)
@@ -120,18 +122,19 @@ public sealed class LyricsRevisionService(LyricAssistStores stores, ILyricsRevis
         return reopened;
     }
 
-    private async Task<(IResult? Problem, bool Ok)> SheetAsync(Guid lyricsId, RevisionRequest? request, CancellationToken cancellationToken)
+    // The tracked sheet, or the problem (404, 400 without a request, 409 revision-conflict); the sheet is set whenever the problem is null.
+    private async Task<(IResult? Problem, LyricsSheet Sheet)> SheetAsync(Guid lyricsId, RevisionRequest? request, CancellationToken cancellationToken)
     {
         if (await stores.Sheets.FindAsync(lyricsId, cancellationToken) is not { } sheet)
         {
-            return (SheetProblems.NotFound(lyricsId), false);
+            return (SheetProblems.NotFound(lyricsId), null!);
         }
 
         if (request is null)
         {
-            return (ApiProblems.Validation("expectedRevision", "Send the expected revision."), false);
+            return (ApiProblems.Validation("expectedRevision", "Send the expected revision."), sheet);
         }
 
-        return request.ExpectedRevision != sheet.Revision ? (LyricAssistProblems.RevisionConflict(sheet.Revision), false) : (null, true);
+        return (request.ExpectedRevision != sheet.Revision ? LyricAssistProblems.RevisionConflict(sheet.Revision) : null, sheet);
     }
 }
