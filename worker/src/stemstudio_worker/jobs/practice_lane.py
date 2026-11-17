@@ -12,7 +12,7 @@ from stemstudio_worker.jobs.lanes import LaneScheduler
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.practice_store import PracticeStores
 from stemstudio_worker.jobs.progress import Clock
-from stemstudio_worker.ports import StructureAnalyzer
+from stemstudio_worker.ports import ScoreViewRenderer, SetlistDocumentRenderer, StructureAnalyzer
 from stemstudio_worker.schemas import LaneHealth, StructureHealth
 
 
@@ -22,9 +22,13 @@ class PracticeParts:
 
     Attributes:
         analyzer: The section analyser (``Health.structure``).
+        score_views: MusicXML -> SVG pages and bar map.
+        documents: Setlist PDFs.
     """
 
     analyzer: StructureAnalyzer | None = None
+    score_views: ScoreViewRenderer | None = None
+    documents: SetlistDocumentRenderer | None = None
 
     def structure_health(self) -> StructureHealth:
         """``Health.structure``: the analyser's name and version (the default without one)."""
@@ -48,14 +52,12 @@ class PracticeLane:
         self._clock = clock
 
     @classmethod
-    def started(cls, paths: DataPaths, clock: Clock) -> "PracticeLane":
-        """Load the three stores, fail the jobs a restart interrupted and start the lane."""
+    def loaded(cls, paths: DataPaths, clock: Clock) -> "PracticeLane":
+        """Load the three stores and fail the jobs a restart interrupted (the lane is stopped)."""
         stores = PracticeStores.of(paths)
         stores.load_all()
         stores.reconcile(clock)
-        lane = cls(stores, clock)
-        lane.start()
-        return lane
+        return cls(stores, clock)
 
     def submit(self, process: Callable[[str], None], job_id: str) -> None:
         """Queue ``process(job_id)`` behind the jobs of every kind already waiting."""

@@ -51,11 +51,11 @@ def _runtime_health(runtime: WorkerRuntime) -> dict[str, object]:
     """The ``/health`` members the running job subsystem reports."""
     lanes = runtime.lanes
     states = LanesHealth(render=lanes.render.health(), transcribe=lanes.transcription.lane_health(),
-                         practice=lanes.practice.health())  # fmt: skip
+                         practice=lanes.practice.lane.health())  # fmt: skip
     return {"device_info": runtime.device, "library": lanes.library.status(), "lanes": states,
             "lyrics_alignment": lanes.lyrics.health(),
             "transcription": lanes.transcription.health(),
-            "structure": lanes.practice_parts.structure_health()}  # fmt: skip
+            "structure": lanes.practice.parts.structure_health()}  # fmt: skip
 
 
 @router.post("/v1/jobs")

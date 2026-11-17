@@ -23,6 +23,7 @@ from stemstudio_worker.jobs.lyrics_store import LyricsJobStore
 from stemstudio_worker.jobs.metadata_lane import DisabledLookup, MetadataLane
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.practice_lane import PracticeLane, PracticeParts
+from stemstudio_worker.jobs.practice_service import PracticeContext, PracticeServices
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
 from stemstudio_worker.jobs.render_service import NoLibrary, NoRenderer, RenderService
@@ -125,8 +126,7 @@ class Lanes:
         sweeper: Hourly removal of expired job files.
         lyrics: The lyrics jobs (feature 006).
         transcription: The transcription jobs on the ``transcribe`` lane (feature 008).
-        practice: The ``practice`` lane of section, score-view and setlist jobs (feature 014).
-        practice_parts: The analyser and renderers of the practice jobs.
+        practice: The ``practice`` lane and its section, score-view and setlist jobs (014).
     """
 
     metadata: MetadataLane
@@ -137,8 +137,7 @@ class Lanes:
     sweeper: Sweeper
     lyrics: LyricsService
     transcription: TranscriptionService
-    practice: PracticeLane
-    practice_parts: PracticeParts
+    practice: PracticeServices
 
     @classmethod
     def start(cls, parts: "WorkerParts", wiring: LaneWiring) -> "Lanes":
@@ -149,14 +148,14 @@ class Lanes:
         lyrics = LyricsService.start(wiring.lyrics, _lyrics_queues(metadata, wiring))
         render = RenderService.start(paths, render_parts.executor, clock)
         transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
-        practice = PracticeLane.started(paths, clock)
+        practice = _practice(parts, wiring)
         artwork = UserArtworkStore(paths, clock)
         sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep,
-                  practice.sweep]  # fmt: skip
+                  practice.lane.sweep]  # fmt: skip
         sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, sweeps)
         sweeper.start()
         return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
-                   lyrics, transcription, practice, parts.practice)  # fmt: skip
+                   lyrics, transcription, practice)  # fmt: skip
 
     def stop(self, timeout: float) -> None:
         """Stop the sweep timer and the lane threads."""
@@ -164,7 +163,14 @@ class Lanes:
         self.metadata.stop(timeout)
         self.render.stop(timeout)
         self.transcription.stop(timeout)
-        self.practice.stop(timeout)
+        self.practice.lane.stop(timeout)
+
+
+def _practice(parts: "WorkerParts", wiring: LaneWiring) -> PracticeServices:
+    """The practice lane (stores loaded, restart handled) and its services, started."""
+    lane = PracticeLane.loaded(wiring.paths, wiring.clock)
+    context = PracticeContext(lane, parts.render.library, wiring.clock)
+    return PracticeServices.start(context, parts.practice)
 
 
 def _transcription_parts(parts: "WorkerParts") -> TranscriptionParts:
