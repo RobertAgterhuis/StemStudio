@@ -190,6 +190,21 @@ public sealed class LibrarySearchEchoTests : LibraryTestContext
     }
 
     [Fact]
+    public async Task ParametersSetAgain_BeforeTheEchoArrives_KeepTheTypedText()
+    {
+        // E2E fix run: the layout re-cascades after the first key press, so the page's parameters are set again while the
+        // URL still is "library" (no echo yet); the first search of every test was lost.
+        Open();
+        await TypeAsync("bass");
+
+        await RouterRefreshAsync();
+        ShouldShow("bass");
+
+        await EchoAsync(0);
+        ShouldShow("bass");
+    }
+
+    [Fact]
     public async Task InitialLoad_TakesTheTextFromTheUrl()
     {
         _navigation.Go("library?q=metal");

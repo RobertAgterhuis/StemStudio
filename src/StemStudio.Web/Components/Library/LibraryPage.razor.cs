@@ -19,6 +19,7 @@ public sealed partial class LibraryPage
     private LibrarySearchBox? _box;
     private SearchResults? _results;
     private IAsyncDisposable? _shortcuts;
+    private (string Uri, string? State)? _followed;
 
     [Inject]
     private IStemStudioApiClient Api { get; set; } = default!;
@@ -78,11 +79,7 @@ public sealed partial class LibraryPage
     }
 
     /// <inheritdoc />
-    protected override Task OnParametersSetAsync()
-    {
-        Location = LibraryLocation.Parse(Navigation.Uri);
-        return Search.StartAsync(Location, Navigation.HistoryEntryState);
-    }
+    protected override Task OnParametersSetAsync() => FollowAsync(Navigation.Uri, Navigation.HistoryEntryState);
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -105,18 +102,27 @@ public sealed partial class LibraryPage
     private void Navigate(string url, bool replace, string state) =>
         Navigation.NavigateTo(url, new NavigationOptions { ReplaceHistoryEntry = replace, HistoryEntryState = state });
 
-    // Back/forward and links change the URL without new parameters when the route stays the same; the router also sets
-    // the parameters again after every location change, so the search sees each location twice (it ignores the repeat).
+    // Back/forward and links change the URL without new parameters when the route stays the same.
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args) => _ = InvokeAsync(async () =>
     {
-        var location = LibraryLocation.Parse(args.Location);
-        if (location != Location)
-        {
-            Location = location;
-            await Search.StartAsync(location, args.HistoryEntryState);
-            StateHasChanged();
-        }
+        await FollowAsync(args.Location, args.HistoryEntryState);
+        StateHasChanged();
     });
+
+    // Takes over a location once. Parameters are set again without a location change (the router after every change, a
+    // cascading value such as the level or the layout's state), possibly before the echo of the newest own navigation
+    // has arrived: the URL then still holds an older text, which must not replace what the user is typing.
+    private Task FollowAsync(string uri, string? state)
+    {
+        if (_followed == (uri, state))
+        {
+            return Task.CompletedTask;
+        }
+
+        _followed = (uri, state);
+        Location = LibraryLocation.Parse(uri);
+        return Search.StartAsync(Location, state);
+    }
 
     private void OnSearchChanged()
     {
