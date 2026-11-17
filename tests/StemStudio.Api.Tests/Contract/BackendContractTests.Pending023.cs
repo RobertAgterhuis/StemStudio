@@ -7,7 +7,5 @@ public sealed partial class BackendContractTests
     // T028 (status, assists, events, cancel), T030 (suggestions, marks, sheet settings, undo, revisions, words), T039 (syllables),
     // T046 (rhymes, language guess), T062 (lyric-assist settings), T075 (own-work override).
     private static readonly string[] PendingLyricAssistOperations =
-    [
-        "confirmOwnWork", "revokeOwnWork",
-    ];
+    [];
 }
