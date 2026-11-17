@@ -138,7 +138,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 - [ ] T054 [P] [US3] [backend] Failing tests `StorageOverviewServiceTests.cs`: sums per category equal the fixture bytes (0 deviation, SC-006), per-track rows incl. `recordingsBytes`, source attribution (pending upload + worker entry by `WorkerJobId`), unattached items, worker unavailable -> reasons, shared volumes grouping, 30 s cache and `refresh`, 500-track library under 2 s (FR-020, FR-021)
 - [ ] T055 [US3] [backend] Implement `Storage/{StorageOverviewService,LibraryWalker,WorkerStorageAttribution}.cs`, `StorageEndpoints.getStorageOverview` to pass T054
-- [ ] T056 [US3] [frontend] bUnit tests first, then: Storage tab (volumes as meters, categories with class badges and "how to regenerate", manage links for originals, per-track table with sortable headers and `aria-sort` at Advanced+, top-5 list at Beginner, unattached, model caches without delete, Expert worker entries, backups and previous library rows); help topics `storage-overview`, `storage-regenerable`
+- [x] T056 [US3] [frontend] bUnit tests first, then: Storage tab (volumes as meters, categories with class badges and "how to regenerate", manage links for originals, per-track table with sortable headers and `aria-sort` at Advanced+, top-5 list at Beginner, unattached, model caches without delete, Expert worker entries, backups and previous library rows); help topics `storage-overview`, `storage-regenerable`
 - [ ] T057 [US3] [qa] E2E `library-care-storage.spec.ts`: numbers equal `du -sb` inside the containers (helper via `docker compose exec`), worker stopped -> reason shown, sorting, links
 
 **Checkpoint**: HO:us3 for backend, frontend, qa.
