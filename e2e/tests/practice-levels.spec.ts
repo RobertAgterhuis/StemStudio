@@ -160,7 +160,9 @@ test.describe('Advanced', { tag: '@practice' }, () => {
 
   test('Tab reaches every practice control with a visible focus ring (FR-017)', async ({ page, practice }) => {
     await practice.setSpeed(95);
-    await practice.byId('practice-speed-down').focus();
+    // Start just before the panel: its disclosure button is the first practice stop.
+    await practice.byId('practice-panel-toggle').focus();
+    await page.keyboard.press('Shift+Tab');
     const stops = await tabStops(page, 25);
     const reached = stops.filter((stop) => tabTargets.includes(stop.id));
     expect([...new Set(reached.map((stop) => stop.id))].sort()).toEqual([...tabTargets].sort());
