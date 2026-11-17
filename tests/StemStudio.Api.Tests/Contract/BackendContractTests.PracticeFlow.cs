@@ -19,10 +19,6 @@ public sealed partial class BackendContractTests
         "getScoreView",
         "createScoreView",
         "getScoreViewPage",
-    ];
-
-    private static readonly string[] PendingPracticeFlowOperations =
-    [
         "listSetlists",
         "createSetlist",
         "getSetlist",
@@ -30,6 +26,10 @@ public sealed partial class BackendContractTests
         "deleteSetlist",
         "replaceSetlistEntries",
         "getSetlistPdf",
+    ];
+
+    private static readonly string[] PendingPracticeFlowOperations =
+    [
         "getPracticeLogSettings",
         "updatePracticeLogSettings",
         "listPracticeSessions",

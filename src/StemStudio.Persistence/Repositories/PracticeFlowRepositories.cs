@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Mixes;
 using StemStudio.Domain.Practice;
 using StemStudio.Domain.Sections;
 using StemStudio.Domain.Setlists;
+using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Repositories;
 
@@ -176,6 +178,18 @@ public interface ISetlistRepository
     /// <returns>A task.</returns>
     Task AddAsync(Setlist setlist, CancellationToken cancellationToken);
 
+    /// <summary>Tracks by id with their lyrics (not tracked).</summary>
+    /// <param name="ids">Track ids.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>Track per id (missing ids are left out).</returns>
+    Task<IReadOnlyDictionary<Guid, Track>> TracksAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
+    /// <summary>Mixes by id (not tracked).</summary>
+    /// <param name="ids">Mix ids.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>Mix per id (missing ids are left out).</returns>
+    Task<IReadOnlyDictionary<Guid, Mix>> MixesAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>Deletes a setlist (entries cascade) and saves.</summary>
     /// <param name="setlist">The setlist.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -207,6 +221,14 @@ public sealed class SetlistRepository(StemStudioDbContext context) : ISetlistRep
         context.Setlists.Add(setlist);
         await UnitOfWork.SaveAsync(context, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, Track>> TracksAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Tracks.AsNoTracking().Include(track => track.Lyrics).Where(track => ids.Contains(track.Id)).ToDictionaryAsync(track => track.Id, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, Mix>> MixesAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Mixes.AsNoTracking().Where(mix => ids.Contains(mix.Id)).ToDictionaryAsync(mix => mix.Id, cancellationToken);
 
     /// <inheritdoc />
     public async Task RemoveAsync(Setlist setlist, CancellationToken cancellationToken)

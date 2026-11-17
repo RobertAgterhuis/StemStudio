@@ -1,4 +1,5 @@
 using StemStudio.Api.ScoreFollow;
+using StemStudio.Api.Setlists;
 using StemStudio.Api.SongSections;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
@@ -45,11 +46,13 @@ public static class PracticeFlowRegistration
         services.AddScoped<ScoreViewService>();
         services.AddScoped<ScoreViewJobApplier>();
         services.AddScoped<IAssetReadyHook, ScoreViewReadyHook>();
+        services.AddScoped<SetlistService>();
+        services.AddScoped<SetlistPdfService>();
         return services;
     }
 
     /// <summary>Maps the 014 endpoints (tags <c>sections</c>, <c>score-follow</c>, <c>setlists</c>, <c>practice</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app.MapSectionEndpoints().MapScoreFollowEndpoints();
+    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app.MapSectionEndpoints().MapScoreFollowEndpoints().MapSetlistEndpoints();
 }
