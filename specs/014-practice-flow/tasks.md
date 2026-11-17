@@ -162,14 +162,14 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 4: User Story 2 - Hands-free control with keys and pedals (P1)
 
-- [ ] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Shell/ShortcutOverlayTests.cs`: groups and rows from the live key map with `data-keys`, remapped keys and pedal keys shown, reserved 015 rows hidden, reachable at every level from help (`help-shortcuts`) and Ctrl+/ (FR-024)
-- [ ] T063 [US2] [frontend] Extend `ShortcutOverlay.razor` and the 004 `shortcuts` help topic (reviewed "014") to pass T062
-- [ ] T064 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/ShortcutSettingsTests.cs`: edit a command via capture, conflict message names the other command, reserved message, clear, reset all; pedal setup presets, learn left/right, pedal mode switch, test indicator; single-key switch in the Preferences panel at every level; saved to preferences and applied with `updateShortcuts` (FR-019, FR-021..FR-023)
-- [ ] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
+- [x] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Shell/ShortcutOverlayTests.cs`: groups and rows from the live key map with `data-keys`, remapped keys and pedal keys shown, reserved 015 rows hidden, reachable at every level from help (`help-shortcuts`) and Ctrl+/ (FR-024)
+- [x] T063 [US2] [frontend] Extend `ShortcutOverlay.razor` and the 004 `shortcuts` help topic (reviewed "014") to pass T062
+- [x] T064 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/ShortcutSettingsTests.cs`: edit a command via capture, conflict message names the other command, reserved message, clear, reset all; pedal setup presets, learn left/right, pedal mode switch, test indicator; single-key switch in the Preferences panel at every level; saved to preferences and applied with `updateShortcuts` (FR-019, FR-021..FR-023)
+- [x] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
 - [x] T066 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerCommandsTests.cs`: every mixer command id of data-model 5.2 dispatches to the same `MixerState` action as its control (012 commands via the 012 handlers, A-012-2..4); unknown/reserved ids ignored (FR-019, FR-020)
 - [x] T067 [US2] [frontend] Implement the command dispatcher to pass T066
 - [ ] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
-- [ ] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
+- [x] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
 
 **Checkpoint**: HO:us2.
 
