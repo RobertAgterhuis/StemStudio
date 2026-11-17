@@ -9,6 +9,7 @@ import type { Mixer } from '../mixer';
 import { loadStems } from '../stem-loader';
 import type { Transport } from '../transport';
 import type {
+  AudioEngine,
   CalibrationOptions,
   CalibrationResult,
   ChannelId,
@@ -33,11 +34,29 @@ import { takeGates, type RecordingGating } from './compare';
 import { browserEnvironment, type MediaEnvironment } from './environment';
 import { InputPort, outputLatencySeconds } from './input';
 import { Monitor } from './monitoring';
-import { notImplemented, type RecordingSurface } from './pending';
 import { Recorder, type RecorderPractice } from './recorder';
 import { checkSupport } from './support';
 import { TakeChannel, sliceTake } from './take-channel';
-import { CaptureStore } from './takes';
+import { CaptureStore, shiftedWav } from './takes';
+
+/** The recording and take-channel methods of {@link AudioEngine} (contract 2.5.0). */
+export type RecordingSurface = Pick<
+  AudioEngine,
+  | 'recordingSupport'
+  | 'listInputDevices'
+  | 'openInput'
+  | 'closeInput'
+  | 'setMonitoring'
+  | 'calibrateLatency'
+  | 'startRecording'
+  | 'stopRecording'
+  | 'captureWav'
+  | 'releaseCapture'
+  | 'loadTake'
+  | 'unloadTake'
+  | 'setTakeAdjustment'
+  | 'setTakeCompare'
+>;
 
 /** Largest playback-only timing adjustment in either direction (samples, 200 ms). */
 export const MAX_ADJUSTMENT_SAMPLES = 8820;
@@ -96,6 +115,15 @@ export function validateTakeSlice(source: { readonly startSample: number; readon
   }
 }
 
+/** The take in the take channel. */
+interface LoadedTake {
+  readonly takeId: string;
+  readonly buffer: AudioBuffer;
+  /** Song sample of the buffer's first frame, without the adjustment. */
+  readonly startSample: number;
+  readonly adjustment: number;
+}
+
 /** Recording surface of one engine. */
 export class Recording implements RecordingSurface {
   private readonly env: MediaEnvironment;
@@ -110,6 +138,7 @@ export class Recording implements RecordingSurface {
   private mode: TakeCompareMode = 'both';
   private gating: RecordingGating | null = null;
   private calibrating = false;
+  private loaded: LoadedTake | null = null;
   private loopback: MediaStreamAudioDestinationNode | null = null;
 
   /** @param host - Engine parts. */
@@ -215,6 +244,10 @@ export class Recording implements RecordingSurface {
 
   /** {@inheritDoc AudioEngine.captureWav} */
   public captureWav(captureKey: string): Blob {
+    const loaded = this.loaded;
+    if (loaded?.takeId === captureKey) {
+      return shiftedWav(loaded.buffer, loaded.startSample + loaded.adjustment);
+    }
     return this.store.wav(captureKey);
   }
 
@@ -229,21 +262,30 @@ export class Recording implements RecordingSurface {
     const { buffer, startSample } = await this.takeAudio(request.source);
     this.host.mixer.ensureTake();
     this.part = request.part;
+    this.loaded = { takeId: request.takeId, buffer, startSample, adjustment };
     this.take.load(buffer, startSample + adjustment);
     this.applyGates();
   }
 
   /** {@inheritDoc AudioEngine.unloadTake} */
   public unloadTake(): void {
+    this.loaded = null;
     this.take.unload();
     this.mode = 'both';
     this.applyGates();
   }
 
-  /** {@inheritDoc AudioEngine.setTakeAdjustment} (015 US7, T078). */
-  public readonly setTakeAdjustment: RecordingSurface['setTakeAdjustment'] = (): void => {
-    throw notImplemented('setTakeAdjustment');
-  };
+  /**
+   * {@inheritDoc AudioEngine.setTakeAdjustment} The adjustment replaces the current one (relative to the loaded
+   * `startSample`); `captureWav(<loaded takeId>)` then returns the span re-encoded for the shifted start (US7 Apply).
+   */
+  public setTakeAdjustment(samples: number): void {
+    const adjustment = validateAdjustment(samples);
+    if (this.loaded !== null) {
+      this.loaded = { ...this.loaded, adjustment };
+      this.take.moveTo(this.loaded.startSample + adjustment);
+    }
+  }
 
   /** {@inheritDoc AudioEngine.setTakeCompare} */
   public setTakeCompare(mode: TakeCompareMode): void {
@@ -256,6 +298,7 @@ export class Recording implements RecordingSurface {
 
   /** A new track was loaded: the take belongs to the old one. */
   public onTrackLoaded(): void {
+    this.loaded = null;
     this.take.unload();
     this.part = 'none';
     this.mode = 'both';

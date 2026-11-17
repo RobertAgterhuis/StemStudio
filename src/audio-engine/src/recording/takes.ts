@@ -117,3 +117,17 @@ export function describeTake(take: MappedTake, session: SessionInfo, captureKey:
     recordedAt: session.recordedAt,
   };
 }
+
+/**
+ * Re-encodes a loaded take for a new start (US7, data-model 2.4): the start is clamped at song sample 0, so a shift
+ * before the song start drops the leading samples.
+ *
+ * @param buffer - The loaded take.
+ * @param shiftedStart - `startSample + adjustment` (may be negative).
+ * @returns The 24-bit WAV of the span that starts at `max(0, shiftedStart)`.
+ */
+export function shiftedWav(buffer: AudioBuffer, shiftedStart: number): Blob {
+  const drop = Math.max(0, -shiftedStart);
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c).subarray(drop));
+  return new Blob([encodeWav24(channels)], { type: 'audio/wav' });
+}

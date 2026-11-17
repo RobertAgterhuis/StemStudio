@@ -10,18 +10,17 @@ import {
   type RecordingState,
   type TakeCompareMode,
 } from '../../src/index';
-import { notImplemented } from '../../src/recording/pending';
 import { MockAudioContext } from '../mocks/audio-context';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 
-/** Contract tests of the 2.5.0 recording surface (architect skeleton 015 T004; replaced by the audio-engine lane). */
+/** Contract tests of the 2.5.0 recording surface (architect skeleton 015 T004; behaviour in the other recording tests). */
 function engine(options: EngineOptions = {}): AudioEngine {
   const ctx = new MockAudioContext();
   return createEngine(new FakeDotNetRef(), { audioContextFactory: () => ctx.asAudioContext(), ...options });
 }
 
 
-describe('recording contract 2.5.0 (skeleton)', () => {
+describe('recording contract 2.5.0', () => {
   it('exports version 2.5.0 with the recording names, the take channel, the input meter and the new callbacks', () => {
     const states: readonly RecordingState[] = ['closed', 'open', 'countIn', 'recording', 'finishing'];
     const modes: readonly TakeCompareMode[] = ['both', 'take', 'original'];
@@ -37,12 +36,6 @@ describe('recording contract 2.5.0 (skeleton)', () => {
     expect(() => engine({ testInput: 'loopback', captureWorkletUrl: '/w.js' })).not.toThrow();
   });
 
-  it.each([
-    ['setTakeAdjustment', (e: AudioEngine) => { e.setTakeAdjustment(441); }],
-  ] as const)('%s throws "not implemented" until its user story (US7)', (name, call) => {
-    expect(() => { call(engine()); }).toThrow(`not implemented: ${name}`);
-  });
-
   it('refuses recording calls after dispose like every other method', async () => {
     const subject = engine();
     await subject.dispose();
@@ -52,9 +45,5 @@ describe('recording contract 2.5.0 (skeleton)', () => {
 
   it('has no input meter tap until the recording input exists', () => {
     expect(() => { engine().attachMeter('input', 'meter-input'); }).toThrow('Unknown meter target "input"');
-  });
-
-  it('names the method in the skeleton error', () => {
-    expect(notImplemented('loadTake').message).toBe('not implemented: loadTake');
   });
 });

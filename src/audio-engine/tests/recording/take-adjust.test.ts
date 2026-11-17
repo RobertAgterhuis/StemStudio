@@ -40,6 +40,14 @@ function takeSources(rig: Rig): MockAudioBufferSourceNode[] {
   return rig.ctx.sources.filter((s) => s.buffer?.length === LENGTH);
 }
 
+/** First start call and stop count of a source (NaN / 0 when missing). */
+function startOf(source: MockAudioBufferSourceNode | undefined): { when: number; offset: number; stops: number } {
+  const none = { startCalls: [{ when: Number.NaN, offset: Number.NaN }], stopCalls: [] };
+  const { startCalls, stopCalls } = source ?? none;
+  const [call = { when: Number.NaN, offset: Number.NaN }] = startCalls;
+  return { when: call.when, offset: call.offset ?? Number.NaN, stops: stopCalls.length };
+}
+
 /** Data chunk of a WAV as 24-bit integers. */
 async function samples(blob: Blob): Promise<number[]> {
   const view = new DataView(await blob.arrayBuffer());
@@ -65,9 +73,9 @@ describe('setTakeAdjustment', () => {
     expect(takeSources(rig)[0]?.startCalls[0]?.when).toBeCloseTo(0.1 + 1, 9);
     rig.ctx.currentTime = 0.5;
     rig.engine.setTakeAdjustment(441);
-    const [first, second] = takeSources(rig);
-    expect(first?.stopCalls.length).toBe(1);
-    expect(second?.startCalls[0]?.when).toBeCloseTo(0.1 + 1 + 441 / SR, 9);
+    const [first, second] = takeSources(rig).map(startOf);
+    expect(first?.stops).toBe(1);
+    expect(second?.when).toBeCloseTo(0.1 + 1 + 441 / SR, 9);
     expect(TAKE_LEAD_SECONDS).toBe(0.01);
   });
 
@@ -78,8 +86,8 @@ describe('setTakeAdjustment', () => {
     rig.engine.setTakeAdjustment(-100);
     const [first, second] = takeSources(rig);
     expect(first?.stopCalls).toEqual([0.105 + 0.01]);
-    expect(second?.startCalls[0]?.when).toBeCloseTo(0.115, 9);
-    expect(second?.startCalls[0]?.offset).toBeCloseTo(0.115 - 0.1 + 100 / SR, 9);
+    const start = startOf(second);
+    expect([start.when, start.offset].map((x) => Math.round(x * 1e9) / 1e9)).toEqual([0.115, Math.round((0.015 + 100 / SR) * 1e9) / 1e9]);
   });
 
   it('validates the adjustment (-8820..8820 integer samples); without a take it is a no-op', async () => {

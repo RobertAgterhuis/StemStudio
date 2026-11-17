@@ -193,8 +193,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 9: User Story 7 - Adjust the timing of a take (P3)
 
-- [ ] T077 [P] [US7] [audio-engine] Failing tests: `setTakeAdjustment` re-schedules at `currentTime + 0.01`; re-encoding the loaded span with a shifted start (positive later, clamped at 0) (FR-016)
-- [ ] T078 [US7] [audio-engine] Implement to pass T077
+- [x] T077 [P] [US7] [audio-engine] Failing tests: `setTakeAdjustment` re-schedules at `currentTime + 0.01`; re-encoding the loaded span with a shifted start (positive later, clamped at 0) (FR-016)
+- [x] T078 [US7] [audio-engine] Implement to pass T077
 - [ ] T079 [P] [US7] [backend] Failing tests `ReplaceTakeAudioEndpointTests.cs`: previous audio kept until ready, `alignmentRevision` + 1, `adjustmentSamples` summed, `take-saving` 409, failure keeps the old audio (data-model 2.4)
 - [ ] T080 [US7] [backend] Implement `replaceRecordingTakeAudio` to pass T079
 - [ ] T081 [P] [US7] [frontend] Failing bUnit tests `TakeAdjustTests.cs`: Expert only, slider and number (0.1 ms), live playback shift, apply/reset, note (FR-016, FR-020)
