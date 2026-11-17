@@ -6,6 +6,12 @@ using StemStudio.Domain.Setlists;
 
 namespace StemStudio.Api.Setlists;
 
+/// <summary>A setlist with what its PDF prints: library facts and the section set per track.</summary>
+/// <param name="Setlist">The setlist (at least one entry).</param>
+/// <param name="Library">Its tracks and mixes.</param>
+/// <param name="Sections">Section set per track id (missing = none).</param>
+public sealed record SetlistSource(Setlist Setlist, SetlistLibrary Library, IReadOnlyDictionary<Guid, TrackSections> Sections);
+
 /// <summary>
 /// Collects the content of a setlist PDF (014 FR-018, data-model 2.6): per song the facts, the mix name, the note, the
 /// section starts and the lyrics as plain lines (at most 10,000 characters per song, then <c>shortened</c>).
@@ -18,24 +24,20 @@ public static class SetlistContentBuilder
     private const int MaxTitleLength = 200;
 
     /// <summary>The worker request of a setlist.</summary>
-    /// <param name="setlist">The setlist (at least one entry).</param>
-    /// <param name="library">Its tracks and mixes.</param>
-    /// <param name="sections">Section set per track id (missing = none).</param>
+    /// <param name="source">The setlist, its library facts and section sets.</param>
     /// <param name="options">Print options.</param>
     /// <param name="generatedAt">Printed in the footer.</param>
     /// <returns>The request.</returns>
-    public static WorkerSetlistDocumentRequest Build(Setlist setlist, SetlistLibrary library, IReadOnlyDictionary<Guid, TrackSections> sections, SetlistPdfOptions options, DateTimeOffset generatedAt)
+    public static WorkerSetlistDocumentRequest Build(SetlistSource source, SetlistPdfOptions options, DateTimeOffset generatedAt)
     {
-        ArgumentNullException.ThrowIfNull(setlist);
-        ArgumentNullException.ThrowIfNull(library);
-        ArgumentNullException.ThrowIfNull(sections);
+        ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(options);
-        var songs = setlist.Entries.Where(entry => library.Tracks.ContainsKey(entry.TrackId))
-            .Select((entry, index) => Song(entry, index + 1, library, sections.GetValueOrDefault(entry.TrackId))).ToList();
+        var songs = source.Setlist.Entries.Where(entry => source.Library.Tracks.ContainsKey(entry.TrackId))
+            .Select((entry, index) => Song(entry, index + 1, source)).ToList();
         return new WorkerSetlistDocumentRequest
         {
-            Title = setlist.Name,
-            Note = setlist.Note,
+            Title = source.Setlist.Name,
+            Note = source.Setlist.Note,
             GeneratedAt = generatedAt,
             Options = new WorkerSetlistOptions(options.Lyrics, options.Sections, options.Notes, options.PageBreakPerSong),
             Songs = songs,
@@ -69,24 +71,34 @@ public static class SetlistContentBuilder
         return new WorkerSetlistLyrics(lines, false);
     }
 
-    private static WorkerSetlistSong Song(SetlistEntry entry, int position, SetlistLibrary library, TrackSections? sections)
+    private static WorkerSetlistSong Song(SetlistEntry entry, int position, SetlistSource source)
     {
-        var track = library.Tracks[entry.TrackId];
-        var mix = entry.MixId is { } mixId ? library.Mixes.GetValueOrDefault(mixId) : null;
+        var track = source.Library.Tracks[entry.TrackId];
+        var grid = track.BeatGrid;
         return new WorkerSetlistSong
         {
             Position = position,
             Title = Cut(track.Title),
-            Artist = track.Artist is { } artist ? Cut(artist) : null,
-            Bpm = track.BeatGrid?.Bpm,
-            BeatsPerBar = track.BeatGrid?.BeatsPerBar,
+            Artist = CutOrNull(track.Artist),
+            Bpm = grid?.Bpm,
+            BeatsPerBar = grid?.BeatsPerBar,
             DurationSeconds = track.DurationSeconds ?? 0,
-            MixName = mix?.Name,
+            MixName = MixName(entry, source.Library),
             Note = entry.Note.Length == 0 ? null : entry.Note,
-            Sections = (sections?.Sections ?? []).Select(section => new WorkerSetlistSection(section.Label, SectionMapper.KindName(section.Kind), section.StartSeconds)).ToList(),
-            Lyrics = Lyrics(track.Lyrics?.HasText == true ? track.Lyrics.Document!.PlainText : null),
+            Sections = SectionsOf(source.Sections.GetValueOrDefault(entry.TrackId)),
+            Lyrics = Lyrics(LyricsText(track)),
         };
     }
+
+    private static string? MixName(SetlistEntry entry, SetlistLibrary library) =>
+        entry.MixId is { } mixId && library.Mixes.TryGetValue(mixId, out var mix) ? mix.Name : null;
+
+    private static List<WorkerSetlistSection> SectionsOf(TrackSections? sections) =>
+        (sections?.Sections ?? []).Select(section => new WorkerSetlistSection(section.Label, SectionMapper.KindName(section.Kind), section.StartSeconds)).ToList();
+
+    private static string? LyricsText(Domain.Tracks.Track track) => track.Lyrics is { HasText: true, Document: { } document } ? document.PlainText : null;
+
+    private static string? CutOrNull(string? value) => value is null ? null : Cut(value);
 
     private static string Cut(string value) => value.Length <= MaxTitleLength ? value : value[..MaxTitleLength];
 }

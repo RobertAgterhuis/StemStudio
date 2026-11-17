@@ -1,8 +1,8 @@
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Feature 014 operations staged by the architect (Phase 0 part 2, T003) and not served yet. Kept in a file of its own so the
-/// 014 backend lane removes its ids without touching the files other lanes edit (the 015 lane has its own list).
+/// Feature 014 operations: served ones and the ones staged by the architect (Phase 0 part 2, T003) and not served yet. Kept in a
+/// file of its own so the 014 backend lane moves its ids without touching the files other lanes edit (the 015 lane has its own list).
 /// </summary>
 public sealed partial class BackendContractTests
 {
@@ -26,10 +26,6 @@ public sealed partial class BackendContractTests
         "deleteSetlist",
         "replaceSetlistEntries",
         "getSetlistPdf",
-    ];
-
-    private static readonly string[] PendingPracticeFlowOperations =
-    [
         "getPracticeLogSettings",
         "updatePracticeLogSettings",
         "listPracticeSessions",
@@ -39,4 +35,7 @@ public sealed partial class BackendContractTests
         "getPracticeSummary",
         "getPracticeOverview",
     ];
+
+    // Every 014 operation is served (T055..T097); the list stays for the shared operation-id assertions.
+    private static readonly string[] PendingPracticeFlowOperations = [];
 }

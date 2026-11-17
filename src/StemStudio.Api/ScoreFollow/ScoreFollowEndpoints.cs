@@ -32,10 +32,10 @@ public static class ScoreFollowEndpoints
         return app;
     }
 
-    private static async Task<IResult> PageAsync(Guid assetId, int page, ScoreViewService views, ScoreViewFiles files, HttpContext context, CancellationToken ct)
+    private static async Task<IResult> PageAsync([AsParameters] ScoreViewPageRequest request, CancellationToken ct)
     {
-        var result = await views.PageAsync(assetId, page, files, ct);
-        var headers = context.Response.Headers;
+        var result = await request.Views.PageAsync(request.AssetId, request.Page, request.Files, ct);
+        var headers = request.Context.Response.Headers;
         headers.XContentTypeOptions = "nosniff";
         headers.ContentSecurityPolicy = PageSecurityPolicy;
         if (result is Microsoft.AspNetCore.Http.HttpResults.PhysicalFileHttpResult)
@@ -46,3 +46,11 @@ public static class ScoreFollowEndpoints
         return result;
     }
 }
+
+/// <summary>Route values and services of <c>getScoreViewPage</c>.</summary>
+/// <param name="AssetId">Score item.</param>
+/// <param name="Page">1-based page.</param>
+/// <param name="Views">The score view service.</param>
+/// <param name="Files">Stored pages.</param>
+/// <param name="Context">The request.</param>
+public sealed record ScoreViewPageRequest(Guid AssetId, int Page, ScoreViewService Views, ScoreViewFiles Files, HttpContext Context);

@@ -196,20 +196,28 @@ public sealed class ScoreViewService(ITrackRepository tracks, IScoreViewReposito
     private static TrackScoreDto ToDto(ScoreSources sources, ScoreView? view)
     {
         var recipe = sources.Score.Provenance.ScoreRecipe;
-        var plan = ScoreViewPlanner.Plan(sources);
-        var partial = recipe?.Range is not null || sources.Audio?.Provenance.Recipe?.Range is not null;
+        var (start, end) = RangeOf(sources);
         return new TrackScoreDto
         {
             AssetId = sources.Score.Id,
             Name = sources.Score.Name,
-            Profile = ScoreFollowMapper.ProfileOf(recipe?.Profile ?? sources.Score.Score?.Profile ?? ScoreProfile.Vocals),
+            Profile = ScoreFollowMapper.ProfileOf(ProfileOf(sources.Score)),
             Source = recipe?.Source.Channel ?? "asset",
-            RangeStartSeconds = partial ? plan?.OffsetSeconds : null,
-            RangeEndSeconds = partial ? plan?.EndSeconds : null,
+            RangeStartSeconds = start,
+            RangeEndSeconds = end,
             ManualTempo = recipe?.Tempo is not null,
             CreatedAt = new DateTimeOffset(sources.Score.CreatedAt, TimeSpan.Zero),
             ViewStatus = ScoreFollowMapper.StatusOf(view),
         };
+    }
+
+    private static ScoreProfile ProfileOf(Asset score) => score.Provenance.ScoreRecipe?.Profile ?? score.Score?.Profile ?? ScoreProfile.Vocals;
+
+    /// <summary>Track times of a partial score (008 range or exported part); nulls for a whole-song score.</summary>
+    private static (double? Start, double? End) RangeOf(ScoreSources sources)
+    {
+        var partial = sources.Score.Provenance.ScoreRecipe?.Range is not null || sources.Audio?.Provenance.Recipe?.Range is not null;
+        return partial && ScoreViewPlanner.Plan(sources) is { } plan ? (plan.OffsetSeconds, plan.EndSeconds) : (null, null);
     }
 }
 

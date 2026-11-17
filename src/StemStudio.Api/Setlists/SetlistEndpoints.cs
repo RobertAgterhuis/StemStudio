@@ -33,7 +33,19 @@ public static class SetlistEndpoints
         return app;
     }
 
-    private static Task<IResult> PdfAsync(
-        Guid setlistId, bool? lyrics, bool? sections, bool? notes, bool? pageBreakPerSong, SetlistPdfService pdf, CancellationToken ct) =>
-        pdf.PdfAsync(setlistId, new SetlistPdfOptions(lyrics ?? true, sections ?? true, notes ?? true, pageBreakPerSong ?? true), ct);
+    private static Task<IResult> PdfAsync([AsParameters] SetlistPdfQuery query, CancellationToken ct) =>
+        query.Pdf.PdfAsync(query.SetlistId, query.Options, ct);
+}
+
+/// <summary>Route value, query options and service of <c>getSetlistPdf</c> (every option defaults to true).</summary>
+/// <param name="SetlistId">Setlist id.</param>
+/// <param name="Lyrics">Print lyrics.</param>
+/// <param name="Sections">Print sections.</param>
+/// <param name="Notes">Print notes.</param>
+/// <param name="PageBreakPerSong">New page per song.</param>
+/// <param name="Pdf">The PDF service.</param>
+public sealed record SetlistPdfQuery(Guid SetlistId, bool? Lyrics, bool? Sections, bool? Notes, bool? PageBreakPerSong, SetlistPdfService Pdf)
+{
+    /// <summary>The options with the defaults applied.</summary>
+    public SetlistPdfOptions Options => new(Lyrics ?? true, Sections ?? true, Notes ?? true, PageBreakPerSong ?? true);
 }

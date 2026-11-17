@@ -48,11 +48,13 @@ public static class PracticeFlowRegistration
         services.AddScoped<IAssetReadyHook, ScoreViewReadyHook>();
         services.AddScoped<SetlistService>();
         services.AddScoped<SetlistPdfService>();
+        services.AddSingleton<PracticeUpsertGate>();
+        services.AddScoped<PracticeService>();
         return services;
     }
 
     /// <summary>Maps the 014 endpoints (tags <c>sections</c>, <c>score-follow</c>, <c>setlists</c>, <c>practice</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app.MapSectionEndpoints().MapScoreFollowEndpoints().MapSetlistEndpoints();
+    public static IEndpointRouteBuilder MapPracticeFlowEndpoints(this IEndpointRouteBuilder app) => app.MapSectionEndpoints().MapScoreFollowEndpoints().MapSetlistEndpoints().MapPracticeEndpoints();
 }

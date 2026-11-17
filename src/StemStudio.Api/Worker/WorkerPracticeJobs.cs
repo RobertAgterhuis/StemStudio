@@ -1,3 +1,4 @@
+using StemStudio.Domain.Practice;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Api.Worker;
@@ -111,42 +112,11 @@ public sealed record WorkerScoreViewJobRequest
 /// <param name="HeightPx">Height.</param>
 public sealed record WorkerScoreViewPage(int Page, int WidthPx, int HeightPx);
 
-/// <summary>One bar box (worker 1.8.0 <c>BarBox</c>; times relative to the input start).</summary>
-public sealed record WorkerBarBox
-{
-    /// <summary>Index.</summary>
-    public required int Index { get; init; }
-
-    /// <summary>Bar number.</summary>
-    public required int Number { get; init; }
-
-    /// <summary>Page.</summary>
-    public required int Page { get; init; }
-
-    /// <summary>Left edge (fraction).</summary>
-    public required double X { get; init; }
-
-    /// <summary>Top edge (fraction).</summary>
-    public required double Y { get; init; }
-
-    /// <summary>Width (fraction).</summary>
-    public required double Width { get; init; }
-
-    /// <summary>Height (fraction).</summary>
-    public required double Height { get; init; }
-
-    /// <summary>Start.</summary>
-    public required double StartSeconds { get; init; }
-
-    /// <summary>End.</summary>
-    public required double EndSeconds { get; init; }
-}
-
 /// <summary>Result of a score view job (worker 1.8.0 <c>ScoreViewResult</c>).</summary>
 /// <param name="Pages">Pages.</param>
-/// <param name="Bars">Bars.</param>
+/// <param name="Bars">Bars (worker 1.8.0 <c>BarBox</c>, times relative to the input start).</param>
 /// <param name="Engine">Engraving engine.</param>
-public sealed record WorkerScoreViewResult(IReadOnlyList<WorkerScoreViewPage> Pages, IReadOnlyList<WorkerBarBox> Bars, WorkerAnalyzer Engine);
+public sealed record WorkerScoreViewResult(IReadOnlyList<WorkerScoreViewPage> Pages, IReadOnlyList<ScoreBar> Bars, WorkerAnalyzer Engine);
 
 /// <summary>A score view job (worker 1.8.0 <c>ScoreViewJob</c>).</summary>
 public sealed record WorkerScoreViewJob : WorkerPracticeJob

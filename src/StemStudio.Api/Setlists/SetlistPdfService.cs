@@ -44,7 +44,7 @@ public sealed class SetlistPdfService(
             return PracticeFlowProblems.Conflict(PracticeFlowProblemTypes.SetlistEmpty, "The setlist has no songs", "Add songs before you make the PDF.");
         }
 
-        var content = SetlistContentBuilder.Build(setlist, library, await SectionsAsync(library, cancellationToken), pdfOptions, clock.GetUtcNow());
+        var content = SetlistContentBuilder.Build(new SetlistSource(setlist, library, await SectionsAsync(library, cancellationToken)), pdfOptions, clock.GetUtcNow());
         return await RenderAsync(content, FileName(setlist.Name), cancellationToken);
     }
 

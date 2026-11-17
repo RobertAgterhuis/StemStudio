@@ -1,5 +1,4 @@
 using System.Globalization;
-using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.ScoreFollow;
 using StemStudio.Contracts.Scores;
@@ -38,26 +37,6 @@ public static class ScoreFollowMapper
     /// <param name="view">The view, or null.</param>
     /// <returns>The status.</returns>
     public static ScoreViewStatusDto StatusOf(ScoreView? view) => view is null ? ScoreViewStatusDto.None : (ScoreViewStatusDto)((int)view.Status + 1);
-
-    /// <summary>The domain bar of a worker bar box.</summary>
-    /// <param name="bar">Worker bar.</param>
-    /// <returns>The bar (worker time).</returns>
-    public static ScoreBar ToBar(WorkerBarBox bar)
-    {
-        ArgumentNullException.ThrowIfNull(bar);
-        return new ScoreBar
-        {
-            Index = bar.Index,
-            Number = bar.Number,
-            Page = bar.Page,
-            X = bar.X,
-            Y = bar.Y,
-            Width = bar.Width,
-            Height = bar.Height,
-            StartSeconds = bar.StartSeconds,
-            EndSeconds = bar.EndSeconds,
-        };
-    }
 
     /// <summary>The contract profile of a score item.</summary>
     /// <param name="profile">Domain profile.</param>

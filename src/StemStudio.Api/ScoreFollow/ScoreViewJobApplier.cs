@@ -94,7 +94,7 @@ public sealed partial class ScoreViewJobApplier(IScoreViewRepository views, IWor
             await files.SaveAsync(view.AssetId, number, (stream, ct) => worker.DownloadScoreViewPageAsync(jobId, number, stream, ct), cancellationToken);
         }
 
-        view.Complete(pages.Count, bars.Select(ScoreFollowMapper.ToBar).ToList(), Now);
+        view.Complete(pages.Count, bars, Now);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Score view {AssetId}: processing service unreachable, retrying on the next tick")]

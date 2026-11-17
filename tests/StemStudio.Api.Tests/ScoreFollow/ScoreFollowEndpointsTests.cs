@@ -289,6 +289,57 @@ public sealed class ScoreFollowEndpointsTests : ApiTestBase
         Directory.Exists(Path.Combine(Factory.DataDir, "assets", score.Id.ToString("D"), "view")).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task CreateScoreView_ForAScoreWhoseTrackIsGone_FailsWithTheNoGridText()
+    {
+        Practice.Unavailable = true;
+        var (track, score) = await ReadyChannelScoreAsync();
+        Practice.Unavailable = false;
+        (await Client.DeleteAsync(new Uri(ApiRoutes.Track(track.Id), UriKind.Relative), Ct)).Dispose();
+
+        using var response = await PostViewAsync(score.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        var view = await response.BodyAsync<ScoreViewDto>();
+        (view.Status, view.Error).ShouldBe((ScoreViewStatusDto.Failed, ScoreViewService.NoGrid));
+        Practice.ScoreViewRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task QueueNew_IgnoresOtherItems_AndScoresThatHaveAView()
+    {
+        var (track, score) = await ReadyChannelScoreAsync();
+        var audio = await ReadyExportAsync(AssetTestData.Raw(track.Id, "bass"));
+
+        await Factory.WithScopeAsync(async sp =>
+        {
+            var assets = sp.GetRequiredService<IScoreViewRepository>();
+            var found = await assets.AssetsAsync([audio.Id, score.Id], CancellationToken.None);
+            var service = sp.GetRequiredService<ScoreViewService>();
+            await service.QueueNewAsync(found[audio.Id], CancellationToken.None);
+            await service.QueueNewAsync(found[score.Id], CancellationToken.None);
+            return true;
+        });
+
+        Practice.ScoreViewRequests.Count.ShouldBe(1);
+        (await FindViewAsync(audio.Id)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Planner_TrackOf_FallsBackToTheRecipeAndTheAudioItem()
+    {
+        var (track, score) = await ReadyChannelScoreAsync();
+        var fromExport = await ReadyExportScoreAsync(track.Id);
+
+        var plans = await Factory.WithScopeAsync(async sp =>
+        {
+            var found = await sp.GetRequiredService<IScoreViewRepository>().AssetsAsync([score.Id, fromExport.Id], CancellationToken.None);
+            return found.Values.Select(asset => ScoreViewPlanner.Plan(new ScoreSources(asset, null, null))).ToList();
+        });
+
+        plans.ShouldAllBe(plan => plan != null && plan.TrackId == track.Id && plan.Grid == null);
+    }
+
     private Task<HttpResponseMessage> PostViewAsync(Guid assetId) => Client.PostAsync(new Uri(ApiRoutes.ScoreView(assetId), UriKind.Relative), null, Ct);
 
     private Task<ScoreView?> FindViewAsync(Guid assetId) =>
