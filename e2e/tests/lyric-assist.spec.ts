@@ -1,6 +1,7 @@
+import type { Locator } from '@playwright/test';
 import type { LyricAssistPane } from '../pages/lyric-assist-pane';
 import type { LyricAssistApi, LyricSuggestionDto, LyricsSheetDto } from '../support/lyric-assist-api';
-import { createFixtureSheet, readAssistExpected, requireModelBackend, sheetText } from '../support/lyric-assist-fixtures';
+import { createFixtureSheet, readAssistExpected, requireModelBackend } from '../support/lyric-assist-fixtures';
 import { runAssist } from '../support/lyric-assist-flow';
 import { present } from '../support/generative';
 import { expect, test } from '../support/lyric-assist-test';
@@ -8,7 +9,7 @@ import { expect, test } from '../support/lyric-assist-test';
 // Feature 023 US1-US3 on the fake stack (T037, T044, T053 part 1; quickstart Q1, Q2, Q3): the fake
 // assistant answers from e2e/lyric-scripts/ by sheet title (zomeravond-check.json, ...); sheets are
 // the Phase 0 fixtures with their exact titles. Every test creates its own sheet. Stack:
-// STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric (devops T069);
+// STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts (devops T069);
 // `npm run test:lyric-assist`.
 const zomer = readAssistExpected().sheets.zomeravond;
 const planted = zomer.planted ?? [];
@@ -26,9 +27,11 @@ async function checkedZomeravond(api: LyricAssistApi, pane: LyricAssistPane): Pr
   return sheet;
 }
 
-/** Open suggestions whose anchor text is one of `spans`. */
-async function openOn(api: LyricAssistApi, lyricsId: string, spans: readonly string[]): Promise<LyricSuggestionDto[]> {
-  return (await api.suggestions(lyricsId, { status: 'open' })).filter((suggestion) => spans.includes(suggestion.anchor.original));
+/** Open suggestions whose anchor text is one of `spans` (only those of assist `assistId` when given). */
+async function openOn(api: LyricAssistApi, lyricsId: string, spans: readonly string[], assistId?: string): Promise<LyricSuggestionDto[]> {
+  return (await api.suggestions(lyricsId, { status: 'open' })).filter(
+    (suggestion) => spans.includes(suggestion.anchor.original) && (assistId === undefined || suggestion.assistId === assistId),
+  );
 }
 
 test('check: dictionary and model layers find the planted corrections and leave the poetic licences alone', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
@@ -50,6 +53,7 @@ test('accept one fix changes only its span (revision +1, provenance marker); Und
   const typo = firstTypo;
   const suggestion = await lyricAssistApi.openSuggestionFor(sheet.id, typo.original);
   await assistPane.accept(suggestion.suggestionId);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'accepted' })).map((s) => s.suggestionId)).toContain(suggestion.suggestionId);
   const after = await lyricAssistApi.sheet(sheet.id);
   expect(after.revision).toBe(sheet.revision + 1);
   expect(after.text).toBe(sheet.text.replace(typo.original, present(typo.proposal, 'proposal')));
@@ -83,15 +87,18 @@ test('strict shows the licences as ideas; an intentional mark is respected until
 
   const typo = await lyricAssistApi.openSuggestionFor(sheet.id, firstTypo.original);
   await assistPane.part('intentional', typo.suggestionId).click();
-  await expect(assistPane.entry(typo.suggestionId)).toHaveAttribute('data-status', 'intentional');
-  await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original])).toEqual([]);
+  await expect(assistPane.entry(typo.suggestionId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'intentional' })).map((s) => s.suggestionId)).toContain(typo.suggestionId);
+  // Each check adds its own suggestions (the balanced and the strict check both flagged the typo),
+  // so only what the check after the mark found counts (scenario 5: no later check flags it).
+  const marked = await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
+  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original], marked.assistId)).toEqual([]);
 
   await assistPane.byId('lyric-marks-open').click();
   const mark = assistPane.byId('lyric-marks-list').locator('[data-testid^="lyric-mark-delete-"]').first();
   await mark.click();
-  await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original])).toHaveLength(1);
+  const unmarked = await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
+  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original], unmarked.assistId)).toHaveLength(1);
 });
 
 test('"Add to my words" keeps a name out of the check of another Dutch sheet', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
@@ -142,8 +149,10 @@ test('writing help: three alternatives for line 4 (accepting one supersedes the 
   const alternatives = await lyricAssistApi.suggestions(sheet.id, { status: 'open', category: 'alternative' });
   expect(alternatives).toHaveLength(3);
   await assistPane.accept(alternatives[0]?.suggestionId ?? '');
+  const superseded = (await lyricAssistApi.suggestions(sheet.id, { status: 'superseded' })).map((s) => s.suggestionId);
   for (const other of alternatives.slice(1)) {
-    await expect(assistPane.entry(other.suggestionId)).toHaveAttribute('data-status', 'superseded');
+    await expect(assistPane.entry(other.suggestionId)).toHaveCount(0);
+    expect(superseded).toContain(other.suggestionId);
   }
 
   const fresh = await createFixtureSheet(lyricAssistApi, 'zomeravond');
@@ -152,7 +161,7 @@ test('writing help: three alternatives for line 4 (accepting one supersedes the 
   await runAssist(assistPane, lyricAssistApi, fresh.id, 'continue');
   const [continuation] = await lyricAssistApi.suggestions(fresh.id, { status: 'open', category: 'continuation' });
   expect(continuation?.anchor.line).toBe(5);
-  expect((await lyricAssistApi.sheet(fresh.id)).text).toBe(sheetText('zomeravond'));
+  expect((await lyricAssistApi.sheet(fresh.id)).text).toBe(fresh.text);
 });
 
 test('rhyme finder: nacht and night answer within 500 ms without a model call', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
@@ -170,6 +179,11 @@ test('rhyme finder: nacht and night answer within 500 ms without a model call', 
   expect(await lyricAssistApi.assists(sheet.id)).toHaveLength(assistsBefore);
 });
 
+/** The suggestion id of a `lyric-suggestion-<id>` entry. */
+async function entryId(entry: Locator): Promise<string> {
+  return ((await entry.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+}
+
 test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter accepts, Alt+Backspace rejects, Escape returns to the text', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane, page }) => {
   await requireModelBackend(lyricAssistApi, 'fake');
   const sheet = await createFixtureSheet(lyricAssistApi, 'zomeravond');
@@ -181,16 +195,24 @@ test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter ac
   await expect(assistPane.live).toContainText(/Check finished/u);
 
   await page.keyboard.press('F8');
-  const focused = assistPane.list.locator('[role="option"]:focus, [aria-selected="true"]').first();
-  await expect(focused).toBeVisible();
+  // The focused entry holds the browser focus (not a listbox: entries hold buttons); the keys go to it.
+  const focused = assistPane.list.locator('[role="listitem"][aria-current="true"]');
+  await expect(focused).toBeFocused();
   await expect(assistPane.live).toContainText(/Line \d+/u);
-  const firstId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  const firstId = await entryId(focused);
   await page.keyboard.press('Alt+Enter');
-  await expect(assistPane.entry(firstId)).toHaveAttribute('data-status', 'accepted');
+  await expect(assistPane.entry(firstId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'accepted' })).map((s) => s.suggestionId)).toContain(firstId);
+  // After a decision the focus moves to the entry that took the decided one's place.
+  await expect(focused).toBeFocused();
+  const followId = await entryId(focused);
   await page.keyboard.press('F8');
-  const secondId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  await expect(focused).not.toHaveAttribute('data-testid', `lyric-suggestion-${followId}`);
+  await expect(focused).toBeFocused();
+  const secondId = await entryId(focused);
   await page.keyboard.press('Alt+Backspace');
-  await expect(assistPane.entry(secondId)).toHaveAttribute('data-status', 'rejected');
+  await expect(assistPane.entry(secondId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'rejected' })).map((s) => s.suggestionId)).toContain(secondId);
   await page.keyboard.press('Escape');
   await expect(assistPane.text).toBeFocused();
 });

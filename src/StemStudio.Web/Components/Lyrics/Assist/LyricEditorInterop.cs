@@ -8,8 +8,8 @@ public interface ILyricEditorInterop
 {
     /// <summary>Stops the browser defaults of the assistant keys (F8, Alt+Enter, Alt+Backspace, Alt+I, Ctrl+Alt+C) in an element.</summary>
     /// <param name="root">The editor element.</param>
-    /// <returns>Disposing removes the listener.</returns>
-    Task<IAsyncDisposable> BindKeysAsync(ElementReference root);
+    /// <returns>Disposing removes the listener; <see langword="null"/> while <paramref name="root"/> is not captured yet (bind again after the next render).</returns>
+    Task<IAsyncDisposable?> BindKeysAsync(ElementReference root);
 
     /// <summary>The selection of the text area.</summary>
     /// <param name="area">The text area.</param>
@@ -39,8 +39,14 @@ public sealed class LyricEditorInterop(IJSRuntime js) : ILyricEditorInterop, IAs
     private IJSObjectReference? _module;
 
     /// <inheritdoc />
-    public async Task<IAsyncDisposable> BindKeysAsync(ElementReference root)
+    public async Task<IAsyncDisposable?> BindKeysAsync(ElementReference root)
     {
+        // Blazor Server runs OnAfterRender after the client acknowledged the batch: the element may not be rendered yet.
+        if (root.Id is null)
+        {
+            return null;
+        }
+
         var listener = await (await ModuleAsync()).InvokeAsync<IJSObjectReference>("bindKeys", root);
         return new Listener(listener);
     }

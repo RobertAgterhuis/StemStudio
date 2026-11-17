@@ -41,7 +41,7 @@ the specs.
 | Variable | Value | Who sets it |
 |---|---|---|
 | `STEMSTUDIO_AGENT_BACKEND` | `fake` (default lyric runs), `none` (`@lyric-assist-none`) | E2E override / caller |
-| `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` | `/scripts/lyric` (folder; per assist `<title-slug>-<kind>.json`, else `<kind>.json`) | devops T069 |
+| `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` | `/lyric-scripts` (folder, mounted read-only by `docker-compose.e2e.yml`; per assist `<title-slug>-<kind>.json`, else `<kind>.json`) | devops T069 |
 | `STEMSTUDIO_AGENT_FAKE_SCRIPT` | `/scripts/<name>.json` per agent script (`scripts/agent-e2e.*`) | agent E2E script |
 | Claude double | backend reported as `claude` with the test handler (Q6 step 3) | devops T069 (**gap**: no variable named in the contracts; the spec skips with the reason until one exists) |
 

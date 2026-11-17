@@ -30,7 +30,7 @@ import { oneOf } from '../support/text';
 // Scripts address the test's own track or mix through `{{context.trackId}}` / `{{context.mixId}}`;
 // the 023 scripts the open sheet through `{{context.lyricsId}}` and earlier results through
 // `{{result.list_lyric_suggestions.ids:<category>}}` (CTO decision on the qa T060 gap). The 023
-// tests also need the lyric scripts folder (STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric).
+// tests also need the lyric scripts folder (STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts, docker-compose.e2e.yml).
 
 test.beforeEach(() => {
   test.setTimeout(3 * fakeJobTimeoutMs);
@@ -454,12 +454,16 @@ test('lyrics: applying suggestions shows the before/after card; reject keeps the
   const started = await lyricAssistApi.startResponse(sheet.id, 'check');
   expect(started.status()).toBe(202);
   await lyricAssistApi.waitForEnd(((await started.json()) as { assistId: string }).assistId);
+  // The script applies every open spelling suggestion: the planted fixes plus what the dictionary adds
+  // on its own (the unknown name, decision 4 of qa-023-wave1).
+  const openSpelling = await lyricAssistApi.suggestions(sheet.id, { status: 'open', category: 'spelling' });
+  expect(openSpelling.length).toBeGreaterThanOrEqual(spellingFixes.length);
   await page.goto(`/lyrics/${sheet.id}`);
   await agent.openNewConversation();
 
   await agent.sendCommand('Accept all the spelling suggestions');
   await agent.expectApproval('apply_lyric_suggestions', 'change');
-  await expect(agent.byId('agent-approval-lyrics-diff').locator('[data-testid^="agent-approval-lyrics-diff-"]')).toHaveCount(spellingFixes.length);
+  await expect(agent.byId('agent-approval-lyrics-diff').locator('[data-testid^="agent-approval-lyrics-diff-"]')).toHaveCount(openSpelling.length);
   expect(await agent.approvalReasons()).toContain('lyrics-edit');
   await agent.reject();
   expect((await lyricAssistApi.sheet(sheet.id)).revision).toBe(sheet.revision);
@@ -475,7 +479,7 @@ test('lyrics: applying suggestions shows the before/after card; reject keeps the
   expect(spellingFixes.every((fact) => applied.text.includes(fact.proposal ?? '-'))).toBe(true);
 
   await agent.undo.click();
-  await expect.poll(async () => (await lyricAssistApi.sheet(sheet.id)).text, { timeout: 30_000 }).toBe(zomerText);
+  await expect.poll(async () => (await lyricAssistApi.sheet(sheet.id)).text, { timeout: 30_000 }).toBe(sheet.text);
 });
 
 test('lyrics: the agent cannot override the own-lyrics check (no such tool; eval S5)', { tag: ['@agent', '@us6-lyric-override'] }, async ({

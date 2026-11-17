@@ -63,7 +63,22 @@ public sealed class LyricAssistStatusService(LyricAssistStores stores, AgentStat
         return TypedResults.Ok(ToDto(settings));
     }
 
-    private static LyricAssistModelStatusDto Model(AgentStatusDto agent, ModelLayerState model) => new()
+    // The fake backend's lyric model comes from STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT (DELTA.md section 4), not from the 011 agent
+    // script: only the lyric factory decides whether it is ready.
+    private static LyricAssistModelStatusDto Model(AgentStatusDto agent, ModelLayerState model) =>
+        agent.Backend == AgentBackendDto.Fake ? FakeModel(agent, model) : MirroredModel(agent, model);
+
+    private static LyricAssistModelStatusDto FakeModel(AgentStatusDto agent, ModelLayerState model) => new()
+    {
+        Backend = agent.Backend,
+        Ready = model.Available,
+        ActiveModel = model.Available ? agent.ActiveModel : null,
+        UsingFallback = false,
+        Reason = model.Available ? null : model.Reason,
+        Fix = model.Available ? null : model.Fix,
+    };
+
+    private static LyricAssistModelStatusDto MirroredModel(AgentStatusDto agent, ModelLayerState model) => new()
     {
         Backend = agent.Backend,
         Ready = agent.Ready && model.Available,

@@ -22,12 +22,10 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
 
         page.Find(".ss-lyrics-workspace").KeyDown(Key("F8"));
 
-        var list = page.Find(Id("lyric-assist-list"));
-        list.GetAttribute("aria-activedescendant").ShouldBe(SuggestionEntry.OptionId(Spelling));
-        page.Find($"#{SuggestionEntry.OptionId(Spelling)}").GetAttribute("aria-selected").ShouldBe("true");
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Spelling}");
         page.Find(Id("lyric-assist-live")).TextContent.ShouldBe("Line 2, spelling error: wiet, proposed weet. Uitleg bij de suggestie.");
         EditorInterop.Received(1).SelectAsync(Arg.Any<ElementReference>(), 11, 15);
-        EditorInterop.Received(1).FocusAsync(SuggestionList.ListId);
+        EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Spelling));
         page.Find($"[data-testid=lyric-highlight-{Spelling}]").ClassList.ShouldContain("is-active");
     }
 
@@ -38,7 +36,7 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
 
         page.Find(".ss-lyrics-workspace").KeyDown(Key("F8", shift: true));
 
-        page.Find(Id("lyric-assist-list")).GetAttribute("aria-activedescendant").ShouldBe(SuggestionEntry.OptionId(Grammar));
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}");
     }
 
     [Fact]
@@ -50,18 +48,97 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
         list.KeyDown(Key("F8"));
         page.Find(Id("lyric-assist-list")).KeyDown(Key("F8"));
 
-        page.Find(Id("lyric-assist-list")).GetAttribute("aria-activedescendant").ShouldBe(SuggestionEntry.OptionId(Grammar));
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}");
+        EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Grammar));
     }
 
     [Fact]
-    public void FocusingTheList_SelectsTheFirstEntry_WithoutMovingTheFocusAway()
+    public void TabbingIntoAnEntry_MakesItTheFocusedSuggestion_WithoutMovingTheCursor()
     {
-        var page = Checked(ExperienceLevel.Beginner, SpellingFix());
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+        EditorInterop.ClearReceivedCalls();
 
-        page.Find(Id("lyric-assist-list")).Focus();
+        page.Find(Id($"lyric-suggestion-reject-{Grammar}")).FocusIn();
+        page.Find(Id($"lyric-suggestion-reject-{Grammar}")).FocusIn();
 
-        page.Find(Id("lyric-assist-list")).GetAttribute("aria-activedescendant").ShouldBe(SuggestionEntry.OptionId(Spelling));
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}");
+        page.Find(Id($"lyric-highlight-{Grammar}")).ClassList.ShouldContain("is-active");
+        EditorInterop.DidNotReceive().SelectAsync(Arg.Any<ElementReference>(), Arg.Any<int>(), Arg.Any<int>());
         EditorInterop.DidNotReceive().FocusAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void DecisionKeys_WithoutAFocusedEntry_DoNothing_AndShiftF8InTheList_GoesBack()
+    {
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+
+        page.Find(Id("lyric-assist-list")).KeyDown(Key("Enter", alt: true));
+        page.Find(Id("lyric-assist-list")).KeyDown(Key("F8", shift: true));
+
+        Api.DidNotReceive().AcceptLyricSuggestionsAsync(Arg.Any<Guid>(), Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>());
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}");
+    }
+
+    [Fact]
+    public void AltEnter_MovesTheFocus_ToTheEntryThatTakesThePlaceOfTheAcceptedOne()
+    {
+        Api.AcceptLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(Accepted(Text));
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+        Api.ListLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionStatusDto?>(), Arg.Any<CancellationToken>()).Returns(List(SpellingFix(SuggestionStatusDto.Accepted), GrammarFix()));
+        page.Find(Id("lyric-assist-list")).KeyDown(Key("F8"));
+        EditorInterop.ClearReceivedCalls();
+
+        page.Find(Id("lyric-assist-list")).KeyDown(Key("Enter", alt: true));
+
+        page.WaitForAssertion(() => ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}"));
+        EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Grammar));
+        EditorInterop.DidNotReceive().SelectAsync(Arg.Any<ElementReference>(), Arg.Any<int>(), Arg.Any<int>());
+        page.Find(Id("lyric-assist-live")).TextContent.ShouldNotStartWith("Line");
+    }
+
+    [Fact]
+    public async Task RejectButton_MovesTheFocus_ToTheNextEntry_AndTheLastDecisionLeavesTheFocusAlone()
+    {
+        Api.RejectLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(List(GrammarFix() with { Status = SuggestionStatusDto.Rejected }), List(SpellingFix() with { Status = SuggestionStatusDto.Rejected }));
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+        EditorInterop.ClearReceivedCalls();
+
+        await page.Find(Id($"lyric-suggestion-reject-{Grammar}")).ClickAsync(new());
+
+        ActiveEntry(page).ShouldBe($"lyric-suggestion-{Spelling}");
+        await EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Spelling));
+        await EditorInterop.DidNotReceive().SelectAsync(Arg.Any<ElementReference>(), Arg.Any<int>(), Arg.Any<int>());
+        EditorInterop.ClearReceivedCalls();
+        await page.Find(Id($"lyric-suggestion-reject-{Spelling}")).ClickAsync(new());
+
+        page.FindAll(Id("lyric-assist-list")).ShouldBeEmpty();
+        await EditorInterop.DidNotReceive().FocusAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task AFailedDecision_KeepsTheEntryAndTheFocus()
+    {
+        Api.RejectLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(List());
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+        EditorInterop.ClearReceivedCalls();
+
+        await page.Find(Id($"lyric-suggestion-reject-{Spelling}")).ClickAsync(new());
+
+        page.FindAll(Id($"lyric-suggestion-{Spelling}")).Count.ShouldBe(1);
+        await EditorInterop.DidNotReceive().FocusAsync(Arg.Any<string>());
+    }
+
+    [Fact]
+    public void AltEnter_OnAButtonOfAnEntry_AcceptsThatEntry()
+    {
+        Api.AcceptLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(Accepted(Text));
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+        page.Find(Id($"lyric-suggestion-reject-{Grammar}")).FocusIn();
+
+        page.Find(Id($"lyric-suggestion-reject-{Grammar}")).KeyDown(Key("Enter", alt: true));
+
+        page.WaitForAssertion(() => Api.Received(1).AcceptLyricSuggestionsAsync(LyricsId, Arg.Is<SuggestionDecisionRequest>(r => r.SuggestionIds.Single() == Grammar), Arg.Any<CancellationToken>()));
     }
 
     [Fact]
@@ -150,18 +227,68 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
     }
 
     [Fact]
-    public void Options_AreLabelledByTheirVisibleTexts_AndButtonsAreNamedByTheirText()
+    public void TheList_IsAPlainList_OfListItems_WithoutListboxSemantics()
     {
-        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), DeviceIdea() with { Proposal = null });
+        var page = Checked(ExperienceLevel.Expert, SpellingFix(), GrammarFix(), DeviceIdea() with { Proposal = null });
 
-        var option = page.Find($"#{SuggestionEntry.OptionId(Spelling)}");
-        var labels = option.GetAttribute("aria-labelledby")!.Split(' ');
-        labels.Select(id => page.Find($"#{id}").TextContent).ShouldBe(["Line 2, Spelling: typo", "wiet", "weet"]);
-        page.Find($"#{SuggestionEntry.OptionId(Device)}").GetAttribute("aria-labelledby")!.Split(' ').Length.ShouldBe(2);
-        page.Find(Id($"lyric-suggestion-accept-{Spelling}")).TextContent.Trim().ShouldBe("Accept");
-        page.Find(Id($"lyric-suggestion-accept-{Spelling}")).GetAttribute("tabindex").ShouldBe("-1");
+        var list = page.Find(Id("lyric-assist-list"));
+        (list.TagName, list.GetAttribute("role"), list.GetAttribute("tabindex"), list.GetAttribute("aria-activedescendant")).ShouldBe(("UL", "list", null, null));
+        list.Children.Length.ShouldBe(3);
+        foreach (var entry in list.Children)
+        {
+            (entry.TagName, entry.GetAttribute("role"), entry.GetAttribute("tabindex")).ShouldBe(("LI", "listitem", "-1"), entry.OuterHtml);
+            (entry.GetAttribute("aria-label"), entry.GetAttribute("aria-labelledby"), entry.GetAttribute("aria-selected")).ShouldBe((null, null, null), entry.OuterHtml);
+        }
         page.Find(Id("lyric-assist-live")).GetAttribute("aria-live").ShouldBe("polite");
     }
+
+    [Fact]
+    public void TheEntries_HoldNoInteractiveRole_AroundTheirButtons_AndTheButtonsAreInTheTabOrder()
+    {
+        string[] widgetRoles = ["option", "button", "link", "checkbox", "radio", "menuitem", "tab", "switch", "listbox", "treeitem", "gridcell"];
+        var page = Checked(ExperienceLevel.Expert, SpellingFix(), GrammarFix());
+        var list = page.Find(Id("lyric-assist-list"));
+
+        var controls = list.QuerySelectorAll("button, select");
+        controls.Length.ShouldBeGreaterThan(4);
+        foreach (var control in controls)
+        {
+            control.GetAttribute("tabindex").ShouldNotBe("-1", control.OuterHtml);
+            for (var parent = control.ParentElement; parent is not null && parent != list.ParentElement; parent = parent.ParentElement)
+            {
+                widgetRoles.ShouldNotContain(parent.GetAttribute("role") ?? string.Empty, parent.OuterHtml);
+            }
+        }
+        list.QuerySelectorAll("[role=option], [aria-activedescendant]").Length.ShouldBe(0);
+    }
+
+    [Fact]
+    public void AccessibleNames_ContainTheVisibleText()
+    {
+        var page = Checked(ExperienceLevel.Expert, SpellingFix(), GrammarFix());
+        var list = page.Find(Id("lyric-assist-list"));
+
+        list.QuerySelectorAll("[aria-label]").Where(e => e.TagName != "SELECT").ShouldBeEmpty();
+        list.QuerySelectorAll("[aria-labelledby]").ShouldBeEmpty();
+        page.Find(Id($"lyric-suggestion-accept-{Spelling}")).TextContent.Trim().ShouldBe("Accept");
+        page.Find(Id($"lyric-suggestion-{Spelling}")).TextContent.ShouldContain("Line 2, Spelling: typo");
+    }
+
+    [Fact]
+    public void TheFocusedEntry_IsMarkedCurrent_AndOnlyThatOne()
+    {
+        var page = Checked(ExperienceLevel.Beginner, SpellingFix(), GrammarFix());
+
+        page.FindAll("[aria-current]").ShouldBeEmpty();
+        page.Find(".ss-lyrics-workspace").KeyDown(Key("F8"));
+
+        page.FindAll("[aria-current=true]").Select(e => e.GetAttribute("data-testid")).ShouldBe([$"lyric-suggestion-{Spelling}"]);
+        page.Find(Id($"lyric-suggestion-{Spelling}")).ClassList.ShouldContain("is-active");
+        page.Find($"#{SuggestionEntry.EntryId(Spelling)}").GetAttribute("data-testid").ShouldBe($"lyric-suggestion-{Spelling}");
+    }
+
+    private static string? ActiveEntry(IRenderedComponent<CascadingValue<ExperienceContext>> page) =>
+        page.Find("[data-testid=lyric-assist-list] > [aria-current=true]").GetAttribute("data-testid");
 
     [Theory]
     [InlineData("F8", "", SuggestionKey.Next)]

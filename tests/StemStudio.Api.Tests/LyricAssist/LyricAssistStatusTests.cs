@@ -35,6 +35,31 @@ public sealed class LyricAssistStatusTests : AssistTestBase
     }
 
     [Fact]
+    public async Task FakeBackend_IsReadyFromTheLyricScript_WithoutAnAgentScript()
+    {
+        // DELTA.md section 4: the E2E fake stack is STEMSTUDIO_AGENT_BACKEND=fake + STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT; the 011
+        // agent script (STEMSTUDIO_AGENT_FAKE_SCRIPT) is not part of it, so its absence must not switch the writing help off.
+        await SelectBackendAsync(AgentBackendDto.Fake);
+
+        using var status = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistStatus, UriKind.Relative), Ct);
+
+        (await status.BodyAsync<LyricAssistStatusDto>()).Model.ShouldSatisfyAllConditions(
+            m => m.Backend.ShouldBe(AgentBackendDto.Fake), m => m.Ready.ShouldBeTrue(), m => m.Reason.ShouldBeNull(), m => m.Fix.ShouldBeNull());
+    }
+
+    [Fact]
+    public async Task FakeBackend_WithoutALyricScript_ReportsTheLyricFix()
+    {
+        await SelectBackendAsync(AgentBackendDto.Fake);
+        Assistants.Assistant = null;
+
+        using var status = await Client.GetAsync(new Uri(ApiRoutes.LyricAssistStatus, UriKind.Relative), Ct);
+
+        (await status.BodyAsync<LyricAssistStatusDto>()).Model.ShouldSatisfyAllConditions(
+            m => m.Ready.ShouldBeFalse(), m => m.Reason.ShouldBe("model-unavailable"), m => m.Fix.ShouldBe(Assistants.Fix));
+    }
+
+    [Fact]
     public async Task ClaudeBackend_NeedsTheCurrentNoticeBeforeAnyModelCall()
     {
         await SelectClaudeAsync();
@@ -85,10 +110,12 @@ public sealed class LyricAssistStatusTests : AssistTestBase
         Outbound.ShouldBeEmpty();
     }
 
-    private Task<bool> SelectClaudeAsync() => Factory.WithScopeAsync(async sp =>
+    private Task<bool> SelectClaudeAsync() => SelectBackendAsync(AgentBackendDto.Claude);
+
+    private Task<bool> SelectBackendAsync(AgentBackendDto backend) => Factory.WithScopeAsync(async sp =>
     {
         var store = sp.GetRequiredService<IAgentSettingsStore>();
-        await store.SaveAsync((await store.GetAsync(Ct)) with { Backend = AgentBackendDto.Claude }, Ct);
+        await store.SaveAsync((await store.GetAsync(Ct)) with { Backend = backend }, Ct);
         return true;
     });
 }

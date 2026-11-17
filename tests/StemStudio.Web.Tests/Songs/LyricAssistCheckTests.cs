@@ -20,13 +20,13 @@ public sealed class LyricAssistCheckTests : LyricEditorTestContext
 
         var entry = page.Find(Id($"lyric-suggestion-{Spelling}"));
         (entry.GetAttribute("role"), entry.GetAttribute("data-category"), entry.GetAttribute("data-type"), entry.GetAttribute("data-severity"))
-            .ShouldBe(("option", "spelling", "spelling.typo", "error"));
+            .ShouldBe(("listitem", "spelling", "spelling.typo", "error"));
         (entry.GetAttribute("data-status"), entry.GetAttribute("data-source"), entry.GetAttribute("data-line")).ShouldBe(("open", "dictionary", "2"));
         page.Find(Id($"lyric-suggestion-original-{Spelling}")).TextContent.ShouldBe("wiet");
         page.Find(Id($"lyric-suggestion-proposal-{Spelling}")).TextContent.ShouldBe("weet");
         page.Find(Id($"lyric-suggestion-explanation-{Spelling}")).TextContent.ShouldBe("Uitleg bij de suggestie.");
         page.Find(Id($"lyric-suggestion-source-{Grammar}")).TextContent.ShouldBe("model: qwen3.5:9b");
-        page.Find(Id("lyric-assist-list")).GetAttribute("role").ShouldBe("listbox");
+        page.Find(Id("lyric-assist-list")).GetAttribute("role").ShouldBe("list");
         page.Find(Id("lyric-assist-live")).TextContent.ShouldBe("Check finished: 2 suggestions - 1 spelling, 1 grammar");
         Api.Received(1).CreateLyricAssistAsync(LyricsId, Arg.Is<CreateLyricAssistRequest>(r => r.Kind == AssistKindDto.Check && r.LineFrom == null && r.Instruction == null), Arg.Any<CancellationToken>());
     }
@@ -175,13 +175,13 @@ public sealed class LyricAssistCheckTests : LyricEditorTestContext
 
         page.Find(Id("lyric-assist-filter-spelling")).GetAttribute("aria-pressed").ShouldBe("true");
         page.Find(Id("lyric-assist-filter-all")).GetAttribute("aria-pressed").ShouldBe("false");
-        page.FindAll("[role=option]").Select(o => o.GetAttribute("data-category")).ShouldBe(["spelling"]);
+        page.FindAll("[role=listitem]").Select(o => o.GetAttribute("data-category")).ShouldBe(["spelling"]);
         page.Find(Id("lyric-assist-accept-all")).TextContent.Trim().ShouldBe("Accept all (1)");
         await page.Find(Id("lyric-assist-accept-all")).ClickAsync(new());
 
         await Api.Received(1).AcceptLyricSuggestionsAsync(LyricsId, Arg.Is<SuggestionDecisionRequest>(r => r.SuggestionIds.SequenceEqual(new[] { Spelling })), Arg.Any<CancellationToken>());
         await page.Find(Id("lyric-assist-filter-all")).ClickAsync(new());
-        page.FindAll("[role=option]").Count.ShouldBe(3);
+        page.FindAll("[role=listitem]").Count.ShouldBe(3);
     }
 
     [Fact]

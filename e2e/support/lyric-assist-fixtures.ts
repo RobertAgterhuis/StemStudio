@@ -64,6 +64,12 @@ export async function createFixtureSheet(lyricAssistApi: LyricAssistApi, key: Sh
 /** Title prefix of the corpus track (its upload file name). */
 export const corpusTrackTitle = 'Paper Lanterns';
 
+/** 006 lyrics states in which a paste is accepted (not `searching` or `aligning`). */
+const settledLyrics = ['none', 'found', 'instrumental', 'notFound', 'alignPending', 'failed', 'disabled', 'removed'] as const;
+
+/** Upper bound of the automatic 006 lookup and CPU alignment of the fake worker (as tests/lyrics.spec.ts). */
+const lyricsSettleMs = 150_000;
+
 let corpusTrack: Promise<TrackDto> | undefined;
 
 async function seedCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promise<TrackDto> {
@@ -71,14 +77,31 @@ async function seedCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promis
   const text = readFileSync(path.join(assistDir, facts.file), 'utf-8');
   const track = await api.ensureFileCompleted(taggedWav(`corpus-${runId()}`, `${corpusTrackTitle} qa${runId()}`, null), fakeJobTimeoutMs);
   // Decision 023-P0-10: the corpus text goes into a track through 006 setLyrics (the fake 006
-  // lyrics have 3-word lines and never trip the guard).
+  // lyrics have 3-word lines and never trip the guard). The automatic 006 lookup of the new track
+  // refuses a paste while it searches or aligns (409 lyrics-busy), so wait until it settled.
+  await lyricsApi.waitForStatus(track.id, settledLyrics, lyricsSettleMs);
   expect(await lyricsApi.paste(track.id, text, 'en')).toBe(202);
   return track;
 }
 
-/** The track whose 006 lyrics are the `t-fake-song` corpus text (seeded once per worker and run). */
+/** A corpus track an earlier worker or run already seeded (title prefix, our pasted 006 lyrics), or undefined. */
+async function seededCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promise<TrackDto | undefined> {
+  const candidates = (await api.listTracks()).filter((track) => track.status === 'completed' && track.title.startsWith(`${corpusTrackTitle} qa`));
+  for (const track of candidates) {
+    if ((await lyricsApi.get(track.id)).source === 'user') {
+      return track;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The track whose 006 lyrics are the `t-fake-song` corpus text. One per stack: a second copy (another
+ * Playwright worker, project or run) would be a second match, and an own-work override covers only
+ * the matched track (US6 scenario 4), so the override test would be refused again for the other copy.
+ */
 export function ensureCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promise<TrackDto> {
-  corpusTrack ??= seedCorpusTrack(api, lyricsApi);
+  corpusTrack ??= seededCorpusTrack(api, lyricsApi).then((found) => found ?? seedCorpusTrack(api, lyricsApi));
   return corpusTrack;
 }
 

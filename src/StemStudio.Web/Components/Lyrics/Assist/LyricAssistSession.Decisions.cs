@@ -7,6 +7,9 @@ namespace StemStudio.Web.Components.Lyrics.Assist;
 /// intentional, add to my words, undo; a stale revision reloads the sheet and the suggestions.</summary>
 public sealed partial class LyricAssistSession
 {
+    private static readonly SuggestionStatusDto[] ClosedStatuses =
+        [SuggestionStatusDto.Accepted, SuggestionStatusDto.Superseded, SuggestionStatusDto.Rejected, SuggestionStatusDto.Intentional, SuggestionStatusDto.Stale];
+
     /// <summary>The default intentional scope: word for spelling, phrase otherwise (ui-test-ids keyboard Alt+I).</summary>
     /// <param name="s">The suggestion.</param>
     /// <returns>The scope.</returns>
@@ -104,7 +107,22 @@ public sealed partial class LyricAssistSession
         var (list, _) = await ApiCall.TryAsync(() => api.ListLyricSuggestionsAsync(Document.Id));
         if (list is not null)
         {
+            var closed = Board.Open.Select(s => s.SuggestionId).Except(list.Suggestions.Select(s => s.SuggestionId)).ToHashSet();
             Board.Merge(list.Suggestions);
+            await LearnClosedAsync(closed);
+        }
+    }
+
+    // The list's default filter is status=open: a suggestion that left it was decided (accepted, superseded, ...). Its new status
+    // comes from the filtered lists; only suggestions the board already shows are merged, never older decided ones.
+    private async Task LearnClosedAsync(HashSet<Guid> closed)
+    {
+        foreach (var status in ClosedStatuses.TakeWhile(_ => closed.Count > 0))
+        {
+            var (list, _) = await ApiCall.TryAsync(() => api.ListLyricSuggestionsAsync(Document.Id, status));
+            var found = list?.Suggestions.Where(s => closed.Contains(s.SuggestionId)).ToList() ?? [];
+            closed.ExceptWith(found.Select(s => s.SuggestionId));
+            Board.Merge(found);
         }
     }
 

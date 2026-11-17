@@ -47,6 +47,7 @@ internal static class ConversationMapping
         Page = message.Context.Page,
         TrackId = message.Context.TrackId,
         MixId = message.Context.MixId,
+        LyricsId = message.Context.LyricsId,
         RunId = message.RunId,
         CreatedAt = Utc(message.CreatedAt),
     };
@@ -61,7 +62,7 @@ internal static class ConversationMapping
         Seq = entity.Seq,
         Role = Parse<MessageRoleDto>(entity.Role),
         Text = entity.Text,
-        Context = new PageContextDto { Page = entity.Page, TrackId = entity.TrackId, MixId = entity.MixId },
+        Context = new PageContextDto { Page = entity.Page, TrackId = entity.TrackId, MixId = entity.MixId, LyricsId = entity.LyricsId },
         RunId = entity.RunId,
         CreatedAt = Offset(entity.CreatedAt),
     };

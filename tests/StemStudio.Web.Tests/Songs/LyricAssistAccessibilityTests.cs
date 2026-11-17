@@ -52,6 +52,12 @@ public sealed class LyricAssistAccessibilityTests : LyricEditorTestContext
     }
 
     [Fact]
+    public void FocusedPaneControls_StayAboveTheBottomBar_OnSmallScreens() =>
+        // Under 768 px the rail is a bottom bar over the page; the page scrolls on <html>, so the padding goes there (as the
+        // 022 library). Found by the 023 a11y E2E at 320 px: "My words", "Intentional marks" and the log ended under it.
+        Css.ReplaceLineEndings("\n").ShouldContain("@media (max-width: 48rem) {\n  html:has(.ss-lyrics-editor-page) {\n    scroll-padding-bottom: calc(var(--ss-transport-height) + var(--ss-space-2));");
+
+    [Fact]
     public void FocusedEntry_IsNotHiddenUnderADock_AndHighlightsDoNotRelyOnColour()
     {
         Css.ShouldContain("scroll-padding-bottom: calc(var(--ss-dock-inset, 0px) + var(--ss-space-2));");
@@ -61,7 +67,7 @@ public sealed class LyricAssistAccessibilityTests : LyricEditorTestContext
         }
 
         Css.ShouldContain(".ss-lyric-input:focus-visible");
-        Css.ShouldContain(".ss-assist-list:focus-visible");
+        Css.ShouldContain(".ss-assist-entry:focus-visible");
     }
 
     [Fact]
