@@ -154,18 +154,24 @@ test.describe('Beginner', () => {
   });
 });
 
+/** Same box size up to sub-pixel rounding (Firefox lays the scrolled list out at fractional offsets). */
+function expectSameSize(after: { width: number; height: number }, before: { width: number; height: number }): void {
+  expect(after.width).toBeCloseTo(before.width, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
+}
+
 test('a broken picture shows the placeholder without moving the layout', { tag: '@library' }, async ({ seedClients, folders, page }, testInfo) => {
   const set = await browseSet(seedClients, testInfo);
   const meters = seeded(set, 'meters');
   const id = meters.item.placement.artist.folderId;
   await folders.gotoRoot();
-  const before = await folders.tile(id).boundingBox();
+  const before = present(await folders.tile(id).boundingBox(), 'tile box before');
   await page.route(`**/api/tracks/${meters.track.id}/artwork/**`, (route) => route.fulfill({ status: 404, body: '' }));
   await page.reload();
   // Lazy pictures load (and fail) only near the viewport; the root of a busy stack lists many artists.
   await folders.tile(id).scrollIntoViewIfNeeded();
   await expect(folders.tileArt(id).locator('img:visible')).toHaveCount(0);
   await expect(folders.tileArt(id)).toContainText(/\S/u);
-  const after = await folders.tile(id).boundingBox();
-  expect([after?.width, after?.height]).toEqual([before?.width, before?.height]);
+  const after = present(await folders.tile(id).boundingBox(), 'tile box after');
+  expectSameSize(after, before);
 });

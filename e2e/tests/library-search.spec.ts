@@ -90,7 +90,7 @@ test('typing one character at a time shows grouped results with counts for the c
   await librarySearch.type(set.salt.slice(0, 3));
   await expect(librarySearch.input).toHaveValue(set.salt.slice(0, 3));
   await expect(librarySearch.results).toBeVisible();
-  await expect(librarySearch.status).toHaveText(/^\d+ results?$/u);
+  await expect(librarySearch.status).toHaveText(/^\d[\d,]* results?$/u);
   await expect(librarySearch.status).toHaveAttribute('aria-live', 'polite');
   await expect(page.locator('[data-testid^="search-group-"]').first()).toContainText(/\d/u);
   await librarySearch.type(set.salt.slice(3));
@@ -161,7 +161,7 @@ test('keyboard: "/" focuses the search, Arrow Down moves to the first result, th
   await page.keyboard.press('/');
   await expect(librarySearch.input).toBeFocused();
   await page.keyboard.type(`${set.salt} bass`);
-  await expect(librarySearch.status).toHaveText(/^\d+ results?$/u);
+  await expect(librarySearch.status).toHaveText(/^\d[\d,]* results?$/u);
   await page.keyboard.press('ArrowDown');
   const focusedInResults = await librarySearch.results.evaluate((el) => el.contains(document.activeElement));
   expect(focusedInResults).toBe(true);

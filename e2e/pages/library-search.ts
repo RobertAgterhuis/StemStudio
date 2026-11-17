@@ -85,7 +85,8 @@ export class LibrarySearch extends TestIdPage {
   /** Replaces the query and waits until results or the empty state show for it. */
   async search(text: string): Promise<void> {
     await this.input.fill(text);
-    await expect(this.results.or(this.empty)).toBeVisible();
+    // The empty state is shown inside the results section, so both may match.
+    await expect(this.results.or(this.empty).first()).toBeVisible();
   }
 
   /** Ids of the item hits currently shown, in order. */

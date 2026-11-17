@@ -64,7 +64,7 @@ async function timeQuery(page: Page, search: LibrarySearch, query: string): Prom
   await page.evaluate(() => {
     (window as unknown as { qaFinal: boolean }).qaFinal = true;
   });
-  await expect(search.results.or(search.empty)).toBeVisible();
+  await expect(search.results.or(search.empty).first()).toBeVisible();
   return elapsed;
 }
 
