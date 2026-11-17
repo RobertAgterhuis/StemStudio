@@ -12,7 +12,7 @@ namespace StemStudio.Web.Audio;
 /// </summary>
 /// <param name="js">The circuit's JS runtime.</param>
 /// <param name="options">Web options; <see cref="StemStudioWebOptions.PublicApiBaseUrl"/> resolves stem URLs for the browser.</param>
-public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOptions> options) : IAudioEngine
+public sealed partial class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOptions> options) : IAudioEngine
 {
     private const string UnavailablePrefix = "Time stretch unavailable:";
     private IJSObjectReference? _module;
