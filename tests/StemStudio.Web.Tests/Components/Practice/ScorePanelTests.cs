@@ -113,6 +113,17 @@ public sealed class ScorePanelTests : MixerTestContext
     }
 
     [Fact]
+    public void AViewRequestError_IsShown()
+    {
+        Api.GetScoreViewAsync(PracticeFlowData.ScoreAssetId, Arg.Any<CancellationToken>()).ThrowsAsync(new ApiException("The score view is gone."));
+
+        var page = RenderOpen();
+
+        page.WaitForAssertion(() => page.Find("[data-testid=score-error]").TextContent.ShouldBe("The score view is gone."));
+        page.Find("[data-testid=score-panel]").GetAttribute("data-view-status").ShouldBe("none");
+    }
+
+    [Fact]
     public void AnEngineRefusal_IsShown()
     {
         Engine.AttachScoreFollowerAsync(Arg.Any<string>(), Arg.Any<ScoreViewMap>(), Arg.Any<ScoreFollowOptions>())
