@@ -1,9 +1,9 @@
 @* Revision list (Expert, FR-007 edge case "undo after a manual edit"): restore an earlier text as a new revision. *@
-@inherits AssistPart
+@inherits AssistTogglePart
 
-<RadzenButton Text="Revisions" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(_open ? "true" : "false")"
+<RadzenButton Text="Revisions" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(IsOpen ? "true" : "false")"
               Click="ToggleAsync" data-testid="lyric-revisions-open" />
-@if (_open)
+@if (IsOpen)
 {
     <ul class="ss-assist-plain-list" aria-label="Revisions">
         @foreach (var r in Session.Revisions)
@@ -22,14 +22,6 @@
 }
 
 @code {
-    private bool _open;
-
-    private async Task ToggleAsync()
-    {
-        _open = !_open;
-        if (_open)
-        {
-            await RunAsync(s => s.LoadRevisionsAsync());
-        }
-    }
+    /// <inheritdoc />
+    protected override Task LoadAsync(LyricAssistSession session) => session.LoadRevisionsAsync();
 }

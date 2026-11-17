@@ -8,21 +8,14 @@ public static class LyricsDiffArguments
     /// <summary>The sheet and the distinct, valid suggestion ids; anything else in the arguments is ignored.</summary>
     /// <param name="arguments">The approval's arguments.</param>
     /// <returns>The sheet (or null) and the ids.</returns>
-    public static (Guid? LyricsId, HashSet<Guid> Ids) Read(JsonElement arguments)
-    {
-        var args = new UiToolArguments(arguments);
-        var ids = new HashSet<Guid>();
-        if (arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty("suggestionIds", out var list) && list.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in list.EnumerateArray())
-            {
-                if (item.ValueKind == JsonValueKind.String && Guid.TryParse(item.GetString(), out var id))
-                {
-                    ids.Add(id);
-                }
-            }
-        }
+    public static (Guid? LyricsId, HashSet<Guid> Ids) Read(JsonElement arguments) =>
+        (new UiToolArguments(arguments).Id("lyricsId"), [.. Items(arguments).Select(Parse).OfType<Guid>()]);
 
-        return (args.Id("lyricsId"), ids);
-    }
+    private static JsonElement.ArrayEnumerator Items(JsonElement arguments) =>
+        arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty("suggestionIds", out var list) && list.ValueKind == JsonValueKind.Array
+            ? list.EnumerateArray()
+            : default;
+
+    private static Guid? Parse(JsonElement item) =>
+        item.ValueKind == JsonValueKind.String && Guid.TryParse(item.GetString(), out var id) ? id : null;
 }

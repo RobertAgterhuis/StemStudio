@@ -1,9 +1,9 @@
 @* My words (FR-012; Advanced): the personal word list of the sheet's language. *@
-@inherits AssistPart
+@inherits AssistTogglePart
 
-<RadzenButton Text="My words" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(_open ? "true" : "false")"
+<RadzenButton Text="My words" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(IsOpen ? "true" : "false")"
               Disabled="Session.Document.AssistLanguage is null" Click="ToggleAsync" data-testid="lyric-words-open" />
-@if (_open)
+@if (IsOpen)
 {
     <div class="ss-assist-panel" role="group" aria-label="My words">
         <ul class="ss-assist-plain-list" data-testid="lyric-words-list">
@@ -24,14 +24,6 @@
 }
 
 @code {
-    private bool _open;
-
-    private async Task ToggleAsync()
-    {
-        _open = !_open;
-        if (_open)
-        {
-            await RunAsync(s => s.LoadWordsAsync());
-        }
-    }
+    /// <inheritdoc />
+    protected override Task LoadAsync(LyricAssistSession session) => session.LoadWordsAsync();
 }

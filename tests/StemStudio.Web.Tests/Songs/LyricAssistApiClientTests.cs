@@ -109,7 +109,11 @@ public sealed class LyricAssistApiClientTests : IDisposable
             .Json(HttpStatusCode.OK, $"[{word}]").Json(HttpStatusCode.Created, word).Json(HttpStatusCode.NoContent)
             .Json(HttpStatusCode.OK, Json(LyricAssistData.Sheet().Assist.OwnWorkOverride ?? new OwnWorkOverrideDto
             {
-                StatementVersion = "own-work.v1", ConfirmedBy = "Robin", ConfirmedAt = DateTimeOffset.UnixEpoch, MatchedTrackId = LyricAssistData.TrackId, MatchedTrackTitle = "Fake Song",
+                StatementVersion = "own-work.v1",
+                ConfirmedBy = "Robin",
+                ConfirmedAt = DateTimeOffset.UnixEpoch,
+                MatchedTrackId = LyricAssistData.TrackId,
+                MatchedTrackTitle = "Fake Song",
             })).Json(HttpStatusCode.NoContent);
 
         await _client.MarkSuggestionIntentionalAsync(Sheet, LyricAssistData.Spelling, new MarkSuggestionIntentionalRequest { Scope = IntentionalScopeDto.Word, ExpectedRevision = 3 }, Ct);

@@ -1,4 +1,5 @@
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.LyricAssist;
@@ -222,5 +223,21 @@ public sealed class LyricAssistPaneTests : LyricEditorTestContext
         await page.Find(Id("lyrics-save")).ClickAsync(new());
 
         page.Find(Id("lyrics-error")).TextContent.ShouldContain("Changed elsewhere");
+    }
+
+    [Fact]
+    public async Task Leaving_WithUnsavedChanges_AsksFirst()
+    {
+        Confirm.ConfirmAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>()).Returns(false, true);
+        var navigation = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        var page = Open();
+        await page.Find(Id("lyrics-text-input")).InputAsync(new() { Value = "nieuw" });
+
+        await page.InvokeAsync(() => navigation.NavigateTo("lyrics"));
+        new Uri(navigation.Uri).AbsolutePath.ShouldNotBe("/lyrics");
+        await page.InvokeAsync(() => navigation.NavigateTo("lyrics"));
+
+        new Uri(navigation.Uri).AbsolutePath.ShouldBe("/lyrics");
+        await Confirm.Received(2).ConfirmAsync("Unsaved lyrics", Arg.Any<string>(), "Leave");
     }
 }

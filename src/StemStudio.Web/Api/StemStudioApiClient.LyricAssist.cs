@@ -39,9 +39,7 @@ public sealed partial class StemStudioApiClient
     /// <inheritdoc />
     public async IAsyncEnumerable<LyricAssistEvent> StreamLyricAssistEventsAsync(Guid assistId, int? after = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(ApiRoutes.LyricAssistEvents(assistId, after), UriKind.Relative));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        using var response = await _transport.SendRawAsync(request, cancellationToken, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await _transport.SendRawAsync(EventsRequest(assistId, after), cancellationToken, HttpCompletionOption.ResponseHeadersRead);
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         await foreach (var message in SseReader.ReadAsync(stream, cancellationToken))
         {
@@ -133,6 +131,13 @@ public sealed partial class StemStudioApiClient
     /// <inheritdoc />
     public Task<LanguageGuessDto> GuessLyricsLanguageAsync(string text, CancellationToken cancellationToken = default) =>
         SendAsync<LanguageGuessDto>(HttpMethod.Post, ApiRoutes.LyricAssistLanguageGuess, JsonBody(new LanguageGuessRequest { Text = text }), cancellationToken);
+
+    private static HttpRequestMessage EventsRequest(Guid assistId, int? after)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(ApiRoutes.LyricAssistEvents(assistId, after), UriKind.Relative));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        return request;
+    }
 
     private static LyricAssistEvent ToAssistEvent(SseMessage message)
     {

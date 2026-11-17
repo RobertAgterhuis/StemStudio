@@ -24,12 +24,7 @@ public static class HighlightLayout
         var at = 0;
         foreach (var s in suggestions.Where(s => Fits(line, s)).OrderBy(s => s.Anchor.Start))
         {
-            if (s.Anchor.Start >= at)
-            {
-                Add(pieces, line[at..s.Anchor.Start], null);
-                Add(pieces, line.Substring(s.Anchor.Start, s.Anchor.Length), s);
-                at = s.Anchor.Start + s.Anchor.Length;
-            }
+            at = AddSpan(pieces, line, at, s);
         }
 
         Add(pieces, line[at..], null);
@@ -44,6 +39,18 @@ public static class HighlightLayout
     private static bool Fits(string line, LyricSuggestionDto s) =>
         s.Operation == SuggestionOperationDto.Replace && s.Anchor.Length > 0 && s.Anchor.Start >= 0 && s.Anchor.Start + s.Anchor.Length <= line.Length
         && string.Equals(line.Substring(s.Anchor.Start, s.Anchor.Length), s.Anchor.Original, StringComparison.Ordinal);
+
+    private static int AddSpan(List<HighlightSegment> pieces, string line, int at, LyricSuggestionDto s)
+    {
+        if (s.Anchor.Start < at)
+        {
+            return at;
+        }
+
+        Add(pieces, line[at..s.Anchor.Start], null);
+        Add(pieces, line.Substring(s.Anchor.Start, s.Anchor.Length), s);
+        return s.Anchor.Start + s.Anchor.Length;
+    }
 
     private static void Add(List<HighlightSegment> pieces, string text, LyricSuggestionDto? suggestion)
     {

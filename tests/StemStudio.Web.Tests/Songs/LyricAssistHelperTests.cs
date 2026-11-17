@@ -100,7 +100,7 @@ public sealed class LyricAssistHelperTests
     public void Board_FiltersOrdersAndMoves()
     {
         var board = new SuggestionBoard();
-        var alt1 = Suggestion(Guid.Parse("a0000000-0000-4000-8000-000000000001"), SuggestionCategoryDto.Alternative, SuggestionTypeDto.WriteAlternative, SpellingFix().Anchor, "x") with { GroupId = Guid.Empty };
+        var alt1 = Suggestion(Guid.Parse("a0000000-0000-4000-8000-000000000001"), SuggestionTypeDto.WriteAlternative, SpellingFix().Anchor, "x") with { GroupId = Guid.Empty };
         var alt2 = alt1 with { SuggestionId = Guid.Parse("a0000000-0000-4000-8000-000000000002") };
         board.Merge([DeviceIdea(), SpellingFix(), alt1, alt2, GrammarFix() with { Status = SuggestionStatusDto.Rejected }]);
 
@@ -122,15 +122,16 @@ public sealed class LyricAssistHelperTests
     }
 
     [Theory]
-    [InlineData(92, 4, 2, 1.5, true)]
-    [InlineData(39, 4, 2, 1.5, false)]
-    [InlineData(92, 8, 2, 1.5, false)]
-    [InlineData(92, 4, 9, 1.5, false)]
-    [InlineData(92, 4, 2, 1.3, false)]
-    [InlineData(92, 4, 2, 4.25, false)]
-    public void RhythmForm_ValidatesTheRanges(int bpm, int beats, int bars, double spb, bool valid)
+    [InlineData("92 4 2 1.5", true)]
+    [InlineData("39 4 2 1.5", false)]
+    [InlineData("92 8 2 1.5", false)]
+    [InlineData("92 4 9 1.5", false)]
+    [InlineData("92 4 2 1.3", false)]
+    [InlineData("92 4 2 4.25", false)]
+    public void RhythmForm_ValidatesTheRanges(string values, bool valid)
     {
-        var form = new RhythmForm(null) { Bpm = bpm, BeatsPerBar = beats, BarsPerLine = bars, SyllablesPerBeat = spb };
+        var v = values.Split(' ').Select(x => double.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        var form = new RhythmForm(null) { Bpm = (int)v[0], BeatsPerBar = (int)v[1], BarsPerLine = (int)v[2], SyllablesPerBeat = v[3] };
 
         (form.ToTarget() is not null, form.Problem is null).ShouldBe((valid, valid));
     }
@@ -144,14 +145,21 @@ public sealed class LyricAssistHelperTests
     }
 
     [Theory]
-    [InlineData(AssistKindDto.Check, 0, 0, null, null)]
-    [InlineData(AssistKindDto.Check, 10, 45, 2, 3)]
-    [InlineData(AssistKindDto.Devices, 45, 10, 2, 3)]
-    [InlineData(AssistKindDto.Alternatives, 45, 45, 3, 3)]
-    [InlineData(AssistKindDto.Continue, 10, 10, 2, 3)]
-    [InlineData(AssistKindDto.Titles, 10, 45, null, null)]
-    public void Range_FollowsTheKind(AssistKindDto kind, int start, int end, int? from, int? to) =>
-        EditorHost.Range(kind, Text, (start, end)).ShouldBe((from, to));
+    [InlineData(AssistKindDto.Check, "0-0", "")]
+    [InlineData(AssistKindDto.Check, "10-45", "2-3")]
+    [InlineData(AssistKindDto.Devices, "45-10", "2-3")]
+    [InlineData(AssistKindDto.Alternatives, "45-45", "3-3")]
+    [InlineData(AssistKindDto.Continue, "10-10", "2-3")]
+    [InlineData(AssistKindDto.Titles, "10-45", "")]
+    public void Range_FollowsTheKind(AssistKindDto kind, string selection, string lines)
+    {
+        var (start, end) = Pair(selection);
+        var range = EditorHost.Range(kind, Text, (start, end));
+
+        (range.From is null ? string.Empty : $"{range.From}-{range.To}").ShouldBe(lines);
+    }
+
+    private static (int, int) Pair(string text) => (int.Parse(text.Split('-')[0], System.Globalization.CultureInfo.InvariantCulture), int.Parse(text.Split('-')[1], System.Globalization.CultureInfo.InvariantCulture));
 
     [Fact]
     public async Task Host_SelectedText_TellsAWholeLine()
@@ -202,7 +210,10 @@ public sealed class LyricAssistHelperTests
         running.Percent.ShouldBe(0);
         var done = AssistRun.From(Assist(AssistStatusDto.Completed) with
         {
-            BlocksTotal = 0, Backend = null, StartedAt = DateTimeOffset.UnixEpoch, EndedAt = DateTimeOffset.UnixEpoch.AddSeconds(2),
+            BlocksTotal = 0,
+            Backend = null,
+            StartedAt = DateTimeOffset.UnixEpoch,
+            EndedAt = DateTimeOffset.UnixEpoch.AddSeconds(2),
         });
         (done.Percent, done.Backend, done.DurationMs).ShouldBe((100, null, 2000L));
     }

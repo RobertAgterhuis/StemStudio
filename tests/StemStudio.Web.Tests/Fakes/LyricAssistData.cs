@@ -98,7 +98,7 @@ public static class LyricAssistData
 
     /// <summary>The spelling suggestion "wiet" -> "weet" on line 2.</summary>
     public static LyricSuggestionDto SpellingFix(SuggestionStatusDto status = SuggestionStatusDto.Open) =>
-        Suggestion(Spelling, SuggestionCategoryDto.Spelling, SuggestionTypeDto.SpellingTypo, new AnchorDto { Line = 2, Start = 3, Length = 4, Original = "wiet" }, "weet") with
+        Suggestion(Spelling, SuggestionTypeDto.SpellingTypo, new AnchorDto { Line = 2, Start = 3, Length = 4, Original = "wiet" }, "weet") with
         {
             Severity = SuggestionSeverityDto.Error,
             Source = SuggestionSourceDto.Dictionary,
@@ -108,11 +108,11 @@ public static class LyricAssistData
 
     /// <summary>The grammar suggestion "zijn" -> "is" on line 3.</summary>
     public static LyricSuggestionDto GrammarFix() =>
-        Suggestion(Grammar, SuggestionCategoryDto.Grammar, SuggestionTypeDto.GrammarAgreement, new AnchorDto { Line = 3, Start = 9, Length = 4, Original = "zijn" }, "is");
+        Suggestion(Grammar, SuggestionTypeDto.GrammarAgreement, new AnchorDto { Line = 3, Start = 9, Length = 4, Original = "zijn" }, "is");
 
     /// <summary>The end-rhyme idea "warm" -> "zacht" on line 3 with syllables and the rhyme partner.</summary>
     public static LyricSuggestionDto DeviceIdea() =>
-        Suggestion(Device, SuggestionCategoryDto.Device, SuggestionTypeDto.DeviceEndRhyme, new AnchorDto { Line = 3, Start = 14, Length = 4, Original = "warm" }, "zacht") with
+        Suggestion(Device, SuggestionTypeDto.DeviceEndRhyme, new AnchorDto { Line = 3, Start = 14, Length = 4, Original = "warm" }, "zacht") with
         {
             Severity = SuggestionSeverityDto.Idea,
             SyllablesBefore = 7,
@@ -121,11 +121,11 @@ public static class LyricAssistData
         };
 
     /// <summary>A model suggestion.</summary>
-    public static LyricSuggestionDto Suggestion(Guid id, SuggestionCategoryDto category, SuggestionTypeDto type, AnchorDto anchor, string? proposal) => new()
+    public static LyricSuggestionDto Suggestion(Guid id, SuggestionTypeDto type, AnchorDto anchor, string? proposal) => new()
     {
         SuggestionId = id,
         AssistId = AssistId,
-        Category = category,
+        Category = CategoryOf(type),
         Type = type,
         Severity = SuggestionSeverityDto.Improvement,
         Anchor = anchor,
@@ -135,6 +135,15 @@ public static class LyricAssistData
         Source = SuggestionSourceDto.Model,
         Model = "qwen3.5:9b",
         Status = SuggestionStatusDto.Open,
+    };
+
+    /// <summary>The category of a type (its wire prefix; <c>write.*</c> maps to the writing-help categories).</summary>
+    public static SuggestionCategoryDto CategoryOf(SuggestionTypeDto type) => JsonSerializer.Serialize(type).Trim('"') switch
+    {
+        var t when t.StartsWith("write.alternative", StringComparison.Ordinal) => SuggestionCategoryDto.Alternative,
+        var t when t.StartsWith("write.continuation", StringComparison.Ordinal) => SuggestionCategoryDto.Continuation,
+        var t when t.StartsWith("write.", StringComparison.Ordinal) => SuggestionCategoryDto.Title,
+        var t => JsonSerializer.Deserialize<SuggestionCategoryDto>($"\"{t.Split('.')[0]}\""),
     };
 
     /// <summary>An assist snapshot.</summary>
@@ -162,11 +171,11 @@ public static class LyricAssistData
     };
 
     /// <summary>An accept (or undo) result.</summary>
-    public static AcceptResultDto Accepted(string text, int revision = 4, Guid[]? applied = null, Guid[]? stale = null, string title = "Zomeravond") => new()
+    public static AcceptResultDto Accepted(string text, int revision = 4, Guid[]? applied = null, Guid[]? stale = null) => new()
     {
         LyricsId = LyricsId,
         Revision = revision,
-        Title = title,
+        Title = "Zomeravond",
         Text = text,
         Assist = SheetAssistInfoDto.Default with { CanUndo = true, AssistedLines = [new AssistedLineDto { Line = 2, SuggestionId = Spelling }] },
         Applied = applied ?? [Spelling],

@@ -200,7 +200,7 @@
 .ss-assist-list {
   max-height: 28rem;
   overflow-y: auto;
-  scroll-padding-bottom: var(--ss-transport-height);
+  scroll-padding-bottom: calc(var(--ss-dock-inset, 0px) + var(--ss-space-2));
 }
 
 .ss-assist-list:focus-visible {
@@ -254,8 +254,10 @@
   width: 6rem;
 }
 
-.ss-assist-entry-actions .rz-button,
-.ss-assist .ss-chip {
+.ss-assist .rz-button,
+.ss-assist .ss-chip,
+.ss-assist input[type="radio"],
+.ss-assist input[type="checkbox"] {
   min-height: var(--ss-target-min);
   min-width: var(--ss-target-min);
 }

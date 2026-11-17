@@ -49,8 +49,8 @@ public sealed class LyricsApprovalDiffTests : PageTestContext
     [Fact]
     public void TitleRow_IsNamedTitle_AndInsertionsShowTheNewLines()
     {
-        var title = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Title, SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = "Zomeravond" }, "Zomernacht");
-        var cont = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Continuation, SuggestionTypeDto.WriteContinuation, new AnchorDto { Line = 3, Start = 0, Length = 0, Original = string.Empty }, null);
+        var title = Suggestion(Guid.NewGuid(), SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = "Zomeravond" }, "Zomernacht");
+        var cont = Suggestion(Guid.NewGuid(), SuggestionTypeDto.WriteContinuation, new AnchorDto { Line = 3, Start = 0, Length = 0, Original = string.Empty }, null);
         Api.ListLyricSuggestionsAsync(LyricsId, SuggestionStatusDto.Open, Arg.Any<CancellationToken>()).Returns(List(title, cont));
 
         var cut = Diff(Args(title.SuggestionId, cont.SuggestionId));

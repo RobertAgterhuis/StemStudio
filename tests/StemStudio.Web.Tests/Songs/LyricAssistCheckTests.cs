@@ -1,9 +1,9 @@
 using Bunit;
-using StemStudio.Web.Tests.Fakes;
 using NSubstitute;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Web.Experience;
+using StemStudio.Web.Tests.Fakes;
 using static StemStudio.Web.Tests.Fakes.LyricAssistData;
 
 namespace StemStudio.Web.Tests.Songs;

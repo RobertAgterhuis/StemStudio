@@ -30,11 +30,7 @@ public sealed class SyllableCounter(IStemStudioApiClient api, TimeProvider time)
         var cts = Replace();
         try
         {
-            if (wait)
-            {
-                await Task.Delay(Pause, time, cts.Token);
-            }
-
+            await Task.Delay(wait ? Pause : TimeSpan.Zero, time, cts.Token);
             Report = await api.CountSyllablesAsync(new SyllableRequest { Language = language, Text = text, RhythmTarget = target }, cts.Token);
             return true;
         }

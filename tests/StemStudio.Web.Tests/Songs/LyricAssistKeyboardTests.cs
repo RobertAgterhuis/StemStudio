@@ -164,15 +164,16 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
     }
 
     [Theory]
-    [InlineData("F8", false, false, false, SuggestionKey.Next)]
-    [InlineData("F8", false, false, true, SuggestionKey.Previous)]
-    [InlineData("Enter", true, false, false, SuggestionKey.Accept)]
-    [InlineData("Enter", false, false, false, SuggestionKey.None)]
-    [InlineData("Backspace", true, false, false, SuggestionKey.Reject)]
-    [InlineData("i", true, false, false, SuggestionKey.Intentional)]
-    [InlineData("Escape", false, false, false, SuggestionKey.Back)]
-    [InlineData("c", true, true, false, SuggestionKey.Check)]
-    [InlineData("c", false, true, false, SuggestionKey.None)]
-    public void Keys_MapAsTheContractSays(string key, bool alt, bool ctrl, bool shift, SuggestionKey expected) =>
-        SuggestionKeys.Of(Key(key, alt, ctrl, shift)).ShouldBe(expected);
+    [InlineData("F8", "", SuggestionKey.Next)]
+    [InlineData("F8", "shift", SuggestionKey.Previous)]
+    [InlineData("Enter", "alt", SuggestionKey.Accept)]
+    [InlineData("Enter", "", SuggestionKey.None)]
+    [InlineData("Backspace", "alt", SuggestionKey.Reject)]
+    [InlineData("i", "alt", SuggestionKey.Intentional)]
+    [InlineData("Escape", "", SuggestionKey.Back)]
+    [InlineData("c", "alt+ctrl", SuggestionKey.Check)]
+    [InlineData("c", "ctrl", SuggestionKey.None)]
+    public void Keys_MapAsTheContractSays(string key, string modifiers, SuggestionKey expected) =>
+        SuggestionKeys.Of(Key(key, modifiers.Contains("alt", StringComparison.Ordinal), modifiers.Contains("ctrl", StringComparison.Ordinal), modifiers.Contains("shift", StringComparison.Ordinal)))
+            .ShouldBe(expected);
 }

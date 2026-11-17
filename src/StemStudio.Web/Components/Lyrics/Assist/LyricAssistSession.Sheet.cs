@@ -56,13 +56,14 @@ public sealed partial class LyricAssistSession
         var body = new OwnWorkConfirmRequest { MatchedTrackId = track, ConfirmedBy = name.Trim(), StatementVersion = statementVersion, Confirm = true };
         var (confirmed, error) = await ApiCall.TryAsync(() => api.ConfirmOwnWorkAsync(Document.Id, body));
         Error = error;
-        if (confirmed is not null)
-        {
-            Document.SetAssist(Document.Assist with { OwnWorkOverride = confirmed });
-            (Refusal, Live) = (null, "Own work confirmed");
-        }
+        return confirmed is not null && Confirmed(confirmed);
+    }
 
-        return confirmed is not null;
+    private bool Confirmed(OwnWorkOverrideDto confirmed)
+    {
+        Document.SetAssist(Document.Assist with { OwnWorkOverride = confirmed });
+        (Refusal, Live) = (null, "Own work confirmed");
+        return true;
     }
 
     /// <summary>Revokes the own-work override.</summary>

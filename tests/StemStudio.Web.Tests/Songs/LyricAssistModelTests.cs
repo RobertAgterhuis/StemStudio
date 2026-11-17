@@ -65,7 +65,13 @@ public sealed class LyricAssistModelTests : LyricEditorTestContext
     {
         Stream((LyricAssistEventTypes.Started, new LyricAssistStartedEventDto
         {
-            AssistId = AssistId, Layers = [], Backend = "ollama", Model = "qwen3.5:4b", UsingFallback = true, BlocksTotal = 5, EstimatedSeconds = 119.2,
+            AssistId = AssistId,
+            Layers = [],
+            Backend = "ollama",
+            Model = "qwen3.5:4b",
+            UsingFallback = true,
+            BlocksTotal = 5,
+            EstimatedSeconds = 119.2,
         }));
         Api.GetLyricAssistAsync(AssistId, Arg.Any<CancellationToken>()).Returns(Assist(AssistStatusDto.Running) with { Model = "qwen3.5:4b", UsingFallback = true, EstimatedSeconds = 119.2 });
         var page = Open(ExperienceLevel.Advanced);

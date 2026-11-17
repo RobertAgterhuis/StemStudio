@@ -128,29 +128,35 @@ public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorD
         }
         catch (ApiException ex)
         {
-            // A conflict must not reload: that would throw the user's unsaved text away.
-            Error = ex.Error.Code == LyricAssistProblemTypes.RevisionConflict
-                ? "The lyrics were saved in another tab. Copy your changes, reload the page and paste them again."
-                : ex.Error.UserMessage;
+            Error = SaveProblem(ex.Error);
             return false;
         }
     }
+
+    // A conflict must not reload: that would throw the user's unsaved text away.
+    private static string SaveProblem(ApiError error) => error.Code == LyricAssistProblemTypes.RevisionConflict
+        ? "The lyrics were saved in another tab. Copy your changes, reload the page and paste them again."
+        : error.UserMessage;
 
     private async Task CreateAsync(AssistRequest request)
     {
         try
         {
-            var assist = await api.CreateLyricAssistAsync(Document.Id, ToBody(request));
-            (Refusal, Error) = (null, null);
-            Run = AssistRun.From(assist);
-            Board.Merge(assist.Suggestions);
-            Live = AssistText.Started(request.Kind, SheetText.Lines(Document.Text).Length);
-            Follow();
+            Begin(request, await api.CreateLyricAssistAsync(Document.Id, ToBody(request)));
         }
         catch (ApiException ex)
         {
             await RefuseAsync(request, ex.Error);
         }
+    }
+
+    private void Begin(AssistRequest request, LyricAssistDto assist)
+    {
+        (Refusal, Error) = (null, null);
+        Run = AssistRun.From(assist);
+        Board.Merge(assist.Suggestions);
+        Live = AssistText.Started(request.Kind, SheetText.Lines(Document.Text).Length);
+        Follow();
     }
 
     private CreateLyricAssistRequest ToBody(AssistRequest request) => new()
@@ -207,15 +213,17 @@ public sealed partial class LyricAssistSession(IStemStudioApiClient api, EditorD
         }
 
         run.Apply(e);
-        Live = e.Type switch
-        {
-            LyricAssistEventTypes.Completed => AssistText.Finished(run.Kind, run.Counts),
-            LyricAssistEventTypes.Failed => run.Failure!.Message,
-            LyricAssistEventTypes.Cancelled => $"{AssistText.KindName(run.Kind)} cancelled",
-            _ => Live,
-        };
+        Live = LiveAfter(run, e.Type);
         Changed?.Invoke();
     }
+
+    private string LiveAfter(AssistRun run, string type) => type switch
+    {
+        LyricAssistEventTypes.Completed => AssistText.Finished(run.Kind, run.Counts),
+        LyricAssistEventTypes.Failed => run.Failure!.Message,
+        LyricAssistEventTypes.Cancelled => $"{AssistText.KindName(run.Kind)} cancelled",
+        _ => Live,
+    };
 
     private async Task ReconcileAsync(AssistRun run)
     {

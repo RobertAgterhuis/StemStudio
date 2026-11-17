@@ -1,9 +1,9 @@
 @* Intentional marks of the sheet (FR-011; Advanced): list, remove, and "Mark selection as intentional". *@
-@inherits AssistPart
+@inherits AssistTogglePart
 
-<RadzenButton Text="Intentional marks" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(_open ? "true" : "false")"
+<RadzenButton Text="Intentional marks" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(IsOpen ? "true" : "false")"
               Click="ToggleAsync" data-testid="lyric-marks-open" data-help-id="lyric-assist-licence" />
-@if (_open)
+@if (IsOpen)
 {
     <div class="ss-assist-panel" role="group" aria-label="Intentional marks">
         <RadzenButton Text="Mark selection as intentional" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
@@ -27,16 +27,8 @@
 }
 
 @code {
-    private bool _open;
-
-    private async Task ToggleAsync()
-    {
-        _open = !_open;
-        if (_open)
-        {
-            await RunAsync(s => s.LoadMarksAsync());
-        }
-    }
+    /// <inheritdoc />
+    protected override Task LoadAsync(LyricAssistSession session) => session.LoadMarksAsync();
 
     private Task MarkSelectionAsync() => RunAsync(async s =>
     {

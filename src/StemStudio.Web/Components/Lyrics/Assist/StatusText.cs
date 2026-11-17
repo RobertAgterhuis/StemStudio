@@ -11,14 +11,14 @@ public static class StatusText
     /// <param name="status">The status.</param>
     /// <param name="run">The newest assist, or null.</param>
     /// <returns>The line.</returns>
-    public static string Layers(LyricAssistStatusDto status, AssistRun? run)
-    {
-        var model = run?.Model ?? status.Model.ActiveModel;
-        var backend = status.Model.Backend;
-        var right = backend == AgentBackendDto.None || model is null ? "off" : $"{model}, {Where(backend)}";
-        var fallback = (run?.UsingFallback ?? status.Model.UsingFallback) ? Fallback(run?.EstimatedSeconds) : string.Empty;
-        return $"Spelling: {status.Dictionary.Name} - grammar and flow: {right}{fallback}";
-    }
+    public static string Layers(LyricAssistStatusDto status, AssistRun? run) =>
+        $"Spelling: {status.Dictionary.Name} - grammar and flow: {ModelText(status.Model.Backend, run?.Model ?? status.Model.ActiveModel)}{FallbackText(status, run)}";
+
+    private static string ModelText(AgentBackendDto backend, string? model) =>
+        backend == AgentBackendDto.None || model is null ? "off" : $"{model}, {Where(backend)}";
+
+    private static string FallbackText(LyricAssistStatusDto status, AssistRun? run) =>
+        (run?.UsingFallback ?? status.Model.UsingFallback) ? Fallback(run?.EstimatedSeconds) : string.Empty;
 
     /// <summary>Why the assistant (or a part of it) is unavailable, with the fix, or null.</summary>
     /// <param name="session">The session.</param>

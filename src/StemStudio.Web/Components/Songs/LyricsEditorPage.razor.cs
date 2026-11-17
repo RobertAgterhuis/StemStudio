@@ -126,16 +126,20 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
         if (Problem is null)
         {
             Saving = true;
-            try
-            {
-                Document.Load(await Api.UpdateLyricsSheetAsync(Document.Id, Document.ToInput()));
-            }
-            catch (ApiException ex)
-            {
-                Problem = FieldProblem.From(ex.Error, conflictField: "text");
-            }
-
+            await SendAsync(Document);
             Saving = false;
+        }
+    }
+
+    private async Task SendAsync(EditorDocument document)
+    {
+        try
+        {
+            document.Load(await Api.UpdateLyricsSheetAsync(document.Id, document.ToInput()));
+        }
+        catch (ApiException ex)
+        {
+            Problem = FieldProblem.From(ex.Error, conflictField: "text");
         }
     }
 

@@ -9,6 +9,17 @@ namespace StemStudio.Web.Components.Lyrics.Assist;
 /// </summary>
 public sealed class AssistRun
 {
+    private static readonly Dictionary<string, Action<AssistRun, LyricAssistEvent>> Handlers = new(StringComparer.Ordinal)
+    {
+        [LyricAssistEventTypes.Started] = (run, e) => run.Started(e.Read<LyricAssistStartedEventDto>()),
+        [LyricAssistEventTypes.Progress] = (run, e) => run.Progress(e.Read<LyricAssistProgressEventDto>()),
+        [LyricAssistEventTypes.Note] = (run, e) => run._notes.Add(e.Read<LyricAssistNoteEventDto>()),
+        [LyricAssistEventTypes.UsageUpdated] = (run, e) => run.Usage = e.Read<TokenUsageDto>(),
+        [LyricAssistEventTypes.Completed] = (run, e) => run.Completed(e.Read<LyricAssistCompletedEventDto>()),
+        [LyricAssistEventTypes.Failed] = (run, e) => run.Failed(e.Read<LyricAssistFailedEventDto>()),
+        [LyricAssistEventTypes.Cancelled] = (run, _) => run.Status = AssistStatusDto.Cancelled,
+    };
+
     private readonly List<LyricAssistNoteEventDto> _notes = [];
 
     /// <summary>The assist.</summary>
@@ -92,15 +103,9 @@ public sealed class AssistRun
     /// <param name="e">The event.</param>
     public void Apply(LyricAssistEvent e)
     {
-        switch (e.Type)
+        if (Handlers.TryGetValue(e.Type, out var handle))
         {
-            case LyricAssistEventTypes.Started: Started(e.Read<LyricAssistStartedEventDto>()); break;
-            case LyricAssistEventTypes.Progress: Progress(e.Read<LyricAssistProgressEventDto>()); break;
-            case LyricAssistEventTypes.Note: _notes.Add(e.Read<LyricAssistNoteEventDto>()); break;
-            case LyricAssistEventTypes.UsageUpdated: Usage = e.Read<TokenUsageDto>(); break;
-            case LyricAssistEventTypes.Completed: Completed(e.Read<LyricAssistCompletedEventDto>()); break;
-            case LyricAssistEventTypes.Failed: Failed(e.Read<LyricAssistFailedEventDto>()); break;
-            case LyricAssistEventTypes.Cancelled: Status = AssistStatusDto.Cancelled; break;
+            handle(this, e);
         }
     }
 

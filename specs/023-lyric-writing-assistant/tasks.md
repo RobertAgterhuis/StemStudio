@@ -79,8 +79,8 @@ test and coverage output.
 
 ### frontend
 
-- [ ] T022 [P] [frontend] Failing bUnit tests of the pane shell in the 010 editor: `lyric-assist-pane`/`-toggle`, status from `GET /api/lyric-assist/status` (layers line, unavailable reasons, quality note), journey-level visibility per the ui-ids table, language guess for `unknown`, unsupported language disabled with reason, help links (FR-001, FR-027, FR-029, FR-030)
-- [ ] T023 [frontend] Implement T022 in `src/StemStudio.Web/Components/Lyrics/Assist/` and the API client (`StemStudioApiClient.LyricAssist.cs`)
+- [x] T022 [P] [frontend] Failing bUnit tests of the pane shell in the 010 editor: `lyric-assist-pane`/`-toggle`, status from `GET /api/lyric-assist/status` (layers line, unavailable reasons, quality note), journey-level visibility per the ui-ids table, language guess for `unknown`, unsupported language disabled with reason, help links (FR-001, FR-027, FR-029, FR-030)
+- [x] T023 [frontend] Implement T022 in `src/StemStudio.Web/Components/Lyrics/Assist/` and the API client (`StemStudioApiClient.LyricAssist.cs`)
 
 ### qa
 
@@ -98,10 +98,10 @@ test and coverage output.
 - [ ] T030 [US1] [backend] Implement T029 (`SuggestionService`, `LyricsRevisionService`, endpoints)
 - [ ] T031 [P] [US1] [ai-agent] Failing tests `LyricAssistant.RunAsync` for `kind: check`: blocks sequential, dictionary misses classified by the model (`misses`), per-block streaming to the sink, progress, notes (block skipped, fallback model), counts and discarded counters, cancellation between blocks, adversarial fake (injection items, fake anchors, oversize text) never produces an invalid suggestion (FR-021, SC-003, SC-005)
 - [ ] T032 [US1] [ai-agent] Implement T031
-- [ ] T033 [P] [US1] [frontend] Failing bUnit tests: Check (saves unsaved changes first), progress, streamed suggestions into `lyric-assist-list`, highlights overlay (`lyric-highlight-*`, underline style per category, not colour only), accept / reject / mark intentional (scope menu) / add to my words, accept all for the filter, undo, stale and `revision-conflict` handling (reload + re-anchor), provenance markers, sensitivity radios, category filters, marks and words lists (FR-005 - FR-012, FR-024)
-- [ ] T034 [US1] [frontend] Implement T033
-- [ ] T035 [P] [US1] [frontend] Failing bUnit tests keyboard and screen reader: F8/Shift+F8, Alt+Enter, Alt+Backspace, Alt+I, Escape, Ctrl+Alt+C; `role=listbox/option`, `aria-activedescendant`; live-region texts of ui-test-ids.delta.md (FR-028, SC-008)
-- [ ] T036 [US1] [frontend] Implement T035
+- [x] T033 [P] [US1] [frontend] Failing bUnit tests: Check (saves unsaved changes first), progress, streamed suggestions into `lyric-assist-list`, highlights overlay (`lyric-highlight-*`, underline style per category, not colour only), accept / reject / mark intentional (scope menu) / add to my words, accept all for the filter, undo, stale and `revision-conflict` handling (reload + re-anchor), provenance markers, sensitivity radios, category filters, marks and words lists (FR-005 - FR-012, FR-024)
+- [x] T034 [US1] [frontend] Implement T033
+- [x] T035 [P] [US1] [frontend] Failing bUnit tests keyboard and screen reader: F8/Shift+F8, Alt+Enter, Alt+Backspace, Alt+I, Escape, Ctrl+Alt+C; `role=listbox/option`, `aria-activedescendant`; live-region texts of ui-test-ids.delta.md (FR-028, SC-008)
+- [x] T036 [US1] [frontend] Implement T035
 - [ ] T037 [P] [US1] [qa] Failing Playwright `e2e/lyric-assist.spec.ts` "check": quickstart Q1 and Q2 on the fake stack (Dutch sheet; licences untouched at balanced, notes at strict; accept, accept all, undo, intentional mark respected, my words respected)
 
 ## Phase 3: User Story 2 - Devices and proposed poetic licence (P1)
@@ -110,8 +110,8 @@ test and coverage output.
 - [ ] T039 [US2] [backend] Implement T038
 - [ ] T040 [P] [US2] [ai-agent] Failing tests `kind: devices`: device and licence types only, instruction passed, rhyme claims verified through the Domain rhyme key (wrong ones dropped as `failedVerification`), syllable before/after computed by the counter (claims ignored), target-aware prompt (FR-013, FR-014, SC-002)
 - [ ] T041 [US2] [ai-agent] Implement T040
-- [ ] T042 [P] [US2] [frontend] Failing bUnit tests: Suggest devices, selection-scoped requests, device/licence type labels, syllables before -> after, rhyme partner shown, rhythm target form and syllable gutter (`lyric-syllables-<n>` with `data-deviates`, updates after a typing pause through `POST /api/lyric-assist/syllables`), density line (FR-013, FR-017)
-- [ ] T043 [US2] [frontend] Implement T042
+- [x] T042 [P] [US2] [frontend] Failing bUnit tests: Suggest devices, selection-scoped requests, device/licence type labels, syllables before -> after, rhyme partner shown, rhythm target form and syllable gutter (`lyric-syllables-<n>` with `data-deviates`, updates after a typing pause through `POST /api/lyric-assist/syllables`), density line (FR-013, FR-017)
+- [x] T043 [US2] [frontend] Implement T042
 - [ ] T044 [P] [US2] [qa] Playwright "devices": quickstart Q3 steps 1-2
 
 ## Phase 4: User Story 3 - Writing help (P2)
@@ -122,8 +122,8 @@ test and coverage output.
 - [ ] T048 [US3] [backend] Implement T047
 - [ ] T049 [P] [US3] [ai-agent] Failing tests writing kinds: alternatives (1-5, one group), continuation (1-4 lines, LF), titles (<= 5, 1-80 chars), temperature 0.8, every generated text passed through the verbatim guard port before the sink (FR-015, FR-023)
 - [ ] T050 [US3] [ai-agent] Implement T049
-- [ ] T051 [P] [US3] [frontend] Failing bUnit tests: Alternatives (count), Continue, Title ideas (sets the title as one undo step), instruction field, rhyme finder panel (insert at cursor), withheld counter, not-own refusal, imitation refusal message (FR-015, FR-016, FR-022, FR-023)
-- [ ] T052 [US3] [frontend] Implement T051
+- [x] T051 [P] [US3] [frontend] Failing bUnit tests: Alternatives (count), Continue, Title ideas (sets the title as one undo step), instruction field, rhyme finder panel (insert at cursor), withheld counter, not-own refusal, imitation refusal message (FR-015, FR-016, FR-022, FR-023)
+- [x] T052 [US3] [frontend] Implement T051
 - [ ] T053 [P] [US3] [qa] Playwright "writing help" and "guardrails": quickstart Q3 steps 3-6 and Q5
 
 ## Phase 5: User Story 4 - Agent (P2)
@@ -132,16 +132,16 @@ test and coverage output.
 - [ ] T055 [US4] [ai-agent] Implement T054 (provider, loopback `ILyricAssistActions` port, policy rule, eval-set JSON cases 31-35 + S4)
 - [ ] T056 [P] [US4] [backend] Failing tests loopback actions for the 8 tools (`LoopbackLyricAssistActions`), and `POST /api/songs` snapshot `assistedLineCount` + take details (FR-024)
 - [ ] T057 [US4] [backend] Implement T056
-- [ ] T058 [P] [US4] [frontend] Failing bUnit tests: panel context sends `lyricsId` on `/lyrics/{id}`; `open_lyrics_editor` UI handler (`?assist=` opens the pane); approval card diff `agent-approval-lyrics-diff-*` rendered from the stored suggestions; take details `take-lyrics-assisted` (FR-018, FR-024)
-- [ ] T059 [US4] [frontend] Implement T058
+- [x] T058 [P] [US4] [frontend] Failing bUnit tests: panel context sends `lyricsId` on `/lyrics/{id}`; `open_lyrics_editor` UI handler (`?assist=` opens the pane); approval card diff `agent-approval-lyrics-diff-*` rendered from the stored suggestions; take details `take-lyrics-assisted` (FR-018, FR-024)
+- [x] T059 [US4] [frontend] Implement T058
 - [ ] T060 [P] [US4] [qa] Playwright "agent": quickstart Q4 with the scripted agent backend (no text in the tool log; approval reject/approve; undo)
 
 ## Phase 6: User Story 5 - Local, honest, degraded (P1)
 
 - [ ] T061 [P] [US5] [backend] Failing tests: `GET /api/lyric-assist/status` mirrors 011 status (none, Ollama down, model missing, fallback), `PUT /api/lyric-assist/settings` notice versioning, `claude-notice-required` before any Claude call, Check with no model runs the dictionary layer and lists the model layer unavailable, failing outbound handler records 0 requests in every assistant endpoint test (FR-025 - FR-027, SC-006)
 - [ ] T062 [US5] [backend] Implement T061
-- [ ] T063 [P] [US5] [frontend] Failing bUnit tests: Claude notice dialog (ack/cancel; nothing sent on cancel), disabled writing buttons with reason when the model is unavailable, fallback badge and estimate, usage line (Advanced), assist log (Expert), revision list (Expert) (FR-026, FR-027, FR-029)
-- [ ] T064 [US5] [frontend] Implement T063
+- [x] T063 [P] [US5] [frontend] Failing bUnit tests: Claude notice dialog (ack/cancel; nothing sent on cancel), disabled writing buttons with reason when the model is unavailable, fallback badge and estimate, usage line (Advanced), assist log (Expert), revision list (Expert) (FR-026, FR-027, FR-029)
+- [x] T064 [US5] [frontend] Implement T063
 - [ ] T065 [P] [US5] [qa] Playwright "local-only": quickstart Q6 (backend none; fake Claude notice) with the outbound-request recorder
 
 ---
@@ -150,8 +150,8 @@ test and coverage output.
 
 - [ ] T074 [P] [US6] [backend] Failing tests: `PUT /api/lyrics/{id}/own-work-override` (statement version must be current, name 1-80, `confirm: true`, `matchedTrackId` must be a current match else `409 override-not-applicable`, no match at all -> `409 override-not-applicable`), `DELETE` revokes (204; 404 when none), sheet guard allows only when every matching track equals the override's track (a second track -> `not-own-lyrics` again), the override never disables `VerbatimGuard` (fixture 9-word run still withheld) nor `imitation`, `SheetAssistInfo.ownWorkOverride` in sheet responses, the `not-own-lyrics` problem carries `matchedTrackId` and `overridable`, the override is deleted with the sheet (FR-031, SC-005)
 - [ ] T075 [US6] [backend] Implement T074 (`OwnWorkOverride` owned type in the `AddLyricAssist` migration, `OwnWorkOverrideService`, endpoints, guard change)
-- [ ] T076 [P] [US6] [frontend] Failing bUnit tests: `lyric-assist-own-work-open` on the refusal, dialog (statement text and version from `GET /api/lyric-assist/settings`, matched track, name, tick box; confirm enabled only when both are set; cancel sends nothing), badge `lyric-own-work-badge` with name/date/track, revoke with confirm, refusal shown again after revoke, keyboard and screen-reader labels; no override control in the agent panel (FR-031, FR-028)
-- [ ] T077 [US6] [frontend] Implement T076
+- [x] T076 [P] [US6] [frontend] Failing bUnit tests: `lyric-assist-own-work-open` on the refusal, dialog (statement text and version from `GET /api/lyric-assist/settings`, matched track, name, tick box; confirm enabled only when both are set; cancel sends nothing), badge `lyric-own-work-badge` with name/date/track, revoke with confirm, refusal shown again after revoke, keyboard and screen-reader labels; no override control in the agent panel (FR-031, FR-028)
+- [x] T077 [US6] [frontend] Implement T076
 - [ ] T078 [P] [US6] [qa] Playwright "own-work override": quickstart Q5 steps 4-7 (refused -> confirm -> runs; verbatim still withheld; imitation still refused; revoke -> refused again) and agent case S5 (no override tool) on the fake stack
 
 ## Phase 7: Evaluation, polish, review (wave 2)
@@ -162,7 +162,7 @@ test and coverage output.
 - [ ] T069 [P] [devops] Fake stack: mount `e2e/lyric-scripts/` and set `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` in the E2E compose override and the non-Docker E2E script; CI job keeps no Ollama/Claude; image size check after vendored dictionaries (< +15 MB)
 - [ ] T070 [qa] Run the full E2E suite green on the fake stack (T037, T044, T053, T060, T065) + axe; one manual NVDA pass recorded (quickstart Q9); audit the owners' coverage evidence (>= 90 % line and branch per component)
 - [ ] T071 [P] [quality-gate] SIG and static analysis over the 023 paths (unit size, complexity, parameters, duplication, dependency direction Web -> API client -> API -> {Agent, Domain, Persistence}; Domain has no package dependency); Sonar config includes the new paths; refactor requests to owners
-- [ ] T072 [P] [frontend] Help topic texts (6 topics, ui-test-ids.delta.md) and the docs impact notes for the user manual chapter "Lyric assistant"
+- [x] T072 [P] [frontend] Help topic texts (6 topics, ui-test-ids.delta.md) and the docs impact notes for the user manual chapter "Lyric assistant"
 - [ ] T080 [CTO] **Decision point LanguageTool** (owner decision Q2, 2026-11-16: no for now): after T068, if Dutch grammar recall of `qwen3.5:9b` on the lyric suite is below 60 %, present the optional local LanguageTool service (LGPL-2.1, Java, ~1 GB RAM, compose profile off by default) to the owner as a separate follow-up with its own ADR note; otherwise record "closed" in CTO-DECISIONS
 - [ ] T073 [CTO] Integration: merge lanes, `docs/public` user and technical manual updates (assistant, privacy, dictionaries, eval suite), PDFs regenerated, THIRD-PARTY-LICENSES (research R-10), STATUS; owner checks quickstart Q8/Q10; owner answers Q1-Q3 recorded
 

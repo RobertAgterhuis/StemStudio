@@ -1,10 +1,10 @@
 using Bunit;
-using StemStudio.Web.Tests.Fakes;
 using Microsoft.AspNetCore.Components;
 using NSubstitute;
 using StemStudio.Contracts.LyricAssist;
 using StemStudio.Web.Components.Lyrics.Assist;
 using StemStudio.Web.Experience;
+using StemStudio.Web.Tests.Fakes;
 using static StemStudio.Web.Tests.Fakes.LyricAssistData;
 
 namespace StemStudio.Web.Tests.Songs;
@@ -42,7 +42,7 @@ public sealed class LyricAssistWritingTests : LyricEditorTestContext
     [Fact]
     public void LicenceType_IsNamedAsPoeticLicence()
     {
-        var elision = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Licence, SuggestionTypeDto.LicenceElision, new AnchorDto { Line = 2, Start = 0, Length = 2, Original = "Ik" }, "'k");
+        var elision = Suggestion(Guid.NewGuid(), SuggestionTypeDto.LicenceElision, new AnchorDto { Line = 2, Start = 0, Length = 2, Original = "Ik" }, "'k");
 
         var page = Checked(ExperienceLevel.Beginner, elision);
 
@@ -82,8 +82,8 @@ public sealed class LyricAssistWritingTests : LyricEditorTestContext
     [Fact]
     public void Continuation_And_Title_ShowWhatTheyChange()
     {
-        var more = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Continuation, SuggestionTypeDto.WriteContinuation, new AnchorDto { Line = 3, Start = 0, Length = 0, Original = string.Empty }, "En verder") with { Operation = SuggestionOperationDto.InsertAfter };
-        var title = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Title, SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = string.Empty }, "Zomernacht") with { Operation = SuggestionOperationDto.SetTitle };
+        var more = Suggestion(Guid.NewGuid(), SuggestionTypeDto.WriteContinuation, new AnchorDto { Line = 3, Start = 0, Length = 0, Original = string.Empty }, "En verder") with { Operation = SuggestionOperationDto.InsertAfter };
+        var title = Suggestion(Guid.NewGuid(), SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = string.Empty }, "Zomernacht") with { Operation = SuggestionOperationDto.SetTitle };
 
         var page = Checked(ExperienceLevel.Beginner, more, title);
 
@@ -96,8 +96,8 @@ public sealed class LyricAssistWritingTests : LyricEditorTestContext
     [Fact]
     public async Task AcceptingATitle_SetsTheTitleField()
     {
-        var title = Suggestion(Guid.NewGuid(), SuggestionCategoryDto.Title, SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = string.Empty }, "Zomernacht") with { Operation = SuggestionOperationDto.SetTitle };
-        Api.AcceptLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(Accepted(Text, applied: [title.SuggestionId], title: "Zomernacht"));
+        var title = Suggestion(Guid.NewGuid(), SuggestionTypeDto.WriteTitle, new AnchorDto { Line = 0, Start = 0, Length = 0, Original = string.Empty }, "Zomernacht") with { Operation = SuggestionOperationDto.SetTitle };
+        Api.AcceptLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(Accepted(Text, applied: [title.SuggestionId]) with { Title = "Zomernacht" });
         var page = Checked(ExperienceLevel.Beginner, title);
 
         await page.Find(Id($"lyric-suggestion-accept-{title.SuggestionId}")).ClickAsync(new());

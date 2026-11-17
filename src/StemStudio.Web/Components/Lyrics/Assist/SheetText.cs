@@ -56,18 +56,8 @@ public static class SheetText
     public static string? WordAt(string text, int offset)
     {
         var at = Math.Clamp(offset, 0, text.Length);
-        var start = at;
-        while (start > 0 && IsWordChar(text[start - 1]))
-        {
-            start--;
-        }
-
-        var end = at;
-        while (end < text.Length && IsWordChar(text[end]))
-        {
-            end++;
-        }
-
+        var start = at - text[..at].Reverse().TakeWhile(IsWordChar).Count();
+        var end = at + text[at..].TakeWhile(IsWordChar).Count();
         var word = text[start..end].Trim('\'');
         return word.Length == 0 ? null : word;
     }

@@ -45,22 +45,24 @@ public sealed class NavigationUiTools(NavigationManager navigation, HelpContext 
     {
         try
         {
-            return UiToolResult.Done(tool switch
-            {
-                "open_track" => Go($"tracks/{arguments.RequiredId("trackId")}"),
-                "open_mixer" => OpenMixer(arguments.RequiredId("trackId"), arguments.Id("mixId")),
-                "navigate" => Navigate(arguments.RequiredText("page")),
-                "open_help" => await OpenHelpAsync(arguments.RequiredText("topicId")),
-                "open_library_folder" => OpenFolder(EditorRoutes.LibraryFolder(arguments.Text("folderId"), arguments.Text("query"))),
-                "open_lyrics_editor" => Go(EditorRoutes.LyricsEditor(arguments.RequiredId("lyricsId"), arguments.Id("assistId"))),
-                _ => SearchHelp(arguments.RequiredText("query")),
-            });
+            return UiToolResult.Done(await RunAsync(tool, arguments));
         }
         catch (UiToolException ex)
         {
             return UiToolResult.Fail(ex.Message);
         }
     }
+
+    private async Task<object> RunAsync(string tool, UiToolArguments arguments) => tool switch
+    {
+        "open_track" => Go($"tracks/{arguments.RequiredId("trackId")}"),
+        "open_mixer" => OpenMixer(arguments.RequiredId("trackId"), arguments.Id("mixId")),
+        "navigate" => Navigate(arguments.RequiredText("page")),
+        "open_help" => await OpenHelpAsync(arguments.RequiredText("topicId")),
+        "open_library_folder" => OpenFolder(EditorRoutes.LibraryFolder(arguments.Text("folderId"), arguments.Text("query"))),
+        "open_lyrics_editor" => Go(EditorRoutes.LyricsEditor(arguments.RequiredId("lyricsId"), arguments.Id("assistId"))),
+        _ => SearchHelp(arguments.RequiredText("query")),
+    };
 
     private object Go(string path)
     {
