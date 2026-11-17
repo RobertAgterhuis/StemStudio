@@ -21,6 +21,20 @@ function sourceFrame(take: MappedTake, index: number): number {
   return Math.round((take.channels[0]?.[index] ?? Number.NaN) * 2 ** 24);
 }
 
+/** The first take (fails the test when there is none). */
+function first(takes: readonly MappedTake[]): MappedTake {
+  const [take] = takes;
+  if (take === undefined) {
+    throw new Error('no take');
+  }
+  return take;
+}
+
+/** Sample `index` of channel `channel`. */
+function sample(take: MappedTake, channel: number, index: number): number | undefined {
+  return take.channels[channel]?.[index];
+}
+
 function input(partial: Partial<CaptureMapInput> & Pick<CaptureMapInput, 'capture' | 'segments'>): CaptureMapInput {
   return { loop: null, compensation: 0, stopFrame: Infinity, trackSamples: 600 * SR, ...partial };
 }
@@ -45,16 +59,16 @@ describe('mapCaptureToTakes without loop', () => {
 
   it('applies the compensation: a larger C takes later frames for the same song samples', () => {
     const capture = ramp(0, 10 * SR);
-    const [a] = mapCaptureToTakes(input({ capture, segments: [open(SR, 2 * SR)], compensation: 0, stopFrame: 3 * SR }));
-    const [b] = mapCaptureToTakes(input({ capture, segments: [open(SR, 2 * SR)], compensation: 4410, stopFrame: 3 * SR }));
-    expect([a?.startSample, b?.startSample]).toEqual([2 * SR, 2 * SR]);
-    expect([sourceFrame(a as MappedTake, 0), sourceFrame(b as MappedTake, 0)]).toEqual([SR, SR + 4410]);
+    const a = first(mapCaptureToTakes(input({ capture, segments: [open(SR, 2 * SR)], compensation: 0, stopFrame: 3 * SR })));
+    const b = first(mapCaptureToTakes(input({ capture, segments: [open(SR, 2 * SR)], compensation: 4410, stopFrame: 3 * SR })));
+    expect([a.startSample, b.startSample]).toEqual([2 * SR, 2 * SR]);
+    expect([sourceFrame(a, 0), sourceFrame(b, 0)]).toEqual([SR, SR + 4410]);
   });
 
   it('drops frames before the play start (count-in, negative song time)', () => {
     const capture = ramp(0, 6 * SR);
-    const [take] = mapCaptureToTakes(input({ capture, segments: [open(3 * SR, 0)], stopFrame: 4 * SR }));
-    expect([take?.startSample, take?.lengthSamples, sourceFrame(take as MappedTake, 0)]).toEqual([0, SR, 3 * SR]);
+    const take = first(mapCaptureToTakes(input({ capture, segments: [open(3 * SR, 0)], stopFrame: 4 * SR })));
+    expect([take.startSample, take.lengthSamples, sourceFrame(take, 0)]).toEqual([0, SR, 3 * SR]);
   });
 
   it('starts later in the song when the capture begins after the play start', () => {
@@ -79,7 +93,9 @@ describe('mapCaptureToTakes without loop', () => {
     const capture = ramp(0, 4 * SR);
     expect(mapCaptureToTakes(input({ capture, segments: [open(3 * SR, 0)], stopFrame: 2 * SR }))).toEqual([]);
     expect(mapCaptureToTakes(input({ capture, segments: [] }))).toEqual([]);
-    expect(mapCaptureToTakes(input({ capture: new CaptureBuffer(1), segments: [open(0, 0)], stopFrame: SR }))).toEqual([]);
+    const empty = new CaptureBuffer(1);
+    expect([empty.firstFrame, empty.endFrame, empty.empty]).toEqual([0, 0, true]);
+    expect(mapCaptureToTakes(input({ capture: empty, segments: [open(0, 0)], stopFrame: SR }))).toEqual([]);
   });
 });
 
@@ -137,14 +153,14 @@ describe('mapCaptureToTakes with loop passes', () => {
 describe('frame gaps', () => {
   it('fills a gap in the frame stamps with zeros and counts it as a dropout of the take it falls in', () => {
     const capture = new CaptureBuffer(2);
-    const block = (frame: number, length: number): Float32Array[] => [new Float32Array(length).fill(0.5), new Float32Array(length).fill(-0.5)];
-    capture.append(0, block(0, SR));
-    capture.append(SR + 100, block(SR + 100, SR));
-    capture.append(2 * SR + 300, block(2 * SR + 300, SR));
+    const block = (length: number): Float32Array[] => [new Float32Array(length).fill(0.5), new Float32Array(length).fill(-0.5)];
+    capture.append(0, block(SR));
+    capture.append(SR + 100, block(SR));
+    capture.append(2 * SR + 300, block(SR));
     expect([capture.firstFrame, capture.endFrame, capture.gaps]).toEqual([0, 3 * SR + 300, 2]);
-    const [take] = mapCaptureToTakes(input({ capture, segments: [open(0, 0)], stopFrame: 3 * SR }));
-    expect([take?.dropouts, take?.channels.length]).toEqual([2, 2]);
-    expect([take?.channels[0]?.[SR - 1], take?.channels[0]?.[SR], take?.channels[0]?.[SR + 99], take?.channels[1]?.[SR + 100]]).toEqual([0.5, 0, 0, -0.5]);
+    const take = first(mapCaptureToTakes(input({ capture, segments: [open(0, 0)], stopFrame: 3 * SR })));
+    expect([take.dropouts, take.channels.length]).toEqual([2, 2]);
+    expect([sample(take, 0, SR - 1), sample(take, 0, SR), sample(take, 0, SR + 99), sample(take, 1, SR + 100)]).toEqual([0.5, 0, 0, -0.5]);
   });
 
   it('counts only the gaps inside a take', () => {

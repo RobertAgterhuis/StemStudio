@@ -71,15 +71,15 @@ export function encodeWav24(channels: readonly Float32Array[], sampleRate = 4410
   const view = new DataView(buffer);
   writeHeader(view, { channels: channels.length, sampleRate, dataBytes });
   const bytes = new Uint8Array(buffer);
-  let at = WAV_HEADER_BYTES;
-  for (let frame = 0; frame < frames; frame++) {
-    for (const channel of channels) {
-      const value = quantise24(channel[frame] ?? 0) & 0xffffff;
+  const frameBytes = channels.length * SAMPLE_BYTES;
+  channels.forEach((channel, c) => {
+    channel.forEach((x, frame) => {
+      const at = WAV_HEADER_BYTES + frame * frameBytes + c * SAMPLE_BYTES;
+      const value = quantise24(x) & 0xffffff;
       bytes[at] = value & 0xff;
       bytes[at + 1] = (value >> 8) & 0xff;
       bytes[at + 2] = value >> 16;
-      at += SAMPLE_BYTES;
-    }
-  }
+    });
+  });
   return buffer;
 }
