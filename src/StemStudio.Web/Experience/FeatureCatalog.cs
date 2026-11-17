@@ -81,6 +81,15 @@ public static class FeatureCatalog
         new("lyrics.assist-source", Expert, null, "lyric-assist-privacy"),
         new("lyrics.assist-log", Expert, null, "lyric-assist-privacy"),
         new("lyrics.assist-revisions", Expert, null, "lyric-assist"),
+        new("recording.input-mode", Advanced, null, "recording"),
+        new("recording.monitoring-volume", Advanced, null, "recording-monitoring"),
+        new("recording.manual-latency", Advanced, null, "recording-latency"),
+        new("recording.loop", Advanced, null, "recording-loop-takes"),
+        new("recording.take-pan", Advanced, null, "recording-compare"),
+        new("recording.export-options", Advanced, null, "recording-export"),
+        new("recording.latency-samples", Expert, null, "recording-latency"),
+        new("recording.timing-adjust", Expert, null, "recording-timing"),
+        new("recording.diagnostics", Expert, null, "recording"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>
