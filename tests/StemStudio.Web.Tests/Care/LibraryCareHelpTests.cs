@@ -17,6 +17,9 @@ public sealed class LibraryCareHelpTests
     [InlineData("backup-voice-data", "backup-voice-notice")]
     [InlineData("backup-voice-data", "backup-details-voice-a1b2c3d4-0000-4000-8000-0000000000f1")]
     [InlineData("storage-overview", "care-tab-storage")]
+    [InlineData("backup-restore", "restore-dialog")]
+    [InlineData("backup-restore", "previous-library")]
+    [InlineData("backup-voice-data", "restore-voice-profiles")]
     public void Topics_AreReviewedFor013_InAreaMixes_AndOwnTheirAnchors(string id, string anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
@@ -39,5 +42,8 @@ public sealed class LibraryCareHelpTests
     [InlineData("backup-voice-data", "not encrypted")]
     [InlineData("backup-compatibility", "newer StemStudio")]
     [InlineData("library-care", "One job at a time")]
+    [InlineData("backup-restore", "`REPLACE`")]
+    [InlineData("backup-restore", "`DISCARD`")]
+    [InlineData("backup-restore", "moved aside, not deleted")]
     public void Topics_StateTheLimits(string id, string text) => Catalog.Topic(id)!.Markdown.ShouldContain(text);
 }
