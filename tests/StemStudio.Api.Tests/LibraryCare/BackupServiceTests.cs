@@ -287,6 +287,19 @@ internal sealed class FakeLibraryFiles : ILibraryFiles
 
     public int MoveAttempts { get; private set; }
 
+    /// <summary>Copies fail while this returns true for the source path (merge restore).</summary>
+    public Func<string, bool> FailCopy { get; set; } = _ => false;
+
+    public void Copy(string source, string destination)
+    {
+        if (FailCopy(source))
+        {
+            throw new IOException("disk full");
+        }
+
+        new LibraryFiles().Copy(source, destination);
+    }
+
     public void Move(string source, string destination)
     {
         MoveAttempts++;
