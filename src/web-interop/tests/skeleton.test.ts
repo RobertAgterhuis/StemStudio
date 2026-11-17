@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import * as webInterop from '../src/index';
 
-describe('web-interop module (contract 1.2.0)', () => {
-  it('declares contract version 1.2.0', () => {
-    expect(webInterop.WEB_INTEROP_CONTRACT_VERSION).toBe('1.2.0');
+describe('web-interop module (contract 1.1.0)', () => {
+  it('declares contract version 1.1.0 (the newest full document, 014)', () => {
+    expect(webInterop.WEB_INTEROP_CONTRACT_VERSION).toBe('1.1.0');
   });
 
   it.each([
@@ -13,6 +13,10 @@ describe('web-interop module (contract 1.2.0)', () => {
     'applyAppearance',
     'watchSystemAppearance',
     'registerShortcuts',
+    'updateShortcuts',
+    'defaultKeyMap',
+    'captureChord',
+    'isReservedChord',
     'startTour',
     'focusedHelpId',
     'captureFocus',
