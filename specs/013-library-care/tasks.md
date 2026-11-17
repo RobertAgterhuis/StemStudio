@@ -7,7 +7,7 @@ description: "Task list for feature 013 library care (Phase 0 by the architect, 
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [DELTA.md](DELTA.md), the
-contracts in [contracts/](contracts/), constitution 1.3.1, ADR-022.
+contracts in [contracts/](contracts/), constitution 1.4.0, ADR-022.
 
 **Tests**: REQUIRED (constitution I), red -> green per owner sequence, >= 90 % line AND branch per
 component. No task needs a GPU or real models: the worker side uses temp directories and fakes,
@@ -179,7 +179,7 @@ open; T002 done with this design).
 - [ ] T068 [CTO] Quickstart V1-V8 and V10 on the fake stack (V3 with `docker compose down -v`)
 - [ ] T069 [CTO] Security review against plan.md "Security review points" 1-10 (hostile corpus, banned APIs, stored paths, consent, secrets grep, download CORS, limits, maintenance, permissions); record findings in `docs/STATUS.md`
 - [ ] T070 [CTO] Real-stack validation on the reference machine: V9 throughput (SC-002) for backup, verify and restore of a ~20 GB library to the bind-mounted folder; restore on a fresh set of volumes; record in `docs/STATUS.md`
-- [ ] T071 [CTO] Docs: user manual chapter "Library care" (backups folder, backup options, restore modes, previous library, storage, clean-up, what is never removed, not encrypted, recordings once 015 lands), technical manual (03-deployment: backups mount and Linux owner; 07-data-model: `library-care/` and the archive format; 08-security: hostile archives, consent proofs; 11-operations: backup/restore runbook); README; `docs/THIRD-PARTY-LICENSES.md` unchanged (no new dependency); run `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes (constitution 1.3.1, FR-036)
+- [ ] T071 [CTO] Docs: user manual chapter "Library care" (backups folder, backup options, restore modes, previous library, storage, clean-up, what is never removed, not encrypted, recordings once 015 lands), technical manual (03-deployment: backups mount and Linux owner; 07-data-model: `library-care/` and the archive format; 08-security: hostile archives, consent proofs; 11-operations: backup/restore runbook); README; `docs/THIRD-PARTY-LICENSES.md` unchanged (no new dependency); run `cd tools/docs && npm ci && npm run browser && npm run build`; commit sources, PDFs and `build-manifest.json`; `node tools/docs/check.mjs` passes (constitution 1.4.0, FR-036)
 - [ ] T072 [CTO] `/speckit-analyze`; `docs/STATUS.md`; PR
 
 ---
@@ -225,5 +225,5 @@ Integration wave. US1 and US2 are the MVP; US3/US4 depend only on Phase 2; US5 d
 - [ ] Limits documented in help and manuals: not encrypted, source audio not kept, worker cache rebuilt, model caches not removable (V)
 - [ ] Hostile corpus refused; secrets never archived; security review T069 done
 - [ ] Help topics present and linked; linters clean; public APIs documented
-- [ ] docs/public user and technical manuals updated, PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.3.1)
+- [ ] docs/public user and technical manuals updated, PDFs regenerated; `node tools/docs/check.mjs` passes (constitution 1.4.0)
 - [ ] Hand-off notes written; Conventional Commits with the Co-Authored-By trailer
