@@ -90,9 +90,9 @@ running assist of that sheet.
 
 - No new service or container. Dictionaries are vendored files inside the API image (about 10 MB);
   nothing is downloaded at run time.
-- E2E fake stack: `STEMSTUDIO_AGENT_BACKEND=fake` + `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric/<name>.json`
+- E2E fake stack: `STEMSTUDIO_AGENT_BACKEND=fake` + `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts` (a folder; `LyricScript.Resolve` picks `<title-slug>-<kind>.json`, else `<kind>.json`; a single file also works)
   (scripted assistant output per block, same format as `lyric-assist-output.schema.json` wrapped as
-  `{version: 1, blocks: [<output>]}`), mounted from `e2e/lyric-scripts/`.
+  `{version: 1, blocks: [<output>]}`), mounted read-only from `e2e/lyric-scripts/` at `/lyric-scripts`.
 - CI: no Ollama, no Claude; a failing HTTP handler proves no outbound request during assistant
   actions (SC-006).
 

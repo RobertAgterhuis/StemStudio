@@ -3,7 +3,7 @@ namespace StemStudio.Contracts.Library;
 /// <summary>Response of <c>GET /api/library/search</c> (backend-api 1.22.0 <c>LibrarySearchResult</c>).</summary>
 public sealed record LibrarySearchResultDto
 {
-    /// <summary>The searched text (trimmed, cut to 100 characters).</summary>
+    /// <summary>The searched text (trimmed, at most 100 characters).</summary>
     public required string Query { get; init; }
 
     /// <summary>The folded words that were matched (1..8).</summary>

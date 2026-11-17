@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import * as webInterop from '../src/index';
 
-describe('web-interop module (contract 1.0.0)', () => {
-  it('declares contract version 1.0.0', () => {
-    expect(webInterop.WEB_INTEROP_CONTRACT_VERSION).toBe('1.0.0');
+describe('web-interop module (contract 1.2.0)', () => {
+  it('declares contract version 1.2.0', () => {
+    expect(webInterop.WEB_INTEROP_CONTRACT_VERSION).toBe('1.2.0');
   });
 
   it.each([

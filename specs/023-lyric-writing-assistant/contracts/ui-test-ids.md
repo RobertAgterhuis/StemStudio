@@ -916,6 +916,9 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-language-guess` | "Looks like Dutch - set language" (language `unknown`); button `lyric-assist-language-apply` | all |
 | Lyrics editor | `lyric-assist-not-own` | refusal text when the sheet matches library lyrics (track title) | all |
 | Lyrics editor | `lyric-assist-own-work-open` | "This is my own text" on the refusal (only when the problem says `overridable`) | all |
+| Lyrics editor (`/lyrics/{id}`, new page; the `/lyrics` list keeps its edit dialog and links each title here) | `lyric-assist-imitation-refusal` | refusal of an instruction that asks to imitate an artist (`artist-imitation`; text names the rule, no assist is started) | all |
+| Lyrics editor | `lyric-assist-refusal` | any other refusal of a create request (revision conflict, language, model unavailable, notice, assist active); attribute `data-code` = the problem `code` | all |
+| Lyrics editor | `lyric-assist-error` | an unexpected error of the pane (network, server); `role="alert"` | all |
 | Lyrics editor | `lyric-own-work-dialog`, `lyric-own-work-statement`, `lyric-own-work-track`, `lyric-own-work-name`, `lyric-own-work-check`, `lyric-own-work-confirm`, `lyric-own-work-cancel` | confirmation dialog (statement `own-work.v1`, matched track, typed name, tick box; confirm disabled until both set) | all |
 | Lyrics editor | `lyric-own-work-badge` | "Own work confirmed by <name> on <date> (matches <track>)"; attributes `data-track-id`, `data-confirmed-at` | all |
 | Lyrics editor | `lyric-own-work-revoke` | revoke (opens the existing confirm dialog `confirm-dialog-ok` / `confirm-dialog-cancel`) | all |
@@ -925,7 +928,7 @@ the 004 journey level at which the element is rendered (`B` Beginner, `A` Advanc
 | Lyrics editor | `lyric-assist-filter-<category>` | category filter toggle (attribute `aria-pressed`); `lyric-assist-filter-all` | A, E |
 | Lyrics editor | `lyric-assist-accept-all` | "Accept all" for the current filter (count in the label) | all |
 | Lyrics editor | `lyric-assist-undo` | undo the newest accept (enabled when `assist.canUndo`) | all |
-| Lyrics editor | `lyric-assist-list` | the suggestion list (`role="listbox"`, `aria-activedescendant`) | all |
+| Lyrics editor | `lyric-assist-list` | the suggestion list (`role="listbox"`, `aria-activedescendant`); rendered only while there are open suggestions | all |
 | Lyrics editor | `lyric-suggestion-<suggestionId>` | one entry (`role="option"`); attributes `data-category`, `data-type`, `data-severity`, `data-status`, `data-source`, `data-line` | all |
 | Lyrics editor | `lyric-suggestion-original-<suggestionId>`, `lyric-suggestion-proposal-<suggestionId>`, `lyric-suggestion-explanation-<suggestionId>` | texts of the entry | all |
 | Lyrics editor | `lyric-suggestion-syllables-<suggestionId>` | "11 -> 9 syllables" (when present) | all |

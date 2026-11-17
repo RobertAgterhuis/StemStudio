@@ -1,5 +1,5 @@
 # Lint configuration for the StemStudio OpenAPI 3.1 contracts of feature 023 (lyric writing assistant).
-# Run from the repo root (full document 13 warnings = the 11 of 1.22.0 + 2 of 023, delta 2 warnings, 0 errors):
+# Run from the repo root (full + delta together: 17 warnings = 15 operation-4xx-response + 2 no-unused-components, 0 errors):
 #   npx @redocly/cli@2.78.0 lint --config specs/023-lyric-writing-assistant/contracts/redocly.yaml \
 #     specs/023-lyric-writing-assistant/contracts/backend-api.openapi.yaml \
 #     specs/023-lyric-writing-assistant/contracts/backend-api.delta.openapi.yaml

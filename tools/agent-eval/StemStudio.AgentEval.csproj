@@ -11,5 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\StemStudio.Agent\StemStudio.Agent.csproj" />
+    <!-- 023 T068/SC-001: the lyric suite can measure with the deterministic layer (syllables, rhymes, spelling) of the Domain. -->
+    <ProjectReference Include="..\..\src\StemStudio.Domain\StemStudio.Domain.csproj" />
   </ItemGroup>
 </Project>

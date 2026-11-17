@@ -1,11 +1,11 @@
 /**
- * Public types of the web-interop module (contracts/web-interop.md 1.0.0, data-model.md 1).
+ * Public types of the web-interop module (contracts/web-interop.md 1.2.0, data-model.md 1).
  *
  * @packageDocumentation
  */
 
 /** Version of the web-interop contract implemented by this module. */
-export type WebInteropContractVersion = '1.0.0';
+export type WebInteropContractVersion = '1.2.0';
 
 /** Experience level. */
 export type Level = 'beginner' | 'advanced' | 'expert';

@@ -6,7 +6,7 @@ public static partial class ContractLimits
     /// <summary>Longest artist, album or song name for filing (library info and placement display names).</summary>
     public const int LibraryNameMaxLength = 200;
 
-    /// <summary>Longest search text after trimming (<c>q</c>; longer input is cut).</summary>
+    /// <summary>Longest search text after trimming (<c>q</c>; longer input is rejected with <c>422 library-query-invalid</c>; the UI cuts in the box).</summary>
     public const int LibrarySearchMaxLength = 100;
 
     /// <summary>Most words of one search.</summary>
