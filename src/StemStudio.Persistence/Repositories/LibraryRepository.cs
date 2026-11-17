@@ -40,6 +40,15 @@ public interface ILibraryRepository
     /// <returns>The item or null.</returns>
     Task<Asset?> FindAssetAsync(Guid assetId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The track's library info as stored now, or the instance's own when this context holds an unsaved change of it: a
+    /// long-lived poller's track may predate names the user saved in another request.
+    /// </summary>
+    /// <param name="track">The track (tracked or not).</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The library info to file with.</returns>
+    Task<LibraryInfo> CurrentLibraryInfoAsync(Track track, CancellationToken cancellationToken);
+
     /// <summary>The items of a track, tracked.</summary>
     /// <param name="trackId">Track id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -100,6 +109,20 @@ public sealed class LibraryRepository(StemStudioDbContext context) : ILibraryRep
     /// <inheritdoc />
     public async Task<Asset?> FindAssetAsync(Guid assetId, CancellationToken cancellationToken) =>
         await context.Assets.FindAsync([assetId], cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<LibraryInfo> CurrentLibraryInfoAsync(Track track, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        var entry = context.Entry(track);
+        if (entry.State is EntityState.Detached or EntityState.Added || entry.ComplexProperty(t => t.LibraryInfo).IsModified)
+        {
+            return track.LibraryInfo;
+        }
+
+        var stored = await context.Tracks.AsNoTracking().Where(t => t.Id == track.Id).Select(t => t.LibraryInfo).ToListAsync(cancellationToken);
+        return stored is [var info] ? info : track.LibraryInfo;
+    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Asset>> ItemsOfTrackAsync(Guid trackId, CancellationToken cancellationToken) =>

@@ -56,10 +56,11 @@ public sealed class LibraryFiler(ILibraryRepository library, TimeProvider clock)
     public async Task<int> RefileTrackAsync(Track track, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
+        var trackInfo = await library.CurrentLibraryInfoAsync(track, cancellationToken);
         var moved = 0;
         foreach (var asset in (await library.ItemsOfTrackAsync(track.Id, cancellationToken)).Where(item => LibraryFilingRules.IsFileable(item.Provenance)))
         {
-            moved += File(asset, PlacementResolver.Resolve(InputFor(asset, track, null))) ? 1 : 0;
+            moved += File(asset, PlacementResolver.Resolve(InputFor(asset, track, null) with { TrackInfo = trackInfo })) ? 1 : 0;
         }
 
         return moved;

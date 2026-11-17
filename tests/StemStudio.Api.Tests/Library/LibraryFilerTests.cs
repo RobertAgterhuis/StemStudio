@@ -165,6 +165,33 @@ public sealed class LibraryFilerTests : ApiTestBase
     }
 
     [Fact]
+    public async Task MetadataApplier_KeepsLibraryInfoSavedWhileTheLookupRan()
+    {
+        // The poller loads the track, then the user saves library info in another request, then the lookup ends: the
+        // re-filing must use the saved names, not the stale track of the poller's context (E2E 022 run 1).
+        var track = AssetTestData.NamedTrack();
+        track.ScheduleLookup(new LookupQuery("Corrected title", "Corrected artist"), T0);
+        track.StartLookup("0123456789abcdef0123456789abcdee", T0);
+        await Factory.SeedAsync(track);
+        var item = Asset.Create(Guid.NewGuid(), "a", ExportProvenance(track.Id), T0);
+        await Factory.FileAsync(item);
+
+        await Factory.WithScopeAsync(async sp =>
+        {
+            var tracks = sp.GetRequiredService<ITrackRepository>();
+            var loaded = (await tracks.FindAsync(track.Id, Ct))!;
+            (await Client.PutTrackInfoAsync(track.Id, LibraryInfoApi.Names(artist: "Own artist"))).StatusCode.ShouldBe(HttpStatusCode.OK);
+            await sp.GetRequiredService<MetadataJobApplier>().ApplyAsync(loaded, new WorkerMetadataJob { MetadataJobId = "0123456789abcdef0123456789abcdee", Status = WorkerMetadataJobState.Failed, Error = "boom" }, Ct);
+            await tracks.SaveAsync(Ct);
+            return true;
+        });
+
+        var placement = (await Factory.FindAssetAsync(item.Id))!.Placement!;
+        (placement.Artist.Name, placement.Artist.Source).ShouldBe(("Own artist", PlacementSource.Track));
+        (await Factory.FindTrackAsync(track.Id))!.LibraryInfo.Artist.ShouldBe("Own artist");
+    }
+
+    [Fact]
     public async Task DeletedTrack_ItemsKeepTheirPlace()
     {
         var track = await Factory.SeedAsync(MatchedTrack());

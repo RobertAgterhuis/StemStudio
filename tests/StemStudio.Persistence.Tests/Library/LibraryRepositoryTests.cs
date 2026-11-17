@@ -1,3 +1,4 @@
+using StemStudio.Domain.Library;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Persistence.Tests.Library;
@@ -45,5 +46,30 @@ public sealed class LibraryRepositoryTests
         (await library.TrackArtAsync(Ct)).Single().TrackId.ShouldBe(track.Id);
         var stamp = (await library.StampAsync(Ct)).Value.Split('|');
         (stamp[0], stamp[3], stamp[2].StartsWith("2026-11-14 12:00:00", StringComparison.Ordinal)).ShouldBe(("2", "1", true));
+    }
+
+    [Fact]
+    public async Task CurrentLibraryInfo_ReadsNamesSavedElsewhere_UnlessThisContextChangedThem()
+    {
+        await using var db = await SqliteTestDatabase.CreateAsync();
+        var track = TestData.CompletedTrack();
+        await db.SeedAsync(track);
+        await using var poller = db.NewContext();
+        var library = new LibraryRepository(poller);
+        var stale = (await library.FindTrackAsync(track.Id, Ct))!;
+        await using (var other = db.NewContext())
+        {
+            (await other.Tracks.FindAsync([track.Id], Ct))!.SetLibraryInfo(new LibraryInfo { Artist = "Saved elsewhere" }, TestData.T0);
+            await other.SaveChangesAsync(Ct);
+        }
+
+        (await library.CurrentLibraryInfoAsync(stale, Ct)).Artist.ShouldBe("Saved elsewhere");
+        stale.LibraryInfo.Artist.ShouldBeNull();
+
+        stale.SetLibraryInfo(new LibraryInfo { Artist = "Unsaved here" }, TestData.T0);
+        (await library.CurrentLibraryInfoAsync(stale, Ct)).Artist.ShouldBe("Unsaved here");
+        var detached = TestData.CompletedTrack();
+        (await library.CurrentLibraryInfoAsync(detached, Ct)).ShouldBe(detached.LibraryInfo);
+        await Should.ThrowAsync<ArgumentNullException>(() => library.CurrentLibraryInfoAsync(null!, Ct));
     }
 }
