@@ -30,7 +30,8 @@ async function expectImitationRefused(pane: LyricAssistPane, api: LyricAssistApi
   const before = (await api.assists(sheet.id)).length;
   await pane.byId('lyric-assist-instruction').fill(instruction);
   await pane.press('devices');
-  await expect(pane.pane).toContainText(/imitat/iu);
+  // The refusal names the reason in plain words ("does not write like a named artist").
+  await expect(pane.pane).toContainText(/imitat|named artist/iu);
   expect(await api.assists(sheet.id)).toHaveLength(before);
   const problem = await api.startProblem(sheet.id, 'devices', { instruction });
   expect([problem.status, JSON.stringify(problem)]).toEqual([400, expect.stringMatching(/imitation/u)]);
@@ -81,7 +82,13 @@ test('injected lines in a sheet produce only anchored suggestions and change not
   await assistPane.goto(sheet.id);
   const assist = await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
   const open = await lyricAssistApi.suggestions(sheet.id, { status: 'open' });
-  expect(open.map((suggestion) => [suggestion.anchor.original, suggestion.proposal])).toEqual((facts.planted ?? []).map((fact) => [fact.original, fact.proposal]));
+  const planted = facts.planted ?? [];
+  // Every planted fix is found; the dictionary layer may add its own suggestion on the same word, but
+  // nothing is anchored anywhere else (the injected instruction lines produce nothing).
+  for (const fact of planted) {
+    expect(open.map((suggestion) => [suggestion.anchor.original, suggestion.proposal]), fact.original).toContainEqual([fact.original, fact.proposal]);
+  }
+  expect([...new Set(open.map((suggestion) => suggestion.anchor.original))]).toEqual(planted.map((fact) => fact.original));
   expect(assist.discarded.invalidAnchor + assist.discarded.invalidSchema + assist.discarded.failedVerification + assist.discarded.filtered).toBeGreaterThanOrEqual(3);
   expect((await lyricAssistApi.sheet(sheet.id)).text).toBe(sheetText('inject-en'));
 });

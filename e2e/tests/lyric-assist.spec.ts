@@ -50,6 +50,7 @@ test('accept one fix changes only its span (revision +1, provenance marker); Und
   const typo = firstTypo;
   const suggestion = await lyricAssistApi.openSuggestionFor(sheet.id, typo.original);
   await assistPane.accept(suggestion.suggestionId);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'accepted' })).map((s) => s.suggestionId)).toContain(suggestion.suggestionId);
   const after = await lyricAssistApi.sheet(sheet.id);
   expect(after.revision).toBe(sheet.revision + 1);
   expect(after.text).toBe(sheet.text.replace(typo.original, present(typo.proposal, 'proposal')));
@@ -83,7 +84,8 @@ test('strict shows the licences as ideas; an intentional mark is respected until
 
   const typo = await lyricAssistApi.openSuggestionFor(sheet.id, firstTypo.original);
   await assistPane.part('intentional', typo.suggestionId).click();
-  await expect(assistPane.entry(typo.suggestionId)).toHaveAttribute('data-status', 'intentional');
+  await expect(assistPane.entry(typo.suggestionId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'intentional' })).map((s) => s.suggestionId)).toContain(typo.suggestionId);
   await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
   expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original])).toEqual([]);
 
@@ -142,8 +144,10 @@ test('writing help: three alternatives for line 4 (accepting one supersedes the 
   const alternatives = await lyricAssistApi.suggestions(sheet.id, { status: 'open', category: 'alternative' });
   expect(alternatives).toHaveLength(3);
   await assistPane.accept(alternatives[0]?.suggestionId ?? '');
+  const superseded = (await lyricAssistApi.suggestions(sheet.id, { status: 'superseded' })).map((s) => s.suggestionId);
   for (const other of alternatives.slice(1)) {
-    await expect(assistPane.entry(other.suggestionId)).toHaveAttribute('data-status', 'superseded');
+    await expect(assistPane.entry(other.suggestionId)).toHaveCount(0);
+    expect(superseded).toContain(other.suggestionId);
   }
 
   const fresh = await createFixtureSheet(lyricAssistApi, 'zomeravond');
@@ -186,11 +190,13 @@ test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter ac
   await expect(assistPane.live).toContainText(/Line \d+/u);
   const firstId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
   await page.keyboard.press('Alt+Enter');
-  await expect(assistPane.entry(firstId)).toHaveAttribute('data-status', 'accepted');
+  await expect(assistPane.entry(firstId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'accepted' })).map((s) => s.suggestionId)).toContain(firstId);
   await page.keyboard.press('F8');
   const secondId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
   await page.keyboard.press('Alt+Backspace');
-  await expect(assistPane.entry(secondId)).toHaveAttribute('data-status', 'rejected');
+  await expect(assistPane.entry(secondId)).toHaveCount(0);
+  expect((await lyricAssistApi.suggestions(sheet.id, { status: 'rejected' })).map((s) => s.suggestionId)).toContain(secondId);
   await page.keyboard.press('Escape');
   await expect(assistPane.text).toBeFocused();
 });

@@ -93,10 +93,10 @@ export class LyricAssistPane extends TestIdPage {
     await expect(this.byId(`lyric-assist-filter-${category}`)).toHaveAttribute('aria-pressed', 'true');
   }
 
-  /** Accepts one suggestion and waits until its status is `accepted`. */
+  /** Accepts one suggestion and waits until it left the list (the list shows open suggestions only). */
   async accept(suggestionId: string): Promise<void> {
     await this.part('accept', suggestionId).click();
-    await expect(this.entry(suggestionId)).toHaveAttribute('data-status', 'accepted');
+    await expect(this.entry(suggestionId)).toHaveCount(0);
   }
 
   /** Puts the editor cursor at the start of line `line` (1-based). */
