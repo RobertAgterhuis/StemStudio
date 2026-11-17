@@ -14,8 +14,9 @@ Rules (blocks = tags by name, paths, and the children of each ``components`` sec
 
 1. A block 023 did not touch (``THEIRS`` == ``BASE``) keeps the ``OURS`` text byte for byte.
 2. A block 023 added is appended at the end of its section, in 023's order; a block 023 changed
-   replaces the ``OURS`` text when 022/013 did not change it. A block both sides changed differently,
-   a name both sides added differently, or a block 023 removed fails the merge loudly.
+   replaces the ``OURS`` text when 022/013 did not change it. A block both sides changed differently
+   gets a line-level three-way merge (``git merge-file``) that is accepted only without overlapping
+   changes; a conflict, a name both sides added differently, or a block 023 removed fails the merge loudly.
 3. ``info``: ``OURS`` with ``version`` 1.23.0, ``x-stemstudio-contains`` + 1.23.0 and 023's changelog
    paragraph (its "Base:" sentence re-worded) before ``license``. ``openapi``, ``servers`` and
    ``security`` must be equal on all sides.
@@ -28,7 +29,9 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +89,26 @@ def blocks(lines: list[str], header: str, pattern: str) -> dict[str, list[str]]:
     return found
 
 
+def merge_lines(
+    base: list[str], ours: list[str], theirs: list[str]
+) -> list[str] | None:
+    """Line-level three-way merge of one block; ``None`` when the changes overlap (a conflict)."""
+    with tempfile.TemporaryDirectory() as folder:
+        paths = []
+        for name, lines in (("ours", ours), ("base", base), ("theirs", theirs)):
+            path = Path(folder) / name
+            path.write_bytes("".join(f"{line}\n" for line in lines).encode("utf-8"))
+            paths.append(str(path))
+        run = subprocess.run(
+            ["git", "merge-file", "-p", *paths],
+            capture_output=True,
+            check=False,
+        )
+    if run.returncode != 0:
+        return None
+    return run.stdout.decode("utf-8").removesuffix("\n").split("\n")
+
+
 def merge_section(
     where: str,
     base: dict[str, list[str]],
@@ -107,7 +130,12 @@ def merge_section(
         elif name in base and merged[name] == base[name]:
             merged[name] = block
         else:
-            raise SystemExit(f"{where}: {name} changed on both sides")
+            both = (
+                merge_lines(base[name], merged[name], block) if name in base else None
+            )
+            if both is None:
+                raise SystemExit(f"{where}: {name} changed on both sides")
+            merged[name] = both
     return [line for block in merged.values() for line in block]
 
 
