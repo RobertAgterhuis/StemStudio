@@ -1,0 +1,29 @@
+@* Discard the previous library (013 FR-026; ui-test-ids 1.12.0 previous-library-discard-*): it is not regenerable, so
+   the confirm button stays off until DISCARD is typed. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="previous-library-discard-title"
+         aria-describedby="previous-library-discard-message" @onkeydown="OnKeyAsync">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <h2 id="previous-library-discard-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Discard the previous library</h2>
+            <p id="previous-library-discard-message" class="ss-dialog-message">
+                The previous library is deleted for good. It cannot be brought back, also not with Undo restore.
+            </p>
+            <div class="ss-field">
+                <label class="ss-label" for="previous-library-discard-input">Type DISCARD to delete it</label>
+                <input id="previous-library-discard-input" class="rz-textbox ss-wide" autocomplete="off" maxlength="16" value="@Typed"
+                       @oninput="e => Typed = e.Value?.ToString() ?? string.Empty" data-testid="previous-library-discard-input" />
+            </div>
+            @if (Error is { } error)
+            {
+                <div class="ss-error" role="alert" data-testid="previous-library-discard-error" data-code="@ErrorCode">@error</div>
+            }
+            <div class="ss-dialog-actions">
+                <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="previous-library-discard-cancel" />
+                <RadzenButton Text="Discard" ButtonStyle="ButtonStyle.Danger" Disabled="@(Typed != LibraryCareLimits.DiscardConfirmation || Busy)" IsBusy="Busy"
+                              BusyText="Deleting..." Click="DiscardAsync" data-testid="previous-library-discard-confirm" />
+            </div>
+        </FocusTrap>
+    </div>
+</div>

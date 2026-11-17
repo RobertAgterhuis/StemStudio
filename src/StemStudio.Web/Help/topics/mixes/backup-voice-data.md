@@ -3,7 +3,7 @@ id: backup-voice-data
 title: "Voice profiles in backups"
 area: mixes
 summary: "A backup can contain the samples of your voice profiles with their consent record; it is not encrypted, so keep it on a protected drive."
-anchors: ["backup-voice-notice", "backup-details-voice-*"]
+anchors: ["backup-voice-notice", "restore-voice-profiles", "backup-details-voice-*"]
 keywords: ["voice", "voice profile", "consent", "samples", "privacy", "encrypted", "protected drive"]
 related: [backup-contents, voice-profiles, voice-consent]
 reviewed: "013"

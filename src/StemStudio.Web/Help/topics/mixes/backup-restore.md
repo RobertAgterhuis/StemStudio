@@ -3,7 +3,7 @@ id: backup-restore
 title: "Restoring a backup"
 area: mixes
 summary: "Restore a backup into an empty library, replace your library (the current one is kept aside and can come back), or add what is missing."
-anchors: []
+anchors: ["restore-dialog", "previous-library"]
 keywords: ["restore", "replace", "merge", "undo restore", "previous library", "discard", "empty library", "active jobs"]
 related: [backup-compatibility, backup-folder, backup-voice-data, library-care]
 reviewed: "013"

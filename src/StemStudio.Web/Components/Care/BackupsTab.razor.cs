@@ -131,6 +131,18 @@ public sealed partial class BackupsTab
         await FollowJobAsync(job);
     }
 
+    private async Task OnRestoreStartedAsync(LibraryJobDto job)
+    {
+        RestoreFor = null;
+        await FollowJobAsync(job);
+    }
+
+    private async Task RefreshAllAsync()
+    {
+        await StatusSource.RefreshAsync();
+        await LoadListAsync();
+    }
+
     private async Task CancelJobAsync()
     {
         var jobId = ShownJob!.JobId;

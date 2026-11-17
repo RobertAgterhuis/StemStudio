@@ -30,6 +30,11 @@
         <LibraryJobPanel Job="job" OnCancel="CancelJobAsync" CancelError="@CancelError" CancelErrorCode="@CancelErrorCode" />
     }
 
+    @if (Status?.PreviousLibrary is { } previous)
+    {
+        <PreviousLibraryPanel Previous="previous" JobRunning="JobRunning" OnJobStarted="FollowJobAsync" OnDiscarded="RefreshAllAsync" />
+    }
+
     @if (ActionError is { } actionError)
     {
         <div class="ss-error" role="alert" data-testid="backup-error" data-code="@ActionErrorCode">@actionError</div>
@@ -61,6 +66,11 @@
 @if (BackupDialogOpen)
 {
     <BackupDialog OnStarted="OnBackupStartedAsync" OnClose="() => BackupDialogOpen = false" />
+}
+
+@if (RestoreFor is { } restoreFor && Status is { } status)
+{
+    <RestoreDialog Archive="restoreFor" Status="status" OnStarted="OnRestoreStartedAsync" OnClose="() => RestoreFor = null" />
 }
 
 @if (DeleteFor is { } deleteFor)
