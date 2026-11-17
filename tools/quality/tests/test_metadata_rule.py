@@ -160,7 +160,7 @@ def test_api_feature_folder_allowed_references_comments_and_strings_are_clean(
 
 
 def test_other_api_folders_are_not_folder_checked(tmp_path: Path) -> None:
-    _write(tmp_path, f"{API}/Tracks/TrackEndpoints.cs", "using StemStudio.Web;\n")
+    _write(tmp_path, f"{API}/Health/HealthEndpoints.cs", "using StemStudio.Web;\n")
     _write(tmp_path, f"{API}/MetadataHelpers.cs", "using StemStudio.Web;\n")
     assert dependency_check.run(tmp_path) == []
 
