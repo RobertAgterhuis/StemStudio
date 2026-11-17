@@ -51,7 +51,7 @@ public static class ApiComposition
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddClaudeKeyProtection(builder.Configuration, builder.Environment.ContentRootPath, dataDirectory);
-        var connectionString = ConnectionString(builder.Configuration, dataDirectory);
+        var connectionString = LiveDatabaseFile.ForLive(ConnectionString(builder.Configuration, dataDirectory));
         services.AddStemStudioPersistence(connectionString);
         services.AddSingleton(new LiveDatabase(connectionString));
         AddServiceClients(services, builder.Configuration);
@@ -79,6 +79,7 @@ public static class ApiComposition
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
         await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
+        LiveDatabaseFile.EnsureCreated(app.Services.GetRequiredService<LiveDatabase>().ConnectionString);
         app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {

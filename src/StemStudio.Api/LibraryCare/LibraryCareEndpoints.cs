@@ -57,6 +57,9 @@ public static class LibraryCareEndpoints
 
     private static async Task<IResult> StatusAsync(LibraryGate gate, LibraryJobRunner runner, IServiceProvider services, CancellationToken ct)
     {
+        // Counted before the mode is read (like the gate middleware), so a switch that starts meanwhile waits for this
+        // request's database reads instead of moving the database away under them (013 CTO E2E finding).
+        using var request = gate.TrackRequest();
         var maintenance = gate.IsMaintenance;
         var state = maintenance ? null : services.GetRequiredService<LibraryState>();
         return TypedResults.Ok(new LibraryCareStatusDto
