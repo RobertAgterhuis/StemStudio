@@ -63,7 +63,7 @@ public sealed partial class ExportForm(ExportTarget target)
 
     /// <summary>The request of a stem or mix export (call <see cref="Validate"/> first).</summary>
     /// <returns>The request.</returns>
-    public CreateAudioExportRequest AudioRequest() => new()
+    public CreateAudioExportRequest AudioRequest() => WithTake(new()
     {
         TrackId = Target.Track.Id,
         Mode = Target.Kind == ExportKind.Stem ? ExportModeDto.Raw : ExportModeDto.Mix,
@@ -72,16 +72,16 @@ public sealed partial class ExportForm(ExportTarget target)
         Range = Range.ToDto(),
         Format = FormatDto(),
         Name = Name.Trim().Length == 0 ? null : Name.Trim(),
-        TakeId = TakeIdForRequest(),
-    };
+    });
 
     /// <summary>The request of a stem pack.</summary>
     /// <returns>The request.</returns>
     public CreateStemPackRequest PackRequest() => new(Target.Track.Id, FormatDto(), IncludeDetail && Target.HasDetail);
 
-    /// <summary>Hook of feature 015 (<c>ExportForm.Take.cs</c>): the take to include in an audio export, or null.</summary>
-    /// <returns>The take id.</returns>
-    private partial Guid? TakeIdForRequest();
+    /// <summary>Hook of feature 015 (<c>ExportForm.Take.cs</c>): adds the take of a take export; returns other requests unchanged.</summary>
+    /// <param name="request">The 007 request.</param>
+    /// <returns>The request to send.</returns>
+    private partial CreateAudioExportRequest WithTake(CreateAudioExportRequest request);
 
     private List<string>? Channels() => Target.Kind switch
     {

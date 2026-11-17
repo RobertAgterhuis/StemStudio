@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Contracts.Recording;
+using StemStudio.Web.Export;
 using StemStudio.Web.Mixer;
 using StemStudio.Web.Recording;
 using StemStudio.Web.Services;
@@ -68,6 +69,34 @@ public sealed partial class Mixer : IRecordingHost
         var session = _recording;
         _recording = null;
         await (session?.DisposeAsync() ?? ValueTask.CompletedTask);
+    }
+
+    /// <summary>Opens the export dialog for a take row (FR-015): presets "Take only" and "Take + mix" as heard.</summary>
+    /// <param name="item">The saved take.</param>
+    internal void OpenTakeExport(TakeItem item)
+    {
+        if (State is { } state && item.Take is { } take && _recording is { } session)
+        {
+            Exporting = ExportTarget.ForTake(state.ToExportTarget(_track!), TakeExportFor(session.Takes, take), MutedForCompare(session.Takes, take));
+            StateHasChanged();
+        }
+    }
+
+    // The compare mode as explicit mutes (data-model 2.7): "Original" mutes the take, "My take" the part's stem and details.
+    private static TakeExport TakeExportFor(TakeLibrary takes, RecordingTakeDto take)
+    {
+        var loaded = takes.Loaded?.Take?.Id == take.Id;
+        var strip = takes.Strip;
+        var mute = loaded && (strip.Mute || takes.Compare == TakeCompareMode.Original);
+        var channel = new TakeChannelSettingsDto { TakeId = take.Id, Volume = strip.Volume, Pan = strip.Pan, Mute = mute, Solo = loaded && strip.Solo };
+        return new TakeExport(take.Id, take.Name, take.Status == TakeStatusDto.Ready, channel);
+    }
+
+    private HashSet<string> MutedForCompare(TakeLibrary takes, RecordingTakeDto take)
+    {
+        var mutesPart = takes.Loaded?.Take?.Id == take.Id && takes.Compare == TakeCompareMode.Take && take.Part != RecordingPartDto.None;
+        var part = WireName.Of(take.Part);
+        return mutesPart ? [.. State!.AllChannels.Select(c => c.Stem).Where(s => s == part || s.StartsWith(part + ".", StringComparison.Ordinal))] : [];
     }
 
     partial void RegisterRecordingCommands(MixerCommandRegistry commands)
