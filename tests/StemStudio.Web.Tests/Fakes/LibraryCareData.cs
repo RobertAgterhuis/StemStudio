@@ -30,18 +30,24 @@ public static class LibraryCareData
     public static LibraryCareStatusDto Status(
         LibraryJobDto? active = null, GateModeDto gate = GateModeDto.Open, PreviousLibraryDto? previous = null, bool empty = false,
         IReadOnlyList<ActiveWorkDto>? work = null) => new()
-    {
-        Gate = gate,
-        ActiveJob = active,
-        BackupFolder = Folder(),
-        PreviousLibrary = previous,
-        ActiveWork = work ?? [],
-        LibraryEmpty = empty,
-    };
+        {
+            Gate = gate,
+            ActiveJob = active,
+            BackupFolder = Folder(),
+            PreviousLibrary = previous,
+            ActiveWork = work ?? [],
+            LibraryEmpty = empty,
+        };
 
     public static ArchiveCountsDto Counts(int tracks = 3, int voices = 1) => new()
     {
-        Tracks = tracks, Mixes = 1, Assets = 2, Generations = 1, Styles = 0, LyricsSheets = 0, VoiceProfiles = voices,
+        Tracks = tracks,
+        Mixes = 1,
+        Assets = 2,
+        Generations = 1,
+        Styles = 0,
+        LyricsSheets = 0,
+        VoiceProfiles = voices,
     };
 
     public static CompatibilityDto Compatible(bool restorable = true, bool migration = false, string? reason = null) =>
@@ -119,25 +125,25 @@ public static class LibraryCareData
         LibraryJobKindDto kind = LibraryJobKindDto.Backup, LibraryJobStatusDto status = LibraryJobStatusDto.Running,
         LibraryJobStageDto? stage = LibraryJobStageDto.Files, int progress = 42, LibraryJobReportDto? report = null,
         LibraryJobErrorDto? error = null, bool cancellable = true, Guid? id = null) => new()
-    {
-        JobId = id ?? JobId,
-        Kind = kind,
-        Status = status,
-        Stage = stage,
-        StageText = null,
-        Progress = progress,
-        BytesDone = 900L * 1024 * 1024,
-        BytesTotal = 2L * 1024 * 1024 * 1024,
-        CurrentItem = "Song title - vocals.flac",
-        EtaSeconds = 180,
-        ArchiveFileName = Archive,
-        Cancellable = cancellable,
-        Report = report,
-        Error = error,
-        CreatedAt = Made,
-        StartedAt = Made,
-        FinishedAt = null,
-    };
+        {
+            JobId = id ?? JobId,
+            Kind = kind,
+            Status = status,
+            Stage = stage,
+            StageText = null,
+            Progress = progress,
+            BytesDone = 900L * 1024 * 1024,
+            BytesTotal = 2L * 1024 * 1024 * 1024,
+            CurrentItem = "Song title - vocals.flac",
+            EtaSeconds = 180,
+            ArchiveFileName = Archive,
+            Cancellable = cancellable,
+            Report = report,
+            Error = error,
+            CreatedAt = Made,
+            StartedAt = Made,
+            FinishedAt = null,
+        };
 
     public static BackupReportDto BackupReport() => new()
     {

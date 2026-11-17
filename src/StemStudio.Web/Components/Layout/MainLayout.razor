@@ -10,7 +10,9 @@
     <NavMenu OnHelp="Help.OpenScreenAsync" />
     <CascadingValue Value="Experience">
         <div class="ss-shell-body">
-            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="Overlays.OpenPalette" />
+            <ContextBar HelpOpen="Help.IsOpen" OnHelp="Help.ToggleAsync" OnPalette="Overlays.OpenPalette">
+                <LibraryJobIndicator Job="LibraryCare.ActiveJob" />
+            </ContextBar>
             <main id="main" class="ss-main" tabindex="-1">
                 @if (Preferences.Loaded)
                 {
@@ -43,6 +45,10 @@
         @if (Overlays.ShortcutsOpen)
         {
             <ShortcutOverlay />
+        }
+        @if (LibraryCare.Gate == GateModeDto.Maintenance)
+        {
+            <MaintenanceOverlay />
         }
     </CascadingValue>
     <div class="ss-toast-region" aria-live="polite">

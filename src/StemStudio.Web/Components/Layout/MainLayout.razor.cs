@@ -4,6 +4,7 @@ using StemStudio.Web.Agent;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Help;
 using StemStudio.Web.Interop;
+using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Preferences;
 using StemStudio.Web.Services;
 
@@ -12,7 +13,8 @@ namespace StemStudio.Web.Components.Layout;
 /// <summary>
 /// The app shell: loads the preferences once after the first render, registers the global shortcuts, re-renders
 /// on every preference, help or toast change, cascades the effective <see cref="ExperienceContext"/> and turns
-/// in-app help links (<c>/help/&lt;id&gt;</c>) into help panel navigation.
+/// in-app help links (<c>/help/&lt;id&gt;</c>) into help panel navigation. It also starts the library care status polling
+/// (013) for the job indicator and the maintenance overlay.
 /// </summary>
 public sealed partial class MainLayout : IAsyncDisposable
 {
@@ -39,6 +41,9 @@ public sealed partial class MainLayout : IAsyncDisposable
     [Inject]
     private AgentPanelState Agent { get; set; } = default!;
 
+    [Inject]
+    private LibraryCareStatusSource LibraryCare { get; set; } = default!;
+
     private ExperienceContext Experience => new(Preferences.Current.EffectiveLevel, Preferences.Current.EffectiveDensity);
 
     private string LevelName => Lower(Preferences.Current.EffectiveLevel);
@@ -55,6 +60,7 @@ public sealed partial class MainLayout : IAsyncDisposable
         Help.Changed -= OnChanged;
         Overlays.Changed -= OnChanged;
         Agent.Changed -= OnChanged;
+        LibraryCare.Changed -= OnChanged;
         await (_shortcuts?.DisposeAsync() ?? ValueTask.CompletedTask);
     }
 
@@ -66,6 +72,8 @@ public sealed partial class MainLayout : IAsyncDisposable
         Help.Changed += OnChanged;
         Overlays.Changed += OnChanged;
         Agent.Changed += OnChanged;
+        LibraryCare.Changed += OnChanged;
+        LibraryCare.Start();
     }
 
     /// <inheritdoc />

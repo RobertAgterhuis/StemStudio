@@ -1,0 +1,14 @@
+@* Maintenance overlay (013 T040, FR-013; ui-test-ids 1.12.0 library-maintenance): while a restore switches the library
+   every other API call answers 503 for a few seconds. The overlay takes the focus and gives it back when it closes by
+   itself; it has no button because there is nothing to do but wait. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal ss-care-maintenance" role="alertdialog" aria-modal="true" aria-labelledby="library-maintenance-title"
+         aria-describedby="library-maintenance-text" data-testid="library-maintenance">
+        <FocusTrap OnWrap="WrapFocusAsync">
+            <h2 id="library-maintenance-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Switching to the restored library ...</h2>
+            <p id="library-maintenance-text" class="ss-help">StemStudio is switching to the restored library; this takes a few seconds. This message disappears by itself.</p>
+        </FocusTrap>
+    </div>
+</div>

@@ -106,20 +106,29 @@ public sealed class LibraryJobPanelTests : PageTestContext
     {
         var ok = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
         {
-            Ok = true, EntriesChecked = 412, BytesChecked = 2L * 1024 * 1024 * 1024, Problem = null,
+            Ok = true,
+            EntriesChecked = 412,
+            BytesChecked = 2L * 1024 * 1024 * 1024,
+            Problem = null,
         }));
         ok.Find("[data-testid=library-job-report]").TextContent.ShouldContain("The archive is complete and readable: 412 files checked, 2.0 GB.");
         ok.Find("#library-job-title").TextContent.ShouldBe("Last check: completed");
 
         var bad = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
         {
-            Ok = false, EntriesChecked = 3, BytesChecked = 10, Problem = new LibraryJobErrorDto { Code = LibraryJobErrorCodeDto.ArchiveCorrupt, Message = "files/x.flac: hash mismatch" },
+            Ok = false,
+            EntriesChecked = 3,
+            BytesChecked = 10,
+            Problem = new LibraryJobErrorDto { Code = LibraryJobErrorCodeDto.ArchiveCorrupt, Message = "files/x.flac: hash mismatch" },
         }));
         bad.Find("[data-testid=library-job-report]").TextContent.ShouldContain("The check found a problem: files/x.flac: hash mismatch.");
 
         var unknown = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
         {
-            Ok = false, EntriesChecked = 3, BytesChecked = 10, Problem = null,
+            Ok = false,
+            EntriesChecked = 3,
+            BytesChecked = 10,
+            Problem = null,
         }));
         unknown.Find("[data-testid=library-job-report]").TextContent.ShouldContain("the archive is damaged");
     }

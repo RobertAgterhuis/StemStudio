@@ -15,6 +15,7 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
 {
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
+    private bool _disposed;
 
     /// <summary>Poll interval while a job runs or the gate is not open.</summary>
     public static TimeSpan BusyInterval { get; } = TimeSpan.FromSeconds(2);
@@ -53,6 +54,12 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         await _stop.CancelAsync();
         if (_loop is not null)
         {

@@ -1,0 +1,18 @@
+@* Library job indicator in the context bar (013 T040; ui-test-ids 1.12.0 library-job-indicator): exists while a library
+   job is queued or running and links to /care. Inline in the header, so it never covers a focused control (WCAG 2.4.11). *@
+
+@if (Job is { } job)
+{
+    var view = new JobView(job);
+    <a class="ss-care-indicator" href="care" data-testid="library-job-indicator" data-kind="@WireName.Of(job.Kind)" data-progress="@view.Progress"
+       aria-label="@($"{view.Title}, {view.Progress} %. Open Library care")">
+        <span class="rzi" aria-hidden="true">archive</span>
+        <span>@CareText.Kind(job.Kind) @view.Progress %</span>
+    </a>
+}
+
+@code {
+    /// <summary>The queued or running library job, or null.</summary>
+    [Parameter]
+    public LibraryJobDto? Job { get; set; }
+}
