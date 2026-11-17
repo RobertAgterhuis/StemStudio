@@ -148,27 +148,6 @@ public sealed partial class BackendContractTests
     [
     ];
 
-    // Feature 022 (backend 1.22.0, staged in the 022 Phase 0, T002): the backend removes each id when it serves it -
-    // T043 (getLibraryRoot, getLibraryFolder), T063 (searchLibrary), T073 (the six library-info operations).
-    private static readonly string[] PendingLibraryOperations =
-    [
-        "getLibraryRoot", "getLibraryFolder", "searchLibrary",
-        "getTrackLibraryInfo", "setTrackLibraryInfo", "resetTrackLibraryInfo",
-        "getAssetLibraryInfo", "setAssetLibraryInfo", "resetAssetLibraryInfo",
-    ];
-
-    // Feature 023 (backend 1.23.0, staged in the 023 Phase 0, T001/T005): the backend removes each id when it serves it -
-    // T028 (status, assists, events, cancel), T030 (suggestions, marks, sheet settings, undo, revisions, words), T039 (syllables),
-    // T046 (rhymes, language guess), T062 (lyric-assist settings), T075 (own-work override).
-    private static readonly string[] PendingLyricAssistOperations =
-    [
-        "getLyricAssistStatus", "updateLyricAssistSettings", "createLyricAssist", "listLyricAssists", "getLyricAssist", "streamLyricAssistEvents",
-        "cancelLyricAssist", "listLyricSuggestions", "acceptLyricSuggestions", "rejectLyricSuggestions", "markSuggestionIntentional",
-        "listIntentionalMarks", "createIntentionalMark", "deleteIntentionalMark", "updateSheetAssistSettings", "confirmOwnWork", "revokeOwnWork",
-        "undoLyricSuggestions", "listLyricsRevisions", "restoreLyricsRevision", "getSheetSyllables", "countSyllables", "findRhymes",
-        "listLyricWords", "addLyricWord", "deleteLyricWord", "guessLyricsLanguage",
-    ];
-
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);
 
