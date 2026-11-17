@@ -2,13 +2,13 @@
   "version": 1,
   "about": "Feature 022 E2E fixtures (qa T023). Every name is fictional except 'Metallica', 'Master of Puppets', 'Battery', 'Motörhead', 'Ace of Spades', 'The Beatles' and 'Guns N’ Roses' (public facts named in the spec). The suite appends a run salt (' qa<salt>') to every artist, album and song name it writes, so reruns on one data volume never share folders; expectations compare with the same salt appended. All text is self-written (CC0).",
   "normalisation": {
-    "about": "Each group must end in exactly one artist folder (FR-004, FR-005, SC-002). 'display' is the folder name the spec expects when every spelling comes from the same source (most-used spelling, ties: earliest filed; FR-011): the first spelling is filed twice.",
+    "about": "Each group must end in exactly one artist folder (FR-004, FR-005, SC-002). 'display' is the spelling the folder should show (FR-011, informational; the E2E asserts the shared folder id). `{salt}` marks where the run salt goes when the normalisation drops the tail of a name (featuring parts); otherwise the salt is appended.",
     "groups": [
       { "key": "metallica", "spellings": ["Metallica", "metallica ", "METALLICA"], "display": "Metallica" },
       { "key": "motorhead", "spellings": ["Motörhead", "Motorhead", "MOTÖRHEAD"], "display": "Motörhead" },
       { "key": "beatles", "spellings": ["The Beatles", "Beatles", "the  beatles"], "display": "The Beatles" },
       { "key": "gnr", "spellings": ["Guns N’ Roses", "Guns N' Roses", "guns n' roses"], "display": "Guns N’ Roses" },
-      { "key": "featuring", "spellings": ["Nora Fieldings", "Nora Fieldings feat. Ada Brook", "Nora Fieldings (ft. Ada Brook)", "Nora Fieldings featuring Ada Brook"], "display": "Nora Fieldings" },
+      { "key": "featuring", "spellings": ["Nora Fieldings {salt}", "Nora Fieldings {salt} feat. Ada Brook", "Nora Fieldings {salt} (ft. Ada Brook)", "Nora Fieldings {salt} featuring Ada Brook"], "display": "Nora Fieldings" },
       { "key": "ampersand", "spellings": ["Salt & Static"], "display": "Salt & Static", "note": "FR-005: never split on '&'; 'Salt' alone is a different folder", "distinctFrom": ["Salt"] },
       { "key": "letters", "spellings": ["Strøm Æsir", "Strom AEsir", "strom aesir"], "display": "Strøm Æsir" },
       { "key": "dashes", "spellings": ["Rock–Paper", "Rock-Paper", "Rock—Paper"], "display": "Rock–Paper" }
@@ -29,14 +29,23 @@
   "browse": {
     "about": "Library info per track (source 'track'), so the art and counts are mode independent. 'picture' = own picture of the track (tests/fixtures/artwork, generated). Artists sort A-Z with a leading 'The' ignored; 'Unknown artist' and 'My songs' last (US2-1).",
     "tracks": [
-      { "key": "nora-harbour", "artist": "Nora Fieldings", "album": "Harbour", "song": "Low Tide", "year": 2019, "picture": "own_picture_800x600.png" },
-      { "key": "nora-lanterns", "artist": "Nora Fieldings", "album": "Lanterns", "song": "River Lights", "year": 2021, "picture": "own_picture_640x640.jpg" },
-      { "key": "nora-static", "artist": "Nora Fieldings", "album": "Static", "song": "Copper Rain", "year": 2023, "picture": "own_picture_800x600.png" },
-      { "key": "meters", "artist": "The Quiet Meters", "album": "First Light", "song": "Paper Boats", "year": 2018, "picture": "own_picture_640x640.jpg" },
-      { "key": "abel", "artist": "Abel Stroom", "album": "Unknown album", "song": "Kettle Song", "year": null, "picture": null }
+      { "key": "nora-harbour", "artist": "Nora Fieldings", "album": "Harbour", "song": "Low Tide", "picture": "own_picture_800x600.png" },
+      { "key": "nora-lanterns", "artist": "Nora Fieldings", "album": "Lanterns", "song": "River Lights", "picture": "own_picture_640x640.jpg" },
+      { "key": "nora-static", "artist": "Nora Fieldings", "album": "Static", "song": "Copper Rain", "picture": "own_picture_800x600.png" },
+      { "key": "meters", "artist": "The Quiet Meters", "album": "First Light", "song": "Paper Boats", "picture": "own_picture_640x640.jpg" },
+      { "key": "duo-1", "artist": "Duo Lights", "album": "North", "song": "Compass", "picture": "own_picture_640x640.jpg" },
+      { "key": "duo-2", "artist": "Duo Lights", "album": "South", "song": "Needle", "picture": "own_picture_800x600.png" },
+      { "key": "four-1", "artist": "Four Winds", "album": "Easterly", "song": "Gale", "picture": "own_picture_640x640.jpg" },
+      { "key": "four-2", "artist": "Four Winds", "album": "Westerly", "song": "Breeze", "picture": "own_picture_800x600.png" },
+      { "key": "four-3", "artist": "Four Winds", "album": "Northerly", "song": "Squall", "picture": "own_picture_640x640.jpg" },
+      { "key": "four-4", "artist": "Four Winds", "album": "Southerly", "song": "Draft", "picture": "own_picture_800x600.png" },
+      { "key": "four-5", "artist": "Four Winds", "album": "Calm", "song": "Still Air", "picture": "own_picture_640x640.jpg" },
+      { "key": "abel", "artist": "Abel Stroom", "album": "Unknown album", "song": "Kettle Song", "picture": null }
     ],
-    "expectArt": { "Nora Fieldings": "mosaic", "The Quiet Meters": "cover", "Abel Stroom": "placeholder-unless-found" },
-    "expectOrder": ["Abel Stroom", "Nora Fieldings", "The Quiet Meters"]
+    "expectArt": { "Nora Fieldings": "mosaic of 3", "Duo Lights": "mosaic of 2", "Four Winds": "mosaic of 4 (5 albums, at most 4 covers)", "The Quiet Meters": "cover", "Abel Stroom": "placeholder-unless-found" },
+    "expectOrder": ["Abel Stroom", "Nora Fieldings", "The Quiet Meters"],
+    "expectAlbumOrder": { "name": ["Harbour", "Lanterns", "Static"], "recent": ["Static", "Lanterns", "Harbour"] },
+    "yearNote": "Album years come only from a band info match (library info has no year), so the year sort is a backend/bUnit case; the E2E sorts by name and recently added (seed order)."
   },
   "families": {
     "about": "Search cases of SC-006 / US3-3: one query per instrument family and per detail stem group of the fake detail models (support/detail.ts fakeDetailOutcomes). The fake guitar and piano never split, so 'acoustic guitar' and piano detail groups are covered by the backend search tests only.",

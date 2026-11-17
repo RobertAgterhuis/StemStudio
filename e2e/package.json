@@ -8,7 +8,7 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library\"",
+    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library|@library-db|@lyric-assist\"",
     "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key|@practice|@library-care\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
     "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
@@ -27,6 +27,10 @@
     "test:practice": "playwright test --project=chromium --project=firefox --grep @practice",
     "test:library-care": "playwright test --project=chromium --project=firefox --grep @library-care --grep-invert \"@compose|@fresh-library\"",
     "test:library-care-compose": "playwright test --project=chromium --project=firefox --grep \"(?=.*@library-care)(?=.*@compose)\"",
+    "test:library-db": "playwright test --project=chromium --grep @library-db",
+    "test:lyric-assist": "playwright test --project=chromium --project=firefox --grep @lyric-assist --grep-invert \"@lyric-assist-none|@lyric-assist-claude|@agent\"",
+    "test:lyric-assist-none": "playwright test --project=chromium --grep @lyric-assist-none",
+    "test:lyric-assist-claude": "playwright test --project=chromium --grep @lyric-assist-claude",
     "test:library-care-fresh": "playwright test --project=chromium --grep @fresh-library",
     "test:visual": "playwright test --project=visual",
     "test:a11y": "playwright test --project=a11y",

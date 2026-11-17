@@ -21,7 +21,9 @@ const settledMetadata = /^(found|notFound|failed|disabled)$/;
  * panel open) and `restyle-dialog` are the 009/010 states (1.8.0/1.9.0); the restyle dialog opens
  * only with a ready generator, so it skips on the default stack (TEST-STRATEGY 16.6 item 7).
  * `settings` is the 011 page `/settings` with its agent section (ui-test-ids 1.10.0); its screen
- * topic is `agent-backends`, the topic of its first section.
+ * topic is `agent-backends`, the topic of its first section. Feature 022 (ui-test-ids 1.22.0):
+ * `library` is the song folder that holds the seeded items (the 007 rows render there at every
+ * level; `/library?view=all` is Advanced+), `library-root` the folder view `/library`.
  */
 export type ScreenId =
   | 'import'
@@ -35,6 +37,7 @@ export type ScreenId =
   | 'band-info'
   | 'export-dialog'
   | 'library'
+  | 'library-root'
   | 'score-dialog'
   | 'style-library'
   | 'song'
@@ -55,6 +58,7 @@ export const screenIds: readonly ScreenId[] = [
   'band-info',
   'export-dialog',
   'library',
+  'library-root',
   'score-dialog',
   'style-library',
   'song',
@@ -76,6 +80,7 @@ export const screenTopics: Readonly<Record<ScreenId, string>> = {
   'band-info': 'track-screen',
   'export-dialog': 'mixer-screen',
   library: 'library',
+  'library-root': 'library',
   'score-dialog': 'track-screen',
   'style-library': 'styles-library',
   song: 'song-options',
@@ -102,7 +107,8 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   mixes: { path: () => '/mixes', ready: (p, d) => expect(p.getByTestId(`mix-row-${d.mixId}`)).toBeVisible() },
   'band-info': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: bandInfoReady },
   'export-dialog': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: exportDialogReady },
-  library: { path: () => '/library?view=all', ready: libraryReady, prepare: prepareLibrary },
+  library: { path: () => librarySongPath, ready: libraryReady, prepare: prepareLibrary },
+  'library-root': { path: () => '/library', ready: libraryRootReady, prepare: prepareLibrary },
   'score-dialog': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: scoreDialogReady },
   'style-library': { path: () => '/styles', ready: styleLibraryReady },
   song: { path: () => '/songs/new', ready: songReady },
@@ -111,9 +117,14 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   settings: { path: () => '/settings', ready: settingsReady },
 };
 
+/** Song folder of the seeded items (022), set by {@link prepareLibrary}; "All items" until known. */
+let librarySongPath = '/library?view=all';
+
 async function prepareLibrary(data: UxData): Promise<void> {
-  await ensureLibraryItem(data.detailTrack.id);
+  const item = await ensureLibraryItem(data.detailTrack.id);
   await ensureScoreItem(data.detailTrack.id);
+  const folderId = (item as { readonly placement?: { readonly song: { readonly folderId: string } } | null }).placement?.song.folderId;
+  librarySongPath = folderId === undefined ? '/library?view=all' : `/library/${folderId}`;
 }
 
 /**
@@ -214,8 +225,13 @@ async function exportDialogReady(page: Page): Promise<void> {
 }
 
 /** Library with the seeded audio and score items ready (the score row shows its PDF preview). */
+async function libraryRootReady(page: Page): Promise<void> {
+  await expect(page.getByTestId('library-folders')).toHaveAttribute('data-level', 'root');
+  await expect(page.getByTestId(/^folder-tile-ar[0-9a-f]{16}$/u).first()).toBeVisible();
+}
+
 async function libraryReady(page: Page): Promise<void> {
-  await expect(page.getByTestId('library-total-size')).toBeVisible();
+  await expect(page.getByTestId('library-folders').or(page.getByTestId('library-total-size')).first()).toBeVisible();
   const rows = page.getByTestId(/^asset-row-/);
   const audio = rows.filter({ hasText: uxLibraryItemName, hasNotText: uxScoreItemName });
   for (const row of [audio, rows.filter({ hasText: uxScoreItemName })]) {

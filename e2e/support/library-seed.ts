@@ -7,7 +7,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { TestInfo } from '@playwright/test';
+import { test, type TestInfo } from '@playwright/test';
 import type { StemName, StemStudioApi, TrackDto } from './api';
 import type { AssetDto, AssetsApi, ExportMixDto } from './assets-api';
 import { fakeStems } from './detail';
@@ -16,6 +16,7 @@ import { fixturePath } from './fixtures';
 import type { LibraryApi, PlacementDto } from './library-api';
 import type { MetadataApi } from './metadata-api';
 import { artworkFixturePath, type ArtworkFixtureName } from './artwork-fixtures';
+import { type FakeOnlineMode, fakeOnlineMode, modeSkipReason } from './online';
 import { uniqueWavCopy } from './unique-audio';
 
 /** Tags written into a seeded upload (RIFF LIST/INFO). */
@@ -46,7 +47,6 @@ export interface BrowseTrack {
   readonly artist: string;
   readonly album: string;
   readonly song: string;
-  readonly year: number | null;
   readonly picture: ArtworkFixtureName | null;
 }
 
@@ -60,7 +60,11 @@ export interface FamilyCase {
 export interface LibraryScenarios {
   readonly normalisation: { readonly groups: readonly NormalisationGroup[] };
   readonly filing: { readonly songs: readonly FilingSong[] };
-  readonly browse: { readonly tracks: readonly BrowseTrack[]; readonly expectOrder: readonly string[] };
+  readonly browse: {
+    readonly tracks: readonly BrowseTrack[];
+    readonly expectOrder: readonly string[];
+    readonly expectAlbumOrder: { readonly name: readonly string[]; readonly recent: readonly string[] };
+  };
   readonly families: {
     readonly standard: readonly FamilyCase[];
     readonly detail: readonly FamilyCase[];
@@ -85,9 +89,22 @@ export function librarySalt(testInfo: TestInfo, extra = ''): string {
   return `qa${runId()}${testInfo.project.name.slice(0, 2)}${extra}`.toLowerCase().replace(/[^a-z0-9]/gu, '');
 }
 
+/** Skips the test unless the stack runs one of the fake online `modes` (tag-based filing needs `not-found`). */
+export function requireOnlineMode(...modes: FakeOnlineMode[]): void {
+  test.skip(!modes.includes(fakeOnlineMode), modeSkipReason(modes));
+}
+
 /** `name` with the salt appended (the form every seeded name takes). */
 export function salted(name: string, salt: string): string {
   return `${name} ${salt}`;
+}
+
+/**
+ * A fixture name with the salt: at `{salt}` when the name has the placeholder (names whose tail the
+ * normalisation drops, such as featuring parts), else appended.
+ */
+export function saltedTemplate(name: string, salt: string): string {
+  return name.includes('{salt}') ? name.replace('{salt}', salt) : salted(name, salt);
 }
 
 const outDir = path.resolve(__dirname, '..', '.state', 'library');
@@ -222,4 +239,31 @@ export async function seedFamilies(clients: LibrarySeedClients, salt: string): P
     byStem.set(stem, await saveRawItem(clients, band.id, [stem], neutralName()));
   }
   return { byStem, mixes, all: [...byStem.values(), ...mixes.values()] };
+}
+
+const browseSeeds = new Map<string, Promise<Map<string, SeededBrowseTrack>>>();
+
+/** Time a first {@link ensureBrowseSet} may take (one import and one item per browse track). */
+export const browseSeedTimeoutMs = readLibraryScenarios().browse.tracks.length * (fakeJobTimeoutMs + renderMs) + 120_000;
+
+/** The browse set of this browser project and run, seeded on first use (memoised per worker). */
+export function ensureBrowseSet(clients: LibrarySeedClients, testInfo: TestInfo): Promise<Map<string, SeededBrowseTrack>> {
+  const salt = browseSalt(testInfo);
+  const existing = browseSeeds.get(salt) ?? seedBrowse(clients, salt);
+  browseSeeds.set(salt, existing);
+  return existing;
+}
+
+/** Salt of the browse set of this project and run. */
+export function browseSalt(testInfo: TestInfo): string {
+  return librarySalt(testInfo, 'b');
+}
+
+/** One seeded browse track by fixture key. */
+export function browseTrack(set: ReadonlyMap<string, SeededBrowseTrack>, key: string): SeededBrowseTrack {
+  const track = set.get(key);
+  if (track === undefined) {
+    throw new Error(`browse track ${key} is not in scenarios.json`);
+  }
+  return track;
 }

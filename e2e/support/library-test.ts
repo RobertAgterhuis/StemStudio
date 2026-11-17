@@ -1,6 +1,7 @@
 /**
- * The `test` object of the feature 022 specs: the suite's `test` (support/test.ts) extended with
- * the library client and the folder, search and library info page objects.
+ * The `test` object of the feature 022 specs: the 009/010 `test` (support/generative-test.ts, every
+ * fixture of 001-010, created lazily) extended with the library client and the folder, search and
+ * library info page objects.
  *
  * @packageDocumentation
  */
@@ -10,7 +11,7 @@ import { LibrarySearch } from '../pages/library-search';
 import { apiBaseUrl } from './env';
 import { LibraryApi } from './library-api';
 import type { LibrarySeedClients } from './library-seed';
-import { test as base } from './test';
+import { test as base } from './generative-test';
 
 /** Fixtures added by feature 022. */
 export interface LibraryFixtures {
