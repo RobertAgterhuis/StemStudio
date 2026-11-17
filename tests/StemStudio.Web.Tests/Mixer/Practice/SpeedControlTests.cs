@@ -66,8 +66,8 @@ public sealed class SpeedControlTests : PracticeTestContext
         page.Find("[data-testid=practice-speed-up]").Click();
 
         page.Find("[data-testid=practice-panel]").GetAttribute("data-speed").ShouldBe("120");
-        page.Find("[data-testid=practice-speed-down]").GetAttribute("aria-label").ShouldBe("Slower by 5 percent");
-        page.Find("[data-testid=practice-speed-up]").GetAttribute("aria-label").ShouldBe("Faster by 5 percent");
+        page.Find("[data-testid=practice-speed-down]").GetAttribute("aria-label").ShouldBe("-5 % (slower)");
+        page.Find("[data-testid=practice-speed-up]").GetAttribute("aria-label").ShouldBe("+5 % (faster)");
     }
 
     [Fact]
@@ -79,6 +79,7 @@ public sealed class SpeedControlTests : PracticeTestContext
         page.Find("[data-testid=practice-speed]").Input("85");
         page.Find("[data-testid=practice-transpose-up]").Click();
         page.Find("[data-testid=practice-speed-reset]").TextContent.Trim().ShouldBe("100 %");
+        page.Find("[data-testid=practice-speed-reset]").GetAttribute("aria-label").ShouldBe("100 % (original speed)");
         page.Find("[data-testid=practice-speed-reset]").Click();
         NextInterval();
 

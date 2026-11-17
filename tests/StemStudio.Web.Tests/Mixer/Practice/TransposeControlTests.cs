@@ -53,8 +53,8 @@ public sealed class TransposeControlTests : PracticeTestContext
         page.Find("[data-testid=practice-transpose]").GetAttribute("aria-valuenow").ShouldBe("12");
         page.Find("[data-testid=practice-transpose-down]").Click();
         page.Find("[data-testid=practice-transpose]").GetAttribute("aria-valuenow").ShouldBe("11");
-        page.Find("[data-testid=practice-transpose-down]").GetAttribute("aria-label").ShouldBe("Down one semitone");
-        page.Find("[data-testid=practice-transpose-up]").GetAttribute("aria-label").ShouldBe("Up one semitone");
+        page.Find("[data-testid=practice-transpose-down]").GetAttribute("aria-label").ShouldBe("-1 semitone");
+        page.Find("[data-testid=practice-transpose-up]").GetAttribute("aria-label").ShouldBe("+1 semitone");
     }
 
     [Theory]
