@@ -80,23 +80,23 @@ public sealed partial class Mixer
 
     // Keyboard commands (ui-test-ids 1.11.0 "Shortcut commands"): the same methods as the buttons, nothing while the stage
     // is unavailable; the speed keys also do nothing while the trainer controls the speed.
-    private Task PracticeCommandAsync(string command, int argument) => command switch
+    // 012 practice keys (A-012-2..4): the same guards as the controls.
+    private void RegisterPracticeCommands(MixerCommandRegistry commands)
     {
-        "mixer.speed" => SpeedLocked ? Task.CompletedTask : SetSpeedAsync(State!.Practice.SpeedPercent + argument),
-        "mixer.transpose" => StretchUnavailable ? Task.CompletedTask : SetTransposeAsync(State!.Practice.TransposeSemitones + argument),
-        "mixer.practice.reset" => StretchUnavailable ? Task.CompletedTask : ResetPracticeAsync(),
-        "mixer.trainer.toggle" => TrainerCommandAsync(),
-        "mixer.countin.toggle" => CountInCommandAsync(),
-        _ => SaveCommandAsync(command),
-    };
+        commands.Add("mixer.speed", delta => SpeedLocked ? Task.CompletedTask : SetSpeedAsync(State!.Practice.SpeedPercent + (int)delta));
+        commands.Add("mixer.transpose", delta => StretchUnavailable ? Task.CompletedTask : SetTransposeAsync(State!.Practice.TransposeSemitones + (int)delta));
+        commands.Add("mixer.practice.reset", () => StretchUnavailable ? Task.CompletedTask : ResetPracticeAsync());
+        commands.Add("mixer.trainer.toggle", TrainerCommandAsync);
+        commands.Add("mixer.countin.toggle", CountInCommandAsync);
+    }
 
     private bool SpeedLocked => StretchUnavailable || PracticeRules.TrainerRuns(PracticeLive);
 
     private void RegisterPracticeActions()
     {
-        _actions.Add(Commands.Register("mixer-practice-reset", "Original speed and key", () => ActionAsync(() => PracticeCommandAsync("mixer.practice.reset", 0))));
-        _actions.Add(Commands.Register("mixer-speed-up", "Speed +5 %", () => ActionAsync(() => PracticeCommandAsync("mixer.speed", 5))));
-        _actions.Add(Commands.Register("mixer-speed-down", "Speed -5 %", () => ActionAsync(() => PracticeCommandAsync("mixer.speed", -5))));
+        _actions.Add(Commands.Register("mixer-practice-reset", "Original speed and key", () => ActionAsync(() => _commands.DispatchAsync("mixer.practice.reset"))));
+        _actions.Add(Commands.Register("mixer-speed-up", "Speed +5 %", () => ActionAsync(() => _commands.DispatchAsync("mixer.speed:5"))));
+        _actions.Add(Commands.Register("mixer-speed-down", "Speed -5 %", () => ActionAsync(() => _commands.DispatchAsync("mixer.speed:-5"))));
     }
 
     private void OnPracticeChanged(object? sender, PracticeStatus status) =>

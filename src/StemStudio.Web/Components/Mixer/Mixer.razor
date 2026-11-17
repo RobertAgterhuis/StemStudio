@@ -1,4 +1,5 @@
 @page "/tracks/{Id:guid}/mixer"
+@using StemStudio.Web.Components.Recording
 
 <PageTitle>Mixer - StemStudio</PageTitle>
 
@@ -35,6 +36,7 @@ else
             </div>
             <div class="ss-mix-actions">
                 <BandInfoToggle Open="ShowBandInfo" OnToggle="ToggleBandInfo" />
+                <RecordingToolbarToggle Mixer="this" />
                 @if (!IsBeginner)
                 {
                     <PresetPicker Presets="Presets" OnApply="ApplyPresetAsync" />
@@ -93,6 +95,8 @@ else
             </PracticePanel>
         </div>
 
+        <RecordingArea Mixer="this" />
+
         @if (State.KeepsRemovedDetailSettings)
         {
             <p class="ss-notice" role="note" data-testid="mixer-detail-removed" data-help-id="mixer-detail-removed">
@@ -121,6 +125,7 @@ else
                                    OnPan="c => SetPanAsync(c.Id, c.Value)" OnMute="ToggleMuteAsync" OnSolo="ToggleSoloAsync" />
                     }
                 }
+                <TakeStripSlot Mixer="this" />
             </section>
             <div class="ss-console-master">
                 <MasterSection Volume="State.MasterVolume" OnVolume="SetMasterAsync" />
