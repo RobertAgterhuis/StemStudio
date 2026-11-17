@@ -11,7 +11,7 @@ At least **90 % line and branch coverage per component**; CI fails below it.
 |---|---|---|
 | .NET (Domain, Persistence, Api, Web, Agent, `tools/agent-eval`) | xUnit v3, bUnit, coverlet (Cobertura) | `Directory.Build.props`, per project; the evaluation harness has its own floor step "agent-eval coverage floor (011)" |
 | Worker, generator | pytest, pytest-cov | `--cov-fail-under=90` |
-| Audio engine, web interop | Vitest | thresholds in `vitest.config.ts` |
+| Audio engine, web interop | Vitest | thresholds in `vitest.config.ts`; from 012 also `npm run test:wasm`, the Node suite against the real `soundtouch.wasm` (pitch accuracy, latency, no drift over 100 jumps, content offset); it fails instead of skipping when `SOUNDTOUCH_WASM_REQUIRED=1` (CI) |
 | Quality tools, fixture generator | pytest | `fail_under` in `pyproject.toml` |
 
 Heavy dependencies (models, yt-dlp, spotDL, ffmpeg, LLMs) sit behind ports and are replaced by
@@ -25,6 +25,9 @@ later features add one GPU-marked integration test each, never run in CI.
 - Unit size ≤ 15 lines of code (hard maximum 30), cyclomatic complexity ≤ 5 (hard 10),
   at most 4 parameters, no duplicated blocks of 6 or more lines.
 - One-way dependencies between components (chapter 2).
+- The C++ ABI shim under `third_party/soundtouch/shim/` is measured for unit size (012); the
+  downloaded SoundTouch source (`upstream/`), local build outputs and the generated worklet
+  bundle are excluded from SIG and Sonar.
 - The **raw-colour guard** (`css_tokens_check.py`): only
   `src/StemStudio.Web/wwwroot/css/tokens.css` may contain literal colours.
 
@@ -39,7 +42,7 @@ on Chromium and Firefox:
 
 | Suite | Command | Purpose |
 |---|---|---|
-| Default | `npm test` | Main flow import → separate → mix → save → reload, and every feature flow |
+| Default | `npm test` | Main flow import → separate → mix → save → reload, and every feature flow (from 012 including `@practice`; `npm run test:practice` runs it alone, with the output and click probes) |
 | `@ux` | `npm run test:ux` | Design system, levels, help, tours, palette |
 | `@detail`, `@gpu`, `@restart` | `npm run test:detail` etc. | Detail separation, fake GPU and OOM, restart recovery |
 | Visual | `npm run test:visual` | Screenshot baselines (0.1 % tolerance), in the Playwright container |
@@ -80,8 +83,9 @@ scripts/test-all.sh --continue-on-error     # Linux, macOS
 These scripts run the same steps as `.github/workflows/ci.yml`: .NET build, format and tests;
 worker lint, types and tests; audio engine and web interop; contract lint (Redocly); the
 quality tools and the SIG gate; the fixture generator; the E2E lint, typecheck and list; and
-the **documentation check** (`node tools/docs/check.mjs`, chapter 12). `-Gpu` adds the fake
-GPU passes.
+the **documentation check** (`node tools/docs/check.mjs`, chapter 12); from 012 the 012
+contract lint and superset check, the emsdk pin check and, when the module is built,
+`test:wasm`. `-Gpu` adds the fake GPU passes.
 
 ## Licence gate
 

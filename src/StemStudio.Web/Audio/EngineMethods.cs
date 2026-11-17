@@ -1,13 +1,13 @@
 namespace StemStudio.Web.Audio;
 
 /// <summary>
-/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.1.0 incl. the karaoke methods).
+/// JavaScript identifiers of the audio engine contract (<c>src/audio-engine/src/types.ts</c>, v2.3.0; the karaoke methods of 2.1.0 included).
 /// Every identifier the wrapper invokes is listed here so a drift test can compare them with the contract.
 /// </summary>
 internal static class EngineMethods
 {
-    /// <summary>Supported engine contract version.</summary>
-    public const string ContractVersion = "2.1.0";
+    /// <summary>Supported engine contract version (2.3.0: practice tempo, feature 012).</summary>
+    public const string ContractVersion = "2.3.0";
 
     /// <summary>Path of the ES module built by the audio-engine package.</summary>
     public const string ModulePath = "./js/audio-engine.js";
@@ -60,6 +60,12 @@ internal static class EngineMethods
     /// <summary><c>AudioEngine.detachKaraoke</c> (contract 2.1.0).</summary>
     public const string DetachKaraoke = "detachKaraoke";
 
+    /// <summary><c>AudioEngine.setPractice</c> (contract 2.3.0).</summary>
+    public const string SetPractice = "setPractice";
+
+    /// <summary><c>AudioEngine.getPracticeStatus</c> (contract 2.3.0).</summary>
+    public const string GetPracticeStatus = "getPracticeStatus";
+
     /// <summary><c>AudioEngine.dispose</c>.</summary>
     public const string Dispose = "dispose";
 
@@ -67,6 +73,6 @@ internal static class EngineMethods
     public static readonly IReadOnlyList<string> All =
         [
             LoadTrack, Play, Pause, Stop, Seek, SetChannel, SetExpanded, SetMaster, SetLoop, SetMetronome, AttachMeter,
-            AttachKaraoke, SetKaraokeOffset, DetachKaraoke, Dispose,
+            AttachKaraoke, SetKaraokeOffset, DetachKaraoke, SetPractice, GetPracticeStatus, Dispose,
         ];
 }

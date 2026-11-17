@@ -29,6 +29,13 @@ public interface IAudioEngine : IAsyncDisposable
     /// <summary>Raised on every transport state change.</summary>
     event EventHandler<PlaybackState>? PlaybackStateChanged;
 
+    /// <summary>
+    /// Raised after every applied practice change, stretch state change, trainer pass start, count-in beat and underrun
+    /// burst (engine contract 2.3.0, at most 10 Hz); also when the time-stretch stage turns out to be unavailable.
+    /// Handlers run on the caller's thread and marshal to the renderer themselves.
+    /// </summary>
+    event EventHandler<PracticeStatus>? PracticeChanged;
+
     /// <summary>True between <see cref="InitializeAsync"/> and disposal.</summary>
     bool IsInitialized { get; }
 
@@ -86,6 +93,19 @@ public interface IAudioEngine : IAsyncDisposable
     /// <param name="settings">The settings.</param>
     /// <returns>A task that completes when the call is delivered.</returns>
     Task SetMetronomeAsync(MetronomeSettingsDto settings);
+
+    /// <summary>
+    /// Applies practice tempo settings (engine contract 2.3.0); completes when they are audible. When the time-stretch
+    /// stage cannot run, it completes normally and <see cref="PracticeChanged"/> reports an unavailable status (the engine
+    /// keeps the original speed and key and still applies the count-in); invalid settings throw.
+    /// </summary>
+    /// <param name="settings">Speed, transpose, trainer and count-in settings.</param>
+    /// <returns>A task that completes when the settings are applied.</returns>
+    Task SetPracticeAsync(PracticeSettingsDto settings);
+
+    /// <summary>Reads the current practice snapshot (engine contract 2.3.0).</summary>
+    /// <returns>The snapshot.</returns>
+    Task<PracticeStatus> GetPracticeStatusAsync();
 
     /// <summary>Binds a peak meter to a DOM element.</summary>
     /// <param name="target">A channel id (stem name or <c>&lt;parent&gt;.&lt;detail&gt;</c>) or <c>master</c>.</param>

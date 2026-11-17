@@ -2,7 +2,7 @@
 
 **Branch**: `012-practice-tempo` | **Date**: 2026-11-16 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification `/specs/012-practice-tempo/spec.md`; constitution 1.3.1;
+**Input**: Feature specification `/specs/012-practice-tempo/spec.md`; constitution 1.4.0 (1.3.1 at design; 1.4.0 changes nothing for 012);
 `docs/MoSCoW.md` M1-M3 and decisions; `docs/ROADMAP.md` contract allocation (backend-api 1.11.0,
 audio-engine 2.3.0, ui-test-ids 1.11.0); [research.md](research.md); ADR-021 (builds on ADR-005,
 ADR-010, ADR-015, ADR-016).
@@ -27,8 +27,8 @@ original speed and key.
 shim compiled with Emscripten.
 
 **Primary Dependencies (new)**: SoundTouch **2.4.1** (LGPL-2.1, `https://codeberg.org/soundtouch/soundtouch`,
-unmodified source, separate `soundtouch.wasm` module); build tool Emscripten SDK **6.0.7**
-(`emscripten/emsdk:6.0.7` Docker image; MIT / University of Illinois NCSA; not distributed). No new
+unmodified source, separate `soundtouch.wasm` module); build tool Emscripten SDK **6.0.13** (Phase 0: 6.0.7 planned, 6.0.13 is the newest 6.0 patch older than two weeks)
+(`emscripten/emsdk:6.0.13` Docker image, pinned by digest; MIT / University of Illinois NCSA; not distributed). No new
 npm, NuGet or Python packages.
 
 **Storage**: SQLite column `Mixes.Practice` (TEXT NULL, JSON; migration `AddMixPractice`). No
@@ -63,7 +63,7 @@ with binaries; exports unchanged.
 |---|---|---|---|
 | I | Test-first, >= 90 % line+branch | Every owner task is a red/green pair. Engine: tempo math, anchor, passes, trainer, count-in plan and the processor are pure or port-based and fully unit-testable with the mock clock; the real WASM is covered by a separate Node suite (like the one marked integration test per heavy dependency); backend domain/persistence/API; bUnit for every new component; E2E per story and per instrument family. Coverage gates unchanged (engine, web-interop, API, Web). | PASS |
 | II | SIG 4 stars | Engine split into `stretch/` (constants, params, fifo, abi, processor, worklet-stage) and `practice/` (settings, tempo, passes, trainer, count-in, controller) of small modules; transport change confined to the anchor; frontend one component per control group; dependency rules added to `tools/quality` (T014). The C++ shim (< 120 lines) is ours and kept within the unit-size limits; `third_party/soundtouch/upstream` is excluded from SIG as third-party code. | PASS |
-| III | Contracts first | backend-api 1.11.0 (additive; full document `1.11.0-delta.1` now, merged with 1.10.0 in Phase 0), audio-engine 2.3.0 (additive, full text), ui-test-ids 1.11.0 (additive delta, full document in Phase 0), WASM ABI v1; C# DTOs and `types.ts` written in Phase 0 before the wave; contract tests. | PASS |
+| III | Contracts first | backend-api 1.11.0 (additive; full document 1.11.0 = 1.21.0 + 012 since Phase 0), audio-engine 2.3.0 (additive, full text), ui-test-ids 1.11.0 (additive delta, full document in Phase 0), WASM ABI v1; C# DTOs and `types.ts` written in Phase 0 before the wave; contract tests. | PASS |
 | IV | Open source, lawful use | SoundTouch is LGPL-2.1 (OSI). Used as a separate, run-time-loaded, replaceable module with a documented ABI (LGPL 2.1 section 6(b)); unmodified upstream source pinned by SHA-256; licence text, exact source archive, shim and build script shipped in every binary distribution (`/third-party/soundtouch/`); MIT project stays MIT; recorded in THIRD-PARTY-LICENSES (CTO). Rubber Band (GPL) excluded. No new data leaves the machine. | PASS |
 | V | Simplicity and honesty | One stage on the sum (no per-stem processing), no new backend endpoints, worker untouched, exports unchanged. Quality limits shown (hint < 70 %, help topic, missing formant correction, meter lead). Timing: `setValueAtTime`, `source.start(when)` and the existing look-ahead scheduler (timer only wakes it). | PASS |
 | - | Tech & security | No secrets, no new network egress (WASM served by the app itself); input validated in the engine and the backend; the processor receives bytes, never URLs; no `eval`; future CSP must allow `'wasm-unsafe-eval'` (documented). | PASS |
@@ -81,10 +81,11 @@ specs/012-practice-tempo/
 ├── checklists/requirements.md
 └── contracts/
     ├── DELTA.md                      # summary of every contract change
-    ├── backend-api.openapi.yaml      # 1.11.0-delta.1 (= 1.9.0 + 012); 1.11.0 after T003
+    ├── backend-api.openapi.yaml      # 1.11.0 (= 1.21.0 + 012, Phase 0 T003)
     ├── check_superset.py             # "newer contains older" check
     ├── redocly.yaml
-    ├── audio-engine.md               # 2.3.0 (full)
+    ├── audio-engine.md               # 2.3.0 (full, Phase 0 refinements)
+    ├── ui-test-ids.md                # 1.11.0 (full = 1.21.0 + delta, Phase 0 T003)
     └── ui-test-ids.delta.md          # 1.11.0 additions; full ui-test-ids.md 1.11.0 after T003
 ```
 
@@ -96,7 +97,7 @@ third_party/soundtouch/
 ├── soundtouch.lock                            # version, tarball URL + SHA-256, emsdk image digest (architect, T001)
 ├── include/stemstudio_soundtouch.h            # ABI v1 (architect, T006)
 └── shim/stemstudio_soundtouch.cpp             # ABI implementation over SoundTouch (audio-engine)
-scripts/build-soundtouch.{sh,ps1}              # fetch + verify + emcc in emsdk 6.0.7 (devops)
+scripts/build-soundtouch.{sh,ps1}              # fetch + verify + em++ in emsdk 6.0.13 (devops)
 src/audio-engine/
 ├── src/types.ts                               # 2.3.0 additions (architect, T005)
 ├── src/transport.ts                           # rate-aware anchor, latency-aware starts (audio-engine)

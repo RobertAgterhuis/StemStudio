@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key\"",
-    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key\"",
+    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key|@practice\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
     "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",
@@ -24,6 +24,7 @@
     "test:detail": "playwright test --project=chromium --project=firefox --grep @detail --grep-invert @worker-restart",
     "test:worker-restart": "playwright test --project=chromium --project=firefox --grep @worker-restart",
     "test:claude-key": "playwright test --project=chromium --project=firefox --grep @claude-key",
+    "test:practice": "playwright test --project=chromium --project=firefox --grep @practice",
     "test:visual": "playwright test --project=visual",
     "test:a11y": "playwright test --project=a11y",
     "test:lighthouse": "playwright test --project=lighthouse-setup && node lighthouse/run-lighthouse.mts",

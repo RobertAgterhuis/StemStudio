@@ -15,7 +15,8 @@ const settledMetadata = /^(found|notFound|failed|disabled)$/;
  * Screen states covered by the visual and accessibility matrices. `band-info`, `export-dialog`
  * and `library` are the 005/007 states (ui-test-ids 1.4.0/1.5.0); the covers and thumbnails of
  * 005 appear on the 004 screens themselves. Feature 006 adds the karaoke banner to `mixer` and
- * the lyrics card to `track` (fake lyrics mode `word`); feature 008 adds `score-dialog`, the
+ * the lyrics card to `track` (fake lyrics mode `word`); feature 012 adds `mixer-practice` (the
+ * practice panel engaged at 65 % / +2 st); feature 008 adds `score-dialog`, the
  * `score-stem-*` row to `track` and a ready score item to `library`. `style-library`, `song`, `voices` (with the consent
  * panel open) and `restyle-dialog` are the 009/010 states (1.8.0/1.9.0); the restyle dialog opens
  * only with a ready generator, so it skips on the default stack (TEST-STRATEGY 16.6 item 7).
@@ -29,6 +30,7 @@ export type ScreenId =
   | 'track-no-detail'
   | 'mixer'
   | 'mixer-expanded'
+  | 'mixer-practice'
   | 'mixes'
   | 'band-info'
   | 'export-dialog'
@@ -48,6 +50,7 @@ export const screenIds: readonly ScreenId[] = [
   'track-no-detail',
   'mixer',
   'mixer-expanded',
+  'mixer-practice',
   'mixes',
   'band-info',
   'export-dialog',
@@ -68,6 +71,7 @@ export const screenTopics: Readonly<Record<ScreenId, string>> = {
   'track-no-detail': 'track-screen',
   mixer: 'mixer-screen',
   'mixer-expanded': 'mixer-screen',
+  'mixer-practice': 'mixer-screen',
   mixes: 'mixes-library',
   'band-info': 'track-screen',
   'export-dialog': 'mixer-screen',
@@ -94,6 +98,7 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   'track-no-detail': { path: (d) => `/tracks/${d.plainTrack.id}`, ready: (p, d) => trackReady(p, d.plainTrack.detail.status) },
   mixer: { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: mixerReady },
   'mixer-expanded': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: mixerExpandedReady },
+  'mixer-practice': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: mixerPracticeReady },
   mixes: { path: () => '/mixes', ready: (p, d) => expect(p.getByTestId(`mix-row-${d.mixId}`)).toBeVisible() },
   'band-info': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: bandInfoReady },
   'export-dialog': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: exportDialogReady },
@@ -150,6 +155,39 @@ async function mixerExpandedReady(page: Page): Promise<void> {
   await expect(page.getByTestId('expand-drums')).toHaveAttribute('aria-expanded', 'true', { timeout: 30_000 });
   await expect(page.getByTestId('strip-drums-kick')).toBeVisible();
   // The re-layout leaves the pointer over the drums Mute/Solo, whose help tooltip would then be captured.
+  await movePointerAway(page);
+}
+
+/**
+ * Mixer with the practice panel opened and engaged through every-level controls (feature 012,
+ * ui-test-ids 1.11.0): speed 65 % (quality hint shown) and +2 semitones, stretch stage active. Nothing is
+ * saved, so the seeded data (and the mix library) stay as they are.
+ */
+async function mixerPracticeReady(page: Page): Promise<void> {
+  await mixerReady(page);
+  const speed = page.getByTestId('practice-speed');
+  const panel = page.getByTestId('practice-panel');
+  // The matrix stores no panel choice, so the panel starts closed at neutral settings (012 integration).
+  const toggle = page.getByTestId('practice-panel-toggle');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await speed.focus();
+  await speed.press('Home');
+  await expect(panel).toHaveAttribute('data-speed', '50');
+  // +5 % steps, each confirmed: fast key repeats on the slider can race the server re-render
+  // (a lost step made this screen flaky in the 012 integration run).
+  for (const percent of ['55', '60', '65']) {
+    await page.getByTestId('practice-speed-up').click();
+    await expect(panel).toHaveAttribute('data-speed', percent);
+  }
+  for (const semitones of ['1', '2']) {
+    await page.getByTestId('practice-transpose-up').click();
+    await expect(panel).toHaveAttribute('data-transpose', semitones);
+  }
+  await expect(panel).toHaveAttribute('data-stretch', 'active', { timeout: 15_000 });
+  await expect(page.getByTestId('practice-quality-hint')).toBeVisible();
+  await speed.blur();
   await movePointerAway(page);
 }
 

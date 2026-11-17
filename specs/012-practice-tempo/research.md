@@ -6,8 +6,8 @@ the numbers marked *to be measured* before the wave starts.
 ## R-01 Time-stretch library and WASM build
 
 **Decision**: SoundTouch **2.4.1** (LGPL-2.1, upstream `https://codeberg.org/soundtouch/soundtouch`,
-tag `2.4.1`), built by us with **Emscripten 6.0.7** (`emscripten/emsdk:6.0.7` Docker image, pinned
-by digest in Phase 0) into a standalone `soundtouch.wasm` with a small C shim exporting the ABI of
+tag `2.4.1`), built by us with **Emscripten 6.0.13** (`emscripten/emsdk:6.0.13` Docker image, pinned
+by digest in Phase 0; 6.0.7 was planned, see "Phase 0 results") into a standalone `soundtouch.wasm` with a small C shim exporting the ABI of
 `contracts/audio-engine.md` ("WASM ABI").
 
 | Option | Licence | Form | Status | Verdict |
@@ -18,14 +18,16 @@ by digest in Phase 0) into a standalone `soundtouch.wasm` with a small C shim ex
 | Rubber Band | GPL-2.0+ / commercial | | GPL code in the browser bundle would force the MIT project to GPL | rejected by the owner (MoSCoW decisions, CTO-DECISIONS) |
 | Signalsmith Stretch | MIT | WASM/JS | better quality at 50 % in published comparisons | not chosen: the owner decided on SoundTouch; noted for a possible later owner review (same `TimeStretchStage` port makes a swap local) |
 
-Build: `emcc -O3 -flto -msimd128 -sSTANDALONE_WASM --no-entry -sINITIAL_MEMORY=4MB
--sALLOW_MEMORY_GROWTH=0 -fno-exceptions -DSOUNDTOUCH_FLOAT_SAMPLES` over the upstream
-`source/SoundTouch/*.cpp` plus `third_party/soundtouch/shim/stemstudio_soundtouch.cpp`; x86 SIMD
-paths are compiled out (`SOUNDTOUCH_DISABLE_X86_OPTIMIZATIONS`); WASM SIMD is tried in P0-1 and kept
-only when it is faster and gives identical output within 1e-6. Upstream sources are **unmodified**;
-the tarball is fetched by `scripts/build-soundtouch.*` and verified by SHA-256 (recorded in
-`third_party/soundtouch/soundtouch.lock` in Phase 0). Versions: SoundTouch 2.4.1 and emsdk 6.0.7
-(2026-08-17) are both older than two weeks.
+Build (binding since Phase 0): `em++` with the `EMCC_FLAGS` of `third_party/soundtouch/soundtouch.lock`
+(`-std=c++17 -O3 -flto -sSTANDALONE_WASM --no-entry -sINITIAL_MEMORY=4MB -sALLOW_MEMORY_GROWTH=0
+-sSTACK_SIZE=256KB -fno-exceptions -fno-rtti -DNDEBUG -DST_NO_EXCEPTION_HANDLING=1
+-DSOUNDTOUCH_FLOAT_SAMPLES=1 -DSOUNDTOUCH_DISABLE_X86_OPTIMIZATIONS=1
+-DSOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER=1`, plus `-ffile-prefix-map` for reproducibility) over
+the ten upstream sources listed in the lock plus `third_party/soundtouch/shim/stemstudio_soundtouch.cpp`.
+`emcc` instead of `em++` fails to link (`operator delete`); WASM SIMD was measured and dropped (P0-1).
+Upstream sources are **unmodified**; the tarball is fetched by `scripts/build-soundtouch.*` and
+verified by SHA-256 (recorded in the lock). Versions: SoundTouch 2.4.1 (released
+2026-03-29) and emsdk 6.0.13 (2026-10-19) are both older than two weeks.
 
 Loading in the worklet: `AudioWorkletGlobalScope` has no `fetch`/`importScripts`, so the main thread
 fetches the WASM bytes once and passes them in `processorOptions.wasmBytes`; the processor calls
@@ -244,4 +246,62 @@ before.
 
 ## Phase 0 results
 
-*To be filled in by tasks.md T001/T002.*
+Measured 2026-11-16 on the reference machine (Intel Core Ultra 9 285K, 127 GB, Windows 11) in
+throw-away containers and pages outside the repository; the owner's `stemstudio` stack was not
+touched (the spikes used no compose project at all: `docker run --rm --network none` for the
+builds, a local Node HTTP server on a random port for the browser page). Decisions taken from these
+numbers: ADR-021 "Phase 0 outcome" P1-P8.
+
+### Versions and licences (re-verified)
+
+| Item | Pinned | Checked |
+|---|---|---|
+| SoundTouch | **2.4.1** (tag 2026-03-29; newest release; 2.4.0 2025-04-06) | `SOUNDTOUCH_VERSION "2.4.1"` in `SoundTouch.h`; `COPYING.TXT` = LGPL-2.1 (SHA-256 `84c6d82d...7e0a`); no source change needed |
+| Source artefact | `https://www.surina.net/soundtouch/soundtouch-2.4.1.tar.gz`, 607,365 B, SHA-256 `e07abf20ce8f95850c280132e1f61ad400fc1f4011b7fac698a503de6aab6733` | static release file (Last-Modified 2026-03-29); Codeberg tag archive `35d404e6...77ec` (608,032 B, stable over two downloads) has identical content (`diff -r` empty) but is generated on demand -> information only |
+| Emscripten | **6.0.13** image `emscripten/emsdk:6.0.13@sha256:fb7864e398acfda863dfcea78b8bc8adad359fa60c6a0bbeb845931de64aa68a` (2026-10-19) | 6.0.7 was planned; 6.0.13 is the newest 6.0 patch older than two weeks; 7.0.0 (2026-11-06) is too new. MIT / University of Illinois NCSA, build tool only |
+| Browsers | Playwright 1.65.1: Chromium 159.0.8154.6 (headless), Firefox 159.0 | as in the E2E suite |
+
+### P0-1 WASM build and offline measurements (Node 22.23.2)
+
+| Measurement | Result | Exit criterion |
+|---|---|---|
+| Build | `em++` (C++17) with the lock flags; `emcc` fails to link `operator delete` | - |
+| Module | **30,168 B** (scalar) / 31,238 B (SIMD); **no imports**; exports `memory`, `_initialize`, the 11 ABI functions (+ Emscripten stack helpers) | - |
+| Reproducibility | two builds in fresh containers: identical SHA-256 (scalar `868d3aee...7297`, SIMD `64e15cb8...a8be`; spike shim) | bit-identical: **met** |
+| SIMD128 | output bit-identical to scalar (max difference 0) at all 8 factors; throughput within +-1 % | -> **SIMD off** |
+| Initial latency `SETTING_INITIAL_LATENCY` (frames) for p = 0.42 / 0.5 / 0.71 / 1 / 1.41 / 2 / 2.83 / 4 | 4377 / 3839 / 4333 / 4013 / 4498 / 4852 / 4851 / 4851 | max 4,852 |
+| Output lag (frames put minus frames received, per quantum), constant factors | max 4,736 | - |
+| Same, 120 s of random changes every 0.25-1 s, and 120 jumps 0.42 <-> 4 | max 4,736, no drift | - |
+| Same **without** `SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER` | random changes 54,554, jumps 205,608 frames (4.6 s): ~1,000 frames lost per crossing of p = 1 | -> flag mandatory |
+| `STRETCH_DELAY_FRAMES` | max(4,852, 4,736) + 256, rounded up to 128 = **5,120 frames = 116.1 ms** | <= 230 ms: **met** |
+| Pitch accuracy, 440 Hz sine, FFT 65,536 + parabolic interpolation | error 0.001-0.017 % at all 8 factors | 1 %: **met** |
+| Identity at p = 1 | max error 3.2e-6, offset 0 (the 2.3.0 "bit-transparent" note is "practically transparent") | < 1e-4: **met** |
+| Throughput, stereo 44.1 kHz music-like signal, one core | 85x (p = 4) .. 369x (p = 0.42) real time | >= 10x: **met** |
+| Content offset `c(p)` (envelope cross-correlation on 54 noise bursts; mean / p5..p95 spread) | +32 ms / 75 ms at 0.42; +22 / 32 at 0.5; +12.5 / 18 at 0.71; 0 / 0 at 1; -11.6 / 21 at 1.41; -28 / 20 at 2; -28 / 49 at 2.83; -40 / 45 at 4 | model `c(p) = -1100 * log2(p)` frames; residual within the spread |
+| Pitch-change timing, combined speed change 100 -> 50 / 100 -> 75 / 75 -> 100 % (wrong-pitch time) | apply at input frame: 70 / 81 / 70 ms; when output reaches the frame: 58 / 58 / 70 ms; **midpoint rule**: 23 / 12 / 12 ms | -> midpoint rule |
+| Memory | 4 MiB fixed; 2.1 MiB free before, 1.83 MiB after one stereo instance and 58 s of extreme jumps | growth not needed |
+| Argument checks | `st_create(0, 2)` = 0, `st_create(44100, 3)` = 0, unknown setting -> 0 | as in the ABI |
+
+### P0-2 Browser spike (Chromium and Firefox, real AudioWorklet + WASM)
+
+Page: 20 looped stereo sources (sine + noise bursts, 30 s buffers) at `playbackRate` 0.5, each
+through gain -> panner -> analyser -> sum -> the spike processor (pitch 2, fixed delay 5,120,
+midpoint rule) -> master -> analyser (read every 16 ms like the meters) -> destination; stage cost
+probed inside the worklet by running 200 extra quanta through a second instance every 3,000
+quanta (`performance` is not available in the worklet scope, `Date.now()` over 200 quanta).
+
+| Browser | 10 min at 50 % with 20 channels | Stage cost per 128-frame quantum (budget 2.90 ms) | Change latency (30 transpose steps, call -> frequency change at the stage output) |
+|---|---|---|---|
+| Chromium 159 | 600.7 s wall = 600.7 s audio; **0 underruns, 0 drops** | mean 0.019 ms, max 0.025 ms (**0.9 %** of the budget) | 87 / 116 / 151 ms (min / median / max); `outputLatency` reported 0.192 s (headless fake device) |
+| Firefox 159.0 | 600.6 s wall = 601.3 s audio; **0 underruns, 0 drops** (a `dotnet build`/test run was active on the same machine for part of the 10 minutes: a stricter run) | mean 0.017 ms, max 0.025 ms (**0.9 %**) | 93 / 119 / 160 ms; `outputLatency` 0.041 s |
+
+Result: SC-004 (0 dropouts in 10 min, stage <= 35 % of the budget) and SC-001 (<= 250 ms from
+the input to the probe) hold with a wide margin; ADR-021 is **Accepted**. The device output latency
+adds to what is heard at the speaker in every browser, with or without the stage. R1 of the
+quickstart repeats the check with the real 20-channel song in the integration wave.
+
+### P0-3 Contract merge
+
+See contracts/DELTA.md section 5: backend-api 1.11.0 = 1.21.0 + 012 (superset yes, Redocly valid, 9
+inherited warnings), ui-test-ids 1.11.0 = 1.21.0 + delta, audio-engine 2.3.0 (2.2.0 unused), WASM
+ABI 1.

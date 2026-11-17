@@ -10,12 +10,13 @@ namespace StemStudio.Web.Help;
 /// <summary>
 /// Renders topic Markdown to sanitised HTML (contracts/help-content.md 2, 4.7): CommonMark plus pipe tables,
 /// raw HTML disabled (shown as text), heading ids scoped to the topic, <c>help:</c> and <c>route:</c> links
-/// rewritten to in-app links, <c>https:</c> links opened in a new tab, every other scheme and every image
+/// rewritten to in-app links, <c>https:</c> links and the licence bundles below <c>/third-party/</c> opened in a new tab, every other scheme and every image
 /// outside <c>/_content/help/</c> reduced to its text.
 /// </summary>
 public static class HelpRenderer
 {
     private const string LocalImagePrefix = "/_content/help/";
+    private const string ThirdPartyPrefix = "/third-party/";
 
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
@@ -81,7 +82,7 @@ public static class HelpRenderer
             case var route when route.StartsWith("route:", StringComparison.Ordinal):
                 link.Url = route["route:".Length..];
                 break;
-            case var web when web.StartsWith("https://", StringComparison.Ordinal):
+            case var web when OpensInNewTab(web):
                 link.GetAttributes().AddProperty("target", "_blank");
                 link.GetAttributes().AddProperty("rel", "noopener");
                 break;
@@ -90,6 +91,12 @@ public static class HelpRenderer
                 break;
         }
     }
+
+    // Web links, and the licence and source bundles served by the web app (012: /third-party/soundtouch/index.html;
+    // no path traversal).
+    private static bool OpensInNewTab(string url) =>
+        url.StartsWith("https://", StringComparison.Ordinal)
+        || (url.StartsWith(ThirdPartyPrefix, StringComparison.Ordinal) && !url.Contains("..", StringComparison.Ordinal));
 
     private static void KeepOrUnwrap(LinkInline link, bool keep)
     {

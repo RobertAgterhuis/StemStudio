@@ -1,0 +1,36 @@
+# SoundTouch WASM build lock (architect, feature 012 Phase 0 T001, measured 2026-11-16).
+# Read by scripts/build-soundtouch.{sh,ps1} (devops, T010): plain KEY=value lines, no quotes, no
+# expansion; lines starting with # are comments. Changing a value is a reviewed change (ADR-021).
+
+# Upstream source: unmodified SoundTouch release tarball (LGPL-2.1). The release file on surina.net
+# is the pinned artefact; the Codeberg tag archive has identical content (diff -r) but is generated
+# on demand, so its hash is recorded for information only.
+SOUNDTOUCH_VERSION=2.4.1
+SOUNDTOUCH_URL=https://www.surina.net/soundtouch/soundtouch-2.4.1.tar.gz
+SOUNDTOUCH_SHA256=e07abf20ce8f95850c280132e1f61ad400fc1f4011b7fac698a503de6aab6733
+SOUNDTOUCH_ARCHIVE_NAME=soundtouch-2.4.1.tar.gz
+SOUNDTOUCH_ARCHIVE_ROOT=soundtouch
+SOUNDTOUCH_MIRROR_URL=https://codeberg.org/soundtouch/soundtouch/archive/2.4.1.tar.gz
+SOUNDTOUCH_MIRROR_SHA256=35d404e6e8c2ebd12fb4000da6fadd75c99e37eed2126a04721828c11c0377ec
+
+# Build tool (MIT / University of Illinois NCSA; not distributed). Multi-arch index digest of the
+# Docker Hub tag 6.0.13 (published 2026-10-19); emcc reports 6.0.13 (e13ee988ce3d).
+EMSDK_IMAGE=emscripten/emsdk:6.0.13
+EMSDK_DIGEST=sha256:fb7864e398acfda863dfcea78b8bc8adad359fa60c6a0bbeb845931de64aa68a
+
+# Compiler: em++. Sources are relative to <archive root>/source/SoundTouch/, plus
+# third_party/soundtouch/shim/stemstudio_soundtouch.cpp; include directories <archive root>/include
+# and third_party/soundtouch/include. BPMDetect.cpp, PeakFinder.cpp, mmx_optimized.cpp and
+# sse_optimized.cpp are not compiled (BPM detection and x86 code are unused).
+SOUNDTOUCH_SOURCES=AAFilter.cpp FIFOSampleBuffer.cpp FIRFilter.cpp InterpolateCubic.cpp InterpolateLinear.cpp InterpolateShannon.cpp RateTransposer.cpp SoundTouch.cpp TDStretch.cpp cpu_detect_x86.cpp
+# SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER is mandatory: without it every pitch change across
+# factor 1.0 loses about 1,000 frames inside SoundTouch and the fixed delay drifts (research.md P0-1).
+# No -msimd128: WASM SIMD gave bit-identical output and no measurable speed-up (P0-1).
+# The build script adds -ffile-prefix-map=<its source dir>=. and -ffile-prefix-map=<shim dir>=. so
+# no build path ends up in the module (reproducible builds).
+EMCC_FLAGS=-std=c++17 -O3 -flto -sSTANDALONE_WASM --no-entry -sINITIAL_MEMORY=4MB -sALLOW_MEMORY_GROWTH=0 -sSTACK_SIZE=256KB -fno-exceptions -fno-rtti -DNDEBUG -DST_NO_EXCEPTION_HANDLING=1 -DSOUNDTOUCH_FLOAT_SAMPLES=1 -DSOUNDTOUCH_DISABLE_X86_OPTIMIZATIONS=1 -DSOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER=1
+OUTPUT=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
+
+# Contract values (audio-engine.md 2.3.0 "WASM ABI" and "Stretch stage").
+ABI_VERSION=1
+STRETCH_DELAY_FRAMES=5120

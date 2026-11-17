@@ -1,6 +1,6 @@
 {
   "id": "mixer-basics",
-  "version": 1,
+  "version": 2,
   "title": "Mixer basics",
   "route": "/tracks/{id}/mixer",
   "levels": [
@@ -28,6 +28,11 @@
     {
       "target": "mixer-loop",
       "topic": "mixer-loop"
+    },
+    {
+      "target": "practice-panel",
+      "topic": "practice-speed",
+      "text": "Open Practice tempo to slow the song down and learn a part; the key stays the same."
     },
     {
       "target": "mixer-save",

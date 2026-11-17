@@ -9,10 +9,12 @@ No new environment variables and no new backend or worker settings. Build-time c
 
 | Name | Where | Value |
 |---|---|---|
-| `STRETCH_DELAY_FRAMES` | `src/audio-engine/src/stretch/constants.ts` | measured in Phase 0 (multiple of 128, <= 10,112 = 230 ms at 44.1 kHz) |
+| `STRETCH_DELAY_FRAMES` | `src/audio-engine/src/stretch/constants.ts` | **5120** (Phase 0 P0-1; multiple of 128; 116.1 ms at 44.1 kHz) |
+| `STRETCH_CONTENT_FRAMES_PER_OCTAVE` | `src/audio-engine/src/stretch/constants.ts` | **-1100** (Phase 0 P0-1; content offset `c(p) = round(-1100 * log2(p))` frames) |
+| `STRETCH_ABI_VERSION` | `src/audio-engine/src/stretch/constants.ts` | 1 (`st_abi_version()`) |
 | `MIN_PASS_SECONDS` | `src/audio-engine/src/practice/passes.ts` | 0.5 |
 | `CHANGE_LEAD_SECONDS` | `src/audio-engine/src/practice/tempo.ts` | 0.02 (added to L for a live change) |
-| `SOUNDTOUCH_VERSION` | `third_party/soundtouch/soundtouch.lock` | `2.4.1` + tarball SHA-256 + emsdk image digest |
+| `SOUNDTOUCH_VERSION` | `third_party/soundtouch/soundtouch.lock` | `2.4.1`, tarball SHA-256 `e07abf20...6733`, emsdk 6.0.13 image digest, flags |
 
 ## 2. Practice settings (persisted in the mix)
 
@@ -109,7 +111,8 @@ the same times. Not available: `bars == 0`, or no override and (no grid or grid 
 ```ts
 interface TransportAnchor { when: number; offset: number; rate: number }   // rate = 1 before 012
 // heard position:  offset + (t - when) * rate  (wrapped into a native loop)
-// source start:    start(when - latency, offset)   latency = stage engaged ? D / sampleRate : 0
+// source start:    start(when - latency, offset)   latency = stage engaged ? L(p) : 0
+//                  L(p) = (D + c(p)) / sampleRate, c(p) = round(-1100 * log2(p)) frames (Phase 0 P0-1)
 ```
 
 Explicit passes keep a short queue of anchors `{when: T_k, offset: A, rate: r_k}`; `positionAt(t)`

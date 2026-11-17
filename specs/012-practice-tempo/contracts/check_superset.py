@@ -2,8 +2,10 @@
 
 Usage (repo root):
 ``python -I specs/012-practice-tempo/contracts/check_superset.py [older] [newer]``
-Defaults: older = specs/010-lyrics-to-song/contracts/backend-api.openapi.yaml (1.9.0),
-newer = specs/012-practice-tempo/contracts/backend-api.openapi.yaml.
+Defaults: older = specs/011-ai-composer-agent/followups/claude-key/contracts/backend-api.openapi.yaml
+(1.21.0, the full document on ``main`` before 012), newer =
+specs/012-practice-tempo/contracts/backend-api.openapi.yaml (1.11.0 = 1.21.0 + 012). Phase 0 also
+runs it against 1.10.0 (``specs/011-ai-composer-agent/contracts``) and 1.9.0 (``specs/010-...``).
 
 Rules: every path, operation, parameter, header, response, example and schema of the older
 document exists unchanged in the newer one, except the entries in ``ALLOWED``, which may only
@@ -18,7 +20,7 @@ from typing import Any
 
 import yaml
 
-OLDER = Path("specs/010-lyrics-to-song/contracts/backend-api.openapi.yaml")
+OLDER = Path("specs/011-ai-composer-agent/followups/claude-key/contracts/backend-api.openapi.yaml")
 NEWER = Path("specs/012-practice-tempo/contracts/backend-api.openapi.yaml")
 ALLOWED = {("schemas", "MixSettings"), ("paths", "/api/mixes/{mixId}")}
 OLDER_ARG = 1

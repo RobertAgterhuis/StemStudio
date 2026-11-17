@@ -11,6 +11,7 @@ import {
   generativeReferenceQueries,
   generativeScreenTopics,
   lyricsReferenceQueries,
+  practiceReferenceQueries,
   scoreReferenceQueries,
   wrongFirstResults,
 } from '../support/help';
@@ -95,6 +96,9 @@ test.describe('in the mixer', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await help.open('button');
     await expect(mixer.byId('transport-play')).toBeInViewport();
+    // From 012 the practice panel sits above the strips, so at 800 px height they are reached by
+    // scrolling; the docked panel must still leave them visible and usable.
+    await mixer.strip('vocals').scrollIntoViewIfNeeded();
     await expect(mixer.strip('vocals')).toBeInViewport();
     await mixer.play();
     await expect(mixer.byId('transport-position')).not.toHaveText(/^\s*0?0:00(\.0+)?\b/, { timeout: 5_000 });
@@ -157,6 +161,14 @@ test('the 006 reference queries return their topic first, and each topic opens',
   await openScreen(page, 'mixer', uxData);
   await expect(help.byId('help-toggle')).toBeVisible();
   await expectTopicsReachable(help, lyricsReferenceQueries);
+});
+
+// Help topics of feature 012 (ui-test-ids 1.11.0 "Help markers"; FR-016). The markers on the
+// practice controls are asserted in practice-levels.spec.ts.
+test('the 012 reference queries return their topic first, and each topic opens', { tag: '@practice' }, async ({ page, help, uxData }) => {
+  await openScreen(page, 'mixer', uxData);
+  await expect(help.byId('help-toggle')).toBeVisible();
+  await expectTopicsReachable(help, practiceReferenceQueries);
 });
 
 test('the 008 reference queries return their topic first, and each topic opens', { tag: '@sheet-music' }, async ({ page, help, uxData }) => {

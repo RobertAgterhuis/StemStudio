@@ -4,7 +4,7 @@
  *
  * @packageDocumentation
  */
-import { DotNetNotifier } from './callbacks';
+import { DotNetNotifier, PracticeNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
@@ -16,7 +16,10 @@ import { ClickPlayer } from './metronome/clicks';
 import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
+import { PracticeController } from './practice/controller';
+import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
+import { createWorkletStageFactory } from './stretch/worklet-stage';
 import { Transport } from './transport';
 import type {
   AudioEngine,
@@ -33,6 +36,8 @@ import type {
   MetronomeSettings,
   ParentStemName,
   PlaybackState,
+  PracticeSettings,
+  PracticeStatus,
 } from './types';
 
 /** Default delay of the shared `when` (s). */
@@ -50,6 +55,7 @@ interface Parts {
   readonly frames: FrameLoop;
   readonly meters: Meters;
   readonly metronome: MetronomeScheduler;
+  readonly clicks: ClickPlayer;
   readonly karaoke: Karaoke;
 }
 
@@ -61,13 +67,19 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
     startDelaySeconds: options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS,
     output: (id) => mixer.input(id),
   });
-  const notifier = new DotNetNotifier(ref, () => transport.position());
-  transport.addListener(notifier);
+  const notifier = createNotifier(ref, transport);
   const frames = new FrameLoop();
   const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
-  const metronome = createMetronome(context, transport, options);
+  const clicks = new ClickPlayer(context);
+  const metronome = createMetronome({ context, transport, clicks }, options);
   const karaoke = createKaraoke(context, transport, frames);
-  return { context, mixer, transport, notifier, frames, meters, metronome, karaoke };
+  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke };
+}
+
+function createNotifier(ref: DotNetObjectReference, transport: Transport): DotNetNotifier {
+  const notifier = new DotNetNotifier(ref, () => transport.position());
+  transport.addListener(notifier);
+  return notifier;
 }
 
 function createKaraoke(context: AudioContext, transport: Transport, loop: FrameLoop): Karaoke {
@@ -77,11 +89,14 @@ function createKaraoke(context: AudioContext, transport: Transport, loop: FrameL
   return karaoke;
 }
 
-function createMetronome(context: AudioContext, transport: Transport, options: EngineOptions): MetronomeScheduler {
+function createMetronome(
+  { context, transport, clicks }: { context: AudioContext; transport: Transport; clicks: ClickPlayer },
+  options: EngineOptions,
+): MetronomeScheduler {
   const metronome = new MetronomeScheduler({
     context,
     clock: transport,
-    output: new ClickPlayer(context),
+    output: clicks,
     aheadSeconds: options.scheduleAheadSeconds ?? DEFAULT_SCHEDULE_AHEAD_SECONDS,
     intervalMs: options.schedulerIntervalMs ?? DEFAULT_SCHEDULER_INTERVAL_MS,
   });
@@ -110,6 +125,8 @@ export class Engine implements AudioEngine {
   private readonly parts: Parts;
   private readonly groups: StemGroups;
   private readonly fetchFn: typeof fetch;
+  private readonly practice: PracticeController;
+  private readonly practiceNotifier: PracticeNotifier;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -122,6 +139,8 @@ export class Engine implements AudioEngine {
     this.parts = createParts(ref, options);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
+    this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
+    this.practice = this.createPractice(options);
   }
 
   /** Validated metronome settings. */
@@ -145,13 +164,14 @@ export class Engine implements AudioEngine {
     this.parts.mixer.build([...buffers.keys(), ...groupChannels(groups)]);
     this.grid = request.beatGrid;
     this.parts.metronome.configure(this.metronome, this.grid);
+    this.practice.onTrackLoaded();
     return this.parts.transport.duration;
   }
 
   /** {@inheritDoc AudioEngine.play} */
   public async play(): Promise<void> {
     this.alive();
-    await this.parts.transport.play();
+    await this.practice.play();
   }
 
   /** {@inheritDoc AudioEngine.pause} */
@@ -207,6 +227,7 @@ export class Engine implements AudioEngine {
   public setLoop(loop: LoopRegion): void {
     this.alive();
     setLoopChecked(this.parts.transport, loop);
+    this.practice.onLoopChanged();
     this.parts.karaoke.redraw();
   }
 
@@ -247,21 +268,50 @@ export class Engine implements AudioEngine {
     this.parts.karaoke.detach();
   }
 
+  /** {@inheritDoc AudioEngine.setPractice} */
+  public async setPractice(settings: PracticeSettings): Promise<void> {
+    await Promise.resolve();
+    this.alive();
+    await this.practice.apply(settings);
+  }
+
+  /** {@inheritDoc AudioEngine.getPracticeStatus} */
+  public getPracticeStatus(): PracticeStatus {
+    this.alive();
+    return this.practice.status();
+  }
+
   /** {@inheritDoc AudioEngine.dispose} */
   public async dispose(): Promise<void> {
     if (this.disposed) {
       return;
     }
     this.disposed = true;
-    this.parts.transport.dispose();
-    this.groups.dispose();
-    this.parts.mixer.dispose();
-    this.parts.notifier.dispose();
-    this.parts.meters.dispose();
-    this.parts.karaoke.detach();
-    this.parts.frames.dispose();
-    this.parts.metronome.dispose();
-    await this.parts.context.close();
+    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context } = this.parts;
+    [transport, this.groups, mixer, notifier, meters].forEach((part) => {
+      part.dispose();
+    });
+    karaoke.detach();
+    [frames, metronome, this.practice, this.practiceNotifier].forEach((part) => {
+      part.dispose();
+    });
+    await context.close();
+  }
+
+  private createPractice(options: EngineOptions): PracticeController {
+    const { context, transport, mixer } = this.parts;
+    const factory = options.timeStretchFactory ?? createWorkletStageFactory({ ...options.timeStretch, fetch: this.fetchFn });
+    const changed = (): void => {
+      this.practiceNotifier.changed();
+    };
+    const startDelay = options.startDelaySeconds ?? DEFAULT_START_DELAY_SECONDS;
+    const tempoSource = (): TempoSource => ({ grid: this.grid, metronome: this.metronome });
+    const practice = new PracticeController({ context, transport, mixer, factory, changed, clicks: this.parts.clicks, startDelay, tempoSource });
+    transport.addListener(practice);
+    transport.setRestartHook(() => {
+      practice.onRestart();
+    });
+    return practice;
   }
 
   /** Fetches and decodes files; rejects when the engine was disposed meanwhile. */

@@ -42,7 +42,7 @@ public static class MetronomeRules
     /// <param name="text">The entered text.</param>
     /// <returns>The edit.</returns>
     public static MetronomeEdit Offset(MetronomeSettingsDto current, string? text) =>
-        Whole(text, ContractLimits.MinOffsetMs, ContractLimits.MaxOffsetMs) is { } ms
+        InputValue.Whole(text, ContractLimits.MinOffsetMs, ContractLimits.MaxOffsetMs) is { } ms
             ? new(current with { OffsetMs = ms }, null)
             : new(null, OffsetMessage);
 
@@ -51,7 +51,7 @@ public static class MetronomeRules
     /// <param name="text">The entered text.</param>
     /// <returns>The edit.</returns>
     public static MetronomeEdit BeatsPerBar(MetronomeSettingsDto current, string? text) =>
-        Whole(text, ContractLimits.MinBeatsPerBar, ContractLimits.MaxBeatsPerBar) is { } beats
+        InputValue.Whole(text, ContractLimits.MinBeatsPerBar, ContractLimits.MaxBeatsPerBar) is { } beats
             ? new(current with { BeatsPerBar = beats }, null)
             : new(null, BeatsPerBarMessage);
 
@@ -61,9 +61,4 @@ public static class MetronomeRules
     /// <returns>The new settings.</returns>
     public static MetronomeSettingsDto Volume(MetronomeSettingsDto current, double volume) =>
         current with { Volume = Math.Clamp(volume, 0, 1) };
-
-    private static int? Whole(string? text, int min, int max) =>
-        int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value) && value >= min && value <= max
-            ? value
-            : null;
 }

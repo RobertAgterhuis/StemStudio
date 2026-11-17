@@ -1,7 +1,7 @@
 # ADR-021: Practice tempo - time stretch and pitch shift with SoundTouch WASM (feature 012)
 
-- **Status**: Proposed (architect, 012 spec, 2026-11-16); becomes Accepted after the Phase 0 spikes
-  (tasks.md T001/T002)
+- **Status**: Accepted (architect, 012 Phase 0, 2026-11-16, after the spikes P0-1/P0-2; see
+  "Phase 0 outcome"). Proposed in the 012 spec the same day.
 - **Date**: 2026-11-16
 - **Decider**: Architect (autonomous mode), to be confirmed by the CTO; library choice by the owner
   (MoSCoW decisions 2026-11-16)
@@ -69,7 +69,7 @@ No audio pre-roll (deferred to 015).
 ### D7 Packaging, licence and fallback
 
 `soundtouch.wasm` (SoundTouch 2.4.1 unmodified + an LGPL shim exporting a small C ABI, Emscripten
-6.0.7 standalone build) is a separate, replaceable file loaded at run time (LGPL-2.1 section 6(b));
+6.0.13 standalone build; 6.0.7 before Phase 0) is a separate, replaceable file loaded at run time (LGPL-2.1 section 6(b));
 our processor and engine stay MIT. Binary distributions ship `/third-party/soundtouch/` (licence,
 exact source archive, shim, build script, notice). If the WASM build fails in Phase 0, the
 JavaScript port `soundtouchjs` (LGPL-2.1) is loaded as a separate module behind the same
@@ -100,3 +100,66 @@ Rubber Band (GPL); pull-based stretch worklet that mixes stems itself (re-implem
 copies all PCM into the worklet, loses native loops); offline pre-rendering per setting (not live,
 double memory); per-stem stages (lock, CPU); exporting slowed audio in the worker (second
 implementation, packaging, accidental slowed inputs for 008/009/011).
+
+## Phase 0 outcome (2026-11-16, research.md "Phase 0 results")
+
+The SoundTouch WASM path works; the fallback (D7, soundtouchjs) is not needed. Decisions taken in
+Phase 0 (owner unavailable; decided by the architect for the best practising result, recorded here):
+
+- **P1 emsdk 6.0.13 instead of 6.0.7.** 6.0.13 (2026-10-19) is the newest 6.0 patch older than two
+  weeks; 7.0.0 (2026-11-06) is too new and a major. Pinned by the multi-arch digest in
+  `third_party/soundtouch/soundtouch.lock`; two clean builds are bit-identical.
+- **P2 Upstream artefact = the surina.net release tarball** (SHA-256 `e07abf20...6733`); the Codeberg
+  tag archive has identical content but is generated on demand, so its hash is informational only.
+- **P3 `SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER` is mandatory** (an upstream configuration switch,
+  not a source change). Without it every pitch change across factor 1.0 lost about 1,000 frames
+  inside SoundTouch, so the "fixed delay" drifted by 4.6 s over 120 extreme jumps; with it the
+  output lag stays <= 4,736 frames in every scenario. Upstream calls the quality cost "slight".
+- **P4 No WASM SIMD.** `-msimd128` produced bit-identical output at the same speed; the scalar module
+  (30 KB, no imports) runs everywhere.
+- **P5 `STRETCH_DELAY_FRAMES = 5120`** (116.1 ms at 44.1 kHz), well under the 230 ms limit; SC-001
+  keeps its 250 ms (measured 87-151 ms at the stage output in Chromium).
+- **P6 Content-offset compensation (refines D3).** WSOLA shifts the audio in time by a mean that
+  depends on the pitch factor (+32 ms at p = 0.42, -40 ms at p = 4), so music and the unstretched
+  clicks would drift apart by up to ~40 ms at 50 % +12 st. The engine uses the heard latency
+  `L(p) = (D + c(p)) / sampleRate` with `c(p) = round(-1100 * log2(p))` frames for source starts and
+  re-anchoring; the residual is WSOLA's own per-onset spread (<= +-23 ms), inherent to any
+  time-stretcher. Contract: audio-engine.md "Live changes", "Stretch stage".
+- **P7 When a pitch change applies (refines D4).** SoundTouch applies `setPitch` also to buffered,
+  unprocessed input, so applying it at the input frame made the correction audible up to ~90 ms
+  before the matching rate change (a short wrong-pitch "chirp" on every speed change). The processor
+  applies it when the midpoint of SoundTouch's buffered input reaches the change frame: wrong-pitch
+  time 12-23 ms instead of 70-81 ms.
+- **P8 Reactor module.** The module has no imports and exports `_initialize`, which the processor
+  calls once (ABI header `third_party/soundtouch/include/stemstudio_soundtouch.h`).
+
+## Implementation notes (audio-engine lane, 2026-11-16)
+
+Owner unavailable; decided by the audio-engine agent for the best result for a musician practising at home.
+None changes `types.ts` 2.3.0 or the WASM ABI.
+
+- **E1 Stage position.** The stage sits between the master gain and the master meter (contract graph: sum ->
+  stage -> master gain). The chain is linear, so the sound is the same; at neutral settings the graph is literally
+  the 2.1.0 one and every pre-012 graph test stays unchanged. Cost: master-fader moves are heard L later while engaged.
+- **E2 Reset on pause/stop.** The stage is also reset when playback pauses or stops, so no 66-147 ms of music
+  trails after pressing pause.
+- **E3 No fade on the engage restart.** Engaging while playing restarts like every seek since 001 (hard stop/start).
+- **E4 Gapless passes in source time.** Pass k+1 starts exactly where pass k stops at the sources; its heard anchor
+  is `S + L(p_{k+1})`. A trainer step therefore moves the heard pass start by the difference of two content offsets
+  (1-2 ms for a 5 % step) instead of overlapping or gapping the audio.
+- **E5 Changes while passes play.** Speed changes of the settings (and disabling the trainer or the every-pass
+  count-in) apply from the next pass boundary (each pass has one rate, R-10); the transpose applies live as a pitch
+  change only (the heard anchor is not shifted by the c(p) difference: <= 2 ms per semitone until the next pass).
+- **E6 Restarts.** Enabling the trainer while playing and every loop change while passes play restart at the heard
+  position (one gap of startDelay + L).
+- **E7 No stage reset between passes, also not after a count-in gap.** The gap carries silence through the stage;
+  a reset would cut the end of the previous pass, which is still being heard.
+- **E8 FIFO overflow** drops the oldest frames back to D (restores the fixed delay) rather than to D + 1024.
+- **E9 Count-in tempo.** With a manual BPM and a beat grid, `b` is the first click of the metronome's constant
+  grid at or after A (so the count matches the metronome); with a manual BPM and no grid, `b = A` (data-model 3.3).
+  When A lies after the last two grid clicks, the last grid interval is used and `b = A`.
+- **E10 Contract text fix requested.** audio-engine.md "Content offset" says input frame n lands near SoundTouch
+  output frame `n - c(p)`; the measurement (and `L(p) = (D + c(p)) / sampleRate`) needs `n + c(p)`. The Node suite
+  measures `output onset - input onset`: 17.5 ms at p = 0.5 (c = 24.9 ms) and -33.1 ms at p = 2 (c = -24.9 ms).
+  **Applied by the CTO in the 012 integration wave** (audio-engine.md 2.3.0 now reads `n + c(p)`; editorial, no
+  behaviour or version change).

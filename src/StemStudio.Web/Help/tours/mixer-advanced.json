@@ -1,6 +1,6 @@
 {
   "id": "mixer-advanced",
-  "version": 1,
+  "version": 2,
   "title": "Mixer in depth",
   "route": "/tracks/{id}/mixer",
   "levels": [
@@ -23,6 +23,11 @@
     {
       "target": "mixer-metronome",
       "topic": "mixer-metronome"
+    },
+    {
+      "target": "practice-panel",
+      "topic": "practice-speed-trainer",
+      "text": "In Practice tempo, the speed trainer loops a hard part and speeds it up after every clean pass."
     },
     {
       "target": "mixer-save",

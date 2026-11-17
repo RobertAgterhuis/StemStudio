@@ -1,0 +1,22 @@
+@* Count-in before play and before every loop pass (012 US3, FR-012, FR-013; ui-test-ids 1.11.0 countin-*). Needs a tempo
+   (reliable beat grid or manual BPM); works without the time-stretch stage. Bars and every pass at Advanced and Expert. *@
+
+<div class="ss-practice-row">
+    <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(On ? "true" : "false")"
+            disabled="@ToggleDisabled" aria-describedby="@(Available ? null : UnavailableId)" @onclick="OnToggle"
+            data-testid="countin-toggle" data-help-id="practice-count-in">Count-in</button>
+    <LevelGate Feature="practice.count-in.options">
+        <select class="rz-dropdown ss-number" aria-label="Count-in bars" value="@BarsValue" @onchange="BarsChanged" data-testid="countin-bars">
+            <option value="1">1 bar</option>
+            <option value="2">2 bars</option>
+        </select>
+        <input id="countin-every-pass" type="checkbox" checked="@Settings.EveryPass" disabled="@EveryPassDisabled"
+               aria-describedby="@(LoopProblem is null ? null : SpeedTrainerPanel.NeedsLoopId)" aria-label="Count-in before every loop pass" @onchange="EveryPassChanged"
+               data-testid="countin-every-pass" />
+        <label class="ss-inline-label" for="countin-every-pass">Before every loop pass</label>
+    </LevelGate>
+    @if (!Available)
+    {
+        <span id="@UnavailableId" class="ss-help" data-testid="countin-unavailable">Count-in needs a beat grid or a manual BPM.</span>
+    }
+</div>

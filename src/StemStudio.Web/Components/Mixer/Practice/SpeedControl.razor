@@ -1,0 +1,26 @@
+@* Speed of the whole mix 50-120 % (012 FR-001, FR-017; ui-test-ids 1.11.0 practice-speed*). The slider gets Page Up/Down
+   steps of 10 from web-interop (data-page-step) and is read-only while the speed trainer runs. *@
+
+<div class="ss-practice-row">
+    <label class="ss-inline-label ss-practice-label" for="practice-speed">Speed</label>
+    <RadzenButton Text="-5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="-5 % (slower)"
+                  Click="() => Emit(Value - Step)" data-testid="practice-speed-down" />
+    <input id="practice-speed" type="range" class="ss-practice-slider" aria-label="Speed" min="@Min" max="@Max" step="1" value="@Value"
+           aria-valuenow="@Value" aria-valuemin="@Min" aria-valuemax="@Max" aria-valuetext="@PracticeText.SpokenPercent(Value)"
+           aria-readonly="@(ReadOnly ? "true" : null)" disabled="@Disabled" data-page-step="10" @oninput="SliderInput"
+           data-testid="practice-speed" data-help-id="practice-speed" />
+    <RadzenButton Text="+5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="+5 % (faster)"
+                  Click="() => Emit(Value + Step)" data-testid="practice-speed-up" />
+    <output class="ss-practice-value" for="practice-speed" data-testid="practice-speed-value">@PracticeText.Percent(Value)</output>
+    <LevelGate Feature="practice.speed-reset">
+        @if (Value != 100)
+        {
+            <RadzenButton Text="100 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="100 % (original speed)"
+                          Click="() => Emit(100)" data-testid="practice-speed-reset" />
+        }
+    </LevelGate>
+    <LevelGate Feature="practice.numeric">
+        <input type="number" class="rz-textbox ss-number" min="@Min" max="@Max" step="1" value="@Value" aria-label="Speed in percent"
+               disabled="@Locked" @onchange="NumberChanged" data-testid="practice-speed-input" data-help-id="practice-speed" />
+    </LevelGate>
+</div>

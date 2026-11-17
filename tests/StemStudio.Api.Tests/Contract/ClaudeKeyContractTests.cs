@@ -53,22 +53,22 @@ public sealed class ClaudeKeyContractTests
     {
         var added = Delta.Value.Operations.Where(op => KeyOperations.Contains(OperationId(op.Operation)));
 
-        OpenApiContract.Backend.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.21.0");
-        OpenApiContract.Backend.Operations.Select(Signature).ShouldBe(Backend011.Operations.Concat(added).Select(Signature), ignoreOrder: true);
+        Backend1210.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.21.0");
+        Backend1210.Operations.Select(Signature).ShouldBe(Backend011.Operations.Concat(added).Select(Signature), ignoreOrder: true);
     }
 
     [Theory]
     [MemberData(nameof(Replaced1100Entries))]
     public void Backend1210_Contains1100UnchangedExceptTheReplacedAgentEntries(string section, string[] replaced)
     {
-        ChangedEntries(Backend011, OpenApiContract.Backend, section).ShouldBe(replaced, ignoreOrder: true);
+        ChangedEntries(Backend011, Backend1210, section).ShouldBe(replaced, ignoreOrder: true);
     }
 
     [Fact]
     public void SettingsPath_DiffersFrom1100OnlyInTheUpdateDescription()
     {
         var before = Section(Backend011.Root, "paths")[ApiRoutes.AgentSettings]!.DeepClone();
-        var after = Section(OpenApiContract.Backend.Root, "paths")[ApiRoutes.AgentSettings]!.DeepClone();
+        var after = Section(Backend1210.Root, "paths")[ApiRoutes.AgentSettings]!.DeepClone();
         before["put"]!.AsObject().Remove("description");
         after["put"]!.AsObject().Remove("description");
 
@@ -78,7 +78,7 @@ public sealed class ClaudeKeyContractTests
     [Fact]
     public void UpdateAgentSettings_NeedsAUsableKeyFromEitherSource()
     {
-        var description = Section(OpenApiContract.Backend.Root, "paths")[ApiRoutes.AgentSettings]!["put"]!["description"]!.GetValue<string>();
+        var description = Section(Backend1210.Root, "paths")[ApiRoutes.AgentSettings]!["put"]!["description"]!.GetValue<string>();
 
         description.ShouldContain("a usable Claude key");
         description.ShouldContain("stored in Settings");
@@ -88,7 +88,7 @@ public sealed class ClaudeKeyContractTests
     [Fact]
     public void KeyStoreUnavailableExample_IsTheApiText()
     {
-        foreach (var document in new[] { OpenApiContract.Backend, Delta.Value })
+        foreach (var document in new[] { Backend1210, Delta.Value })
         {
             var example = document.Root["components"]!["responses"]!["KeyStoreUnavailable"]!["content"]!["application/problem+json"]!["example"]!;
 
@@ -100,9 +100,9 @@ public sealed class ClaudeKeyContractTests
     [MemberData(nameof(DeltaSections))]
     public void Backend1210_ContainsTheDeltaUnchangedExceptTheShared1100Components(string section)
     {
-        var merged = Section(OpenApiContract.Backend.Root, section);
+        var merged = Section(Backend1210.Root, section);
 
-        ChangedEntries(Delta.Value, OpenApiContract.Backend, section).ShouldBeSubsetOf(SharedWith1100);
+        ChangedEntries(Delta.Value, Backend1210, section).ShouldBeSubsetOf(SharedWith1100);
         Section(Delta.Value.Root, section).Select(entry => entry.Key).Where(SharedWith1100.Contains)
             .ShouldAllBe(key => JsonNode.DeepEquals(Section(Backend011.Root, section)[key], merged[key]));
     }
@@ -113,7 +113,7 @@ public sealed class ClaudeKeyContractTests
     {
         var expected = Keys(Backend011, section).Union(Keys(Delta.Value, section));
 
-        Keys(OpenApiContract.Backend, section).ShouldBe(expected, ignoreOrder: true);
+        Keys(Backend1210, section).ShouldBe(expected, ignoreOrder: true);
     }
 
     [Theory]
@@ -141,7 +141,7 @@ public sealed class ClaudeKeyContractTests
     [InlineData("KeyStoreUnavailable", AgentProblemTypes.KeyStoreUnavailable, 503)]
     public void ProblemTypes_MatchTheResponseExamples(string response, string code, int status)
     {
-        var example = OpenApiContract.Backend.Root["components"]!["responses"]![response]!["content"]!["application/problem+json"]!["example"]!;
+        var example = Backend1210.Root["components"]!["responses"]![response]!["content"]!["application/problem+json"]!["example"]!;
 
         (example["type"]!.GetValue<string>(), (int)example["status"]!.GetValue<double>()).ShouldBe((AgentProblemTypes.Uri(code), status));
     }
@@ -153,13 +153,13 @@ public sealed class ClaudeKeyContractTests
 
         ((int)apiKey["maxLength"]!.GetValue<double>()).ShouldBe(AgentContractLimits.ClaudeKeyRequestMaxLength);
         AgentContractLimits.ClaudeKeyBodyBytes.ShouldBe(1024);
-        OpenApiContract.Backend.Response("storeClaudeKey", 413).ShouldNotBeNull();
+        Backend1210.Response("storeClaudeKey", 413).ShouldNotBeNull();
     }
 
     [Fact]
     public void Route_IsTheKeyResourceWithItsThreeOperations()
     {
-        var path = Section(OpenApiContract.Backend.Root, "paths")[ApiRoutes.AgentClaudeKey]!.AsObject();
+        var path = Section(Backend1210.Root, "paths")[ApiRoutes.AgentClaudeKey]!.AsObject();
 
         path.Select(method => OperationId(method.Value!.AsObject())).ShouldBe(KeyOperations);
         ApiRoutes.AgentClaudeKey.ShouldBe("/api/agent/settings/claude-key");
@@ -184,7 +184,7 @@ public sealed class ClaudeKeyContractTests
     {
         var json = JsonSerializer.SerializeToNode(dto, dto.GetType(), Web);
 
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), json).ShouldBeEmpty();
+        SchemaValidator.Validate(Backend1210, Schema(schema), json).ShouldBeEmpty();
     }
 
     [Theory]

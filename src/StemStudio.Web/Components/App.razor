@@ -26,6 +26,8 @@
 
 <body>
     <Routes @rendermode="ServerNoPrerender" />
+    @* Keeps --ss-dock-inset equal to the space the sticky mixer dock covers, for scroll-padding-bottom (WCAG 2.4.11). *@
+    <script src="js/dock-inset.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 </body>
@@ -37,5 +39,5 @@
     private static readonly IComponentRenderMode ServerNoPrerender = new InteractiveServerRenderMode(prerender: false);
 
     // Component style sheets in cascade order (css/components/*.css).
-    private static readonly string[] ComponentSheets = ["states", "design", "shell", "pages", "track", "mixer", "help", "tour", "expert", "artwork", "library", "dialog", "karaoke", "lyrics", "scores", "generation", "agent"];
+    private static readonly string[] ComponentSheets = ["states", "design", "shell", "pages", "track", "mixer", "practice", "help", "tour", "expert", "artwork", "library", "dialog", "karaoke", "lyrics", "scores", "generation", "agent"];
 }

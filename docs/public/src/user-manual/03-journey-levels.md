@@ -52,6 +52,7 @@ Every new feature follows the same pattern (chapter numbers in brackets):
 | Karaoke (8) | Banner and on/off | Offset and text size | Timing origin, alignment controls |
 | Export (9) | Save to library, format | Bit depth, bit rate, range, selected channels, all stems, library filters | As Advanced |
 | Sheet music (10) | Profile and "simplified" | Quality, key, manual tempo, range | As Advanced |
+| Practice tempo (5) | Speed, transpose, original speed and key, count-in on/off | Also 100 % reset, speed trainer, count-in bars and before every loop pass | Also exact values and the Stretch diagnostics |
 | AI agent (13) | Chat, plan and approvals | Step list with job details, backend badge, conversation actions, Claude usage, model choice | Full tool log, Claude model and effort |
 
 ## Preferences

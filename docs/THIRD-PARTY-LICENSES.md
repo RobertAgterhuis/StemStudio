@@ -35,6 +35,16 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | OllamaSharp (Ollama client, `IChatClient` implementation) | 5.5.0 | MIT | https://github.com/awaescher/OllamaSharp |
 | Anthropic (official C# SDK; optional paid backend, constitution 1.3.0 principle IV exception, only called when Claude is selected and `ANTHROPIC_API_KEY` is set) | 13.3.0 | Apache-2.0 | https://github.com/anthropics/anthropic-sdk-csharp |
 
+### Practice tempo time stretch (feature 012, ADR-021; separate `soundtouch.wasm` in the web image)
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| SoundTouch (time stretch / pitch shift, compiled unmodified into the separately served and replaceable `js/soundtouch/soundtouch.wasm`; complete corresponding source shipped at `/third-party/soundtouch/index.html` per LGPL-2.1 section 6) | 2.4.1 (release tarball SHA-256 `e07abf20...6733`, pinned in `third_party/soundtouch/soundtouch.lock`) | **LGPL-2.1** | https://www.surina.net/soundtouch/ , https://codeberg.org/soundtouch/soundtouch |
+| StemStudio SoundTouch shim and ABI header (`third_party/soundtouch/shim/`, `include/`; StemStudio's own code, licensed like the library because it is compiled into the module) | ABI 1 | **LGPL-2.1-or-later** | `third_party/soundtouch/` |
+
+The AudioWorklet processor (`js/time-stretch-processor.js`) and the engine remain MIT and contain no
+SoundTouch code; they load the module through the documented ABI (`third_party/soundtouch/README.md`).
+
 ## Runtime: Python worker
 
 | Component | Version | Licence | Source |
@@ -260,6 +270,9 @@ says why it is off.
 | Playwright container image `mcr.microsoft.com/playwright:v1.65.1-noble` (CI visual/a11y only) | 1.65.1 | Apache-2.0 |
 | eslint-plugin-playwright | 2.12.2 | MIT |
 | @redocly/cli (via npx) | 2.78.0 | MIT |
+| Emscripten SDK Docker image `emscripten/emsdk` (build-time only, builds `soundtouch.wasm`; pinned by digest in `soundtouch.lock`; not distributed, https://hub.docker.com/r/emscripten/emsdk) | 6.0.13 | MIT / University of Illinois NCSA |
+| actions/download-artifact (CI only, feature 012 served-module check, https://github.com/actions/download-artifact) | 8.0.2 | MIT |
+| PyYAML (CI / `scripts/test-all.*` only, ephemeral `uv --with` for the 012 contract lint, https://github.com/yaml/pyyaml) | 6.0.3 | MIT |
 
 ### Documentation build (`tools/docs`, not shipped; builds docs/public PDFs)
 

@@ -8,7 +8,7 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '2.1.0';
+export type EngineContractVersion = '2.3.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
@@ -59,8 +59,10 @@ export interface DotNetObjectReference {
  * - `OnPositionChanged(double seconds)`: at most 10 Hz while playing, once after seek/stop.
  * - `OnPlaybackStateChanged(string state)`: on every {@link PlaybackState} change, including
  *   reaching the end of the track (state `stopped`, position 0).
+ * - `OnPracticeChanged(PracticeStatus status)` (2.3.0): after every applied practice change, stretch
+ *   state change, trainer pass start, count-in beat and underrun burst; at most 10 Hz.
  */
-export type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged';
+export type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPracticeChanged';
 
 /** One stem to load: its name and an absolute or API-relative URL of the FLAC file. */
 export interface StemSource {
@@ -190,6 +192,111 @@ export interface KaraokeOptions {
 /** State of the banner, written to the host's `data-state` attribute. */
 export type KaraokeState = 'hidden' | 'countdown' | 'singing' | 'ended';
 
+/** Practice tempo of the whole mix (contract 2.3.0); mirrors `PracticeSettingsDto` / backend `PracticeSettings` (integers). */
+export interface PracticeSettings {
+  /** Playback speed 50..120 % of the original tempo, pitch kept; default 100. */
+  readonly speedPercent: number;
+  /** Pitch shift -12..12 semitones, speed kept; default 0. */
+  readonly transposeSemitones: number;
+  /** Speed trainer on the enabled A-B loop. */
+  readonly trainer: SpeedTrainerSettings;
+  /** Count-in clicks before playback (and optionally before every loop pass). */
+  readonly countIn: CountInSettings;
+}
+
+/** Speed trainer settings (contract 2.3.0); mirrors `SpeedTrainerSettingsDto`. */
+export interface SpeedTrainerSettings {
+  /** Trainer on; effective only with an enabled loop of at least 0.5 s; default false. */
+  readonly enabled: boolean;
+  /** Speed of pass 1, 50..119 %; default 70. */
+  readonly startPercent: number;
+  /** Increase per step, 1..20 %; default 5. */
+  readonly stepPercent: number;
+  /** Final speed 51..120 %, greater than `startPercent`; default 100. */
+  readonly targetPercent: number;
+  /** Completed passes per speed, 1..8; default 1. */
+  readonly passesPerStep: number;
+}
+
+/** Count-in settings (contract 2.3.0); mirrors `CountInSettingsDto`. */
+export interface CountInSettings {
+  /** Counted bars: 0 (off), 1 or 2. */
+  readonly bars: number;
+  /** Also count in before every pass of an enabled loop; default false. */
+  readonly everyPass: boolean;
+}
+
+/** Where the time-stretch stage is: not inserted, being loaded, in the graph, or not usable. */
+export type StretchState = 'bypass' | 'loading' | 'active' | 'unavailable';
+
+/** Speed trainer state: disabled or no usable loop, enabled and not playing, playing passes, target reached. */
+export type TrainerState = 'off' | 'waiting' | 'running' | 'target';
+
+/** Snapshot sent with `OnPracticeChanged` and returned by {@link AudioEngine.getPracticeStatus} (contract 2.3.0). */
+export interface PracticeStatus {
+  /** Speed heard now (the trainer's speed while it runs). */
+  readonly speedPercent: number;
+  /** Transpose heard now. */
+  readonly transposeSemitones: number;
+  /** State of the time-stretch stage. */
+  readonly stretch: StretchState;
+  /** Reason text; set only when `stretch` is `unavailable`. */
+  readonly stretchReason: string | null;
+  /** Heard latency L(p) of the stage in ms while engaged, else 0 (audio-engine.md "Stretch stage"). */
+  readonly latencyMs: number;
+  /** Stretch FIFO underruns (frames output as silence) since `loadTrack`; Expert diagnostics. */
+  readonly underruns: number;
+  /** Speed trainer progress. */
+  readonly trainer: {
+    /** Trainer state. */
+    readonly state: TrainerState;
+    /** Current pass (1-based), 0 when not running. */
+    readonly pass: number;
+    /** Speed of the current pass in percent. */
+    readonly speedPercent: number;
+  };
+  /** Count-in progress. */
+  readonly countIn: {
+    /** False without a usable tempo (no reliable grid and no manual BPM). */
+    readonly available: boolean;
+    /** A count-in is running now. */
+    readonly active: boolean;
+    /** Beats left N..1 while active, 0 otherwise. */
+    readonly beatsRemaining: number;
+    /** Bars x beats per bar of the metronome settings. */
+    readonly beatsTotal: number;
+  };
+}
+
+/** Loading options of the time-stretch stage (contract 2.3.0). */
+export interface TimeStretchOptions {
+  /** URL of the AudioWorklet processor module; default `./js/time-stretch-processor.js`. */
+  readonly processorUrl?: string;
+  /** URL of the SoundTouch module (WASM ABI v1); default `./js/soundtouch/soundtouch.wasm`. */
+  readonly wasmUrl?: string;
+}
+
+/** The time-stretch stage as the engine sees it; implemented by the worklet wrapper and by test fakes (contract 2.3.0). */
+export interface TimeStretchStage {
+  /** Node the summed mix connects to. */
+  readonly input: AudioNode;
+  /** Node connected to the master gain. */
+  readonly output: AudioNode;
+  /** Fixed FIFO delay D in frames (`STRETCH_DELAY_FRAMES`), constant for the stage's lifetime. */
+  readonly latencyFrames: number;
+  /**
+   * Pitch factor applied to the audio that enters the stage from context frame `atFrame` on (the processor applies it
+   * when the midpoint of SoundTouch's buffered input reaches that frame; audio-engine.md "Stretch stage").
+   */
+  setPitch(pitchFactor: number, atFrame: number): void;
+  /** Drops buffered audio and refills the fixed delay with silence (seek, restart). */
+  reset(): void;
+  /** Underrun counter (frames output as silence because the FIFO was empty). */
+  underruns(): number;
+  /** Disconnects the node and frees the SoundTouch instance. */
+  dispose(): void;
+}
+
 /** Optional construction parameters (mainly for tests). */
 export interface EngineOptions {
   /** Factory for the single AudioContext; defaults to `new AudioContext({ sampleRate: 44100 })`. */
@@ -202,6 +309,10 @@ export interface EngineOptions {
   readonly scheduleAheadSeconds?: number;
   /** Scheduler wake-up interval in milliseconds (wakes the scheduler only); default 25. */
   readonly schedulerIntervalMs?: number;
+  /** Loading options of the time-stretch stage (contract 2.3.0). */
+  readonly timeStretch?: TimeStretchOptions;
+  /** Test seam (contract 2.3.0): replaces the AudioWorklet + WASM stage, e.g. with a Vitest fake. */
+  readonly timeStretchFactory?: (context: AudioContext) => Promise<TimeStretchStage>;
 }
 
 /**
@@ -259,6 +370,14 @@ export interface AudioEngine {
   setKaraokeOffset(offsetMs: number): void;
   /** Removes the karaoke DOM and stops drawing it; no-op when none is attached. */
   detachKaraoke(): void;
+  /**
+   * Validates and applies practice settings (contract 2.3.0); resolves when they are audible (the stretch stage loaded
+   * when needed). Rejects with `Error("Invalid practice settings: <field> <reason>")` without changing anything, or with
+   * `Error("Time stretch unavailable: <reason>")` (speed 100 %, 0 semitones and trainer off kept; count-in applied).
+   */
+  setPractice(settings: PracticeSettings): Promise<void>;
+  /** Current practice snapshot (contract 2.3.0). */
+  getPracticeStatus(): PracticeStatus;
   /** Stops playback, cancels timers/animation frames and closes the AudioContext. */
   dispose(): Promise<void>;
 }

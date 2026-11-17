@@ -9,7 +9,7 @@ Unchanged start commands and no new environment variables. The web image now con
 SoundTouch module (built in a Docker stage). On the non-Docker path build it once:
 
 ```bash
-scripts/build-soundtouch.sh        # or scripts/build-soundtouch.ps1; needs Docker (emscripten/emsdk:6.0.7)
+scripts/build-soundtouch.sh        # or scripts/build-soundtouch.ps1; needs Docker (emscripten/emsdk:6.0.13, pinned by digest in third_party/soundtouch/soundtouch.lock)
 cd src/audio-engine && npm ci && npm run build   # writes audio-engine.js and time-stretch-processor.js
 ```
 
@@ -28,7 +28,7 @@ and key"; **Count-in** switch; at Advanced the **Speed trainer** (needs an A-B l
 | # | What | How | Expected |
 |---|---|---|---|
 | P1 | Unit, contract and engine tests | `scripts/test-all.ps1` (or `.sh`) | green; >= 90 % line and branch per component (engine, web-interop, API, Web); `npm run test:wasm` green when the module was built |
-| P2 | Contracts | `npx @redocly/cli@2.78.0 lint --config specs/012-practice-tempo/contracts/redocly.yaml specs/012-practice-tempo/contracts/backend-api.openapi.yaml`; `python -I specs/012-practice-tempo/contracts/check_superset.py` | valid (warnings only as in 1.9.0); `superset: yes` |
+| P2 | Contracts | `npx @redocly/cli@2.78.0 lint --config specs/012-practice-tempo/contracts/redocly.yaml specs/012-practice-tempo/contracts/backend-api.openapi.yaml`; `python -I specs/012-practice-tempo/contracts/check_superset.py` | valid (9 warnings, all inherited from 1.21.0); `superset: yes` against 1.21.0 (default) and 1.9.0 |
 | P3 | Speed, fake stack (US1-1, SC-003) | `STEMSTUDIO_SEPARATOR=fake docker compose up -d --build --wait`; Playwright `practice-tempo.spec.ts` "speed" (Chromium, Firefox) | at 50 % `transport-position` advances 5.0 +- 0.2 s in 10 s of wall time; at 120 % 12.0 +- 0.24 s; `practice-panel` `data-stretch="active"` |
 | P4 | Pitch kept and transposed (US1-2, US1-3, SC-002) | `practice-tempo.spec.ts` "pitch" with `tone_440hz_20s.flac` and the output probe | FFT peak 440 Hz +- 1 % at 50/70/100/120 %; ratio 2^(n/12) +- 1 % for n = -12, -5, +2, +12, also at 50 % and 120 % |
 | P5 | Live change latency, no dropouts (FR-003, SC-001) | "live" case: 100 changes while playing (slider steps every 100 ms), probe records the time of the frequency change after a transpose step | each change heard <= 250 ms after the input; `practice-stretch-status` (Expert) `data-underruns="0"` |

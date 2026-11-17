@@ -1,0 +1,5 @@
+# Downloaded upstream source and local build output (scripts/build-soundtouch.*); never committed.
+upstream/
+build/
+*.wasm
+*.tar.gz

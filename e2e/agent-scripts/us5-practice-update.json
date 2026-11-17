@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "012 (T047, integration): update the open saved mix from the mixer (update_mix reads the open mixer); the test checks that its practice tempo, trainer and count-in stay unchanged. rename_mix is not offered in the mixer's page context (tool catalogue 1.3.0 profiles), so the rename round trip is covered by Agent.Tests and the backend's LoopbackMixPracticeTests.",
+  "turns": [
+    { "calls": [{ "name": "update_mix", "arguments": { "mixId": "{{context.mixId}}", "fromOpenMixer": true } }] },
+    { "text": "The changes are saved in this mix." }
+  ]
+}

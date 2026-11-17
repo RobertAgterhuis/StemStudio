@@ -310,3 +310,41 @@ export const beginnerHiddenSettingsIds: readonly string[] = [
 
 /** 1.10.0 settings page ids rendered only at Expert. */
 export const expertSettingsIds: readonly string[] = ['settings-agent-claude-model', 'settings-agent-claude-effort'];
+
+// Feature 012 (ui-test-ids 1.11.0 "Level visibility"). Ids that exist only in some state
+// (`practice-speed-reset` while the speed is not 100, `practice-quality-hint`,
+// `practice-effective-bpm`, `practice-unavailable`, `countin-indicator`, `countin-unavailable`,
+// `trainer-needs-loop`, `trainer-error`, `export-practice-note`) are asserted where that state
+// is set up.
+
+/** 1.11.0 mixer ids rendered at every level in the neutral state. */
+export const everyLevelPracticeIds: readonly string[] = [
+  'practice-panel',
+  'practice-panel-toggle',
+  'practice-panel-body',
+  'practice-speed',
+  'practice-speed-value',
+  'practice-speed-down',
+  'practice-speed-up',
+  'practice-transpose',
+  'practice-transpose-down',
+  'practice-transpose-up',
+  'practice-reset',
+  'countin-toggle',
+];
+
+/** 1.11.0 mixer ids that Beginner does not render (Advanced and Expert do; with a loop set). */
+export const advancedPracticeIds: readonly string[] = [
+  'countin-bars',
+  'countin-every-pass',
+  'trainer-panel',
+  'trainer-toggle',
+  'trainer-start',
+  'trainer-step',
+  'trainer-target',
+  'trainer-passes',
+  'trainer-status',
+];
+
+/** 1.11.0 Expert-only mixer ids. */
+export const expertPracticeIds: readonly string[] = ['practice-speed-input', 'practice-transpose-input', 'practice-stretch-status'];

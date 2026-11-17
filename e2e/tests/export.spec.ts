@@ -8,6 +8,7 @@ import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { expectHelpMarker } from '../support/help';
 import { expect, test } from '../support/test';
 import { panMatrix } from '../support/render-vectors';
+import { PracticePanel } from '../pages/practice-panel';
 
 // Feature 007 US1, US2, US4, US5 (007:T041, T047, T058, T063; FR-001..FR-006, FR-010, FR-013;
 // SC-003, SC-004; quickstart X2, X5, X7). Fake stack: the fake separator copies the mix into
@@ -189,6 +190,27 @@ test.describe('range validation', { tag: '@export' }, () => {
       expect((await assetsApi.list({ trackId: track.id })).total).toBe(before);
     });
   }
+});
+
+// Feature 012 US1-7 (T047; FR-015, quickstart P12): exports always use the original speed and key.
+test.describe('practice tempo', { tag: ['@export', '@practice'] }, () => {
+  test('at 75 % the dialog says exports keep the original speed and key, and "What I hear" has the original length', async ({ mixer, exportDialog, assetsApi, page }) => {
+    const practice = new PracticePanel(page);
+    await mixer.goto(track.id);
+    await mixer.waitForReady(fakeStems);
+    await exportDialog.openForMix();
+    await expect(exportDialog.byId('export-practice-note')).toHaveCount(0);
+    await exportDialog.byId('export-cancel').click();
+    await expect(exportDialog.dialog).toBeHidden();
+    await practice.set(75, 2);
+
+    await exportDialog.openForMix();
+    await expect(exportDialog.byId('export-practice-note')).toHaveText('Exports use the original speed and key.');
+    await exportDialog.save({ format: 'wav', bitDepth: 16 });
+    const asset = await readyFromConfirmation(await exportDialog.savedAssetId(), assetsApi);
+    const facts = wavFacts((await assetsApi.download(asset.id)).bytes);
+    expect(Math.abs(facts.durationSeconds - (track.durationSeconds ?? 20))).toBeLessThanOrEqual(0.001);
+  });
 });
 
 test.describe('stem pack', { tag: '@export' }, () => {

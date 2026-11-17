@@ -3,11 +3,11 @@ using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Tests.Fixtures;
 
-/// <summary>One row of contracts/tool-catalogue.md 1.0.0 (name, feature, kind, risk, undo, group, availability).</summary>
+/// <summary>One row of contracts/tool-catalogue.md 1.3.0 (name, feature, kind, risk, undo, group, availability).</summary>
 public sealed record CatalogueEntry(
     string Name, string Feature, ToolKindDto Kind, ToolRiskDto Risk, UndoKindDto Undo, ToolGroup Group, ToolAvailability Availability);
 
-/// <summary>The binding tool catalogue 1.0.0 as test data: the providers must match it exactly.</summary>
+/// <summary>The binding tool catalogue 1.3.0 as test data: the providers must match it exactly.</summary>
 public static class Catalogue
 {
     private const ToolKindDto S = ToolKindDto.Server;

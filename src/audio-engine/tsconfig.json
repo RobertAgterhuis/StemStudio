@@ -19,5 +19,5 @@
     "checkJs": false,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vite.config.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "tests-wasm/**/*.ts", "vite.config.ts", "vite.processor.config.ts", "vite.shared.ts", "vitest.config.ts", "vitest.wasm.config.ts", "eslint.config.js"]
 }

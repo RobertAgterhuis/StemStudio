@@ -47,6 +47,18 @@ const GLOBAL: readonly Binding[] = [
 
 const DIGITS: readonly Binding[] = Array.from({ length: 9 }, (_, i) => ({ key: String(i + 1), shift: false, command: `mixer.channel.select:${String(i + 1)}` }));
 
+/** Practice tempo keys (feature 012, ui-test-ids 1.11.0 "Shortcut commands"); `+` is an alias of `=` (Shift+= or keypad). */
+const PRACTICE: readonly Binding[] = [
+  { key: '-', command: 'mixer.speed:-5' },
+  { key: '=', command: 'mixer.speed:5' },
+  { key: '+', command: 'mixer.speed:5' },
+  { key: ',', command: 'mixer.transpose:-1' },
+  { key: '.', command: 'mixer.transpose:1' },
+  { key: 'r', command: 'mixer.practice.reset' },
+  { key: 'c', command: 'mixer.countin.toggle' },
+  { key: 't', command: 'mixer.trainer.toggle' },
+];
+
 const MIXER: readonly Binding[] = [
   { key: 'home', command: 'mixer.stop' },
   { key: 'arrowleft', shift: false, command: 'mixer.seek:-5' },
@@ -62,6 +74,7 @@ const MIXER: readonly Binding[] = [
   { key: 's', mod: true, shift: false, command: 'mixer.save' },
   { key: 's', mod: true, shift: true, command: 'mixer.save-as' },
   ...DIGITS,
+  ...PRACTICE,
 ];
 
 const KEY_MAPS: Readonly<Record<ShortcutScope, readonly Binding[]>> = { global: GLOBAL, mixer: MIXER };

@@ -68,6 +68,11 @@ export class MetronomeScheduler implements TransportListener {
     this.reschedule();
   }
 
+  /** {@inheritDoc TransportListener.onTimingChanged} */
+  public onTimingChanged(): void {
+    this.reschedule();
+  }
+
   /** Stops the wake-up timer and cancels future clicks. */
   public dispose(): void {
     this.stopTimer();
@@ -89,7 +94,7 @@ export class MetronomeScheduler implements TransportListener {
 
   private scheduleSegment(segment: Segment): void {
     for (const click of this.grid.between(segment.trackFrom, segment.trackTo)) {
-      const time = segment.contextStart + (click.time - segment.trackFrom);
+      const time = segment.contextStart + (click.time - segment.trackFrom) / segment.rate;
       this.scheduled.push({ node: this.options.output.play(time, click.accent), time });
     }
   }

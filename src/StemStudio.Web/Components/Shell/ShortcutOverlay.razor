@@ -33,17 +33,8 @@
     private ElementReference _dialog;
     private IAsyncDisposable? _focus;
 
-    private IEnumerable<(string Title, IReadOnlyList<ShortcutRow> Rows)> Groups
-    {
-        get
-        {
-            yield return ("Everywhere", ShortcutCatalog.Global);
-            if (AppRoutes.Matches("/tracks/{id}/mixer", AppRoutes.CurrentPath(Navigation)))
-            {
-                yield return ("Mixer", ShortcutCatalog.Mixer);
-            }
-        }
-    }
+    private IEnumerable<(string Title, IReadOnlyList<ShortcutRow> Rows)> Groups =>
+        ShortcutCatalog.Groups(AppRoutes.Matches("/tracks/{id}/mixer", AppRoutes.CurrentPath(Navigation)));
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync() => await (_focus?.DisposeAsync() ?? ValueTask.CompletedTask);

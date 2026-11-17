@@ -95,6 +95,8 @@ export class MockAudioBuffer {
 export interface StartCall {
   readonly when: number;
   readonly offset: number | undefined;
+  /** Present only when `start` was called with a duration (explicit passes, contract 2.3.0). */
+  readonly duration?: number;
 }
 
 /** Buffer source double: records start/stop and loop properties; `end()` fires `onended`. */
@@ -104,6 +106,7 @@ export class MockAudioBufferSourceNode extends MockAudioNode {
   public loopStart = 0;
   public loopEnd = 0;
   public onended: (() => void) | null = null;
+  public readonly playbackRate = new MockAudioParam(1);
   public readonly startCalls: StartCall[] = [];
   public readonly stopCalls: (number | undefined)[] = [];
 
@@ -111,11 +114,11 @@ export class MockAudioBufferSourceNode extends MockAudioNode {
     super(context, 'source');
   }
 
-  public start(when?: number, offset?: number): void {
+  public start(when?: number, offset?: number, duration?: number): void {
     if (this.startCalls.length > 0) {
       throw new Error('InvalidStateError: start() called twice');
     }
-    this.startCalls.push({ when: when ?? 0, offset });
+    this.startCalls.push({ when: when ?? 0, offset, ...(duration === undefined ? {} : { duration }) });
   }
 
   public stop(when?: number): void {

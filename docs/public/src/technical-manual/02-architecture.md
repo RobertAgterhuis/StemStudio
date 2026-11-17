@@ -9,7 +9,8 @@ product; it must not be exposed to the internet (ADR-002).
 | Component | Technology | Port | Responsibility |
 |---|---|---|---|
 | Web (`src/StemStudio.Web`) | Blazor Web App, Interactive Server, Radzen | 8080 | All screens; SignalR to the browser; typed API client |
-| Audio engine (`src/audio-engine`) | TypeScript, Web Audio API | in browser | Sample-locked multi-stem playback, gain, pan, mute/solo, meters, loop, metronome |
+| Audio engine (`src/audio-engine`) | TypeScript, Web Audio API | in browser | Sample-locked multi-stem playback, gain, pan, mute/solo, meters, loop, metronome; from 012 the practice tempo (speed, transpose, speed trainer, count-in) |
+| Time-stretch stage (012, `src/audio-engine/src/stretch`, `third_party/soundtouch`) | AudioWorklet + SoundTouch 2.4.1 compiled to `soundtouch.wasm` (LGPL-2.1) | in browser | Speed and pitch of the summed mix; separate, replaceable module (ADR-021) |
 | Web interop (`src/web-interop`) | TypeScript | in browser | Preferences, first paint, theme, shortcuts, tours (driver.js), focus |
 | API (`src/StemStudio.Api`) | ASP.NET Core 10 Minimal API, EF Core + SQLite | 8081 | System of record: tracks, stems, mixes; job synchronisation |
 | Domain (`src/StemStudio.Domain`) | .NET, no infrastructure | — | Aggregates and rules |
@@ -33,6 +34,14 @@ product; it must not be exposed to the internet (ADR-002).
    ETag) and plays them in one `AudioContext`: BufferSource → Gain → StereoPanner →
    Analyser → master Gain, all started at the same `when` (ADR-005).
 5. Detail separation is a second worker job per track; standard jobs always have priority.
+6. Practice tempo (012, ADR-021): at neutral settings (100 %, 0 semitones) nothing extra is
+   loaded and the graph is unchanged. Otherwise the sources play at `playbackRate = speed`
+   into the mix bus, which feeds one AudioWorklet (`js/time-stretch-processor.js`) that runs
+   SoundTouch from `js/soundtouch/soundtouch.wasm` to restore the pitch (and transpose). The
+   stage adds a fixed delay `D = 5120` frames plus a content offset `c(p) = round(-1100 *
+   log2(p))` frames; the transport, metronome, karaoke clock and count-in are anchored to the
+   heard latency `L(p) = (D + c(p)) / sampleRate` (66-147 ms), so clicks and the ball stay
+   with the stretched music. Exports never apply the practice tempo.
 
 Later features add worker lanes rather than new paths: a network-only lane for metadata (005;
 LRCLIB lyrics lookups in 006), a render lane for exports (007), lyrics alignment on the device
@@ -48,6 +57,9 @@ public API over loopback, so it has exactly the capabilities of a user.
 - Worker: adapters implement the `Protocol` ports in `ports.py`; heavy libraries sit behind
   those ports so unit tests use fakes.
 - Generator: `api → jobs → ports ← {engines, devices, audio}`; only `main.py` composes.
+- Audio engine (012): `stretch/processor.ts` imports only `stretch/{constants,params,fifo,abi}`
+  (the worklet scope); `transport.ts`, `mixer.ts`, `metronome/**` and `karaoke/**` never import
+  `practice/**` or `stretch/**`; `practice/**` never imports `karaoke/**`.
 - `tools/quality/dependency_check.py` enforces the direction in CI.
 
 ## Contracts and versions
@@ -58,15 +70,15 @@ parallel (ROADMAP, "Contract version allocation").
 
 | Contract | Current (delivered) | Planned bumps |
 |---|---|---|
-| Backend API (`backend-api.openapi.yaml`) | 1.10.0 (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`) | — |
+| Backend API (`backend-api.openapi.yaml`) | 1.11.0 (005: 1.4.0, 007: 1.5.0, 006: 1.6.0, 008: 1.7.0, 009: 1.8.0, 010: 1.9.0, 011: 1.10.0 = 1.9.0 + `/api/agent/*`, claude-key: 1.21.0, 012: 1.11.0 = 1.21.0 + `practice` on mixes; labels identify merged deltas, not an order) | — |
 | Worker API (`worker-api.openapi.yaml`) | 1.6.0 (005: 1.3.0, 007: 1.4.0, 006: 1.5.0, 008: 1.6.0) | — |
-| Audio engine (`audio-engine.md`) | 2.1.0 (006: karaoke clock and banner; unchanged by 011, the agent drives the mixer through the Web app) | — |
-| UI test ids (`ui-test-ids.md`) | 1.10.0 (005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0) | one minor per feature |
+| Audio engine (`audio-engine.md`) | 2.3.0 (006: 2.1.0 karaoke clock and banner; 2.2.0 unused; 012: 2.3.0 `setPractice`, `getPracticeStatus`, `OnPracticeChanged`, time-stretch stage and WASM ABI 1) | — |
+| UI test ids (`ui-test-ids.md`) | 1.11.0 (005: 1.4.0, 007: 1.5.0 + patch 1.5.1, 006: 1.6.0, 008: 1.7.0, 009/010: 1.8.0/1.9.0, 011: 1.10.0, claude-key: 1.21.0, 012: 1.11.0) | one minor per feature |
 | Help content (`help-content.md` + schemas) | 1.0.0 (004) | additive topics per feature |
 | Web interop (`web-interop.md`) | 1.0.0 (004) | — |
 | Render vectors (`render-vectors.json`) | 1.0.0 (007) | — |
 | Generator API (`generator-api.openapi.yaml`) | 1.1.0 (009: 1.0.0, 010: 1.1.0) | — |
-| Agent tool catalogue (`tool-catalogue.md`, 57 tools), agent E2E script schema (`agent-script.schema.json`), evaluation set (`eval-set.md`) | 1.0.0 (011) | — |
+| Agent tool catalogue (`tool-catalogue.md`, 57 tools), agent E2E script schema (`agent-script.schema.json`), evaluation set (`eval-set.md`) | catalogue 1.3.0 (011: 1.0.0; 012: `practice` read-only in `get_mix` / `mixer_get_state`), schema and evaluation set 1.0.0 | catalogue 1.1.0 (022), 1.2.0 (023) |
 
 Conventions: camelCase JSON, lower-case enums, RFC 9457 problem details for errors, UTC ISO
 8601 timestamps. CI lints the current OpenAPI documents with Redocly.

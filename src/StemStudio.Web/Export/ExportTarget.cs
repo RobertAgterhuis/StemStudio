@@ -46,6 +46,12 @@ public sealed record ExportTarget(ExportKind Kind, TrackDto Track)
     /// <summary>The mixer's loop region, if any (mix mode).</summary>
     public LoopRegionDto? Loop { get; init; }
 
+    /// <summary>
+    /// True while the mixer plays away from the original speed or key (speed, transpose or the speed trainer, feature 012):
+    /// the dialog says that exports use the original speed and key (FR-015). The export request is not affected.
+    /// </summary>
+    public bool AtPracticeTempo { get; init; }
+
     /// <summary>Length of the song in seconds (range validation).</summary>
     public double Duration { get; init; } = Track.DurationSeconds ?? 0;
 

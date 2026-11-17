@@ -1,0 +1,220 @@
+/* Practice tempo (feature 012): speed, transpose, count-in and speed trainer in the mixer's panel row.
+   Tokens of the 004 design system only; no raw colours. */
+
+.ss-practice {
+  flex: 1 1 24rem;
+}
+
+/* Disclosure title (012 integration): the whole title is the button; the help hint sits next to it, not inside. */
+.ss-practice-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+}
+
+.ss-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  min-height: var(--ss-target-min);
+  margin-inline-start: calc(-1 * var(--ss-space-1));
+  padding: 0 var(--ss-space-1);
+  border: 0;
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-none);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ss-disclosure:hover {
+  color: var(--ss-color-ink);
+}
+
+.ss-disclosure:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+/* No transition: the chevron simply points down while open (nothing moves with reduced motion either). */
+.ss-disclosure[aria-expanded="true"] .ss-disclosure-icon {
+  transform: rotate(90deg);
+}
+
+.ss-practice-summary {
+  color: var(--ss-color-ink);
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-practice-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.ss-practice-body[hidden] {
+  display: none;
+}
+
+.ss-practice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+  flex-basis: 100%;
+}
+
+.ss-practice-label {
+  min-width: 5.5rem;
+}
+
+.ss-practice-slider {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  min-height: var(--ss-target-min);
+  accent-color: var(--ss-color-primary);
+}
+
+/* Read-only while the speed trainer runs: shown, not draggable (web-interop also blocks the keys). */
+.ss-practice-slider[aria-readonly="true"] {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.ss-practice-value {
+  min-width: 3.5rem;
+  color: var(--ss-color-ink);
+  font-size: var(--ss-type-body-size);
+  font-variant-numeric: var(--ss-num);
+  text-align: center;
+}
+
+.ss-practice-spin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ss-target-min);
+  border: 1px solid var(--ss-color-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-sunken);
+}
+
+.ss-practice-spin:focus-visible {
+  outline: var(--ss-focus-width) solid var(--ss-color-focus);
+  outline-offset: var(--ss-focus-offset);
+}
+
+.ss-practice-spin[aria-disabled="true"] {
+  color: var(--ss-color-muted);
+}
+
+.ss-practice-bpm {
+  color: var(--ss-color-muted);
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-practice-hint,
+.ss-practice-unavailable,
+.ss-practice-diagnostics {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.ss-practice-unavailable {
+  color: var(--ss-color-ink);
+  border-inline-start: 3px solid var(--ss-color-warning);
+  padding-inline-start: var(--ss-space-2);
+}
+
+.ss-practice-diagnostics {
+  font-variant-numeric: var(--ss-num);
+}
+
+.ss-practice-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2) var(--ss-space-3);
+  flex-basis: 100%;
+  padding-top: var(--ss-space-2);
+  border-top: 1px solid var(--ss-color-divider);
+}
+
+.ss-practice-sub .ss-panel-title {
+  flex-basis: 100%;
+}
+
+.ss-switch[aria-checked="true"] {
+  background: var(--ss-color-primary);
+  color: var(--ss-color-on-primary);
+}
+
+/* Slot between the karaoke banner and the transport; empty (height 0) unless a count-in runs. */
+.ss-countin-slot {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--ss-gutter);
+}
+
+/* Count-in indicator above the transport: one dot per beat. The current beat gets a ring (no brightness flash), a beat
+   is never re-lit, so nothing flashes (WCAG 2.3.1) even at 6 beats per second. */
+.ss-countin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-2) var(--ss-space-4);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-raised);
+  color: var(--ss-color-ink);
+}
+
+.ss-countin-number {
+  min-width: 2ch;
+  font-size: var(--ss-type-title-size);
+  font-variant-numeric: var(--ss-num);
+  text-align: center;
+}
+
+.ss-countin-dots {
+  display: flex;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-countin-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--ss-color-muted);
+  border-radius: var(--ss-radius-pill);
+  transition: transform var(--ss-dur-press) var(--ss-ease-enter);
+}
+
+.ss-countin-dot[data-state="done"] {
+  border-color: var(--ss-color-primary);
+  background: var(--ss-color-primary);
+}
+
+.ss-countin-dot[data-state="current"] {
+  border-color: var(--ss-color-primary);
+  outline: 2px solid var(--ss-color-primary);
+  outline-offset: 2px;
+  transform: scale(1.15);
+}
+
+html[data-motion="reduced"] .ss-countin-dot[data-state="current"] {
+  transform: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion]) .ss-countin-dot[data-state="current"] {
+    transform: none;
+    transition: none;
+  }
+}

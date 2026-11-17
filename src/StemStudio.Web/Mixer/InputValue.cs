@@ -21,4 +21,14 @@ public static class InputValue
     /// <param name="gain">The gain.</param>
     /// <returns>For example "80".</returns>
     public static string Percent(double gain) => (Math.Round(gain * 100) + 0.0).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Parses a whole number within a range (invariant culture, optional sign).</summary>
+    /// <param name="text">The entered text.</param>
+    /// <param name="min">Smallest accepted value.</param>
+    /// <param name="max">Largest accepted value.</param>
+    /// <returns>The number, or null when it is not a whole number in range.</returns>
+    public static int? Whole(string? text, int min, int max) =>
+        int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value) && value >= min && value <= max
+            ? value
+            : null;
 }

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "012 (T047): save the open mixer, slowed and transposed, as a new mix; the test checks that the practice tempo is stored with it.",
+  "turns": [
+    { "calls": [{ "name": "save_mix_as", "arguments": { "trackId": "{{context.trackId}}", "name": "Agent practice mix", "fromOpenMixer": true } }] },
+    { "text": "The mix is saved as Agent practice mix." }
+  ]
+}

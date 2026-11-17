@@ -9,6 +9,7 @@
 | Worker `/health` (inside the network) | status, separator, device information, contract version |
 | `GET /api/device` | Processing device and reason |
 | `GET /api/agent/status` (011) | Agent backend, model, `ready` or the reason and fix; Ollama itself: `curl http://localhost:11434/api/tags` |
+| `scripts/check-soundtouch-served.sh [BASE_URL]` (012) | `soundtouch.wasm` served as `application/wasm` with the expected SHA-256 and the complete LGPL folder `/third-party/soundtouch/` |
 | Windows without Docker | `scripts/dev.ps1 -SmokeTest` waits for all three health endpoints |
 
 When the worker is down, imports answer 503 and existing tracks and mixes keep working.

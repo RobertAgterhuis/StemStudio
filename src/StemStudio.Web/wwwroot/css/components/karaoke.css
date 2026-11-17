@@ -21,7 +21,7 @@
 }
 
 html:has(.ss-karaoke-host) {
-  scroll-padding-bottom: calc(var(--ss-transport-height) + 9rem);
+  scroll-padding-bottom: calc(var(--ss-dock-inset, calc(var(--ss-transport-height) + 9rem)) + var(--ss-space-2));
 }
 
 .ss-karaoke {

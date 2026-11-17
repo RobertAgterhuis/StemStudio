@@ -9,12 +9,12 @@ import type { AudioEngine, DotNetObjectReference, EngineContractVersion, EngineO
 export type * from './types';
 
 /** Version of the engine contract implemented by this module. */
-export const ENGINE_CONTRACT_VERSION: EngineContractVersion = '2.1.0';
+export const ENGINE_CONTRACT_VERSION: EngineContractVersion = '2.3.0';
 
 /**
  * Creates the engine with its single AudioContext.
  *
- * @param dotnetRef - .NET object receiving `OnPositionChanged` / `OnPlaybackStateChanged`.
+ * @param dotnetRef - .NET object receiving `OnPositionChanged` / `OnPlaybackStateChanged` / `OnPracticeChanged`.
  * @param options - Optional overrides (tests inject a mocked AudioContext here).
  * @returns The engine instance.
  */

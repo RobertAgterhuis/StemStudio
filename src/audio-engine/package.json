@@ -11,10 +11,11 @@
   "main": "../StemStudio.Web/wwwroot/js/audio-engine.js",
   "types": "src/index.ts",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.processor.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:wasm": "vitest run --config vitest.wasm.config.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

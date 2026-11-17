@@ -272,7 +272,7 @@ is preceded by a count-in.
 - Features 001-011 are merged; 006 (karaoke clock), 007 (exports), 004 (design, help, levels) are
   in place. The 011 agent's mix tools carry the new `practice` field through when they update a mix
   (they round-trip the mix DTO).
-- SoundTouch 2.4.1 (LGPL-2.1) builds to standalone WebAssembly with Emscripten 6.0.7; Phase 0
+- SoundTouch 2.4.1 (LGPL-2.1) builds to standalone WebAssembly with Emscripten 6.0.13 (Phase 0 confirmed it; 6.0.7 was planned); Phase 0
   confirms the build, the latency and the CPU cost (research.md P0-1, P0-2); if the WASM build
   fails, the JavaScript port of SoundTouch (soundtouchjs, LGPL-2.1) is the fallback behind the same
   interface (ADR-021 D7).

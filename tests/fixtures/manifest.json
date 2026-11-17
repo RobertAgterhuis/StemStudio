@@ -258,6 +258,19 @@
         22.318182
       ]
     },
+    "tone_440hz_20s.flac": {
+      "kind": "tone",
+      "format": "flac",
+      "durationSeconds": 20.0,
+      "sampleRate": 44100,
+      "channels": 2,
+      "bpm": null,
+      "beatsPerBar": null,
+      "beatTimes": [],
+      "downbeatTimes": [],
+      "frequencyHz": 440.0,
+      "peakDbfs": -12.0
+    },
     "silence_5s.wav": {
       "kind": "silence",
       "format": "wav",
