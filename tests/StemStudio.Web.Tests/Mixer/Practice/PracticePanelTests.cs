@@ -1,4 +1,5 @@
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using NSubstitute;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Audio;
@@ -71,15 +72,8 @@ public sealed class PracticePanelTests : PracticeTestContext
         Engine.SetPracticeAsync(Arg.Any<PracticeSettingsDto>()).Returns(applying.Task);
         var page = RenderAt();
 
-        foreach (var _ in Enumerable.Range(0, 3))
-        {
-            page.Find("[data-testid=practice-speed-up]").Click();
-        }
-
-        foreach (var _ in Enumerable.Range(0, 2))
-        {
-            page.Find("[data-testid=practice-transpose-up]").Click();
-        }
+        ClickTimes(page, "practice-speed-up", 3);
+        ClickTimes(page, "practice-transpose-up", 2);
 
         page.Find("[data-testid=practice-panel]").GetAttribute("data-speed").ShouldBe("115");
         page.Find("[data-testid=practice-panel]").GetAttribute("data-transpose").ShouldBe("2");
@@ -275,5 +269,13 @@ public sealed class PracticePanelTests : PracticeTestContext
         System.Text.RegularExpressions.Regex.IsMatch(css, @"#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(").ShouldBeFalse();
         RepoPaths.ReadWeb("Components/App.razor").ShouldContain("\"practice\"");
         css.ShouldContain("[data-motion=\"reduced\"]");
+    }
+
+    private static void ClickTimes(IRenderedComponent<CascadingValue<ExperienceContext>> page, string testId, int times)
+    {
+        for (var i = 0; i < times; i++)
+        {
+            page.Find($"[data-testid={testId}]").Click();
+        }
     }
 }

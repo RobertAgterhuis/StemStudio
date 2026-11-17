@@ -20,17 +20,18 @@ public static class PracticePanelChoice
         try
         {
             using var document = JsonDocument.Parse(stored ?? "null");
-            return document.RootElement is { ValueKind: JsonValueKind.Object } root
-                   && root.TryGetProperty("expanded", out var expanded)
-                   && expanded.ValueKind is JsonValueKind.True or JsonValueKind.False
-                ? expanded.GetBoolean()
-                : null;
+            return Expanded(document.RootElement);
         }
         catch (JsonException)
         {
             return null;
         }
     }
+
+    private static bool? Expanded(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object && root.TryGetProperty("expanded", out var expanded) && IsBoolean(expanded) ? expanded.GetBoolean() : null;
+
+    private static bool IsBoolean(JsonElement value) => value.ValueKind is JsonValueKind.True or JsonValueKind.False;
 
     /// <summary>The stored form of a choice.</summary>
     /// <param name="expanded">True when the panel is open.</param>

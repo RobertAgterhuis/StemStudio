@@ -85,11 +85,6 @@ test.describe('practice panel disclosure (012 integration, ui-test-ids 1.11.0)',
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    // Closed by choice: a shortcut changes the speed, the panel stays closed and its title says so.
-    await pressOutsideFields(page, '-');
-    await expect(practice.panel).toHaveAttribute('data-speed', '95');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(practice.byId('practice-panel-summary')).toHaveText('95 %');
   });
 
   test('without a stored choice a practice setting opens the panel', async ({ page, practice }) => {
@@ -97,6 +92,17 @@ test.describe('practice panel disclosure (012 integration, ui-test-ids 1.11.0)',
     await expect(practice.panel).toHaveAttribute('data-transpose', '1');
     await expect(practice.byId('practice-panel-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(practice.byId('practice-transpose')).toBeVisible();
+  });
+
+  test.describe('closed by choice', () => {
+    test.use({ storageState: levelState('advanced', {}, 'collapsed') });
+
+    test('a shortcut changes the speed, the panel stays closed and its title says so', async ({ page, practice }) => {
+      await pressOutsideFields(page, '-');
+      await expect(practice.panel).toHaveAttribute('data-speed', '95');
+      await expect(practice.byId('practice-panel-toggle')).toHaveAttribute('aria-expanded', 'false');
+      await expect(practice.byId('practice-panel-summary')).toHaveText('95 %');
+    });
   });
 });
 
