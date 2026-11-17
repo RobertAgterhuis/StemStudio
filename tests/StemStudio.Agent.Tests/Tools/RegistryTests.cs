@@ -25,7 +25,20 @@ public sealed class RegistryTests
         "get_artist_info", "refresh_artwork", "get_lyrics_status", "fetch_lyrics", "align_lyrics", "export_audio", "transcribe_stem",
     ];
 
-    private static readonly string[] Library = ["export_stem_pack", "list_exports", "delete_export", "list_scores", "delete_score"];
+    private static readonly string[] Library =
+    [
+        "export_stem_pack", "list_exports", "delete_export", "list_scores", "delete_score",
+        "browse_library_folder", "search_library_items", "open_library_folder", "set_library_info",
+    ];
+
+    private static readonly string[] LyricAssist =
+    [
+        "check_lyrics", "suggest_lyric_lines", "list_lyric_suggestions", "apply_lyric_suggestions", "mark_lyrics_intentional",
+        "find_rhymes", "count_syllables", "open_lyrics_editor",
+    ];
+
+    private static readonly string[] LyricsExtras =
+        ["list_lyrics_sheets", "save_lyrics_sheet", "generate_song", "list_styles", "get_generation_status", "list_generations"];
 
     private static readonly string[] Create =
     [
@@ -41,7 +54,7 @@ public sealed class RegistryTests
 
     private static readonly string[] LibraryExtras =
     [
-        "export_audio", "transcribe_stem", "retry_track", "delete_mix", "rename_mix", "duplicate_mix", "get_lyrics_status",
+        "export_audio", "transcribe_stem", "get_lyrics_status",
         "get_generation_status", "list_generations", "import_take", "cancel_generation", "retry_generation", "delete_generation",
     ];
 
@@ -53,6 +66,7 @@ public sealed class RegistryTests
         MixerOpen = page == "mixer",
         Generation = ServiceAvailability.Available,
         Voice = ServiceAvailability.Available,
+        LyricModel = ServiceAvailability.Available,
     };
 
     private static string[] Names(IEnumerable<AgentToolDescriptor> tools) => [.. tools.Select(tool => tool.Name)];
@@ -65,7 +79,7 @@ public sealed class RegistryTests
     {
         var registry = Registry();
 
-        registry.All.Count.ShouldBe(57);
+        registry.All.Count.ShouldBe(69);
         Names(registry.All).ShouldBe(Sorted(Catalogue.All.Select(entry => entry.Name)));
         registry.Find("delete_track")!.Risk.ShouldBe(ToolRiskDto.Destructive);
         registry.Find("no_such_tool").ShouldBeNull();
@@ -98,6 +112,25 @@ public sealed class RegistryTests
         Should.Throw<ArgumentNullException>(() => new AgentToolRegistry(null!));
     }
 
+    [Theory]
+    [InlineData("011", 2)]
+    [InlineData("001", 21)]
+    [InlineData("002", 2)]
+    [InlineData("003", 1)]
+    [InlineData("004", 3)]
+    [InlineData("005", 2)]
+    [InlineData("006", 4)]
+    [InlineData("007", 4)]
+    [InlineData("008", 3)]
+    [InlineData("009", 10)]
+    [InlineData("010", 5)]
+    [InlineData("022", 4)]
+    [InlineData("023", 8)]
+    public void CatalogueCounts_PerFeature_MatchTheContract(string feature, int tools)
+    {
+        Registry().All.Count(tool => tool.Feature == feature).ShouldBe(tools);
+    }
+
     [Fact]
     public void GroupsOfTheCatalogue_HaveTheContractSizes()
     {
@@ -108,6 +141,8 @@ public sealed class RegistryTests
         Names(registry.All.Where(tool => tool.Group == ToolGroup.Tracks)).ShouldBe(Sorted(Tracks), ignoreOrder: true);
         Names(registry.All.Where(tool => tool.Group == ToolGroup.Library)).ShouldBe(Sorted(Library), ignoreOrder: true);
         Names(registry.All.Where(tool => tool.Group == ToolGroup.Create)).ShouldBe(Sorted(Create), ignoreOrder: true);
+        Names(registry.All.Where(tool => tool.Group == ToolGroup.LyricAssist)).ShouldBe(Sorted(LyricAssist), ignoreOrder: true);
+        registry.All.Count(tool => tool.Risk is ToolRiskDto.Heavy or ToolRiskDto.Destructive).ShouldBe(13);
     }
 
     [Theory]
@@ -147,7 +182,6 @@ public sealed class RegistryTests
     [Theory]
     [InlineData("styles")]
     [InlineData("generations")]
-    [InlineData("lyrics")]
     [InlineData("songs")]
     [InlineData("voices")]
     public void CreatePages_OfferCoreAndCreate(string page)
@@ -159,11 +193,33 @@ public sealed class RegistryTests
     }
 
     [Theory]
+    [InlineData("lyrics")]
+    [InlineData(" Lyrics ")]
+    public void LyricsPage_OffersCoreLyricAssistAndTheSongTools(string page)
+    {
+        var tools = Registry().For(Ready(page.Trim().ToLowerInvariant()));
+
+        Names(tools).ShouldBe(Sorted(Core, LyricAssist, LyricsExtras));
+        tools.Count.ShouldBe(28);
+    }
+
+    [Fact]
+    public void LyricModelNotReady_HidesOnlySuggestLyricLines()
+    {
+        var offers = Registry().Describe(Ready("lyrics") with { LyricModel = ServiceAvailability.Unavailable("Ollama is not running.") });
+
+        offers.Where(offer => !offer.Available).Select(offer => offer.Descriptor.Name).ShouldBe(["suggest_lyric_lines"]);
+        offers.Single(offer => offer.Descriptor.Name == "suggest_lyric_lines").UnavailableReason.ShouldBe("Ollama is not running.");
+        Registry().For(Ready("lyrics") with { LyricModel = ServiceAvailability.Unknown }).Select(tool => tool.Name).ShouldNotContain("suggest_lyric_lines");
+    }
+
+    [Theory]
     [InlineData("import")]
     [InlineData("mixer")]
     [InlineData("library")]
     [InlineData("styles")]
     [InlineData("tracks")]
+    [InlineData("lyrics")]
     public void EveryContext_StaysWithinTheCap(string page)
     {
         Registry().For(Ready(page)).Count.ShouldBeLessThanOrEqualTo(AgentToolRegistry.MaxToolsPerRequest);

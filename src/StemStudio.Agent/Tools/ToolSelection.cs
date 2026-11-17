@@ -24,19 +24,27 @@ public static class ToolSelection
         [ToolGroup.Core, ToolGroup.Mixer],
         ["start_detail_separation", "export_audio", "transcribe_stem", "get_lyrics_status", "fetch_lyrics", "align_lyrics", "list_styles", "restyle_track"]);
 
-    /// <summary>The library page: core + library + asset and generation management.</summary>
+    /// <summary>
+    /// The library page (<c>/library</c>, <c>/library/{folderId}</c>): core + library + asset and generation management
+    /// (tool catalogue 1.1.0: <c>retry_track</c> and the mix management tools left this context to keep the cap).
+    /// </summary>
     public static PageProfile Library { get; } = new(
         [ToolGroup.Core, ToolGroup.Library],
         [
-            "export_audio", "transcribe_stem", "retry_track", "delete_mix", "rename_mix", "duplicate_mix", "get_lyrics_status",
+            "export_audio", "transcribe_stem", "get_lyrics_status",
             "get_generation_status", "list_generations", "import_take", "cancel_generation", "retry_generation", "delete_generation",
         ]);
 
     /// <summary>The 009/010 pages: core + create.</summary>
     public static PageProfile Create { get; } = new([ToolGroup.Core, ToolGroup.Create], []);
 
+    /// <summary>The lyrics list and editor (tool catalogue 1.2.0): core + lyric-assist + the song tools of 010.</summary>
+    public static PageProfile Lyrics { get; } = new(
+        [ToolGroup.Core, ToolGroup.LyricAssist],
+        ["list_lyrics_sheets", "save_lyrics_sheet", "generate_song", "list_styles", "get_generation_status", "list_generations"]);
+
     /// <summary>Every profile (for the start-up cap check).</summary>
-    public static IReadOnlyList<PageProfile> All { get; } = [Default, Mixer, Library, Create];
+    public static IReadOnlyList<PageProfile> All { get; } = [Default, Mixer, Library, Create, Lyrics];
 
     /// <summary>The profile of a page name (case-insensitive).</summary>
     /// <param name="page">Page name.</param>
@@ -45,7 +53,8 @@ public static class ToolSelection
     {
         "mixer" => Mixer,
         "library" => Library,
-        "styles" or "generations" or "lyrics" or "songs" or "voices" => Create,
+        "lyrics" => Lyrics,
+        "styles" or "generations" or "songs" or "voices" => Create,
         _ => Default,
     };
 }

@@ -84,6 +84,7 @@ public sealed class AgentToolRegistry
         ToolAvailability.Mixer => context.MixerOpen ? null : ToolContext.MixerClosedReason,
         ToolAvailability.GenerationService => ServiceReason(context.Generation),
         ToolAvailability.VoiceService => ServiceReason(context.Voice),
+        ToolAvailability.LyricModelService => ServiceReason(context.LyricModel),
         _ => null,
     };
 

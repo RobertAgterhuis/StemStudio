@@ -70,6 +70,23 @@ public sealed class ResultProjectorTests
         result.Json.ShouldContain("keep");
     }
 
+    [Theory]
+    [InlineData("lines")]
+    [InlineData("path")]
+    public void ForbiddenNames_KeepListsOfRows_ButStripTheirTexts(string field)
+    {
+        var projection = new JsonObject
+        {
+            [field] = new JsonArray(new JsonObject { ["line"] = 1, ["syllables"] = 8, ["text"] = "secret" }),
+            ["other"] = new JsonObject { [field] = new JsonArray("secret line", "more") },
+            ["mixed"] = new JsonObject { [field] = new JsonArray(new JsonObject { ["a"] = 1 }, "secret") },
+        };
+
+        var result = ResultProjector.Project(projection);
+
+        result.Json.ShouldBe($$$"""{"{{{field}}}":[{"line":1,"syllables":8}],"other":{},"mixed":{}}""");
+    }
+
     [Fact]
     public void LargeArray_IsCutTo4KbWithAMarker()
     {
