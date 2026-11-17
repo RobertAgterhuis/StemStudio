@@ -1,0 +1,9 @@
+@* Take strip slot of feature 015 after the stem strips (hook of the 014 lane). *@
+@inherits StemStudio.Web.Components.Mixer.MixerSlot
+
+@if (Mixer.Recording is { } session)
+{
+    <TakeStrip Takes="session.Takes" Audible="Mixer.TakeAudible" OnChanged="session.RefreshAsync">
+        <TakeCompare Takes="session.Takes" OnChanged="session.RefreshAsync" />
+    </TakeStrip>
+}

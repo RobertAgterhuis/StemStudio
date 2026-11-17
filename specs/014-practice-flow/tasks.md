@@ -84,7 +84,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T014 [P] [devops] Failing check first: `scripts/check-worker-fonts.{ps1,sh}` also requires `fc-list | grep -i "DejaVu Sans"` and `python -c "import reportlab"` as the worker user; then `docker/worker.Dockerfile` installs `fonts-dejavu-core` (both image variants); `docker-compose.yml` passes `STEMSTUDIO_STRUCTURE_ANALYZER` (default empty = automatic); CI and `scripts/test-all.*` (combined round: `CONTRACTS_DIR` -> `specs/015-play-along-recording/contracts`, the newest full backend document 1.14.0, together with 015 T010): Redocly lint of the four 014 documents with `specs/014-practice-flow/contracts/redocly.yaml`, both `check_superset.py` runs (default `OLDER` 1.23.0 -> 1.13.0, `practice-api.openapi.yaml` -> 1.13.0) and `python -I specs/014-practice-flow/contracts/merge_full.py --check`; acceptance: the new CI steps fail on a deliberately broken copy and pass on the branch (SC-008)
 - [ ] T015 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `analysis/structure` imports only `ports`, `schemas`, numpy, scipy, sklearn, librosa, soundfile; `engraving/score_view.py` only `ports`, `schemas`, verovio, stdlib xml; `documents/**` only `ports`, `schemas`, reportlab; `jobs`/`api` import none of them (composition in `main.py`); TS: `src/audio-engine/src/score-follow/**` imports no Blazor interop module; .NET: `Domain.{Sections,Setlists,Practice}` reference nothing from `Api`/`Persistence`
 - [ ] T016 [quality-gate] Implement the rules of T015 in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
-- [ ] T017 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: synthetic structured audio for sections (one solo per family, SC-002), score-view and PDF assertions, fake analyser for E2E, a11y (axe-core) and keyboard-only E2E for the new pages, request-log check for SC-009; traceability US1..US6 -> test files
+- [x] T017 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: synthetic structured audio for sections (one solo per family, SC-002), score-view and PDF assertions, fake analyser for E2E, a11y (axe-core) and keyboard-only E2E for the new pages, request-log check for SC-009; traceability US1..US6 -> test files
 - [ ] T018 [P] [qa] Fixtures `tests/fixtures/` generator: a synthetic structured song (60-90 s, known form and grid, separated-stem layout for the fake stack) with a manifest of expected sections and bar times; `tests/fixtures/tests/` checks the manifest (FR-033)
 
 ---
@@ -132,12 +132,12 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### frontend (tests first)
 
-- [ ] T044 [P] [frontend] Failing tests `src/web-interop/tests/keymap.test.ts`: data-driven matching per scope; guard contexts (text, slider, listbox, grid, menu, dialog; Space/Enter on buttons/links); repeats ignored; Alt/meta never; `singleKey: false` drops non-Mod chords; pedal layer in pedal mode fires on non-text controls but not in text fields; reserved chords via `isReservedChord`; duplicates dropped; reserved (015) bindings never dispatched; `captureChord` reports once, Escape cancels, timeout; `registerShortcuts` without a map keeps the 1.0.0 behaviour (FR-019..FR-023)
-- [ ] T045 [frontend] Implement `src/web-interop/src/{keymap,capture,shortcuts}.ts` (web-interop 1.1.0) to pass T044
-- [ ] T046 [P] [frontend] Failing tests `src/web-interop/tests/preferences-v2.test.ts` and `tests/StemStudio.Web.Tests/Practice/KeyMapValidatorTests.cs`: schemaVersion 1 -> 2 defaults; invalid/conflicting overrides dropped and reported; 16 KB limit; validator rules equal to the TS rules on the shared `keymap-defaults.json`; pedal presets (FR-019, FR-022, FR-023)
-- [ ] T047 [frontend] Implement `preferences.ts` v2, `Practice/{KeyMapValidator,KeyMapDefaults,PedalPresets}.cs` to pass T046
-- [ ] T048 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Practice/SectionNavigatorTests.cs` and `PracticeRecorderTests.cs` (fake `TimeProvider`): current/next/previous/restart rules (data-model 5.3) incl. "next" while looping moves the loop; recorder states, per-section split from positions, loop passes, trainer percent only for full section passes with the trainer on, 30 s flushes, flush on stop/leave, 10-minute session end, 409 stops the recorder, other errors retry; accuracy <= 2 s per 10 min (FR-004, FR-025, FR-029, SC-007)
-- [ ] T049 [frontend] Implement `Practice/{SectionNavigator,PracticeRecorder}.cs` to pass T048
+- [x] T044 [P] [frontend] Failing tests `src/web-interop/tests/keymap.test.ts`: data-driven matching per scope; guard contexts (text, slider, listbox, grid, menu, dialog; Space/Enter on buttons/links); repeats ignored; Alt/meta never; `singleKey: false` drops non-Mod chords; pedal layer in pedal mode fires on non-text controls but not in text fields; reserved chords via `isReservedChord`; duplicates dropped; reserved (015) bindings never dispatched; `captureChord` reports once, Escape cancels, timeout; `registerShortcuts` without a map keeps the 1.0.0 behaviour (FR-019..FR-023)
+- [x] T045 [frontend] Implement `src/web-interop/src/{keymap,capture,shortcuts}.ts` (web-interop 1.1.0) to pass T044
+- [x] T046 [P] [frontend] Failing tests `src/web-interop/tests/preferences-v2.test.ts` and `tests/StemStudio.Web.Tests/Practice/KeyMapValidatorTests.cs`: schemaVersion 1 -> 2 defaults; invalid/conflicting overrides dropped and reported; 16 KB limit; validator rules equal to the TS rules on the shared `keymap-defaults.json`; pedal presets (FR-019, FR-022, FR-023)
+- [x] T047 [frontend] Implement `preferences.ts` v2, `Practice/{KeyMapValidator,KeyMapDefaults,PedalPresets}.cs` to pass T046
+- [x] T048 [P] [frontend] Failing tests `tests/StemStudio.Web.Tests/Practice/SectionNavigatorTests.cs` and `PracticeRecorderTests.cs` (fake `TimeProvider`): current/next/previous/restart rules (data-model 5.3) incl. "next" while looping moves the loop; recorder states, per-section split from positions, loop passes, trainer percent only for full section passes with the trainer on, 30 s flushes, flush on stop/leave, 10-minute session end, 409 stops the recorder, other errors retry; accuracy <= 2 s per 10 min (FR-004, FR-025, FR-029, SC-007)
+- [x] T049 [frontend] Implement `Practice/{SectionNavigator,PracticeRecorder}.cs` to pass T048
 
 **Checkpoint**: HO:foundational for beat-analysis, audio-ingest, stem-separation, backend, audio-engine, frontend.
 
@@ -153,23 +153,23 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T055 [US1] [backend] Implement `Api/Sections/{SectionEndpoints,SectionService,SectionJobApplier,SectionDetectTrigger}.cs` to pass T054
 - [x] T056 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/LoopSectionIdTests.cs`: save/load a mix with `loop.sectionId`; unknown id read back as null with the loop kept; 1.12.0 clients without the field unaffected (FR-005)
 - [x] T057 [US1] [backend] Implement the `LoopRegion.SectionId` mapping to pass T056
-- [ ] T058 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionLaneTests.cs`: lane renders sections with kind/label/bars and test ids; status texts (detecting, grid uncertain, failed + retry); first open with status `none` calls `detectSections` once; click loops the section (`MixerState` loop + `sectionId`, looping on, position moved into the section when outside); current section marked from positions; previous/next/restart buttons; keyboard (list of buttons, `aria-pressed`); trainer region label shows the section (A-012-3) (FR-004, FR-005, FR-007)
-- [ ] T059 [US1] [frontend] Implement `Components/Practice/SectionLane.razor`, `MixerState.Sections` and the section commands (`mixer.loop.section`, `mixer.section.*`) to pass T058
+- [x] T058 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionLaneTests.cs`: lane renders sections with kind/label/bars and test ids; status texts (detecting, grid uncertain, failed + retry); first open with status `none` calls `detectSections` once; click loops the section (`MixerState` loop + `sectionId`, looping on, position moved into the section when outside); current section marked from positions; previous/next/restart buttons; keyboard (list of buttons, `aria-pressed`); trainer region label shows the section (A-012-3) (FR-004, FR-005, FR-007)
+- [x] T059 [US1] [frontend] Implement `Components/Practice/SectionLane.razor`, `MixerState.Sections` and the section commands (`mixer.loop.section`, `mixer.section.*`) to pass T058
 - [x] T060 [P] [US1] [qa] E2E `e2e/tests/sections.spec.ts` (fake stack): sections appear after import (<= 30 s), click loops, N/Shift+N/Backspace, older track triggers detection on mixer open, unreliable-grid note (fixture with `reliable: false`) (US1 scenarios 1-5)
-- [ ] T061 [US1] [frontend] Help topics `mixer-sections`, glossary `section`, `speed-trainer-region`; tour `practice-section` v1; help tests updated (FR-030)
+- [x] T061 [US1] [frontend] Help topics `mixer-sections`, glossary `section`, `speed-trainer-region`; tour `practice-section` v1; help tests updated (FR-030)
 
 **Checkpoint**: HO:us1.
 
 ## Phase 4: User Story 2 - Hands-free control with keys and pedals (P1)
 
-- [ ] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Shell/ShortcutOverlayTests.cs`: groups and rows from the live key map with `data-keys`, remapped keys and pedal keys shown, reserved 015 rows hidden, reachable at every level from help (`help-shortcuts`) and Ctrl+/ (FR-024)
-- [ ] T063 [US2] [frontend] Extend `ShortcutOverlay.razor` and the 004 `shortcuts` help topic (reviewed "014") to pass T062
-- [ ] T064 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/ShortcutSettingsTests.cs`: edit a command via capture, conflict message names the other command, reserved message, clear, reset all; pedal setup presets, learn left/right, pedal mode switch, test indicator; single-key switch in the Preferences panel at every level; saved to preferences and applied with `updateShortcuts` (FR-019, FR-021..FR-023)
-- [ ] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
-- [ ] T066 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerCommandsTests.cs`: every mixer command id of data-model 5.2 dispatches to the same `MixerState` action as its control (012 commands via the 012 handlers, A-012-2..4); unknown/reserved ids ignored (FR-019, FR-020)
-- [ ] T067 [US2] [frontend] Implement the command dispatcher to pass T066
+- [x] T062 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Shell/ShortcutOverlayTests.cs`: groups and rows from the live key map with `data-keys`, remapped keys and pedal keys shown, reserved 015 rows hidden, reachable at every level from help (`help-shortcuts`) and Ctrl+/ (FR-024)
+- [x] T063 [US2] [frontend] Extend `ShortcutOverlay.razor` and the 004 `shortcuts` help topic (reviewed "014") to pass T062
+- [x] T064 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/ShortcutSettingsTests.cs`: edit a command via capture, conflict message names the other command, reserved message, clear, reset all; pedal setup presets, learn left/right, pedal mode switch, test indicator; single-key switch in the Preferences panel at every level; saved to preferences and applied with `updateShortcuts` (FR-019, FR-021..FR-023)
+- [x] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
+- [x] T066 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerCommandsTests.cs`: every mixer command id of data-model 5.2 dispatches to the same `MixerState` action as its control (012 commands via the 012 handlers, A-012-2..4); unknown/reserved ids ignored (FR-019, FR-020)
+- [x] T067 [US2] [frontend] Implement the command dispatcher to pass T066
 - [x] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
-- [ ] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
+- [x] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
 
 **Checkpoint**: HO:us2.
 
@@ -177,10 +177,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [x] T070 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/ReplaceSectionsTests.cs`: `replaceSections` 200 with kept and new ids, origin `edited`, revision + 1; 409 `sections-changed`; 422 field errors per rule; detect with/without `overwrite` after edits (FR-006)
 - [x] T071 [US3] [backend] Implement `replaceSections` to pass T070
-- [ ] T072 [P] [US3] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionEditorTests.cs`: split at playhead (snapped), merge keeps the first id/kind/label, rename, change kind (instrument select only for solo), move boundary by field and keyboard with the 1 s minimum, delete, add; renumbering unless named; Done saves, Cancel discards; 409 shows the reload prompt; overwrite confirmation for re-detect (Expert); confidence shown at Expert (FR-006, FR-007)
-- [ ] T073 [US3] [frontend] Implement `Components/Practice/SectionEditor.razor` to pass T072
+- [x] T072 [P] [US3] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionEditorTests.cs`: split at playhead (snapped), merge keeps the first id/kind/label, rename, change kind (instrument select only for solo), move boundary by field and keyboard with the 1 s minimum, delete, add; renumbering unless named; Done saves, Cancel discards; 409 shows the reload prompt; overwrite confirmation for re-detect (Expert); confidence shown at Expert (FR-006, FR-007)
+- [x] T073 [US3] [frontend] Implement `Components/Practice/SectionEditor.razor` to pass T072
 - [x] T074 [P] [US3] [qa] E2E `e2e/tests/sections-edit.spec.ts`: split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation (US3 scenarios 1-5)
-- [ ] T075 [US3] [frontend] Help topics `mixer-sections-edit`, `mixer-sections-detection` (FR-030)
+- [x] T075 [US3] [frontend] Help topics `mixer-sections-edit`, `mixer-sections-detection` (FR-030)
 
 **Checkpoint**: HO:us3.
 
@@ -192,10 +192,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T079 [US4] [backend] Implement `Api/ScoreFollow/*` to pass T078
 - [x] T080 [P] [US4] [audio-engine] Failing tests `src/audio-engine/tests/score-follow.test.ts`: per data-model 4 and the 2.4.0 delta - bar changes at boundaries on the heard clock, loop wrap jump, seek binary search, speed 50/75/100/120 % (A-012-1), none before the first/after the last bar, highlight percentages, host attributes, scroll once per system change, manual-scroll pause (fake timers), reduced motion, validation errors keep the old follower, detach cleanup, frame cost counter (FR-010, FR-011, SC-003, SC-004)
 - [x] T081 [US4] [audio-engine] Implement `src/audio-engine/src/score-follow/{follower,cursor,dom,scroll}.ts` and the engine methods to pass T080
-- [ ] T082 [P] [US4] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/ScorePanelTests.cs`: list and select, empty state with link to 008, preparing state polls, pages as `<img>` in `score-page-<n>`, attach/detach on select and track change, follow toggle, transpose note while transpose != 0, manual-tempo note, click a bar seeks, Shift+click sets a bar loop (Advanced), "Read bar" announcement (FR-009..FR-013)
-- [ ] T083 [US4] [frontend] Implement `Components/Practice/ScorePanel.razor` and `mixer.score.*` commands to pass T082
+- [x] T082 [P] [US4] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/ScorePanelTests.cs`: list and select, empty state with link to 008, preparing state polls, pages as `<img>` in `score-page-<n>`, attach/detach on select and track change, follow toggle, transpose note while transpose != 0, manual-tempo note, click a bar seeks, Shift+click sets a bar loop (Advanced), "Read bar" announcement (FR-009..FR-013)
+- [x] T083 [US4] [frontend] Implement `Components/Practice/ScorePanel.razor` and `mixer.score.*` commands to pass T082
 - [x] T084 [P] [US4] [qa] E2E `e2e/tests/score-follow.spec.ts`: one score per family (vocals, bass, guitar, piano, drums; fake transcriber + real view) - bar number at known times, loop wrap, 50 % and 120 % speed, range score, manual scroll pause; Chromium trace for SC-004 (US4 scenarios 1-6, FR-033)
-- [ ] T085 [US4] [frontend] Help topic `mixer-score-follow` (FR-030)
+- [x] T085 [US4] [frontend] Help topic `mixer-score-follow` (FR-030)
 
 **Checkpoint**: HO:us4.
 
@@ -207,10 +207,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T089 [US5] [backend] Implement `Api/Setlists/{SetlistEndpoints,SetlistService}.cs` to pass T088
 - [x] T090 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistPdfTests.cs`: `SetlistContentBuilder` (facts, sections, lyrics lines, 10,000-character cut with `shortened`), options from the query, waits for the worker job with polling and timeout (fake time) -> 504 `document-timeout`, 409 `setlist-empty`, 503, file name sanitised, worker job deleted afterwards (FR-018)
 - [x] T091 [US5] [backend] Implement `Api/Setlists/{SetlistPdfService,SetlistContentBuilder}.cs` to pass T090
-- [ ] T092 [P] [US5] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/SetlistsTests.cs` and `.../Practice/SetlistBarTests.cs`: list/create/delete; editor add (track picker with mix), reorder by drag and by up/down buttons, note editing (Advanced), remove, removed-entries note, PDF dialog options (Advanced) and default download (Beginner); play mode opens the first entry's mixer with its mix, setlist bar position and note, next/previous with the unsaved-changes guard, `setlist.next/previous` commands, exit; "Add to setlist" on track and mix (FR-015..FR-018)
-- [ ] T093 [US5] [frontend] Implement `Components/Pages/{Setlists,SetlistEditor}.razor`, `Components/Practice/SetlistBar.razor`, rail link and actions to pass T092
+- [x] T092 [P] [US5] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/SetlistsTests.cs` and `.../Practice/SetlistBarTests.cs`: list/create/delete; editor add (track picker with mix), reorder by drag and by up/down buttons, note editing (Advanced), remove, removed-entries note, PDF dialog options (Advanced) and default download (Beginner); play mode opens the first entry's mixer with its mix, setlist bar position and note, next/previous with the unsaved-changes guard, `setlist.next/previous` commands, exit; "Add to setlist" on track and mix (FR-015..FR-018)
+- [x] T093 [US5] [frontend] Implement `Components/Pages/{Setlists,SetlistEditor}.razor`, `Components/Practice/SetlistBar.razor`, rail link and actions to pass T092
 - [x] T094 [P] [US5] [qa] E2E `e2e/tests/setlists.spec.ts`: create with 3 songs, reorder by keyboard, play through with next/previous (button, Ctrl/Cmd+Right, pedal preset "next-previous-song"), PDF download and pypdf text check in the test (order, notes, sections, lyrics), track delete note; axe-core on both pages (US5 scenarios 1-5, SC-008)
-- [ ] T095 [US5] [frontend] Help topics `setlists`, `setlist-play`, `setlist-pdf` (FR-030)
+- [x] T095 [US5] [frontend] Help topics `setlists`, `setlist-play`, `setlist-pdf` (FR-030)
 
 **Checkpoint**: HO:us5.
 

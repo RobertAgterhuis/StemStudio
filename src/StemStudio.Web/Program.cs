@@ -12,7 +12,9 @@ using StemStudio.Web.Interop;
 using StemStudio.Web.Library;
 using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Lyrics;
+using StemStudio.Web.Practice;
 using StemStudio.Web.Preferences;
+using StemStudio.Web.Recording;
 using StemStudio.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,11 +24,11 @@ builder.Services.AddScoped<IAudioEngine, AudioEngineInterop>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddTransient<IPollingTimer, PollingTimer>();
 builder.Services.AddScoped<IConfirmService, DialogConfirmService>();
-builder.Services.AddScoped<IKeyboardShortcuts, KeyboardShortcuts>();
 builder.Services.AddScoped<IWebInterop, WebInterop>();
 builder.Services.AddScoped<IVoiceRecorder, VoiceRecorderInterop>();
 builder.Services.AddScoped<IPreferencesStore, LocalPreferencesStore>();
 builder.Services.AddScoped<PreferencesState>();
+builder.Services.AddScoped<ShortcutKeys>();
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<TourService>();
 builder.Services.AddScoped<HelpContext>();
@@ -69,6 +71,7 @@ builder.Services.AddScoped<PageOrigin>();
 // Composition hooks of 022 and 023 (one per lane, filled in their own files).
 builder.Services.AddLibraryUi();
 builder.Services.AddLyricAssistUi();
+builder.Services.AddRecordingUi();
 
 var app = builder.Build();
 

@@ -12,7 +12,7 @@ import {
 import type { DotNetRef, StoredPreferences } from '../src/types';
 
 const full: StoredPreferences = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   level: 'expert',
   theme: 'dark',
   density: 'compact',
@@ -22,6 +22,7 @@ const full: StoredPreferences = {
     tours: { 'import-basics': { version: 2, status: 'completed', at: '2026-11-15T10:12:00Z' } },
     hintsDismissed: ['mixer-pan'],
   },
+  shortcuts: { singleKey: false, pedalMode: true, pedalPreset: 'faster-slower', overrides: { 'mixer.section.next': [{ key: 'n' }, { key: 'pagedown', layer: 'pedal' }] } },
   updatedAt: '2026-11-15T10:12:00Z',
 };
 
@@ -47,8 +48,9 @@ afterEach(() => {
 describe('defaults and validation (data-model.md 1.1)', () => {
   it('has the documented defaults', () => {
     // The example record of data-model.md 1.1 with every field at its default.
-    const documented = '{"schemaVersion":1,"level":null,"theme":"system","density":"auto","motion":"system",'
-      + '"help":{"welcomeDismissed":false,"tours":{},"hintsDismissed":[]}}';
+    const documented = '{"schemaVersion":2,"level":null,"theme":"system","density":"auto","motion":"system",'
+      + '"help":{"welcomeDismissed":false,"tours":{},"hintsDismissed":[]},'
+      + '"shortcuts":{"singleKey":true,"pedalMode":false,"pedalPreset":"play-section-start","overrides":{}}}';
     expect(defaultPreferences()).toEqual(JSON.parse(documented));
   });
 
@@ -106,7 +108,7 @@ describe('defaults and validation (data-model.md 1.1)', () => {
     expect(result.help.hintsDismissed).toHaveLength(200);
   });
 
-  it.each([[null], ['text'], [42], [[]], [{ ...full, schemaVersion: 2 }], [{ level: 'expert' }]])(
+  it.each([[null], ['text'], [42], [[]], [{ ...full, schemaVersion: 3 }], [{ level: 'expert' }]])(
     'returns all defaults for %j (non-object or unknown schema version)',
     (raw) => {
       expect(validatePreferences(raw)).toEqual(defaultPreferences());

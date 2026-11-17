@@ -2,7 +2,7 @@
    (FR-011, FR-012; design-spec.md 4.5). *@
 
 <div class="ss-strip @(Audible ? null : "ss-strip-silent")" role="group" aria-label="@StripLabel"
-     data-testid="@($"strip-{Channel.Key}")" data-expanded="@ExpandedText" data-selected="@(Selected ? "true" : null)">
+     data-testid="@($"strip-{Channel.Key}")" data-expanded="@ExpandedText" data-selected="@(Selected ? "true" : null)" @attributes="AdditionalAttributes">
     <StemTab Stem="@Channel.Stem" Pattern="Pattern" />
     <div class="ss-strip-levels">
         <Meter Target="@Channel.Key" Label="@Name" />

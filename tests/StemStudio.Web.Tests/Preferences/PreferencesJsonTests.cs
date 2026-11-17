@@ -25,7 +25,7 @@ public sealed class PreferencesJsonTests
     {
         var json = PreferencesJson.ToElement(Sample).GetRawText();
 
-        json.ShouldBe("""{"schemaVersion":1,"level":"expert","theme":"dark","density":"compact","motion":"reduced","help":{"welcomeDismissed":true,"tours":{"import-basics":{"version":1,"status":"completed","at":"2026-11-15T10:12:00Z"}},"hintsDismissed":["mixer-pan"]}}""");
+        json.ShouldBe("""{"schemaVersion":2,"level":"expert","theme":"dark","density":"compact","motion":"reduced","help":{"welcomeDismissed":true,"tours":{"import-basics":{"version":1,"status":"completed","at":"2026-11-15T10:12:00Z"}},"hintsDismissed":["mixer-pan"]},"shortcuts":{"singleKey":true,"pedalMode":false,"pedalPreset":"play-section-start","overrides":{}}}""");
     }
 
     [Fact]
@@ -90,11 +90,12 @@ public sealed class PreferencesJsonTests
 
     [Theory]
     [InlineData("""{"schemaVersion":1,"level":"advanced"}""", true)]
-    [InlineData("""{"schemaVersion":2,"level":"advanced"}""", false)]
+    [InlineData("""{"schemaVersion":2,"level":"advanced"}""", true)]
+    [InlineData("""{"schemaVersion":3,"level":"advanced"}""", false)]
     [InlineData("""{"level":"advanced"}""", false)]
     [InlineData("[]", false)]
     [InlineData("{broken", false)]
-    public void TryParse_AcceptsOnlySchemaVersionOneObjects(string json, bool valid)
+    public void TryParse_AcceptsOnlySchemaVersionOneAndTwoObjects(string json, bool valid)
     {
         PreferencesJson.TryParse(json, out var prefs).ShouldBe(valid);
         (prefs is not null).ShouldBe(valid);

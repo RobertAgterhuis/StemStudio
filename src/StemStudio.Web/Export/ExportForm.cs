@@ -9,7 +9,7 @@ namespace StemStudio.Web.Export;
 /// (null = the backend default of data-model 4.2).
 /// </summary>
 /// <param name="target">What is exported.</param>
-public sealed class ExportForm(ExportTarget target)
+public sealed partial class ExportForm(ExportTarget target)
 {
     /// <summary>Message for a name longer than <see cref="ContractLimits.AssetNameMaxLength"/>.</summary>
     public const string NameMessage = "Enter a name of at most 120 characters, or leave it empty.";
@@ -72,11 +72,16 @@ public sealed class ExportForm(ExportTarget target)
         Range = Range.ToDto(),
         Format = FormatDto(),
         Name = Name.Trim().Length == 0 ? null : Name.Trim(),
+        TakeId = TakeIdForRequest(),
     };
 
     /// <summary>The request of a stem pack.</summary>
     /// <returns>The request.</returns>
     public CreateStemPackRequest PackRequest() => new(Target.Track.Id, FormatDto(), IncludeDetail && Target.HasDetail);
+
+    /// <summary>Hook of feature 015 (<c>ExportForm.Take.cs</c>): the take to include in an audio export, or null.</summary>
+    /// <returns>The take id.</returns>
+    private partial Guid? TakeIdForRequest();
 
     private List<string>? Channels() => Target.Kind switch
     {

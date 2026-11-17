@@ -12,7 +12,12 @@ namespace StemStudio.Web.Audio;
 /// </summary>
 /// <param name="js">The circuit's JS runtime.</param>
 /// <param name="options">Web options; <see cref="StemStudioWebOptions.PublicApiBaseUrl"/> resolves stem URLs for the browser.</param>
-public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOptions> options) : IAudioEngine
+/// <param name="engineOptions">
+/// Optional source of the <c>createEngine</c> options (audio-engine 2.5.0 <c>EngineOptions</c>, registered by feature 015);
+/// without one, or when it returns <see langword="null"/>, the engine is created without options.
+/// </param>
+public sealed partial class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOptions> options, IEngineOptionsSource? engineOptions = null)
+    : IAudioEngine
 {
     private const string UnavailablePrefix = "Time stretch unavailable:";
     private IJSObjectReference? _module;
@@ -41,8 +46,12 @@ public sealed class AudioEngineInterop(IJSRuntime js, IOptions<StemStudioWebOpti
 
         _self ??= DotNetObjectReference.Create(this);
         _module ??= await Guard(() => js.InvokeAsync<IJSObjectReference>(EngineMethods.Import, EngineMethods.ModulePath).AsTask());
-        _engine = await Guard(() => _module.InvokeAsync<IJSObjectReference>(EngineMethods.CreateEngine, _self).AsTask());
+        _engine = await Guard(() => CreateEngineAsync(_module));
     }
+
+    private Task<IJSObjectReference> CreateEngineAsync(IJSObjectReference module) => engineOptions?.Options is { } engine
+        ? module.InvokeAsync<IJSObjectReference>(EngineMethods.CreateEngine, _self, engine).AsTask()
+        : module.InvokeAsync<IJSObjectReference>(EngineMethods.CreateEngine, _self).AsTask();
 
     /// <inheritdoc />
     public Task<double> LoadTrackAsync(TrackDto track)

@@ -1,0 +1,7 @@
+@* Mixer toolbar slot of feature 015 (hook of the 014 lane): the button that opens the recording panel. *@
+@inherits StemStudio.Web.Components.Mixer.MixerSlot
+
+@if (Mixer.Recording is { } session)
+{
+    <RecordingToggleButton Session="session" />
+}

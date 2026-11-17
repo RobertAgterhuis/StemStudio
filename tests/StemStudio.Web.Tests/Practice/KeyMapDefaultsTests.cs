@@ -80,9 +80,10 @@ public sealed class KeyMapDefaultsTests
     }
 
     [Fact]
-    public void OnlyTheFifteenCommandsAreReservedAndOnlyThePaletteFiresAnywhere()
+    public void NoCommandIsReservedAnyMore_AndOnlyThePaletteFiresAnywhere()
     {
-        Catalogue.Value.Commands.Where(c => c.Reserved).Select(c => c.Command).ShouldBe(["mixer.record.toggle", "mixer.compare.cycle"]);
+        // 015's R and C were released for the 015 lane (combined round 2026-11-17, hook request L6 4).
+        Catalogue.Value.Commands.Where(c => c.Reserved).ShouldBeEmpty();
         Catalogue.Value.Commands.Where(c => c.Anywhere).ShouldAllBe(c => c.Defaults.All(d => d.Mod));
         Catalogue.Value.Commands.Single(c => c.Anywhere).Command.ShouldBe("palette.open");
     }

@@ -86,9 +86,12 @@ public sealed class PracticeAccessibilityTests : PracticeTestContext
         var catalog = HelpCatalog.FromAssembly(typeof(HelpCatalog).Assembly);
 
         foreach (var id in new[] { "practice-speed", "practice-transpose", "practice-sound-quality", "practice-speed-trainer", "practice-count-in",
-                     "semitone", "count-in", "mixer-screen", "mixer-metronome", "export-dialog", "shortcuts" })
+                     "semitone", "count-in", "mixer-screen", "mixer-metronome", "export-dialog" })
         {
             catalog.Topic(id)!.Reviewed.ShouldBe("012", id);
         }
+
+        // 014 moved the shortcut topic onto the live key map (count-in Shift+K, reset 0).
+        catalog.Topic("shortcuts")!.Reviewed.ShouldBe("014");
     }
 }

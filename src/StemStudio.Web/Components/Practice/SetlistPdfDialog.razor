@@ -1,0 +1,47 @@
+@* Setlist PDF (014 US5, FR-018; ui-test-ids 1.13.0 setlist-pdf-*): choose the parts (Advanced) and download the A4 PDF.
+   An empty setlist cannot be printed. *@
+@inherits ModalDialog
+@using StemStudio.Contracts
+@using StemStudio.Contracts.Setlists
+@inject Microsoft.Extensions.Options.IOptions<StemStudioWebOptions> WebOptions
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="setlist-pdf-title" data-testid="setlist-pdf-dialog"
+         @onkeydown="e => CloseOnEscapeAsync(e, OnClose)">
+        <h2 id="setlist-pdf-title" class="ss-title" tabindex="-1" @ref="InitialFocus">PDF for the stand</h2>
+        <p class="ss-help">An A4 overview page, then one page per song with its facts, your note, the sections and the lyrics.</p>
+        <label class="ss-choice"><input type="checkbox" checked="@Options.Lyrics" @onchange="e => Set(o => o with { Lyrics = IsOn(e) })" data-testid="setlist-pdf-lyrics" /> Lyrics</label>
+        <label class="ss-choice"><input type="checkbox" checked="@Options.Sections" @onchange="e => Set(o => o with { Sections = IsOn(e) })" data-testid="setlist-pdf-sections" /> Sections</label>
+        <label class="ss-choice"><input type="checkbox" checked="@Options.Notes" @onchange="e => Set(o => o with { Notes = IsOn(e) })" data-testid="setlist-pdf-notes" /> Notes</label>
+        <label class="ss-choice"><input type="checkbox" checked="@Options.PageBreakPerSong" @onchange="e => Set(o => o with { PageBreakPerSong = IsOn(e) })" data-testid="setlist-pdf-page-break" /> Each song on a new page</label>
+        @if (Setlist.Entries.Count == 0)
+        {
+            <div class="ss-error" role="alert" data-testid="setlist-pdf-error">Add songs first: an empty setlist has nothing to print.</div>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Close" ButtonStyle="ButtonStyle.Light" Click="OnClose" />
+            @if (Setlist.Entries.Count > 0)
+            {
+                <a class="rz-button rz-primary ss-link-button" href="@Url" download data-testid="setlist-pdf-download">Download PDF</a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The setlist.</summary>
+    [Parameter, EditorRequired]
+    public SetlistDto Setlist { get; set; } = default!;
+
+    /// <summary>Raised by Close and Escape.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private SetlistPdfOptions Options { get; set; } = SetlistPdfOptions.Default;
+
+    private string Url => new Uri(WebOptions.Value.PublicApiBaseUrl, ApiRoutes.SetlistPdf(Setlist.Id, Options)).ToString();
+
+    private static bool IsOn(ChangeEventArgs args) => args.Value is true;
+
+    private void Set(Func<SetlistPdfOptions, SetlistPdfOptions> change) => Options = change(Options);
+}
