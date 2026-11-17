@@ -44,14 +44,7 @@ public sealed class LibraryInfoService(ILibraryRepository library, ILibraryFiler
             return LibraryInfoProblems.TrackNotFound(trackId);
         }
 
-        if (Apply(() => track.SetLibraryInfo(ToInfo(request), Now)) is { } invalid)
-        {
-            return invalid;
-        }
-
-        var moved = await filer.RefileTrackAsync(track, cancellationToken);
-        await library.SaveAsync(cancellationToken);
-        return TypedResults.Ok(TrackState(track, moved));
+        return Apply(() => track.SetLibraryInfo(ToInfo(request), Now)) ?? await RefileTrackAsync(track, cancellationToken);
     }
 
     /// <summary>DELETE of a track (<c>resetTrackLibraryInfo</c>): every level automatic again.</summary>
@@ -101,6 +94,13 @@ public sealed class LibraryInfoService(ILibraryRepository library, ILibraryFiler
         SetItemAsync(assetId, LibraryInfoRequest.Automatic, cancellationToken);
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
+
+    private async Task<IResult> RefileTrackAsync(Track track, CancellationToken cancellationToken)
+    {
+        var moved = await filer.RefileTrackAsync(track, cancellationToken);
+        await library.SaveAsync(cancellationToken);
+        return TypedResults.Ok(TrackState(track, moved));
+    }
 
     private async Task<IResult> RefileItemAsync(Asset asset, CancellationToken cancellationToken)
     {
