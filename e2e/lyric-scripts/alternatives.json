@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 2,
+          "original": "the kettle hums a tune I almost know",
+          "proposal": "we light the paper lanterns down by the river",
+          "explanation": "Adversarial: a 9-word run of the fake library lyrics; must be withheld."
+        },
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 2,
+          "original": "the kettle hums a tune I almost know",
+          "proposal": "the kettle sings a song I nearly know",
+          "explanation": "Valid own alternative; must be shown."
+        }
+      ]
+    }
+  ]
+}

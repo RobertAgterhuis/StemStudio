@@ -4,7 +4,7 @@ using StemStudio.Api.Tests.TestSupport;
 
 namespace StemStudio.Api.Tests.Contract;
 
-/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key and 012).</summary>
+/// <summary>Shared lookups of the skeleton contract tests (features 005 + 007, 006 + 008, 009 + 010, 011 Phase 0, the 011 follow-up claude-key, 012 and 023).</summary>
 internal static class ContractJson
 {
     private static readonly Lazy<OpenApiContract> LazyWorker =
@@ -23,6 +23,8 @@ internal static class ContractJson
     private static readonly Lazy<OpenApiContract> LazyBackend011 = new(() => Backend("011"));
 
     private static readonly Lazy<OpenApiContract> LazyBackend1210 = new(() => Backend("011-claude-key"));
+
+    private static readonly Lazy<OpenApiContract> LazyBackend1110 = new(() => Backend("012"));
 
     private static readonly Lazy<OpenApiContract> LazyGenerator =
         new(() => OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", "generator-api.openapi.yaml")));
@@ -52,6 +54,9 @@ internal static class ContractJson
 
     /// <summary>The 011 follow-up claude-key backend document (1.21.0), linked as <c>Contract/011-claude-key/backend-api.openapi.yaml</c>.</summary>
     public static OpenApiContract Backend1210 => LazyBackend1210.Value;
+
+    /// <summary>The 012 backend document (1.11.0 = 1.21.0 + 012), linked as <c>Contract/012/backend-api.openapi.yaml</c> (023 Phase 0).</summary>
+    public static OpenApiContract Backend1110 => LazyBackend1110.Value;
 
     /// <summary>The generator document the code follows (1.1.0, feature 010).</summary>
     public static OpenApiContract GeneratorContract => LazyGenerator.Value;
@@ -161,6 +166,19 @@ internal static class ContractJson
         OpenApiContract.Load(Path.Combine(AppContext.BaseDirectory, "Contract", feature, "backend-api.openapi.yaml"));
 
     public static IEnumerable<string> Strings(JsonNode array) => array.AsArray().Select(v => v!.GetValue<string>());
+
+    /// <summary>The <c>operationId</c> of an operation.</summary>
+    public static string OperationId(JsonObject operation) => operation["operationId"]!.GetValue<string>();
+
+    /// <summary>"method path operationId" of an operation, for comparing operation sets.</summary>
+    public static string Signature((string Path, string Method, JsonObject Operation) op) => $"{op.Method} {op.Path} {OperationId(op.Operation)}";
+
+    /// <summary>The entry names of a document section.</summary>
+    public static IEnumerable<string> Keys(OpenApiContract contract, string section) => Section(contract.Root, section).Select(entry => entry.Key);
+
+    /// <summary>The values of the string constants of a class.</summary>
+    public static IEnumerable<string> ConstantValues(Type type) =>
+        type.GetFields().Where(field => field.IsLiteral).Select(field => (string)field.GetRawConstantValue()!);
 
     /// <summary>The wire names of every member of a contract enum, in declaration order.</summary>
     public static IEnumerable<string> WireNames(Type enumType) =>

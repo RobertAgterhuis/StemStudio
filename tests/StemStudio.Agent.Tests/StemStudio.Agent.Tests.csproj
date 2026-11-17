@@ -15,5 +15,7 @@
   <ItemGroup>
     <!-- Script format of the fake backend (contracts/agent-script.schema.json); sample scripts are checked against it. -->
     <None Include="..\..\specs\011-ai-composer-agent\contracts\agent-script.schema.json" Link="Contract\agent-script.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 023 Phase 0 (T002): the model output schema, compared with the embedded copy. -->
+    <None Include="..\..\specs\023-lyric-writing-assistant\contracts\lyric-assist-output.schema.json" Link="Contract\023\lyric-assist-output.schema.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

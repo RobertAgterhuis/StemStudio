@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 8,
+          "original": "But you are gone, the light is on",
+          "proposal": "You left the porch light burning on",
+          "explanation": "Keeps the light image and the end rhyme."
+        },
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 8,
+          "original": "But you are gone, the light is on",
+          "proposal": "The lamp still glows, but you are gone",
+          "explanation": "Moves the loss to the end of the line."
+        },
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 8,
+          "original": "But you are gone, the light is on",
+          "proposal": "You're gone, and still the light is on",
+          "explanation": "Shorter opening, same meaning."
+        }
+      ]
+    }
+  ]
+}

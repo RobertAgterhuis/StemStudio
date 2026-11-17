@@ -11,4 +11,7 @@ public sealed record PageContextDto
 
     /// <summary>Mix loaded in the mixer, when any.</summary>
     public Guid? MixId { get; init; }
+
+    /// <summary>Lyrics sheet open on <c>/lyrics/{id}</c>, when any (1.23.0, feature 023; used by the lyric-assist tools).</summary>
+    public Guid? LyricsId { get; init; }
 }

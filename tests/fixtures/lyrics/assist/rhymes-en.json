@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "language": "en",
+  "about": "Rhyme vectors for RhymeKey and RhymeFinder (feature 023, research R-04). perfect = equal rhyme part from the last stressed vowel; near = same vowel with a different final consonant, or the same consonants with a different vowel; none = neither. Self-written word pairs (common words).",
+  "pairs": [
+    {
+      "a": "night",
+      "b": "light",
+      "expected": "perfect"
+    },
+    {
+      "a": "rain",
+      "b": "pain",
+      "expected": "perfect"
+    },
+    {
+      "a": "love",
+      "b": "above",
+      "expected": "perfect"
+    },
+    {
+      "a": "heart",
+      "b": "apart",
+      "expected": "perfect"
+    },
+    {
+      "a": "fire",
+      "b": "desire",
+      "expected": "perfect"
+    },
+    {
+      "a": "cold",
+      "b": "gold",
+      "expected": "perfect"
+    },
+    {
+      "a": "day",
+      "b": "away",
+      "expected": "perfect"
+    },
+    {
+      "a": "sea",
+      "b": "free",
+      "expected": "perfect"
+    },
+    {
+      "a": "eyes",
+      "b": "skies",
+      "expected": "perfect"
+    },
+    {
+      "a": "hand",
+      "b": "land",
+      "expected": "perfect"
+    },
+    {
+      "a": "song",
+      "b": "along",
+      "expected": "perfect"
+    },
+    {
+      "a": "tonight",
+      "b": "bright",
+      "expected": "perfect"
+    },
+    {
+      "a": "frost",
+      "b": "lost",
+      "expected": "perfect"
+    },
+    {
+      "a": "forever",
+      "b": "never",
+      "expected": "perfect"
+    },
+    {
+      "a": "together",
+      "b": "weather",
+      "expected": "perfect"
+    },
+    {
+      "a": "river",
+      "b": "shiver",
+      "expected": "perfect"
+    },
+    {
+      "a": "morning",
+      "b": "warning",
+      "expected": "perfect"
+    },
+    {
+      "a": "believe",
+      "b": "leave",
+      "expected": "perfect"
+    },
+    {
+      "a": "tomorrow",
+      "b": "sorrow",
+      "expected": "perfect"
+    },
+    {
+      "a": "city",
+      "b": "pretty",
+      "expected": "perfect"
+    },
+    {
+      "a": "upon",
+      "b": "on",
+      "expected": "perfect",
+      "note": "stressed final syllable"
+    },
+    {
+      "a": "light",
+      "b": "delight",
+      "expected": "perfect",
+      "note": "stressed final syllable"
+    },
+    {
+      "a": "home",
+      "b": "alone",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "time",
+      "b": "mine",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "heart",
+      "b": "hard",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "road",
+      "b": "home",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "light",
+      "b": "time",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "rain",
+      "b": "came",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "sun",
+      "b": "love",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "love",
+      "b": "live",
+      "expected": "near",
+      "note": "same consonants, different vowel"
+    },
+    {
+      "a": "bed",
+      "b": "bad",
+      "expected": "near",
+      "note": "same consonants, different vowel"
+    },
+    {
+      "a": "hall",
+      "b": "hill",
+      "expected": "near",
+      "note": "same consonants, different vowel"
+    },
+    {
+      "a": "night",
+      "b": "rain",
+      "expected": "none"
+    },
+    {
+      "a": "love",
+      "b": "cold",
+      "expected": "none"
+    },
+    {
+      "a": "sea",
+      "b": "hand",
+      "expected": "none"
+    },
+    {
+      "a": "heart",
+      "b": "moon",
+      "expected": "none"
+    },
+    {
+      "a": "window",
+      "b": "garden",
+      "expected": "none"
+    },
+    {
+      "a": "river",
+      "b": "lonely",
+      "expected": "none"
+    },
+    {
+      "a": "song",
+      "b": "tree",
+      "expected": "none"
+    },
+    {
+      "a": "city",
+      "b": "ocean",
+      "expected": "none"
+    }
+  ]
+}

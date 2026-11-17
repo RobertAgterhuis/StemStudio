@@ -188,3 +188,32 @@ reference machine only (not CI); CI runs the suite's self-test with a scripted f
 | CMU Pronouncing Dictionary | pinned commit at Phase 0 | BSD-2-Clause-style (CMU) | https://github.com/cmusphinx/cmudict |
 
 No new model weights; `qwen3.5:9b`/`4b` are already used by 011.
+
+## Phase 0 results (architect, 2026-11-17)
+
+**R-02 / R-10 pinned (T006).** Retrieved 2026-11-17, every release or commit older than 14 days; files
+byte-identical to upstream (a nested `.gitattributes` keeps the CRLF of OpenTaal and SCOWL), SHA-256 in
+`src/StemStudio.Api/LyricAssist/Dictionaries/{PROVENANCE.md, manifest.json}`, checked by
+`VendoredDictionaryTests` (also loads every dictionary with WeCantSpell.Hunspell). Total 7,740,587 bytes
+(7.4 MiB, below the ~10 MB estimate and the +15 MB image budget of T069).
+
+| Data / package | Version (pin) | Licence (verified from the upstream file) |
+|---|---|---|
+| WeCantSpell.Hunspell | 7.0.1 (NuGet, 2025-11-30; net8.0/net10.0/netstandard2.0, no dependencies on net10.0) | MPL-1.1 chosen from MPL-1.1 / GPL-2.0 / LGPL-2.1; used unmodified |
+| OpenTaal Hunspell nl | 2.20.23, commit `1c22bc3d` (2022-11-29; the later untagged "intermediate" commit is not used) | BSD-3-Clause chosen from "BSD-3-Clause and/or CC BY 3.0" (`nl/LICENSE.txt`) |
+| SCOWL Hunspell en_US, en_GB-ise, en_GB-ize | release `rel-2026.02.25` (SCOWL commit `7e99eda`, size 60; SCOWL-generated, **not** the LibreOffice en_GB) | SCOWL notice (MIT/HPND-style) for the word lists, Kuenning Ispell BSD-style for the affix files (`README_<dict>.txt`) |
+| CMU Pronouncing Dictionary | commit `74790861` (2025-10-24), 135,166 lines | BSD-2-Clause wording (`cmudict/LICENSE`) |
+
+None is copyleft beyond MPL's file-level scope; nothing GPL is bundled (WeCantSpell is used under MPL-1.1).
+
+**R-05 / R-06 spike S-01 (T008): not run in Phase 0.** The reference machine was busy with another
+integration (at most one heavy process; the owner's Docker stack, which hosts Ollama, is off limits). Per
+tasks.md ("T008 may finish during the wave but before T068") the spike moves to the ai-agent lane of the
+wave, run against a natively started Ollama only when the machine is free. Until then SC-004 and
+`BlockLines = 8` stay the design estimates of R-05. Contract impact if the spike changes them: none
+(`BlockLines` is configuration, `LyricAssistLimits.DefaultBlockLines` the default).
+
+**Fixtures (T009).** `tests/fixtures/lyrics/assist/` (12 sheets, 4 invented library songs, 300 + 300
+syllable gold words, 51 nl + 40 en rhyme pairs, `expected.json`) and `e2e/lyric-scripts/` (10 scripts,
+validated by `contracts/check_output_schema.py`). All texts are self-written (CC0). Syllable counts are
+hand-checked, not yet against the real counters (backend T038 is the first run).

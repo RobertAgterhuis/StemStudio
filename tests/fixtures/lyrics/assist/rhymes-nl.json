@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "language": "nl",
+  "about": "Rhyme vectors for RhymeKey and RhymeFinder (feature 023, research R-04). perfect = equal rhyme part from the last stressed vowel; near = same vowel with a different final consonant, or the same consonants with a different vowel; none = neither. Self-written word pairs (common words).",
+  "pairs": [
+    {
+      "a": "nacht",
+      "b": "lacht",
+      "expected": "perfect"
+    },
+    {
+      "a": "nacht",
+      "b": "dacht",
+      "expected": "perfect"
+    },
+    {
+      "a": "nacht",
+      "b": "kracht",
+      "expected": "perfect"
+    },
+    {
+      "a": "licht",
+      "b": "gezicht",
+      "expected": "perfect"
+    },
+    {
+      "a": "riet",
+      "b": "niet",
+      "expected": "perfect"
+    },
+    {
+      "a": "uit",
+      "b": "huid",
+      "expected": "perfect",
+      "note": "final d = t"
+    },
+    {
+      "a": "hart",
+      "b": "smart",
+      "expected": "perfect"
+    },
+    {
+      "a": "hart",
+      "b": "hard",
+      "expected": "perfect",
+      "note": "final d = t"
+    },
+    {
+      "a": "tijd",
+      "b": "strijd",
+      "expected": "perfect"
+    },
+    {
+      "a": "tijd",
+      "b": "feit",
+      "expected": "perfect",
+      "note": "ei = ij"
+    },
+    {
+      "a": "trein",
+      "b": "klein",
+      "expected": "perfect"
+    },
+    {
+      "a": "trein",
+      "b": "zijn",
+      "expected": "perfect",
+      "note": "ei = ij"
+    },
+    {
+      "a": "land",
+      "b": "hand",
+      "expected": "perfect"
+    },
+    {
+      "a": "zee",
+      "b": "mee",
+      "expected": "perfect"
+    },
+    {
+      "a": "maan",
+      "b": "staan",
+      "expected": "perfect"
+    },
+    {
+      "a": "dag",
+      "b": "lach",
+      "expected": "perfect",
+      "note": "final g = ch"
+    },
+    {
+      "a": "weg",
+      "b": "zeg",
+      "expected": "perfect"
+    },
+    {
+      "a": "stad",
+      "b": "had",
+      "expected": "perfect",
+      "note": "final d = t"
+    },
+    {
+      "a": "bloed",
+      "b": "goed",
+      "expected": "perfect"
+    },
+    {
+      "a": "goud",
+      "b": "koud",
+      "expected": "perfect"
+    },
+    {
+      "a": "goud",
+      "b": "fout",
+      "expected": "perfect",
+      "note": "final d = t"
+    },
+    {
+      "a": "zout",
+      "b": "hout",
+      "expected": "perfect"
+    },
+    {
+      "a": "blauw",
+      "b": "gauw",
+      "expected": "perfect"
+    },
+    {
+      "a": "vrouw",
+      "b": "trouw",
+      "expected": "perfect"
+    },
+    {
+      "a": "lopen",
+      "b": "kopen",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-en)"
+    },
+    {
+      "a": "dromen",
+      "b": "komen",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-en)"
+    },
+    {
+      "a": "zingen",
+      "b": "springen",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-en)"
+    },
+    {
+      "a": "water",
+      "b": "later",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-er)"
+    },
+    {
+      "a": "zomer",
+      "b": "dromer",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-er)"
+    },
+    {
+      "a": "regen",
+      "b": "tegen",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-en)"
+    },
+    {
+      "a": "vergeten",
+      "b": "weten",
+      "expected": "perfect",
+      "note": "prefix ver- unstressed"
+    },
+    {
+      "a": "gelopen",
+      "b": "kopen",
+      "expected": "perfect",
+      "note": "prefix ge- unstressed"
+    },
+    {
+      "a": "ontmoeten",
+      "b": "groeten",
+      "expected": "perfect",
+      "note": "prefix ont- unstressed"
+    },
+    {
+      "a": "begin",
+      "b": "in",
+      "expected": "perfect",
+      "note": "prefix be- unstressed"
+    },
+    {
+      "a": "verdriet",
+      "b": "niet",
+      "expected": "perfect",
+      "note": "prefix ver- unstressed"
+    },
+    {
+      "a": "lopen",
+      "b": "open",
+      "expected": "perfect",
+      "note": "silent final n"
+    },
+    {
+      "a": "handen",
+      "b": "landen",
+      "expected": "perfect",
+      "note": "stress on the penultimate (-en)"
+    },
+    {
+      "a": "maan",
+      "b": "maar",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "tijd",
+      "b": "vijf",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "zon",
+      "b": "zong",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "hart",
+      "b": "park",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "hand",
+      "b": "hart",
+      "expected": "near",
+      "note": "same vowel, different final consonant"
+    },
+    {
+      "a": "lachen",
+      "b": "wachten",
+      "expected": "near",
+      "note": "same vowel, different consonants"
+    },
+    {
+      "a": "land",
+      "b": "lint",
+      "expected": "near",
+      "note": "same consonants (final d = t), different vowel"
+    },
+    {
+      "a": "huis",
+      "b": "haas",
+      "expected": "near",
+      "note": "same final consonant, different vowel"
+    },
+    {
+      "a": "nacht",
+      "b": "zee",
+      "expected": "none"
+    },
+    {
+      "a": "huis",
+      "b": "boom",
+      "expected": "none"
+    },
+    {
+      "a": "licht",
+      "b": "maan",
+      "expected": "none"
+    },
+    {
+      "a": "regen",
+      "b": "bloem",
+      "expected": "none"
+    },
+    {
+      "a": "vogel",
+      "b": "stad",
+      "expected": "none"
+    },
+    {
+      "a": "zon",
+      "b": "huis",
+      "expected": "none"
+    }
+  ]
+}

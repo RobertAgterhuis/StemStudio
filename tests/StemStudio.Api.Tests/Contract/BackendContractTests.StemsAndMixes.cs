@@ -109,7 +109,7 @@ public sealed partial class BackendContractTests
             .ToList();
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
-            .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations).ToList();
+            .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations).Except(PendingLyricAssistOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }
@@ -139,6 +139,18 @@ public sealed partial class BackendContractTests
     // 011 follow-up claude-key (backend 1.21.0, staged in its Phase 0, T002): the backend removes each id when it serves it -
     // getClaudeKeyStatus and storeClaudeKey in T024, deleteClaudeKey in T033.
     private static readonly string[] PendingAgentOperations = [];
+
+    // Feature 023 (backend 1.23.0, staged in the 023 Phase 0, T001/T005): the backend removes each id when it serves it -
+    // T028 (status, assists, events, cancel), T030 (suggestions, marks, sheet settings, undo, revisions, words), T039 (syllables),
+    // T046 (rhymes, language guess), T062 (lyric-assist settings), T075 (own-work override).
+    private static readonly string[] PendingLyricAssistOperations =
+    [
+        "getLyricAssistStatus", "updateLyricAssistSettings", "createLyricAssist", "listLyricAssists", "getLyricAssist", "streamLyricAssistEvents",
+        "cancelLyricAssist", "listLyricSuggestions", "acceptLyricSuggestions", "rejectLyricSuggestions", "markSuggestionIntentional",
+        "listIntentionalMarks", "createIntentionalMark", "deleteIntentionalMark", "updateSheetAssistSettings", "confirmOwnWork", "revokeOwnWork",
+        "undoLyricSuggestions", "listLyricsRevisions", "restoreLyricsRevision", "getSheetSyllables", "countSyllables", "findRhymes",
+        "listLyricWords", "addLyricWord", "deleteLyricWord", "guessLyricsLanguage",
+    ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
         _client.PostAsJsonAsync(new Uri(ApiRoutes.Mixes, UriKind.Relative), new CreateMixRequest(trackId, settings), Ct);

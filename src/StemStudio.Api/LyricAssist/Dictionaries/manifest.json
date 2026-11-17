@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "nl/LICENSE.txt",
+      "sha256": "fd9e95c360245eab3c388885062820754785faa4123964994cfdecb950b71948",
+      "bytes": 25817,
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "path": "nl/datetimeversion.txt",
+      "sha256": "733c469a79928e1cdcff9fd7e0d86e94ac8a991435521aa8536c48e2286586d0",
+      "bytes": 28,
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "path": "nl/nl.aff",
+      "sha256": "b4d6263eb73c46c47759b0f605e324e48d157bdbd57a8f6bf2b2d051549d9966",
+      "bytes": 46575,
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "path": "nl/nl.dic",
+      "sha256": "f1bcc9f6c3c71709d7e29463f1c45c50c26c7c3b172808545e3596bac8a75331",
+      "bytes": 2491328,
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "path": "en_US/README_en_US.txt",
+      "sha256": "d63c711523fc9504fb71e1278489c6d7bb8cafcba75158c107cd17844955470f",
+      "bytes": 6976,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_US/en_US.aff",
+      "sha256": "526e1dc32d1c0e8806dd72809c017b5546f2104b08b9424a4c47311aca526cca",
+      "bytes": 3240,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_US/en_US.dic",
+      "sha256": "ab012ae86ce4b46b60db5b150869288de9c4a87bc747911764e582125b1b961e",
+      "bytes": 508614,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/README_en_GB-ise.txt",
+      "sha256": "72827bd23b623a253f7928657d68a7b020eea3c7ab8bdfbb1e61323bc8b010c4",
+      "bytes": 6984,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/README_en_GB-ize.txt",
+      "sha256": "2f489193f265faee0f6903611034b62be5cd69142bcf8166899069f196236940",
+      "bytes": 6984,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/en_GB-ise.aff",
+      "sha256": "e5478627cc7413a2874134b518c9a3dc667a8886414c72ed47eea65185bd3a88",
+      "bytes": 3244,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/en_GB-ise.dic",
+      "sha256": "4fdb00d235ac2f0634f455f757ba15036261f1557e1b693ac264ee42dbd7c7eb",
+      "bytes": 508689,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/en_GB-ize.aff",
+      "sha256": "4e202ea23a829f8f4abb0c7912b929bcdc1665b549779be4d4c2272e7b265fef",
+      "bytes": 3244,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "en_GB/en_GB-ize.dic",
+      "sha256": "70288072b3f6d95ac757c4199af1539fb52af841b5135725eae783316c646943",
+      "bytes": 508622,
+      "licence": "SCOWL"
+    },
+    {
+      "path": "cmudict/LICENSE",
+      "sha256": "bd4ce8e44170a5f9f481310ca85c51de3c4f851a65e679b40e603b143bd3542a",
+      "bytes": 1754,
+      "licence": "BSD-2-Clause"
+    },
+    {
+      "path": "cmudict/cmudict.dict",
+      "sha256": "81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22",
+      "bytes": 3618488,
+      "licence": "BSD-2-Clause"
+    }
+  ]
+}

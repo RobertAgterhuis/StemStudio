@@ -114,7 +114,7 @@ or marks as intentional the deliberate ones, and the text changes only where the
 
 **Independent Test**: with the fake model and the real dictionaries, check the Dutch fixture
 sheet "Zomeravond" (planted: two spelling mistakes, one grammar mistake, one stumbling line, three
-deliberate licences); the pane shows the five corrections, none of the three licences as an
+deliberate licences); the pane shows the four corrections (Phase 0: two spelling, one grammar, one flow), none of the three licences as an
 error, and accepting two of them changes exactly those spans.
 
 **Acceptance Scenarios**:
