@@ -26,6 +26,9 @@ public static class LibraryCareRegistration
         services.AddSingleton<LibraryJobRecovery>();
         services.TryAddSingleton<ILibraryFiles, LibraryFiles>();
         services.AddSingleton<LibraryWalker>();
+        services.AddSingleton<StorageOverviewCache>();
+        services.AddSingleton<StorageVolumes>();
+        services.AddScoped<StorageOverviewService>();
         AddBackup(services);
         AddRestore(services);
         return services;

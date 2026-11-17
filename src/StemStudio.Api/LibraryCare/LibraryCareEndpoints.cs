@@ -4,6 +4,7 @@ using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Api.LibraryCare.Restore;
+using StemStudio.Api.LibraryCare.Storage;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LibraryCare;
 
@@ -37,6 +38,8 @@ public static class LibraryCareEndpoints
         app.MapPost(ApiRoutes.RevertRestore, (RestoreService restore, CancellationToken ct) => restore.RevertAsync(ct)).WithName("revertRestore").RequireGateOpen().WithTags(Tag);
         app.MapPost(ApiRoutes.DiscardPreviousLibrary, (ConfirmationDto confirmation, RestoreService restore, CancellationToken ct) => restore.DiscardAsync(confirmation, ct))
             .WithName("discardPreviousLibrary").RequireGateOpen().WithTags(Tag);
+        app.MapGet(ApiRoutes.Storage, async (bool? refresh, StorageOverviewService storage, CancellationToken ct) => TypedResults.Ok(await storage.GetAsync(refresh ?? false, ct)))
+            .WithName("getStorageOverview").WithTags("storage");
         return app;
     }
 
