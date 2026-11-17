@@ -36,6 +36,9 @@ public sealed class LoopbackActions(LoopbackClient client) : IStemStudioActions
 
     /// <inheritdoc />
     public IVoiceActions Voices { get; } = new LoopbackVoiceActions(client);
+
+    /// <inheritdoc />
+    public ILibraryActions Library { get; } = new LoopbackLibraryActions(client);
 }
 
 /// <summary>Registers the loopback actions (typed <see cref="HttpClient"/> at <c>StemStudio__Agent__LoopbackBaseUrl</c>).</summary>

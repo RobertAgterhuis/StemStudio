@@ -12,8 +12,20 @@
 #
 # STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND (default 8 MiB/s): a fake-stack backup of a few tens
 # of MB then takes a few seconds. 0 switches the throttle off (the api's own default).
+#
+# Feature 023 (lyric writing assistant, T069): e2e/lyric-scripts/ is mounted read-only at /lyric-scripts
+# and STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT names that folder, so every assist answers from
+# `<title-slug>-<kind>.json`, else `<kind>.json`, else `{"items":[]}` (contracts/DELTA.md sections 4 and 5).
+# The folder is NOT mounted under /scripts: that is the read-only agent-script mount of the base file and
+# Docker cannot create a mount point inside a read-only mount. The scripts are only read when the agent
+# backend is `fake` (STEMSTUDIO_AGENT_BACKEND=fake, as the agent E2E passes set it); with the default
+# backend `none` the variable is inert. The Claude double ("fake-claude") has no variable in the contracts.
+# Git Bash on Windows: prefix MSYS_NO_PATHCONV=1 when you pass your own /lyric-scripts path.
 
 services:
   api:
     environment:
       - StemStudio__LibraryCare__ThrottleBytesPerSecond=${STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND:-8388608}
+      - STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=${STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT:-/lyric-scripts}
+    volumes:
+      - ./e2e/lyric-scripts:/lyric-scripts:ro

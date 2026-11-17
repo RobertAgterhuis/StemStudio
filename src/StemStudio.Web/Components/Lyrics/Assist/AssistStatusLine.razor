@@ -1,0 +1,38 @@
+@* Layers and availability (FR-001, FR-027, FR-029): the layer/model line (Advanced), why a layer or the language is
+   unavailable with the 011 fix, the standing quality note and the language guess for an "unknown" sheet. *@
+@using StemStudio.Web.Songs
+@inherits AssistPart
+
+<LevelGate Feature="lyrics.assist-layers">
+    @if (Session.Status is { } status)
+    {
+        <p class="ss-small ss-assist-layers" data-testid="lyric-assist-layers" data-help-id="lyric-assist-privacy" data-backend="@Backend"
+           data-model="@Model" data-fallback="@(Fallback ? "true" : "false")">@StatusText.Layers(status, Session.Run)</p>
+    }
+</LevelGate>
+@if (Unavailable is { } unavailable)
+{
+    <p class="ss-notice ss-small" role="note" data-testid="lyric-assist-unavailable">@unavailable</p>
+}
+@if (Session.Status?.Model.QualityNote is { Length: > 0 } note)
+{
+    <p class="ss-notice ss-small" role="note" data-testid="lyric-assist-quality-note">@note <HelpHint HelpId="lyric-assist-limits" /></p>
+}
+@if (Session.Guess?.Language is { } guessed)
+{
+    <p class="ss-row ss-small" data-testid="lyric-assist-language-guess">
+        <span>Looks like @LanguageNames.Of(AssistText.Wire(guessed))</span>
+        <RadzenButton Text="Set language" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Busy"
+                      Click="() => RunAsync(s => s.ApplyGuessAsync())" data-testid="lyric-assist-language-apply" />
+    </p>
+}
+
+@code {
+    private string? Unavailable => StatusText.Unavailable(Session);
+
+    private string Backend => Session.Run?.Backend ?? (Session.Status is { } s ? StemStudio.Web.Agent.AgentWire.Name(s.Model.Backend) : string.Empty);
+
+    private string Model => Session.Run?.Model ?? Session.Status?.Model.ActiveModel ?? string.Empty;
+
+    private bool Fallback => Session.Run?.UsingFallback ?? Session.Status?.Model.UsingFallback ?? false;
+}

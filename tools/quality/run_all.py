@@ -31,6 +31,12 @@ from report import ReportInput, render
 DuplicationRun = Callable[[Path, Sequence[Path]], duplication.DuplicationResult]
 """Signature of ``duplication.run`` (injectable for tests)."""
 
+NOT_MEASURED = (
+    "duplication NOT measured: the gate fails until jscpd runs (a tool error is an error, "
+    "not an environment note)"
+)
+"""Console line printed when a tool could not run, so nobody reads the run as a pass."""
+
 
 @dataclass(slots=True)
 class GateResult:
@@ -101,15 +107,20 @@ def to_report(result: GateResult) -> str:
 
 def summary(result: GateResult) -> str:
     """Return the console summary."""
-    errors = count_errors(result.findings)
+    findings = count_errors(result.findings)
+    errors = findings + len(result.tool_errors)
     lines = [format_findings(result.findings)] if result.findings else []
     lines.extend(f"exemption: {exemption}" for exemption in result.sig.exemptions)
     lines.extend(f"tool error: {error}" for error in result.tool_errors)
+    if result.tool_errors:
+        lines.append(NOT_MEASURED)
+    clones = "not measured" if result.dup.tool_error else f"{len(result.dup.clones)} clones"
+    verdict = "PASS" if result.exit_code == 0 else "FAIL"
     lines.append(
-        f"quality gate: {result.sig.files} files, {len(result.sig.units)} units, "
-        f"{len(result.dup.clones)} clones, {len(result.sig.exemptions)} exemptions, "
+        f"quality gate {verdict}: {result.sig.files} files, {len(result.sig.units)} units, "
+        f"{clones}, {len(result.sig.exemptions)} exemptions, "
         f"{errors} errors, "
-        f"{len(result.findings) - errors} warnings -> exit {result.exit_code}"
+        f"{len(result.findings) - findings} warnings -> exit {result.exit_code}"
     )
     return "\n".join(lines) + "\n"
 

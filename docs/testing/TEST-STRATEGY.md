@@ -60,6 +60,13 @@ of regenerable data; its additions are marked **(013)** and collected in section
 contracts: `specs/013-library-care/contracts/` (backend **1.12.0**, worker **1.7.0**, UI test ids
 **1.12.0**, backup-archive **1.0.0** with `backup-manifest.schema.json`), ADR-022.
 
+Features 022 (library by artist and album) and 023 (lyric writing assistant) are built in one
+round; their strategies are separate addenda: [022-library-folders.md](022-library-folders.md)
+(backend **1.22.0**, UI test ids **1.22.0**, the `/library?view=all` page-object migration, the
+5,000-item database fixtures) and [023-lyric-assist.md](023-lyric-assist.md) (backend **1.23.0**,
+UI test ids **1.23.0**, lyric scripts by sheet title, the guardrail matrix, the agent
+placeholders `{{context.lyricsId}}` and `{{result.list_lyric_suggestions.ids:<category>}}`).
+
 ## 1. Test pyramid
 
 ```text

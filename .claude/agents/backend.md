@@ -26,3 +26,7 @@ API matching `contracts/backend-api.openapi.yaml`; EF Core migrations; xUnit tes
 - Public API documented; new dependencies and licences listed in the hand-off.
 - Dependencies flow Api -> Persistence -> Domain; Domain has no infrastructure dependencies.
 - Hand-off note `docs/handoffs/backend-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

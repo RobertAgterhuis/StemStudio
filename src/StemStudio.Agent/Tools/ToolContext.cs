@@ -40,15 +40,27 @@ public sealed record ToolContext
     /// <summary>Voice service state (010).</summary>
     public required ServiceAvailability Voice { get; init; }
 
+    /// <summary>Model layer of the lyric assistant (023, <c>+service lyricModel</c>); unknown (not offered) until read.</summary>
+    public ServiceAvailability LyricModel { get; init; } = ServiceAvailability.Unknown;
+
     /// <summary>Builds the context of a message's page context.</summary>
     /// <param name="page">Page context sent with the message.</param>
     /// <param name="generation">Generation service state.</param>
     /// <param name="voice">Voice service state.</param>
     /// <returns>The context.</returns>
-    public static ToolContext From(PageContextDto page, ServiceAvailability generation, ServiceAvailability voice)
+    public static ToolContext From(PageContextDto page, ServiceAvailability generation, ServiceAvailability voice) =>
+        From(page, generation, voice, ServiceAvailability.Unknown);
+
+    /// <summary>Builds the context of a message's page context with the lyric model state (023).</summary>
+    /// <param name="page">Page context sent with the message.</param>
+    /// <param name="generation">Generation service state.</param>
+    /// <param name="voice">Voice service state.</param>
+    /// <param name="lyricModel">Lyric model state.</param>
+    /// <returns>The context.</returns>
+    public static ToolContext From(PageContextDto page, ServiceAvailability generation, ServiceAvailability voice, ServiceAvailability lyricModel)
     {
         ArgumentNullException.ThrowIfNull(page);
         var name = page.Page.Trim().ToLowerInvariant();
-        return new ToolContext { Page = name, MixerOpen = name == "mixer", Generation = generation, Voice = voice };
+        return new ToolContext { Page = name, MixerOpen = name == "mixer", Generation = generation, Voice = voice, LyricModel = lyricModel };
     }
 }

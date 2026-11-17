@@ -24,6 +24,14 @@ public static partial class TrustedText
     /// <returns>True when valid.</returns>
     public static bool IsChannel(string? text) => text is not null && ChannelPattern().IsMatch(text);
 
+    /// <summary>A layer or model name such as <c>Hunspell nl</c> or <c>qwen3.5:9b</c>, or null when it has other characters.</summary>
+    /// <param name="text">Server-generated name.</param>
+    /// <returns>The name or null.</returns>
+    public static string? LayerName(string? text) => text is not null && LayerPattern().IsMatch(text) ? text : null;
+
+    [GeneratedRegex(@"^[A-Za-z0-9 ()._:/-]{1,80}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
+    private static partial Regex LayerPattern();
+
     [GeneratedRegex(@"^[A-Za-z0-9 ()._-]{1,60}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
     private static partial Regex NamePattern();
 

@@ -76,8 +76,12 @@ EXCLUDED_PATHS = (
     "src/StemStudio.Web/wwwroot/js/time-stretch-processor.js",
     "src/StemStudio.Web/wwwroot/js/soundtouch/",
     "src/StemStudio.Web/wwwroot/third-party/",
+    "src/StemStudio.Api/LyricAssist/Dictionaries/",
 )
 """Repository-relative paths (files or prefixes) never measured.
+
+Feature 023: ``Api/LyricAssist/Dictionaries/`` holds the vendored Hunspell dictionaries and CMUdict
+(data, licences in its ``PROVENANCE.md``).
 
 ``detail/vendor/`` holds vendored third-party MIT inference code (MSST), excluded from SIG like
 ``Migrations/`` (feature 002 plan.md Complexity Tracking, accepted by the CTO);

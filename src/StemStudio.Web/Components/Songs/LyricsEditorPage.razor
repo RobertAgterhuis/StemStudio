@@ -1,0 +1,81 @@
+@page "/lyrics/{Id:guid}"
+@* Lyrics editor page (010 FR-003 ids lyrics-title-input, lyrics-language-select, lyrics-text-input, lyrics-save, lyrics-error)
+   with the lyric assistant pane of feature 023 (ui-test-ids 1.23.0; ?assist=<id> opens the pane on that assist). *@
+@using StemStudio.Contracts
+@using StemStudio.Web.Components.Lyrics.Assist
+@using StemStudio.Web.Songs
+
+<PageTitle>@(Document?.Title ?? "Lyrics") - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-lyrics-editor-page">
+    <header class="ss-page-head ss-page-head-row" data-help-id="lyrics-format">
+        <div>
+            <div class="ss-label-row"><h1>Edit lyrics</h1><HelpHint HelpId="lyrics-format" /></div>
+            <a class="ss-small" href="lyrics">Back to all lyrics</a>
+        </div>
+        @if (Host is not null)
+        {
+            <RadzenButton Text="Assistant" Icon="auto_fix_high" ButtonStyle="ButtonStyle.Light" aria-expanded="@(PaneOpen ? "true" : "false")"
+                          aria-controls="lyric-assist-region" Click="() => PaneOpen = !PaneOpen" data-testid="lyric-assist-toggle" />
+        }
+    </header>
+
+    @if (LoadError is not null)
+    {
+        <ErrorState TestId="lyrics-load-error" Message="@LoadError" Hint="Check that StemStudio is running, then reload the page." />
+    }
+    else if (Document is null || Host is null)
+    {
+        <Skeleton Lines="6" />
+    }
+    else
+    {
+        <div class="@(PaneOpen ? "ss-lyrics-workspace has-pane" : "ss-lyrics-workspace")" @ref="_root" @onkeydown="OnKeyAsync">
+            <div class="ss-lyrics-editor-main">
+                <div class="ss-range-row">
+                    <label class="ss-field">
+                        <span class="ss-label">Title</span>
+                        <input type="text" class="rz-textbox" maxlength="@ContractLimits.LyricsTitleMaxLength" value="@Document.Title"
+                               @oninput="e => Document.Title = (string)e.Value!" data-testid="lyrics-title-input" />
+                    </label>
+                    <label class="ss-field">
+                        <span class="ss-label">Language</span>
+                        <select class="rz-dropdown ss-select" @onchange="e => Document.Language = (string)e.Value!" data-testid="lyrics-language-select">
+                            @foreach (var language in LanguageNames.Codes)
+                            {
+                                <option value="@language" selected="@(Document.Language == language)">@LanguageNames.Of(language)</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <label class="ss-field" for="lyrics-text">
+                    <span class="ss-label">Lyrics (up to 4096 characters)</span>
+                </label>
+                <div class="ss-lyric-stack">
+                    <LyricTextOverlay Host="Host" Text="@Document.Text" />
+                    <textarea id="lyrics-text" class="ss-lyric-input" spellcheck="false" value="@Document.Text" @oninput="OnTextAsync" @ref="_text"
+                              aria-describedby="lyrics-count" data-testid="lyrics-text-input"></textarea>
+                </div>
+                <span id="lyrics-count" class="ss-small ss-num">@Document.Text.Length / @ContractLimits.LyricsSheetMaxLength</span>
+                @if (Problem is { } problem)
+                {
+                    <div class="ss-error" role="alert" data-testid="lyrics-error" data-field="@problem.Field">@problem.Message</div>
+                }
+                <div class="ss-row">
+                    <RadzenButton Text="Save" Icon="save" IsBusy="Saving" BusyText="Saving..." Disabled="Saving" Click="SaveAsync" data-testid="lyrics-save" />
+                    @if (Document.IsDirty)
+                    {
+                        <span class="ss-small ss-muted" role="status">Unsaved changes</span>
+                    }
+                </div>
+            </div>
+            @if (PaneOpen)
+            {
+                <div id="lyric-assist-region" class="ss-lyrics-editor-pane">
+                    <LyricAssistPane Host="Host" OnReveal="RevealAsync" OnBackToText="BackToTextAsync" OnInsert="InsertAsync" />
+                </div>
+            }
+        </div>
+        <NavigationLock OnBeforeInternalNavigation="ConfirmLeaveAsync" ConfirmExternalNavigation="Document.IsDirty" />
+    }
+</div>

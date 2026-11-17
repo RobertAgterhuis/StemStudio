@@ -51,7 +51,9 @@ function Set-AgentApi {
     Write-Host "=== api: agent backend $AgentBackend $Script ===" -ForegroundColor Cyan
     $env:STEMSTUDIO_AGENT_BACKEND = $AgentBackend
     $env:STEMSTUDIO_AGENT_FAKE_SCRIPT = $Script
-    Invoke-Native $RepoRoot @('docker', 'compose', 'up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'api')
+    # The 023 lyric tests need e2e/lyric-scripts/ at /lyric-scripts (docker-compose.e2e.yml; CI sets COMPOSE_FILE with it).
+    $files = if ($env:COMPOSE_FILE) { @() } else { @('-f', 'docker-compose.yml', '-f', 'docker-compose.e2e.yml') }
+    Invoke-Native $RepoRoot (@('docker', 'compose') + $files + @('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'api'))
 }
 
 function Invoke-AgentSpec {

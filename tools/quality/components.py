@@ -29,6 +29,24 @@ The generator (features 009/010) has the same top-level modules.
 
 GENERATOR = "generator/src/stemstudio_generator/"
 
+LIBRARY_FOLDERS = (
+    "src/StemStudio.Domain/Library/",
+    "src/StemStudio.Api/Library/",
+    "src/StemStudio.Web/Library/",
+    "src/StemStudio.Web/Components/Library/",
+    "src/StemStudio.Agent/Tools/Providers/LibraryToolProvider",
+)
+"""The code of feature 022 (library by artist and album) across the projects."""
+
+LYRIC_ASSIST_FOLDERS = (
+    "src/StemStudio.Domain/Lyrics/Assist/",
+    "src/StemStudio.Api/LyricAssist/",
+    "src/StemStudio.Agent/LyricAssist/",
+    "src/StemStudio.Agent/Tools/Providers/LyricAssistTool",
+    "src/StemStudio.Web/Components/Lyrics/Assist/",
+)
+"""The code of feature 023 (lyric writing assistant) across the projects."""
+
 
 @dataclass(frozen=True, slots=True)
 class Component:
@@ -53,6 +71,8 @@ COMPONENTS: tuple[Component, ...] = (
     Component("Api/Agent/Secrets", ("src/StemStudio.Api/Agent/Secrets/",)),
     Component("Web", ("src/StemStudio.Web/",)),
     Component("Agent", ("src/StemStudio.Agent/",)),
+    Component("Library (022)", LIBRARY_FOLDERS),
+    Component("Lyric assist (023)", LYRIC_ASSIST_FOLDERS),
     Component("worker/ingest", (WORKER + "ingest/",)),
     Component("worker/metadata", (WORKER + "metadata/",)),
     Component("worker/lyrics", (WORKER + "lyrics/",)),
@@ -88,6 +108,8 @@ COMPONENTS: tuple[Component, ...] = (
 )
 """Reported components (production code unless the scope says otherwise).
 
+``Library (022)`` and ``Lyric assist (023)`` collect the folders of the two features across the
+projects and are also counted in the project rows (T089, T071).
 ``Api/Agent/Secrets`` (claude-key) is also counted in ``Api``; it is listed on its own because
 the Data Protection confinement rule (``secret_rules.py``) is about that folder.
 ``audio-engine/stretch`` and ``audio-engine/practice`` (feature 012) are sub-rows of
@@ -155,7 +177,8 @@ _HEADER = (
     "estimate from `tools/quality/risk.py`, not a Sigrid rating. Production code only, except "
     "e2e, tools/quality, tools/agent-eval and scripts (all code) and the test-code row; "
     "Api/Agent/Secrets is a sub-row of Api, audio-engine/stretch and audio-engine/practice "
-    "are sub-rows of audio-engine.\n\n"
+    "are sub-rows of audio-engine; Library (022) and Lyric assist (023) collect the folders of "
+    "those features across Domain, Api, Web and Agent.\n\n"
     "| Component | Units | LOC | Size % | Complexity % | Params % | Stars (estimate) | Clones |\n"
     "|---|---:|---:|---|---|---|---|---:|"
 )

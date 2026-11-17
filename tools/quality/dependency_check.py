@@ -8,6 +8,7 @@
 .NET packages (``<PackageReference>``, only for the projects in ``DOTNET_PACKAGES_ALLOWED``)::
 
     Agent -> {Microsoft.Extensions.AI[.*], OllamaSharp[.*], Anthropic[.*]}   (feature 011)
+    Domain -> no package at all                                               (feature 023 T071)
 
 .NET feature folders (``using`` directives and qualified names in ``src/<folder>/**/*.cs``;
 comments, string/char literals and ``namespace`` declarations are ignored)::
@@ -17,11 +18,22 @@ comments, string/char literals and ``namespace`` declarations are ignored)::
     Api/Generation, Api/Generator -/- Web                                          (feature 009)
     Api/Voices -/- {Web, Api.Generation};  Api/Generator -/- {Api.Generation, Api.Voices}  (010)
     Agent (except Agent/Backends) -/- {OllamaSharp, Anthropic}                      (feature 011)
+    Domain/Library, Domain/Lyrics -/- every other StemStudio project, Microsoft.*, WeCantSpell
+        and each other                                                      (022 T024, 023 T071)
+    Api/Library -/- {Web, Agent, Api.LyricAssist};  Api/LyricAssist -/- {Web, Api.Library}
+    Web/Library, Web/Components/Library, Web/Components/Lyrics/Assist -> Contracts and Web.* only,
+        no HttpClient (the API client in Web/Api is the one door) and not each other's UI
+    Agent/LyricAssist -/- {Api, Domain, Persistence, Web, WeCantSpell}   (Agent -> Contracts only)
 
 .NET feature-folder allow-lists (same references; only names below the scope root count)::
 
     Agent/Policy -> StemStudio.Agent.{Model, Tools, Resources} only    (feature 011, CTO T080;
                     plan.md: Model and Tools; Resources = the embedded 009 lexicon, data only)
+    Agent/Tools  -> StemStudio.Agent.{Model, Ports} only               (feature 022 T024: the tools
+                    reach the application through the ports, never Runtime, Policy or Backends)
+
+    Razor files (``*.razor``) of a rule folder count like C# files (``@using``, ``@inject``,
+    ``@code``; ``@* *@`` and ``<!-- -->`` comments are ignored).
 
     The SDK namespaces count in ``using`` directives (incl. ``global``, ``static``, aliases) and
     in qualified names (``OllamaSharp.OllamaApiClient``); a member access (``Dto.Anthropic``),
@@ -122,16 +134,44 @@ DOTNET_ALLOWED: Mapping[str, frozenset[str]] = {
 
 DOTNET_PACKAGES_ALLOWED: Mapping[str, frozenset[str]] = {
     "StemStudio.Agent": frozenset({"Microsoft.Extensions.AI", "OllamaSharp", "Anthropic"}),
+    "StemStudio.Domain": frozenset(),
 }
 """Allowed NuGet packages per project; a name ``a.b`` also allows ``a.b.<anything>``.
 
 Projects missing here are not restricted.
 """
 
-_DOTNET_PROJECTS = "Agent|Api|Contracts|Domain|Persistence|Web"
+DOTNET_PROJECT_NAMES = ("Agent", "Api", "Contracts", "Domain", "Persistence", "Web")
+_DOTNET_PROJECTS = "|".join(DOTNET_PROJECT_NAMES)
 
-DOTNET_EXTERNAL_NAMESPACES = ("OllamaSharp", "Anthropic")
-"""Third-party root namespaces a feature-folder rule may forbid (feature 011)."""
+DOTNET_SDK_NAMESPACES = ("OllamaSharp", "Anthropic")
+"""Model SDK root namespaces only ``Agent/Backends`` may use (feature 011)."""
+
+DOTNET_FRAMEWORK_NAMESPACES = ("Microsoft", "WeCantSpell")
+"""Framework and package root namespaces pure Domain code may not use (022 T024, 023 T071)."""
+
+DOTNET_HTTP_NAMES = ("HttpClient", "IHttpClientFactory", "System.Net.Http")
+"""Direct HTTP use the Web UI folders leave to the API client (``Web/Api``, 023 T071)."""
+
+DOTNET_EXTERNAL_NAMESPACES = (*DOTNET_SDK_NAMESPACES, *DOTNET_FRAMEWORK_NAMESPACES)
+"""Third-party root namespaces a feature-folder rule may forbid (features 011, 022, 023)."""
+
+
+def _projects_except(*allowed: str) -> frozenset[str]:
+    """The ``StemStudio.<Project>`` namespaces of every project not in ``allowed``."""
+    return frozenset(f"StemStudio.{p}" for p in DOTNET_PROJECT_NAMES if p not in allowed)
+
+
+def _pure_domain(sibling: str) -> frozenset[str]:
+    """Nothing outside Domain: other projects, framework and package namespaces, the sibling."""
+    return _projects_except("Domain") | set(DOTNET_FRAMEWORK_NAMESPACES) | {sibling}
+
+
+def _web_ui(*siblings: str) -> frozenset[str]:
+    """A Web UI folder: Contracts only (through the API client, so no HTTP), no sibling UI."""
+    others = _projects_except("Contracts", "Web") | set(DOTNET_HTTP_NAMES) | {"WeCantSpell"}
+    return others | set(siblings)
+
 
 DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
     "StemStudio.Api/Metadata": frozenset({"StemStudio.Web"}),
@@ -145,7 +185,19 @@ DOTNET_FOLDER_FORBIDDEN: Mapping[str, frozenset[str]] = {
         {"StemStudio.Web", "StemStudio.Api.Generation", "StemStudio.Api.Voices"}
     ),
     "StemStudio.Api/Voices": frozenset({"StemStudio.Web", "StemStudio.Api.Generation"}),
-    "StemStudio.Agent": frozenset(DOTNET_EXTERNAL_NAMESPACES),
+    "StemStudio.Agent": frozenset(DOTNET_SDK_NAMESPACES),
+    "StemStudio.Domain/Library": _pure_domain("StemStudio.Domain.Lyrics"),
+    "StemStudio.Domain/Lyrics": _pure_domain("StemStudio.Domain.Library"),
+    "StemStudio.Api/Library": frozenset(
+        {"StemStudio.Web", "StemStudio.Agent", "StemStudio.Api.LyricAssist"}
+    ),
+    "StemStudio.Api/LyricAssist": frozenset({"StemStudio.Web", "StemStudio.Api.Library"}),
+    "StemStudio.Web/Library": _web_ui("StemStudio.Web.Components.Lyrics.Assist"),
+    "StemStudio.Web/Components/Library": _web_ui("StemStudio.Web.Components.Lyrics.Assist"),
+    "StemStudio.Web/Components/Lyrics/Assist": _web_ui(
+        "StemStudio.Web.Library", "StemStudio.Web.Components.Library"
+    ),
+    "StemStudio.Agent/LyricAssist": _projects_except("Agent", "Contracts") | {"WeCantSpell"},
 }
 """Forbidden StemStudio namespaces per feature folder below ``src/`` (all files below it).
 
@@ -160,6 +212,10 @@ DOTNET_FOLDER_ALLOWED: Mapping[str, tuple[str, frozenset[str]]] = {
         frozenset(
             {"StemStudio.Agent.Model", "StemStudio.Agent.Tools", "StemStudio.Agent.Resources"}
         ),
+    ),
+    "StemStudio.Agent/Tools": (
+        "StemStudio.Agent",
+        frozenset({"StemStudio.Agent.Model", "StemStudio.Agent.Ports"}),
     ),
 }
 """Allow-lists per feature folder below ``src/``: ``folder -> (scope root, allowed names)``.
@@ -184,12 +240,14 @@ _CS_NOISE = re.compile(
             r"'(?:\\.|[^'\\\n])+'",  # char literal
             r"//[^\n]*",  # line comment
             r"/\*[\s\S]*?\*/",  # block comment
+            r"@\*[\s\S]*?\*@",  # Razor comment
+            r"<!--[\s\S]*?-->",  # markup comment
             r"^[ \t]*namespace\b[^\n]*",  # namespace declaration
         )
     ),
     re.MULTILINE,
 )
-"""C# comments, string/char literals and namespace declarations (no references)."""
+"""C#/Razor comments, string/char literals and namespace declarations (no references)."""
 
 _CS_REFERENCE = re.compile(rf"\bStemStudio\.(?:{_DOTNET_PROJECTS})\b(?:\.[A-Za-z_]\w*)*")
 """A qualified reference into a StemStudio project namespace (the whole dotted name)."""
@@ -203,6 +261,11 @@ _CS_EXTERNAL_USING = re.compile(
 )
 """A qualified third-party name, or a ``using`` directive of a bare third-party root namespace;
 the edge target is the root namespace (``OllamaSharp``)."""
+
+_CS_HTTP_TYPE = re.compile(r"(?<![\w.])(?P<name>HttpClient|IHttpClientFactory)\b")
+_CS_HTTP_NAMESPACE = re.compile(r"(?<![\w.])(?P<name>System\.Net\.Http)\b")
+"""Direct HTTP use: the edge target is the type name or ``System.Net.Http`` (also for a name
+below it), at an identifier of its own (``HttpClientLabel`` and ``Dto.HttpClient`` are not)."""
 
 _LEAVES = frozenset({"schemas", "config"})
 _ADAPTER = _LEAVES | {"ports"}
@@ -422,10 +485,18 @@ def read_folder_edges(src_dir: Path, root: Path, folders: Sequence[str]) -> list
     return edges
 
 
+_CS_NAME_PATTERNS = (_CS_EXTERNAL_QUALIFIED, _CS_EXTERNAL_USING, _CS_HTTP_TYPE, _CS_HTTP_NAMESPACE)
+"""Patterns whose ``name`` group is an edge target besides the StemStudio namespaces."""
+
+_FOLDER_SUFFIXES = ("*.cs", "*.razor")
+"""File types a feature-folder rule reads (Razor components reference namespaces like C#)."""
+
+
 def _folder_files(src_dir: Path, root: Path, folder: str) -> Iterator[tuple[Path, str]]:
     """The checked C# files below ``folder`` with their repository paths."""
     exempt = [src_dir / name for name in DOTNET_FOLDER_EXEMPT.get(folder, ())]
-    for cs_file in sorted((src_dir / folder).rglob("*.cs")):
+    files = sorted(f for suffix in _FOLDER_SUFFIXES for f in (src_dir / folder).rglob(suffix))
+    for cs_file in files:
         rel_path = relative(cs_file, root)
         if not is_excluded(rel_path) and not _below_any(cs_file, exempt):
             yield cs_file, rel_path
@@ -438,7 +509,7 @@ def _below_any(path: Path, folders: Sequence[Path]) -> bool:
 def _cs_file_edges(cs_file: Path, folder: str, rel_path: str) -> Iterator[Edge]:
     text = _CS_NOISE.sub(_keep_newlines, cs_file.read_text(encoding="utf-8"))
     references = [(m.start(), m.group()) for m in _CS_REFERENCE.finditer(text)]
-    for pattern in (_CS_EXTERNAL_QUALIFIED, _CS_EXTERNAL_USING):
+    for pattern in _CS_NAME_PATTERNS:
         references.extend((m.start("name"), m.group("name")) for m in pattern.finditer(text))
     for start, target in sorted(references):
         yield Edge(folder, target, rel_path, text.count("\n", 0, start) + 1)

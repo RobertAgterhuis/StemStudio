@@ -9,6 +9,8 @@
 | Worker `/health` (inside the network) | status, separator, device information, contract version |
 | `GET /api/device` | Processing device and reason |
 | `GET /api/agent/status` (011) | Agent backend, model, `ready` or the reason and fix; Ollama itself: `curl http://localhost:11434/api/tags` |
+| `GET /api/lyric-assist/status` (023) | Dictionary layer (`available`) and model layer (ready, or the reason and fix, for example *"The GPU is busy ..."*); the model layer mirrors the agent status |
+| `GET /api/library/folders` (022) | `pendingFiling` is `0` once every item is filed; above 0 the library shows *Sorting your library (n left)* |
 | `scripts/check-soundtouch-served.sh [BASE_URL]` (012) | `soundtouch.wasm` served as `application/wasm` with the expected SHA-256 and the complete LGPL folder `/third-party/soundtouch/` |
 | Windows without Docker | `scripts/dev.ps1 -SmokeTest` waits for all three health endpoints |
 
@@ -79,6 +81,50 @@ up the pinned newer version when the project updates it.
   command `interrupted` (its jobs keep running; there is no "Continue" yet, the user sends the
   command again). Development databases that applied an earlier, unreleased 011 `AddAgent`
   migration must be recreated (`docker compose down -v` deletes all data).
+- Library (022): items under *Unknown artist* or in the wrong folder get their names from the band
+  info or the import; the user fixes them with library info. The sorting banner that never goes away
+  means the backfill keeps failing: check `docker compose logs api` for `database is locked` or a
+  running library job.
+- Lyric assistant (023): *model-unavailable* names the cause (backend off, Ollama not reachable, GPU
+  busy); `claude-notice-required` means the notice was not acknowledged; `assist-active` means
+  another check is still running (cancel it in the pane); a refused sheet (`not-own-lyrics`) matched
+  library lyrics, see the own-work confirmation in the user manual.
+
+## Library folders (022)
+
+Items are filed when they are saved. Existing items (after the upgrade to 022, and after a restore
+of an older backup) are filed by a background step that starts **2 s after the API started** and,
+after a restore, at the first library read; it works in batches of
+`StemStudio:LibraryBackfillBatchSize` (default 500) and waits while a library job holds the
+maintenance gate. It is idempotent and takes about 1-2 s for 5,000 items. The step repeats a failed
+run up to five times, 1 s apart, then waits for the next library read, so no operator action is
+needed. In the UI the library shows *Sorting your library (n items left)* meanwhile. A wrong or
+missing name is corrected by the user with library info; there is nothing to repair in the data
+folder, because folders are not stored. A restore replaces the database, so filing and library info
+come back with it (older archives are filed after the restore).
+
+## Lyric assistant (023)
+
+- **Nothing to install.** The dictionaries are inside the API image (`/app/LyricAssist/Dictionaries`,
+  7.7 MB); the model layer uses the agent backend (Ollama on the host, `qwen3.5:9b`). Without any
+  model the spelling check, the syllable counts and the rhyme finder still work.
+- **GPU busy.** While a heavy job holds the GPU (separation, generation) Ollama unloads the 9B model
+  and the lyric assistant reports `model-unavailable` with the fix *"The GPU is busy ... The spelling
+  check still works"*; there is no CPU fallback for lyrics. A GPU job that starts during an assist
+  stops it with `backend-unavailable`; start the check again when the job has finished.
+- **Claude.** Only when Claude is the selected backend (Settings) and the user pressed **I agree** in
+  the lyric notice (`GET`/`PUT /api/lyric-assist/settings`). Per assist 20,000 input and 4,000 output
+  tokens are allowed (`StemStudio__LyricAssist__MaxInputTokensPerAssist`, `…MaxOutputTokensPerAssist`);
+  past the cap the assist fails with `budget-exhausted` and the pane shows the usage. Anthropic is
+  contacted only by an assist the user started on that backend. The lyric assistant never switches
+  backend by itself.
+- **One assist at a time.** An assist that was running when the API stopped is marked failed
+  (*interrupted by restart*) at start-up; its stored suggestions stay.
+- **Test stacks.** With `STEMSTUDIO_AGENT_BACKEND=fake`, `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` names
+  a script file or folder (`docker-compose.e2e.yml` mounts `e2e/lyric-scripts/` read-only at
+  `/lyric-scripts`); `scripts/lyric-e2e.{ps1,sh} fake|none` run the E2E passes.
+- **Logs.** Sheet text, suggestions and the Claude key are never logged; the runner logs the
+  exception type of a failed block only.
 
 ## Interrupted library switch
 

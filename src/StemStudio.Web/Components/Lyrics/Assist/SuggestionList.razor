@@ -1,0 +1,23 @@
+@* The suggestion list (FR-005, FR-006, FR-028; ui-test-ids lyric-assist-list): a plain list (role="list") of entries
+   (role="listitem") whose buttons are reached with Tab (a listbox may not hold buttons: WCAG 4.1.2, axe nested-interactive).
+   F8 / Shift+F8 move and focus the entry, Alt+Enter accepts, Alt+Backspace rejects, Alt+I marks as intentional and Escape
+   goes back to the text; the keys act on the entry that holds the focus. After a decision the focus moves to the entry that
+   takes the place of the decided one, so it is never lost on the page. *@
+@using StemStudio.Contracts.LyricAssist
+@inherits AssistPart
+
+@if (Session.Board.Visible is { Count: > 0 } visible)
+{
+    <ul class="ss-assist-list" role="list" aria-label="Suggestions" data-testid="lyric-assist-list"
+        @onkeydown="OnKeyAsync" @onkeydown:stopPropagation="true">
+        @foreach (var (s, index) in visible.Select((s, i) => (s, i)))
+        {
+            <SuggestionEntry @key="s.SuggestionId" Host="Host" Suggestion="s" Active="s.SuggestionId == Session.Board.Active" OnSelect="SelectAsync" OnFocus="FocusEntry"
+                             OnDecided="() => FollowAsync(s.SuggestionId, index)" />
+        }
+    </ul>
+}
+else if (Session.Run is { IsActive: false })
+{
+    <p class="ss-small ss-muted">No open suggestions.</p>
+}

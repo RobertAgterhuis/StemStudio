@@ -91,6 +91,13 @@ public sealed record ToolParameter
     /// <summary>Properties of objects.</summary>
     public IReadOnlyList<ToolParameter> Properties { get; init; } = [];
 
+    /// <summary>True when an explicit JSON <c>null</c> is a meaningful value (e.g. "back to automatic"); the schema type includes null.</summary>
+    public bool Nullable { get; init; }
+
+    /// <summary>The same parameter, optional and nullable (omitted keeps, null resets).</summary>
+    /// <returns>The parameter.</returns>
+    public ToolParameter OptionalOrNull() => this with { Required = false, Nullable = true };
+
     /// <summary>The same parameter, optional.</summary>
     /// <returns>The parameter.</returns>
     public ToolParameter Optional() => this with { Required = false };
@@ -104,7 +111,7 @@ public sealed record ToolParameter
     /// <returns>The schema node.</returns>
     public JsonObject ToJsonSchema()
     {
-        var schema = new JsonObject { ["type"] = TypeName(Type) };
+        var schema = new JsonObject { ["type"] = Nullable ? new JsonArray(TypeName(Type), "null") : TypeName(Type) };
         AddTexts(schema);
         AddLimits(schema);
         if (Enum is { } values)

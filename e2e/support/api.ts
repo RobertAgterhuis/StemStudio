@@ -91,6 +91,7 @@ export interface TrackDto {
   readonly beatGrid?: BeatGridDto | null;
   readonly detail: DetailPhaseDto;
   readonly device?: JobDeviceDto | null;
+  readonly createdAt: string;
   readonly updatedAt: string;
 }
 

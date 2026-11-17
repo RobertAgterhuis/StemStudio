@@ -46,7 +46,10 @@ public static class LibraryCareRegistration
         services.TryAddSingleton<IJournalStepHook, NoJournalStepHook>();
         services.AddSingleton(provider => new LibrarySwitcher(
             provider.GetRequiredService<Gate.LibraryGate>(), provider.GetRequiredService<RestoreJournal>(), provider.GetRequiredService<ILibraryFiles>(),
-            provider.GetRequiredService<IJournalStepHook>(), TimeSpan.FromMilliseconds(200)));
+            provider.GetRequiredService<IJournalStepHook>(), TimeSpan.FromMilliseconds(200))
+        {
+            AfterSwitch = () => RestoreRun.UseWal(provider.GetRequiredService<LiveDatabase>()),
+        });
         services.AddSingleton<PreviousLibraryStore>();
         services.AddSingleton<IPreviousLibraryReader>(provider => provider.GetRequiredService<PreviousLibraryStore>());
         services.AddSingleton<LibraryMerger>();

@@ -49,6 +49,9 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
 
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>Runs after a committed switch while the gate is still closed (the new live database is put in WAL mode).</summary>
+    public Action? AfterSwitch { get; init; }
+
     /// <summary>Runs the plan.</summary>
     /// <param name="plan">The journal.</param>
     /// <param name="cancellationToken">Cancellation (not observed once moves started).</param>
@@ -69,6 +72,7 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
 
             SqliteConnection.ClearAllPools();
             await MoveAllAsync(record);
+            AfterSwitch?.Invoke();
         }
         finally
         {

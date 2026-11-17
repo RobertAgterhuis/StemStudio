@@ -1,4 +1,4 @@
-# Contract: web-interop module (v1.0.0)
+# Contract: web-interop module (v1.2.0)
 
 Typed JS interop surface between `StemStudio.Web` (Blazor, C#) and the new TypeScript package
 `src/web-interop/` (`@stemstudio/web-interop`), built by Vite to
@@ -50,7 +50,7 @@ export function watchSystemAppearance(dotnet: DotNetRef): Disposable;
  *  with a command id (e.g. "help.open", "palette.open", "mixer.loop.toggle", "mixer.channel.select:3").
  *  Keys are ignored while focus is in an input, textarea, select, contenteditable, dialog
  *  or tour popover. Space is NOT handled here (mixer-keys.js keeps it). */
-export function registerShortcuts(dotnet: DotNetRef, scope: "global" | "mixer"): Disposable;
+export function registerShortcuts(dotnet: DotNetRef, scope: "global" | "mixer" | "library"): Disposable;  // "library" since 1.2.0
 
 /** Starts a tour. Steps whose target `[data-help-id=...]` is missing or hidden are skipped.
  *  Calls dotnet.invokeMethodAsync("OnTourEnded", tourId, "completed" | "dismissed", lastStep). */
@@ -88,7 +88,7 @@ export interface TourRuntime {
   `IJSRuntime` for these features directly.
 - The full TypeScript types (incl. `StoredPreferences`, `StoredHelpProgress`, `StoredTourRecord`,
   `TourRuntimeStep`, `TourLabels`, `ShortcutScope`) are in `src/web-interop/src/types.ts`; the
-  module also exports `WEB_INTEROP_CONTRACT_VERSION = "1.0.0"`. `first-paint.ts` is a separate
+  module also exports `WEB_INTEROP_CONTRACT_VERSION` (`"1.2.0"`). `first-paint.ts` is a separate
   IIFE entry (`vite build --mode first-paint`).
 
 ## 4. C# mapping (`src/StemStudio.Web/Interop/`, Phase 0 T002)
@@ -108,3 +108,11 @@ export interface TourRuntime {
 The implementation (`WebInterop`, frontend T016) owns the `DotNetObjectReference` and the
 `[JSInvokable]` methods; the record mapping UserPreferences <-> JSON lives in
 `LocalPreferencesStore`, not in the interop layer (Interop does not depend on Preferences).
+
+## 5. Changelog
+
+| Version | Feature | Change |
+|---|---|---|
+| 1.0.0 | 004 | First version. |
+| 1.1.0 | 014 | Allocated to 014 (scope `setlist`, `specs/014-practice-flow/contracts/web-interop.delta.md`); arrives with the 014 round (not on this branch). |
+| 1.2.0 | 022 | `ShortcutScope` adds `library` (`ShortcutScope.Library = 2` in C#). Key map of the scope: `/` -> `library.search.focus` (library pages `/library` and `/library/{folderId}`; ignored while typing in a field; `Mod+/` stays `shortcuts.open`). Additive. |

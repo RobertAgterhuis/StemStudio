@@ -19,7 +19,11 @@
         {
             <div class="ss-export-saved" role="status" data-testid="export-saved">
                 <p>@saved.Text</p>
-                <a href="@($"library?asset={saved.FirstId}")" data-testid="export-saved-open">Open in library</a>
+                @if (saved.Placement is { } placement)
+                {
+                    <p>Saved to <FolderPath Placement="placement" TestId="export-saved-folder" /></p>
+                }
+                <a href="@saved.OpenUrl" data-testid="export-saved-open">Open in library</a>
             </div>
             <div class="ss-dialog-actions">
                 <RadzenButton Text="Close" Click="OnClose" data-testid="export-close" />

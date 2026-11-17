@@ -46,17 +46,37 @@ public sealed partial class AgentRunExecutor(IServiceScopeFactory scopes, AgentR
             await (scope.ServiceProvider.GetService<LibraryGate>()?.WaitWhileMaintenanceAsync(stoppingToken) ?? Task.CompletedTask);
             await scope.ServiceProvider.GetRequiredService<IAgentRunService>().ExecuteAsync(runId, stoppingToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
+        catch (Exception exception) when (IsFailure(exception, stoppingToken))
         {
             LogRunFailed(logger, runId, exception);
-            await lifecycle.FailAsync(runId, AgentFailureCodes.Internal, AgentRunExecutorText.InternalFailure, stoppingToken);
+            await BookkeepAsync(runId, () => lifecycle.FailAsync(runId, AgentFailureCodes.Internal, AgentRunExecutorText.InternalFailure, stoppingToken), stoppingToken);
         }
 
-        await lifecycle.ReleaseIfEndedAsync(runId, stoppingToken);
+        await BookkeepAsync(runId, () => lifecycle.ReleaseIfEndedAsync(runId, stoppingToken), stoppingToken);
     }
+
+    // A failing end-of-run step (for example a database that stays locked) is logged and the executor goes on with the next
+    // run: an exception that leaves ExecuteAsync would stop the whole host (BackgroundService default StopHost).
+    private async Task BookkeepAsync(Guid runId, Func<Task> step, CancellationToken stoppingToken)
+    {
+        try
+        {
+            await step();
+        }
+        catch (Exception exception) when (IsFailure(exception, stoppingToken))
+        {
+            LogBookkeepingFailed(logger, runId, exception);
+        }
+    }
+
+    private static bool IsFailure(Exception exception, CancellationToken stoppingToken) =>
+        exception is not OperationCanceledException || !stoppingToken.IsCancellationRequested;
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Agent run {RunId} failed")]
     private static partial void LogRunFailed(ILogger logger, Guid runId, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "End-of-run bookkeeping of agent run {RunId} failed")]
+    private static partial void LogBookkeepingFailed(ILogger logger, Guid runId, Exception exception);
 }
 
 /// <summary>End-of-run bookkeeping shared by the executor and the approval and cancel endpoints.</summary>

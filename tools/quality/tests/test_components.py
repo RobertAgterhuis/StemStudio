@@ -72,6 +72,8 @@ REQUESTED = [
     "Api/Agent/Secrets",
     "Web",
     "Agent",
+    "Library (022)",
+    "Lyric assist (023)",
     "worker/ingest",
     "worker/metadata",
     "worker/lyrics",

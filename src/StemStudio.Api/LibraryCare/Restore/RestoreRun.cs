@@ -108,7 +108,6 @@ public sealed class RestoreRun(RestoreRunServices services, LibraryMerger merger
         };
         var plan = JournalPlans.Restore(context.JobId, context.JobId, services.Paths, keepPrevious: !request.LibraryEmpty) with { Previous = previous };
         await services.Switcher.SwitchAsync(plan, CancellationToken.None);
-        UseWal(services.Live);
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Reconcile, "Finishing", 98, context.Job.BytesTotal, context.Job.BytesTotal, null));
         if (previous is not null)
         {
@@ -187,7 +186,6 @@ public sealed class UndoRun(RestoreRunServices services, TimeProvider clock)
             RestoredArchive = previous.RestoredArchive,
         };
         await services.Switcher.SwitchAsync(JournalPlans.Undo(previous.RestoreId, context.JobId, services.Paths) with { Previous = restored }, CancellationToken.None);
-        RestoreRun.UseWal(services.Live);
         await services.Previous.SaveAsync(restored with { SizeBytes = services.Previous.SizeOf(context.JobId) }, CancellationToken.None);
         return new RestoreReportDto { Mode = RestoreReportModeDto.Undo, Restored = [], Skipped = [], MigratedFrom = null, Warnings = [], PreviousLibraryKept = true };
     }

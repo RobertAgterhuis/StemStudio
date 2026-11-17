@@ -20,4 +20,10 @@ public sealed record LyricsSheetDto
 
     /// <summary>Last change (UTC).</summary>
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    /// <summary>Revision (1.23.0, feature 023): +1 on every save, accept, undo and restore; sheets created before 1.23.0 are 1.</summary>
+    public int Revision { get; init; } = 1;
+
+    /// <summary>Assistant state of the sheet (1.23.0, feature 023).</summary>
+    public LyricAssist.SheetAssistInfoDto Assist { get; init; } = LyricAssist.SheetAssistInfoDto.Default;
 }

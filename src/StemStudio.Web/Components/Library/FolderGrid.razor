@@ -1,0 +1,26 @@
+@* The child folders of a level as a grid of tiles (default) or a list (feature 022, FR-014, FR-019). *@
+
+<ul class="@(Layout == FolderLayout.List ? "ss-folder-list" : "ss-folder-grid")" aria-label="@Label">
+    @foreach (var folder in Folders.DistinctBy(f => f.Id))
+    {
+        <FolderTile @key="folder.Id" Folder="folder" Layout="Layout" Compact="Compact" />
+    }
+</ul>
+
+@code {
+    /// <summary>The folders in display order.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LibraryFolderDto> Folders { get; set; } = [];
+
+    /// <summary>The list name, e.g. "Albums".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Grid or list.</summary>
+    [Parameter]
+    public FolderLayout Layout { get; set; }
+
+    /// <summary>True at compact density.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+}

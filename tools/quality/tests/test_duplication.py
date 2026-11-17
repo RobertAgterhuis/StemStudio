@@ -7,7 +7,7 @@ import pytest
 
 import duplication
 from common import Severity
-from duplication import Clone, build_command, evaluate, parse_report
+from duplication import Clone, ToolRun, build_command, evaluate, failure_reason, parse_report
 
 BLOCK = "\n".join(f"    value_{i} = compute({i}) + offset * {i}" for i in range(7))
 
@@ -58,7 +58,17 @@ def test_build_command_pins_version_and_config(tmp_path: Path) -> None:
     command = build_command("npx", tmp_path, [Path("src")])
     assert command[:3] == ["npx", "--yes", f"jscpd@{duplication.JSCPD_VERSION}"]
     assert command[command.index("--config") + 1] == str(duplication.CONFIG_PATH)
-    assert command[-1] == "src"
+    assert command[-1] == str(Path("src").resolve())
+
+
+def test_build_command_resolves_relative_paths_against_the_current_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # jscpd runs with cwd = repository root; a path given relative to another directory
+    # (e.g. from tools/quality) must not turn into "path does not exist".
+    monkeypatch.chdir(tmp_path)
+    command = build_command("npx", tmp_path, [Path("../elsewhere/src")])
+    assert command[-1] == str((tmp_path / "../elsewhere/src").resolve())
 
 
 def test_config_requires_six_lines() -> None:
@@ -71,17 +81,21 @@ def test_config_requires_six_lines() -> None:
 class FakeJscpd:
     """Writes a canned report where jscpd would, instead of running Node."""
 
-    def __init__(self, report: dict[str, object] | None, exit_code: int = 0) -> None:
+    def __init__(
+        self, report: dict[str, object] | str | None, exit_code: int = 0, output: str = ""
+    ) -> None:
         self.report = report
         self.exit_code = exit_code
+        self.output = output
         self.commands: list[list[str]] = []
 
-    def __call__(self, command: list[str], cwd: Path) -> int:
+    def __call__(self, command: list[str], cwd: Path) -> ToolRun:
         self.commands.append(command)
         if self.report is not None:
             out = Path(command[command.index("--output") + 1])
-            (out / "jscpd-report.json").write_text(json.dumps(self.report), encoding="utf-8")
-        return self.exit_code
+            text = self.report if isinstance(self.report, str) else json.dumps(self.report)
+            (out / "jscpd-report.json").write_text(text, encoding="utf-8")
+        return ToolRun(self.exit_code, self.output)
 
 
 @pytest.fixture
@@ -92,7 +106,7 @@ def with_npx(monkeypatch: pytest.MonkeyPatch) -> None:
 def _report(root: Path, first: str, second: str) -> dict[str, object]:
     return {
         "duplicates": [_entry(str(root / first), str(root / second))],
-        "statistics": {"total": {"percentage": 4.0}},
+        "statistics": {"total": {"percentage": 4.0, "sources": 2}},
     }
 
 
@@ -118,6 +132,47 @@ def test_run_reports_jscpd_failure(
     assert result.tool_error == f"jscpd failed (exit code {exit_code})"
 
 
+@pytest.mark.usefixtures("with_npx")
+def test_run_names_the_reason_jscpd_printed(tmp_path: Path) -> None:
+    output = "npm notice run jscpd\nUsing config\nError: path does not exist: src/Nope\n"
+    result = duplication.run(tmp_path, [tmp_path], FakeJscpd(None, 1, output))
+    assert result.tool_error == "jscpd failed (exit code 1): Error: path does not exist: src/Nope"
+
+
+@pytest.mark.usefixtures("with_npx")
+@pytest.mark.parametrize(
+    "report",
+    [
+        {"duplicates": [], "statistics": {"total": {"percentage": 0.0, "sources": 0}}},
+        {"duplicates": []},
+    ],
+)
+def test_run_fails_when_jscpd_scanned_nothing(tmp_path: Path, report: dict[str, object]) -> None:
+    # Exit code 0 with an empty report is not a clean tree: nothing was measured.
+    result = duplication.run(tmp_path, [tmp_path], FakeJscpd(report))
+    assert result.tool_error is not None
+    assert "scanned no source file" in result.tool_error
+
+
+@pytest.mark.usefixtures("with_npx")
+def test_run_fails_on_an_unreadable_report(tmp_path: Path) -> None:
+    result = duplication.run(tmp_path, [tmp_path], FakeJscpd("{not json"))
+    assert result.tool_error is not None
+    assert result.tool_error.startswith("jscpd report unreadable")
+
+
+@pytest.mark.parametrize(
+    ("output", "reason"),
+    [
+        ("", ""),
+        ("npm notice run npx\n\n", ""),
+        ("first\nnpm error code ENOTCACHED\nnpm notice done\n", "npm error code ENOTCACHED"),
+    ],
+)
+def test_failure_reason_skips_npm_notices(output: str, reason: str) -> None:
+    assert failure_reason(output) == reason
+
+
 def test_run_without_npx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutil, "which", lambda name: None)
     result = duplication.run(tmp_path, [tmp_path], FakeJscpd({}))
@@ -125,10 +180,17 @@ def test_run_without_npx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert "npx not found" in result.tool_error
 
 
-def test_subprocess_runner_returns_exit_code(tmp_path: Path) -> None:
-    assert (
-        duplication.subprocess_runner([sys.executable, "-c", "raise SystemExit(3)"], tmp_path) == 3
-    )
+def test_subprocess_runner_returns_exit_code_and_output(tmp_path: Path) -> None:
+    script = "import sys; sys.stderr.write('boom'); raise SystemExit(3)"
+    outcome = duplication.subprocess_runner([sys.executable, "-c", script], tmp_path)
+    assert outcome.exit_code == 3
+    assert "boom" in outcome.output
+
+
+def test_subprocess_runner_reports_a_command_that_cannot_start(tmp_path: Path) -> None:
+    outcome = duplication.subprocess_runner([str(tmp_path / "no-such-npx")], tmp_path)
+    assert outcome.exit_code == 127
+    assert outcome.output
 
 
 def _patch_run(monkeypatch: pytest.MonkeyPatch, result: duplication.DuplicationResult) -> None:

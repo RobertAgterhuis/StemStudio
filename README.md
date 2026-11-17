@@ -55,6 +55,15 @@ metronome so you can mute the guitar and play it yourself.
   check and download it, and restore it into an empty library, in place of the current one (with
   undo) or by adding only what is missing. A storage overview shows where the disk space goes and
   safely removes regenerable files (detail stems, worker caches, leftovers), never originals.
+- **Library by artist and album** (feature 022): every saved item is filed automatically in an
+  Artist > Album > Song folder (in the app only, nothing on your disk), with folder pictures from the
+  cover art you already have, grid or list, and a live search over artist, album, song and
+  stem or instrument ("snare", "vocals", "keyboard"). Wrong names are corrected with library info.
+- **Lyric writing assistant** (feature 023): on demand, checks your own lyrics sheets in Dutch or
+  English for spelling, grammar and flow, suggests rhymes and poetic devices, writes alternatives,
+  continuations and title ideas, counts syllables against a rhythm target and finds rhymes. Poetic
+  licence is never an error. Spelling, syllables and rhymes use dictionaries on your computer; the
+  rest uses the agent's local model (or Claude, only after a notice). Own lyrics only.
 
 ### Online lookups (feature 005, 006)
 
@@ -140,6 +149,32 @@ from a newer StemStudio are refused. **Storage** lists the free space per area, 
 (original or regenerable) of every part, the largest tracks and the model caches, and offers three
 clean-ups with a preview. Archives are not encrypted, and a stored Claude key must be entered again
 on another computer.
+
+### Library by artist and album (feature 022)
+
+**Library** opens the folders: artists, then albums (by year), then songs, with a path at the top,
+**Grid** or **List**, and one search box on every level (press `/` to jump to it). Names come from
+the first source that has them: names you set with **Library info**, the band info found for the
+track (feature 005), the import, or the fallback *Unknown artist* / *Unknown album*; names that
+differ only in capitals, accents, quotes or a leading "The" share a folder. Songs made from your
+own lyrics go to *My songs*. Folders are derived from the items (no folder is stored, none is
+created on disk) and the pictures reuse the track covers; **All items** (Advanced) keeps the flat
+list with its filters. Items are filed when they are saved; existing items are filed by a background
+step 2 s after the API starts (`StemStudio:LibraryBackfillBatchSize`, default 500).
+
+### Lyric writing assistant (feature 023)
+
+Open **Lyrics**, press a sheet's title and then **Assistant**. Nothing is checked until you ask
+(**Check**, **Suggest devices**, **Alternatives**, **Continue**, **Title ideas**); every result is a
+suggestion you accept, reject or mark as intentional, and every accept is one undoable revision.
+Spelling uses vendored dictionaries (OpenTaal Dutch, SCOWL English, CMUdict for syllables and
+rhymes; 7.7 MB in the API image, licences in `docs/THIRD-PARTY-LICENSES.md`), grammar, flow and
+writing help use the agent backend of Settings (local Ollama by default; while the GPU is busy the
+model help is unavailable and the spelling check still works). With Claude selected, the text of
+the sheet is sent to Anthropic only after you agree to a notice. The assistant refuses sheets that
+match lyrics of imported tracks (confirm your own work in the dialog), withholds copies of library
+lyrics and refuses "write like <artist>". For tests, `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` names
+scripted model answers (fake stack only).
 
 ### AI composer agent (feature 011, optional)
 
@@ -359,6 +394,14 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
   beyond 7 semitones voices sound unnatural (no formant correction); while it is engaged the
   sound is about 0.07-0.15 s behind the meters. The speed trainer counts every pass, it cannot
   hear whether you played cleanly.
+- **Library folders** are derived from names that come from online lookups and tags, so two bands
+  with the same name share a folder until you rename one with library info. There are no artist
+  photos, and no folder download or rename-a-whole-folder action.
+- **Lyric assistant.** The local model is weaker in Dutch than in English, a 40-line sheet takes
+  roughly half a minute to a minute, and suggestions can be wrong or mislabel a deliberate choice:
+  read each one before accepting. Only Dutch and English, sheets up to 4,096 characters. Lyrics that
+  are not in your library cannot be recognised as copies. While a GPU job runs the model help is
+  unavailable (no CPU fallback), and Dutch rhymes use word base forms.
 
 ## Licences
 
@@ -377,4 +420,5 @@ in [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and
 StemStudio's code and libraries are open source only; see
 [`docs/THIRD-PARTY-LICENSES.md`](docs/THIRD-PARTY-LICENSES.md), including the GPL/LGPL components
 pulled in by spotDL, Demucs and librosa, and SoundTouch (LGPL-2.1, feature 012), shipped as a
-separate, replaceable WebAssembly module with its complete source.
+separate, replaceable WebAssembly module with its complete source. The lyric assistant (feature 023) uses WeCantSpell.Hunspell (MPL-1.1, unmodified) and vendored
+OpenTaal (BSD-3-Clause), SCOWL (permissive) and CMUdict (BSD-2-Clause) word lists.

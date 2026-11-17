@@ -11,6 +11,12 @@ Usage::
     python tools/quality/duplication.py [paths...]
 
 Exit code 0 = no production clone, 1 = clone in production code, 2 = jscpd could not run.
+
+"Could not run" covers every case in which no trustworthy measurement exists: ``npx`` missing,
+a non-zero jscpd exit code (for example a path that does not exist, a cold npm cache without
+network, a crash), a missing or unreadable JSON report, and a report that scanned no source
+file. The tool error names the cause (the last line jscpd or npm printed), so a lane cannot
+mistake an unmeasured tree for a clean one.
 """
 
 import json
@@ -41,8 +47,17 @@ JSCPD_VERSION = "5.4.2"
 CONFIG_PATH = Path(__file__).resolve().parent / ".jscpd.json"
 """jscpd configuration file."""
 
-Runner = Callable[[list[str], Path], int]
-"""Runs a command (argument list) in a working directory and returns its exit code."""
+
+@dataclass(frozen=True, slots=True)
+class ToolRun:
+    """Exit code and combined console output of one jscpd run."""
+
+    exit_code: int
+    output: str = ""
+
+
+Runner = Callable[[list[str], Path], ToolRun]
+"""Runs a command (argument list) in a working directory and returns its outcome."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,10 +140,26 @@ class DuplicationResult:
     tool_error: str | None = None
 
 
-def subprocess_runner(command: list[str], cwd: Path) -> int:
-    """Run ``command`` without a shell and return its exit code."""
-    completed = subprocess.run(command, cwd=cwd, check=False, capture_output=True)  # noqa: S603
-    return completed.returncode
+def subprocess_runner(command: list[str], cwd: Path) -> ToolRun:
+    """Run ``command`` without a shell and return its exit code and output.
+
+    A command that cannot be started at all (``OSError``) is reported as exit code 127 with the
+    error text, like a shell would, instead of raising.
+    """
+    try:
+        completed = subprocess.run(  # noqa: S603
+            command, cwd=cwd, check=False, capture_output=True, text=True, errors="replace"
+        )
+    except OSError as error:
+        return ToolRun(127, str(error))
+    return ToolRun(completed.returncode, f"{completed.stdout}\n{completed.stderr}")
+
+
+def failure_reason(output: str) -> str:
+    """The last meaningful line jscpd or npm printed (npm notices skipped); empty when none."""
+    lines = [line.strip() for line in output.splitlines()]
+    meaningful = [line for line in lines if line and not line.startswith("npm notice")]
+    return meaningful[-1][:300] if meaningful else ""
 
 
 def build_command(npx: str, output_dir: Path, paths: Sequence[Path]) -> list[str]:
@@ -141,7 +172,7 @@ def build_command(npx: str, output_dir: Path, paths: Sequence[Path]) -> list[str
         str(CONFIG_PATH),
         "--output",
         str(output_dir),
-        *(str(path) for path in paths),
+        *(str(path.resolve()) for path in paths),
     ]
 
 
@@ -204,20 +235,38 @@ def _warning_note(clone: Clone) -> str:
 
 
 def run(root: Path, paths: Sequence[Path], runner: Runner = subprocess_runner) -> DuplicationResult:
-    """Run jscpd over ``paths`` (default roots when empty) and evaluate the report."""
+    """Run jscpd over ``paths`` (default roots when empty) and evaluate the report.
+
+    Relative ``paths`` are resolved against the current directory before jscpd runs in
+    ``root``, the same way ``sig_check`` reads them.
+    """
     npx = shutil.which("npx")
     if npx is None:
         return DuplicationResult(tool_error="npx not found: install Node.js 22 to run jscpd")
     with tempfile.TemporaryDirectory(prefix="jscpd-") as temp:
         output_dir = Path(temp)
         command = build_command(npx, output_dir, paths or default_paths(root))
-        exit_code = runner(command, root)
-        report_file = output_dir / "jscpd-report.json"
-        if exit_code != 0 or not report_file.is_file():
-            return DuplicationResult(tool_error=f"jscpd failed (exit code {exit_code})")
-        report = json.loads(report_file.read_text(encoding="utf-8"))
+        outcome = runner(command, root)
+        report = _read_report(outcome, output_dir / "jscpd-report.json")
+    if isinstance(report, str):
+        return DuplicationResult(tool_error=report)
     clones, percentage = parse_report(report, root)
     return DuplicationResult(clones, evaluate(clones), percentage)
+
+
+def _read_report(outcome: ToolRun, report_file: Path) -> dict[str, Any] | str:
+    """The parsed jscpd report, or the tool error that says why there is no usable one."""
+    reason = failure_reason(outcome.output)
+    suffix = f": {reason}" if reason else ""
+    if outcome.exit_code != 0 or not report_file.is_file():
+        return f"jscpd failed (exit code {outcome.exit_code}){suffix}"
+    try:
+        report: dict[str, Any] = json.loads(report_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        return f"jscpd report unreadable: {error}"
+    if not report.get("statistics", {}).get("total", {}).get("sources"):
+        return "jscpd scanned no source file: check the paths and tools/quality/.jscpd.json"
+    return report
 
 
 def main(argv: Sequence[str] | None = None) -> int:

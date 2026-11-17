@@ -1,0 +1,15 @@
+@* One-time Claude notice of the lyric assistant (US5, FR-026; ui-test-ids lyric-assist-claude-notice*): the text comes from
+   GET /api/lyric-assist/settings. Nothing is sent before "I agree"; Cancel and Escape drop the request. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="alertdialog" aria-modal="true" aria-labelledby="claude-notice-title" aria-describedby="claude-notice-text"
+         data-testid="lyric-assist-claude-notice" data-help-id="lyric-assist-privacy" @onkeydown="OnKeyAsync">
+        <h2 id="claude-notice-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Your lyrics go to Anthropic</h2>
+        <p id="claude-notice-text">@(_text ?? DefaultText)</p>
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelAsync" data-testid="lyric-assist-claude-notice-cancel" />
+            <RadzenButton Text="I agree" Disabled="_busy" Click="AcknowledgeAsync" data-testid="lyric-assist-claude-notice-ack" />
+        </div>
+    </div>
+</div>

@@ -1,17 +1,24 @@
 using System.Text;
+using StemStudio.Api.LyricAssist;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Domain;
 using StemStudio.Domain.Lyrics;
+using StemStudio.Domain.Lyrics.Assist;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Lyrics;
 
-/// <summary>Own lyrics sheets: CRUD, upload and search (010 FR-003); songs keep their snapshots.</summary>
+/// <summary>
+/// Own lyrics sheets: CRUD, upload and search (010 FR-003); songs keep their snapshots. Since 1.23.0 every save is a revision,
+/// an optional <c>expectedRevision</c> refuses stale saves and open assistant suggestions are re-anchored (023 FR-007, FR-008).
+/// </summary>
 /// <param name="sheets">Repository.</param>
+/// <param name="changes">Revision and re-anchoring of every change (feature 023).</param>
+/// <param name="assists">Cancels a running assist of a deleted sheet (feature 023).</param>
 /// <param name="clock">Clock.</param>
-public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvider clock)
+public sealed class LyricsSheetService(ILyricsSheetRepository sheets, LyricsSheetChanges changes, ILyricAssistCanceller assists, TimeProvider clock)
 {
     /// <summary>Largest upload (64 KiB).</summary>
     public const int MaxUploadBytes = 65_536;
@@ -27,14 +34,14 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvid
     /// <returns>200 or 400.</returns>
     public async Task<IResult> ListAsync(string? q, CancellationToken cancellationToken) => q?.Length > 100
         ? ApiProblems.Validation("q", "Must be at most 100 characters.")
-        : TypedResults.Ok((await sheets.ListAsync(q, cancellationToken)).Select(ToDto).ToList());
+        : TypedResults.Ok(await ToDtosAsync(await sheets.ListAsync(q, cancellationToken), cancellationToken));
 
     /// <summary>One sheet.</summary>
     /// <param name="id">Sheet id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>200 or 404.</returns>
     public async Task<IResult> GetAsync(Guid id, CancellationToken cancellationToken) =>
-        await sheets.FindAsync(id, cancellationToken) is { } sheet ? TypedResults.Ok(ToDto(sheet)) : NotFound(id);
+        await sheets.FindAsync(id, cancellationToken) is { } sheet ? TypedResults.Ok(await ToDtoAsync(sheet, cancellationToken)) : NotFound(id);
 
     /// <summary>Saves new lyrics (normalised).</summary>
     /// <param name="input">The input.</param>
@@ -53,7 +60,8 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvid
         }
 
         await sheets.AddAsync(sheet, cancellationToken);
-        return TypedResults.Created(ApiRoutes.LyricsSheet(sheet.Id), ToDto(sheet));
+        await changes.RecordCreatedAsync(sheet, cancellationToken);
+        return TypedResults.Created(ApiRoutes.LyricsSheet(sheet.Id), await ToDtoAsync(sheet, cancellationToken));
     }
 
     /// <summary>Replaces a sheet.</summary>
@@ -75,9 +83,13 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvid
             return ApiProblems.Validation(errors, string.Empty);
         }
 
-        sheet.Update(Content(input), Now);
-        await sheets.SaveAsync(cancellationToken);
-        return TypedResults.Ok(ToDto(sheet));
+        if (input!.ExpectedRevision is { } expected && expected != sheet.Revision)
+        {
+            return LyricAssistProblems.RevisionConflict(sheet.Revision);
+        }
+
+        await changes.ChangeAsync(sheet, s => s.Update(Content(input), Now), new RevisionStamp(RevisionCause.UserSave, null), cancellationToken);
+        return TypedResults.Ok(await ToDtoAsync(sheet, cancellationToken));
     }
 
     /// <summary>Deletes a sheet.</summary>
@@ -92,6 +104,7 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvid
             return NotFound(id);
         }
 
+        await assists.CancelForSheetAsync(id, cancellationToken);
         await sheets.RemoveAsync(sheet, cancellationToken);
         return TypedResults.NoContent();
     }
@@ -147,6 +160,20 @@ public sealed class LyricsSheetService(ILyricsSheetRepository sheets, TimeProvid
     private static LyricsContent Content(LyricsInput? input) => new(input?.Title ?? string.Empty, input?.Language ?? string.Empty, input?.Text ?? string.Empty);
 
     private static IResult NotFound(Guid id) => ApiProblems.NotFound($"Lyrics {id} do not exist.");
+
+    private async Task<List<LyricsSheetDto>> ToDtosAsync(IReadOnlyList<LyricsSheet> list, CancellationToken cancellationToken)
+    {
+        var result = new List<LyricsSheetDto>(list.Count);
+        foreach (var sheet in list)
+        {
+            result.Add(await ToDtoAsync(sheet, cancellationToken));
+        }
+
+        return result;
+    }
+
+    private async Task<LyricsSheetDto> ToDtoAsync(LyricsSheet sheet, CancellationToken cancellationToken) =>
+        ToDto(sheet) with { Revision = sheet.Revision, Assist = await changes.InfoAsync(sheet, cancellationToken) };
 
     private static LyricsSheetDto ToDto(LyricsSheet sheet) => new()
     {

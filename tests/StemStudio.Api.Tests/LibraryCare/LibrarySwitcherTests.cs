@@ -82,6 +82,19 @@ public sealed class LibrarySwitcherTests : IDisposable
         _gate.Mode.ShouldBe(LibraryGateMode.Open);
     }
 
+    // CTO 022+023 (flakes2 finding): the new live database is put in WAL mode before the gate opens, never by the next start only.
+    [Fact]
+    public async Task ACommittedSwitch_RunsTheWalStepBeforeTheGateOpens_AndAFailedOneDoesNot()
+    {
+        var modes = new List<LibraryGateMode>();
+        var withWal = new LibrarySwitcher(_gate, new RestoreJournal(_library.Paths), _files, _hook, TimeSpan.Zero) { AfterSwitch = () => modes.Add(_gate.Mode) };
+
+        await withWal.SwitchAsync(JournalPlans.Restore(JobId, JobId, _library.Paths, keepPrevious: true), Ct);
+
+        modes.ShouldBe([LibraryGateMode.Maintenance]);
+        _gate.Mode.ShouldBe(LibraryGateMode.Open);
+    }
+
     // Security review 013 item 9: requests still in flight after the idle timeout stop the switch before anything moves.
     [Fact]
     public async Task RequestsStillInFlight_FailTheSwitchWithoutMovingAnything()

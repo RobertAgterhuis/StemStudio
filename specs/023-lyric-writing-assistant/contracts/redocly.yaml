@@ -1,12 +1,14 @@
-# Lint configuration for the StemStudio OpenAPI 3.1 contract delta of feature 023 (lyric writing assistant).
-# Run from the repo root:
+# Lint configuration for the StemStudio OpenAPI 3.1 contracts of feature 023 (lyric writing assistant).
+# Run from the repo root (full + delta together: 17 warnings = 15 operation-4xx-response + 2 no-unused-components, 0 errors):
 #   npx @redocly/cli@2.78.0 lint --config specs/023-lyric-writing-assistant/contracts/redocly.yaml \
+#     specs/023-lyric-writing-assistant/contracts/backend-api.openapi.yaml \
 #     specs/023-lyric-writing-assistant/contracts/backend-api.delta.openapi.yaml
-# (Phase 0 task T001 merges the delta into the full backend-api.openapi.yaml 1.23.0.)
+# Model output schema: python -I specs/023-lyric-writing-assistant/contracts/check_output_schema.py
 extends:
   - recommended
 rules:
-  # GET /api/lyrics/assist/status has no client-error cases; every other operation lists its 4XX responses.
+  # GET /api/lyric-assist/status has no client-error cases, nor do the 9 operations inherited from 1.11.0
+  # (health, device, tracks, generation status, ...); every other operation lists its 4XX responses.
   operation-4xx-response: warn
   no-server-example.com: off
   # LyricAssistEvent documents the SSE payloads and is referenced by no operation (text/event-stream is a string).

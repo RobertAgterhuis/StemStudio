@@ -150,3 +150,17 @@ model in `StemStudio.Agent`; UI in Web. Dependencies stay one-way (Web -> API cl
   note; otherwise the question is closed.
 - **Q3 - Explanations in the sheet's language: YES.** Dutch sheet -> Dutch explanations; the UI,
   category names and help stay English (W7).
+
+## Phase 0 outcome (2026-11-17): dependencies and licences
+
+| Dependency | Version | Licence | Bundled how |
+|---|---|---|---|
+| WeCantSpell.Hunspell (NuGet) | 7.0.1 | MPL-1.1 (chosen from the MPL/GPL/LGPL tri-licence; unmodified) | package reference of `StemStudio.Api` |
+| OpenTaal Hunspell nl (Dutch dictionary) | 2.20.23 (commit `1c22bc3d`) | BSD-3-Clause (chosen from BSD-3-Clause / CC BY 3.0) | vendored data + `LICENSE.txt` |
+| SCOWL Hunspell en_US, en_GB-ise, en_GB-ize (English dictionaries) | 2026.02.25 | SCOWL permissive notice (MIT/HPND-style) + Kuenning BSD-style affix files | vendored data + `README_<dict>.txt` |
+| CMU Pronouncing Dictionary (English syllables, rhymes) | commit `74790861` | BSD-2-Clause | vendored data + `LICENSE` |
+
+No GPL or LGPL code or data is bundled; LanguageTool (LGPL-2.1) stays out (owner decision Q2). Details,
+URLs and SHA-256: `src/StemStudio.Api/LyricAssist/Dictionaries/PROVENANCE.md`; research.md "Phase 0
+results". THIRD-PARTY-LICENSES: CTO at integration (T073). Contract versions and refinements:
+contracts/DELTA.md section 5. Spike T008 moves into the ai-agent lane of the wave (research.md).

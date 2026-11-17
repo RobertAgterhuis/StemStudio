@@ -258,16 +258,7 @@ public sealed class ClaudeKeyContractTests
         Fix = null,
     };
 
-    private static string OperationId(JsonObject operation) => operation["operationId"]!.GetValue<string>();
-
     private static IEnumerable<string> OperationIds(OpenApiContract contract) => contract.Operations.Select(op => OperationId(op.Operation));
-
-    private static string Signature((string Path, string Method, JsonObject Operation) op) => $"{op.Method} {op.Path} {OperationId(op.Operation)}";
-
-    private static IEnumerable<string> Keys(OpenApiContract contract, string section) => Section(contract.Root, section).Select(entry => entry.Key);
-
-    private static IEnumerable<string> ConstantValues(Type type) =>
-        type.GetFields().Where(field => field.IsLiteral).Select(field => (string)field.GetRawConstantValue()!);
 
     private static JsonObject Without(JsonNode node, string member)
     {

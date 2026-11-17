@@ -1,0 +1,26 @@
+@* The lyric assistant pane of the lyrics editor (feature 023; ui-test-ids 1.23.0 lyric-assist-*). Everything starts from an
+   explicit action (FR-002); sheet and model texts are rendered as plain text only. Level column: LevelGate entries
+   lyric-assist.* of the feature catalogue (FR-029). *@
+
+<section class="ss-assist" role="region" aria-label="Lyric assistant" data-testid="lyric-assist-pane" data-state="@State" data-help-id="lyric-assist">
+    <div class="ss-label-row">
+        <h2 class="ss-title">Assistant</h2>
+        <HelpHint HelpId="lyric-assist" />
+    </div>
+    <AssistStatusLine Host="Host" />
+    <AssistRefusalView Host="Host" />
+    @if (Session.Error is { } error)
+    {
+        <p class="ss-error" role="alert" data-testid="lyric-assist-error">@error</p>
+    }
+    <AssistToolbar Host="Host" Disabled="ActionsDisabled" />
+    <AssistDecisions Host="Host" />
+    <SuggestionList Host="Host" OnReveal="OnReveal" OnBackToText="OnBackToText" />
+    <AssistTools Host="Host" OnInsert="OnInsert" />
+    <div class="ss-sr-only" aria-live="polite" data-testid="lyric-assist-live">@Session.Live</div>
+</section>
+
+@if (Session.PendingNotice is not null)
+{
+    <ClaudeNoticeDialog Host="Host" />
+}

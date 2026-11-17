@@ -2,10 +2,10 @@
    rendering), player and download when ready. *@
 @using StemStudio.Contracts.Assets
 
-<tr data-testid="@($"asset-row-{Asset.Id}")" data-status="@AssetText.Value(Asset.Status)" aria-current="@(Highlighted ? "true" : null)"
+<tr id="@LibraryLocation.ItemAnchor(Asset.Id)" data-testid="@($"asset-row-{Asset.Id}")" data-status="@AssetText.Value(Asset.Status)" aria-current="@(Highlighted ? "true" : null)"
     class="@(Highlighted ? "ss-row-highlight" : null)">
     <td class="ss-cell-title">
-        <span class="ss-asset-name" data-testid="@($"asset-name-{Asset.Id}")">@Asset.Name</span>
+        <span class="ss-asset-name" data-testid="@($"asset-name-{Asset.Id}")"><MarkedText Text="@Asset.Name" Highlights="Highlights" Field="SearchFieldDto.Name" /></span>
         @if (Asset.Provenance.Origin == AssetOriginDto.Generation)
         {
             <AiBadge />
@@ -16,6 +16,19 @@
         @if (AssetText.GainNote(Asset.Audio) is { } note)
         {
             <span class="ss-small ss-gain-note" data-testid="@($"asset-gain-note-{Asset.Id}")" data-help-id="export-clipping">@note</span>
+        }
+        @if (ShowPath && Asset.Placement is { } placement)
+        {
+            <span class="ss-small ss-asset-path"><FolderPath Placement="placement" TestId="@($"asset-path-{Asset.Id}")" Highlights="Highlights" /></span>
+        }
+        @if (Hit is { MatchedInstruments.Count: > 0 } hit)
+        {
+            <span class="ss-small ss-asset-matched">Matches
+                @foreach (var label in hit.MatchedInstruments)
+                {
+                    <span class="ss-asset-instrument"><MarkedText Text="@label" Highlights="Highlights" Field="SearchFieldDto.Instrument" Label="@label" /></span>
+                }
+            </span>
         }
     </td>
     <td>
@@ -57,6 +70,11 @@
             {
                 <RadzenButton Text="Retry" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Retry {Asset.Name}")"
                               Click="() => OnRetry.InvokeAsync(Asset)" data-testid="@($"asset-retry-{Asset.Id}")" />
+            }
+            @if (OnLibraryInfo.HasDelegate)
+            {
+                <RadzenButton Text="Library info" Icon="folder_open" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Library info of {Asset.Name}")"
+                              Click="() => OnLibraryInfo.InvokeAsync(Asset)" data-testid="@($"asset-library-info-{Asset.Id}")" />
             }
             <RadzenButton Text="Rename" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Rename {Asset.Name}")"
                           Click="() => OnRename.InvokeAsync(Asset)" data-testid="@($"asset-rename-{Asset.Id}")" />

@@ -49,7 +49,7 @@ public sealed class PortRecordTests
     public void StemStudioActions_HasOneGroupPerFeatureArea()
     {
         typeof(IStemStudioActions).GetProperties().Select(p => p.Name)
-            .ShouldBe(["Tracks", "Mixes", "Artists", "Lyrics", "Assets", "Styles", "Generations", "Songs", "Voices"]);
+            .ShouldBe(["Tracks", "Mixes", "Artists", "Lyrics", "Assets", "Styles", "Generations", "Songs", "Voices", "Library"]);
     }
 
     [Fact]

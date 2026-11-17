@@ -37,5 +37,6 @@ public static class UndoTools
             Schema = ToolSchema.Of(Param.Uuid("lyricsId")),
             Handler = SongToolProvider.DeleteSheetAsync,
         },
+        .. LyricAssistToolProvider.UndoOnly(),
     ];
 }

@@ -1,0 +1,67 @@
+@* Before -> after of apply_lyric_suggestions in the approval card (023 FR-018, tool catalogue 1.2.0; ui-test-ids
+   agent-approval-lyrics-diff). The rows come from the STORED suggestions (GET /api/lyrics/{id}/suggestions), never from
+   the model's arguments, which carry ids only. Lyric text is shown as plain text. *@
+@using System.Text.Json
+@using StemStudio.Contracts.LyricAssist
+@inject IStemStudioApiClient Api
+
+<div class="ss-agent-lyrics-diff" data-testid="agent-approval-lyrics-diff">
+    @if (_error is not null)
+    {
+        <p class="ss-error ss-small" role="alert">@_error</p>
+    }
+    else if (_rows is null)
+    {
+        <p class="ss-small ss-muted">Loading the changes...</p>
+    }
+    else
+    {
+        <table class="ss-table ss-small">
+            <caption class="ss-sr-only">Changes to the lyrics</caption>
+            <thead><tr><th scope="col">Line</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+            <tbody>
+                @foreach (var s in _rows)
+                {
+                    <tr @key="s.SuggestionId" data-testid="@($"agent-approval-lyrics-diff-{s.SuggestionId}")">
+                        <td class="ss-num">@(s.Anchor.Line == 0 ? "Title" : s.Anchor.Line.ToString(System.Globalization.CultureInfo.InvariantCulture))</td>
+                        <td><del>@s.Anchor.Original</del></td>
+                        <td><ins>@(s.Proposal ?? string.Empty)</ins></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (_missing > 0)
+        {
+            <p class="ss-notice ss-small" role="note">@_missing of the requested suggestions are no longer open and will not be applied.</p>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>The tool whose approval shows this diff.</summary>
+    public const string Tool = "apply_lyric_suggestions";
+
+    private List<LyricSuggestionDto>? _rows;
+    private int _missing;
+    private string? _error;
+
+    /// <summary>The approval's arguments (<c>lyricsId</c>, <c>suggestionIds</c>).</summary>
+    [Parameter, EditorRequired]
+    public JsonElement Arguments { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        var (lyricsId, ids) = LyricsDiffArguments.Read(Arguments);
+        if (lyricsId is not { } sheet)
+        {
+            _error = "The request names no lyrics sheet.";
+            return;
+        }
+
+        var (list, error) = await ApiCall.TryAsync(() => Api.ListLyricSuggestionsAsync(sheet, SuggestionStatusDto.Open));
+        _error = error;
+        _rows = list is null ? null : [.. list.Suggestions.Where(s => ids.Contains(s.SuggestionId)).OrderBy(s => s.Anchor.Line).ThenBy(s => s.Anchor.Start)];
+        _missing = ids.Count - (_rows?.Count ?? 0);
+    }
+}

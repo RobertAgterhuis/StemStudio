@@ -45,7 +45,7 @@ internal sealed class FixturePage : IUiToolGateway
     private JsonObject? Answer(string tool, JsonElement arguments) => tool switch
     {
         "open_mixer" => Open(arguments),
-        "navigate" or "open_track" or "open_help" or "search_help" => new JsonObject { ["ok"] = true },
+        "navigate" or "open_track" or "open_help" or "search_help" or "open_library_folder" or "open_lyrics_editor" => new JsonObject { ["ok"] = true, ["opened"] = true },
         _ when _openTrack is null => null,
         "mixer_get_state" => State(),
         "mixer_set_channel" => SetChannel(arguments),

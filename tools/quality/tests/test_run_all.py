@@ -1,8 +1,10 @@
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 
+import duplication
 import run_all
 from duplication import Clone, DuplicationResult, evaluate
 
@@ -64,6 +66,41 @@ def test_tool_error_exits_two(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     assert run_all.main(["--root", str(root), "--report", str(report)], _dup(broken)) == 2
     assert "| Duplication | n/a |" in report.read_text(encoding="utf-8")
     assert "tool error: npx not found" in capsys.readouterr().out
+
+
+def test_jscpd_that_cannot_run_fails_the_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Regression (022/023 lanes): jscpd errored, the summary said "0 errors" and the run was
+    # read as green. A jscpd failure must give a non-zero exit, count as an error and say so.
+    monkeypatch.setattr(shutil, "which", lambda name: "npx")
+    output = "npm notice run jscpd\nError: path does not exist: src/Nope\n"
+
+    def failing(command: list[str], cwd: Path) -> duplication.ToolRun:
+        return duplication.ToolRun(1, output)
+
+    def dup(root: Path, paths: Sequence[Path]) -> DuplicationResult:
+        return duplication.run(root, paths, failing)
+
+    code = run_all.main(["--root", str(_repo(tmp_path))], dup)
+    out = capsys.readouterr().out
+    assert code == 2
+    assert "tool error: jscpd failed (exit code 1): Error: path does not exist" in out
+    assert run_all.NOT_MEASURED in out
+    assert "quality gate FAIL:" in out
+    assert "not measured, 0 exemptions, 1 errors" in out
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [DuplicationResult(tool_error="npx not found"), DuplicationResult(tool_error="jscpd failed")],
+)
+def test_any_tool_error_is_non_zero_even_without_findings(
+    tmp_path: Path, broken: DuplicationResult
+) -> None:
+    result = run_all.run(_repo(tmp_path), [], _dup(broken))
+    assert result.findings == []
+    assert result.exit_code != 0
 
 
 def test_dependency_violation_exits_one(tmp_path: Path) -> None:

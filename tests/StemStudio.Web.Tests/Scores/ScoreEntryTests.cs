@@ -67,10 +67,10 @@ public sealed class ScoreLibraryTests : PageTestContext
 {
     private static readonly string Base = ArtworkData.PublicBase;
 
-    private IRenderedComponent<LibraryPage> RenderLibrary(params AssetDto[] items)
+    private IRenderedComponent<AllItemsView> RenderLibrary(params AssetDto[] items)
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(items));
-        return Render<LibraryPage>();
+        return Render<AllItemsView>();
     }
 
     [Fact]

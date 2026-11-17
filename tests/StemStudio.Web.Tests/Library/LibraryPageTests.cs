@@ -8,15 +8,15 @@ using StemStudio.Web.Tests.Fakes;
 
 namespace StemStudio.Web.Tests.Library;
 
-/// <summary>The library page (007 T039, FR-007, FR-008, ui-test-ids 1.5.0).</summary>
+/// <summary>The 007 flat list, "All items" since 022 (007 T039, FR-007, FR-008, ui-test-ids 1.5.0/1.22.0).</summary>
 public sealed class LibraryPageTests : PageTestContext
 {
     private static readonly Guid NewerId = Guid.Parse("7d4b2c8e-6a1f-4b3d-9e5c-2a3b4c5d6e7f");
 
-    private IRenderedComponent<LibraryPage> RenderLibrary(params AssetListDto[] lists)
+    private IRenderedComponent<AllItemsView> RenderLibrary(params AssetListDto[] lists)
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(lists[0], lists[1..]);
-        return Render<LibraryPage>();
+        return Render<AllItemsView>();
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class LibraryPageTests : PageTestContext
     {
         Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns<AssetListDto>(_ => throw Problem(System.Net.HttpStatusCode.ServiceUnavailable, "Down"));
 
-        var page = Render<LibraryPage>();
+        var page = Render<AllItemsView>();
 
         page.Find("[data-testid=library-error]").TextContent.ShouldBe("Down");
     }
@@ -141,7 +141,10 @@ public sealed class LibraryPageTests : PageTestContext
     {
         Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().NavigateTo($"library?asset={AssetData.AssetId}");
 
-        var page = RenderLibrary(AssetData.List(AssetData.Asset(), AssetData.Asset(NewerId)));
+        Api.ListAssetsAsync(Arg.Any<CancellationToken>()).Returns(AssetData.List(AssetData.Asset(), AssetData.Asset(NewerId)));
+
+        // The 007 link (?asset=) of confirmations before 1.22.0 opens "All items" on the library route (022).
+        var page = Render<LibraryPage>();
 
         page.Find($"[data-testid=asset-row-{AssetData.AssetId}]").GetAttribute("aria-current").ShouldBe("true");
         page.Find($"[data-testid=asset-row-{NewerId}]").HasAttribute("aria-current").ShouldBeFalse();

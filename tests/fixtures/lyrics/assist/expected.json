@@ -1,0 +1,410 @@
+{
+  "version": 1,
+  "about": "Facts of the 023 lyric-assist fixture sheets (T009). Lines are 1-based in the normalised text (markers and blank lines count). planted = corrections a check must find; licences = deliberate poetic licence that must never be an error; unknownWords = dictionary misses that are correct (names). All text is self-written for StemStudio (CC0).",
+  "sheets": {
+    "zomeravond": {
+      "file": "sheets/zomeravond.nl.txt",
+      "title": "Zomeravond",
+      "language": "nl",
+      "blocks": [
+        [
+          1,
+          11
+        ],
+        [
+          13,
+          15
+        ]
+      ],
+      "planted": [
+        {
+          "line": 3,
+          "original": "fluisterd",
+          "proposal": "fluistert",
+          "category": "spelling"
+        },
+        {
+          "line": 14,
+          "original": "vergeeten",
+          "proposal": "vergeten",
+          "category": "spelling"
+        },
+        {
+          "line": 10,
+          "original": "word",
+          "proposal": "wordt",
+          "category": "grammar"
+        },
+        {
+          "line": 11,
+          "original": "en het is zo dat ik eigenlijk wel heel erg moe ben",
+          "proposal": null,
+          "category": "flow"
+        }
+      ],
+      "licences": [
+        {
+          "line": 4,
+          "span": "'k",
+          "licence": "elision"
+        },
+        {
+          "line": 4,
+          "span": "'t",
+          "licence": "elision"
+        },
+        {
+          "line": 8,
+          "span": "Gij zijt",
+          "licence": "archaism"
+        },
+        {
+          "line": 9,
+          "span": "Naar huis ik ga",
+          "licence": "inversion"
+        }
+      ],
+      "unknownWords": [
+        {
+          "line": 15,
+          "word": "Zelmara"
+        }
+      ],
+      "rhythm": {
+        "bpm": 92,
+        "beatsPerBar": 4,
+        "barsPerLine": 2,
+        "syllablesPerBeat": 1.5,
+        "targetSyllables": 12,
+        "deviatingLines": [
+          2
+        ],
+        "syllablesLine2": 15
+      }
+    },
+    "avondlied": {
+      "file": "sheets/avondlied.nl.txt",
+      "title": "Avondlied",
+      "language": "nl",
+      "blocks": [
+        [
+          1,
+          4
+        ]
+      ],
+      "planted": [],
+      "licences": [],
+      "unknownWords": [
+        {
+          "line": 1,
+          "word": "Zelmara"
+        }
+      ],
+      "note": "Second Dutch sheet for quickstart Q2 step 3 (a word added to my words is not flagged here)."
+    },
+    "radio": {
+      "file": "sheets/radio.en.txt",
+      "title": "Radio",
+      "language": "en",
+      "blocks": [
+        [
+          1,
+          11
+        ]
+      ],
+      "planted": [],
+      "licences": [
+        {
+          "line": 10,
+          "span": "Gone are the days",
+          "licence": "inversion"
+        },
+        {
+          "line": 11,
+          "span": "gonna",
+          "licence": "slang"
+        },
+        {
+          "line": 11,
+          "span": "'til",
+          "licence": "elision"
+        }
+      ],
+      "syllables": {
+        "2": 10,
+        "3": 12,
+        "4": 10,
+        "5": 10,
+        "8": 8,
+        "9": 8
+      },
+      "note": "US2 independent test: line 3 is two syllables longer than the section median (10)."
+    },
+    "p1": {
+      "file": "sheets/p1-havenlicht.nl.txt",
+      "title": "Havenlicht",
+      "language": "nl",
+      "lyricLines": 40,
+      "sections": 5,
+      "planted": [
+        {
+          "line": 22,
+          "original": "straaten",
+          "proposal": "straten",
+          "category": "spelling"
+        },
+        {
+          "line": 39,
+          "original": "ochtent",
+          "proposal": "ochtend",
+          "category": "spelling"
+        },
+        {
+          "line": 46,
+          "original": "vergeeten",
+          "proposal": "vergeten",
+          "category": "spelling"
+        },
+        {
+          "line": 27,
+          "original": "word",
+          "proposal": "wordt",
+          "category": "grammar"
+        },
+        {
+          "line": 36,
+          "original": "Jullie hebt",
+          "proposal": "Jullie hebben",
+          "category": "grammar"
+        }
+      ],
+      "licences": [
+        {
+          "line": 4,
+          "span": "'k",
+          "licence": "elision"
+        },
+        {
+          "line": 25,
+          "span": "'t",
+          "licence": "elision"
+        },
+        {
+          "line": 32,
+          "span": "Gij zijt",
+          "licence": "archaism"
+        },
+        {
+          "line": 38,
+          "span": "effe",
+          "licence": "slang"
+        }
+      ]
+    },
+    "p2": {
+      "file": "sheets/p2-harbour-light.en.txt",
+      "title": "Harbour Light",
+      "language": "en",
+      "lyricLines": 40,
+      "sections": 5,
+      "planted": [
+        {
+          "line": 22,
+          "original": "untill",
+          "proposal": "until",
+          "category": "spelling"
+        },
+        {
+          "line": 39,
+          "original": "recieve",
+          "proposal": "receive",
+          "category": "spelling"
+        },
+        {
+          "line": 46,
+          "original": "definately",
+          "proposal": "definitely",
+          "category": "spelling"
+        },
+        {
+          "line": 27,
+          "original": "wake",
+          "proposal": "wakes",
+          "category": "grammar"
+        },
+        {
+          "line": 36,
+          "original": "are",
+          "proposal": "is",
+          "category": "grammar"
+        }
+      ],
+      "licences": [
+        {
+          "line": 25,
+          "span": "gonna",
+          "licence": "slang"
+        },
+        {
+          "line": 32,
+          "span": "Thou art",
+          "licence": "archaism"
+        },
+        {
+          "line": 38,
+          "span": "'cause",
+          "licence": "elision"
+        },
+        {
+          "line": 48,
+          "span": "Runnin'",
+          "licence": "elision"
+        }
+      ]
+    },
+    "inject-en": {
+      "file": "sheets/inject.en.txt",
+      "title": "l-inject",
+      "language": "en",
+      "blocks": [
+        [
+          1,
+          6
+        ]
+      ],
+      "planted": [
+        {
+          "line": 4,
+          "original": "sleaping",
+          "proposal": "sleeping",
+          "category": "spelling"
+        }
+      ],
+      "injectionLines": [
+        3,
+        5
+      ],
+      "cases": [
+        "L-I1",
+        "L-I3",
+        "L-I4"
+      ]
+    },
+    "inject-nl": {
+      "file": "sheets/inject.nl.txt",
+      "title": "l-inject-nl",
+      "language": "nl",
+      "blocks": [
+        [
+          1,
+          4
+        ]
+      ],
+      "planted": [],
+      "injectionLines": [
+        2
+      ],
+      "cases": [
+        "L-I2"
+      ]
+    },
+    "verbatim": {
+      "file": "sheets/verbatim.en.txt",
+      "title": "Kettle",
+      "language": "en",
+      "planted": [],
+      "cases": [
+        "L-V2"
+      ],
+      "note": "Own sheet (no library match). Lines 1-2 equal lines 1-2 of not-own.en.txt so alternatives.json fits both."
+    },
+    "not-own": {
+      "file": "sheets/not-own.en.txt",
+      "title": "Lanterns",
+      "language": "en",
+      "cases": [
+        "L-V1",
+        "L-V3"
+      ],
+      "matches": {
+        "t-fake-song": [
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "matchingShare": 0.5,
+      "expect": "409 not-own-lyrics naming t-fake-song; overridable"
+    },
+    "not-own-two-tracks": {
+      "file": "sheets/not-own-two-tracks.en.txt",
+      "title": "Lanterns and Static",
+      "language": "en",
+      "cases": [
+        "L-V4"
+      ],
+      "matches": {
+        "t-fake-song": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "t-fake-song-2": [
+          7,
+          8,
+          9
+        ]
+      },
+      "expect": "with an override for t-fake-song: 409 not-own-lyrics naming t-fake-song-2"
+    },
+    "cliche-en": {
+      "file": "sheets/cliche-sheet.en.txt",
+      "title": "Cliches",
+      "language": "en",
+      "matches": {
+        "t-fake-cliches": [
+          4,
+          5
+        ]
+      },
+      "expect": "passes the sheet guard (2 matching lines of 5+ words < 3); the 3-4 word cliche lines do not count"
+    },
+    "cliche-nl": {
+      "file": "sheets/cliche-sheet.nl.txt",
+      "title": "Clichés",
+      "language": "nl",
+      "matches": {
+        "t-fake-cliches-nl": [
+          2,
+          3
+        ]
+      },
+      "expect": "passes the sheet guard (2 matching lines of 5+ words < 3)"
+    }
+  },
+  "corpus": {
+    "t-fake-song": {
+      "file": "corpus/t-fake-song.en.txt",
+      "title": "Paper Lanterns",
+      "artist": "Fixture Band",
+      "verbatimRun": "we light the paper lanterns down by the river"
+    },
+    "t-fake-song-2": {
+      "file": "corpus/t-fake-song-2.en.txt",
+      "title": "Salt and Static",
+      "artist": "Fixture Band"
+    },
+    "t-fake-cliches": {
+      "file": "corpus/t-fake-cliches.en.txt",
+      "title": "Baby Baby",
+      "artist": "Fixture Band"
+    },
+    "t-fake-cliches-nl": {
+      "file": "corpus/t-fake-cliches.nl.txt",
+      "title": "Voor Altijd",
+      "artist": "Fixture Band"
+    }
+  }
+}

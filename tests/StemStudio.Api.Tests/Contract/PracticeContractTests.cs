@@ -9,8 +9,8 @@ namespace StemStudio.Api.Tests.Contract;
 /// Skeleton tests (architect, 012 Phase 0, T003/T004): backend-api 1.11.0
 /// (<c>specs/012-practice-tempo/contracts/backend-api.openapi.yaml</c>) is the full 1.21.0 of the 011 follow-up plus exactly the
 /// 012 additions (DELTA.md section 1), and the practice DTOs, defaults and limits match it. Since 013 Phase 0 the merge facts are
-/// checked on the linked 1.11.0 document (<c>Contract/012</c>); schemas and examples come from the current 1.12.0, which keeps
-/// every practice entry unchanged.
+/// checked on the linked 1.11.0 document (<c>Contract/012</c>); schemas and examples come from the current full document (1.23.0
+/// with 013, 022 and 023), which keeps every practice entry unchanged (LyricAssistContractTests, LibraryContractTests).
 /// </summary>
 public sealed class PracticeContractTests
 {

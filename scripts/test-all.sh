@@ -2,6 +2,7 @@
 # Runs every component's lint, test and coverage gate locally (the same commands as CI):
 # .NET (build, format, tests with the per-component 90 % line+branch gate), worker and generator
 # (ruff, mypy, pytest + coverage; the generator's base install only, no torch), audio engine and web-interop (lint, typecheck, coverage, build), contracts (Redocly, render vectors),
+# performance budgets (Category=Perf, uninstrumented), 022/023 contracts (Redocly, merge_full.py --check, output schema, merge tests),
 # secret scan (no Claude key or key value in the repo, feature 011), key volume checks (011 claude-key: tests + static compose check),
 # quality gate (self-checks + SIG checks), public manuals check (docs/public up to date), website build + check (tools/site), fixture generator (checks + generation) and the E2E suite
 # (lint, typecheck, list); feature 012: the 012 contract lint + superset check, the soundtouch emsdk pin check and,
@@ -46,10 +47,16 @@ PRACTICE_CONTRACTS=specs/012-practice-tempo/contracts
 LIBRARY_CARE_CONTRACTS=specs/013-library-care/contracts
 BACKUP_FX=tests/fixtures/backup/pyproject.toml
 PYYAML=pyyaml==6.0.3
+# Features 022 (backend 1.22.0 = 1.12.0 + library folders) and 023 (backend 1.23.0 = 1.22.0 + lyric assistant):
+# full document + delta, merge_full.py (freshness, superset), 023 output schema check and merge tests.
+LIBRARY_FOLDERS_CONTRACTS=specs/022-library-folders/contracts
+LYRIC_ASSIST_CONTRACTS=specs/023-lyric-writing-assistant/contracts
+JSONSCHEMA=jsonschema==4.26.0  # as worker/uv.lock
+PYTEST=pytest==9.2.0
 # SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
 SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
 SCRIPTS_CFG=scripts/pyproject.toml  # tested devops checks (key_volume_checks.py, build-soundtouch tests), quality-gate env
-KEY_CHECKS=(scripts/key_volume_checks.py scripts/tests)
+KEY_CHECKS=(scripts/key_volume_checks.py scripts/backup_folder_checks.py scripts/api_image_size_checks.py scripts/tests)
 AGENT_COVERAGE=tests/StemStudio.Agent.Tests/TestResults/coverage/coverage.cobertura.xml
 AGENT_EVAL_COVERAGE=tests/StemStudio.AgentEval.Tests/TestResults/coverage/coverage.cobertura.xml
 FX=tests/fixtures/pyproject.toml
@@ -87,6 +94,8 @@ step "dotnet format" . dotnet format StemStudio.slnx --verify-no-changes
 step "dotnet test + coverage gate" . dotnet test StemStudio.slnx -c Release --no-build -p:CollectCoverage=true
 step "agent coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_COVERAGE"
 step "agent-eval coverage floor (011)" . uvw python scripts/coverage_floor.py "$AGENT_EVAL_COVERAGE"
+# Timing asserts skip under coverlet: the performance budgets (022 SC-004) run uninstrumented (as in CI).
+step "performance budgets, uninstrumented (Category=Perf)" . dotnet test tests/StemStudio.Api.Tests -c Release --no-build --filter Category=Perf -p:RunSettingsFilePath=
 step "worker uv sync" worker uv sync --frozen
 step "worker ruff check" worker uv run --frozen ruff check .
 step "worker ruff format" worker uv run --frozen ruff format --check .
@@ -128,6 +137,12 @@ step "contracts superset (012 contains 1.21.0)" . uv run --no-project --with "$P
 step "contracts lint (013-library-care)" . npx --yes "$REDOCLY" lint --config "$LIBRARY_CARE_CONTRACTS/redocly.yaml"   "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/worker-api.openapi.yaml"
 step "contracts superset (013 contains 1.11.0)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py"
 step "contracts superset (013 contains its delta)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py"   "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
+step "contracts lint (022-library-folders)" . npx --yes "$REDOCLY" lint --config "$LIBRARY_FOLDERS_CONTRACTS/redocly.yaml"   "$LIBRARY_FOLDERS_CONTRACTS/backend-api.openapi.yaml" "$LIBRARY_FOLDERS_CONTRACTS/backend-api.library-folders.openapi.yaml"
+step "contracts lint (023-lyric-writing-assistant)" . npx --yes "$REDOCLY" lint --config "$LYRIC_ASSIST_CONTRACTS/redocly.yaml"   "$LYRIC_ASSIST_CONTRACTS/backend-api.openapi.yaml" "$LYRIC_ASSIST_CONTRACTS/backend-api.delta.openapi.yaml"
+step "contracts merge check (022 full 1.22.0)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_FOLDERS_CONTRACTS/merge_full.py" --check
+step "contracts merge check (023 full 1.23.0)" . uv run --no-project --with "$PYYAML" python -I "$LYRIC_ASSIST_CONTRACTS/merge_full.py" --check
+step "contracts output schema (023 check_output_schema.py)" . uv run --no-project --with "$JSONSCHEMA" python -I "$LYRIC_ASSIST_CONTRACTS/check_output_schema.py"
+step "contracts merge tests (023 test_merge_full.py)" . uv run --no-project --with "$PYYAML" --with "$PYTEST" python -m pytest "$LYRIC_ASSIST_CONTRACTS"
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
@@ -172,6 +187,10 @@ if [[ $AGENT_E2E -eq 1 ]]; then
   step "agent e2e: fake stack up" . env STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_AGENT_BACKEND=none     docker compose -p "$E2E_PROJECT" up -d --build --wait --wait-timeout 300
   for backend in fake none; do
     step "agent e2e: playwright agent.spec.ts ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/agent-e2e.sh "$backend"
+  done
+  # 023 lyric assistant passes (fake model with /lyric-scripts, then backend none); same api-only recreate.
+  for backend in fake none; do
+    step "agent e2e: lyric assistant ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/lyric-e2e.sh "$backend"
   done
   docker compose -p "$E2E_PROJECT" down -v
 fi

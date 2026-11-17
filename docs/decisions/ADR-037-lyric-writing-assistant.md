@@ -92,3 +92,32 @@ for 022), agent eval set 1.1.0, lyric-assist-output 1.0.0; all additive.
   prompt family to maintain.
 - Follow-ups: optional LanguageTool service (only via decision point T080); remembering rejections across checks
   (YAGNI now); more languages (only with open dictionaries and an eval set).
+
+## Phase 0 outcome (architect, 2026-11-17)
+
+- **Contracts**: backend-api 1.23.0 = 012's 1.11.0 + the 023 delta (Redocly valid, 11 inherited or
+  documented warnings), ui-test-ids 1.23.0, tool catalogue 1.2.0 (document contains 1.0.0, 1.3.0, 1.2.0),
+  agent eval set 1.1.0, lyric-assist-output 1.0.0 (embedded in `StemStudio.Agent`). Pre-release
+  refinements without a label change: `LyricAssist` closed by `unevaluatedProperties` instead of a closed
+  `LyricAssistSummary`; miss verdict `keep`; fake-script folder selection; see contracts/DELTA.md section 5.
+- **D1 refined (ports)**: StemStudio.Agent keeps the 011 rule "Agent -> Contracts only". The assistant
+  reaches the deterministic checks through the Agent port `ILyricVerification` (API adapter over the Domain
+  services); sensitivity, mark and personal-word filtering is the backend's Domain `SuggestionFilter` in the
+  sink.
+- **D2 pinned**: WeCantSpell.Hunspell 7.0.1 (MPL-1.1), OpenTaal nl 2.20.23 (BSD-3-Clause), SCOWL
+  2026.02.25 en_US/en_GB (SCOWL notice), CMUdict `74790861` (BSD-2-Clause); 7.4 MiB vendored, SHA-256
+  checked by tests. No GPL-incompatible bundling.
+- **Numbers not yet measured**: spike T008 (block latency, JSON validity, Dutch first look) did not run in
+  Phase 0 (machine busy, Docker stack off limits); it moves into the ai-agent lane before T068. SC-004 and
+  `BlockLines = 8` stay design estimates until then; a change is configuration only.
+- **T008 spike S-01 (ai-agent, wave 1, 2026-11-17).** Run in a throwaway container of the lane; numbers in research.md
+  "Phase 0 results".
+  - `qwen3.5:9b` warm on the GPU, 40-line sheets in 10 blocks: first block 1.2-5.8 s (nl) and 3.9-22.4 s (en); full
+    sheet 24-32 s (nl) and 36-56 s (en); 6.1 GB VRAM.
+  - JSON with `format`: 70/71 replies valid, and the retry recovered the invalid one.
+  - **SC-004 confirmed for nl**, en full check about 39 s p50. **BlockLines = 8 kept.**
+  - Proposal: merge short sections into blocks of up to 8 lines (about 6 requests), or set the en target to 40 s.
+  - The CPU fallback `qwen3.5:4b` did not produce valid output within the 60 s block timeout (0/19): SC-004's CPU target
+    is open until T068.
+  - Dutch first look of the model layer: weak (recall 0/8 on 8 corrections; typos reported as unlisted `misses`). Expect
+    the standing quality note and owner question Q2 after T068.

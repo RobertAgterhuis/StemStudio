@@ -43,9 +43,9 @@ public static class TrackListQuery
 
     private static IEnumerable<TrackDto> Order(IEnumerable<TrackDto> tracks, TrackSort sort) => sort switch
     {
-        TrackSort.Oldest => tracks.OrderBy(t => t.CreatedAt),
-        TrackSort.Title => tracks.OrderBy(t => t.Title, StringComparer.OrdinalIgnoreCase),
-        TrackSort.Artist => tracks.OrderBy(t => t.Artist is null).ThenBy(t => t.Artist, StringComparer.OrdinalIgnoreCase),
-        _ => tracks.OrderByDescending(t => t.CreatedAt),
+        TrackSort.Oldest => tracks.OrderBy(t => t.CreatedAt).ThenBy(t => t.Id),
+        TrackSort.Title => tracks.OrderBy(t => t.Title, StringComparer.OrdinalIgnoreCase).ThenBy(t => t.Id),
+        TrackSort.Artist => tracks.OrderBy(t => t.Artist is null).ThenBy(t => t.Artist, StringComparer.OrdinalIgnoreCase).ThenBy(t => t.Id),
+        _ => tracks.OrderByDescending(t => t.CreatedAt).ThenBy(t => t.Id),
     };
 }

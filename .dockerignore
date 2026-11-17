@@ -12,6 +12,8 @@
 **/.env.*
 docs
 specs
+# ...except the 023 model-output schema, embedded in StemStudio.Agent (lyric-assist-output 1.0.0, ADR-037 D4)
+!specs/023-lyric-writing-assistant/contracts/lyric-assist-output.schema.json
 e2e
 tools
 scripts

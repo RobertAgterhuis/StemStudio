@@ -285,6 +285,29 @@ ours) rather than a major for the whole UI contract; ADR-036 records it.
 | 018 tablet | layout | Folder grid is responsive; nothing remote-specific. |
 | 004 | key map, preferences, help, levels | Uses the existing hooks only. |
 
+### Re-check against 013 as built (022 Phase 0 part 2, 2026-11-17)
+
+Read-only check of branch `013-library-care` (head `e0e48e72`, integration in progress; not yet on
+`main`) against the R-11 rows. Result: the 013 row holds, with two refinements for the backend lane
+and one for the frontend lane.
+
+| 013 area (as built) | Finding | 022 consequence |
+|---|---|---|
+| Backup (`DatabaseSnapshot`, `BackupArchiveWriter`) | the database file is copied as a whole; backup-archive 1.0.0 has no per-column list | library info and placements are backed up without a format change (confirmed) |
+| Replace restore (`ArchiveValidator`, `KnownSchema`, `DatabaseRebuild`, `LibrarySwitcher`) | an archive is accepted only with known migrations and tables (taken from this app's migrations assembly); it is rebuilt at **its** migration level (row copy over the fresh schema's columns) and then migrated forward; the switch happens **without an app restart** | `AddLibraryFolders` must add only columns and indexes to existing tables (as planned; a new table would also be accepted, `KnownSchema` reads the migrations). A pre-022 archive arrives with `FiledVersion = 0`: the backfill must also start after a restore, not only at start-up -> **refinement 1**: `LibraryFilingBackfill` runs at start-up and whenever a library read (folder view, search) sees `pendingFiling > 0`, single-flight |
+| Merge restore (`MergePlanner`, `LibraryMerger`) | the staged database is migrated forward, then missing tracks/assets are added as EF entities (same id or same track source = skipped, with dependants) | owned `Placement` and the library info columns are carried by the entities; merged pre-022 items have `FiledVersion = 0` and are filed by refinement 1; deterministic folder ids make merged and live items of the same names land in one folder |
+| Write gate (`LibraryGate`) | `BackupRunning` refuses only the listed destructive operations ("every read, every job start, mix and style edits, renames" stay allowed); `Maintenance` answers `503 library-maintenance` + `Retry-After: 5` on every `/api/*` except three; background loops call `WaitWhileMaintenanceAsync` / check `IsMaintenance` per tick | library-info `PUT`/`DELETE` stay outside the write gate (metadata edits like rename; unchanged). **Refinement 2**: the backfill waits while `Maintenance` (round start, 013 on `main`: `LibraryGate` is a required constructor dependency, `WaitWhileMaintenanceAsync` before each batch, pending re-counted after a maintenance it waited for). Frontend: the 2 s folder polling treats `503 library-maintenance` as transient (keep the last view, no error banner; 013's `library-maintenance` overlay explains it) |
+| Clean-up (`CleanupPlanner`, `CleanupExecutor`) | removes regenerable track files (detail stems, caches) and never library items; skips tracks with an active export | folders never change through clean-up (confirmed) |
+| Storage overview (`StorageOverviewService`) | per volume, category and track | unchanged; folder sizes are sums of item sizes (another grouping of the same bytes) |
+| UI (`/care`, ids `nav-care`, `library-job*`, `library-maintenance`, help `library-care`, `backup-*`, `storage-*`) | no id or help topic on `/library` | no collision with the 022 ids or help topics |
+| Contracts | backend-api 1.12.0 (= 1.11.0 + 013) adds `library-care`/`storage` tags, `DetailPhase.filesRemovedAt`, write-gate responses on ten operations; it changes no `Asset` member and adds no 022 name | the 022 merge onto 1.12.0 is mechanical (`merge_full.py --base specs/013-library-care/contracts/backend-api.openapi.yaml`); the same holds for ui-test-ids 1.12.0 |
+
+014 (shortcut catalogue FR-020) and 015 (`origin = recording`) are built **after** 022 (owner order
+2026-11-17): `/` is bound through the 004 key map by 022 and adopted into 014's catalogue with owner
+022 when 014 is built; the recording exclusion is written as a predicate (`LibraryFilingRules`) that
+is true for every origin that exists today, and 015 adds its origin to it. The `409 not-fileable`
+response stays in the contract (it cannot occur before 015).
+
 ## R-12 Agent tools (tool catalogue 1.1.0)
 
 | Tool | Kind | Risk | Undo | Purpose |

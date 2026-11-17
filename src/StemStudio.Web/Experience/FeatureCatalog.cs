@@ -70,6 +70,17 @@ public static class FeatureCatalog
         new("care.top-tracks", Beginner, Beginner, "storage-overview"),
         new("care.worker-entries", Expert, null, "storage-regenerable"),
         new("care.restore-merge", Advanced, null, "backup-restore"),
+        new("lyrics.assist-count", Advanced, null, "lyric-assist"),
+        new("lyrics.assist-titles", Advanced, null, "lyric-assist"),
+        new("lyrics.assist-filters", Advanced, null, "lyric-assist"),
+        new("lyrics.assist-layers", Advanced, null, "lyric-assist-privacy"),
+        new("lyrics.assist-usage", Advanced, null, "lyric-assist-privacy"),
+        new("lyrics.assist-sensitivity", Advanced, null, "lyric-assist-licence"),
+        new("lyrics.assist-marks", Advanced, null, "lyric-assist-licence"),
+        new("lyrics.assist-rhythm", Advanced, null, "lyric-assist-rhythm"),
+        new("lyrics.assist-source", Expert, null, "lyric-assist-privacy"),
+        new("lyrics.assist-log", Expert, null, "lyric-assist-privacy"),
+        new("lyrics.assist-revisions", Expert, null, "lyric-assist"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>

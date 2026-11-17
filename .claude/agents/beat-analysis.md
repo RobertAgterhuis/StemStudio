@@ -25,3 +25,7 @@ worker contract, `ports.py` (`BeatAnalyzer`), `schemas.py` (`BeatGrid`).
 - Public API documented; new dependencies and licences listed in the hand-off.
 - Silence or no clear pulse returns a grid flagged unreliable and never crashes.
 - Hand-off note `docs/handoffs/beat-analysis-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

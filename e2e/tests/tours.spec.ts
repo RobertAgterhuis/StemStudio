@@ -1,3 +1,5 @@
+import { ensureCancelledPhase } from '../support/detail';
+import { detailPhaseTimeoutMs, fakeJobTimeoutMs } from '../support/env';
 import { levelState, readStoredPreferences, tourVersions } from '../support/preferences';
 import { openScreen } from '../support/screens';
 import { readTourDefinition, stepRange, tourCases } from '../support/tours';
@@ -69,11 +71,14 @@ test.describe('mixer-advanced and missing targets', () => {
   });
 
   test('skips the step whose target is missing on a song without detail stems', { tag: '@ux' }, async ({
+    api,
     mixer,
     tour,
-    uxData,
-  }) => {
-    await mixer.goto(uxData.plainTrack.id);
+  }, testInfo) => {
+    test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 60_000);
+    // Own unsplit copy: the shared click track is not reliably plain (support/detail.ts).
+    const plain = await ensureCancelledPhase(api, `tour-unsplit-${testInfo.project.name}`);
+    await mixer.goto(plain.id);
     await mixer.waitForReady(['vocals', 'drums']);
     await expect(mixer.expand('drums')).toHaveCount(0);
     await tour.startFromOfferWithKeyboard('mixer-advanced');

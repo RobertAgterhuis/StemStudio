@@ -5,8 +5,10 @@ namespace StemStudio.Agent.Backends.Fakes;
 
 /// <summary>
 /// The chat session of the E2E fake stack (<c>STEMSTUDIO_AGENT_BACKEND=fake</c>): every run plays the script from its first
-/// turn. A call argument string (also inside argument lists and records) that is exactly <c>{{context.trackId}}</c> or
-/// <c>{{context.mixId}}</c> is replaced by the page context of the run's command (server-generated ids; empty when absent);
+/// turn. A call argument string (also inside argument lists and records) that is exactly <c>{{context.trackId}}</c>,
+/// <c>{{context.mixId}}</c> or <c>{{context.lyricsId}}</c> is replaced by the page context of the run's command (server-generated
+/// ids; empty when absent); a whole <c>{{result.&lt;tool&gt;.ids:&lt;category&gt;}}</c> is resolved per turn from the run's earlier
+/// results (<see cref="ScriptResultPlaceholders"/>);
 /// any other <c>{{...}}</c> text, including a placeholder inside a longer string or in assistant text, is passed through
 /// unchanged (contracts/DELTA.md section 8). One run at a time, like the API (one active run globally).
 /// </summary>
@@ -18,6 +20,9 @@ public sealed class ScriptedChatSession(string scriptJson) : IAgentChatSession
 
     /// <summary>Placeholder for the command's mix id.</summary>
     public const string MixPlaceholder = "{{context.mixId}}";
+
+    /// <summary>Placeholder for the command's lyrics sheet id (023 lyrics editor).</summary>
+    public const string LyricsPlaceholder = "{{context.lyricsId}}";
 
     private readonly Lock _gate = new();
     private (Guid RunId, ScriptedChatClient Client)? _current;
@@ -57,6 +62,7 @@ public sealed class ScriptedChatSession(string scriptJson) : IAgentChatSession
     {
         [TrackPlaceholder] = context.Command.TrackId?.ToString() ?? string.Empty,
         [MixPlaceholder] = context.Command.MixId?.ToString() ?? string.Empty,
+        [LyricsPlaceholder] = context.Command.LyricsId?.ToString() ?? string.Empty,
     };
 
     private static IEnumerable<JsonObject> Calls(JsonArray turns) =>

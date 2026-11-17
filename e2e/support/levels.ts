@@ -158,11 +158,26 @@ export const advancedMixDialogIds: readonly string[] = [
   'export-range-end',
 ];
 
-/** Library ids rendered at every level. */
-export const everyLevelLibraryIds: readonly string[] = ['library-total-size'];
+/** Library ids rendered at every level on the root `/library` (1.5.0; `library-search` every level since 1.22.0). */
+export const everyLevelLibraryIds: readonly string[] = ['library-total-size', 'library-search'];
 
-/** Library filters that Beginner does not render (1.5.0). */
-export const beginnerHiddenLibraryIds: readonly string[] = ['library-filter-track', 'library-filter-kind', 'library-search'];
+/**
+ * Library filters that Beginner does not render (1.5.0). Since 1.22.0 they live in "All items"
+ * (`/library?view=all`, Advanced+) and `library-search` renders at every level (R-10 migration).
+ */
+export const beginnerHiddenLibraryIds: readonly string[] = ['library-filter-track', 'library-filter-kind'];
+
+/** 1.22.0 folder-view ids rendered at every level on the library root (feature 022). */
+export const everyLevelLibraryFolderIds: readonly string[] = [
+  'library-folders',
+  'library-breadcrumb',
+  'library-folder-title',
+  'library-layout-grid',
+  'library-layout-list',
+];
+
+/** 1.22.0 ids that Beginner does not render on the library root (`library-search-scope` exists only inside a folder). */
+export const beginnerHiddenLibraryFolderIds: readonly string[] = ['library-view-all', 'library-sort'];
 
 /** Asserts that no element's `data-testid` starts with `prefix` (per-key ids such as `export-channel-`). */
 export async function expectNoIdWithPrefix(page: Page, prefix: string): Promise<void> {

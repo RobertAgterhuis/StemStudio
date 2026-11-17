@@ -1,0 +1,31 @@
+@* The live search box (feature 022, FR-022, FR-026, FR-027, FR-029; ui-test-ids 1.22.0 library-search): a labelled search
+   field on every level, a clear button while it has text, "Only in this folder" (Advanced, inside a folder) and the
+   polite result count. Enter searches at once, Escape clears, Arrow Down moves to the first result.
+   The value is bound with @bind (get/set), not value= plus @oninput: only a bound attribute is kept in step with what the
+   browser sent, so a render while keys are still on their way never writes an older text into the box (022 E2E: lost
+   characters when typing fast). *@
+
+<div class="ss-library-search" role="search" data-help-id="library-search">
+    <div class="ss-label-row">
+        <label for="library-search">Search the library</label>
+        <HelpHint HelpId="library-search" />
+    </div>
+    <div class="ss-search-row">
+        <input id="library-search" type="search" class="rz-textbox ss-search" maxlength="@ContractLimits.LibrarySearchMaxLength" autocomplete="off"
+               placeholder="Artist, album, song or instrument" @bind:get="Controller.Text" @bind:set="OnInput" @bind:event="oninput" @onkeydown="OnKeyAsync"
+               aria-describedby="library-search-status" data-testid="library-search" @ref="_input" />
+        @if (Controller.Text.Length > 0)
+        {
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" aria-label="Clear search" title="Clear search"
+                          Click="Controller.ClearAsync" data-testid="library-search-clear" />
+        }
+    </div>
+    @if (FolderId is not null)
+    {
+        <LevelGate Feature="library.filters">
+            <label class="ss-check"><input type="checkbox" checked="@(Controller.Within == FolderId)" @onchange="OnScopeAsync"
+                                           data-testid="library-search-scope" /> Only in this folder</label>
+        </LevelGate>
+    }
+    <span id="library-search-status" class="ss-sr-only" role="status" aria-live="polite" data-testid="library-search-status">@Status</span>
+</div>

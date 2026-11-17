@@ -1,4 +1,5 @@
 using StemStudio.Api.Artwork;
+using StemStudio.Api.Library;
 using StemStudio.Api.Worker;
 using StemStudio.Domain;
 using StemStudio.Domain.Artists;
@@ -16,7 +17,8 @@ namespace StemStudio.Api.Metadata;
 /// <param name="artists">Artist repository (same unit of work as the tracks).</param>
 /// <param name="artwork">Downloads and offers the matched picture.</param>
 /// <param name="clock">Clock.</param>
-public sealed class MetadataJobApplier(IWorkerClient worker, IArtistRepository artists, ArtworkDownloader artwork, TimeProvider clock)
+/// <param name="filer">Re-files the track's items once the lookup finished (feature 022, FR-009).</param>
+public sealed class MetadataJobApplier(IWorkerClient worker, IArtistRepository artists, ArtworkDownloader artwork, TimeProvider clock, ILibraryFiler filer)
 {
     /// <summary>Prefix of the failure reason when the worker's artist facts break a value limit.</summary>
     public const string InvalidFactsPrefix = "The band information is invalid";
@@ -42,22 +44,26 @@ public sealed class MetadataJobApplier(IWorkerClient worker, IArtistRepository a
         track.FailLookup(reason, Now);
     }
 
-    /// <summary>Applies a polled job state (not saved).</summary>
+    /// <summary>Applies a polled job state (not saved); a finished lookup re-files the track's items (022).</summary>
     /// <param name="track">A track whose lookup is searching.</param>
     /// <param name="job">The job, or null when the worker no longer knows it.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
     /// <exception cref="WorkerUnavailableException">The worker became unreachable.</exception>
-    public Task ApplyAsync(Track track, WorkerMetadataJob? job, CancellationToken cancellationToken)
+    public async Task ApplyAsync(Track track, WorkerMetadataJob? job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return job?.Status switch
+        await (job?.Status switch
         {
             null => Fail(track, string.Empty),
             WorkerMetadataJobState.Failed => Fail(track, job.Error ?? string.Empty),
             WorkerMetadataJobState.Completed => CompleteAsync(track, job.MetadataJobId, cancellationToken),
             _ => Task.CompletedTask,
-        };
+        });
+        if (!track.IsLookupActive)
+        {
+            await filer.RefileTrackAsync(track, cancellationToken);
+        }
     }
 
     /// <summary>Deletes the artist a track referenced before when no track references it any more (FR-016).</summary>

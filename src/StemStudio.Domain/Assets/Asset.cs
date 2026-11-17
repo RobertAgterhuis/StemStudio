@@ -6,7 +6,7 @@ namespace StemStudio.Domain.Assets;
 /// A library item: a file the app made, e.g. an exported stem or mix (feature 007, data-model 4.1 and status mapping
 /// 4.5). Kept when its track is deleted.
 /// </summary>
-public sealed class Asset
+public sealed partial class Asset
 {
     /// <summary>Longest error text.</summary>
     public const int MaxErrorLength = 500;

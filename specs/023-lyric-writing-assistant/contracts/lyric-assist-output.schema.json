@@ -23,7 +23,7 @@
         "properties": {
           "line": { "type": "integer", "minimum": 1 },
           "word": { "type": "string", "minLength": 1, "maxLength": 40 },
-          "verdict": { "enum": ["typo", "licence"] },
+          "verdict": { "enum": ["typo", "licence", "keep"], "description": "typo: a misspelling with a correction; licence: deliberate (licenceType); keep: a correct word the dictionary does not know (a name, a neologism) - nothing is reported. A miss without a verdict is reported as when no model ran (improvement with the dictionary suggestions)." },
           "correction": { "type": ["string", "null"], "maxLength": 40 },
           "licenceType": { "enum": ["elision", "inversion", "archaism", "sound-spelling", "slang", "code-switch", null] }
         }

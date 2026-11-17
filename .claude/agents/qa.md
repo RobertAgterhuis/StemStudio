@@ -24,3 +24,7 @@ spec acceptance scenarios, all contracts, the running stack.
 - Public API documented; new dependencies and licences listed in the hand-off.
 - The E2E suite passes against the real stack with retries=0.
 - Hand-off note `docs/handoffs/qa-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

@@ -22,6 +22,9 @@ export const agentScripts = [
   'us5-practice-update',
   'us6-restyle',
   'us6-imitation',
+  'us4-lyric-check',
+  'us4-lyric-apply',
+  'us6-lyric-override',
 ] as const;
 
 /** Name of one script. */
@@ -39,8 +42,21 @@ export const contextTrackId = '{{context.trackId}}';
 /** Replaced by the fake backend with `SendMessageRequest.context.mixId` of the run's message. */
 export const contextMixId = '{{context.mixId}}';
 
-/** The only placeholders a script may use (TEST-STRATEGY 17.4). */
-export const knownPlaceholders: readonly string[] = [contextTrackId, contextMixId];
+/** Replaced with `SendMessageRequest.context.lyricsId` (feature 023; CTO decision on the qa T060 gap). */
+export const contextLyricsId = '{{context.lyricsId}}';
+
+/** The only exact placeholders a script may use (TEST-STRATEGY 17.4). */
+export const knownPlaceholders: readonly string[] = [contextTrackId, contextMixId, contextLyricsId];
+
+/**
+ * Result placeholders (feature 023; CTO decision on the qa T060 gap):
+ * `{{result.list_lyric_suggestions.ids:<category>}}` is replaced (whole value, JSON array) with
+ * the ids of the suggestions of that category in the run's most recent `list_lyric_suggestions`
+ * result; an empty array when none; a script error without such an earlier call.
+ */
+export const knownPlaceholderPatterns: readonly RegExp[] = [
+  /^\{\{result\.list_lyric_suggestions\.ids:(spelling|grammar|flow|licence|device|alternative|continuation|title)\}\}$/u,
+];
 
 /** One scripted tool call (schema `$defs.call`). */
 export interface AgentScriptCall {

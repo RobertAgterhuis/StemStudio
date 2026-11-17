@@ -25,3 +25,7 @@ Pages and components, typed API client, JS interop wrapper, bUnit tests with moc
 - Public API documented; new dependencies and licences listed in the hand-off.
 - Logic lives in code-behind/services so components stay small; stable `data-testid` attributes for Playwright.
 - Hand-off note `docs/handoffs/frontend-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

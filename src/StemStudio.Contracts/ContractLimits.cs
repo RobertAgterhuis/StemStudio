@@ -1,7 +1,7 @@
 namespace StemStudio.Contracts;
 
 /// <summary>Validation limits that are part of the public contract (spec FR-003, FR-014, FR-016).</summary>
-public static class ContractLimits
+public static partial class ContractLimits
 {
     /// <summary>Maximum upload size in bytes (200 MiB).</summary>
     public const long MaxUploadBytes = 200L * 1024 * 1024;

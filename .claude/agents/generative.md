@@ -36,3 +36,7 @@ A generator service matching the contract; contract tests; exactly one
   except the marked integration tests.
 - Public API documented (docstrings); new dependencies and licences listed in the hand-off.
 - Hand-off note `docs/handoffs/generative-<task>.md` written; work committed (Conventional Commits).
+
+## Lessons from earlier rounds
+
+Before starting, read the "All roles" section and the section for your role in `docs/process/LESSONS.md`.

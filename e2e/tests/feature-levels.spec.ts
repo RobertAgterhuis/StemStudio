@@ -7,9 +7,11 @@ import {
   advancedTrackFeatureIds,
   agentShellIds,
   beginnerHiddenDialogIds,
+  beginnerHiddenLibraryFolderIds,
   beginnerHiddenLibraryIds,
   beginnerHiddenSettingsIds,
   beginnerHiddenTrackFeatureIds,
+  everyLevelLibraryFolderIds,
   everyLevelLibraryIds,
   everyLevelMixDialogIds,
   everyLevelMixerFeatureIds,
@@ -23,6 +25,7 @@ import {
 import { levelState } from '../support/preferences';
 import { expect, test } from '../support/test';
 import type { ExportDialog } from '../pages/export-dialog';
+import { LibraryFoldersPage } from '../pages/library-folders-page';
 import type { MixerPage } from '../pages/mixer-page';
 
 // Level rules of the 005/007 additions (ui-test-ids 1.4.0 and 1.5.0 "Beginner" columns, R7;
@@ -74,11 +77,13 @@ test.describe('Beginner', () => {
     await expectNoIdWithPrefix(page, 'export-channel-');
   });
 
-  test('the library has no filters or search', { tag: '@library' }, async ({ page, library }) => {
-    await library.goto();
+  // 1.22.0 (022 R-10): the root is the folder view with the live search; filters, sort and
+  // "All items" are Advanced+.
+  test('the library root has folders and search but no filters, sort or All items', { tag: '@library' }, async ({ page }) => {
+    await new LibraryFoldersPage(page).gotoRoot();
     await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'beginner');
-    await expectRendered(page, everyLevelLibraryIds);
-    await expectNotRendered(page, beginnerHiddenLibraryIds);
+    await expectRendered(page, [...everyLevelLibraryIds, ...everyLevelLibraryFolderIds]);
+    await expectNotRendered(page, [...beginnerHiddenLibraryIds, ...beginnerHiddenLibraryFolderIds]);
   });
 
   test('the settings page shows the backend choice, status, test and save, no model pickers', { tag: '@agent' }, async ({ page }) => {
@@ -111,10 +116,12 @@ test.describe('Advanced', () => {
     await expectNotRendered(page, ['export-bit-depth']);
   });
 
-  test('the library has the track and kind filters and search', { tag: '@library' }, async ({ page, library }) => {
+  test('All items has the track and kind filters and search; the root adds sort and All items', { tag: '@library' }, async ({ page, library }) => {
     await library.goto();
     await expect(page.getByTestId('app-shell')).toHaveAttribute('data-level', 'advanced');
-    await expectRendered(page, [...everyLevelLibraryIds, ...beginnerHiddenLibraryIds]);
+    await expectRendered(page, [...everyLevelLibraryIds, ...beginnerHiddenLibraryIds, 'library-view-folders']);
+    await new LibraryFoldersPage(page).gotoRoot();
+    await expectRendered(page, [...everyLevelLibraryFolderIds, ...beginnerHiddenLibraryFolderIds]);
   });
 
   test('the settings page renders every level-free control and no Claude pickers (Expert only)', { tag: '@agent' }, async ({ page }) => {

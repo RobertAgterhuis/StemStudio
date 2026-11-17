@@ -15,7 +15,7 @@ public static class SongMapper
         ArgumentNullException.ThrowIfNull(song);
         return new SongDetailsDto
         {
-            Lyrics = new LyricsSnapshotDto { LyricsId = song.Lyrics.LyricsId, Title = song.Lyrics.Title, Language = song.Lyrics.Language, Text = song.Lyrics.Text },
+            Lyrics = new LyricsSnapshotDto { LyricsId = song.Lyrics.LyricsId, Title = song.Lyrics.Title, Language = song.Lyrics.Language, Text = song.Lyrics.Text, AssistedLineCount = song.Lyrics.AssistedLineCount },
             Style = song.Style is { } style ? StyleMapper.ToDto(style) : null,
             FreeCaption = song.FreeCaption,
             Voice = new SongVoiceDto { LeadVoice = StyleMapper.Map<LeadVoiceDto>(song.LeadVoice), Delivery = song.Delivery },

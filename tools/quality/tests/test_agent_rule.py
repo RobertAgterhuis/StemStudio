@@ -85,8 +85,9 @@ CLEAN_GRAPH = {
 
 
 def test_agent_graph_is_clean(tmp_path: Path) -> None:
+    packages = ("Microsoft.Extensions.AI", "OllamaSharp", "Anthropic")
     for name, refs in CLEAN_GRAPH.items():
-        _project(tmp_path, name, refs, ("Microsoft.Extensions.AI", "OllamaSharp", "Anthropic"))
+        _project(tmp_path, name, refs, () if name == "StemStudio.Domain" else packages)
     assert dependency_check.run(tmp_path) == []
 
 

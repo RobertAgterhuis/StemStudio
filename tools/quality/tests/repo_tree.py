@@ -49,3 +49,13 @@ def api_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, i
     """
     write_file(root, f"{API_PROJECT}/{rel}", text)
     return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]
+
+
+def src_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, int, str]]:
+    """Write ``src/<rel>``, run the dependency check below ``root``.
+
+    Like ``api_findings`` for any project folder (``StemStudio.Domain/Library/X.cs``); returns
+    (severity, message, line, owner) per finding.
+    """
+    write_file(root, f"src/{rel}", text)
+    return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]
