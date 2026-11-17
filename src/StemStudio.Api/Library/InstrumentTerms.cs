@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Library;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Library;
 using StemStudio.Domain.Rendering;
 using StemStudio.Domain.Scores;
 
@@ -9,8 +10,13 @@ namespace StemStudio.Api.Library;
 
 /// <summary>An instrument label of an item and the folded words it is found by.</summary>
 /// <param name="Label">Display label ("Snare", "Lead vocals", "Mix").</param>
-/// <param name="Words">Folded search words (id words, label, family aliases).</param>
-public sealed record InstrumentTerm(string Label, IReadOnlyList<string> Words);
+/// <param name="FoldedLabel">The folded label (highlight offsets).</param>
+/// <param name="Words">Folded id words and label; a search word matches when it is part of one of them.</param>
+/// <param name="Aliases">
+/// The family's everyday words, folded and split into words; an alias matches only as a whole phrase of consecutive
+/// search words (CTO decision 022: "guitar" does not find the bass alias "bass guitar").
+/// </param>
+public sealed record InstrumentTerm(string Label, FoldedText FoldedLabel, IReadOnlyList<string> Words, IReadOnlyList<string[]> Aliases);
 
 /// <summary>
 /// The instrument words of an item (feature 022, research R-08, FR-024/FR-036): every channel it contains with the same
@@ -27,7 +33,7 @@ public sealed class InstrumentTerms
 
     private static readonly ConcurrentDictionary<string, InstrumentTerm> Cache = new(StringComparer.Ordinal);
 
-    private static readonly InstrumentTerm MixTerm = Term(InstrumentLabels.Mix, [InstrumentLabels.Mix]);
+    private static readonly InstrumentTerm MixTerm = Term(InstrumentLabels.Mix, null);
 
     private static readonly string[] ChannelOrder = [.. InstrumentLabels.Channels.Select(channel => channel.ChannelId)];
 
@@ -81,16 +87,24 @@ public sealed class InstrumentTerms
     }
 
     private static InstrumentTerms Single(string channel, string label, int group) =>
-        new([Cache.GetOrAdd($"{label}{channel}", _ => Term(label, [label, .. InstrumentLabels.SearchWordsOf(channel)]))], group, IndexOf(channel));
+        new([Cache.GetOrAdd($"{label}{channel}", _ => Term(label, channel))], group, IndexOf(channel));
 
     private static InstrumentTerm ChannelTerm(string channelId) => Cache.GetOrAdd(channelId, id =>
     {
         InstrumentLabels.TryGetLabel(id, out var label);
-        return Term(label!, InstrumentLabels.SearchWordsOf(id));
+        return Term(label!, id);
     });
 
-    private static InstrumentTerm Term(string label, IEnumerable<string> words) =>
-        new(label, [.. words.Select(word => Domain.Library.LibraryKey.Fold(word).Value).Distinct(StringComparer.Ordinal)]);
+    private static InstrumentTerm Term(string label, string? channelId)
+    {
+        var words = channelId is null ? [label] : new[] { label, channelId.Replace('.', ' ').Replace('-', ' ') };
+        var aliases = InstrumentLabels.FamilyOf(channelId)?.Aliases ?? [];
+        return new InstrumentTerm(
+            label,
+            LibraryKey.Fold(label),
+            [.. words.Select(word => LibraryKey.Fold(word).Value).Distinct(StringComparer.Ordinal)],
+            [.. aliases.Select(alias => LibraryKey.Fold(alias).Value.Split(' '))]);
+    }
 
     private static int IndexOf(string channelId) => Array.IndexOf(ChannelOrder, channelId) is var index and >= 0 ? index : ChannelOrder.Length;
 

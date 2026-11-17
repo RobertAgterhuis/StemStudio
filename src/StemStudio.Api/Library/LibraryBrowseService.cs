@@ -34,6 +34,25 @@ public sealed class LibraryBrowseService(LibraryIndex index, ILibraryRepository 
         return Respond(snapshot, ifNoneMatch, () => FolderTreeBuilder.View(snapshot, query) is { } view ? TypedResults.Ok(view) : LibraryProblems.FolderNotFound());
     }
 
+    /// <summary>The live search.</summary>
+    /// <param name="request">Query string.</param>
+    /// <param name="ifNoneMatch">The <c>If-None-Match</c> header.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>200, 304, 404 (unknown <c>within</c>) or 422.</returns>
+    public async Task<IResult> SearchAsync(SearchQueryRequest request, string? ifNoneMatch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var errors = new List<DomainError>();
+        var search = request.ToRequest(errors);
+        if (errors.Count > 0)
+        {
+            return LibraryProblems.QueryInvalid(errors);
+        }
+
+        var snapshot = await SnapshotAsync(cancellationToken);
+        return Respond(snapshot, ifNoneMatch, () => LibrarySearch.Run(snapshot, search) is { } result ? TypedResults.Ok(result) : LibraryProblems.FolderNotFound());
+    }
+
     /// <summary>The current snapshot; starts the background filing when items are unfiled.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The snapshot.</returns>

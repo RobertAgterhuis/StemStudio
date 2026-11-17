@@ -40,6 +40,7 @@ public sealed record LibraryEntry(Asset Asset, Placement Placement, InstrumentTe
 public sealed class LibrarySnapshot
 {
     private readonly Dictionary<string, List<LibraryEntry>> _folders;
+    private readonly Lazy<SearchIndex> _search;
 
     private LibrarySnapshot(string revision, IReadOnlyList<LibraryEntry> entries, IReadOnlyDictionary<Guid, TrackArtRow> tracks, int pending)
     {
@@ -47,6 +48,7 @@ public sealed class LibrarySnapshot
         _folders = entries.SelectMany(entry => new[] { (entry.ArtistId, entry), (entry.AlbumId, entry), (entry.SongId, entry) })
             .GroupBy(pair => pair.Item1, pair => pair.entry, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+        _search = new Lazy<SearchIndex>(() => SearchIndex.Build(this));
     }
 
     /// <summary>Library revision (16 hex).</summary>
@@ -60,6 +62,9 @@ public sealed class LibrarySnapshot
 
     /// <summary>Items not filed with the current rules yet.</summary>
     public int PendingFiling { get; }
+
+    /// <summary>The folded search fields (built on first use, thread-safe).</summary>
+    public SearchIndex Search => _search.Value;
 
     /// <summary>Builds a snapshot.</summary>
     /// <param name="revision">Library revision.</param>

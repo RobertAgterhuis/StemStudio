@@ -39,7 +39,7 @@ public sealed class LibraryPerfTests
     }
 
     [Fact]
-    public async Task FolderViews_P95Within100ms_AndIndexRebuildWithin200ms()
+    public async Task FolderViewsWithin100ms_RebuildWithin200ms_SearchWithin50ms()
     {
         using var factory = new ApiFactory();
         using var client = factory.CreateClient();
@@ -59,6 +59,23 @@ public sealed class LibraryPerfTests
 
         Percentile(times, 0.95).ShouldBeLessThan(100);
         Percentile(rebuilds, 0.5).ShouldBeLessThan(200);
+        Percentile(await SearchTimesAsync(client), 0.95).ShouldBeLessThan(50);
+    }
+
+    private static async Task<List<double>> SearchTimesAsync(HttpClient client)
+    {
+        string[] queries = ["m", "met", "snare", "artist 01", "the art", "zzzz", "song 12", "drums", "lead vocals", "album 3 bass"];
+        (await client.GetAsync(new Uri(ApiRoutes.LibrarySearch + "?q=warm", UriKind.Relative), Ct)).Dispose();
+        var times = new List<double>();
+        for (var round = 0; round < 10; round++)
+        {
+            foreach (var query in queries)
+            {
+                times.Add(await TimeAsync(() => client.GetAsync(new Uri($"{ApiRoutes.LibrarySearch}?q={Uri.EscapeDataString(query)}", UriKind.Relative), Ct)));
+            }
+        }
+
+        return times;
     }
 
     [Fact]
