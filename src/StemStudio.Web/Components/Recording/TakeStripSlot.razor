@@ -3,5 +3,7 @@
 
 @if (Mixer.Recording is { } session)
 {
-    <TakeStrip Takes="session.Takes" OnChanged="session.RefreshAsync" />
+    <TakeStrip Takes="session.Takes" OnChanged="session.RefreshAsync">
+        <TakeCompare Takes="session.Takes" OnChanged="session.RefreshAsync" />
+    </TakeStrip>
 }

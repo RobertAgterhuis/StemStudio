@@ -111,7 +111,7 @@ public sealed partial class RecordingSession : IAsyncDisposable
 
     /// <summary>The <c>C</c> shortcut: cycles My take / Original / Both (US4).</summary>
     /// <returns>A task that completes when applied.</returns>
-    public Task CycleCompareAsync() => Task.CompletedTask;
+    public Task CycleCompareAsync() => Takes.CycleCompareAsync();
 
     /// <summary>"Set to 100 %" (FR-009).</summary>
     /// <returns>A task that completes when applied.</returns>

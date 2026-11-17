@@ -60,7 +60,7 @@ public sealed partial class TakeLibrary
         _items.RemoveAll(removed.Contains);
         if (Loaded is { } loaded && removed.Contains(loaded))
         {
-            Loaded = null;
+            (Loaded, Compare) = (null, TakeCompareMode.Both);
             await engine.UnloadTakeAsync();
         }
     }
