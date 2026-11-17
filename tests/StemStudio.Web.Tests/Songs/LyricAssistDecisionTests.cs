@@ -39,6 +39,42 @@ public sealed class LyricAssistDecisionTests : IDisposable
     }
 
     [Fact]
+    public async Task Accept_ClosesTheSuggestion_WhenTheListHasOnlyOpenOnesByDefault()
+    {
+        // Contract listLyricSuggestions: no status filter = status=open, so an accepted suggestion is not in the refreshed
+        // list. The board must still learn that it is no longer open (023 E2E r22: accepted entries stayed in the list).
+        ListLikeTheServer(SpellingFix(SuggestionStatusDto.Accepted), GrammarFix(), DeviceIdea());
+
+        await _session.AcceptAsync([Spelling]);
+
+        _session.Board.Find(Spelling)!.Status.ShouldBe(SuggestionStatusDto.Accepted);
+        _session.Board.Open.Select(s => s.SuggestionId).ShouldBe([Grammar, Device]);
+    }
+
+    [Fact]
+    public async Task MarkIntentional_ClosesTheSuggestion_WhenTheListHasOnlyOpenOnesByDefault()
+    {
+        ListLikeTheServer(SpellingFix(SuggestionStatusDto.Intentional), GrammarFix(), DeviceIdea());
+        _api.MarkSuggestionIntentionalAsync(LyricsId, Spelling, Arg.Any<MarkSuggestionIntentionalRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new IntentionalMarkDto { MarkId = Guid.NewGuid(), Scope = IntentionalScopeDto.Word, Text = "wiet", InText = true, CreatedAt = DateTimeOffset.UnixEpoch });
+
+        await _session.MarkIntentionalAsync(Spelling, IntentionalScopeDto.Word);
+
+        _session.Board.Find(Spelling)!.Status.ShouldBe(SuggestionStatusDto.Intentional);
+    }
+
+    [Fact]
+    public async Task Refresh_DoesNotAddDecidedSuggestionsTheBoardNeverHad()
+    {
+        var older = GrammarFix() with { SuggestionId = Guid.NewGuid(), Status = SuggestionStatusDto.Rejected };
+        ListLikeTheServer(SpellingFix(SuggestionStatusDto.Accepted), GrammarFix(), DeviceIdea(), older);
+
+        await _session.AcceptAsync([Spelling]);
+
+        _session.Board.Find(older.SuggestionId).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Accept_ReportsStaleSuggestions()
     {
         _api.AcceptLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionDecisionRequest>(), Arg.Any<CancellationToken>()).Returns(Accepted(Fixed, applied: [Spelling, Grammar], stale: [Device]));
@@ -126,6 +162,11 @@ public sealed class LyricAssistDecisionTests : IDisposable
         await _api.Received(1).MarkSuggestionIntentionalAsync(LyricsId, Spelling, Arg.Is<MarkSuggestionIntentionalRequest>(r => r.Scope == IntentionalScopeDto.Line && r.ExpectedRevision == 3), Arg.Any<CancellationToken>());
         _session.Live.ShouldBe("Marked as intentional: wiet");
     }
+
+    /// <summary>The list endpoint as the contract defines it: the status filter applies, none means <c>open</c>.</summary>
+    private void ListLikeTheServer(params LyricSuggestionDto[] all) =>
+        _api.ListLyricSuggestionsAsync(LyricsId, Arg.Any<SuggestionStatusDto?>(), Arg.Any<CancellationToken>())
+            .Returns(call => List([.. all.Where(s => s.Status == (call.ArgAt<SuggestionStatusDto?>(1) ?? SuggestionStatusDto.Open))]));
 
     [Theory]
     [InlineData(SuggestionCategoryDto.Spelling, IntentionalScopeDto.Word, true)]
