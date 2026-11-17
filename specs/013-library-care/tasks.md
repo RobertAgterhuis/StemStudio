@@ -60,9 +60,9 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ## Phase 1: Setup
 
-- [ ] T009 [P] [quality-gate] Failing tests for new rules: (a) only `StemStudio.Api.LibraryCare.Gate` may be referenced from other `StemStudio.Api.*` folders; nothing references `LibraryCare.{Backup,Restore,Storage,Cleanup,Archive}` except `LibraryCare` itself and `ApiComposition`; (b) banned APIs in `src/**`: `ZipFile.ExtractToDirectory`, `ZipFileExtensions.ExtractToDirectory`, `ExtractToFile`, `ZipFile.CreateFromDirectory`; (c) worker: `storage/` may import `jobs.paths` but not `separation`, `detail` or `api`
-- [ ] T010 [quality-gate] Implement the rules in `tools/quality/`; update `docs/quality/SIG-REPORT.md`
-- [ ] T011 [P] [devops] `docker-compose.yml`: api volume `${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}:/backups`, env `StemStudio__BackupDir=/backups`, `StemStudio__BackupHostDirHint`; header comment; `.gitignore` `backups/`; `scripts/check-backup-folder.{sh,ps1}` (exists, writable by uid 1654, free space); e2e/CI: temporary backups folder owned by uid 1654; non-Docker path default `data/backups` documented in `scripts/` README (FR-005)
+- [x] T009 [P] [quality-gate] Failing tests for new rules: (a) only `StemStudio.Api.LibraryCare.Gate` may be referenced from other `StemStudio.Api.*` folders; nothing references `LibraryCare.{Backup,Restore,Storage,Cleanup,Archive}` except `LibraryCare` itself and `ApiComposition`; (b) banned APIs in `src/**`: `ZipFile.ExtractToDirectory`, `ZipFileExtensions.ExtractToDirectory`, `ExtractToFile`, `ZipFile.CreateFromDirectory`; (c) worker: `storage/` may import `jobs.paths` but not `separation`, `detail` or `api`
+- [x] T010 [quality-gate] Implement the rules in `tools/quality/`; update `docs/quality/SIG-REPORT.md`
+- [x] T011 [P] [devops] `docker-compose.yml`: api volume `${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}:/backups`, env `StemStudio__BackupDir=/backups`, `StemStudio__BackupHostDirHint`; header comment; `.gitignore` `backups/`; `scripts/check-backup-folder.{sh,ps1}` (exists, writable by uid 1654, free space); e2e/CI: temporary backups folder owned by uid 1654; non-Docker path default `data/backups` documented in `scripts/` README (FR-005)
 - [ ] T012 [P] [qa] Fixtures: `tests/fixtures/backup/make_hostile_archives.py` (H1-H17 of research R-06, deterministic, small), schema-version archive builder (008 and 010 schemas from the committed migrations, SC-009), `compare_library.py` (row dump + file hash compare, SC-001), a fixture asset with provenance origin `recording` (SC-010); `docs/testing/TEST-STRATEGY.md` section "Library care"
 
 ---
@@ -86,12 +86,12 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ### stem-separation (worker, tests first)
 
-- [ ] T025 [P] [stem-separation] Failing tests `worker/tests/storage/test_meter.py`: walk of a temp data dir and model dir (no link following), cache entries with standard/detail/partial/artwork bytes, job-id attribution from job JSON, `in_use` for non-terminal jobs, model catalogue ids, free space via a fake `disk_usage`, 30 s cache
-- [ ] T026 [stem-separation] Implement `storage/meter.py`, `storage/model_catalog.py`, `DataPaths.library_stem` to pass T025
-- [ ] T027 [P] [stem-separation] Failing tests `test_janitor.py`: queue lock held, `in_use` entries skipped, `["*"]`, `by-source` pointers removed, `cacheEvicted` flag on referencing jobs, scratch and old job files (7 days, fake clock), freed bytes exact
-- [ ] T028 [stem-separation] Implement `storage/janitor.py` to pass T027
-- [ ] T029 [P] [stem-separation] Failing tests `test_rehydrate.py` and API tests `test_storage_routes.py`: stems copied from a temp library, cache key rule, completed job file, idempotent 200, stem set must equal the model's (422), missing stem 404 with `stem`, missing mount 409, path built only from UUID + enum, `/result` and `/stems` 404 for rehydrated jobs, detail job accepts the rehydrated `standardJobId`; contract examples
-- [ ] T030 [stem-separation] Implement `storage/rehydrate.py`, `api/storage.py` (`/v1/storage`, `/v1/storage/cleanup`, `/v1/jobs/rehydrate`) to pass T029
+- [x] T025 [P] [stem-separation] Failing tests `worker/tests/storage/test_meter.py`: walk of a temp data dir and model dir (no link following), cache entries with standard/detail/partial/artwork bytes, job-id attribution from job JSON, `in_use` for non-terminal jobs, model catalogue ids, free space via a fake `disk_usage`, 30 s cache
+- [x] T026 [stem-separation] Implement `storage/meter.py`, `storage/model_catalog.py`, `DataPaths.library_stem` to pass T025
+- [x] T027 [P] [stem-separation] Failing tests `test_janitor.py`: queue lock held, `in_use` entries skipped, `["*"]`, `by-source` pointers removed, `cacheEvicted` flag on referencing jobs, scratch and old job files (7 days, fake clock), freed bytes exact
+- [x] T028 [stem-separation] Implement `storage/janitor.py` to pass T027
+- [x] T029 [P] [stem-separation] Failing tests `test_rehydrate.py` and API tests `test_storage_routes.py`: stems copied from a temp library, cache key rule, completed job file, idempotent 200, stem set must equal the model's (422), missing stem 404 with `stem`, missing mount 409, path built only from UUID + enum, `/result` and `/stems` 404 for rehydrated jobs, detail job accepts the rehydrated `standardJobId`; contract examples
+- [x] T030 [stem-separation] Implement `storage/rehydrate.py`, `api/storage.py` (`/v1/storage`, `/v1/storage/cleanup`, `/v1/jobs/rehydrate`) to pass T029
 
 **Checkpoint**: HO:foundational for backend and stem-separation.
 

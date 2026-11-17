@@ -11,6 +11,7 @@ from stemstudio_worker.schemas import (
     ContractModel,
     Job,
     JobResult,
+    JobState,
     SourceMetadata,
     SourceType,
 )
@@ -41,6 +42,11 @@ class StoredJob(ContractModel):
         upload_file: Generated file name of the upload under ``uploads/<jobId>/`` (uploads only).
         audio_sha256: SHA-256 of the normalised audio once known (cache key, stem location).
         result: The job result once completed.
+        artwork_candidate: The source picture waiting for the "Saving cover" step (005).
+        from_library: Created by ``POST /v1/jobs/rehydrate`` (013); its ``/result``, stems and
+            artwork answer 404 and it is never reused for a new job of the same source.
+        cache_evicted: Its cache entry was removed by ``POST /v1/storage/cleanup`` (013); it
+            stays readable but is never reused for a new job of the same source.
     """
 
     job: Job
@@ -48,6 +54,14 @@ class StoredJob(ContractModel):
     audio_sha256: Annotated[str | None, Field(pattern=r"^[0-9a-f]{64}$")] = None
     result: JobResult | None = None
     artwork_candidate: PendingArtwork | None = None
+    from_library: bool = False
+    cache_evicted: bool = False
+
+    @property
+    def reusable(self) -> bool:
+        """Whether a new job of the same source may reuse it: not failed, rehydrated or evicted."""
+        failed = self.job.status is JobState.FAILED
+        return not (failed or self.from_library or self.cache_evicted)
 
 
 def pending_artwork(source: SourceInfo) -> PendingArtwork | None:

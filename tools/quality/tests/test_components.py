@@ -86,6 +86,7 @@ REQUESTED = [
     "worker/notation",
     "worker/jobs",
     "worker/api",
+    "worker/storage",
     "worker/core",
     "generator/engines",
     "generator/devices",

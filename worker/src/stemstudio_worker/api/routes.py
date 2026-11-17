@@ -81,14 +81,14 @@ def get_job(job_id: str, runtime: Runtime) -> JSONResponse:
 
 @router.get("/v1/jobs/{job_id}/result")
 def get_job_result(job_id: str, runtime: Runtime) -> JSONResponse:
-    """Result of a completed job."""
-    return json_response(_completed(_record(runtime, job_id)))
+    """Result of a completed job (404 for a job rehydrated from the library, 1.7.0)."""
+    return json_response(_completed(_with_files(_record(runtime, job_id))))
 
 
 @router.get("/v1/jobs/{job_id}/stems/{stem}")
 def get_job_stem(job_id: str, stem: str, runtime: Runtime) -> FileResponse:
-    """One stem of a completed job as FLAC."""
-    record = _record(runtime, job_id)
+    """One stem of a completed job as FLAC (404 for a job rehydrated from the library, 1.7.0)."""
+    record = _with_files(_record(runtime, job_id))
     if stem not in _STEM_NAMES:
         raise _missing_stem(stem)
     result = _completed(record)
@@ -129,6 +129,14 @@ def _record(runtime: WorkerRuntime, job_id: str) -> StoredJob:
     record = runtime.store.get(job_id)
     if record is None:
         raise ProblemError(404, "Not found", f"Job {job_id[:64]} does not exist.")
+    return record
+
+
+def _with_files(record: StoredJob) -> StoredJob:
+    """``record`` unless it was rehydrated: the backend already owns its stems and facts."""
+    if record.from_library:
+        detail = "This job was re-created from the library; its files are not served."
+        raise ProblemError(404, "Not found", detail)
     return record
 
 
