@@ -18,6 +18,7 @@ public sealed class LibraryJobPanelTests : PageTestContext
 
         var root = panel.Find("[data-testid=library-job]");
         (root.GetAttribute("data-kind"), root.GetAttribute("data-status"), root.GetAttribute("data-stage")).ShouldBe(("backup", "running", "files"));
+        root.GetAttribute("data-job-id").ShouldBe(LibraryCareData.JobId.ToString("D"));
         panel.Find("#library-job-title").TextContent.ShouldBe("Backup running");
         var bar = panel.Find("[data-testid=library-job-progress]");
         (bar.GetAttribute("role"), bar.GetAttribute("aria-valuenow"), bar.GetAttribute("aria-valuetext"), bar.GetAttribute("aria-valuemin"), bar.GetAttribute("aria-valuemax"))

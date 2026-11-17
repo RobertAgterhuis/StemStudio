@@ -69,7 +69,7 @@ export class LibraryCarePage extends TestIdPage {
   /** Starts the backup from the open dialog. */
   async startBackup(): Promise<void> {
     await expect(this.byId('backup-start')).toBeEnabled();
-    await this.byId('backup-start').click();
+    await this.startingJob(() => this.byId('backup-start').click());
   }
 
   /** The library job panel. */
@@ -77,8 +77,21 @@ export class LibraryCarePage extends TestIdPage {
     return this.byId('library-job');
   }
 
-  /** Waits until the job panel shows a job of `kind` with `status`. */
+  /**
+   * Runs the click that starts a library job and remembers the job shown before it: until the new job appears, the
+   * panel still shows the last (often completed) one, which `waitForJob` must not take for the new one.
+   */
+  private async startingJob(click: () => Promise<void>): Promise<void> {
+    this.jobBefore = (await this.job.count()) > 0 ? await this.job.getAttribute('data-job-id') : null;
+    await click();
+  }
+
+  private jobBefore: string | null = null;
+
+  /** Waits until the job panel shows a job of `kind` with `status` (a new one when a start was just clicked). */
   async waitForJob(kind: LibraryJobKind, status: LibraryJobStatus, timeoutMs: number): Promise<void> {
+    if (this.jobBefore !== null) await expect(this.job).not.toHaveAttribute('data-job-id', this.jobBefore, { timeout: timeoutMs });
+    this.jobBefore = null;
     await expect(this.job).toHaveAttribute('data-kind', kind, { timeout: timeoutMs });
     await expect(this.job).toHaveAttribute('data-status', status, { timeout: timeoutMs });
   }
@@ -117,19 +130,19 @@ export class LibraryCarePage extends TestIdPage {
     if ((await voices.count()) > 0) await voices.setChecked(voiceProfiles);
     await this.byId('restore-confirm-input').fill('REPLACE');
     await expect(this.byId('restore-start')).toBeEnabled();
-    await this.byId('restore-start').click();
+    await this.startingJob(() => this.byId('restore-start').click());
   }
 
   /** Merge restore from the open dialog (Advanced and Expert). */
   async confirmMerge(): Promise<void> {
     await this.byId('restore-mode-merge').check();
     await expect(this.byId('restore-start')).toBeEnabled();
-    await this.byId('restore-start').click();
+    await this.startingJob(() => this.byId('restore-start').click());
   }
 
   /** "Undo restore" of the previous-library panel. */
   async undoRestore(): Promise<void> {
-    await this.byId('previous-library-undo').click();
+    await this.startingJob(() => this.byId('previous-library-undo').click());
   }
 
   /** "Discard previous library" with the typed `DISCARD` confirmation. */

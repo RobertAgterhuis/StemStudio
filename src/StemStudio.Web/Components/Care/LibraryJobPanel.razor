@@ -6,7 +6,7 @@
     var view = new JobView(Job);
     var job = Job;
 }
-<section class="ss-panel ss-care-job" aria-labelledby="library-job-title" data-testid="library-job"
+<section class="ss-panel ss-care-job" aria-labelledby="library-job-title" data-testid="library-job" data-job-id="@job.JobId"
          data-kind="@WireName.Of(job.Kind)" data-status="@WireName.Of(job.Status)" data-stage="@(job.Stage is { } stage ? WireName.Of(stage) : null)">
     <h2 id="library-job-title" class="ss-panel-title">@view.Title</h2>
     <div class="ss-care-progress" role="progressbar" aria-labelledby="library-job-title" aria-valuemin="0" aria-valuemax="100"
