@@ -2159,6 +2159,8 @@ paths:
           $ref: '#/components/responses/ValidationProblem'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssistConflict'
     delete:
       tags: [songs]
       operationId: deleteLyricsSheet

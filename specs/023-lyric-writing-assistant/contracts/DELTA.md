@@ -126,6 +126,9 @@ running assist of that sheet.
    with `RhythmTargetSpecified` (the Web client always writes the member).
 6. Shared component names: the delta's `LyricsId`, `NotFound`, `ValidationProblem`, `ProblemDetails`,
    `ValidationProblemDetails`, `TokenUsage` keep the **base** definitions in the full document (same meaning).
+7. `updateLyricsSheet` (`PUT /api/lyrics/{lyricsId}`, a 1.11.0 operation) declares `409 AssistConflict` (`revision-conflict`),
+   because `LyricsInput.expectedRevision` promises it (pre-release editorial, label 1.23.0 unchanged). `merge_full.py` now
+   three-way merges a block both sides changed (013 marked `delete`) and fails only on overlapping changes.
 
 **Ports across lanes (decided in Phase 0):** `StemStudio.Agent` keeps its 011 dependency rule (Agent ->
 Contracts only, no Domain reference). The assistant therefore gets its deterministic checks through the Agent

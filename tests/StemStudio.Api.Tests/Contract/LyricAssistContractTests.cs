@@ -31,7 +31,7 @@ public sealed partial class LyricAssistContractTests
     // DELTA.md section 1 "Schema additions at the merge": the only 1.11.0 entries 1.23.0 changes.
     public static TheoryData<string, string[]> Changed1110Entries => new()
     {
-        { "paths", [] },
+        { "paths", ["/api/lyrics/{lyricsId}"] },
         { "components/schemas", ["LyricsSheet", "LyricsInput", "LyricsSnapshot", "PageContext", "JobPhase", "DecisionReason"] },
         { "components/responses", [] },
         { "components/examples", ["LyricsSheetExample"] },
@@ -65,6 +65,15 @@ public sealed partial class LyricAssistContractTests
     public void Backend1230_Contains1110UnchangedExceptTheNamedEntries(string section, string[] changed)
     {
         ChangedEntries(BaseDocument, Backend, section).ShouldBe(changed, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void UpdateLyricsSheet_DeclaresTheRevisionConflict()
+    {
+        var put = Backend.Root["paths"]!["/api/lyrics/{lyricsId}"]!["put"]!;
+
+        put["operationId"]!.GetValue<string>().ShouldBe("updateLyricsSheet");
+        put["responses"]!["409"]!["$ref"]!.GetValue<string>().ShouldBe("#/components/responses/AssistConflict");
     }
 
     [Theory]
