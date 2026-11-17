@@ -44,3 +44,6 @@ src/web-interop/coverage/
 # Local files of other AI coding tools (not part of the project)
 .agents/
 .codex/
+
+# Feature 013: default backups folder (bind-mounted at /backups); archives are multi-GB
+backups/

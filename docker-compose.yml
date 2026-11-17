@@ -73,6 +73,17 @@
 #                                           read-only at /scripts; format agent-script.schema.json).
 #                                           Git Bash on Windows: prefix MSYS_NO_PATHCONV=1, or the
 #                                           /scripts path is rewritten into a Windows path.
+# Library care (feature 013; specs/013-library-care/quickstart.md), api only:
+#   STEMSTUDIO_BACKUP_HOST_DIR=<host folder>   where backup archives (multi-GB .zip) are written;
+#                                           default ./backups next to this file, bind-mounted at
+#                                           /backups (StemStudio__BackupDir). Create it BEFORE the
+#                                           first start, or Docker creates it owned by root:
+#                                             mkdir -p backups                      (all hosts)
+#                                             sudo chown 1654:1654 backups          (Linux: api uid)
+#                                           Windows: $env:STEMSTUDIO_BACKUP_HOST_DIR = 'D:\StemStudio\backups'
+#                                           Check it with scripts/check-backup-folder.{sh,ps1}. The
+#                                           api never changes host permissions; backups/ is ignored
+#                                           by git and by the image build context.
 
 name: stemstudio
 
@@ -141,6 +152,9 @@ services:
       # the trusted internal caller of the local-only key entry (accepted besides loopback).
       - StemStudio__DataProtection__KeyRingDir=/keys
       - StemStudio__Agent__KeyEntry__InternalCaller=web
+      # Feature 013 (library care): backups folder (bind mount below) and the host path the UI shows.
+      - StemStudio__BackupDir=/backups
+      - StemStudio__BackupHostDirHint=${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}
       # Bare name: the host's value when set, otherwise the variable is absent in the container.
       - ANTHROPIC_API_KEY
     # host.docker.internal resolves to the host on Linux too (Docker Desktop has it built in).
@@ -156,6 +170,9 @@ services:
       # E2E fake agent scripts (qa, e2e/agent-scripts/*.json); read-only, ignored unless the
       # backend is fake.
       - ./e2e/agent-scripts:/scripts:ro
+      # Feature 013: backup archives on the host (not a named volume, so they survive
+      # `docker compose down -v` and can live on another drive); writable for the api user.
+      - ${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}:/backups
     depends_on:
       worker:
         condition: service_healthy

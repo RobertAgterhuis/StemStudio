@@ -42,6 +42,10 @@ env:
   # Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings). CONTRACTS_DIR stays 008's: 012
   # has no worker document, and the .NET contract tests link the 012 document in their csproj.
   PRACTICE_CONTRACTS: specs/012-practice-tempo/contracts
+  # Feature 013 (backend 1.12.0 = 1.11.0 + the library-care delta; worker 1.7.0 = 008's 1.6.0 +
+  # the storage tag). CONTRACTS_DIR stays 008's for the 1.6.0 lint; the 013 documents are linted
+  # here and the superset rule is checked by check_superset.py.
+  LIBRARY_CARE_CONTRACTS: specs/013-library-care/contracts
   PYYAML: pyyaml==6.0.3
 
 jobs:
@@ -304,11 +308,22 @@ jobs:
         run: >-
           npx --yes "$REDOCLY_CLI" lint --config "$PRACTICE_CONTRACTS/redocly.yaml"
           "$PRACTICE_CONTRACTS/backend-api.openapi.yaml"
+      - name: Redocly lint, library care documents (013; backend 1.12.0, its delta, worker 1.7.0)
+        run: >-
+          npx --yes "$REDOCLY_CLI" lint --config "$LIBRARY_CARE_CONTRACTS/redocly.yaml"
+          "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
+          "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml"
+          "$LIBRARY_CARE_CONTRACTS/worker-api.openapi.yaml"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
       - name: 012 backend 1.11.0 contains 1.21.0 (check_superset.py, newer contains older)
         run: uv run --no-project --with "$PYYAML" python -I "$PRACTICE_CONTRACTS/check_superset.py"
+      - name: 013 backend 1.12.0 contains 1.11.0 and every entry of its delta (check_superset.py)
+        run: |
+          check=(uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py")
+          "${check[@]}"
+          "${check[@]}" "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
       - name: Render vectors are up to date (render-vectors 1.0.0, pure stdlib generator)
         run: python3 "$RENDER_VECTORS" --check
 
@@ -385,12 +400,13 @@ jobs:
           uv run --frozen ruff format --check .
           uv run --frozen mypy
           uv run --frozen pytest --cov --cov-branch --cov-report=term --cov-report=xml
-      - name: Devops script checks (011 key_volume_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
+      - name: Devops script checks (011 key_volume_checks.py, 013 backup_folder_checks.py >= 90 % line+branch, 012 build-soundtouch tests; scripts/pyproject.toml)
         run: |
           cfg=scripts/pyproject.toml
-          uv run --project tools/quality --frozen ruff check --config "$cfg" scripts/key_volume_checks.py scripts/tests
-          uv run --project tools/quality --frozen ruff format --config "$cfg" --check scripts/key_volume_checks.py scripts/tests
-          uv run --project tools/quality --frozen mypy --config-file "$cfg" scripts/key_volume_checks.py scripts/tests
+          checks=(scripts/key_volume_checks.py scripts/backup_folder_checks.py)
+          uv run --project tools/quality --frozen ruff check --config "$cfg" "${checks[@]}" scripts/tests
+          uv run --project tools/quality --frozen ruff format --config "$cfg" --check "${checks[@]}" scripts/tests
+          uv run --project tools/quality --frozen mypy --config-file "$cfg" "${checks[@]}" scripts/tests
           uv run --project tools/quality --frozen pytest -c "$cfg" --cov --cov-branch --cov-config="$cfg" --cov-report=term scripts/tests
       - name: SIG checks on the whole code base (unit size, complexity, parameters, duplication, dependencies)
         run: uv run --project tools/quality --frozen python tools/quality/run_all.py --report "$RUNNER_TEMP/SIG-REPORT.md"
@@ -462,6 +478,11 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.generative.yml -f docker-compose.generative-fake.yml config -q
           # Feature 011: the agent variables of the fake E2E stack interpolate (no Claude key is set).
           STEMSTUDIO_AGENT_BACKEND=fake STEMSTUDIO_AGENT_FAKE_SCRIPT=/scripts/ci.json docker compose -f docker-compose.yml config -q
+          # 013: the backups bind mount follows STEMSTUDIO_BACKUP_HOST_DIR (default ./backups).
+          STEMSTUDIO_BACKUP_HOST_DIR=/srv/stemstudio-backups docker compose -f docker-compose.yml config --format json             | jq -e '.services.api | (.volumes[] | select(.target == "/backups") | .type == "bind" and .source == "/srv/stemstudio-backups")
+                     and .environment.StemStudio__BackupDir == "/backups"
+                     and .environment.StemStudio__BackupHostDirHint == "/srv/stemstudio-backups"'
+          docker compose -f docker-compose.yml config --format json             | jq -e --arg dir "$PWD/backups" '[.services[] | .volumes[]? | select(.target == "/backups")] | length == 1 and .[0].source == $dir'
       - name: The key ring volume api-keys is at /keys in api only, in every combination (011 claude-key)
         run: |
           scripts/check-key-volume.sh
@@ -557,6 +578,12 @@ jobs:
           for generator in tests/fixtures/generate_*.py; do
             uv run --project worker --frozen python "${generator}"
           done
+      - name: Backups folder for the api (uid 1654, temporary; 013 FR-005)
+        run: |
+          backups="$RUNNER_TEMP/stemstudio-backups"
+          mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
+          echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups" >> "$GITHUB_ENV"
+          scripts/check-backup-folder.sh --folder "$backups"
       - name: Start the stack (fake separator) and wait for health
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Health smoke test
@@ -574,6 +601,10 @@ jobs:
         run: docker compose exec -T api sh -c 'test -z "${ANTHROPIC_API_KEY+set}"'
       - name: Worker sees the API library read-only at /library (007 FR-012, ADR-016 D5)
         run: scripts/check-library-mount.sh
+      - name: The api writes the backups folder as its own user at /backups (013 FR-005)
+        run: |
+          docker compose exec -T api sh -c 'test "$StemStudio__BackupDir" = /backups && probe=/backups/.ci-probe && touch "$probe" && rm "$probe"'
+          docker compose exec -T worker sh -c 'test ! -e /backups'
       - name: Install Playwright browsers
         working-directory: e2e
         run: |
