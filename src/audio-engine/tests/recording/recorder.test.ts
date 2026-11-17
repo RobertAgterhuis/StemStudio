@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CaptureReceiver } from '../../src/recording/capture';
-import { Recorder, validateRecordOptions, type RecorderHost } from '../../src/recording/recorder';
-import { CaptureStore } from '../../src/recording/takes';
+import { Recorder, newUuid, validateRecordOptions, type RecorderHost } from '../../src/recording/recorder';
+import { CaptureStore, describeTake } from '../../src/recording/takes';
 import type { RecordingGating } from '../../src/recording/compare';
 import { Transport } from '../../src/transport';
 import type { CapturedTake, PracticeStatus, RecordOptions, RecordingProgress, RecordingState, StemName } from '../../src/types';
-import type { MockAudioBufferSourceNode } from '../mocks/audio-context';
 import { RecordingContext, fakeEnvironment } from '../mocks/media';
 
 /** The recording state machine (contract 2.5.0, data-model 3.1, FR-004, FR-005, FR-009). */
@@ -121,17 +120,26 @@ async function run(rig: Rig, seconds: number): Promise<void> {
 
 /** Calls stop and runs the clock until it resolves. */
 async function stopped(rig: Rig): Promise<CapturedTake[]> {
-  let result: CapturedTake[] | null = null;
+  const box: { takes?: CapturedTake[] } = {};
   void rig.recorder.stop().then((takes) => {
-    result = takes;
+    box.takes = takes;
   });
-  for (let i = 0; i < 200 && result === null; i++) {
+  for (let i = 0; i < 200 && box.takes === undefined; i++) {
     await run(rig, 0.025);
   }
-  if (result === null) {
+  if (box.takes === undefined) {
     throw new Error('stop never resolved');
   }
-  return result;
+  return box.takes;
+}
+
+/** The only take of the only session. */
+function onlyTake(rig: Rig): CapturedTake {
+  const take = rig.captured[0]?.[0];
+  if (take === undefined) {
+    throw new Error('no take');
+  }
+  return take;
 }
 
 beforeEach(() => {
@@ -169,18 +177,17 @@ describe('Recorder', () => {
     await rig.recorder.start(OPTIONS);
     expect([rig.recorder.state, rig.transport.state, rig.gatings]).toEqual(['recording', 'playing', [{ part: 'guitar', muteOriginal: true }]]);
     await run(rig, 2);
-    const takes = await stopped(rig);
+    await stopped(rig);
     expect(rig.states).toEqual(['recording', 'finishing', 'open']);
-    expect(takes).toHaveLength(1);
-    const [take] = takes;
+    expect(rig.captured[0]).toHaveLength(1);
+    const take = onlyTake(rig);
     expect(take).toMatchObject({ passIndex: null, partial: false, startSample: 0, channels: 1, inputMode: 'mono-1', latencySamples: L, latencyMethod: 'loopback', dropouts: 0 });
-    expect(take?.lengthSamples).toBe(Math.round(2 * SR) - Math.round(0.1 * SR));
-    expect(take?.captureKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(take?.sessionId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(take?.recordedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect([rig.captured, rig.gatings.at(-1), rig.transport.state]).toEqual([[takes], null, 'paused']);
-    const samples = rig.store.samples(take?.captureKey ?? '');
-    expect(Math.round((samples?.[0]?.[0] ?? 0) * 2 ** 24)).toBe(Math.round(0.1 * SR) + L);
+    expect(take.lengthSamples).toBe(Math.round(2 * SR) - Math.round(0.1 * SR));
+    expect([take.captureKey, take.sessionId].map((id) => /^[0-9a-f-]{36}$/.test(id))).toEqual([true, true]);
+    expect(take.recordedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect([rig.gatings.at(-1), rig.transport.state]).toEqual([null, 'paused']);
+    const [first] = rig.store.samples(take.captureKey) ?? [];
+    expect(Math.round((first?.[0] ?? 0) * 2 ** 24)).toBe(Math.round(0.1 * SR) + L);
   });
 
   it('starts with the count-in of the session and restores the stored count-in afterwards', async () => {
@@ -211,7 +218,7 @@ describe('Recorder', () => {
     [{ trainer: { state: 'waiting', pass: 1, speedPercent: 70 } }, /^speedTrainer: /],
   ] as const)('refuses %o', async (patch, message) => {
     const rig = await makeRig();
-    rig.practice = status(patch as Partial<PracticeStatus>);
+    rig.practice = status(patch);
     await expect(rig.recorder.start(OPTIONS)).rejects.toThrow(message);
     expect([rig.recorder.state, rig.states]).toEqual(['open', []]);
   });
@@ -252,8 +259,7 @@ describe('Recorder', () => {
     expect([done, rig.recorder.state]).toEqual([false, 'finishing']);
     await run(rig, 0.6);
     expect(done).toBe(true);
-    const [take] = rig.captured[0] ?? [];
-    expect(take?.lengthSamples).toBe(Math.round(1 * SR) - Math.round(0.1 * SR));
+    expect(onlyTake(rig).lengthSamples).toBe(Math.round(1 * SR) - Math.round(0.1 * SR));
   });
 
   it('gives up waiting when no capture arrives and keeps what was captured', async () => {
@@ -270,12 +276,9 @@ describe('Recorder', () => {
     const rig = await makeRig(2);
     await rig.recorder.start(OPTIONS);
     await run(rig, 2.2);
-    const longest = rig.ctx.sources.at(-1) as MockAudioBufferSourceNode;
-    longest.end();
-    for (let i = 0; i < 40 && rig.captured.length === 0; i++) {
-      await run(rig, 0.025);
-    }
-    expect(rig.captured[0]?.[0]?.lengthSamples).toBe(2 * SR);
+    rig.ctx.sources.at(-1)?.end();
+    await run(rig, 0.5);
+    expect(onlyTake(rig).lengthSamples).toBe(2 * SR);
   });
 
   it('a pause from the user ends the recording; stop while idle returns nothing', async () => {
@@ -347,6 +350,19 @@ describe('Recorder', () => {
     expect(rig.states).toEqual(['closed', 'open', 'closed']);
   });
 
+  it('input open/close events do not change the state while a session runs', async () => {
+    const rig = await makeRig();
+    await rig.recorder.start(OPTIONS);
+    rig.recorder.inputClosed();
+    rig.recorder.inputOpened();
+    expect(rig.recorder.state).toBe('recording');
+    const pending = rig.recorder.stop();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(rig.recorder.state).toBe('finishing');
+    await vi.advanceTimersByTimeAsync(3000);
+    await pending;
+  });
+
   it('dispose stops the progress timer and detaches from the transport', async () => {
     const rig = await makeRig();
     await rig.recorder.start(OPTIONS);
@@ -354,6 +370,39 @@ describe('Recorder', () => {
     const before = rig.progress.length;
     await run(rig, 1);
     expect(rig.progress.length).toBe(before);
+  });
+});
+
+describe('takes', () => {
+  it('newUuid falls back to getRandomValues (v4 layout)', () => {
+    vi.stubGlobal('crypto', { getRandomValues: (bytes: Uint8Array) => bytes.fill(171) });
+    expect(newUuid()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
+    vi.unstubAllGlobals();
+  });
+
+  it('describeTake: stereo channels, peak and clipped samples (abs >= (2^23 - 1) / 2^23)', () => {
+    const channels = [Float32Array.from([0.5, 1, -1]), Float32Array.from([0, 0.25, 0.9999999])];
+    const take = describeTake(
+      { passIndex: 2, partial: false, startSample: 10, lengthSamples: 3, firstFrame: 100, channels, dropouts: 1 },
+      { sessionId: 's', inputMode: 'stereo', latencySamples: 500, latencyMethod: 'manual', recordedAt: 'now' },
+      'k',
+    );
+    expect(take).toEqual({
+      captureKey: 'k',
+      sessionId: 's',
+      passIndex: 2,
+      partial: false,
+      startSample: 10,
+      lengthSamples: 3,
+      channels: 2,
+      inputMode: 'stereo',
+      latencySamples: 500,
+      latencyMethod: 'manual',
+      peakDbfs: 0,
+      clippedSamples: 3,
+      dropouts: 1,
+      recordedAt: 'now',
+    });
   });
 });
 

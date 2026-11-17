@@ -63,6 +63,9 @@ export interface MappedTake {
   readonly dropouts: number;
 }
 
+/** The transport part of {@link CaptureMapInput}. */
+export type SegmentPlan = Pick<CaptureMapInput, 'segments' | 'loop' | 'stopFrame' | 'trackSamples'>;
+
 /** A run of heard frames `[from, to)` playing song samples from `song`, in pass `pass`. */
 interface Piece {
   readonly from: number;
@@ -76,7 +79,7 @@ interface Piece {
  * also ends there; with the loop it is one pass that ends at the loop end (its rounded `untilFrame` may differ by a
  * frame, so the pass length comes from the loop, not from it).
  */
-function segmentEnd(input: CaptureMapInput, segment: TransportSegment, index: number): number {
+function segmentEnd(input: SegmentPlan, segment: TransportSegment, index: number): number {
   const next = input.segments[index + 1]?.whenFrame ?? Infinity;
   const until = input.loop === null ? (segment.untilFrame ?? Infinity) : Infinity;
   return Math.min(until, next, input.stopFrame);
@@ -107,7 +110,7 @@ function loopPieces(segment: TransportSegment, end: number, loop: LoopSpan, firs
 }
 
 /** Every piece of the session, numbered by transport pass. */
-function piecesOf(input: CaptureMapInput): Piece[] {
+function piecesOf(input: SegmentPlan): Piece[] {
   const pieces: Piece[] = [];
   let nextPass = 1;
   input.segments.forEach((segment, index) => {
@@ -164,4 +167,20 @@ export function mapCaptureToTakes(input: CaptureMapInput): MappedTake[] {
     .map((piece) => clip(piece, input))
     .filter((piece) => kept(piece, input))
     .map((piece) => toTake(piece, input));
+}
+
+/**
+ * @param plan - Segments, loop and track length (the stop frame is ignored).
+ * @param frame - Heard context frame.
+ * @returns The 1-based loop pass heard at `frame` and the heard frame it started at; null without loop or before the
+ *   first segment.
+ */
+export function passAt(plan: Omit<SegmentPlan, 'stopFrame'>, frame: number): { readonly pass: number; readonly fromFrame: number } | null {
+  if (plan.loop === null) {
+    return null;
+  }
+  const piece = piecesOf({ ...plan, stopFrame: frame + 1 })
+    .filter((candidate) => candidate.from <= frame)
+    .at(-1);
+  return piece?.pass == null ? null : { pass: piece.pass, fromFrame: piece.from };
 }
