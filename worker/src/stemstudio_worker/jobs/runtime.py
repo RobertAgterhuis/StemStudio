@@ -22,6 +22,7 @@ from stemstudio_worker.jobs.lyrics_runner import LyricsContext, LyricsParts, Lyr
 from stemstudio_worker.jobs.lyrics_store import LyricsJobStore
 from stemstudio_worker.jobs.metadata_lane import DisabledLookup, MetadataLane
 from stemstudio_worker.jobs.paths import DataPaths
+from stemstudio_worker.jobs.practice_lane import PracticeLane, PracticeParts
 from stemstudio_worker.jobs.progress import Clock
 from stemstudio_worker.jobs.reconcile import reconcile, reconcile_detail_jobs
 from stemstudio_worker.jobs.render_service import NoLibrary, NoRenderer, RenderService
@@ -124,6 +125,8 @@ class Lanes:
         sweeper: Hourly removal of expired job files.
         lyrics: The lyrics jobs (feature 006).
         transcription: The transcription jobs on the ``transcribe`` lane (feature 008).
+        practice: The ``practice`` lane of section, score-view and setlist jobs (feature 014).
+        practice_parts: The analyser and renderers of the practice jobs.
     """
 
     metadata: MetadataLane
@@ -134,6 +137,8 @@ class Lanes:
     sweeper: Sweeper
     lyrics: LyricsService
     transcription: TranscriptionService
+    practice: PracticeLane
+    practice_parts: PracticeParts
 
     @classmethod
     def start(cls, parts: "WorkerParts", wiring: LaneWiring) -> "Lanes":
@@ -144,12 +149,14 @@ class Lanes:
         lyrics = LyricsService.start(wiring.lyrics, _lyrics_queues(metadata, wiring))
         render = RenderService.start(paths, render_parts.executor, clock)
         transcription = TranscriptionService.start(paths, _transcription_parts(parts), clock)
+        practice = PracticeLane.started(paths, clock)
         artwork = UserArtworkStore(paths, clock)
-        sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep]
+        sweeps = [metadata.sweep, artwork.sweep, render.sweep, lyrics.sweep, transcription.sweep,
+                  practice.sweep]  # fmt: skip
         sweeper = Sweeper(SWEEP_INTERVAL_SECONDS, sweeps)
         sweeper.start()
         return cls(metadata, artwork, online.normalizer, render, render_parts.library, sweeper,
-                   lyrics, transcription)  # fmt: skip
+                   lyrics, transcription, practice, parts.practice)  # fmt: skip
 
     def stop(self, timeout: float) -> None:
         """Stop the sweep timer and the lane threads."""
@@ -157,6 +164,7 @@ class Lanes:
         self.metadata.stop(timeout)
         self.render.stop(timeout)
         self.transcription.stop(timeout)
+        self.practice.stop(timeout)
 
 
 def _transcription_parts(parts: "WorkerParts") -> TranscriptionParts:
@@ -175,7 +183,8 @@ class WorkerParts:
     """What the job subsystem runs: adapters, detail pipeline, device hooks, online parts.
 
     ``lyrics`` defaults to stand-ins (lookups ``disabled``, alignments failing, CPU only);
-    ``transcription`` None runs every transcription job into a failure.
+    ``transcription`` None runs every transcription job into a failure; ``practice`` without
+    parts fails every practice job.
     """
 
     adapters: PipelineAdapters
@@ -185,6 +194,7 @@ class WorkerParts:
     render: RenderParts = RenderParts()
     lyrics: LyricsParts = field(default_factory=default_lyrics_parts)
     transcription: TranscriptionParts | None = None
+    practice: PracticeParts = field(default_factory=PracticeParts)
 
 
 def _load(paths: DataPaths, clock: Clock) -> DetailContext:

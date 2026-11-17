@@ -17,9 +17,9 @@ interfaces they own); engine ``recording/**`` is imported only by ``engine.ts`` 
 from pathlib import Path
 
 import pytest
+from repo_tree import error_findings as _errors
 from repo_tree import src_findings, write_file, write_module
 
-import dependency_check
 from common import Severity
 from dependency_check import (
     DOTNET_FOLDER_FORBIDDEN,
@@ -77,10 +77,6 @@ CLEAN_WORKER = {
 def _worker(root: Path, overrides: dict[str, str] | None = None) -> None:
     for rel, text in {**CLEAN_WORKER, **(overrides or {})}.items():
         write_module(root, rel, text)
-
-
-def _errors(root: Path) -> list[tuple[str, str]]:
-    return [(f.path, f.message) for f in dependency_check.run(root) if f.severity is Severity.ERROR]
 
 
 # ------------------------------------------------------------------ worker

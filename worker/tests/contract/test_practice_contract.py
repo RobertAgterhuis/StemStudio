@@ -41,6 +41,7 @@ from stemstudio_worker.schemas import (
     DetailPath,
     DetectedSection,
     Health,
+    RenderJobStatus,
     ScoreViewJob,
     ScoreViewJobRequest,
     ScoreViewResult,
@@ -54,6 +55,7 @@ from stemstudio_worker.schemas import (
     SetlistDocumentRequest,
     SetlistSongContent,
     StemPaths,
+    StructureAnalyzerName,
     StructureHealth,
     TempoGrid,
 )
@@ -347,8 +349,8 @@ def test_errors_are_worker_errors_with_readable_defaults() -> None:
 
 
 class _Analyzer:
-    name = "fake"
-    version = "1.0.0"
+    name: StructureAnalyzerName = "fake"
+    version: str = "1.0.0"
 
     def analyze(
         self, request: SectionJobRequest, files: StemFiles, progress: SectionProgress
@@ -417,7 +419,14 @@ def test_structure_analyzer_setting_rejects_unknown_values() -> None:
 
 
 def test_job_models_default_to_no_error() -> None:
-    job = SetlistDocumentJob(job_id=_JOB, status="queued", progress=0, created_at=_NOW)
+    job = SetlistDocumentJob(
+        job_id=_JOB, status=RenderJobStatus.QUEUED, progress=0, created_at=_NOW
+    )
 
     assert (job.error, job.pages) == (None, None)
-    assert ScoreViewJob(job_id=_JOB, status="running", progress=0.5, created_at=_NOW).result is None
+    assert (
+        ScoreViewJob(
+            job_id=_JOB, status=RenderJobStatus.RUNNING, progress=0.5, created_at=_NOW
+        ).result
+        is None
+    )

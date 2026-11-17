@@ -1071,11 +1071,19 @@ def _scope_of(rel: str, scopes: Mapping[str, PythonScope]) -> str | None:
 
 
 def _scope_findings(module: "_Module", key: str, scope: PythonScope) -> Iterator[Finding]:
+    yield from _scope_internal(module, key, scope.internal)
+    yield from _scope_external(module, key, scope.external)
+
+
+def _scope_internal(module: "_Module", key: str, allowed: frozenset[str]) -> Iterator[Finding]:
     for parts, line in _imports(module.tree, module.rel, PYTHON_PACKAGE):
-        if parts and not _in_family(".".join(parts), scope.internal):
+        if parts and not _in_family(".".join(parts), allowed):
             yield _scope_finding(module, line, f"{_FORBIDDEN} {key} -> {'.'.join(parts)}")
+
+
+def _scope_external(module: "_Module", key: str, allowed: frozenset[str]) -> Iterator[Finding]:
     for target, line in _external_imports(module.tree):
-        if target not in {PYTHON_PACKAGE, *STDLIB, *scope.external}:
+        if target not in {PYTHON_PACKAGE, *STDLIB, *allowed}:
             message = f"forbidden third-party dependency {key} -> {target}"
             yield _scope_finding(module, line, message)
 

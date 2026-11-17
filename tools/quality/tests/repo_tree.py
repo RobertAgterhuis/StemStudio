@@ -59,3 +59,8 @@ def src_findings(root: Path, rel: str, text: str) -> list[tuple[Severity, str, i
     """
     write_file(root, f"src/{rel}", text)
     return [(f.severity, f.message, f.line, f.owner) for f in dependency_check.run(root)]
+
+
+def error_findings(root: Path) -> list[tuple[str, str]]:
+    """Run the dependency check below ``root``; (path, message) of every error."""
+    return [(f.path, f.message) for f in dependency_check.run(root) if f.severity is Severity.ERROR]
