@@ -7439,29 +7439,64 @@ components:
           type: string
           maxLength: 500
     BackupDetails:
-      allOf:
-        - $ref: '#/components/schemas/BackupSummary'
-        - type: object
-          required: [excluded, entries, totalBytes, schemaLastMigration, voiceProfiles, warnings]
-          properties:
-            excluded:
-              type: array
-              items:
-                $ref: '#/components/schemas/Category'
-            entries:
-              type: integer
-            totalBytes:
-              type: integer
-            schemaLastMigration:
-              type: string
-            voiceProfiles:
-              type: array
-              items:
-                $ref: '#/components/schemas/VoiceProfileProof'
-            warnings:
-              type: array
-              items:
-                $ref: '#/components/schemas/ArchiveWarning'
+      type: object
+      additionalProperties: false
+      description: Every member of `BackupSummary` plus the manifest details (one closed object; `BackupSummary` is closed, so it cannot be extended with `allOf`).
+      required: [fileName, sizeBytes, modifiedAt, recognised, reason, backupId, createdAt, appVersion, backendApi, formatVersion, included, counts, compatibility, excluded, entries, totalBytes, schemaLastMigration, voiceProfiles, warnings]
+      properties:
+        fileName:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.zip$'
+        sizeBytes:
+          type: integer
+        modifiedAt:
+          type: string
+          format: date-time
+        recognised:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          description: Why the file is not recognised (no manifest, not a ZIP).
+        backupId:
+          type: [string, 'null']
+          format: uuid
+        createdAt:
+          type: [string, 'null']
+          format: date-time
+        appVersion:
+          type: [string, 'null']
+        backendApi:
+          type: [string, 'null']
+        formatVersion:
+          type: [string, 'null']
+        included:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        counts:
+          oneOf:
+            - $ref: '#/components/schemas/ArchiveCounts'
+            - type: 'null'
+        compatibility:
+          $ref: '#/components/schemas/Compatibility'
+        excluded:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        entries:
+          type: integer
+        totalBytes:
+          type: integer
+        schemaLastMigration:
+          type: string
+        voiceProfiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceProfileProof'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveWarning'
     RestoreOptions:
       type: object
       additionalProperties: false

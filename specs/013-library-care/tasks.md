@@ -15,8 +15,8 @@ E2E runs on the fake stack with a temporary backups folder. File-system edge cas
 free space, rename failures, crashes between journal steps) use the seams `ILibraryFiles` and
 `IJournalStepHook`; no test fills a real disk.
 
-**Status**: design complete (architect, 2026-11-16). Phase 0 not executed yet (T001, T003-T008
-open; T002 done with this design).
+**Status**: design complete (architect, 2026-11-16). **Phase 0 done** (architect, 2026-11-17; hand-off
+`docs/handoffs/architect-013-phase0.md`): the wave may start.
 
 ## Format: `[ID] [P?] [Story?] [owner] Description (FR/SC refs)`
 
@@ -45,14 +45,14 @@ open; T002 done with this design).
 
 ## Phase 0: Contracts and skeleton (architect, BEFORE the wave)
 
-- [ ] T001 [architect] ADR-022 -> Accepted after CTO review (number check against 012's ADR); record any change in the ADR and DELTA.md
+- [x] T001 [architect] ADR-022 -> Accepted after CTO review (number check against 012's ADR); record any change in the ADR and DELTA.md
 - [x] T002 [architect] Contracts in `specs/013-library-care/contracts/`: `backup-archive.md` 1.0.0, `backup-manifest.schema.json`, `backend-api.delta.openapi.yaml` 1.12.0-delta.1, `worker-api.openapi.yaml` 1.7.0, `ui-test-ids.delta.md` 1.12.0, `redocly.yaml`; Redocly 2.78.0 valid (DELTA.md)
-- [ ] T003 [architect] Spike on the reference machine and in CI (Linux): `ZipArchive` writes and reads back an entry > 4 GiB and > 65,535 entries (Zip64) on a seekable `FileStream`; `BackupDatabase` while a writer loops (no failed write); same-volume `Directory.Move` of `tracks/` etc. inside `/data`; write throughput to a Docker Desktop bind mount (feeds SC-002); results in research.md R-04/R-12
-- [ ] T004 [P] [architect] Layout allow-list check (data-model 3.3 rule 4): a test that runs every path generator of 001-011 (`StemFileStore`, `DetailStemFileStore`, `AssetFileStore`, `TakeStorage`, `VoiceProfileService` sample path, `UploadStore`, artwork store) and asserts each generated path matches `LibraryLayout`; adjust the patterns if needed (binding result)
-- [ ] T005 [architect] After 012 is merged: merge `backend-api.delta.openapi.yaml` into the full `backend-api.openapi.yaml` 1.12.0 and `ui-test-ids.delta.md` into the full `ui-test-ids.md` 1.12.0 (merge instructions in DELTA.md section 1); Redocly lint clean
-- [ ] T006 [P] [architect] .NET contract code: `src/StemStudio.Contracts/LibraryCare/*` (all DTOs of the delta, enums as strings), `ApiRoutes.LibraryCare*`/`Storage*`, `ContractLimits` (archive name regex, 2,000,000 entries, 256 MiB manifest, plan 10 min, margins), `DetailPhaseDto.FilesRemovedAt`; move `SchemaSubsetValidator` to a shared test helper and add `const`, `not`, `uniqueItems`, `format` (annotation); skeleton tests (DTO round trips against the contract examples)
-- [ ] T007 [P] [architect] Worker skeleton: `schemas.py` 1.7.0 (`CONTRACT_VERSION`), models of data-model 7.1; `ports.py` `StorageMeter`, `CacheJanitor`, `LibraryStemReader` with docstrings; fakes in `worker/tests/fakes/`; skeleton tests; ruff + mypy strict
-- [ ] T008 [architect] Verify the skeleton (build 0 warnings, all tests and coverage gates, ruff/mypy, `tools/quality/run_all.py`); hand-off `docs/handoffs/architect-013-phase0.md` (dependencies: none new)
+- [x] T003 [architect] Spike on the reference machine and in CI (Linux): `ZipArchive` writes and reads back an entry > 4 GiB and > 65,535 entries (Zip64) on a seekable `FileStream`; `BackupDatabase` while a writer loops (no failed write); same-volume `Directory.Move` of `tracks/` etc. inside `/data`; write throughput to a Docker Desktop bind mount (feeds SC-002); results in research.md R-04/R-12
+- [x] T004 [P] [architect] Layout allow-list check (data-model 3.3 rule 4): a test that runs every path generator of 001-011 (`StemFileStore`, `DetailStemFileStore`, `AssetFileStore`, `TakeStorage`, `VoiceProfileService` sample path, `UploadStore`, artwork store) and asserts each generated path matches `LibraryLayout`; adjust the patterns if needed (binding result)
+- [x] T005 [architect] After 012 is merged: merge `backend-api.delta.openapi.yaml` into the full `backend-api.openapi.yaml` 1.12.0 and `ui-test-ids.delta.md` into the full `ui-test-ids.md` 1.12.0 (merge instructions in DELTA.md section 1); Redocly lint clean
+- [x] T006 [P] [architect] .NET contract code: `src/StemStudio.Contracts/LibraryCare/*` (all DTOs of the delta, enums as strings), `ApiRoutes.LibraryCare*`/`Storage*`, `LibraryCare/LibraryCareLimits` (archive name regex, 2,000,000 entries, 256 MiB manifest, plan 10 min, margins; own class like 012's `PracticeLimits`), `DetailPhaseDto.FilesRemovedAt`; move `SchemaSubsetValidator` to a shared test helper and add `const`, `not`, `uniqueItems`, `format` (annotation); skeleton tests (DTO round trips against the contract examples)
+- [x] T007 [P] [architect] Worker skeleton: `schemas.py` 1.7.0 (`CONTRACT_VERSION`), models of data-model 7.1; `ports.py` `StorageMeter`, `CacheJanitor`, `LibraryStemReader` with docstrings; fakes in `worker/tests/storage/fakes.py` (the worker convention: one `fakes.py` per test package, `--import-mode=importlib`); skeleton tests; ruff + mypy strict
+- [x] T008 [architect] Verify the skeleton (build 0 warnings, all tests and coverage gates, ruff/mypy, `tools/quality/run_all.py`); hand-off `docs/handoffs/architect-013-phase0.md` (dependencies: none new)
 
 **Checkpoint**: skeleton green; the wave may start.
 

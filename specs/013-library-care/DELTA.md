@@ -44,6 +44,16 @@ On any difference between this summary and the documents, the documents win.
   `older` -> every delta entry present unchanged.
 - **T005 ui-test-ids**: full 1.12.0 = 1.11.0 + changelog line + section "Additions in 1.12.0
   (feature 013)" with the delta's template parts, ids and help topics unchanged.
+- **Pre-release correction (T006, label unchanged, delta and full document)**: `BackupDetails` was
+  `allOf: [BackupSummary, {...}]`, but `BackupSummary` is closed (`additionalProperties: false`), so no
+  instance could satisfy it. `BackupDetails` is now one closed object with every `BackupSummary`
+  member plus `excluded`, `entries`, `totalBytes`, `schemaLastMigration`, `voiceProfiles`, `warnings`
+  (same wire shape; C# `BackupDetailsDto : BackupSummaryDto`).
+- **T006 code**: `src/StemStudio.Contracts/LibraryCare/` (50 files: enums with string converters,
+  `required init` records, `LibraryJobReportDto` polymorphic on `type`, `LibraryCareLimits`,
+  `LibraryCareProblemTypes`, `ApiRoutes.LibraryCare.cs`), `DetailPhaseDto.FilesRemovedAt` (omitted from
+  JSON when null, so older phases serialize unchanged). Worker: `LibraryUnavailableError` /
+  `StemMissingError` (data-model 7.2 calls them `LibraryUnavailable` / `StemMissing`; ruff N818).
 - **T003 refinements** (no contract change; research R-04 "Phase 0 results"): WAL check and busy
   retry for snapshots, WAL after a restore, move retries in the switch; job errors use the existing
   `io-error` code.
