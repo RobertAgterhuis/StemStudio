@@ -23,7 +23,9 @@ public sealed class KeyMapBuilderTests
         map.Bindings.Where(b => b.Layer == "pedal").Select(b => (b.Command, b.Chords.Single().Key))
             .ShouldBe([("mixer.play-pause", "pagedown"), ("mixer.section.restart", "pageup")], ignoreOrder: true);
         (map.SingleKey, map.PedalMode).ShouldBe((true, false));
-        Keys(map, "mixer.record.toggle").Reserved.ShouldBeTrue();
+        Keys(map, "mixer.record.toggle").Reserved.ShouldBeFalse();
+        var held = Catalogue with { Commands = [.. Catalogue.Commands.Select(c => c.Command == "mixer.stop" ? c with { Reserved = true } : c)] };
+        Keys(KeyMapBuilder.Build(held, ShortcutPreferences.Default, "mixer"), "mixer.stop").Reserved.ShouldBeTrue();
         Keys(KeyMapBuilder.Build(Catalogue, ShortcutPreferences.Default, "global"), "palette.open").Anywhere.ShouldBeTrue();
     }
 

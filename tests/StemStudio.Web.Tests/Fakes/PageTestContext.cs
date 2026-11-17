@@ -33,7 +33,6 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton(Api);
         Services.AddSingleton(Engine);
         Services.AddSingleton(Confirm);
-        Services.AddSingleton(Substitute.For<IKeyboardShortcuts>());
         Services.AddSingleton<IPollingTimer>(Timer);
         Services.AddSingleton(Options.Create(new StemStudioWebOptions()));
         Services.AddSingleton<TimeProvider>(Time);
@@ -41,6 +40,7 @@ public abstract class PageTestContext : BunitContext
         Services.AddSingleton(Recorder);
         Services.AddSingleton<IPreferencesStore>(Store);
         Services.AddSingleton<PreferencesState>();
+        Services.AddSingleton<StemStudio.Web.Practice.ShortcutKeys>();
         Services.AddSingleton<ToastService>();
         Services.AddSingleton<IHelpCatalog>(_ => RealHelp.Value);
         Services.AddSingleton<IHelpSearch, HelpSearch>();
