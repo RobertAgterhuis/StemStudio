@@ -61,3 +61,19 @@ public sealed class TakesPanelBasicTests : RecordingTestContext
         item.Name.ShouldBe("New take");
     }
 }
+
+/// <summary>015 T068: the track delete note (FR-018).</summary>
+public sealed class TrackDeleteTakesNoteTests : Bunit.BunitContext
+{
+    [Theory]
+    [InlineData(0, null)]
+    [InlineData(1, "This also deletes 1 take you recorded.")]
+    [InlineData(3, "This also deletes 3 takes you recorded.")]
+    public void Note_ShowsTheCount_OnlyWhenThereAreTakes(int count, string? text)
+    {
+        var note = Render<TrackDeleteTakesNote>(p => p.Add(c => c.Count, count));
+
+        note.FindAll("[data-testid=track-delete-takes-note]").SingleOrDefault()?.TextContent.ShouldBe(text);
+        note.FindAll("[data-testid=track-delete-takes-note]").Count.ShouldBe(text is null ? 0 : 1);
+    }
+}
