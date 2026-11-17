@@ -83,7 +83,9 @@ public static class ApiComposition
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
         await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
-        LiveDatabaseFile.EnsureCreated(app.Services.GetRequiredService<LiveDatabase>().ConnectionString);
+        var live = app.Services.GetRequiredService<LiveDatabase>().ConnectionString;
+        LiveDatabaseFile.EnsureCreated(live);
+        LiveDatabaseFile.UseWal(live);
         app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {

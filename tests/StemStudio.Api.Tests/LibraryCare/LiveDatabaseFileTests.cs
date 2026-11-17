@@ -60,6 +60,44 @@ public sealed class LiveDatabaseFileTests : IDisposable
         File.Exists(database + "x").ShouldBeFalse();
     }
 
+    // Flake round 022/023: pre-creating the file made EF skip its database creation, which is what switches SQLite to WAL, so
+    // the live database ran in rollback-journal mode. A reader's shared lock then makes a writer's commit fail at once with
+    // "database is locked" (Microsoft.Data.Sqlite does not retry a busy commit of an UPDATE ... RETURNING).
+    [Fact]
+    public async Task Startup_PutsANewLiveDatabaseInWalMode()
+    {
+        using var factory = new ApiFactory();
+        factory.CreateClient().Dispose();
+
+        (await JournalModeAsync(Path.Combine(factory.DataDir, "stemstudio.db"))).ShouldBe("wal");
+    }
+
+    [Fact]
+    public async Task Startup_PutsAnExistingRollbackJournalDatabaseInWalMode()
+    {
+        // A restored library comes from a backup snapshot, which is switched to journal_mode=DELETE (one file).
+        var dataDir = Directory.CreateDirectory(Path.Combine(_root.FullName, "data")).FullName;
+        var database = Path.Combine(dataDir, "stemstudio.db");
+        using (var first = new ApiFactory(dataDir))
+        {
+            first.CreateClient().Dispose();
+        }
+
+        Execute(database, "PRAGMA journal_mode=DELETE");
+        (await JournalModeAsync(database)).ShouldBe("delete");
+
+        using var again = new ApiFactory(dataDir);
+        again.CreateClient().Dispose();
+
+        (await JournalModeAsync(database)).ShouldBe("wal");
+    }
+
+    [Theory]
+    [InlineData("Data Source=:memory:")]
+    [InlineData("Data Source=shared;Mode=Memory")]
+    public void UseWal_LeavesNonFileDatabasesAlone(string connectionString) =>
+        LiveDatabaseFile.UseWal(connectionString).ShouldBeFalse();
+
     [Fact]
     public async Task Api_WithTheDatabaseMovedAside_AnswersAnErrorWithoutCreatingAnEmptyDatabase()
     {
@@ -161,6 +199,15 @@ public sealed class LiveDatabaseFileTests : IDisposable
     {
         SqliteConnection.ClearAllPools();
         _root.Delete(recursive: true);
+    }
+
+    private static async Task<string> JournalModeAsync(string database)
+    {
+        await using var connection = new SqliteConnection($"Data Source={database};Mode=ReadOnly;Pooling=False");
+        await connection.OpenAsync(Ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode";
+        return (string)(await command.ExecuteScalarAsync(Ct))!;
     }
 
     private static void Execute(string database, string sql)
