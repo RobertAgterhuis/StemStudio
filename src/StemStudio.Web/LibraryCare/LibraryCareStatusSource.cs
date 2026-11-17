@@ -73,21 +73,25 @@ public sealed class LibraryCareStatusSource(ILibraryCareClient client, TimeProvi
     {
         try
         {
-            while (!ct.IsCancellationRequested)
+            while (true)
             {
-                var before = Current;
-                await ReadAsync(ct);
-                if (!Equals(before, Current))
-                {
-                    Changed?.Invoke();
-                }
-
+                await PollAsync(ct);
                 await Task.Delay(Busy ? BusyInterval : IdleInterval, time, ct);
             }
         }
         catch (OperationCanceledException)
         {
             // Circuit closed.
+        }
+    }
+
+    private async Task PollAsync(CancellationToken ct)
+    {
+        var before = Current;
+        await ReadAsync(ct);
+        if (!ReferenceEquals(before, Current))
+        {
+            Changed?.Invoke();
         }
     }
 

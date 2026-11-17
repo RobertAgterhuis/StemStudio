@@ -70,7 +70,8 @@ public sealed partial class BackupDialog
     private async Task EstimateAsync()
     {
         var version = ++_estimateVersion;
-        var (estimate, error) = await TryEstimateAsync(Form.Options);
+        var options = Form.Options;
+        var (estimate, error) = await CareCall.TryAsync(() => Client.EstimateBackupAsync(options));
         if (version != _estimateVersion)
         {
             return; // An answer for options that have changed since.
@@ -80,36 +81,16 @@ public sealed partial class BackupDialog
         (Error, ErrorCode) = (error?.UserMessage, error?.Code);
     }
 
-    private async Task<(BackupEstimateDto? Estimate, ApiError? Error)> TryEstimateAsync(BackupOptionsDto options)
-    {
-        try
-        {
-            return (await Client.EstimateBackupAsync(options), null);
-        }
-        catch (ApiException ex)
-        {
-            return (null, ex.Error);
-        }
-    }
-
-    private void ClearError() => (Error, ErrorCode) = (null, null);
-
     private async Task StartAsync()
     {
         Busy = true;
-        ClearError();
-        try
+        (Error, ErrorCode) = (null, null);
+        var (job, error) = await CareCall.TryAsync(() => Client.CreateBackupAsync(Form.Options));
+        Busy = false;
+        (Error, ErrorCode) = (error?.UserMessage, error?.Code);
+        if (job is not null)
         {
-            var job = await Client.CreateBackupAsync(Form.Options);
             await OnStarted.InvokeAsync(job);
-        }
-        catch (ApiException ex)
-        {
-            (Error, ErrorCode) = (ex.Error.UserMessage, ex.Error.Code);
-        }
-        finally
-        {
-            Busy = false;
         }
     }
 }

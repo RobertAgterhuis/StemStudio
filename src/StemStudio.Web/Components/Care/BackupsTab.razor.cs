@@ -77,6 +77,11 @@ public sealed partial class BackupsTab
             await JobEndedAsync(followed);
         }
 
+        Follow(active);
+    }
+
+    private void Follow(LibraryJobDto? active)
+    {
         if (active is not null)
         {
             (_followed, LastJob) = (active.JobId, active);
@@ -128,20 +133,13 @@ public sealed partial class BackupsTab
 
     private async Task CancelJobAsync()
     {
-        if (ShownJob is not { } job)
+        var jobId = ShownJob!.JobId;
+        var (job, error) = await CareCall.TryAsync(() => Client.CancelJobAsync(jobId));
+        (CancelError, CancelErrorCode) = (error?.UserMessage, error?.Code);
+        if (job is not null)
         {
-            return;
-        }
-
-        try
-        {
-            LastJob = await Client.CancelJobAsync(job.JobId);
-            (CancelError, CancelErrorCode) = (null, null);
+            LastJob = job;
             await StatusSource.RefreshAsync();
-        }
-        catch (ApiException ex)
-        {
-            (CancelError, CancelErrorCode) = (ex.Error.UserMessage, ex.Error.Code);
         }
     }
 

@@ -8,18 +8,9 @@ namespace StemStudio.Web.LibraryCare;
 /// <summary>Readable texts and test-id parts of the Library care screens (013, ui-test-ids 1.12.0 "Template parts").</summary>
 public static class CareText
 {
-    private static readonly Dictionary<string, string> Categories = new(StringComparer.Ordinal)
+    // Storage-only categories; the backup categories are in BackupCategoryText.
+    private static readonly Dictionary<string, string> StorageCategories = new(StringComparer.Ordinal)
     {
-        ["database"] = "Database (tracks, mixes, settings)",
-        ["stems"] = "Stems",
-        ["artwork"] = "Artwork",
-        ["pendingUploads"] = "Pending uploads",
-        ["detailStems"] = "Detail stems",
-        ["exports"] = "Exports",
-        ["scores"] = "Sheet music",
-        ["generations"] = "Generations",
-        ["recordings"] = "Recordings",
-        ["voiceProfiles"] = "Voice profiles",
         ["leftovers"] = "Leftovers",
         ["restoreStaging"] = "Restore in progress",
         ["previousLibrary"] = "Previous library",
@@ -27,20 +18,6 @@ public static class CareText
         ["workerDetailCache"] = "Worker detail cache",
         ["workerJobFiles"] = "Worker job files",
         ["workerScratch"] = "Worker scratch files",
-    };
-
-    private static readonly Dictionary<LibraryJobStageDto, string> Stages = new()
-    {
-        [LibraryJobStageDto.Snapshot] = "Copying the database",
-        [LibraryJobStageDto.Scrub] = "Preparing the database copy",
-        [LibraryJobStageDto.Files] = "Writing files",
-        [LibraryJobStageDto.Manifest] = "Writing the contents list",
-        [LibraryJobStageDto.Check] = "Checking the archive",
-        [LibraryJobStageDto.Validate] = "Checking the archive",
-        [LibraryJobStageDto.Extract] = "Unpacking files",
-        [LibraryJobStageDto.Database] = "Checking the database",
-        [LibraryJobStageDto.Switch] = "Switching to the restored library",
-        [LibraryJobStageDto.Reconcile] = "Finishing",
     };
 
     /// <summary>The kebab-case test-id part of a contract enum value (<c>detailStems</c> -&gt; <c>detail-stems</c>).</summary>
@@ -65,7 +42,11 @@ public static class CareText
     /// <param name="category">The category.</param>
     /// <returns>For example "Detail stems".</returns>
     public static string Category<T>(T category)
-        where T : struct, Enum => Categories.TryGetValue(WireName.Of(category), out var name) ? name : WireName.Of(category);
+        where T : struct, Enum
+    {
+        var wire = WireName.Of(category);
+        return BackupCategoryText.Names.TryGetValue(wire, out var name) || StorageCategories.TryGetValue(wire, out name) ? name : wire;
+    }
 
     /// <summary>"Regenerable" or "Original".</summary>
     /// <param name="value">The class.</param>
@@ -92,7 +73,7 @@ public static class CareText
     /// <param name="job">The job.</param>
     /// <returns>The stage text, or "Waiting to start" / the status for a job without stage.</returns>
     public static string Stage(LibraryJobDto job) => job.StageText
-        ?? (job.Stage is { } stage ? Stages[stage] : job.Status == LibraryJobStatusDto.Queued ? "Waiting to start" : Capital(Status(job.Status)));
+        ?? (job.Stage is { } stage ? BackupCategoryText.Stage(stage) : job.Status == LibraryJobStatusDto.Queued ? "Waiting to start" : Capital(Status(job.Status)));
 
     /// <summary>Time left, for example "about 3 minutes left".</summary>
     /// <param name="seconds">Seconds, or null when unknown.</param>
