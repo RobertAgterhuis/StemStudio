@@ -77,8 +77,8 @@ and `polish`, with real test and coverage output.
 - [x] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment log (T001 found the anchors pruned; tempo-stage latency is already in the heard anchors, P0-8) with its own unit tests (no public API change)
 - [x] T016 [P] [audio-engine] Failing tests `tests/recording/calibration.test.ts`: seeded click schedule, chirp template, `estimateLatency` vectors of research R-04 (exact delays 0/128/1,000/4,410/20,000, noise -20/-40 dB, echo, missing clicks, clipping warning, jitter, every failure reason) (FR-007)
 - [x] T017 [audio-engine] Implement `src/recording/calibration.ts` to pass T016
-- [ ] T018 [P] [audio-engine] Failing tests `tests/recording/compare.test.ts` and `tests/gate.test.ts` additions: `take` is an audible-level channel for `anySolo`; `compareGate` per mode incl. expanded detail channels and part `none` (research R-10)
-- [ ] T019 [audio-engine] Implement `src/recording/compare.ts`, gate and mixer changes to pass T018
+- [x] T018 [P] [audio-engine] Failing tests `tests/recording/compare.test.ts` and `tests/gate.test.ts` additions: `take` is an audible-level channel for `anySolo`; `compareGate` per mode incl. expanded detail channels and part `none` (research R-10)
+- [x] T019 [audio-engine] Implement `src/recording/compare.ts`, gate and mixer changes to pass T018
 
 ### backend (tests first)
 
