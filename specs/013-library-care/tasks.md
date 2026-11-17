@@ -150,7 +150,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [ ] T058 [P] [US4] [backend] Failing tests `CleanupPlannerTests.cs`, `CleanupExecutorTests.cs`: plans contain only regenerable items (property test with stems, exports, scores, takes, recordings and voice samples present: none planned, SC-007, SC-010), skips with reasons (`detail-active`, `export-active`, `job-active`, `worker-unavailable`), fingerprint and `plan-stale`, expiry `plan-expired`, refused during backup/restore, detail removal sets `FilesRemovedAt`, worker clean-up call, leftovers, storage cache invalidated (FR-022-FR-026)
 - [ ] T059 [US4] [backend] Implement `Cleanup/*`, `previewCleanup`, `executeCleanup` to pass T058
 - [ ] T060 [US4] [frontend] bUnit tests first, then: clean-up buttons and per-row action, clean-up dialog (items, skipped, total, confirm, result, stale/expired error with "Preview again"), `detail-files-removed` on the track page, `mixer-detail-removed` in the mixer (detail channels not loaded, parents play, settings kept); help topic `storage-cleanup`
-- [ ] T061 [US4] [qa] E2E `library-care-cleanup.spec.ts`: remove detail stems -> freed bytes equal preview -> notices -> mixer plays parents -> Split further restores; clear worker cache -> Split further on another track works (rehydration); a stale plan is refused
+- [x] T061 [US4] [qa] E2E `library-care-cleanup.spec.ts`: remove detail stems -> freed bytes equal preview -> notices -> mixer plays parents -> Split further restores; clear worker cache -> Split further on another track works (rehydration); a stale plan is refused
 
 **Checkpoint**: HO:us4 for backend, frontend, qa.
 
