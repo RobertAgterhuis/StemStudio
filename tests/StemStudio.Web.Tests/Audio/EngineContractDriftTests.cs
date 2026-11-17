@@ -18,7 +18,7 @@ public sealed partial class EngineContractDriftTests
     // 014 Phase 0 part 2 (engine 2.4.0): OnLoopPass, removed by the frontend lane when the recorder wires it (T049/T099).
     // 015 Phase 0 (T004, engine 2.5.0): the five recording callbacks, removed when the frontend implements them (T026/T027).
     private static readonly string[] PendingCallbacks =
-        ["OnLoopPass", "OnRecordingStateChanged", "OnRecordingProgress", "OnTakesCaptured", "OnInputLost", "OnInputDevicesChanged"];
+        ["OnLoopPass"];
 
     [Fact]
     public void EveryInvokedEngineMethod_ExistsInAudioEngineInterface()
