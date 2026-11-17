@@ -1,0 +1,103 @@
+@inherits PollingComponent
+@* One level of the library (feature 022, FR-013..FR-021; ui-test-ids 1.22.0): breadcrumb, header with art, title and
+   counts, "Sorting your library" while the backfill runs, layout and (Advanced) order and "All items", then the child
+   folders or, in a song folder, the items. Polled about every 2 s while items are queued or rendering or the backfill
+   runs; 503 library-maintenance keeps the last view (the 013 overlay explains it). *@
+
+<section class="ss-library-folders" data-testid="library-folders" data-level="@LevelName" aria-labelledby="library-folder-title">
+    @if (Missing)
+    {
+        <LibraryBreadcrumb />
+        <h1 id="library-folder-title" data-testid="library-folder-title" data-help-id="library-folders">Library</h1>
+        <EmptyState TestId="library-folder-missing" Text="This folder is empty now: its items were moved or deleted.">
+            <a href="@LibraryLocation.RootPath">Open the library</a> or <a href="@LibraryLocation.RootPath" @onclick="OnSearchLink" @onclick:preventDefault>search for the item</a>.
+        </EmptyState>
+    }
+    else if (View is null)
+    {
+        @if (Error is not null)
+        {
+            <ErrorState TestId="library-error" Message="@Error" Hint="Check that StemStudio is running, then reload the page." />
+        }
+        else
+        {
+            <Skeleton Lines="4" Label="Loading the library..." />
+        }
+    }
+    else
+    {
+        <LibraryBreadcrumb Parents="View.Breadcrumb" Current="View.Folder" />
+        <header class="ss-folder-head">
+            @if (View.Folder is { } folder)
+            {
+                <span data-help-id="library-art"><FolderArt Art="folder.Art" TestId="library-folder-art" /></span>
+            }
+            <div class="ss-folder-head-text">
+                <div class="ss-label-row">
+                    <h1 id="library-folder-title" data-testid="library-folder-title" data-help-id="library-folders">@Title</h1>
+                    <HelpHint HelpId="library-folders" />
+                </div>
+                <p class="ss-muted ss-small" data-testid="library-folder-counts">
+                    @if (View.Folder is { } open)
+                    {
+                        @FolderText.Header(open)
+                    }
+                    else
+                    {
+                        @FolderText.Plural(View.TotalItems, "item")<text>, total size </text><span class="ss-num" data-testid="library-total-size">@ByteSize.Format(View.TotalSizeBytes)</span>
+                    }
+                </p>
+            </div>
+        </header>
+
+        @if (View.PendingFiling > 0)
+        {
+            <p class="ss-notice" role="status" data-testid="library-filing-pending">Sorting your library (@FolderText.Plural(View.PendingFiling, "item") left)</p>
+        }
+
+        @if (Error is not null)
+        {
+            <ErrorState TestId="library-error" Message="@Error" />
+        }
+
+        <div class="ss-library-tools ss-folder-tools">
+            @if (ChildLevel is not null)
+            {
+                <div class="ss-segmented" role="group" aria-label="Layout">
+                    <button type="button" class="ss-segment" aria-pressed="@Pressed(FolderLayout.Grid)" data-testid="library-layout-grid" @onclick="() => SetLayoutAsync(FolderLayout.Grid)">Grid</button>
+                    <button type="button" class="ss-segment" aria-pressed="@Pressed(FolderLayout.List)" data-testid="library-layout-list" @onclick="() => SetLayoutAsync(FolderLayout.List)">List</button>
+                </div>
+                <LevelGate Feature="library.filters">
+                    <label class="ss-sr-only" for="library-sort">Order</label>
+                    <select id="library-sort" class="ss-select" data-testid="library-sort" @onchange="OnSortAsync">
+                        @foreach (var (value, label) in SortOptions)
+                        {
+                            <option value="@value" selected="@(value == SortValue)">@label</option>
+                        }
+                    </select>
+                </LevelGate>
+            }
+            <LevelGate Feature="library.filters">
+                <a class="ss-library-switch" href="@($"{LibraryLocation.RootPath}?view=all")" data-testid="library-view-all">All items</a>
+            </LevelGate>
+        </div>
+
+        @if (View.Folder is { Level: FolderLevelDto.Song } song)
+        {
+            <SongFolder Folder="song" Items="View.Items" OnReplaced="Replace" OnDeleted="RemoveAsync" OnReload="ReloadAsync" OnEditInfo="EditTrackInfo" />
+        }
+        else if (View.Children.Count == 0)
+        {
+            <EmptyState TestId="library-empty" Text="No items yet. Save a stem on a track page or what you hear in the mixer." />
+        }
+        else
+        {
+            <FolderGrid Folders="View.Children" Label="@ChildrenLabel" Layout="Settings.Layout" Compact="Compact" />
+        }
+    }
+</section>
+
+@if (Filing is not null)
+{
+    <LibraryInfoDialog Target="Filing" OnClose="CloseFiling" OnSaved="OnFiledAsync" />
+}

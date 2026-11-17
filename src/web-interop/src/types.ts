@@ -32,7 +32,7 @@ export type Motion = 'full' | 'reduced';
 export type TourStatus = 'completed' | 'dismissed';
 
 /** Scope of a key map registered by {@link registerShortcuts}. */
-export type ShortcutScope = 'global' | 'mixer';
+export type ShortcutScope = 'global' | 'mixer' | 'library';
 
 /** Progress of one tour (data-model.md 1.1 `help.tours`). */
 export interface StoredTourRecord {

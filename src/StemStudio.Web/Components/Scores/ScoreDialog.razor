@@ -16,7 +16,11 @@
         {
             <div class="ss-export-saved" role="status" data-testid="score-saved">
                 <p>Saved "@saved.Name" to the library. The sheet music is being made in the background.</p>
-                <a href="@($"library?asset={saved.Id}")" data-testid="score-saved-open">Open in library</a>
+                @if (saved.Placement is { } placement)
+                {
+                    <p>Saved to <FolderPath Placement="placement" TestId="score-saved-folder" /></p>
+                }
+                <a href="@StemStudio.Web.Library.LibraryLinks.Item(saved.Id, saved.Placement)" data-testid="score-saved-open">Open in library</a>
             </div>
             <div class="ss-dialog-actions">
                 <RadzenButton Text="Close" Click="OnClose" data-testid="score-close" />

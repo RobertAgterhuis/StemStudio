@@ -78,8 +78,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T015 [backend] `PlacementInput.cs`, `PlacementResolver.cs`, `LibraryFilingRules.cs`; `Asset.File`, `Asset.SetLibraryInfo`, `Track.SetLibraryInfo` (`Track.Library.cs`) (green)
 - [x] T016 [P] [backend] Tests (red) persistence: owned `Placement` mapping, library info columns on `Assets`/`Tracks`, `FiledVersion` default 0, `IX_Assets_Folder`, migration up/down on a copy of a pre-022 database (SQLite)
 - [x] T017 [backend] EF configurations and migration `AddLibraryFolders` (green) (research R-13)
-- [ ] T018 [P] [frontend] Tests (red) API client methods for the 9 new operations against a stub handler (ETag/304 handling, 404 folder-not-found, 422 mapping) and pure helpers `LibraryLocationTests` (routes, `?q=`, `?view=all`, URL building), `HighlightedTextTests` (ranges, overlaps, out-of-range safety), `FolderArtModelTests` (cover/mosaic 2-4/placeholder, `srcset`/`sizes`, tone class)
-- [ ] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
+- [x] T018 [P] [frontend] Tests (red) API client methods for the 9 new operations against a stub handler (ETag/304 handling, 404 folder-not-found, 422 mapping) and pure helpers `LibraryLocationTests` (routes, `?q=`, `?view=all`, URL building), `HighlightedTextTests` (ranges, overlaps, out-of-range safety), `FolderArtModelTests` (cover/mosaic 2-4/placeholder, `srcset`/`sizes`, tone class)
+- [x] T019 [frontend] `src/StemStudio.Web/Api/*` additions, `src/StemStudio.Web/Library/{LibraryLocation,HighlightedText,FolderArtModel}.cs` (green)
 - [ ] T020 [P] [ai-agent] Tests (red) descriptors and JSON schemas of the 4 tools (names, kinds, risk, undo, `additionalProperties: false`, folder id pattern, xor of `trackId`/`assetId`), registry groups and the 32-tool cap per page context (library = 32, others unchanged) (catalogue 1.1.0)
 - [ ] T021 [ai-agent] Tool descriptors, group `library` (9), `AgentPageContexts` maps `/library/{folderId}` to `library` (green)
 - [ ] T022 [P] [qa] Page-object migration first (red against 1.22.0): `e2e/pages/library-page.ts` opens `/library?view=all` for the 007/008 specs; `e2e/support/levels.ts` drops `library-search` from `beginnerHiddenLibraryIds`; new page objects `library-folders-page.ts`, `library-search.ts`, `library-info-dialog.ts`
@@ -98,8 +98,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T033 [US1] [backend] `LibraryFilingBackfill.cs` (hosted service + `ILibraryFilingTrigger`), `StemStudio:LibraryBackfillBatchSize` option; required `LibraryGate` constructor dependency (013 is on `main`; no `GetService` fallback) (green)
 - [x] T034 [P] [US1] [backend] Tests (red) `AssetMapperTests`: `placement` on every asset response (get, list, create, rename, retry, stem pack, score, generation import), `filed = false` preview before backfill, null for recordings
 - [x] T035 [US1] [backend] `AssetMapper`/`LibraryMapper` placement mapping (green)
-- [ ] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
-- [ ] T037 [US1] [frontend] Confirmation changes in the export and score dialogs (green)
+- [x] T036 [P] [US1] [frontend] Tests (red) export dialog and sheet music dialog confirmations show `export-saved-folder`/`score-saved-folder` (three links) and `export-saved-open`/`score-saved-open` link to `/library/<songFolderId>#asset-<id>` (FR-012)
+- [x] T037 [US1] [frontend] Confirmation changes in the export and score dialogs (green)
 - [ ] T038 [P] [US1] [qa] E2E `e2e/tests/library-filing.spec.ts`: save each item kind, check folder path and confirmation; two spellings of one artist -> one folder; unknown artist/album; deleted track keeps items; last item deleted -> folders gone (US1 scenarios 1-5, 7-9; SC-001)
 - [ ] T039 [P] [US1] [qa] E2E `e2e/tests/library-migration.spec.ts`: start on a pre-022 database fixture, `library-filing-pending` visible then gone, every item filed (US1 scenario 6, SC-003)
 
@@ -115,14 +115,14 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T043 [US2] [backend] `LibraryEndpoints.cs` (folders), `LibraryProblems.cs` (green)
 - [x] T044 [P] [US2] [backend] Performance test (red until tuned) with a seeded SQLite file of 5,000 items / 150 artists: folder view p95 <= 100 ms, index rebuild <= 200 ms; the seeder (`LibrarySeed`, test category `Seed`) also writes the E2E database fixtures (pre-022 and current) to the path qa passes in (SC-004)
 - [x] T045 [US2] [backend] Tuning if needed (projection query, no tracking, cached sort keys) (green)
-- [ ] T046 [P] [US2] [frontend] Tests (red) `LibraryPage` folder mode: routes `/library` and `/library/{folderId}`, breadcrumb (`nav` landmark, `aria-current`, collapse under 480 px), title/art/counts header, `library-folder-missing`, `library-filing-pending`, polling every 2 s while items are active (stops when none), "All items" keeps every 007/008 id on `?view=all` (FR-013, FR-020, FR-021)
-- [ ] T047 [US2] [frontend] `LibraryPage` (folders/all modes), `LibraryBreadcrumb`, header (green)
-- [ ] T048 [P] [US2] [frontend] Tests (red) `FolderTile`/`FolderArt`/`FolderGrid`: one link per tile with accessible name "<name>, <level>, <counts>", `alt=""` images, width/height, `loading="lazy"`, `srcset`, mosaic cells 2-4, placeholder glyph `aria-hidden`, `onerror` fallback, grid/list toggle persisted in preferences, year on album tiles (FR-014..FR-016, FR-019)
-- [ ] T049 [US2] [frontend] `FolderGrid`, `FolderTile`, `FolderArt` components; 8 art tone tokens in the design system (light/dark, letter contrast >= 4.5:1), tile and mosaic styles, compact density (green)
-- [ ] T050 [P] [US2] [frontend] Tests (red) `SongFolder`: 007 `AssetRow`s with play/download/rename/delete/retry unchanged, `asset-path-<id>`, `song-open-track`/`song-open-mixer` only while the track exists, items in instrument order (FR-020)
-- [ ] T051 [US2] [frontend] `SongFolder`, `AssetPath` (also in "All items" rows) (green)
-- [ ] T052 [P] [US2] [frontend] Tests (red) level visibility R7-R9 for every 022 id (Beginner hides `library-sort`, `library-view-all`, scope; library info ids render at every level, owner decision 2026-11-16), Advanced sort select per level (FR-018, FR-035)
-- [ ] T053 [US2] [frontend] Level rules and sort select (green)
+- [x] T046 [P] [US2] [frontend] Tests (red) `LibraryPage` folder mode: routes `/library` and `/library/{folderId}`, breadcrumb (`nav` landmark, `aria-current`, collapse under 480 px), title/art/counts header, `library-folder-missing`, `library-filing-pending`, polling every 2 s while items are active (stops when none), "All items" keeps every 007/008 id on `?view=all` (FR-013, FR-020, FR-021)
+- [x] T047 [US2] [frontend] `LibraryPage` (folders/all modes), `LibraryBreadcrumb`, header (green)
+- [x] T048 [P] [US2] [frontend] Tests (red) `FolderTile`/`FolderArt`/`FolderGrid`: one link per tile with accessible name "<name>, <level>, <counts>", `alt=""` images, width/height, `loading="lazy"`, `srcset`, mosaic cells 2-4, placeholder glyph `aria-hidden`, `onerror` fallback, grid/list toggle persisted in preferences, year on album tiles (FR-014..FR-016, FR-019)
+- [x] T049 [US2] [frontend] `FolderGrid`, `FolderTile`, `FolderArt` components; 8 art tone tokens in the design system (light/dark, letter contrast >= 4.5:1), tile and mosaic styles, compact density (green)
+- [x] T050 [P] [US2] [frontend] Tests (red) `SongFolder`: 007 `AssetRow`s with play/download/rename/delete/retry unchanged, `asset-path-<id>`, `song-open-track`/`song-open-mixer` only while the track exists, items in instrument order (FR-020)
+- [x] T051 [US2] [frontend] `SongFolder`, `AssetPath` (also in "All items" rows) (green)
+- [x] T052 [P] [US2] [frontend] Tests (red) level visibility R7-R9 for every 022 id (Beginner hides `library-sort`, `library-view-all`, scope; library info ids render at every level, owner decision 2026-11-16), Advanced sort select per level (FR-018, FR-035)
+- [x] T053 [US2] [frontend] Level rules and sort select (green)
 - [ ] T054 [P] [US2] [qa] E2E `e2e/tests/library-browse.spec.ts` + `e2e/a11y/library.spec.ts` + visual snapshots: art kinds (cover, mosaic 2/3/4, placeholder, broken image), breadcrumb and keyboard path, grid/list, sorts at Advanced, Beginner path, axe in both themes and densities (US2 scenarios 1-9; SC-005, SC-008)
 
 **Checkpoint**: HO:us2 (backend, frontend, qa).
@@ -135,12 +135,12 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T061 [US3] [backend] `InstrumentTerms.cs`, `LibrarySearch.cs` (green)
 - [x] T062 [P] [US3] [backend] Tests (red) `GET /api/library/search`: 200 groups, 304 same revision, 404 unknown `within`, 422 blank/too long; perf at 5,000 items p95 <= 50 ms (extends T044) (FR-030, SC-004)
 - [x] T063 [US3] [backend] Search endpoint (green)
-- [ ] T064 [P] [US3] [frontend] Tests (red) `LiveSearchControllerTests` with fake `TimeProvider`: first character, 200 ms debounce, Enter immediate, sequence numbers drop stale answers, cancellation, Escape/clear restores the previous folder URL and focus, `?q=` replace while typing and push on Enter (FR-022, FR-026)
-- [ ] T065 [US3] [frontend] `LiveSearchController.cs` (green)
-- [ ] T066 [P] [US3] [frontend] Tests (red) `LibrarySearchBox`/`SearchResults`/`SearchGroup`: grouped results with headings and counts, `search-show-all-<group>`, `<mark>` segments (`search-mark`), paths as links, item actions in results, `library-search-empty` with tips and clear, `library-search-error` keeps results, `library-search-status` announced once 500 ms after the last change, Arrow Down to the first result, `library-search-scope` at Advanced inside a folder (FR-025, FR-027..FR-029)
-- [ ] T067 [US3] [frontend] Search components and `LibraryAnnouncer` (green)
-- [ ] T068 [P] [US3] [frontend] Tests (red) `/` shortcut focuses the search on library pages (014 catalogue row when present, else 004 key map registration; no conflict with Ctrl+K and Ctrl+/)
-- [ ] T069 [US3] [frontend] Shortcut registration (green)
+- [x] T064 [P] [US3] [frontend] Tests (red) `LiveSearchControllerTests` with fake `TimeProvider`: first character, 200 ms debounce, Enter immediate, sequence numbers drop stale answers, cancellation, Escape/clear restores the previous folder URL and focus, `?q=` replace while typing and push on Enter (FR-022, FR-026)
+- [x] T065 [US3] [frontend] `LiveSearchController.cs` (green)
+- [x] T066 [P] [US3] [frontend] Tests (red) `LibrarySearchBox`/`SearchResults`/`SearchGroup`: grouped results with headings and counts, `search-show-all-<group>`, `<mark>` segments (`search-mark`), paths as links, item actions in results, `library-search-empty` with tips and clear, `library-search-error` keeps results, `library-search-status` announced once 500 ms after the last change, Arrow Down to the first result, `library-search-scope` at Advanced inside a folder (FR-025, FR-027..FR-029)
+- [x] T067 [US3] [frontend] Search components and `LibraryAnnouncer` (green)
+- [x] T068 [P] [US3] [frontend] Tests (red) `/` shortcut focuses the search on library pages (014 catalogue row when present, else 004 key map registration; no conflict with Ctrl+K and Ctrl+/)
+- [x] T069 [US3] [frontend] Shortcut registration (green)
 - [ ] T070 [P] [US3] [qa] E2E `e2e/tests/library-search.spec.ts`: one character at a time, accents ("motorhead"), two words, **one query per instrument family and per detail group**, highlights, paths, item actions in results, Escape restores the folder, empty state, keyboard and live-region text (US3 scenarios 1-10; SC-006)
 - [ ] T071 [P] [US3] [qa] E2E `e2e/tests/library-search-perf.spec.ts` on the 5,000-item fixture: p95 last-key-to-results <= 400 ms over 30 typed queries; no stale result flicker (SC-004)
 
@@ -152,8 +152,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [x] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
 - [x] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
-- [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
-- [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
+- [x] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
+- [x] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
 - [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
 
 **Checkpoint**: HO:us4 (backend, frontend, qa).
@@ -176,10 +176,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 7: Polish and cross-cutting
 
-- [ ] T084 [P] [frontend] Help topics `library-folders`, `library-search`, `library-info`, `library-art` (help-content 1.0.0 format; test first: `HelpCatalogueTests` lists them and every `data-help-id` resolves) (FR-035)
+- [x] T084 [P] [frontend] Help topics `library-folders`, `library-search`, `library-info`, `library-art` (help-content 1.0.0 format; test first: `HelpCatalogueTests` lists them and every `data-help-id` resolves) (FR-035)
 - [ ] T085 [P] [devops] **Conditional**: only if qa (T023/T039/T071) cannot copy the database fixtures into the API volume from the spec's global setup without a compose change - add an opt-in fixture mount to the fake stack (check-first test in the task). Otherwise not executed.
 - [x] T086 [P] [backend] Polish: XML docs, `dotnet format`, SIG check on `Domain/Library` and `Api/Library`, coverage >= 90 % line and branch (HO:polish)
-- [ ] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
+- [x] T087 [P] [frontend] Polish: 320 px layout, compact density, reduced motion (no tile animations), SIG, coverage >= 90 % (HO:polish)
 - [ ] T088 [P] [ai-agent] Polish: coverage >= 90 %, catalogue counts test (HO:polish)
 - [ ] T089 [quality-gate] SIG and Sonar pass on all 022 code; refactor requests to owners; dependency rules green (T024) (HO:polish)
 - [ ] T090 [qa] Audit the owners' tests and coverage evidence (HO:polish)

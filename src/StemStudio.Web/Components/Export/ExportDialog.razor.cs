@@ -78,12 +78,16 @@ public sealed partial class ExportDialog
     /// <summary>The confirmation of a submitted export.</summary>
     /// <param name="FirstId">The (first) created item, target of <c>export-saved-open</c>.</param>
     /// <param name="Text">The confirmation text.</param>
-    private sealed record SavedExport(Guid FirstId, string Text)
+    /// <param name="Placement">Where the (first) item is filed (feature 022, FR-012); null for an API before 1.22.0.</param>
+    private sealed record SavedExport(Guid FirstId, string Text, StemStudio.Contracts.Library.PlacementDto? Placement)
     {
+        /// <summary>The link of <c>export-saved-open</c>: the item in its song folder (ui-test-ids 1.22.0).</summary>
+        public string OpenUrl => StemStudio.Web.Library.LibraryLinks.Item(FirstId, Placement);
+
         public static SavedExport From(AssetDto asset) =>
-            new(asset.Id, $"Saved \"{asset.Name}\" to the library. It is being prepared in the background.");
+            new(asset.Id, $"Saved \"{asset.Name}\" to the library. It is being prepared in the background.", asset.Placement);
 
         public static SavedExport From(StemPackDto pack) =>
-            new(pack.Items[0].Id, $"Saved {pack.Items.Count} items to the library, one per stem. They are being prepared in the background.");
+            new(pack.Items[0].Id, $"Saved {pack.Items.Count} items to the library, one per stem. They are being prepared in the background.", pack.Items[0].Placement);
     }
 }

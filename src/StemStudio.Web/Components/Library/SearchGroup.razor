@@ -1,0 +1,50 @@
+@* One group of folder hits (feature 022, FR-025, FR-027): heading with the total, a list of links to the folders with the
+   matched part marked and their path as links, and "Show all N" when the group has more hits than shown. *@
+
+<section class="ss-search-group" data-testid="@($"search-group-{Group}")" aria-labelledby="@HeadingId">
+    <h2 id="@HeadingId" class="ss-search-heading">@Title <span class="ss-muted ss-num">(@Total)</span></h2>
+    <ul class="ss-search-hits">
+        @for (var i = 0; i < Shown.Count; i++)
+        {
+            var hit = Shown[i];
+            <li class="ss-search-hit">
+                @if (i == 0)
+                {
+                    <a href="@LibraryLocation.FolderUrl(hit.Folder.Id)" data-testid="@($"search-hit-{hit.Folder.Id}")" @ref="_first">
+                        @HitLabel(hit)
+                    </a>
+                }
+                else
+                {
+                    <a href="@LibraryLocation.FolderUrl(hit.Folder.Id)" data-testid="@($"search-hit-{hit.Folder.Id}")">
+                        @HitLabel(hit)
+                    </a>
+                }
+                @if (hit.Path.Count > 0)
+                {
+                    <span class="ss-small ss-muted ss-search-path">in
+                        @for (var p = 0; p < hit.Path.Count; p++)
+                        {
+                            var parent = hit.Path[p];
+                            @if (p > 0)
+                            {
+                                <span class="ss-folder-sep" aria-hidden="true"> &gt; </span>
+                            }
+                            <a href="@LibraryLocation.FolderUrl(parent.Id)">@parent.Name</a>
+                        }
+                    </span>
+                }
+                <span class="ss-small ss-muted ss-search-counts">@FolderText.Counts(hit.Folder.Counts)</span>
+            </li>
+        }
+    </ul>
+    @if (Total > Shown.Count)
+    {
+        <button type="button" class="ss-link-button" data-testid="@($"search-show-all-{Group}")" @onclick="OnShowAll">Show all @Total @Title.ToLowerInvariant()</button>
+    }
+</section>
+
+@code {
+    // The label of a hit link: the name with its marks and the level for screen readers.
+    private RenderFragment<FolderHitDto> HitLabel => hit => @<text><MarkedText Text="@hit.Folder.Name" Highlights="hit.Highlights" Field="SearchFieldDto.Name" /><span class="ss-sr-only">, @FolderText.Level(hit.Folder.Level)</span></text>;
+}
