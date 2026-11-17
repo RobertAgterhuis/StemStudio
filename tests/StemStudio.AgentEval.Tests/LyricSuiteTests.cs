@@ -96,6 +96,42 @@ public sealed partial class LyricSuiteTests
     }
 
     [Fact]
+    public void Blocks_SplitAtBlankLinesAndTheBlockSize()
+    {
+        var text = string.Join('\n', ["[verse]", "a", "b", "", "", "[chorus]", .. Enumerable.Range(1, 10).Select(i => $"l{i}"), ""]);
+
+        var blocks = LyricPerformance.Blocks(text, 8);
+
+        blocks.Select(block => (block.FirstLine, block.LastLine)).ShouldBe([(1, 3), (6, 13), (14, 16)]);
+        blocks.Select(block => block.Index).ShouldBe([0, 1, 2]);
+        LyricPerformance.Blocks("one\r\ntwo", 8).Single().LastLine.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task APerformanceRun_TimesEveryBlock_AndCountsValidJson()
+    {
+        var sheet = await File.ReadAllTextAsync(Path.Combine(Repo.Root, "tests", "fixtures", "lyrics", "assist", "sheets", "p1-havenlicht.nl.txt"), Token);
+
+        var run = await LyricPerformance.RunAsync(sheet, AssistLanguageDto.Nl, new ScriptedNothing(), Token);
+        var report = LyricPerformance.Report("test", [run, run with { BlockSeconds = [] }]);
+
+        run.BlockSeconds.Count.ShouldBe(LyricPerformance.Blocks(sheet, 8).Count);
+        (run.Replies, run.ValidReplies).ShouldBe((run.BlockSeconds.Count, run.BlockSeconds.Count));
+        run.TotalSeconds.ShouldBeGreaterThanOrEqualTo(run.FirstBlockSeconds);
+        report.ShouldContain("| 1 |");
+        report.ShouldContain("Valid JSON");
+    }
+
+    [Fact]
+    public void Options_ParseTheSheetAndTheCaseFilter()
+    {
+        var options = EvalOptions.Parse(["--suite", "lyric", "--sheet", "p1.nl.txt", "--cases", "N01, N02"]).Options!;
+
+        options.Sheet.ShouldBe("p1.nl.txt");
+        options.Cases.ShouldBe(["N01", "N02"]);
+    }
+
+    [Fact]
     public void HarnessVerification_ApproximatesSyllablesAndRhymes()
     {
         var verification = new HarnessVerification();

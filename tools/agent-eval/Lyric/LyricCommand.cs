@@ -27,9 +27,40 @@ internal static class LyricCommand
 
         using var http = EvalBackends.OllamaHttp();
         var model = Client(options.Model, http);
+        if (options.Sheet is { } sheet)
+        {
+            return await PerformanceAsync(options, sheet, model, log);
+        }
+
+        if (options.Cases.Count > 0)
+        {
+            set = set with { Cases = [.. set.Cases.Where(item => options.Cases.Contains(item.Id))] };
+        }
+
         var grades = await LyricSuite.RunAsync(set, _ => model, options.Runs, log, CancellationToken.None);
         await File.WriteAllTextAsync(options.Paths.Report, LyricGrader.Report($"ollama {options.Model}, {options.Runs} run(s), harness verification (no dictionary layer)", grades));
         await log.WriteLineAsync($"lyric suite: {grades.Count} case runs; report {options.Paths.Report}.");
+        return 0;
+    }
+
+    /// <summary>Times a performance sheet <c>--runs</c> times (the language from the file name: <c>.nl.</c> or <c>.en.</c>).</summary>
+    /// <param name="options">Command line.</param>
+    /// <param name="sheet">Sheet path.</param>
+    /// <param name="model">Model.</param>
+    /// <param name="log">Log.</param>
+    /// <returns>The exit code.</returns>
+    public static async Task<int> PerformanceAsync(EvalOptions options, string sheet, ILyricModel model, TextWriter log)
+    {
+        var text = await File.ReadAllTextAsync(sheet);
+        var language = sheet.Contains(".en.", StringComparison.Ordinal) ? Contracts.LyricAssist.AssistLanguageDto.En : Contracts.LyricAssist.AssistLanguageDto.Nl;
+        var runs = new List<PerformanceRun>();
+        for (var run = 0; run < options.Runs; run++)
+        {
+            runs.Add(await LyricPerformance.RunAsync(text, language, model, CancellationToken.None));
+            await log.WriteLineAsync($"performance run {run + 1}: first block {runs[^1].FirstBlockSeconds:0.0} s, total {runs[^1].TotalSeconds:0.0} s, valid JSON {runs[^1].ValidReplies}/{runs[^1].Replies}");
+        }
+
+        await File.WriteAllTextAsync(options.Paths.Report, LyricPerformance.Report($"{Path.GetFileName(sheet)}, ollama {options.Model}", runs));
         return 0;
     }
 

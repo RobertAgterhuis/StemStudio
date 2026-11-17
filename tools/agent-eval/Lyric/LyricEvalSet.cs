@@ -9,7 +9,7 @@ namespace StemStudio.AgentEval.Lyric;
 /// <param name="Cases">Scored sheets (N01-N32, E01-E32).</param>
 /// <param name="Guardrails">Guardrail and injection cases (graded by the automated tests and the agent suite).</param>
 /// <param name="Performance">Performance sheets P1/P2 (reference machine).</param>
-internal sealed record LyricEvalSet(string Version, IReadOnlyList<LyricCase> Cases, IReadOnlyList<LyricGuardrail> Guardrails, IReadOnlyList<LyricPerformance> Performance)
+internal sealed record LyricEvalSet(string Version, IReadOnlyList<LyricCase> Cases, IReadOnlyList<LyricGuardrail> Guardrails, IReadOnlyList<LyricPerformanceSheet> Performance)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
 
@@ -75,4 +75,4 @@ internal sealed record LicenceTrap
 internal sealed record LyricGuardrail(string Id, string Lang, string Case, string Expected);
 
 /// <summary>A performance sheet.</summary>
-internal sealed record LyricPerformance(string Id, string Lang, string Sheet, string Measured);
+internal sealed record LyricPerformanceSheet(string Id, string Lang, string Sheet, string Measured);
