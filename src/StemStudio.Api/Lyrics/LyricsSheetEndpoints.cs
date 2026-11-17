@@ -2,6 +2,7 @@ using StemStudio.Api.Styles;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Domain.Lyrics;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Lyrics;
 
@@ -65,7 +66,7 @@ public static partial class LyricsSheetEndpoints
         app.MapPut(SheetRoute, (Guid lyricsId, LyricsInput? input, LyricsSheetService sheets, CancellationToken ct) => sheets.UpdateAsync(lyricsId, input, ct))
             .WithName("updateLyricsSheet").WithTags("songs").Produces<LyricsSheetDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapDelete(SheetRoute, (Guid lyricsId, LyricsSheetService sheets, CancellationToken ct) => sheets.DeleteAsync(lyricsId, ct))
-            .WithName("deleteLyricsSheet").WithTags("songs").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("deleteLyricsSheet").RequireGateOpen().WithTags("songs").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
         return app;
     }
 }

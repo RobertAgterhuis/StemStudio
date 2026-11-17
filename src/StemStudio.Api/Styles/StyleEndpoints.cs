@@ -1,5 +1,6 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Styles;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Styles;
 
@@ -30,7 +31,7 @@ public static class StyleEndpoints
             .WithName("updateStyle").WithTags("styles").Produces<StyleDto>().ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapDelete(StyleRoute, (Guid styleId, StyleEditingService editing, CancellationToken ct) => editing.DeleteAsync(styleId, ct))
-            .WithName("deleteStyle").WithTags("styles").Produces(StatusCodes.Status204NoContent)
+            .WithName("deleteStyle").RequireGateOpen().WithTags("styles").Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPost(StyleRoute + "/duplicate", (Guid styleId, StyleEditingService editing, CancellationToken ct) => editing.DuplicateAsync(styleId, ct))
             .WithName("duplicateStyle").WithTags("styles").Produces<StyleDto>(StatusCodes.Status201Created).ProducesProblem(StatusCodes.Status404NotFound);

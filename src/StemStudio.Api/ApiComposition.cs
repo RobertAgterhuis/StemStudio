@@ -12,6 +12,7 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
 using StemStudio.Api.Mixes;
@@ -62,6 +63,7 @@ public static class ApiComposition
         services.AddGeneratorClient(configuration);
         services.AddSingerClient(configuration);
         services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<LibraryGate>();
     }
 
     /// <summary>Creates the data directory, applies migrations and maps middleware and endpoints.</summary>
@@ -83,6 +85,7 @@ public static class ApiComposition
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors(CorsPolicy);
+        app.UseLibraryGate();
         app.MapOpenApi();
         MapEndpoints(app);
     }

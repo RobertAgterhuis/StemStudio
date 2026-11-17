@@ -1,5 +1,6 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Assets;
 
@@ -38,7 +39,7 @@ public static class AssetEndpoints
             .WithName("renameAsset").WithTags("assets").Produces<AssetDto>()
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
         app.MapDelete(AssetRoute, (Guid assetId, AssetLibraryService library, CancellationToken ct) => library.DeleteAsync(assetId, ct))
-            .WithName("deleteAsset").WithTags("assets").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("deleteAsset").RequireGateOpen().WithTags("assets").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
         app.MapPost(AssetRoute + "/retry", (Guid assetId, AssetRetryService retry, CancellationToken ct) => retry.RetryAsync(assetId, ct))
             .WithName("retryAsset").WithTags("assets").Produces<AssetDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);

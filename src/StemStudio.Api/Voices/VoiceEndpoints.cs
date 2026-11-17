@@ -1,5 +1,6 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Voices;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Voices;
 
@@ -23,7 +24,7 @@ public static class VoiceEndpoints
         app.MapGet(ProfileRoute, (Guid profileId, VoiceProfileService voices, CancellationToken ct) => voices.GetAsync(profileId, ct))
             .WithName("getVoiceProfile").WithTags("voices").Produces<VoiceProfileDto>().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapDelete(ProfileRoute, (Guid profileId, bool? deleteTakes, VoiceProfileDeletion deletion, CancellationToken ct) => deletion.DeleteAsync(profileId, deleteTakes ?? false, ct))
-            .WithName("deleteVoiceProfile").WithTags("voices").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("deleteVoiceProfile").RequireGateOpen().WithTags("voices").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
         app.MapGet(ProfileRoute + "/sample", (Guid profileId, VoiceProfileService voices, CancellationToken ct) => voices.GetSampleAsync(profileId, ct))
             .WithName("getVoiceSample").WithTags("voices").Produces(StatusCodes.Status200OK, contentType: "audio/flac")
             .Produces(StatusCodes.Status206PartialContent, contentType: "audio/flac").Produces(StatusCodes.Status304NotModified)

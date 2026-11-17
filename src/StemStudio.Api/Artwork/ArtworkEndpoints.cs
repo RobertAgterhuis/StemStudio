@@ -1,5 +1,6 @@
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Artwork;
 
@@ -26,12 +27,12 @@ public static class ArtworkEndpoints
     private static IEndpointRouteBuilder MapOwnArtworkEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPut(ArtworkRoute, (Guid trackId, HttpRequest request, UserArtworkService artwork, CancellationToken ct) => artwork.SetAsync(trackId, request, ct))
-            .WithName("setTrackArtwork").WithTags("artwork").Produces<TrackDto>()
+            .WithName("setTrackArtwork").RequireGateOpen().WithTags("artwork").Produces<TrackDto>()
             .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge).ProducesProblem(StatusCodes.Status415UnsupportedMediaType)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapDelete(ArtworkRoute, (Guid trackId, UserArtworkService artwork, CancellationToken ct) => artwork.ResetAsync(trackId, ct))
-            .WithName("resetTrackArtwork").WithTags("artwork").Produces<TrackDto>().ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("resetTrackArtwork").RequireGateOpen().WithTags("artwork").Produces<TrackDto>().ProducesProblem(StatusCodes.Status404NotFound);
         return app;
     }
 }

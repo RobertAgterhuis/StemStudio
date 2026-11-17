@@ -1,5 +1,6 @@
 using StemStudio.Contracts;
 using StemStudio.Contracts.Tracks;
+using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Tracks;
 
@@ -22,10 +23,10 @@ public static class TrackEndpoints
         app.MapGet(TrackRoute, (Guid trackId, TrackService tracks, CancellationToken ct) => tracks.GetAsync(trackId, ct))
             .WithName("getTrack").WithTags("tracks").Produces<TrackDto>().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapDelete(TrackRoute, (Guid trackId, TrackDeletionService deletion, CancellationToken ct) => deletion.DeleteAsync(trackId, ct))
-            .WithName("deleteTrack").WithTags("tracks").Produces(StatusCodes.Status204NoContent)
+            .WithName("deleteTrack").RequireGateOpen().WithTags("tracks").Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapPost(TrackRoute + "/retry", (Guid trackId, TrackService tracks, CancellationToken ct) => tracks.RetryAsync(trackId, ct))
-            .WithName("retryTrack").WithTags("tracks").Produces<TrackDto>(StatusCodes.Status202Accepted)
+            .WithName("retryTrack").RequireGateOpen().WithTags("tracks").Produces<TrackDto>(StatusCodes.Status202Accepted)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         return app;
