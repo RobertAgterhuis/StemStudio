@@ -2,6 +2,7 @@
 id: recording-monitoring
 title: "Monitoring your input"
 area: mixer
+anchors: ["recording-monitoring"]
 summary: "Hear your input through StemStudio while you record."
 reviewed: "015"
 ---

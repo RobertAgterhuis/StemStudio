@@ -16,7 +16,11 @@ public sealed record RecordingServices(
     IAudioEngine Audio,
     IStemStudioApiClient Api,
     RecordingPreferences Preferences,
-    IPollingTimer Timer);
+    IPollingTimer Timer)
+{
+    /// <summary><c>StemStudio:Recording:MaxStreamBytes</c>.</summary>
+    public long MaxStreamBytes { get; init; } = RecordingLimits.DefaultMaxUploadBytes;
+}
 
 /// <summary>
 /// The recording UI of one mixer page (spec 015 US1): panel open/closed, the input, Record/Stop with its block reasons,
@@ -41,7 +45,7 @@ public sealed partial class RecordingSession : IAsyncDisposable
     {
         _services = services;
         _host = host;
-        _uploader = new TakeUploader(services.Engine, services.Api);
+        _uploader = new TakeUploader(services.Engine, services.Api) { MaxAllowedSize = services.MaxStreamBytes };
         Input = new InputSetup(services.Engine, services.Audio, services.Preferences);
         Latency = new LatencyChoice(services.Api);
         Takes = new TakeLibrary(services.Engine, services.Audio, services.Api, audioUrl);
@@ -100,6 +104,10 @@ public sealed partial class RecordingSession : IAsyncDisposable
     /// <summary>Re-renders the mixer (after a component changed the session).</summary>
     /// <returns>A task that completes when queued.</returns>
     public Task RefreshAsync() => _host.RefreshAsync();
+
+    /// <summary>The <c>C</c> shortcut: cycles My take / Original / Both (US4).</summary>
+    /// <returns>A task that completes when applied.</returns>
+    public Task CycleCompareAsync() => Task.CompletedTask;
 
     /// <summary>"Set to 100 %" (FR-009).</summary>
     /// <returns>A task that completes when applied.</returns>

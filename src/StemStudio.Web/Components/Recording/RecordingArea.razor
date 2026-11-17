@@ -1,2 +1,14 @@
-@* Recording panel slot of feature 015, below the console panels. Stub by the 014 lane; the 015 lane replaces it. *@
+@* Recording panel slot of feature 015 below the console panels (hook of the 014 lane). It owns the life cycle of the
+   page's recording session: disposing the mixer disposes this slot, which releases the microphone (FR-003). *@
 @inherits StemStudio.Web.Components.Mixer.MixerSlot
+@implements IAsyncDisposable
+
+@if (Mixer.Recording is { PanelOpen: true } session)
+{
+    <RecordingPanel Session="session" />
+}
+
+@code {
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => new(Mixer.ReleaseRecordingAsync());
+}

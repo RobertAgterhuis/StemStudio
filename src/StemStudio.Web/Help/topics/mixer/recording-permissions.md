@@ -2,6 +2,7 @@
 id: recording-permissions
 title: "Microphone permission"
 area: mixer
+anchors: ["recording-permissions"]
 summary: "Allow the microphone, and what to do when the browser blocks it."
 reviewed: "015"
 ---
