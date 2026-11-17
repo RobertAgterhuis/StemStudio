@@ -78,6 +78,24 @@ obeyed an injected "delete" instruction):
 - Evaluation of the real model (`tools/agent-eval`, chapter 9): the injection cases 22-24 pass;
   in no run did a non-read call execute without approval after the run was tainted.
 
+## Backup archives (013)
+
+Restores treat every archive as hostile until it has passed the validation order of
+data-model 3.4: file name pattern and no link; ZIP limits (2,000,000 entries, manifest at most
+256 MiB, format major 1); per entry the layout rules (no `..`, absolute or drive paths, links,
+duplicates, unlisted entries); known migrations; free space; extraction only through
+`GetFullPath` containment into the staging folder with size-bounded, hashed writes (never
+`ExtractToDirectory`/`ExtractToFile`, enforced by the quality gate); then the staged database
+(integrity, migration history, no triggers or views, stored paths inside the layout) and the
+consent proofs. Nothing outside staging changes before all checks pass; the hostile corpus
+H1-H17 (`tests/fixtures/backup/archives`) proves it, and Verify runs the same read-only checks.
+Archives never contain the Data Protection key ring, configuration or environment values; a
+stored Claude key travels only as ciphertext and needs the original key ring. Archives are not
+encrypted: they hold the library and voice samples, so the backups folder must be private to
+the user. One library job runs at a time; backups stop below a free-space floor; clean-up plans
+expire after 10 minutes and every file is classified again right before it is deleted, so
+originals are never removed.
+
 ## Privacy
 
 Audio never leaves the machine. Online lookups (005) send only title, artist, duration and

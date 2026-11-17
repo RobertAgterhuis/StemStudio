@@ -76,7 +76,19 @@ tracks/<trackId>/artwork/{auto,user}/{cover,thumb}.jpg     (005)
 assets/<assetId>/audio.<ext> | score.{pdf,musicxml,mid}   (007, 008)
 generations/<id>/take-<n>.flac                             (009)
 voices/<id>/sample.flac                                    (010)
+library-care/jobs/<jobId>.json                             (013, library jobs)
+library-care/journal/                                      (013, restore journal)
+library-care/staging/<jobId>/                              (013, unpacked archive)
+library-care/previous/<id>/                                (013, library kept aside)
+library-care/cleanup/<planId>.json                         (013, clean-up plans)
 ```
+
+Library care (013) keeps its state in files, not in the database, because a restore replaces
+the database. A track whose detail stems were removed keeps its detail phase with
+`filesRemovedAt` (names and mix settings stay). The backup archive format is
+`backup-archive.md` 1.0.0: `db/stemstudio.db` first, then `files/<library path>`, `README.txt`
+and `manifest.json` last (SHA-256 and size of every entry, consent proof per voice profile,
+`schema.migrations` from `__EFMigrationsHistory`).
 
 Worker data folder (volume `worker-data`): `jobs/<jobId>.json`, `detail-jobs/<id>.json`,
 `work/<jobId>/`, `uploads/<jobId>/`, the result cache `cache/by-source/` and
