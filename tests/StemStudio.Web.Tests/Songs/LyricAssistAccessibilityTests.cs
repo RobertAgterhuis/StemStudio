@@ -67,7 +67,7 @@ public sealed class LyricAssistAccessibilityTests : LyricEditorTestContext
         }
 
         Css.ShouldContain(".ss-lyric-input:focus-visible");
-        Css.ShouldContain(".ss-assist-list:focus-visible");
+        Css.ShouldContain(".ss-assist-entry:focus-visible");
     }
 
     [Fact]

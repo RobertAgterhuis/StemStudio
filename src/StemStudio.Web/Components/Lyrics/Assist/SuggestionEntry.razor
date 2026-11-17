@@ -3,18 +3,18 @@
 @using StemStudio.Contracts.LyricAssist
 @inherits AssistPart
 
-<li id="@OptionId(Suggestion.SuggestionId)" role="option" aria-selected="@(Active ? "true" : "false")" class="ss-assist-entry @(Active ? "is-active" : null)"
-    aria-labelledby="@LabelledBy" @onclick="() => OnSelect.InvokeAsync(Suggestion)"
+<li id="@EntryId(Suggestion.SuggestionId)" role="listitem" tabindex="-1" aria-current="@(Active ? "true" : null)" class="ss-assist-entry @(Active ? "is-active" : null)"
+    @onclick="() => OnSelect.InvokeAsync(Suggestion)" @onfocusin="() => OnFocus.InvokeAsync(Suggestion)"
     data-testid="@($"lyric-suggestion-{Id}")" data-category="@AssistText.Wire(Suggestion.Category)" data-type="@AssistText.Wire(Suggestion.Type)"
     data-severity="@AssistText.Wire(Suggestion.Severity)" data-status="@AssistText.Wire(Suggestion.Status)"
     data-source="@AssistText.Wire(Suggestion.Source)" data-line="@Suggestion.Anchor.Line">
-    <span id="@($"lyric-s-{Id}-label")" class="ss-small ss-assist-type">@Where, @AssistText.Type(Suggestion.Type)</span>
+    <span class="ss-small ss-assist-type">@Where, @AssistText.Type(Suggestion.Type)</span>
     <span class="ss-assist-change">
-        <span id="@($"lyric-s-{Id}-original")" class="ss-assist-original" data-testid="@($"lyric-suggestion-original-{Id}")">@Original</span>
+        <span class="ss-assist-original" data-testid="@($"lyric-suggestion-original-{Id}")">@Original</span>
         @if (Suggestion.Proposal is { } proposal)
         {
             <span aria-hidden="true"> -> </span>
-            <span id="@($"lyric-s-{Id}-proposal")" class="ss-assist-proposal" data-testid="@($"lyric-suggestion-proposal-{Id}")">@proposal</span>
+            <span class="ss-assist-proposal" data-testid="@($"lyric-suggestion-proposal-{Id}")">@proposal</span>
         }
     </span>
     <span class="ss-small" data-testid="@($"lyric-suggestion-explanation-{Id}")">@Suggestion.Explanation</span>
@@ -29,7 +29,7 @@
     <LevelGate Feature="lyrics.assist-source">
         <span class="ss-small ss-muted" data-testid="@($"lyric-suggestion-source-{Id}")">@SourceText</span>
     </LevelGate>
-    <SuggestionActions Host="Host" Suggestion="Suggestion" />
+    <SuggestionActions Host="Host" Suggestion="Suggestion" OnDecided="OnDecided" />
 </li>
 
 @code {
@@ -45,14 +45,20 @@
     [Parameter]
     public EventCallback<LyricSuggestionDto> OnSelect { get; set; }
 
-    /// <summary>The element id of an option.</summary>
+    /// <summary>Focus entered the entry or one of its buttons (Tab): it becomes the focused suggestion.</summary>
+    [Parameter]
+    public EventCallback<LyricSuggestionDto> OnFocus { get; set; }
+
+    /// <summary>A decision button of the entry finished.</summary>
+    [Parameter]
+    public EventCallback OnDecided { get; set; }
+
+    /// <summary>The element id of an entry (focused by F8 / Shift+F8).</summary>
     /// <param name="id">The suggestion.</param>
     /// <returns>The id.</returns>
-    public static string OptionId(Guid id) => $"lyric-opt-{id}";
+    public static string EntryId(Guid id) => $"lyric-entry-{id}";
 
     private Guid Id => Suggestion.SuggestionId;
-
-    private string LabelledBy => Suggestion.Proposal is null ? $"lyric-s-{Id}-label lyric-s-{Id}-original" : $"lyric-s-{Id}-label lyric-s-{Id}-original lyric-s-{Id}-proposal";
 
     private string Where => Suggestion.Anchor.Line == 0 ? "Title" : $"Line {AssistText.Number(Suggestion.Anchor.Line)}";
 

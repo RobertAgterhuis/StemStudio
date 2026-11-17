@@ -178,7 +178,7 @@ public sealed partial class LyricsEditorPage : IAsyncDisposable
     private async Task RevealAsync(LyricSuggestionDto s)
     {
         await SelectAsync(s);
-        await Editor.FocusAsync(SuggestionList.ListId);
+        await Editor.FocusAsync(SuggestionEntry.EntryId(s.SuggestionId));
     }
 
     private Task BackToTextAsync(LyricSuggestionDto? s) => s is null ? Editor.SelectAsync(_text, 0, 0) : SelectAsync(s);

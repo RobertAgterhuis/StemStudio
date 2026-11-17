@@ -211,7 +211,8 @@
   }
 }
 
-.ss-assist-list:focus-visible {
+/* F8 / Shift+F8 focus the entry itself (tabindex -1); its buttons are in the tab order. */
+.ss-assist-entry:focus-visible {
   outline: var(--ss-focus-width) solid var(--ss-color-focus);
   outline-offset: var(--ss-focus-offset);
 }
