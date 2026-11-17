@@ -84,9 +84,24 @@ async function seedCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promis
   return track;
 }
 
-/** The track whose 006 lyrics are the `t-fake-song` corpus text (seeded once per worker and run). */
+/** A corpus track an earlier worker or run already seeded (title prefix, our pasted 006 lyrics), or undefined. */
+async function seededCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promise<TrackDto | undefined> {
+  const candidates = (await api.listTracks()).filter((track) => track.status === 'completed' && track.title.startsWith(`${corpusTrackTitle} qa`));
+  for (const track of candidates) {
+    if ((await lyricsApi.get(track.id)).source === 'user') {
+      return track;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The track whose 006 lyrics are the `t-fake-song` corpus text. One per stack: a second copy (another
+ * Playwright worker, project or run) would be a second match, and an own-work override covers only
+ * the matched track (US6 scenario 4), so the override test would be refused again for the other copy.
+ */
 export function ensureCorpusTrack(api: StemStudioApi, lyricsApi: LyricsApi): Promise<TrackDto> {
-  corpusTrack ??= seedCorpusTrack(api, lyricsApi);
+  corpusTrack ??= seededCorpusTrack(api, lyricsApi).then((found) => found ?? seedCorpusTrack(api, lyricsApi));
   return corpusTrack;
 }
 
