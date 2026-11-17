@@ -625,9 +625,11 @@ jobs:
       - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
         # COMPOSE_FILE adds docker-compose.e2e.yml (library job throttle) to every later
         # `docker compose` call of this job; E2E_BACKUP_DIR / E2E_LIBRARY_THROTTLE are for the specs.
+        # Owner uid 1654 (the api writes as owner), group = the runner's group with setgid and
+        # group write: the specs (runner user) copy fixture archives in and delete them again.
         run: |
           backups="$RUNNER_TEMP/stemstudio-backups"
-          mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
+          sudo install -d -o 1654 -g "$(id -g)" -m 2775 "$backups"
           {
             echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups"
             echo "E2E_BACKUP_DIR=$backups"
