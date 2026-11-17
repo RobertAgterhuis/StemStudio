@@ -179,7 +179,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T071 [US3] [backend] Implement `replaceSections` to pass T070
 - [ ] T072 [P] [US3] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionEditorTests.cs`: split at playhead (snapped), merge keeps the first id/kind/label, rename, change kind (instrument select only for solo), move boundary by field and keyboard with the 1 s minimum, delete, add; renumbering unless named; Done saves, Cancel discards; 409 shows the reload prompt; overwrite confirmation for re-detect (Expert); confidence shown at Expert (FR-006, FR-007)
 - [ ] T073 [US3] [frontend] Implement `Components/Practice/SectionEditor.razor` to pass T072
-- [ ] T074 [P] [US3] [qa] E2E `e2e/tests/sections-edit.spec.ts`: split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation (US3 scenarios 1-5)
+- [x] T074 [P] [US3] [qa] E2E `e2e/tests/sections-edit.spec.ts`: split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation (US3 scenarios 1-5)
 - [ ] T075 [US3] [frontend] Help topics `mixer-sections-edit`, `mixer-sections-detection` (FR-030)
 
 **Checkpoint**: HO:us3.
