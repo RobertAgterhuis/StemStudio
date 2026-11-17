@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-import type { FrameLoop } from '../frame-loop';
+import { FrameSubscription, type FrameLoop } from '../frame-loop';
 import type { TransportListener } from '../transport';
 import type { PlaybackState, ScoreFollowOptions, ScoreViewMap } from '../types';
 import { BarCursor } from './cursor';
@@ -52,9 +52,12 @@ interface Attached {
 /** The engine's score follower; listens to the transport. */
 export class ScoreFollower implements TransportListener {
   private attached: Attached | null = null;
+  private readonly frames: FrameSubscription;
 
   /** @param deps - Frame loop, heard clock, transport state, wall clock and document. */
-  public constructor(private readonly deps: ScoreFollowerDeps) {}
+  public constructor(private readonly deps: ScoreFollowerDeps) {
+    this.frames = new FrameSubscription(deps.loop, this.draw);
+  }
 
   /** Draw counters of the attached follower (zeros when none is attached). */
   public get stats(): FollowStats {
@@ -80,7 +83,7 @@ export class ScoreFollower implements TransportListener {
     const now = this.deps.now ?? ((): number => performance.now());
     const scroll = new AutoScroll({ host, now, isVisible: this.deps.isVisible ?? boxVisible }, settings);
     this.attached = { view, cursor: new BarCursor(view.bars), dom: new ScoreDom(host, view), scroll, current: -1, frames: 0, barChanges: 0 };
-    this.follow(this.deps.playing());
+    this.frames.follow(this.deps.playing());
   }
 
   /** @param options - New options (validated); drawn on the next frame. No-op without an attached follower. */
@@ -93,13 +96,13 @@ export class ScoreFollower implements TransportListener {
   /** Draws one frame when attached (seek, loop or timing change). */
   public redraw(): void {
     if (this.attached !== null) {
-      this.deps.loop.once(this.draw);
+      this.frames.redraw();
     }
   }
 
   /** Removes the highlights, host attributes and listeners; no-op when none is attached. */
   public detach(): void {
-    this.deps.loop.remove(this.draw);
+    this.frames.stop();
     this.attached?.dom.dispose();
     this.attached?.scroll.dispose();
     this.attached = null;
@@ -108,7 +111,7 @@ export class ScoreFollower implements TransportListener {
   /** {@inheritDoc TransportListener.onStateChanged} */
   public onStateChanged(state: PlaybackState): void {
     if (this.attached !== null) {
-      this.follow(state === 'playing');
+      this.frames.follow(state === 'playing');
     }
   }
 
@@ -120,15 +123,6 @@ export class ScoreFollower implements TransportListener {
   /** {@inheritDoc TransportListener.onTimingChanged} */
   public onTimingChanged(): void {
     this.redraw();
-  }
-
-  private follow(playing: boolean): void {
-    if (playing) {
-      this.deps.loop.add(this.draw);
-    } else {
-      this.deps.loop.remove(this.draw);
-    }
-    this.deps.loop.once(this.draw);
   }
 
   private readonly draw = (): void => {
