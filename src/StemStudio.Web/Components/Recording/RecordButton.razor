@@ -1,0 +1,69 @@
+@* Record/Stop with its block reason, the live state and the upload progress (FR-004, FR-009, FR-011; ui-test-ids 1.14.0
+   rec-record, rec-record-disabled-reason, rec-set-normal-speed, rec-status, rec-elapsed, rec-pass Advanced, rec-saving, rec-error,
+   rec-save-again). Shortcut R (registered by the mixer). The live region is always rendered so changes are announced. *@
+
+<div class="ss-practice-row">
+    <RadzenButton Text="@(Session.IsRecording ? "Stop" : "Record")" Icon="@(Session.IsRecording ? "stop" : "fiber_manual_record")"
+                  ButtonStyle="@(Session.IsRecording ? ButtonStyle.Danger : ButtonStyle.Primary)" Disabled="@(Session.Block is not null || Session.Starting)"
+                  aria-pressed="@(Session.IsRecording ? "true" : "false")" aria-keyshortcuts="R" aria-describedby="@(Session.Block is null ? null : ReasonId)"
+                  Click="OnToggle" data-testid="rec-record" data-help-id="recording" />
+    @if (Session.IsRecording && Session.Progress is { } progress)
+    {
+        <span data-testid="rec-elapsed">@RecordingText.Elapsed(progress.ElapsedSeconds)</span>
+        @if (progress.PassIndex is { } pass)
+        {
+            <LevelGate Feature="recording.loop">
+                <span data-testid="rec-pass" data-pass="@pass" data-help-id="recording-loop-takes">Pass @pass</span>
+            </LevelGate>
+        }
+    }
+</div>
+@if (Session.Block is { } block)
+{
+    <p id="@ReasonId" class="ss-help" data-testid="rec-record-disabled-reason" data-reason="@block.Reason" data-help-id="@HelpFor(block)">
+        @block.Message
+        @if (block.Reason == "speed")
+        {
+            <RadzenButton Text="Set to 100 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnNormalSpeed" data-testid="rec-set-normal-speed" />
+        }
+    </p>
+}
+<p class="ss-help" role="status" aria-live="polite" data-testid="rec-status">@Session.StatusText</p>
+@if (Session.SavingPercent is { } percent)
+{
+    <progress max="100" value="@percent" aria-label="Saving takes" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@percent"
+              data-testid="rec-saving">@percent %</progress>
+}
+@if ((Session.UploadError ?? Session.Error) is { } error)
+{
+    <div class="ss-notice" role="alert">
+        <p data-testid="rec-error">@error</p>
+        @if (Session.CanSaveAgain)
+        {
+            <RadzenButton Text="Save again" Icon="cloud_upload" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnSaveAgain"
+                          data-testid="rec-save-again" />
+        }
+    </div>
+}
+
+@code {
+    private const string ReasonId = "rec-record-reason";
+
+    /// <summary>The mixer's recording session.</summary>
+    [Parameter, EditorRequired]
+    public RecordingSession Session { get; set; } = default!;
+
+    /// <summary>Record/Stop pressed.</summary>
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
+
+    /// <summary>"Set to 100 %" pressed.</summary>
+    [Parameter]
+    public EventCallback OnNormalSpeed { get; set; }
+
+    /// <summary>"Save again" pressed.</summary>
+    [Parameter]
+    public EventCallback OnSaveAgain { get; set; }
+
+    private static string HelpFor(RecordBlock block) => block.Reason is "speed" or "trainer" ? "recording-speed" : "recording";
+}

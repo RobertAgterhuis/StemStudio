@@ -14,6 +14,9 @@ public sealed class RecordingUiOptions
     /// opening a microphone. Set by the e2e compose override (<c>StemStudio__Recording__TestLoopback=true</c>).
     /// </summary>
     public bool TestLoopback { get; set; }
+
+    /// <summary><c>maxAllowedSize</c> of the take WAV stream reference (data-model 1, default 256 MiB).</summary>
+    public long MaxStreamBytes { get; set; } = StemStudio.Contracts.Recording.RecordingLimits.DefaultMaxUploadBytes;
 }
 
 /// <summary>Engine construction options of the recording feature: <c>{ testInput: 'loopback' }</c> when enabled.</summary>

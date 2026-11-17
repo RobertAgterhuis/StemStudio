@@ -63,6 +63,7 @@ export class PracticeController implements TransportListener {
   private disposed = false;
   private restarts = 0;
   private transpose = 0;
+  private stored: PracticeSettings | null = null;
   private readonly passMode: PassMode;
   private readonly countIns: CountIns;
 
@@ -106,6 +107,24 @@ export class PracticeController implements TransportListener {
     if (restart && this.restarts === restarts) {
       this.host.transport.restart();
     }
+    this.host.changed();
+  }
+
+  /**
+   * Count-in bars for a recording session (contract 2.5.0, Phase 0 request 4): replaces the stored bars (its "before
+   * every loop pass" setting is kept) until called with null, which restores the stored settings. Call while stopped.
+   *
+   * @param bars - Bars 0..2, or null to restore.
+   */
+  public overrideCountIn(bars: number | null): void {
+    if (bars === null) {
+      this.settings = this.stored ?? this.settings;
+      this.stored = null;
+    } else {
+      this.stored ??= this.settings;
+      this.settings = { ...this.stored, countIn: { ...this.stored.countIn, bars } };
+    }
+    this.passMode.configure(this.settings);
     this.host.changed();
   }
 

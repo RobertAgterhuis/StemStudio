@@ -56,6 +56,16 @@ describe('gatesOf (contract 2.0.0 table)', () => {
     expect(gates).toEqual([0, 1]);
   });
 
+  it('the take (015) is an audible-level channel for anySolo', () => {
+    expect(isHidden('take', new Set<ParentStemName>(['drums']))).toBe(false);
+    expect(parentOf('take')).toBeNull();
+    const gates = gatesOf([
+      { settings: settings({ solo: true }), hidden: isHidden('take', new Set()) },
+      { settings: settings(), hidden: false },
+    ]);
+    expect(gates).toEqual([1, 0]);
+  });
+
   it('an empty mix has no gates', () => {
     expect(gatesOf([])).toEqual([]);
   });

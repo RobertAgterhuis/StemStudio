@@ -18,7 +18,7 @@ import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
 import { PracticeController } from './practice/controller';
-import { PendingRecording, type RecordingSurface } from './recording/pending';
+import { Recording } from './recording/surface';
 import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
@@ -75,7 +75,10 @@ interface Parts {
   readonly passes: LoopPassTracker;
 }
 
-function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
+/** Meter tap of the recording input, read when a meter is attached or drawn. */
+type InputTap = () => AnalyserNode | undefined;
+
+function createParts(ref: DotNetObjectReference, options: EngineOptions, inputTap: InputTap): Parts {
   const context = (options.audioContextFactory ?? (() => new AudioContext({ sampleRate: 44100 })))();
   const mixer = new Mixer(context);
   const transport = new Transport({
@@ -85,7 +88,7 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   });
   const notifier = createNotifier(ref, transport);
   const frames = new FrameLoop();
-  const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
+  const meters = new Meters({ source: (target) => (target === 'input' ? inputTap() : mixer.analyser(target)), loop: frames });
   const clicks = new ClickPlayer(context);
   const passes = createLoopPasses({ context, transport, frames }, ref);
   const metronome = createMetronome({ context, transport, clicks, onTick: passes.observe }, options);
@@ -167,7 +170,7 @@ export class Engine implements AudioEngine {
   private readonly fetchFn: typeof fetch;
   private readonly practice: PracticeController;
   private readonly practiceNotifier: PracticeNotifier;
-  private readonly recording: RecordingSurface = new PendingRecording();
+  private readonly recording: Recording;
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -177,11 +180,12 @@ export class Engine implements AudioEngine {
    * @param options - Test overrides (context factory, fetch, timing).
    */
   public constructor(ref: DotNetObjectReference, options: EngineOptions = {}) {
-    this.parts = createParts(ref, options);
+    this.parts = createParts(ref, options, () => this.recording.inputAnalyser);
     this.fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.groups = createGroups(this.parts, this.load);
     this.practiceNotifier = new PracticeNotifier(ref, () => this.practice.status());
     this.practice = this.createPractice(options);
+    this.recording = this.createRecording(ref, options);
   }
 
   /** Validated metronome settings. */
@@ -197,6 +201,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.loadTrack} */
   public async loadTrack(request: LoadTrackRequest): Promise<number> {
     this.alive();
+    this.recording.assertIdle();
     const groups = request.groups ?? [];
     validateGroups(request.stems, groups);
     const buffers = await this.load(request.stems);
@@ -206,6 +211,7 @@ export class Engine implements AudioEngine {
     this.grid = request.beatGrid;
     this.parts.metronome.configure(this.metronome, this.grid);
     this.practice.onTrackLoaded();
+    this.recording.onTrackLoaded();
     this.parts.passes.reset();
     return this.parts.transport.duration;
   }
@@ -232,6 +238,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.seek} */
   public seek(seconds: number): void {
     this.alive();
+    this.recording.assertIdle();
     const max = this.parts.transport.duration;
     this.parts.transport.seek(clampChecked(seconds, { min: 0, max, name: 'position' }));
     this.parts.passes.reset();
@@ -270,6 +277,7 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.setLoop} */
   public setLoop(loop: LoopRegion): void {
     this.alive();
+    this.recording.assertIdle();
     setLoopChecked(this.parts.transport, loop);
     this.practice.onLoopChanged();
     this.parts.passes.onLoopChanged();
@@ -317,6 +325,7 @@ export class Engine implements AudioEngine {
   public async setPractice(settings: PracticeSettings): Promise<void> {
     await Promise.resolve();
     this.alive();
+    this.recording.assertIdle();
     await this.practice.apply(settings);
   }
 
@@ -439,7 +448,7 @@ export class Engine implements AudioEngine {
       part.dispose();
     });
     karaoke.detach();
-    [frames, metronome, this.practice, this.practiceNotifier].forEach((part) => {
+    [frames, metronome, this.practice, this.practiceNotifier, this.recording].forEach((part) => {
       part.dispose();
     });
     await context.close();
@@ -459,6 +468,18 @@ export class Engine implements AudioEngine {
       practice.onRestart();
     });
     return practice;
+  }
+
+  private createRecording(ref: DotNetObjectReference, options: EngineOptions): Recording {
+    const { context, transport, mixer } = this.parts;
+    const practice = {
+      status: () => this.practice.status(),
+      overrideCountIn: (bars: number | null) => {
+        this.practice.overrideCountIn(bars);
+      },
+      play: () => this.practice.play(),
+    };
+    return new Recording({ context, transport, mixer, practice, fetch: this.fetchFn, ref, options });
   }
 
   /** Fetches and decodes files; rejects when the engine was disposed meanwhile. */

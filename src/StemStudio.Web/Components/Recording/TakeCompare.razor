@@ -1,0 +1,25 @@
+@* Take/original compare (FR-013, FR-021; ui-test-ids 1.14.0 take-compare, take-compare-take/-original/-both with aria-checked,
+   take-compare-toggle for part none). A WAI-ARIA radio group: one tab stop, arrow keys move and select; shortcut C cycles. *@
+
+@if (Takes.Loaded is not null)
+{
+    @if (Takes.CompareIsToggle)
+    {
+        <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(Takes.Compare == TakeCompareMode.Original ? "false" : "true")"
+                aria-keyshortcuts="C" @onclick="ToggleAsync" data-testid="take-compare-toggle" data-help-id="recording-compare">My take</button>
+    }
+    else
+    {
+        <div role="radiogroup" aria-label="Compare take and original" aria-keyshortcuts="C" class="ss-practice-row" @onkeydown="KeyAsync"
+             data-testid="take-compare" data-help-id="recording-compare">
+            @for (var i = 0; i < Options.Length; i++)
+            {
+                var (mode, label, id) = Options[i];
+                var index = i;
+                var checkedNow = Takes.Compare == mode;
+                <button type="button" role="radio" class="rz-button rz-button-sm @(checkedNow ? "rz-primary" : "rz-light")" aria-checked="@(checkedNow ? "true" : "false")"
+                        tabindex="@(checkedNow ? 0 : -1)" @ref="_buttons[index]" @onclick="() => SetAsync(mode)" data-testid="@id">@label</button>
+            }
+        </div>
+    }
+}

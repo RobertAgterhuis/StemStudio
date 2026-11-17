@@ -100,7 +100,10 @@ public sealed class RecordingApiClientTests : IDisposable
         _handler.Respond(HttpStatusCode.OK, Body(new[] { Calibration() })).Respond(HttpStatusCode.OK, Body(Calibration()));
         var input = new InputCalibrationInput
         {
-            DeviceLabel = "USB Mic", LatencySamples = 1102, Method = CalibrationMethodDto.Manual, OutputLatencySamples = 300,
+            DeviceLabel = "USB Mic",
+            LatencySamples = 1102,
+            Method = CalibrationMethodDto.Manual,
+            OutputLatencySamples = 300,
         };
 
         (await _client.ListCalibrationsAsync(Ct)).ShouldHaveSingleItem().LatencySamples.ShouldBe(1102);

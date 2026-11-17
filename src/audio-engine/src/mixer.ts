@@ -8,12 +8,18 @@ import { Channel, checkedVolume, rampTo } from './channel';
 import { anyAudibleSolo, isHidden, levelGate } from './gate';
 import type { ChannelId, ChannelSettings, MeterTarget, ParentStemName } from './types';
 
+/** Extra gate factor per channel (compare and recording, contract 2.5.0); absent = 1. */
+export type ExtraGate = (id: ChannelId) => number;
+
+const TAKE: ChannelId = 'take';
+
 /** Channels of the loaded track plus the master bus. */
 export class Mixer {
   private readonly master: GainNode;
   private readonly masterAnalyser: AnalyserNode;
   private channels = new Map<ChannelId, Channel>();
   private readonly expanded = new Set<ParentStemName>();
+  private extraGate: ExtraGate | null = null;
 
   /** @param context - The engine's AudioContext. */
   public constructor(private readonly context: BaseAudioContext) {
@@ -53,6 +59,9 @@ export class Mixer {
    * @throws Error for an unknown channel or a non-finite value.
    */
   public setChannel(id: ChannelId, settings: ChannelSettings): void {
+    if (id === TAKE) {
+      this.ensureTake();
+    }
     this.channel(id).configure(settings);
     this.applyGates(this.context.currentTime);
   }
@@ -98,6 +107,29 @@ export class Mixer {
     stage.output.connect(this.masterAnalyser);
   }
 
+  /**
+   * Creates the `take` channel (fader x gate -> panner -> meter -> master) when it does not exist yet (contract 2.5.0);
+   * without it the graph is exactly the 2.4.0 one. A new track ({@link Mixer.build}) removes it.
+   */
+  public ensureTake(): void {
+    if (this.channels.has(TAKE)) {
+      return;
+    }
+    const channel = new Channel(this.context, this.master);
+    this.channels.set(TAKE, channel);
+    channel.initGate(0);
+    this.applyGates(this.context.currentTime);
+  }
+
+  /**
+   * @param gate - Extra gate factor per channel (compare, recording), or null for none.
+   * @param at - Context time at which all ramps start (one swap, ADR-010).
+   */
+  public setExtraGate(gate: ExtraGate | null, at: number): void {
+    this.extraGate = gate;
+    this.applyGates(at);
+  }
+
   /** @param volume - Master gain 0..1 (clamped). */
   public setMaster(volume: number): void {
     rampTo(this.master.gain, checkedVolume(volume), this.context.currentTime);
@@ -105,21 +137,25 @@ export class Mixer {
 
   /**
    * @param target - Channel id, `"master"` or `"input"` (the input tap belongs to the recording input, contract 2.5.0).
-   * @returns The meter tap of the target, or undefined when the channel is not loaded (always for `"input"`).
+   * @returns The meter tap of the target, or undefined when the channel is not loaded (always for `"input"`); the
+   *   `take` channel is created on first use (contract 2.5.0: a meter can be attached before `loadTake`).
    */
   public analyser(target: MeterTarget): AnalyserNode | undefined {
     if (target === 'input') {
       return undefined;
+    }
+    if (target === TAKE) {
+      this.ensureTake();
     }
     return target === 'master' ? this.masterAnalyser : this.channels.get(target)?.analyser;
   }
 
   /**
    * @param target - Channel id or `"master"`.
-   * @returns Whether the target exists in the current track.
+   * @returns Whether the target exists in the current track (the `take` channel only once created).
    */
   public has(target: MeterTarget): boolean {
-    return this.analyser(target) !== undefined;
+    return target === TAKE ? this.channels.has(TAKE) : this.analyser(target) !== undefined;
   }
 
   /** Disconnects every channel and collapses all parents (the master bus stays). */
@@ -133,13 +169,15 @@ export class Mixer {
 
   private applyGates(at: number): void {
     const views = [...this.channels].map(([id, channel]) => ({
+      id,
       channel,
       settings: channel.settings,
       hidden: isHidden(id, this.expanded),
     }));
     const anySolo = anyAudibleSolo(views);
+    const extra = this.extraGate ?? ((): number => 1);
     views.forEach((view) => {
-      view.channel.apply(levelGate(view, anySolo), at);
+      view.channel.apply(levelGate(view, anySolo) * extra(view.id), at);
     });
   }
 
