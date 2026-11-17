@@ -68,6 +68,29 @@ public sealed class LoopbackLibraryActionsTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Search_FindsTheArtist_WithinAFolder()
+    {
+        await FiledItemAsync();
+        var artist = (await _library.BrowseLibraryFolderAsync(new LibraryFolderQuery(), Ct)).Children.Single();
+
+        var everywhere = await _library.SearchLibraryAsync(new LibrarySearchQuery { Query = "astley" }, Ct);
+        var inside = await _library.SearchLibraryAsync(new LibrarySearchQuery { Query = "never", Within = artist.Id, Limit = 10 }, Ct);
+
+        everywhere.Artists.Select(hit => hit.Folder.Name).ShouldBe(["Rick Astley"]);
+        (inside.Songs.Single().Folder.Name, inside.Items.Count).ShouldBe(("Never Gonna Give You Up", 1));
+        _http.Requests.Skip(1).Select(r => r.PathAndQuery).ShouldBe(["/api/library/search?q=astley", $"/api/library/search?q=never&within={artist.Id}&limit=10"]);
+    }
+
+    [Fact]
+    public async Task Search_InvalidText_IsAReadableValidationError()
+    {
+        var error = await Should.ThrowAsync<AgentActionException>(() => _library.SearchLibraryAsync(new LibrarySearchQuery { Query = "  " }, Ct));
+
+        (error.StatusCode, error.ProblemCode).ShouldBe((422, LibraryProblemTypes.LibraryQueryInvalid));
+        _http.Requests.Single().PathAndQuery.ShouldBe("/api/library/search?q=%20%20");
+    }
+
+    [Fact]
     public async Task GetThenSet_Track_AndTheInverseRestores()
     {
         var item = await FiledItemAsync();
