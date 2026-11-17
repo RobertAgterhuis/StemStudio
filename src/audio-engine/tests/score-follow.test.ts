@@ -63,8 +63,12 @@ function makeRig(): Rig {
     isVisible: () => rig.visible,
   });
   base.transport.addListener(follower);
-  vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function scroll(this: HTMLElement, options?: boolean | ScrollIntoViewOptions) {
-    rig.scrolls.push({ page: this.parentElement?.dataset.scorePage, options: options as ScrollIntoViewOptions | undefined });
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    writable: true,
+    value: function scroll(this: HTMLElement, options?: ScrollIntoViewOptions) {
+      rig.scrolls.push({ page: this.parentElement?.dataset.scorePage, options });
+    },
   });
   return Object.assign(rig, { follower });
 }
@@ -83,8 +87,17 @@ function frameAt(rig: Rig, time: number): void {
   rig.frames.step(time * 1000);
 }
 
-function highlight(rig: Rig, page: number): HTMLElement | null {
-  return rig.host.querySelector<HTMLElement>(`[data-score-page="${String(page)}"] .score-highlight`);
+function highlight(rig: Rig, page: number): HTMLElement {
+  const element = rig.host.querySelector<HTMLElement>(`[data-score-page="${String(page)}"] .score-highlight`);
+  if (element === null) {
+    throw new Error(`no highlight on page ${String(page)}`);
+  }
+  return element;
+}
+
+/** `data-state` of the highlight of each page. */
+function pageStates(rig: Rig): (string | undefined)[] {
+  return [1, 2].map((page) => highlight(rig, page).dataset.state);
 }
 
 function current(rig: Rig): string | undefined {
@@ -144,9 +157,9 @@ describe('validateScoreView', () => {
 describe('ScoreFollower', () => {
   it('adds one aria-hidden highlight per page container and the host attributes', () => {
     const rig = attached();
-    expect([1, 2].map((p) => highlight(rig, p)?.getAttribute('aria-hidden'))).toEqual(['true', 'true']);
+    expect([1, 2].map((p) => highlight(rig, p).getAttribute('aria-hidden'))).toEqual(['true', 'true']);
     expect([current(rig), rig.host.dataset.barNumber, rig.host.dataset.page, rig.host.dataset.positionMs]).toEqual(['-1', '', '', '0']);
-    expect(highlight(rig, 1)?.dataset.state).toBe('idle');
+    expect(highlight(rig, 1).dataset.state).toBe('idle');
   });
 
   it('throws for an unknown host and for invalid options', () => {
@@ -166,15 +179,15 @@ describe('ScoreFollower', () => {
     expect(current(rig)).toBe('-1');
     frameAt(rig, 0.1 + 2);
     expect([current(rig), rig.host.dataset.barNumber, rig.host.dataset.page]).toEqual(['0', '1', '1']);
-    const style = highlight(rig, 1)?.style;
-    expect([style?.left, style?.top, style?.width, style?.height, highlight(rig, 1)?.dataset.state]).toEqual(['10%', '10%', '40%', '20%', 'current']);
+    const { left, top, width, height } = highlight(rig, 1).style;
+    expect([left, top, width, height, pageStates(rig)]).toEqual(['10%', '10%', '40%', '20%', ['current', 'idle']]);
     frameAt(rig, 0.1 + 10.5);
-    expect([current(rig), highlight(rig, 1)?.dataset.state, highlight(rig, 2)?.dataset.state]).toEqual(['4', 'idle', 'current']);
+    expect([current(rig), pageStates(rig)]).toEqual(['4', ['idle', 'current']]);
     frameAt(rig, 0.1 + 18);
-    expect([current(rig), highlight(rig, 2)?.dataset.state, rig.host.dataset.positionMs]).toEqual(['-1', 'idle', '18000']);
+    expect([current(rig), pageStates(rig), rig.host.dataset.positionMs]).toEqual(['-1', ['idle', 'idle'], '18000']);
   });
 
-  it.each([50, 75, 100, 120])('follows the heard position at %i %% speed (A-012-1)', async (speed) => {
+  it.each([50, 75, 100, 120])('follows the heard position at %i percent speed (A-012-1)', async (speed) => {
     const rig = attached();
     rig.transport.setTiming({ rate: speed / 100, latency: 0 });
     await rig.transport.play();
@@ -299,6 +312,22 @@ describe('ScoreFollower', () => {
     }
     expect(rig.follower.stats.barChanges).toBe(1);
     expect(rig.follower.stats.frames).toBeGreaterThan(100);
+  });
+
+  it('redraws after a live rate change; the default visibility check reads the bounding boxes', () => {
+    const base = makeTransport();
+    makeHost();
+    const frames = new FakeFrames();
+    const loop = new FrameLoop({ frames, document });
+    const follower = new ScoreFollower({ loop, position: () => base.transport.positionAt(base.ctx.currentTime), playing: () => false });
+    base.transport.addListener(follower);
+    follower.attach(HOST, VIEW, { follow: true, reducedMotion: true });
+    frames.step(0);
+    follower.onTimingChanged();
+    expect(frames.size).toBe(1);
+    base.transport.seek(2.5);
+    frames.step(16);
+    expect(document.getElementById(HOST)?.dataset.barIndex).toBe('0');
   });
 
   it('a page without a container gets no highlight but the host attributes still follow', async () => {

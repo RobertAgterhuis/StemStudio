@@ -19,6 +19,7 @@ import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settin
 import { Mixer } from './mixer';
 import { PracticeController } from './practice/controller';
 import { Recording } from './recording/surface';
+import { ScoreFollower } from './score-follow/follower';
 import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
@@ -73,6 +74,7 @@ interface Parts {
   readonly clicks: ClickPlayer;
   readonly karaoke: Karaoke;
   readonly passes: LoopPassTracker;
+  readonly score: ScoreFollower;
 }
 
 /** Meter tap of the recording input, read when a meter is attached or drawn. */
@@ -93,7 +95,15 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions, inputTa
   const passes = createLoopPasses({ context, transport, frames }, ref);
   const metronome = createMetronome({ context, transport, clicks, onTick: passes.observe }, options);
   const karaoke = createKaraoke(context, transport, frames);
-  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke, passes };
+  const score = createScoreFollower(context, transport, frames);
+  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke, passes, score };
+}
+
+function createScoreFollower(context: AudioContext, transport: Transport, loop: FrameLoop): ScoreFollower {
+  const position = (): number => transport.positionAt(heardTime(context, performance.now()));
+  const score = new ScoreFollower({ loop, position, playing: () => transport.state === 'playing' });
+  transport.addListener(score);
+  return score;
 }
 
 function createLoopPasses(
@@ -150,14 +160,6 @@ function createGroups(parts: Parts, load: GroupLoader): StemGroups {
       parts.mixer.setExpanded(parent, expanded, at);
     },
   });
-}
-
-/**
- * Message of the 2.4.0 score follower stubs until the audio-engine lane implements them (014 T081); the arguments are
- * accepted so the signatures type-check.
- */
-function scoreFollowerPending(args: readonly unknown[]): string {
-  return `Score follower is not implemented yet (contract 2.4.0; ${String(args.length)} arguments)`;
 }
 
 /** Fetch-and-decode function handed to {@link StemGroups} (rejects after disposal). */
@@ -282,6 +284,7 @@ export class Engine implements AudioEngine {
     this.practice.onLoopChanged();
     this.parts.passes.onLoopChanged();
     this.parts.karaoke.redraw();
+    this.parts.score.redraw();
   }
 
   /** {@inheritDoc AudioEngine.setMetronome} */
@@ -338,19 +341,19 @@ export class Engine implements AudioEngine {
   /** {@inheritDoc AudioEngine.attachScoreFollower} */
   public attachScoreFollower(elementId: string, view: ScoreViewMap, options: ScoreFollowOptions): void {
     this.alive();
-    throw new Error(scoreFollowerPending([elementId, view, options]));
+    this.parts.score.attach(elementId, view, options);
   }
 
   /** {@inheritDoc AudioEngine.setScoreFollowOptions} */
   public setScoreFollowOptions(options: ScoreFollowOptions): void {
     this.alive();
-    throw new Error(scoreFollowerPending([options]));
+    this.parts.score.setOptions(options);
   }
 
   /** {@inheritDoc AudioEngine.detachScoreFollower} */
   public detachScoreFollower(): void {
     this.alive();
-    throw new Error(scoreFollowerPending([]));
+    this.parts.score.detach();
   }
 
   /** {@inheritDoc AudioEngine.recordingSupport} */
@@ -448,6 +451,7 @@ export class Engine implements AudioEngine {
       part.dispose();
     });
     karaoke.detach();
+    this.parts.score.detach();
     [frames, metronome, this.practice, this.practiceNotifier, this.recording].forEach((part) => {
       part.dispose();
     });
