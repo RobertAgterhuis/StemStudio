@@ -187,6 +187,22 @@ describe('reports for the UI (frontend 012 requests)', () => {
     expect(counts.at(-1)).toMatchObject({ active: false, beatsRemaining: 0 });
   });
 
+  it('shows "1" for its beat interval when the last click coincides with the music start (grid without the first beat)', async () => {
+    // b - A = d: the grid starts one beat after A, so click k = 1 sounds exactly at T0.
+    const rig = await loadedPracticeRig({ ...GRID, beats: GRID.beats.slice(1) });
+    rig.engine.setMetronome(METRONOME);
+    await rig.engine.setPractice(practice({ countIn: { bars: 1 } }));
+    rig.ref.clear();
+    await rig.engine.play();
+    expectTimes([running(rig)[0]?.startCalls[0]?.when], liveClicks(rig).slice(-1));
+    await run(rig, 1.9);
+    const beats = statuses(rig).map((s) => s.countIn).filter((c) => c.active).map((c) => c.beatsRemaining);
+    expect([...new Set(beats)]).toEqual([4, 3, 2, 1]);
+    expect(rig.engine.getPracticeStatus().countIn).toMatchObject({ active: true, beatsRemaining: 1 });
+    await run(rig, 0.4);
+    expect(rig.engine.getPracticeStatus().countIn).toMatchObject({ active: false, beatsRemaining: 0 });
+  });
+
   it('sends a status at every speed-trainer pass start', async () => {
     const rig = await loadedPracticeRig();
     rig.engine.setLoop({ start: 2, end: 4, enabled: true });

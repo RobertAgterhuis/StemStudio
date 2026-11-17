@@ -108,7 +108,7 @@ export class CountIns {
   }
 
   private schedule(plan: { tempo: CountInTempo; start: number; rate: number; musicStart: number; bars: number }): void {
-    this.run.start(countInPlan({ ...plan, beatsPerBar: this.beatsPerBar() }), plan.musicStart);
+    this.run.start(countInPlan({ ...plan, beatsPerBar: this.beatsPerBar() }), plan.musicStart, plan.tempo.interval / plan.rate);
   }
 
   private tempoAt(start: number): CountInTempo | null {

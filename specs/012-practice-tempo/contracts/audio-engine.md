@@ -482,7 +482,9 @@ relinking; `third_party/soundtouch/README.md` explains how).
 - Before play: `play()` resolves at once; state is `playing`; sources start at `T0`;
   `getPosition()` = `A` until `T0`. `countIn.active` with `beatsRemaining` counting down (one
   `OnPracticeChanged` per beat, scheduled by the look-ahead timer like clicks, so the indicator is
-  visual only, not audible timing). Pause, stop or seek during a count-in cancels it (future clicks
+  visual only, not audible timing). Each number is shown for its beat interval `d / r` from its click,
+  so `active` ends at `max(T0, last click + d / r)`: "1" stays until the song's beat `b` is heard,
+  also when its click coincides with `T0` (`b - A = d`, a grid without the song's first beat). Pause, stop or seek during a count-in cancels it (future clicks
   stopped); the next `play()` counts in again. Seeks while playing never count in.
 - `everyPass` (with an enabled loop): explicit passes with a count-in gap of `N` beats (at the
   next pass's rate) between passes; during the gap the position is `A`.

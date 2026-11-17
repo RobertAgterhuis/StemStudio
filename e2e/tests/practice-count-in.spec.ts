@@ -59,16 +59,6 @@ function expectCountIn(heard: HeardCountIn, beats: number): void {
   expect(Math.abs(heard.beatHeardAt - first - beats * heard.interval)).toBeLessThanOrEqual(browserToleranceS);
 }
 
-/**
- * The indicator ends when the music enters. When the detected grid misses the song's first beat
- * (b - A close to one beat, as on the fake stack), the 4th click sounds at the music start, so "1"
- * is not shown (012 integration finding, open item for the audio-engine lane).
- */
-function expectedCountdown(heard: HeardCountIn, musicStart: number): string[] {
-  const lastClick = heard.clicks.at(-1)?.when ?? Number.NaN;
-  return musicStart - lastClick > 0.05 ? ['4', '3', '2', '1'] : ['4', '3', '2'];
-}
-
 async function waitUntilPlayed(page: Page, contextTime: number): Promise<ClickRecording> {
   await expect.poll(async () => (await readClicks(page)).now, { timeout: 60_000 }).toBeGreaterThan(contextTime);
   return readClicks(page);
@@ -88,8 +78,9 @@ test.describe('count-in', { tag: '@practice' }, () => {
     expectCountIn(heard, 4);
     expect(Math.abs(4 * heard.interval - 2)).toBeLessThanOrEqual(browserToleranceS);
     const samples = await readWatched(page, 'countin-indicator');
-    const countdown = expectedCountdown(heard, started);
-    expect(distinctValues(samples, 'data-beats-remaining').slice(0, countdown.length)).toEqual(countdown);
+    // Each number stays for its beat interval, so "1" is shown also when the 4th click coincides with the music
+    // start (the fake stack's grid misses the song's first beat: b - A is one beat).
+    expect(distinctValues(samples, 'data-beats-remaining')).toEqual(['4', '3', '2', '1']);
     expect(distinctValues(samples, 'data-beats-total')).toEqual(['4']);
   });
 

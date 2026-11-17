@@ -1,6 +1,8 @@
 /**
  * A scheduled count-in: its clicks are started at exact context times through the metronome output; a wake-up timer
- * only updates the visual beat indicator (`OnPracticeChanged` per beat), never audible timing.
+ * only updates the visual beat indicator (`OnPracticeChanged` per beat), never audible timing. Each number is shown for
+ * its beat interval, so "1" stays visible until the song's first beat `b` even when its click coincides with the music
+ * start (a grid without the song's first beat, `b - A = d`).
  *
  * @packageDocumentation
  */
@@ -26,7 +28,7 @@ interface ScheduledClick {
 /** The current count-in (at most one). */
 export class CountInRun {
   private clicks: ScheduledClick[] = [];
-  private musicStart = -Infinity;
+  private end = -Infinity;
   private timer: ReturnType<typeof setInterval> | undefined;
   private reported: CountInProgress = { active: false, beatsRemaining: 0 };
 
@@ -44,10 +46,11 @@ export class CountInRun {
   /**
    * @param plan - Planned clicks.
    * @param musicStart - Heard context time of the music after them.
+   * @param beat - Context seconds of one counted beat (`d / r`).
    */
-  public start(plan: readonly CountInClick[], musicStart: number): void {
+  public start(plan: readonly CountInClick[], musicStart: number, beat: number): void {
     this.clicks = plan.map((click) => ({ node: this.output.play(click.time, click.accent), time: click.time }));
-    this.musicStart = musicStart;
+    this.end = Math.max(musicStart, ...plan.map((click) => click.time + beat));
     clearInterval(this.timer);
     this.timer = setInterval(this.tick, COUNT_IN_TICK_MS);
     this.tick();
@@ -60,14 +63,14 @@ export class CountInRun {
       click.node.stop();
     });
     this.clicks = [];
-    this.musicStart = -Infinity;
+    this.end = -Infinity;
     this.tick();
   }
 
   /** @returns Whether a count-in runs and how many beats are left. */
   public progress(): CountInProgress {
     const now = this.context.currentTime;
-    if (this.clicks.length === 0 || now >= this.musicStart) {
+    if (this.clicks.length === 0 || now >= this.end) {
       return { active: false, beatsRemaining: 0 };
     }
     const future = this.clicks.filter((click) => click.time > now).length;
