@@ -1,4 +1,5 @@
 using StemStudio.Contracts.LyricAssist;
+using StemStudio.Web.Components.Lyrics.Assist;
 
 namespace StemStudio.Web.Api;
 
