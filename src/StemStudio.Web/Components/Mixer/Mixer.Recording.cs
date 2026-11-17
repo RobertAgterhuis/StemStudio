@@ -37,6 +37,9 @@ public sealed partial class Mixer : IRecordingHost
         }
     }
 
+    /// <summary>False when another channel is soloed and the take is not (the take strip is shown dimmed).</summary>
+    internal bool TakeAudible => State is not { } state || !state.AnySolo || _recording?.Takes.Strip.Solo == true;
+
     /// <inheritdoc />
     Guid IRecordingHost.TrackId => Id;
 
@@ -104,6 +107,39 @@ public sealed partial class Mixer : IRecordingHost
         {
             MaxStreamBytes = limits?.Value.MaxStreamBytes ?? RecordingLimits.DefaultMaxUploadBytes,
         };
-        return new RecordingSession(services, this, url => new Uri(options.Value.PublicApiBaseUrl, url).ToString());
+        var session = new RecordingSession(services, this, url => new Uri(options.Value.PublicApiBaseUrl, url).ToString());
+        session.Takes.StripChanged += SyncTakeChannel;
+        return session;
+    }
+
+    // The mix keeps the strip of a saved take (FR-012); a soloed take silences the stems like a stem solo (engine gate rule).
+    private void SyncTakeChannel()
+    {
+        if (State is not { } state || _recording is not { } session)
+        {
+            return;
+        }
+
+        state.ExternalSolo = session.Takes.Loaded is not null && session.Takes.Strip.Solo;
+        var take = session.Takes.MixSettings();
+        if (take != state.Take)
+        {
+            state.SetTake(take);
+        }
+    }
+
+    partial void OnMixLoaded(MixDto mix)
+    {
+        if (mix.Settings.Take is { } take && Recording is { } session)
+        {
+            _ = InvokeAsync(() => RestoreTakeAsync(session, take));
+        }
+    }
+
+    private async Task RestoreTakeAsync(RecordingSession session, TakeChannelSettingsDto take)
+    {
+        await session.Takes.LoadAsync(Id);
+        await session.Takes.RestoreAsync(take);
+        StateHasChanged();
     }
 }

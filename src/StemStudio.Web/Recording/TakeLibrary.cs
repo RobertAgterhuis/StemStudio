@@ -21,6 +21,9 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
 
     private readonly List<TakeItem> _items = [];
 
+    /// <summary>Raised after the strip changed (take loaded, saved, unloaded or a strip setting), for the mix's take channel.</summary>
+    public event Action? StripChanged;
+
     /// <summary>The takes, newest first.</summary>
     public IReadOnlyList<TakeItem> Items => _items;
 
@@ -46,9 +49,10 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
     {
         var (list, error) = await ApiCall.TryAsync(() => api.ListTakesAsync(trackId));
         Error = error;
-        _items.RemoveAll(i => i.Take is not null && i.Capture is null);
-        _items.AddRange(list?.Items.Select(TakeItem.Saved) ?? []);
-        Sort();
+        if (list is not null)
+        {
+            Merge(list.Items);
+        }
     }
 
     /// <summary>Adds the captures of a finished session and loads the last one into the strip.</summary>
@@ -80,6 +84,7 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
         await (ReferenceEquals(Loaded, item) ? LoadSavedAsync(item) : Task.CompletedTask);
         await engine.ReleaseCaptureAsync(key);
         item.ReleaseCapture();
+        StripChanged?.Invoke();
     }
 
     /// <summary>Loads a take into the strip (local capture or saved FLAC) and applies the strip settings.</summary>
@@ -93,6 +98,7 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
             Loaded = item;
             Error = null;
             await audio.SetChannelAsync(Strip.ToDto());
+            StripChanged?.Invoke();
         }
         catch (Exception ex) when (ex is RecordingException or InvalidOperationException)
         {
@@ -110,6 +116,7 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
     public Task ChangeStripAsync(Action<ChannelState> change)
     {
         change(Strip);
+        StripChanged?.Invoke();
         return audio.SetChannelAsync(Strip.ToDto());
     }
 
@@ -128,6 +135,30 @@ public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine au
             : TakeSource.FromUrl(audioUrl(item.Take!.AudioUrl!), item.Take.StartSample, item.Take.LengthSamples, item.Take.InputChannels);
         var part = item.Take?.Part ?? item.Upload!.Part;
         return new LoadTakeRequest(item.Id, source, part, item.Take?.AdjustmentSamples ?? 0);
+    }
+
+    // Keeps the item objects of takes already shown (the strip refers to one) and drops saved takes the server no longer has.
+    private void Merge(IReadOnlyList<RecordingTakeDto> takes)
+    {
+        var ids = takes.Select(t => t.Id).ToHashSet();
+        _items.RemoveAll(i => i.Take is { } take && i.Capture is null && !ids.Contains(take.Id));
+        foreach (var take in takes)
+        {
+            Upsert(take);
+        }
+
+        Sort();
+    }
+
+    private void Upsert(RecordingTakeDto take)
+    {
+        if (_items.FirstOrDefault(i => i.Take?.Id == take.Id) is { } existing)
+        {
+            existing.Apply(take);
+            return;
+        }
+
+        _items.Add(TakeItem.Saved(take));
     }
 
     private void Sort() => _items.Sort((a, b) => Recorded(b).CompareTo(Recorded(a)) is var order and not 0 ? order : (b.PassIndex ?? 0).CompareTo(a.PassIndex ?? 0));

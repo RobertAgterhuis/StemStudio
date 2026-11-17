@@ -61,6 +61,7 @@ public sealed partial class TakeLibrary
         if (Loaded is { } loaded && removed.Contains(loaded))
         {
             (Loaded, Compare) = (null, TakeCompareMode.Both);
+            StripChanged?.Invoke();
             await engine.UnloadTakeAsync();
         }
     }
