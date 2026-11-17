@@ -129,8 +129,12 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
     private bool IsSoundSpelling(string word, AssistLanguage language)
     {
         var key = LyricTokens.Key(word);
-        return new[] { key, Collapse(key, 2), Collapse(key, 1) }
-            .Any(form => Interjections.Contains(form) || (form != key && spelling.IsKnown(form, language)));
+        if (Interjections.Contains(key))
+        {
+            return true;
+        }
+
+        return Collapse(key, 2) != key && new[] { Collapse(key, 2), Collapse(key, 1) }.Any(form => Interjections.Contains(form) || spelling.IsKnown(form, language));
     }
 
     private static string Collapse(string key, int keep)
