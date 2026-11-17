@@ -1,0 +1,10 @@
+@* The take channel strip (FR-012; ui-test-ids 1.14.0 strip-take with data-take-id and every *-take id of the stem pattern).
+   It reuses the stem strip, so levels, names and keyboard behaviour match the stems. Exists only while a take is loaded. *@
+
+@if (Takes.Loaded is { } take)
+{
+    <ChannelStrip Channel="Takes.Strip" Audible="Audible" OnVolume="VolumeAsync" OnPan="PanAsync" OnMute="MuteAsync" OnSolo="SoloAsync"
+                  data-take-id="@take.Id" data-help-id="recording-compare">
+        @ChildContent
+    </ChannelStrip>
+}

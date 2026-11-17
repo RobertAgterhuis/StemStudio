@@ -17,6 +17,11 @@
             <SegmentedChoice TValue="DensityPreference" Options="Densities" Value="Preferences.Current.Density" ValueChanged="Preferences.SetDensityAsync" Label="Density" />
             <p class="ss-prefs-label">Motion</p>
             <SegmentedChoice TValue="MotionPreference" Options="Motions" Value="Preferences.Current.Motion" ValueChanged="Preferences.SetMotionAsync" Label="Motion" />
+            <p class="ss-prefs-label">Keyboard</p>
+            <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(SingleKey ? "true" : "false")"
+                    aria-describedby="pref-single-key-help" data-testid="pref-single-key" data-help-id="shortcuts-custom" @onclick="ToggleSingleKeyAsync">Single-key shortcuts</button>
+            <p id="pref-single-key-help" class="ss-help">Off: only shortcuts with Ctrl (Cmd) work, so a stray key press does nothing.</p>
+            <a href="settings/shortcuts" class="ss-text-button" data-testid="pref-shortcuts-open" @onclick="Close">Change shortcuts and foot pedals</a>
             <button type="button" class="ss-text-button" data-testid="pref-reset-help" @onclick="ResetHelpAsync">Reset help and tours</button>
             @if (!Preferences.StorageAvailable)
             {

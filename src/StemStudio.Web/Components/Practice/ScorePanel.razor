@@ -1,0 +1,68 @@
+@* Score panel (014 US4, FR-009..FR-013; ui-test-ids 1.13.0 score-*): pick a sheet-music item of this track, see its
+   pages, the engine highlights the heard bar and scrolls (follow toggle); click a bar to seek, Shift+click (Advanced) to
+   loop bars; notes for transpose and manual tempo; "Read bar" announces the bar once. *@
+@inherits PollingComponent
+@using StemStudio.Contracts.ScoreFollow
+
+<section class="ss-console-panel ss-score-panel" role="region" aria-label="Score" data-testid="score-panel" data-help-id="score-panel"
+         data-asset-id="@(Selected?.AssetId.ToString())" data-view-status="@ViewStatus">
+    <h2 class="ss-panel-title">Score <HelpHint HelpId="mixer-score-follow" /></h2>
+    @if (Scores is null)
+    {
+        <p class="ss-muted" role="status">Loading the sheet music...</p>
+    }
+    else if (Scores.Count == 0)
+    {
+        <p class="ss-muted" data-testid="score-empty">No sheet music for this song yet. <a href="@($"tracks/{TrackId}")">Make sheet music on the song page</a>.</p>
+    }
+    else
+    {
+        <div class="ss-score-head">
+            <label class="ss-inline-label" for="score-select">Sheet music
+                <select id="score-select" class="rz-dropdown ss-select" value="@Selected?.AssetId" @onchange="SelectAsync" data-testid="score-select">
+                    @foreach (var score in Scores)
+                    {
+                        <option value="@score.AssetId">@OptionText(score)</option>
+                    }
+                </select>
+            </label>
+            <RadzenButton Text="Follow" Icon="swap_vert" Size="ButtonSize.Small" ButtonStyle="@(Follow ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-pressed="@(Follow ? "true" : "false")" Click="ToggleFollowAsync" data-testid="score-follow-toggle" />
+            <RadzenButton Text="Read bar" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="ReadBar" data-testid="score-read-bar" />
+        </div>
+        @if (Transposed)
+        {
+            <p class="ss-help" role="note" data-testid="score-transpose-note">The notation is shown in the original key; you hear it transposed.</p>
+        }
+        @if (Selected?.ManualTempo == true)
+        {
+            <p class="ss-help" role="note" data-testid="score-tempo-note">This score was made with a tempo you typed, so the bars may drift from the music.</p>
+        }
+        @if (Error is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="score-error">@Error</div>
+        }
+        @if (Preparing)
+        {
+            <p class="ss-muted" role="status" data-testid="score-preparing">Preparing the score view...</p>
+        }
+        <span class="ss-sr-only" aria-live="off" data-testid="score-bar-label">@BarLabel</span>
+        <span class="ss-sr-only" role="status">@Announcement</span>
+        <div id="@HostId" class="ss-score-view" data-testid="score-view" tabindex="0" role="group" aria-label="Score pages">
+            @if (View is { Status: ScoreViewStatusDto.Ready } view)
+            {
+                @foreach (var sheet in view.Pages)
+                {
+                    <div class="ss-score-page" data-score-page="@sheet.Page" data-testid="@($"score-page-{sheet.Page}")">
+                        <img src="@PageUrl(sheet)" width="@sheet.WidthPx" height="@sheet.HeightPx" alt="@($"Score page {sheet.Page} of {view.Pages.Count}")" />
+                        @foreach (var bar in view.Bars.Where(b => b.Page == sheet.Page))
+                        {
+                            <div class="ss-score-bar" style="@BarStyle(bar)" data-bar="@bar.Index" title="@($"Bar {bar.Number}")"
+                                 @onclick="e => BarClickAsync(bar, e.ShiftKey)"></div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+</section>

@@ -54,6 +54,12 @@ public sealed record WorkerHealth
 
     /// <summary>Readiness of the transcription models (1.6.0); null for an older worker.</summary>
     public WorkerTranscriptionHealth? Transcription { get; init; }
+
+    /// <summary>Queue state of the lanes beside separation (1.8.0 adds <c>practice</c>); null for an older worker.</summary>
+    public WorkerLanesHealth? Lanes { get; init; }
+
+    /// <summary>The configured section analyser (1.8.0); null for an older worker.</summary>
+    public WorkerStructureHealth? Structure { get; init; }
 }
 
 /// <summary>Readiness of the transcription models (worker 1.6.0 <c>TranscriptionHealth</c>).</summary>

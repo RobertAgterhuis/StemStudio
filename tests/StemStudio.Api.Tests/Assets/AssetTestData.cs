@@ -45,6 +45,13 @@ internal static class AssetTestData
         worker.OnDownloadRender = (_, stream) => stream.WriteAsync(RenderedBytes).AsTask();
     }
 
+    /// <summary>The worker reports every render job completed with the given bytes (feature 015 takes).</summary>
+    public static void CompleteRenders(FakeWorkerClient worker, string sha, byte[] bytes)
+    {
+        worker.OnGetRender = id => Task.FromResult<WorkerRenderJob?>(FakeWorkerClient.RenderJob(id, WorkerRenderJobState.Completed, 1, Result(sha) with { SizeBytes = bytes.Length }));
+        worker.OnDownloadRender = (_, stream) => stream.WriteAsync(bytes).AsTask();
+    }
+
     public static Task<HttpResponseMessage> PostExportAsync(this HttpClient client, CreateAudioExportRequest request) =>
         client.PostAsJsonAsync(new Uri(ApiRoutes.AudioExports, UriKind.Relative), request, TestContext.Current.CancellationToken);
 

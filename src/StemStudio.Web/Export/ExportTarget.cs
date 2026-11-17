@@ -29,7 +29,7 @@ public sealed record ExportChannel(string Id, string Label)
 /// <summary>The source of an export dialog: the track and, for the mixer, a snapshot of its current state.</summary>
 /// <param name="Kind">Stem, mix or stem pack.</param>
 /// <param name="Track">The completed track.</param>
-public sealed record ExportTarget(ExportKind Kind, TrackDto Track)
+public sealed partial record ExportTarget(ExportKind Kind, TrackDto Track)
 {
     /// <summary>The raw channel (stem mode).</summary>
     public string? Channel { get; init; }

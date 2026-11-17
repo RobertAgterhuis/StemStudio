@@ -60,7 +60,8 @@ function resolveMotion(value: unknown, matches: MediaMatcher): Motion {
  * @returns The appearance to apply.
  */
 export function resolveAppearance(raw: unknown, matches: MediaMatcher): Appearance {
-  const record = isRecord(raw) && raw.schemaVersion === 1 ? raw : {};
+  // Schema versions 1 and 2 (014); `< 3` keeps first-paint.js within its 1 KB budget (fields are validated one by one below).
+  const record = isRecord(raw) && (raw.schemaVersion as number) < 3 ? raw : {};
   const level = oneOf(record.level, LEVELS, 'beginner');
   return {
     theme: resolveTheme(record.theme, matches),

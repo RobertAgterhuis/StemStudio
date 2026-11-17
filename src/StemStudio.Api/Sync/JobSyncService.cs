@@ -3,6 +3,8 @@ using StemStudio.Api.Assets;
 using StemStudio.Api.Detail;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
+using StemStudio.Api.ScoreFollow;
+using StemStudio.Api.SongSections;
 
 namespace StemStudio.Api.Sync;
 
@@ -33,5 +35,7 @@ public sealed class JobSyncService(
         await services.GetRequiredService<MetadataSynchronizer>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<LyricsSynchronizer>().SyncAllAsync(cancellationToken);
         await services.GetRequiredService<AssetSynchronizer>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<SectionJobApplier>().SyncAllAsync(cancellationToken);
+        await services.GetRequiredService<ScoreViewJobApplier>().SyncAllAsync(cancellationToken);
     }
 }

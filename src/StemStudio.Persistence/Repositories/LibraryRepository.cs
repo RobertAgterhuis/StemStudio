@@ -130,11 +130,11 @@ public sealed class LibraryRepository(StemStudioDbContext context) : ILibraryRep
 
     /// <inheritdoc />
     public Task<int> CountPendingAsync(CancellationToken cancellationToken) =>
-        context.Assets.CountAsync(asset => asset.FiledVersion != LibraryFilingRules.Version, cancellationToken);
+        AssetOrigins.NotRecordings(context).CountAsync(asset => asset.FiledVersion != LibraryFilingRules.Version, cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Asset>> PendingAsync(int limit, CancellationToken cancellationToken) =>
-        await context.Assets.Where(asset => asset.FiledVersion != LibraryFilingRules.Version)
+        await AssetOrigins.NotRecordings(context).Where(asset => asset.FiledVersion != LibraryFilingRules.Version)
             .OrderBy(asset => asset.CreatedAt).ThenBy(asset => asset.Id).Take(limit).ToListAsync(cancellationToken);
 
     /// <inheritdoc />

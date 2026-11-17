@@ -1,0 +1,42 @@
+{
+  "status": "ok",
+  "separator": "demucs",
+  "device": "cpu",
+  "deviceInfo": {
+    "kind": "cpu",
+    "name": null,
+    "computeCapability": null,
+    "totalMemoryMiB": null,
+    "freeMemoryMiB": null,
+    "reason": null
+  },
+  "onlineLookups": true,
+  "library": {
+    "readable": true,
+    "reason": null
+  },
+  "lanes": {
+    "render": { "queued": 0, "running": false },
+    "transcribe": { "queued": 0, "running": false },
+    "practice": { "queued": 2, "running": true }
+  },
+  "lyricsAlignment": {
+    "available": true,
+    "model": "large-v3-turbo",
+    "modelCached": false,
+    "auto": "gpu",
+    "reason": null
+  },
+  "transcription": {
+    "models": {
+      "basic-pitch-icassp2022": "ready",
+      "piano-crnn-note-pedal": "not-downloaded"
+    },
+    "font": { "leipzig": true }
+  },
+  "structure": {
+    "analyzer": "stems-novelty",
+    "version": "1.0.0"
+  },
+  "contractVersion": "1.8.0"
+}

@@ -1,0 +1,101 @@
+@page "/setlists/{SetlistId:guid}"
+@* Setlist editor (014 US5, FR-015..FR-018; ui-test-ids 1.13.0 setlist-*): name, note (Advanced), total, songs with mix
+   (Advanced) and note (Advanced), reorder by drag and by up/down, remove, add from the library, play and the PDF. *@
+@using StemStudio.Web.Practice
+@using StemStudio.Web.Components.Practice
+
+<PageTitle>Setlist - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide ss-setlist-editor" data-help-id="setlist-edit">
+    @if (Setlist is null)
+    {
+        @if (Error is not null)
+        {
+            <ErrorState TestId="setlist-save-error" Message="@Error" />
+        }
+        else
+        {
+            <Skeleton Lines="4" />
+        }
+    }
+    else
+    {
+        <header class="ss-page-head">
+            <label class="ss-sr-only" for="setlist-name">Setlist name</label>
+            <input id="setlist-name" type="text" class="rz-textbox ss-title-input" maxlength="80" value="@Setlist.Name" @onchange="RenameAsync"
+                   data-testid="setlist-name" />
+            <p class="ss-muted"><span data-testid="setlist-total">@Setlist.Entries.Count songs, @SetlistEntries.Total(Setlist.TotalSeconds)</span></p>
+            <LevelGate Feature="setlists.notes">
+                <label class="ss-inline-label ss-block" for="setlist-note">Note
+                    <textarea id="setlist-note" class="rz-textarea" rows="2" maxlength="@SetlistEntries.MaxSetlistNote" @onchange="NoteAsync"
+                              data-testid="setlist-note">@Setlist.Note</textarea>
+                </label>
+            </LevelGate>
+        </header>
+        @if (Error is not null)
+        {
+            <div class="ss-error" role="alert" data-testid="setlist-save-error">@Error</div>
+        }
+        @if (Setlist.RemovedEntries > 0)
+        {
+            <p class="ss-notice" role="note" data-testid="setlist-removed-note">
+                @Setlist.RemovedEntries @(Setlist.RemovedEntries == 1 ? "song was" : "songs were") removed because the track was deleted.
+                <button type="button" class="ss-text-button" @onclick="AcknowledgeRemovedAsync">OK</button>
+            </p>
+        }
+        <div class="ss-section-nav">
+            <RadzenButton Text="Add songs" Icon="add" Disabled="@(Setlist.Entries.Count >= SetlistEntries.MaxEntries)" Click="OpenAddAsync" data-testid="setlist-add" />
+            <RadzenButton Text="Play setlist" Icon="play_arrow" ButtonStyle="ButtonStyle.Light" Disabled="@(Setlist.Entries.Count == 0)" Click="Play"
+                          data-testid="@($"setlist-play-{Setlist.Id}")" />
+            @if (PdfOptions)
+            {
+                <RadzenButton Text="PDF for the stand" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Light" Click="() => PdfOpen = true" data-testid="setlist-pdf"
+                              data-help-id="setlist-pdf" />
+            }
+            else
+            {
+                <a class="rz-button rz-light ss-link-button" href="@PdfUrl" download data-testid="setlist-pdf">PDF for the stand</a>
+            }
+        </div>
+        <ol class="ss-setlist-entries">
+            @foreach (var entry in Setlist.Entries)
+            {
+                var index = entry.Position - 1;
+                <li class="ss-setlist-entry" draggable="true" data-testid="@($"setlist-entry-{entry.Id}")" data-position="@entry.Position"
+                    @ondragstart="() => _dragging = index" @ondragover:preventDefault="true" @ondrop="() => DropAsync(index)">
+                    <span class="ss-setlist-title">@entry.Position. @entry.TrackTitle <span class="ss-muted">@entry.Artist</span></span>
+                    <LevelGate Feature="setlists.notes">
+                        <label class="ss-inline-label" for="@($"mix-{entry.Id}")">Mix
+                            <select id="@($"mix-{entry.Id}")" class="rz-dropdown ss-select" value="@(entry.MixId?.ToString() ?? string.Empty)"
+                                    @onfocus="() => LoadMixesAsync(entry.TrackId)" @onchange="e => SetMixAsync(entry, e.Value)" data-testid="@($"setlist-entry-mix-{entry.Id}")">
+                                <option value="">Default mix</option>
+                                @foreach (var mix in MixesOf(entry))
+                                {
+                                    <option value="@mix.Id">@mix.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="ss-inline-label" for="@($"note-{entry.Id}")">Note
+                            <input id="@($"note-{entry.Id}")" type="text" class="rz-textbox" maxlength="@SetlistEntries.MaxNote" value="@entry.Note"
+                                   @onchange="e => SetNoteAsync(entry, e.Value)" data-testid="@($"setlist-entry-note-{entry.Id}")" />
+                        </label>
+                    </LevelGate>
+                    <RadzenButton Text="@($"Move {entry.TrackTitle} up")" Icon="arrow_upward" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Disabled="@(index == 0)" Click="() => MoveAsync(index, index - 1)" data-testid="@($"setlist-entry-up-{entry.Id}")" />
+                    <RadzenButton Text="@($"Move {entry.TrackTitle} down")" Icon="arrow_downward" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Disabled="@(index == Setlist.Entries.Count - 1)" Click="() => MoveAsync(index, index + 1)" data-testid="@($"setlist-entry-down-{entry.Id}")" />
+                    <RadzenButton Text="@($"Remove {entry.TrackTitle}")" Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="() => RemoveAsync(entry)" data-testid="@($"setlist-entry-remove-{entry.Id}")" />
+                </li>
+            }
+        </ol>
+        @if (Adding)
+        {
+            <SetlistAddDialog Tracks="Tracks" OnAdd="AddAsync" OnClose="() => Adding = false" />
+        }
+        @if (PdfOpen)
+        {
+            <SetlistPdfDialog Setlist="Setlist" OnClose="() => PdfOpen = false" />
+        }
+    }
+</div>

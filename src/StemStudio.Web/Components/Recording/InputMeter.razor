@@ -1,0 +1,51 @@
+@* Input level meter (FR-002, FR-021; ui-test-ids 1.14.0 meter-input, meter-db-input Expert). The engine writes --meter-level,
+   data-peak-db and data-clip; InputMeter.razor.js copies data-peak-db into aria-valuenow at most twice a second. *@
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+
+<div class="ss-meter-wrap">
+    <div class="ss-meter" id="@InputSetup.MeterElementId" role="meter" aria-label="Input level" aria-valuemin="-60" aria-valuemax="0"
+         aria-valuenow="-60" aria-valuetext="-60 dB" data-testid="meter-input" data-help-id="recording">
+        <div class="ss-meter-fill"></div>
+    </div>
+    <LevelGate Feature="mixer.meter.db">
+        <span class="ss-meter-db" data-testid="meter-db-input">-inf</span>
+    </LevelGate>
+</div>
+
+@code {
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _watch;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _module = await Js.InvokeAsync<IJSObjectReference>("import", "./Components/Recording/InputMeter.razor.js");
+        _watch = await _module.InvokeAsync<IJSObjectReference>("watchMeter", InputSetup.MeterElementId, 500);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_watch is null || _module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _watch.InvokeVoidAsync("dispose");
+            await _watch.DisposeAsync();
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; the browser dropped the timer with the page.
+        }
+    }
+}

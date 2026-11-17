@@ -9,7 +9,7 @@ namespace StemStudio.Web.Export;
 /// (null = the backend default of data-model 4.2).
 /// </summary>
 /// <param name="target">What is exported.</param>
-public sealed class ExportForm(ExportTarget target)
+public sealed partial class ExportForm(ExportTarget target)
 {
     /// <summary>Message for a name longer than <see cref="ContractLimits.AssetNameMaxLength"/>.</summary>
     public const string NameMessage = "Enter a name of at most 120 characters, or leave it empty.";
@@ -63,7 +63,7 @@ public sealed class ExportForm(ExportTarget target)
 
     /// <summary>The request of a stem or mix export (call <see cref="Validate"/> first).</summary>
     /// <returns>The request.</returns>
-    public CreateAudioExportRequest AudioRequest() => new()
+    public CreateAudioExportRequest AudioRequest() => WithTake(new()
     {
         TrackId = Target.Track.Id,
         Mode = Target.Kind == ExportKind.Stem ? ExportModeDto.Raw : ExportModeDto.Mix,
@@ -72,11 +72,16 @@ public sealed class ExportForm(ExportTarget target)
         Range = Range.ToDto(),
         Format = FormatDto(),
         Name = Name.Trim().Length == 0 ? null : Name.Trim(),
-    };
+    });
 
     /// <summary>The request of a stem pack.</summary>
     /// <returns>The request.</returns>
     public CreateStemPackRequest PackRequest() => new(Target.Track.Id, FormatDto(), IncludeDetail && Target.HasDetail);
+
+    /// <summary>Hook of feature 015 (<c>ExportForm.Take.cs</c>): adds the take of a take export; returns other requests unchanged.</summary>
+    /// <param name="request">The 007 request.</param>
+    /// <returns>The request to send.</returns>
+    private partial CreateAudioExportRequest WithTake(CreateAudioExportRequest request);
 
     private List<string>? Channels() => Target.Kind switch
     {

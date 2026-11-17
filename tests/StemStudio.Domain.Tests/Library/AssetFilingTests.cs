@@ -83,9 +83,9 @@ public sealed class AssetFilingTests
     }
 
     [Fact]
-    public void Rules_EveryCurrentOriginIsFileable()
+    public void Rules_EveryCurrentOriginIsFileable_ExceptRecordedTakes()
     {
-        foreach (var origin in Enum.GetValues<AssetOrigin>())
+        foreach (var origin in Enum.GetValues<AssetOrigin>().Where(origin => origin != AssetOrigin.Recording))
         {
             LibraryFilingRules.IsFileable(AssetTests.Provenance() with { Origin = origin }).ShouldBeTrue();
         }

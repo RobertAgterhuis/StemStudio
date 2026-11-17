@@ -47,7 +47,7 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
             Profile = recipe.Profile,
             Quality = recipe.Quality ?? ScoreQuality.Accurate,
             Range = recipe.Range is { } range ? new WorkerRenderRange(range.StartSeconds, range.EndSeconds) : null,
-            Grid = Grid(draft.Grid),
+            Grid = WorkerGrid(draft.Grid),
             Resolution = recipe.Resolution,
             KeyOverride = recipe.KeyOverride,
             Titles = Titles(name, draft.Source, recipe.Profile),
@@ -65,7 +65,10 @@ public sealed class ScoreSubmitter(IWorkerClient worker, TimeProvider clock)
     private static WorkerDrumInputs DrumInputs(IReadOnlyDictionary<string, string> pieces) =>
         new(pieces.GetValueOrDefault("kick"), pieces.GetValueOrDefault("snare"), pieces.GetValueOrDefault("toms"), pieces.GetValueOrDefault("hihat"), pieces.GetValueOrDefault("cymbals"));
 
-    private static object Grid(TempoGrid grid) => grid switch
+    /// <summary>The worker grid of a resolved tempo grid (also used by the 014 score views).</summary>
+    /// <param name="grid">A beat-grid or a manual tempo.</param>
+    /// <returns>The worker body (<see cref="WorkerBeatGridTempo"/> or <see cref="WorkerManualTempo"/>), serialised by its runtime type.</returns>
+    public static object WorkerGrid(TempoGrid grid) => grid switch
     {
         BeatGridTempo beats => new WorkerBeatGridTempo(beats.Bpm, beats.BeatsPerBar, beats.Beats, beats.Downbeats),
         ManualTempoGrid manual => new WorkerManualTempo(manual.Bpm, manual.BeatsPerBar, manual.FirstDownbeatSeconds),

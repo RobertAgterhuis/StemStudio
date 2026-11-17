@@ -40,6 +40,17 @@ public enum AssetOrigin
 
     /// <summary>A take of a generation (feature 009).</summary>
     Generation,
+
+    /// <summary>A play-along take (feature 015): hidden from the library list, managed by its take.</summary>
+    Recording,
+}
+
+/// <summary>The take a recording item holds (feature 015, <c>Provenance.recording</c>).</summary>
+/// <param name="TakeId">The take.</param>
+public sealed record RecordingSource(Guid TakeId)
+{
+    /// <summary>The transient upload the FLAC is rendered from.</summary>
+    public const string CaptureFile = "capture.wav";
 }
 
 /// <summary>A stored generated take for the library (feature 009).</summary>
@@ -107,4 +118,7 @@ public sealed record Provenance
 
     /// <summary>The generation of a take item (origin generation, feature 009); null otherwise.</summary>
     public GenerationSource? Generation { get; init; }
+
+    /// <summary>The take of a recording item (origin recording, feature 015); null otherwise.</summary>
+    public RecordingSource? Recording { get; init; }
 }

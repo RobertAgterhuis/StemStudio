@@ -4,6 +4,10 @@
 <LevelGate Feature="practice.trainer">
     <div class="ss-practice-sub" role="group" aria-labelledby="trainer-title" data-testid="trainer-panel" data-help-id="practice-speed-trainer">
         <h3 id="trainer-title" class="ss-panel-title">Speed trainer <HelpHint HelpId="practice-speed-trainer" /></h3>
+        @if (RegionLabel is not null)
+        {
+            <p class="ss-muted" data-testid="trainer-region-label" data-help-id="speed-trainer-region">@RegionLabel</p>
+        }
         <button type="button" role="switch" class="rz-button rz-button-sm rz-light ss-switch" aria-checked="@(Settings.Enabled ? "true" : "false")"
                 disabled="@ToggleDisabled" aria-describedby="@(LoopProblem is null ? null : NeedsLoopId)" @onclick="OnToggle"
                 data-testid="trainer-toggle">Speed trainer</button>

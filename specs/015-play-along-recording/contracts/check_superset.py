@@ -31,6 +31,7 @@ ALLOWED = {
     ("schemas", "AssetOrigin"),
     ("schemas", "Provenance"),
     ("schemas", "CreateAudioExportRequest"),
+    ("schemas", "ExportMix"),
     ("schemas", "MixSettings"),
     ("schemas", "Track"),
     ("schemas", "ExportRecipe"),

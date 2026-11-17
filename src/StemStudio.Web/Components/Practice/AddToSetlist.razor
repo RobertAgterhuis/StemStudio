@@ -1,0 +1,28 @@
+@* "Add to setlist" on a track or a mix (014 US5, FR-015; ui-test-ids 1.13.0 add-to-setlist-*): pick a setlist; the song
+   (with the mix) is added at the end. *@
+@using StemStudio.Contracts.Setlists
+
+<span class="ss-add-to-setlist">
+    <RadzenButton Text="@Text" Icon="playlist_add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-expanded="@(Open ? "true" : "false")"
+                  Click="ToggleAsync" data-testid="@TestId" data-help-id="setlists" />
+    @if (Open)
+    {
+        <span class="ss-add-to-setlist-menu" role="group" aria-label="Choose a setlist">
+            @if (Choices is null)
+            {
+                <span class="ss-muted" role="status">Loading...</span>
+            }
+            else if (Choices.Count == 0)
+            {
+                <span class="ss-muted">No setlists yet. <a href="setlists">Make one</a>.</span>
+            }
+            else
+            {
+                @foreach (var setlist in Choices)
+                {
+                    <RadzenButton Text="@setlist.Name" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="() => AddAsync(setlist)" />
+                }
+            }
+        </span>
+    }
+</span>

@@ -19,7 +19,8 @@ public sealed record ExportDraft(Track Track, ExportRecipe Recipe, RenderPlan Pl
 /// </summary>
 /// <param name="tracks">Track repository.</param>
 /// <param name="mixes">Mix repository.</param>
-public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
+/// <param name="takes">Resolves the take of an export (feature 015).</param>
+public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes, ITakeExportSource takes)
 {
     /// <summary>Plans a request.</summary>
     /// <param name="request">The request.</param>
@@ -56,7 +57,32 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
         }
 
         var (mix, problem) = await MixAsync(request, track, cancellationToken);
-        return problem is null ? Draft(track, Recipe(request, mix)) : (null, problem);
+        if (problem is not null)
+        {
+            return (null, problem);
+        }
+
+        var resolved = await TakeAsync(request, mix, cancellationToken);
+        return resolved.Problem is { } takeProblem ? (null, takeProblem) : DraftWithTake(track, Recipe(request, mix, resolved.Take), resolved.Take);
+    }
+
+    /// <summary>The take of the request: <c>takeId</c> in raw mode; the mix's take strip (sent or saved) in mix mode.</summary>
+    private Task<ResolvedTake> TakeAsync(CreateAudioExportRequest request, ExportMix? mix, CancellationToken cancellationToken) => request.Mode == ExportModeDto.Raw
+        ? takes.ResolveAsync(request.TakeId, request.TrackId, fromSavedMix: false, cancellationToken)
+        : takes.ResolveAsync(mix?.Take?.TakeId ?? request.TakeId, request.TrackId, fromSavedMix: request.Mix is null && mix?.Take is not null, cancellationToken);
+
+    /// <summary>A raw export of the take alone defaults to the take's span; a requested range is intersected with it.</summary>
+    private static (ExportDraft?, IResult?) DraftWithTake(Track track, ExportRecipe recipe, RenderTake? take)
+    {
+        if (take is null || recipe.Mode != ExportMode.Raw || recipe.Channels is not [RenderPlanner.TakeChannelId])
+        {
+            return Draft(track, recipe, take);
+        }
+
+        var range = take.RawRange(recipe.Range);
+        return range is null
+            ? (null, AssetProblems.Invalid([new DomainError("range", "The range must overlap the take.")]))
+            : Draft(track, recipe with { Range = range }, take);
     }
 
     /// <summary>FR-006: 0 &lt;= start &lt; end &lt;= the track duration and at least 0.5 s long.</summary>
@@ -68,8 +94,9 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
     /// <summary>Plans a stored recipe again (retry); a channel that no longer exists makes the source unavailable.</summary>
     /// <param name="track">The track, or null when it was deleted.</param>
     /// <param name="recipe">The stored recipe.</param>
+    /// <param name="take">The recipe's take, resolved again (feature 015), or null.</param>
     /// <returns>The draft, or the problem.</returns>
-    public static (ExportDraft? Draft, IResult? Problem) Replan(Track? track, ExportRecipe recipe)
+    public static (ExportDraft? Draft, IResult? Problem) Replan(Track? track, ExportRecipe recipe, RenderTake? take = null)
     {
         ArgumentNullException.ThrowIfNull(recipe);
         if (track is not { Status: TrackStatus.Completed })
@@ -77,7 +104,7 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
             return (null, AssetProblems.SourceUnavailable("The track of this item was deleted, so it cannot be rendered again."));
         }
 
-        var (draft, problem) = Draft(track, recipe);
+        var (draft, problem) = Draft(track, recipe, take);
         return problem is null ? (draft, null) : (null, AssetProblems.SourceUnavailable("A channel of this item no longer exists on the track."));
     }
 
@@ -93,11 +120,11 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
         return new ExportDraft(track, recipe, RenderPlanner.Plan(RenderSource.Of(track), ExportMode.Raw, recipe.Channels, null));
     }
 
-    private static (ExportDraft?, IResult?) Draft(Track track, ExportRecipe recipe)
+    private static (ExportDraft?, IResult?) Draft(Track track, ExportRecipe recipe, RenderTake? take)
     {
         try
         {
-            return (new ExportDraft(track, recipe, RenderPlanner.Plan(RenderSource.Of(track), recipe.Mode, recipe.Channels, recipe.Mix)), null);
+            return (new ExportDraft(track, recipe, RenderPlanner.Plan(RenderSource.Of(track) with { Take = take }, recipe.Mode, recipe.Channels, recipe.Mix)), null);
         }
         catch (Exception exception) when (PlanProblem(exception) is { } problem)
         {
@@ -109,10 +136,11 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
     {
         DomainValidationException invalid => AssetProblems.Invalid(invalid.Errors),
         NothingToExportException => AssetProblems.NothingToExport(),
+        TakeRequiredException => Recording.RecordingProblems.Required(),
         _ => null,
     };
 
-    private static ExportRecipe Recipe(CreateAudioExportRequest request, ExportMix? mix)
+    private static ExportRecipe Recipe(CreateAudioExportRequest request, ExportMix? mix, RenderTake? take)
     {
         var raw = request.Mode == ExportModeDto.Raw;
         return new ExportRecipe
@@ -120,11 +148,15 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
             TrackId = request.TrackId,
             Mode = raw ? ExportMode.Raw : ExportMode.Mix,
             Channels = request.Channels?.ToList(),
-            Mix = raw ? null : mix,
+            Mix = raw ? null : mix! with { Take = take is null ? null : mix!.Take },
+            TakeId = take is null ? null : TakeIdOf(request, mix),
             Range = request.Range is { } range ? new ExportRange(range.StartSeconds, range.EndSeconds) : null,
             Format = ExportRequestRules.Resolve(request.Format, SingleRaw(raw, request.Channels)),
         };
     }
+
+    private static Guid? TakeIdOf(CreateAudioExportRequest request, ExportMix? mix) =>
+        request.Mode == ExportModeDto.Raw ? request.TakeId : mix?.Take?.TakeId ?? request.TakeId;
 
     private static bool SingleRaw(bool raw, IReadOnlyList<string>? channels) => raw && channels is { Count: 1 };
 
@@ -151,6 +183,6 @@ public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes)
         var mix = await mixes.FindAsync(mixId, cancellationToken);
         return mix is null || mix.TrackId != trackId
             ? null
-            : new ExportMix(mix.MasterVolume, mix.Channels) { Expanded = mix.Expanded, DetailChannels = mix.DetailChannels };
+            : new ExportMix(mix.MasterVolume, mix.Channels) { Expanded = mix.Expanded, DetailChannels = mix.DetailChannels, Take = mix.Take };
     }
 }

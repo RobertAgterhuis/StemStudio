@@ -1,0 +1,62 @@
+@* One take of the Takes panel (ui-test-ids 1.14.0 rec-take-row-<takeId> with data-status/data-selected and every rec-take-*
+   id: select, name, part, range, pass (Advanced), latency (Advanced), warning, star, play-from, rename, export, delete, retry,
+   error, details (Expert)). The radio loads the take into the take strip. *@
+
+<li data-testid="@($"rec-take-row-{Item.Id}")" data-status="@Item.Status" data-selected="@(Selected ? "true" : "false")">
+    <input type="radio" name="rec-take" id="@($"rec-take-select-{Item.Id}")" checked="@Selected" @onchange="OnSelect"
+           data-testid="@($"rec-take-select-{Item.Id}")" />
+    @if (Editing)
+    {
+        <label class="ss-sr-only" for="rec-take-rename-input">New name of @Item.Name</label>
+        <input id="rec-take-rename-input" class="rz-textbox" maxlength="80" value="@_draft" @oninput="Draft" @onkeydown="RenameKeyAsync"
+               data-testid="rec-take-rename-input" />
+        <RadzenButton Text="Rename" Size="ButtonSize.Small" Click="ConfirmRenameAsync" data-testid="rec-take-rename-confirm" />
+        <RadzenButton Text="Cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnRenameCancel" />
+        @if (RenameError is { } renameError)
+        {
+            <span class="ss-help" role="alert">@renameError</span>
+        }
+    }
+    else
+    {
+        <label for="@($"rec-take-select-{Item.Id}")" data-testid="@($"rec-take-name-{Item.Id}")">@Item.Name</label>
+    }
+    <span class="ss-chip" data-testid="@($"rec-take-part-{Item.Id}")" data-part="@WireName.Of(Item.Part)">@RecordingText.PartLabel(Item.Part)</span>
+    <span data-testid="@($"rec-take-range-{Item.Id}")">@Item.Range</span>
+    @if (TakeRowText.Pass(Item) is { } pass)
+    {
+        <LevelGate Feature="recording.loop">
+            <span data-testid="@($"rec-take-pass-{Item.Id}")" data-help-id="recording-loop-takes">@pass</span>
+        </LevelGate>
+    }
+    @if (Item.Take is { } take)
+    {
+        <LevelGate Feature="recording.manual-latency">
+            <span class="ss-chip" data-testid="@($"rec-take-latency-{Item.Id}")" data-method="@WireName.Of(take.Latency.Method)">@TakeRowText.Latency(take)</span>
+        </LevelGate>
+        @if (TakeRowText.Warning(take) is { } warning)
+        {
+            <span class="ss-help" data-testid="@($"rec-take-warning-{Item.Id}")" data-warning="@warning.Code">@warning.Text</span>
+        }
+        <RadzenButton Icon="@(take.Favorite ? "star" : "star_outline")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                      aria-pressed="@(take.Favorite ? "true" : "false")" aria-label="@($"Star {Item.Name}")" Click="OnStar"
+                      data-testid="@($"rec-take-star-{Item.Id}")" />
+        <RadzenButton Icon="first_page" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Play {Item.Name} from its start")"
+                      Disabled="@(take.Status != TakeStatusDto.Ready)" Click="OnPlayFrom" data-testid="@($"rec-take-play-from-{Item.Id}")" />
+        <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Rename {Item.Name}")" Click="StartRenameAsync"
+                      data-testid="@($"rec-take-rename-{Item.Id}")" />
+        <RadzenButton Icon="library_add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Export {Item.Name}")"
+                      Disabled="@(take.Status != TakeStatusDto.Ready)" Click="OnExport" data-testid="@($"rec-take-export-{Item.Id}")" />
+        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Delete {Item.Name}")" Click="OnDelete"
+                      data-testid="@($"rec-take-delete-{Item.Id}")" />
+        @if (take.Status == TakeStatusDto.Failed)
+        {
+            <RadzenButton Text="Try again" Size="ButtonSize.Small" Click="OnRetry" data-testid="@($"rec-take-retry-{Item.Id}")" />
+            <span class="ss-help" role="alert" data-testid="@($"rec-take-error-{Item.Id}")">@(take.Error ?? "Saving the take failed.")</span>
+        }
+        <LevelGate Feature="recording.diagnostics">
+            <span class="ss-muted" data-testid="@($"rec-take-details-{Item.Id}")">@TakeRowText.Details(take)</span>
+        </LevelGate>
+    }
+    <span class="ss-muted">@TakeRowText.Status(Item)</span>
+</li>

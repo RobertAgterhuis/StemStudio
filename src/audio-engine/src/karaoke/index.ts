@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-import type { FrameLoop } from '../frame-loop';
+import { FrameSubscription, type FrameLoop } from '../frame-loop';
 import type { TransportListener } from '../transport';
 import type { KaraokeLyrics, KaraokeOptions, PlaybackState } from '../types';
 import { validateOffset, type KaraokeClock } from './clock';
@@ -27,9 +27,12 @@ export interface KaraokeDeps {
 /** The engine's karaoke controller; listens to the transport. */
 export class Karaoke implements TransportListener {
   private view: KaraokeView | null = null;
+  private readonly frames: FrameSubscription;
 
   /** @param deps - Frame loop, clock, transport state and document. */
-  public constructor(private readonly deps: KaraokeDeps) {}
+  public constructor(private readonly deps: KaraokeDeps) {
+    this.frames = new FrameSubscription(deps.loop, this.draw);
+  }
 
   /**
    * Validates everything first, then replaces an attached banner.
@@ -54,7 +57,7 @@ export class Karaoke implements TransportListener {
     };
     const { reducedMotion } = options;
     this.view = new KaraokeView({ host, timeline, gapMs, clock: this.deps.clock, requestFrame, reducedMotion });
-    this.follow(this.deps.playing());
+    this.frames.follow(this.deps.playing());
   }
 
   /** @param offsetMs - New user offset (-5000..5000 ms); drawn on the next frame. */
@@ -66,13 +69,13 @@ export class Karaoke implements TransportListener {
   /** Draws one frame when a banner is attached (e.g. after a loop change). */
   public redraw(): void {
     if (this.view !== null) {
-      this.deps.loop.once(this.draw);
+      this.frames.redraw();
     }
   }
 
   /** Removes the banner and stops drawing; no-op when none is attached. */
   public detach(): void {
-    this.deps.loop.remove(this.draw);
+    this.frames.stop();
     this.view?.dispose();
     this.view = null;
   }
@@ -80,22 +83,13 @@ export class Karaoke implements TransportListener {
   /** {@inheritDoc TransportListener.onStateChanged} */
   public onStateChanged(state: PlaybackState): void {
     if (this.view !== null) {
-      this.follow(state === 'playing');
+      this.frames.follow(state === 'playing');
     }
   }
 
   /** {@inheritDoc TransportListener.onReposition} */
   public onReposition(): void {
     this.redraw();
-  }
-
-  private follow(playing: boolean): void {
-    if (playing) {
-      this.deps.loop.add(this.draw);
-    } else {
-      this.deps.loop.remove(this.draw);
-    }
-    this.deps.loop.once(this.draw);
   }
 
   private readonly draw = (): void => {

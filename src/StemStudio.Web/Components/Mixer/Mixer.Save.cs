@@ -22,7 +22,7 @@ public sealed partial class Mixer
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
-        if (State is not null && MixId is { } mixId && mixId != State.MixId)
+        if (State is not null && (SetlistMixId ?? MixId) is { } mixId && mixId != State.MixId)
         {
             await LoadMixAsync(State, mixId);
         }
@@ -42,10 +42,15 @@ public sealed partial class Mixer
         }
     }
 
-    private Task ApplyMixAsync(MixerState state, MixDto mix)
+    /// <summary>Hook of feature 015 (<c>Mixer.Recording.cs</c>): runs after a saved mix was applied to the state and the engine.</summary>
+    /// <param name="mix">The loaded mix (its <c>Settings.Take</c> is also in <c>MixerState.Take</c>).</param>
+    partial void OnMixLoaded(MixDto mix);
+
+    private async Task ApplyMixAsync(MixerState state, MixDto mix)
     {
         state.ApplyMix(mix);
-        return EngineAsync(_ => PushStateAsync(state));
+        await EngineAsync(_ => PushStateAsync(state));
+        OnMixLoaded(mix);
     }
 
     private Task SaveAsync()

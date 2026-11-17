@@ -62,12 +62,18 @@ else
                 </div>
             }
 
+            @if (Track.Status == StemStudio.Contracts.Tracks.TrackStatusDto.Completed)
+            {
+                <div class="ss-row"><StemStudio.Web.Components.Practice.AddToSetlist TrackId="Track.Id" /></div>
+            }
+
             @if (CanDelete)
             {
                 <div class="ss-row ss-delete">
                     @if (ConfirmingDelete)
                     {
                         <span role="alert">This deletes the track, its stems and all of its mixes.</span>
+                        <StemStudio.Web.Components.Recording.TrackDeleteTakesNote Count="Track.TakeCount" />
                         <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger" Click="DeleteAsync" IsBusy="IsDeleting"
                                       BusyText="Deleting..." Disabled="IsDeleting" data-testid="track-delete-confirm" />
                         <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelDelete" Disabled="IsDeleting"

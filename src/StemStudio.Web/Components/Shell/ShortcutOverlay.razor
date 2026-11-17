@@ -1,8 +1,11 @@
-@* Shortcut overlay (FR-017, design-spec.md 4.8): the keys of the current screen, grouped. Escape or Close. *@
+@* Shortcut overlay (004 FR-017; 014 FR-024): the live bindings of the current screen from the key map, with remapped and
+   pedal keys, grouped as in the catalogue (ui-test-ids 1.13.0 shortcut-group-*, shortcut-row-* with data-keys). *@
 @implements IAsyncDisposable
 @inject ShellOverlays Overlays
 @inject NavigationManager Navigation
 @inject StemStudio.Web.Interop.IWebInterop Web
+@inject StemStudio.Web.Preferences.PreferencesState Preferences
+@using StemStudio.Web.Practice
 
 <div class="ss-palette-backdrop" @onclick="Overlays.Close">
     <div class="ss-palette ss-shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" data-testid="shortcut-overlay"
@@ -13,15 +16,22 @@
                 <span class="rzi" aria-hidden="true">close</span>
             </button>
         </header>
-        <p class="ss-muted">Mod is Ctrl, or Cmd on a Mac. Shortcuts do not work while you type in a field.</p>
-        @foreach (var (title, rows) in Groups)
+        <p class="ss-muted">Ctrl is Cmd on a Mac. Shortcuts do not work while you type in a field.</p>
+        @if (!Preferences.Current.Shortcuts.SingleKey)
         {
-            <table class="ss-shortcut-table">
-                <caption>@title</caption>
+            <p class="ss-help" role="note">Single-key shortcuts are off: only the Ctrl shortcuts work.</p>
+        }
+        @foreach (var group in Groups)
+        {
+            <table class="ss-shortcut-table" data-testid="@($"shortcut-group-{group.Group}")">
+                <caption>@group.Title</caption>
                 <tbody>
-                    @foreach (var row in rows)
+                    @foreach (var line in group.Lines.Where(Shown))
                     {
-                        <tr><th scope="row"><kbd>@row.Keys</kbd></th><td>@row.Action</td></tr>
+                        <tr data-testid="@($"shortcut-row-{line.TestId}")" data-keys="@line.DataKeys">
+                            <th scope="row"><kbd>@line.Text</kbd></th>
+                            <td data-testid="@RecordingId(line.Command)">@line.Label</td>
+                        </tr>
                     }
                 </tbody>
             </table>
@@ -33,8 +43,24 @@
     private ElementReference _dialog;
     private IAsyncDisposable? _focus;
 
-    private IEnumerable<(string Title, IReadOnlyList<ShortcutRow> Rows)> Groups =>
-        ShortcutCatalog.Groups(AppRoutes.Matches("/tracks/{id}/mixer", AppRoutes.CurrentPath(Navigation)));
+    // 015 ui-test-ids 1.14.0: the record and compare rows (shortcut-record, shortcut-compare) are Expert rows (R10).
+    private static readonly Dictionary<string, string> RecordingRows = new(StringComparer.Ordinal)
+    {
+        ["mixer.record.toggle"] = "shortcut-record",
+        ["mixer.compare.cycle"] = "shortcut-compare",
+    };
+
+    /// <summary>The cascaded level.</summary>
+    [CascadingParameter]
+    public StemStudio.Web.Experience.ExperienceContext? Experience { get; set; }
+
+    private bool Expert => (Experience ?? StemStudio.Web.Experience.ExperienceContext.Default).Is(StemStudio.Web.Experience.ExperienceLevel.Expert);
+
+    private static string? RecordingId(string command) => RecordingRows.GetValueOrDefault(command);
+
+    private bool Shown(ShortcutLine line) => Expert || !RecordingRows.ContainsKey(line.Command);
+
+    private IReadOnlyList<ShortcutGroup> Groups => ShortcutOverview.Build(ShortcutKeys.Catalogue, Preferences.Current.Shortcuts, Scopes());
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync() => await (_focus?.DisposeAsync() ?? ValueTask.CompletedTask);
@@ -44,6 +70,18 @@
 
     /// <inheritdoc />
     protected override Task OnAfterRenderAsync(bool firstRender) => firstRender ? _dialog.FocusAsync().AsTask() : Task.CompletedTask;
+
+    // The keys of the current screen: everywhere, plus the mixer (with setlist play mode) or the library.
+    private string[] Scopes()
+    {
+        var path = AppRoutes.CurrentPath(Navigation);
+        if (AppRoutes.Matches("/tracks/{id}/mixer", path))
+        {
+            return ["global", "mixer", "setlist"];
+        }
+
+        return AppRoutes.Matches("/library", path) || AppRoutes.Matches("/library/{id}", path) ? ["global", "library"] : ["global"];
+    }
 
     private void Key(KeyboardEventArgs args)
     {

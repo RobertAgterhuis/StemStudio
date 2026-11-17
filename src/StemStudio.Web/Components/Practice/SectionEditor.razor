@@ -1,0 +1,68 @@
+@* Section editor (014 US3, FR-006; ui-test-ids 1.13.0 section-editor-*): one row per section with kind, label, start,
+   instrument (solos), delete and merge-with-next; split at the playhead, add; Done saves the whole list, Cancel discards.
+   Advanced and Expert (the mixer shows it behind section-edit). *@
+@using StemStudio.Contracts.Sections
+@using StemStudio.Web.Practice
+
+<section class="ss-console-panel ss-section-editor" aria-labelledby="section-editor-title" data-testid="section-editor" data-help-id="section-editor">
+    <h2 id="section-editor-title" class="ss-panel-title">Edit sections <HelpHint HelpId="mixer-sections-edit" /></h2>
+    @if (Error is not null)
+    {
+        <div class="ss-error" role="alert" data-testid="section-editor-error">@Error</div>
+    }
+    <ol class="ss-section-editor-rows">
+        @for (var i = 0; i < Draft.Rows.Count; i++)
+        {
+            var index = i;
+            var row = Draft.Rows[i];
+            var n = i + 1;
+            <li class="ss-section-editor-row" data-testid="@($"section-editor-row-{n}")" aria-label="@($"Section {n}: {row.Label}")">
+                <label class="ss-inline-label" for="@($"section-kind-{n}")">Kind
+                    <select id="@($"section-kind-{n}")" class="rz-dropdown ss-select" value="@WireName(row.Kind)" data-testid="@($"section-editor-kind-{n}")"
+                            @onchange="e => Change(() => Draft.SetKind(index, ParseKind(e.Value)))">
+                        @foreach (var kind in Kinds)
+                        {
+                            <option value="@WireName(kind)">@SectionDraft.BaseLabel(kind, null)</option>
+                        }
+                    </select>
+                </label>
+                <label class="ss-inline-label" for="@($"section-label-{n}")">Name
+                    <input id="@($"section-label-{n}")" type="text" class="rz-textbox" maxlength="@SectionDraft.MaxLabel" value="@row.Label"
+                           data-testid="@($"section-editor-label-{n}")" @onchange="e => Change(() => Draft.Rename(index, e.Value?.ToString()))" />
+                </label>
+                <label class="ss-inline-label" for="@($"section-start-{n}")">Starts at (s)
+                    <input id="@($"section-start-{n}")" type="number" class="rz-textbox ss-number" min="0" step="0.1" value="@SectionText.Seconds(row.Start)"
+                           data-testid="@($"section-editor-start-{n}")" @onchange="e => MoveStart(index, e.Value)" />
+                </label>
+                @if (row.Kind == SectionKindDto.Solo)
+                {
+                    <label class="ss-inline-label" for="@($"section-instrument-{n}")">Instrument
+                        <select id="@($"section-instrument-{n}")" class="rz-dropdown ss-select" value="@(row.Instrument ?? string.Empty)"
+                                data-testid="@($"section-editor-instrument-{n}")" @onchange="e => Change(() => Draft.SetInstrument(index, e.Value?.ToString()))">
+                            <option value="">Not set</option>
+                            @foreach (var channel in Channels)
+                            {
+                                <option value="@channel">@channel.Replace('.', ' ')</option>
+                            }
+                        </select>
+                    </label>
+                }
+                <RadzenButton Text="@($"Delete {row.Label}")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(Draft.Rows.Count == 1)"
+                              Click="() => Change(() => Draft.Delete(index))" data-testid="@($"section-editor-delete-{n}")" />
+                @if (index < Draft.Rows.Count - 1)
+                {
+                    <RadzenButton Text="@($"Merge {row.Label} with the next")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="() => Change(() => Draft.Merge(index))" data-testid="@($"section-editor-merge-{n}")" />
+                }
+            </li>
+        }
+    </ol>
+    <div class="ss-section-nav">
+        <RadzenButton Text="Split at the playhead" Icon="content_cut" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="Split"
+                      data-testid="section-editor-split" />
+        <RadzenButton Text="Add a section" Icon="add" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="@(!Draft.CanAdd)"
+                      Click="() => Change(Draft.Add)" data-testid="section-editor-add" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnCancel" Disabled="Saving" data-testid="section-editor-cancel" />
+        <RadzenButton Text="Done" Icon="check" Click="SaveAsync" IsBusy="Saving" BusyText="Saving..." data-testid="section-editor-done" />
+    </div>
+</section>

@@ -108,6 +108,46 @@ public sealed class WebInteropTests : IAsyncDisposable
         command.ShouldBe("help.open");
     }
 
+    [Fact]
+    public async Task RegisterShortcuts_WithAKeyMap_SendsScopeAndMap_AndUpdateSwapsIt()
+    {
+        _module.SetupModule("registerShortcuts", _ => true).Mode = JSRuntimeMode.Loose;
+        _module.SetupVoid("updateShortcuts", _ => true).SetVoidResult();
+        var map = new StemStudio.Web.Practice.KeyMap([new StemStudio.Web.Practice.KeyBinding("mixer.stop", [new StemStudio.Web.Practice.KeyChordData("home")], "keys", "004")], true, false);
+
+        await using var registration = await _interop.RegisterShortcutsAsync(ShortcutScope.Setlist, map, _ => Task.CompletedTask);
+        await _interop.UpdateShortcutsAsync(registration, map with { SingleKey = false });
+        await _interop.UpdateShortcutsAsync(new NoRegistration(), map);
+
+        var args = _module.VerifyInvoke("registerShortcuts").Arguments;
+        (args[1], args[2]).ShouldBe(("setlist", map));
+        var update = _module.VerifyInvoke("updateShortcuts").Arguments;
+        ((StemStudio.Web.Practice.KeyMap)update[1]!).SingleKey.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task CaptureChord_PassesTheTimeout_AndForwardsTheChord()
+    {
+        _module.SetupModule("captureChord", _ => true).Mode = JSRuntimeMode.Loose;
+        StemStudio.Web.Practice.KeyChordData? captured = null;
+
+        await using var registration = await _interop.CaptureChordAsync(TimeSpan.FromSeconds(10), chord =>
+        {
+            captured = chord;
+            return Task.CompletedTask;
+        });
+        var args = _module.VerifyInvoke("captureChord").Arguments;
+        await ((DotNetObjectReference<InteropCallbacks>)args[0]!).Value.OnChordCaptured(new StemStudio.Web.Practice.KeyChordData("j", Shift: false));
+
+        args[1]!.ToString()!.ShouldContain("10000");
+        captured.ShouldBe(new StemStudio.Web.Practice.KeyChordData("j", Shift: false));
+    }
+
+    private sealed class NoRegistration : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
     [Theory]
     [InlineData("completed", true)]
     [InlineData("dismissed", false)]

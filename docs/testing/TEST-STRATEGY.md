@@ -67,6 +67,14 @@ round; their strategies are separate addenda: [022-library-folders.md](022-libra
 UI test ids **1.23.0**, lyric scripts by sheet title, the guardrail matrix, the agent
 placeholders `{{context.lyricsId}}` and `{{result.list_lyric_suggestions.ids:<category>}}`).
 
+Features 014 (practice flow: sections, keys and pedals, score follow, setlists, practice log) and
+015 (play-along recording) are built in one round; their additions are marked **(014)** /
+**(015)** and collected in sections 20 and 21. Binding contracts: `specs/014-practice-flow/contracts/`
+(backend **1.13.0**, worker **1.8.0**, engine **2.4.0**, web-interop **1.1.0**, UI test ids
+**1.13.0**) and `specs/015-play-along-recording/contracts/` (backend **1.14.0**, engine **2.5.0**,
+UI test ids **1.14.0**, render vectors **1.1.0**), each a superset of the previous; 015 changes
+no worker contract.
+
 ## 1. Test pyramid
 
 ```text
@@ -1865,3 +1873,159 @@ lint with the SIG limits, `playwright --list`: 132 tests in 6 files for chromium
 the a11y project). Executed by qa: the fixture generators and their 107 tests, and the stack-free
 `library-care-archive.spec.ts` (7 passed). Restores and "Undo restore" wait until no job is active
 (`waitForNoActiveWork`): every import starts an automatic detail phase (feature 002).
+
+## 20. (014) Practice flow: sections, keys and pedals, score follow, setlists, practice log
+
+Binding: `specs/014-practice-flow/` (spec US1-US6, FR-001..FR-033, SC-001..SC-009), backend API
+**1.13.0** (tags `sections`, `scores` (score view), `setlists`, `practice`), worker API **1.8.0**
+(structure analysis, score view, setlist PDF), engine **2.4.0** (score follower, `OnLoopPass`),
+web-interop **1.1.0** (key map, pedal presets, preferences v2), UI test ids **1.13.0** (and the
+moved 012 keys `r` -> `0`, `c` -> `Shift+K`), ADR-023. Principle: every instrument family counts
+equally (SC-002: one structured song per family plays the solo).
+
+### 20.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Worker (pytest, beat-analysis, stem-separation) | structure features, novelty and boundaries, clusters and labels (data-model 2.3 rules), SC-002 boundary precision/recall on the structured fixtures, score view (bar boxes), setlist PDF (text layer: order, notes, sections, lyrics, Latin-script glyphs, SC-008 time) | `tests/fixtures/practice-flow/` (T018); the fake structure analyser (`STEMSTUDIO_STRUCTURE_ANALYZER=fake`) for the API and E2E |
+| Engine (Vitest, audio-engine) | score follower (bar at the heard position at 50/75/100/120 %, loop wrap, manual scroll pause), `OnLoopPass` once per heard wrap, SC-004 per-frame budget (mock clock) | mocked `AudioContext`, fake bar boxes |
+| Backend (xUnit) | sections CRUD and re-detect, setlists, practice log (fake clock: SC-007 <= 2 s per 10 min, crash loss <= 30 s), `LoopRegion.sectionId`, the sync hooks (track delete, 022/013 notes), contract tests | SQLite, `FakeTimeProvider`, stub worker handler |
+| Frontend (bUnit) + web-interop (Vitest) | section lane, section editor, key map and pedal presets (conflicts, reset, single-key off, text fields type), score panel, setlist pages and bar, practice log panel, levels, help markers, WCAG 2.2 AA (accessible name contains the visible text, target size, focus not under the fixed bars) | fake `IStemStudioApiClient`, fake `IAudioEngine`, jsdom key events |
+| E2E (qa) | the six specs of 20.3 on the fake stack; axe-core on the new pages (`a11y/practice.a11y.spec.ts`, `a11y/screens.a11y.spec.ts`) and a keyboard-only walk of each new page; visual baselines (T103) | fake stack, fake analyser, `tests/fixtures/practice-flow/` |
+
+### 20.2 Fixtures and fakes
+
+- **Synthetic structured songs** (014 T018, `tests/fixtures/practice-flow/`): 60-90 s songs with a
+  known form (intro, verse, chorus, bridge, solo, outro) and a reliable grid, one song per family
+  playing the solo (vocals, guitar, bass, piano, drums, other; SC-002), in the separated-stem
+  layout of the fake stack, with a manifest of the expected boundaries, kinds and bar times. The
+  fixture tests check the manifest against the audio (bars on the grid, the solo stem loudest in
+  its section).
+- **Fake structure analyser** for E2E: returns the manifest's sections for a fixture track and an
+  unreliable-grid note for the `reliable: false` fixture, so E2E asserts the UI and not the
+  analysis quality (which the worker tests measure, SC-002).
+- **Score views**: the real view of the fake transcriber's MusicXML (one per family), so the bar
+  boxes are real; E2E reads the highlighted bar at known positions (SC-003).
+- **PDF assertions**: the downloaded setlist PDF is checked for its text layer in order (songs,
+  notes, sections, lyrics) and its generation time (SC-008); glyph coverage is a worker test.
+
+### 20.3 (014) user story -> tests
+
+| Story | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1 sections, one-click loop (FR-001..FR-008, SC-001, SC-002, SC-005) | worker structure tests, Api `Sections`, bUnit section lane | `sections.spec.ts` (appear <= 30 s after import, click loops, `N` / `Shift+N` / `Backspace`, an older track detects on mixer open, unreliable-grid note) |
+| US2 keys and foot pedals (FR-009..FR-013, FR-020, SC-006) | web-interop shortcuts / key map / pedal tests, bUnit shortcut settings, `KeyMapDefaultsTests` | `shortcuts-pedals.spec.ts` (every FR-020 command by keyboard, text fields type, sliders keep arrows, remap + conflict + reset, PageDown/PageUp pedal mode with a focused mute button, single-key off, axe on the settings page); `practice-levels.spec.ts` uses the moved 012 keys |
+| US3 edit sections (FR-014..FR-018) | Domain/Api section rules, bUnit section editor | `sections-edit.spec.ts` (split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation) |
+| US4 score follows playback (FR-025, FR-033, SC-003, SC-004) | engine score follower, worker score view, bUnit score panel | `score-follow.spec.ts` (one score per family, bar at known times, loop wrap, 50 % / 120 %, range score, manual scroll pause; Chromium trace for SC-004) |
+| US5 setlists (FR-019..FR-024, SC-008) | Api `Setlists`, worker PDF, bUnit setlist pages and bar | `setlists.spec.ts` (create with 3 songs, reorder by keyboard, next/previous by button, `Ctrl/Cmd+Right` and pedal preset, PDF text check, track delete note, axe on both pages) |
+| US6 practice log (FR-026..FR-029, SC-007, SC-009) | Api `Practice` (fake clock), bUnit practice log panel | `practice-log.spec.ts` (totals with pauses, trainer passes -> tempo reached, switched off -> 409 and nothing recorded, delete -> zeros, request log) |
+
+**Request-log check (SC-009; also 015 SC-007).** The spec records every request of the page
+(`page.on('request')`) for the whole run and asserts that each URL's origin is the web or the API
+origin of `support/env.ts`; any other host fails the test with the list of offending URLs.
+
+**Accessibility (SC-006).** axe-core (`wcag2a`, `wcag2aa`, `wcag21aa`, `wcag22aa`) on the mixer with
+the section lane, the score panel, the setlist pages, the practice log panel and the shortcut
+settings: no serious or critical violation. A keyboard-only walk (Tab/Shift+Tab, arrow keys in
+the WAI-ARIA widgets) reaches every command with a visible focus that is never under the fixed
+bars. The NVDA browse-mode check is manual (CTO).
+
+### 20.4 Commands
+
+```bash
+# fake stack with the fake analyser; then the 014 specs (or simply npm test)
+STEMSTUDIO_SEPARATOR=fake STEMSTUDIO_STRUCTURE_ANALYZER=fake docker compose up -d --build --wait
+(cd e2e && npm run test:practice-flow && npm run test:a11y)
+```
+
+## 21. (015) Play-along recording
+
+Binding: `specs/015-play-along-recording/` (spec US1-US7, FR-001..FR-021, SC-001..SC-009,
+quickstart), backend API **1.14.0** (tag `recording`, `MixSettings.take`, export `takeId`), engine
+**2.5.0** ("Play-along recording"), UI test ids **1.14.0** (`rec-*`, `cal-*`, `takes-*`, `take-*`,
+the `take` strip, rule R10), render vectors **1.1.0** (take cases), ADR-024. Principle: every
+instrument family counts equally (SC-008: one E2E case per family, each with its own input).
+
+### 21.1 What is tested where
+
+| Level | What | Fakes / inputs |
+|---|---|---|
+| Engine (Vitest, audio-engine) | `encodeWav24`, `mapCaptureToTakes` (loop passes, count-in gaps, partial passes, `L + P`), `estimateLatency` vectors (research R-04), compare gate, input and monitoring, capture worklet and receiver, recorder state machine, take channel, render-vectors 1.1.0 parity | mocked `AudioContext`, fake `AudioWorkletNode` port, fake `getUserMedia` / `enumerateDevices` / `permissions.query` |
+| Backend (xUnit) | `TakeWavReader` (hostile WAV headers, oversize, odd sizes), padding and latency conversion, take rules and naming, persistence, endpoints and every problem code, take asset finisher, calibrations, mix take channel, take export planner, replace-audio, 013/022 integration | stub worker handler, SQLite, temp data dir, `FakeTimeProvider` |
+| Worker (pytest, stem-separation) | padded 24-bit WAV -> FLAC 24 bit-exact (`test_take_conversion.py`) | generated WAVs |
+| Frontend (bUnit) | recording interop (every 2.5.0 method and callback), preferences, panel, permission gate, input selector, calibration dialog, take uploader (`IJSStreamReference` streaming, 1 s polling), take strip, compare, takes panel and rows, export presets, timing adjustment, levels (R10), help markers, WCAG 2.2 AA | fake `IRecordingEngine`, fake API client, bUnit JS-interop mock |
+| Fixtures (pytest, qa) | `tests/fixtures/recording/` (21.2): rate, channels, length, families, click onsets, hash list | worker environment |
+| E2E (qa) | the specs of 21.4 in the Playwright project `recording` | fake capture device, digital loopback, fake stack |
+
+### 21.2 Fixtures (`tests/fixtures/recording/`, qa T009)
+
+Generated by `tests/fixtures/recording/generate_recording_fixtures.py` (run from `tests/fixtures`:
+`uv run --project ../../worker python -m recording.generate_recording_fixtures`). The WAV files
+are git-ignored; `recording/manifest.json` (facts and the SHA-256 of every file) is committed. All
+files are 44.1 kHz PCM16, 20 s, peak -3.1 dBFS, synthesised (no real person, CC0 1.0).
+
+| File | Family | Channels | Content |
+|---|---|---|---|
+| `input-vocals.wav` | vocals | 1 | sung vowels (formant synthesiser `sung_voice.py`) |
+| `input-guitar.wav` | guitar | 1 | plucked strings (Karplus-Strong), 196-392 Hz, every 0.5 s |
+| `input-bass.wav` | bass | 1 | low plucks, 41-82 Hz, every 0.5 s |
+| `input-piano.wav` | piano | 2 | chord pad, the voices spread left and right |
+| `input-drums.wav` | drums | 2 | kick, snare and hat at 120 BPM, hat panned right |
+| `input-other.wav` | other | 1 | bowed tone at 330 Hz with vibrato |
+| `click-track.wav` | - (track) | 2 | sample-exact clicks every 0.5 s from 0.5 s (`clickTimesSeconds`); imported as the track of the loopback test (the fake separator copies it into every stem) |
+| `silent.wav` | - | 1 | digital silence (`silent-take` refusal) |
+
+`tests/fixtures/tests/test_recording_fixtures.py` checks the format of every file, one input per
+family, the peaks, the click onsets (the first sample of each click is its peak), that the stereo
+inputs differ between channels, that every input sounds in each second of the take window, the
+hash list, and that a rerun is byte-identical and equals the committed manifest.
+
+### 21.3 Fake capture, loopback, browser channel, network assertion (binding for the E2E specs)
+
+- **Fake capture device.** The project `recording` runs the **full Chromium build**
+  (`channel: 'chromium'`; the headless shell has no audio capture) with
+  `--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<fixture>` and grants
+  `microphone` per context (`support/fake-microphone.ts`). The fixture is a launch argument, so
+  each family case launches its own browser (`support/recording.ts`); the device loops the file.
+  A context without the permission shows `rec-unavailable` `data-reason="denied"` after
+  `rec-allow-mic`.
+- **Digital loopback** (`recording-loopback.spec.ts`). The e2e compose override sets
+  `StemStudio__Recording__TestLoopback=true` for the web service, which creates the engine with
+  `testInput: 'loopback'` (the engine's output feeds its input, research R-13). Calibration must
+  succeed within 10 s (SC-003); a take recorded over the `click-track.wav` track is downloaded
+  through the asset endpoint and cross-correlated with the stem in the test: offset <= 2 samples
+  (SC-001). Without the override the spec skips with that reason.
+- **Secure context.** Recording needs `http://localhost` / `127.0.0.1`; the specs use the base URL
+  of `support/env.ts`. A LAN origin (`support/lan-origin.ts`) shows `data-reason="insecure"`.
+- **Network assertion (SC-007).** Every recording spec records `page.on('request')` and asserts at
+  the end that every request went to the web or the API origin (20.3).
+- **Waiting.** Uploads are waited on by take id (`rec-take-row-<takeId>` and its `data-status`),
+  never on a panel text alone (LESSONS qa).
+- **Firefox.** Only the unsupported and permission states are smoke-tested (T085); recording
+  itself is Chromium/Edge (research R-01).
+
+### 21.4 (015) user story -> tests
+
+| Story | Unit / component (owners) | E2E (qa) |
+|---|---|---|
+| US1 record and hear back (FR-001..FR-006, FR-009, FR-011, FR-012, FR-017, SC-007, SC-008) | engine input/capture/recorder/take channel, Api create/list/finisher, bUnit panel, permission gate, input selector, uploader, take strip | `recording.spec.ts` (one case per family: 10 s take, `local` -> `ready`, strip meter moves, 24-bit FLAC; speed 80 % disables Record and "Set to 100 %" re-enables it; monitoring warning; denied permission; network assertion) |
+| US2 calibrate latency (FR-007, SC-001..SC-003) | engine `estimateLatency` and `calibrateLatency`, Api calibrations, bUnit calibration dialog | `recording-loopback.spec.ts` (calibration <= 10 s, take offset <= 2 samples, manual entry labels the next take "manual") |
+| US3 loop takes (FR-010, FR-014) | engine mapping and loop recording, Api batch delete, bUnit sessions and keep-starred | `recording-loop.spec.ts` (loop 4-8 s, three passes + partial -> four takes in one session; star one, delete the others) |
+| US4 compare (FR-012, FR-013, FR-021) | engine `setTakeCompare`, Api mix take channel, bUnit compare | `recording-compare.spec.ts` (bass take: "My take" silences `meter-bass`, "Original" the reverse; a saved mix restores the strip) |
+| US5 manage takes (FR-014, FR-018) | Api update/delete/cascade, bUnit takes panel and rows | `recording-manage.spec.ts` (rename, star, delete -> asset 404, track delete removes its takes) |
+| US6 export (FR-015) | Domain take export planner, render vectors 1.1.0, bUnit export presets | `recording-export.spec.ts` (take only as WAV 24-bit: length and samples; take + mix MP3 in the Library with contents "Take n") |
+| US7 timing adjustment (FR-016) | engine `setTakeAdjustment`, Api replace-audio, bUnit adjust | `recording-adjust.spec.ts` (Expert: -10.0 ms -> `startSample` 441 lower, revision 1) |
+| FR-019..FR-021 help, levels, a11y (SC-009) | bUnit levels, help markers, help-content tests | `a11y/recording.a11y.spec.ts` (axe on the panel, calibration dialog, takes panel and strip in both themes; keyboard-only record/compare/delete; live region; reduced motion), `visual/recording.spec.ts` (panel at 320 px and desktop, both themes), `tests/recording-firefox.spec.ts` (Firefox smoke, project `firefox`) |
+
+SC-002, SC-004, SC-005 and one real input per family need real hardware: CTO owner checks on the
+reference machine (T089), recorded in `docs/STATUS.md`.
+
+### 21.5 Commands
+
+```bash
+# fixtures and their tests
+cd tests/fixtures && uv run --project ../../worker python -m recording.generate_recording_fixtures
+uv run --project ../../worker pytest tests/test_recording_fixtures.py --cov=recording --cov-branch
+# fake stack with the e2e override (TestLoopback), then the recording project
+(cd e2e && npx playwright install chromium && npm run test:recording)
+```

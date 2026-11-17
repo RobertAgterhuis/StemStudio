@@ -138,6 +138,30 @@ public sealed partial class AudioEngineInteropTests : IAsyncDisposable
         interop.IsInitialized.ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Initialize_PassesTheEngineOptionsOnlyWhenASourceGivesThem(bool withOptions)
+    {
+#pragma warning disable CA2012 // NSubstitute stubs ValueTask-returning members; nothing is consumed twice.
+        var js = Substitute.For<IJSRuntime>();
+        var module = Substitute.For<IJSObjectReference>();
+        var engine = Substitute.For<IJSObjectReference>();
+        js.InvokeAsync<IJSObjectReference>("import", Arg.Any<object?[]?>()).Returns(ValueTask.FromResult(module));
+        module.InvokeAsync<IJSObjectReference>("createEngine", Arg.Any<object?[]?>()).Returns(ValueTask.FromResult(engine));
+#pragma warning restore CA2012
+        var options = new { recording = new { testLoopback = true } };
+        var source = Substitute.For<IEngineOptionsSource>();
+        source.Options.Returns(withOptions ? options : null);
+        await using var interop = new AudioEngineInterop(js, Options.Create(new StemStudioWebOptions()), source);
+
+        await interop.InitializeAsync();
+
+        var arguments = (object?[])module.ReceivedCalls().Single().GetArguments()[1]!;
+        arguments.Length.ShouldBe(withOptions ? 2 : 1);
+        (withOptions ? arguments[1] : options).ShouldBe(options);
+    }
+
     [Fact]
     public async Task Callbacks_RaiseEvents()
     {

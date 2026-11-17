@@ -5,7 +5,7 @@ using StemStudio.Domain.Tests.Tracks;
 
 namespace StemStudio.Domain.Tests.Rendering;
 
-/// <summary>Feature 007 T027: the render planner against the shared <c>render-vectors.json</c> 1.0.0 (FR-002, FR-003, SC-003).</summary>
+/// <summary>Feature 007 T027 and 015 T071: the render planner against the shared <c>render-vectors.json</c> 1.1.0 (007's 12 cases + 8 take cases).</summary>
 public sealed class RenderPlannerTests
 {
     private static readonly Lazy<JsonElement> Vectors = new(() =>
@@ -25,10 +25,10 @@ public sealed class RenderPlannerTests
     }
 
     [Fact]
-    public void Vectors_AreVersion100WithTwelveGateCases()
+    public void Vectors_AreVersion110WithTwentyGateCases()
     {
-        Vectors.Value.GetProperty("version").GetString().ShouldBe("1.0.0");
-        GateCases().Count.ShouldBe(12);
+        Vectors.Value.GetProperty("version").GetString().ShouldBe("1.1.0");
+        GateCases().Count.ShouldBe(20);
     }
 
     [Theory]
@@ -42,6 +42,12 @@ public sealed class RenderPlannerTests
 
         if (expected.TryGetProperty("error", out var error))
         {
+            if (error.GetString() == "take-required")
+            {
+                Should.Throw<TakeRequiredException>(plan).Message.ShouldBe(TakeRequiredException.Text);
+                return;
+            }
+
             error.GetString().ShouldBe("nothing-to-export");
             Should.Throw<NothingToExportException>(plan).Message.ShouldBe(NothingToExportException.Text);
             return;
@@ -51,6 +57,34 @@ public sealed class RenderPlannerTests
         result.MasterGain.ShouldBe(expected.GetProperty("masterGain").GetDouble(), 1e-9);
         result.Contents.ShouldBe(expected.GetProperty("contents").GetString());
         result.Inputs.Select(Describe).ShouldBe(expected.GetProperty("inputs").EnumerateArray().Select(Describe));
+        result.SourceAssetIds.ShouldBe(expected.TryGetProperty("sourceAssetIds", out var ids) ? ids.EnumerateArray().Select(id => Guid.Parse(id.GetString()!)).ToList() : []);
+        if (expected.TryGetProperty("range", out var range))
+        {
+            Source(gate).Take!.RawRange(null).ShouldBe(new ExportRange(range.GetProperty("start").GetDouble(), range.GetProperty("end").GetDouble()));
+        }
+    }
+
+    [Fact]
+    public void RawRange_IntersectsARequestedRange_WithTheTakeSpan()
+    {
+        var take = new RenderTake(Guid.NewGuid(), "Take 1", 44_100, 88_200);
+
+        take.RawRange(new ExportRange(0, 1.5)).ShouldBe(new ExportRange(1, 1.5));
+        take.RawRange(new ExportRange(2.5, 9)).ShouldBe(new ExportRange(2.5, 3));
+        take.RawRange(new ExportRange(5, 9)).ShouldBeNull();
+        take.Path.ShouldBe($"assets/{take.AssetId:D}/audio.flac");
+    }
+
+    [Fact]
+    public void ExplicitTakeTwice_IsAValidationError_AndRawTakeWithoutATakeIsTakeRequired()
+    {
+        var source = SixStem() with { Take = new RenderTake(Guid.NewGuid(), "Take 1", 0, 44_100) };
+
+        Should.Throw<DomainValidationException>(() => RenderPlanner.Plan(source, ExportMode.Raw, ["take", "take"], null)).Errors.Single().Field.ShouldBe("channels[1]");
+        Should.Throw<TakeRequiredException>(() => RenderPlanner.Plan(SixStem(), ExportMode.Raw, ["take"], null));
+        Should.Throw<TakeRequiredException>(() => RenderPlanner.Plan(source, ExportMode.Mix, ["take"], new ExportMix(1, [])));
+        new TakeRequiredException("x", new InvalidOperationException()).Message.ShouldBe("x");
+        new TakeRequiredException("y").Message.ShouldBe("y");
     }
 
     [Fact]
@@ -148,7 +182,14 @@ public sealed class RenderPlannerTests
         var track = gate.GetProperty("track");
         var split = track.GetProperty("split").EnumerateObject()
             .ToDictionary(parent => parent.Name, parent => (IReadOnlyList<string>)parent.Value.EnumerateArray().Select(n => n.GetString()!).ToList());
-        return new RenderSource(Guid.Parse(gate.GetProperty("trackId").GetString()!), Strings(track.GetProperty("stems")), split);
+        var source = new RenderSource(Guid.Parse(gate.GetProperty("trackId").GetString()!), Strings(track.GetProperty("stems")), split);
+        return gate.TryGetProperty("take", out var take) && take.ValueKind == JsonValueKind.Object
+            ? source with
+            {
+                Take = new RenderTake(
+                    Guid.Parse(take.GetProperty("assetId").GetString()!), take.GetProperty("name").GetString()!, take.GetProperty("startSample").GetInt64(), take.GetProperty("lengthSamples").GetInt64()),
+            }
+            : source;
     }
 
     private static ExportMode Mode(JsonElement gate) => gate.GetProperty("mode").GetString() == "raw" ? ExportMode.Raw : ExportMode.Mix;
@@ -163,6 +204,9 @@ public sealed class RenderPlannerTests
         Expanded = Strings(mix.GetProperty("expanded")),
         DetailChannels = mix.GetProperty("detailChannels").EnumerateArray()
             .Select(c => Fader(new DetailChannelSettings { Parent = c.GetProperty("parent").GetString()!, Stem = c.GetProperty("stem").GetString()! }, c)).ToList(),
+        Take = mix.TryGetProperty("take", out var take) && take.ValueKind == JsonValueKind.Object
+            ? Fader(new TakeChannelSettings { TakeId = Guid.Parse(take.GetProperty("takeId").GetString()!) }, take)
+            : null,
     };
 
     private static T Fader<T>(T settings, JsonElement json)

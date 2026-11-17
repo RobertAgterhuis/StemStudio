@@ -33,6 +33,9 @@ public sealed record MixSettings
     /// <summary>Practice tempo (feature 012); the neutral defaults unless set.</summary>
     public PracticeSettings Practice { get; init; } = PracticeSettings.Default;
 
+    /// <summary>The take channel (feature 015), or null; the caller drops a take that is not one of the track's.</summary>
+    public TakeChannelSettings? Take { get; init; }
+
     /// <summary>Checks every rule against the track the mix belongs to.</summary>
     /// <param name="track">The mix's track (must be completed).</param>
     /// <returns>Violations with JSON-style paths (e.g. <c>metronome.bpmOverride</c>); empty when valid.</returns>
@@ -49,6 +52,7 @@ public sealed record MixSettings
         Loop?.Validate(errors.Nested("loop"), track.DurationSeconds ?? 0);
         MixDetailRules.Validate(errors, this, track);
         Practice.Validate(errors.Nested("practice"));
+        Take?.Validate(errors.Nested("take"));
         return errors.Errors;
     }
 

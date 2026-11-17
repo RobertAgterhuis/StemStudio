@@ -1,0 +1,36 @@
+@* Microphone permission and device states (FR-003; ui-test-ids 1.14.0 rec-allow-mic, rec-unavailable, rec-retry-permission).
+   The browser prompt appears only after "Allow microphone"; every refused state names the next step. *@
+
+@if (Setup.Unavailable is { } unavailable)
+{
+    <div class="ss-notice" role="alert" data-testid="rec-unavailable" data-reason="@unavailable.Reason" data-help-id="recording-permissions">
+        <p>@unavailable.Message</p>
+        @if (CanRetry(unavailable))
+        {
+            <RadzenButton Text="Try again" Icon="refresh" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="OnRetry"
+                          data-testid="rec-retry-permission" />
+        }
+    </div>
+}
+else if (Setup.NeedsPermission)
+{
+    <RadzenButton Text="Allow microphone" Icon="mic" Click="OnAllow" Disabled="Setup.Opening" data-testid="rec-allow-mic"
+                  data-help-id="recording-permissions" />
+}
+
+@code {
+    /// <summary>The input state.</summary>
+    [Parameter, EditorRequired]
+    public InputSetup Setup { get; set; } = default!;
+
+    /// <summary>"Allow microphone" pressed.</summary>
+    [Parameter]
+    public EventCallback OnAllow { get; set; }
+
+    /// <summary>"Try again" pressed.</summary>
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    // An insecure origin or an unsupported browser cannot be fixed by trying again in this page.
+    private static bool CanRetry(RecordingUnavailable unavailable) => unavailable.Reason is not ("insecure" or "unsupported");
+}

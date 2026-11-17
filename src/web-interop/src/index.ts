@@ -1,6 +1,6 @@
 /**
  * StemStudio web-interop entry point (ES module loaded by Blazor via JS interop), contract
- * web-interop.md 1.2.0. The functions live in the topic modules
+ * web-interop.md 1.1.0 (= 1.0.0 + 022's 1.2.0 + 014's key map as data). The functions live in the topic modules
  * (preferences, theme, shortcuts, tour, focus; feature 010: recorder) and are re-exported here.
  *
  * @packageDocumentation
@@ -12,7 +12,9 @@ import type { WebInteropContractVersion } from './types';
 export type * from './types';
 export { readPreferences, writePreferences, watchPreferences } from './preferences';
 export { applyAppearance, watchSystemAppearance } from './theme';
-export { registerShortcuts } from './shortcuts';
+export { registerShortcuts, updateShortcuts } from './shortcuts';
+export { defaultKeyMap, isReservedChord } from './catalogue';
+export { captureChord } from './capture';
 export { startTour } from './tour';
 export { captureFocus, focusedHelpId } from './focus';
 export { startMeterReadouts } from './meters';
@@ -21,7 +23,7 @@ export { recorderUnavailableReason, startRecording, fileUrl, revokeUrl } from '.
 export type { RecordingSession } from './recorder';
 
 /** Version of the web-interop contract implemented by this module. */
-export const WEB_INTEROP_CONTRACT_VERSION: WebInteropContractVersion = '1.2.0';
+export const WEB_INTEROP_CONTRACT_VERSION: WebInteropContractVersion = '1.1.0';
 
 
 // Expert dB readouts follow the engine's meter attributes for the life of the page (no .NET round trip).

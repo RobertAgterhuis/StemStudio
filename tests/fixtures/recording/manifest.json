@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "sampleRate": 44100,
+  "licence": "CC0-1.0",
+  "provenance": "synthesised by tests/fixtures/recording/generate_recording_fixtures.py",
+  "fixtures": {
+    "input-vocals.wav": {
+      "family": "vocals",
+      "role": "input",
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "28e11050088f2e9c640a833ad2371cc407d21b2bbd06180c9480d8579848b8a2"
+    },
+    "input-guitar.wav": {
+      "family": "guitar",
+      "role": "input",
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "4823937e2fb2b05bf8e75cdac037215c195fa4432d534167d3069417a457af3e"
+    },
+    "input-bass.wav": {
+      "family": "bass",
+      "role": "input",
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "9bb11d2caf06a0f53839fc90db7d3c1836e08d5fcd3860b9d26f33e726ba9308"
+    },
+    "input-piano.wav": {
+      "family": "piano",
+      "role": "input",
+      "channels": 2,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "1bb9067d2335f355e10b3614a9fa18f6b2bcd32bb140928d7d663e5a5bb447c1"
+    },
+    "input-drums.wav": {
+      "family": "drums",
+      "role": "input",
+      "channels": 2,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "eade208932e84f0cd9b2f43f98101cd8d6d22983c814302693a176b5c35ccc90"
+    },
+    "input-other.wav": {
+      "family": "other",
+      "role": "input",
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "ad18d2e445b43752b72b89927b96934a67c953761a416dd327b257605b0fa29a"
+    },
+    "click-track.wav": {
+      "family": null,
+      "role": "track",
+      "channels": 2,
+      "durationSeconds": 20.0,
+      "peakDbfs": -3.1,
+      "sha256": "4a9523e6ba5f8e91cbbd123d2be5168022cc0eef7d43fda364fda305f389e5ab",
+      "clickTimesSeconds": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0,
+        5.5,
+        6.0,
+        6.5,
+        7.0,
+        7.5,
+        8.0,
+        8.5,
+        9.0,
+        9.5,
+        10.0,
+        10.5,
+        11.0,
+        11.5,
+        12.0,
+        12.5,
+        13.0,
+        13.5,
+        14.0,
+        14.5,
+        15.0,
+        15.5,
+        16.0,
+        16.5,
+        17.0,
+        17.5,
+        18.0,
+        18.5,
+        19.0,
+        19.5
+      ]
+    },
+    "silent.wav": {
+      "family": null,
+      "role": "silence",
+      "channels": 1,
+      "durationSeconds": 20.0,
+      "peakDbfs": null,
+      "sha256": "a69b653e1f690753513f7708e55534cdb92aa4e9edda91948d071204e985594d"
+    }
+  }
+}

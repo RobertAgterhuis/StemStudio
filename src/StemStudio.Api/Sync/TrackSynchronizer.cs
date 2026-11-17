@@ -10,9 +10,10 @@ namespace StemStudio.Api.Sync;
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Applies job states to tracks.</param>
 /// <param name="filer">Re-files the track's items when its state changed (feature 022).</param>
+/// <param name="hooks">Hooks run after a separation completed (feature 014 section detection).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class TrackSynchronizer(
-    ITrackRepository tracks, IWorkerClient worker, TrackJobApplier applier, ILibraryFiler filer, ILogger<TrackSynchronizer> logger) : ITrackSynchronizer
+    ITrackRepository tracks, IWorkerClient worker, TrackJobApplier applier, ILibraryFiler filer, IEnumerable<ITrackCompletionHook> hooks, ILogger<TrackSynchronizer> logger) : ITrackSynchronizer
 {
     /// <inheritdoc />
     public async Task SyncAllAsync(CancellationToken cancellationToken)
@@ -34,6 +35,27 @@ public sealed partial class TrackSynchronizer(
         await RefileWhenChangedAsync(track, before, cancellationToken);
         await tracks.SaveAsync(cancellationToken);
         LogTransition(track, before);
+        await RunCompletionHooksAsync(track, before, cancellationToken);
+    }
+
+    private async Task RunCompletionHooksAsync(Track track, TrackStatus before, CancellationToken cancellationToken)
+    {
+        if (track.Status != TrackStatus.Completed || before == TrackStatus.Completed)
+        {
+            return;
+        }
+
+        foreach (var hook in hooks)
+        {
+            try
+            {
+                await hook.OnCompletedAsync(track, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                LogHookFailed(logger, track.Id, exception);
+            }
+        }
     }
 
     private async Task RefileWhenChangedAsync(Track track, TrackStatus before, CancellationToken cancellationToken)
@@ -70,6 +92,9 @@ public sealed partial class TrackSynchronizer(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Track {TrackId}: processing service unreachable, retrying on the next tick")]
     private static partial void LogWorkerUnavailable(ILogger logger, Guid trackId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Track {TrackId}: a completion hook failed; the track stays completed")]
+    private static partial void LogHookFailed(ILogger logger, Guid trackId, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Track {TrackId}: synchronisation failed unexpectedly")]
     private static partial void LogTrackSyncFailed(ILogger logger, Guid trackId, Exception exception);

@@ -1,0 +1,80 @@
+@* Latency calibration (FR-007, US2; ui-test-ids 1.14.0 cal-*): instructions, the click test with its running state, the
+   result (ms, clicks, spread; samples at Expert) or the failure reason with a tip, and manual entry from Advanced. A
+   successful measurement is stored for the input at once. Escape and Close end it. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="cal-title" aria-describedby="cal-instructions-text" @onkeydown="OnKeyAsync"
+         data-testid="cal-dialog" data-help-id="recording-latency">
+        <h2 id="cal-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Calibrate latency</h2>
+        <div id="cal-instructions-text" data-testid="cal-instructions">
+            <p>StemStudio plays a few clicks and listens for them on <strong>@Run.DeviceLabel</strong>.</p>
+            <p>Best: connect an output of your interface to this input with a cable. Without a cable, hold a headphone cup against the microphone. Keep the room quiet.</p>
+        </div>
+        @if (Run.Running)
+        {
+            <p role="status" aria-busy="true" data-testid="cal-running">Listening for the clicks...</p>
+        }
+        else if (Run.Result is { } result)
+        {
+            <div role="status" data-testid="cal-result" data-ok="@(result.Ok ? "true" : "false")">
+                @if (result.Ok)
+                {
+                    <p>
+                        Latency: <span data-testid="cal-result-ms">@CalibrationRun.Ms(result.LatencySamples)</span>
+                        <LevelGate Feature="recording.latency-samples"><span class="ss-muted" data-testid="cal-result-samples">(@result.LatencySamples samples)</span></LevelGate>
+                    </p>
+                    <p><span data-testid="cal-result-clicks">@result.DetectedClicks clicks found</span>, <span data-testid="cal-result-spread">spread @CalibrationRun.Ms(result.SpreadSamples)</span></p>
+                    @if (Run.Saved)
+                    {
+                        <p class="ss-help">Saved for @Run.DeviceLabel.</p>
+                    }
+                }
+                else
+                {
+                    <p data-testid="cal-reason" data-reason="@result.Reason">@CalibrationRun.Tip(result.Reason)</p>
+                }
+                @if (result.Warnings.Contains("clipped"))
+                {
+                    <p class="ss-help">The clicks were clipped: turn the input gain down a little.</p>
+                }
+            </div>
+        }
+        @if (Run.Error is { } error)
+        {
+            <p class="ss-notice" role="alert">@error</p>
+        }
+        <LevelGate Feature="recording.manual-latency">
+            @if (_manual)
+            {
+                <div class="ss-practice-row">
+                    <label for="cal-manual-ms">Latency in ms</label>
+                    <input id="cal-manual-ms" type="number" class="rz-textbox ss-number" min="0" max="1000" step="0.1" value="@ManualText"
+                           @onchange="ManualChanged" data-testid="cal-manual-ms" />
+                    <input type="range" class="ss-pan" min="0" max="1000" step="0.1" value="@ManualText" aria-label="Latency in ms"
+                           aria-valuenow="@ManualText" @oninput="ManualChanged" data-testid="cal-manual-slider" />
+                    <RadzenButton Text="Save" Size="ButtonSize.Small" Click="SaveManualAsync" data-testid="cal-save" />
+                </div>
+            }
+            else
+            {
+                <RadzenButton Text="Enter manually" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="ShowManual" data-testid="cal-manual" />
+            }
+        </LevelGate>
+        <div class="ss-dialog-actions">
+            @if (Run.Stored is not null)
+            {
+                <RadzenButton Text="Forget this calibration" ButtonStyle="ButtonStyle.Light" Disabled="Run.Running" Click="DeleteAsync" data-testid="cal-delete" />
+            }
+            <RadzenButton Text="Close" ButtonStyle="ButtonStyle.Light" Click="OnClose" data-testid="cal-cancel" />
+            @if (Run.Result is { Ok: false })
+            {
+                <RadzenButton Text="Try again" Click="StartAsync" Disabled="Run.Running" data-testid="cal-try-again" />
+            }
+            else
+            {
+                <RadzenButton Text="Start" Click="StartAsync" Disabled="Run.Running" data-testid="cal-start" />
+            }
+        </div>
+    </div>
+</div>

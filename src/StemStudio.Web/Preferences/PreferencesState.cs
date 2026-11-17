@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Preferences;
 
@@ -104,6 +105,11 @@ public sealed class PreferencesState(IPreferencesStore store, IWebInterop intero
     /// <summary>Shows the welcome panel, tours and hints again.</summary>
     /// <returns>A task that completes when applied.</returns>
     public Task ResetHelpAsync() => UpdateAsync(p => p with { Help = HelpProgress.Empty });
+
+    /// <summary>Replaces the shortcut preferences (014: settings page, Preferences switch, pedal setup).</summary>
+    /// <param name="shortcuts">The new shortcut preferences.</param>
+    /// <returns>A task that completes when applied.</returns>
+    public Task SetShortcutsAsync(ShortcutPreferences shortcuts) => UpdateAsync(p => p with { Shortcuts = shortcuts });
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

@@ -3,12 +3,15 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using StemStudio.Web.Experience;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Preferences;
 
 /// <summary>
-/// Maps <see cref="UserPreferences"/> to and from the stored record (data-model.md 1.1, schema version 1).
-/// Reading validates field by field: an invalid or missing field takes its default.
+/// Maps <see cref="UserPreferences"/> to and from the stored record (data-model.md 1.1; schema version 2 with
+/// <c>shortcuts</c>, 014 data-model 5.1). Version 1 records are read with default shortcuts; writes are version 2.
+/// Reading validates field by field: an invalid or missing field takes its default; overrides follow
+/// <see cref="KeyMapValidator"/>.
 /// </summary>
 public static class PreferencesJson
 {
@@ -21,12 +24,13 @@ public static class PreferencesJson
     {
         var record = new JsonObject
         {
-            ["schemaVersion"] = 1,
+            ["schemaVersion"] = 2,
             ["level"] = preferences.Level is { } level ? Lower(level) : null,
             ["theme"] = Lower(preferences.Theme),
             ["density"] = Lower(preferences.Density),
             ["motion"] = Lower(preferences.Motion),
             ["help"] = HelpNode(preferences.Help),
+            ["shortcuts"] = ShortcutsNode(preferences.Shortcuts),
         };
         return JsonSerializer.SerializeToElement(record);
     }
@@ -46,7 +50,25 @@ public static class PreferencesJson
             Enum<ThemePreference>(record, "theme") ?? ThemePreference.System,
             Enum<DensityPreference>(record, "density") ?? DensityPreference.Auto,
             Enum<MotionPreference>(record, "motion") ?? MotionPreference.System,
-            Help(Property(record, "help")));
+            Help(Property(record, "help")))
+        {
+            Shortcuts = SchemaVersion(record) == "2" ? Shortcuts(Property(record, "shortcuts")) : ShortcutPreferences.Default,
+        };
+    }
+
+    /// <summary>Reads the <c>shortcuts</c> field; invalid parts take their defaults, invalid overrides are dropped.</summary>
+    /// <param name="shortcuts">The field.</param>
+    /// <returns>The shortcut preferences.</returns>
+    public static ShortcutPreferences Shortcuts(JsonElement? shortcuts)
+    {
+        var catalogue = KeyMapDefaults.Catalogue;
+        var preset = Property(shortcuts ?? default, "pedalPreset") is { ValueKind: JsonValueKind.String } id
+            && catalogue.Pedal.Presets.Any(p => p.Id == id.GetString()) ? id.GetString()! : catalogue.Pedal.DefaultPreset;
+        return new ShortcutPreferences(
+            Property(shortcuts ?? default, "singleKey") is not { ValueKind: JsonValueKind.False },
+            Property(shortcuts ?? default, "pedalMode") is { ValueKind: JsonValueKind.True },
+            preset,
+            KeyMapValidator.Validate(catalogue, Property(shortcuts ?? default, "overrides")).Overrides);
     }
 
     /// <summary>Parses a record received from another tab.</summary>
@@ -60,8 +82,7 @@ public static class PreferencesJson
         {
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
-            var valid = root.ValueKind == JsonValueKind.Object && Property(root, "schemaVersion") is { ValueKind: JsonValueKind.Number } version
-                && version.GetRawText() == "1";
+            var valid = SchemaVersion(root) is "1" or "2";
             preferences = valid ? FromElement(root) : null;
             return valid;
         }
@@ -70,6 +91,17 @@ public static class PreferencesJson
             return false;
         }
     }
+
+    private static string? SchemaVersion(JsonElement record) =>
+        Property(record, "schemaVersion") is { ValueKind: JsonValueKind.Number } version ? version.GetRawText() : null;
+
+    private static JsonObject ShortcutsNode(ShortcutPreferences shortcuts) => new()
+    {
+        ["singleKey"] = shortcuts.SingleKey,
+        ["pedalMode"] = shortcuts.PedalMode,
+        ["pedalPreset"] = shortcuts.PedalPreset,
+        ["overrides"] = ShortcutJson.OverridesNode(shortcuts.Overrides),
+    };
 
     private static string Lower<T>(T value)
         where T : struct, Enum => value.ToString().ToLowerInvariant();
