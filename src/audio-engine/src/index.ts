@@ -9,7 +9,7 @@ import type { AudioEngine, DotNetObjectReference, EngineContractVersion, EngineO
 export type * from './types';
 
 /** Version of the engine contract implemented by this module. */
-export const ENGINE_CONTRACT_VERSION: EngineContractVersion = '2.3.0';
+export const ENGINE_CONTRACT_VERSION: EngineContractVersion = '2.4.0';
 
 /**
  * Creates the engine with its single AudioContext.

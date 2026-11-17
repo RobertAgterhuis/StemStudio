@@ -8,7 +8,7 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '2.3.0';
+export type EngineContractVersion = '2.4.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
@@ -61,8 +61,10 @@ export interface DotNetObjectReference {
  *   reaching the end of the track (state `stopped`, position 0).
  * - `OnPracticeChanged(PracticeStatus status)` (2.3.0): after every applied practice change, stretch
  *   state change, trainer pass start, count-in beat and underrun burst; at most 10 Hz.
+ * - `OnLoopPass(LoopPassInfo pass)` (2.4.0, feature 014): once per completed pass of an enabled loop, when the
+ *   wrap is heard; at most one call per pass.
  */
-export type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPracticeChanged';
+export type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPracticeChanged' | 'OnLoopPass';
 
 /** One stem to load: its name and an absolute or API-relative URL of the FLAC file. */
 export interface StemSource {
@@ -268,6 +270,70 @@ export interface PracticeStatus {
   };
 }
 
+/** One page of a score view (contract 2.4.0); mirrors `ScoreViewPage` of backend-api 1.13.0. */
+export interface ScoreViewPage {
+  /** 1-based page number; the host has a page container with `data-score-page="<page>"`. */
+  readonly page: number;
+  /** API-relative URL of the SVG page (used as `<img src>` by Blazor, never fetched by the engine). */
+  readonly url: string;
+  /** Page width in CSS pixels. */
+  readonly widthPx: number;
+  /** Page height in CSS pixels. */
+  readonly heightPx: number;
+}
+
+/** One bar of a score view (contract 2.4.0): box in page fractions 0..1, times in track seconds; mirrors `ScoreBar`. */
+export interface ScoreViewBar {
+  /** 0-based index in document order. */
+  readonly index: number;
+  /** Printed bar number (0 for a pickup). */
+  readonly number: number;
+  /** Page of the bar (one of `ScoreViewMap.pages`). */
+  readonly page: number;
+  /** Left edge as a fraction of the page width. */
+  readonly x: number;
+  /** Top edge as a fraction of the page height. */
+  readonly y: number;
+  /** Width as a fraction of the page width (> 0). */
+  readonly width: number;
+  /** Height as a fraction of the page height (> 0). */
+  readonly height: number;
+  /** Start in track seconds. */
+  readonly startSeconds: number;
+  /** End in track seconds; equals the next bar's start (within 1 ms). */
+  readonly endSeconds: number;
+}
+
+/** Argument of {@link AudioEngine.attachScoreFollower} (contract 2.4.0): the render subset of the backend `ScoreView`. */
+export interface ScoreViewMap {
+  /** 1..200 pages with unique page numbers. */
+  readonly pages: readonly ScoreViewPage[];
+  /** 1..2000 bars, ascending and contiguous (`bars[i].endSeconds === bars[i + 1].startSeconds` within 1 ms). */
+  readonly bars: readonly ScoreViewBar[];
+}
+
+/** Options of the score follower (contract 2.4.0). */
+export interface ScoreFollowOptions {
+  /** Auto-scroll on or off; the highlight is always drawn. */
+  readonly follow: boolean;
+  /** Jump instead of smooth scrolling; default `matchMedia('(prefers-reduced-motion: reduce)')`. */
+  readonly reducedMotion?: boolean;
+  /** Pause of auto-scroll after a manual scroll (wheel, touch, scroll keys) in ms, 0..60000; default 4000. */
+  readonly scrollPauseMs?: number;
+}
+
+/** Argument of the `.NET` callback `OnLoopPass` (contract 2.4.0). */
+export interface LoopPassInfo {
+  /** Loop start in seconds of the pass that just completed. */
+  readonly start: number;
+  /** Loop end in seconds of the pass that just completed. */
+  readonly end: number;
+  /** 1-based number of completed passes since looping was (re-)enabled, the region changed or a seek. */
+  readonly pass: number;
+  /** Playback speed of that pass in percent (the trainer's speed while it runs; 100 at normal speed). */
+  readonly speedPercent: number;
+}
+
 /** Loading options of the time-stretch stage (contract 2.3.0). */
 export interface TimeStretchOptions {
   /** URL of the AudioWorklet processor module; default `./js/time-stretch-processor.js`. */
@@ -378,6 +444,20 @@ export interface AudioEngine {
   setPractice(settings: PracticeSettings): Promise<void>;
   /** Current practice snapshot (contract 2.3.0). */
   getPracticeStatus(): PracticeStatus;
+  /**
+   * Binds the score follower to the host element `elementId` (contract 2.4.0). The host holds one child per page with
+   * `data-score-page="<n>"` (Blazor renders the `<img>` inside); the engine adds and owns one `.score-highlight` per page
+   * container and draws it on the shared animation frame against the heard position. Replaces an attached follower.
+   * Throws `Error("Score host not found: <id>")` or `Error("Invalid score view: <reason>")` (an attached follower stays).
+   */
+  attachScoreFollower(elementId: string, view: ScoreViewMap, options: ScoreFollowOptions): void;
+  /**
+   * Changes `follow`, `reducedMotion` and `scrollPauseMs`; takes effect on the next frame (contract 2.4.0).
+   * Throws `Error("Invalid score follow options: <reason>")`.
+   */
+  setScoreFollowOptions(options: ScoreFollowOptions): void;
+  /** Removes the highlight elements and host attributes; no-op when none is attached (contract 2.4.0). */
+  detachScoreFollower(): void;
   /** Stops playback, cancels timers/animation frames and closes the AudioContext. */
   dispose(): Promise<void>;
 }
