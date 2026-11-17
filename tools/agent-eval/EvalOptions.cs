@@ -12,7 +12,10 @@ namespace StemStudio.AgentEval;
 /// <param name="Model">Ollama model under test (default the app's primary model).</param>
 internal sealed record EvalOptions(string Backend, int Runs, EvalPaths Paths, string Model)
 {
-    private const string Usage = "Usage: agent-eval --backend ollama|claude|fake --runs 1..10 [--model qwen3.5:9b] [--eval-set eval-set.json] [--presets presets.v1.json] [--out report.md]";
+    /// <summary>Suite: <c>agent</c> (default, the agent loop) or <c>lyric</c> (the lyric assistant, 023 R-09).</summary>
+    public string Suite { get; init; } = "agent";
+
+    private const string Usage = "Usage: agent-eval --backend ollama|claude|fake --runs 1..10 [--model qwen3.5:9b] [--eval-set eval-set.json] [--presets presets.v1.json] [--out report.md] [--suite agent|lyric] [--lyric-set lyric-eval-set.json]";
     private static readonly string[] Backends = ["ollama", "claude", "fake"];
 
     /// <summary>eval-set.json generated from specs/011-ai-composer-agent/evaluation/eval-set.md.</summary>
@@ -23,12 +26,13 @@ internal sealed record EvalOptions(string Backend, int Runs, EvalPaths Paths, st
     {
         var values = Pairs(args);
         var backend = values.GetValueOrDefault("--backend", "ollama");
-        if (!Backends.Contains(backend) || !int.TryParse(values.GetValueOrDefault("--runs", "3"), NumberStyles.None, CultureInfo.InvariantCulture, out var runs) || runs is < 1 or > 10)
+        var suite = values.GetValueOrDefault("--suite", "agent");
+        if (suite is not ("agent" or "lyric") || !Backends.Contains(backend) || !int.TryParse(values.GetValueOrDefault("--runs", "3"), NumberStyles.None, CultureInfo.InvariantCulture, out var runs) || runs is < 1 or > 10)
         {
             return (null, Usage);
         }
 
-        return (new EvalOptions(backend, runs, EvalPaths.From(values), values.GetValueOrDefault("--model", "qwen3.5:9b")), null);
+        return (new EvalOptions(backend, runs, EvalPaths.From(values), values.GetValueOrDefault("--model", "qwen3.5:9b")) { Suite = suite }, null);
     }
 
     private static Dictionary<string, string> Pairs(IReadOnlyList<string> args)
@@ -49,9 +53,15 @@ internal sealed record EvalOptions(string Backend, int Runs, EvalPaths Paths, st
 /// <param name="Report">Markdown report to write.</param>
 internal sealed record EvalPaths(string EvalSet, string Presets, string Report)
 {
+    /// <summary>The lyric evaluation set (JSON, converted from lyric-eval-set.md).</summary>
+    public string LyricSet { get; init; } = "tools/agent-eval/lyric-eval-set.json";
+
     /// <summary>The paths from the arguments, with defaults relative to the repository root.</summary>
     public static EvalPaths From(Dictionary<string, string> values) => new(
         values.GetValueOrDefault("--eval-set", "tools/agent-eval/eval-set.json"),
         values.GetValueOrDefault("--presets", "src/StemStudio.Domain/Styles/presets.v1.json"),
-        values.GetValueOrDefault("--out", "agent-eval-report.md"));
+        values.GetValueOrDefault("--out", "agent-eval-report.md"))
+    {
+        LyricSet = values.GetValueOrDefault("--lyric-set", "tools/agent-eval/lyric-eval-set.json"),
+    };
 }
