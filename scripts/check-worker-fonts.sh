@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Worker font check (feature 008, SC-004; quickstart M2): fontconfig inside the worker image lists
-# the Leipzig music font (Verovio's SVG text glyphs) and the engraving stack imports as the worker
-# user (verovio, cairosvg with its native libcairo, music21). Throwaway containers without network.
+# the Leipzig music font (Verovio's SVG text glyphs) and DejaVu Sans (setlist PDFs, feature 014),
+# and the engraving stack imports as the worker user (verovio, cairosvg with its native libcairo,
+# music21, reportlab). Throwaway containers without network.
 # Used by the CI job cpu-image-guard. No secrets are read or needed.
 #
 # Usage: scripts/check-worker-fonts.sh [--build] [image]
@@ -26,18 +27,25 @@ done
 if [[ $BUILD -eq 1 ]]; then
   docker build -f "$REPO_ROOT/docker/worker.Dockerfile" -t "$IMAGE" "$REPO_ROOT"
 fi
-echo "Checking $IMAGE for the Leipzig font and the engraving imports ..."
+echo "Checking $IMAGE for the Leipzig and DejaVu fonts and the engraving imports ..."
 FAILED=0
-if docker run --rm --network none --entrypoint fc-list "$IMAGE" : family | grep -qx 'Leipzig'; then
+FAMILIES="$(docker run --rm --network none --entrypoint fc-list "$IMAGE" : family || true)"
+if grep -qx 'Leipzig' <<<"$FAMILIES"; then
   echo "OK   fc-list lists Leipzig"
 else
   echo "FAIL fc-list does not list Leipzig"
   FAILED=1
 fi
-if docker run --rm --network none --entrypoint python "$IMAGE" -I -c 'import verovio, cairosvg, music21'; then
-  echo "OK   verovio, cairosvg and music21 import as the worker user"
+if grep -qi 'DejaVu Sans' <<<"$FAMILIES"; then
+  echo "OK   fc-list lists DejaVu Sans"
 else
-  echo "FAIL verovio, cairosvg or music21 does not import"
+  echo "FAIL fc-list does not list DejaVu Sans"
+  FAILED=1
+fi
+if docker run --rm --network none --entrypoint python "$IMAGE" -I -c 'import verovio, cairosvg, music21, reportlab'; then
+  echo "OK   verovio, cairosvg, music21 and reportlab import as the worker user"
+else
+  echo "FAIL verovio, cairosvg, music21 or reportlab does not import"
   FAILED=1
 fi
 exit "$FAILED"

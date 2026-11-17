@@ -17,6 +17,11 @@ const fixedChrome = { ...devices['Desktop Chrome'], viewport: { width: 1440, hei
  * override `storageState`. Projects `visual` (container only), `a11y` and `lighthouse-setup` run
  * the design-quality suites (`npm run test:visual`, `test:a11y`, `test:lighthouse`); `npm test`
  * selects only `chromium` and `firefox`.
+ *
+ * Feature 015 (T010): project `recording` runs the `@recording` specs (`npm run test:recording`) in
+ * the full Chromium build (`channel: 'chromium'`, fake media devices, microphone permission); each
+ * spec sets its own fake capture WAV (`support/fake-microphone.ts`, `tests/fixtures/recording/`,
+ * generated before the run). The default `chromium` project never runs `@recording`.
  */
 export default defineConfig({
   testDir: './tests',
@@ -48,7 +53,17 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', grepInvert: /@recording/, use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'recording',
+      grep: /@recording/,
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chromium',
+        permissions: ['microphone'],
+        launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
+      },
+    },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'visual', testDir: './visual', use: { ...fixedChrome, reducedMotion: 'reduce' } },
     { name: 'a11y', testDir: './a11y', use: { ...fixedChrome, reducedMotion: 'reduce' } },

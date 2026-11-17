@@ -28,6 +28,12 @@
     runs scripts/agent-e2e.ps1 fake, then none (feature 011, T059). Same prerequisites as -Gpu; the
     project and its volumes are removed afterwards.
 
+.PARAMETER RecordingE2e
+    Also generates the 015 capture fixtures, starts a fake stack with the e2e override (web
+    StemStudio__Recording__TestLoopback=true) as compose project stemstudio-e2e and runs
+    npm run test:recording (project recording, full Chromium build, E2E_RECORDING_LOOPBACK=1;
+    feature 015, T010). Same prerequisites as -Gpu; the project and its volumes are removed afterwards.
+
 .EXAMPLE
     ./scripts/test-all.ps1
 .EXAMPLE
@@ -36,14 +42,17 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Interactive developer script; console output is the UI.')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Private helpers that only change this script''s own throwaway containers or process environment.')]
 [CmdletBinding()]
-param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e)
+param([switch] $ContinueOnError, [switch] $Gpu, [switch] $AgentE2e, [switch] $RecordingE2e)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Redocly = '@redocly/cli@2.78.0'
-$Contracts = 'specs/008-sheet-music/contracts'  # 008 documents contain 006's and 007's unchanged
-$RenderVectors = 'specs/007-export-library/contracts/generate_render_vectors.py'  # 008 has no vectors file
+# Round 014+015: the newest full backend document is 015's 1.14.0 (= 014's 1.13.0 + the recording
+# delta); the worker document is 014's 1.8.0. Render vectors 1.1.0 (007's + the take cases) are 015's.
+$Contracts = 'specs/015-play-along-recording/contracts'
+$RenderVectors = 'specs/015-play-along-recording/contracts/generate_render_vectors.py'
+$PracticeFlowContracts = 'specs/014-practice-flow/contracts'  # backend 1.13.0, worker 1.8.0 and both deltas
 # Features 009/010 (generator 1.0.0/1.1.0, backend 1.8.0/1.9.0); 010's documents contain 009's.
 $GenerativeContracts = @('specs/009-style-transfer/contracts', 'specs/010-lyrics-to-song/contracts')
 # Feature 011 (backend 1.10.0 = 010's 1.9.0 + the agent delta); worker stays 008's, generator 010's.
@@ -113,7 +122,8 @@ $Steps = @(
     @{ Name = 'web-interop typecheck'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'typecheck') }
     @{ Name = 'web-interop test:coverage'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'test:coverage') }
     @{ Name = 'web-interop build'; Dir = 'src/web-interop'; Cmd = @('npm', 'run', 'build') }
-    @{ Name = 'contracts lint'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/worker-api.openapi.yaml", "$Contracts/backend-api.openapi.yaml") }
+    @{ Name = 'contracts lint (015-play-along-recording)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$Contracts/redocly.yaml", "$Contracts/backend-api.openapi.yaml", "$Contracts/recording-api.openapi.yaml") }
+    @{ Name = 'contracts lint (014-practice-flow)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$PracticeFlowContracts/redocly.yaml", "$PracticeFlowContracts/backend-api.openapi.yaml", "$PracticeFlowContracts/worker-api.openapi.yaml", "$PracticeFlowContracts/practice-api.openapi.yaml", "$PracticeFlowContracts/worker-practice.openapi.yaml") }
     foreach ($dir in $GenerativeContracts) {
         @{ Name = "contracts lint ($(Split-Path -Leaf (Split-Path -Parent $dir)))"; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$dir/redocly.yaml", "$dir/generator-api.openapi.yaml", "$dir/backend-api.openapi.yaml") }
     }
@@ -128,6 +138,12 @@ $Steps = @(
     @{ Name = 'contracts lint (023-lyric-writing-assistant)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$LyricAssistContracts/redocly.yaml", "$LyricAssistContracts/backend-api.openapi.yaml", "$LyricAssistContracts/backend-api.delta.openapi.yaml") }
     @{ Name = 'contracts merge check (022 full 1.22.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryFoldersContracts/merge_full.py", '--check') }
     @{ Name = 'contracts merge check (023 full 1.23.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LyricAssistContracts/merge_full.py", '--check') }
+    @{ Name = 'contracts superset (014 contains 1.23.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$PracticeFlowContracts/check_superset.py") }
+    @{ Name = 'contracts superset (014 contains its delta)'; Dir = '.'; Cmd = $PyYamlPython + @("$PracticeFlowContracts/check_superset.py", "$PracticeFlowContracts/practice-api.openapi.yaml", "$PracticeFlowContracts/backend-api.openapi.yaml") }
+    @{ Name = 'contracts merge check (014 full 1.13.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$PracticeFlowContracts/merge_full.py", '--check') }
+    @{ Name = 'contracts superset (015 contains 1.13.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$Contracts/check_superset.py") }
+    @{ Name = 'contracts superset (015 contains its delta)'; Dir = '.'; Cmd = $PyYamlPython + @("$Contracts/check_superset.py", "$Contracts/recording-api.openapi.yaml", "$Contracts/backend-api.openapi.yaml") }
+    @{ Name = 'contracts merge check (015 full 1.14.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$Contracts/merge_recording_delta.py", '--check') }
     @{ Name = 'contracts output schema (023 check_output_schema.py)'; Dir = '.'; Cmd = $JsonSchemaPython + @("$LyricAssistContracts/check_output_schema.py") }
     @{ Name = 'contracts merge tests (023 test_merge_full.py)'; Dir = '.'; Cmd = $PytestPython + @($LyricAssistContracts) }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
@@ -187,6 +203,13 @@ if ($AgentE2e) {
         $Steps += @{ Name = "agent e2e: lyric assistant ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/lyric-e2e.ps1', $backend) }
     }
 }
+# Optional (-RecordingE2e, feature 015 T010): capture fixtures, a fake stack with the e2e override, the @recording specs.
+if ($RecordingE2e) {
+    $recordingEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; COMPOSE_PROJECT_NAME = $E2eProject; COMPOSE_FILE = 'docker-compose.yml;docker-compose.e2e.yml' }
+    $Steps += @{ Name = 'recording e2e: capture fixtures'; Dir = 'tests/fixtures'; Cmd = @('uv', 'run', '--project', '../../worker', '--frozen', 'python', '-m', 'recording.generate_recording_fixtures') }
+    $Steps += @{ Name = 'recording e2e: fake stack up (e2e override)'; Dir = '.'; Env = $recordingEnv; Cmd = @('docker', 'compose', 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
+    $Steps += @{ Name = 'recording e2e: playwright @recording'; Dir = 'e2e'; Env = @{ E2E_RECORDING_LOOPBACK = '1' }; Cmd = @('npm', 'run', 'test:recording') }
+}
 
 function Set-StepEnvironment {
     <# Sets the given process environment variables; returns their previous values. #>
@@ -225,6 +248,6 @@ foreach ($step in $Steps) {
     $summary.Add([pscustomobject]@{ Step = $step.Name; Result = $result })
     if ($result -eq 'failed' -and -not $ContinueOnError) { break }
 }
-if ($Gpu -or $AgentE2e) { & docker compose -p $E2eProject down -v | Out-Host }
+if ($Gpu -or $AgentE2e -or $RecordingE2e) { & docker compose -p $E2eProject -f docker-compose.yml -f docker-compose.e2e.yml down -v | Out-Host }
 $summary | Format-Table -AutoSize | Out-String | Write-Host
 exit ([int]($summary.Result -contains 'failed'))
