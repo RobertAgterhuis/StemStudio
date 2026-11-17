@@ -42,6 +42,30 @@ public static class LiveDatabaseFile
         return true;
     }
 
+    /// <summary>
+    /// Puts the live file database in WAL mode (persistent in the file). EF Core only does this when it creates the database
+    /// itself, which <see cref="EnsureCreated"/> pre-empts, and a restored library comes from a snapshot in
+    /// <c>journal_mode=DELETE</c>. Without WAL a reader's shared lock makes a concurrent writer's commit fail with
+    /// "database is locked" (flake round 022/023).
+    /// </summary>
+    /// <param name="liveConnectionString">The live connection string.</param>
+    /// <returns>True when the file database is in WAL mode now; false for a non-file database.</returns>
+    public static bool UseWal(string liveConnectionString)
+    {
+        var builder = new SqliteConnectionStringBuilder(liveConnectionString);
+        if (!IsFile(builder))
+        {
+            return false;
+        }
+
+        builder.Pooling = false;
+        using var connection = new SqliteConnection(builder.ToString());
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode=WAL;";
+        return string.Equals(command.ExecuteScalar() as string, "wal", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsFile(SqliteConnectionStringBuilder builder) =>
         builder.Mode != SqliteOpenMode.Memory
         && !string.IsNullOrEmpty(builder.DataSource)
