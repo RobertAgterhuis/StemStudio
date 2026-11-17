@@ -13,7 +13,7 @@ public sealed class RecordingSessionTests : RecordingTestContext
     [Fact]
     public void Toggle_OpensAndClosesThePanel_WithAriaExpanded()
     {
-        var toggle = Render<RecordingToolbarToggle>(p => p.Add(c => c.Session, Session));
+        var toggle = Render<RecordingToggleButton>(p => p.Add(c => c.Session, Session));
         var button = toggle.Find("[data-testid=mixer-record-panel-toggle]");
         (button.GetAttribute("aria-expanded"), button.GetAttribute("aria-controls")).ShouldBe(("false", "rec-panel"));
 
