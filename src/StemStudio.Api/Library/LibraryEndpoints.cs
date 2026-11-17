@@ -9,7 +9,7 @@ public static class LibraryEndpoints
 {
     private const string Tag = "library";
 
-    /// <summary>Maps <c>GET /api/library/folders</c> and <c>GET /api/library/folders/{folderId}</c>.</summary>
+    /// <summary>Maps <c>GET /api/library/folders</c>, <c>GET /api/library/folders/{folderId}</c> and <c>GET /api/library/search</c>.</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
     public static IEndpointRouteBuilder MapLibraryFolderEndpoints(this IEndpointRouteBuilder app)
@@ -21,6 +21,10 @@ public static class LibraryEndpoints
         app.MapGet(ApiRoutes.LibraryFolders + "/{folderId}", (string folderId, [AsParameters] FolderViewRequest request, [FromHeader(Name = "If-None-Match")] string? ifNoneMatch, LibraryBrowseService browse, CancellationToken ct) =>
                 browse.FolderAsync(folderId, request, ifNoneMatch, ct))
             .WithName("getLibraryFolder").WithTags(Tag).Produces<LibraryFolderViewDto>().Produces(StatusCodes.Status304NotModified)
+            .ProducesProblem(StatusCodes.Status404NotFound).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+        app.MapGet(ApiRoutes.LibrarySearch, ([AsParameters] SearchQueryRequest request, [FromHeader(Name = "If-None-Match")] string? ifNoneMatch, LibraryBrowseService browse, CancellationToken ct) =>
+                browse.SearchAsync(request, ifNoneMatch, ct))
+            .WithName("searchLibrary").WithTags(Tag).Produces<LibrarySearchResultDto>().Produces(StatusCodes.Status304NotModified)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
         return app;
     }
