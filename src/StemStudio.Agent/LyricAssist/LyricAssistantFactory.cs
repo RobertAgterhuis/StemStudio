@@ -66,7 +66,7 @@ public sealed record LyricAssistantServices
 /// <summary>
 /// The model layer per assist: agent backend <c>fake</c> with <c>STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT</c> set -> a
 /// <see cref="ScriptedLyricModel"/> of the script <see cref="LyricScript.Resolve"/> picks (no script = empty output for every block);
-/// <c>ollama</c>, or <c>claude</c> with a usable key and the acknowledged agent notice -> <see cref="LyricModelClient"/>; anything
+/// <c>ollama</c> on the GPU model (never the CPU fallback model), or <c>claude</c> with a usable key and the acknowledged agent notice -> <see cref="LyricModelClient"/>; anything
 /// else -> no assistant with reason <c>model-unavailable</c>. Never switches to Claude on its own (FR-025).
 /// </summary>
 /// <param name="services">Dependencies.</param>
@@ -81,6 +81,9 @@ public sealed class LyricAssistantFactory(LyricAssistantServices services) : ILy
     /// <summary>Fix when the fake backend has no readable script.</summary>
     public const string FakeScriptFix = "Set STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT to a readable lyric script file or folder.";
 
+    /// <summary>Fix when Ollama would use the CPU fallback model (GPU busy or unavailable): the lyric assistant does not use it (CTO 023, spike: 0/19 valid replies on CPU).</summary>
+    public const string GpuBusyFix = "The GPU is busy with another job, and the small CPU model is too slow for the lyric assistant. The spelling check still works; try the model help again when the job is done.";
+
     private const string EmptyScript = """{"version":1,"blocks":[]}""";
 
     /// <inheritdoc />
@@ -90,12 +93,17 @@ public sealed class LyricAssistantFactory(LyricAssistantServices services) : ILy
         var settings = await services.Settings.GetAsync(cancellationToken);
         return settings.Backend switch
         {
-            AgentBackendDto.Ollama => Real(AgentBackendDto.Ollama),
+            AgentBackendDto.Ollama => await OllamaResolutionAsync(cancellationToken),
             AgentBackendDto.Claude => ClaudeResolution(settings),
             AgentBackendDto.Fake => Fake(context),
             _ => LyricAssistantResolution.Unavailable(ChooseBackendFix),
         };
     }
+
+    private async Task<LyricAssistantResolution> OllamaResolutionAsync(CancellationToken cancellationToken) =>
+        (await services.Model.SelectAsync(cancellationToken)).UsingFallback
+            ? LyricAssistantResolution.Unavailable(GpuBusyFix)
+            : Real(AgentBackendDto.Ollama);
 
     private LyricAssistantResolution ClaudeResolution(Model.AgentSettings settings)
     {

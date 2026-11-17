@@ -9644,6 +9644,15 @@ components:
           type: [string, 'null']
           maxLength: 200
           description: Optional mood/theme hint for devices and writing kinds; imitation guard.
+        origin:
+          type: string
+          enum: [editor, agent]
+          default: editor
+          description: Who starts the assist (`LyricAssistSummary.origin`). The editor omits it; the agent loopback sends `agent`.
+        agentRunId:
+          type: [string, 'null']
+          format: uuid
+          description: The agent run that starts the assist; only with `origin` = `agent` (otherwise 400 on `agentRunId`).
     Anchor:
       type: object
       additionalProperties: false

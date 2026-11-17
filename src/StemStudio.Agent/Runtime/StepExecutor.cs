@@ -148,7 +148,7 @@ internal sealed class StepExecutor(AgentServices services, RunEvents events, App
     }
 
     private ToolInvocation ServerInvocation(RunState state, PreparedCall prepared) =>
-        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, LyricAssist = services.LyricAssist, Context = state.Context, Backend = state.Run.Backend };
+        new() { Arguments = prepared.Validation.Arguments, Actions = services.Actions, LyricAssist = services.LyricAssist, Context = state.Context, Backend = state.Run.Backend, RunId = state.RunId };
 
     /// <summary>The artists of the library for the artist-imitation guardrail (only for tools with free style text).</summary>
     private async Task<IReadOnlyList<string?>> LibraryArtistsAsync(PreparedCall prepared, CancellationToken cancellationToken)

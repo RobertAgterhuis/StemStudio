@@ -76,6 +76,20 @@ public sealed class LyricAssist023ToolProviderTests
     }
 
     [Fact]
+    public async Task StartedAssists_CarryTheAgentOriginAndTheRunId()
+    {
+        var runId = Guid.NewGuid();
+        var check = Tool(_provider, "check_lyrics");
+        var suggest = Tool(_provider, "suggest_lyric_lines");
+
+        await RunAsync(check, Invocation(check, $$"""{"lyricsId":"{{LyricsId}}"}""", Actions()) with { LyricAssist = _lyrics, RunId = runId });
+        await RunAsync(suggest, Invocation(suggest, $$"""{"lyricsId":"{{LyricsId}}","mode":"titles","count":2}""", Actions()) with { LyricAssist = _lyrics, RunId = runId });
+
+        await _lyrics.Received(2).StartAssistAsync(LyricsId, Arg.Is<CreateLyricAssistRequest>(request =>
+            request.Origin == AssistOriginDto.Agent && request.AgentRunId == runId), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task CheckLyrics_AnInstructionWithoutDevices_IsAToolError()
     {
         await Should.ThrowAsync<AgentActionException>(() => Invoke("check_lyrics", $$"""{"lyricsId":"{{LyricsId}}","instruction":"x"}"""));

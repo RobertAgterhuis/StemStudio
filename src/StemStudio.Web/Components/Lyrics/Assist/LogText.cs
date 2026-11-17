@@ -17,6 +17,11 @@ public static class LogText
     /// <returns>The text.</returns>
     public static string Tokens(TokenUsageDto? usage) => usage is null ? "-" : $"{usage.InputTokens} in / {usage.OutputTokens} out";
 
+    /// <summary>Who started an assist: "agent" for the composer agent (023 CTO decision), else "editor".</summary>
+    /// <param name="origin">The origin.</param>
+    /// <returns>The text.</returns>
+    public static string Origin(AssistOriginDto origin) => origin == AssistOriginDto.Agent ? "agent" : "editor";
+
     /// <summary>The cause of a revision.</summary>
     /// <param name="cause">The cause.</param>
     /// <returns>The text.</returns>

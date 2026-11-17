@@ -4,11 +4,12 @@
 <details class="ss-assist-panel" data-testid="lyric-assist-log" data-help-id="lyric-assist-privacy" @ontoggle="LoadAsync">
     <summary>Assist log</summary>
     <table class="ss-table ss-small">
-        <thead><tr><th>Kind</th><th>Status</th><th>Blocks</th><th>Model</th><th>Discarded</th><th>Tokens</th></tr></thead>
+        <thead><tr><th>Started by</th><th>Kind</th><th>Status</th><th>Blocks</th><th>Model</th><th>Discarded</th><th>Tokens</th></tr></thead>
         <tbody>
             @foreach (var a in Session.History)
             {
                 <tr @key="a.AssistId">
+                    <td>@LogText.Origin(a.Origin)</td>
                     <td>@AssistText.KindName(a.Kind)</td>
                     <td>@AssistText.Wire(a.Status)</td>
                     <td class="ss-num">@a.BlocksDone / @a.BlocksTotal (@a.BlocksSkipped skipped)</td>

@@ -10,11 +10,7 @@
           "original": "I'm dancing slowly over empty hallways now",
           "proposal": "I'm dancing slowly o'er the empty halls",
           "explanation": "'o'er' saves a syllable so the line matches the section."
-        }
-      ]
-    },
-    {
-      "items": [
+        },
         {
           "type": "device.end-rhyme",
           "severity": "idea",

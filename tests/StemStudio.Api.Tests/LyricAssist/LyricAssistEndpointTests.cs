@@ -132,6 +132,22 @@ public sealed class LyricAssistEndpointTests : AssistTestBase
     }
 
     [Fact]
+    public async Task Origin_DefaultsToEditorAndAnAgentStartIsRecordedWithItsRun()
+    {
+        var sheet = await SheetAsync(Text);
+        var runId = Guid.NewGuid();
+
+        var editor = await RunToEndAsync(sheet.Id, Check());
+        var agent = await RunToEndAsync(sheet.Id, Check() with { Origin = AssistOriginDto.Agent, AgentRunId = runId });
+        using var orphanRun = await CreateAsync(sheet.Id, Check() with { AgentRunId = runId });
+
+        (editor.Origin, editor.AgentRunId).ShouldBe((AssistOriginDto.Editor, (Guid?)null));
+        (agent.Origin, agent.AgentRunId).ShouldBe((AssistOriginDto.Agent, (Guid?)runId));
+        (await orphanRun.FieldErrorsAsync("agentRunId")).ShouldNotBeEmpty();
+        await ContractAssert.MatchesAsync(orphanRun, "createLyricAssist");
+    }
+
+    [Fact]
     public async Task OneAssistGlobally_AndCancelStopsTheRun()
     {
         var started = new TaskCompletionSource();

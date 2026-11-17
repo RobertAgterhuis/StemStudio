@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using StemStudio.Agent.Backends;
 using StemStudio.Agent.LyricAssist;
 using StemStudio.Agent.Model;
@@ -21,12 +22,12 @@ public sealed class LyricAssistantFactoryTests : IDisposable
     private static AgentSettings Settings(AgentBackendDto backend, bool notice = true) =>
         AgentSettings.Defaults(backend, RunnerHarness.Start) with { ClaudeNoticeAcknowledgedAt = notice ? RunnerHarness.Start : null };
 
-    private static LyricAssistantFactory Factory(AgentSettings settings, FakeEnvironment? environment = null)
+    private static LyricAssistantFactory Factory(AgentSettings settings, FakeEnvironment? environment = null, IGpuActivity? gpu = null)
     {
         var env = environment ?? new FakeEnvironment();
         var store = new InMemorySettingsStore(settings);
         var http = new StubHttpHandler();
-        var model = new LyricModelClient(store, new StemStudio.Agent.Runtime.IdleGpuActivity(), new LyricModelBackends
+        var model = new LyricModelClient(store, gpu ?? new StemStudio.Agent.Runtime.IdleGpuActivity(), new LyricModelBackends
         {
             Ollama = new OllamaChatClientFactory(http.Client()),
             Claude = new ClaudeChatClientFactory(env.Keys(), http.Client("https://api.anthropic.com/")),
@@ -49,6 +50,18 @@ public sealed class LyricAssistantFactoryTests : IDisposable
         resolution.Assistant.ShouldBeOfType<LyricAssistant>();
         resolution.UnavailableReason.ShouldBeNull();
         resolution.Fix.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Ollama_WhileTheGpuIsBusy_IsModelUnavailableInsteadOfTheCpuFallback()
+    {
+        var gpu = Substitute.For<IGpuActivity>();
+        gpu.IsHeavyJobActive().Returns(true);
+
+        var resolution = await Factory(Settings(AgentBackendDto.Ollama), gpu: gpu).ResolveAsync(new LyricAssistModelContext("Zomeravond", AssistKindDto.Check), Token);
+
+        resolution.ShouldBe(new LyricAssistantResolution(null, "model-unavailable", LyricAssistantFactory.GpuBusyFix));
+        LyricAssistantFactory.GpuBusyFix.ShouldContain("spelling check still works");
     }
 
     [Fact]

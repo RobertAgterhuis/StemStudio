@@ -26,4 +26,12 @@ public sealed record CreateLyricAssistRequest
 
     /// <summary>Optional mood or theme hint (at most 200 characters; imitation guard).</summary>
     public string? Instruction { get; init; }
+
+    /// <summary>Who starts the assist; omitted = <see cref="AssistOriginDto.Editor"/>. The agent loopback sends <see cref="AssistOriginDto.Agent"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AssistOriginDto? Origin { get; init; }
+
+    /// <summary>The agent run that starts the assist; only with <see cref="Origin"/> = <see cref="AssistOriginDto.Agent"/> (otherwise 400).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? AgentRunId { get; init; }
 }

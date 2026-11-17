@@ -26,15 +26,15 @@ public static class AssistRequestRules
         Check(errors, kind != AssistKind.Alternatives || (request.LineFrom is { } from && from == request.LineTo), "lineFrom", "Alternatives need exactly one line.");
         Check(errors, CountValid(kind, request.Count), "count", "The count is outside the range of this kind of help.");
         Check(errors, InstructionValid(kind, request.Instruction), "instruction", "An instruction is at most 200 characters, for devices and writing help only.");
+        Check(errors, request.AgentRunId is null || request.Origin == AssistOriginDto.Agent, "agentRunId", "An agent run id belongs only to an assist the agent starts.");
         return errors;
     }
 
     /// <summary>The domain request with the defaults of its kind.</summary>
     /// <param name="request">A valid request.</param>
     /// <param name="sheet">The sheet.</param>
-    /// <param name="origin">Origin.</param>
     /// <returns>The domain request.</returns>
-    public static AssistRequest ToDomain(CreateLyricAssistRequest request, LyricsSheet sheet, AssistOrigin origin = AssistOrigin.Editor)
+    public static AssistRequest ToDomain(CreateLyricAssistRequest request, LyricsSheet sheet)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(sheet);
@@ -43,8 +43,14 @@ public static class AssistRequestRules
         var lineTo = kind == AssistKind.Continue ? request.LineTo ?? SheetText.Lines(sheet.Text).Length : request.LineTo;
         return new AssistRequest
         {
-            Kind = kind, Categories = categories, LineFrom = request.LineFrom, LineTo = lineTo, Count = request.Count ?? DefaultCount(kind),
-            Instruction = string.IsNullOrWhiteSpace(request.Instruction) ? null : request.Instruction.Trim(), Origin = origin,
+            Kind = kind,
+            Categories = categories,
+            LineFrom = request.LineFrom,
+            LineTo = lineTo,
+            Count = request.Count ?? DefaultCount(kind),
+            Instruction = string.IsNullOrWhiteSpace(request.Instruction) ? null : request.Instruction.Trim(),
+            Origin = request.Origin == AssistOriginDto.Agent ? AssistOrigin.Agent : AssistOrigin.Editor,
+            AgentRunId = request.AgentRunId,
         };
     }
 

@@ -192,7 +192,7 @@ public sealed class LyricAssistToolProvider : IAgentToolProvider
         var actions = call.LyricActions();
         var lyricsId = call.RequiredId("lyricsId");
         var sheet = await actions.GetSheetStateAsync(lyricsId, cancellationToken);
-        var assist = await actions.StartAssistAsync(lyricsId, request with { ExpectedRevision = sheet.Revision }, cancellationToken);
+        var assist = await actions.StartAssistAsync(lyricsId, request with { ExpectedRevision = sheet.Revision, Origin = AssistOriginDto.Agent, AgentRunId = call.RunId }, cancellationToken);
         var job = new JobRef { JobId = assist.AssistId.ToString(), Phase = JobPhaseDto.LyricAssist };
         return new ToolResult
         {

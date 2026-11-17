@@ -183,16 +183,18 @@ public sealed class LyricModelClientTests : IDisposable
     }
 
     [Fact]
-    public async Task TheFallbackModel_MayTakeOverMidAssist_OnTheSameBackend()
+    public async Task TheCpuFallbackModel_NeverTakesOverMidAssist_TheAssistStopsReadably()
     {
         OllamaAnswers(Output);
         var client = Client(AgentBackendDto.Ollama);
         var pinned = await client.SelectAsync(Token);
         _gpu.Busy = true;
 
-        var reply = await client.CompleteAsync(Request() with { Model = pinned }, Token);
+        var error = await Should.ThrowAsync<LyricAssistException>(() => client.CompleteAsync(Request() with { Model = pinned }, Token));
 
-        reply.Model.UsingFallback.ShouldBeTrue();
+        error.Code.ShouldBe(AssistFailureCodeDto.BackendUnavailable);
+        error.Message.ShouldBe(LyricModelClient.GpuBecameBusy);
+        _ollama.Requests.ShouldBeEmpty();
     }
 
     [Fact]

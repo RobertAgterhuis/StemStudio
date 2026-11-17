@@ -45,10 +45,9 @@ public sealed class LyricAssistService(LyricAssistServiceDeps deps)
     /// <summary>Starts an assist.</summary>
     /// <param name="lyricsId">Sheet id.</param>
     /// <param name="request">The request.</param>
-    /// <param name="origin">Editor or agent.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>202 or a problem.</returns>
-    public async Task<IResult> CreateAsync(Guid lyricsId, CreateLyricAssistRequest? request, AssistOrigin origin, CancellationToken cancellationToken)
+    public async Task<IResult> CreateAsync(Guid lyricsId, CreateLyricAssistRequest? request, CancellationToken cancellationToken)
     {
         if (await Stores.Sheets.FindAsync(lyricsId, cancellationToken) is not { } sheet)
         {
@@ -61,7 +60,7 @@ public sealed class LyricAssistService(LyricAssistServiceDeps deps)
         }
 
         var refusal = await RefusalAsync(sheet, request, cancellationToken);
-        return refusal ?? await StartAsync(sheet, AssistRequestRules.ToDomain(request, sheet, origin), cancellationToken);
+        return refusal ?? await StartAsync(sheet, AssistRequestRules.ToDomain(request, sheet), cancellationToken);
     }
 
     /// <summary>One assist with its suggestions.</summary>

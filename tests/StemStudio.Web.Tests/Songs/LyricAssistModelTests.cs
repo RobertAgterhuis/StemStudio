@@ -127,7 +127,7 @@ public sealed class LyricAssistModelTests : LyricEditorTestContext
                 BlocksDone = 4, BlocksTotal = 5, BlocksSkipped = 1, Discarded = DiscardedCountsDto.None with { InvalidAnchor = 2, Verbatim = 1 },
                 Usage = new TokenUsageDto { InputTokens = 10, OutputTokens = 5, CachedInputTokens = 0 },
             },
-            Assist(AssistStatusDto.Failed, AssistKindDto.Titles) with { AssistId = Guid.NewGuid(), Model = null, Usage = null },
+            Assist(AssistStatusDto.Failed, AssistKindDto.Titles) with { AssistId = Guid.NewGuid(), Model = null, Usage = null, Origin = AssistOriginDto.Agent, AgentRunId = Guid.NewGuid() },
         ]);
         var page = Open(ExperienceLevel.Expert);
 
@@ -139,6 +139,8 @@ public sealed class LyricAssistModelTests : LyricEditorTestContext
         log.TextContent.ShouldContain("10 in / 5 out");
         log.TextContent.ShouldContain("Title ideas");
         log.TextContent.ShouldContain("none");
+        log.QuerySelectorAll("thead th").Select(th => th.TextContent).ShouldContain("Started by");
+        log.QuerySelectorAll("tbody tr").Select(tr => tr.Children[0].TextContent).ShouldBe(["editor", "agent"]);
     }
 
     [Fact]

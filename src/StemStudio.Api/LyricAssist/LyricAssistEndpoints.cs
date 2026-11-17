@@ -1,7 +1,6 @@
 using System.Globalization;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LyricAssist;
-using StemStudio.Domain.Lyrics.Assist;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.LyricAssist;
@@ -27,7 +26,7 @@ public static class LyricAssistEndpoints
         app.MapPut(ApiRoutes.LyricAssistSettings, (LyricAssistSettingsUpdate? update, LyricAssistStatusService service, CancellationToken ct) => service.UpdateSettingsAsync(update, ct))
             .WithName("updateLyricAssistSettings").WithTags(Tag).Produces<LyricAssistSettingsDto>().ProducesValidationProblem();
         app.MapPost(SheetRoute + "/assists", (Guid lyricsId, CreateLyricAssistRequest? request, LyricAssistService service, CancellationToken ct) =>
-                service.CreateAsync(lyricsId, request, AssistOrigin.Editor, ct))
+                service.CreateAsync(lyricsId, request, ct))
             .WithName("createLyricAssist").WithTags(Tag).Produces<LyricAssistDto>(StatusCodes.Status202Accepted).ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict);
         app.MapGet(SheetRoute + "/assists", (Guid lyricsId, LyricAssistService service, CancellationToken ct) => service.ListAsync(lyricsId, ct))

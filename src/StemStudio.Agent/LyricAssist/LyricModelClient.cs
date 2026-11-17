@@ -46,6 +46,9 @@ public sealed class LyricModelClient(IAgentSettingsStore settings, IGpuActivity 
     /// <summary>Message when the backend changed while an assist runs.</summary>
     public const string BackendChanged = "The model backend changed while the assist was running; start the assist again.";
 
+    /// <summary>Message when a heavy GPU job starts while an assist on the GPU model runs (the CPU fallback is not used for lyrics, CTO 023).</summary>
+    public const string GpuBecameBusy = "The GPU became busy with another job while the assist was running; start the assist again when that job is done.";
+
     /// <summary>Description of the forced Claude tool.</summary>
     public const string ToolDescription = "Return the review of the marked block as items and misses.";
 
@@ -71,6 +74,11 @@ public sealed class LyricModelClient(IAgentSettingsStore settings, IGpuActivity 
         if (request.Model is { } pinned && pinned.Backend != model.Backend)
         {
             throw new LyricAssistException(AssistFailureCodeDto.BackendUnavailable, BackendChanged);
+        }
+
+        if (request.Model is { UsingFallback: false } && model.UsingFallback)
+        {
+            throw new LyricAssistException(AssistFailureCodeDto.BackendUnavailable, GpuBecameBusy);
         }
 
         ChatMessage[] messages = [new(ChatRole.System, request.SystemPrompt), new(ChatRole.User, request.UserPrompt)];

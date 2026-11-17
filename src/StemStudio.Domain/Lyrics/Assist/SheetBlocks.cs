@@ -8,7 +8,9 @@ public sealed record SheetBlock(int Index, int FirstLine, int LastLine);
 
 /// <summary>
 /// Splits a sheet into model blocks (research R-05): sections and blank lines end a block, a block holds at most
-/// <c>maxLines</c> lyric lines (markers and blank lines do not count), blocks without lyric lines are dropped.
+/// <c>maxLines</c> lyric lines (markers and blank lines do not count), blocks without lyric lines are dropped. Neighbouring
+/// short blocks are merged while together they hold at most <c>maxLines</c> lyric lines, so a sheet of short sections needs
+/// fewer model calls (CTO decision 023, English speed SC-004).
 /// </summary>
 public static class SheetBlocks
 {
@@ -44,7 +46,25 @@ public static class SheetBlocks
         }
 
         builder.Close();
-        return builder.Ranges;
+        return Merge(builder.Ranges, maxLines);
+    }
+
+    private static List<(int First, int Last)> Merge(List<(int First, int Last, int Lyrics)> ranges, int maxLines)
+    {
+        var merged = new List<(int First, int Last, int Lyrics)>();
+        foreach (var range in ranges)
+        {
+            if (merged.Count > 0 && merged[^1].Lyrics + range.Lyrics <= maxLines)
+            {
+                merged[^1] = (merged[^1].First, range.Last, merged[^1].Lyrics + range.Lyrics);
+            }
+            else
+            {
+                merged.Add(range);
+            }
+        }
+
+        return merged.ConvertAll(range => (range.First, range.Last));
     }
 
     private static bool HasLyric(string[] lines, int first, int last) =>
@@ -56,7 +76,7 @@ public static class SheetBlocks
         private int _last;
         private int _lyrics;
 
-        public List<(int First, int Last)> Ranges { get; } = [];
+        public List<(int First, int Last, int Lyrics)> Ranges { get; } = [];
 
         public void Add(int line, string text)
         {
@@ -80,7 +100,7 @@ public static class SheetBlocks
         {
             if (_lyrics > 0)
             {
-                Ranges.Add((_start!.Value, _last));
+                Ranges.Add((_start!.Value, _last, _lyrics));
             }
 
             (_start, _lyrics) = (null, 0);

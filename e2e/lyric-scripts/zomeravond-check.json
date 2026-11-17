@@ -2,18 +2,6 @@
   "version": 1,
   "blocks": [
     {
-      "items": [],
-      "misses": [
-        {
-          "line": 3,
-          "word": "fluisterd",
-          "verdict": "typo",
-          "correction": "fluistert",
-          "licenceType": null
-        }
-      ]
-    },
-    {
       "items": [
         {
           "type": "licence.archaism",
@@ -46,6 +34,15 @@
           "original": "en het is zo dat ik eigenlijk wel heel erg moe ben",
           "proposal": "en ik ben zo moe",
           "explanation": "De regel struikelt door veel vulwoorden; korter zingt beter."
+        }
+      ],
+      "misses": [
+        {
+          "line": 3,
+          "word": "fluisterd",
+          "verdict": "typo",
+          "correction": "fluistert",
+          "licenceType": null
         }
       ]
     },
