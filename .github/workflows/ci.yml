@@ -659,6 +659,8 @@ jobs:
           done
           # 015: fake capture inputs, click stem and silence for project `recording` (module run from tests/fixtures).
           (cd tests/fixtures && uv run --project ../../worker --frozen python -m recording.generate_recording_fixtures)
+          # 014 T018: the structured practice song, its stems and the pulse-free song (sections specs).
+          uv run --project worker --frozen python tests/fixtures/practice-flow/generate_practice_flow_fixture.py
       - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
         # COMPOSE_FILE adds docker-compose.e2e.yml (library job throttle) to every later
         # `docker compose` call of this job; E2E_BACKUP_DIR / E2E_LIBRARY_THROTTLE are for the specs.

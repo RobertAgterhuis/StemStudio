@@ -85,7 +85,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [x] T015 [P] [quality-gate] Failing tests in `tools/quality/tests/`: `analysis/structure` imports only `ports`, `schemas`, numpy, scipy, sklearn, librosa, soundfile; `engraving/score_view.py` only `ports`, `schemas`, verovio, stdlib xml; `documents/**` only `ports`, `schemas`, reportlab; `jobs`/`api` import none of them (composition in `main.py`); TS: `src/audio-engine/src/score-follow/**` imports no Blazor interop module; .NET: `Domain.{Sections,Setlists,Practice}` reference nothing from `Api`/`Persistence`
 - [x] T016 [quality-gate] Implement the rules of T015 in `tools/quality/`; re-run `run_all.py`; update `docs/quality/SIG-REPORT.md`
 - [ ] T017 [P] [qa] Update `docs/testing/TEST-STRATEGY.md`: synthetic structured audio for sections (one solo per family, SC-002), score-view and PDF assertions, fake analyser for E2E, a11y (axe-core) and keyboard-only E2E for the new pages, request-log check for SC-009; traceability US1..US6 -> test files
-- [ ] T018 [P] [qa] Fixtures `tests/fixtures/` generator: a synthetic structured song (60-90 s, known form and grid, separated-stem layout for the fake stack) with a manifest of expected sections and bar times; `tests/fixtures/tests/` checks the manifest (FR-033)
+- [x] T018 [P] [qa] Fixtures `tests/fixtures/` generator: a synthetic structured song (60-90 s, known form and grid, separated-stem layout for the fake stack) with a manifest of expected sections and bar times; `tests/fixtures/tests/` checks the manifest (FR-033)
 
 ---
 
