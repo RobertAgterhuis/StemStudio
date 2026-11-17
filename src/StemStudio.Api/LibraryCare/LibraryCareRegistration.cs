@@ -37,6 +37,10 @@ public static class LibraryCareRegistration
         services.AddSingleton<BackupRun>();
         services.AddScoped<BackupEstimates>();
         services.AddScoped<BackupService>();
+        services.AddSingleton<MigrationCatalog>();
+        services.AddSingleton<BackupCatalog>();
+        services.AddSingleton<VerifyRun>();
+        services.AddScoped<LibraryState>();
     }
 
     /// <summary>Start-up recovery of library care (before the endpoints are served).</summary>

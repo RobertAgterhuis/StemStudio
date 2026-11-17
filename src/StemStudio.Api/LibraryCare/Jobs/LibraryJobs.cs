@@ -45,6 +45,13 @@ public sealed class LibraryJobException : Exception
     public LibraryJobException(LibraryJobErrorCodeDto code, string message)
         : base(message) => Code = code;
 
+    /// <summary>Creates the exception.</summary>
+    /// <param name="code">Error code.</param>
+    /// <param name="message">Readable message.</param>
+    /// <param name="innerException">Cause.</param>
+    public LibraryJobException(LibraryJobErrorCodeDto code, string message, Exception innerException)
+        : base(message, innerException) => Code = code;
+
     /// <summary>The error code.</summary>
     public LibraryJobErrorCodeDto Code { get; }
 }

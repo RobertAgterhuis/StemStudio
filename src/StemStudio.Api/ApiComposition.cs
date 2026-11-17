@@ -119,6 +119,7 @@ public static class ApiComposition
         app.MapVoiceEndpoints();
         app.MapAgentEndpoints();
         app.MapClaudeKeyEndpoints();
+        app.MapLibraryCareEndpoints();
     }
 
     private static string ConnectionString(IConfiguration configuration, DataDirectory dataDirectory) =>

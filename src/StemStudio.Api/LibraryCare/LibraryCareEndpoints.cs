@@ -1,0 +1,161 @@
+using System.Globalization;
+using Microsoft.Net.Http.Headers;
+using StemStudio.Api.LibraryCare.Backup;
+using StemStudio.Api.LibraryCare.Gate;
+using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Contracts;
+using StemStudio.Contracts.LibraryCare;
+
+namespace StemStudio.Api.LibraryCare;
+
+/// <summary>Endpoints of the <c>library-care</c> tag (backend-api 1.12.0): status, backups and library jobs.</summary>
+public static class LibraryCareEndpoints
+{
+    private const string Tag = "library-care";
+    private const string BackupRoute = ApiRoutes.Backups + "/{fileName}";
+    private const string JobRoute = ApiRoutes.LibraryJobs + "/{jobId:guid}";
+
+    /// <summary>Maps the endpoints.</summary>
+    /// <param name="app">The route builder.</param>
+    /// <returns>The route builder.</returns>
+    public static IEndpointRouteBuilder MapLibraryCareEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(ApiRoutes.LibraryCareStatus, StatusAsync).WithName("getLibraryCareStatus").WithTags(Tag);
+        app.MapGet(ApiRoutes.Backups, (BackupFolder folder, BackupCatalog catalog) => TypedResults.Ok(new BackupListDto { Folder = folder.Probe(), Archives = catalog.List() }))
+            .WithName("listBackups").WithTags(Tag);
+        app.MapPost(ApiRoutes.Backups, CreateAsync).WithName("createBackup").WithTags(Tag);
+        app.MapGet(ApiRoutes.BackupEstimate, EstimateAsync).WithName("estimateBackup").WithTags(Tag);
+        app.MapGet(BackupRoute, Details).WithName("getBackup").WithTags(Tag);
+        app.MapDelete(BackupRoute, Delete).WithName("deleteBackup").RequireGateOpen().WithTags(Tag);
+        app.MapGet(BackupRoute + "/file", Download).WithName("downloadBackup").WithTags(Tag);
+        app.MapPost(BackupRoute + "/verify", Verify).WithName("verifyBackup").WithTags(Tag);
+        app.MapLibraryJobEndpoints();
+        return app;
+    }
+
+    private static IEndpointRouteBuilder MapLibraryJobEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet(ApiRoutes.LibraryJobs, ListJobsAsync).WithName("listLibraryJobs").WithTags(Tag);
+        app.MapGet(JobRoute, async (Guid jobId, LibraryJobRunner runner, CancellationToken ct) =>
+            await runner.GetAsync(jobId, ct) is { } job ? TypedResults.Ok(job) : JobNotFound(jobId)).WithName("getLibraryJob").WithTags(Tag);
+        app.MapPost(JobRoute + "/cancel", CancelAsync).WithName("cancelLibraryJob").WithTags(Tag);
+        return app;
+    }
+
+    private static async Task<IResult> StatusAsync(LibraryGate gate, LibraryJobRunner runner, BackupFolder folder, IServiceProvider services, CancellationToken ct)
+    {
+        var maintenance = gate.IsMaintenance;
+        var state = maintenance ? null : services.GetRequiredService<LibraryState>();
+        return TypedResults.Ok(new LibraryCareStatusDto
+        {
+            Gate = (GateModeDto)(int)gate.Mode,
+            ActiveJob = runner.Active,
+            BackupFolder = folder.Probe(),
+            PreviousLibrary = await PreviousAsync(services, ct),
+            ActiveWork = state is null ? [] : await state.ActiveWorkAsync(ct),
+            LibraryEmpty = state is not null && await state.IsEmptyAsync(ct),
+        });
+    }
+
+    private static Task<PreviousLibraryDto?> PreviousAsync(IServiceProvider services, CancellationToken ct) =>
+        services.GetService<IPreviousLibraryReader>()?.ReadAsync(ct) ?? Task.FromResult<PreviousLibraryDto?>(null);
+
+    private static async Task<IResult> CreateAsync(BackupOptionsDto options, BackupService backups, CancellationToken ct)
+    {
+        var outcome = await backups.StartAsync(options, ct);
+        return outcome.Job is { } job ? TypedResults.Accepted(ApiRoutes.LibraryJob(job.JobId), job) : outcome.Problem!;
+    }
+
+    private static async Task<IResult> EstimateAsync(
+        bool? detailStems, bool? exports, bool? scores, bool? generations, bool? recordings, bool? voiceProfiles, BackupFolder folder, BackupEstimates estimates, CancellationToken ct)
+    {
+        var options = new BackupOptionsDto
+        {
+            DetailStems = detailStems ?? true,
+            Exports = exports ?? true,
+            Scores = scores ?? true,
+            Generations = generations ?? true,
+            Recordings = recordings ?? true,
+            VoiceProfiles = voiceProfiles ?? true,
+        };
+        return TypedResults.Ok(await estimates.EstimateAsync(options, folder.Probe(), ct));
+    }
+
+    private static IResult Details(string fileName, BackupCatalog catalog) => catalog.Find(fileName) switch
+    {
+        null => ArchiveNotFound(fileName),
+        { Recognised: false } unrecognised => LibraryCareProblems.ArchiveInvalid(unrecognised.Reason ?? BackupCatalog.NotABackup).Result,
+        var details => TypedResults.Ok(details),
+    };
+
+    private static IResult Delete(string fileName, BackupCatalog catalog, LibraryJobRunner runner)
+    {
+        if (catalog.File(fileName) is not { } file)
+        {
+            return ArchiveNotFound(fileName);
+        }
+
+        if (runner.IsArchiveInUse(fileName))
+        {
+            return LibraryCareProblems.ArchiveInUse().Result;
+        }
+
+        file.Delete();
+        return TypedResults.NoContent();
+    }
+
+    private static IResult Download(string fileName, BackupCatalog catalog) => catalog.File(fileName) is { } file
+        ? TypedResults.PhysicalFile(file.FullName, "application/zip", fileDownloadName: file.Name, lastModified: file.LastWriteTimeUtc, entityTag: EntityTag(file), enableRangeProcessing: true)
+        : ArchiveNotFound(fileName);
+
+    private static IResult Verify(string fileName, BackupCatalog catalog, LibraryJobRunner runner, VerifyRun verify)
+    {
+        if (catalog.File(fileName) is null)
+        {
+            return ArchiveNotFound(fileName);
+        }
+
+        return runner.TryStart(LibraryJobKindDto.Verify, fileName, (context, ct) => verify.RunAsync(fileName, context, ct), out var job)
+            ? TypedResults.Accepted(ApiRoutes.LibraryJob(job.JobId), job)
+            : LibraryCareProblems.JobRunning(runner.Active).Result;
+    }
+
+    private static async Task<IResult> ListJobsAsync(int? limit, LibraryJobRunner runner, CancellationToken ct)
+    {
+        var count = limit ?? LibraryCareLimits.DefaultJobListLimit;
+        if (count is < LibraryCareLimits.MinJobListLimit or > LibraryCareLimits.MaxJobListLimit)
+        {
+            return ApiProblems.Validation("limit", "The limit must be between 1 and 50.");
+        }
+
+        return TypedResults.Ok(await runner.ListAsync(count, ct));
+    }
+
+    private static async Task<IResult> CancelAsync(Guid jobId, LibraryJobRunner runner, CancellationToken ct)
+    {
+        var (result, job) = await runner.CancelAsync(jobId, ct);
+        return result switch
+        {
+            CancelResult.Requested => TypedResults.Accepted(ApiRoutes.LibraryJob(jobId), job),
+            CancelResult.NotFound => JobNotFound(jobId),
+            _ => LibraryCareProblems.NotCancellable().Result,
+        };
+    }
+
+    private static IResult ArchiveNotFound(string fileName) =>
+        ApiProblems.NotFound(ArchiveNames.IsValid(fileName) ? $"Archive {fileName} is not in the backups folder." : "No such archive.");
+
+    private static IResult JobNotFound(Guid jobId) => ApiProblems.NotFound($"Library job {jobId} does not exist.");
+
+    private static EntityTagHeaderValue EntityTag(FileInfo file) =>
+        new(string.Create(CultureInfo.InvariantCulture, $"\"{file.Length:x}-{file.LastWriteTimeUtc.Ticks:x}\""));
+}
+
+/// <summary>Reads the previous library kept aside by a replace restore (feature 013 US2).</summary>
+public interface IPreviousLibraryReader
+{
+    /// <summary>Reads it.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The previous library, or null.</returns>
+    Task<PreviousLibraryDto?> ReadAsync(CancellationToken cancellationToken);
+}
