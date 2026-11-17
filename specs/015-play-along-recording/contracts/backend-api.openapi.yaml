@@ -186,7 +186,7 @@ info:
       `POST /api/takes/{takeId}/retry`) and input-latency calibrations (`/api/recording/calibrations`);
       `AssetOrigin` `recording` with `Provenance.recording` (`RecordingRecipe`, an optional member like `generation`); `listAssets` query `origin` (without it
       `recording` assets are excluded); `409 managed-by-take` on rename/delete/retry of a take's asset;
-      `ExportChannelId` (= `ChannelId` or the literal `take`) for the export channel lists (`ChannelId` itself is unchanged); `CreateAudioExportRequest.takeId`; `MixSettings.take`;
+      `ExportChannelId` (= `ChannelId` or the literal `take`) for the export channel lists (`ChannelId` itself is unchanged); `CreateAudioExportRequest.takeId`, `ExportMix.take` and `ExportRecipe.takeId` (amended in the round); `MixSettings.take`;
       `Track.takeCount`; deleting a track deletes its takes. New problem types: `invalid-wav`,
       `unsupported-wav-format`, `length-mismatch`, `silent-take`, `take-outside-track`,
       `take-limit-reached`, `recording-speed`, `take-not-ready`, `take-not-in-track`, `take-required`,
@@ -6372,6 +6372,11 @@ components:
       required: [masterVolume, channels]
       description: The mixer state used for an export (`MixSettings` without name, metronome and loop, which never affect an export).
       properties:
+        take:
+          oneOf:
+            - $ref: '#/components/schemas/TakeChannelSettings'
+            - type: 'null'
+          description: The take strip of the mixer state (1.14.0); absent or null = no take. Adds channel `take` to the gate evaluation.
         masterVolume:
           type: number
           minimum: 0
@@ -6529,6 +6534,10 @@ components:
       required: [trackId, mode, channels, mix, range, format]
       description: The normalised export request (stored; used by retry and by the agent).
       properties:
+        takeId:
+          type: [string, 'null']
+          format: uuid
+          description: The take the export used (1.14.0); absent or null when no take is in it.
         trackId:
           type: string
           format: uuid

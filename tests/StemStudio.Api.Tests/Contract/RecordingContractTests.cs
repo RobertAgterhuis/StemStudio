@@ -28,7 +28,7 @@ public sealed partial class RecordingContractTests
     public static TheoryData<string, string[]> Changed1130Entries => new()
     {
         { "paths", ["/api/assets", "/api/assets/{assetId}", "/api/assets/{assetId}/retry"] },
-        { "components/schemas", ["AssetOrigin", "Provenance", "CreateAudioExportRequest", "ExportRecipe", "MixSettings", "Track"] },
+        { "components/schemas", ["AssetOrigin", "Provenance", "CreateAudioExportRequest", "ExportRecipe", "ExportMix", "MixSettings", "Track"] },
         { "components/responses", [] },
         { "components/examples", [] },
         { "components/parameters", [] },
