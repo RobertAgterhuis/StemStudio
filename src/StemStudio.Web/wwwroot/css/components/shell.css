@@ -43,6 +43,10 @@
   align-items: stretch;
   gap: var(--ss-space-1);
   height: 100vh;
+  /* 013 added Library care: on short windows (720 px) the rail is taller than the viewport, so it scrolls instead of
+     cutting off Settings and Help. */
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: var(--ss-space-3) 0;
   background: var(--ss-color-base);
 }
