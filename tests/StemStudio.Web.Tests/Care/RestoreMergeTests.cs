@@ -67,6 +67,23 @@ public sealed class RestoreMergeTests : PageTestContext
         dialog.Find("[data-testid=restore-start]").HasAttribute("disabled").ShouldBeTrue();
     }
 
+    /// <summary>Skipped and renamed items as the merge restore reports them (backend-013-us5 "Contract readings") and their lines.</summary>
+    private static readonly (SkippedItemDto Item, string Text)[] ReportedItems =
+    [
+        (Skip("tracks", "t1", "Song", SkippedItemReasonDto.SameId), "Track \"Song\": already in your library"),
+        (Skip("tracks", "t2", null, SkippedItemReasonDto.SameSource), "Track t2: the same song is already in your library"),
+        (Skip("mixes", "m1", "Practice", SkippedItemReasonDto.DependencySkipped), "Mix \"Practice\": the item it belongs to was skipped"),
+        (Skip("mixes", "m2", "Groove", SkippedItemReasonDto.SameId) with { RenamedTo = "Groove (restored)" },
+            "Mix \"Groove\" added as \"Groove (restored)\" (the name was taken)"),
+        (Skip("styles", "s1", "Warm", SkippedItemReasonDto.SameId) with { RenamedTo = "Warm (restored)" },
+            "Style \"Warm\" added as \"Warm (restored)\" (the name was taken)"),
+        (Skip("lyricsSheets", "l1", "Verse", SkippedItemReasonDto.SameId), "Lyrics sheet \"Verse\": already in your library"),
+        (Skip("voiceProfiles", "v1", "Voice", SkippedItemReasonDto.Option), "Voice profile \"Voice\": left out by your choice"),
+        (Skip("assets", "a1", "Bounce", SkippedItemReasonDto.MissingFile), "Library item \"Bounce\": its file is missing from the archive"),
+        (Skip("generations", "g1", null, SkippedItemReasonDto.SameId), "Generation g1: already in your library"),
+        (Skip("agentConversations", "c1", "Chat", SkippedItemReasonDto.SameId), "Agent conversation \"Chat\": already in your library"),
+    ];
+
     [Fact]
     public void MergeReport_ListsSkippedAndRenamedItems()
     {
@@ -74,36 +91,20 @@ public sealed class RestoreMergeTests : PageTestContext
         {
             Mode = RestoreReportModeDto.Merge,
             Restored = [new CategoryCountDto { Category = BackupCategoryDto.Stems, Items = 1, Files = 6, Bytes = 100 * StorageData.MiB }],
-            Skipped =
-            [
-                new SkippedItemDto { Category = "track", Id = "t1", Name = "Song", Reason = SkippedItemReasonDto.SameId },
-                new SkippedItemDto { Category = "track", Id = "t2", Name = null, Reason = SkippedItemReasonDto.SameSource },
-                new SkippedItemDto { Category = "mix", Id = "m1", Name = "Practice", Reason = SkippedItemReasonDto.DependencySkipped },
-                new SkippedItemDto { Category = "style", Id = "s1", Name = "Warm", Reason = SkippedItemReasonDto.SameId, RenamedTo = "Warm (restored)" },
-                new SkippedItemDto { Category = "asset", Id = "a1", Name = "Bounce", Reason = SkippedItemReasonDto.MissingFile },
-                new SkippedItemDto { Category = "voiceProfile", Id = "v1", Name = "Voice", Reason = SkippedItemReasonDto.Option },
-            ],
+            Skipped = [.. ReportedItems.Select(r => r.Item)],
             MigratedFrom = null,
             Warnings = [],
             PreviousLibraryKept = false,
         };
-        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Job(LibraryJobKindDto.Restore, LibraryJobStatusDto.Completed, null, 100, report, cancellable: false)]);
+        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Completed(LibraryJobKindDto.Restore, report)]);
 
         var page = Render<LibraryCarePage>();
 
         page.Find("[data-testid=library-job-report]").TextContent.ShouldContain("The missing items of the backup were added to your library.");
-        var warnings = page.Find("[data-testid=library-job-warnings]").TextContent;
-        foreach (var text in new[]
-        {
-            "Track \"Song\" skipped: already in your library",
-            "Track t2 skipped: the same song is already in your library",
-            "Mix \"Practice\" skipped: the item it belongs to was skipped",
-            "Style \"Warm\" added as \"Warm (restored)\" (the name was taken)",
-            "Asset \"Bounce\" skipped: its file is missing from the archive",
-            "VoiceProfile \"Voice\" skipped: left out by your choice",
-        })
-        {
-            warnings.ShouldContain(text);
-        }
+        var warnings = page.FindAll("[data-testid=library-job-warnings] li").Select(li => li.TextContent.Trim()).ToList();
+        warnings.ShouldBe(ReportedItems.Select(r => r.Text).ToList());
     }
+
+    private static SkippedItemDto Skip(string category, string id, string? name, SkippedItemReasonDto reason) =>
+        new() { Category = category, Id = id, Name = name, Reason = reason };
 }

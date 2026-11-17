@@ -76,4 +76,15 @@ public sealed class LibraryCareTextTests
         ArchiveRules.VerifyBlocked(LibraryCareData.Summary(compatibility: LibraryCareData.Compatible(false)), false).ShouldBeNull();
         ArchiveRules.VerifyBlocked(LibraryCareData.Summary(recognised: false), false).ShouldBe("This file is not a StemStudio backup.");
     }
+
+    [Theory]
+    [InlineData("tracks", "Track \"Song\": already in your library")]
+    [InlineData("assets", "Library item \"Song\": already in your library")]
+    [InlineData("practiceLoops", "Practice loop \"Song\": already in your library")]
+    [InlineData("track", "Track \"Song\": already in your library")]
+    [InlineData("class", "Class \"Song\": already in your library")]
+    [InlineData("", "Item \"Song\": already in your library")]
+    [InlineData("s", "S \"Song\": already in your library")]
+    public void SkippedText_NamesTheCategory_AndFallsBackToReadableWords(string category, string text) =>
+        JobView.SkippedText(new SkippedItemDto { Category = category, Id = "t1", Name = "Song", Reason = SkippedItemReasonDto.SameId }).ShouldBe(text);
 }

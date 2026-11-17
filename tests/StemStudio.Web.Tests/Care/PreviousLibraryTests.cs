@@ -176,12 +176,12 @@ public sealed class PreviousLibraryTests : PageTestContext
         {
             Mode = RestoreReportModeDto.Replace,
             Restored = [new CategoryCountDto { Category = BackupCategoryDto.Stems, Items = 3, Files = 24, Bytes = 800 * StorageData.MiB }],
-            Skipped = [new SkippedItemDto { Category = "voiceProfile", Id = "p1", Name = "Old voice", Reason = SkippedItemReasonDto.ConsentInvalid }],
+            Skipped = [new SkippedItemDto { Category = "voiceProfiles", Id = "p1", Name = "Old voice", Reason = SkippedItemReasonDto.ConsentInvalid }],
             MigratedFrom = "20261001000000_Lyrics",
             Warnings = ["The stored Claude key must be entered again"],
             PreviousLibraryKept = true,
         };
-        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Job(LibraryJobKindDto.Restore, LibraryJobStatusDto.Completed, null, 100, report, cancellable: false)]);
+        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Completed(LibraryJobKindDto.Restore, report)]);
 
         var page = RenderPage();
 
@@ -190,7 +190,7 @@ public sealed class PreviousLibraryTests : PageTestContext
         text.ShouldContain("Stems: 24 files, 800 MB");
         var warnings = Id(page, "library-job-warnings").TextContent;
         warnings.ShouldContain("The stored Claude key must be entered again");
-        warnings.ShouldContain("VoiceProfile \"Old voice\" skipped: its consent record is not valid");
+        warnings.ShouldContain("Voice profile \"Old voice\": its consent record is not valid");
     }
 
     [Fact]
@@ -205,7 +205,7 @@ public sealed class PreviousLibraryTests : PageTestContext
             Warnings = [],
             PreviousLibraryKept = true,
         };
-        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Job(LibraryJobKindDto.UndoRestore, LibraryJobStatusDto.Completed, null, 100, report, cancellable: false)]);
+        LibraryCare.ListJobsAsync(1, Arg.Any<CancellationToken>()).Returns([LibraryCareData.Completed(LibraryJobKindDto.UndoRestore, report)]);
 
         var page = RenderPage();
 
