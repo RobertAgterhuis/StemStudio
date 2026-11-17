@@ -1,6 +1,6 @@
 # ADR-024: Play-along recording, latency compensation and take storage
 
-**Status**: Proposed (architect, 2026-11-16; becomes Accepted in 015 Phase 0 T001)
+**Status**: Accepted (015 Phase 0 T001, architect, 2026-11-17; proposed 2026-11-16)
 **Feature**: 015 Play-along recording (MoSCoW S3)
 **Related**: ADR-005 (audio engine), ADR-010 (stem groups), ADR-015 (karaoke clock), ADR-016
 (asset library and export rendering), ADR-019 (voice samples, consent, exact-copy guard),
@@ -146,3 +146,37 @@ playback keeps working.
 - Risks (research.md R-12): calibration through an acoustic path is noisier than a cable; Chrome
   may change input latency between sessions (hence the per-session estimate check); large takes
   (15-minute stereo, about 240 MB WAV) take several seconds to stream.
+
+## Phase 0 outcome (2026-11-17)
+
+Number check: ADR-024 is free and allocated to 015 (ADR-023 = 014, ADR-025 = 016); no rename.
+Checked against `main` e8d6a5d8 (001-013 merged; 014 and 022/023 in progress). Details:
+`specs/015-play-along-recording/contracts/audio-engine.md` "Phase 0 outcome" and "Browser
+constraints", `contracts/DELTA.md` "Phase 0 decisions".
+
+1. **Engine hooks (D2, D6)**: 012's transport keeps heard/played anchor queues with explicit
+   passes and count-in gaps, but prunes them; the 2.5.0 work adds an internal segment log. The
+   tempo-stage latency `P` is already part of the **heard** anchors, so the mapping is
+   `songSample(f) = heardSampleAt(f - L)`; `P` is not added a second time (it is still reported in
+   `CapturedTake.latencySamples` = `L + P`). The stage sits on the master bus, so the take channel
+   is processed like the stems (D3). Count-in bars and "every pass" come from 012's practice
+   settings.
+2. **Secure context (D7)**: measured - `getUserMedia` and `AudioWorklet` exist only on
+   `http://localhost` / `127.0.0.1` (or https); on a LAN address over http both are undefined. Recording
+   is offered only on the StemStudio computer; from another device `recordingSupport()` reports
+   `insecureContext` with the reason. This also keeps FR-017 (audio never crosses the network) and
+   needs no change to the LAN residual risk T7 (closed by 018).
+3. **Take recipe (D4)**: the asset's provenance carries the take as `Provenance.recording`
+   (optional, like 1.8.0's `generation`) instead of a third `Provenance.recipe` variant, so the typed
+   `ExportRecipe` readers stay unchanged.
+4. **Channel ids (D5)**: `ChannelId` stays unchanged (scores and agent tools use it); the export
+   channel lists use the new `ExportChannelId` (= `ChannelId` or `take`). The agent tool catalogue
+   stays unchanged.
+5. **013 / 022 integration (D4)**: takes are `recordings` in backups and the storage overview
+   (013's reserved category; stored provenance value `Recording`, as the 013 fixture expects);
+   `RecordingTakes` and `InputCalibrations` join the backup scrub, merge restore and the 013 write
+   gate (delete and replace of take files); 022's library filing excludes origin `recording`.
+6. **Spikes**: S-01 60 s gap-free capture in Chromium and Firefox (fake devices); the 10-minute
+   real-interface run, CPU and the Firefox rate mismatch move to the owner checks (T089). S-02
+   browser half 0.2-0.3 s for a 5-minute stereo take; the circuit + API half is measured by the
+   frontend lane (US1) and the CTO.

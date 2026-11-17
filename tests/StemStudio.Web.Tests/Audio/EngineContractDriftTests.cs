@@ -16,7 +16,9 @@ public sealed partial class EngineContractDriftTests
     // Staged callbacks: in types.ts but not yet [JSInvokable] in AudioEngineInterop. Empty since 012 T030
     // (OnPracticeChanged implemented); a later contract stages new names here until the frontend implements them.
     // 014 Phase 0 part 2 (engine 2.4.0): OnLoopPass, removed by the frontend lane when the recorder wires it (T049/T099).
-    private static readonly string[] PendingCallbacks = ["OnLoopPass"];
+    // 015 Phase 0 (T004, engine 2.5.0): the five recording callbacks, removed when the frontend implements them (T026/T027).
+    private static readonly string[] PendingCallbacks =
+        ["OnLoopPass", "OnRecordingStateChanged", "OnRecordingProgress", "OnTakesCaptured", "OnInputLost", "OnInputDevicesChanged"];
 
     [Fact]
     public void EveryInvokedEngineMethod_ExistsInAudioEngineInterface()

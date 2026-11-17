@@ -17,6 +17,7 @@ import { MetronomeScheduler } from './metronome/scheduler';
 import { DEFAULT_METRONOME, validateMetronomeSettings } from './metronome/settings';
 import { Mixer } from './mixer';
 import { PracticeController } from './practice/controller';
+import { PendingRecording, type RecordingSurface } from './recording/pending';
 import type { TempoSource } from './practice/count-ins';
 import { loadStems, type NamedSource } from './stem-loader';
 import { createWorkletStageFactory } from './stretch/worklet-stage';
@@ -24,22 +25,33 @@ import { Transport } from './transport';
 import type {
   AudioEngine,
   BeatGrid,
+  CalibrationOptions,
+  CalibrationResult,
+  CapturedTake,
   ChannelId,
   ChannelSettings,
   DotNetObjectReference,
   EngineOptions,
+  InputDevice,
+  InputInfo,
   KaraokeLyrics,
   KaraokeOptions,
+  LoadTakeRequest,
   LoadTrackRequest,
   LoopRegion,
   MeterTarget,
   MetronomeSettings,
+  MonitoringSettings,
+  OpenInputRequest,
   ParentStemName,
   PlaybackState,
   PracticeSettings,
   PracticeStatus,
   ScoreFollowOptions,
   ScoreViewMap,
+  RecordOptions,
+  RecordingSupport,
+  TakeCompareMode,
 } from './types';
 
 /** Default delay of the shared `when` (s). */
@@ -137,6 +149,7 @@ export class Engine implements AudioEngine {
   private readonly fetchFn: typeof fetch;
   private readonly practice: PracticeController;
   private readonly practiceNotifier: PracticeNotifier;
+  private readonly recording: RecordingSurface = new PendingRecording();
   private metronome: MetronomeSettings = DEFAULT_METRONOME;
   private grid: BeatGrid | null = null;
   private disposed = false;
@@ -307,6 +320,90 @@ export class Engine implements AudioEngine {
   public detachScoreFollower(): void {
     this.alive();
     throw new Error(scoreFollowerPending([]));
+  }
+
+  /** {@inheritDoc AudioEngine.recordingSupport} */
+  public recordingSupport(): Promise<RecordingSupport> {
+    this.alive();
+    return this.recording.recordingSupport();
+  }
+
+  /** {@inheritDoc AudioEngine.listInputDevices} */
+  public listInputDevices(): Promise<InputDevice[]> {
+    this.alive();
+    return this.recording.listInputDevices();
+  }
+
+  /** {@inheritDoc AudioEngine.openInput} */
+  public openInput(request: OpenInputRequest): Promise<InputInfo> {
+    this.alive();
+    return this.recording.openInput(request);
+  }
+
+  /** {@inheritDoc AudioEngine.closeInput} */
+  public closeInput(): void {
+    this.alive();
+    this.recording.closeInput();
+  }
+
+  /** {@inheritDoc AudioEngine.setMonitoring} */
+  public setMonitoring(settings: MonitoringSettings): void {
+    this.alive();
+    this.recording.setMonitoring(settings);
+  }
+
+  /** {@inheritDoc AudioEngine.calibrateLatency} */
+  public calibrateLatency(options?: CalibrationOptions): Promise<CalibrationResult> {
+    this.alive();
+    return this.recording.calibrateLatency(options);
+  }
+
+  /** {@inheritDoc AudioEngine.startRecording} */
+  public startRecording(options: RecordOptions): Promise<void> {
+    this.alive();
+    return this.recording.startRecording(options);
+  }
+
+  /** {@inheritDoc AudioEngine.stopRecording} */
+  public stopRecording(): Promise<CapturedTake[]> {
+    this.alive();
+    return this.recording.stopRecording();
+  }
+
+  /** {@inheritDoc AudioEngine.captureWav} */
+  public captureWav(captureKey: string): Blob {
+    this.alive();
+    return this.recording.captureWav(captureKey);
+  }
+
+  /** {@inheritDoc AudioEngine.releaseCapture} */
+  public releaseCapture(captureKey: string): void {
+    this.alive();
+    this.recording.releaseCapture(captureKey);
+  }
+
+  /** {@inheritDoc AudioEngine.loadTake} */
+  public loadTake(request: LoadTakeRequest): Promise<void> {
+    this.alive();
+    return this.recording.loadTake(request);
+  }
+
+  /** {@inheritDoc AudioEngine.unloadTake} */
+  public unloadTake(): void {
+    this.alive();
+    this.recording.unloadTake();
+  }
+
+  /** {@inheritDoc AudioEngine.setTakeAdjustment} */
+  public setTakeAdjustment(samples: number): void {
+    this.alive();
+    this.recording.setTakeAdjustment(samples);
+  }
+
+  /** {@inheritDoc AudioEngine.setTakeCompare} */
+  public setTakeCompare(mode: TakeCompareMode): void {
+    this.alive();
+    this.recording.setTakeCompare(mode);
   }
 
   /** {@inheritDoc AudioEngine.dispose} */

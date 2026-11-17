@@ -33,14 +33,19 @@
     <!-- Feature 022/023 round (agreed one-time edits of both Phase 0s): 023's 1.23.0 (= 022's 1.22.0 + 023, merge_full.py of 023);
          022's 1.22.0 (= 013's 1.12.0 + 022), 013's 1.12.0 and 012's 1.11.0 stay linked as Contract/022, Contract/013 and
          Contract/012 so every merge stays proven. -->
-    <!-- Round 014+015 (architect re-merge): the current full backend document is 014's 1.13.0 (= 023's 1.23.0 + 014,
-         specs/014-practice-flow/contracts/merge_full.py); 023's 1.23.0 stays linked as Contract/023. -->
-    <None Include="..\..\specs\014-practice-flow\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Round 014+015 (architect re-merge): the current full backend document is 015's 1.14.0 (= 014's 1.13.0 + 015,
+         merge_recording_delta.py); 014's 1.13.0 (= 023's 1.23.0 + 014, specs/014-practice-flow/contracts/merge_full.py) and
+         023's 1.23.0 stay linked as Contract/014 and Contract/023. -->
+    <None Include="..\..\specs\015-play-along-recording\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\backend-api.openapi.yaml" Link="Contract\014\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\023-lyric-writing-assistant\contracts\backend-api.openapi.yaml" Link="Contract\023\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\014-practice-flow\contracts\practice-api.openapi.yaml" Link="Contract\014\practice-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\014-practice-flow\contracts\worker-practice.openapi.yaml" Link="Contract\014\worker-practice.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\014-practice-flow\contracts\ui-test-ids.md" Link="Contract\014\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\014-practice-flow\contracts\ui-test-ids.delta.md" Link="Contract\014\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\recording-api.openapi.yaml" Link="Contract\015\recording-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\ui-test-ids.md" Link="Contract\015\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\ui-test-ids.delta.md" Link="Contract\015\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\013\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.delta.openapi.yaml" Link="Contract\013\backend-api.delta.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />

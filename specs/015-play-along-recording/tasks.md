@@ -5,7 +5,7 @@ description: "Task list for feature 015 play-along recording (Phase 0 by the arc
 
 # Tasks: Play-along Recording
 
-**Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
+**Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md) (Phase 0 results 2026-11-17: [contracts/DELTA.md](contracts/DELTA.md) "Phase 0 decisions"),
 [data-model.md](data-model.md), [quickstart.md](quickstart.md), [contracts/DELTA.md](contracts/DELTA.md),
 the merged 007, 012 and (when merged) 014 artefacts, constitution 1.3.1, ADR-024.
 
@@ -42,12 +42,12 @@ and `polish`, with real test and coverage output.
 
 ## Phase 0: Contracts and skeleton (architect, BEFORE the wave)
 
-- [ ] T001 [architect] ADR-024 -> Accepted; check the merged 012 (2.3.0) and 014 (2.4.0) engines against DELTA.md section 3 (segments, processing latency, extra channels, count-in API); record which hooks exist and which the audio-engine lane adds in T015 (ADR-024 "Phase 0 outcome")
-- [ ] T002 [architect] Full contracts in `specs/015-play-along-recording/contracts/`: `backend-api.openapi.yaml` 1.14.0 (= 014's 1.13.0 + `recording-api.openapi.yaml` + the `*Additions` merged into their schemas/operations), `ui-test-ids.md` 1.14.0, `render-vectors.json` 1.1.0 (+ `generate_render_vectors.py` take input, `--check`), `redocly.yaml`; Redocly 2.78.0 lint 0 errors
-- [ ] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Recording/{RecordingTakeDto, RecordingTakeListDto, RecordingTakeUploadDto, ReplaceTakeAudioMetadataDto, UpdateTakeRequest, DeleteTakesRequest, DeleteTakesResultDto, TakeLatencyDto, InputCalibrationDto, InputCalibrationInput, RecordingPartDto, InputChannelModeDto, LatencyMethodDto, CalibrationMethodDto, TakeStatusDto, TakeChannelSettingsDto, RecordingRecipeDto}.cs`; additions `AssetOriginDto.Recording`, `CreateAudioExportRequest.TakeId`, `MixSettings*.Take`, `TrackDto.TakeCount`; `ApiRoutes.Takes*`/`Calibrations*`; `ContractLimits` (data-model constants, `ChannelIdPattern` with `take`); XML docs; skeleton serialisation tests
-- [ ] T004 [P] [architect] Engine skeleton: `src/audio-engine/src/types.ts` 2.5.0 (audio-engine.delta.md section 1-3), `ENGINE_CONTRACT_VERSION = "2.5.0"`, engine methods rejecting `not implemented: <method>`, `src/recording/capture-worklet.ts` stub + second Vite entry; skeleton tests keep coverage >= 90 %
-- [ ] T005 [architect] Spikes on the reference machine (research.md S-01 capture gap-free 10 min Chrome/Edge + Firefox rate-mismatch check; S-02 stream a 240 MB WAV through JS stream interop + API, time it); record results in research.md
-- [ ] T006 [architect] Verify the skeleton (`dotnet build` 0 warnings, all tests + coverage gates, engine lint/typecheck/tests, `run_all.py`); hand-off `docs/handoffs/architect-015-phase0.md`
+- [x] T001 [architect] ADR-024 -> Accepted; check the merged 012 (2.3.0) and 014 (2.4.0) engines against DELTA.md section 3 (segments, processing latency, extra channels, count-in API); record which hooks exist and which the audio-engine lane adds in T015 (ADR-024 "Phase 0 outcome")
+- [x] T002 [architect] Full contracts in `specs/015-play-along-recording/contracts/`: `backend-api.openapi.yaml` 1.14.0 (= 014's 1.13.0 + `recording-api.openapi.yaml` + the `*Additions` merged into their schemas/operations), `ui-test-ids.md` 1.14.0, `render-vectors.json` 1.1.0 (+ `generate_render_vectors.py` take input, `--check`), `redocly.yaml`; Redocly 2.78.0 lint 0 errors
+- [x] T003 [P] [architect] .NET contract code: `src/StemStudio.Contracts/Recording/{RecordingTakeDto, RecordingTakeListDto, RecordingTakeUploadDto, ReplaceTakeAudioMetadataDto, UpdateTakeRequest, DeleteTakesRequest, DeleteTakesResultDto, TakeLatencyDto, InputCalibrationDto, InputCalibrationInput, RecordingPartDto, InputChannelModeDto, LatencyMethodDto, CalibrationMethodDto, TakeStatusDto, TakeChannelSettingsDto, RecordingRecipeDto}.cs`; additions `AssetOriginDto.Recording`, `CreateAudioExportRequest.TakeId`, `MixSettings*.Take`, `TrackDto.TakeCount`; `ApiRoutes.Takes*`/`Calibrations*`; `ContractLimits` (data-model constants, `ChannelIdPattern` with `take`); XML docs; skeleton serialisation tests
+- [x] T004 [P] [architect] Engine skeleton: `src/audio-engine/src/types.ts` 2.5.0 (audio-engine.delta.md section 1-3), `ENGINE_CONTRACT_VERSION = "2.5.0"`, engine methods rejecting `not implemented: <method>`, `src/recording/capture-worklet.ts` stub + second Vite entry; skeleton tests keep coverage >= 90 %
+- [x] T005 [architect] Spikes on the reference machine (research.md S-01 capture gap-free 10 min Chrome/Edge + Firefox rate-mismatch check; S-02 stream a 240 MB WAV through JS stream interop + API, time it); record results in research.md. **Phase 0 result**: S-01 60 s gap-free in Chromium and Firefox (fake devices) plus the secure-context matrix; S-02 browser half 0.2-0.3 s. The 10-minute real-interface run, CPU and the Firefox rate mismatch move to T089; the circuit + API half of S-02 to the frontend US1 timing test (T043) and T089
+- [x] T006 [architect] Verify the skeleton (`dotnet build` 0 warnings, all tests + coverage gates, engine lint/typecheck/tests, `run_all.py`); hand-off `docs/handoffs/architect-015-phase0.md`
 
 **Checkpoint**: skeleton green; the wave may start.
 
@@ -84,6 +84,8 @@ and `polish`, with real test and coverage output.
 - [ ] T023 [backend] Implement `src/StemStudio.Domain/Recording/*` to pass T022
 - [ ] T024 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/`: migration `AddRecordingTakes` (tables, indexes, unique `(TrackId, Number)`, cascade on track, set null on mix/calibration), `InputCalibrations` unique label, `Mixes.TakeChannel` JSON round trip
 - [ ] T025 [backend] Implement persistence configuration and migration to pass T024
+- [ ] T025a [P] [backend] Failing tests for the 013/022 integration (DELTA.md 7 "013 implementation notes" and "022"): origin `recording` stored as `Recording` and read back (fixture `tests/fixtures/backup/recording-asset.json` unchanged); backup scrub `recordings=false` removes the take rows and clears `Mixes.TakeChannel`; `InputCalibrations` in the `database` category; merge restore adds `RecordingTakes` only with their asset and `InputCalibrations` by label (live wins); backups never contain `capture.wav`; the three gated endpoints answer `409 backup-running` while a backup runs and `503` during maintenance; 022 `LibraryFilingRules.IsFileable` false for `recording` and `CountPendingAsync`/`PendingAsync` exclude takes (runs once `main` with 022 is merged into the round)
+- [ ] T025b [backend] Implement T025a (Domain enum member `Recording`, scrubber, merge planner, file selection, `RequireGateOpen`, 022 filing rules and SQL)
 
 ### frontend (tests first)
 
@@ -218,7 +220,7 @@ and `polish`, with real test and coverage output.
 |---|---|---|
 | architect | T001 -> T002 -> (T003 \|\| T004) -> T005 -> T006 | n/a |
 | audio-engine | T012 -> T013 -> T014 -> T015 -> T016 -> T017 -> T018 -> T019 -> HO:foundational -> T028 -> T029 -> T030 -> T031 -> T032 -> T033 -> T034 -> T035 -> HO:us1 -> T045 -> T046 -> HO:us2 -> T052 -> T053 -> HO:us3 -> T059 -> T060 -> HO:us4 -> T073 -> HO:us6 -> T077 -> T078 -> HO:us7 -> T086 | AudioContext/worklet/media-devices mocks, fake transport segments |
-| backend | T020 -> T021 -> T022 -> T023 -> T024 -> T025 -> HO:foundational -> T036 -> T037 -> T038 -> T039 -> HO:us1 -> T047 -> T048 -> HO:us2 -> T054 -> T055 -> HO:us3 -> T061 -> T062 -> HO:us4 -> T066 -> T067 -> HO:us5 -> T071 -> T072 -> HO:us6 -> T079 -> T080 -> HO:us7 -> T086 | stub worker handler, SQLite, temp data dir, `FakeTimeProvider` |
+| backend | T020 -> T021 -> T022 -> T023 -> T024 -> T025 -> T025a -> T025b -> HO:foundational -> T036 -> T037 -> T038 -> T039 -> HO:us1 -> T047 -> T048 -> HO:us2 -> T054 -> T055 -> HO:us3 -> T061 -> T062 -> HO:us4 -> T066 -> T067 -> HO:us5 -> T071 -> T072 -> HO:us6 -> T079 -> T080 -> HO:us7 -> T086 | stub worker handler, SQLite, temp data dir, `FakeTimeProvider` |
 | frontend | T026 -> T027 -> HO:foundational -> T040 -> T041 -> T042 -> T043 -> HO:us1 -> T049 -> T050 -> HO:us2 -> T056 -> T057 -> HO:us3 -> T063 -> T064 -> HO:us4 -> T068 -> T069 -> HO:us5 -> T074 -> T075 -> HO:us6 -> T081 -> T082 -> HO:us7 -> T084 -> T086 | fake API client, bUnit JS-interop mock |
 | qa | T009 -> T044 -> HO:us1 -> T051 -> HO:us2 -> T058 -> HO:us3 -> T065 -> HO:us4 -> T070 -> HO:us5 -> T076 -> HO:us6 -> T083 -> HO:us7 -> T085 -> T086 | fake capture device, digital loopback |
 | devops | T010 -> HO:foundational -> T086 | - |
@@ -232,8 +234,8 @@ each owner's implementation task follows its own red task. Stories US3-US7 depen
 stories in any order.
 
 Task count per owner (T086 counted once per owner): architect 6 (T001-T006), audio-engine 26
-(T012-T019, T028-T035, T045-T046, T052-T053, T059-T060, T073, T077-T078, T086), backend 23
-(T020-T025, T036-T039, T047-T048, T054-T055, T061-T062, T066-T067, T071-T072, T079-T080,
+(T012-T019, T028-T035, T045-T046, T052-T053, T059-T060, T073, T077-T078, T086), backend 25
+(T020-T025, T025a-T025b, T036-T039, T047-T048, T054-T055, T061-T062, T066-T067, T071-T072, T079-T080,
 T086), frontend 20 (T026-T027, T040-T043, T049-T050, T056-T057, T063-T064, T068-T069, T074-T075,
 T081-T082, T084, T086), qa 10 (T009, T044, T051, T058, T065, T070, T076, T083, T085, T086),
 devops 2 (T010, T086), stem-separation 2 (T011, T086), quality-gate 3 (T007, T008, T087), CTO 4

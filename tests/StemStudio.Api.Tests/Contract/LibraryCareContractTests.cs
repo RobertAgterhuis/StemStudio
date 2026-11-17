@@ -10,7 +10,8 @@ using static StemStudio.Api.Tests.Contract.ContractJson;
 namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
-/// Skeleton tests (architect, 013 Phase 0, T005/T006): backend-api 1.12.0 (<c>specs/013-library-care/contracts/backend-api.openapi.yaml</c>)
+/// Skeleton tests (architect, 013 Phase 0, T005/T006): backend-api 1.12.0 (<c>specs/013-library-care/contracts/backend-api.openapi.yaml</c>,
+/// linked as <c>Contract/013</c> since 015 Phase 0; the other tests read the current 1.14.0, a superset)
 /// is 012's 1.11.0 plus exactly the 013 delta (DELTA.md section 1 and "Phase 0"), and the LibraryCare DTOs, routes and limits match it.
 /// </summary>
 public sealed partial class LibraryCareContractTests

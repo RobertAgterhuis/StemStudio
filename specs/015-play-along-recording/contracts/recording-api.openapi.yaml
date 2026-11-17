@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Backend API - recording delta (feature 015)
-  version: 1.14.0-delta.1
+  version: 1.14.0-delta.2
   summary: Additive delta of the backend API for play-along recording (takes, latency calibrations).
   description: |
     * **Standalone, additive delta.** This document contains the new `recording` tag of the
@@ -23,6 +23,9 @@ info:
       additions to `Asset`/`AssetOrigin`, `listAssets` (`origin`), `CreateAudioExportRequest`
       (`takeId`), `ChannelId` (`take`), `MixSettings`/`MixSettingsInput` (`take`), `Track`
       (`takeCount`). See ADR-024 and contracts/DELTA.md.
+      1.14.0-delta.2 (015 Phase 0) - the take's recipe is `Provenance.recording` (optional, like
+      `generation`) instead of a third `Provenance.recipe` variant; the merged full document
+      `backend-api.openapi.yaml` 1.14.0 is binding from now on (DELTA.md).
   license:
     name: MIT
     identifier: MIT
@@ -751,7 +754,7 @@ components:
       type: object
       additionalProperties: false
       required: [kind, takeId, captureFile]
-      description: New member of the `Provenance.recipe` oneOf (assets with origin `recording`).
+      description: "`Provenance.recording` of assets with origin `recording` (1.14.0; Phase 0: its own optional member like `generation`, not a `recipe` variant)."
       properties:
         kind:
           type: string
@@ -764,10 +767,11 @@ components:
           const: capture.wav
     ChannelIdAdditions:
       description: |
-        Merge rule: the backend `ChannelId` pattern becomes
-        `^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$`. `take` is valid
-        only when the export names a take (`takeId` in raw mode, `mix.take` or the saved mix's
-        take in mix mode), else 422 `take-required`.
+        Merge rule (delta.2): `ChannelId` itself is unchanged (scores and agent tools use it); the
+        export channel lists (`CreateAudioExportRequest.channels`, `ExportRecipe.channels`) reference
+        the new `ExportChannelId` with this pattern. `take` is valid only when the export names a
+        take (`takeId` in raw mode, `mix.take` or the saved mix's take in mix mode), else 422
+        `take-required`.
       type: string
       pattern: '^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$'
     AssetOriginAdditions:

@@ -8,7 +8,7 @@
  */
 
 /** Semantic version of this contract; exported at runtime by `index.ts`. */
-export type EngineContractVersion = '2.4.0';
+export type EngineContractVersion = '2.5.0';
 
 /** Stem names delivered by the backend (`htdemucs_6s`; `htdemucs` yields vocals, drums, bass, other). */
 export type StemName = 'vocals' | 'drums' | 'bass' | 'guitar' | 'piano' | 'other';
@@ -35,11 +35,14 @@ export type DetailStemName =
   | 'percussion'
   | 'rest';
 
-/** Channel address: a standard stem, or `<parent>.<detail>` for a detail stem (e.g. `drums.snare`). */
-export type ChannelId = StemName | `${ParentStemName}.${DetailStemName}`;
+/**
+ * Channel address: a standard stem, `<parent>.<detail>` for a detail stem (e.g. `drums.snare`), or `take`, the one
+ * take channel strip (contract 2.5.0).
+ */
+export type ChannelId = StemName | `${ParentStemName}.${DetailStemName}` | 'take';
 
-/** Meter target name: a channel or the master bus. */
-export type MeterTarget = ChannelId | 'master';
+/** Meter target name: a channel, the master bus or the open input (`input`, contract 2.5.0). */
+export type MeterTarget = ChannelId | 'master' | 'input';
 
 /** Transport state reported to .NET via {@link DotNetCallbacks.OnPlaybackStateChanged}. */
 export type PlaybackState = 'stopped' | 'playing' | 'paused';
@@ -63,8 +66,24 @@ export interface DotNetObjectReference {
  *   state change, trainer pass start, count-in beat and underrun burst; at most 10 Hz.
  * - `OnLoopPass(LoopPassInfo pass)` (2.4.0, feature 014): once per completed pass of an enabled loop, when the
  *   wrap is heard; at most one call per pass.
+ * - `OnRecordingStateChanged(string state)` (2.5.0): on every {@link RecordingState} change.
+ * - `OnRecordingProgress(RecordingProgress progress)` (2.5.0): at most 4 Hz while counting in or recording.
+ * - `OnTakesCaptured(CapturedTake[] takes)` (2.5.0): when a recording session ends (also returned by
+ *   {@link AudioEngine.stopRecording}).
+ * - `OnInputLost(string reason)` (2.5.0): the input device was unplugged or its track ended; a running recording
+ *   stops and keeps a partial take.
+ * - `OnInputDevicesChanged()` (2.5.0): a `devicechange` event; the UI lists the inputs again.
  */
-export type DotNetCallbacks = 'OnPositionChanged' | 'OnPlaybackStateChanged' | 'OnPracticeChanged' | 'OnLoopPass';
+export type DotNetCallbacks =
+  | 'OnPositionChanged'
+  | 'OnPlaybackStateChanged'
+  | 'OnPracticeChanged'
+  | 'OnLoopPass'
+  | 'OnRecordingStateChanged'
+  | 'OnRecordingProgress'
+  | 'OnTakesCaptured'
+  | 'OnInputLost'
+  | 'OnInputDevicesChanged';
 
 /** One stem to load: its name and an absolute or API-relative URL of the FLAC file. */
 export interface StemSource {
@@ -363,6 +382,198 @@ export interface TimeStretchStage {
   dispose(): void;
 }
 
+/** Part a take is recorded for (contract 2.5.0); `none` = no original part (compare `original` gates the take). */
+export type RecordingPart = 'none' | 'vocals' | 'guitar' | 'bass' | 'piano' | 'drums' | 'other';
+
+/** Input channel mode: channel 1 or channel 2 of the device as mono, or both as stereo (contract 2.5.0). */
+export type InputChannelMode = 'mono-1' | 'mono-2' | 'stereo';
+
+/** How the latency `L` of a take was obtained (contract 2.5.0). */
+export type LatencyMethod = 'loopback' | 'manual' | 'estimated';
+
+/** Recording state machine (data-model 3.1, contract 2.5.0). */
+export type RecordingState = 'closed' | 'open' | 'countIn' | 'recording' | 'finishing';
+
+/** Compare mode of the take strip (research R-10, contract 2.5.0). */
+export type TakeCompareMode = 'both' | 'take' | 'original';
+
+/** Microphone permission as reported by `navigator.permissions` (`unknown` when not queryable). */
+export type PermissionStateValue = 'granted' | 'prompt' | 'denied' | 'unknown';
+
+/**
+ * Why recording is not available in this page (contract 2.5.0, ADR-024 D7/D8):
+ * `insecureContext` (not https and not localhost, e.g. a LAN address over http), `noMediaDevices`
+ * (no `navigator.mediaDevices.getUserMedia`), `noAudioWorklet` (no `AudioWorklet`), `rateMismatch`
+ * (the browser cannot connect a device whose rate differs from 44.1 kHz, Firefox).
+ */
+export type RecordingUnsupportedReason = 'insecureContext' | 'noMediaDevices' | 'noAudioWorklet' | 'rateMismatch';
+
+/** Result of {@link AudioEngine.recordingSupport} (contract 2.5.0). */
+export interface RecordingSupport {
+  /** True when recording can be offered in this page. */
+  readonly supported: boolean;
+  /** Machine-readable reason when not supported; null when supported. */
+  readonly reasonCode: RecordingUnsupportedReason | null;
+  /** Readable reason when not supported (one sentence with the next step); null when supported. */
+  readonly reason: string | null;
+  /** Microphone permission (`navigator.permissions.query({ name: 'microphone' })`). */
+  readonly permission: PermissionStateValue;
+}
+
+/** One audio input device (`enumerateDevices`, kind `audioinput`). */
+export interface InputDevice {
+  /** Browser device id (opaque, per origin). */
+  readonly deviceId: string;
+  /** Device label; empty until the permission is granted (browser rule). */
+  readonly label: string;
+  /** Group id (devices of one physical interface share it). */
+  readonly groupId: string;
+}
+
+/** Argument of {@link AudioEngine.openInput}. */
+export interface OpenInputRequest {
+  /** Device to open; null = the browser default input. */
+  readonly deviceId: string | null;
+  /** Channel mode; `mono-2` and `stereo` need a 2-channel device. */
+  readonly mode: InputChannelMode;
+}
+
+/** The open input (result of {@link AudioEngine.openInput}). */
+export interface InputInfo {
+  /** Device id of the open track. */
+  readonly deviceId: string;
+  /** Device label (non-empty once open). */
+  readonly label: string;
+  /** Channels the device delivers (1 or 2). */
+  readonly channelCount: 1 | 2;
+  /** Applied channel mode. */
+  readonly mode: InputChannelMode;
+  /** Device rate reported by the track; the context stays at 44,100 Hz. Null when not reported. */
+  readonly deviceSampleRate: number | null;
+  /** `round((baseLatency + outputLatency + track latency) * 44100)`: the estimate used until calibrated. */
+  readonly estimatedLatencySamples: number;
+  /** `round((baseLatency + outputLatency) * 44100)`: compared with the snapshot of a stored calibration. */
+  readonly outputLatencySamples: number;
+}
+
+/** Direct monitoring of the input (contract 2.5.0). */
+export interface MonitoringSettings {
+  /** Input audible on the output (bypasses master and the take channel). */
+  readonly enabled: boolean;
+  /** Monitor gain 0..1 (linear). */
+  readonly volume: number;
+}
+
+/** Options of {@link AudioEngine.calibrateLatency}. */
+export interface CalibrationOptions {
+  /** Number of clicks, 6..12; default 8. */
+  readonly clicks?: number;
+  /** PRNG seed of the click gaps (tests); default random. */
+  readonly seed?: number;
+}
+
+/** Why a calibration failed (research R-04). */
+export type CalibrationFailure = 'noSignal' | 'tooFewClicks' | 'inconsistent' | 'tooLong';
+
+/** Result of {@link AudioEngine.calibrateLatency} (data-model 3.4). */
+export interface CalibrationResult {
+  /** True when a latency was measured. */
+  readonly ok: boolean;
+  /** Measured round trip `L` in samples (44.1 kHz); null when not ok. */
+  readonly latencySamples: number | null;
+  /** `L` in milliseconds rounded to 0.1 ms; null when not ok. */
+  readonly latencyMilliseconds: number | null;
+  /** Clicks found (0..clicks). */
+  readonly detectedClicks: number;
+  /** Spread (max - min lag) of the found clicks in samples; null when fewer than 2 were found. */
+  readonly spreadSamples: number | null;
+  /** Output latency snapshot `round((baseLatency + outputLatency) * 44100)` at measurement time. */
+  readonly outputLatencySamples: number;
+  /** Highest input peak during the measurement (dBFS, -Infinity reported as -120). */
+  readonly inputPeakDbfs: number;
+  /** Failure reason; null when ok. */
+  readonly reason: CalibrationFailure | null;
+  /** Warnings that do not fail the measurement. */
+  readonly warnings: readonly 'clipped'[];
+}
+
+/** Argument of {@link AudioEngine.startRecording}. */
+export interface RecordOptions {
+  /** Latency `L` in samples (measured, manual or estimated), 0..44100; the engine adds its own processing latency. */
+  readonly latencySamples: number;
+  /** Where `L` comes from. */
+  readonly latencyMethod: LatencyMethod;
+  /** Part the take is recorded for. */
+  readonly part: RecordingPart;
+  /** Gate the part's stem (and its detail channels) to 0 while recording. */
+  readonly muteOriginal: boolean;
+  /** Count-in bars 0..2 (012 count-in; its "before every loop pass" setting is honoured). */
+  readonly countInBars: number;
+  /** Loop passes per session 1..50; default 50. */
+  readonly maxPasses?: number;
+  /** Seconds of capture per session 1..1800; default 1800. */
+  readonly maxSeconds?: number;
+}
+
+/** Progress of a running recording (`OnRecordingProgress`, at most 4 Hz). */
+export interface RecordingProgress {
+  /** Seconds captured in this session. */
+  readonly elapsedSeconds: number;
+  /** 1-based loop pass being recorded; null without loop. */
+  readonly passIndex: number | null;
+  /** Count-in beats left; null when not counting in. */
+  readonly countInBeatsLeft: number | null;
+}
+
+/** One captured take (data-model 3.3); the audio stays in the engine until {@link AudioEngine.releaseCapture}. */
+export interface CapturedTake {
+  /** Engine-local id of the capture. */
+  readonly captureKey: string;
+  /** UUID shared by the passes of one Record press. */
+  readonly sessionId: string;
+  /** 1-based loop pass; null without loop. */
+  readonly passIndex: number | null;
+  /** True for a final pass shorter than the loop (kept when >= 1 s). */
+  readonly partial: boolean;
+  /** Song sample (44.1 kHz) of the take's first sample. */
+  readonly startSample: number;
+  /** Length in samples (frames). */
+  readonly lengthSamples: number;
+  /** Channels of the take (1 for `mono-*`, 2 for `stereo`). */
+  readonly channels: 1 | 2;
+  /** Channel mode the take was recorded with. */
+  readonly inputMode: InputChannelMode;
+  /** Total compensation applied in samples (`L` plus the engine's processing latency). */
+  readonly latencySamples: number;
+  /** Where `L` came from. */
+  readonly latencyMethod: LatencyMethod;
+  /** Peak of the take (dBFS). */
+  readonly peakDbfs: number;
+  /** Samples at or above full scale. */
+  readonly clippedSamples: number;
+  /** Frames filled with zeros because the worklet's stamps had a gap. */
+  readonly dropouts: number;
+  /** Start of the recording (ISO 8601 UTC). */
+  readonly recordedAt: string;
+}
+
+/** Audio of a take to load: the local capture right after recording, or the saved FLAC. */
+export type TakeSource =
+  | { readonly captureKey: string }
+  | { readonly url: string; readonly startSample: number; readonly lengthSamples: number; readonly channels: 1 | 2 };
+
+/** Argument of {@link AudioEngine.loadTake}. */
+export interface LoadTakeRequest {
+  /** Backend take id, or the capture key before the take is saved. */
+  readonly takeId: string;
+  /** Where the audio comes from. */
+  readonly source: TakeSource;
+  /** Part of the take (compare gate). */
+  readonly part: RecordingPart;
+  /** Playback-only timing adjustment in samples, -8820..8820; default 0. */
+  readonly adjustmentSamples?: number;
+}
+
 /** Optional construction parameters (mainly for tests). */
 export interface EngineOptions {
   /** Factory for the single AudioContext; defaults to `new AudioContext({ sampleRate: 44100 })`. */
@@ -379,6 +590,15 @@ export interface EngineOptions {
   readonly timeStretch?: TimeStretchOptions;
   /** Test seam (contract 2.3.0): replaces the AudioWorklet + WASM stage, e.g. with a Vitest fake. */
   readonly timeStretchFactory?: (context: AudioContext) => Promise<TimeStretchStage>;
+  /**
+   * E2E only (contract 2.5.0): `loopback` feeds the engine's own output into its input through a
+   * `MediaStreamAudioDestinationNode` instead of opening a microphone (research R-13).
+   */
+  readonly testInput?: 'loopback';
+  /** Test seam (contract 2.5.0): replaces `navigator.mediaDevices`. */
+  readonly mediaDevices?: Pick<MediaDevices, 'getUserMedia' | 'enumerateDevices' | 'addEventListener' | 'removeEventListener'>;
+  /** Capture worklet module URL (contract 2.5.0); default `./js/audio-engine-capture-worklet.js`. */
+  readonly captureWorkletUrl?: string;
 }
 
 /**
@@ -458,6 +678,49 @@ export interface AudioEngine {
   setScoreFollowOptions(options: ScoreFollowOptions): void;
   /** Removes the highlight elements and host attributes; no-op when none is attached (contract 2.4.0). */
   detachScoreFollower(): void;
+  /** Reports whether recording can be offered (contract 2.5.0); no side effects, never opens the microphone. */
+  recordingSupport(): Promise<RecordingSupport>;
+  /** Lists the audio inputs (`enumerateDevices`, kind `audioinput`); labels are empty before the permission. */
+  listInputDevices(): Promise<InputDevice[]>;
+  /**
+   * Opens (or replaces) the input with all voice processing off (research R-02), adds the capture worklet once per
+   * context and feeds the `input` meter. Rejects with an `Error` whose message starts with a code and a colon:
+   * `permissionDenied:`, `notFound:`, `busy:`, `modeUnavailable:` or `unsupported:`, followed by a readable sentence.
+   */
+  openInput(request: OpenInputRequest): Promise<InputInfo>;
+  /** Stops every track of the input stream and disconnects it; throws `Error("Stop the recording first")` unless `open`. */
+  closeInput(): void;
+  /** Direct monitoring (input -> gain -> destination); ramps <= 10 ms; forced off during a calibration. */
+  setMonitoring(settings: MonitoringSettings): void;
+  /**
+   * Loopback click test (research R-04); needs an open input and a paused transport (else rejects with
+   * `Error("Pause playback to calibrate")`). A failed measurement resolves with `ok: false` and a reason.
+   */
+  calibrateLatency(options?: CalibrationOptions): Promise<CalibrationResult>;
+  /**
+   * Starts capture, then the transport from the current position with the 012 count-in. Rejects with
+   * `recordingSpeed:` (speed not 100 % or transpose not 0), `speedTrainer:` (trainer on), or when no input is open or no
+   * track is loaded. Until {@link AudioEngine.stopRecording}, seek, loop, speed, transpose and track changes throw
+   * `Error("Stop the recording first")`.
+   */
+  startRecording(options: RecordOptions): Promise<void>;
+  /** Stops the transport, finishes the compensated tail (state `finishing`) and returns every take of the session. */
+  stopRecording(): Promise<CapturedTake[]>;
+  /** 24-bit PCM WAV of a captured take (research R-07); throws for an unknown key. */
+  captureWav(captureKey: string): Blob;
+  /** Frees the local audio of a capture; an unknown key is a no-op. */
+  releaseCapture(captureKey: string): void;
+  /**
+   * Loads a take into the `take` channel (fader x gate -> panner -> meter -> master), sample-locked with the transport
+   * anchor; replaces a loaded take. Rejects with the stem-loader messages on fetch or decode errors.
+   */
+  loadTake(request: LoadTakeRequest): Promise<void>;
+  /** Removes the take buffer; the `take` channel stays silent and compare returns to `both`. */
+  unloadTake(): void;
+  /** Playback-only shift of the loaded take (-8820..8820 samples), rescheduled at `currentTime + 0.01`. */
+  setTakeAdjustment(samples: number): void;
+  /** Compare gate (research R-10), swapped at one context time with ramps <= 10 ms. */
+  setTakeCompare(mode: TakeCompareMode): void;
   /** Stops playback, cancels timers/animation frames and closes the AudioContext. */
   dispose(): Promise<void>;
 }

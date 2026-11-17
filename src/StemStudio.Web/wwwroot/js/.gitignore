@@ -11,3 +11,6 @@ first-paint.js.map
 time-stretch-processor.js
 time-stretch-processor.js.map
 soundtouch/
+# Build output of feature 015 (architect, Phase 0 T004): the capture AudioWorklet processor (npm run build, MIT); never committed.
+audio-engine-capture-worklet.js
+audio-engine-capture-worklet.js.map

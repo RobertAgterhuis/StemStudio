@@ -1,7 +1,7 @@
 # Lint configuration for the StemStudio OpenAPI 3.1 contracts of feature 015.
 # Run from the repo root:
-#   npx @redocly/cli@2.78.0 lint --config specs/015-play-along-recording/contracts/redocly.yaml specs/015-play-along-recording/contracts/recording-api.openapi.yaml
-# (Phase 0 T002 adds backend-api.openapi.yaml 1.14.0 = 014's 1.13.0 + this delta.)
+#   npx @redocly/cli@2.78.0 lint --config specs/015-play-along-recording/contracts/redocly.yaml specs/015-play-along-recording/contracts/backend-api.openapi.yaml specs/015-play-along-recording/contracts/recording-api.openapi.yaml
+# backend-api.openapi.yaml 1.14.0 = 013 1.12.0 + the delta (merge_recording_delta.py); superset: python -I specs/015-play-along-recording/contracts/check_superset.py
 extends:
   - recommended
 rules:
