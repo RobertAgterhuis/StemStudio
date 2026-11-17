@@ -170,9 +170,9 @@ and `polish`, with real test and coverage output.
 
 - [ ] T066 [P] [US5] [backend] Failing tests `UpdateTakeEndpointTests.cs`, `DeleteTakeEndpointTests.cs`, `TrackDeleteCascadeTests.cs`: rename syncs the asset name, star, part change; delete cancels a running render, removes files, hashes and mix references; track delete removes its takes; `Track.takeCount` (FR-014, FR-018)
 - [ ] T067 [US5] [backend] Implement `updateRecordingTake`, `deleteRecordingTake`, `TakeDeletion`, `ITrackTakesCleanup` to pass T066
-- [ ] T068 [P] [US5] [frontend] Failing bUnit tests `TakesPanelTests.cs`, `TakeRowTests.cs`: newest first, details per level, select/load, play from start, rename, delete confirm, retry, warnings, total size, `track-delete-takes-note` (FR-014, FR-018)
-- [ ] T069 [US5] [frontend] Implement `TakesPanel`, `TakeRow` and the track delete note to pass T068
-- [ ] T070 [P] [US5] [qa] E2E `recording-manage.spec.ts`: three takes, rename, star, delete one (files gone via the asset endpoint 404), delete the track -> its takes are gone
+- [x] T068 [P] [US5] [frontend] Failing bUnit tests `TakesPanelTests.cs`, `TakeRowTests.cs`: newest first, details per level, select/load, play from start, rename, delete confirm, retry, warnings, total size, `track-delete-takes-note` (FR-014, FR-018)
+- [x] T069 [US5] [frontend] Implement `TakesPanel`, `TakeRow` and the track delete note to pass T068
+- [x] T070 [P] [US5] [qa] E2E `recording-manage.spec.ts`: three takes, rename, star, delete one (files gone via the asset endpoint 404), delete the track -> its takes are gone
 
 **Checkpoint**: HO:us5 per owner.
 
