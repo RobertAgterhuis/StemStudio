@@ -58,16 +58,5 @@ public sealed partial class PracticeLogPanel
         Summary = await Api.GetPracticeSummaryAsync(TrackId, Days, Offset);
     });
 
-    private async Task RunAsync(Func<Task> call)
-    {
-        try
-        {
-            await call();
-            Error = null;
-        }
-        catch (ApiException ex)
-        {
-            Error = ex.Error.UserMessage;
-        }
-    }
+    private async Task RunAsync(Func<Task> call) => Error = await ApiCall.RunAsync(call);
 }

@@ -218,10 +218,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T096 [P] [US6] [backend] Failing tests `tests/StemStudio.Api.Tests/Practice/PracticeEndpointsTests.cs`: settings get/put; upsert create/replace with sections, 409 `practice-log-off`, 404 unknown track, 422 rules; list with paging; delete per track and all (`deleted` count); delete one; summary and overview with offsets; no outgoing HTTP call from any practice endpoint (handler spy) (FR-025..FR-028, SC-009)
 - [ ] T097 [US6] [backend] Implement `Api/Practice/{PracticeEndpoints,PracticeService}.cs` to pass T096
-- [ ] T098 [P] [US6] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/PracticePanelTests.cs` and `.../Pages/PracticePageTests.cs`: today/week/total, per-section table (Advanced), day chart and tempo chart with table toggles and text summaries, off note with turn-on, first-use notice (ok / turn off), delete with confirmation; Practice page overview, enabled switch, delete all, sessions list (Expert); recorder wired to the mixer (state, positions, `OnLoopPass`, trainer state) (FR-025, FR-027, FR-028)
-- [ ] T099 [US6] [frontend] Implement `Components/Practice/{PracticePanel,PracticeCharts}.razor`, `Components/Pages/PracticePage.razor`, rail link and recorder wiring to pass T098
+- [x] T098 [P] [US6] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/PracticePanelTests.cs` and `.../Pages/PracticePageTests.cs`: today/week/total, per-section table (Advanced), day chart and tempo chart with table toggles and text summaries, off note with turn-on, first-use notice (ok / turn off), delete with confirmation; Practice page overview, enabled switch, delete all, sessions list (Expert); recorder wired to the mixer (state, positions, `OnLoopPass`, trainer state) (FR-025, FR-027, FR-028)
+- [x] T099 [US6] [frontend] Implement `Components/Practice/{PracticePanel,PracticeCharts}.razor`, `Components/Pages/PracticePage.razor`, rail link and recorder wiring to pass T098
 - [ ] T100 [P] [US6] [qa] E2E `e2e/tests/practice-log.spec.ts`: play with pauses -> totals; section loop with trainer passes at rising speed -> tempo reached; switch off -> nothing recorded (409 in the network log); delete -> zeros; the whole run's request log contains only the app's own origin (US6 scenarios 1-5, SC-009)
-- [ ] T101 [US6] [frontend] Help topics `mixer-practice-log`, `practice-privacy` (FR-030)
+- [x] T101 [US6] [frontend] Help topics `mixer-practice-log`, `practice-privacy` (FR-030)
 
 **Checkpoint**: HO:us6.
 
