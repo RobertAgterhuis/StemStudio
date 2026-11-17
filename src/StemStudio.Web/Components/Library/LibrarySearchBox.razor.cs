@@ -29,7 +29,7 @@ public sealed partial class LibrarySearchBox
     /// <returns>A task that completes when focus moved.</returns>
     public ValueTask FocusAsync() => _input.FocusAsync();
 
-    private void OnInput(ChangeEventArgs args) => Controller.Input(args.Value?.ToString());
+    private void OnInput(string? text) => Controller.Input(text);
 
     private Task OnKeyAsync(KeyboardEventArgs args) => args.Key switch
     {

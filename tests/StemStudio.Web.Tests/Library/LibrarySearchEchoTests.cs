@@ -205,6 +205,25 @@ public sealed class LibrarySearchEchoTests : LibraryTestContext
     }
 
     [Fact]
+    public void TheBoxValue_IsBound_SoTheRendererKeepsItInStepWithTheBrowser()
+    {
+        // Blazor only keeps a value attribute in step with what the browser sent when the handler is a binder
+        // (@bind:get/@bind:set); with value= plus @oninput every render wrote the server's text back, so a render while
+        // keys were still on their way overwrote them (E2E 022: "qamwl93kz1chf" became "qchf").
+        Open();
+        var box = _page.FindComponent<LibrarySearchBox>();
+        var builder = new Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder();
+        typeof(LibrarySearchBox).GetMethod("BuildRenderTree", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(box.Instance, [builder]);
+
+#pragma warning disable BL0006 // The frame flag set by @bind is the behaviour under test; no public API exposes it.
+        var frames = builder.GetFrames();
+        var oninput = frames.Array.Take(frames.Count).Single(f => f.FrameType == Microsoft.AspNetCore.Components.RenderTree.RenderTreeFrameType.Attribute && f.AttributeName == "oninput");
+        oninput.AttributeEventUpdatesAttributeName.ShouldBe("value");
+#pragma warning restore BL0006
+    }
+
+    [Fact]
     public async Task InitialLoad_TakesTheTextFromTheUrl()
     {
         _navigation.Go("library?q=metal");
