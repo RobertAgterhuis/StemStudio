@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "builtAt": "2026-11-17",
-  "sourceHash": "ef34edf429df4ff51f2b8184698c5120e2d13e1f569728eac868af14b8b14844",
+  "sourceHash": "130b041f688b6ccf14c30dca6366752457d63a653487cc56215b78cec489eb75",
   "outputs": [
     {
       "path": "docs/public/StemStudio-Technical-Manual.pdf",
       "pages": 38,
-      "bytes": 1308809
+      "bytes": 1309696
     },
     {
       "path": "docs/public/StemStudio-User-Manual.pdf",
       "pages": 44,
-      "bytes": 1588897
+      "bytes": 1591279
     }
   ],
   "inputs": [
@@ -125,7 +125,7 @@
     },
     {
       "path": "docs/public/src/user-manual/05-stems-and-mixer.md",
-      "sha256": "cdd744927b36e537f05041c1697a0bd6a96128317ee1ab24233276c84839885f"
+      "sha256": "ef09dcebcdea3f2af49fd8b8937f16d976f08d213aca36968f28577c660e7350"
     },
     {
       "path": "docs/public/src/user-manual/06-mixes.md",

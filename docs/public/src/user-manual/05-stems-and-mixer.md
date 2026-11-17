@@ -105,6 +105,12 @@ position counter follow the slower or faster music. Every instrument benefits eq
 drummer slows a fill down, a singer moves a song into her range, a saxophone player plays
 along in his instrument's key.
 
+Click the panel's title **Practice tempo** (or press <kbd>Enter</kbd> on it) to open or close
+it. It opens by itself when the mix uses a practice setting (speed, key, count-in or speed
+trainer) and stays closed otherwise, so the channel strips keep their room on smaller screens.
+Once you open or close it yourself, this browser remembers your choice. While it is closed,
+the title shows what is not at the original setting, for example **75 %, +2 st, count-in**.
+
 ### Speed
 
 - Drag the **Speed** slider from **50 %** to **120 %** (steps of 1 %), or press **−5 %** and
