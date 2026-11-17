@@ -122,8 +122,21 @@ public sealed class CreateTakeEndpointTests : RecordingTestBase
                 context.Assets.Add(asset);
                 context.RecordingTakes.Add(RecordingTake.Create(Guid.NewGuid(), new NewTake
                 {
-                    TrackId = track.Id, AssetId = asset.Id, Number = number, Part = RecordingPart.None, SessionId = Guid.NewGuid(), Partial = false, StartSample = 0, LengthSamples = 22_050,
-                    InputMode = InputChannelMode.Mono1, InputChannels = 1, LatencySamples = 0, LatencyMethod = LatencyMethod.Estimated, Scan = new PeakScan(-6, 0, false), Dropouts = 0, RecordedAt = ApiFactory.Start.UtcDateTime,
+                    TrackId = track.Id,
+                    AssetId = asset.Id,
+                    Number = number,
+                    Part = RecordingPart.None,
+                    SessionId = Guid.NewGuid(),
+                    Partial = false,
+                    StartSample = 0,
+                    LengthSamples = 22_050,
+                    InputMode = InputChannelMode.Mono1,
+                    InputChannels = 1,
+                    LatencySamples = 0,
+                    LatencyMethod = LatencyMethod.Estimated,
+                    Scan = new PeakScan(-6, 0, false),
+                    Dropouts = 0,
+                    RecordedAt = ApiFactory.Start.UtcDateTime,
                 }, ApiFactory.Start.UtcDateTime));
             }
 
