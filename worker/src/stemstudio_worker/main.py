@@ -21,7 +21,7 @@ from fastapi import FastAPI
 
 from stemstudio_worker.alignment import alignment_status, create_aligner, create_vocal_loader
 from stemstudio_worker.analysis import LibrosaDrumTranscriber, create_beat_analyzer
-from stemstudio_worker.analysis.structure import create_structure_analyzer
+from stemstudio_worker.analysis.structure import FakeStructureAnalyzer, StemsNoveltyAnalyzer
 from stemstudio_worker.api import (
     artwork_routes,
     detail_routes,
@@ -119,8 +119,7 @@ class AppOverrides:
             ``transcription.create_transcription_engines``).
         notator: Notes -> score (default ``notation.create_notator``).
         score_engraver: MusicXML -> PDF (default ``engraving.create_score_engraver``).
-        structure_analyzer: Section analyser (default
-            ``analysis.structure.create_structure_analyzer``).
+        structure_analyzer: Section analyser (default :func:`create_structure_analyzer`).
     """
 
     detail_pipeline: DetailPipelinePort | None = None
@@ -271,6 +270,13 @@ def default_transcription(
     engraver = overrides.score_engraver or create_score_engraver()
     return TranscriptionParts(engines, notator, engraver, SCORE_RULES, library,
                               fonts.leipzig_available)  # fmt: skip
+
+
+def create_structure_analyzer(settings: WorkerSettings) -> StructureAnalyzer:
+    """The configured section analyser: ``fake`` or ``real`` (``stems-novelty``, feature 014)."""
+    if settings.structure_analyzer == "fake":
+        return FakeStructureAnalyzer()
+    return StemsNoveltyAnalyzer()
 
 
 def default_practice(settings: WorkerSettings, overrides: AppOverrides) -> PracticeParts:

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from stemstudio_worker.analysis.structure import create_structure_analyzer
 from stemstudio_worker.analysis.structure.fake import FakeStructureAnalyzer
 from stemstudio_worker.config import WorkerSettings
+from stemstudio_worker.main import create_structure_analyzer
 from stemstudio_worker.ports import StructureAnalyzer
 from stemstudio_worker.schemas import (
     SECTION_WARNING_TEXTS,
