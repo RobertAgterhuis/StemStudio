@@ -3,6 +3,7 @@ using Microsoft.Net.Http.Headers;
 using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Api.LibraryCare.Restore;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LibraryCare;
 
@@ -30,6 +31,12 @@ public static class LibraryCareEndpoints
         app.MapGet(BackupRoute + "/file", Download).WithName("downloadBackup").WithTags(Tag);
         app.MapPost(BackupRoute + "/verify", Verify).WithName("verifyBackup").WithTags(Tag);
         app.MapLibraryJobEndpoints();
+        app.MapPost(BackupRoute + "/restore", (string fileName, RestoreOptionsDto options, RestoreService restore, CancellationToken ct) => restore.RestoreAsync(fileName, options, ct))
+            .WithName("restoreBackup").RequireGateOpen().WithTags(Tag);
+        app.MapGet(ApiRoutes.PreviousLibrary, (RestoreService restore, CancellationToken ct) => restore.PreviousAsync(ct)).WithName("getPreviousLibrary").WithTags(Tag);
+        app.MapPost(ApiRoutes.RevertRestore, (RestoreService restore, CancellationToken ct) => restore.RevertAsync(ct)).WithName("revertRestore").RequireGateOpen().WithTags(Tag);
+        app.MapPost(ApiRoutes.DiscardPreviousLibrary, (ConfirmationDto confirmation, RestoreService restore, CancellationToken ct) => restore.DiscardAsync(confirmation, ct))
+            .WithName("discardPreviousLibrary").RequireGateOpen().WithTags(Tag);
         return app;
     }
 

@@ -25,6 +25,7 @@ public sealed class RestoreServiceTests : ApiTestBase
     public async Task Replace_BringsBackTheLibraryAndKeepsThePreviousOne()
     {
         var track = await _library.TrackAsync();
+        await _library.TrackAsync("ccccccccccc", detail: false);
         var files = _library.LibraryFiles();
         var name = await BackupAsync(Client, Factory);
         (await Client.DeleteAsync(ApiRoutes.Track(track.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -41,7 +42,7 @@ public sealed class RestoreServiceTests : ApiTestBase
         _library.LibraryFiles().ShouldBe(files);
         using var previous = await Client.GetAsync(ApiRoutes.PreviousLibrary, Ct);
         var dto = await previous.BodyAsync<PreviousLibraryDto>();
-        (dto.RestoredArchive, dto.Counts.Tracks).ShouldBe((name, 0));
+        (dto.RestoredArchive, dto.Counts.Tracks).ShouldBe((name, 1));
         await ContractAssert.MatchesAsync(previous, "getPreviousLibrary");
     }
 
@@ -73,6 +74,7 @@ public sealed class RestoreServiceTests : ApiTestBase
     public async Task UndoAndDiscard_OfThePreviousLibrary()
     {
         var track = await _library.TrackAsync();
+        await _library.TrackAsync("ccccccccccc", detail: false);
         var name = await BackupAsync(Client, Factory);
         (await Client.DeleteAsync(ApiRoutes.Track(track.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
         await FinishedAsync(await RestoreAsync(name, new RestoreOptionsDto { Mode = RestoreModeDto.Replace, Confirmation = "REPLACE" }));

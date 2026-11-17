@@ -85,6 +85,12 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
     private async Task<bool> TryMoveAsync(JournalStep step)
     {
         var paths = journal;
+        if (!Path.Exists(paths.Full(step.From)))
+        {
+            // A -wal or -shm file disappears when the last connection closes; nothing to move.
+            return true;
+        }
+
         for (var attempt = 0; attempt < MoveAttempts; attempt++)
         {
             try
