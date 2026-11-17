@@ -140,4 +140,15 @@ public sealed class GpuReleasingWorkerClient(IWorkerClient inner, GpuJobGate gat
     /// <inheritdoc />
     public Task DeleteTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken) =>
         inner.DeleteTranscriptionJobAsync(transcriptionJobId, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<WorkerStorage> GetStorageAsync(CancellationToken cancellationToken) => inner.GetStorageAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task<WorkerStorageCleanupResult> CleanStorageAsync(WorkerStorageCleanupRequest request, CancellationToken cancellationToken) =>
+        inner.CleanStorageAsync(request, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<WorkerRehydratedJob> RehydrateJobAsync(WorkerRehydrateRequest request, CancellationToken cancellationToken) =>
+        inner.RehydrateJobAsync(request, cancellationToken);
 }
