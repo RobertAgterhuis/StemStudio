@@ -4,7 +4,6 @@ from pathlib import Path
 
 from stemstudio_worker.jobs.json_store import JsonStore, new_id
 from stemstudio_worker.jobs.models import StoredJob
-from stemstudio_worker.schemas import JobState
 
 
 def _job_id(record: StoredJob) -> str:
@@ -24,10 +23,6 @@ class JobStore(JsonStore[StoredJob]):
         return new_id()
 
     def find_active(self, source_key: str) -> StoredJob | None:
-        """Return the newest non-failed job for ``source_key``, if any."""
-        matches = [
-            r
-            for r in self.all()
-            if r.job.source_key == source_key and r.job.status is not JobState.FAILED
-        ]
+        """Return the newest reusable job for ``source_key`` (``StoredJob.reusable``), if any."""
+        matches = [r for r in self.all() if r.job.source_key == source_key and r.reusable]
         return max(matches, key=lambda r: r.job.created_at, default=None)

@@ -1,5 +1,7 @@
 """Tests of ``storage.meter`` (T025): the walk behind ``GET /v1/storage``."""
 
+import contextlib
+import importlib
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -23,6 +25,7 @@ from .builders import (
     save_alignment,
     save_detail,
     save_job,
+    save_lookup,
     stored_job,
     write,
 )
@@ -62,17 +65,18 @@ def disk() -> _FakeDisk:
     return _FakeDisk()
 
 
-def _meter(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> DiskStorageMeter:
+@pytest.fixture
+def meter(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> DiskStorageMeter:
     models = paths.root.parent / "models"
     return DiskStorageMeter(MeterContext(paths, models, clock, disk))
 
 
-def test_meter_satisfies_the_port(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> None:
-    assert isinstance(_meter(paths, clock, disk), StorageMeter)
+def test_meter_satisfies_the_port(meter: DiskStorageMeter) -> None:
+    assert isinstance(meter, StorageMeter)
 
 
-def test_empty_data_dir_reports_zeros(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> None:
-    report = _meter(paths, clock, disk).measure()
+def test_empty_data_dir_reports_zeros(meter: DiskStorageMeter) -> None:
+    report = meter.measure()
 
     assert report.measured_at == T0
     assert report.cache_entries == []
@@ -81,11 +85,11 @@ def test_empty_data_dir_reports_zeros(paths: DataPaths, clock: StepClock, disk: 
 
 
 def test_volumes_use_disk_usage_of_the_nearest_existing_folder(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
+    paths: DataPaths, meter: DiskStorageMeter, disk: _FakeDisk
 ) -> None:
     paths.root.mkdir(parents=True)
 
-    report = _meter(paths, clock, disk).measure()
+    report = meter.measure()
 
     assert [(v.id, v.free_bytes, v.total_bytes) for v in report.volumes] == [
         ("data", 600, 1000),
@@ -94,10 +98,10 @@ def test_volumes_use_disk_usage_of_the_nearest_existing_folder(
     assert disk.asked == [paths.root, paths.root.parent]
 
 
-def test_cache_entry_bytes_per_part(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> None:
+def test_cache_entry_bytes_per_part(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (150, 40, 7, 3))
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.audio_sha256 == SHA_A
     sizes = (entry.standard_bytes, entry.detail_bytes, entry.partial_bytes, entry.artwork_bytes)
@@ -107,64 +111,56 @@ def test_cache_entry_bytes_per_part(paths: DataPaths, clock: StepClock, disk: _F
     )  # fmt: skip
 
 
-def test_only_hex_entry_folders_count_as_entries(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_only_hex_entry_folders_count_as_entries(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     write(paths.audio_cache / f"{SHA_B}.partial" / "stems" / "vocals.flac", 5)
     write(paths.audio_cache / "stray.txt", 5)
 
-    entries = _meter(paths, clock, disk).measure().cache_entries
+    entries = meter.measure().cache_entries
 
     assert [e.audio_sha256 for e in entries] == [SHA_A]
 
 
-def test_job_ids_come_from_the_job_files(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_job_ids_come_from_the_job_files(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     later = T0 + timedelta(hours=1)
     save_job(paths, stored_job(_JOB_1, SHA_A, JobState.COMPLETED))
     save_job(paths, stored_job(_JOB_2, SHA_A, JobState.COMPLETED, updated=later))
     save_job(paths, stored_job(_JOB_3, SHA_A, JobState.FAILED))
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.job_ids == [_JOB_1, _JOB_2]
     assert entry.last_used_at == later
     assert not entry.in_use
 
 
-def test_evicted_jobs_are_not_attributed(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_evicted_jobs_are_not_attributed(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     save_job(paths, stored_job(_JOB_1, SHA_A, JobState.COMPLETED, cacheEvicted=True))
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.job_ids == []
 
 
-def test_rehydrated_entries_are_from_library(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_rehydrated_entries_are_from_library(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     save_job(paths, stored_job(_JOB_1, SHA_A, JobState.COMPLETED, fromLibrary=True))
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.from_library
 
 
 @pytest.mark.parametrize("status", [JobState.QUEUED, JobState.SEPARATING, JobState.ANALYSING])
 def test_non_terminal_standard_job_marks_in_use(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk, status: JobState
+    paths: DataPaths, meter: DiskStorageMeter, status: JobState
 ) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     save_job(paths, stored_job(_JOB_1, SHA_A, status))
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.in_use
     assert entry.job_ids == [_JOB_1]
@@ -174,12 +170,12 @@ def test_non_terminal_standard_job_marks_in_use(
     ("status", "in_use"), [(DetailJobState.RUNNING, True), (DetailJobState.COMPLETED, False)]
 )
 def test_detail_jobs_mark_in_use_while_active(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk, status: DetailJobState, *, in_use: bool
+    paths: DataPaths, meter: DiskStorageMeter, status: DetailJobState, *, in_use: bool
 ) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     save_detail(paths, "d" * 32, SHA_A, status)
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.in_use is in_use
     assert entry.last_used_at == T0
@@ -189,30 +185,29 @@ def test_detail_jobs_mark_in_use_while_active(
     ("status", "in_use"), [(LyricsJobState.QUEUED, True), (LyricsJobState.FAILED, False)]
 )
 def test_alignments_mark_their_standard_jobs_entry(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk, status: LyricsJobState, *, in_use: bool
+    paths: DataPaths, meter: DiskStorageMeter, status: LyricsJobState, *, in_use: bool
 ) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     save_job(paths, stored_job(_JOB_1, SHA_A, JobState.COMPLETED))
     save_alignment(paths, "e" * 32, _JOB_1, status)
     save_alignment(paths, "f" * 32, "9" * 32, LyricsJobState.QUEUED)
+    save_lookup(paths, "0" * 32, _JOB_1)
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.in_use is in_use
 
 
-def test_unreadable_job_files_are_skipped(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_unreadable_job_files_are_skipped(paths: DataPaths, meter: DiskStorageMeter) -> None:
     cache_entry(paths, SHA_A, (20, 0, 0, 0))
     write(paths.jobs / f"{_JOB_1}.json", 3)
 
-    (entry,) = _meter(paths, clock, disk).measure().cache_entries
+    (entry,) = meter.measure().cache_entries
 
     assert entry.job_ids == []
 
 
-def test_job_files_and_scratch(paths: DataPaths, clock: StepClock, disk: _FakeDisk) -> None:
+def test_job_files_and_scratch(paths: DataPaths, meter: DiskStorageMeter) -> None:
     write(paths.jobs / "x.bin", 4)
     write(paths.job_artwork(_JOB_1) / "cover.jpg", 6)
     write(paths.detail_jobs / "y.bin", 1)
@@ -223,15 +218,13 @@ def test_job_files_and_scratch(paths: DataPaths, clock: StepClock, disk: _FakeDi
     write(paths.uploads(_JOB_2) / "input.mp3", 20)
     write(paths.user_artwork(_JOB_3) / "cover.jpg", 5)
 
-    report = _meter(paths, clock, disk).measure()
+    report = meter.measure()
 
     assert (report.job_files_bytes, report.job_files_count) == (20, 7)
     assert report.scratch_bytes == 125
 
 
-def test_model_caches_per_top_level_folder(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
+def test_model_caches_per_top_level_folder(paths: DataPaths, meter: DiskStorageMeter) -> None:
     models = paths.root.parent / "models"
     write(models / "torch" / "hub" / "checkpoints" / "955717e8-8726e21a.th", 30)
     write(models / "whisper" / "large-v3-turbo.pt", 50)
@@ -239,7 +232,7 @@ def test_model_caches_per_top_level_folder(
     write(models / "loose-file.bin", 9)
     (models / "bad name").mkdir()
 
-    caches = _meter(paths, clock, disk).measure().model_caches
+    caches = meter.measure().model_caches
 
     assert [(c.id, c.bytes, c.models) for c in caches] == [
         ("acestep", 7, []),
@@ -249,9 +242,8 @@ def test_model_caches_per_top_level_folder(
 
 
 def test_report_is_cached_for_30_seconds(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
+    paths: DataPaths, meter: DiskStorageMeter, clock: StepClock
 ) -> None:
-    meter = _meter(paths, clock, disk)
     first = meter.measure()
     cache_entry(paths, SHA_C, (20, 0, 0, 0))
 
@@ -261,10 +253,7 @@ def test_report_is_cached_for_30_seconds(
     assert [e.audio_sha256 for e in meter.measure().cache_entries] == [SHA_C]
 
 
-def test_invalidate_forces_a_new_walk(
-    paths: DataPaths, clock: StepClock, disk: _FakeDisk
-) -> None:
-    meter = _meter(paths, clock, disk)
+def test_invalidate_forces_a_new_walk(meter: DiskStorageMeter) -> None:
     first = meter.measure()
 
     meter.invalidate()
@@ -272,17 +261,35 @@ def test_invalidate_forces_a_new_walk(
     assert meter.measure() is not first
 
 
+def _directory_link(link: Path, target: Path) -> None:
+    """A symbolic link, or a junction where links need a privilege (Windows)."""
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError:
+        importlib.import_module("_winapi").CreateJunction(str(target), str(link))
+
+
 def test_walk_does_not_follow_links(tmp_path: Path) -> None:
     outside = write(tmp_path / "outside" / "big.bin", 1000)
     inside = tmp_path / "inside"
     write(inside / "small.bin", 3)
-    try:
+    _directory_link(inside / "dir-link", outside.parent)
+    with contextlib.suppress(OSError):
         (inside / "file-link").symlink_to(outside)
-        (inside / "dir-link").symlink_to(outside.parent, target_is_directory=True)
-    except OSError:
-        pytest.skip("creating symbolic links needs a privilege on this machine")
 
     assert tree_usage(inside) == Usage(3, 1)
+    assert tree_usage(inside / "dir-link") == Usage()
+
+
+def test_unreadable_folders_count_as_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    write(tmp_path / "sub" / "a.bin", 4)
+
+    def refuse(_path: object) -> object:
+        raise PermissionError
+
+    monkeypatch.setattr(os, "scandir", refuse)
+
+    assert tree_usage(tmp_path) == Usage()
 
 
 def test_walk_of_a_file_and_of_nothing(tmp_path: Path) -> None:

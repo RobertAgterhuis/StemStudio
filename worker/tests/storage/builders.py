@@ -14,6 +14,7 @@ from stemstudio_worker.schemas import (
     DetailJobState,
     Job,
     JobState,
+    LookupLyricsRequest,
     LyricsJob,
     LyricsJobState,
     SourceType,
@@ -63,6 +64,7 @@ def cache_entry(paths: DataPaths, sha: str, sizes: tuple[int, int, int, int]) ->
 def stored_job(job_id: str, sha: str | None, status: JobState, **flags: object) -> StoredJob:
     """A standard job record in ``status`` for audio ``sha`` (``updated`` = its update time)."""
     updated = flags.pop("updated", T0)
+    assert isinstance(updated, datetime)
     job = Job(
         job_id=job_id, source_key="youtube:dQw4w9WgXcQ", source_type=SourceType.YOUTUBE,
         status=status, stage="Stage", progress=0, created_at=T0, updated_at=updated,
@@ -84,11 +86,23 @@ def save_detail(paths: DataPaths, detail_id: str, sha: str, status: DetailJobSta
     DetailJobStore(paths.detail_jobs).save(StoredDetailJob(job=job))
 
 
-def save_alignment(paths: DataPaths, lyrics_id: str, standard_id: str, status: LyricsJobState) -> None:
+def save_alignment(
+    paths: DataPaths, lyrics_id: str, standard_id: str, status: LyricsJobState
+) -> None:
     """Write a lyrics ``align`` job file for the standard job ``standard_id``."""
     job = LyricsJob(
         lyrics_job_id=lyrics_id, mode="align", status=status, stage="Stage", progress=0,
         created_at=T0, updated_at=T0,
     )  # fmt: skip
     request = AlignLyricsRequest(standard_job_id=standard_id, text="la la")
+    LyricsJobStore(paths).save(StoredLyricsJob(job=job, request=request))
+
+
+def save_lookup(paths: DataPaths, lyrics_id: str, standard_id: str) -> None:
+    """Write a queued lyrics ``lookup`` job that names ``standard_id`` (correlation only)."""
+    job = LyricsJob(
+        lyrics_job_id=lyrics_id, mode="lookup", status=LyricsJobState.QUEUED, stage="Stage",
+        progress=0, created_at=T0, updated_at=T0,
+    )  # fmt: skip
+    request = LookupLyricsRequest(title="Song", duration_seconds=10, standard_job_id=standard_id)
     LyricsJobStore(paths).save(StoredLyricsJob(job=job, request=request))
