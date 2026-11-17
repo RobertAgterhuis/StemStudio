@@ -87,7 +87,7 @@ public sealed record DiscardedCounts
 /// <param name="InputTokens">Input tokens.</param>
 /// <param name="OutputTokens">Output tokens.</param>
 /// <param name="CachedInputTokens">Cached input tokens.</param>
-public sealed record AssistUsage(int InputTokens, int OutputTokens, int CachedInputTokens);
+public sealed record AssistUsage(long InputTokens, long OutputTokens, long CachedInputTokens);
 
 /// <summary>The request of an assist (parameter object of <see cref="AssistRun.Create"/>).</summary>
 public sealed record AssistRequest
