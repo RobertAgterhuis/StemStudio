@@ -14,7 +14,7 @@ public sealed record LyricsContent(string Title, string Language, string Text);
 public sealed record LyricsSnapshot(Guid? LyricsId, string Title, string Language, string Text);
 
 /// <summary>Own lyrics saved for songs (feature 010, data-model 3.1); not the synced lyrics of a track (006).</summary>
-public sealed class LyricsSheet
+public sealed partial class LyricsSheet
 {
     private LyricsSheet()
     {
@@ -51,17 +51,18 @@ public sealed class LyricsSheet
     {
         var sheet = new LyricsSheet { Id = id, CreatedAt = nowUtc };
         sheet.Update(content, nowUtc);
+        sheet.LastCause = Assist.RevisionCause.Created;
         return sheet;
     }
 
-    /// <summary>Replaces the content; songs keep their snapshot.</summary>
+    /// <summary>Replaces the content (a user save: the revision increases, assisted lines are pruned); songs keep their snapshot.</summary>
     /// <param name="content">The content (normalised here).</param>
     /// <param name="nowUtc">Current time (UTC).</param>
     /// <exception cref="DomainValidationException">A field breaks a rule.</exception>
     public void Update(LyricsContent content, DateTime nowUtc)
     {
         var valid = LyricsRules.Valid(content);
-        (Title, Language, Text, UpdatedAt) = (valid.Title, valid.Language, valid.Text, nowUtc);
+        Change(valid, Assist.RevisionCause.UserSave, nowUtc);
     }
 
     /// <summary>The sheet as a song snapshot.</summary>
