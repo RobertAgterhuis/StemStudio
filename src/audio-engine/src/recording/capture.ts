@@ -47,6 +47,19 @@ function loadModule(context: AudioContext, url: string): Promise<void> {
   return loading;
 }
 
+/** Node options: one input of exactly `channels` discrete channels, one silent mono output. */
+function captureNodeOptions(channels: 1 | 2): AudioWorkletNodeOptions {
+  return {
+    numberOfInputs: 1,
+    numberOfOutputs: 1,
+    outputChannelCount: [1],
+    channelCount: channels,
+    channelCountMode: 'explicit',
+    channelInterpretation: 'discrete',
+    processorOptions: { channels },
+  };
+}
+
 function isBlock(message: BlockMessage | null): message is { type: 'block'; frame: number; channels: Float32Array[] } {
   return message?.type === 'block' && typeof message.frame === 'number' && Array.isArray(message.channels);
 }
@@ -89,21 +102,8 @@ export class CaptureReceiver {
     const { context, env } = this.options;
     await loadModule(context, this.options.workletUrl ?? DEFAULT_CAPTURE_WORKLET_URL);
     this.disconnect();
-    const node = env.createWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      outputChannelCount: [1],
-      channelCount: channels,
-      channelCountMode: 'explicit',
-      channelInterpretation: 'discrete',
-      processorOptions: { channels },
-    });
-    node.port.onmessage = (event: MessageEvent): void => {
-      this.receive(event.data as BlockMessage | null);
-    };
-    node.onprocessorerror = (): void => {
-      this.options.onError?.('processorError');
-    };
+    const node = env.createWorkletNode(context, CAPTURE_PROCESSOR_NAME, captureNodeOptions(channels));
+    this.listen(node);
     const keepAlive = context.createGain();
     keepAlive.gain.value = 0;
     input.connect(node);
@@ -111,6 +111,15 @@ export class CaptureReceiver {
     this.node = node;
     this.keepAlive = keepAlive;
     this.channels = channels;
+  }
+
+  private listen(node: AudioWorkletNode): void {
+    node.port.onmessage = (event: MessageEvent): void => {
+      this.receive(event.data as BlockMessage | null);
+    };
+    node.onprocessorerror = (): void => {
+      this.options.onError?.('processorError');
+    };
   }
 
   /**
