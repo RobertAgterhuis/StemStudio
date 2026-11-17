@@ -7,6 +7,8 @@ import { cellState, matrixThemes, requireVisualContainer, shotName } from '../su
 // baselines are generated in the CI visual job (`npm run test:visual -- --update-snapshots`) at
 // integration. The placeholder's tone follows the folder key (salted), so the placeholder and the
 // broken-image fallback are asserted functionally in library-browse.spec.ts.
+// The file name sorts after screens.spec.ts on purpose: the browse set adds a dozen tracks and
+// artists, which would otherwise appear in the tracks, library-root and library screenshots.
 requireVisualContainer();
 
 const artCases = [
