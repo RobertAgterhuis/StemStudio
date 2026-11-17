@@ -13,6 +13,7 @@ using StemStudio.Web.Library;
 using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Lyrics;
 using StemStudio.Web.Preferences;
+using StemStudio.Web.Recording;
 using StemStudio.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,6 +70,7 @@ builder.Services.AddScoped<PageOrigin>();
 // Composition hooks of 022 and 023 (one per lane, filled in their own files).
 builder.Services.AddLibraryUi();
 builder.Services.AddLyricAssistUi();
+builder.Services.AddRecordingUi();
 
 var app = builder.Build();
 
