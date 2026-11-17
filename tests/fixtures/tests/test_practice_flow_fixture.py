@@ -123,29 +123,34 @@ def test_the_free_song_has_no_reliable_grid(generated: tuple[Path, dict[str, Any
     assert grid.reliable is manifest["free"]["expectReliableGrid"] is False
 
 
+def _section_request(song: dict[str, Any]) -> SectionJobRequest:
+    """A section job over the fixture stems with the song's known grid."""
+    downbeats = song["downbeats"]
+    beats = [round(downbeats[0] + 0.5 * k, 3) for k in range(4 * len(downbeats))]
+    grid = BeatGrid(bpm=song["bpm"], beats=beats, downbeats=downbeats, beats_per_bar=4,
+                    confidence=0.9, reliable=True)  # fmt: skip
+    paths = {name: f"tracks/{_TRACK}/stems/{name}.flac" for name in song["stems"]}
+    body = {"stems": paths, "durationSeconds": song["seconds"],
+            "grid": grid.model_dump(by_alias=True)}  # fmt: skip
+    return SectionJobRequest.model_validate(body)
+
+
+def _recall(found: list[float], truth: list[float]) -> float:
+    """Share of the true boundaries with a found one within one bar (SC-001)."""
+    return sum(min(abs(f - t) for f in found) <= 2.0 for t in truth) / len(truth)
+
+
 def test_the_section_analyser_finds_the_form_on_the_stems(
     generated: tuple[Path, dict[str, Any]],
 ) -> None:
     out_dir, manifest = generated
     song = manifest["song"]
-    beats = [round(song["downbeats"][0] + 0.5 * k, 3) for k in range(4 * len(song["downbeats"]))]
-    grid = BeatGrid(bpm=song["bpm"], beats=beats, downbeats=song["downbeats"], beats_per_bar=4,
-                    confidence=0.9, reliable=True)  # fmt: skip
-    paths = {name: f"tracks/{_TRACK}/stems/{name}.flac" for name in song["stems"]}
-    body = {
-        "stems": paths,
-        "durationSeconds": song["seconds"],
-        "grid": grid.model_dump(by_alias=True),
-    }
-    request = SectionJobRequest.model_validate(body)
     files = {name: out_dir / path for name, path in song["stems"].items()}
 
-    result = StemsNoveltyAnalyzer().analyze(request, files, lambda _f: None)
+    result = StemsNoveltyAnalyzer().analyze(_section_request(song), files, lambda _f: None)
 
     found = [s.start_seconds for s in result.sections[1:]]
-    truth = [s["startSeconds"] for s in song["sections"][1:]]
-    hits = [t for t in truth if min(abs(f - t) for f in found) <= 2.0]  # within one bar
-    assert len(hits) / len(truth) >= 0.8  # SC-001 recall
+    assert _recall(found, [s["startSeconds"] for s in song["sections"][1:]]) >= 0.8
     solo = next(s for s in result.sections if s.start_seconds <= 50 < s.end_seconds)
     assert (solo.kind, solo.instrument) == ("solo", "guitar")
 

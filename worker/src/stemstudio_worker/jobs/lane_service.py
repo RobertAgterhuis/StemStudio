@@ -10,6 +10,7 @@ import logging
 import shutil
 import threading
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
@@ -93,6 +94,19 @@ class LaneJobService[R: BaseModel]:
     def _submit(self, job_id: str) -> None:
         """Queue ``process(job_id)`` on this service's lane (also when the lane is shared)."""
         self._lane.submit_call(self.process, job_id)
+
+    def _run_job(self, job_id: str, work: Callable[[R, Path], Outcome]) -> None:
+        """Run ``work(record, folder)`` of a pending job (lane thread); others are skipped.
+
+        The job is ``running`` meanwhile; the outcome is stored by :meth:`_finish`.
+        """
+        record = self._pending(job_id)
+        if record is None:
+            return
+        out_dir = self._store.output_dir(job_id)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        self.update(job_id, status=_S.RUNNING)
+        self._finish(job_id, self._guarded(job_id, lambda: work(record, out_dir)))
 
     def _pending(self, job_id: str) -> R | None:
         """The record of a job that still has to run (unknown and finished jobs: None)."""

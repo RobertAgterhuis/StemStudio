@@ -111,26 +111,33 @@ def _bar(kind: str, index: int, rng: np.random.Generator) -> dict[str, Audio]:
         "piano": _chord(root * 2, minor, bright // 2 + 1),
         "other": tone(root * 4, BAR_S, bright, 0.05),
     }  # fmt: skip
-    if kind == "solo":
-        parts = {name: 0.35 * part for name, part in parts.items()}
-        note = SOLO_NOTES[index % len(SOLO_NOTES)]
-        parts["guitar"] = parts["guitar"] + np.concatenate(
-            [tone(note * r, BAR_S / 4, 6, 0.4) for r in (1, 1.122, 1.26, 1.335)]
-        )
-    return parts
+    return _with_solo(parts, index) if kind == "solo" else parts
+
+
+def _with_solo(parts: dict[str, Audio], index: int) -> dict[str, Audio]:
+    """The band at 35 % and a guitar melody of four notes on top."""
+    quiet = {name: 0.35 * part for name, part in parts.items()}
+    note = SOLO_NOTES[index % len(SOLO_NOTES)]
+    melody = [tone(note * r, BAR_S / 4, 6, 0.4) for r in (1, 1.122, 1.26, 1.335)]
+    quiet["guitar"] = quiet["guitar"] + np.concatenate(melody)
+    return quiet
 
 
 def render_stems() -> dict[str, Audio]:
     """The six mono stems of the song, the lead-in silent, 3 % bleed of the mix in each."""
     rng = np.random.default_rng(SEED)
     bars = [_bar(kind, k, rng) for kind, _, count in FORM for k in range(count)]
-    lead = np.zeros(round(LEAD_IN_S * SAMPLE_RATE))
-    stems = {name: np.concatenate([lead, *(bar[name] for bar in bars)]) for name in STEMS}
-    tail = round(total_seconds() * SAMPLE_RATE) - len(stems["vocals"])
-    stems = {name: np.pad(signal, (0, tail)) for name, signal in stems.items()}
+    stems = {name: _stem(bars, name) for name in STEMS}
     mix = np.sum(list(stems.values()), axis=0)
     scale = PEAK / float(np.max(np.abs(mix * 1.03)))
     return {name: (signal + 0.03 * mix) * scale for name, signal in stems.items()}
+
+
+def _stem(bars: Sequence[dict[str, Audio]], name: str) -> Audio:
+    """One stem: the lead-in, its part of every bar, silence up to the song's length."""
+    lead = np.zeros(round(LEAD_IN_S * SAMPLE_RATE))
+    signal = np.concatenate([lead, *(bar[name] for bar in bars)])
+    return np.pad(signal, (0, round(total_seconds() * SAMPLE_RATE) - len(signal)))
 
 
 def render_free() -> Audio:

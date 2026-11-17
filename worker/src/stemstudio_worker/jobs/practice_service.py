@@ -133,13 +133,7 @@ class _PracticeService[R: Any](LaneJobService[R]):
 
     def process(self, job_id: str) -> None:
         """Run one job to a terminal state (lane thread); skips unknown and finished jobs."""
-        record = self._pending(job_id)
-        if record is None:
-            return
-        out_dir = self._store.output_dir(job_id)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        self.update(job_id, status=_S.RUNNING)
-        self._finish(job_id, self._guarded(job_id, lambda: self.run(record, out_dir)))
+        self._run_job(job_id, self.run)
 
     def run(self, record: R, out_dir: Path) -> Outcome:
         """Do the work of ``record`` into ``out_dir``; return the completed job's changes."""

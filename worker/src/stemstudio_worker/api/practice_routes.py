@@ -15,10 +15,13 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from stemstudio_worker.api.dependencies import Runtime
-from stemstudio_worker.api.problems import ProblemError, ProblemKind, TypedProblemError
-from stemstudio_worker.api.render_routes import INPUT_NOT_FOUND, INVALID_INPUT_PATH
+from stemstudio_worker.api.problems import (
+    ProblemError,
+    ProblemKind,
+    TypedProblemError,
+    path_guarded,
+)
 from stemstudio_worker.api.responses import json_response
-from stemstudio_worker.ports import InputNotFoundError, InputPathError
 from stemstudio_worker.schemas import (
     RenderJobStatus,
     ScoreViewJobRequest,
@@ -121,12 +124,7 @@ async def _created(service: Any, body: BaseModel, base: str) -> JSONResponse:
 
 
 def _create(service: Any, body: BaseModel) -> Any:
-    try:
-        return service.create(body)
-    except InputPathError as exc:
-        raise TypedProblemError(INVALID_INPUT_PATH, str(exc)) from exc
-    except InputNotFoundError as exc:
-        raise TypedProblemError(INPUT_NOT_FOUND, str(exc)) from exc
+    return path_guarded(lambda: service.create(body))
 
 
 def _job(service: Any, job_id: str) -> Any:

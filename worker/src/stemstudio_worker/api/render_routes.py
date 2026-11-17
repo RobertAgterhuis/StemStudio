@@ -5,16 +5,21 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from stemstudio_worker.api.dependencies import Runtime
-from stemstudio_worker.api.problems import ProblemError, ProblemKind, TypedProblemError
+from stemstudio_worker.api.problems import (
+    INPUT_NOT_FOUND,
+    INVALID_INPUT_PATH,
+    ProblemError,
+    ProblemKind,
+    TypedProblemError,
+    path_guarded,
+)
 from stemstudio_worker.api.responses import json_response
 from stemstudio_worker.jobs.render_service import RenderService
-from stemstudio_worker.ports import InputNotFoundError, InputPathError
 from stemstudio_worker.schemas import RenderJob, RenderJobRequest, RenderJobStatus
 
 router = APIRouter(prefix="/v1/render-jobs")
 
-INVALID_INPUT_PATH = ProblemKind("invalid-input-path", 400, "Invalid input path")
-INPUT_NOT_FOUND = ProblemKind("input-not-found", 404, "Input not found")
+__all__ = ["INPUT_NOT_FOUND", "INVALID_INPUT_PATH", "RENDER_NOT_COMPLETED", "router"]
 RENDER_NOT_COMPLETED = ProblemKind("render-not-completed", 409, "Render not completed")
 
 
@@ -54,12 +59,7 @@ def get_render_job_file(job_id: str, runtime: Runtime) -> FileResponse:
 
 
 def _create(service: RenderService, body: RenderJobRequest) -> RenderJob:
-    try:
-        return service.create(body)
-    except InputPathError as exc:
-        raise TypedProblemError(INVALID_INPUT_PATH, str(exc)) from exc
-    except InputNotFoundError as exc:
-        raise TypedProblemError(INPUT_NOT_FOUND, str(exc)) from exc
+    return path_guarded(lambda: service.create(body))
 
 
 def _job(service: RenderService, job_id: str) -> RenderJob:
