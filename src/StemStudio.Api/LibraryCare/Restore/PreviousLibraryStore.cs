@@ -40,6 +40,11 @@ public sealed class PreviousLibraryStore(LibraryCarePaths paths) : IPreviousLibr
         await JsonFiles.WriteAsync(Path.Combine(folder, RecordName), previous, cancellationToken);
     }
 
+    /// <summary>True when the previous library has its record.</summary>
+    /// <param name="restoreId">Its id.</param>
+    /// <returns>True when <c>previous.json</c> exists.</returns>
+    public bool HasRecord(Guid restoreId) => File.Exists(Path.Combine(paths.Previous(restoreId), RecordName));
+
     /// <summary>Deletes a previous library permanently.</summary>
     /// <param name="restoreId">Its id.</param>
     public void Delete(Guid restoreId)

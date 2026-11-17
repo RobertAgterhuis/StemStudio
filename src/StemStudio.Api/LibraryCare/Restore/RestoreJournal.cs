@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Contracts.LibraryCare;
 
 namespace StemStudio.Api.LibraryCare.Restore;
 
@@ -60,6 +61,12 @@ public sealed record RestoreJournalRecord
 
     /// <summary>Folder (relative) removed after the commit, e.g. the emptied previous library of an undo.</summary>
     public string? RemoveAfterCommit { get; init; }
+
+    /// <summary>
+    /// The record of the library moved aside, written after the commit; kept in the journal so start-up recovery can write
+    /// it when the process stopped between the commit and the record (null for an empty-library restore).
+    /// </summary>
+    public PreviousLibraryDto? Previous { get; init; }
 }
 
 /// <summary>Builds and validates switch plans.</summary>
@@ -140,7 +147,10 @@ public static partial class JournalPlans
     private static partial Regex CarePath();
 }
 
-/// <summary>Journal files and their start-up recovery (research R-07): before <c>committed</c> every move is undone in reverse.</summary>
+/// <summary>
+/// Journal files and their start-up recovery (research R-07): before <c>committed</c> every move is undone in reverse; after
+/// <c>committed</c> the post-commit steps are finished (folder removal, the previous library's record).
+/// </summary>
 /// <param name="paths">Library-care folders.</param>
 public sealed class RestoreJournal(LibraryCarePaths paths)
 {
@@ -191,6 +201,46 @@ public sealed class RestoreJournal(LibraryCarePaths paths)
         return count;
     }
 
+    /// <summary>Finishes every committed journal whose post-commit steps did not run (idempotent).</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The number of journals that needed a step.</returns>
+    public async Task<int> CompleteCommittedAsync(CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(paths.JournalDirectory))
+        {
+            return 0;
+        }
+
+        var count = 0;
+        foreach (var file in Directory.EnumerateFiles(paths.JournalDirectory, "*.json"))
+        {
+            if (await JsonFiles.ReadAsync<RestoreJournalRecord>(file, cancellationToken) is { State: JournalState.Committed } journal)
+            {
+                var removed = FinishCommitted(JournalPlans.Validate(journal));
+                var recorded = await RecordPreviousAsync(journal, cancellationToken);
+                count += removed || recorded ? 1 : 0;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>The post-commit removal: the moved-aside files of an empty library, or the folder the journal names.</summary>
+    /// <param name="journal">A committed journal.</param>
+    /// <returns>True when a folder was removed.</returns>
+    public bool FinishCommitted(RestoreJournalRecord journal)
+    {
+        ArgumentNullException.ThrowIfNull(journal);
+        var remove = journal.KeepPrevious ? journal.RemoveAfterCommit : $"library-care/previous/{LibraryCarePaths.Id(journal.RestoreId)}";
+        if (remove is null || !Directory.Exists(Full(remove)))
+        {
+            return false;
+        }
+
+        Directory.Delete(Full(remove), recursive: true);
+        return true;
+    }
+
     /// <summary>Undoes every move whose destination exists and source does not, in reverse (idempotent).</summary>
     /// <param name="journal">The journal.</param>
     /// <param name="files">File seam.</param>
@@ -210,5 +260,17 @@ public sealed class RestoreJournal(LibraryCarePaths paths)
         }
 
         await SaveAsync(journal with { State = JournalState.RolledBack }, cancellationToken);
+    }
+
+    private async Task<bool> RecordPreviousAsync(RestoreJournalRecord journal, CancellationToken cancellationToken)
+    {
+        var store = new PreviousLibraryStore(paths);
+        if (journal.Previous is not { } previous || !Directory.Exists(paths.Previous(previous.RestoreId)) || store.HasRecord(previous.RestoreId))
+        {
+            return false;
+        }
+
+        await store.SaveAsync(previous with { SizeBytes = store.SizeOf(previous.RestoreId) }, cancellationToken);
+        return true;
     }
 }
