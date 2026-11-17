@@ -154,8 +154,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 6: User Story 4 - Compare take and original (P2)
 
-- [ ] T059 [P] [US4] [audio-engine] Failing tests: `setTakeCompare` swaps gates at one context time with <= 10 ms ramps, user mute/solo untouched, expanded detail channels, part `none` toggle (FR-013)
-- [ ] T060 [US4] [audio-engine] Implement `setTakeCompare` to pass T059
+- [x] T059 [P] [US4] [audio-engine] Failing tests: `setTakeCompare` swaps gates at one context time with <= 10 ms ramps, user mute/solo untouched, expanded detail channels, part `none` toggle (FR-013)
+- [x] T060 [US4] [audio-engine] Implement `setTakeCompare` to pass T059
 - [ ] T061 [P] [US4] [backend] Failing tests `MixTakeChannelTests.cs`: `MixSettings.take` save/load, stale take id -> null, duplicate copies it, deleting the take nulls it (FR-012)
 - [ ] T062 [US4] [backend] Implement the mix additions to pass T061
 - [ ] T063 [P] [US4] [frontend] Failing bUnit tests `TakeCompareTests.cs`: radio group and toggle, `C` shortcut cycles, aria states, strip settings saved with the mix (FR-012, FR-013, FR-021)

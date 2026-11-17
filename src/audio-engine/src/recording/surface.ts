@@ -43,6 +43,9 @@ import { CaptureStore } from './takes';
 export const MAX_ADJUSTMENT_SAMPLES = 8820;
 /** Message of the calls refused while a session runs. */
 export const LOCKED_MESSAGE = 'Stop the recording first';
+/** The compare modes (research R-10). */
+const COMPARE_MODES: readonly TakeCompareMode[] = ['both', 'take', 'original'];
+
 /** Message of the calls refused while a calibration runs. */
 export const CALIBRATING_MESSAGE = 'A calibration is running';
 
@@ -242,10 +245,14 @@ export class Recording implements RecordingSurface {
     throw notImplemented('setTakeAdjustment');
   };
 
-  /** {@inheritDoc AudioEngine.setTakeCompare} (015 US4, T060). */
-  public readonly setTakeCompare: RecordingSurface['setTakeCompare'] = (): void => {
-    throw notImplemented('setTakeCompare');
-  };
+  /** {@inheritDoc AudioEngine.setTakeCompare} */
+  public setTakeCompare(mode: TakeCompareMode): void {
+    if (!COMPARE_MODES.includes(mode)) {
+      throw new Error(`Invalid compare mode: ${mode}`);
+    }
+    this.mode = mode;
+    this.applyGates();
+  }
 
   /** A new track was loaded: the take belongs to the old one. */
   public onTrackLoaded(): void {

@@ -37,9 +37,14 @@ async function makeRig(part: RecordingPart = 'drums'): Promise<Rig> {
   return { ctx, engine };
 }
 
+/** Whether a source buffer is the decoded file of `bytes` (the take: its sliced 1 s buffer). */
+function feeds(buffer: MockAudioBuffer | null, bytes: number): boolean {
+  return bytes === BYTES.take ? buffer?.length === SR : buffer?.sourceBytes === bytes;
+}
+
 /** Channel gain of the channel fed by the buffer of `bytes` (the first source of it). */
 function gainOf(rig: Rig, bytes: number): MockGainNode {
-  const source = rig.ctx.sources.find((s) => s.connections.length > 0 && ((s.buffer as MockAudioBuffer | null)?.sourceBytes === bytes || (bytes === BYTES.take && s.buffer?.length === SR)));
+  const source = rig.ctx.sources.find((s) => s.connections.length > 0 && feeds(s.buffer, bytes));
   const gain = source?.connections[0] as MockGainNode | undefined;
   if (gain === undefined) {
     throw new Error(`no channel for ${String(bytes)}`);
