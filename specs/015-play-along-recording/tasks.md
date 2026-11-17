@@ -180,8 +180,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 8: User Story 6 - Export take or take + mix (P2)
 
-- [ ] T071 [P] [US6] [backend] Failing tests `Domain.Tests/Rendering/TakeExportPlannerTests.cs` and Api export tests: raw take (default range = span, explicit range intersected), mix with `take` (gate, volume, pan), explicit `["take", ...]`, `take-required`, `take-not-in-track`, `take-not-ready`, provenance `contents` and `sourceAssetIds`; render-vectors 1.1.0 consumer (FR-015)
-- [ ] T072 [US6] [backend] Implement the planner and export request additions to pass T071
+- [x] T071 [P] [US6] [backend] Failing tests `Domain.Tests/Rendering/TakeExportPlannerTests.cs` and Api export tests: raw take (default range = span, explicit range intersected), mix with `take` (gate, volume, pan), explicit `["take", ...]`, `take-required`, `take-not-in-track`, `take-not-ready`, provenance `contents` and `sourceAssetIds`; render-vectors 1.1.0 consumer (FR-015)
+- [x] T072 [US6] [backend] Implement the planner and export request additions to pass T071
 - [ ] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
 - [ ] T074 [P] [US6] [frontend] Failing bUnit tests: export dialog presets from a take row (take only, take + mix), compare translated into explicit mutes, `export-channel-take`, `export-take-saving` (FR-015)
 - [ ] T075 [US6] [frontend] Implement the export presets to pass T074
@@ -195,8 +195,8 @@ and `polish`, with real test and coverage output.
 
 - [ ] T077 [P] [US7] [audio-engine] Failing tests: `setTakeAdjustment` re-schedules at `currentTime + 0.01`; re-encoding the loaded span with a shifted start (positive later, clamped at 0) (FR-016)
 - [ ] T078 [US7] [audio-engine] Implement to pass T077
-- [ ] T079 [P] [US7] [backend] Failing tests `ReplaceTakeAudioEndpointTests.cs`: previous audio kept until ready, `alignmentRevision` + 1, `adjustmentSamples` summed, `take-saving` 409, failure keeps the old audio (data-model 2.4)
-- [ ] T080 [US7] [backend] Implement `replaceRecordingTakeAudio` to pass T079
+- [x] T079 [P] [US7] [backend] Failing tests `ReplaceTakeAudioEndpointTests.cs`: previous audio kept until ready, `alignmentRevision` + 1, `adjustmentSamples` summed, `take-saving` 409, failure keeps the old audio (data-model 2.4)
+- [x] T080 [US7] [backend] Implement `replaceRecordingTakeAudio` to pass T079
 - [ ] T081 [P] [US7] [frontend] Failing bUnit tests `TakeAdjustTests.cs`: Expert only, slider and number (0.1 ms), live playback shift, apply/reset, note (FR-016, FR-020)
 - [ ] T082 [US7] [frontend] Implement `TakeAdjust` to pass T081
 - [ ] T083 [P] [US7] [qa] E2E (Expert): adjust -10.0 ms and apply -> `startSample` 441 lower, revision 1

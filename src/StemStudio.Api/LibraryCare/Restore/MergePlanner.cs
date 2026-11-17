@@ -15,7 +15,8 @@ namespace StemStudio.Api.LibraryCare.Restore;
 /// by device label (the live row wins) and recorded takes only together with their item). The same id in the live library
 /// skips the item; the same track source key with another id skips the track with its mixes, assets and generations; a
 /// taken unique name (style, voice profile, mix per track) is renamed "&lt;name&gt; (restored)". Agent settings and
-/// <c>AgentSecrets</c> are never read from the archive (011 CK-FR-017).
+/// <c>AgentSecrets</c> are never read from the archive (011 CK-FR-017). Feature 014 (T107): a merged track brings its
+/// sections; setlists and practice sessions are not merged, and score views are not archived (they are made again).
 /// </summary>
 /// <param name="staged">Context on the staged (checked, migrated) database.</param>
 /// <param name="live">Context on the live database (read only here).</param>
@@ -32,6 +33,7 @@ public sealed class MergePlanner(StemStudioDbContext staged, StemStudioDbContext
         await LyricsSheetsAsync(plan, cancellationToken);
         await VoiceProfilesAsync(plan, cancellationToken);
         await TracksAsync(plan, cancellationToken);
+        await SectionsAsync(plan, cancellationToken);
         await MixesAsync(plan, cancellationToken);
         await AssetsAsync(plan, cancellationToken);
         await GenerationsAsync(plan, cancellationToken);
@@ -140,6 +142,14 @@ public sealed class MergePlanner(StemStudioDbContext staged, StemStudioDbContext
         }
 
         plan.Add(track, track.Id, TrackPaths(track));
+    }
+
+    /// <summary>014 T107: the sections of every merged track come with it; setlists, practice sessions and score views never do.</summary>
+    private async Task SectionsAsync(MergePlan plan, CancellationToken cancellationToken)
+    {
+        var current = await IdsAsync(live.TrackSections.Select(sections => sections.TrackId), cancellationToken);
+        var archived = await staged.TrackSections.AsNoTracking().Include(sections => sections.Sections).ToListAsync(cancellationToken);
+        plan.AddRows(archived.Where(sections => plan.AddedIds.Contains(sections.TrackId) && !current.Contains(sections.TrackId)));
     }
 
     private async Task MixesAsync(MergePlan plan, CancellationToken cancellationToken)

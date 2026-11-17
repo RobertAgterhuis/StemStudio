@@ -12,7 +12,8 @@ namespace StemStudio.Api.LibraryCare.Backup;
 /// <summary>
 /// Removes excluded categories from the staged database copy with the domain's own rules (research R-04, data-model 4.3),
 /// so a restored library never points at missing files; voice profiles without a complete consent record are scrubbed the
-/// same way, with a warning (FR-009). Ends with <c>PRAGMA integrity_check</c>.
+/// same way, with a warning (FR-009). Score views (014) are always removed: their pages under <c>assets/&lt;id&gt;/view/</c> are
+/// not archived, so a restored library makes them again (T107 decision). Ends with <c>PRAGMA integrity_check</c>.
 /// </summary>
 /// <param name="categorize">Archive category of a library item (tests pass a recordings fixture before feature 015).</param>
 public sealed class BackupScrubber(Func<Asset, BackupCategory> categorize)
@@ -39,6 +40,7 @@ public sealed class BackupScrubber(Func<Asset, BackupCategory> categorize)
             await ScrubTracksAsync(context, excluded, snapshotTime, cancellationToken);
             await ScrubAssetsAsync(context, excluded, cancellationToken);
             await ScrubGenerationsAsync(context, excluded, cancellationToken);
+            context.ScoreViews.RemoveRange(await context.ScoreViews.ToListAsync(cancellationToken));
             warnings = await ScrubVoiceProfilesAsync(context, excluded.Contains(BackupCategory.VoiceProfiles), snapshotTime, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
         }
