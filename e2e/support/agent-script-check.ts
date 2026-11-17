@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-import { knownPlaceholders } from './agent-scripts';
+import { knownPlaceholderPatterns, knownPlaceholders } from './agent-scripts';
 
 type Json = Readonly<Record<string, unknown>>;
 
@@ -78,7 +78,7 @@ function placeholderProblems(value: unknown, where: string): string[] {
 }
 
 function isUnknownPlaceholder(text: string): boolean {
-  return text.includes('{{') && !knownPlaceholders.includes(text);
+  return text.includes('{{') && !knownPlaceholders.includes(text) && !knownPlaceholderPatterns.some((pattern) => pattern.test(text));
 }
 
 function unknownKeys(value: Json, allowed: readonly string[], where: string): string[] {

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "023 US4 (T060, quickstart Q4 steps 2-3): list the open spelling suggestions, then apply exactly those (approval always, reason lyrics-edit). {{result.list_lyric_suggestions.ids:spelling}} = the ids of the spelling suggestions in the run's most recent list_lyric_suggestions result (CTO decision on the T060 gap).",
+  "turns": [
+    { "calls": [{ "name": "list_lyric_suggestions", "arguments": { "lyricsId": "{{context.lyricsId}}", "status": "open", "category": "spelling" } }] },
+    { "calls": [{ "name": "apply_lyric_suggestions", "arguments": { "lyricsId": "{{context.lyricsId}}", "suggestionIds": "{{result.list_lyric_suggestions.ids:spelling}}" } }] },
+    { "text": "The spelling suggestions are applied." }
+  ]
+}

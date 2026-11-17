@@ -1,6 +1,7 @@
 import { scriptProblems } from '../support/agent-script-check';
 import {
   agentScripts,
+  contextLyricsId,
   contextMixId,
   contextTrackId,
   finalText,
@@ -31,12 +32,24 @@ test.describe('agent scripts', { tag: '@self-test' }, () => {
   test('the US1 script plans, searches, opens the mixer and mutes the drums', () => {
     expect(scriptedTools('us1-command')).toEqual(['set_plan', 'search_library', 'open_mixer', 'mixer_set_channel']);
   });
+
+  test('the 023 apply script lists the suggestions before it applies them', () => {
+    expect(scriptedTools('us4-lyric-apply')).toEqual(['list_lyric_suggestions', 'apply_lyric_suggestions']);
+  });
 });
 
 test.describe('agent script check', { tag: '@self-test' }, () => {
   test('accepts the schema example and the context placeholders', () => {
     const calls = [{ name: 'open_mixer', arguments: { trackId: contextTrackId, mixId: contextMixId } }];
     expect(scriptProblems({ version: 1, turns: [{ calls }, { text: 'Done.', usage: { inputTokens: 1 } }] })).toEqual([]);
+  });
+
+  test('accepts the 023 lyrics placeholders and refuses a result placeholder with an unknown category', () => {
+    const ids = '{{result.list_lyric_suggestions.ids:spelling}}';
+    const calls = [{ name: 'apply_lyric_suggestions', arguments: { lyricsId: contextLyricsId, suggestionIds: ids } }];
+    expect(scriptProblems({ version: 1, turns: [{ calls }, { text: 'Done.' }] })).toEqual([]);
+    const bad = [{ calls: [{ name: 'apply_lyric_suggestions', arguments: { suggestionIds: '{{result.list_lyric_suggestions.ids:colour}}' } }] }];
+    expect(scriptProblems({ version: 1, turns: bad })).toEqual(['turns[0].calls[0].arguments.suggestionIds uses the unknown placeholder {{result.list_lyric_suggestions.ids:colour}}']);
   });
 
   test('refuses what the schema refuses', () => {
