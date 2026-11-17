@@ -1,6 +1,6 @@
 # Starts the compose stack with the fake separator for the browser suites (feature 004: visual,
 # a11y, lighthouse): uv + Node, ffmpeg, the generated audio fixtures, a temporary backups folder
-# owned by the api user (013), then `docker compose up --wait`.
+# owned by the api user and the e2e override via COMPOSE_FILE (013), then `docker compose up --wait`.
 # The caller checks out the repository first and stops the stack with `docker compose down -v`.
 name: Fake stack
 description: Generate the audio fixtures and start worker, api and web with STEMSTUDIO_SEPARATOR=fake.
@@ -34,12 +34,17 @@ runs:
         for generator in tests/fixtures/generate_*.py; do
           uv run --project worker --frozen python "${generator}"
         done
-    - name: Backups folder for the api (uid 1654, temporary; 013 FR-005)
+    - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
       shell: bash
       run: |
         backups="$RUNNER_TEMP/stemstudio-backups"
         mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
-        echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups" >> "$GITHUB_ENV"
+        {
+          echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups"
+          echo "E2E_BACKUP_DIR=$backups"
+          echo "E2E_LIBRARY_THROTTLE=1"
+          echo "COMPOSE_FILE=docker-compose.yml:docker-compose.e2e.yml"
+        } >> "$GITHUB_ENV"
         scripts/check-backup-folder.sh --folder "$backups"
     - name: Start the stack (fake separator) and wait for health
       shell: bash

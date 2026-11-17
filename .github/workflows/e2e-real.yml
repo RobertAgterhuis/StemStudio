@@ -100,6 +100,7 @@ jobs:
           backups="$RUNNER_TEMP/stemstudio-backups"
           mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
           echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups" >> "$GITHUB_ENV"
+          echo "E2E_BACKUP_DIR=$backups" >> "$GITHUB_ENV"
           scripts/check-backup-folder.sh --folder "$backups"
       - name: Build and start the stack
         run: docker compose up -d --build --wait --wait-timeout 600

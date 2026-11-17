@@ -181,8 +181,18 @@ jobs:
         run: |
           uv run --project worker --frozen ruff check tests/fixtures
           uv run --project worker --frozen ruff format --check tests/fixtures
-          uv run --project worker --frozen mypy --config-file "$FX" tests/fixtures
+          uv run --project worker --frozen mypy --config-file "$FX" --exclude '^tests/fixtures/backup/' tests/fixtures
           uv run --project worker --frozen pytest -c "$FX" --cov --cov-branch --cov-config="$FX" --cov-report=term tests/fixtures/tests
+      - name: Backup fixture tools lint, types, tests >= 90 % (qa, 013 tests/fixtures/backup, own pyproject.toml)
+        # Present once the qa lane of 013 is merged; until then the step is skipped.
+        if: hashFiles('tests/fixtures/backup/pyproject.toml') != ''
+        env:
+          FX: tests/fixtures/backup/pyproject.toml
+        run: |
+          uv run --project worker --frozen ruff check --config "$FX" tests/fixtures/backup
+          uv run --project worker --frozen ruff format --config "$FX" --check tests/fixtures/backup
+          uv run --project worker --frozen mypy --config-file "$FX" tests/fixtures/backup
+          uv run --project worker --frozen pytest -c "$FX" --cov --cov-branch --cov-config="$FX" --cov-report=term tests/fixtures/backup/tests
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -482,6 +492,9 @@ jobs:
           STEMSTUDIO_BACKUP_HOST_DIR=/srv/stemstudio-backups docker compose -f docker-compose.yml config --format json             | jq -e '.services.api | (.volumes[] | select(.target == "/backups") | .type == "bind" and .source == "/srv/stemstudio-backups")
                      and .environment.StemStudio__BackupDir == "/backups"
                      and .environment.StemStudio__BackupHostDirHint == "/srv/stemstudio-backups"'
+          # 013 e2e override: only the api gets the library job throttle (default 8 MiB/s).
+          docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --format json             | jq -e '.services.api.environment.StemStudio__LibraryCare__ThrottleBytesPerSecond == "8388608"
+                     and ([.services[] | select(.environment.StemStudio__LibraryCare__ThrottleBytesPerSecond != null)] | length == 1)'
           docker compose -f docker-compose.yml config --format json             | jq -e --arg dir "$PWD/backups" '[.services[] | .volumes[]? | select(.target == "/backups")] | length == 1 and .[0].source == $dir'
       - name: The key ring volume api-keys is at /keys in api only, in every combination (011 claude-key)
         run: |
@@ -578,11 +591,18 @@ jobs:
           for generator in tests/fixtures/generate_*.py; do
             uv run --project worker --frozen python "${generator}"
           done
-      - name: Backups folder for the api (uid 1654, temporary; 013 FR-005)
+      - name: Backups folder for the api (uid 1654, temporary) and the e2e override (013 FR-005)
+        # COMPOSE_FILE adds docker-compose.e2e.yml (library job throttle) to every later
+        # `docker compose` call of this job; E2E_BACKUP_DIR / E2E_LIBRARY_THROTTLE are for the specs.
         run: |
           backups="$RUNNER_TEMP/stemstudio-backups"
           mkdir -p "$backups" && sudo chown 1654:1654 "$backups"
-          echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups" >> "$GITHUB_ENV"
+          {
+            echo "STEMSTUDIO_BACKUP_HOST_DIR=$backups"
+            echo "E2E_BACKUP_DIR=$backups"
+            echo "E2E_LIBRARY_THROTTLE=1"
+            echo "COMPOSE_FILE=docker-compose.yml:docker-compose.e2e.yml"
+          } >> "$GITHUB_ENV"
           scripts/check-backup-folder.sh --folder "$backups"
       - name: Start the stack (fake separator) and wait for health
         run: docker compose up -d --build --wait --wait-timeout 300
@@ -605,6 +625,7 @@ jobs:
         run: |
           docker compose exec -T api sh -c 'test "$StemStudio__BackupDir" = /backups && probe=/backups/.ci-probe && touch "$probe" && rm "$probe"'
           docker compose exec -T worker sh -c 'test ! -e /backups'
+          docker compose exec -T api sh -c 'test "$StemStudio__LibraryCare__ThrottleBytesPerSecond" -gt 0'
       - name: Install Playwright browsers
         working-directory: e2e
         run: |

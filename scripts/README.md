@@ -33,6 +33,11 @@ New-Item -ItemType Directory -Force $env:STEMSTUDIO_BACKUP_HOST_DIR | Out-Null
 ./scripts/check-backup-folder.ps1
 ```
 
+E2E: `docker-compose.e2e.yml` (add with `-f`, or `COMPOSE_FILE` as in CI) sets the api's library
+job throttle `StemStudio__LibraryCare__ThrottleBytesPerSecond` (default 8 MiB/s,
+`STEMSTUDIO_E2E_THROTTLE_BYTES_PER_SECOND`); the specs then need `E2E_BACKUP_DIR=<backups folder>`
+and `E2E_LIBRARY_THROTTLE=1`.
+
 `backups/` is ignored by git and by the image build context. The archives are ordinary files: copy
 them to another disk or computer to keep a copy elsewhere.
 

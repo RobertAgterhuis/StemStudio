@@ -84,6 +84,7 @@
 #                                           Check it with scripts/check-backup-folder.{sh,ps1}. The
 #                                           api never changes host permissions; backups/ is ignored
 #                                           by git and by the image build context.
+#   E2E only: docker-compose.e2e.yml slows library jobs (throttle) for the library-care specs.
 
 name: stemstudio
 
