@@ -51,7 +51,18 @@ public sealed partial class Mixer
     private Task CountInCommandAsync() =>
         State!.Practice.CountIn.Bars == 0 && TrackBpm is null ? Task.CompletedTask : ToggleCountInAsync();
 
-    private Task SubmitPracticeAsync(PracticeSettingsDto settings) => EngineReady ? PracticeSender.SubmitAsync(settings) : Task.CompletedTask;
+    // The state changes at once; the engine call is not awaited by the caller: a RadzenButton ignores clicks while its
+    // Click handler runs, so awaiting the engine round trip dropped rapid -5/+5 % and -1/+1 clicks (012 integration).
+    // SendPracticeAsync reports engine errors itself, like the sender's deferred sends.
+    private Task SubmitPracticeAsync(PracticeSettingsDto settings)
+    {
+        if (EngineReady)
+        {
+            _ = PracticeSender.SubmitAsync(settings);
+        }
+
+        return Task.CompletedTask;
+    }
 
     private async Task SendPracticeAsync(PracticeSettingsDto settings)
     {

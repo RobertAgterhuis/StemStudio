@@ -63,6 +63,31 @@ public sealed class PracticePanelTests : PracticeTestContext
         page.Find("[data-testid=practice-reset]").HasAttribute("disabled").ShouldBeTrue();
     }
 
+    [Fact]
+    public void RapidStepClicks_WhileTheEngineIsStillApplyingTheFirst_AreAllCounted()
+    {
+        // A RadzenButton ignores clicks while its Click handler runs; the engine call must not keep it busy (012 integration).
+        var applying = new TaskCompletionSource();
+        Engine.SetPracticeAsync(Arg.Any<PracticeSettingsDto>()).Returns(applying.Task);
+        var page = RenderAt();
+
+        foreach (var _ in Enumerable.Range(0, 3))
+        {
+            page.Find("[data-testid=practice-speed-up]").Click();
+        }
+
+        foreach (var _ in Enumerable.Range(0, 2))
+        {
+            page.Find("[data-testid=practice-transpose-up]").Click();
+        }
+
+        page.Find("[data-testid=practice-panel]").GetAttribute("data-speed").ShouldBe("115");
+        page.Find("[data-testid=practice-panel]").GetAttribute("data-transpose").ShouldBe("2");
+        applying.SetResult();
+        NextInterval();
+        page.WaitForAssertion(() => Engine.Received().SetPracticeAsync(PracticeSettingsDto.Default with { SpeedPercent = 115, TransposeSemitones = 2 }));
+    }
+
     [Theory]
     [InlineData(100, "≈ 114 BPM")]
     [InlineData(80, "≈ 91 BPM")]
