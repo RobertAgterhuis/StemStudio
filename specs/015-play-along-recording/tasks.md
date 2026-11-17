@@ -140,8 +140,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 5: User Story 3 - Loop recording, one take per pass (P2)
 
-- [ ] T052 [P] [US3] [audio-engine] Failing tests `tests/recording/loop-recording.test.ts`: passes from transport segments, count-in before every pass not captured, partial last pass, 50-pass and 30-minute limits, loaded take replays in each pass (FR-010)
-- [ ] T053 [US3] [audio-engine] Implement loop handling in recorder/take-channel to pass T052
+- [x] T052 [P] [US3] [audio-engine] Failing tests `tests/recording/loop-recording.test.ts`: passes from transport segments, count-in before every pass not captured, partial last pass, 50-pass and 30-minute limits, loaded take replays in each pass (FR-010)
+- [x] T053 [US3] [audio-engine] Implement loop handling in recorder/take-channel to pass T052
 - [ ] T054 [P] [US3] [backend] Failing tests `DeleteTakesEndpointTests.cs`: batch delete, unknown and other-track ids ignored, files and hashes gone, count returned (FR-014)
 - [ ] T055 [US3] [backend] Implement `deleteRecordingTakes` to pass T054
 - [ ] T056 [P] [US3] [frontend] Failing bUnit tests: session groups, `rec-pass`, partial badge, star, `takes-keep-starred-<sessionId>` with confirmation (FR-010, FR-014)
