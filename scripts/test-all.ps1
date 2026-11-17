@@ -51,6 +51,9 @@ $AgentContracts = 'specs/011-ai-composer-agent/contracts'
 $ClaudeKeyContracts = 'specs/011-ai-composer-agent/followups/claude-key/contracts'
 # Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings); superset check needs PyYAML only.
 $PracticeContracts = 'specs/012-practice-tempo/contracts'
+# Feature 013 (backend 1.12.0 = 1.11.0 + library care, worker 1.7.0); backup fixture tools have their own pyproject.
+$LibraryCareContracts = 'specs/013-library-care/contracts'
+$BackupFx = 'tests/fixtures/backup/pyproject.toml'
 $PyYamlPython = @('uv', 'run', '--no-project', '--with', 'pyyaml==6.0.3', 'python', '-I')
 # SoundTouch module (012): built by scripts/build-soundtouch.ps1; test:wasm runs only when it exists.
 $SoundTouchWasm = 'src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm'
@@ -109,6 +112,9 @@ $Steps = @(
     @{ Name = 'contracts lint (011 claude-key)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$ClaudeKeyContracts/redocly.yaml", "$ClaudeKeyContracts/backend-api.openapi.yaml", "$ClaudeKeyContracts/backend-api.claude-key.openapi.yaml") }
     @{ Name = 'contracts lint (012-practice-tempo)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$PracticeContracts/redocly.yaml", "$PracticeContracts/backend-api.openapi.yaml") }
     @{ Name = 'contracts superset (012 contains 1.21.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$PracticeContracts/check_superset.py") }
+    @{ Name = 'contracts lint (013-library-care)'; Dir = '.'; Cmd = @('npx', '--yes', $Redocly, 'lint', '--config', "$LibraryCareContracts/redocly.yaml", "$LibraryCareContracts/backend-api.openapi.yaml", "$LibraryCareContracts/backend-api.delta.openapi.yaml", "$LibraryCareContracts/worker-api.openapi.yaml") }
+    @{ Name = 'contracts superset (013 contains 1.11.0)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryCareContracts/check_superset.py") }
+    @{ Name = 'contracts superset (013 contains its delta)'; Dir = '.'; Cmd = $PyYamlPython + @("$LibraryCareContracts/check_superset.py", "$LibraryCareContracts/backend-api.delta.openapi.yaml", "$LibraryCareContracts/backend-api.openapi.yaml") }
     @{ Name = 'secret scan self-test'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py', '--self-test') }
     @{ Name = 'secret scan'; Dir = '.'; Cmd = $WorkerPython + @('scripts/secret_scan.py') }
     @{ Name = 'render vectors check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', $RenderVectors, '--check') }
@@ -132,6 +138,10 @@ $Steps = @(
     @{ Name = 'fixtures ruff format'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--check', 'tests/fixtures') }
     @{ Name = 'fixtures mypy'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $Fx, 'tests/fixtures') }
     @{ Name = 'fixtures pytest + coverage'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'pytest', '-c', $Fx, '--cov', '--cov-branch', "--cov-config=$Fx", 'tests/fixtures/tests') }
+    @{ Name = 'backup fixtures ruff check (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'check', '--config', $BackupFx, 'tests/fixtures/backup') }
+    @{ Name = 'backup fixtures ruff format (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--config', $BackupFx, '--check', 'tests/fixtures/backup') }
+    @{ Name = 'backup fixtures mypy (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $BackupFx, 'tests/fixtures/backup') }
+    @{ Name = 'backup fixtures pytest + coverage (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'pytest', '-c', $BackupFx, '--cov', '--cov-branch', "--cov-config=$BackupFx", '--cov-report=term', 'tests/fixtures/backup/tests') }
     @{ Name = 'fixtures generate'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'python', 'tests/fixtures/generate_fixtures.py') }
     @{ Name = 'e2e npm ci'; Dir = 'e2e'; Cmd = @('npm', 'ci', '--no-audit', '--no-fund') }
     @{ Name = 'e2e lint'; Dir = 'e2e'; Cmd = @('npm', 'run', 'lint') }

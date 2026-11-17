@@ -42,6 +42,9 @@ AGENT_CONTRACTS=specs/011-ai-composer-agent/contracts
 CLAUDE_KEY_CONTRACTS=specs/011-ai-composer-agent/followups/claude-key/contracts
 # Feature 012 (backend 1.11.0 = 1.21.0 + the practice settings); superset check needs PyYAML only.
 PRACTICE_CONTRACTS=specs/012-practice-tempo/contracts
+# Feature 013 (backend 1.12.0 = 1.11.0 + library care, worker 1.7.0); backup fixture tools have their own pyproject.
+LIBRARY_CARE_CONTRACTS=specs/013-library-care/contracts
+BACKUP_FX=tests/fixtures/backup/pyproject.toml
 PYYAML=pyyaml==6.0.3
 # SoundTouch module (012): built by scripts/build-soundtouch.sh; test:wasm runs only when it exists.
 SOUNDTOUCH_WASM=src/StemStudio.Web/wwwroot/js/soundtouch/soundtouch.wasm
@@ -122,6 +125,9 @@ step "contracts lint (011 claude-key)" . npx --yes "$REDOCLY" lint --config "$CL
   "$CLAUDE_KEY_CONTRACTS/backend-api.openapi.yaml" "$CLAUDE_KEY_CONTRACTS/backend-api.claude-key.openapi.yaml"
 step "contracts lint (012-practice-tempo)" . npx --yes "$REDOCLY" lint --config "$PRACTICE_CONTRACTS/redocly.yaml"   "$PRACTICE_CONTRACTS/backend-api.openapi.yaml"
 step "contracts superset (012 contains 1.21.0)" . uv run --no-project --with "$PYYAML" python -I "$PRACTICE_CONTRACTS/check_superset.py"
+step "contracts lint (013-library-care)" . npx --yes "$REDOCLY" lint --config "$LIBRARY_CARE_CONTRACTS/redocly.yaml"   "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/worker-api.openapi.yaml"
+step "contracts superset (013 contains 1.11.0)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py"
+step "contracts superset (013 contains its delta)" . uv run --no-project --with "$PYYAML" python -I "$LIBRARY_CARE_CONTRACTS/check_superset.py"   "$LIBRARY_CARE_CONTRACTS/backend-api.delta.openapi.yaml" "$LIBRARY_CARE_CONTRACTS/backend-api.openapi.yaml"
 step "secret scan self-test" . uvw python scripts/secret_scan.py --self-test
 step "secret scan" . uvw python scripts/secret_scan.py
 step "render vectors check" . uv run --project worker --frozen python "$RENDER_VECTORS" --check
@@ -143,6 +149,10 @@ step "fixtures ruff check" . uvw ruff check tests/fixtures
 step "fixtures ruff format" . uvw ruff format --check tests/fixtures
 step "fixtures mypy" . uvw mypy --config-file "$FX" tests/fixtures
 step "fixtures pytest + coverage" . uvw pytest -c "$FX" --cov --cov-branch --cov-config="$FX" tests/fixtures/tests
+step "backup fixtures ruff check (013)" . uvw ruff check --config "$BACKUP_FX" tests/fixtures/backup
+step "backup fixtures ruff format (013)" . uvw ruff format --config "$BACKUP_FX" --check tests/fixtures/backup
+step "backup fixtures mypy (013)" . uvw mypy --config-file "$BACKUP_FX" tests/fixtures/backup
+step "backup fixtures pytest + coverage (013)" . uvw pytest -c "$BACKUP_FX" --cov --cov-branch --cov-config="$BACKUP_FX" --cov-report=term tests/fixtures/backup/tests
 step "fixtures generate" . uvw python tests/fixtures/generate_fixtures.py
 step "e2e npm ci" e2e npm ci --no-audit --no-fund
 step "e2e lint" e2e npm run lint
