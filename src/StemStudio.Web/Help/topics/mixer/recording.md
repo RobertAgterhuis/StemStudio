@@ -1,7 +1,7 @@
 ---
 id: recording
 title: "Play-along recording"
-area: recording
+area: mixer
 summary: "Record yourself over the mix; takes stay on this computer."
 reviewed: "015"
 ---

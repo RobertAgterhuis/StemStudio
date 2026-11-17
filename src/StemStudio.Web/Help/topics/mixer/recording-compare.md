@@ -1,7 +1,7 @@
 ---
 id: recording-compare
 title: "Compare take and original"
-area: recording
+area: mixer
 summary: "Switch between your take, the original part and both."
 reviewed: "015"
 ---

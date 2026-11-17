@@ -1,7 +1,7 @@
 ---
 id: recording-export
 title: "Export a take"
-area: recording
+area: mixer
 summary: "Save a take alone or with the mix to the library."
 reviewed: "015"
 ---
