@@ -108,13 +108,8 @@ public sealed partial class MainLayout : IAsyncDisposable
     }
 
     // Mod+/ opens the overview at Expert only; other levels reach it from the help panel (FR-017).
-    private void OpenShortcutsByKey()
-    {
-        if (Experience.IsVisible("shell.shortcut-overlay-key"))
-        {
-            Overlays.OpenShortcuts();
-        }
-    }
+    // 014 FR-024: Ctrl+/ opens the live overview at every level (004 kept it for Expert).
+    private void OpenShortcutsByKey() => Overlays.OpenShortcuts();
 
     private void Go(string commandId) => Navigation.NavigateTo(commandId switch
     {
