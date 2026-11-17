@@ -1,4 +1,3 @@
-using StemStudio.Api.Recording;
 using StemStudio.Api.Storage;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;

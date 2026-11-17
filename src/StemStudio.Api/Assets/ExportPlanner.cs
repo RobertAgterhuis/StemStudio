@@ -20,7 +20,7 @@ public sealed record ExportDraft(Track Track, ExportRecipe Recipe, RenderPlan Pl
 /// <param name="tracks">Track repository.</param>
 /// <param name="mixes">Mix repository.</param>
 /// <param name="takes">Resolves the take of an export (feature 015).</param>
-public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes, TakeExportResolver takes)
+public sealed class ExportPlanner(ITrackRepository tracks, IMixRepository mixes, ITakeExportSource takes)
 {
     /// <summary>Plans a request.</summary>
     /// <param name="request">The request.</param>

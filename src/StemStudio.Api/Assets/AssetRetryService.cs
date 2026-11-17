@@ -12,7 +12,7 @@ namespace StemStudio.Api.Assets;
 /// <param name="reader">Maps the item.</param>
 /// <param name="scores">Retries score items (feature 008).</param>
 /// <param name="takes">Resolves a recipe's take again (feature 015).</param>
-public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores, TakeExportResolver takes)
+public sealed class AssetRetryService(IAssetRepository assets, ITrackRepository tracks, AssetSubmitter submitter, AssetService reader, ScoreService scores, ITakeExportSource takes)
 {
     /// <summary>Re-plans and resubmits a failed item.</summary>
     /// <param name="id">Item ID.</param>

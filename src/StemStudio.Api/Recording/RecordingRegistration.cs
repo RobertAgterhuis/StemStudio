@@ -1,3 +1,5 @@
+using StemStudio.Api.Assets;
+using StemStudio.Api.Tracks;
 using StemStudio.Persistence.Repositories;
 
 namespace StemStudio.Api.Recording;
@@ -28,10 +30,10 @@ public static class RecordingRegistration
         services.AddScoped<TakeService>();
         services.AddScoped<TakeDeletion>();
         services.AddScoped<ITrackTakesCleanup>(sp => sp.GetRequiredService<TakeDeletion>());
-        services.AddScoped<TakeAssetFinisher>();
+        services.AddScoped<IAssetFinisher, TakeAssetFinisher>();
         services.AddScoped<CalibrationService>();
         services.AddScoped<Mixes.MixReferences>();
-        services.AddScoped<Assets.TakeExportResolver>();
+        services.AddScoped<ITakeExportSource, TakeExportResolver>();
         return services;
     }
 

@@ -76,10 +76,6 @@ public static class RecordingProblems
     /// <returns>The result.</returns>
     public static IResult CaptureMissing() => Typed(StatusCodes.Status409Conflict, RecordingProblemTypes.CaptureMissing, "Recording is gone", "The recorded audio of this take is no longer stored; record it again.");
 
-    /// <summary>409 <c>managed-by-take</c>.</summary>
-    /// <returns>The result.</returns>
-    public static IResult ManagedByTake() => Typed(StatusCodes.Status409Conflict, RecordingProblemTypes.ManagedByTake, "Managed by its take", "This item is a recorded take; rename, delete or retry it in the Takes panel.");
-
     /// <summary>409 <c>take-not-ready</c> (export).</summary>
     /// <returns>The result.</returns>
     public static IResult NotReady() => Typed(StatusCodes.Status409Conflict, RecordingProblemTypes.TakeNotReady, "Take not ready", "The take is still being saved or failed; export it when it is ready.");

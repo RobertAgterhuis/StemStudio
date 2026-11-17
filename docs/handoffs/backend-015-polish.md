@@ -69,3 +69,19 @@ exemptions). No new dependencies.
 ## Help/docs
 
 No user-facing text in this lane (L6 owns the recording help topics).
+
+## Refactor: 015 T007 dependency rule (Assets/Tracks -/- Api.Recording)
+
+The rule (cherry-picked from L2, 194770bc) flagged four files. Fixed by dependency inversion, behaviour unchanged:
+
+- `Tracks/ITrackTakesCleanup.cs`: the interface moved from `Recording/TakeDeletion.cs` to Tracks (namespace
+  `StemStudio.Api.Tracks`); `TakeDeletion` still implements it.
+- `Assets/IAssetFinisher.cs`: new seam for `AssetSynchronizer`; `TakeAssetFinisher` implements it
+  (`AddScoped<IAssetFinisher, TakeAssetFinisher>`).
+- `Assets/ITakeExportSource.cs` (with `ResolvedTake`): new seam for `ExportPlanner` and `AssetRetryService`;
+  `TakeExportResolver` moved to `Recording/` and implements it (`AddScoped<ITakeExportSource, TakeExportResolver>`).
+- `managed-by-take` moved from `RecordingProblems` to `AssetProblems.ManagedByTake()` (same type, title, detail,
+  status; type code from `Contracts.Recording.RecordingProblemTypes`). `AssetOriginPolicy` stays a static Assets policy:
+  the origin check is a Domain concept, only the problem text pointed at Recording, so no `IAssetOriginPolicy` was needed.
+- New test `Recording/RecordingSeamWiringTests.cs`: `AddRecording` resolves each seam to the recording implementation,
+  registered once, scoped. The track delete still requires `AddRecording` (as before; it is always composed).

@@ -1,3 +1,4 @@
+using StemStudio.Api.Assets;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Voices;
 using StemStudio.Persistence.Repositories;
@@ -12,12 +13,9 @@ namespace StemStudio.Api.Recording;
 /// <param name="storage">Take files.</param>
 /// <param name="hashes">The audio-hash index.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class TakeAssetFinisher(TakeFiles storage, IAudioHashRepository hashes, ILogger<TakeAssetFinisher> logger)
+public sealed partial class TakeAssetFinisher(TakeFiles storage, IAudioHashRepository hashes, ILogger<TakeAssetFinisher> logger) : IAssetFinisher
 {
-    /// <summary>Finishes a saved item; anything but a ready take is ignored.</summary>
-    /// <param name="asset">The item.</param>
-    /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>A task.</returns>
+    /// <inheritdoc/>
     public async Task FinishAsync(Asset asset, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(asset);
