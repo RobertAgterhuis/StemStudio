@@ -14,7 +14,7 @@ namespace StemStudio.Web.Recording;
 /// <param name="audio">The engine wrapper (take channel and meter).</param>
 /// <param name="api">The backend client.</param>
 /// <param name="audioUrl">Makes a take's relative <c>audioUrl</c> absolute for the browser.</param>
-public sealed class TakeLibrary(IRecordingEngine engine, IAudioEngine audio, IStemStudioApiClient api, Func<string, string> audioUrl)
+public sealed partial class TakeLibrary(IRecordingEngine engine, IAudioEngine audio, IStemStudioApiClient api, Func<string, string> audioUrl)
 {
     /// <summary>The channel id and test-id key of the take strip.</summary>
     public const string Channel = "take";
@@ -130,7 +130,7 @@ public sealed class TakeLibrary(IRecordingEngine engine, IAudioEngine audio, ISt
         return new LoadTakeRequest(item.Id, source, part, item.Take?.AdjustmentSamples ?? 0);
     }
 
-    private void Sort() => _items.Sort((a, b) => Recorded(b).CompareTo(Recorded(a)));
+    private void Sort() => _items.Sort((a, b) => Recorded(b).CompareTo(Recorded(a)) is var order and not 0 ? order : (b.PassIndex ?? 0).CompareTo(a.PassIndex ?? 0));
 
     private static DateTimeOffset Recorded(TakeItem item) => item.Take?.RecordedAt ?? item.Capture!.RecordedAt;
 }

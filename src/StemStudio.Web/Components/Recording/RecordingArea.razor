@@ -6,7 +6,7 @@
 @if (Mixer.Recording is { PanelOpen: true } session)
 {
     <RecordingPanel Session="session" />
-    <TakesPanel Takes="session.Takes" OnChanged="session.RefreshAsync" />
+    <TakesPanel Takes="session.Takes" TrackId="Mixer.Id" OnChanged="session.RefreshAsync" />
 }
 
 @code {

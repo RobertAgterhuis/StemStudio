@@ -1,6 +1,6 @@
-@* The takes of the track, newest first (FR-011, FR-012, FR-014; ui-test-ids 1.14.0 takes-panel, takes-empty, takes-total-size,
-   rec-take-row-<takeId> with data-status and data-selected, rec-take-select, -name, -part, -range). Selecting a row loads the take
-   into the take strip. The rows form one radio group: arrow keys move between them (WAI-ARIA radio group). *@
+@* The takes of the track, newest first (FR-010..FR-014; ui-test-ids 1.14.0 takes-panel, takes-empty, takes-total-size, and from
+   Advanced takes-session-<sessionId> with data-passes and takes-keep-starred-<sessionId>). The rows form one radio group:
+   the chosen take plays in the take strip. *@
 
 <section class="ss-console-panel" aria-labelledby="takes-title" data-testid="takes-panel">
     <h2 id="takes-title" class="ss-panel-title">Takes <HelpHint HelpId="recording" /></h2>
@@ -12,47 +12,38 @@
     {
         <p class="ss-muted" data-testid="takes-total-size">@StemStudio.Web.Services.ByteSize.Format(Takes.TotalSizeBytes) in @Takes.Count @(Takes.Count == 1 ? "take" : "takes")</p>
         <ul role="radiogroup" aria-label="Take in the take strip">
-            @foreach (var item in Takes.Items)
+            @foreach (var session in Takes.Sessions())
             {
-                var selected = ReferenceEquals(item, Takes.Loaded);
-                <li data-testid="@($"rec-take-row-{item.Id}")" data-status="@item.Status" data-selected="@(selected ? "true" : "false")">
-                    <input type="radio" name="rec-take" id="@($"rec-take-select-{item.Id}")" checked="@selected" @onchange="() => SelectAsync(item)"
-                           data-testid="@($"rec-take-select-{item.Id}")" />
-                    <label for="@($"rec-take-select-{item.Id}")" data-testid="@($"rec-take-name-{item.Id}")">@item.Name</label>
-                    <span class="ss-chip" data-testid="@($"rec-take-part-{item.Id}")" data-part="@WireName.Of(item.Part)">@RecordingText.PartLabel(item.Part)</span>
-                    <span data-testid="@($"rec-take-range-{item.Id}")">@item.Range</span>
-                    <span class="ss-muted">@StatusLabel(item)</span>
-                </li>
+                @if (ShowsGroup(session))
+                {
+                    <li data-testid="@($"takes-session-{session.SessionId:D}")" data-passes="@session.Takes.Count" data-help-id="recording-loop-takes">
+                        <span>Loop session, @session.Takes.Count passes</span>
+                        @if (session.CanKeepStarred)
+                        {
+                            <RadzenButton Text="Delete the other passes" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                          Click="() => KeepStarredAsync(session)" data-testid="@($"takes-keep-starred-{session.SessionId:D}")" />
+                        }
+                        <ul role="none">
+                            @foreach (var item in session.Takes)
+                            {
+                                <TakeRow Item="item" Selected="IsLoaded(item)" OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" />
+                            }
+                        </ul>
+                    </li>
+                }
+                else
+                {
+                    @foreach (var item in session.Takes)
+                    {
+                        <TakeRow Item="item" Selected="IsLoaded(item)" OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" />
+                    }
+                }
             }
         </ul>
     }
+    @if (Takes.Error is { } error)
+    {
+        <p class="ss-notice" role="alert" data-testid="takes-error">@error</p>
+    }
     @ChildContent
 </section>
-
-@code {
-    /// <summary>The takes.</summary>
-    [Parameter, EditorRequired]
-    public TakeLibrary Takes { get; set; } = default!;
-
-    /// <summary>Extra content (session actions).</summary>
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    /// <summary>Raised after a take was loaded into the strip.</summary>
-    [Parameter]
-    public EventCallback OnChanged { get; set; }
-
-    private async Task SelectAsync(TakeItem item)
-    {
-        await Takes.LoadIntoStripAsync(item);
-        await OnChanged.InvokeAsync();
-    }
-
-    private static string StatusLabel(TakeItem item) => item.Status switch
-    {
-        "local" => item.UploadFailed ? "Not saved" : "Saving...",
-        "saving" => "Saving...",
-        "failed" => "Saving failed",
-        _ => "Saved",
-    };
-}

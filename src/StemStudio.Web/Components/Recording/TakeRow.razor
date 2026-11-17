@@ -1,0 +1,62 @@
+@* One take of the Takes panel (ui-test-ids 1.14.0 rec-take-row-<takeId> with data-status/data-selected, rec-take-select, -name,
+   -part, -range, -pass (Advanced), -star). The radio loads the take into the take strip. *@
+
+<li data-testid="@($"rec-take-row-{Item.Id}")" data-status="@Item.Status" data-selected="@(Selected ? "true" : "false")">
+    <input type="radio" name="rec-take" id="@($"rec-take-select-{Item.Id}")" checked="@Selected" @onchange="OnSelect"
+           data-testid="@($"rec-take-select-{Item.Id}")" />
+    <label for="@($"rec-take-select-{Item.Id}")" data-testid="@($"rec-take-name-{Item.Id}")">@Item.Name</label>
+    <span class="ss-chip" data-testid="@($"rec-take-part-{Item.Id}")" data-part="@WireName.Of(Item.Part)">@RecordingText.PartLabel(Item.Part)</span>
+    <span data-testid="@($"rec-take-range-{Item.Id}")">@Item.Range</span>
+    @if (PassText is { } pass)
+    {
+        <LevelGate Feature="recording.loop">
+            <span data-testid="@($"rec-take-pass-{Item.Id}")" data-help-id="recording-loop-takes">@pass</span>
+        </LevelGate>
+    }
+    @if (Item.Take is { } take)
+    {
+        <RadzenButton Icon="@(take.Favorite ? "star" : "star_outline")" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                      aria-pressed="@(take.Favorite ? "true" : "false")" aria-label="@($"Star {Item.Name}")" Click="OnStar"
+                      data-testid="@($"rec-take-star-{Item.Id}")" />
+    }
+    <span class="ss-muted">@StatusLabel</span>
+    @ChildContent
+</li>
+
+@code {
+    /// <summary>The take.</summary>
+    [Parameter, EditorRequired]
+    public TakeItem Item { get; set; } = default!;
+
+    /// <summary>True when it is in the take strip.</summary>
+    [Parameter]
+    public bool Selected { get; set; }
+
+    /// <summary>The radio was chosen.</summary>
+    [Parameter]
+    public EventCallback OnSelect { get; set; }
+
+    /// <summary>The star was pressed.</summary>
+    [Parameter]
+    public EventCallback OnStar { get; set; }
+
+    /// <summary>Row actions (US5).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string? PassText => (Item.PassIndex, Item.Partial) switch
+    {
+        ({ } pass, true) => $"Pass {pass}, partial",
+        ({ } pass, false) => $"Pass {pass}",
+        (null, true) => "partial",
+        _ => null,
+    };
+
+    private string StatusLabel => Item.Status switch
+    {
+        "local" => Item.UploadFailed ? "Not saved" : "Saving...",
+        "saving" => "Saving...",
+        "failed" => "Saving failed",
+        _ => "Saved",
+    };
+}
