@@ -176,8 +176,10 @@ async function mixerPracticeReady(page: Page): Promise<void> {
     await page.getByTestId('practice-speed-up').click();
     await expect(panel).toHaveAttribute('data-speed', percent);
   }
-  for (let step = 0; step < 2; step++) await page.getByTestId('practice-transpose-up').click();
-  await expect(panel).toHaveAttribute('data-transpose', '2');
+  for (const semitones of ['1', '2']) {
+    await page.getByTestId('practice-transpose-up').click();
+    await expect(panel).toHaveAttribute('data-transpose', semitones);
+  }
   await expect(panel).toHaveAttribute('data-stretch', 'active', { timeout: 15_000 });
   await expect(page.getByTestId('practice-quality-hint')).toBeVisible();
   await speed.blur();
