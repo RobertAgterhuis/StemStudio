@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Stores;
@@ -76,7 +75,7 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
         var last = after;
         foreach (var stored in await hub.ReadAfterAsync(runId, after, cancellationToken))
         {
-            await WriteAsync(response, Format(stored), cancellationToken);
+            await SseText.WriteAsync(response, Format(stored), cancellationToken);
             last = stored.Seq;
             if (AgentEventTypes.IsTerminal(stored.Type))
             {
@@ -104,7 +103,7 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
     {
         if (live is null)
         {
-            await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
+            await SseText.WriteAsync(response, SseText.KeepAlive, cancellationToken);
             return false;
         }
 
@@ -113,13 +112,7 @@ public sealed class SseWriter(RunEventHub hub, IRunStore runs, TimeProvider cloc
 
     private static async Task<bool> WriteLiveAsync(HttpResponse response, RunEvent live, CancellationToken cancellationToken)
     {
-        await WriteAsync(response, Format(live), cancellationToken);
+        await SseText.WriteAsync(response, Format(live), cancellationToken);
         return AgentEventTypes.IsTerminal(live.Type);
-    }
-
-    private static async Task WriteAsync(HttpResponse response, string text, CancellationToken cancellationToken)
-    {
-        await response.Body.WriteAsync(Encoding.UTF8.GetBytes(text), cancellationToken);
-        await response.Body.FlushAsync(cancellationToken);
     }
 }
