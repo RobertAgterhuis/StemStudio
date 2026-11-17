@@ -57,6 +57,8 @@
     <None Include="..\..\specs\011-ai-composer-agent\followups\claude-key\contracts\ui-test-ids.delta.md" Link="Contract\011-claude-key\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\011-ai-composer-agent\contracts\ui-test-ids.md" Link="Contract\011\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\007-export-library\contracts\render-vectors.json" Link="Contract\render-vectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 013 security review: the committed hostile and schema corpus (tests/fixtures/backup, qa T012) for verify, restore and the list. -->
+    <None Include="..\fixtures\backup\archives\*.zip" Link="Fixtures\backup\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\001-stemstudio-mvp\contracts\source-url-vectors.json" Link="Contract\source-url-vectors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

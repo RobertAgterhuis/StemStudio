@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
@@ -99,8 +100,21 @@ public sealed class BackupCatalog(LibraryCarePaths paths, MigrationCatalog migra
         Compatibility = details.Compatibility,
     };
 
-    private BackupDetailsDto Read(FileInfo file) =>
-        _cache.GetOrAdd((file.Name, file.Length, file.LastWriteTimeUtc), _ => Describe(file));
+    /// <summary>Reason of an archive that could not be read at all (I/O or an unexpected failure; not cached).</summary>
+    public const string UnreadableText = "The file could not be read as a StemStudio backup.";
+
+    private BackupDetailsDto Read(FileInfo file)
+    {
+        try
+        {
+            return _cache.GetOrAdd((file.Name, file.Length, file.LastWriteTimeUtc), _ => Describe(file));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // One unreadable archive must not fail the whole list (security review 013); the next request tries again.
+            return BackupDescription.Unrecognised(file, NotABackup, UnreadableText);
+        }
+    }
 
     private BackupDetailsDto Describe(FileInfo file)
     {
@@ -110,9 +124,13 @@ public sealed class BackupCatalog(LibraryCarePaths paths, MigrationCatalog migra
             zip.Dispose();
             return BackupDescription.Recognised(file, manifest, migrations.Compatibility(manifest.Schema.Migrations));
         }
+        catch (LibraryJobException exception) when (exception.Code == LibraryJobErrorCodeDto.ArchiveIncompatible)
+        {
+            return BackupDescription.OtherFormat(file, ArchiveReader.ReadHeader(file.FullName), exception.Message);
+        }
         catch (LibraryJobException exception)
         {
-            return BackupDescription.Unrecognised(file, exception.Code == LibraryJobErrorCodeDto.ArchiveIncompatible ? exception.Message : NotABackup, exception.Message);
+            return BackupDescription.Unrecognised(file, NotABackup, exception.Message);
         }
     }
 }
@@ -150,6 +168,29 @@ public static class BackupDescription
             SchemaLastMigration = manifest.Schema.LastMigration,
             VoiceProfiles = [.. manifest.VoiceProfiles.Select(Proof)],
             Warnings = manifest.Warnings,
+        };
+    }
+
+    /// <summary>
+    /// A StemStudio backup in another format version (CTO decision 013: recognised, state <c>incompatible</c>): only the
+    /// header members are shown; nothing else of its manifest is trusted.
+    /// </summary>
+    /// <param name="file">The file.</param>
+    /// <param name="header">Its manifest header.</param>
+    /// <param name="reason">Why it cannot be restored.</param>
+    /// <returns>The details.</returns>
+    public static BackupDetailsDto OtherFormat(FileInfo file, ManifestHeader header, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(header);
+        return Unrecognised(file, reason, reason) with
+        {
+            Recognised = true,
+            Reason = null,
+            FormatVersion = header.FormatVersion,
+            BackupId = header.BackupId is { ValueKind: JsonValueKind.String } id && Guid.TryParse(id.GetString(), out var guid) ? guid : null,
+            CreatedAt = header.CreatedAt is { ValueKind: JsonValueKind.String } created && created.TryGetDateTimeOffset(out var at) ? at : null,
+            AppVersion = Member(header.App, "version"),
+            BackendApi = Member(header.App, "backendApi"),
         };
     }
 
@@ -198,6 +239,9 @@ public static class BackupDescription
         LyricsSheets = counts.LyricsSheets,
         VoiceProfiles = counts.VoiceProfiles,
     };
+
+    private static string? Member(JsonElement? element, string name) =>
+        element is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(name, out var member) && member.ValueKind == JsonValueKind.String ? member.GetString() : null;
 
     private static VoiceProfileProofDto Proof(ManifestVoiceProfile profile)
     {
