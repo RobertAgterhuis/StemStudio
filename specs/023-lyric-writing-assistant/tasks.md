@@ -63,12 +63,12 @@ test and coverage output.
 
 ### backend
 
-- [ ] T012 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/Assist/`: `SheetBlocks` (sections, blank lines, <= 8 lines, markers excluded), `AnchorResolver` (same place, same line, +-2 lines via line diff, stale), `SuggestionApplier` (descending order, overlap refusal, insert-after, set-title, 4,096 limit, alternatives supersede), `IntentionalMarkMatcher` (word case-sensitive, phrase, line, not-in-text) (FR-006, FR-008, FR-011)
-- [ ] T013 [backend] Implement T012 in `src/StemStudio.Domain/Lyrics/Assist/`
-- [ ] T014 [P] [backend] Failing tests persistence: migration `AddLyricAssist` (existing sheets get revision 1, sensitivity balanced), revision retention 50, cascade delete of revisions/assists/suggestions/marks/assisted lines with the sheet, `LyricWords` uniqueness and limits, `LyricAssistSettings` single row (data-model 2-7)
-- [ ] T015 [backend] Implement T014 in `src/StemStudio.Persistence/` (entities, configurations, migration, stores)
-- [ ] T016 [P] [backend] Failing tests 010 compatibility: `PUT /api/lyrics/{id}` without `expectedRevision` unchanged; with a stale one `409 revision-conflict`; every save increments `revision`, prunes `AssistedLines`, re-anchors open suggestions; `LyricsSheet` responses carry `revision` and `assist` (FR-007, FR-024, SC-009)
-- [ ] T017 [backend] Implement T016 in `LyricsSheetService` / endpoints (010 owner code, extended)
+- [x] T012 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Lyrics/Assist/`: `SheetBlocks` (sections, blank lines, <= 8 lines, markers excluded), `AnchorResolver` (same place, same line, +-2 lines via line diff, stale), `SuggestionApplier` (descending order, overlap refusal, insert-after, set-title, 4,096 limit, alternatives supersede), `IntentionalMarkMatcher` (word case-sensitive, phrase, line, not-in-text) (FR-006, FR-008, FR-011)
+- [x] T013 [backend] Implement T012 in `src/StemStudio.Domain/Lyrics/Assist/`
+- [x] T014 [P] [backend] Failing tests persistence: migration `AddLyricAssist` (existing sheets get revision 1, sensitivity balanced), revision retention 50, cascade delete of revisions/assists/suggestions/marks/assisted lines with the sheet, `LyricWords` uniqueness and limits, `LyricAssistSettings` single row (data-model 2-7)
+- [x] T015 [backend] Implement T014 in `src/StemStudio.Persistence/` (entities, configurations, migration, stores)
+- [x] T016 [P] [backend] Failing tests 010 compatibility: `PUT /api/lyrics/{id}` without `expectedRevision` unchanged; with a stale one `409 revision-conflict`; every save increments `revision`, prunes `AssistedLines`, re-anchors open suggestions; `LyricsSheet` responses carry `revision` and `assist` (FR-007, FR-024, SC-009)
+- [x] T017 [backend] Implement T016 in `LyricsSheetService` / endpoints (010 owner code, extended)
 
 ### ai-agent
 
@@ -90,12 +90,12 @@ test and coverage output.
 
 ## Phase 2: User Story 1 - Check with poetic licence (P1)
 
-- [ ] T025 [P] [US1] [backend] Failing tests deterministic layer: `HunspellSpellChecker` (fixture dictionaries; en = US or GB accepts; personal words; capitalised sentence start), `LicenceLexicon` (nl/en entries of R-03), code-switch rule, sound-spelling rule, `SuggestionFilter` (sensitivity loose/balanced/strict; recognised licences never `error`; marks; markers never checked), plus one test class over the real vendored dictionaries (FR-004, FR-009, FR-010, FR-012)
-- [ ] T026 [US1] [backend] Implement T025 (`src/StemStudio.Api/LyricAssist/HunspellSpellChecker.cs`, Domain services)
-- [ ] T027 [P] [US1] [backend] Failing tests `LyricAssistService` + endpoints: `POST /api/lyrics/{id}/assists` refusal order (404, revision, language, not-own, imitation, active, model, Claude notice), dictionary layer emits at once, model layer via a fake `ILyricAssistant`, one assist globally, cancel, restart -> failed interrupted, sheet deleted -> cancelled, events persisted and replayable (SSE `after`/`Last-Event-ID`, keep-alive, close after terminal), `GET` snapshot, list newest 20 (FR-002, FR-004, SC-004 structure)
-- [ ] T028 [US1] [backend] Implement T027 (`LyricAssistEndpoints`, `LyricAssistService`, `LyricAssistEventStream`); round start (013 on `main`): the assist runner awaits `LibraryGate.WaitWhileMaintenanceAsync` before starting a queued assist and between blocks (as `AgentRunExecutor`), with a test in T027
-- [ ] T029 [P] [US1] [backend] Failing tests suggestions API: list with filters, accept one / many as one revision and accept group, stale skipped, overlap 409, too-long 422, reject, mark intentional from a suggestion (word/phrase/line), marks CRUD and limits, personal words CRUD, undo (newest accept only, `undo-blocked-by-edit`, reopen suggestions, remove assisted lines), revisions list and restore, `PUT assist-settings` (FR-006 - FR-012)
-- [ ] T030 [US1] [backend] Implement T029 (`SuggestionService`, `LyricsRevisionService`, endpoints)
+- [x] T025 [P] [US1] [backend] Failing tests deterministic layer: `HunspellSpellChecker` (fixture dictionaries; en = US or GB accepts; personal words; capitalised sentence start), `LicenceLexicon` (nl/en entries of R-03), code-switch rule, sound-spelling rule, `SuggestionFilter` (sensitivity loose/balanced/strict; recognised licences never `error`; marks; markers never checked), plus one test class over the real vendored dictionaries (FR-004, FR-009, FR-010, FR-012)
+- [x] T026 [US1] [backend] Implement T025 (`src/StemStudio.Api/LyricAssist/HunspellSpellChecker.cs`, Domain services)
+- [x] T027 [P] [US1] [backend] Failing tests `LyricAssistService` + endpoints: `POST /api/lyrics/{id}/assists` refusal order (404, revision, language, not-own, imitation, active, model, Claude notice), dictionary layer emits at once, model layer via a fake `ILyricAssistant`, one assist globally, cancel, restart -> failed interrupted, sheet deleted -> cancelled, events persisted and replayable (SSE `after`/`Last-Event-ID`, keep-alive, close after terminal), `GET` snapshot, list newest 20 (FR-002, FR-004, SC-004 structure)
+- [x] T028 [US1] [backend] Implement T027 (`LyricAssistEndpoints`, `LyricAssistService`, `LyricAssistEventStream`); round start (013 on `main`): the assist runner awaits `LibraryGate.WaitWhileMaintenanceAsync` before starting a queued assist and between blocks (as `AgentRunExecutor`), with a test in T027
+- [x] T029 [P] [US1] [backend] Failing tests suggestions API: list with filters, accept one / many as one revision and accept group, stale skipped, overlap 409, too-long 422, reject, mark intentional from a suggestion (word/phrase/line), marks CRUD and limits, personal words CRUD, undo (newest accept only, `undo-blocked-by-edit`, reopen suggestions, remove assisted lines), revisions list and restore, `PUT assist-settings` (FR-006 - FR-012)
+- [x] T030 [US1] [backend] Implement T029 (`SuggestionService`, `LyricsRevisionService`, endpoints)
 - [ ] T031 [P] [US1] [ai-agent] Failing tests `LyricAssistant.RunAsync` for `kind: check`: blocks sequential, dictionary misses classified by the model (`misses`), per-block streaming to the sink, progress, notes (block skipped, fallback model), counts and discarded counters, cancellation between blocks, adversarial fake (injection items, fake anchors, oversize text) never produces an invalid suggestion (FR-021, SC-003, SC-005)
 - [ ] T032 [US1] [ai-agent] Implement T031
 - [ ] T033 [P] [US1] [frontend] Failing bUnit tests: Check (saves unsaved changes first), progress, streamed suggestions into `lyric-assist-list`, highlights overlay (`lyric-highlight-*`, underline style per category, not colour only), accept / reject / mark intentional (scope menu) / add to my words, accept all for the filter, undo, stale and `revision-conflict` handling (reload + re-anchor), provenance markers, sensitivity radios, category filters, marks and words lists (FR-005 - FR-012, FR-024)
@@ -106,8 +106,8 @@ test and coverage output.
 
 ## Phase 3: User Story 2 - Devices and proposed poetic licence (P1)
 
-- [ ] T038 [P] [US2] [backend] Failing tests `SyllableCounterDutch`/`SyllableCounterEnglish` against the gold lists (>= 97 % / >= 95 %), `CmuPronunciationLexicon`, `RhymeKeyDutch`/`RhymeKeyEnglish` vectors, `RhythmTarget` math and section medians, density at the target duration (FR-014, FR-017, SC-007)
-- [ ] T039 [US2] [backend] Implement T038
+- [x] T038 [P] [US2] [backend] Failing tests `SyllableCounterDutch`/`SyllableCounterEnglish` against the gold lists (>= 97 % / >= 95 %), `CmuPronunciationLexicon`, `RhymeKeyDutch`/`RhymeKeyEnglish` vectors, `RhythmTarget` math and section medians, density at the target duration (FR-014, FR-017, SC-007)
+- [x] T039 [US2] [backend] Implement T038
 - [ ] T040 [P] [US2] [ai-agent] Failing tests `kind: devices`: device and licence types only, instruction passed, rhyme claims verified through the Domain rhyme key (wrong ones dropped as `failedVerification`), syllable before/after computed by the counter (claims ignored), target-aware prompt (FR-013, FR-014, SC-002)
 - [ ] T041 [US2] [ai-agent] Implement T040
 - [ ] T042 [P] [US2] [frontend] Failing bUnit tests: Suggest devices, selection-scoped requests, device/licence type labels, syllables before -> after, rhyme partner shown, rhythm target form and syllable gutter (`lyric-syllables-<n>` with `data-deviates`, updates after a typing pause through `POST /api/lyric-assist/syllables`), density line (FR-013, FR-017)
@@ -116,10 +116,10 @@ test and coverage output.
 
 ## Phase 4: User Story 3 - Writing help (P2)
 
-- [ ] T045 [P] [US3] [backend] Failing tests rhyme endpoint (local only, <= 500 ms on the fixture word list, limit, perfect/near, syllables), `language-guess`, and writing kinds in `LyricAssistService` (alternatives need one line, continue insertion point, titles, `model-unavailable` when no model, `imitation` on instructions with the 009 lexicon and library artists) (FR-015, FR-016, FR-022)
-- [ ] T046 [US3] [backend] Implement T045 (`RhymeFinder`, `LanguageGuesser`, endpoints)
-- [ ] T047 [P] [US3] [backend] Failing tests `LyricsCorpusIndex` + `VerbatimGuard`: shingles of 7 words and full lines of 5+ words over 006 lyrics, refreshed on lyrics change, sheet guard thresholds (>= 3 lines and >= 25 %; cliché set passes), output guard withholds and counts (FR-003, FR-023, SC-005)
-- [ ] T048 [US3] [backend] Implement T047
+- [x] T045 [P] [US3] [backend] Failing tests rhyme endpoint (local only, <= 500 ms on the fixture word list, limit, perfect/near, syllables), `language-guess`, and writing kinds in `LyricAssistService` (alternatives need one line, continue insertion point, titles, `model-unavailable` when no model, `imitation` on instructions with the 009 lexicon and library artists) (FR-015, FR-016, FR-022)
+- [x] T046 [US3] [backend] Implement T045 (`RhymeFinder`, `LanguageGuesser`, endpoints)
+- [x] T047 [P] [US3] [backend] Failing tests `LyricsCorpusIndex` + `VerbatimGuard`: shingles of 7 words and full lines of 5+ words over 006 lyrics, refreshed on lyrics change, sheet guard thresholds (>= 3 lines and >= 25 %; cliché set passes), output guard withholds and counts (FR-003, FR-023, SC-005)
+- [x] T048 [US3] [backend] Implement T047
 - [ ] T049 [P] [US3] [ai-agent] Failing tests writing kinds: alternatives (1-5, one group), continuation (1-4 lines, LF), titles (<= 5, 1-80 chars), temperature 0.8, every generated text passed through the verbatim guard port before the sink (FR-015, FR-023)
 - [ ] T050 [US3] [ai-agent] Implement T049
 - [ ] T051 [P] [US3] [frontend] Failing bUnit tests: Alternatives (count), Continue, Title ideas (sets the title as one undo step), instruction field, rhyme finder panel (insert at cursor), withheld counter, not-own refusal, imitation refusal message (FR-015, FR-016, FR-022, FR-023)
@@ -130,16 +130,16 @@ test and coverage output.
 
 - [ ] T054 [P] [US4] [ai-agent] Failing tests `LyricAssistToolProvider` (8 descriptors: kinds, risks, undo, schemas with `additionalProperties:false`, projections without text, `+service lyricModel` for `suggest_lyric_lines`), registry selection for the `lyrics` context (28 tools; other contexts unchanged, cap 32), policy `lyrics-edit` (approval always, never plan-covered, never fresh), `artist-imitation` pre-check on instructions, `find_rhymes.word` provenance, `wait_for_job` phase `lyricAssist`, `PageContext.lyricsId` resolution, injection sheet via the adversarial agent fake (FR-018 - FR-020, SC-005)
 - [ ] T055 [US4] [ai-agent] Implement T054 (provider, loopback `ILyricAssistActions` port, policy rule, eval-set JSON cases 31-35 + S4)
-- [ ] T056 [P] [US4] [backend] Failing tests loopback actions for the 8 tools (`LoopbackLyricAssistActions`), and `POST /api/songs` snapshot `assistedLineCount` + take details (FR-024)
-- [ ] T057 [US4] [backend] Implement T056
+- [x] T056 [P] [US4] [backend] Failing tests loopback actions for the 8 tools (`LoopbackLyricAssistActions`), and `POST /api/songs` snapshot `assistedLineCount` + take details (FR-024)
+- [x] T057 [US4] [backend] Implement T056
 - [ ] T058 [P] [US4] [frontend] Failing bUnit tests: panel context sends `lyricsId` on `/lyrics/{id}`; `open_lyrics_editor` UI handler (`?assist=` opens the pane); approval card diff `agent-approval-lyrics-diff-*` rendered from the stored suggestions; take details `take-lyrics-assisted` (FR-018, FR-024)
 - [ ] T059 [US4] [frontend] Implement T058
 - [ ] T060 [P] [US4] [qa] Playwright "agent": quickstart Q4 with the scripted agent backend (no text in the tool log; approval reject/approve; undo)
 
 ## Phase 6: User Story 5 - Local, honest, degraded (P1)
 
-- [ ] T061 [P] [US5] [backend] Failing tests: `GET /api/lyric-assist/status` mirrors 011 status (none, Ollama down, model missing, fallback), `PUT /api/lyric-assist/settings` notice versioning, `claude-notice-required` before any Claude call, Check with no model runs the dictionary layer and lists the model layer unavailable, failing outbound handler records 0 requests in every assistant endpoint test (FR-025 - FR-027, SC-006)
-- [ ] T062 [US5] [backend] Implement T061
+- [x] T061 [P] [US5] [backend] Failing tests: `GET /api/lyric-assist/status` mirrors 011 status (none, Ollama down, model missing, fallback), `PUT /api/lyric-assist/settings` notice versioning, `claude-notice-required` before any Claude call, Check with no model runs the dictionary layer and lists the model layer unavailable, failing outbound handler records 0 requests in every assistant endpoint test (FR-025 - FR-027, SC-006)
+- [x] T062 [US5] [backend] Implement T061
 - [ ] T063 [P] [US5] [frontend] Failing bUnit tests: Claude notice dialog (ack/cancel; nothing sent on cancel), disabled writing buttons with reason when the model is unavailable, fallback badge and estimate, usage line (Advanced), assist log (Expert), revision list (Expert) (FR-026, FR-027, FR-029)
 - [ ] T064 [US5] [frontend] Implement T063
 - [ ] T065 [P] [US5] [qa] Playwright "local-only": quickstart Q6 (backend none; fake Claude notice) with the outbound-request recorder
@@ -148,8 +148,8 @@ test and coverage output.
 
 ## Phase 6b: User Story 6 - Own-work override (P3, owner decision Q1)
 
-- [ ] T074 [P] [US6] [backend] Failing tests: `PUT /api/lyrics/{id}/own-work-override` (statement version must be current, name 1-80, `confirm: true`, `matchedTrackId` must be a current match else `409 override-not-applicable`, no match at all -> `409 override-not-applicable`), `DELETE` revokes (204; 404 when none), sheet guard allows only when every matching track equals the override's track (a second track -> `not-own-lyrics` again), the override never disables `VerbatimGuard` (fixture 9-word run still withheld) nor `imitation`, `SheetAssistInfo.ownWorkOverride` in sheet responses, the `not-own-lyrics` problem carries `matchedTrackId` and `overridable`, the override is deleted with the sheet (FR-031, SC-005)
-- [ ] T075 [US6] [backend] Implement T074 (`OwnWorkOverride` owned type in the `AddLyricAssist` migration, `OwnWorkOverrideService`, endpoints, guard change)
+- [x] T074 [P] [US6] [backend] Failing tests: `PUT /api/lyrics/{id}/own-work-override` (statement version must be current, name 1-80, `confirm: true`, `matchedTrackId` must be a current match else `409 override-not-applicable`, no match at all -> `409 override-not-applicable`), `DELETE` revokes (204; 404 when none), sheet guard allows only when every matching track equals the override's track (a second track -> `not-own-lyrics` again), the override never disables `VerbatimGuard` (fixture 9-word run still withheld) nor `imitation`, `SheetAssistInfo.ownWorkOverride` in sheet responses, the `not-own-lyrics` problem carries `matchedTrackId` and `overridable`, the override is deleted with the sheet (FR-031, SC-005)
+- [x] T075 [US6] [backend] Implement T074 (`OwnWorkOverride` owned type in the `AddLyricAssist` migration, `OwnWorkOverrideService`, endpoints, guard change)
 - [ ] T076 [P] [US6] [frontend] Failing bUnit tests: `lyric-assist-own-work-open` on the refusal, dialog (statement text and version from `GET /api/lyric-assist/settings`, matched track, name, tick box; confirm enabled only when both are set; cancel sends nothing), badge `lyric-own-work-badge` with name/date/track, revoke with confirm, refusal shown again after revoke, keyboard and screen-reader labels; no override control in the agent panel (FR-031, FR-028)
 - [ ] T077 [US6] [frontend] Implement T076
 - [ ] T078 [P] [US6] [qa] Playwright "own-work override": quickstart Q5 steps 4-7 (refused -> confirm -> runs; verbatim still withheld; imitation still refused; revoke -> refused again) and agent case S5 (no override tool) on the fake stack

@@ -3,11 +3,11 @@ using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Tests.Fixtures;
 
-/// <summary>One row of contracts/tool-catalogue.md 1.3.0 (name, feature, kind, risk, undo, group, availability).</summary>
+/// <summary>One row of contracts/tool-catalogue.md 1.2.0 (name, feature, kind, risk, undo, group, availability).</summary>
 public sealed record CatalogueEntry(
     string Name, string Feature, ToolKindDto Kind, ToolRiskDto Risk, UndoKindDto Undo, ToolGroup Group, ToolAvailability Availability);
 
-/// <summary>The binding tool catalogue 1.3.0 as test data: the providers must match it exactly.</summary>
+/// <summary>The binding tool catalogue 1.2.0 (contains 1.0.0, 1.3.0, 1.1.0, 1.2.0) as test data: the providers must match it exactly.</summary>
 public static class Catalogue
 {
     private const ToolKindDto S = ToolKindDto.Server;
@@ -25,8 +25,9 @@ public static class Catalogue
     private const ToolAvailability Mixer = ToolAvailability.Mixer;
     private const ToolAvailability Gen = ToolAvailability.GenerationService;
     private const ToolAvailability Voice = ToolAvailability.VoiceService;
+    private const ToolAvailability LyricModel = ToolAvailability.LyricModelService;
 
-    /// <summary>All 57 tools.</summary>
+    /// <summary>All 69 tools.</summary>
     public static IReadOnlyList<CatalogueEntry> All { get; } =
     [
         new("set_plan", "011", M, Read, None, ToolGroup.Core, Always),
@@ -86,6 +87,18 @@ public static class Catalogue
         new("generate_song", "010", S, Heavy, Compensate, ToolGroup.Create, Gen),
         new("list_voice_profiles", "010", S, Read, None, ToolGroup.Create, Voice),
         new("convert_take_voice", "010", S, Heavy, Compensate, ToolGroup.Create, Voice),
+        new("browse_library_folder", "022", S, Read, None, ToolGroup.Library, Always),
+        new("search_library_items", "022", S, Read, None, ToolGroup.Library, Always),
+        new("open_library_folder", "022", U, Read, None, ToolGroup.Library, Always),
+        new("set_library_info", "022", S, Change, Inverse, ToolGroup.Library, Always),
+        new("check_lyrics", "023", S, Job, None, ToolGroup.LyricAssist, Always),
+        new("suggest_lyric_lines", "023", S, Job, None, ToolGroup.LyricAssist, LyricModel),
+        new("list_lyric_suggestions", "023", S, Read, None, ToolGroup.LyricAssist, Always),
+        new("apply_lyric_suggestions", "023", S, Change, Inverse, ToolGroup.LyricAssist, Always),
+        new("mark_lyrics_intentional", "023", S, Change, Inverse, ToolGroup.LyricAssist, Always),
+        new("find_rhymes", "023", S, Read, None, ToolGroup.LyricAssist, Always),
+        new("count_syllables", "023", S, Read, None, ToolGroup.LyricAssist, Always),
+        new("open_lyrics_editor", "023", U, Read, None, ToolGroup.LyricAssist, Always),
     ];
 
     /// <summary>The entries of one feature.</summary>

@@ -1,0 +1,34 @@
+# English poetic-licence lexicon (feature 023, research R-03 step 2): <token> <type>; matched case-insensitively.
+# Types: elision, archaism, slang, sound-spelling. A hit is a recognised licence: never an error, an idea only at strict.
+gonna slang
+wanna slang
+gotta slang
+kinda slang
+sorta slang
+lemme slang
+gimme slang
+outta slang
+dunno slang
+ain't slang
+y'all slang
+'cause elision
+'cos elision
+cos elision
+'til elision
+til elision
+'em elision
+'round elision
+o'er elision
+e'en elision
+ne'er elision
+'tis elision
+'twas elision
+thee archaism
+thou archaism
+thy archaism
+thine archaism
+ere archaism
+oft archaism
+hath archaism
+doth archaism
+whilst archaism

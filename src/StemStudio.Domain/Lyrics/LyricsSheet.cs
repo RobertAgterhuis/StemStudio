@@ -11,10 +11,11 @@ public sealed record LyricsContent(string Title, string Language, string Text);
 /// <param name="Title">Title.</param>
 /// <param name="Language">Language.</param>
 /// <param name="Text">Normalised text.</param>
-public sealed record LyricsSnapshot(Guid? LyricsId, string Title, string Language, string Text);
+/// <param name="AssistedLineCount">Lines produced by accepted assistant suggestions at snapshot time (feature 023, FR-024; 0 for inline text).</param>
+public sealed record LyricsSnapshot(Guid? LyricsId, string Title, string Language, string Text, int AssistedLineCount = 0);
 
 /// <summary>Own lyrics saved for songs (feature 010, data-model 3.1); not the synced lyrics of a track (006).</summary>
-public sealed class LyricsSheet
+public sealed partial class LyricsSheet
 {
     private LyricsSheet()
     {
@@ -51,22 +52,23 @@ public sealed class LyricsSheet
     {
         var sheet = new LyricsSheet { Id = id, CreatedAt = nowUtc };
         sheet.Update(content, nowUtc);
+        sheet.LastCause = Assist.RevisionCause.Created;
         return sheet;
     }
 
-    /// <summary>Replaces the content; songs keep their snapshot.</summary>
+    /// <summary>Replaces the content (a user save: the revision increases, assisted lines are pruned); songs keep their snapshot.</summary>
     /// <param name="content">The content (normalised here).</param>
     /// <param name="nowUtc">Current time (UTC).</param>
     /// <exception cref="DomainValidationException">A field breaks a rule.</exception>
     public void Update(LyricsContent content, DateTime nowUtc)
     {
         var valid = LyricsRules.Valid(content);
-        (Title, Language, Text, UpdatedAt) = (valid.Title, valid.Language, valid.Text, nowUtc);
+        Change(valid, Assist.RevisionCause.UserSave, nowUtc);
     }
 
     /// <summary>The sheet as a song snapshot.</summary>
     /// <returns>The snapshot.</returns>
-    public LyricsSnapshot Snapshot() => new(Id, Title, Language, Text);
+    public LyricsSnapshot Snapshot() => new(Id, Title, Language, Text, AssistedLineNumbers().Count);
 }
 
 /// <summary>Rules of lyrics sheets: title 1-80, a supported language, text 1-4,096 after normalisation.</summary>
