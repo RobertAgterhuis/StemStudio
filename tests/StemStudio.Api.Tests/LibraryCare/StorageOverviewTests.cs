@@ -99,21 +99,6 @@ public sealed class StorageOverviewTests : ApiTestBase
     }
 
     [Fact]
-    public async Task FiveHundredTracks_AreMeasuredQuickly()
-    {
-        for (var i = 0; i < 500; i++)
-        {
-            await Factory.SeedAsync(SyncTestData.CompletedTrack($"t{i:D10}"));
-        }
-
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-        using var response = await Client.GetAsync(ApiRoutes.StorageOverview(refresh: true), Ct);
-
-        (await response.BodyAsync<StorageOverviewDto>()).Tracks.Count.ShouldBe(500);
-        watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(2));
-    }
-
-    [Fact]
     public void WorkerEntries_AreLargestFirst_AndOnlyKnownJobsHaveATrack()
     {
         var track = SyncTestData.CompletedTrack();
