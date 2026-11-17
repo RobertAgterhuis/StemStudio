@@ -84,44 +84,69 @@ def test_agent_tools_are_an_allow_list_of_model_and_ports() -> None:
 
 
 @pytest.mark.parametrize(
-    ("rel", "text", "line", "target"),
+    ("rel", "text", "where"),
     [
-        ("Library/Filer.cs", "using StemStudio.Api.Library;\n", 1, "StemStudio.Api"),
+        (
+            "Library/Filer.cs",
+            "using StemStudio.Api.Library;\n",
+            (1, "StemStudio.Api"),
+        ),
         (
             "Library/Keys.cs",
             "using System;\n\nusing StemStudio.Persistence.Repositories;\n",
-            3,
-            "StemStudio.Persistence",
+            (3, "StemStudio.Persistence"),
         ),
-        ("Library/Dto.cs", "using StemStudio.Contracts.Library;\n", 1, "StemStudio.Contracts"),
-        ("Library/Ui.cs", "using StemStudio.Web.Library;\n", 1, "StemStudio.Web"),
-        ("Library/Agent.cs", "using StemStudio.Agent.Ports;\n", 1, "StemStudio.Agent"),
+        (
+            "Library/Dto.cs",
+            "using StemStudio.Contracts.Library;\n",
+            (1, "StemStudio.Contracts"),
+        ),
+        (
+            "Library/Ui.cs",
+            "using StemStudio.Web.Library;\n",
+            (1, "StemStudio.Web"),
+        ),
+        (
+            "Library/Agent.cs",
+            "using StemStudio.Agent.Ports;\n",
+            (1, "StemStudio.Agent"),
+        ),
         (
             "Library/Lazy.cs",
             "class C\n{\n    StemStudio.Contracts.Library.FolderRefDto? _f;\n}\n",
-            3,
-            "StemStudio.Contracts",
+            (3, "StemStudio.Contracts"),
         ),
-        ("Library/Db.cs", "using Microsoft.EntityFrameworkCore;\n", 1, "Microsoft"),
-        ("Library/Http.cs", "using Microsoft.AspNetCore.Http;\n", 1, "Microsoft"),
+        (
+            "Library/Db.cs",
+            "using Microsoft.EntityFrameworkCore;\n",
+            (1, "Microsoft"),
+        ),
+        (
+            "Library/Http.cs",
+            "using Microsoft.AspNetCore.Http;\n",
+            (1, "Microsoft"),
+        ),
         (
             "Library/Log.cs",
             "class C\n{\n    Microsoft.Extensions.Logging.ILogger? _l;\n}\n",
-            3,
-            "Microsoft",
+            (3, "Microsoft"),
         ),
-        ("Library/Spell.cs", "using WeCantSpell.Hunspell;\n", 1, "WeCantSpell"),
+        (
+            "Library/Spell.cs",
+            "using WeCantSpell.Hunspell;\n",
+            (1, "WeCantSpell"),
+        ),
         (
             "Library/Sibling.cs",
             "using StemStudio.Domain.Lyrics.Assist;\n",
-            1,
-            "StemStudio.Domain.Lyrics",
+            (1, "StemStudio.Domain.Lyrics"),
         ),
     ],
 )
 def test_domain_library_forbidden_references(
-    tmp_path: Path, rel: str, text: str, line: int, target: str
+    tmp_path: Path, rel: str, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(DOMAIN, target), line, "backend")
     assert src_findings(tmp_path, f"StemStudio.Domain/{rel}", text) == [expected]
 
@@ -152,22 +177,34 @@ def test_allowed_domain_library_is_clean(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Web.Library;\n", 1, "StemStudio.Web"),
-        ("using StemStudio.Agent.Ports;\n", 1, "StemStudio.Agent"),
+        (
+            "using StemStudio.Web.Library;\n",
+            (1, "StemStudio.Web"),
+        ),
+        (
+            "using StemStudio.Agent.Ports;\n",
+            (1, "StemStudio.Agent"),
+        ),
         (
             "class C\n{\n    StemStudio.Agent.Ports.ILibraryActions? _a;\n}\n",
-            3,
-            "StemStudio.Agent",
+            (3, "StemStudio.Agent"),
         ),
-        ("using StemStudio.Api.LyricAssist;\n", 1, "StemStudio.Api.LyricAssist"),
-        ("using static StemStudio.Api.LyricAssist.Texts;\n", 1, "StemStudio.Api.LyricAssist"),
+        (
+            "using StemStudio.Api.LyricAssist;\n",
+            (1, "StemStudio.Api.LyricAssist"),
+        ),
+        (
+            "using static StemStudio.Api.LyricAssist.Texts;\n",
+            (1, "StemStudio.Api.LyricAssist"),
+        ),
     ],
 )
 def test_api_library_forbidden_references(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(API, target), line, "backend")
     assert src_findings(tmp_path, "StemStudio.Api/Library/LibraryFiler.cs", text) == [expected]
 
@@ -199,43 +236,83 @@ def test_allowed_api_library_is_clean(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("folder", [WEB, WEB_UI])
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Api.Library;\n", 1, "StemStudio.Api"),
-        ("using StemStudio.Domain.Library;\n", 1, "StemStudio.Domain"),
-        ("using StemStudio.Persistence;\n", 1, "StemStudio.Persistence"),
-        ("using StemStudio.Agent.Ports;\n", 1, "StemStudio.Agent"),
-        ("using System.Net.Http;\n", 1, "System.Net.Http"),
-        ("using System.Net.Http.Json;\n", 1, "System.Net.Http"),
-        ("class C\n{\n    private readonly HttpClient _http;\n}\n", 3, "HttpClient"),
-        ("class C(IHttpClientFactory factory)\n{\n}\n", 1, "IHttpClientFactory"),
+        (
+            "using StemStudio.Api.Library;\n",
+            (1, "StemStudio.Api"),
+        ),
+        (
+            "using StemStudio.Domain.Library;\n",
+            (1, "StemStudio.Domain"),
+        ),
+        (
+            "using StemStudio.Persistence;\n",
+            (1, "StemStudio.Persistence"),
+        ),
+        (
+            "using StemStudio.Agent.Ports;\n",
+            (1, "StemStudio.Agent"),
+        ),
+        (
+            "using System.Net.Http;\n",
+            (1, "System.Net.Http"),
+        ),
+        (
+            "using System.Net.Http.Json;\n",
+            (1, "System.Net.Http"),
+        ),
+        (
+            "class C\n{\n    private readonly HttpClient _http;\n}\n",
+            (3, "HttpClient"),
+        ),
+        (
+            "class C(IHttpClientFactory factory)\n{\n}\n",
+            (1, "IHttpClientFactory"),
+        ),
         (
             "using StemStudio.Web.Components.Lyrics.Assist;\n",
-            1,
-            "StemStudio.Web.Components.Lyrics.Assist",
+            (1, "StemStudio.Web.Components.Lyrics.Assist"),
         ),
     ],
 )
 def test_web_library_forbidden_references_in_csharp(
-    tmp_path: Path, folder: str, text: str, line: int, target: str
+    tmp_path: Path, folder: str, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(folder, target), line, "frontend")
     assert src_findings(tmp_path, f"{folder}/Holder.cs", text) == [expected]
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("@using StemStudio.Domain.Library\n<h1>x</h1>\n", 1, "StemStudio.Domain"),
-        ("<h1>x</h1>\n@inject StemStudio.Api.Library.LibraryIndex Index\n", 2, "StemStudio.Api"),
-        ("@inject HttpClient Http\n", 1, "HttpClient"),
-        ("@code {\n    private IHttpClientFactory? _f;\n}\n", 2, "IHttpClientFactory"),
-        ("@using System.Net.Http\n", 1, "System.Net.Http"),
+        (
+            "@using StemStudio.Domain.Library\n<h1>x</h1>\n",
+            (1, "StemStudio.Domain"),
+        ),
+        (
+            "<h1>x</h1>\n@inject StemStudio.Api.Library.LibraryIndex Index\n",
+            (2, "StemStudio.Api"),
+        ),
+        (
+            "@inject HttpClient Http\n",
+            (1, "HttpClient"),
+        ),
+        (
+            "@code {\n    private IHttpClientFactory? _f;\n}\n",
+            (2, "IHttpClientFactory"),
+        ),
+        (
+            "@using System.Net.Http\n",
+            (1, "System.Net.Http"),
+        ),
     ],
 )
 def test_web_library_forbidden_references_in_razor(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(WEB_UI, target), line, "frontend")
     assert src_findings(tmp_path, f"{WEB_UI}/FolderTile.razor", text) == [expected]
 
@@ -275,25 +352,43 @@ def test_razor_markup_apostrophes_do_not_hide_a_reference(tmp_path: Path) -> Non
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Agent.Backends;\n", 1, "StemStudio.Agent.Backends"),
-        ("using StemStudio.Agent.Runtime;\n", 1, "StemStudio.Agent.Runtime"),
-        ("using StemStudio.Agent.Policy;\n", 1, "StemStudio.Agent.Policy"),
-        ("using StemStudio.Agent.LyricAssist;\n", 1, "StemStudio.Agent.LyricAssist"),
+        (
+            "using StemStudio.Agent.Backends;\n",
+            (1, "StemStudio.Agent.Backends"),
+        ),
+        (
+            "using StemStudio.Agent.Runtime;\n",
+            (1, "StemStudio.Agent.Runtime"),
+        ),
+        (
+            "using StemStudio.Agent.Policy;\n",
+            (1, "StemStudio.Agent.Policy"),
+        ),
+        (
+            "using StemStudio.Agent.LyricAssist;\n",
+            (1, "StemStudio.Agent.LyricAssist"),
+        ),
         (
             "class T\n{\n    StemStudio.Agent.Runtime.RunLoop? _l;\n}\n",
-            3,
-            "StemStudio.Agent.Runtime.RunLoop",
+            (3, "StemStudio.Agent.Runtime.RunLoop"),
         ),
-        ("using StemStudio.Agent.ModelExtras;\n", 1, "StemStudio.Agent.ModelExtras"),
-        ("using StemStudio.Agent;\n", 1, "StemStudio.Agent"),
+        (
+            "using StemStudio.Agent.ModelExtras;\n",
+            (1, "StemStudio.Agent.ModelExtras"),
+        ),
+        (
+            "using StemStudio.Agent;\n",
+            (1, "StemStudio.Agent"),
+        ),
     ],
 )
 @pytest.mark.parametrize("rel", ["Tools/Providers/LibraryToolProvider.cs", "Tools/Registry.cs"])
 def test_agent_tools_reach_model_and_ports_only(
-    tmp_path: Path, rel: str, text: str, line: int, target: str
+    tmp_path: Path, rel: str, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(TOOLS, target), line, "ai-agent")
     assert src_findings(tmp_path, f"StemStudio.Agent/{rel}", text) == [expected]
 

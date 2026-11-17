@@ -94,9 +94,7 @@ CSPROJ = """<Project Sdk="Microsoft.NET.Sdk">
 
 def _domain_project(root: Path, packages: tuple[str, ...]) -> None:
     items = "\n".join(f'    <PackageReference Include="{p}" />' for p in packages)
-    write_file(
-        root, "src/StemStudio.Domain/StemStudio.Domain.csproj", CSPROJ.format(items=items)
-    )
+    write_file(root, "src/StemStudio.Domain/StemStudio.Domain.csproj", CSPROJ.format(items=items))
 
 
 @pytest.mark.parametrize("package", ["WeCantSpell.Hunspell", "Microsoft.Extensions.Logging"])
@@ -122,36 +120,54 @@ def test_real_domain_has_no_package_reference() -> None:
 
 
 @pytest.mark.parametrize(
-    ("rel", "text", "line", "target"),
+    ("rel", "text", "where"),
     [
-        ("Lyrics/Assist/Hunspell.cs", "using WeCantSpell.Hunspell;\n", 1, "WeCantSpell"),
-        ("Lyrics/Assist/Spell.cs", "using Microsoft.Extensions.Logging;\n", 1, "Microsoft"),
-        ("Lyrics/LyricsSheet.cs", "using Microsoft.EntityFrameworkCore;\n", 1, "Microsoft"),
+        (
+            "Lyrics/Assist/Hunspell.cs",
+            "using WeCantSpell.Hunspell;\n",
+            (1, "WeCantSpell"),
+        ),
+        (
+            "Lyrics/Assist/Spell.cs",
+            "using Microsoft.Extensions.Logging;\n",
+            (1, "Microsoft"),
+        ),
+        (
+            "Lyrics/LyricsSheet.cs",
+            "using Microsoft.EntityFrameworkCore;\n",
+            (1, "Microsoft"),
+        ),
         (
             "Lyrics/Assist/Corpus.cs",
             "using StemStudio.Persistence.Repositories;\n",
-            1,
-            "StemStudio.Persistence",
+            (1, "StemStudio.Persistence"),
         ),
-        ("Lyrics/Assist/Dto.cs", "using StemStudio.Contracts.LyricAssist;\n", 1, "StemStudio.Contracts"),
+        (
+            "Lyrics/Assist/Dto.cs",
+            "using StemStudio.Contracts.LyricAssist;\n",
+            (1, "StemStudio.Contracts"),
+        ),
         (
             "Lyrics/Assist/Verify.cs",
             "class V\n{\n    StemStudio.Agent.Ports.ILyricAssistActions? _a;\n}\n",
-            3,
-            "StemStudio.Agent",
+            (3, "StemStudio.Agent"),
         ),
-        ("Lyrics/Assist/Service.cs", "using StemStudio.Api.LyricAssist;\n", 1, "StemStudio.Api"),
+        (
+            "Lyrics/Assist/Service.cs",
+            "using StemStudio.Api.LyricAssist;\n",
+            (1, "StemStudio.Api"),
+        ),
         (
             "Lyrics/Assist/Sibling.cs",
             "using StemStudio.Domain.Library;\n",
-            1,
-            "StemStudio.Domain.Library",
+            (1, "StemStudio.Domain.Library"),
         ),
     ],
 )
 def test_domain_lyrics_forbidden_references(
-    tmp_path: Path, rel: str, text: str, line: int, target: str
+    tmp_path: Path, rel: str, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(DOMAIN, target), line, "backend")
     assert src_findings(tmp_path, f"StemStudio.Domain/{rel}", text) == [expected]
 
@@ -179,20 +195,26 @@ def test_allowed_domain_lyrics_is_clean(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Web.Components;\n", 1, "StemStudio.Web"),
-        ("using StemStudio.Api.Library;\n", 1, "StemStudio.Api.Library"),
+        (
+            "using StemStudio.Web.Components;\n",
+            (1, "StemStudio.Web"),
+        ),
+        (
+            "using StemStudio.Api.Library;\n",
+            (1, "StemStudio.Api.Library"),
+        ),
         (
             "class S\n{\n    StemStudio.Api.Library.LibraryIndex? _i;\n}\n",
-            3,
-            "StemStudio.Api.Library",
+            (3, "StemStudio.Api.Library"),
         ),
     ],
 )
 def test_api_lyric_assist_forbidden_references(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(API, target), line, "backend")
     assert src_findings(tmp_path, "StemStudio.Api/LyricAssist/Service.cs", text) == [expected]
 
@@ -226,42 +248,79 @@ def test_allowed_api_lyric_assist_is_clean(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Api.LyricAssist;\n", 1, "StemStudio.Api"),
-        ("using StemStudio.Domain.Lyrics.Assist;\n", 1, "StemStudio.Domain"),
-        ("using StemStudio.Persistence;\n", 1, "StemStudio.Persistence"),
-        ("using StemStudio.Agent.Ports;\n", 1, "StemStudio.Agent"),
-        ("using WeCantSpell.Hunspell;\n", 1, "WeCantSpell"),
-        ("using System.Net.Http;\n", 1, "System.Net.Http"),
-        ("class P\n{\n    private readonly HttpClient _http;\n}\n", 3, "HttpClient"),
-        ("class P(IHttpClientFactory factory)\n{\n}\n", 1, "IHttpClientFactory"),
-        ("using StemStudio.Web.Library;\n", 1, "StemStudio.Web.Library"),
+        (
+            "using StemStudio.Api.LyricAssist;\n",
+            (1, "StemStudio.Api"),
+        ),
+        (
+            "using StemStudio.Domain.Lyrics.Assist;\n",
+            (1, "StemStudio.Domain"),
+        ),
+        (
+            "using StemStudio.Persistence;\n",
+            (1, "StemStudio.Persistence"),
+        ),
+        (
+            "using StemStudio.Agent.Ports;\n",
+            (1, "StemStudio.Agent"),
+        ),
+        (
+            "using WeCantSpell.Hunspell;\n",
+            (1, "WeCantSpell"),
+        ),
+        (
+            "using System.Net.Http;\n",
+            (1, "System.Net.Http"),
+        ),
+        (
+            "class P\n{\n    private readonly HttpClient _http;\n}\n",
+            (3, "HttpClient"),
+        ),
+        (
+            "class P(IHttpClientFactory factory)\n{\n}\n",
+            (1, "IHttpClientFactory"),
+        ),
+        (
+            "using StemStudio.Web.Library;\n",
+            (1, "StemStudio.Web.Library"),
+        ),
         (
             "using StemStudio.Web.Components.Library;\n",
-            1,
-            "StemStudio.Web.Components.Library",
+            (1, "StemStudio.Web.Components.Library"),
         ),
     ],
 )
 def test_web_assist_forbidden_references_in_csharp(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(WEB, target), line, "frontend")
     assert src_findings(tmp_path, f"{WEB}/Pane.cs", text) == [expected]
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("@using StemStudio.Domain.Lyrics.Assist\n<div></div>\n", 1, "StemStudio.Domain"),
-        ("@inject HttpClient Http\n", 1, "HttpClient"),
-        ("<div></div>\n@using StemStudio.Web.Library\n", 2, "StemStudio.Web.Library"),
+        (
+            "@using StemStudio.Domain.Lyrics.Assist\n<div></div>\n",
+            (1, "StemStudio.Domain"),
+        ),
+        (
+            "@inject HttpClient Http\n",
+            (1, "HttpClient"),
+        ),
+        (
+            "<div></div>\n@using StemStudio.Web.Library\n",
+            (2, "StemStudio.Web.Library"),
+        ),
     ],
 )
 def test_web_assist_forbidden_references_in_razor(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(WEB, target), line, "frontend")
     assert src_findings(tmp_path, f"{WEB}/AssistPane.razor", text) == [expected]
 
@@ -287,23 +346,38 @@ def test_allowed_web_assist_is_clean(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "line", "target"),
+    ("text", "where"),
     [
-        ("using StemStudio.Domain.Lyrics.Assist;\n", 1, "StemStudio.Domain"),
-        ("using StemStudio.Api.LyricAssist;\n", 1, "StemStudio.Api"),
-        ("using StemStudio.Persistence;\n", 1, "StemStudio.Persistence"),
-        ("using StemStudio.Web.Api;\n", 1, "StemStudio.Web"),
-        ("using WeCantSpell.Hunspell;\n", 1, "WeCantSpell"),
+        (
+            "using StemStudio.Domain.Lyrics.Assist;\n",
+            (1, "StemStudio.Domain"),
+        ),
+        (
+            "using StemStudio.Api.LyricAssist;\n",
+            (1, "StemStudio.Api"),
+        ),
+        (
+            "using StemStudio.Persistence;\n",
+            (1, "StemStudio.Persistence"),
+        ),
+        (
+            "using StemStudio.Web.Api;\n",
+            (1, "StemStudio.Web"),
+        ),
+        (
+            "using WeCantSpell.Hunspell;\n",
+            (1, "WeCantSpell"),
+        ),
         (
             "class A\n{\n    StemStudio.Domain.Lyrics.Assist.AssistLanguage _l;\n}\n",
-            3,
-            "StemStudio.Domain",
+            (3, "StemStudio.Domain"),
         ),
     ],
 )
 def test_agent_lyric_assist_forbidden_references(
-    tmp_path: Path, text: str, line: int, target: str
+    tmp_path: Path, text: str, where: tuple[int, str]
 ) -> None:
+    line, target = where
     expected = (Severity.ERROR, _message(AGENT, target), line, "ai-agent")
     assert src_findings(tmp_path, f"{AGENT}/LyricAssistant.cs", text) == [expected]
 
