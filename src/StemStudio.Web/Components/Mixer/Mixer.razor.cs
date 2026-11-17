@@ -44,6 +44,10 @@ public sealed partial class Mixer : IAsyncDisposable
     [SupplyParameterFromQuery]
     public Guid? MixId { get; set; }
 
+    /// <summary>The mix to load when the mixer is hosted by setlist play mode (014 US5); wins over <see cref="MixId"/>.</summary>
+    [Parameter]
+    public Guid? SetlistMixId { get; set; }
+
     private MixerState? State { get; set; }
 
     private string Title => _track?.Title ?? string.Empty;

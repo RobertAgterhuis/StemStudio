@@ -1,0 +1,67 @@
+@page "/setlists"
+@* Setlists (014 US5, FR-015; ui-test-ids 1.13.0 setlists-*): list, create, open, play and delete. *@
+
+<PageTitle>Setlists - StemStudio</PageTitle>
+
+<div class="ss-page ss-page-wide" data-testid="setlists-page" data-help-id="setlists">
+    <header class="ss-page-head ss-page-head-row">
+        <h1>Setlists <HelpHint HelpId="setlists" /></h1>
+    </header>
+    <RadzenButton Text="New setlist" Icon="playlist_add" ButtonStyle="ButtonStyle.Light" aria-expanded="@(Creating ? "true" : "false")"
+                  Click="() => Creating = !Creating" data-testid="setlist-create" />
+    @if (Creating)
+    {
+        <form class="ss-setlist-create" @onsubmit="CreateAsync" @onsubmit:preventDefault="true">
+            <label class="ss-inline-label" for="setlist-create-name">Name
+                <input id="setlist-create-name" type="text" class="rz-textbox" maxlength="80" placeholder="Friday rehearsal" value="@NewName"
+                       @oninput="e => NewName = e.Value?.ToString() ?? string.Empty" data-testid="setlist-create-name" />
+            </label>
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Create setlist" Icon="check" Disabled="@(NewName.Trim().Length == 0)"
+                          data-testid="setlist-create-confirm" />
+        </form>
+    }
+    @if (Error is not null)
+    {
+        <ErrorState TestId="setlists-error" Message="@Error" />
+    }
+    @if (Items is null)
+    {
+        @if (Error is null)
+        {
+            <Skeleton Lines="3" />
+        }
+    }
+    else if (Items.Count == 0)
+    {
+        <EmptyState TestId="setlists-empty" Text="No setlists yet. Give one a name above, then add the songs you want to play." />
+    }
+    else
+    {
+        <table class="ss-table">
+            <thead><tr><th>Setlist</th><th>Songs</th><th>Length</th><th><span class="ss-sr-only">Actions</span></th></tr></thead>
+            <tbody>
+                @foreach (var setlist in Items)
+                {
+                    <tr data-testid="@($"setlist-row-{setlist.Id}")">
+                        <td class="ss-cell-title"><a href="@($"setlists/{setlist.Id}")" data-testid="@($"setlist-open-{setlist.Id}")">@setlist.Name</a></td>
+                        <td class="ss-num">@setlist.Songs</td>
+                        <td class="ss-num">@StemStudio.Web.Practice.SetlistEntries.Total(setlist.TotalSeconds)</td>
+                        <td class="ss-cell-action">
+                            <div class="ss-row-actions">
+                                <RadzenButton Text="Play" Icon="play_arrow" Size="ButtonSize.Small" Disabled="@(setlist.Songs == 0)" aria-label="@($"Play {setlist.Name}")"
+                                              Click="() => Play(setlist)" data-testid="@($"setlist-play-{setlist.Id}")" />
+                                <RadzenButton Text="Delete" Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" aria-label="@($"Delete {setlist.Name}")"
+                                              Click="() => Deleting = setlist" data-testid="@($"setlist-delete-{setlist.Id}")" />
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    @if (Deleting is { } deleting)
+    {
+        <ConfirmModal Title="Delete setlist" Message="@($"Delete \"{deleting.Name}\"? The songs and mixes stay in your library.")" TestIdPrefix="setlist-delete"
+                      OnConfirm="DeleteAsync" OnCancel="() => Deleting = null" />
+    }
+</div>

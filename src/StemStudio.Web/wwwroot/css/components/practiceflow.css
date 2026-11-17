@@ -129,3 +129,55 @@
 .ss-score-page .score-highlight[data-state="idle"] {
   display: none;
 }
+
+/* Setlists (US5). */
+.ss-setlist-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-setlist-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2);
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-color-raised);
+  cursor: grab;
+}
+
+.ss-setlist-title {
+  flex: 1 1 12rem;
+}
+
+.ss-setlist-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.ss-setlist-bar-note {
+  flex: 1 1 10rem;
+  font-style: italic;
+}
+
+.ss-add-to-setlist,
+.ss-add-to-setlist-menu {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-1);
+}
+
+.ss-link-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ss-target-min);
+  text-decoration: none;
+}

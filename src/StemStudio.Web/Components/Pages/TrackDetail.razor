@@ -62,6 +62,11 @@ else
                 </div>
             }
 
+            @if (Track.Status == StemStudio.Contracts.Tracks.TrackStatusDto.Completed)
+            {
+                <div class="ss-row"><StemStudio.Web.Components.Practice.AddToSetlist TrackId="Track.Id" /></div>
+            }
+
             @if (CanDelete)
             {
                 <div class="ss-row ss-delete">

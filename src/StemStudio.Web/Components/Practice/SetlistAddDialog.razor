@@ -1,0 +1,44 @@
+@* Add a song to a setlist (014 US5, FR-015; ui-test-ids 1.13.0 setlist-add-*): pick a completed track, optionally one
+   of its mixes (Advanced), confirm. Escape and Cancel close it. *@
+@inherits ModalDialog
+
+<div class="ss-modal-backdrop">
+    <div class="ss-modal" role="dialog" aria-modal="true" aria-labelledby="setlist-add-title" data-testid="setlist-add-dialog"
+         @onkeydown="e => CloseOnEscapeAsync(e, OnClose)">
+        <h2 id="setlist-add-title" class="ss-title" tabindex="-1" @ref="InitialFocus">Add a song</h2>
+        @if (Ready.Count == 0)
+        {
+            <p class="ss-muted">No finished songs in your library yet.</p>
+        }
+        else
+        {
+            <fieldset class="ss-setlist-add-list">
+                <legend class="ss-sr-only">Song</legend>
+                @foreach (var track in Ready)
+                {
+                    <label class="ss-choice" for="@($"add-{track.Id}")">
+                        <input id="@($"add-{track.Id}")" type="radio" name="setlist-add-track" checked="@(track.Id == Picked)"
+                               @onchange="() => PickAsync(track.Id)" data-testid="@($"setlist-add-track-{track.Id}")" />
+                        @track.Title <span class="ss-muted">@track.Metadata.ArtistName</span>
+                    </label>
+                }
+            </fieldset>
+            <LevelGate Feature="setlists.notes">
+                <label class="ss-inline-label" for="setlist-add-mix">Mix
+                    <select id="setlist-add-mix" class="rz-dropdown ss-select" disabled="@(Picked is null)" @onchange="e => Mix = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null"
+                            data-testid="setlist-add-mix">
+                        <option value="">Default mix</option>
+                        @foreach (var mix in Mixes)
+                        {
+                            <option value="@mix.Id">@mix.Name</option>
+                        }
+                    </select>
+                </label>
+            </LevelGate>
+        }
+        <div class="ss-dialog-actions">
+            <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="OnClose" />
+            <RadzenButton Text="Add to setlist" Icon="add" Disabled="@(Picked is null)" Click="ConfirmAsync" data-testid="setlist-add-confirm" />
+        </div>
+    </div>
+</div>

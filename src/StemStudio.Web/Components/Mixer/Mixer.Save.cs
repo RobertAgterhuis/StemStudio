@@ -22,7 +22,7 @@ public sealed partial class Mixer
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
-        if (State is not null && MixId is { } mixId && mixId != State.MixId)
+        if (State is not null && (SetlistMixId ?? MixId) is { } mixId && mixId != State.MixId)
         {
             await LoadMixAsync(State, mixId);
         }

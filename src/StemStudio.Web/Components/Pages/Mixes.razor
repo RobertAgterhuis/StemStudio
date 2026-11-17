@@ -58,6 +58,7 @@
                                 <RadzenButton Text="@Label("Duplicate")" Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
                                               class="@IconClass" data-tooltip="@Tooltip("Duplicate")" aria-label="@($"Duplicate {mix.Name}")"
                                               Click="() => DuplicateAsync(mix)" data-testid="@($"mix-duplicate-{mix.Id}")" />
+                                <StemStudio.Web.Components.Practice.AddToSetlist TrackId="mix.TrackId" MixId="mix.Id" Text="@($"Add {mix.Name} to setlist")" />
                                 <RadzenButton Text="@Label("Rename")" Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
                                               class="@IconClass" data-tooltip="@Tooltip("Rename")" aria-label="@($"Rename {mix.Name}")"
                                               Click="() => OpenRename(mix)" data-testid="@($"mix-rename-{mix.Id}")" />

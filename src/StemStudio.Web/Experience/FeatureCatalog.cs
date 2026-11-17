@@ -83,6 +83,8 @@ public static class FeatureCatalog
         new("lyrics.assist-revisions", Expert, null, "lyric-assist"),
         new("shortcuts.settings", Advanced, null, "shortcuts-custom"),
         new("sections.edit", Advanced, null, "mixer-sections-edit"),
+        new("setlists.notes", Advanced, null, "setlists"),
+        new("setlists.pdf-options", Advanced, null, "setlist-pdf"),
         new("sections.detect-again", Expert, null, "mixer-sections-detection"),
         new("sections.confidence", Expert, null, "mixer-sections-detection"),
         new("recording.input-mode", Advanced, null, "recording"),
