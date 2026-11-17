@@ -170,7 +170,10 @@ public sealed partial class RecordingContractTests
         var mix = new MixSettingsDto("Mix", 1, [], new MetronomeSettingsDto(false, 0.5, null, 0, 4), null) { Take = Channel() };
         var provenance = new ProvenanceDto
         {
-            Origin = AssetOriginDto.Recording, TrackTitle = "Song", TrackAvailable = true, Contents = "Take 1 - Bass (recording)",
+            Origin = AssetOriginDto.Recording,
+            TrackTitle = "Song",
+            TrackAvailable = true,
+            Contents = "Take 1 - Bass (recording)",
             Recording = new RecordingRecipeDto { TakeId = Guid.NewGuid() },
         };
         var mixNode = JsonSerializer.SerializeToNode(mix, Web)!;
@@ -278,20 +281,39 @@ public sealed partial class RecordingContractTests
 
     private static RecordingTakeUploadDto Upload() => new()
     {
-        SessionId = Guid.NewGuid(), Partial = false, StartSample = 0, LengthSamples = 44_100, InputMode = InputChannelModeDto.Stereo,
-        LatencySamples = 1_102, LatencyMethod = LatencyMethodDto.Estimated, Part = RecordingPartDto.Drums, Speed = 1, TransposeSemitones = 0,
-        Dropouts = 0, RecordedAt = new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero),
+        SessionId = Guid.NewGuid(),
+        Partial = false,
+        StartSample = 0,
+        LengthSamples = 44_100,
+        InputMode = InputChannelModeDto.Stereo,
+        LatencySamples = 1_102,
+        LatencyMethod = LatencyMethodDto.Estimated,
+        Part = RecordingPartDto.Drums,
+        Speed = 1,
+        TransposeSemitones = 0,
+        Dropouts = 0,
+        RecordedAt = new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero),
     };
 
     private static InputCalibrationInput Calibration() => new()
     {
-        DeviceLabel = "USB interface", LatencySamples = 1_102, Method = CalibrationMethodDto.Loopback, SpreadSamples = 12, DetectedClicks = 8, OutputLatencySamples = 441,
+        DeviceLabel = "USB interface",
+        LatencySamples = 1_102,
+        Method = CalibrationMethodDto.Loopback,
+        SpreadSamples = 12,
+        DetectedClicks = 8,
+        OutputLatencySamples = 441,
     };
 
     private static InputCalibrationDto CalibrationRead() => new()
     {
-        Id = Guid.NewGuid(), DeviceLabel = "USB interface", LatencySamples = 1_102, LatencyMilliseconds = 24.99, Method = CalibrationMethodDto.Manual,
-        OutputLatencySamples = 441, MeasuredAt = new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero),
+        Id = Guid.NewGuid(),
+        DeviceLabel = "USB interface",
+        LatencySamples = 1_102,
+        LatencyMilliseconds = 24.99,
+        Method = CalibrationMethodDto.Manual,
+        OutputLatencySamples = 441,
+        MeasuredAt = new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero),
     };
 
     private static TakeChannelSettingsDto Channel() => new() { TakeId = Guid.NewGuid(), Volume = 1, Pan = 0, Mute = false, Solo = true };

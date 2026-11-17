@@ -14,8 +14,10 @@ public sealed partial class EngineContractDriftTests
     private static readonly string TypesTs = File.ReadAllText(RepoFile("src", "audio-engine", "src", "types.ts"));
 
     // Staged callbacks: in types.ts but not yet [JSInvokable] in AudioEngineInterop. Empty since 012 T030
-    // (OnPracticeChanged implemented); a later contract stages new names here until the frontend implements them.
-    private static readonly string[] PendingCallbacks = [];
+    // (OnPracticeChanged implemented); 015 Phase 0 (T004) stages the five recording callbacks of contract 2.5.0 until the
+    // frontend implements them (T026/T027, RecordingInterop routing).
+    private static readonly string[] PendingCallbacks =
+        ["OnRecordingStateChanged", "OnRecordingProgress", "OnTakesCaptured", "OnInputLost", "OnInputDevicesChanged"];
 
     [Fact]
     public void EveryInvokedEngineMethod_ExistsInAudioEngineInterface()

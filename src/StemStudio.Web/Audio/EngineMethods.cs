@@ -7,7 +7,7 @@ namespace StemStudio.Web.Audio;
 internal static class EngineMethods
 {
     /// <summary>Supported engine contract version (2.3.0: practice tempo, feature 012).</summary>
-    public const string ContractVersion = "2.3.0";
+    public const string ContractVersion = "2.5.0";
 
     /// <summary>Path of the ES module built by the audio-engine package.</summary>
     public const string ModulePath = "./js/audio-engine.js";
