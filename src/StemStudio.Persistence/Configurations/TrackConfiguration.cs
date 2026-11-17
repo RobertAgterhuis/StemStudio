@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using StemStudio.Domain.Artists;
+using StemStudio.Domain.Library;
 using StemStudio.Domain.Lyrics;
 using StemStudio.Domain.Tracks;
 
 namespace StemStudio.Persistence.Configurations;
 
-/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted; the lyrics row (feature 006) is deleted with the track.</summary>
+/// <summary>Maps <see cref="Track"/>: unique source key, enums as strings, stems, beat grid, detail phase, device, artwork and lookup state as JSON columns; the artist reference is set null when the artist is deleted; the lyrics row (feature 006) is deleted with the track; library info (feature 022) as plain columns.</summary>
 public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
 {
     /// <inheritdoc />
@@ -25,6 +26,7 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.Device).HasConversion(JobDeviceJson.Converter);
         builder.Property(track => track.Origin).HasConversion(JsonColumn<TrackOrigin>.Converter!, JsonColumn<TrackOrigin>.Comparer!);
         ConfigureArtworkAndMetadata(builder);
+        builder.ComplexProperty(track => track.LibraryInfo, LibraryInfoColumns);
     }
 
     /// <summary>The status column mirrors the row (read through the property, which prefers the loaded row); the row is deleted with the track.</summary>
@@ -67,5 +69,14 @@ public sealed class TrackConfiguration : IEntityTypeConfiguration<Track>
         builder.Property(track => track.WorkerJobId).HasMaxLength(32);
         builder.Property(track => track.UploadFileName).HasMaxLength(80);
         builder.Property(track => track.Model).HasMaxLength(32);
+    }
+
+    /// <summary>Maps library info (feature 022) onto <c>LibraryArtist</c>, <c>LibraryAlbum</c>, <c>LibrarySong</c> (TEXT, at most 200).</summary>
+    /// <param name="info">The complex property builder.</param>
+    internal static void LibraryInfoColumns(ComplexPropertyBuilder<LibraryInfo> info)
+    {
+        info.Property(value => value.Artist).HasColumnName("LibraryArtist").HasMaxLength(LibraryInfoRules.MaxNameLength);
+        info.Property(value => value.Album).HasColumnName("LibraryAlbum").HasMaxLength(LibraryInfoRules.MaxNameLength);
+        info.Property(value => value.Song).HasColumnName("LibrarySong").HasMaxLength(LibraryInfoRules.MaxNameLength);
     }
 }
