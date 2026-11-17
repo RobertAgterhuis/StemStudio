@@ -11,8 +11,8 @@ reviewed: "023"
 
 The assistant uses the AI backend chosen in **Settings** for the agent:
 
-- **Local (Ollama)**, the default: the model runs on this computer. While a heavy job uses the graphics card a
-  smaller model runs on the processor; the pane says so and shows the expected time.
+- **Local (Ollama)**, the default: the model runs on this computer. While a heavy job uses the graphics card the
+  model help waits: the pane says the graphics card is busy, and the spelling check still works.
 - **Claude** (optional): the first time, a notice asks you to agree that **the text of the sheet is sent to
   Anthropic** for the check, paid per use. Nothing is sent before you agree. Token use is shown (Advanced).
 - **Off**: only the dictionary layer runs.

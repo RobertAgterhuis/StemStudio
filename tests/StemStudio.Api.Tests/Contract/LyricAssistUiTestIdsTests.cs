@@ -8,7 +8,7 @@ namespace StemStudio.Api.Tests.Contract;
 /// </summary>
 public sealed partial class LyricAssistUiTestIdsTests
 {
-    private const int DeltaRows = 48;
+    private const int DeltaRows = 51; // 48 of Phase 0 + 3 refusal/error ids added at integration (frontend-023 request)
 
     private static readonly Lazy<string[]> Base = new(() => Lines("022", "ui-test-ids.md"));
 

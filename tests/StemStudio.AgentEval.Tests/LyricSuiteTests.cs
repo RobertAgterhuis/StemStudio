@@ -177,6 +177,40 @@ public sealed partial class LyricSuiteTests
     [GeneratedRegex(@"^\| (P\d) \|", RegexOptions.Multiline)]
     private static partial Regex PerformanceRow();
 
+    [Theory]
+    [InlineData("p1-havenlicht.nl.txt")]
+    [InlineData("p2-harbour-light.en.txt")]
+    public async Task Performance_TimesTheSheetPerRun_AndWritesTheReport(string name)
+    {
+        var folder = Directory.CreateTempSubdirectory("lyric-perf-").FullName;
+        try
+        {
+            var sheet = Path.Combine(folder, name);
+            File.Copy(Path.Combine(Repo.Root, "tests", "fixtures", "lyrics", "assist", "sheets", name), sheet);
+            var report = Path.Combine(folder, "report.md");
+            var options = EvalOptions.Parse(["--suite", "lyric", "--runs", "2", "--out", report]).Options!;
+            using var log = new StringWriter();
+
+            (await LyricCommand.PerformanceAsync(options, sheet, new ScriptedNothing(), log)).ShouldBe(0);
+
+            log.ToString().ShouldContain("performance run 2:");
+            File.ReadAllText(report).ShouldContain(name);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Run_WithTheFakeBackend_IsTheGradingSelfTest()
+    {
+        var options = EvalOptions.Parse(["--suite", "lyric", "--backend", "fake", "--lyric-set", JsonPath]).Options!;
+        using var log = new StringWriter();
+
+        (await LyricCommand.RunAsync(options, log)).ShouldBe(0);
+    }
+
     private sealed class ScriptedNothing : ILyricModel
     {
         public Task<LyricModelReply> CompleteAsync(LyricModelRequest request, CancellationToken cancellationToken) =>
