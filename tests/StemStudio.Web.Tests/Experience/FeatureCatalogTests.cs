@@ -78,6 +78,15 @@ public sealed class FeatureCatalogTests
         { "lyrics.assist-source", [E], "lyric-assist-privacy" },
         { "lyrics.assist-log", [E], "lyric-assist-privacy" },
         { "lyrics.assist-revisions", [E], "lyric-assist" },
+        { "recording.input-mode", [A, E], "recording" },
+        { "recording.monitoring-volume", [A, E], "recording-monitoring" },
+        { "recording.manual-latency", [A, E], "recording-latency" },
+        { "recording.loop", [A, E], "recording-loop-takes" },
+        { "recording.take-pan", [A, E], "recording-compare" },
+        { "recording.export-options", [A, E], "recording-export" },
+        { "recording.latency-samples", [E], "recording-latency" },
+        { "recording.timing-adjust", [E], "recording-timing" },
+        { "recording.diagnostics", [E], "recording" },
     };
 
     private static readonly Dictionary<string, string[]> GatedReleasedIds = new(StringComparer.Ordinal)
@@ -139,7 +148,8 @@ public sealed class FeatureCatalogTests
                 "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
                 "care.track-table", "care.worker-entries", "care.restore-merge",
                 "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
-                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions"], ignoreOrder: true);
+                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions",
+                "recording.input-mode", "recording.monitoring-volume", "recording.manual-latency", "recording.loop", "recording.take-pan", "recording.export-options", "recording.latency-samples", "recording.timing-adjust", "recording.diagnostics"], ignoreOrder: true);
     }
 
     [Fact]
