@@ -23,6 +23,14 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
     /// <summary>Dictionary suggestions per miss.</summary>
     public const int MaxCorrections = 5;
 
+    /// <summary>Most misses per check (security review 4: bounded work and prompt size).</summary>
+    public const int MaxMisses = 200;
+
+    /// <summary>Longest checked word; longer tokens are skipped (security review 4).</summary>
+    public const int MaxWordLength = 40;
+
+    private readonly Dictionary<(string Word, AssistLanguage Language), IReadOnlyList<string>> _corrections = [];
+
     private static readonly HashSet<string> Interjections = new(
         ["oh", "ooh", "oeh", "ah", "aah", "hey", "na", "nah", "la", "lala", "nana", "yeah", "yeh", "whoa", "wo", "woah", "uh", "mm", "hmm", "jee", "tralala", "oho", "ha", "haha"],
         StringComparer.Ordinal);
@@ -32,14 +40,16 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
     /// <param name="language">Language.</param>
     /// <param name="lineFrom">First line or null.</param>
     /// <param name="lineTo">Last line or null.</param>
+    /// <param name="cancellationToken">Cancels between lines.</param>
     /// <returns>Licence notes and misses.</returns>
-    public DictionaryCheckResult Run(string text, AssistLanguage language, int? lineFrom = null, int? lineTo = null)
+    public DictionaryCheckResult Run(string text, AssistLanguage language, int? lineFrom = null, int? lineTo = null, CancellationToken cancellationToken = default)
     {
         var lines = SheetText.Lines(text);
         var notes = new List<SuggestionDraft>();
         var misses = new List<WordMiss>();
         for (var line = Math.Max(lineFrom ?? 1, 1); line <= Math.Min(lineTo ?? lines.Length, lines.Length); line++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (SheetText.IsLyric(lines[line - 1]))
             {
                 CheckLine(line, lines[line - 1], language, notes, misses);
@@ -96,17 +106,27 @@ public sealed class DictionaryCheck(ISpellChecker spelling, IReadOnlyCollection<
 
     private void CheckLine(int line, string text, AssistLanguage language, List<SuggestionDraft> notes, List<WordMiss> misses)
     {
-        foreach (var token in LyricTokens.Of(text).Where(token => !token.Text.All(char.IsDigit) && !IsPersonal(token.Text)))
+        foreach (var token in LyricTokens.Of(text).Where(token => token.Text.Length <= MaxWordLength && !token.Text.All(char.IsDigit) && !IsPersonal(token.Text)))
         {
             if (Classify(token.Text, language) is { } licence)
             {
                 notes.Add(Note(line, token, licence, language));
             }
-            else if (!spelling.IsKnown(token.Text, language))
+            else if (misses.Count < MaxMisses && !spelling.IsKnown(token.Text, language))
             {
-                misses.Add(new WordMiss(line, token.Start, token.Text, spelling.Suggest(token.Text, language, MaxCorrections)));
+                misses.Add(new WordMiss(line, token.Start, token.Text, Corrections(token.Text, language)));
             }
         }
+    }
+
+    private IReadOnlyList<string> Corrections(string word, AssistLanguage language)
+    {
+        if (!_corrections.TryGetValue((word, language), out var corrections))
+        {
+            _corrections[(word, language)] = corrections = spelling.Suggest(word, language, MaxCorrections);
+        }
+
+        return corrections;
     }
 
     private SuggestionType? Classify(string word, AssistLanguage language)

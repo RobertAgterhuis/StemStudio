@@ -1,3 +1,5 @@
+using StemStudio.Domain.Lyrics.Assist;
+
 namespace StemStudio.Api.LyricAssist;
 
 /// <summary>
@@ -11,13 +13,36 @@ public static class LyricAssistRegistration
     /// <returns>The same collection.</returns>
     public static IServiceCollection AddLyricAssist(this IServiceCollection services)
     {
+        services.AddOptions<LyricAssistHostOptions>().BindConfiguration(LyricAssistHostOptions.SectionName);
+        services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LyricAssistHostOptions>>().Value);
+        services.AddSingleton<ISpellChecker>(_ => new HunspellSpellChecker(HunspellSpellChecker.DefaultRoot));
+        services.AddSingleton<LyricsCorpusProvider>();
+        services.AddSingleton<LyricAssistRunner>();
+        services.AddHostedService<LyricAssistStartupRecovery>();
         services.AddScoped<LyricsSheetChanges>();
         services.AddScoped<ILyricAssistCanceller, LyricAssistCanceller>();
+        services.AddScoped(sp => new LyricAssistStores
+        {
+            Sheets = sp.GetRequiredService<Persistence.Repositories.ILyricsSheetRepository>(),
+            Assists = sp.GetRequiredService<Persistence.Repositories.ILyricAssistRepository>(),
+            Suggestions = sp.GetRequiredService<Persistence.Repositories.ILyricSuggestionRepository>(),
+            Words = sp.GetRequiredService<Persistence.Repositories.ILyricWordRepository>(),
+        });
+        services.AddScoped<AssistEventLog>();
+        services.AddScoped<LyricModelLayer>();
+        services.AddScoped<LyricAssistExecutor>();
+        services.AddScoped<LyricAssistEventWriter>();
+        services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
+        {
+            Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
+            Corpus = sp.GetRequiredService<LyricsCorpusProvider>(), Imitation = sp.GetRequiredService<Styles.LibraryStyleGuard>(),
+            Events = sp.GetRequiredService<AssistEventLog>(), Runner = sp.GetRequiredService<LyricAssistRunner>(), Clock = sp.GetRequiredService<TimeProvider>(),
+        }));
         return services;
     }
 
     /// <summary>Maps the 023 endpoints (tag <c>lyric-assist</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app;
+    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints();
 }

@@ -27,6 +27,13 @@ public static class LyricAssistMapper
     public static T Map<T>(Enum value)
         where T : struct, Enum => StyleMapper.Map<T>(value);
 
+    /// <summary>The JSON wire name of a contract enum value.</summary>
+    /// <typeparam name="T">Enum.</typeparam>
+    /// <param name="value">Value.</param>
+    /// <returns>The name, e.g. <c>backend-unavailable</c>.</returns>
+    public static string Wire<T>(T value)
+        where T : struct, Enum => System.Text.Json.JsonSerializer.Serialize(value).Trim('"');
+
     /// <summary>The assistant state of a sheet.</summary>
     /// <param name="sheet">The sheet.</param>
     /// <param name="openSuggestions">Open suggestions of the sheet.</param>

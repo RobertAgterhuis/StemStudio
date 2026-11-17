@@ -29,6 +29,7 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ILyricSuggestionRepository, LyricSuggestionRepository>();
         services.AddScoped<ILyricsRevisionRepository, LyricsRevisionRepository>();
         services.AddScoped<ILyricWordRepository, LyricWordRepository>();
+        services.AddScoped<ILyricsCorpusSource, LyricsCorpusSource>();
         return services;
     }
 }

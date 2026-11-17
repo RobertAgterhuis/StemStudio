@@ -86,6 +86,9 @@ public static class VerbatimGuard
     /// <summary>Share of matching lines needed for a refusal.</summary>
     public const double MinShare = 0.25;
 
+    /// <summary>Matching lines that always refuse, whatever the share (CTO security decision: no bypass by padding).</summary>
+    public const int AlwaysRefuseLines = 8;
+
     /// <summary>The normalised key of a line: lower case, no diacritics, no apostrophes, other punctuation a space, single spaces.</summary>
     /// <param name="line">The line.</param>
     /// <returns>The key.</returns>
@@ -159,7 +162,8 @@ public static class VerbatimGuard
         return (matches, lyric.Count);
     }
 
-    private static bool Refuses(int matchingLines, int lyricLines) => matchingLines >= MinLines && matchingLines >= MinShare * lyricLines;
+    private static bool Refuses(int matchingLines, int lyricLines) =>
+        matchingLines >= AlwaysRefuseLines || (matchingLines >= MinLines && matchingLines >= MinShare * lyricLines);
 
     private static CorpusTrack? Top(List<IReadOnlyList<CorpusTrack>> matches, Guid? excluded) => Ranked(matches, excluded).FirstOrDefault();
 

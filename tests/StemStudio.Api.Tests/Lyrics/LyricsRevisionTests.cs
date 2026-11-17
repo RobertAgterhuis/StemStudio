@@ -53,6 +53,7 @@ public sealed class LyricsRevisionTests : ApiTestBase
         (await ok.BodyAsync<LyricsSheetDto>()).Revision.ShouldBe(2);
         stale.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var problem = await stale.JsonAsync();
+        await ContractAssert.MatchesAsync(stale, "updateLyricsSheet");
         (problem.GetProperty("code").GetString(), problem.GetProperty("currentRevision").GetInt32(), problem.GetProperty("type").GetString())
             .ShouldBe(("revision-conflict", 2, "https://stemstudio.local/problems/revision-conflict"));
         problem.GetRawText().ShouldNotContain("lost");

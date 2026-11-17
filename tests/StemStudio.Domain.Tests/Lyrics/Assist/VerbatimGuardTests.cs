@@ -68,6 +68,17 @@ public sealed class VerbatimGuardTests
         VerbatimGuard.IsVerbatim("One, two, three, four, five", index).ShouldBeTrue();
     }
 
+    [Fact]
+    public void PaddingWithOwnLines_DoesNotBypassTheGuard()
+    {
+        var library = AssistFixtures.Read(Path.Combine("corpus", "t-fake-song.en.txt")).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var padded = string.Join('\n', library.Concat(Enumerable.Range(0, 130).Select(i => $"my own padding line number {i}")));
+
+        library.Length.ShouldBeGreaterThanOrEqualTo(VerbatimGuard.AlwaysRefuseLines);
+        VerbatimGuard.RefusingTrack(padded, Corpus, null).ShouldBe(Song);
+        VerbatimGuard.RefusingTrack(string.Join('\n', library.Take(7).Concat(Enumerable.Range(0, 130).Select(i => $"my own padding line number {i}"))), Corpus, null).ShouldBeNull();
+    }
+
     private static CorpusLyrics Lyrics(CorpusTrack track, string file) =>
         new(track, AssistFixtures.Read(Path.Combine("corpus", file)).Split('\n'));
 }

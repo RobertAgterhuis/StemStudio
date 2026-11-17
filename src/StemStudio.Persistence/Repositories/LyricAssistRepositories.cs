@@ -60,6 +60,12 @@ public interface ILyricAssistRepository
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
     Task SaveAsync(CancellationToken cancellationToken);
+
+    /// <summary>Reloads a tracked assist from the database (another scope may have changed it).</summary>
+    /// <param name="assist">The assist.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    Task ReloadAsync(AssistRun assist, CancellationToken cancellationToken);
 }
 
 /// <summary>EF Core implementation of <see cref="ILyricAssistRepository"/>.</summary>
@@ -115,12 +121,15 @@ public sealed class LyricAssistRepository(StemStudioDbContext context) : ILyricA
 
     /// <inheritdoc />
     public Task SaveAsync(CancellationToken cancellationToken) => UnitOfWork.SaveAsync(context, cancellationToken);
+
+    /// <inheritdoc />
+    public Task ReloadAsync(AssistRun assist, CancellationToken cancellationToken) => context.Entry(assist).ReloadAsync(cancellationToken);
 }
 
 /// <summary>Persistence of lyric suggestions (feature 023).</summary>
 public interface ILyricSuggestionRepository
 {
-    /// <summary>Suggestions of a sheet (tracked), oldest first; optionally filtered.</summary>
+    /// <summary>Suggestions of a sheet (tracked) in text order (titles first, then line and offset); optionally filtered.</summary>
     /// <param name="sheetId">Sheet id.</param>
     /// <param name="status">Status filter.</param>
     /// <param name="category">Category filter.</param>
@@ -128,7 +137,7 @@ public interface ILyricSuggestionRepository
     /// <returns>The suggestions.</returns>
     Task<IReadOnlyList<LyricSuggestion>> ForSheetAsync(Guid sheetId, SuggestionStatus? status, SuggestionCategory? category, CancellationToken cancellationToken);
 
-    /// <summary>Suggestions of an assist, oldest first.</summary>
+    /// <summary>Suggestions of an assist in text order.</summary>
     /// <param name="assistId">Assist id.</param>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The suggestions.</returns>
@@ -167,12 +176,12 @@ public sealed class LyricSuggestionRepository(StemStudioDbContext context) : ILy
         var query = context.LyricSuggestions.Where(s => s.SheetId == sheetId);
         query = status is null ? query : query.Where(s => s.Status == status);
         query = category is null ? query : query.Where(s => s.Category == category);
-        return await query.OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).ToListAsync(cancellationToken);
+        return InTextOrder(await query.ToListAsync(cancellationToken));
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<LyricSuggestion>> ForAssistAsync(Guid assistId, CancellationToken cancellationToken) =>
-        await context.LyricSuggestions.Where(s => s.AssistId == assistId).OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).ToListAsync(cancellationToken);
+        InTextOrder(await context.LyricSuggestions.Where(s => s.AssistId == assistId).ToListAsync(cancellationToken));
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<LyricSuggestion>> FindManyAsync(Guid sheetId, IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
@@ -184,6 +193,10 @@ public sealed class LyricSuggestionRepository(StemStudioDbContext context) : ILy
 
     /// <inheritdoc />
     public void AddRange(IEnumerable<LyricSuggestion> suggestions) => context.LyricSuggestions.AddRange(suggestions);
+
+    // Titles first, then by line and offset (the anchor is a JSON column, so the order is applied in memory).
+    private static List<LyricSuggestion> InTextOrder(List<LyricSuggestion> suggestions) =>
+        [.. suggestions.OrderBy(s => s.Anchor.Line).ThenBy(s => s.Anchor.Start).ThenBy(s => s.CreatedAt).ThenBy(s => s.Id)];
 
     /// <inheritdoc />
     public Task SaveAsync(CancellationToken cancellationToken) => UnitOfWork.SaveAsync(context, cancellationToken);
@@ -331,4 +344,39 @@ public sealed class LyricWordRepository(StemStudioDbContext context) : ILyricWor
 
     /// <inheritdoc />
     public Task SaveAsync(CancellationToken cancellationToken) => UnitOfWork.SaveAsync(context, cancellationToken);
+}
+
+/// <summary>Reads the 006 track lyrics of the library for the corpus index (feature 023, research R-07).</summary>
+public interface ILyricsCorpusSource
+{
+    /// <summary>A cheap version stamp: number of lyrics rows and their newest change.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The stamp.</returns>
+    Task<(int Count, DateTime? Newest)> StampAsync(CancellationToken cancellationToken);
+
+    /// <summary>The lyric lines of every track that has text.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The lyrics.</returns>
+    Task<IReadOnlyList<CorpusLyrics>> LoadAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>EF Core implementation of <see cref="ILyricsCorpusSource"/>.</summary>
+/// <param name="context">The context.</param>
+public sealed class LyricsCorpusSource(StemStudioDbContext context) : ILyricsCorpusSource
+{
+    /// <inheritdoc />
+    public async Task<(int Count, DateTime? Newest)> StampAsync(CancellationToken cancellationToken)
+    {
+        var lyrics = context.Set<Domain.Lyrics.TrackLyrics>().AsNoTracking();
+        return (await lyrics.CountAsync(cancellationToken), await lyrics.MaxAsync(row => (DateTime?)row.UpdatedAt, cancellationToken));
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CorpusLyrics>> LoadAsync(CancellationToken cancellationToken)
+    {
+        var rows = await context.Tracks.AsNoTracking().Where(track => track.Lyrics != null && track.Lyrics.Document != null)
+            .Select(track => new { track.Id, track.Title, track.Lyrics!.Document }).ToListAsync(cancellationToken);
+        return [.. rows.Where(row => row.Document is { Instrumental: false })
+            .Select(row => new CorpusLyrics(new CorpusTrack(row.Id, row.Title), row.Document!.Lines.Select(line => line.Text).ToList()))];
+    }
 }

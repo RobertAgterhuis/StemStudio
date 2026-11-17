@@ -43,7 +43,7 @@ public sealed class DeterministicLayerTests
         var check = new DictionaryCheck(Spelling, ["Zelmara"]);
         var text = "[verse]\nde wind fluisterd zacht\n'k Heb je lief, zo stil als 't licht\n\nGij zijt love, zooooo yeahhh\nZelmara 2 nacht\nvergeeten lope";
 
-        var result = check.Run(text, AssistLanguage.Dutch);
+        var result = check.Run(text, AssistLanguage.Dutch, cancellationToken: TestContext.Current.CancellationToken);
 
         result.Misses.Select(m => (m.Line, m.Start, m.Word)).ShouldBe([(2, 8, "fluisterd"), (7, 0, "vergeeten")]);
         result.Misses[0].Suggestions.ShouldBe(["fluistert"]);
@@ -60,11 +60,11 @@ public sealed class DeterministicLayerTests
     {
         var check = new DictionaryCheck(Spelling, ["zelmara"]);
 
-        var result = check.Run("Zelmara\nxyzzy\nqwerty", AssistLanguage.English, 2, 9);
+        var result = check.Run("Zelmara\nxyzzy\nqwerty", AssistLanguage.English, 2, 9, TestContext.Current.CancellationToken);
 
         result.Misses.Select(m => m.Word).ShouldBe(["xyzzy", "qwerty"]);
         result.Notes.ShouldBeEmpty();
-        check.Run("ooh na na", AssistLanguage.English).ShouldSatisfyAllConditions(
+        check.Run("ooh na na", AssistLanguage.English, cancellationToken: TestContext.Current.CancellationToken).ShouldSatisfyAllConditions(
             r => r.Misses.ShouldBeEmpty(), r => r.Notes.Count.ShouldBe(3));
     }
 
@@ -165,6 +165,33 @@ public sealed class DeterministicLayerTests
 
         SuggestionFilter.Keep(Draft(SuggestionSeverity.Idea, SuggestionType.WriteTitle) with { Anchor = new Anchor(0, 0, 4, "Song") }, context).ShouldBeTrue();
         SuggestionFilter.Keep(Draft(SuggestionSeverity.Idea) with { Anchor = new Anchor(0, 0, 4, "Song") }, context).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Check_IsBoundedAgainstHostileText()
+    {
+        var counting = new CountingSpelling();
+        var text = string.Join('\n', Enumerable.Range(0, 300).Select(i => $"zzq{i} zzqrepeat {new string('x', 41)}"));
+
+        var result = new DictionaryCheck(counting, []).Run(text, AssistLanguage.English, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Misses.Count.ShouldBe(DictionaryCheck.MaxMisses);
+        result.Misses.ShouldAllBe(m => m.Word.Length <= DictionaryCheck.MaxWordLength);
+        counting.Suggested.Count(w => w == "zzqrepeat").ShouldBe(1);
+        Should.Throw<OperationCanceledException>(() => new DictionaryCheck(counting, []).Run(text, AssistLanguage.English, cancellationToken: new CancellationToken(true)));
+    }
+
+    private sealed class CountingSpelling : ISpellChecker
+    {
+        public List<string> Suggested { get; } = [];
+
+        public bool IsKnown(string word, AssistLanguage language) => false;
+
+        public IReadOnlyList<string> Suggest(string word, AssistLanguage language, int max)
+        {
+            Suggested.Add(word);
+            return [];
+        }
     }
 
     private static FilterContext Context(AssistKind kind, Sensitivity sensitivity) => new(kind, sensitivity, "de wind", [], [], AssistLanguage.Dutch);
