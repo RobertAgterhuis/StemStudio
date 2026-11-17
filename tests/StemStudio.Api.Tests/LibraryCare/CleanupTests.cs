@@ -9,6 +9,7 @@ using StemStudio.Api.Worker;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LibraryCare;
 using StemStudio.Domain.Assets;
+using StemStudio.Domain.Rendering;
 
 namespace StemStudio.Api.Tests.LibraryCare;
 
@@ -86,6 +87,7 @@ public sealed class CleanupTests : ApiTestBase
     {
         var track = await _library.TrackAsync(detail: false);
         var busy = await _library.TrackAsync("ddddddddddd", detail: false);
+        busy = await Factory.UpdateTrackAsync(busy.Id, t => t.RehydrateWorkerJob("ddddddddddddddddddddddddddddddd1", LibraryFixture.T0));
         Worker.OnGetStorage = () => Task.FromResult(Storage([
             new(Sha, 100, 50, 0, 0, [track.WorkerJobId!], false, false, null),
             new(new string('d', 64), 10, 0, 0, 0, [busy.WorkerJobId!], true, false, null)]));
@@ -120,6 +122,7 @@ public sealed class CleanupTests : ApiTestBase
             TrackId = track.Id,
             TrackTitle = track.Title,
             Contents = "drums, raw",
+            Recipe = new ExportRecipe { TrackId = track.Id, Mode = ExportMode.Raw, Channels = ["drums"], Format = new ExportFormat(AudioFormat.Flac, 16, null) },
         }, LibraryFixture.T0));
 
         var plan = await (await PreviewAsync(new CleanupActionDto { Kind = CleanupKindDto.DetailStems, TrackIds = [track.Id] })).BodyAsync<CleanupPlanDto>();

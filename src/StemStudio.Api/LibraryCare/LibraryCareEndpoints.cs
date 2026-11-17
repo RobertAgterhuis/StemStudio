@@ -3,6 +3,7 @@ using Microsoft.Net.Http.Headers;
 using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Api.LibraryCare.Cleanup;
 using StemStudio.Api.LibraryCare.Restore;
 using StemStudio.Api.LibraryCare.Storage;
 using StemStudio.Contracts;
@@ -40,6 +41,8 @@ public static class LibraryCareEndpoints
             .WithName("discardPreviousLibrary").RequireGateOpen().WithTags(Tag);
         app.MapGet(ApiRoutes.Storage, async (bool? refresh, StorageOverviewService storage, CancellationToken ct) => TypedResults.Ok(await storage.GetAsync(refresh ?? false, ct)))
             .WithName("getStorageOverview").WithTags("storage");
+        app.MapPost(ApiRoutes.CleanupPreview, PreviewCleanupAsync).WithName("previewCleanup").RequireGateOpen().WithTags("storage");
+        app.MapPost(ApiRoutes.Cleanup, ExecuteCleanupAsync).WithName("executeCleanup").RequireGateOpen().WithTags("storage");
         return app;
     }
 
@@ -69,6 +72,32 @@ public static class LibraryCareEndpoints
 
     private static Task<PreviousLibraryDto?> PreviousAsync(IServiceProvider services, CancellationToken ct) =>
         services.GetService<IPreviousLibraryReader>()?.ReadAsync(ct) ?? Task.FromResult<PreviousLibraryDto?>(null);
+
+    private static async Task<IResult> PreviewCleanupAsync(CleanupRequestDto request, LibraryJobRunner runner, CleanupPlanner planner, CancellationToken ct)
+    {
+        if (request.Actions is not { Count: >= 1 and <= LibraryCareLimits.MaxCleanupActions } || request.Actions.Any(action => action.TrackIds?.Count > LibraryCareLimits.MaxCleanupTrackIds))
+        {
+            return ApiProblems.Validation("actions", "Send 1 to 3 actions with at most 10,000 track ids each.");
+        }
+
+        return runner.Active is { } active ? LibraryCareProblems.JobRunning(active).Result : TypedResults.Ok(await planner.PreviewAsync(request, ct));
+    }
+
+    private static async Task<IResult> ExecuteCleanupAsync(ExecuteCleanupRequestDto request, LibraryJobRunner runner, CleanupExecutor executor, CancellationToken ct)
+    {
+        if (runner.Active is { } active)
+        {
+            return LibraryCareProblems.JobRunning(active).Result;
+        }
+
+        var (result, problem) = await executor.ExecuteAsync(request.PlanId, ct);
+        return problem switch
+        {
+            null => TypedResults.Ok(result),
+            LibraryCareProblemTypes.PlanStale => LibraryCareProblems.Problem(StatusCodes.Status409Conflict, problem, "The library changed", "The library changed since the preview; preview again.").Result,
+            _ => LibraryCareProblems.Problem(StatusCodes.Status409Conflict, problem, "The plan expired", "The clean-up plan is unknown or older than 10 minutes; preview again.").Result,
+        };
+    }
 
     private static async Task<IResult> CreateAsync(BackupOptionsDto options, BackupService backups, CancellationToken ct)
     {

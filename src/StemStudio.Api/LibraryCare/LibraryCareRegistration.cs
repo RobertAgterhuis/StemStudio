@@ -29,6 +29,8 @@ public static class LibraryCareRegistration
         services.AddSingleton<StorageOverviewCache>();
         services.AddSingleton<StorageVolumes>();
         services.AddScoped<StorageOverviewService>();
+        services.AddScoped<Cleanup.CleanupPlanner>();
+        services.AddScoped<Cleanup.CleanupExecutor>();
         AddBackup(services);
         AddRestore(services);
         return services;
