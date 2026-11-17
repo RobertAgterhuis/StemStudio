@@ -81,7 +81,7 @@ public sealed class LibraryJobRunnerTests : IDisposable
         }, out var job).ShouldBeTrue();
         await started.Task;
 
-        var (result, cancelling) = _runner.Cancel(job.JobId);
+        var (result, cancelling) = await _runner.CancelAsync(job.JobId, Ct);
         await _runner.WhenIdleAsync();
 
         (result, cancelling!.JobId).ShouldBe((CancelResult.Requested, job.JobId));
@@ -104,11 +104,11 @@ public sealed class LibraryJobRunnerTests : IDisposable
         }, out var job).ShouldBeTrue();
         await marked.Task;
 
-        _runner.Cancel(job.JobId).Result.ShouldBe(CancelResult.NotCancellable);
+        (await _runner.CancelAsync(job.JobId, Ct)).Result.ShouldBe(CancelResult.NotCancellable);
         release.SetResult();
         await _runner.WhenIdleAsync();
-        _runner.Cancel(job.JobId).Result.ShouldBe(CancelResult.NotCancellable);
-        _runner.Cancel(Guid.NewGuid()).Result.ShouldBe(CancelResult.NotFound);
+        (await _runner.CancelAsync(job.JobId, Ct)).Result.ShouldBe(CancelResult.NotCancellable);
+        (await _runner.CancelAsync(Guid.NewGuid(), Ct)).Result.ShouldBe(CancelResult.NotFound);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class LibraryJobRunnerTests : IDisposable
         var stored = LibraryJobs.Queued(Guid.NewGuid(), LibraryJobKindDto.Backup, "a.zip", _clock.GetUtcNow()) with { Status = LibraryJobStatusDto.Completed };
         await _store.SaveAsync(stored, Ct);
 
-        _runner.Cancel(stored.JobId).Result.ShouldBe(CancelResult.NotCancellable);
+        (await _runner.CancelAsync(stored.JobId, Ct)).Result.ShouldBe(CancelResult.NotCancellable);
     }
 
     [Fact]

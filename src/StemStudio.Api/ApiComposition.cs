@@ -12,6 +12,7 @@ using StemStudio.Api.Device;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Generator;
 using StemStudio.Api.Importing;
+using StemStudio.Api.LibraryCare;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Lyrics;
 using StemStudio.Api.Metadata;
@@ -53,6 +54,7 @@ public static class ApiComposition
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);
+        services.AddLibraryCare(options, builder.Environment.ContentRootPath);
         services.AddAgentHost(builder.Configuration);
         return builder;
     }
@@ -73,6 +75,7 @@ public static class ApiComposition
     {
         ArgumentNullException.ThrowIfNull(app);
         Directory.CreateDirectory(app.Services.GetRequiredService<DataDirectory>().Root);
+        await app.Services.RecoverLibraryCareAsync(CancellationToken.None);
         app.Services.GetRequiredService<KeyRingStatus>().LogStartupWarnings(app.Services.GetRequiredService<ILogger<KeyRingStatus>>());
         await using (var scope = app.Services.CreateAsyncScope())
         {
