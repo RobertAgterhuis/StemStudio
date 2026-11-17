@@ -2,6 +2,14 @@
    Advanced takes-session-<sessionId> with data-passes and takes-keep-starred-<sessionId>). The rows form one radio group:
    the chosen take plays in the take strip. *@
 
+@{
+    RenderFragment<TakeItem> row = item =>
+        @<TakeRow Item="item" Selected="IsLoaded(item)" Editing="IsEditing(item)" RenameError="@_renameError"
+                  OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" OnPlayFrom="() => PlayFromAsync(item)"
+                  OnRenameStart="() => StartRename(item)" OnRename="name => RenameAsync(item, name)" OnRenameCancel="CancelRename"
+                  OnExport="() => OnExport.InvokeAsync(item)" OnDelete="() => DeleteAsync(item)" OnRetry="() => RetryAsync(item)" />;
+}
+
 <section class="ss-console-panel" aria-labelledby="takes-title" data-testid="takes-panel">
     <h2 id="takes-title" class="ss-panel-title">Takes <HelpHint HelpId="recording" /></h2>
     @if (Takes.Items.Count == 0)
@@ -26,7 +34,7 @@
                         <ul role="none">
                             @foreach (var item in session.Takes)
                             {
-                                <TakeRow Item="item" Selected="IsLoaded(item)" OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" />
+                                @row(item)
                             }
                         </ul>
                     </li>
@@ -35,7 +43,7 @@
                 {
                     @foreach (var item in session.Takes)
                     {
-                        <TakeRow Item="item" Selected="IsLoaded(item)" OnSelect="() => SelectAsync(item)" OnStar="() => StarAsync(item)" />
+                        @row(item)
                     }
                 }
             }

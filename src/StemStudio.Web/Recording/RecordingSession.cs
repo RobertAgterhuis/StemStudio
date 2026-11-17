@@ -101,6 +101,19 @@ public sealed partial class RecordingSession : IAsyncDisposable
     /// <returns>A task that completes when tried.</returns>
     public Task SaveAgainAsync() => UploadAsync([.. Takes.Items.Where(i => i.UploadFailed)]);
 
+    /// <summary>After a change in the Takes panel: re-render and poll takes that are being saved again (retry).</summary>
+    /// <returns>A task that completes when queued.</returns>
+    public Task TakesChangedAsync()
+    {
+        _ = PollAsync();
+        return _host.RefreshAsync();
+    }
+
+    /// <summary>Moves the playhead (play a take from its start).</summary>
+    /// <param name="seconds">The position.</param>
+    /// <returns>A task that completes when applied.</returns>
+    public Task SeekAsync(double seconds) => _host.SeekAsync(seconds);
+
     /// <summary>Re-renders the mixer (after a component changed the session).</summary>
     /// <returns>A task that completes when queued.</returns>
     public Task RefreshAsync() => _host.RefreshAsync();
