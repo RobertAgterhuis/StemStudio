@@ -104,6 +104,15 @@ else
                 </LevelGate>
             </ItemExtra>
         </SectionLane>
+        <div class="ss-section-nav">
+            <RadzenButton Text="Score" Icon="music_note" Size="ButtonSize.Small" ButtonStyle="@(ShowScore ? ButtonStyle.Primary : ButtonStyle.Light)"
+                          aria-expanded="@(ShowScore ? "true" : "false")" Click="ToggleScore" data-testid="score-panel-toggle" data-help-id="score-panel" />
+        </div>
+        @if (ShowScore)
+        {
+            <ScorePanel @ref="_score" TrackId="Id" EngineReady="EngineReady" Position="Position" TransposeSemitones="State.Practice.TransposeSemitones"
+                        Loop="State.Loop" CanLoopBars="@(!IsBeginner)" ReducedMotion="ReducedMotion" OnSeek="SeekAsync" OnLoop="LoopBarsAsync" />
+        }
         @if (EditingSections && State.SectionSet is { } editing)
         {
             <SectionEditor TrackId="Id" Set="editing" Duration="State.Duration" BeatGrid="_track?.BeatGrid" Position="Position"

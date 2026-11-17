@@ -57,6 +57,7 @@ public sealed partial class Mixer
         _commands.Add("mixer.save-as", () => SaveCommandAsync("mixer.save-as"));
         RegisterPracticeCommands(_commands);
         RegisterSectionCommands(_commands);
+        RegisterScoreCommands(_commands);
         RegisterRecordingCommands(_commands);
     }
 

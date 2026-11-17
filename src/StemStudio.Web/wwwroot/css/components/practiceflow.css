@@ -85,3 +85,47 @@
   padding-block: var(--ss-space-1);
   border-block-end: 1px solid var(--ss-color-divider);
 }
+
+/* Score follow (US4): pages scroll inside the panel; bar click targets over the image; the engine's highlight
+   (.score-highlight, pointer-events none) is an outline plus a hatched translucent fill, not colour alone. */
+.ss-score-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ss-space-2);
+}
+
+.ss-score-view {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--ss-color-divider);
+  border-radius: var(--ss-radius-panel);
+  background: var(--ss-color-base);
+}
+
+.ss-score-page {
+  position: relative;
+  margin-block-end: var(--ss-space-3);
+}
+
+.ss-score-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ss-score-bar {
+  position: absolute;
+  cursor: pointer;
+}
+
+.ss-score-page .score-highlight {
+  border: 3px solid var(--ss-color-focus);
+  border-radius: var(--ss-radius-control);
+  background-image: repeating-linear-gradient(45deg, var(--ss-color-scrim) 0 3px, var(--ss-color-none) 3px 8px);
+  opacity: 0.6;
+}
+
+.ss-score-page .score-highlight[data-state="idle"] {
+  display: none;
+}
