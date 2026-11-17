@@ -174,7 +174,8 @@ tools/quality/                                    # quality-gate: dependency rul
 5. **Library info**: dialog -> `PUT /api/tracks/{id}/library-info` -> `track.SetLibraryInfo` ->
    refile -> `LibraryInfoState {movedItems}` -> UI navigates to the new song folder id.
 6. **Start-up and after a 013 restore**: `LibraryFilingBackfill` (also triggered by a library read with
-   `pendingFiling > 0`; paused during 013 maintenance) -> batches of 500 -> `pendingFiling` in folder views drops
+   `pendingFiling > 0`, and after every 013 maintenance it waited for; paused during maintenance through the
+   required `LibraryGate`) -> batches of 500 -> `pendingFiling` in folder views drops
    to 0 -> UI hides `library-filing-pending`.
 7. **Agent**: `search_library_items` -> `IStemStudioActions.SearchLibraryAsync` -> loopback `GET
    /api/library/search` -> projection with `untrusted_text` -> taint; `set_library_info` -> GET
