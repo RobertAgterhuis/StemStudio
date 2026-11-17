@@ -162,9 +162,8 @@ public sealed class StorageAttribution(
     {
         ArgumentNullException.ThrowIfNull(track);
         var own = _byEntity[track.Id].ToList();
-        var entry = storage?.CacheEntries.FirstOrDefault(candidate => track.WorkerJobId is { } job && candidate.JobIds.Contains(job));
-        var pending = track.UploadFileName is { } upload ? files.Where(file => file.RelativePath == "uploads/" + upload).Sum(file => file.Bytes) : 0;
-        long? source = storage is null && pending == 0 ? null : pending + (entry?.StandardBytes ?? 0);
+        var entry = EntryOf(track);
+        var source = Source(track, entry);
         var row = new TrackStorageDto
         {
             TrackId = track.Id,
@@ -180,7 +179,7 @@ public sealed class StorageAttribution(
             ScoresBytes = Linked(track.Id, StorageCategory.Scores),
             GenerationsBytes = Linked(track.Id, StorageCategory.Generations),
             RecordingsBytes = Linked(track.Id, StorageCategory.Recordings),
-            WorkerCacheBytes = storage is null ? null : entry is null ? 0 : entry.StandardBytes + entry.DetailBytes + entry.PartialBytes,
+            WorkerCacheBytes = WorkerCache(entry),
         };
         return row with { TotalBytes = (row.SourceBytes ?? 0) + row.StemsBytes + row.DetailStemsBytes + row.ArtworkBytes + row.ExportsBytes + row.ScoresBytes + row.GenerationsBytes + row.RecordingsBytes };
     }
@@ -196,6 +195,17 @@ public sealed class StorageAttribution(
         VoiceProfilesBytes = files.Where(file => file.Classification.Category == StorageCategory.VoiceProfiles).Sum(file => file.Bytes),
         LyricsSheets = lyricsSheets,
     };
+
+    private WorkerCacheEntry? EntryOf(Track track) =>
+        track.WorkerJobId is { } job ? storage?.CacheEntries.FirstOrDefault(candidate => candidate.JobIds.Contains(job)) : null;
+
+    private long? Source(Track track, WorkerCacheEntry? entry)
+    {
+        var pending = track.UploadFileName is { } upload ? files.Where(file => file.RelativePath == "uploads/" + upload).Sum(file => file.Bytes) : 0;
+        return storage is null && pending == 0 ? null : pending + (entry?.StandardBytes ?? 0);
+    }
+
+    private long? WorkerCache(WorkerCacheEntry? entry) => storage is null ? null : (entry?.StandardBytes ?? 0) + (entry?.DetailBytes ?? 0) + (entry?.PartialBytes ?? 0);
 
     private static long Sum(IEnumerable<WalkedFile> own, StorageCategory category) => own.Where(file => file.Classification.Category == category).Sum(file => file.Bytes);
 

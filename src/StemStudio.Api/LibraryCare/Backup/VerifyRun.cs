@@ -4,7 +4,6 @@ using Microsoft.Data.Sqlite;
 using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.LibraryCare;
 
 namespace StemStudio.Api.LibraryCare.Backup;
 
@@ -34,7 +33,7 @@ public sealed class VerifyRun(LibraryCarePaths paths, Microsoft.Extensions.Optio
             using (zip)
             {
                 ArchiveReader.CheckEntries(zip, manifest);
-                await VerifyEntriesAsync(zip, manifest, progress, staging, cancellationToken);
+                await VerifyEntriesAsync((zip, manifest), progress, staging, cancellationToken);
             }
 
             return new VerifyReportDto { Ok = true, EntriesChecked = progress.Entries, BytesChecked = progress.Bytes, Problem = null };
@@ -55,12 +54,13 @@ public sealed class VerifyRun(LibraryCarePaths paths, Microsoft.Extensions.Optio
     private static bool IsArchiveProblem(LibraryJobErrorCodeDto code) =>
         code is LibraryJobErrorCodeDto.ArchiveCorrupt or LibraryJobErrorCodeDto.ArchiveInvalid or LibraryJobErrorCodeDto.ArchiveUnsafe or LibraryJobErrorCodeDto.ArchiveIncompatible;
 
-    private async Task VerifyEntriesAsync(ZipArchive zip, BackupManifest manifest, VerifyProgress progress, string staging, CancellationToken cancellationToken)
+    private async Task VerifyEntriesAsync((ZipArchive Zip, BackupManifest Manifest) archive, VerifyProgress progress, string staging, CancellationToken cancellationToken)
     {
+        var (zip, manifest) = archive;
         progress.Begin(manifest);
         foreach (var entry in manifest.Entries)
         {
-            if (entry.Path == LibraryLayout.DatabaseEntry)
+            if (entry.Path == Domain.LibraryCare.LibraryLayout.DatabaseEntry)
             {
                 await VerifyDatabaseAsync(zip, entry, staging, cancellationToken);
             }

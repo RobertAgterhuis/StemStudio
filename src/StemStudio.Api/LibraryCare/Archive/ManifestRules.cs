@@ -33,17 +33,21 @@ public static partial class ManifestRules
 
     private static void CheckLists(BackupManifest manifest)
     {
-        var valid = manifest.Entries.Count is > 0 and <= LibraryCareLimits.MaxArchiveEntries
-            && manifest.Schema.Migrations.Count > 0 && manifest.Schema.Migrations.All(MigrationPattern().IsMatch)
-            && manifest.Entries.All(entry => Sha256Pattern().IsMatch(entry.Sha256) && entry.SizeBytes >= 0 && entry.Path.Length <= LibraryLayout.MaxEntryNameLength)
-            && manifest.VoiceProfiles.All(profile => Sha256Pattern().IsMatch(profile.SampleSha256) && Guid.TryParse(profile.Id, out _))
-            && manifest.Totals.Entries == manifest.Entries.Count && manifest.Totals.Bytes == manifest.Entries.Sum(entry => entry.SizeBytes)
-            && Guid.TryParse(manifest.BackupId, out _);
-        if (!valid)
+        if (!EntriesValid(manifest) || !HeaderValid(manifest))
         {
             throw ArchiveReader.Invalid("The manifest is not valid.");
         }
     }
+
+    private static bool EntriesValid(BackupManifest manifest) =>
+        manifest.Entries.Count is > 0 and <= LibraryCareLimits.MaxArchiveEntries
+        && manifest.Entries.All(entry => Sha256Pattern().IsMatch(entry.Sha256) && entry.SizeBytes >= 0 && entry.Path.Length <= LibraryLayout.MaxEntryNameLength)
+        && manifest.Totals.Entries == manifest.Entries.Count && manifest.Totals.Bytes == manifest.Entries.Sum(entry => entry.SizeBytes);
+
+    private static bool HeaderValid(BackupManifest manifest) =>
+        manifest.Schema.Migrations.Count > 0 && manifest.Schema.Migrations.All(MigrationPattern().IsMatch)
+        && manifest.VoiceProfiles.All(profile => Sha256Pattern().IsMatch(profile.SampleSha256) && Guid.TryParse(profile.Id, out _))
+        && Guid.TryParse(manifest.BackupId, out _);
 
     [GeneratedRegex(@"\A1\.(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})\z", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex VersionPattern();

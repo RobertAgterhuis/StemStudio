@@ -115,26 +115,31 @@ public sealed class ArchiveValidatorTests : IDisposable
     private void Build(string vector)
     {
         var stem = StemEntry();
-        switch (vector)
+        var builders = new Dictionary<string, Action>
         {
-            case "H1": Write(Archive, [stem, new("files/../../etc/passwd", [1])]); break;
-            case "H2": Write(Archive, [stem, new("/data/stemstudio.db", [1])]); break;
-            case "H3": Write(Archive, [new($"files\\tracks\\{Track}\\stems\\vocals.flac", Stem)]); break;
-            case "H4": Write(Archive, [new("files/tracks/\u0001.flac", [1])]); break;
-            case "H5": Write(Archive, [stem with { UnixMode = 0xA1FF }]); break;
-            case "H7": Write(Archive, [stem, new($"files/tracks/{Track}/stems/drums.flac", Stem, Listed: false)]); break;
-            case "H8": Write(Archive, [stem], manifest => AddPhantom(manifest)); break;
-            case "H9": Write(Archive, [stem with { DeclaredSize = 10 }], null); break;
-            case "H10": Write(Archive, [stem with { DeclaredHash = new string('0', 64) }]); break;
-            case "H11": Write(Archive, [new($"files/tracks/{Track}/run.sh", [1])]); break;
-            case "H12": Write(Archive, [stem], manifest => manifest.Remove("entries")); break;
-            case "H12b": Write(Archive, [stem], manifest => manifest["format"] = "other"); break;
-            case "notzip": File.WriteAllText(Archive, "not a zip"); break;
-            case "nomanifest": WriteWithoutManifest(); break;
-            case "format2": Write(Archive, [stem], manifest => manifest["formatVersion"] = "2.0.0"); break;
-            case "newer": Write(Archive, [stem], manifest => manifest["schema"] = new { provider = "sqlite", lastMigration = "20991231000000_Future", migrations = new[] { "20261114215330_Initial", "20991231000000_Future" } }); break;
-            default: _files.Free = 10; Write(Archive, [stem]); break;
-        }
+            ["H1"] = () => Write(Archive, [stem, new("files/../../etc/passwd", [1])]),
+            ["H2"] = () => Write(Archive, [stem, new("/data/stemstudio.db", [1])]),
+            ["H3"] = () => Write(Archive, [new($"files\\tracks\\{Track}\\stems\\vocals.flac", Stem)]),
+            ["H4"] = () => Write(Archive, [new("files/tracks/\u0001.flac", [1])]),
+            ["H5"] = () => Write(Archive, [stem with { UnixMode = 0xA1FF }]),
+            ["H7"] = () => Write(Archive, [stem, new($"files/tracks/{Track}/stems/drums.flac", Stem, Listed: false)]),
+            ["H8"] = () => Write(Archive, [stem], AddPhantom),
+            ["H9"] = () => Write(Archive, [stem with { DeclaredSize = 10 }]),
+            ["H10"] = () => Write(Archive, [stem with { DeclaredHash = new string('0', 64) }]),
+            ["H11"] = () => Write(Archive, [new($"files/tracks/{Track}/run.sh", [1])]),
+            ["H12"] = () => Write(Archive, [stem], manifest => manifest.Remove("entries")),
+            ["H12b"] = () => Write(Archive, [stem], manifest => manifest["format"] = "other"),
+            ["notzip"] = () => File.WriteAllText(Archive, "not a zip"),
+            ["nomanifest"] = WriteWithoutManifest,
+            ["format2"] = () => Write(Archive, [stem], manifest => manifest["formatVersion"] = "2.0.0"),
+            ["newer"] = () => Write(Archive, [stem], manifest => manifest["schema"] = new { provider = "sqlite", lastMigration = "20991231000000_Future", migrations = new[] { "20261114215330_Initial", "20991231000000_Future" } }),
+            ["H16"] = () =>
+            {
+                _files.Free = 10;
+                Write(Archive, [stem]);
+            },
+        };
+        builders[vector]();
     }
 
     private void WriteWithoutManifest()

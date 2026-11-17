@@ -5,7 +5,6 @@ using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.LibraryCare;
 
 namespace StemStudio.Api.LibraryCare.Backup;
 
@@ -43,7 +42,7 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
         services.Gate.TryBeginBackup();
         try
         {
-            return await BackUpAsync(request, context, staging, partial, cancellationToken);
+            return await BackUpAsync(request with { Staging = staging, Partial = partial }, context, cancellationToken);
         }
         finally
         {
@@ -52,8 +51,9 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
         }
     }
 
-    private async Task<LibraryJobReportDto> BackUpAsync(BackupRequest request, LibraryJobContext context, string staging, string partial, CancellationToken cancellationToken)
+    private async Task<LibraryJobReportDto> BackUpAsync(BackupRequest request, LibraryJobContext context, CancellationToken cancellationToken)
     {
+        var (staging, partial) = (request.Staging!, request.Partial!);
         var snapshotTime = clock.GetUtcNow().UtcDateTime;
         var database = Path.Combine(staging, "stemstudio.db");
         context.Report(new LibraryJobProgress(LibraryJobStageDto.Snapshot, "Copying the database", 0, 0, 0, null));
@@ -121,13 +121,7 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
     private static BackupReportDto Report(string fileName, long bytes, BackupManifest manifest) => new()
     {
         FileName = fileName,
-        Included = manifest.Entries.GroupBy(entry => entry.Category).OrderBy(group => group.Key).Select(group => new CategoryCountDto
-        {
-            Category = BackupOptionsMapping.ToDto(group.Key),
-            Items = group.Key == BackupCategory.Database ? 1 : group.Select(entry => entry.Entity?.Id).Distinct(StringComparer.Ordinal).Count(),
-            Files = group.Count(),
-            Bytes = group.Sum(entry => entry.SizeBytes),
-        }).ToList(),
+        Included = CategoryCounts.Of(manifest, new HashSet<string>(StringComparer.Ordinal)),
         Entries = manifest.Entries.Count,
         Bytes = bytes,
         Warnings = manifest.Warnings,
@@ -153,4 +147,11 @@ public sealed class BackupRun(BackupRunServices services, IOptions<StemStudioApi
 /// <summary>The request of a backup job.</summary>
 /// <param name="Options">Backup options.</param>
 /// <param name="FileName">Archive file name.</param>
-public sealed record BackupRequest(BackupOptionsDto Options, string FileName);
+public sealed record BackupRequest(BackupOptionsDto Options, string FileName)
+{
+    /// <summary>The staging folder of the run (set by the run).</summary>
+    public string? Staging { get; init; }
+
+    /// <summary>The partial archive of the run (set by the run).</summary>
+    public string? Partial { get; init; }
+}

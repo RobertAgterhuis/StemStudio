@@ -55,7 +55,7 @@ public static class LibraryCareEndpoints
         return app;
     }
 
-    private static async Task<IResult> StatusAsync(LibraryGate gate, LibraryJobRunner runner, BackupFolder folder, IServiceProvider services, CancellationToken ct)
+    private static async Task<IResult> StatusAsync(LibraryGate gate, LibraryJobRunner runner, IServiceProvider services, CancellationToken ct)
     {
         var maintenance = gate.IsMaintenance;
         var state = maintenance ? null : services.GetRequiredService<LibraryState>();
@@ -63,7 +63,7 @@ public static class LibraryCareEndpoints
         {
             Gate = (GateModeDto)(int)gate.Mode,
             ActiveJob = runner.Active,
-            BackupFolder = folder.Probe(),
+            BackupFolder = services.GetRequiredService<BackupFolder>().Probe(),
             PreviousLibrary = await PreviousAsync(services, ct),
             ActiveWork = state is null ? [] : await state.ActiveWorkAsync(ct),
             LibraryEmpty = state is not null && await state.IsEmptyAsync(ct),
@@ -105,20 +105,8 @@ public static class LibraryCareEndpoints
         return outcome.Job is { } job ? TypedResults.Accepted(ApiRoutes.LibraryJob(job.JobId), job) : outcome.Problem!;
     }
 
-    private static async Task<IResult> EstimateAsync(
-        bool? detailStems, bool? exports, bool? scores, bool? generations, bool? recordings, bool? voiceProfiles, BackupFolder folder, BackupEstimates estimates, CancellationToken ct)
-    {
-        var options = new BackupOptionsDto
-        {
-            DetailStems = detailStems ?? true,
-            Exports = exports ?? true,
-            Scores = scores ?? true,
-            Generations = generations ?? true,
-            Recordings = recordings ?? true,
-            VoiceProfiles = voiceProfiles ?? true,
-        };
-        return TypedResults.Ok(await estimates.EstimateAsync(options, folder.Probe(), ct));
-    }
+    private static async Task<IResult> EstimateAsync([AsParameters] EstimateQuery query, BackupFolder folder, BackupEstimates estimates, CancellationToken ct) =>
+        TypedResults.Ok(await estimates.EstimateAsync(query.ToOptions(), folder.Probe(), ct));
 
     private static IResult Details(string fileName, BackupCatalog catalog) => catalog.Find(fileName) switch
     {
@@ -197,4 +185,38 @@ public interface IPreviousLibraryReader
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>The previous library, or null.</returns>
     Task<PreviousLibraryDto?> ReadAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>Query of <c>estimateBackup</c>: the optional categories, each true when absent.</summary>
+public sealed record EstimateQuery
+{
+    /// <summary>Include detail stems.</summary>
+    public bool? DetailStems { get; init; }
+
+    /// <summary>Include exports.</summary>
+    public bool? Exports { get; init; }
+
+    /// <summary>Include sheet music.</summary>
+    public bool? Scores { get; init; }
+
+    /// <summary>Include generations.</summary>
+    public bool? Generations { get; init; }
+
+    /// <summary>Include recordings.</summary>
+    public bool? Recordings { get; init; }
+
+    /// <summary>Include voice profiles.</summary>
+    public bool? VoiceProfiles { get; init; }
+
+    /// <summary>The options.</summary>
+    /// <returns>Backup options.</returns>
+    public BackupOptionsDto ToOptions() => new()
+    {
+        DetailStems = DetailStems ?? true,
+        Exports = Exports ?? true,
+        Scores = Scores ?? true,
+        Generations = Generations ?? true,
+        Recordings = Recordings ?? true,
+        VoiceProfiles = VoiceProfiles ?? true,
+    };
 }

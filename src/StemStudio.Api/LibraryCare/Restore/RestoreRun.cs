@@ -2,11 +2,9 @@ using System.Globalization;
 using Microsoft.Data.Sqlite;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.LibraryCare.Archive;
-using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.Agent;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.LibraryCare;
 
 namespace StemStudio.Api.LibraryCare.Restore;
 
@@ -126,32 +124,12 @@ public sealed class RestoreRun(RestoreRunServices services, TimeProvider clock)
         return new RestoreReportDto
         {
             Mode = request.LibraryEmpty ? RestoreReportModeDto.Empty : RestoreReportModeDto.Replace,
-            Restored = Restored(manifest, skippedProfiles),
+            Restored = CategoryCounts.Of(manifest, skippedProfiles),
             Skipped = staged.Skipped,
             MigratedFrom = staged.MigratedFrom,
             Warnings = warnings,
             PreviousLibraryKept = !request.LibraryEmpty,
         };
-    }
-
-    /// <summary>Items, files and bytes per category of the entries that were restored.</summary>
-    /// <param name="manifest">The manifest.</param>
-    /// <param name="skippedEntities">Entity ids that were not restored.</param>
-    /// <returns>The counts.</returns>
-    public static IReadOnlyList<CategoryCountDto> Restored(BackupManifest manifest, IReadOnlySet<string> skippedEntities)
-    {
-        ArgumentNullException.ThrowIfNull(manifest);
-        return
-        [
-            .. manifest.Entries.Where(entry => entry.Entity is null || !skippedEntities.Contains(entry.Entity.Id)).GroupBy(entry => entry.Category).OrderBy(group => group.Key)
-                .Select(group => new CategoryCountDto
-                {
-                    Category = BackupOptionsMapping.ToDto(group.Key),
-                    Items = group.Key == BackupCategory.Database ? 1 : group.Select(entry => entry.Entity?.Id).Distinct(StringComparer.Ordinal).Count(),
-                    Files = group.Count(),
-                    Bytes = group.Sum(entry => entry.SizeBytes),
-                }),
-        ];
     }
 
     private sealed class SyncProgress(Action<ManifestEntry> report) : IProgress<ManifestEntry>

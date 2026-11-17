@@ -185,7 +185,10 @@ public static class BackupDescription
         };
     }
 
-    private static ArchiveCountsDto Counts(ManifestCounts counts) => new()
+    /// <summary>The contract counts of manifest counts.</summary>
+    /// <param name="counts">The counts.</param>
+    /// <returns>The DTO.</returns>
+    public static ArchiveCountsDto Counts(ManifestCounts counts) => counts is null ? throw new ArgumentNullException(nameof(counts)) : new()
     {
         Tracks = counts.Tracks,
         Mixes = counts.Mixes,

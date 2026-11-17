@@ -54,7 +54,11 @@ public sealed class BackupSelection(DataDirectory data)
         return new BackupPlan(files, [.. profiles.Select(Proof)], await CountAsync(context, cancellationToken));
     }
 
-    private static async Task<ManifestCounts> CountAsync(StemStudioDbContext context, CancellationToken cancellationToken) => new()
+    /// <summary>Rows per entity type (styles: user styles only).</summary>
+    /// <param name="context">The context.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The counts.</returns>
+    public static async Task<ManifestCounts> CountAsync(StemStudioDbContext context, CancellationToken cancellationToken) => new()
     {
         Tracks = await context.Tracks.CountAsync(cancellationToken),
         Mixes = await context.Mixes.CountAsync(cancellationToken),

@@ -9,8 +9,8 @@ using StemStudio.Api.Storage;
 using StemStudio.Api.Worker;
 using StemStudio.Contracts.LibraryCare;
 using StemStudio.Domain.LibraryCare;
-using StemStudio.Domain.Tracks;
 using StemStudio.Persistence;
+using Track = StemStudio.Domain.Tracks.Track;
 
 namespace StemStudio.Api.LibraryCare.Cleanup;
 

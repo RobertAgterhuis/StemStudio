@@ -75,3 +75,27 @@ public static class ManifestBuilder
     private static bool IsLeftOut(BackupCategory category, IReadOnlyCollection<BackupCategory> selected) =>
         BackupCategories.IsOptional(category) && !selected.Contains(category);
 }
+
+/// <summary>Items, files and bytes per category of archive entries (backup and restore reports).</summary>
+public static class CategoryCounts
+{
+    /// <summary>Counts the entries, leaving out entries of skipped entities.</summary>
+    /// <param name="manifest">The manifest.</param>
+    /// <param name="skippedEntities">Entity ids to leave out.</param>
+    /// <returns>The counts in category order.</returns>
+    public static IReadOnlyList<CategoryCountDto> Of(BackupManifest manifest, IReadOnlySet<string> skippedEntities)
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+        return
+        [
+            .. manifest.Entries.Where(entry => entry.Entity is null || !skippedEntities.Contains(entry.Entity.Id)).GroupBy(entry => entry.Category).OrderBy(group => group.Key)
+                .Select(group => new CategoryCountDto
+                {
+                    Category = (BackupCategoryDto)(int)group.Key,
+                    Items = group.Key == BackupCategory.Database ? 1 : group.Select(entry => entry.Entity?.Id).Distinct(StringComparer.Ordinal).Count(),
+                    Files = group.Count(),
+                    Bytes = group.Sum(entry => entry.SizeBytes),
+                }),
+        ];
+    }
+}

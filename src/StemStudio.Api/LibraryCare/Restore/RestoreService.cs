@@ -1,9 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.Styles;
 using StemStudio.Persistence;
 
 namespace StemStudio.Api.LibraryCare.Restore;
@@ -162,14 +160,6 @@ public sealed class RestoreService(RestoreEndpointServices services, LibraryStat
         return GateProblems.Typed(text, new Dictionary<string, object?> { ["activeWork"] = work });
     }
 
-    private async Task<ArchiveCountsDto> CountsAsync(CancellationToken cancellationToken) => new()
-    {
-        Tracks = await context.Tracks.CountAsync(cancellationToken),
-        Mixes = await context.Mixes.CountAsync(cancellationToken),
-        Assets = await context.Assets.CountAsync(cancellationToken),
-        Generations = await context.Generations.CountAsync(cancellationToken),
-        Styles = (await context.Styles.AsNoTracking().ToListAsync(cancellationToken)).Count(style => style.Kind == StyleKind.User),
-        LyricsSheets = await context.LyricsSheets.CountAsync(cancellationToken),
-        VoiceProfiles = await context.VoiceProfiles.CountAsync(cancellationToken),
-    };
+    private async Task<ArchiveCountsDto> CountsAsync(CancellationToken cancellationToken) =>
+        BackupDescription.Counts(await BackupSelection.CountAsync(context, cancellationToken));
 }

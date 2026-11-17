@@ -49,9 +49,10 @@ public sealed class BackupFolder(LibraryCarePaths paths, ILibraryFiles files, IO
         var probe = Path.Combine(paths.BackupsDirectory, $".stemstudio-write-test-{Guid.NewGuid():N}");
         try
         {
-            File.WriteAllBytes(probe, []);
-            File.Delete(probe);
-            return true;
+            using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose))
+            {
+                return true;
+            }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
