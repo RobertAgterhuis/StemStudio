@@ -1,3 +1,5 @@
+using StemStudio.Domain.Assets;
+
 namespace StemStudio.Domain.LibraryCare;
 
 /// <summary>Archive categories of backup-archive 1.0.0 (data-model 3.1 and 3.2).</summary>
@@ -128,5 +130,18 @@ public static class BackupCategories
             "RECORDING" => BackupCategory.Recordings,
             _ => BackupCategory.Exports,
         };
+    }
+}
+
+/// <summary>The archive category of a library item.</summary>
+public static class AssetCategories
+{
+    /// <summary>The archive category of an item (<see cref="BackupCategories.ForAsset"/> over its kind and provenance origin).</summary>
+    /// <param name="asset">The item.</param>
+    /// <returns>The category.</returns>
+    public static BackupCategory Of(Asset asset)
+    {
+        ArgumentNullException.ThrowIfNull(asset);
+        return BackupCategories.ForAsset(asset.Kind == AssetKind.Score, asset.Provenance.Origin.ToString());
     }
 }
