@@ -291,6 +291,11 @@ export class StemStudioApi {
     return json<MixDto>(await this.request.get(`/api/mixes/${id}`));
   }
 
+  /** `PUT /api/mixes/{id}` with new settings (body = `MixSettings`); returns the mix. */
+  async updateMix(id: string, settings: MixSettingsDto): Promise<MixDto> {
+    return json<MixDto>(await this.request.put(`/api/mixes/${id}`, { data: settings }));
+  }
+
   /** `DELETE /api/mixes/{id}`; returns the HTTP status (feature 013 removes a mix before a restore). */
   async deleteMix(id: string): Promise<number> {
     return (await this.request.delete(`/api/mixes/${id}`)).status();

@@ -14,6 +14,7 @@ import {
   seedLibrary,
   test,
   undoAndDiscard,
+  waitForNoActiveWork,
 } from '../support/library-care';
 import {
   expectNoPreviousLibrary,
@@ -58,6 +59,7 @@ test.describe('replace restore (013 US2-2)', { tag: ['@library-care', '@restore'
     expect(await api.deleteMix(seeded.mix.id)).toBe(204);
     expect(await assetsApi.delete(seeded.exported.id)).toBe(204);
     const withoutThem = await libraryFingerprint(api);
+    await waitForNoActiveWork(careApi);
 
     await care.goto();
     await care.openRestore(fileName);
@@ -86,6 +88,7 @@ test.describe('replace restore (013 US2-2)', { tag: ['@library-care', '@restore'
     await seedLibrary(api, assetsApi, testInfo.project.name);
     const fileName = await backupNow(careApi);
     written.add(fileName);
+    await waitForNoActiveWork(careApi);
     const problem = await expectProblem(await careApi.restoreResponse(fileName, { mode: 'replace', confirmation: 'replace' }), 422, 'confirmation-required');
     expect(problem.status).toBe(422);
     await expectNoPreviousLibrary(careApi);
@@ -115,6 +118,7 @@ test.describe('hostile archives (013 US2-5, SC-004)', { tag: ['@library-care', '
       test.setTimeout(libraryJobTimeoutMs * 2);
       placeFixtureArchive(archive.file);
       written.add(archive.file);
+      await waitForNoActiveWork(careApi);
       const before = await libraryFingerprint(api);
       expect(await refusalCode(careApi, await careApi.verifyResponse(archive.file)), archive.summary).toBe(archive.outcome);
       expect(await refusalCode(careApi, await careApi.restoreResponse(archive.file, replaceOptions())), archive.summary).toBe(archive.outcome);
@@ -129,6 +133,7 @@ test.describe('hostile archives (013 US2-5, SC-004)', { tag: ['@library-care', '
     const archive = hostileArchive('H16');
     placeFixtureArchive(archive.file);
     written.add(archive.file);
+    await waitForNoActiveWork(careApi);
     const before = await libraryFingerprint(api);
     expect(await refusalCode(careApi, await careApi.restoreResponse(archive.file, replaceOptions()))).toBe('insufficient-disk-space');
     expect(await libraryFingerprint(api)).toBe(before);
@@ -230,6 +235,7 @@ test.describe('empty library (013 US2-1)', { tag: ['@library-care', '@restore', 
     written.add(emptyArchive);
     placeFixtureArchive('valid-base.zip');
     written.add('valid-base.zip');
+    await waitForNoActiveWork(careApi);
     await care.goto();
     await care.openRestore('valid-base.zip');
     await expect(care.byId('restore-mode-replace')).toHaveCount(0);

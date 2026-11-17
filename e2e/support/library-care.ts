@@ -11,7 +11,7 @@ import { LibraryCarePage } from '../pages/library-care-page';
 import type { MixDto, StemStudioApi, TrackDto } from './api';
 import type { AssetDto, AssetsApi } from './assets-api';
 import { fakeStems } from './detail';
-import { apiBaseUrl, fakeJobTimeoutMs, runId } from './env';
+import { apiBaseUrl, detailPhaseTimeoutMs, fakeJobTimeoutMs, runId } from './env';
 import { archiveOf, LibraryCareApi, type BackupOptionsDto, type LibraryJobDto, type RestoreOptionsDto } from './library-care-api';
 import { mixSettings } from './practice';
 import { test as suite } from './test';
@@ -79,8 +79,19 @@ export async function backupNow(careApi: LibraryCareApi, options: BackupOptionsD
   return archiveOf(job);
 }
 
-/** Runs a restore through the API and waits for its end; returns the terminal job. */
+/**
+ * Waits until no import, detail phase, export or other job is active (`activeWork` empty), as a
+ * restore requires (FR-013). New imports start an automatic detail phase (feature 002), so a spec
+ * that imports right before a restore must wait for it.
+ */
+export async function waitForNoActiveWork(careApi: LibraryCareApi): Promise<void> {
+  const busy = (): Promise<string[]> => careApi.status().then((status) => status.activeWork.map((work) => `${work.kind} ${work.title}`));
+  await expect.poll(busy, { timeout: Math.max(libraryJobTimeoutMs, detailPhaseTimeoutMs * 3), intervals: [500, 1000, 2000] }).toEqual([]);
+}
+
+/** Runs a restore through the API (after active work has ended) and waits for its end; returns the terminal job. */
 export async function restoreNow(careApi: LibraryCareApi, fileName: string, options: RestoreOptionsDto): Promise<LibraryJobDto> {
+  await waitForNoActiveWork(careApi);
   const job = await careApi.waitForJob((await careApi.restore(fileName, options)).jobId, libraryJobTimeoutMs);
   await careApi.waitForGateOpen(libraryJobTimeoutMs);
   return job;
@@ -93,6 +104,7 @@ export async function restoreNow(careApi: LibraryCareApi, fileName: string, opti
  */
 export async function undoAndDiscard(careApi: LibraryCareApi): Promise<void> {
   if ((await careApi.previous()) === null) return;
+  await waitForNoActiveWork(careApi);
   const undo = await careApi.waitForJob((await careApi.revert()).jobId, libraryJobTimeoutMs);
   expect(undo.status, undo.error?.message ?? '').toBe('completed');
   await careApi.waitForGateOpen(libraryJobTimeoutMs);
