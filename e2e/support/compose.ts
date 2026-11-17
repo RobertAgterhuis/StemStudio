@@ -34,6 +34,11 @@ export function composeExec(service: string, command: readonly string[], timeout
   return compose(['exec', '-T', service, ...command], timeoutMs);
 }
 
+/** Sum of the `%s` lines that `find ... -printf '%s\n'` printed. */
+function sumSizes(output: string): number {
+  return output.split('\n').filter((line) => line.trim() !== '').reduce((sum, line) => sum + Number(line), 0);
+}
+
 /**
  * Sum of the sizes of the regular files below each folder inside `service` (missing folders
  * count 0). Uses `find -printf %s` (GNU findutils in both images), because `du -sb` also counts
@@ -41,17 +46,16 @@ export function composeExec(service: string, command: readonly string[], timeout
  * @param folders Absolute container paths, constants of the specs (never user input).
  */
 export function fileBytes(service: string, folders: readonly string[]): Map<string, number> {
-  const sums = new Map<string, number>();
-  for (const folder of folders) {
-    const output = composeExec(service, ['sh', '-c', `find '${folder}' -type f -printf '%s\\n' 2>/dev/null || true`]);
-    sums.set(folder, output.split('\n').filter((line) => line.trim() !== '').reduce((sum, line) => sum + Number(line), 0));
-  }
-  return sums;
+  return new Map(folders.map((folder) => [folder, fileBytesWhere(service, folder, '*')]));
 }
 
-/** Folders (with a glob) inside `service` whose files are summed per match, e.g. `/data/tracks/<id>/stems`. */
-export function fileBytesOf(service: string, folder: string): number {
-  return fileBytes(service, [folder]).get(folder) ?? 0;
+/**
+ * Sum of the sizes of the regular files below `root` whose path matches the `find -path` glob
+ * `pattern` (for example the stems below `/data/tracks`: pattern `STAR/stems/STAR` with `*`).
+ * Constants of the specs only.
+ */
+export function fileBytesWhere(service: string, root: string, pattern: string): number {
+  return sumSizes(composeExec(service, ['sh', '-c', `find '${root}' -type f -path '${pattern}' -printf '%s\n' 2>/dev/null || true`]));
 }
 
 /** `docker compose stop <service>`. */
