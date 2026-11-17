@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StemStudio.Api.LibraryCare.Backup;
+using Microsoft.Extensions.Options;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Api.LibraryCare.Restore;
 using StemStudio.Api.LibraryCare.Storage;
 using StemStudio.Api.Storage;
 
@@ -25,7 +27,16 @@ public static class LibraryCareRegistration
         services.TryAddSingleton<ILibraryFiles, LibraryFiles>();
         services.AddSingleton<LibraryWalker>();
         AddBackup(services);
+        AddRestore(services);
         return services;
+    }
+
+    private static void AddRestore(IServiceCollection services)
+    {
+        services.AddSingleton<IKnownMigrations>(provider => provider.GetRequiredService<MigrationCatalog>());
+        services.AddSingleton<ArchiveValidator>();
+        services.AddSingleton(provider => new StagingExtractor(provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value.LibraryCare, provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<StagedDatabase>();
     }
 
     private static void AddBackup(IServiceCollection services)
