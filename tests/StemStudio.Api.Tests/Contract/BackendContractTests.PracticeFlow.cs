@@ -15,14 +15,14 @@ public sealed partial class BackendContractTests
         "getSections",
         "replaceSections",
         "detectSections",
-    ];
-
-    private static readonly string[] PendingPracticeFlowOperations =
-    [
         "listTrackScores",
         "getScoreView",
         "createScoreView",
         "getScoreViewPage",
+    ];
+
+    private static readonly string[] PendingPracticeFlowOperations =
+    [
         "listSetlists",
         "createSetlist",
         "getSetlist",

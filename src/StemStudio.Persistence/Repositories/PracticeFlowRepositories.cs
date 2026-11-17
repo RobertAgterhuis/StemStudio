@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StemStudio.Domain.Assets;
 using StemStudio.Domain.Practice;
 using StemStudio.Domain.Sections;
 using StemStudio.Domain.Setlists;
@@ -93,6 +94,21 @@ public interface IScoreViewRepository
     /// <returns>A task.</returns>
     Task AddAsync(ScoreView view, CancellationToken cancellationToken);
 
+    /// <summary>Adds a view to the scope; saved with the next save (used inside the asset sync).</summary>
+    /// <param name="view">The view.</param>
+    void Add(ScoreView view);
+
+    /// <summary>Every ready score item (not tracked), newest first.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The score items.</returns>
+    Task<IReadOnlyList<Asset>> ReadyScoresAsync(CancellationToken cancellationToken);
+
+    /// <summary>Items by id (not tracked).</summary>
+    /// <param name="ids">Item ids.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>Item per id.</returns>
+    Task<IReadOnlyDictionary<Guid, Asset>> AssetsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
+
     /// <summary>Saves tracked changes.</summary>
     /// <param name="cancellationToken">Cancellation.</param>
     /// <returns>A task.</returns>
@@ -123,6 +139,18 @@ public sealed class ScoreViewRepository(StemStudioDbContext context) : IScoreVie
         context.ScoreViews.Add(view);
         await UnitOfWork.SaveAsync(context, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public void Add(ScoreView view) => context.ScoreViews.Add(view);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Asset>> ReadyScoresAsync(CancellationToken cancellationToken) =>
+        (await context.Assets.AsNoTracking().Where(asset => asset.Kind == AssetKind.Score && asset.Status == AssetStatus.Ready).ToListAsync(cancellationToken))
+            .OrderByDescending(asset => asset.CreatedAt).ThenBy(asset => asset.Id).ToList();
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, Asset>> AssetsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await context.Assets.AsNoTracking().Where(asset => ids.Contains(asset.Id)).ToDictionaryAsync(asset => asset.Id, cancellationToken);
 
     /// <inheritdoc />
     public Task SaveAsync(CancellationToken cancellationToken) => UnitOfWork.SaveAsync(context, cancellationToken);
