@@ -183,22 +183,13 @@ public sealed class RestoreJournal(LibraryCarePaths paths)
     /// <returns>The number of rolled-back journals.</returns>
     public async Task<int> RecoverAsync(ILibraryFiles files, CancellationToken cancellationToken)
     {
-        if (!Directory.Exists(paths.JournalDirectory))
+        var open = (await AllAsync(cancellationToken)).Where(journal => journal.State is JournalState.Staged or JournalState.Switching).ToList();
+        foreach (var journal in open)
         {
-            return 0;
+            await RollBackAsync(JournalPlans.Validate(journal), files, cancellationToken);
         }
 
-        var count = 0;
-        foreach (var file in Directory.EnumerateFiles(paths.JournalDirectory, "*.json"))
-        {
-            if (await JsonFiles.ReadAsync<RestoreJournalRecord>(file, cancellationToken) is { State: JournalState.Staged or JournalState.Switching } journal)
-            {
-                await RollBackAsync(JournalPlans.Validate(journal), files, cancellationToken);
-                count++;
-            }
-        }
-
-        return count;
+        return open.Count;
     }
 
     /// <summary>Finishes every committed journal whose post-commit steps did not run (idempotent).</summary>
@@ -206,20 +197,12 @@ public sealed class RestoreJournal(LibraryCarePaths paths)
     /// <returns>The number of journals that needed a step.</returns>
     public async Task<int> CompleteCommittedAsync(CancellationToken cancellationToken)
     {
-        if (!Directory.Exists(paths.JournalDirectory))
-        {
-            return 0;
-        }
-
         var count = 0;
-        foreach (var file in Directory.EnumerateFiles(paths.JournalDirectory, "*.json"))
+        foreach (var journal in (await AllAsync(cancellationToken)).Where(journal => journal.State == JournalState.Committed))
         {
-            if (await JsonFiles.ReadAsync<RestoreJournalRecord>(file, cancellationToken) is { State: JournalState.Committed } journal)
-            {
-                var removed = FinishCommitted(JournalPlans.Validate(journal));
-                var recorded = await RecordPreviousAsync(journal, cancellationToken);
-                count += removed || recorded ? 1 : 0;
-            }
+            var removed = FinishCommitted(JournalPlans.Validate(journal));
+            var recorded = await RecordPreviousAsync(journal, cancellationToken);
+            count += removed || recorded ? 1 : 0;
         }
 
         return count;
@@ -260,6 +243,20 @@ public sealed class RestoreJournal(LibraryCarePaths paths)
         }
 
         await SaveAsync(journal with { State = JournalState.RolledBack }, cancellationToken);
+    }
+
+    private async Task<List<RestoreJournalRecord>> AllAsync(CancellationToken cancellationToken)
+    {
+        var journals = new List<RestoreJournalRecord>();
+        if (Directory.Exists(paths.JournalDirectory))
+        {
+            foreach (var file in Directory.EnumerateFiles(paths.JournalDirectory, "*.json"))
+            {
+                journals.AddRange(await JsonFiles.ReadAsync<RestoreJournalRecord>(file, cancellationToken) is { } journal ? [journal] : []);
+            }
+        }
+
+        return journals;
     }
 
     private async Task<bool> RecordPreviousAsync(RestoreJournalRecord journal, CancellationToken cancellationToken)

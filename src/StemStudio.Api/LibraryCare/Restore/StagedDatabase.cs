@@ -5,7 +5,6 @@ using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
 using StemStudio.Domain.LibraryCare;
 using StemStudio.Domain.Voices;
@@ -155,7 +154,7 @@ public static class StoredPaths
             return [];
         }
 
-        var assets = await context.Assets.AsNoTracking().Select(asset => new { asset.Id, Files = EF.Property<List<AssetFile>>(asset, "_files") }).ToListAsync(cancellationToken);
+        var assets = await context.Assets.AsNoTracking().Select(asset => new { asset.Id, Files = EF.Property<List<Domain.Assets.AssetFile>>(asset, "_files") }).ToListAsync(cancellationToken);
         return assets.SelectMany(asset => (asset.Files ?? []).Select(file => $"assets/{asset.Id:D}/{file.FileName}"));
     }
 }
