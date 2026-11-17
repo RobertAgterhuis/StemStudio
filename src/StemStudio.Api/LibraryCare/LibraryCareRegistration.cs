@@ -37,6 +37,13 @@ public static class LibraryCareRegistration
         services.AddSingleton<ArchiveValidator>();
         services.AddSingleton(provider => new StagingExtractor(provider.GetRequiredService<IOptions<StemStudioApiOptions>>().Value.LibraryCare, provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<StagedDatabase>();
+        services.AddSingleton<RestoreJournal>();
+        services.TryAddSingleton<IJournalStepHook, NoJournalStepHook>();
+        services.AddSingleton(provider => new LibrarySwitcher(
+            provider.GetRequiredService<Gate.LibraryGate>(), provider.GetRequiredService<RestoreJournal>(), provider.GetRequiredService<ILibraryFiles>(),
+            provider.GetRequiredService<IJournalStepHook>(), TimeSpan.FromMilliseconds(200)));
+        services.AddSingleton<PreviousLibraryStore>();
+        services.AddSingleton<IPreviousLibraryReader>(provider => provider.GetRequiredService<PreviousLibraryStore>());
     }
 
     private static void AddBackup(IServiceCollection services)
@@ -57,7 +64,10 @@ public static class LibraryCareRegistration
     /// <summary>Start-up recovery of library care (before the endpoints are served).</summary>
     /// <param name="services">Root services.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    /// <returns>A task.</returns>
-    public static Task RecoverLibraryCareAsync(this IServiceProvider services, CancellationToken cancellationToken) =>
-        services.GetRequiredService<LibraryJobRecovery>().RecoverAsync(cancellationToken);
+    /// <returns>A task (the restore journal is recovered before the jobs).</returns>
+    public static async Task RecoverLibraryCareAsync(this IServiceProvider services, CancellationToken cancellationToken)
+    {
+        await services.GetRequiredService<RestoreJournal>().RecoverAsync(services.GetRequiredService<ILibraryFiles>(), cancellationToken);
+        await services.GetRequiredService<LibraryJobRecovery>().RecoverAsync(cancellationToken);
+    }
 }

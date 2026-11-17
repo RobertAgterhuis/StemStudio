@@ -18,7 +18,7 @@ public sealed class LibrarySwitcherTests : IDisposable
 
     public LibrarySwitcherTests()
     {
-        _paths = new LibraryCarePaths(new DataDirectory(Path.Combine(_root.FullName, "data")), Path.Combine(_root.FullName, "backups"));
+        _paths = new LibraryCarePaths(new DataDirectory(System.IO.Path.Combine(_root.FullName, "data")), System.IO.Path.Combine(_root.FullName, "backups"));
         Write("stemstudio.db", "live db");
         Write("tracks/a/stems/vocals.flac", "live stem");
         Write("assets/x/audio.flac", "live asset");
