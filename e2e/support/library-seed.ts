@@ -5,6 +5,7 @@
  *
  * @packageDocumentation
  */
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test, type TestInfo } from '@playwright/test';
@@ -87,6 +88,14 @@ export function readLibraryScenarios(): LibraryScenarios {
  */
 export function librarySalt(testInfo: TestInfo, extra = ''): string {
   return `qa${runId()}${testInfo.project.name.slice(0, 2)}${extra}`.toLowerCase().replace(/[^a-z0-9]/gu, '');
+}
+
+/**
+ * Salt of one test: {@link librarySalt} plus a short hash of the test's title path, so two tests
+ * never share names (and so never share uploads, tracks or folders) within a run.
+ */
+export function testSalt(testInfo: TestInfo): string {
+  return librarySalt(testInfo, createHash('sha256').update(testInfo.titlePath.join('')).digest('hex').slice(0, 6));
 }
 
 /** Skips the test unless the stack runs one of the fake online `modes` (tag-based filing needs `not-found`). */
@@ -174,9 +183,20 @@ export async function saveMixItem(clients: LibrarySeedClients, trackId: string, 
   return { asset, placement: await clients.libraryApi.waitForPlacement(asset.id) };
 }
 
-/** Imports a tagged copy and waits until separated. */
+/**
+ * Imports a tagged copy and waits until separated. Every import queues a detail phase (feature
+ * 002) and the worker runs those one at a time, so the seed stops it: otherwise dozens of seeded
+ * phases (fake steps of several seconds each) starve the specs that wait for a completed detail
+ * phase. Use {@link importKeepingDetail} when the test needs the detail stems.
+ */
 export async function importTagged(clients: LibrarySeedClients, salt: string, fileTitle: string, tags: SeedTags | null): Promise<TrackDto> {
-  return clients.api.ensureFileCompleted(taggedWav(salt, fileTitle, tags), fakeJobTimeoutMs);
+  const track = await clients.api.ensureFileCompleted(taggedWav(salt, fileTitle, tags), fakeJobTimeoutMs);
+  return clients.api.stopDetail(track.id, detailPhaseTimeoutMs);
+}
+
+/** An untagged import whose detail phase runs (for detail stem items). */
+export async function importKeepingDetail(clients: LibrarySeedClients, salt: string, fileTitle: string): Promise<TrackDto> {
+  return clients.api.ensureFileCompleted(taggedWav(salt, fileTitle, null), fakeJobTimeoutMs);
 }
 
 /** A browse track with its first item. */

@@ -11,14 +11,15 @@ import {
   type NormalisationGroup,
   type SeedTags,
   type SeededItem,
+  importKeepingDetail,
   importTagged,
-  librarySalt,
   readLibraryScenarios,
   requireOnlineMode,
   salted,
   saltedTemplate,
   saveMixItem,
   saveRawItem,
+  testSalt,
 } from '../support/library-seed';
 import { expect, test } from '../support/library-test';
 import type { ScoreApi } from '../support/score-api';
@@ -37,12 +38,13 @@ interface SongNames {
 const battery: SongNames = { artist: 'Metallica', album: 'Master of Puppets', song: 'Battery' };
 
 function saltOf(testInfo: TestInfo): string {
-  return librarySalt(testInfo, testInfo.title.length.toString(36));
+  return testSalt(testInfo);
 }
 
-/** Imports a tagged copy and gives the track salted library info (mode independent). */
-async function namedTrack(seed: LibrarySeedClients, salt: string, names: SongNames): Promise<TrackDto> {
-  const track = await importTagged(seed, salt, salted(names.song, salt), null);
+/** Imports a copy and gives the track salted library info (mode independent); `keepDetail` lets its detail phase run. */
+async function namedTrack(seed: LibrarySeedClients, salt: string, names: SongNames, keepDetail = false): Promise<TrackDto> {
+  const title = salted(names.song, salt);
+  const track = keepDetail ? await importKeepingDetail(seed, salt, title) : await importTagged(seed, salt, title, null);
   await seed.libraryApi.setTrackInfo(track.id, { artist: salted(names.artist, salt), album: salted(names.album, salt), song: salted(names.song, salt) });
   return track;
 }
@@ -107,7 +109,7 @@ async function fileTaggedSong(seed: LibrarySeedClients, salt: string, song: Fili
 test('every item kind of a track lands in its song folder at once, with the folder path on the item', { tag: '@library' }, async ({ api, seedClients, assetsApi, scoreApi, libraryApi, folders }, testInfo) => {
   test.setTimeout(fakeJobTimeoutMs + detailPhaseTimeoutMs + 8 * renderMs);
   const salt = saltOf(testInfo);
-  const track = await namedTrack(seedClients, salt, battery);
+  const track = await namedTrack(seedClients, salt, battery, true);
   await scoreApi.requireFeature(track.id);
   await api.waitForDetail(track.id, ['completed'], detailPhaseTimeoutMs);
   const created = await everyKind(seedClients, assetsApi, scoreApi, track);
@@ -142,7 +144,7 @@ test('the save confirmation names Artist > Album > Song and links to the song fo
   const id = await exportDialog.savedAssetId();
   const placement = await libraryApi.waitForPlacement(id);
   await expect(exportDialog.byId('export-saved-folder').getByRole('link')).toHaveText([placement.artist.name, placement.album.name, placement.song.name]);
-  await expect(exportDialog.savedOpen).toHaveAttribute('href', new RegExp(`/library/${placement.song.folderId}#asset-${id}$`, 'u'));
+  await expect(exportDialog.savedOpen).toHaveAttribute('href', new RegExp(`^/?library/${placement.song.folderId}#asset-${id}$`, 'u'));
   await exportDialog.savedOpen.click();
   await expect(page).toHaveURL(new RegExp(`/library/${placement.song.folderId}`, 'u'));
   await expect(folders.row(id)).toBeVisible();
@@ -150,6 +152,7 @@ test('the save confirmation names Artist > Album > Song and links to the song fo
 
 test('more items of one song share its folder; "metallica " joins the existing Metallica folder', { tag: '@library' }, async ({ seedClients, libraryApi, folders }, testInfo) => {
   test.setTimeout(2 * fakeJobTimeoutMs + 4 * renderMs);
+  // Asset.placement names the spelling the item was filed under; the folder shows the most used one (FR-011).
   const salt = saltOf(testInfo);
   const first = await namedTrack(seedClients, salt, battery);
   const bass = await saveRawItem(seedClients, first.id, ['bass'], salted('Seed one', salt));
@@ -162,7 +165,8 @@ test('more items of one song share its folder; "metallica " joins the existing M
   const orion = await saveRawItem(seedClients, second.id, ['bass'], salted('Seed three', salt));
   expect(orion.placement.artist.folderId).toBe(bass.placement.artist.folderId);
   expect(orion.placement.album.folderId).toBe(bass.placement.album.folderId);
-  expect(orion.placement.artist.name).toBe(salted(battery.artist, salt));
+  expect(orion.placement.artist.name).toBe(`metallica ${salt}`);
+  expect((await libraryApi.folder(bass.placement.artist.folderId)).folder?.name).toBe(salted(battery.artist, salt));
 
   await folders.gotoFolder(bass.placement.album.folderId);
   await expect(folders.tiles).toHaveCount(2);
@@ -236,6 +240,7 @@ test('deleting the last item removes the song, album and artist folders; the sta
 
 test('a restyled take is filed with its source track; an own-lyrics song under My songs', { tag: ['@library', '@generative'] }, async ({ seedClients, generationApi, voiceApi, libraryApi }, testInfo) => {
   requireGeneratorMode('ready', 'oom');
+  await generationApi.requireState('ready');
   test.setTimeout(fakeJobTimeoutMs + 2 * generationTimeoutMs + 2 * renderMs);
   const salt = saltOf(testInfo);
   const source = await namedTrack(seedClients, salt, { artist: 'Restyle Source', album: 'Source Album', song: 'Source Song' });

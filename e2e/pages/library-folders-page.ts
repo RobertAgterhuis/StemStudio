@@ -46,7 +46,8 @@ export class LibraryFoldersPage extends TestIdPage {
   /** Opens one folder by id (deep link); does not assert that it exists. */
   async gotoFolder(folderId: string): Promise<void> {
     await this.page.goto(`/library/${folderId}`);
-    await expect(this.view.or(this.folderMissing)).toBeVisible();
+    // The empty-folder state is shown inside the folder view, so both may match.
+    await expect(this.view.or(this.folderMissing).first()).toBeVisible();
   }
 
   /** The tile (link) of one child folder (`data-level`, `data-art`). */

@@ -68,8 +68,9 @@ test('the root lists artists A-Z ("The" ignored) with mosaic, cover and placehol
   await expect(folders.tile(abel)).toHaveAttribute('data-art', expectedPlaceholderArt((await artistFolder(libraryApi, abel)).art.kind));
   await expect(folders.tileCounts(nora)).toContainText(/3 albums/u);
   await expect(folders.tileCounts(nora)).toContainText(/3 items/u);
-  // US2-7: one link per tile, named "<name>, artist, <counts>".
-  await expect(folders.tile(nora)).toHaveAccessibleName(new RegExp(`^${salted('Nora Fieldings', browseSalt(testInfo))}, artist, 3 albums`, 'u'));
+  // US2-7: one link per tile, named "<name>, artist, <counts>" (the name is a block in the grid, so
+  // the accessible name computation may put a space before the screen-reader-only comma).
+  await expect(folders.tile(nora)).toHaveAccessibleName(new RegExp(`^${salted('Nora Fieldings', browseSalt(testInfo))} ?, artist, 3 albums`, 'u'));
 });
 
 test('artist > album > song: header art, breadcrumb landmark with the current page, items with 007 actions', { tag: '@library' }, async ({ seedClients, folders, library, page }, testInfo) => {

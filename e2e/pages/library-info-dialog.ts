@@ -29,6 +29,11 @@ export class LibraryInfoDialog extends TestIdPage {
     return this.byId(`library-info-${field}`);
   }
 
+  /** The field's own reason after a failed check (`library-info-<level>-problem`, linked by `aria-describedby`). */
+  problem(field: LibraryInfoField): Locator {
+    return this.page.locator(`#library-info-${field}-problem`);
+  }
+
   /** "Automatic" checkbox of one level. */
   automatic(field: LibraryInfoField): Locator {
     return this.byId(`library-info-auto-${field}`);
@@ -66,15 +71,9 @@ export class LibraryInfoDialog extends TestIdPage {
     await expect(this.dialog).toBeHidden();
   }
 
-  /**
-   * "Reset" (all automatic). The contract does not say whether Reset saves at once, so a dialog
-   * that stays open is saved explicitly; either way it ends closed.
-   */
+  /** "Reset" (all automatic): saves at once (DELETE of the library info) and closes the dialog. */
   async reset(): Promise<void> {
     await this.byId('library-info-reset').click();
-    if (await this.dialog.isVisible()) {
-      await this.byId('library-info-save').click();
-    }
     await expect(this.dialog).toBeHidden();
   }
 }

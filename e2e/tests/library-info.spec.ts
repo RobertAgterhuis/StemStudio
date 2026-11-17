@@ -2,7 +2,7 @@ import type { TestInfo } from '@playwright/test';
 import type { TrackDto } from '../support/api';
 import { fakeJobTimeoutMs } from '../support/env';
 import type { LibraryApi, PlacementDto } from '../support/library-api';
-import { type LibrarySeedClients, type SeededItem, importTagged, librarySalt, requireOnlineMode, salted, saveRawItem } from '../support/library-seed';
+import { type LibrarySeedClients, type SeededItem, importTagged, librarySalt, requireOnlineMode, salted, saveRawItem, testSalt } from '../support/library-seed';
 import { expect, test } from '../support/library-test';
 
 // Feature 022 US4 (T076; FR-030..FR-037): library info moves items. The dialog is driven in the UI
@@ -18,7 +18,7 @@ interface SeededSong {
 /** A track filed under salted names with two items (bass, drums). */
 async function songWithItems(seed: LibrarySeedClients, testInfo: TestInfo, names: { artist: string; album: string; song: string }): Promise<SeededSong> {
   test.setTimeout(fakeJobTimeoutMs + 4 * renderMs + 60_000);
-  const salt = librarySalt(testInfo, testInfo.title.length.toString(36));
+  const salt = testSalt(testInfo);
   const track = await importTagged(seed, salt, salted(names.song, salt), null);
   await seed.libraryApi.setTrackInfo(track.id, { artist: salted(names.artist, salt), album: salted(names.album, salt), song: salted(names.song, salt) });
   const items = [await saveRawItem(seed, track.id, ['bass'], salted('Info one', salt)), await saveRawItem(seed, track.id, ['drums'], salted('Info two', salt))];
@@ -89,15 +89,24 @@ test('invalid names show a readable reason and change nothing', { tag: '@library
   const song = await songWithItems(seedClients, testInfo, { artist: 'Validator', album: 'Rules', song: 'Checked' });
   const before = first(song).placement;
   await folders.gotoFolder(before.song.folderId);
-  for (const invalid of ['   ', 'x'.repeat(201), 'tab\tname']) {
+  // The dialog checks as the API does and marks the field (aria-invalid + its reason) before any request.
+  for (const invalid of ['   ', 'tab\tname']) {
     await libraryInfo.openForTrack();
     await libraryInfo.fill({ album: invalid });
     await libraryInfo.byId('library-info-save').click();
-    await expect(libraryInfo.error, JSON.stringify(invalid)).toBeVisible();
+    await expect(libraryInfo.input('album'), JSON.stringify(invalid)).toHaveAttribute('aria-invalid', 'true');
+    await expect(libraryInfo.problem('album'), JSON.stringify(invalid)).toBeVisible();
     await libraryInfo.byId('library-info-cancel').click();
   }
+  // More than 200 characters cannot be typed (maxlength); the API rejects them.
+  await libraryInfo.openForTrack();
+  await libraryInfo.fill({ album: 'x'.repeat(201) });
+  await expect(libraryInfo.input('album')).toHaveValue('x'.repeat(200));
+  await libraryInfo.byId('library-info-cancel').click();
   expect((await libraryApi.asset(first(song).asset.id)).placement?.album.folderId).toBe(before.album.folderId);
-  expect((await libraryApi.setTrackInfoResponse(song.track.id, { artist: null, album: ' ', song: null })).status()).toBe(400);
+  for (const album of [' ', 'x'.repeat(201)]) {
+    expect((await libraryApi.setTrackInfoResponse(song.track.id, { artist: null, album, song: null })).status()).toBe(400);
+  }
 });
 
 test('the track dialog offers "Look up band info again" (005 correction on the track page)', { tag: '@library' }, async ({ seedClients, folders, libraryInfo, page }, testInfo) => {
