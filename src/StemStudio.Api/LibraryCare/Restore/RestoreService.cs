@@ -16,7 +16,8 @@ public sealed record RestoreEndpointServices(LibraryJobRunner Runner, BackupCata
 
 /// <summary>
 /// Starts restores and undos and discards the previous library (FR-012-FR-018): typed confirmations, no active work, at most
-/// one previous library, an archive that is recognised and restorable, enough space; then the job.
+/// one previous library, an archive that is recognised and restorable, enough space; then the job. A merge (US5) needs no
+/// typed confirmation and is not blocked by a kept previous library (it never moves the library aside).
 /// </summary>
 /// <param name="services">Services.</param>
 /// <param name="state">Library emptiness and active work.</param>
@@ -108,11 +109,6 @@ public sealed class RestoreService(RestoreEndpointServices services, LibraryStat
 
     private async Task<IResult?> RefusalAsync(BackupDetailsDto archive, RestoreOptionsDto options, bool empty, CancellationToken cancellationToken)
     {
-        if (options.Mode == RestoreModeDto.Merge)
-        {
-            return ApiProblems.Validation("mode", "Merging a backup is not available in this version.");
-        }
-
         if (!empty && options.Mode == RestoreModeDto.Replace && options.Confirmation != LibraryCareLimits.ReplaceConfirmation)
         {
             return ConfirmationRequired(LibraryCareLimits.ReplaceConfirmation);
@@ -128,12 +124,13 @@ public sealed class RestoreService(RestoreEndpointServices services, LibraryStat
             return LibraryCareProblems.Problem(StatusCodes.Status422UnprocessableEntity, LibraryCareProblemTypes.ArchiveIncompatible, "The backup cannot be restored", archive.Compatibility.Reason ?? "Incompatible.").Result;
         }
 
-        return await BusyAsync(cancellationToken) ?? await PreviousOrSpaceAsync(archive, empty, cancellationToken);
+        var movesAside = !empty && options.Mode == RestoreModeDto.Replace;
+        return await BusyAsync(cancellationToken) ?? await PreviousOrSpaceAsync(archive, movesAside, cancellationToken);
     }
 
-    private async Task<IResult?> PreviousOrSpaceAsync(BackupDetailsDto archive, bool empty, CancellationToken cancellationToken)
+    private async Task<IResult?> PreviousOrSpaceAsync(BackupDetailsDto archive, bool movesAside, CancellationToken cancellationToken)
     {
-        if (!empty && await services.Previous.ReadAsync(cancellationToken) is not null)
+        if (movesAside && await services.Previous.ReadAsync(cancellationToken) is not null)
         {
             return LibraryCareProblems.Problem(
                 StatusCodes.Status409Conflict, LibraryCareProblemTypes.PreviousLibraryExists, "A previous library exists", "Undo the last restore or discard the previous library first.").Result;

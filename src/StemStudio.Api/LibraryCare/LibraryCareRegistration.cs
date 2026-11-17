@@ -49,6 +49,7 @@ public static class LibraryCareRegistration
             provider.GetRequiredService<IJournalStepHook>(), TimeSpan.FromMilliseconds(200)));
         services.AddSingleton<PreviousLibraryStore>();
         services.AddSingleton<IPreviousLibraryReader>(provider => provider.GetRequiredService<PreviousLibraryStore>());
+        services.AddSingleton<LibraryMerger>();
         services.AddSingleton<RestoreRunServices>();
         services.AddSingleton<RestoreRun>();
         services.AddSingleton<UndoRun>();

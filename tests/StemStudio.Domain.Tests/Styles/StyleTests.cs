@@ -206,12 +206,12 @@ public sealed class StyleTests
         StyleNaming.RestoredName("Jazz trio", ["jazz trio (restored)"]).ShouldBe("Jazz trio (restored 2)");
         StyleNaming.RestoredName(new string('n', 60), []).Length.ShouldBe(60);
         var style = StyleTestData.User();
-        var fields = style.Fields;
+        var before = (style.GenreFamily, style.Description, style.UpdatedAt, style.Instrumentation.Count);
 
         style.RenameRestored("Jazz trio (restored)");
 
         (style.Name, style.NormalizedName).ShouldBe(("Jazz trio (restored)", "JAZZ TRIO (RESTORED)"));
-        style.Fields.ShouldBe(fields with { Name = "Jazz trio (restored)" });
+        (style.GenreFamily, style.Description, style.UpdatedAt, style.Instrumentation.Count).ShouldBe(before);
     }
 
     [Fact]

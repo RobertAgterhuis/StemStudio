@@ -29,11 +29,13 @@ public sealed record RestoreRunServices(
 
 /// <summary>
 /// The work of a restore job (data-model 5.5 stages): validate, extract and verify, the database step, the journalled switch
-/// (not cancellable from here) and the report. Nothing outside staging changes before the switch.
+/// (not cancellable from here) and the report. Nothing outside staging changes before the switch. A merge replaces the
+/// switch with <see cref="LibraryMerger"/>.
 /// </summary>
 /// <param name="services">Services.</param>
+/// <param name="merger">The merge step (mode <c>merge</c>, US5).</param>
 /// <param name="clock">Clock.</param>
-public sealed class RestoreRun(RestoreRunServices services, TimeProvider clock)
+public sealed class RestoreRun(RestoreRunServices services, LibraryMerger merger, TimeProvider clock)
 {
     /// <summary>Warning of a stored Claude key that the current key ring cannot read (011 CK-FR-017).</summary>
     public const string KeyUnreadableText = "The stored Claude key must be entered again.";
@@ -55,8 +57,9 @@ public sealed class RestoreRun(RestoreRunServices services, TimeProvider clock)
             await ExtractAsync(archive, staging, context, cancellationToken);
             context.Report(new LibraryJobProgress(LibraryJobStageDto.Database, "Checking and updating the database", 91, context.Job.BytesTotal, context.Job.BytesTotal, null));
             var staged = await services.Database.PrepareAsync(staging, archive.Manifest, request.Options, cancellationToken);
-            await SwitchAsync(request, context);
-            return Report(request, archive.Manifest, staged);
+            return request.Options.Mode == RestoreModeDto.Merge
+                ? MergeReport(archive.Manifest, staged, await merger.MergeAsync(staging, context, cancellationToken))
+                : await SwitchedAsync(request, context, archive.Manifest, staged);
         }
         finally
         {
@@ -129,6 +132,26 @@ public sealed class RestoreRun(RestoreRunServices services, TimeProvider clock)
             MigratedFrom = staged.MigratedFrom,
             Warnings = warnings,
             PreviousLibraryKept = !request.LibraryEmpty,
+        };
+    }
+
+    private async Task<RestoreReportDto> SwitchedAsync(RestoreRequest request, LibraryJobContext context, BackupManifest manifest, StagedResult staged)
+    {
+        await SwitchAsync(request, context);
+        return Report(request, manifest, staged);
+    }
+
+    private static RestoreReportDto MergeReport(BackupManifest manifest, StagedResult staged, MergeResult merged)
+    {
+        var notAdded = manifest.Entries.Select(entry => entry.Entity?.Id).OfType<string>().Where(id => !merged.AddedIds.Contains(id)).ToHashSet(StringComparer.Ordinal);
+        return new RestoreReportDto
+        {
+            Mode = RestoreReportModeDto.Merge,
+            Restored = CategoryCounts.Of(manifest, notAdded),
+            Skipped = [.. staged.Skipped, .. merged.Skipped],
+            MigratedFrom = staged.MigratedFrom,
+            Warnings = [.. staged.Warnings, .. manifest.Warnings.Select(warning => warning.Message)],
+            PreviousLibraryKept = false,
         };
     }
 
