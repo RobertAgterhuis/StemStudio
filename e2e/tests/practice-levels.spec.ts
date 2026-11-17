@@ -17,7 +17,7 @@ import { expertState, levelState } from '../support/preferences';
 import { expect, test } from '../support/test';
 
 // Feature 012 polish (T066; FR-016, FR-017; quickstart P13): level visibility of the practice
-// panel (ui-test-ids 1.11.0), keyboard operation incl. the shortcuts `-`, `=`, `,`, `.`, `r`, `c`,
+// panel (ui-test-ids 1.11.0), keyboard operation incl. the shortcuts `-`, `=`, `,`, `.`, `0`, `Shift+K`,
 // `t`, spoken values, live regions and help markers. Fake stack, the 12 s click fixture (reliable
 // grid, so the count-in is available). The axe scans and the visual baselines of the panel are in
 // a11y/ and visual/ (screen `mixer-practice`).
@@ -171,7 +171,9 @@ test.describe('Advanced', { tag: '@practice' }, () => {
 });
 
 test.describe('Advanced keyboard and help', { tag: '@practice' }, () => {
-  test('the shortcuts -, =, ",", ".", r, c and t work outside text fields and not inside them (US1-8, FR-017)', async ({ mixer, page, practice }) => {
+  // From 014 (ui-test-ids 1.13.0 "Changed default keys", CTO decision 2026-11-16): reset is `0` (was `r`) and the count-in
+  // switch is `Shift+K` (was `c`); `r` and `c` belong to 015's recording commands.
+  test('the shortcuts -, =, ",", ".", 0, Shift+K and t work outside text fields and not inside them (US1-8, FR-017)', async ({ mixer, page, practice }) => {
     await pressOutsideFields(page, '-');
     await expect(practice.speed).toHaveAttribute('aria-valuenow', '95');
     await pressOutsideFields(page, '=');
@@ -181,10 +183,10 @@ test.describe('Advanced keyboard and help', { tag: '@practice' }, () => {
     await pressOutsideFields(page, ',');
     await expect(practice.panel).toHaveAttribute('data-transpose', '0');
     await practice.set(90, 2);
-    await pressOutsideFields(page, 'r');
+    await pressOutsideFields(page, '0');
     await expect(practice.speed).toHaveAttribute('aria-valuenow', '100');
     await expect(practice.panel).toHaveAttribute('data-transpose', '0');
-    await pressOutsideFields(page, 'c');
+    await pressOutsideFields(page, 'Shift+K');
     await expect.poll(() => isOn(practice.countInToggle)).toBe(true);
     await expectTrainerShortcut(mixer, page, practice.trainerToggle);
     await mixer.byId('loop-start').focus();
