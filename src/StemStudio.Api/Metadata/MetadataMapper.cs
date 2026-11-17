@@ -7,11 +7,22 @@ namespace StemStudio.Api.Metadata;
 /// <summary>Maps worker lookup data to domain inputs (feature 005).</summary>
 public static class MetadataMapper
 {
-    /// <summary>The lookup query of a standard job's source metadata: the cleaned lookup names when reported, else title and artist.</summary>
+    /// <summary>The lookup query of a standard job's source metadata: the cleaned lookup names when reported, else title and
+    /// artist. An upload without a tag title looks up its original file name: the worker only sees the stored, hashed file
+    /// name, which it reports as title and lookup title (it would name the 022 song folder and search for the hash).</summary>
+    /// <param name="track">The track.</param>
     /// <param name="metadata">Reported source metadata.</param>
     /// <param name="durationSeconds">Duration to use when the metadata has none (e.g. the completed result's duration).</param>
     /// <returns>The query.</returns>
-    public static LookupQuery ToQuery(WorkerSourceMetadata metadata, double? durationSeconds = null)
+    public static LookupQuery ToQuery(Track track, WorkerSourceMetadata metadata, double? durationSeconds = null)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        var query = ToQuery(metadata, durationSeconds);
+        var hashedName = track.SourceType == SourceType.Upload && (metadata.LookupTitle is null || metadata.LookupTitle == metadata.Title);
+        return hashedName ? query with { Title = track.Title } : query;
+    }
+
+    private static LookupQuery ToQuery(WorkerSourceMetadata metadata, double? durationSeconds)
     {
         ArgumentNullException.ThrowIfNull(metadata);
         return new LookupQuery(
