@@ -99,6 +99,11 @@ export class RecordingApi {
     return response.body();
   }
 
+  /** Status code of a GET (for "gone" checks: a deleted take's asset answers 404). */
+  async status(url: string): Promise<number> {
+    return (await this.request.get(url)).status();
+  }
+
   /** `listInputCalibrations`. */
   async listCalibrations(): Promise<InputCalibrationDto[]> {
     return okJson<InputCalibrationDto[]>(await this.request.get('/api/recording/calibrations'));
