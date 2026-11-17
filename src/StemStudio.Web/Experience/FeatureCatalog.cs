@@ -81,6 +81,7 @@ public static class FeatureCatalog
         new("lyrics.assist-source", Expert, null, "lyric-assist-privacy"),
         new("lyrics.assist-log", Expert, null, "lyric-assist-privacy"),
         new("lyrics.assist-revisions", Expert, null, "lyric-assist"),
+        new("shortcuts.settings", Advanced, null, "shortcuts-custom"),
         new("recording.input-mode", Advanced, null, "recording"),
         new("recording.monitoring-volume", Advanced, null, "recording-monitoring"),
         new("recording.manual-latency", Advanced, null, "recording-latency"),

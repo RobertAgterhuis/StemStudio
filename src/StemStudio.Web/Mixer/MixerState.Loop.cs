@@ -33,7 +33,7 @@ public sealed partial class MixerState
         }
 
         LoopError = MarkerError();
-        return LoopError is null ? Commit(new LoopRegionDto(_loopStart!.Value, _loopEnd!.Value, true)) : null;
+        return LoopError is null ? Commit(new LoopRegionDto(_loopStart!.Value, _loopEnd!.Value, true, KeptSection())) : null;
     }
 
     /// <summary>Records that the engine refused the loop; looping is shown as off.</summary>
@@ -60,6 +60,9 @@ public sealed partial class MixerState
 
         return LoopEnabled ? Commit(Loop! with { Enabled = false }) : null;
     }
+
+    // A loop switched off and on again over the same markers still comes from its section (FR-005).
+    private Guid? KeptSection() => Loop is { } loop && loop.Start == _loopStart && loop.End == _loopEnd ? loop.SectionId : null;
 
     private string? MarkerError() => _loopStart is { } start && _loopEnd is { } end
         ? LoopValidator.Validate(start, end, Duration)
