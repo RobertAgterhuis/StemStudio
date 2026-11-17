@@ -13,7 +13,7 @@
 <LevelGate Feature="lyrics.assist-usage">
     @if (Session.Run?.Usage is { } usage)
     {
-        <p class="ss-small ss-num" data-help-id="lyric-assist-privacy">Usage of the last assist: @usage.InputTokens input and @usage.OutputTokens output tokens</p>
+        <p class="ss-small ss-num ss-assist-usage" data-help-id="lyric-assist-privacy">Usage of the last assist: @usage.InputTokens input and @usage.OutputTokens output tokens</p>
     }
 </LevelGate>
 <LevelGate Feature="lyrics.assist-log">

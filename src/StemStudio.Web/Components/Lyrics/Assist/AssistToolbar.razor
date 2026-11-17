@@ -44,6 +44,10 @@
                       data-testid="lyric-assist-cancel" />
     </div>
 }
+@if (Session.Run is { Status: AssistStatusDto.Failed, Failure: { } failure })
+{
+    <p class="ss-error ss-small">@failure.Message @failure.Fix</p>
+}
 @if (Session.Run?.Withheld is > 0 and var withheld)
 {
     <p class="ss-small" role="status" data-testid="lyric-assist-withheld" data-help-id="lyric-assist-limits">@AssistText.Withheld(withheld)</p>
