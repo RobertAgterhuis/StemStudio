@@ -64,6 +64,19 @@ public sealed class StoresTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Messages_KeepTheOpenLyricsSheet()
+    {
+        // 023: the run reads its command back from the store; without the sheet id {{context.lyricsId}} and the system prompt's
+        // "open lyrics sheet" were empty (agent E2E us4-lyric-apply, r22).
+        var conversation = AgentRecords.Conversation();
+        await Conversations.CreateAsync(conversation, Ct);
+        var message = AgentRecords.Message(conversation.Id, 1) with { Context = new PageContextDto { Page = "lyrics", LyricsId = Guid.NewGuid() } };
+        await Conversations.AppendMessageAsync(message, Ct);
+
+        (await Conversations.GetMessagesAsync(conversation.Id, Ct)).Single().Context.ShouldBe(message.Context);
+    }
+
+    [Fact]
     public async Task Runs_RoundTripAndOnlyOneIsActiveGlobally()
     {
         var conversation = AgentRecords.Conversation();

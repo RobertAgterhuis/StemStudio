@@ -1522,6 +1522,9 @@ namespace StemStudio.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("LyricsId")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("MixId")
                         .HasColumnType("TEXT");
 
