@@ -67,6 +67,26 @@ public sealed class LiveSearchControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task LateLocationEchoesOfOwnNavigations_DoNotTakeTheTextBack_ButOtherLocationsDo()
+    {
+        // Blazor Server reports each replaced URL back later; an echo of "ba" arriving after "bass" was typed must not
+        // reset the box (E2E 022: fast typing in Firefox lost characters and searched an old text).
+        await Start();
+        _search.Input("ba");
+        _search.Input("bass");
+
+        await Start($"http://host/{_navigations[0].Url}");
+        _search.Text.ShouldBe("bass");
+        await Start($"http://host/{_navigations[1].Url}");
+        _search.Text.ShouldBe("bass");
+
+        var back = Start($"http://host/library/{LibraryData.SongId}?q=drum");
+        _search.Text.ShouldBe("drum");
+        _searches[^1].Answer.SetResult(Result("drum"));
+        await back;
+    }
+
+    [Fact]
     public async Task Typing_RestartsTheDebounce_AndOnlyTheLatestTextIsSearched()
     {
         await Start();

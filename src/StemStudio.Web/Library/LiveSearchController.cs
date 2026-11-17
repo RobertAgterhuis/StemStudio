@@ -26,7 +26,9 @@ public sealed class LiveSearchController : IDisposable
     /// <summary>The pause after the last key press.</summary>
     public static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(200);
 
+    private const int OwnUrlsKept = 32;
     private readonly LiveSearchPorts _ports;
+    private readonly List<string> _ownUrls = [];
     private readonly TimeProvider _time;
     private LibraryLocation _origin = LibraryLocation.Root;
     private ITimer? _timer;
@@ -68,6 +70,11 @@ public sealed class LiveSearchController : IDisposable
     public Task StartAsync(LibraryLocation location)
     {
         _origin = location.WithQuery(null);
+        if (IsOwnEcho(location))
+        {
+            return Task.CompletedTask;
+        }
+
         if (Within is not null && Within != location.FolderId)
         {
             Within = null;
@@ -89,7 +96,7 @@ public sealed class LiveSearchController : IDisposable
     {
         Text = _origin.WithQuery(text).Query ?? (text ?? string.Empty);
         Limit = null;
-        _ports.Navigate(_origin.WithQuery(Text).ToUrl(), true);
+        Navigate(_origin.WithQuery(Text).ToUrl(), true);
         StopTimer();
         if (!IsActive)
         {
@@ -112,7 +119,7 @@ public sealed class LiveSearchController : IDisposable
             return Task.CompletedTask;
         }
 
-        _ports.Navigate(_origin.WithQuery(Text).ToUrl(), false);
+        Navigate(_origin.WithQuery(Text).ToUrl(), false);
         return RunAsync();
     }
 
@@ -126,7 +133,7 @@ public sealed class LiveSearchController : IDisposable
         await ResetAsync();
         if (wasActive)
         {
-            _ports.Navigate(_origin.ToUrl(), false);
+            Navigate(_origin.ToUrl(), false);
         }
 
         await _ports.FocusBox();
@@ -158,6 +165,31 @@ public sealed class LiveSearchController : IDisposable
     {
         StopTimer();
         Cancel();
+    }
+
+    // The URL changes this controller asked for come back later as location changes (Blazor Server: one round trip
+    // each); an echo, even one older than the current text, is consumed with the echoes before it and changes nothing.
+    private void Navigate(string url, bool replace)
+    {
+        _ownUrls.Add(url);
+        if (_ownUrls.Count > OwnUrlsKept)
+        {
+            _ownUrls.RemoveAt(0);
+        }
+
+        _ports.Navigate(url, replace);
+    }
+
+    private bool IsOwnEcho(LibraryLocation location)
+    {
+        var index = _ownUrls.IndexOf(location.ToUrl());
+        if (index < 0)
+        {
+            return false;
+        }
+
+        _ownUrls.RemoveRange(0, index + 1);
+        return true;
     }
 
     private Task ResetAsync()
