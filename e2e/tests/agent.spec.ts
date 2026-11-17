@@ -30,7 +30,7 @@ import { oneOf } from '../support/text';
 // Scripts address the test's own track or mix through `{{context.trackId}}` / `{{context.mixId}}`;
 // the 023 scripts the open sheet through `{{context.lyricsId}}` and earlier results through
 // `{{result.list_lyric_suggestions.ids:<category>}}` (CTO decision on the qa T060 gap). The 023
-// tests also need the lyric scripts folder (STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric).
+// tests also need the lyric scripts folder (STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts, docker-compose.e2e.yml).
 
 test.beforeEach(() => {
   test.setTimeout(3 * fakeJobTimeoutMs);

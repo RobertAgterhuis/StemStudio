@@ -8,7 +8,7 @@ import { expect, test } from '../support/lyric-assist-test';
 // Feature 023 US1-US3 on the fake stack (T037, T044, T053 part 1; quickstart Q1, Q2, Q3): the fake
 // assistant answers from e2e/lyric-scripts/ by sheet title (zomeravond-check.json, ...); sheets are
 // the Phase 0 fixtures with their exact titles. Every test creates its own sheet. Stack:
-// STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric (devops T069);
+// STEMSTUDIO_AGENT_BACKEND=fake, STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts (devops T069);
 // `npm run test:lyric-assist`.
 const zomer = readAssistExpected().sheets.zomeravond;
 const planted = zomer.planted ?? [];
