@@ -63,6 +63,10 @@ export function validateAdjustment(samples: number): number {
   return samples;
 }
 
+function integerIn(value: number, min: number, max: number): boolean {
+  return Number.isInteger(value) && value >= min && value <= max;
+}
+
 /** Longest take accepted by `loadTake` (samples, the 30-minute session limit). */
 export const MAX_TAKE_SAMPLES = 1800 * 44100;
 
@@ -73,9 +77,9 @@ export const MAX_TAKE_SAMPLES = 1800 * 44100;
  */
 export function validateTakeSlice(source: { readonly startSample: number; readonly lengthSamples: number; readonly channels: number }): void {
   const checks: readonly [string, boolean][] = [
-    ['startSample', Number.isInteger(source.startSample) && source.startSample >= 0],
-    ['lengthSamples', Number.isInteger(source.lengthSamples) && source.lengthSamples >= 1 && source.lengthSamples <= MAX_TAKE_SAMPLES],
-    ['channels', source.channels === 1 || source.channels === 2],
+    ['startSample', integerIn(source.startSample, 0, Number.MAX_SAFE_INTEGER)],
+    ['lengthSamples', integerIn(source.lengthSamples, 1, MAX_TAKE_SAMPLES)],
+    ['channels', integerIn(source.channels, 1, 2)],
   ];
   const failed = checks.find(([, ok]) => !ok);
   if (failed !== undefined) {
