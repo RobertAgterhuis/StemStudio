@@ -11,7 +11,8 @@ namespace StemStudio.Api.LibraryCare.Restore;
 
 /// <summary>
 /// The rules of a merge restore (research R-07, US5): entity by entity in dependency order (artists, styles, lyrics sheets,
-/// voice profiles, tracks, mixes, assets, generations, audio hashes, agent conversations). The same id in the live library
+/// voice profiles, tracks, mixes, assets, generations, audio hashes, agent conversations; feature 015 adds input calibrations
+/// by device label (the live row wins) and recorded takes only together with their item). The same id in the live library
 /// skips the item; the same track source key with another id skips the track with its mixes, assets and generations; a
 /// taken unique name (style, voice profile, mix per track) is renamed "&lt;name&gt; (restored)". Agent settings and
 /// <c>AgentSecrets</c> are never read from the archive (011 CK-FR-017).
@@ -35,6 +36,7 @@ public sealed class MergePlanner(StemStudioDbContext staged, StemStudioDbContext
         await AssetsAsync(plan, cancellationToken);
         await GenerationsAsync(plan, cancellationToken);
         await AudioHashesAsync(plan, cancellationToken);
+        await new RecordingMerge(staged, live).PlanAsync(plan, cancellationToken);
         await new ConversationMerge(staged, live).PlanAsync(plan, cancellationToken);
         return plan;
     }
@@ -297,5 +299,57 @@ public sealed class ConversationMerge(StemStudioDbContext staged, StemStudioDbCo
         plan.AddRows(await RowsAsync(staged.AgentApprovals, approval => runIds.Contains(approval.RunId), cancellationToken));
         plan.AddRows(await RowsAsync(staged.AgentUndoEntries, entry => conversations.Contains(entry.ConversationId), cancellationToken));
         plan.AddRows(await RowsAsync(staged.AgentRunEvents, runEvent => runIds.Contains(runEvent.RunId), cancellationToken));
+    }
+}
+
+/// <summary>
+/// Feature 015 in a merge restore (DELTA.md 7): calibrations by device label (a live label wins and archived takes point at
+/// the live row), takes only when their item was added; a take keeps its mix only when that mix is in the merged library.
+/// </summary>
+/// <param name="staged">The staged context.</param>
+/// <param name="live">The live context.</param>
+public sealed class RecordingMerge(StemStudioDbContext staged, StemStudioDbContext live)
+{
+    /// <summary>Plans the calibrations and takes.</summary>
+    /// <param name="plan">The plan.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>A task.</returns>
+    public async Task PlanAsync(MergePlan plan, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        var calibrations = await CalibrationsAsync(plan, cancellationToken);
+        var liveMixes = await MergePlanner.IdsAsync(live.Mixes.Select(mix => mix.Id), cancellationToken);
+        foreach (var take in (await staged.RecordingTakes.AsNoTracking().ToListAsync(cancellationToken)).Where(take => plan.AddedIds.Contains(take.AssetId)))
+        {
+            take.RelinkCalibration(take.CalibrationId is { } id && calibrations.TryGetValue(id, out var target) ? target : null);
+            if (take.MixId is { } mixId && !plan.AddedIds.Contains(mixId) && !liveMixes.Contains(mixId))
+            {
+                take.DetachMix();
+            }
+
+            plan.AddRows([take]);
+        }
+    }
+
+    /// <summary>Adds the archived calibrations whose label is not live; returns archived id -&gt; id in the merged library.</summary>
+    private async Task<Dictionary<Guid, Guid>> CalibrationsAsync(MergePlan plan, CancellationToken cancellationToken)
+    {
+        var current = (await live.InputCalibrations.AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(calibration => calibration.DeviceLabel, StringComparer.Ordinal);
+        var ids = current.Values.Select(calibration => calibration.Id).ToHashSet();
+        var map = new Dictionary<Guid, Guid>();
+        foreach (var calibration in await staged.InputCalibrations.AsNoTracking().ToListAsync(cancellationToken))
+        {
+            if (current.TryGetValue(calibration.DeviceLabel, out var winner))
+            {
+                map[calibration.Id] = winner.Id;
+            }
+            else if (!ids.Contains(calibration.Id))
+            {
+                plan.AddRows([calibration]);
+                map[calibration.Id] = calibration.Id;
+            }
+        }
+
+        return map;
     }
 }

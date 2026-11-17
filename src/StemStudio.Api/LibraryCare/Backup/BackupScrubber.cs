@@ -69,7 +69,26 @@ public sealed class BackupScrubber(Func<Asset, BackupCategory> categorize)
     private async Task ScrubAssetsAsync(StemStudioDbContext context, IReadOnlyCollection<BackupCategory> excluded, CancellationToken cancellationToken)
     {
         var assets = await context.Assets.ToListAsync(cancellationToken);
-        context.Assets.RemoveRange(assets.Where(asset => excluded.Contains(categorize(asset))));
+        var removed = assets.Where(asset => excluded.Contains(categorize(asset))).ToList();
+        context.Assets.RemoveRange(removed);
+        await ScrubTakesAsync(context, removed.Select(asset => asset.Id).ToHashSet(), cancellationToken);
+    }
+
+    /// <summary>Feature 015: the takes of removed items go with them, and no mix keeps pointing at such a take.</summary>
+    private static async Task ScrubTakesAsync(StemStudioDbContext context, HashSet<Guid> removedAssets, CancellationToken cancellationToken)
+    {
+        var takes = (await context.RecordingTakes.ToListAsync(cancellationToken)).Where(take => removedAssets.Contains(take.AssetId)).ToList();
+        if (takes.Count == 0)
+        {
+            return;
+        }
+
+        var takeIds = takes.Select(take => take.Id).ToHashSet();
+        context.RecordingTakes.RemoveRange(takes);
+        foreach (var mix in (await context.Mixes.ToListAsync(cancellationToken)).Where(mix => mix.Take is { } take && takeIds.Contains(take.TakeId)))
+        {
+            mix.RemoveTake(mix.Take!.TakeId);
+        }
     }
 
     private static async Task ScrubGenerationsAsync(StemStudioDbContext context, IReadOnlyCollection<BackupCategory> excluded, CancellationToken cancellationToken)

@@ -233,6 +233,10 @@ public sealed class RecordingTake
     /// <summary>Forgets a deleted calibration (the latency stays).</summary>
     public void DetachCalibration() => CalibrationId = null;
 
+    /// <summary>Points the take at another calibration of the same device (merge restore: the live row wins), or none.</summary>
+    /// <param name="calibrationId">The calibration, or null.</param>
+    public void RelinkCalibration(Guid? calibrationId) => CalibrationId = calibrationId;
+
     /// <summary>Forgets a deleted mix.</summary>
     public void DetachMix() => MixId = null;
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
+using StemStudio.Domain.Recording;
 using StemStudio.Domain.Rendering;
 using StemStudio.Domain.Styles;
 using StemStudio.Domain.Tracks;
@@ -140,6 +141,49 @@ internal sealed class LibraryFixture(ApiFactory factory)
             new VoiceSample(VoiceSampleSource.Uploaded, path, new string('a', 64), hash, 21.4, 0.78)), T0);
         await AddAsync(profile);
         return profile;
+    }
+
+    /// <summary>A ready play-along take of the track (feature 015) with its <c>audio.flac</c>, optionally with a leftover <c>capture.wav</c>.</summary>
+    public async Task<(RecordingTake Take, Asset Asset)> TakeAsync(Track track, int number = 1, bool capture = false)
+    {
+        var takeId = Guid.NewGuid();
+        var asset = Asset.CreateRecording(Guid.NewGuid(), $"Take {number}", new Provenance
+        {
+            Origin = AssetOrigin.Recording,
+            TrackId = track.Id,
+            TrackTitle = track.Title,
+            Contents = $"Take {number} (recording)",
+            Recording = new RecordingSource(takeId),
+        }, T0);
+        asset.AssignJob("0123456789abcdef0123456789abcde1", T0);
+        var hash = await FileAsync($"assets/{Id(asset.Id)}/audio.flac", 40);
+        if (capture)
+        {
+            await FileAsync($"assets/{Id(asset.Id)}/capture.wav", 44);
+        }
+
+        asset.Complete([new AssetFile("audio", "audio.flac", "audio/flac", 40, hash)], new AudioFacts(AudioFormat.Flac, 24, null, 2, -6, 0), T0);
+        var take = RecordingTake.Create(takeId, new NewTake
+        {
+            TrackId = track.Id,
+            AssetId = asset.Id,
+            Number = number,
+            Part = RecordingPart.Vocals,
+            SessionId = Guid.NewGuid(),
+            Partial = false,
+            StartSample = 0,
+            LengthSamples = 44_100,
+            InputMode = InputChannelMode.Mono1,
+            InputChannels = 1,
+            LatencySamples = 1102,
+            LatencyMethod = LatencyMethod.Estimated,
+            Scan = new PeakScan(-6, 0, false),
+            Dropouts = 0,
+            RecordedAt = T0,
+        }, T0);
+        await AddAsync(asset);
+        await AddAsync(take);
+        return (take, asset);
     }
 
     /// <summary>Writes a deterministic file of the given size and returns its SHA-256.</summary>

@@ -15,6 +15,9 @@ public sealed record AssetQuery
     /// <summary>Only this status.</summary>
     public AssetStatus? Status { get; init; }
 
+    /// <summary>Only this origin; null = every origin except <see cref="AssetOrigin.Recording"/> (feature 015: takes are hidden).</summary>
+    public AssetOrigin? Origin { get; init; }
+
     /// <summary>Case-insensitive "name contains".</summary>
     public string? NameContains { get; init; }
 
@@ -84,7 +87,7 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     public async Task<AssetPage> ListAsync(AssetQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var matching = Filter(context.Assets.AsNoTracking(), query);
+        var matching = Filter(AssetOrigins.Of(context, query.Origin).AsNoTracking(), query);
         var items = await matching.OrderByDescending(asset => asset.CreatedAt).Skip(query.Offset).Take(query.Limit).ToListAsync(cancellationToken);
         var total = await matching.CountAsync(cancellationToken);
         var size = await matching.SumAsync(asset => asset.SizeBytes, cancellationToken);
@@ -129,4 +132,35 @@ public sealed class AssetRepository(StemStudioDbContext context) : IAssetReposit
     /// <summary>Escapes the LIKE wildcards; SQLite LIKE ignores ASCII case.</summary>
     private static string Escape(string text) => text.Replace("\\", "\\\\", StringComparison.Ordinal)
         .Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+}
+
+/// <summary>
+/// Origin filters on the provenance JSON in SQL (feature 015): recorded takes (origin <c>Recording</c>) are hidden from the
+/// library list and never filed (022), also for rows a backup restored without their take.
+/// </summary>
+internal static class AssetOrigins
+{
+    /// <summary>The items of one origin, or every item that is not a take.</summary>
+    /// <param name="context">The context.</param>
+    /// <param name="origin">The origin, or null.</param>
+    /// <returns>The composable query.</returns>
+    public static IQueryable<Asset> Of(StemStudioDbContext context, AssetOrigin? origin)
+    {
+        if (origin is not { } value)
+        {
+            return NotRecordings(context);
+        }
+
+        var ids = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.Origin') = {value.ToString()}");
+        return context.Assets.Where(asset => ids.Contains(asset.Id));
+    }
+
+    /// <summary>Every item that is not a recorded take.</summary>
+    /// <param name="context">The context.</param>
+    /// <returns>The composable query.</returns>
+    public static IQueryable<Asset> NotRecordings(StemStudioDbContext context)
+    {
+        var takes = context.Database.SqlQuery<Guid>($"SELECT Id AS Value FROM Assets WHERE json_extract(Provenance, '$.Origin') = 'Recording'");
+        return context.Assets.Where(asset => !takes.Contains(asset.Id));
+    }
 }

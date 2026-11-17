@@ -173,4 +173,14 @@ public sealed class RecordingEntityTests
         Should.Throw<ArgumentException>(() => Asset.CreateRecording(Guid.NewGuid(), "x", provenance with { Recording = null }, T0));
         Should.Throw<ArgumentException>(() => Asset.CreateRecording(Guid.NewGuid(), "x", provenance with { Origin = AssetOrigin.Export }, T0));
     }
+
+    [Fact]
+    public void RecordingItems_AreNeverFiled()
+    {
+        var provenance = new Provenance { Origin = AssetOrigin.Recording, TrackTitle = "Song", Contents = "Take 1 (recording)", Recording = new RecordingSource(Guid.NewGuid()) };
+
+        StemStudio.Domain.Library.LibraryFilingRules.IsFileable(provenance).ShouldBeFalse();
+        StemStudio.Domain.Library.LibraryFilingRules.IsFileable(provenance with { Origin = AssetOrigin.Export }).ShouldBeTrue();
+        StemStudio.Domain.Library.LibraryFilingRules.NeedsFiling(Asset.CreateRecording(Guid.NewGuid(), "Take 1", provenance, T0)).ShouldBeFalse();
+    }
 }

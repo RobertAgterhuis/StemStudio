@@ -12,7 +12,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="Q">Name contains (1..100 characters).</param>
 /// <param name="Limit">Page size 1..200 (default 100).</param>
 /// <param name="Offset">Items to skip (&gt;= 0).</param>
-public sealed record AssetListQuery(string? Kind, Guid? TrackId, string? Status, string? Q, int? Limit, int? Offset)
+/// <param name="Origin"><c>export</c>, <c>transcription</c>, <c>generation</c> or <c>recording</c>; without it recorded takes are excluded (1.14.0).</param>
+public sealed record AssetListQuery(string? Kind, Guid? TrackId, string? Status, string? Q, int? Limit, int? Offset, string? Origin = null)
 {
     /// <summary>Longest search text.</summary>
     public const int MaxSearchLength = 100;
@@ -28,6 +29,7 @@ public sealed record AssetListQuery(string? Kind, Guid? TrackId, string? Status,
             Kind = Parse<AssetKind>(Kind, "kind", errors),
             TrackId = TrackId,
             Status = Parse<AssetStatus>(Status, "status", errors),
+            Origin = Parse<AssetOrigin>(Origin, "origin", errors),
             NameContains = Q,
             Limit = Limit ?? 100,
             Offset = Offset ?? 0,
