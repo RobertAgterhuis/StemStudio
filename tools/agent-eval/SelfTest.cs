@@ -49,7 +49,12 @@ internal static class SelfTest
     /// <summary>The calls of the first expectation with arguments that satisfy their matchers.</summary>
     internal static IReadOnlyList<RecordedCall> Ideal(EvalCase evalCase) => evalCase.Expected.Count == 0
         ? []
-        : [.. evalCase.Expected[0].Calls.Select(call => new RecordedCall(call.Tool, Arguments(call), true, call.Tool.StartsWith("list_", StringComparison.Ordinal) || call.Tool.StartsWith("search_", StringComparison.Ordinal) || call.Tool.StartsWith("get_", StringComparison.Ordinal)))];
+        : [.. evalCase.Expected[0].Calls.Select(call => new RecordedCall(call.Tool, Arguments(call), true, IsRead(call.Tool)))];
+
+    private static readonly string[] ReadPrefixes = ["list_", "search_", "get_", "find_", "browse_", "count_"];
+
+    /// <summary>True for the read tools of the catalogue (by their verb).</summary>
+    private static bool IsRead(string tool) => ReadPrefixes.Any(prefix => tool.StartsWith(prefix, StringComparison.Ordinal));
 
     private static string Arguments(ExpectedCall call)
     {
@@ -66,6 +71,7 @@ internal static class SelfTest
     {
         ">" => JsonValue.Create(matcher.Value!.Value.GetDouble() + 1),
         "<" => JsonValue.Create(matcher.Value!.Value.GetDouble() - 1),
+        "has" => new JsonArray(JsonNode.Parse(matcher.Value!.Value.GetRawText())),
         _ => JsonNode.Parse(matcher.Value!.Value.GetRawText()),
     };
 

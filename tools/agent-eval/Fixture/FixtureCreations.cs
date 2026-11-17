@@ -135,7 +135,8 @@ internal sealed class FixtureGenerations(FixtureLibrary library) : IGenerationAc
 
 internal sealed class FixtureSongs(FixtureLibrary library) : ISongActions
 {
-    private readonly List<LyricsSheetSummary> _sheets = [];
+    private readonly List<LyricsSheetSummary> _sheets =
+        [.. FixtureLyricAssistActions.Sheets.Select(sheet => new LyricsSheetSummary { LyricsId = library.Ids.Of(sheet.Key), Title = sheet.Title, Language = sheet.Language, UpdatedAt = DateTimeOffset.UnixEpoch })];
 
     public Task<IReadOnlyList<LyricsSheetSummary>> ListLyricsSheetsAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<LyricsSheetSummary>>([.. _sheets]);
 

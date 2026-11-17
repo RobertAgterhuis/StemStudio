@@ -113,7 +113,7 @@ public sealed class LiveRunTests
         try
         {
             (await EntryPoint.RunAsync("--backend", "fake", "--runs", "1", "--eval-set", Repo.EvalSetPath, "--presets", Repo.PresetsPath, "--out", path)).ShouldBe(0);
-            File.ReadAllText(path).ShouldContain("Scored success: 30/30");
+            File.ReadAllText(path).ShouldContain("Scored success: 40/40");
         }
         finally
         {

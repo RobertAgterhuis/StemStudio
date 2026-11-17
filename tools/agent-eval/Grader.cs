@@ -104,6 +104,7 @@ internal static class Grader
         "=" => actual is { } value && matcher.Value is { } wanted && Equal(value, wanted),
         "~" => Contains(actual, matcher.Value!.Value.GetString()!),
         "in" => actual is { ValueKind: JsonValueKind.Array } list && SameSet(list, matcher.Value!.Value),
+        "has" => actual is { ValueKind: JsonValueKind.Array } items && items.EnumerateArray().Any(item => Equal(item, matcher.Value!.Value)),
         ">" => Number(actual) > matcher.Value!.Value.GetDouble(),
         "<" => Number(actual) < matcher.Value!.Value.GetDouble(),
         _ => false,

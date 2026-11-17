@@ -138,7 +138,8 @@ internal sealed class CaseContext
     private RecordedCall Record(RunStep step) =>
         new(step.Tool, Library.Ids.ToKeys(step.Arguments), step.Status == AgentStepStatusDto.Succeeded, step.Risk == ToolRiskDto.Read || step.Kind == ToolKindDto.Meta);
 
-    private PageContextDto PageContext() => new() { Page = _case.Page, TrackId = Key(Library, _case.TrackId), MixId = Key(Library, _case.MixId) };
+    private PageContextDto PageContext() =>
+        new() { Page = _case.Page, TrackId = Key(Library, _case.TrackId), MixId = Key(Library, _case.MixId), LyricsId = Key(Library, _case.LyricsId) };
 
     private static Guid? Key(FixtureLibrary library, string? key) => key is null ? null : library.Ids.Of(key);
 
@@ -168,6 +169,8 @@ internal sealed class CaseContext
         Settings = new FixedSettingsStore(AgentSettings.Defaults(backend.Backend, DateTimeOffset.UtcNow) with { OllamaModel = backend.Model }),
         Events = new EvalEventSink(OnEvent),
         Actions = new FixtureActions(Library),
+        LyricAssist = new FixtureLyricAssistActions(Library),
+        ServiceStatus = new ServiceStatusReader(new FixtureActions(Library).Generations, TimeProvider.System) { LyricModel = _ => Task.FromResult(ServiceAvailability.Available) },
         Ui = Page,
         Registry = Registry(),
         Chat = backend.Session(_case, Library.Ids),
@@ -178,6 +181,7 @@ internal sealed class CaseContext
     [
         new MetaToolProvider(), new Core001ToolProvider(), new Detail002ToolProvider(), new Device003ToolProvider(), new HelpToolProvider(),
         new ArtistToolProvider(), new LyricsToolProvider(), new ExportToolProvider(), new ScoreToolProvider(), new StyleToolProvider(), new SongToolProvider(),
+        new LibraryToolProvider(), new LyricAssistToolProvider(),
     ]);
 }
 
