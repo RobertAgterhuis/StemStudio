@@ -130,9 +130,9 @@ and `polish`, with real test and coverage output.
 - [ ] T046 [US2] [audio-engine] Implement `calibrateLatency` and the loopback test input to pass T045
 - [ ] T047 [P] [US2] [backend] Failing tests `CalibrationEndpointTests.cs`: list, upsert by label (create/replace), validation, delete (takes keep their latency, `calibrationId` set null)
 - [ ] T048 [US2] [backend] Implement `Recording/CalibrationEndpoints.cs` to pass T047
-- [ ] T049 [P] [US2] [frontend] Failing bUnit tests `CalibrationDialogTests.cs`: instructions, running state (`aria-busy`), success and every failure reason with its tip, manual entry (0-1000, 0.1 step, rounding), save -> upsert, Expert samples, `rec-latency-status` per method, `rec-setup-changed` (> 220 samples) (FR-007, FR-020)
-- [ ] T050 [US2] [frontend] Implement `Components/Recording/CalibrationDialog` to pass T049
-- [ ] T051 [P] [US2] [qa] E2E `recording-loopback.spec.ts` (TestLoopback stack): calibration ok within 10 s (SC-003); record the click-track stem through the loopback; download the take, cross-correlate with the stem: offset <= 2 samples (SC-001); manual entry flow labels the next take "manual"
+- [x] T049 [P] [US2] [frontend] Failing bUnit tests `CalibrationDialogTests.cs`: instructions, running state (`aria-busy`), success and every failure reason with its tip, manual entry (0-1000, 0.1 step, rounding), save -> upsert, Expert samples, `rec-latency-status` per method, `rec-setup-changed` (> 220 samples) (FR-007, FR-020)
+- [x] T050 [US2] [frontend] Implement `Components/Recording/CalibrationDialog` to pass T049
+- [x] T051 [P] [US2] [qa] E2E `recording-loopback.spec.ts` (TestLoopback stack): calibration ok within 10 s (SC-003); record the click-track stem through the loopback; download the take, cross-correlate with the stem: offset <= 2 samples (SC-001); manual entry flow labels the next take "manual"
 
 **Checkpoint**: HO:us2 per owner.
 
