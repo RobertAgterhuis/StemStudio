@@ -35,4 +35,14 @@ public sealed class DetailPhaseJsonTests
         DetailPhaseJson.Deserialize(DetailPhaseJson.Serialize(Queued)).ShouldBe(Queued with { Parents = [] }, DetailPhaseJson.Comparer);
         Should.Throw<JsonException>(() => DetailPhaseJson.Deserialize("null"));
     }
+
+    [Fact]
+    public void FilesRemovedAt_RoundTripsAndOldRowsWithoutTheFieldReadNull()
+    {
+        var removed = Queued with { Status = DetailPhaseStatus.Completed, FilesRemovedAt = TestData.T0.AddHours(1) };
+        var old = """{"Status":"Completed","Stage":"Completed","Progress":100,"Parents":[],"RequestedAt":"2026-11-14T12:00:00Z","UpdatedAt":"2026-11-14T12:00:00Z"}""";
+
+        DetailPhaseJson.Deserialize(DetailPhaseJson.Serialize(removed)).FilesRemovedAt.ShouldBe(TestData.T0.AddHours(1));
+        DetailPhaseJson.Deserialize(old).FilesRemovedAt.ShouldBeNull();
+    }
 }
