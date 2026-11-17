@@ -112,9 +112,26 @@ public sealed class MixerDesignTests : MixerTestContext
     public void TransportDock_ReservesScrollPadding_SoFocusIsNeverHidden()
     {
         var css = RepoPaths.ReadWeb("wwwroot/css/components/mixer.css");
+        var karaoke = RepoPaths.ReadWeb("wwwroot/css/components/karaoke.css");
 
+        // The padding follows the dock's measured height (karaoke banner + count-in + transport, 012 integration),
+        // with the fixed transport height as the fallback before the script has measured it.
         css.ShouldContain("html:has(.ss-transport-dock)");
-        css.ShouldContain("scroll-padding-bottom: var(--ss-transport-height)");
+        css.ShouldContain("scroll-padding-bottom: calc(var(--ss-dock-inset, var(--ss-transport-height)) + var(--ss-space-2))");
+        karaoke.ShouldContain("scroll-padding-bottom: calc(var(--ss-dock-inset, calc(var(--ss-transport-height) + 9rem)) + var(--ss-space-2))");
+    }
+
+    [Fact]
+    public void DockInsetScript_MeasuresTheStickyDock_AndIsLoadedByTheApp()
+    {
+        var script = RepoPaths.ReadWeb("wwwroot/js/dock-inset.js");
+        var app = RepoPaths.ReadWeb("Components/App.razor");
+
+        script.ShouldContain("new ResizeObserver(");
+        script.ShouldContain("'.ss-mixer-dock, .ss-transport-dock'");
+        script.ShouldContain("setProperty('--ss-dock-inset'");
+        script.ShouldNotContain("setTimeout");
+        app.ShouldContain("<script src=\"js/dock-inset.js\"></script>");
     }
 
     [Fact]
