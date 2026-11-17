@@ -25,9 +25,9 @@
       "topic": "mixer-metronome"
     },
     {
-      "target": "practice-speed-trainer",
+      "target": "practice-panel",
       "topic": "practice-speed-trainer",
-      "text": "Loop a hard part and let it speed up after every clean pass."
+      "text": "In Practice tempo, the speed trainer loops a hard part and speeds it up after every clean pass."
     },
     {
       "target": "mixer-save",

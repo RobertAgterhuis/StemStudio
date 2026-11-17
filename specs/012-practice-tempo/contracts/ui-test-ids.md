@@ -39,7 +39,10 @@ practice panel in the mixer (speed, transpose, reset, effective tempo, quality h
 status), count-in controls and indicator, speed trainer, the export dialog's practice note and
 the "Practice" shortcut commands. All 1.21.0 ids are unchanged. Merge order: this document is
 1.21.0 plus the 012 delta and carries 012's allocated label 1.11.0 (labels identify the merged
-deltas, not an order; ROADMAP "Contract version allocation").
+deltas, not an order; ROADMAP "Contract version allocation"). Editorial 012 integration
+amendment (before release, label unchanged): the practice panel is a disclosure
+(`practice-panel-toggle`, `practice-panel-body`, `practice-panel-summary`, `data-expanded`, help
+marker `practice-panel`).
 
 ## Rules
 
@@ -597,7 +600,8 @@ Every rule above (R1-R9) applies.
 
 - At **Advanced** (the level of the existing suite) every id below renders under the conditions in
   the table, except the Expert-only ones.
-- At **Beginner** only these render: `practice-panel`, `practice-speed`, `practice-speed-value`,
+- At **Beginner** only these render: `practice-panel`, `practice-panel-toggle`, `practice-panel-body`,
+  `practice-panel-summary`, `practice-speed`, `practice-speed-value`,
   `practice-speed-down`, `practice-speed-up`, `practice-transpose`, `practice-transpose-down`,
   `practice-transpose-up`, `practice-reset`, `practice-quality-hint`, `practice-unavailable`,
   `practice-effective-bpm`, `countin-toggle`, `countin-indicator`, `countin-unavailable`,
@@ -609,7 +613,10 @@ Every rule above (R1-R9) applies.
 
 | Screen | `data-testid` | Element / attributes | Levels |
 |---|---|---|---|
-| Mixer (`/tracks/{id}/mixer`) | `practice-panel` | region "Practice tempo" (`role="group"`, `aria-labelledby`); attributes `data-stretch` = `bypass`/`loading`/`active`/`unavailable` (engine `PracticeStatus.stretch`), `data-speed` (integer heard now), `data-transpose` (integer) | all |
+| Mixer (`/tracks/{id}/mixer`) | `practice-panel` | region "Practice tempo" (`role="group"`, `aria-labelledby`); attributes `data-stretch` = `bypass`/`loading`/`active`/`unavailable` (engine `PracticeStatus.stretch`), `data-speed` (integer heard now), `data-transpose` (integer), `data-expanded` = `true`/`false` (012 integration) | all |
+| Mixer | `practice-panel-toggle` | disclosure button inside the panel's heading, text "Practice tempo" (plus the summary while closed); `aria-expanded`, `aria-controls="practice-panel-body"`; help marker `practice-panel`. Open/closed is remembered per browser (`localStorage["stemstudio.practice-panel"]`); without a stored choice the panel is open exactly while the heard speed is not 100, the transpose not 0, the count-in on or the trainer on (012 integration, CTO decision 2026-11-17) | all |
+| Mixer | `practice-panel-body` | container of every other practice id below except `countin-indicator`; always rendered, `hidden` while the panel is closed (its ids keep their level rules; R7-R9 count them as rendered) | all |
+| Mixer | `practice-panel-summary` | text inside `practice-panel-toggle`, e.g. "75 %, +2 st, count-in" (parts: heard speed, transpose, `count-in`, `trainer`); exists only while the panel is closed and something is not neutral | all |
 | Mixer | `practice-speed` | slider 50-120, step 1 (arrow keys 1, Page Up/Down 10, Home 50, End 120); `aria-valuenow`, `aria-valuetext` "75 percent"; read-only (`aria-readonly="true"`) while the speed trainer runs; disabled while `data-stretch="unavailable"` | all |
 | Mixer | `practice-speed-value` | text "75 %" (the speed heard now) | all |
 | Mixer | `practice-speed-down`, `practice-speed-up` | buttons -5 % / +5 % (clamped) | all |
@@ -638,8 +645,9 @@ Every rule above (R1-R9) applies.
 
 ### Help markers (not test ids)
 
-`data-help-id` values set by 012 (validated by the 004 help tests): `practice-speed` (on
-`practice-speed`), `practice-transpose` (on `practice-transpose`), `practice-count-in` (on
+`data-help-id` values set by 012 (validated by the 004 help tests): `practice-panel` (on
+`practice-panel-toggle`, topic `practice-speed`; the practice steps of the `mixer-basics` and `mixer-advanced` tours
+point here, so a closed panel does not skip them), `practice-speed` (on `practice-speed`), `practice-transpose` (on `practice-transpose`), `practice-count-in` (on
 `countin-toggle`), `practice-speed-trainer` (on `trainer-panel`), `practice-sound-quality` (on
 `practice-quality-hint` and `practice-stretch-status`).
 

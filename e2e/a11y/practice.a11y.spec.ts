@@ -24,7 +24,8 @@ async function indicatorAnimations(page: Page): Promise<string[]> {
 
 for (const theme of matrixThemes) {
   test.describe(`practice states / ${theme}`, { tag: '@practice' }, () => {
-    test.use({ storageState: cellState('advanced', theme) });
+    // The panel is stored as open: these states are reached through its controls.
+    test.use({ storageState: cellState('advanced', theme, 'expanded') });
 
     test('a running count-in has no violations and does not animate with reduced motion', async ({ page, uxData }) => {
       await openPlainMixer(page, uxData.plainTrack.id);

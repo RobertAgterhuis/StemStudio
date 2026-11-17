@@ -62,8 +62,10 @@ public sealed class PracticeHelpTests
     {
         var tour = Catalog.Tours.Single(t => t.Id == "mixer-basics");
 
+        // The step points at the panel's disclosure button, which is visible also while the panel is closed (a hidden
+        // target would be skipped).
         tour.Version.ShouldBe(2);
-        tour.Steps.Select(s => s.Target).ShouldContain("practice-speed");
+        tour.Steps.Select(s => (s.Target, s.Topic)).ShouldContain(("practice-panel", "practice-speed"));
         tour.Steps.Count.ShouldBeLessThanOrEqualTo(8);
     }
 

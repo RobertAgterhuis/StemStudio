@@ -320,6 +320,8 @@ export const expertSettingsIds: readonly string[] = ['settings-agent-claude-mode
 /** 1.11.0 mixer ids rendered at every level in the neutral state. */
 export const everyLevelPracticeIds: readonly string[] = [
   'practice-panel',
+  'practice-panel-toggle',
+  'practice-panel-body',
   'practice-speed',
   'practice-speed-value',
   'practice-speed-down',

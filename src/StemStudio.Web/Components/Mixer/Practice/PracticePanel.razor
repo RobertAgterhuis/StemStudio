@@ -1,31 +1,46 @@
 @* Practice tempo of the whole mix (012 US1, FR-001..FR-009, FR-016): speed, transpose, reset, effective tempo, the quality
-   hint, the unavailable reason and the Expert stretch diagnostics. Count-in and speed trainer render as child content. *@
+   hint, the unavailable reason and the Expert stretch diagnostics. Count-in and speed trainer render as child content.
+   The heading is a disclosure button (WCAG 4.1.2: aria-expanded, aria-controls): collapsed, the body stays in the DOM
+   but hidden and the header summarises what is not neutral (012 integration, CTO decision 2026-11-17). *@
 
 <section class="ss-practice ss-console-panel" role="group" aria-labelledby="practice-title" aria-busy="@(Loading ? "true" : null)"
          data-testid="practice-panel" data-stretch="@PracticeText.StretchName(Status.Stretch)" data-speed="@HeardSpeed"
-         data-transpose="@HeardTranspose">
-    <h2 id="practice-title" class="ss-panel-title">Practice tempo <HelpHint HelpId="practice-speed" /></h2>
-    <SpeedControl Value="HeardSpeed" ReadOnly="TrainerRuns" Disabled="Unavailable" OnChange="OnSpeed" />
-    <TransposeControl Value="HeardTranspose" Disabled="Unavailable" OnChange="OnTranspose" />
-    <div class="ss-practice-row">
-        <RadzenButton Text="Original speed and key" Icon="restart_alt" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                      Disabled="ResetDisabled" Click="OnReset" data-testid="practice-reset" />
-        @if (EffectiveBpm is { } bpm)
+         data-transpose="@HeardTranspose" data-expanded="@(Expanded ? "true" : "false")">
+    <h2 id="practice-title" class="ss-panel-title ss-practice-head">
+        <button type="button" class="ss-disclosure" aria-expanded="@(Expanded ? "true" : "false")" aria-controls="practice-panel-body"
+                data-testid="practice-panel-toggle" data-help-id="practice-panel" @onclick="ToggleAsync">
+            <span class="rzi ss-disclosure-icon" aria-hidden="true">chevron_right</span>
+            <span>Practice tempo</span>
+            @if (!Expanded && Summary.Count > 0)
+            {
+                <span class="ss-practice-summary" data-testid="practice-panel-summary">@string.Join(", ", Summary)</span>
+            }
+        </button>
+        <HelpHint HelpId="practice-speed" />
+    </h2>
+    <div id="practice-panel-body" class="ss-practice-body" hidden="@(!Expanded)" data-testid="practice-panel-body">
+        <SpeedControl Value="HeardSpeed" ReadOnly="TrainerRuns" Disabled="Unavailable" OnChange="OnSpeed" />
+        <TransposeControl Value="HeardTranspose" Disabled="Unavailable" OnChange="OnTranspose" />
+        <div class="ss-practice-row">
+            <RadzenButton Text="Original speed and key" Icon="restart_alt" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                          Disabled="ResetDisabled" Click="OnReset" data-testid="practice-reset" />
+            @if (EffectiveBpm is { } bpm)
+            {
+                <span class="ss-practice-bpm" data-testid="practice-effective-bpm">@PracticeText.EffectiveBpm(bpm)</span>
+            }
+        </div>
+        @if (PracticeRules.NeedsQualityHint(HeardSpeed, HeardTranspose))
         {
-            <span class="ss-practice-bpm" data-testid="practice-effective-bpm">@PracticeText.EffectiveBpm(bpm)</span>
+            <p class="ss-help ss-practice-hint" data-testid="practice-quality-hint" data-help-id="practice-sound-quality">@PracticeText.QualityHint</p>
         }
+        @if (Unavailable)
+        {
+            <p class="ss-help ss-practice-unavailable" data-testid="practice-unavailable">@PracticeText.Unavailable(Status.StretchReason)</p>
+        }
+        <LevelGate Feature="practice.stretch-status">
+            <p class="ss-help ss-practice-diagnostics" data-testid="practice-stretch-status" data-latency-ms="@PracticeText.LatencyMs(Status)"
+               data-underruns="@Status.Underruns" data-help-id="practice-sound-quality">@PracticeText.StretchStatus(Status)</p>
+        </LevelGate>
+        @ChildContent
     </div>
-    @if (PracticeRules.NeedsQualityHint(HeardSpeed, HeardTranspose))
-    {
-        <p class="ss-help ss-practice-hint" data-testid="practice-quality-hint" data-help-id="practice-sound-quality">@PracticeText.QualityHint</p>
-    }
-    @if (Unavailable)
-    {
-        <p class="ss-help ss-practice-unavailable" data-testid="practice-unavailable">@PracticeText.Unavailable(Status.StretchReason)</p>
-    }
-    <LevelGate Feature="practice.stretch-status">
-        <p class="ss-help ss-practice-diagnostics" data-testid="practice-stretch-status" data-latency-ms="@PracticeText.LatencyMs(Status)"
-           data-underruns="@Status.Underruns" data-help-id="practice-sound-quality">@PracticeText.StretchStatus(Status)</p>
-    </LevelGate>
-    @ChildContent
 </section>

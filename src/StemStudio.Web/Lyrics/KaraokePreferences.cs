@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.JSInterop;
+using StemStudio.Web.Preferences;
 
 namespace StemStudio.Web.Lyrics;
 
@@ -29,32 +30,12 @@ public sealed class KaraokePreferences(IJSRuntime js)
 
     /// <summary>Reads the stored choices.</summary>
     /// <returns>The choices, or the defaults when nothing usable is stored.</returns>
-    public async Task<KaraokeSettings> LoadAsync()
-    {
-        try
-        {
-            return Parse(await js.InvokeAsync<string?>("localStorage.getItem", StorageKey));
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException)
-        {
-            return KaraokeSettings.Default;
-        }
-    }
+    public async Task<KaraokeSettings> LoadAsync() => Parse(await BrowserStorage.GetAsync(js, StorageKey));
 
     /// <summary>Stores the choices (best effort).</summary>
     /// <param name="settings">The choices.</param>
     /// <returns>A task that completes when the write was tried.</returns>
-    public async Task SaveAsync(KaraokeSettings settings)
-    {
-        try
-        {
-            await js.InvokeVoidAsync("localStorage.setItem", StorageKey, JsonSerializer.Serialize(settings, Json));
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException)
-        {
-            // Storage is unavailable; the choice lasts for this visit only.
-        }
-    }
+    public Task SaveAsync(KaraokeSettings settings) => BrowserStorage.SetAsync(js, StorageKey, JsonSerializer.Serialize(settings, Json));
 
     private static KaraokeSettings Parse(string? stored)
     {

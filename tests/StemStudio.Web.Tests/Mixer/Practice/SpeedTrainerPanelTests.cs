@@ -254,7 +254,7 @@ public sealed class SpeedTrainerPanelTests : PracticeTestContext
         topic.Markdown.ShouldContain("0.5 s");
         var tour = catalog.Tours.Single(t => t.Id == "mixer-advanced");
         tour.Version.ShouldBe(2);
-        tour.Steps.Select(s => s.Target).ShouldContain("practice-speed-trainer");
+        tour.Steps.Select(s => (s.Target, s.Topic)).ShouldContain(("practice-panel", "practice-speed-trainer"));
         FeatureCatalog.IsVisible("practice.trainer", ExperienceLevel.Beginner).ShouldBeFalse();
         FeatureCatalog.IsVisible("practice.trainer", ExperienceLevel.Advanced).ShouldBeTrue();
     }

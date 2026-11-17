@@ -32,6 +32,7 @@ test.beforeEach(async ({ api, mixer }) => {
 
 /** The practice controls a keyboard user must reach with Tab (with the speed changed). */
 const tabTargets: readonly string[] = [
+  'practice-panel-toggle',
   'practice-speed',
   'practice-speed-up',
   'practice-transpose-down',
@@ -63,6 +64,41 @@ async function pressOutsideFields(page: Page, key: string): Promise<void> {
   await blurActiveElement(page);
   await page.keyboard.press(key);
 }
+
+test.describe('practice panel disclosure (012 integration, ui-test-ids 1.11.0)', { tag: '@practice' }, () => {
+  // Nothing stored: the panel starts closed at neutral settings (CTO decision 2026-11-17).
+  test.use({ storageState: levelState('advanced', {}, 'unset') });
+
+  test('starts closed at neutral settings, opens with its toggle and the browser remembers the choice', async ({ mixer, page, practice }) => {
+    const toggle = practice.byId('practice-panel-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toHaveAttribute('aria-controls', 'practice-panel-body');
+    await expect(practice.byId('practice-panel-body')).toBeHidden();
+    await expect(practice.speed).toBeHidden();
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(practice.speed).toBeVisible();
+
+    await page.reload();
+    await mixer.waitForReady(fakeStems);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // Closed by choice: a shortcut changes the speed, the panel stays closed and its title says so.
+    await pressOutsideFields(page, '-');
+    await expect(practice.panel).toHaveAttribute('data-speed', '95');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(practice.byId('practice-panel-summary')).toHaveText('95 %');
+  });
+
+  test('without a stored choice a practice setting opens the panel', async ({ page, practice }) => {
+    await pressOutsideFields(page, '.');
+    await expect(practice.panel).toHaveAttribute('data-transpose', '1');
+    await expect(practice.byId('practice-panel-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(practice.byId('practice-transpose')).toBeVisible();
+  });
+});
 
 test.describe('Beginner', { tag: '@practice' }, () => {
   test.use({ storageState: levelState('beginner') });

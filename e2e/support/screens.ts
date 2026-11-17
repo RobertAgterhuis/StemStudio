@@ -159,14 +159,19 @@ async function mixerExpandedReady(page: Page): Promise<void> {
 }
 
 /**
- * Mixer with the practice panel engaged through every-level controls (feature 012, ui-test-ids
- * 1.11.0): speed 65 % (quality hint shown) and +2 semitones, stretch stage active. Nothing is
+ * Mixer with the practice panel opened and engaged through every-level controls (feature 012,
+ * ui-test-ids 1.11.0): speed 65 % (quality hint shown) and +2 semitones, stretch stage active. Nothing is
  * saved, so the seeded data (and the mix library) stay as they are.
  */
 async function mixerPracticeReady(page: Page): Promise<void> {
   await mixerReady(page);
   const speed = page.getByTestId('practice-speed');
   const panel = page.getByTestId('practice-panel');
+  // The matrix stores no panel choice, so the panel starts closed at neutral settings (012 integration).
+  const toggle = page.getByTestId('practice-panel-toggle');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await speed.focus();
   await speed.press('Home');
   await expect(panel).toHaveAttribute('data-speed', '50');

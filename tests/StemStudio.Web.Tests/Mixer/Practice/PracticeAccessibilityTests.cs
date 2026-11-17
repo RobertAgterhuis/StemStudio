@@ -21,7 +21,7 @@ public sealed class PracticeAccessibilityTests : PracticeTestContext
 
         order.ShouldBe(
         [
-            "practice-speed-down", "practice-speed", "practice-speed-up", "practice-speed-input",
+            "practice-panel-toggle", "practice-speed-down", "practice-speed", "practice-speed-up", "practice-speed-input",
             "practice-transpose-down", "practice-transpose", "practice-transpose-up", "practice-transpose-input",
             "practice-reset", "countin-toggle", "countin-bars", "countin-every-pass",
             "trainer-toggle", "trainer-start", "trainer-step", "trainer-target", "trainer-passes",

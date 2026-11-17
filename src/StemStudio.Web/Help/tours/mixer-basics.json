@@ -30,9 +30,9 @@
       "topic": "mixer-loop"
     },
     {
-      "target": "practice-speed",
+      "target": "practice-panel",
       "topic": "practice-speed",
-      "text": "Slow the song down to learn a part; the key stays the same."
+      "text": "Open Practice tempo to slow the song down and learn a part; the key stays the same."
     },
     {
       "target": "mixer-save",

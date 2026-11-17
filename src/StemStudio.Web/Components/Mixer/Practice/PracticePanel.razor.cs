@@ -1,13 +1,23 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using StemStudio.Contracts.Mixes;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Mixer;
+using StemStudio.Web.Preferences;
 
 namespace StemStudio.Web.Components.Mixer.Practice;
 
-/// <summary>The practice tempo panel; values come from <see cref="PracticeRules"/>, changes go to the mixer page.</summary>
+/// <summary>
+/// The practice tempo panel; values come from <see cref="PracticeRules"/>, changes go to the mixer page. Open or closed:
+/// the browser's stored choice (<see cref="PracticePanelChoice"/>), else open only while something is not neutral.
+/// </summary>
 public sealed partial class PracticePanel
 {
+    private bool? _choice;
+
+    [Inject]
+    private IJSRuntime Js { get; set; } = default!;
+
     /// <summary>The mixer's practice settings.</summary>
     [Parameter, EditorRequired]
     public PracticeSettingsDto Settings { get; set; } = PracticeSettingsDto.Default;
@@ -35,6 +45,21 @@ public sealed partial class PracticePanel
     /// <summary>Count-in and speed trainer controls.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyList<string> Summary => PracticePanelChoice.Summary(HeardSpeed, HeardTranspose, Settings);
+
+    private bool Expanded => _choice ?? PracticePanelChoice.IsOpenByDefault(Summary);
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync() =>
+        _choice = PracticePanelChoice.Parse(await BrowserStorage.GetAsync(Js, PracticePanelChoice.StorageKey));
+
+    private Task ToggleAsync()
+    {
+        var expanded = !Expanded;
+        _choice = expanded;
+        return BrowserStorage.SetAsync(Js, PracticePanelChoice.StorageKey, PracticePanelChoice.Serialize(expanded));
+    }
 
     private int HeardSpeed => PracticeRules.HeardSpeed(Settings, Status);
 

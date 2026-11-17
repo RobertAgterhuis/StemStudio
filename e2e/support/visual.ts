@@ -6,7 +6,7 @@
  */
 import { existsSync } from 'node:fs';
 import { test, type Locator, type Page } from '@playwright/test';
-import { levelState, type Level, type StorageState } from './preferences';
+import { levelState, type Level, type PracticePanelState, type StorageState } from './preferences';
 
 /** Themes of the matrix (explicit choices, so the OS setting does not matter). */
 export type MatrixTheme = 'light' | 'dark';
@@ -32,9 +32,13 @@ export function requireVisualContainer(): void {
   test.skip(!inVisualContainer(), 'visual baselines render only in mcr.microsoft.com/playwright:v1.65.1-noble');
 }
 
-/** Storage state of one matrix cell: level, explicit theme, reduced motion, no welcome or offers. */
-export function cellState(level: Level, theme: MatrixTheme): StorageState {
-  return levelState(level, { theme, motion: 'reduced' });
+/**
+ * Storage state of one matrix cell: level, explicit theme, reduced motion, no welcome or offers.
+ * The practice panel choice is not stored by default, so the cell shows the app's default (closed
+ * at neutral settings); the `mixer-practice` screen opens it with its toggle.
+ */
+export function cellState(level: Level, theme: MatrixTheme, practicePanel: PracticePanelState = 'unset'): StorageState {
+  return levelState(level, { theme, motion: 'reduced' }, practicePanel);
 }
 
 /** Regions whose pixels change on their own: meters, clock, transport state, toasts, players, PDF previews, dates. */

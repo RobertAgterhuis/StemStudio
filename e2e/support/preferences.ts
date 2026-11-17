@@ -6,6 +6,11 @@
  * completed, so no welcome panel or tour offer appears and every 1.2.0 id renders as before (R7).
  * New specs pick another state with `test.use({ storageState: ... })`.
  *
+ * Level states also store the 012 practice panel as open (`stemstudio.practice-panel`), like the
+ * completed tours: the panel starts closed at neutral settings (CTO decision 2026-11-17), and the
+ * practice specs drive its controls directly. The design matrix (`cellState`) leaves it unset, so
+ * screenshots and scans show the real default.
+ *
  * @packageDocumentation
  */
 import type { BrowserContextOptions, Page } from '@playwright/test';
@@ -62,6 +67,20 @@ export type StorageState = Exclude<NonNullable<BrowserContextOptions['storageSta
 /** Local-storage key of the record (data-model.md 1). */
 export const preferencesKey = 'stemstudio.preferences';
 
+/** Local-storage key of the practice panel's open/closed choice (012, ui-test-ids 1.11.0 `practice-panel-toggle`). */
+export const practicePanelKey = 'stemstudio.practice-panel';
+
+/** Stored practice panel choice; `unset` stores nothing (closed at neutral settings, open otherwise). */
+export type PracticePanelState = 'expanded' | 'collapsed' | 'unset';
+
+/** Further local-storage entries of a storage state (`name -> value`). */
+export type StorageEntries = Readonly<Record<string, string>>;
+
+/** The local-storage entries of a practice panel choice. */
+export function practicePanelEntries(state: PracticePanelState): StorageEntries {
+  return state === 'unset' ? {} : { [practicePanelKey]: JSON.stringify({ expanded: state === 'expanded' }) };
+}
+
 /**
  * Content versions of the shipped tours (004; 012 added a practice step to both mixer tours);
  * bump here when a tour file's version changes (`tests/preferences-support.spec.ts` checks it).
@@ -110,18 +129,24 @@ function completedTours(): Record<string, StoredTourRecord> {
  * Storage state holding `record` for the web origin; `null` = empty storage (first run).
  * @param origin The origin the record belongs to (default: the origin of `E2E_BASE_URL`); the
  *   claude-key local-only spec opens the app under a second, non-loopback origin.
+ * @param extra Further local-storage entries of that origin (for example {@link practicePanelEntries}).
  */
-export function storageStateFor(record: StoredPreferences | null, origin: string = new URL(webBaseUrl).origin): StorageState {
-  if (record === null) {
-    return { cookies: [], origins: [] };
-  }
-  const localStorage = [{ name: preferencesKey, value: JSON.stringify(record) }];
-  return { cookies: [], origins: [{ origin, localStorage }] };
+export function storageStateFor(
+  record: StoredPreferences | null,
+  origin: string = new URL(webBaseUrl).origin,
+  extra: StorageEntries = {},
+): StorageState {
+  const entries = Object.entries(extra).map(([name, value]) => ({ name, value }));
+  const localStorage = record === null ? entries : [{ name: preferencesKey, value: JSON.stringify(record) }, ...entries];
+  return { cookies: [], origins: localStorage.length === 0 ? [] : [{ origin, localStorage }] };
 }
 
-/** Storage state for a chosen level (welcome dismissed, tours done unless overridden). */
-export function levelState(level: Level, options: Omit<PreferenceOptions, 'level'> = {}): StorageState {
-  return storageStateFor(preferencesRecord({ ...options, level }));
+/**
+ * Storage state for a chosen level (welcome dismissed, tours done unless overridden).
+ * @param practicePanel The stored practice panel choice (default `expanded`, see the file comment).
+ */
+export function levelState(level: Level, options: Omit<PreferenceOptions, 'level'> = {}, practicePanel: PracticePanelState = 'expanded'): StorageState {
+  return storageStateFor(preferencesRecord({ ...options, level }), undefined, practicePanelEntries(practicePanel));
 }
 
 /** Default state of the whole suite (playwright.config.ts): Advanced, ui-test-ids R7. */
