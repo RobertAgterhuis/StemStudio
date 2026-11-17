@@ -161,6 +161,7 @@ public sealed class InputSetup(IRecordingEngine engine, IAudioEngine audio, Reco
 
     private async Task OpenDeviceAsync()
     {
+        Devices = Devices.Count > 0 ? Devices : await engine.ListInputDevicesAsync();
         var device = Devices.FirstOrDefault(d => d.Label.Length > 0 && d.Label == Settings.DeviceLabel);
         Input = await engine.OpenInputAsync(new OpenInputRequest(device?.DeviceId, Settings.InputMode));
         (Permission, Unavailable) = (MicrophoneAccess.Granted, null);

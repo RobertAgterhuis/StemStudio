@@ -1,0 +1,18 @@
+@* The recording panel of the mixer (spec 015 US1, FR-001..FR-006, FR-009; ui-test-ids 1.14.0 rec-panel with data-state and
+   data-permission). Rendered only while open; the microphone is requested inside it and released when it closes. *@
+
+<section id="rec-panel" class="ss-console-panel" role="group" aria-labelledby="rec-title" data-testid="rec-panel"
+         data-state="@StateName" data-permission="@PermissionName">
+    <h2 id="rec-title" class="ss-panel-title">Record yourself <HelpHint HelpId="recording" /></h2>
+    <p class="ss-help" data-testid="rec-privacy-note" data-help-id="recording">@RecordingText.Privacy</p>
+    <PermissionGate Setup="Session.Input" OnAllow="AllowAsync" OnRetry="RetryAsync" />
+    @if (Session.Input.IsOpen)
+    {
+        <InputSelector Setup="Session.Input" Disabled="Session.IsRecording" OnDevice="DeviceAsync" OnMode="ModeAsync" />
+        <RecordOptionsForm Settings="Session.Input.Settings" Disabled="Session.IsRecording" OnChange="SettingsAsync" OnMonitoring="MonitoringAsync" />
+        <LatencyStatus Latency="Session.LatencyInUse" SetupChanged="Session.Latency.SetupChanged(Session.Input.Input)" Disabled="Session.IsRecording"
+                       OnCalibrate="OpenCalibration" />
+    }
+    <RecordButton Session="Session" OnToggle="RecordAsync" OnNormalSpeed="NormalSpeedAsync" OnSaveAgain="SaveAgainAsync" />
+    @ChildContent
+</section>

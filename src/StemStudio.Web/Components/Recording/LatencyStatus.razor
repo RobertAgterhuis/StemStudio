@@ -1,0 +1,36 @@
+@* The latency in use and the calibration entry point (FR-007; ui-test-ids 1.14.0 rec-latency-status, rec-latency-samples Expert,
+   rec-setup-changed, rec-calibrate). *@
+
+@if (Latency is { } latency)
+{
+    <div class="ss-practice-row">
+        <span data-testid="rec-latency-status" data-method="@latency.MethodName" data-help-id="recording-latency">@latency.Text</span>
+        <LevelGate Feature="recording.latency-samples">
+            <span class="ss-muted" data-testid="rec-latency-samples">@latency.Samples samples</span>
+        </LevelGate>
+        <RadzenButton Text="Calibrate latency" Icon="graphic_eq" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Disabled"
+                      Click="OnCalibrate" data-testid="rec-calibrate" data-help-id="recording-latency" />
+    </div>
+    @if (SetupChanged)
+    {
+        <p class="ss-notice" role="note" data-testid="rec-setup-changed" data-help-id="recording-latency">Your audio setup changed - calibrate again.</p>
+    }
+}
+
+@code {
+    /// <summary>The latency in use, or null without an input.</summary>
+    [Parameter]
+    public LatencyInUse? Latency { get; set; }
+
+    /// <summary>True when the output latency moved away from the calibration.</summary>
+    [Parameter]
+    public bool SetupChanged { get; set; }
+
+    /// <summary>True while recording.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>"Calibrate latency" pressed.</summary>
+    [Parameter]
+    public EventCallback OnCalibrate { get; set; }
+}
