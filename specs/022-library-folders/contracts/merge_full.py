@@ -4,11 +4,9 @@ Usage (repo root)::
 
     python -I specs/022-library-folders/contracts/merge_full.py [--base BASE] [--out OUT] [--check]
 
-Defaults: ``BASE`` = specs/012-practice-tempo/contracts/backend-api.openapi.yaml (1.11.0, the newest
-full document on ``main`` at 022 Phase 0), ``OUT`` = specs/022-library-folders/contracts/backend-api.openapi.yaml.
-When 013 (1.12.0) is merged into the round branch, the CTO re-runs it with
-``--base specs/013-library-care/contracts/backend-api.openapi.yaml`` (the merge is mechanical: the 022
-names are disjoint from 013's). ``--check`` rebuilds in memory and fails when ``OUT`` differs (freshness)
+Defaults: ``BASE`` = specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0; the 022 Phase 0
+used 012's 1.11.0, the base moved when 013 was merged into the 022+023 round branch - the merge is
+mechanical, the 022 names are disjoint from 013's), ``OUT`` = specs/022-library-folders/contracts/backend-api.openapi.yaml. ``--check`` rebuilds in memory and fails when ``OUT`` differs (freshness)
 or when the result is not a superset of ``BASE`` and of the delta.
 
 The merge is textual so the base keeps its formatting byte for byte:
@@ -36,7 +34,7 @@ from typing import Any
 import yaml
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_BASE = Path("specs/012-practice-tempo/contracts/backend-api.openapi.yaml")
+DEFAULT_BASE = Path("specs/013-library-care/contracts/backend-api.openapi.yaml")
 DEFAULT_OUT = HERE / "backend-api.openapi.yaml"
 DELTA = HERE / "backend-api.library-folders.openapi.yaml"
 LABEL = "1.22.0"

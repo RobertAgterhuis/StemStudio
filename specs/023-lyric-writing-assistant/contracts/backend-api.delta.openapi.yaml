@@ -1197,7 +1197,10 @@ components:
           minimum: 0
     LyricAssistSummary:
       type: object
-      additionalProperties: false
+      description: |
+        An assist without its suggestions. Not closed with `additionalProperties: false`, because `LyricAssist` extends it
+        with `allOf` (a closed base would reject `suggestions`); `LyricAssist` is closed with `unevaluatedProperties: false`
+        and responses carry exactly the listed members (pre-release fix, 023 Phase 0).
       required: [assistId, lyricsId, sheetRevision, kind, status, language, sensitivity, layers, usingFallback, blocksTotal, blocksDone, blocksSkipped, counts, discarded, origin, createdAt]
       properties:
         assistId:
@@ -1282,6 +1285,7 @@ components:
           type: [string, 'null']
           format: date-time
     LyricAssist:
+      unevaluatedProperties: false
       allOf:
         - $ref: '#/components/schemas/LyricAssistSummary'
         - type: object

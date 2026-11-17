@@ -1,0 +1,3 @@
+# Vendored upstream data (023 T006): keep bytes exactly as published (CRLF included) so the SHA-256 values in
+# manifest.json and PROVENANCE.md stay valid on every checkout. Do not normalise line endings.
+* -text -diff

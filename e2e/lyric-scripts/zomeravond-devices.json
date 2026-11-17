@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "device.syllable-fit",
+          "severity": "idea",
+          "line": 2,
+          "original": "De zomeravond zakt langzaam weg over de oude dijk",
+          "proposal": "Zomeravond zakt langzaam weg achter de dijk",
+          "explanation": "Twaalf lettergrepen passen precies op het ritmedoel."
+        },
+        {
+          "type": "device.end-rhyme",
+          "severity": "idea",
+          "line": 5,
+          "original": "dat valt op jouw wangen",
+          "proposal": "dat valt op jouw gezicht",
+          "explanation": "Rijmt op 'licht' aan het eind van de vorige regel.",
+          "rhymeWithLine": 4,
+          "rhymeWord": "licht"
+        }
+      ]
+    },
+    {
+      "items": []
+    },
+    {
+      "items": []
+    }
+  ]
+}

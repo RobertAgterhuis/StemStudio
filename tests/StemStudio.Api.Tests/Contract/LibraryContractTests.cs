@@ -30,6 +30,9 @@ public sealed partial class LibraryContractTests
     /// <summary>The full document 1.22.0 was merged onto (012's 1.11.0; 013's 1.12.0 after the CTO re-merge).</summary>
     private static OpenApiContract Base => Backend013;
 
+    // The 1.22.0 document under test (linked as Contract/022); the current full document is 023's 1.23.0 on top of it.
+    private static OpenApiContract Merged => Backend022;
+
     private static OpenApiContract Delta => Backend022Delta;
 
     public static TheoryData<string> MergedSections => Sections;
@@ -37,7 +40,7 @@ public sealed partial class LibraryContractTests
     [Fact]
     public void Backend_IsLabelled1220AndListsTheMergedDeltas()
     {
-        var info = OpenApiContract.Backend.Root["info"]!;
+        var info = Merged.Root["info"]!;
         var contains = Strings(info["x-stemstudio-contains"]!).ToList();
 
         info["version"]!.GetValue<string>().ShouldBe("1.22.0");
@@ -56,14 +59,14 @@ public sealed partial class LibraryContractTests
             _ => [],
         };
 
-        ChangedEntries(Base, OpenApiContract.Backend, section).ShouldBe(expected, ignoreOrder: true);
+        ChangedEntries(Base, Merged, section).ShouldBe(expected, ignoreOrder: true);
     }
 
     [Theory]
     [MemberData(nameof(MergedSections))]
     public void Backend1220_AddsExactlyTheDeltaEntries(string section)
     {
-        var added = Keys(OpenApiContract.Backend, section).Except(Keys(Base, section));
+        var added = Keys(Merged, section).Except(Keys(Base, section));
         var shared = Shared.GetValueOrDefault(section, []);
 
         added.ShouldBe(Keys(Delta, section).Except(shared), ignoreOrder: true);
@@ -74,7 +77,7 @@ public sealed partial class LibraryContractTests
     [MemberData(nameof(MergedSections))]
     public void Backend1220_ContainsEveryDeltaEntryUnchanged(string section)
     {
-        var merged = Section(OpenApiContract.Backend.Root, section);
+        var merged = Section(Merged.Root, section);
         var shared = Shared.GetValueOrDefault(section, []);
 
         foreach (var (name, value) in Section(Delta.Root, section).Where(entry => !shared.Contains(entry.Key)))
@@ -86,12 +89,12 @@ public sealed partial class LibraryContractTests
     [Fact]
     public void Backend1220_AddsTheNineLibraryOperationsAndTheTag()
     {
-        var added = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
+        var added = Merged.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(Base.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>()));
 
         added.ShouldBe(LibraryOperations, ignoreOrder: true);
-        OpenApiContract.Backend.Root["tags"]!.AsArray().Select(tag => tag!["name"]!.GetValue<string>()).ShouldContain("library");
-        OpenApiContract.Backend.Operations.Where(op => LibraryOperations.Contains(op.Operation["operationId"]!.GetValue<string>()))
+        Merged.Root["tags"]!.AsArray().Select(tag => tag!["name"]!.GetValue<string>()).ShouldContain("library");
+        Merged.Operations.Where(op => LibraryOperations.Contains(op.Operation["operationId"]!.GetValue<string>()))
             .ShouldAllBe(op => Strings(op.Operation["tags"]!).Single() == "library");
     }
 
@@ -127,7 +130,7 @@ public sealed partial class LibraryContractTests
             AssertFolderIds(merged["placement"]!, name);
             merged.Remove("placement");
             JsonNode.DeepEquals(merged, Base.Root["components"]!["examples"]![name]!["value"]).ShouldBeTrue(name);
-            SchemaValidator.Validate(OpenApiContract.Backend, Schema("Asset"), Example(name)).ShouldBeEmpty(name);
+            SchemaValidator.Validate(Merged, Schema("Asset"), Example(name)).ShouldBeEmpty(name);
         }
     }
 
@@ -137,7 +140,7 @@ public sealed partial class LibraryContractTests
     [InlineData("EmptySearch", "LibrarySearchResult")]
     public void DeltaExamples_ValidateAgainstTheirSchemas(string example, string schema)
     {
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), Example(example)).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema(schema), Example(example)).ShouldBeEmpty();
     }
 
     [Theory]
@@ -150,7 +153,7 @@ public sealed partial class LibraryContractTests
 
         // latestAt: DateTimeOffset writes "Z" as "+00:00" (same instant); the schema check covers the format.
         JsonNode.DeepEquals(WithoutLatestAt(json), WithoutLatestAt(again)).ShouldBeTrue();
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("LibraryFolderView"), again).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema("LibraryFolderView"), again).ShouldBeEmpty();
     }
 
     [Fact]
@@ -182,7 +185,7 @@ public sealed partial class LibraryContractTests
 
         json.ContainsKey("placement").ShouldBeTrue();
         json["placement"].ShouldBeNull();
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("Asset"), json).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema("Asset"), json).ShouldBeEmpty();
     }
 
     [Fact]
@@ -203,7 +206,7 @@ public sealed partial class LibraryContractTests
     {
         var json = JsonSerializer.SerializeToNode(dto, dto.GetType(), Web)!;
 
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema(schema), json).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema(schema), json).ShouldBeEmpty();
         json.AsObject().Select(p => p.Key).ShouldBe(Schema(schema)["properties"]!.AsObject().Select(p => p.Key), ignoreOrder: true);
     }
 
@@ -225,8 +228,8 @@ public sealed partial class LibraryContractTests
 
         counts.Select(p => p.Key).ShouldBe(["items"]);
         highlight.Select(p => p.Key).ShouldBe(["field", "start", "length"]);
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("FolderCounts"), counts).ShouldBeEmpty();
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("Highlight"), highlight).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema("FolderCounts"), counts).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema("Highlight"), highlight).ShouldBeEmpty();
     }
 
     [Theory]
@@ -242,7 +245,7 @@ public sealed partial class LibraryContractTests
     {
         foreach (var operation in new[] { "setTrackLibraryInfo", "setAssetLibraryInfo" })
         {
-            var example = OpenApiContract.Backend.Operation(operation)["requestBody"]!["content"]!["application/json"]!["example"]!;
+            var example = Merged.Operation(operation)["requestBody"]!["content"]!["application/json"]!["example"]!;
             var dto = example.Deserialize<LibraryInfoRequest>(Web)!;
 
             JsonNode.DeepEquals(JsonSerializer.SerializeToNode(dto, Web), example).ShouldBeTrue(operation);
@@ -250,13 +253,13 @@ public sealed partial class LibraryContractTests
 
         var automatic = JsonSerializer.SerializeToNode(LibraryInfoRequest.Automatic, Web)!;
         automatic.ToJsonString().ShouldBe("""{"artist":null,"album":null,"song":null}""");
-        SchemaValidator.Validate(OpenApiContract.Backend, Schema("LibraryInfoRequest"), automatic).ShouldBeEmpty();
+        SchemaValidator.Validate(Merged, Schema("LibraryInfoRequest"), automatic).ShouldBeEmpty();
     }
 
     [Fact]
     public void Routes_AreContractPaths()
     {
-        var paths = Section(OpenApiContract.Backend.Root, "paths").Select(p => p.Key).ToList();
+        var paths = Section(Merged.Root, "paths").Select(p => p.Key).ToList();
         var id = Guid.Parse("0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a");
 
         paths.ShouldContain(ApiRoutes.LibraryFolders);
@@ -270,7 +273,7 @@ public sealed partial class LibraryContractTests
     [Fact]
     public void LibraryETag_MatchesTheHeaderPattern()
     {
-        var pattern = OpenApiContract.Backend.Root["components"]!["headers"]!["LibraryETag"]!["schema"]!["pattern"]!.GetValue<string>();
+        var pattern = Merged.Root["components"]!["headers"]!["LibraryETag"]!["schema"]!["pattern"]!.GetValue<string>();
 
         Regex.IsMatch(ApiRoutes.LibraryETag("3f9a0c1d2e4b5a69"), pattern).ShouldBeTrue();
         ApiRoutes.LibraryETag("3f9a0c1d2e4b5a69").ShouldStartWith(ApiRoutes.LibraryETagPrefix);
@@ -282,7 +285,7 @@ public sealed partial class LibraryContractTests
     [InlineData("NotFileable", LibraryProblemTypes.NotFileable)]
     public void ProblemTypes_MatchTheResponseExamples(string response, string code)
     {
-        var example = OpenApiContract.Backend.Root["components"]!["responses"]![response]!["content"]!["application/problem+json"]!["example"]!;
+        var example = Merged.Root["components"]!["responses"]![response]!["content"]!["application/problem+json"]!["example"]!;
 
         example["type"]!.GetValue<string>().ShouldBe(LibraryProblemTypes.Uri(code));
     }
@@ -311,8 +314,8 @@ public sealed partial class LibraryContractTests
     [Fact]
     public void ParameterLimitsAndPatterns_MatchContractLimits()
     {
-        var folderLimit = OpenApiContract.Backend.Root["components"]!["parameters"]!["FolderLimit"]!["schema"]!;
-        var search = OpenApiContract.Backend.Operation("searchLibrary")["parameters"]!.AsArray();
+        var folderLimit = Merged.Root["components"]!["parameters"]!["FolderLimit"]!["schema"]!;
+        var search = Merged.Operation("searchLibrary")["parameters"]!.AsArray();
         JsonNode Query(string name) => search.Single(p => p!["name"]?.GetValue<string>() == name)!["schema"]!;
 
         (Int(folderLimit, "maximum"), Int(folderLimit, "default")).ShouldBe((ContractLimits.LibraryFolderPageMax, ContractLimits.LibraryFolderPageDefault));

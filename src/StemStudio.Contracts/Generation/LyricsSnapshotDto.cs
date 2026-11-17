@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace StemStudio.Contracts.Generation;
 
 /// <summary>The lyrics a song was made from (1.9.0).</summary>
@@ -14,4 +16,8 @@ public sealed record LyricsSnapshotDto
 
     /// <summary>Normalised text snapshot.</summary>
     public required string Text { get; init; }
+
+    /// <summary>Lines that came from accepted assistant text when the song was made (1.23.0, feature 023); 0 (not written) for none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int AssistedLineCount { get; init; }
 }

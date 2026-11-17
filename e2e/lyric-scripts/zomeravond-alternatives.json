@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "items": [
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 4,
+          "original": "'k Heb je lief, zo stil als 't licht",
+          "proposal": "Ik hou van jou, zo zacht als licht",
+          "explanation": "Rechtstreekser, zonder samentrekkingen."
+        },
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 4,
+          "original": "'k Heb je lief, zo stil als 't licht",
+          "proposal": "Jij bent mijn licht, zo stil en zacht",
+          "explanation": "Houdt het beeld van licht en stilte vast."
+        },
+        {
+          "type": "write.alternative",
+          "severity": "idea",
+          "line": 4,
+          "original": "'k Heb je lief, zo stil als 't licht",
+          "proposal": "'k Hou van je, stil als avondlicht",
+          "explanation": "Sluit aan bij de zomeravond."
+        }
+      ]
+    }
+  ]
+}

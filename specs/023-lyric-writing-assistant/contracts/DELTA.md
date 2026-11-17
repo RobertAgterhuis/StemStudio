@@ -95,3 +95,68 @@ running assist of that sheet.
   `{version: 1, blocks: [<output>]}`), mounted from `e2e/lyric-scripts/`.
 - CI: no Ollama, no Claude; a failing HTTP handler proves no outbound request during assistant
   actions (SC-006).
+
+## 5. Phase 0 outcome (architect, 2026-11-17; binding for the wave)
+
+| Contract | Document | State |
+|---|---|---|
+| Backend API **1.23.0** | [backend-api.openapi.yaml](backend-api.openapi.yaml) (full) = 012's full **1.11.0** (newest on `main` 31d43422) + [backend-api.delta.openapi.yaml](backend-api.delta.openapi.yaml) + the schema additions of section 1; `info.x-stemstudio-contains` = 1.1.0..1.10.0, 1.21.0, 1.11.0, 1.23.0 | Redocly 2.78.0: valid, **11 warnings** = the 9 of 1.11.0 (`operation-4xx-response`) + `getLyricAssistStatus` (4xx) + `LyricAssistEvent` (unused, SSE payload doc). Delta: valid, 2 warnings. Proven by `LyricAssistContractTests` |
+| UI test ids **1.23.0** | [ui-test-ids.md](ui-test-ids.md) (full) = 012's 1.11.0 + [ui-test-ids.delta.md](ui-test-ids.delta.md) (section "Additions in 1.23.0") | proven by `LyricAssistUiTestIdsTests` (48 rows, 6 keys, 6 help topics) |
+| Tool catalogue **1.2.0** | merged into `specs/011-ai-composer-agent/contracts/tool-catalogue.md` (title v1.2.0, "contains 1.0.0, 1.3.0, 1.2.0") | 8 tools, group `lyric-assist`, `lyrics` context 28 tools, counts 65 / 14 without 022 |
+| Agent eval set **1.1.0** | merged into `specs/011-ai-composer-agent/evaluation/eval-set.md` (cases 31-35 scored; S4, S5 supplementary; fixture sheets `l-zomer`, `l-inject`, `l-fake-song`) | JSON: ai-agent T055 |
+| lyric-assist-output **1.0.0** | [lyric-assist-output.schema.json](lyric-assist-output.schema.json), embedded in `StemStudio.Agent` (`LyricAssistOutputSchema`) | meta-schema valid (jsonschema 4.26, Draft 2020-12); [check_output_schema.py](check_output_schema.py): 10 scripts, 3 valid + 8 invalid samples, 0 errors |
+| C# | `src/StemStudio.Contracts/LyricAssist/*` (16 enums, 44 records, `LyricAssistLimits`, `LyricAssistProblemTypes`, `LyricAssistProblemMembers`, `LyricAssistEventTypes`, `ApiRoutes.LyricAssist*`); base additions listed in the status table above | serialisation, enum, limit and route tests in `LyricAssistContractTests` |
+
+**Pre-release refinements (labels unchanged, nothing was released):**
+
+1. `LyricAssistSummary` is no longer closed (`additionalProperties: false` removed); `LyricAssist` (=
+   `allOf` summary + `suggestions`) is closed with `unevaluatedProperties: false`. A closed base made every
+   `LyricAssist` invalid (`$.suggestions: additional property not allowed`). Applied to delta and full document.
+2. `lyric-assist-output` `misses[].verdict` gains `keep` (a correct word the dictionary does not know, e.g. a
+   name such as `Zelmara`: nothing is reported). A miss without a verdict is reported as when no model ran
+   (`improvement` with the dictionary suggestions, research R-03 step 5).
+3. Fake script selection (section 4): `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` names a file (every assist uses
+   it) **or a folder**; per assist the fake uses `<title-slug>-<kind>.json`, else `<kind>.json`, else no script.
+   Blocks beyond a script, and a block without a script, answer `{"items":[]}`; a retry gets the same answer
+   (`LyricScript.Resolve`, `LyricScript.Slug`, `ScriptedLyricModel`). The E2E stack mounts `e2e/lyric-scripts/`
+   as the folder.
+4. `LyricsSnapshot.assistedLineCount` is written only when > 0 (schema default 0), so 1.9.0-1.11.0 song
+   examples stay byte-identical; `LyricsInput.expectedRevision` is written only when set.
+5. `SheetAssistSettingsUpdate.rhythmTarget`: absent keeps, `null` clears; the C# record tells them apart
+   with `RhythmTargetSpecified` (the Web client always writes the member).
+6. Shared component names: the delta's `LyricsId`, `NotFound`, `ValidationProblem`, `ProblemDetails`,
+   `ValidationProblemDetails`, `TokenUsage` keep the **base** definitions in the full document (same meaning).
+
+**Ports across lanes (decided in Phase 0):** `StemStudio.Agent` keeps its 011 dependency rule (Agent ->
+Contracts only, no Domain reference). The assistant therefore gets its deterministic checks through the Agent
+port `ILyricVerification` (syllables, rhyme kind, verbatim), implemented in the API over the Domain services;
+the Domain ports `ISpellChecker`, `IPronunciationLexicon`, `IWordList`, `ILyricsCorpus` (+ `AssistLanguage`,
+`CorpusTrack`) are used by the backend only. Sensitivity, intentional-mark and personal-word filtering is the
+backend's Domain `SuggestionFilter`, applied in the sink to dictionary and model suggestions alike (the
+assistant validates schema, anchors, kinds, limits, verification, verbatim and duplicates). The agent's
+loopback port for the 8 tools is `StemStudio.Agent.Ports.ILyricAssistActions` (text-free projections
+`LyricSheetState`, `LyricSuggestionsSummary`/`LyricSuggestionRef`, `LyricAcceptSummary`, `IntentionalMarkRef`).
+
+**Merging with feature 022 in the same round.** 022 (backend 1.22.0, ui-test-ids 1.22.0, catalogue 1.1.0)
+is designed in parallel on the same base 1.11.0; both deltas are standalone and share no path or new schema
+name (only the base response `NotFound`, which keeps the base text). Whichever lands second on the round
+branch is merged onto the other's full document: backend = the other full document + this feature's delta
+(same rules: shared names keep the base), label = the feature merged last, `x-stemstudio-contains` lists both;
+in `LyricAssistContractTests` only `BaseDocument` (now `Backend1110`) changes to the 1.22.0 document and the
+expected `x-stemstudio-contains`; in `LyricAssistUiTestIdsTests` the base file. The catalogue document then
+contains 1.0.0, 1.1.0, 1.3.0 and 1.2.0; counts become 65 + 022's tools. The one-time edits both Phase 0
+branches make to the same files (`tests/StemStudio.Api.Tests/StemStudio.Api.Tests.csproj` link of
+`Contract/backend-api.openapi.yaml`, `ContractJson.cs`, `PracticeContractTests.cs`, the `Pending*Operations`
+lists, `tool-catalogue.md`, `eval-set.md`) conflict textually and are resolved by keeping both additions.
+
+**Done at the 022+023 round start (2026-11-17)**: 022 landed first on the round branch, so 1.23.0 was
+re-based onto 022's full 1.22.0 (= 013's 1.12.0 + 022). The Phase 0 document (on 1.11.0) is kept as
+[backend-api.023-on-1.11.0.openapi.yaml](backend-api.023-on-1.11.0.openapi.yaml); [merge_full.py](merge_full.py)
+builds `backend-api.openapi.yaml` by a block-level three-way merge (base 1.11.0, ours 1.22.0, theirs the
+kept document; a block changed on both sides fails) and `--check` proves freshness and that 1.23.0 contains
+1.22.0 and the 023 document (lists of the extended schemas may only grow). `x-stemstudio-contains` ends
+`1.11.0, 1.12.0, 1.22.0, 1.23.0`; Redocly 2.78.0: valid, 13 warnings (11 of 1.22.0 + 2 of 023). UI test
+ids 1.23.0 = 022's 1.22.0 + the 1.23.0 changelog paragraph + "Additions in 1.23.0". Tool catalogue 1.2.0
+contains 1.0.0, 1.3.0, 1.1.0 and 1.2.0 (69 tools, 14 with approval always). `LyricAssistContractTests.BaseDocument`
+= `Backend022`, `LyricAssistUiTestIdsTests.Base` = `Contract/022`; 022's tests check the linked 1.22.0
+(`ContractJson.Backend022`).
