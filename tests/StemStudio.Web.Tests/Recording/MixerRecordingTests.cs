@@ -4,6 +4,7 @@ using NSubstitute;
 using StemStudio.Contracts.Recording;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Recording;
+using StemStudio.Web.Tests.Fakes;
 using StemStudio.Web.Tests.Mixer;
 using MixerPage = StemStudio.Web.Components.Mixer.Mixer;
 
@@ -113,6 +114,37 @@ public sealed class MixerRecordingTests : MixerTestContext
         await DisposeComponentsAsync();
 
         await _recording.Received(1).CloseInputAsync();
+    }
+
+    [Fact]
+    public void ASoloedTake_SilencesTheStems_AndMarksTheMixChanged()
+    {
+        Api.ListTakesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(RecordingData.List(RecordingData.Take()));
+        var page = Ready();
+        page.Find("[data-testid=mixer-record-panel-toggle]").Click();
+        page.WaitForAssertion(() => page.Find($"[data-testid=rec-take-select-{RecordingData.TakeId:D}]"));
+
+        page.Find($"[data-testid=rec-take-select-{RecordingData.TakeId:D}]").Change(true);
+        page.WaitForAssertion(() => page.Find("[data-testid=strip-take]"));
+        page.Find("[data-testid=solo-take]").Click();
+
+        page.WaitForAssertion(() => page.Find("[data-testid=strip-vocals]").ClassList.ShouldContain("ss-strip-silent"));
+        page.Find("[data-testid=strip-take]").ClassList.ShouldNotContain("ss-strip-silent");
+        page.Find("[data-testid=unsaved-indicator]").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ASavedMix_RestoresItsTakeStrip_WithoutMarkingTheMixChanged()
+    {
+        var take = new TakeChannelSettingsDto { TakeId = RecordingData.TakeId, Volume = 0.6, Pan = 0, Mute = false, Solo = false };
+        Api.GetMixAsync(TestData.MixId, Arg.Any<CancellationToken>()).Returns(TestData.Mix() with { Settings = TestData.Settings() with { Take = take } });
+        Api.ListTakesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(RecordingData.List(RecordingData.Take()));
+
+        var page = RenderMixer(TestData.MixId);
+
+        page.WaitForAssertion(() => page.Find("[data-testid=strip-take]").GetAttribute("data-take-id").ShouldBe(RecordingData.TakeId.ToString("D")));
+        page.Find("[data-testid=fader-take]").GetAttribute("value").ShouldBe("60");
+        page.FindAll("[data-testid=unsaved-indicator]").ShouldBeEmpty();
     }
 
     private IRenderedComponent<MixerPage> Ready()
