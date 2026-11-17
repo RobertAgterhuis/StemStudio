@@ -44,6 +44,9 @@ point inside it) and sets `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts`; 
 with the agent backend `fake` (`STEMSTUDIO_AGENT_BACKEND=fake`), else the variable is inert.
 `dev.{sh,ps1}` set the variable to `<repo>/e2e/lyric-scripts` (an existing value wins). The Claude
 double has no variable; its specs skip themselves.
+`lyric-e2e.{sh,ps1} fake|none` runs the lyric assistant passes against a running fake stack like `agent-e2e`
+does for the agent: the api is recreated with backend `fake` + `/lyric-scripts` (`npm run test:lyric-assist`), then with
+backend `none` (`npm run test:lyric-assist-none`); the override is added with `-f` when `COMPOSE_FILE` is empty.
 
 `backups/` is ignored by git and by the image build context. The archives are ordinary files: copy
 them to another disk or computer to keep a copy elsewhere.

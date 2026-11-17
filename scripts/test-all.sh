@@ -188,6 +188,10 @@ if [[ $AGENT_E2E -eq 1 ]]; then
   for backend in fake none; do
     step "agent e2e: playwright agent.spec.ts ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/agent-e2e.sh "$backend"
   done
+  # 023 lyric assistant passes (fake model with /lyric-scripts, then backend none); same api-only recreate.
+  for backend in fake none; do
+    step "agent e2e: lyric assistant ($backend)" . env COMPOSE_PROJECT_NAME="$E2E_PROJECT"       STEMSTUDIO_SEPARATOR=fake scripts/lyric-e2e.sh "$backend"
+  done
   docker compose -p "$E2E_PROJECT" down -v
 fi
 

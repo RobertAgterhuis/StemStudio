@@ -62,11 +62,16 @@ the api image was built from the Dockerfile under an own tag, never through the 
 
 1. **Not read by code yet.** `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` is not read anywhere in `src` (only documented in
    `LyricScript.cs`); until backend-023/ai-agent wire `LyricScript.Resolve` into the fake model, the variable is inert.
-2. **Lyric E2E pass.** The e2e job runs with `STEMSTUDIO_AGENT_BACKEND=none`. qa's 023 specs need an api start with backend
-   `fake` (like `scripts/agent-e2e.sh fake` does per agent script); no such pass exists for the lyric specs. Once qa has their
-   spec name/tag (T070), a devops follow-up adds a `lyric-e2e` pass (or a variant of `agent-e2e`). Not added now (no spec to bind to).
-3. **Stale texts that name `/scripts/lyric`**: `e2e/lyric-scripts/README.md` (qa) and `specs/023-.../contracts/DELTA.md` section 4
-   (contracts, CTO) still say `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric...`; the binding value is `/lyric-scripts`.
+2. **Lyric E2E pass (added after the CTO follow-up).** `scripts/lyric-e2e.{sh,ps1} fake|none`: api-only recreate with backend `fake` +
+   `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts`, then `npm run test:lyric-assist`; `none`: backend `none`, then
+   `npm run test:lyric-assist-none`. `test:lyric-assist-claude` self-skips and is not run. The scripts pass with a notice while
+   `e2e/package.json` has no `test:lyric-assist` (qa's branch adds it). CI e2e job: two new steps after the agent passes;
+   `test-all --agent-e2e` runs them too. `agent-e2e.*` now adds `docker-compose.e2e.yml` with `-f` when `COMPOSE_FILE` is empty,
+   so the lyric tests of `agent.spec.ts` (qa) see `/lyric-scripts` in local runs as in CI. Checked with stubbed docker/npm
+   (command line, backend and variable per pass); not run against a stack (the reader, `LyricAssistantFactory` on `r22-lane-agent`,
+   and qa's `package.json` land with the integration).
+3. **Stale text.** `e2e/lyric-scripts/README.md` is fixed on this branch (`/lyric-scripts`). `specs/023-.../contracts/DELTA.md`
+   section 4 still says `/scripts/lyric/<name>.json` (contracts, CTO).
 4. **Perf tests do not exist in this branch** (022 T044/T062 are backend wave 1). The CI step is a no-op until then; it must
    start to run real tests once backend's `[Trait("Category", "Perf")]` tests are merged. Backend must keep the timing asserts
    skipping under coverlet (the coverage run includes the Perf tests).

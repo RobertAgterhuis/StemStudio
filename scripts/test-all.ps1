@@ -174,13 +174,17 @@ if ($Gpu) {
     }
 }
 
-# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none); they
+# Optional (-AgentE2e): one fake stack, then the agent passes (fake backend, then none), then the 023 lyric passes; they
 # recreate only the api of this project.
 if ($AgentE2e) {
     $agentEnv = @{ STEMSTUDIO_SEPARATOR = 'fake'; STEMSTUDIO_AGENT_BACKEND = 'none'; COMPOSE_PROJECT_NAME = $E2eProject }
     $Steps += @{ Name = 'agent e2e: fake stack up'; Dir = '.'; Env = $agentEnv; Cmd = @('docker', 'compose', 'up', '-d', '--build', '--wait', '--wait-timeout', '300') }
     foreach ($backend in 'fake', 'none') {
         $Steps += @{ Name = "agent e2e: playwright agent.spec.ts ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/agent-e2e.ps1', $backend) }
+    }
+    # 023 lyric assistant passes (fake model with /lyric-scripts, then backend none); same api-only recreate.
+    foreach ($backend in 'fake', 'none') {
+        $Steps += @{ Name = "agent e2e: lyric assistant ($backend)"; Dir = '.'; Env = $agentEnv; Cmd = @('pwsh', '-NoProfile', '-File', 'scripts/lyric-e2e.ps1', $backend) }
     }
 }
 

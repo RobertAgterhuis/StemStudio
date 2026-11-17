@@ -1,7 +1,7 @@
 # Fake lyric-assistant scripts (feature 023)
 
 Scripted output of the fake assistant model for the E2E fake stack (`STEMSTUDIO_AGENT_BACKEND=fake`,
-`STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/scripts/lyric`, mounted from this folder; contract DELTA.md
+`STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT=/lyric-scripts`, this folder mounted read-only by `docker-compose.e2e.yml`; contract DELTA.md
 section 4). The variable names a file (every assist uses it) or this folder: per assist the fake uses
 `<title-slug>-<kind>.json`, else `<kind>.json`, else no script (every block answers `{"items":[]}`);
 `LyricScript.Resolve` / `LyricScript.Slug` in `StemStudio.Agent/LyricAssist/Fakes` (slug: lower-case ASCII

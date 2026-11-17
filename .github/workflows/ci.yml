@@ -689,6 +689,10 @@ jobs:
         run: scripts/agent-e2e.sh fake
       - name: Agent unavailable spec with backend none (011 T059, A6, SC-005)
         run: scripts/agent-e2e.sh none
+      - name: Lyric assistant specs with the fake model and /lyric-scripts (023 T069/T070, quickstart Q1-Q5; npm run test:lyric-assist)
+        run: scripts/lyric-e2e.sh fake
+      - name: Lyric assistant unavailable spec with backend none, no outbound request (023 Q6; npm run test:lyric-assist-none)
+        run: scripts/lyric-e2e.sh none
       - name: Fake GPU (STEMSTUDIO_FAKE_DEVICE=gpu), then the @gpu specs (003, US3)
         env:
           STEMSTUDIO_FAKE_DEVICE: gpu
