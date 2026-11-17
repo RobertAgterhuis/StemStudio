@@ -1,3 +1,4 @@
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
@@ -40,7 +41,7 @@ public static class GenerationEndpoints
         app.MapGet(GenerationRoute, (Guid generationId, GenerationService generations, CancellationToken ct) => generations.GetAsync(generationId, ct))
             .WithName("getGeneration").WithTags("generation").Produces<GenerationDto>().ProducesProblem(StatusCodes.Status404NotFound);
         app.MapDelete(GenerationRoute, (Guid generationId, GenerationService generations, CancellationToken ct) => generations.DeleteAsync(generationId, ct))
-            .WithName("deleteGeneration").WithTags("generation").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
+            .WithName("deleteGeneration").RequireGateOpen().WithTags("generation").Produces(StatusCodes.Status204NoContent).ProducesProblem(StatusCodes.Status404NotFound);
         return app.MapGenerationActionEndpoints();
     }
 

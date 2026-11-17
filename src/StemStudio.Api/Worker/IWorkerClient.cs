@@ -252,4 +252,26 @@ public interface IWorkerClient
     /// <returns>A task.</returns>
     /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
     Task DeleteTranscriptionJobAsync(string transcriptionJobId, CancellationToken cancellationToken);
+
+    /// <summary>Reads the worker storage report (<c>GET /v1/storage</c>, worker 1.7.0) within <see cref="WorkerTimeouts.Storage"/>.</summary>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The report.</returns>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached in time, failed (5xx) or sent an invalid body.</exception>
+    Task<WorkerStorage> GetStorageAsync(CancellationToken cancellationToken);
+
+    /// <summary>Removes cache entries, scratch and old job files that no job uses (<c>POST /v1/storage/cleanup</c>); never retried.</summary>
+    /// <param name="request">What to remove.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>What was removed and skipped.</returns>
+    /// <exception cref="WorkerRequestException">Invalid request (400).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerStorageCleanupResult> CleanStorageAsync(WorkerStorageCleanupRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Re-creates a completed standard job and its cache entry from the library stems (<c>POST /v1/jobs/rehydrate</c>).</summary>
+    /// <param name="request">Track, source and stems.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    /// <returns>The completed job (new or existing).</returns>
+    /// <exception cref="WorkerRequestException">Stem missing (404), library unavailable (409) or invalid (422).</exception>
+    /// <exception cref="WorkerUnavailableException">The worker cannot be reached or failed (5xx).</exception>
+    Task<WorkerRehydratedJob> RehydrateJobAsync(WorkerRehydrateRequest request, CancellationToken cancellationToken);
 }

@@ -73,17 +73,8 @@ public sealed partial class WorkerClient(HttpClient http, ILogger<WorkerClient> 
     /// <inheritdoc />
     public async Task<WorkerHealth> GetHealthAsync(CancellationToken cancellationToken)
     {
-        using var timeout = new CancellationTokenSource(WorkerTimeouts.Health, clock);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         using var message = new HttpRequestMessage(HttpMethod.Get, "health");
-        try
-        {
-            return await SendForAsync<WorkerHealth>(message, linked.Token);
-        }
-        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new WorkerUnavailableException("The processing service did not answer in time.", exception);
-        }
+        return await SendWithinAsync<WorkerHealth>(message, WorkerTimeouts.Health, cancellationToken);
     }
 
     /// <summary>Streams a file response into the destination (headers read first, then copied).</summary>

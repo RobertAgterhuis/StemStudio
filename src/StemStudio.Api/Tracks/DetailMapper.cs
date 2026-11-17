@@ -23,6 +23,7 @@ public static class DetailMapper
             Parents = phase.Parents.Select(parent => ToDto(trackId, parent)).ToList(),
             Device = TrackMapper.ToDto(phase.Device),
             UpdatedAt = TrackMapper.Utc(phase.UpdatedAt),
+            FilesRemovedAt = phase.FilesRemovedAt is { } removed ? TrackMapper.Utc(removed) : null,
         };
 
     private static ParentOutcomeDto ToDto(Guid trackId, ParentOutcome parent) => new(

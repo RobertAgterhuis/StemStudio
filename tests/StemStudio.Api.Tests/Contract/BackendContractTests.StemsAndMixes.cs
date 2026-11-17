@@ -146,9 +146,6 @@ public sealed partial class BackendContractTests
     // library, revert, discard), T055 (getStorageOverview), T059 (previewCleanup, executeCleanup).
     private static readonly string[] PendingLibraryCareOperations =
     [
-        "getLibraryCareStatus", "listBackups", "createBackup", "estimateBackup", "getBackup", "deleteBackup", "downloadBackup",
-        "verifyBackup", "restoreBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "getPreviousLibrary",
-        "revertRestore", "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup",
     ];
 
     private Task<HttpResponseMessage> CreateMixAsync(Guid trackId, MixSettingsDto settings) =>
