@@ -7,7 +7,5 @@ public sealed partial class BackendContractTests
     // T043 (getLibraryRoot, getLibraryFolder), T063 (searchLibrary), T073 (the six library-info operations).
     private static readonly string[] PendingLibraryOperations =
     [
-        "getTrackLibraryInfo", "setTrackLibraryInfo", "resetTrackLibraryInfo",
-        "getAssetLibraryInfo", "setAssetLibraryInfo", "resetAssetLibraryInfo",
     ];
 }

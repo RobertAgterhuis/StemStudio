@@ -150,8 +150,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 5: User Story 4 - Put items in the right folder (P2)
 
-- [ ] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
-- [ ] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
+- [x] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
+- [x] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
 - [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
 - [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
 - [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)
@@ -164,8 +164,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T077 [P] [US5] [ai-agent] Tests (red) projections of `browse_library_folder` and `search_library_items` (whitelisted fields, <= 4 KB, names only in `untrusted_text`, run tainted), `open_library_folder` (exactly one of `folderId`/`query`), `set_library_info` (GET before PUT, merged arguments, inverse restores, approval in a tainted run, 409 reason) (FR-034)
 - [ ] T078 [US5] [ai-agent] Tool implementations in `src/StemStudio.Agent/Tools/Library/` (green)
-- [ ] T079 [P] [US5] [backend] Tests (red) loopback `IStemStudioActions` library methods against the endpoints (in-process host)
-- [ ] T080 [US5] [backend] `IStemStudioActions` library implementation (green)
+- [x] T079 [P] [US5] [backend] Tests (red) loopback `IStemStudioActions` library methods against the endpoints (in-process host)
+- [x] T080 [US5] [backend] `IStemStudioActions` library implementation (green)
 - [ ] T081 [P] [US5] [frontend] Tests (red) UI tool host: `open_library_folder` navigates (unsaved-changes guard), page context `library` for `/library/{folderId}`
 - [ ] T082 [US5] [frontend] UI tool handler (green)
 - [ ] T083 [P] [US5] [ai-agent] Evaluation cases LIB-01..LIB-05 in `specs/011-ai-composer-agent/evaluation/` and the eval test project (fake chat client scripts)
