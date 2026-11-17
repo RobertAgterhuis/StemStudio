@@ -78,6 +78,7 @@ public sealed class FeatureCatalogTests
         { "lyrics.assist-source", [E], "lyric-assist-privacy" },
         { "lyrics.assist-log", [E], "lyric-assist-privacy" },
         { "lyrics.assist-revisions", [E], "lyric-assist" },
+        { "shortcuts.settings", [A, E], "shortcuts-custom" },
         { "recording.input-mode", [A, E], "recording" },
         { "recording.monitoring-volume", [A, E], "recording-monitoring" },
         { "recording.manual-latency", [A, E], "recording-latency" },
@@ -148,7 +149,7 @@ public sealed class FeatureCatalogTests
                 "care.backup-options", "care.job-bytes", "care.verify", "care.manifest",
                 "care.track-table", "care.worker-entries", "care.restore-merge",
                 "lyrics.assist-count", "lyrics.assist-titles", "lyrics.assist-filters", "lyrics.assist-layers", "lyrics.assist-usage", "lyrics.assist-sensitivity",
-                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions",
+                "lyrics.assist-marks", "lyrics.assist-rhythm", "lyrics.assist-source", "lyrics.assist-log", "lyrics.assist-revisions", "shortcuts.settings",
                 "recording.input-mode", "recording.monitoring-volume", "recording.manual-latency", "recording.loop", "recording.take-pan", "recording.export-options", "recording.latency-samples", "recording.timing-adjust", "recording.diagnostics"], ignoreOrder: true);
     }
 
