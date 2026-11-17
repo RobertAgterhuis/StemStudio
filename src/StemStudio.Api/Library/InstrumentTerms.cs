@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Library;
 using StemStudio.Domain.Assets;
@@ -24,6 +25,10 @@ public sealed class InstrumentTerms
     private const int ScoreGroup = 3;
     private const int GenerationGroup = 4;
 
+    private static readonly ConcurrentDictionary<string, InstrumentTerm> Cache = new(StringComparer.Ordinal);
+
+    private static readonly InstrumentTerm MixTerm = Term(InstrumentLabels.Mix, [InstrumentLabels.Mix]);
+
     private static readonly string[] ChannelOrder = [.. InstrumentLabels.Channels.Select(channel => channel.ChannelId)];
 
     private InstrumentTerms(IReadOnlyList<InstrumentTerm> terms, int group, int order) => (Terms, Group, Order) = (terms, group, order);
@@ -48,7 +53,7 @@ public sealed class InstrumentTerms
         {
             { ScoreRecipe: { } score } => Single(ProfileChannel(score.Profile), score.Profile.ToString(), ScoreGroup),
             { Recipe: { } recipe } => OfExport(recipe),
-            _ => new InstrumentTerms([Term(InstrumentLabels.Mix, [InstrumentLabels.Mix])], GenerationGroup, 0),
+            _ => new InstrumentTerms([MixTerm], GenerationGroup, 0),
         };
     }
 
@@ -60,7 +65,7 @@ public sealed class InstrumentTerms
             return new InstrumentTerms([ChannelTerm(single)], single.Contains('.', StringComparison.Ordinal) ? DetailGroup : StemGroup, IndexOf(single));
         }
 
-        var terms = channels.OrderBy(IndexOf).Select(ChannelTerm).Append(Term(InstrumentLabels.Mix, [InstrumentLabels.Mix]));
+        var terms = channels.OrderBy(IndexOf).Select(ChannelTerm).Append(MixTerm);
         return new InstrumentTerms([.. terms], MixGroup, 0);
     }
 
@@ -76,13 +81,13 @@ public sealed class InstrumentTerms
     }
 
     private static InstrumentTerms Single(string channel, string label, int group) =>
-        new([Term(label, [label, .. InstrumentLabels.SearchWordsOf(channel)])], group, IndexOf(channel));
+        new([Cache.GetOrAdd($"{label}{channel}", _ => Term(label, [label, .. InstrumentLabels.SearchWordsOf(channel)]))], group, IndexOf(channel));
 
-    private static InstrumentTerm ChannelTerm(string channelId)
+    private static InstrumentTerm ChannelTerm(string channelId) => Cache.GetOrAdd(channelId, id =>
     {
-        InstrumentLabels.TryGetLabel(channelId, out var label);
-        return Term(label!, InstrumentLabels.SearchWordsOf(channelId));
-    }
+        InstrumentLabels.TryGetLabel(id, out var label);
+        return Term(label!, InstrumentLabels.SearchWordsOf(id));
+    });
 
     private static InstrumentTerm Term(string label, IEnumerable<string> words) =>
         new(label, [.. words.Select(word => Domain.Library.LibraryKey.Fold(word).Value).Distinct(StringComparer.Ordinal)]);
