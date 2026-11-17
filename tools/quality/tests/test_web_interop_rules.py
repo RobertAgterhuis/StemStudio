@@ -134,3 +134,29 @@ def test_web_interop_is_a_reported_component() -> None:
     (component,) = [c for c in COMPONENTS if c.name == "web-interop"]
     assert component.contains("src/web-interop/src/tour.ts", test=False)
     assert not component.contains("src/audio-engine/src/engine.ts", test=False)
+
+
+def test_the_key_map_catalogue_json_is_an_allowed_data_import(tmp_path: Path) -> None:
+    """Feature 014 (web-interop 1.1.0 sections 5.1/5.4): ``defaultKeyMap`` reads the shared key map
+    catalogue at build time; that one JSON data file is not a code dependency on the Web app."""
+    _packages(tmp_path)
+    _ts(
+        tmp_path,
+        "web-interop/src/catalogue.ts",
+        "import data from '../../StemStudio.Web/wwwroot/js/keymap-defaults.json';",
+    )
+    assert _edges(tmp_path) == set()
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "../../StemStudio.Web/wwwroot/js/other.json",
+        "../../StemStudio.Web/wwwroot/js/keymap-defaults.ts",
+        "../../StemStudio.Web/Program.cs",
+    ],
+)
+def test_other_web_files_stay_forbidden_edges(tmp_path: Path, spec: str) -> None:
+    _packages(tmp_path)
+    _ts(tmp_path, "web-interop/src/catalogue.ts", f"import data from '{spec}';")
+    assert _edges(tmp_path) == {("web-interop", "StemStudio.Web")}
