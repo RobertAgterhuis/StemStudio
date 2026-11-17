@@ -3,13 +3,13 @@
 
 <div class="ss-practice-row">
     <span id="practice-transpose-label" class="ss-inline-label ss-practice-label">Transpose</span>
-    <RadzenButton Text="-1" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Disabled" aria-label="Down one semitone"
+    <RadzenButton Text="-1" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Disabled" aria-label="-1 semitone"
                   Click="() => Emit(Value - 1)" data-testid="practice-transpose-down" />
     <div class="ss-practice-value ss-practice-spin" role="spinbutton" tabindex="0" aria-labelledby="practice-transpose-label"
          aria-valuemin="@Min" aria-valuemax="@Max" aria-valuenow="@Value" aria-valuetext="@PracticeText.SpokenSemitones(Value)"
          aria-disabled="@(Disabled ? "true" : null)" data-ss-spin @onkeydown="KeyDown"
          data-testid="practice-transpose" data-help-id="practice-transpose">@PracticeText.Semitones(Value)</div>
-    <RadzenButton Text="+1" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Disabled" aria-label="Up one semitone"
+    <RadzenButton Text="+1" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Disabled" aria-label="+1 semitone"
                   Click="() => Emit(Value + 1)" data-testid="practice-transpose-up" />
     <LevelGate Feature="practice.numeric">
         <input type="number" class="rz-textbox ss-number" min="@Min" max="@Max" step="1" value="@Value" aria-label="Transpose in semitones"

@@ -3,19 +3,19 @@
 
 <div class="ss-practice-row">
     <label class="ss-inline-label ss-practice-label" for="practice-speed">Speed</label>
-    <RadzenButton Text="-5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="Slower by 5 percent"
+    <RadzenButton Text="-5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="-5 % (slower)"
                   Click="() => Emit(Value - Step)" data-testid="practice-speed-down" />
     <input id="practice-speed" type="range" class="ss-practice-slider" aria-label="Speed" min="@Min" max="@Max" step="1" value="@Value"
            aria-valuenow="@Value" aria-valuemin="@Min" aria-valuemax="@Max" aria-valuetext="@PracticeText.SpokenPercent(Value)"
            aria-readonly="@(ReadOnly ? "true" : null)" disabled="@Disabled" data-page-step="10" @oninput="SliderInput"
            data-testid="practice-speed" data-help-id="practice-speed" />
-    <RadzenButton Text="+5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="Faster by 5 percent"
+    <RadzenButton Text="+5 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="+5 % (faster)"
                   Click="() => Emit(Value + Step)" data-testid="practice-speed-up" />
     <output class="ss-practice-value" for="practice-speed" data-testid="practice-speed-value">@PracticeText.Percent(Value)</output>
     <LevelGate Feature="practice.speed-reset">
         @if (Value != 100)
         {
-            <RadzenButton Text="100 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="Back to 100 percent speed"
+            <RadzenButton Text="100 %" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Disabled="Locked" aria-label="100 % (original speed)"
                           Click="() => Emit(100)" data-testid="practice-speed-reset" />
         }
     </LevelGate>
