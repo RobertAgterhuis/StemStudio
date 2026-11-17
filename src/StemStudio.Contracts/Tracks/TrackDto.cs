@@ -67,6 +67,10 @@ public sealed record TrackDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TrackOriginDto? Origin { get; init; }
 
+    /// <summary>Recorded takes of the track (1.14.0, 0..200), shown in the delete confirmation; absent on the wire when 0.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int TakeCount { get; init; }
+
     /// <summary>Creation time (UTC).</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 

@@ -29,7 +29,14 @@
          the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
     <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the current full backend document is 013's 1.12.0 (= 1.11.0 + 013);
          012's 1.11.0 stays linked as Contract/012 so PracticeContractTests and LibraryCareContractTests prove both merges. -->
-    <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 015 Phase 0 (T002, agreed one-time edit): the current full backend document is 015's 1.14.0 (= 1.12.0 + 015, built
+         by merge_recording_delta.py); 013's 1.12.0 stays linked as Contract/013 so LibraryCareContractTests and RecordingContractTests
+         prove both merges. Re-merged onto 014's 1.13.0 when 014 lands (015 DELTA.md "Re-merge"). -->
+    <None Include="..\..\specs\015-play-along-recording\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\013\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\recording-api.openapi.yaml" Link="Contract\015\recording-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\ui-test-ids.md" Link="Contract\015\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\015-play-along-recording\contracts\ui-test-ids.delta.md" Link="Contract\015\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.delta.openapi.yaml" Link="Contract\013\backend-api.delta.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\ui-test-ids.md" Link="Contract\013\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />

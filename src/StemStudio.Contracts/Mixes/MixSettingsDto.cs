@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using StemStudio.Contracts.Recording;
+
 namespace StemStudio.Contracts.Mixes;
 
 /// <summary>The editable part of a mix; also the body of <c>PUT /api/mixes/{id}</c>.</summary>
@@ -21,4 +24,8 @@ public sealed record MixSettingsDto(
 
     /// <summary>Practice tempo (backend-api 1.11.0); absent in a request = <see cref="PracticeSettingsDto.Default"/>, also for mixes saved before 1.11.0.</summary>
     public PracticeSettingsDto Practice { get; init; } = PracticeSettingsDto.Default;
+
+    /// <summary>The take channel strip (backend-api 1.14.0); null (absent on the wire) = none. A deleted take is returned as null.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TakeChannelSettingsDto? Take { get; init; }
 }

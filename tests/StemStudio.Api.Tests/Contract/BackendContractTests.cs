@@ -210,7 +210,7 @@ public sealed partial class BackendContractTests : IDisposable
                 "renameConversation", "deleteConversation", "undoLastAgentAction", "getClaudeKeyStatus", "storeClaudeKey", "deleteClaudeKey",
                 "getLibraryCareStatus", "listBackups", "createBackup", "estimateBackup", "getBackup", "deleteBackup", "downloadBackup",
                 "verifyBackup", "listLibraryJobs", "getLibraryJob", "cancelLibraryJob", "restoreBackup", "getPreviousLibrary", "revertRestore",
-                "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup", .. PendingLibraryCareOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations, .. PendingAgentOperations], ignoreOrder: true);
+                "discardPreviousLibrary", "getStorageOverview", "previewCleanup", "executeCleanup", .. PendingLibraryCareOperations, .. PendingRecordingOperations, .. PendingGenerationOperations, .. PendingSongVoiceOperations, .. PendingAgentOperations], ignoreOrder: true);
     }
 
     private static IReadOnlyList<string> ErrorsAfter(JsonNode schema, JsonNode valid, Action<JsonObject> change)

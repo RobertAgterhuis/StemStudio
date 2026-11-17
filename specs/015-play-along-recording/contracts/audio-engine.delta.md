@@ -1,5 +1,8 @@
 # Contract delta: audio engine 2.4.0 -> 2.5.0 (feature 015)
 
+**Merged** into the full [audio-engine.md](audio-engine.md) 2.5.0 and `types.ts` in Phase 0 (2026-11-17);
+those are binding now (this delta is the merge input for the re-merge onto 014's 2.4.0, DELTA.md "Re-merge").
+
 Additive. Every 2.4.0 call behaves exactly as before; without `openInput` and `loadTake` the
 graph and the gate are unchanged. The binding TypeScript lands in `src/audio-engine/src/types.ts`
 in Phase 0 (T004) on top of 012 (2.3.0) and 014 (2.4.0); `ENGINE_CONTRACT_VERSION = "2.5.0"`.
@@ -23,6 +26,8 @@ type PermissionStateValue = 'granted' | 'prompt' | 'denied' | 'unknown';
 
 interface RecordingSupport {
   readonly supported: boolean;
+  /** Phase 0 addition: 'insecureContext' | 'noMediaDevices' | 'noAudioWorklet' | 'rateMismatch'; null when supported. */
+  readonly reasonCode: RecordingUnsupportedReason | null;
   /** Readable reason when not supported (insecure context, no AudioWorklet, no getUserMedia). */
   readonly reason: string | null;
   readonly permission: PermissionStateValue;   // navigator.permissions 'microphone', 'unknown' when not queryable

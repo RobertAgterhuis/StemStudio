@@ -59,7 +59,8 @@ public sealed class PracticeContractTests
     public void MixSettings_GainsOnlyTheOptionalPracticeProperty()
     {
         var before = Schema1210("MixSettings");
-        var after = Schema("MixSettings").DeepClone().AsObject();
+        // Read from the linked 1.12.0: 1.14.0 (015) adds `take` to MixSettings as well (RecordingContractTests).
+        var after = Section(Backend013.Root, "components/schemas")["MixSettings"]!.DeepClone().AsObject();
 
         after["properties"]!["practice"]!["$ref"]!.GetValue<string>().ShouldBe("#/components/schemas/PracticeSettings");
         after["properties"]!.AsObject().Remove("practice");

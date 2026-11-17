@@ -90,6 +90,12 @@ public static class ContractLimits
     /// <summary>Channel id of an export: a standard stem or <c>&lt;parent&gt;.&lt;detail&gt;</c> (same as the engine's ChannelId).</summary>
     public const string ChannelIdPattern = @"^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$";
 
+    /// <summary>
+    /// Channel id of an export channel list (backend-api 1.14.0 <c>ExportChannelId</c>): a <see cref="ChannelIdPattern"/> value or the
+    /// literal <c>take</c> (the take channel). <see cref="ChannelIdPattern"/> itself is unchanged (scores and agent tools use it).
+    /// </summary>
+    public const string ExportChannelIdPattern = @"^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$";
+
     /// <summary>Longest lyrics text in characters (feature 006).</summary>
     public const int MaxLyricsChars = 20_000;
 
