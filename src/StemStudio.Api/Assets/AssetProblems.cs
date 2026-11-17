@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using StemStudio.Api.LibraryCare.Gate;
+using StemStudio.Contracts.Recording;
 using StemStudio.Domain;
 using StemStudio.Domain.Rendering;
 
@@ -24,6 +26,11 @@ public static class AssetProblems
     /// <summary>409 <c>asset-not-failed</c>.</summary>
     /// <returns>The result.</returns>
     public static IResult NotFailed() => Typed(StatusCodes.Status409Conflict, "asset-not-failed", "Item is not failed", "Only failed items can be retried.");
+
+    /// <summary>409 <c>managed-by-take</c>: the item is a recorded take (feature 015), owned by the Takes panel.</summary>
+    /// <returns>The result.</returns>
+    public static IResult ManagedByTake() => GateProblems.Typed(
+        StatusCodes.Status409Conflict, RecordingProblemTypes.ManagedByTake, "Managed by its take", "This item is a recorded take; rename, delete or retry it in the Takes panel.");
 
     /// <summary>422 <c>nothing-to-export</c>.</summary>
     /// <returns>The result.</returns>

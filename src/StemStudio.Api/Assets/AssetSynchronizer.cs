@@ -1,4 +1,3 @@
-using StemStudio.Api.Recording;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Sync;
 using StemStudio.Api.Worker;
@@ -19,7 +18,7 @@ namespace StemStudio.Api.Assets;
 /// <param name="finisher">Finishes ready takes (feature 015).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class AssetSynchronizer(
-    IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ScoreJobApplier scores, TakeAssetFinisher finisher, ILogger<AssetSynchronizer> logger)
+    IAssetRepository assets, IWorkerClient worker, AssetJobApplier applier, ScoreJobApplier scores, IAssetFinisher finisher, ILogger<AssetSynchronizer> logger)
 {
     /// <summary>Synchronises every active item.</summary>
     /// <param name="cancellationToken">Cancellation.</param>

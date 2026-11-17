@@ -1,4 +1,3 @@
-using StemStudio.Api.Recording;
 using StemStudio.Domain.Assets;
 
 namespace StemStudio.Api.Assets;
@@ -12,6 +11,6 @@ public static class AssetOriginPolicy
     public static IResult? ManagedElsewhere(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
-        return asset.Provenance.Origin == AssetOrigin.Recording ? RecordingProblems.ManagedByTake() : null;
+        return asset.Provenance.Origin == AssetOrigin.Recording ? AssetProblems.ManagedByTake() : null;
     }
 }
