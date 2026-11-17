@@ -147,7 +147,7 @@ step "site unit tests" . node --test tools/site/test/site.test.mjs
 step "site build + check" . node tools/site/check.mjs
 step "fixtures ruff check" . uvw ruff check tests/fixtures
 step "fixtures ruff format" . uvw ruff format --check tests/fixtures
-step "fixtures mypy" . uvw mypy --config-file "$FX" tests/fixtures
+step "fixtures mypy" . uvw mypy --config-file "$FX" --exclude '^tests/fixtures/backup/' tests/fixtures
 step "fixtures pytest + coverage" . uvw pytest -c "$FX" --cov --cov-branch --cov-config="$FX" tests/fixtures/tests
 step "backup fixtures ruff check (013)" . uvw ruff check --config "$BACKUP_FX" tests/fixtures/backup
 step "backup fixtures ruff format (013)" . uvw ruff format --config "$BACKUP_FX" --check tests/fixtures/backup

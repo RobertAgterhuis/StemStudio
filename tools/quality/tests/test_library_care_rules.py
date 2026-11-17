@@ -18,10 +18,10 @@
 
 from pathlib import Path
 
-import library_care_rules
 import pytest
 from repo_tree import write_file
 
+import library_care_rules
 import run_all
 from common import REPO_ROOT, Severity
 

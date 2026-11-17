@@ -274,4 +274,19 @@ public sealed class BackupDialogTests : PageTestContext
 
         JSInterop.Invocations.Count(i => i.Identifier == "Blazor._internal.domWrapper.focus").ShouldBeGreaterThanOrEqualTo(3);
     }
+
+    [Fact]
+    public void FocusTrapScript_WrapsInTheBrowser_AndIsLoadedByTheApp()
+    {
+        // 013 CTO a11y finding: the sentinels' server round trip let a fast second Tab leave the dialog.
+        var script = RepoPaths.ReadWeb("wwwroot/js/focus-trap.js");
+        var app = RepoPaths.ReadWeb("Components/App.razor");
+
+        script.ShouldContain("addEventListener('focusin'");
+        script.ShouldContain("'[data-focus-sentinel]'");
+        script.ShouldContain("getAttribute('aria-labelledby')");
+        script.ShouldContain("'[data-focus-sentinel=\"end-anchor\"]'");
+        script.ShouldNotContain("setTimeout");
+        app.ShouldContain("<script src=\"js/focus-trap.js\"></script>");
+    }
 }

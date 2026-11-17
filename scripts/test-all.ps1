@@ -136,7 +136,7 @@ $Steps = @(
     @{ Name = 'site build + check'; Dir = '.'; Cmd = @('node', 'tools/site/check.mjs') }
     @{ Name = 'fixtures ruff check'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'check', 'tests/fixtures') }
     @{ Name = 'fixtures ruff format'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--check', 'tests/fixtures') }
-    @{ Name = 'fixtures mypy'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $Fx, 'tests/fixtures') }
+    @{ Name = 'fixtures mypy'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'mypy', '--config-file', $Fx, '--exclude', '^tests/fixtures/backup/', 'tests/fixtures') }
     @{ Name = 'fixtures pytest + coverage'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'pytest', '-c', $Fx, '--cov', '--cov-branch', "--cov-config=$Fx", 'tests/fixtures/tests') }
     @{ Name = 'backup fixtures ruff check (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'check', '--config', $BackupFx, 'tests/fixtures/backup') }
     @{ Name = 'backup fixtures ruff format (013)'; Dir = '.'; Cmd = @('uv', 'run', '--project', 'worker', '--frozen', 'ruff', 'format', '--config', $BackupFx, '--check', 'tests/fixtures/backup') }
