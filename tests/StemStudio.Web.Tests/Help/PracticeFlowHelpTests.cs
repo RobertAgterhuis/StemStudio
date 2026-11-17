@@ -20,6 +20,10 @@ public sealed class PracticeFlowHelpTests
     [InlineData("mixer-sections-edit", "mixer", "section-editor")]
     [InlineData("mixer-sections-detection", "mixer", "section-status")]
     [InlineData("mixer-score-follow", "mixer", "score-panel")]
+    [InlineData("setlists", "mixes", "setlists")]
+    [InlineData("setlist-edit", "mixes", "setlist-edit")]
+    [InlineData("setlist-play", "mixes", "setlist-bar")]
+    [InlineData("setlist-pdf", "mixes", "setlist-pdf")]
     public void Topics_Exist_ReviewedFor014_WithTheirAnchors(string id, string area, string? anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
