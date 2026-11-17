@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Backup;
@@ -42,13 +40,14 @@ public sealed class StagedDatabaseTests : ApiTestBase
         result.Warnings.ShouldContain(warning => warning.Contains("interrupted", StringComparison.Ordinal));
     }
 
+    // The older library comes from the committed schema-010 fixture: a database built by the Up migrations of that level
+    // (a Down-migrated copy is not structurally what an older StemStudio wrote, so the reference schema check refuses it).
     [Fact]
     public async Task OlderSchema_IsMigratedInStaging()
     {
-        await _library.TrackAsync();
-        var manifest = await StageAsync();
-        await DowngradeAsync("20261115200748_AddLyricsAndVoices");
-        manifest = manifest with { Schema = manifest.Schema with { Migrations = [.. manifest.Schema.Migrations.TakeWhile(id => id != "20261116064402_AddAgent")], LastMigration = "20261115200748_AddLyricsAndVoices" } };
+        Directory.CreateDirectory(Factory.BackupDir);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "backup", "schema-010.zip"), Path.Combine(Factory.BackupDir, "schema-010.zip"));
+        var manifest = await ExtractAsync("schema-010.zip");
 
         var result = await Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct);
 
@@ -116,6 +115,14 @@ public sealed class StagedDatabaseTests : ApiTestBase
     [InlineData("cReAtE tRiGgEr \"evil\" before delete on Tracks begin select 1; end")]
     [InlineData("CREATE TABLE Extra (Id INTEGER PRIMARY KEY)")]
     [InlineData("CREATE INDEX IX_Evil ON Tracks (Title)")]
+    [InlineData("ALTER TABLE Tracks ADD COLUMN Evil TEXT GENERATED ALWAYS AS (upper(Title)) VIRTUAL")]
+    [InlineData("ALTER TABLE Tracks ADD COLUMN Evil TEXT DEFAULT 'x'")]
+    [InlineData("DROP INDEX IX_Tracks_UpdatedAt; CREATE INDEX IX_Tracks_UpdatedAt ON Tracks (lower(Title))")]
+    [InlineData("DROP INDEX IX_Tracks_UpdatedAt; CREATE INDEX IX_Tracks_UpdatedAt ON Tracks (UpdatedAt) WHERE length(Title) > 1")]
+    [InlineData("DROP INDEX IX_Tracks_SourceKey; CREATE INDEX IX_Tracks_SourceKey ON Tracks (SourceKey)")]
+    [InlineData("CREATE TABLE h2 AS SELECT * FROM __EFMigrationsHistory; DROP TABLE __EFMigrationsHistory; "
+        + "CREATE TABLE \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, "
+        + "\"ProductVersion\" TEXT NOT NULL CHECK (length(ProductVersion) > 0)); INSERT INTO __EFMigrationsHistory SELECT * FROM h2; DROP TABLE h2")]
     public async Task ArchivedTriggerOrView_IsUnsafe(string sql)
     {
         await _library.TrackAsync();
@@ -184,14 +191,13 @@ public sealed class StagedDatabaseTests : ApiTestBase
         var runner = Factory.Services.GetRequiredService<LibraryJobRunner>();
         await runner.WhenIdleAsync();
         var name = (await runner.GetAsync(outcome.Job!.JobId, Ct))!.Report.ShouldBeOfType<BackupReportDto>().FileName;
+        return await ExtractAsync(name);
+    }
+
+    private async Task<BackupManifest> ExtractAsync(string name)
+    {
         using var archive = Factory.Services.GetRequiredService<ArchiveValidator>().Validate(name);
         await new StagingExtractor(new LibraryCareOptions(), TimeProvider.System).ExtractAsync(archive, Staging, null, Ct);
         return archive.Manifest;
-    }
-
-    private async Task DowngradeAsync(string target)
-    {
-        await using var context = BackupScrubber.StagedContext(Db);
-        await context.GetService<IMigrator>().MigrateAsync(target, Ct);
     }
 }

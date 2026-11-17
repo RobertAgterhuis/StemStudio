@@ -14,16 +14,17 @@ namespace StemStudio.Api.LibraryCare.Restore;
 /// <summary>
 /// The checks of an archived database that restore and verify share (data-model 3.4 steps 7 and 8): opened read-only with
 /// <c>PRAGMA trusted_schema=OFF</c>, <c>integrity_check</c> = <c>ok</c>, <c>__EFMigrationsHistory</c> equal to
-/// <c>schema.migrations</c>, only the tables and indexes the known migrations create (<see cref="KnownSchema"/>: no
-/// triggers, views, virtual or unknown tables), and every stored path inside the layout. Nothing is migrated or written here.
+/// <c>schema.migrations</c>, a schema structurally equal to the one this app's migrations create at that level
+/// (<see cref="ReferenceSchema"/>: no triggers, views, virtual or unknown tables, columns or indexes), and every stored path
+/// inside the layout. Nothing of the archive is migrated or written here.
 /// </summary>
 public static class ArchivedDatabase
 {
     /// <summary>Message of a damaged or foreign database.</summary>
     public const string CorruptText = "The database in the archive is damaged or not a StemStudio library; nothing was changed.";
 
-    /// <summary>Message of a database with triggers, views or other objects StemStudio never creates.</summary>
-    public const string ObjectsText = "The database in the archive contains triggers, views or tables that StemStudio never creates; nothing was changed.";
+    /// <summary>Message of a database whose schema differs from the one the migrations create.</summary>
+    public const string ObjectsText = "The database in the archive contains triggers, views, tables, columns or indexes that StemStudio never creates; nothing was changed.";
 
     /// <summary>A context on an archived (staged) database file whose connections run with <c>trusted_schema=OFF</c>.</summary>
     /// <param name="path">The file.</param>
@@ -34,7 +35,7 @@ public static class ArchivedDatabase
         .AddInterceptors(UntrustedSchemaInterceptor.Instance)
         .Options);
 
-    /// <summary>Step 7 read-only: integrity, migration history against the manifest, known tables and indexes only.</summary>
+    /// <summary>Step 7 read-only: integrity, migration history against the manifest, the reference schema of that level.</summary>
     /// <param name="database">The staged database file.</param>
     /// <param name="manifest">The archive's manifest.</param>
     /// <param name="cancellationToken">Cancellation.</param>
@@ -55,7 +56,7 @@ public static class ArchivedDatabase
                 throw ArchiveReader.Corrupt(CorruptText);
             }
 
-            unknown = await KnownSchema.HasUnknownObjectsAsync(connection, cancellationToken);
+            unknown = !await ReferenceSchema.MatchesAsync(connection, manifest.Schema.Migrations[^1], cancellationToken);
         }
         catch (SqliteException)
         {

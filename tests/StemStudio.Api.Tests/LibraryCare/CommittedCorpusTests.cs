@@ -30,6 +30,7 @@ public sealed class CommittedCorpusTests : ApiTestBase
         { "h06-duplicate-name.zip", LibraryJobErrorCodeDto.ArchiveUnsafe },
         { "h12a-manifest-schema.zip", LibraryJobErrorCodeDto.ArchiveInvalid },
         { "format-2.zip", LibraryJobErrorCodeDto.ArchiveIncompatible },
+        { "schema-newer.zip", LibraryJobErrorCodeDto.ArchiveIncompatible },
     };
 
     [Theory]
@@ -170,19 +171,6 @@ public sealed class CommittedCorpusTests : ApiTestBase
         (report.Ok, report.Problem).ShouldBe((true, null));
         job.Status.ShouldBe(LibraryJobStatusDto.Completed, job.Error?.Message);
     }
-
-    [Theory]
-    [InlineData("table", "Tracks", "Tracks", true)]
-    [InlineData("table", "__EFMigrationsHistory", "__EFMigrationsHistory", true)]
-    [InlineData("table", "sqlite_sequence", "sqlite_sequence", true)]
-    [InlineData("index", "sqlite_autoindex_Tracks_1", "Tracks", true)]
-    [InlineData("table", "Extra", "Extra", false)]
-    [InlineData("index", "IX_Evil", "Tracks", false)]
-    [InlineData("index", "sqlite_autoindex_Extra_1", "Extra", false)]
-    [InlineData("trigger", "Tracks", "Tracks", false)]
-    [InlineData("view", "Tracks", "Tracks", false)]
-    public void KnownSchema_AllowsOnlyTheMigrationsTablesAndIndexes(string type, string name, string table, bool known) =>
-        StemStudio.Api.LibraryCare.Restore.KnownSchema.IsKnown(type, name, table).ShouldBe(known);
 
     private void Copy(string fileName)
     {
