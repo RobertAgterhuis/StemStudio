@@ -130,3 +130,26 @@ def test_clean_report_has_a_passing_claude_key_section(tmp_path: Path) -> None:
     run_all.main(["--root", str(_repo(tmp_path)), "--report", str(report)], _dup(CLEAN))
     text = report.read_text(encoding="utf-8")
     assert "## Claude key handling\n\n**PASS** - Data Protection only in Api/Agent/Secrets" in text
+
+
+def test_library_care_breach_exits_one_and_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path)
+    endpoints = root / "src" / "StemStudio.Api" / "Tracks" / "TrackEndpoints.cs"
+    endpoints.parent.mkdir(parents=True)
+    endpoints.write_text("using StemStudio.Api.LibraryCare.Backup;\n", "utf-8")
+    report = tmp_path / "r.md"
+    assert run_all.main(["--root", str(root), "--report", str(report)], _dup(CLEAN)) == 1
+    assert "[library-care]" in capsys.readouterr().out
+    text = report.read_text(encoding="utf-8")
+    assert "## Library care\n\n**FAIL** - 1 errors" in text
+    row = "| error | library-care | `src/StemStudio.Api/Tracks/TrackEndpoints.cs:1` | backend |"
+    assert row in text
+
+
+def test_clean_report_has_a_passing_library_care_section(tmp_path: Path) -> None:
+    report = tmp_path / "r.md"
+    run_all.main(["--root", str(_repo(tmp_path)), "--report", str(report)], _dup(CLEAN))
+    text = report.read_text(encoding="utf-8")
+    assert "## Library care\n\n**PASS** - only Api.LibraryCare.Gate outside Api/LibraryCare" in text
