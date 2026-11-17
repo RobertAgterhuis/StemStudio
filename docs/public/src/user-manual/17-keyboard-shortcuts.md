@@ -45,6 +45,29 @@ A focused fader also responds to the arrow keys and <kbd>PgUp</kbd>/<kbd>PgDn</k
 focused speed slider moves 1 % with the arrow keys and 10 % with <kbd>PgUp</kbd>/<kbd>PgDn</kbd>.
 The shortcut overlay lists the practice keys in their own *Practice* group.
 
+## In the library
+
+| Keys | Action |
+|---|---|
+| <kbd>/</kbd> | Jump to **Search the library** (library pages; ignored while you type in a field) |
+| <kbd>Arrow Down</kbd> | From the search box, move to the first result |
+| <kbd>Esc</kbd> | Clear the search and go back to the folder you were in |
+
+The library search is described in chapter 10.
+
+## In the lyrics editor
+
+The assistant keys (chapter 14) work in the lyrics editor:
+
+| Keys | Action |
+|---|---|
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | Check the lyrics |
+| <kbd>F8</kbd> / <kbd>Shift</kbd>+<kbd>F8</kbd> | Next / previous suggestion |
+| <kbd>Alt</kbd>+<kbd>Enter</kbd> | Accept the suggestion |
+| <kbd>Alt</kbd>+<kbd>Backspace</kbd> | Reject the suggestion |
+| <kbd>Alt</kbd>+<kbd>I</kbd> | Mark the suggestion as intentional |
+| <kbd>Esc</kbd> | Back to the text |
+
 ## The command palette
 
 <kbd>Mod</kbd>+<kbd>K</kbd> opens a search box at the top of the screen. Type a few letters
