@@ -129,6 +129,8 @@ public sealed partial class LyricSuiteTests
 
         options.Sheet.ShouldBe("p1.nl.txt");
         options.Cases.ShouldBe(["N01", "N02"]);
+        options.Cpu.ShouldBeFalse();
+        EvalOptions.Parse(["--suite", "lyric", "--cpu", "true"]).Options!.Cpu.ShouldBeTrue();
     }
 
     [Fact]
@@ -161,6 +163,7 @@ public sealed partial class LyricSuiteTests
         var client = LyricCommand.Client("qwen3.5:4b", http);
 
         (await client.SelectAsync(Token)).ShouldBe(new LyricModelInfo { Backend = Contracts.Agent.AgentBackendDto.Ollama, Model = "qwen3.5:4b", UsingFallback = false });
+        (await LyricCommand.Client("qwen3.5:4b", http, cpu: true).SelectAsync(Token)).UsingFallback.ShouldBeTrue();
     }
 
     private static List<string> Ids(string markdown, Regex row) => [.. row.Matches(markdown).Select(match => match.Groups[1].Value)];

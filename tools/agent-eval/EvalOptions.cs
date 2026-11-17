@@ -18,10 +18,13 @@ internal sealed record EvalOptions(string Backend, int Runs, EvalPaths Paths, st
     /// <summary>Lyric suite: a performance sheet to time instead of the cases (023 T008, SC-004).</summary>
     public string? Sheet { get; init; }
 
+    /// <summary>Lyric suite: run the model as the CPU fallback (<c>num_gpu 0</c>), as while a heavy GPU job runs.</summary>
+    public bool Cpu { get; init; }
+
     /// <summary>Lyric suite: only these case ids (comma separated on the command line); empty = all.</summary>
     public IReadOnlyList<string> Cases { get; init; } = [];
 
-    private const string Usage = "Usage: agent-eval --backend ollama|claude|fake --runs 1..10 [--model qwen3.5:9b] [--eval-set eval-set.json] [--presets presets.v1.json] [--out report.md] [--suite agent|lyric] [--lyric-set lyric-eval-set.json] [--sheet sheet.txt] [--cases N01,N02]";
+    private const string Usage = "Usage: agent-eval --backend ollama|claude|fake --runs 1..10 [--model qwen3.5:9b] [--eval-set eval-set.json] [--presets presets.v1.json] [--out report.md] [--suite agent|lyric] [--lyric-set lyric-eval-set.json] [--sheet sheet.txt] [--cases N01,N02] [--cpu true]";
     private static readonly string[] Backends = ["ollama", "claude", "fake"];
 
     /// <summary>eval-set.json generated from specs/011-ai-composer-agent/evaluation/eval-set.md.</summary>
@@ -42,6 +45,7 @@ internal sealed record EvalOptions(string Backend, int Runs, EvalPaths Paths, st
         {
             Suite = suite,
             Sheet = values.GetValueOrDefault("--sheet"),
+            Cpu = values.GetValueOrDefault("--cpu") == "true",
             Cases = values.TryGetValue("--cases", out var cases) ? cases.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : [],
         }, null);
     }

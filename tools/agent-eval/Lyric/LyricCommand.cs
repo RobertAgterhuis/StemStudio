@@ -26,7 +26,7 @@ internal static class LyricCommand
         }
 
         using var http = EvalBackends.OllamaHttp();
-        var model = Client(options.Model, http);
+        var model = Client(options.Model, http, options.Cpu);
         if (options.Sheet is { } sheet)
         {
             return await PerformanceAsync(options, sheet, model, log);
@@ -67,15 +67,21 @@ internal static class LyricCommand
     /// <summary>The real model client on Ollama only (the Claude factory has no key source and is never selected).</summary>
     /// <param name="model">Ollama model.</param>
     /// <param name="http">Ollama HTTP client.</param>
+    /// <param name="cpu">True: the model runs as the CPU fallback.</param>
     /// <returns>The client.</returns>
-    public static LyricModelClient Client(string model, HttpClient http) => new(
-        new FixedSettingsStore(AgentSettings.Defaults(AgentBackendDto.Ollama, DateTimeOffset.UtcNow) with { OllamaModel = model }),
-        new IdleGpuActivity(),
+    public static LyricModelClient Client(string model, HttpClient http, bool cpu = false) => new(
+        new FixedSettingsStore(AgentSettings.Defaults(AgentBackendDto.Ollama, DateTimeOffset.UtcNow) with { OllamaModel = model, OllamaFallbackModel = model }),
+        cpu ? new BusyGpu() : new IdleGpuActivity(),
         new LyricModelBackends
         {
             Ollama = new OllamaChatClientFactory(http),
             Claude = new ClaudeChatClientFactory(new ClaudeKeyProvider(new NoEnvironment(), NoStoredClaudeKeyReader.Instance)),
         });
+
+    private sealed class BusyGpu : Agent.Ports.IGpuActivity
+    {
+        public bool IsHeavyJobActive() => true;
+    }
 
     private sealed class NoEnvironment : Agent.Ports.IEnvironmentReader
     {
