@@ -168,7 +168,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
 - [ ] T066 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerCommandsTests.cs`: every mixer command id of data-model 5.2 dispatches to the same `MixerState` action as its control (012 commands via the 012 handlers, A-012-2..4); unknown/reserved ids ignored (FR-019, FR-020)
 - [ ] T067 [US2] [frontend] Implement the command dispatcher to pass T066
-- [ ] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
+- [x] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
 - [ ] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
 
 **Checkpoint**: HO:us2.
@@ -220,7 +220,7 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T097 [US6] [backend] Implement `Api/Practice/{PracticeEndpoints,PracticeService}.cs` to pass T096
 - [ ] T098 [P] [US6] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/PracticePanelTests.cs` and `.../Pages/PracticePageTests.cs`: today/week/total, per-section table (Advanced), day chart and tempo chart with table toggles and text summaries, off note with turn-on, first-use notice (ok / turn off), delete with confirmation; Practice page overview, enabled switch, delete all, sessions list (Expert); recorder wired to the mixer (state, positions, `OnLoopPass`, trainer state) (FR-025, FR-027, FR-028)
 - [ ] T099 [US6] [frontend] Implement `Components/Practice/{PracticePanel,PracticeCharts}.razor`, `Components/Pages/PracticePage.razor`, rail link and recorder wiring to pass T098
-- [ ] T100 [P] [US6] [qa] E2E `e2e/tests/practice-log.spec.ts`: play with pauses -> totals; section loop with trainer passes at rising speed -> tempo reached; switch off -> nothing recorded (409 in the network log); delete -> zeros; the whole run's request log contains only the app's own origin (US6 scenarios 1-5, SC-009)
+- [x] T100 [P] [US6] [qa] E2E `e2e/tests/practice-log.spec.ts`: play with pauses -> totals; section loop with trainer passes at rising speed -> tempo reached; switch off -> nothing recorded (409 in the network log); delete -> zeros; the whole run's request log contains only the app's own origin (US6 scenarios 1-5, SC-009)
 - [ ] T101 [US6] [frontend] Help topics `mixer-practice-log`, `practice-privacy` (FR-030)
 
 **Checkpoint**: HO:us6.

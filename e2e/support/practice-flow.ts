@@ -105,6 +105,15 @@ export interface SetlistDto {
   readonly removedEntries: number;
 }
 
+/** Contract `PracticeSummary` (the parts the suite reads). */
+export interface PracticeSummaryDto {
+  readonly todaySeconds: number;
+  readonly totalSeconds: number;
+  readonly sessions: number;
+  readonly sections: readonly { readonly sectionId: string | null; readonly label: string; readonly seconds: number; readonly loopPasses: number; readonly bestTrainerPercent: number | null }[];
+  readonly tempo: readonly { readonly sectionId: string | null; readonly percent: number }[];
+}
+
 /** The status text the section lane shows for an unreliable grid (ui-test-ids 1.13.0 `section-status`). */
 export const unreliableGridText = 'Tempo grid uncertain - boundaries may be off';
 
@@ -169,6 +178,22 @@ export class PracticeFlowApi {
   /** `PATCH /api/setlists/{id}` (the note). */
   async setSetlistNote(setlistId: string, note: string): Promise<SetlistDto> {
     return okJson<SetlistDto>(await this.request.patch(`/api/setlists/${setlistId}`, { data: { note } }));
+  }
+
+  /** `GET /api/practice/summary` for today's local offset of the test machine. */
+  async practiceSummary(trackId: string): Promise<PracticeSummaryDto> {
+    const offset = -new Date().getTimezoneOffset();
+    return okJson<PracticeSummaryDto>(await this.request.get('/api/practice/summary', { params: { trackId, days: 7, utcOffsetMinutes: offset } }));
+  }
+
+  /** `PUT /api/practice/settings` (switch the log on or off). */
+  async setPracticeLog(enabled: boolean): Promise<void> {
+    await okJson<unknown>(await this.request.put('/api/practice/settings', { data: { enabled, noticeAcknowledged: true } }));
+  }
+
+  /** `DELETE /api/practice/sessions?trackId=` (raw count). */
+  async deletePracticeLog(trackId: string): Promise<number> {
+    return (await okJson<{ readonly deleted: number }>(await this.request.delete('/api/practice/sessions', { params: { trackId } }))).deleted;
   }
 
   /** Polls until the set is `ready` (or fails the test when it becomes `failed`). */
