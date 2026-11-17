@@ -15,8 +15,17 @@ boxes, grids, menus; Space/Enter on buttons and links), pedal mode, the single-k
 2.1.4), preferences schemaVersion 2 (`shortcuts`), and `mixer-keys.js` retired (Space is the binding
 `mixer.play-pause`). The defaults are the catalogue `src/StemStudio.Web/wwwroot/js/keymap-defaults.json`
 (section 5.4). Calling `registerShortcuts(dotnet, scope)` without a key map keeps the 1.0.0 behaviour.
-1.2.0 is allocated to feature 022 (scope `library`, `/` -> `library.search.focus`); when 022 is on `main`
-this document is re-merged so it contains both (014 DELTA.md 7).
+1.2.0 (additive, feature 022; built in code by the 022 frontend lane, CTO decision row "web-interop 1.2.0") -
+`ShortcutScope` adds `library`; its key map is `/` -> `library.search.focus` (Mod+/ stays the global
+overview); module constant `1.2.0`.
+
+**Contains**: 1.0.0, 1.2.0, 1.1.0 (merge order). Re-merged at the 014+015 round start (014 DELTA.md 8): this
+document is 1.0.0 + 022's 1.2.0 + the 014 delta and carries 014's allocated label 1.1.0 (ROADMAP "Full-document
+labels": labels identify the merged deltas, never an order; consumers compare by containment). The module
+constant `WEB_INTEROP_CONTRACT_VERSION` names the newest full document: it stays `"1.2.0"` until the 014
+frontend lane ships the key map as data, then becomes `"1.1.0"` (this document). In the data-driven key map
+the scope `library` is a catalogue scope like the others: 022's hard-coded `LIBRARY` binding becomes the
+catalogue row `library.search.focus` (owner 022, same key, same command).
 
 ## 1. `first-paint.js` (classic script, first element in `<head>`)
 
@@ -99,7 +108,7 @@ export interface TourRuntime {
   `IJSRuntime` for these features directly.
 - The full TypeScript types (incl. `StoredPreferences`, `StoredHelpProgress`, `StoredTourRecord`,
   `TourRuntimeStep`, `TourLabels`, `ShortcutScope`) are in `src/web-interop/src/types.ts`; the
-  module also exports `WEB_INTEROP_CONTRACT_VERSION` (`"1.1.0"` from feature 014). `first-paint.ts` is a separate
+  module also exports `WEB_INTEROP_CONTRACT_VERSION` (`"1.2.0"` from feature 022, `"1.1.0"` once 014 ships; see the changelog). `first-paint.ts` is a separate
   IIFE entry (`vite build --mode first-paint`).
 
 ## 4. C# mapping (`src/StemStudio.Web/Interop/`, Phase 0 T002)
@@ -153,7 +162,7 @@ export interface KeyMap {
   readonly pedalMode: boolean;
 }
 
-export type ShortcutScope = 'global' | 'mixer' | 'setlist';   // 'setlist' added in 1.1.0
+export type ShortcutScope = 'global' | 'mixer' | 'library' | 'setlist';   // 'library' added in 1.2.0 (022), 'setlist' in 1.1.0
 ```
 
 Exports (added):

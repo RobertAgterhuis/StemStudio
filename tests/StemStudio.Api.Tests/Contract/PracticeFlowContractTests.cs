@@ -14,7 +14,8 @@ namespace StemStudio.Api.Tests.Contract;
 
 /// <summary>
 /// Skeleton tests (architect, 014 Phase 0 part 2, T003/T005): backend-api 1.13.0 (<c>specs/014-practice-flow/contracts/backend-api.openapi.yaml</c>)
-/// is 013's 1.12.0 plus exactly the 014 delta (1.13.0-delta.2), worker-api 1.8.0 is 1.7.0 plus the practice lane, and the
+/// is 023's 1.23.0 (re-based at the 014+015 round start, DELTA.md 8; 013's 1.12.0 in Phase 0) plus exactly the 014 delta
+/// (1.13.0-delta.2), worker-api 1.8.0 is 1.7.0 plus the practice lane, and the
 /// Sections, ScoreFollow, Setlists and Practice DTOs, routes, limits and problem types match them.
 /// </summary>
 public sealed class PracticeFlowContractTests
@@ -25,6 +26,9 @@ public sealed class PracticeFlowContractTests
         "schemas/ChannelId", "schemas/ScoreProfile", "schemas/ProblemDetails", "schemas/ValidationProblemDetails",
         "responses/NotFound", "responses/ValidationProblem", "responses/WorkerUnavailable", "parameters/AssetId", "parameters/TrackId",
     ];
+
+    // The full document 1.13.0 was merged onto (merge_full.py of 014); every assertion below proves "base + exactly the 014 delta".
+    private static OpenApiContract BaseDocument => Backend023;
 
     public static TheoryData<string, string[]> Changed1120Entries => new()
     {
@@ -67,7 +71,7 @@ public sealed class PracticeFlowContractTests
         var info = OpenApiContract.Backend.Root["info"]!;
 
         info["version"]!.GetValue<string>().ShouldBe("1.13.0");
-        Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.13.0"]);
+        Strings(info["x-stemstudio-contains"]!).ShouldBe(["1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.21.0", "1.11.0", "1.12.0", "1.22.0", "1.23.0", "1.13.0"]);
         Backend014Delta.Root["info"]!["version"]!.GetValue<string>().ShouldBe("1.13.0-delta.2");
     }
 
@@ -75,7 +79,7 @@ public sealed class PracticeFlowContractTests
     [MemberData(nameof(Changed1120Entries))]
     public void Backend1130_Contains1120UnchangedExceptLoopRegion(string section, string[] changed)
     {
-        ChangedEntries(Backend013, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
+        ChangedEntries(BaseDocument, OpenApiContract.Backend, section).ShouldBe(changed, ignoreOrder: true);
     }
 
     [Theory]
@@ -91,7 +95,7 @@ public sealed class PracticeFlowContractTests
     [Fact]
     public void Backend1130_AddsTheTwentyTwoPracticeFlowOperations()
     {
-        var added = OpenApiContract.Backend.Operations.Select(Id).Except(Backend013.Operations.Select(Id)).ToList();
+        var added = OpenApiContract.Backend.Operations.Select(Id).Except(BaseDocument.Operations.Select(Id)).ToList();
 
         added.ShouldBe(Backend014Delta.Operations.Select(Id), ignoreOrder: true);
         added.Count.ShouldBe(22);
@@ -113,7 +117,7 @@ public sealed class PracticeFlowContractTests
         Strings(sectionId["type"]!).ShouldBe(["string", "null"]);
         Strings(after["required"]!).ShouldNotContain("sectionId");
         after["properties"]!.AsObject().Remove("sectionId");
-        JsonNode.DeepEquals(Backend013.Root["components"]!["schemas"]!["LoopRegion"], after).ShouldBeTrue();
+        JsonNode.DeepEquals(BaseDocument.Root["components"]!["schemas"]!["LoopRegion"], after).ShouldBeTrue();
     }
 
     [Fact]

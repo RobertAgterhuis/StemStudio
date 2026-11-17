@@ -2,12 +2,12 @@
 
 Usage (repo root):
 ``python -I specs/014-practice-flow/contracts/check_superset.py [older] [newer]``
-Defaults: older = specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0, the full
-document on ``main`` before 014), newer = specs/014-practice-flow/contracts/backend-api.openapi.yaml
-(1.13.0 = 1.12.0 + the 014 delta). Phase 0 also runs it with the delta as ``older``
+Defaults: older = specs/023-lyric-writing-assistant/contracts/backend-api.openapi.yaml (1.23.0, the
+full document 014 was re-based onto at the 014+015 round start, DELTA.md 8), newer =
+specs/014-practice-flow/contracts/backend-api.openapi.yaml (1.13.0 = 1.23.0 + the 014 delta). Phase 0 also runs it with the delta as ``older``
 (``practice-api.openapi.yaml``: every delta entry is in 1.13.0 unchanged, except the shared
-components listed in ``SHARED``). After 022/023 land on ``main`` the same check runs with their
-1.23.0 as ``older`` (DELTA.md 7).
+components listed in ``SHARED``). (1.12.0 as ``older`` no longer passes: 022/023 extend
+``Asset`` and the lyrics schemas, which ``merge_full.py --check`` allows.)
 
 Rules: every path, operation, parameter, header, response, example and schema of the older
 document exists unchanged in the newer one, except the entries in ``ALLOWED``, which may only
@@ -22,7 +22,7 @@ from typing import Any
 
 import yaml
 
-OLDER = Path("specs/013-library-care/contracts/backend-api.openapi.yaml")
+OLDER = Path("specs/023-lyric-writing-assistant/contracts/backend-api.openapi.yaml")
 NEWER = Path("specs/014-practice-flow/contracts/backend-api.openapi.yaml")
 # 1.13.0 may only add to these: `LoopRegion.sectionId`.
 ALLOWED = {

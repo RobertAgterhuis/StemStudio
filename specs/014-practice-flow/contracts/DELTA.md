@@ -202,3 +202,17 @@ documents are re-merged in order (labels are never renumbered; ROADMAP "Full-doc
 4. **Worker / engine**: unchanged by 022/023 (1.8.0 / 2.4.0 stay as built here).
 5. **Key catalogue**: 023's lyrics editor keys (Ctrl+Alt+C, F8, Shift+F8, Alt+Enter, Alt+Backspace, Alt+I) are
    `externalChords`; `LyricsEditorPage` `/lyrics/{id}` registers no key map scope.
+
+### 8.1 Outcome (architect, round 014+015 start, 2026-11-17)
+
+Done on branch `014-015-round` after merging `022-023-round` (7eac67f4) and `r14-p0-014`:
+
+| Contract | Result | Checks |
+|---|---|---|
+| Backend | `backend-api.openapi.yaml` **1.13.0** = 023's 1.23.0 + 014, built by [merge_full.py](merge_full.py) (block-level three-way merge, base 013's 1.12.0; 014's Phase 0 document kept as `backend-api.014-on-1.12.0.openapi.yaml`); `x-stemstudio-contains` `[..., 1.12.0, 1.22.0, 1.23.0, 1.13.0]`. No block changed on both sides; `EXTENDED` = `LoopRegion` (014) + `Asset` (022) + the 023 lyrics/job schemas | `merge_full.py --check`: superset yes (1.23.0 and the 014 Phase 0 document); `check_superset.py` (default `OLDER` = 1.23.0) and with the delta: yes; `PracticeFlowContractTests` base = `Contract/023`; `LyricAssistContractTests` now reads `Contract/023` |
+| UI test ids | `ui-test-ids.md` **1.13.0** = 023's 1.23.0 + the 014 changelog paragraph (after 1.23.0's) + "Additions in 1.13.0" (after 1.23.0's section) | `PracticeFlowUiTestIdsTests` base = 023's 1.23.0 |
+| Web interop | `web-interop.md` **1.1.0** = 1.0.0 + 022's 1.2.0 (scope `library`) + 014; contains 1.0.0, 1.2.0, 1.1.0; `ShortcutScope = 'global' \| 'mixer' \| 'library' \| 'setlist'` (C# `Library = 2`, `Setlist = 3`) | catalogue row `library.search.focus` (owner 022) already present |
+| Worker / engine | unchanged (1.8.0 / 2.4.0) | - |
+
+The current full backend document linked into `StemStudio.Api.Tests` as `Contract/backend-api.openapi.yaml`
+is 014's 1.13.0 until 015's 1.14.0 is merged on top of it (015 DELTA.md "Re-merge").
