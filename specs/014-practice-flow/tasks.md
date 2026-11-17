@@ -109,10 +109,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### stem-separation (`jobs/`, tests first)
 
-- [ ] T030 [P] [stem-separation] Failing tests `worker/tests/jobs/test_practice_lane_store.py`: the `practice` lane runs one job at a time FIFO across the three kinds; stores persist `section-jobs/<id>.json`, `score-view-jobs/<id>/...`, `setlist-document-jobs/<id>/...`; restart -> `failed` "interrupted by restart"; delete removes files; 24 h sweep (fake clock); `Health.lanes.practice` counts (FR-001)
-- [ ] T031 [stem-separation] Implement `jobs/practice_{lane,store}.py` to pass T030
-- [ ] T032 [P] [stem-separation] Failing tests `worker/tests/analysis/structure/test_fake.py` (owned by stem-separation for the composition, file under its tests): the fake analyser follows data-model 2.4 for grids with and without reliability and for short songs
-- [ ] T033 [stem-separation] Implement `analysis/structure/fake.py` and the factory (real/fake by settings) in `main.py` to pass T032 (fake file agreed with beat-analysis: stem-separation owns `fake.py` only)
+- [x] T030 [P] [stem-separation] Failing tests `worker/tests/jobs/test_practice_lane_store.py`: the `practice` lane runs one job at a time FIFO across the three kinds; stores persist `section-jobs/<id>.json`, `score-view-jobs/<id>/...`, `setlist-document-jobs/<id>/...`; restart -> `failed` "interrupted by restart"; delete removes files; 24 h sweep (fake clock); `Health.lanes.practice` counts (FR-001)
+- [x] T031 [stem-separation] Implement `jobs/practice_{lane,store}.py` to pass T030
+- [x] T032 [P] [stem-separation] Failing tests `worker/tests/analysis/structure/test_fake.py` (owned by stem-separation for the composition, file under its tests): the fake analyser follows data-model 2.4 for grids with and without reliability and for short songs
+- [x] T033 [stem-separation] Implement `analysis/structure/fake.py` and the factory (real/fake by settings) in `main.py` to pass T032 (fake file agreed with beat-analysis: stem-separation owns `fake.py` only)
 
 ### backend (tests first)
 
