@@ -85,7 +85,19 @@ public sealed class ShortcutOverlayTests : PageTestContext
         Id(shell, "shortcut-row-mixer-stop").GetAttribute("data-keys").ShouldBe(string.Empty);
         Id(shell, "shortcut-row-mixer-stop").TextContent.ShouldContain("-");
         overlay.TextContent.ShouldContain("Single-key shortcuts are off");
-        shell.FindAll("[data-testid=shortcut-row-mixer-record-toggle]").Count.ShouldBe(1);
+        shell.FindAll("[data-testid=shortcut-row-mixer-record-toggle]").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AtExpert_TheRecordAndCompareRowsCarryThe015Ids()
+    {
+        Services.GetRequiredService<NavigationManager>().NavigateTo($"tracks/{TestData.TrackId}/mixer");
+        var shell = RenderShell(ExperienceLevel.Expert);
+
+        await OpenAsync(shell);
+
+        Id(shell, "shortcut-record").TextContent.ShouldBe("Record / stop recording");
+        Id(shell, "shortcut-compare").Closest("tr")!.GetAttribute("data-keys").ShouldBe("c");
     }
 
     [Fact]
