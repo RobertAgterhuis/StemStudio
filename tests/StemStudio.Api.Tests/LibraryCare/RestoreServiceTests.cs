@@ -46,6 +46,24 @@ public sealed class RestoreServiceTests : ApiTestBase
         await ContractAssert.MatchesAsync(previous, "getPreviousLibrary");
     }
 
+    // Security review 013 item 1: converted vocals are archived and come back with their take.
+    [Fact]
+    public async Task Replace_BringsBackConvertedVocals()
+    {
+        var track = await _library.TrackAsync(detail: false);
+        var generation = await _library.GenerationAsync(track, id => $"generations/{id:D}/vocal-1.flac");
+        var files = _library.LibraryFiles();
+        var name = await BackupAsync(Client, Factory);
+        File.Delete(_library.PathOf($"generations/{generation.Id:D}/vocal-1.flac"));
+
+        var job = await FinishedAsync(await RestoreAsync(name, new RestoreOptionsDto { Mode = RestoreModeDto.Replace, Confirmation = "REPLACE" }));
+
+        job.Status.ShouldBe(LibraryJobStatusDto.Completed, job.Error?.Message);
+        _library.LibraryFiles().ShouldBe(files);
+        using var vocal = await Client.GetAsync(new Uri(ApiRoutes.TakeVocal(generation.Id, 1), UriKind.Relative), Ct);
+        vocal.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task Replace_OfANonEmptyLibraryNeedsTheTypedConfirmation()
     {

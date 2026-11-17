@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.Storage;
 using StemStudio.Api.Tests.Contract;
@@ -10,6 +11,7 @@ using StemStudio.Contracts;
 using StemStudio.Contracts.Generation;
 using StemStudio.Contracts.Voices;
 using StemStudio.Domain.Tracks;
+using StemStudio.Persistence;
 
 namespace StemStudio.Api.Tests.Voices;
 
@@ -93,6 +95,23 @@ public sealed class VoiceConversionTests : ApiTestBase
 
         (await response.BodyAsync<GenerationDto>()).Status.ShouldBe(GenerationStateDto.Queued);
         Factory.Singer.Created.Count.ShouldBe(1);
+    }
+
+    // Security review 013 item 1: a sample path outside the data directory is never sent to the singer.
+    [Fact]
+    public async Task Sync_ASamplePathOutsideTheDataDirectoryFailsTheConversion()
+    {
+        var (song, profile) = await SongAndProfileAsync();
+        var conversion = await (await ConvertAsync(song, profile.Id)).BodyAsync<GenerationDto>();
+        await Factory.WithScopeAsync(sp => sp.GetRequiredService<StemStudioDbContext>().Database
+            .ExecuteSqlRawAsync("UPDATE VoiceProfiles SET SamplePath = '../../keys/key.xml'", Ct));
+        await SeparateAsync(conversion.VoiceConversion!.ImportedTrackId!.Value);
+
+        await Factory.SyncGenerationsAsync();
+
+        var stored = await GetAsync(conversion.Id);
+        (stored.Status, stored.Error!.Code).ShouldBe((GenerationStateDto.Failed, GenerationErrorCodeDto.EngineError));
+        Factory.Singer.Created.ShouldBeEmpty();
     }
 
     [Fact]

@@ -44,7 +44,7 @@ public sealed class BackupServiceTests : IDisposable
     {
         var track = await _library.TrackAsync();
         await _library.ExportAsync(track);
-        await _library.GenerationAsync(track);
+        await _library.GenerationAsync(track, id => $"generations/{id:D}/vocal-1.flac");
         await _library.VoiceProfileAsync();
         await _library.PendingUploadAsync();
 
