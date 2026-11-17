@@ -203,6 +203,14 @@
   scroll-padding-bottom: calc(var(--ss-dock-inset, 0px) + var(--ss-space-2));
 }
 
+/* Under 768 px the rail is a bottom bar over the page, which scrolls on <html>: keep focused editor and assistant
+   controls above it (WCAG 2.4.11; as the 022 library). */
+@media (max-width: 48rem) {
+  html:has(.ss-lyrics-editor-page) {
+    scroll-padding-bottom: calc(var(--ss-transport-height) + var(--ss-space-2));
+  }
+}
+
 .ss-assist-list:focus-visible {
   outline: var(--ss-focus-width) solid var(--ss-color-focus);
   outline-offset: var(--ss-focus-offset);
