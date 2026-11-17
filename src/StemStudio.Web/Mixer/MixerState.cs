@@ -72,7 +72,7 @@ public sealed partial class MixerState
     public bool IsDirty { get; private set; }
 
     /// <summary>True when at least one audible-level channel is soloed (solo flags of hidden channels are ignored).</summary>
-    public bool AnySolo => AllChannels.Any(c => c.Solo && !IsHidden(c));
+    public bool AnySolo => ExternalSolo || AllChannels.Any(c => c.Solo && !IsHidden(c));
 
     /// <summary>
     /// Mirror of the engine's gate (contract 2.0.0): hidden and muted channels are silent; with any audible-level
