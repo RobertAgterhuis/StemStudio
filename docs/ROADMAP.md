@@ -89,7 +89,7 @@ previous version.
 | 020 Insights/handouts | 1.19.0 | 1.11.0 | - | 1.19.0 | |
 | 021 Partner/studio bridge | 1.20.0 | 1.12.0 | 2.9.0 | 1.20.0 | generator-api 1.2.0 |
 | 011 follow-up claude-key (Claude key in Settings, encrypted; 2026-11-16) | 1.21.0 | - | - | 1.21.0 | agent tool catalogue unchanged (no key tool) |
-| 022 Library by artist and album (owner request 2026-11-16) | 1.22.0 | - | - | 1.22.0 | agent tool catalogue 1.1.0 |
+| 022 Library by artist and album (owner request 2026-11-16) | 1.22.0 | - | - | 1.22.0 | agent tool catalogue 1.1.0, web-interop 1.2.0 (scope `library`, 022 Phase 0) |
 | 023 Lyric writing assistant | 1.23.0 | - | - | 1.23.0 | agent tool catalogue 1.2.0, agent eval set 1.1.0, lyric-assist-output 1.0.0 |
 
 ADR numbers of the parallel 012-021 designs are renumbered by the CTO at merge, in feature order.
@@ -142,3 +142,11 @@ tool catalogue **1.3.0**, the next free catalogue label after 1.1.0 (022) and 1.
 the `get_mix` and `mixer_get_state` results show the practice tempo read-only (numbers only) and the
 mix tools keep it unchanged. Tools that change the practice tempo remain a later catalogue minor.
 022 and 023 merge their catalogue deltas onto 1.3.0 by containment (labels are never renumbered).
+
+Feature 014 (Phase 0 part 2, architect, 2026-11-17, on `main` with 012 and 013) confirms its labels:
+backend-api **1.13.0** (= 1.12.0 + the 014 delta; re-merged onto 1.23.0 when 022/023 are on `main`,
+so `x-stemstudio-contains` ends `1.12.0, 1.22.0, 1.23.0, 1.13.0`), worker-api **1.8.0**, audio-engine
+**2.4.0**, ui-test-ids **1.13.0**, web-interop **1.1.0** (022 took web-interop **1.2.0** for its
+`library` scope; the full web-interop document after the 014+015 round contains both). The default key
+map of every feature is the catalogue `src/StemStudio.Web/wwwroot/js/keymap-defaults.json` (014 FR-020,
+web-interop 1.1.0 section 5.4); later features add rows to it (016 next) instead of binding keys in code.

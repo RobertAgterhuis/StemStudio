@@ -110,7 +110,8 @@ public sealed partial class BackendContractTests
         var contract = OpenApiContract.Backend.Operations.Select(op => op.Operation["operationId"]!.GetValue<string>())
             .Except(PendingArtworkOperations).Except(PendingAssetOperations).Except(PendingLyricsOperations).Except(PendingScoreOperations)
             .Except(PendingGenerationOperations).Except(PendingSongVoiceOperations).Except(PendingAgentOperations)
-            .Except(PendingLibraryCareOperations).Except(PendingLibraryOperations).Except(PendingLyricAssistOperations).ToList();
+            .Except(PendingLibraryCareOperations).Except(PendingLibraryOperations).Except(PendingLyricAssistOperations)
+            .Except(PendingPracticeFlowOperations).ToList();
 
         served.ShouldBe(contract, ignoreOrder: true);
     }

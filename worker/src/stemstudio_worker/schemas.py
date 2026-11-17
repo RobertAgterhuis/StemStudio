@@ -1,6 +1,6 @@
 """Pydantic v2 models of the worker HTTP contract.
 
-These models mirror ``specs/013-library-care/contracts/worker-api.openapi.yaml`` (1.7.0) and
+These models mirror ``specs/014-practice-flow/contracts/worker-api.openapi.yaml`` (1.8.0) and
 are the single source of truth for JSON on the wire (camelCase aliases) and for ``result.json``
 on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive new states.
 1.3.0 (feature 005, ``specs/005-artwork-band-info/contracts``) added artwork and metadata jobs;
@@ -8,7 +8,9 @@ on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive 
 ``specs/006-synced-lyrics-karaoke/contracts``) lyrics jobs and ``Health.lyricsAlignment``; 1.6.0
 (feature 008) transcription jobs, ``Health.transcription`` and ``Health.lanes.transcribe``;
 1.7.0 (feature 013, ``specs/013-library-care/contracts``) the storage report, the storage clean-up
-and the rehydration of a completed standard job from library stems.
+and the rehydration of a completed standard job from library stems; 1.8.0 (feature 014,
+``specs/014-practice-flow/contracts``) section, score-view and setlist document jobs on the
+``practice`` lane, ``Health.lanes.practice`` and ``Health.structure``.
 """
 
 import itertools
@@ -30,7 +32,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.7.0"
+CONTRACT_VERSION = "1.8.0"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -1265,10 +1267,300 @@ class LaneHealth(ContractModel):
 
 
 class LanesHealth(ContractModel):
-    """Queue state of the lanes beside the separation queue (render 1.4.0, transcribe 1.6.0)."""
+    """Queue state of the lanes beside the separation queue (1.4.0, 1.6.0, practice 1.8.0)."""
 
     render: LaneHealth = LaneHealth()
     transcribe: LaneHealth = LaneHealth()
+    practice: LaneHealth = LaneHealth()
+
+
+# ------------------------------------------------------------ practice lane (1.8.0, feature 014)
+
+SectionKind = Literal[
+    "intro", "verse", "pre-chorus", "chorus", "bridge", "solo", "instrumental", "outro", "other",
+]  # fmt: skip
+"""Functional kind of a detected section (data-model 2.3)."""
+
+SectionSnap = Literal["downbeat", "beat", "time"]
+"""What the boundaries were snapped to: bars of a reliable grid, beats, or 0.1 s."""
+
+SectionWarningCode = Literal[
+    "grid-unreliable", "no-grid", "few-repetitions", "no-vocals", "merged-to-limit",
+]  # fmt: skip
+"""Codes of ``SectionResult.warnings``; the texts are ``SECTION_WARNING_TEXTS``."""
+
+StructureAnalyzerName = Literal["stems-novelty", "fake"]
+"""Section analysers: the stems novelty analyser (``analysis/structure``) or the E2E fake."""
+
+ChannelPath = Annotated[
+    str, Field(pattern=r"^(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?$")
+]
+"""A standard stem (``bass``) or a detail channel ``<parent>.<detail>``."""
+
+DetailChannel = Annotated[
+    str, Field(pattern=r"^(vocals|drums|guitar|piano|other)\.[a-z][a-z-]{0,31}$")
+]
+"""A detail channel ``<parent>.<detail>`` (``guitar.electric-guitar``)."""
+
+SECTION_WARNING_TEXTS: Final[Mapping[SectionWarningCode, str]] = {
+    "grid-unreliable": "Tempo grid uncertain - boundaries may be off.",
+    "no-grid": "No tempo grid - boundaries are placed in seconds.",
+    "few-repetitions": "Few repeating parts found - sections are named Part A, Part B.",
+    "no-vocals": "No vocals found - verse and chorus could not be told apart.",
+    "merged-to-limit": "Short sections were merged to stay within the section limit.",
+}
+"""User-facing text of every section warning code (shown in the mixer's section status)."""
+
+SCORE_VIEW_FAILED_TEXT: Final = "The score view could not be made."
+"""Error of a score-view job whose MusicXML cannot be laid out (``ScoreViewError``)."""
+
+DOCUMENT_FAILED_TEXT: Final = "The setlist PDF could not be made."
+"""Error of a setlist document job that fails (``DocumentError``)."""
+
+MAX_SECTIONS: Final = 64
+"""Most sections per track (upper bound of ``maxSections``)."""
+
+MAX_SCORE_PAGES: Final = 200
+"""Most pages of one score view."""
+
+MAX_SCORE_BARS: Final = 2000
+"""Most bars of one score view."""
+
+MAX_SETLIST_SONGS: Final = 100
+"""Most songs in one setlist document."""
+
+_CONTIGUOUS_TOLERANCE: Final = 0.001
+"""Largest gap or overlap (seconds) between neighbouring sections or bars."""
+
+
+class StemPaths(ContractModel):
+    """Library paths of a track's standard stems (``guitar``/``piano`` absent for ``htdemucs``)."""
+
+    vocals: LibraryPath
+    drums: LibraryPath
+    bass: LibraryPath
+    other: LibraryPath
+    guitar: LibraryPath | None = None
+    piano: LibraryPath | None = None
+
+
+class DetailPath(ContractModel):
+    """A kept detail stem of a split parent (used only to name the solo instrument)."""
+
+    channel: DetailChannel
+    path: LibraryPath
+
+
+class SectionJobRequest(ContractModel):
+    """Body of ``POST /v1/section-jobs`` (data-model 2.1)."""
+
+    stems: StemPaths
+    details: Annotated[list[DetailPath], Field(max_length=30)] = []
+    grid: BeatGrid | None
+    duration_seconds: Annotated[float, Field(ge=1, le=900)]
+    max_sections: Annotated[int, Field(ge=1, le=MAX_SECTIONS)] = MAX_SECTIONS
+
+
+class DetectedSection(ContractModel):
+    """One detected section; the sections of a result are ordered and contiguous."""
+
+    kind: SectionKind
+    label: Annotated[str, Field(min_length=1, max_length=40)]
+    start_seconds: Seconds
+    end_seconds: Annotated[float, Field(gt=0)]
+    cluster: Annotated[str, Field(pattern=r"^[A-Z]$")]
+    instrument: ChannelPath | None
+    confidence: Annotated[float, Field(ge=0, le=1)]
+
+
+class SectionWarning(ContractModel):
+    """A warning of a section result (``Warning`` in the contract)."""
+
+    code: SectionWarningCode
+    message: Annotated[str, Field(max_length=300)]
+
+
+class AnalyzerInfo(ContractModel):
+    """Name and version of the analyser that produced a section result."""
+
+    name: StructureAnalyzerName
+    version: Annotated[str, Field(max_length=20)]
+
+
+def _contiguous(starts_ends: list[tuple[float, float]]) -> bool:
+    """True when every span is non-empty and ends where the next one starts."""
+    if any(end <= start for start, end in starts_ends):
+        return False
+    return all(
+        abs(first[1] - second[0]) <= _CONTIGUOUS_TOLERANCE
+        for first, second in itertools.pairwise(starts_ends)
+    )
+
+
+class SectionResult(ContractModel):
+    """Result of a completed section job: sections covering ``0..durationSeconds`` without gaps."""
+
+    analyzer: AnalyzerInfo
+    snap: SectionSnap
+    sections: Annotated[list[DetectedSection], Field(min_length=1, max_length=MAX_SECTIONS)]
+    warnings: Annotated[list[SectionWarning], Field(max_length=10)]
+
+    @model_validator(mode="after")
+    def _check_contiguous(self) -> Self:
+        """Require ascending, contiguous sections (1 ms tolerance)."""
+        if not _contiguous([(s.start_seconds, s.end_seconds) for s in self.sections]):
+            msg = "sections must be ascending and contiguous"
+            raise ValueError(msg)
+        return self
+
+
+class PracticeJobStatus(ContractModel):
+    """Fields shared by the three job kinds of the ``practice`` lane (1.8.0)."""
+
+    job_id: JobId
+    status: RenderJobStatus
+    progress: Annotated[float, Field(ge=0, le=1)]
+    error: Annotated[str | None, Field(max_length=500)] = None
+    created_at: datetime
+
+
+class SectionJob(PracticeJobStatus):
+    """Status of a section job: ``POST /v1/section-jobs`` and ``GET /v1/section-jobs/{id}``."""
+
+    result: SectionResult | None = None
+
+
+class ScoreViewJobRequest(ContractModel):
+    """Body of ``POST /v1/score-view-jobs`` (data-model 2.5)."""
+
+    musicxml: LibraryPath
+    grid: TempoGrid
+    duration_seconds: Annotated[float, Field(ge=1, le=900)]
+
+
+class BarBox(ContractModel):
+    """One bar: box in page fractions, times relative to the score's input start."""
+
+    index: Annotated[int, Field(ge=0)]
+    number: Annotated[int, Field(ge=0)]
+    page: Annotated[int, Field(ge=1, le=MAX_SCORE_PAGES)]
+    x: Annotated[float, Field(ge=0, le=1)]
+    y: Annotated[float, Field(ge=0, le=1)]
+    width: Annotated[float, Field(gt=0, le=1)]
+    height: Annotated[float, Field(gt=0, le=1)]
+    start_seconds: float
+    end_seconds: float
+
+
+class ScoreViewPageInfo(ContractModel):
+    """Size of one SVG page of a score view."""
+
+    page: Annotated[int, Field(ge=1, le=MAX_SCORE_PAGES)]
+    width_px: Annotated[int, Field(ge=1)]
+    height_px: Annotated[int, Field(ge=1)]
+
+
+class ScoreViewEngine(ContractModel):
+    """The engraver that laid out the pages."""
+
+    name: Literal["verovio"] = "verovio"
+    version: Annotated[str, Field(max_length=40)]
+
+
+def _on_pages(bars: list[BarBox], pages: list[ScoreViewPageInfo]) -> bool:
+    """True when every bar lies on one of the listed pages."""
+    listed = {page.page for page in pages}
+    return all(bar.page in listed for bar in bars)
+
+
+class ScoreViewResult(ContractModel):
+    """Result of a completed score-view job: page sizes and the bar map."""
+
+    pages: Annotated[list[ScoreViewPageInfo], Field(min_length=1, max_length=MAX_SCORE_PAGES)]
+    bars: Annotated[list[BarBox], Field(min_length=1, max_length=MAX_SCORE_BARS)]
+    engine: ScoreViewEngine
+
+    @model_validator(mode="after")
+    def _check_bars(self) -> Self:
+        """Require contiguous bars that lie on listed pages."""
+        spans = [(bar.start_seconds, bar.end_seconds) for bar in self.bars]
+        if not (_contiguous(spans) and _on_pages(self.bars, self.pages)):
+            msg = "bars must be ascending, contiguous and on listed pages"
+            raise ValueError(msg)
+        return self
+
+
+class ScoreViewJob(PracticeJobStatus):
+    """Status of a score-view job: ``POST /v1/score-view-jobs`` and ``GET .../{id}``."""
+
+    result: ScoreViewResult | None = None
+
+
+class SetlistSection(ContractModel):
+    """A section line of a song in the setlist PDF ("0:12 Verse 1")."""
+
+    label: Annotated[str, Field(max_length=40)]
+    kind: Annotated[str, Field(max_length=20)]
+    start_seconds: Seconds
+
+
+LyricsLineText = Annotated[str, Field(max_length=500)]
+"""One plain lyrics line of a setlist song."""
+
+
+class SetlistLyrics(ContractModel):
+    """Plain lyrics lines of a song (at most 10,000 characters after the API cut)."""
+
+    lines: Annotated[list[LyricsLineText], Field(max_length=2000)]
+    shortened: bool
+
+
+class SetlistSongContent(ContractModel):
+    """One song of a setlist document (data-model 2.6)."""
+
+    position: Annotated[int, Field(ge=1, le=MAX_SETLIST_SONGS)]
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    artist: Annotated[str | None, Field(max_length=200)] = None
+    bpm: Annotated[float | None, Field(ge=0, le=400)] = None
+    beats_per_bar: BeatsPerBar | None = None
+    key: Annotated[str | None, Field(max_length=40)] = None
+    duration_seconds: Seconds
+    mix_name: Annotated[str | None, Field(max_length=100)] = None
+    note: Annotated[str | None, Field(max_length=1000)] = None
+    sections: Annotated[list[SetlistSection], Field(max_length=MAX_SECTIONS)] = []
+    lyrics: SetlistLyrics | None = None
+
+
+class SetlistDocumentOptions(ContractModel):
+    """Which parts the setlist PDF contains."""
+
+    include_lyrics: bool
+    include_sections: bool
+    include_notes: bool
+    page_break_per_song: bool
+
+
+class SetlistDocumentRequest(ContractModel):
+    """Body of ``POST /v1/setlist-document-jobs``: the whole content inline, no paths."""
+
+    title: Annotated[str, Field(min_length=1, max_length=80)]
+    note: Annotated[str, Field(max_length=2000)] = ""
+    generated_at: datetime
+    options: SetlistDocumentOptions
+    songs: Annotated[list[SetlistSongContent], Field(min_length=1, max_length=MAX_SETLIST_SONGS)]
+
+
+class SetlistDocumentJob(PracticeJobStatus):
+    """Status of a setlist document job: ``POST /v1/setlist-document-jobs`` and ``GET``."""
+
+    pages: Annotated[int | None, Field(ge=1)] = None
+
+
+class StructureHealth(ContractModel):
+    """``Health.structure``: the configured section analyser (1.8.0)."""
+
+    analyzer: StructureAnalyzerName = "stems-novelty"
+    version: Annotated[str, Field(max_length=20)] = "1.0.0"
 
 
 class Health(ContractModel):
@@ -1294,6 +1586,9 @@ class Health(ContractModel):
     )
     transcription: TranscriptionHealth = Field(
         default=TranscriptionHealth(), description="Transcription readiness (1.6.0)."
+    )
+    structure: StructureHealth = Field(
+        default=StructureHealth(), description="Configured section analyser (1.8.0)."
     )
     contract_version: str = CONTRACT_VERSION
 

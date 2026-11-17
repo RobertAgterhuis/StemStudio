@@ -1,0 +1,8 @@
+{
+  "jobId": "0123456789abcdef0123456789abcdef",
+  "status": "queued",
+  "progress": 0,
+  "error": null,
+  "result": null,
+  "createdAt": "2026-11-16T10:11:48Z"
+}

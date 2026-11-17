@@ -24,13 +24,23 @@
          documents and the 009 generator document are linked as well so tests can prove they are subsets. -->
     <None Include="Worker\Examples\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 013 Phase 0 (T006, agreed one-time edit): the worker document is 013's 1.7.0 (1.6.0 + storage, cleanup, rehydrate). -->
-    <None Include="..\..\specs\013-library-care\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 014 Phase 0 part 2 (T003/T005, agreed one-time edit): the worker document is 014's 1.8.0 (1.7.0 + the practice lane);
+         013's 1.7.0 stays linked as Contract/013. -->
+    <None Include="..\..\specs\014-practice-flow\contracts\worker-api.openapi.yaml" Link="Contract\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\013-library-care\contracts\worker-api.openapi.yaml" Link="Contract\013\worker-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Feature 012 Phase 0 (T004, agreed one-time edit): the current full backend document is 012's 1.11.0 (= 1.21.0 + 012);
          the 1.21.0 document of the 011 follow-up claude-key stays linked as Contract/011-claude-key so the merge is proven. -->
-    <!-- Feature 022/023 round (agreed one-time edits of both Phase 0s): the current full backend document is 023's 1.23.0
-         (= 022's 1.22.0 + 023, merge_full.py of 023); 022's 1.22.0 (= 013's 1.12.0 + 022), 013's 1.12.0 and 012's 1.11.0 stay
-         linked as Contract/022, Contract/013 and Contract/012 so every merge stays proven. -->
-    <None Include="..\..\specs\023-lyric-writing-assistant\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Feature 022/023 round (agreed one-time edits of both Phase 0s): 023's 1.23.0 (= 022's 1.22.0 + 023, merge_full.py of 023);
+         022's 1.22.0 (= 013's 1.12.0 + 022), 013's 1.12.0 and 012's 1.11.0 stay linked as Contract/022, Contract/013 and
+         Contract/012 so every merge stays proven. -->
+    <!-- Round 014+015 (architect re-merge): the current full backend document is 014's 1.13.0 (= 023's 1.23.0 + 014,
+         specs/014-practice-flow/contracts/merge_full.py); 023's 1.23.0 stays linked as Contract/023. -->
+    <None Include="..\..\specs\014-practice-flow\contracts\backend-api.openapi.yaml" Link="Contract\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\023-lyric-writing-assistant\contracts\backend-api.openapi.yaml" Link="Contract\023\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\practice-api.openapi.yaml" Link="Contract\014\practice-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\worker-practice.openapi.yaml" Link="Contract\014\worker-practice.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\ui-test-ids.md" Link="Contract\014\ui-test-ids.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\014-practice-flow\contracts\ui-test-ids.delta.md" Link="Contract\014\ui-test-ids.delta.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\012-practice-tempo\contracts\backend-api.openapi.yaml" Link="Contract\012\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.openapi.yaml" Link="Contract\013\backend-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\013-library-care\contracts\backend-api.delta.openapi.yaml" Link="Contract\013\backend-api.delta.openapi.yaml" CopyToOutputDirectory="PreserveNewest" />

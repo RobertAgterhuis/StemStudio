@@ -38,6 +38,8 @@ import type {
   PlaybackState,
   PracticeSettings,
   PracticeStatus,
+  ScoreFollowOptions,
+  ScoreViewMap,
 } from './types';
 
 /** Default delay of the shared `when` (s). */
@@ -115,6 +117,14 @@ function createGroups(parts: Parts, load: GroupLoader): StemGroups {
       parts.mixer.setExpanded(parent, expanded, at);
     },
   });
+}
+
+/**
+ * Message of the 2.4.0 score follower stubs until the audio-engine lane implements them (014 T081); the arguments are
+ * accepted so the signatures type-check.
+ */
+function scoreFollowerPending(args: readonly unknown[]): string {
+  return `Score follower is not implemented yet (contract 2.4.0; ${String(args.length)} arguments)`;
 }
 
 /** Fetch-and-decode function handed to {@link StemGroups} (rejects after disposal). */
@@ -279,6 +289,24 @@ export class Engine implements AudioEngine {
   public getPracticeStatus(): PracticeStatus {
     this.alive();
     return this.practice.status();
+  }
+
+  /** {@inheritDoc AudioEngine.attachScoreFollower} */
+  public attachScoreFollower(elementId: string, view: ScoreViewMap, options: ScoreFollowOptions): void {
+    this.alive();
+    throw new Error(scoreFollowerPending([elementId, view, options]));
+  }
+
+  /** {@inheritDoc AudioEngine.setScoreFollowOptions} */
+  public setScoreFollowOptions(options: ScoreFollowOptions): void {
+    this.alive();
+    throw new Error(scoreFollowerPending([options]));
+  }
+
+  /** {@inheritDoc AudioEngine.detachScoreFollower} */
+  public detachScoreFollower(): void {
+    this.alive();
+    throw new Error(scoreFollowerPending([]));
   }
 
   /** {@inheritDoc AudioEngine.dispose} */

@@ -4,8 +4,9 @@
        claude-key delta) exactly; Agent/ holds the agent DTOs of 1.10.0 (agent-api.openapi.yaml 1.10.0-delta.1) and the Claude key
        DTOs of 1.21.0 (backend-api.claude-key.openapi.yaml 1.21.0-delta.2). Mixes/Practice* follow 012's 1.11.0;
        LibraryCare/ and DetailPhaseDto.FilesRemovedAt follow specs/013-library-care/contracts/backend-api.openapi.yaml (1.12.0);
-       Library/ follows 022's 1.22.0. Current full document: specs/023-lyric-writing-assistant/contracts/backend-api.openapi.yaml
-       (1.23.0 = 022's 1.22.0 + the 023 changes, merge_full.py); LyricAssist/ holds the 023 DTOs. -->
+       Library/ follows 022's 1.22.0 and LyricAssist/ holds the 023 DTOs (1.23.0 = 022's 1.22.0 + 023, merge_full.py of 023);
+       Sections/, ScoreFollow/, Setlists/, Practice/, LoopRegionDto.SectionId, ApiRoutes.PracticeFlow and ContractLimits.PracticeFlow follow
+       014's 1.13.0. Current full document: specs/014-practice-flow/contracts/backend-api.openapi.yaml (1.13.0 = 023's 1.23.0 + 014). -->
   <PropertyGroup>
     <RootNamespace>StemStudio.Contracts</RootNamespace>
   </PropertyGroup>

@@ -1,0 +1,886 @@
+{
+  "$comment": "Default key map (web-interop 1.1.0, feature 014 FR-020; data-model 5.2). Single source for C# (StemStudio.Web/Practice/KeyMapDefaults) and TypeScript (src/web-interop). Keys are KeyboardEvent.key lower-cased (' ' = Space). 'mod' is Ctrl (Cmd on macOS). 'shift' omitted = not checked (named keys and printable non-letters, whose key already differs with Shift). 'reserved' commands hold their chords for a feature not shipped yet (015) and are never dispatched or shown. 'sequences' are fixed two-key sequences (plain 'g' never binds). 'reservedChords' and 'externalChords' (handled outside the key map, e.g. 023's lyrics editor; Alt chords are never bindable) can never be assigned. Edited by the architect; later features add rows (016 next).",
+  "version": "1.1.0",
+  "groups": [
+    "transport",
+    "loop-sections",
+    "speed",
+    "channels",
+    "setlist",
+    "score",
+    "navigation"
+  ],
+  "scopes": [
+    "global",
+    "mixer",
+    "setlist",
+    "library"
+  ],
+  "commands": [
+    {
+      "command": "palette.open",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Command palette",
+      "defaults": [
+        {
+          "key": "k",
+          "mod": true,
+          "shift": false
+        }
+      ],
+      "anywhere": true,
+      "reserved": false
+    },
+    {
+      "command": "shortcuts.open",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Shortcut overview",
+      "defaults": [
+        {
+          "key": "/",
+          "mod": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "help.open",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Help",
+      "defaults": [
+        {
+          "key": "?"
+        },
+        {
+          "key": "f1"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "library.search.focus",
+      "scope": "library",
+      "owner": "022",
+      "group": "navigation",
+      "label": "Focus library search",
+      "defaults": [
+        {
+          "key": "/"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.play-pause",
+      "scope": "mixer",
+      "owner": "001",
+      "group": "transport",
+      "label": "Play / pause",
+      "defaults": [
+        {
+          "key": " "
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.stop",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Stop and return to start",
+      "defaults": [
+        {
+          "key": "home"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.seek:-5",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Back 5 seconds",
+      "defaults": [
+        {
+          "key": "arrowleft",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.seek:5",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Forward 5 seconds",
+      "defaults": [
+        {
+          "key": "arrowright",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.seek:-1",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Back 1 second",
+      "defaults": [
+        {
+          "key": "arrowleft",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.seek:1",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Forward 1 second",
+      "defaults": [
+        {
+          "key": "arrowright",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.save",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Save mix",
+      "defaults": [
+        {
+          "key": "s",
+          "mod": true,
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.save-as",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "transport",
+      "label": "Save mix as",
+      "defaults": [
+        {
+          "key": "s",
+          "mod": true,
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.record.toggle",
+      "scope": "mixer",
+      "owner": "015",
+      "group": "transport",
+      "label": "Record / stop recording",
+      "defaults": [
+        {
+          "key": "r",
+          "shift": false
+        }
+      ],
+      "reserved": true
+    },
+    {
+      "command": "mixer.compare.cycle",
+      "scope": "mixer",
+      "owner": "015",
+      "group": "transport",
+      "label": "Compare: my take / original / both",
+      "defaults": [
+        {
+          "key": "c",
+          "shift": false
+        }
+      ],
+      "reserved": true
+    },
+    {
+      "command": "mixer.loop.a",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "loop-sections",
+      "label": "Set loop start (A)",
+      "defaults": [
+        {
+          "key": "["
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.loop.b",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "loop-sections",
+      "label": "Set loop end (B)",
+      "defaults": [
+        {
+          "key": "]"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.loop.toggle",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "loop-sections",
+      "label": "Loop on/off",
+      "defaults": [
+        {
+          "key": "l",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.loop.section",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "loop-sections",
+      "label": "Loop current section",
+      "defaults": [
+        {
+          "key": "l",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.section.next",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "loop-sections",
+      "label": "Next section",
+      "defaults": [
+        {
+          "key": "n",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.section.previous",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "loop-sections",
+      "label": "Previous section",
+      "defaults": [
+        {
+          "key": "n",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.section.restart",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "loop-sections",
+      "label": "Back to start of current section",
+      "defaults": [
+        {
+          "key": "backspace"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.speed:-5",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Speed -5 %",
+      "defaults": [
+        {
+          "key": "-"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.speed:5",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Speed +5 %",
+      "defaults": [
+        {
+          "key": "="
+        },
+        {
+          "key": "+"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.transpose:-1",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Transpose -1 semitone",
+      "defaults": [
+        {
+          "key": ","
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.transpose:1",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Transpose +1 semitone",
+      "defaults": [
+        {
+          "key": "."
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.practice.reset",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Original speed and key",
+      "defaults": [
+        {
+          "key": "0"
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.countin.toggle",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Count-in on/off",
+      "defaults": [
+        {
+          "key": "k",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.trainer.toggle",
+      "scope": "mixer",
+      "owner": "012",
+      "group": "speed",
+      "label": "Speed trainer on/off",
+      "defaults": [
+        {
+          "key": "t",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.metronome.toggle",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "speed",
+      "label": "Metronome on/off",
+      "defaults": [
+        {
+          "key": "k",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:1",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 1",
+      "defaults": [
+        {
+          "key": "1",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:2",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 2",
+      "defaults": [
+        {
+          "key": "2",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:3",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 3",
+      "defaults": [
+        {
+          "key": "3",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:4",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 4",
+      "defaults": [
+        {
+          "key": "4",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:5",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 5",
+      "defaults": [
+        {
+          "key": "5",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:6",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 6",
+      "defaults": [
+        {
+          "key": "6",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:7",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 7",
+      "defaults": [
+        {
+          "key": "7",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:8",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 8",
+      "defaults": [
+        {
+          "key": "8",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.select:9",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Select channel 9",
+      "defaults": [
+        {
+          "key": "9",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.mute",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Mute selected channel",
+      "defaults": [
+        {
+          "key": "m",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.channel.solo",
+      "scope": "mixer",
+      "owner": "004",
+      "group": "channels",
+      "label": "Solo selected channel",
+      "defaults": [
+        {
+          "key": "s",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.score.toggle",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "score",
+      "label": "Score panel on/off",
+      "defaults": [
+        {
+          "key": "f",
+          "shift": false
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "mixer.score.follow",
+      "scope": "mixer",
+      "owner": "014",
+      "group": "score",
+      "label": "Score follow on/off",
+      "defaults": [
+        {
+          "key": "f",
+          "shift": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "setlist.next",
+      "scope": "setlist",
+      "owner": "014",
+      "group": "setlist",
+      "label": "Next song",
+      "defaults": [
+        {
+          "key": "arrowright",
+          "mod": true
+        }
+      ],
+      "reserved": false
+    },
+    {
+      "command": "setlist.previous",
+      "scope": "setlist",
+      "owner": "014",
+      "group": "setlist",
+      "label": "Previous song",
+      "defaults": [
+        {
+          "key": "arrowleft",
+          "mod": true
+        }
+      ],
+      "reserved": false
+    }
+  ],
+  "sequences": [
+    {
+      "command": "go.import",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Go to Import",
+      "keys": [
+        "g",
+        "i"
+      ]
+    },
+    {
+      "command": "go.tracks",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Go to Tracks",
+      "keys": [
+        "g",
+        "t"
+      ]
+    },
+    {
+      "command": "go.mixes",
+      "scope": "global",
+      "owner": "004",
+      "group": "navigation",
+      "label": "Go to Mixes",
+      "keys": [
+        "g",
+        "m"
+      ]
+    }
+  ],
+  "pedal": {
+    "defaultPreset": "play-section-start",
+    "leftKey": {
+      "key": "pageup"
+    },
+    "rightKey": {
+      "key": "pagedown"
+    },
+    "presets": [
+      {
+        "id": "play-section-start",
+        "label": "Play / Back to section start",
+        "left": "mixer.section.restart",
+        "right": "mixer.play-pause"
+      },
+      {
+        "id": "next-previous-section",
+        "label": "Next / previous section",
+        "left": "mixer.section.previous",
+        "right": "mixer.section.next"
+      },
+      {
+        "id": "next-previous-song",
+        "label": "Next / previous song (setlist)",
+        "left": "setlist.previous",
+        "right": "setlist.next"
+      },
+      {
+        "id": "faster-slower",
+        "label": "Faster / slower",
+        "left": "mixer.speed:-5",
+        "right": "mixer.speed:5"
+      },
+      {
+        "id": "custom",
+        "label": "Custom",
+        "left": null,
+        "right": null
+      }
+    ]
+  },
+  "reservedChords": [
+    {
+      "key": "tab",
+      "reason": "Moves the keyboard focus"
+    },
+    {
+      "key": "tab",
+      "shift": true,
+      "reason": "Moves the keyboard focus"
+    },
+    {
+      "key": "enter",
+      "reason": "Activates the focused control"
+    },
+    {
+      "key": "escape",
+      "reason": "Closes dialogs and menus"
+    },
+    {
+      "key": "f5",
+      "reason": "Reloads the page"
+    },
+    {
+      "key": "f6",
+      "reason": "Moves to the address bar"
+    },
+    {
+      "key": "f7",
+      "reason": "Caret browsing"
+    },
+    {
+      "key": "f11",
+      "reason": "Full screen"
+    },
+    {
+      "key": "f12",
+      "reason": "Developer tools"
+    },
+    {
+      "key": "insert",
+      "reason": "Screen reader key"
+    },
+    {
+      "key": "capslock",
+      "reason": "Screen reader key"
+    },
+    {
+      "key": "contextmenu",
+      "reason": "Opens the context menu"
+    },
+    {
+      "key": "w",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "t",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "n",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "r",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "l",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "q",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "p",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "f",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "0",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "=",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "+",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "-",
+      "mod": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "t",
+      "mod": true,
+      "shift": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "n",
+      "mod": true,
+      "shift": true,
+      "reason": "Browser shortcut"
+    },
+    {
+      "key": "w",
+      "mod": true,
+      "shift": true,
+      "reason": "Browser shortcut"
+    }
+  ],
+  "externalChords": [
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "Ctrl+Alt+C",
+      "label": "Check the lyrics (lyric assist pane)"
+    },
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "F8",
+      "label": "Next suggestion",
+      "chord": {
+        "key": "f8",
+        "shift": false
+      }
+    },
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "Shift+F8",
+      "label": "Previous suggestion",
+      "chord": {
+        "key": "f8",
+        "shift": true
+      }
+    },
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "Alt+Enter",
+      "label": "Accept a suggestion"
+    },
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "Alt+Backspace",
+      "label": "Reject a suggestion"
+    },
+    {
+      "owner": "023",
+      "scope": "lyrics-editor",
+      "keys": "Alt+I",
+      "label": "Insert the suggestion"
+    }
+  ]
+}

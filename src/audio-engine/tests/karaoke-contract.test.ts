@@ -17,7 +17,7 @@ describe('karaoke contract 2.1.0 (skeleton)', () => {
   it('exports the current version (2.3.0 contains 2.1.0) and the karaoke state names', () => {
     const states: readonly KaraokeState[] = ['hidden', 'countdown', 'singing', 'ended'];
 
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.3.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.4.0');
     expect(states).toHaveLength(4);
   });
 

@@ -54,7 +54,7 @@ verovio 6.4.0 (LGPL-3.0, unmodified wheel). Frontend charts: Radzen Blazor (MIT,
 **No new .NET or npm packages.**
 
 **Storage**: SQLite tables `TrackSections`, `Sections`, `ScoreViews`, `Setlists`,
-`SetlistEntries`, `PracticeSettings`, `PracticeSessions`, `PracticeSectionTimes` (migration
+`SetlistEntries`, `PracticeLogSettings`, `PracticeSessions`, `PracticeSectionTimes` (migration
 `AddPracticeFlow`); mix loop JSON gains `sectionId`; files `assets/<id>/view/page-NNN.svg`; worker
 stores `section-jobs/`, `score-view-jobs/`, `setlist-document-jobs/` (24 h). Browser
 `localStorage` preferences schemaVersion 2 (key map).
