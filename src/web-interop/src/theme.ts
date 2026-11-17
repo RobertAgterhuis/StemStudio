@@ -60,7 +60,7 @@ function resolveMotion(value: unknown, matches: MediaMatcher): Motion {
  * @returns The appearance to apply.
  */
 export function resolveAppearance(raw: unknown, matches: MediaMatcher): Appearance {
-  const record = isRecord(raw) && raw.schemaVersion === 1 ? raw : {};
+  const record = isRecord(raw) && (raw.schemaVersion === 1 || raw.schemaVersion === 2) ? raw : {};
   const level = oneOf(record.level, LEVELS, 'beginner');
   return {
     theme: resolveTheme(record.theme, matches),

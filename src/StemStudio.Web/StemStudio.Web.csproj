@@ -24,4 +24,8 @@
     <None Remove="Help\**" />
     <EmbeddedResource Include="Help\topics\**\*.md;Help\tours\*.json" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Default key map catalogue (web-interop 1.1.0 5.4): served to the browser and embedded for KeyMapDefaults.Catalogue. -->
+    <EmbeddedResource Include="wwwroot\js\keymap-defaults.json" LogicalName="StemStudio.Web.keymap-defaults.json" />
+  </ItemGroup>
 </Project>

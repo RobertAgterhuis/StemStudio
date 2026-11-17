@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace StemStudio.Web.Practice;
 
 /// <summary>The default key map catalogue (<c>keymap-defaults.json</c>, web-interop 1.1.0, feature 014 FR-020).</summary>
@@ -32,7 +34,10 @@ public sealed record KeyMapCatalogue
 /// <param name="Key">The key (<c>" "</c> for Space, <c>arrowleft</c>, <c>pagedown</c>, <c>f1</c>, a character).</param>
 /// <param name="Mod">Ctrl (Cmd on macOS) required.</param>
 /// <param name="Shift">Shift required (true) or forbidden (false); null = not checked.</param>
-public sealed record KeyChordData(string Key, bool Mod = false, bool? Shift = null);
+public sealed record KeyChordData(
+    string Key,
+    bool Mod = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Shift = null);
 
 /// <summary>One command of the catalogue.</summary>
 public sealed record KeyMapCommand

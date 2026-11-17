@@ -1,6 +1,7 @@
 /**
  * Preferences record in browser local storage (data-model.md 1, web-interop.md 2): read, validate
- * field by field, write and cross-tab change notification.
+ * field by field, write and cross-tab change notification. Schema version 2 (web-interop 1.1.0 section 5.3): version 1
+ * records are read with default `shortcuts`; every write is version 2.
  *
  * @packageDocumentation
  */
@@ -10,8 +11,11 @@ import type {
   PreferencesRead,
   StoredHelpProgress,
   StoredPreferences,
+  StoredShortcuts,
   StoredTourRecord,
 } from './types';
+import { CATALOGUE } from './catalogue';
+import { validateOverrides } from './overrides';
 import { KEBAB_ID, isRecord, once, oneOf } from './validation';
 
 /** Local storage key of the record. */
@@ -35,12 +39,55 @@ const TOUR_STATUSES = ['completed', 'dismissed'] as const;
  */
 export function defaultPreferences(): StoredPreferences {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     level: null,
     theme: 'system',
     density: 'auto',
     motion: 'system',
     help: { welcomeDismissed: false, tours: {}, hintsDismissed: [] },
+    shortcuts: defaultShortcuts(),
+  };
+}
+
+/**
+ * The shortcut defaults of 014 data-model 5.1 (a new object on every call).
+ *
+ * @returns Single keys on, pedal mode off, the catalogue's default preset, no overrides.
+ */
+export function defaultShortcuts(): StoredShortcuts {
+  return { singleKey: true, pedalMode: false, pedalPreset: CATALOGUE.pedal.defaultPreset, overrides: {} };
+}
+
+const PRESETS = CATALOGUE.pedal.presets.map((p) => p.id);
+
+/** Schema versions read by this contract version. */
+const SCHEMA_VERSIONS: readonly unknown[] = [1, 2];
+
+let reported = false;
+
+function reportDropped(dropped: readonly string[]): void {
+  if (dropped.length > 0 && !reported) {
+    reported = true;
+    console.warn(`StemStudio preferences: shortcut overrides dropped: ${dropped.join('; ')}`);
+  }
+}
+
+/**
+ * Validates the `shortcuts` field; invalid parts take their defaults, invalid or conflicting overrides are dropped and
+ * reported once per page.
+ *
+ * @param raw - The parsed field.
+ * @returns Valid shortcut preferences.
+ */
+export function validateShortcuts(raw: unknown): StoredShortcuts {
+  const shortcuts = isRecord(raw) ? raw : {};
+  const { overrides, dropped } = validateOverrides(shortcuts.overrides);
+  reportDropped(dropped);
+  return {
+    singleKey: shortcuts.singleKey !== false,
+    pedalMode: shortcuts.pedalMode === true,
+    pedalPreset: oneOf(shortcuts.pedalPreset, PRESETS, CATALOGUE.pedal.defaultPreset),
+    overrides,
   };
 }
 
@@ -90,17 +137,18 @@ function validateHelp(raw: unknown): StoredHelpProgress {
  * @returns A valid record.
  */
 export function validatePreferences(raw: unknown): StoredPreferences {
-  if (!isRecord(raw) || raw.schemaVersion !== 1) {
+  if (!isRecord(raw) || !SCHEMA_VERSIONS.includes(raw.schemaVersion)) {
     return defaultPreferences();
   }
 
   const record: StoredPreferences = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     level: oneOf(raw.level, LEVELS, null),
     theme: oneOf(raw.theme, THEMES, 'system'),
     density: oneOf(raw.density, DENSITIES, 'auto'),
     motion: oneOf(raw.motion, MOTIONS, 'system'),
     help: validateHelp(raw.help),
+    shortcuts: raw.schemaVersion === 2 ? validateShortcuts(raw.shortcuts) : defaultShortcuts(),
   };
   return typeof raw.updatedAt === 'string' ? { ...record, updatedAt: raw.updatedAt } : record;
 }

@@ -5,15 +5,38 @@ namespace StemStudio.Web.Practice;
 
 /// <summary>
 /// Loads the default key map catalogue <c>wwwroot/js/keymap-defaults.json</c> (web-interop 1.1.0, feature 014 FR-020,
-/// data-model 5.2): the single source of the default chords for C# and TypeScript. Architect skeleton (T006); the
-/// frontend lane adds the validator and the merge with the user's overrides (T047).
+/// data-model 5.2): the single source of the default chords for C# and TypeScript. The validator is
+/// <see cref="KeyMapValidator"/>, the merge with the user's overrides <see cref="KeyMapBuilder"/>.
 /// </summary>
 public static class KeyMapDefaults
 {
     /// <summary>Path of the catalogue below the web root.</summary>
     public const string WebRootPath = "js/keymap-defaults.json";
 
+    /// <summary>Manifest name of the embedded copy (<c>StemStudio.Web.csproj</c>).</summary>
+    public const string ResourceName = "StemStudio.Web.keymap-defaults.json";
+
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
+    private static readonly Lazy<KeyMapCatalogue> Embedded = new(() => Read(typeof(KeyMapDefaults).Assembly.GetManifestResourceStream(ResourceName)));
+
+    /// <summary>The catalogue embedded in this assembly (the same file the browser module imports).</summary>
+    public static KeyMapCatalogue Catalogue => Embedded.Value;
+
+    /// <summary>Reads a catalogue from a stream.</summary>
+    /// <param name="stream">The stream, or null when the resource is missing.</param>
+    /// <returns>The catalogue.</returns>
+    /// <exception cref="FileNotFoundException">The stream is null.</exception>
+    internal static KeyMapCatalogue Read(Stream? stream)
+    {
+        if (stream is null)
+        {
+            throw new FileNotFoundException("The key map catalogue is missing.", ResourceName);
+        }
+
+        using var reader = new StreamReader(stream);
+        return Parse(reader.ReadToEnd());
+    }
 
     /// <summary>Parses a catalogue document.</summary>
     /// <param name="json">The JSON text.</param>
@@ -44,7 +67,6 @@ public static class KeyMapDefaults
             throw new FileNotFoundException("The key map catalogue is missing.", WebRootPath);
         }
 
-        using var reader = new StreamReader(file.CreateReadStream());
-        return Parse(reader.ReadToEnd());
+        return Read(file.CreateReadStream());
     }
 }
