@@ -282,6 +282,22 @@ internal sealed class FakeLibraryFiles : ILibraryFiles
     /// <summary>Runs once, after the first free-space check made while files are written.</summary>
     public Action? AfterFirstCheck { get; set; }
 
+    /// <summary>Moves fail while this returns true for the source path.</summary>
+    public Func<string, bool> FailMove { get; set; } = _ => false;
+
+    public int MoveAttempts { get; private set; }
+
+    public void Move(string source, string destination)
+    {
+        MoveAttempts++;
+        if (FailMove(source))
+        {
+            throw new IOException("in use");
+        }
+
+        new LibraryFiles().Move(source, destination);
+    }
+
     public VolumeSpace? Space(string path)
     {
         var space = new VolumeSpace(Free, Total);
