@@ -27,7 +27,8 @@ public sealed class NoJournalStepHook : IJournalStepHook
 /// Switches libraries in one journalled step (research R-04 P3/P4, R-07): maintenance gate, wait for in-flight requests,
 /// <c>ClearAllPools()</c>, each move retried 10 x 200 ms; on failure every done move is undone and the job fails with
 /// <c>io-error</c>. Requests still in flight after 10 s fail the switch with <c>io-error</c> before anything moves. The gate
-/// is opened in every outcome.
+/// is opened in every outcome. An item created at a live path during the switch is replaced only when it is fresh and empty
+/// (<see cref="FreshItems"/>); otherwise the switch fails and is rolled back, never deleting data.
 /// </summary>
 /// <param name="gate">The gate.</param>
 /// <param name="journal">Journal files.</param>
@@ -38,6 +39,13 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
 {
     /// <summary>Attempts per move.</summary>
     public const int MoveAttempts = 10;
+
+    /// <summary>Error text of a failed switch whose rollback put everything back.</summary>
+    public const string NotChangedText = "A library file is in use and could not be moved; the library was not changed. Try again.";
+
+    /// <summary>Error text of a failed switch whose rollback could not put everything back (start-up recovery finishes it).</summary>
+    public const string NotRestoredText =
+        "A library file is in use and could not be moved back; nothing was deleted. Restart StemStudio to finish putting your library back.";
 
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(10);
 
@@ -71,12 +79,12 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
     private async Task MoveAllAsync(RestoreJournalRecord record)
     {
         var steps = record.Steps.ToList();
+        var mover = new JournalMover(files, retryDelay);
         for (var index = 0; index < steps.Count; index++)
         {
-            if (!await TryMoveAsync(steps[index]))
+            if (!await TryMoveAsync(steps[index], record, mover))
             {
-                await journal.RollBackAsync(record with { Steps = steps }, files, CancellationToken.None);
-                throw new LibraryJobException(LibraryJobErrorCodeDto.IoError, "A library file is in use and could not be moved; the library was not changed. Try again.");
+                throw await RollBackAsync(record with { Steps = steps });
             }
 
             steps[index] = steps[index] with { Done = true };
@@ -88,28 +96,28 @@ public sealed class LibrarySwitcher(LibraryGate gate, RestoreJournal journal, IL
         journal.FinishCommitted(record);
     }
 
-    private async Task<bool> TryMoveAsync(JournalStep step)
+    private async Task<LibraryJobException> RollBackAsync(RestoreJournalRecord record)
     {
-        var paths = journal;
-        if (!Path.Exists(paths.Full(step.From)))
+        var restored = await journal.RollBackAsync(record, files, CancellationToken.None);
+        return new LibraryJobException(LibraryJobErrorCodeDto.IoError, restored ? NotChangedText : NotRestoredText);
+    }
+
+    private Task<bool> TryMoveAsync(JournalStep step, RestoreJournalRecord record, JournalMover mover) =>
+        mover.MoveAsync(journal.Full(step.From), journal.Full(step.To), Interferers(step, record));
+
+    /// <summary>
+    /// What may be in the way of a move in: every live original was moved aside before, so an item at the destination (and,
+    /// for the database, a companion no step moves in) was created during the switch; it is removed when fresh and empty.
+    /// </summary>
+    private List<string> Interferers(JournalStep step, RestoreJournalRecord record)
+    {
+        if (step.Op != JournalOp.MoveIn)
         {
-            // A -wal or -shm file disappears when the last connection closes; nothing to move.
-            return true;
+            return [];
         }
 
-        for (var attempt = 0; attempt < MoveAttempts; attempt++)
-        {
-            try
-            {
-                files.Move(paths.Full(step.From), paths.Full(step.To));
-                return true;
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                await Task.Delay(retryDelay);
-            }
-        }
-
-        return false;
+        var movedIn = record.Steps.Where(other => other.Op == JournalOp.MoveIn).Select(other => other.To).ToHashSet(StringComparer.Ordinal);
+        var companions = step.To == JournalPlans.Items[0] ? FreshItems.DatabaseCompanions.Where(companion => !movedIn.Contains(companion)) : [];
+        return [.. companions.Prepend(step.To).Select(journal.Full)];
     }
 }
