@@ -88,6 +88,26 @@ public sealed class ResultProjectorTests
     }
 
     [Fact]
+    public void RowsWithText_OrRowListsUnderOtherNames_AreRemoved()
+    {
+        var projection = new JsonObject
+        {
+            ["lines"] = new JsonArray(new JsonObject { ["line"] = 1, ["content"] = "de stad word stil als de klok slaat" }),
+            ["lyrics"] = new JsonArray(new JsonObject { ["line"] = 1 }),
+            ["path"] = new JsonArray(new JsonObject { ["folderId"] = "ar0123456789abcdef", ["level"] = "artist", [ResultProjector.UntrustedField] = "Motörhead and more" }),
+            ["nested"] = new JsonObject { ["lines"] = new JsonArray(new JsonObject { ["row"] = new JsonObject { ["a"] = 1 } }) },
+        };
+
+        var result = ResultProjector.Project(projection);
+
+        result.Json.ShouldNotContain("klok");
+        result.Json.ShouldNotContain("lyrics");
+        result.Json.ShouldContain("\"path\":[{\"folderId\":\"ar0123456789abcdef\",\"level\":\"artist\"");
+        result.Json.ShouldContain("\"nested\":{}");
+        result.Tainted.ShouldBeTrue();
+    }
+
+    [Fact]
     public void LargeArray_IsCutTo4KbWithAMarker()
     {
         var projection = new JsonArray([.. Enumerable.Range(0, 200).Select(i => (JsonNode)new JsonObject { ["trackId"] = $"track-{i:000}", ["status"] = "completed" })]);

@@ -137,6 +137,47 @@ public sealed class LyricAssistantTests
     }
 
     [Fact]
+    public async Task ClaudeWithoutUsage_IsEstimated_AndTheRetryIsCheckedToo()
+    {
+        var claude = new LyricModelInfo { Backend = AgentBackendDto.Claude, Model = "claude-opus-5-5", UsingFallback = false };
+        var model = new SequenceModel(claude, "not json", "still not json", Script2());
+        var prompt = LyricPromptBuilder.Build(Job(), Block0, LyricPromptBuilder.NewBoundary());
+        var oneCall = LyricAssistant.EstimateTokens(prompt.System.Length + prompt.User.Length);
+        var options = new LyricAssistOptions { MaxInputTokensPerAssist = (int)(oneCall * 1.5) };
+        var sink = new RecordingLyricSink();
+
+        var error = await Should.ThrowAsync<LyricAssistException>(() => Assistant(model, options).RunAsync(Job(), sink, Token));
+
+        error.Code.ShouldBe(AssistFailureCodeDto.BudgetExhausted);
+        model.Requests.Count.ShouldBe(1);
+        sink.Blocks.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task EveryRequest_CarriesTheModelFixedForTheAssist()
+    {
+        var model = new SequenceModel(Script2());
+
+        await Assistant(model).RunAsync(Job(), new RecordingLyricSink(), Token);
+
+        model.Requests.ShouldAllBe(request => request.Model == ScriptedLyricModel.Info);
+    }
+
+    [Fact]
+    public async Task AnotherBackendThanTheFactoryChecked_StopsBeforeAnyCall()
+    {
+        var model = new SequenceModel(Script2());
+        var sink = new RecordingLyricSink();
+
+        var error = await Should.ThrowAsync<LyricAssistException>(() =>
+            Assistant(model, new LyricAssistOptions { ExpectedBackend = AgentBackendDto.Ollama }).RunAsync(Job(), sink, Token));
+
+        error.Code.ShouldBe(AssistFailureCodeDto.BackendUnavailable);
+        model.Requests.ShouldBeEmpty();
+        sink.Model.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task VerbatimWithheld_IsANote()
     {
         var verification = new FakeVerification();

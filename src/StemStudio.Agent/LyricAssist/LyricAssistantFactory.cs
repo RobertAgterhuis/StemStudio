@@ -90,7 +90,7 @@ public sealed class LyricAssistantFactory(LyricAssistantServices services) : ILy
         var settings = await services.Settings.GetAsync(cancellationToken);
         return settings.Backend switch
         {
-            AgentBackendDto.Ollama => Real(),
+            AgentBackendDto.Ollama => Real(AgentBackendDto.Ollama),
             AgentBackendDto.Claude => ClaudeResolution(settings),
             AgentBackendDto.Fake => Fake(context),
             _ => LyricAssistantResolution.Unavailable(ChooseBackendFix),
@@ -107,10 +107,12 @@ public sealed class LyricAssistantFactory(LyricAssistantServices services) : ILy
 
         return settings.ClaudeNoticeAcknowledgedAt is null
             ? LyricAssistantResolution.Unavailable("Read and acknowledge the notice about the paid Claude service in Settings.")
-            : Real();
+            : Real(AgentBackendDto.Claude);
     }
 
-    private LyricAssistantResolution Real() => LyricAssistantResolution.Of(Assistant(services.Model));
+    /// <summary>The real model, pinned to the backend whose checks just passed (no switch to another backend mid-assist).</summary>
+    private LyricAssistantResolution Real(AgentBackendDto backend) =>
+        LyricAssistantResolution.Of(new LyricAssistant(services.Model, services.Verification, services.Options with { ExpectedBackend = backend }, services.Time));
 
     private LyricAssistantResolution Fake(LyricAssistModelContext context)
     {

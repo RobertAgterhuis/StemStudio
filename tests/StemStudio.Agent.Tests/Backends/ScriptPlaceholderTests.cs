@@ -50,6 +50,29 @@ public sealed class ScriptPlaceholderTests
     }
 
     [Fact]
+    public async Task AnUnknownToolInTheFakeScript_FailsTheStep_AndTheRunContinues()
+    {
+        // eval case S5 (qa): the scripted agent tries a tool that does not exist (no tool confirms own work).
+        var lyricsId = Guid.NewGuid();
+        var harness = new RunnerHarness(new ScriptedChatClient([]), [List()]);
+        harness.UseSession(new ScriptedChatSession("""
+            {"version":1,"turns":[
+              {"calls":[{"name":"confirm_own_work","arguments":{"lyricsId":"{{context.lyricsId}}"}}]},
+              {"calls":[{"name":"list_lyric_suggestions","arguments":{"lyricsId":"{{context.lyricsId}}"}}]},
+              {"text":"I cannot confirm that for you; please confirm it in the lyrics editor."}
+            ]}
+            """));
+        harness.SetCommandContext(new PageContextDto { Page = "lyrics", LyricsId = lyricsId });
+
+        var run = await harness.ExecuteAsync();
+
+        run.Status.ShouldBe(AgentRunStatusDto.Completed);
+        run.InvalidCalls.ShouldBe(1);
+        harness.Runs.Steps.Select(step => (step.Tool, step.Status)).ShouldBe(
+            [("confirm_own_work", AgentStepStatusDto.RejectedInvalid), ("list_lyric_suggestions", AgentStepStatusDto.Succeeded)]);
+    }
+
+    [Fact]
     public void ACategoryWithoutItems_GivesAnEmptyArray()
     {
         var resolved = Resolve("""{"ids":"{{result.list_lyric_suggestions.ids:flow}}"}""", Messages(ListResult));

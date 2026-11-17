@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using StemStudio.Contracts.Agent;
 
 namespace StemStudio.Agent.Tools;
@@ -16,7 +17,7 @@ public sealed record ProjectedResult(string Json, bool Tainted, bool Truncated);
 /// personal names; FR-026), caps the result at 4 KB with a truncation marker, and reports taint when external text is
 /// present in a field named <c>untrusted_text</c>. Providers build the projections from whitelisted fields.
 /// </summary>
-public static class ResultProjector
+public static partial class ResultProjector
 {
     /// <summary>The only field name that may carry external text.</summary>
     public const string UntrustedField = "untrusted_text";
@@ -96,7 +97,7 @@ public static class ResultProjector
     {
         foreach (var item in Nodes(node).OfType<JsonObject>().ToList())
         {
-            foreach (var key in item.Where(property => Forbidden.Contains(property.Key) && !IsRowList(property.Value)).Select(property => property.Key).ToList())
+            foreach (var key in item.Where(property => Forbidden.Contains(property.Key) && !IsRowList(property.Key, property.Value)).Select(property => property.Key).ToList())
             {
                 item.Remove(key);
             }
@@ -104,11 +105,28 @@ public static class ResultProjector
     }
 
     /// <summary>
-    /// A list of objects (e.g. the folder <c>path</c> of 022, the per-line numbers of <c>count_syllables</c>) is a projection of rows,
-    /// not a text, file path or URL: it stays, and its rows are stripped like every other object. Text values and lists of texts
-    /// under a forbidden name are always removed.
+    /// Names whose value may be a list of rows instead of a text (022 folder <c>path</c>, 023 <c>count_syllables</c> <c>lines</c>).
+    /// Every other forbidden name is always removed.
     /// </summary>
-    private static bool IsRowList(JsonNode? value) => value is JsonArray rows && rows.All(row => row is JsonObject);
+    private static readonly HashSet<string> RowListNames = new(StringComparer.Ordinal) { "path", "lines" };
+
+    /// <summary>
+    /// A whitelisted list of rows stays only when every row holds numbers, flags, ids and enum-like tokens or
+    /// <c>untrusted_text</c>: a row with any other text (e.g. a lyric line) makes the whole list go.
+    /// </summary>
+    private static bool IsRowList(string key, JsonNode? value) =>
+        RowListNames.Contains(key) && value is JsonArray rows && rows.All(row => row is JsonObject fields && fields.All(TrustedRowField));
+
+    private static bool TrustedRowField(KeyValuePair<string, JsonNode?> field) => field.Value switch
+    {
+        null => true,
+        JsonValue value when value.TryGetValue<string>(out var text) => field.Key == UntrustedField || Token().IsMatch(text),
+        JsonValue => true,
+        _ => false,
+    };
+
+    [GeneratedRegex(@"\A[A-Za-z0-9][A-Za-z0-9.:-]{0,63}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex Token();
 
     private static JsonNode Shrink(JsonNode node)
     {

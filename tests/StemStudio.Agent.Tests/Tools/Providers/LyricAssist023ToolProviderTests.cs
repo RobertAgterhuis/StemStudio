@@ -1,6 +1,6 @@
-using StemStudio.Agent.Backends.Fakes;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using StemStudio.Agent.Backends.Fakes;
 using StemStudio.Agent.Model;
 using StemStudio.Agent.Policy;
 using StemStudio.Agent.Ports;
@@ -340,7 +340,8 @@ public sealed class LyricAssist023ToolProviderTests
         [
             Turn(Call("check_lyrics", $$"""{"lyricsId":"{{LyricsId}}"}""")),
             Say("Done."),
-        ]), _provider.GetTools(), "Check my lyrics", "lyrics") { LyricAssist = _lyrics };
+        ]), _provider.GetTools(), "Check my lyrics", "lyrics")
+        { LyricAssist = _lyrics };
 
         await harness.ExecuteAsync();
 
