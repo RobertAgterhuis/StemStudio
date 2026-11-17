@@ -43,6 +43,7 @@ public static class LyricAssistRegistration
         services.AddScoped<LyricsRevisionService>();
         services.AddScoped<AssistPreferencesService>();
         services.AddScoped<LyricLanguageService>();
+        services.AddScoped<LyricAssistStatusService>();
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
             Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),

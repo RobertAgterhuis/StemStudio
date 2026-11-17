@@ -15,11 +15,17 @@ public static class LyricAssistEndpoints
     private const string SheetRoute = ApiRoutes.LyricsSheets + "/{lyricsId:guid}";
     private const string AssistRoute = ApiRoutes.LyricAssists + "/{assistId:guid}";
 
-    /// <summary>Maps create, list, get, events and cancel.</summary>
+    /// <summary>Maps status, settings, create, list, get, events and cancel.</summary>
     /// <param name="app">Route builder.</param>
     /// <returns>The builder.</returns>
     public static IEndpointRouteBuilder MapAssistEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet(ApiRoutes.LyricAssistStatus, (LyricAssistStatusService service, CancellationToken ct) => service.StatusAsync(ct))
+            .WithName("getLyricAssistStatus").WithTags(Tag).Produces<LyricAssistStatusDto>();
+        app.MapGet(ApiRoutes.LyricAssistSettings, (LyricAssistStatusService service, CancellationToken ct) => service.SettingsAsync(ct))
+            .WithName("getLyricAssistSettings").WithTags(Tag).Produces<LyricAssistSettingsDto>();
+        app.MapPut(ApiRoutes.LyricAssistSettings, (LyricAssistSettingsUpdate? update, LyricAssistStatusService service, CancellationToken ct) => service.UpdateSettingsAsync(update, ct))
+            .WithName("updateLyricAssistSettings").WithTags(Tag).Produces<LyricAssistSettingsDto>().ProducesValidationProblem();
         app.MapPost(SheetRoute + "/assists", (Guid lyricsId, CreateLyricAssistRequest? request, LyricAssistService service, CancellationToken ct) =>
                 service.CreateAsync(lyricsId, request, AssistOrigin.Editor, ct))
             .WithName("createLyricAssist").WithTags(Tag).Produces<LyricAssistDto>(StatusCodes.Status202Accepted).ProducesProblem(StatusCodes.Status400BadRequest)

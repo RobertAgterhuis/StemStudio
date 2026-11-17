@@ -8,6 +8,6 @@ public sealed partial class BackendContractTests
     // T046 (rhymes, language guess), T062 (lyric-assist settings), T075 (own-work override).
     private static readonly string[] PendingLyricAssistOperations =
     [
-        "getLyricAssistStatus", "getLyricAssistSettings", "updateLyricAssistSettings", "confirmOwnWork", "revokeOwnWork",
-                    ];
+        "confirmOwnWork", "revokeOwnWork",
+    ];
 }

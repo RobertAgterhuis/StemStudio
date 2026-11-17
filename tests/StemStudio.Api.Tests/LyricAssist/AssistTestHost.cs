@@ -62,6 +62,20 @@ internal sealed class FixtureSpellChecker : ISpellChecker
         word == "fluisterd" ? ["fluistert"] : word == "nigth" ? ["night"] : [];
 }
 
+/// <summary>Primary handler of every factory-made HTTP client in the assist tests: records and refuses the request (SC-006).</summary>
+internal sealed class OutboundRecorder(List<Uri?> requests) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        lock (requests)
+        {
+            requests.Add(request.RequestUri);
+        }
+
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable));
+    }
+}
+
 /// <summary>Base of the assist endpoint tests: a host with the fake factory, the fixture spell checker and fast SSE timings.</summary>
 public abstract class AssistTestBase : IDisposable
 {
@@ -76,6 +90,7 @@ public abstract class AssistTestBase : IDisposable
                 services.AddSingleton<ILyricAssistantFactory>(Assistants);
                 services.RemoveAll<ISpellChecker>();
                 services.AddSingleton<ISpellChecker>(new FixtureSpellChecker());
+                services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(() => new OutboundRecorder(Outbound)));
                 Configure(services);
             },
         };
@@ -83,6 +98,9 @@ public abstract class AssistTestBase : IDisposable
     }
 
     private protected FakeAssistantFactory Assistants { get; } = new();
+
+    /// <summary>Every request a factory-made HTTP client tried to send (SC-006: none during assistant actions).</summary>
+    private protected List<Uri?> Outbound { get; } = [];
 
     private protected ApiFactory Factory { get; }
 
