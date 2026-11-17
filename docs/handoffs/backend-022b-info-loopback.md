@@ -1,7 +1,7 @@
 # Hand-off: backend-022b / library info and loopback library actions (T072-T073, T079-T080)
 
 Lane `backend-022b` (split from backend-022), branch `r22-lane-be022b`, based on f9968494 plus backend-022's
-e3b9cea1 (folder view endpoints), merged in.
+e3b9cea1 (folder view endpoints) and 41c502b1 (search, with 1c493240), merged in.
 
 ## What was built
 - `src/StemStudio.Api/Library/LibraryInfoService.cs`: GET/PUT/DELETE library info of a track and of an item.
@@ -17,7 +17,8 @@ e3b9cea1 (folder view endpoints), merged in.
   `not-fileable`, 400 field errors `artist`/`album`/`song`).
 - `LibraryRegistration.cs`: two appended lines - `services.AddScoped<LibraryInfoService>()` and
   `.MapLibraryInfoEndpoints()` chained after `MapLibraryFolderEndpoints()`.
-- `BackendContractTests.Pending022.cs`: the six `*LibraryInfo` ids removed (only `searchLibrary` is pending).
+- `BackendContractTests.Pending022.cs`: the six `*LibraryInfo` ids removed; after the merge of 41c502b1 the
+  list is empty (every 022 operation is served).
 - `src/StemStudio.Api/Agent/Loopback/LoopbackLibraryActions.cs`: browse (`/api/library/folders[/{id}]` with
   `sort`, `kind`, `limit`), search (`/api/library/search` with `q`, `within`, `limit`), get/set library info.
   The folder id is escaped with `Uri.EscapeDataString`, so a model value like `../tracks` stays one path segment.
@@ -39,19 +40,23 @@ e3b9cea1 (folder view endpoints), merged in.
 
 ## Tests and coverage
 - New: `tests/StemStudio.Api.Tests/Library/LibraryInfo{Api,TrackTests,ItemTests,SecurityTests}.cs` (37 tests),
-  `tests/StemStudio.Api.Tests/Agent/Loopback/LoopbackLibraryActionsTests.cs` (11 tests); every response checked
+  `tests/StemStudio.Api.Tests/Agent/Loopback/LoopbackLibraryActionsTests.cs` (13 tests, incl. search with and
+  without `within` and a 422 as a readable tool error); every response checked
   with `ContractAssert` against backend-api 1.22.0.
 - Covered: sources and automatic names (import, match, fallback, track, item), `movedItems` (1, then 0 on the same
   names), item levels kept on a track edit, a later band-info lookup never overrides user names, reset, 400 per
   field (blank, empty, control characters, tab, 201 characters; 200 accepted; trimmed), malformed body 400,
   404 on all six, 409 `not-fileable`, an item whose track is gone.
-- Full run `dotnet test tests/StemStudio.Api.Tests -p:CollectCoverage=true`: 2591 passed, 2 skipped, 3 failed
-  under load - `AgentEndpointsTests.Executor_FailsTheRunWhenTheAgentThrows`,
-  `ClaudeKeyLeakTests.StoredSentinel_NeverLeaks` (known flake, see backend-022-foundation),
-  `HistoryAndUndoTests.Reload_RestoresMessagesPlansAndSteps`; all three pass when rerun alone, none touches 022.
-- StemStudio.Api line 98.34 %, branch 91.24 %. New files: LibraryInfoService 156/156 lines, 30/32 branches
+- Final full run on the merged head (681b9b67) `dotnet test tests/StemStudio.Api.Tests -p:CollectCoverage=true`:
+  2656 passed, 3 skipped, 3 failed. `HistoryAndUndoTests.Reload_RestoresMessagesPlansAndSteps` and
+  `DetailAutoQueueTests.HostedService_SubmitsPendingPhasesOnTheTick` are load flakes (pass alone; an earlier run
+  also showed `AgentEndpointsTests.Executor_FailsTheRunWhenTheAgentThrows` and the known
+  `ClaudeKeyLeakTests.StoredSentinel_NeverLeaks`). `LibraryPerfTests.FolderViewsWithin100ms_RebuildWithin200ms_SearchWithin50ms`
+  (backend-022's) fails here also alone: search p95 90 ms against the 50 ms limit on this machine (Debug,
+  instrumented build); not caused by this lane - for backend-022 to look at.
+- StemStudio.Api line 98.46 %, branch 91.70 %. New files: LibraryInfoService 156/156 lines, 30/32 branches
   (the two misses are `ArgumentNullException.ThrowIfNull` arms); LibraryInfoEndpoints 42/42; LibraryInfoProblems
-  22/22; LoopbackLibraryActions see "Open issues".
+  22/22; LoopbackLibraryActions 42/42 lines, 8/8 branches.
 - Test-first note: the T072 tests and T073 code were written in one step and committed together (c651f9e5), not as
   a separate red commit.
 
@@ -79,8 +84,11 @@ None.
 None (the user manual for the library info dialog is frontend-022's).
 
 ## Open issues / requests
-- Loopback search (`SearchLibraryAsync`) is implemented but its endpoint test waits for backend-022's T063 commit;
-  see the latest status in the final report of this lane.
+- Search `within=<artist folder>` does not return the artist folder itself as a hit (only what is inside); the
+  loopback test follows that behaviour. If the agent's `search_library_items` expects otherwise, backend-022 decides.
+- Perf test above (backend-022).
+- Integration: `LibraryRegistration.cs` and `BackendContractTests.Pending022.cs` were edited by both lanes; merging
+  `r22-lane-be022b` after `r22-lane-be022` leaves the registration with both chains and an empty pending list.
 
 ## Next owner
 backend-022 (T086 polish) and the CTO at integration: `LibraryRegistration.cs` has the two appended lines above.
