@@ -167,10 +167,19 @@ public sealed class StorageAttribution(
         long? source = storage is null && pending == 0 ? null : pending + (entry?.StandardBytes ?? 0);
         var row = new TrackStorageDto
         {
-            TrackId = track.Id, Title = track.Title, Artist = track.Artist, TotalBytes = 0, SourceBytes = source,
-            StemsBytes = Sum(own, StorageCategory.Stems), DetailStemsBytes = Sum(own, StorageCategory.DetailStems), DetailFilesRemoved = track.DetailPhase?.FilesRemovedAt is not null,
-            ArtworkBytes = Sum(own, StorageCategory.Artwork), ExportsBytes = Linked(track.Id, StorageCategory.Exports), ScoresBytes = Linked(track.Id, StorageCategory.Scores),
-            GenerationsBytes = Linked(track.Id, StorageCategory.Generations), RecordingsBytes = Linked(track.Id, StorageCategory.Recordings),
+            TrackId = track.Id,
+            Title = track.Title,
+            Artist = track.Artist,
+            TotalBytes = 0,
+            SourceBytes = source,
+            StemsBytes = Sum(own, StorageCategory.Stems),
+            DetailStemsBytes = Sum(own, StorageCategory.DetailStems),
+            DetailFilesRemoved = track.DetailPhase?.FilesRemovedAt is not null,
+            ArtworkBytes = Sum(own, StorageCategory.Artwork),
+            ExportsBytes = Linked(track.Id, StorageCategory.Exports),
+            ScoresBytes = Linked(track.Id, StorageCategory.Scores),
+            GenerationsBytes = Linked(track.Id, StorageCategory.Generations),
+            RecordingsBytes = Linked(track.Id, StorageCategory.Recordings),
             WorkerCacheBytes = storage is null ? null : entry is null ? 0 : entry.StandardBytes + entry.DetailBytes + entry.PartialBytes,
         };
         return row with { TotalBytes = (row.SourceBytes ?? 0) + row.StemsBytes + row.DetailStemsBytes + row.ArtworkBytes + row.ExportsBytes + row.ScoresBytes + row.GenerationsBytes + row.RecordingsBytes };

@@ -181,7 +181,11 @@ public sealed class UndoRun(RestoreRunServices services, TimeProvider clock)
         RestoreRun.UseWal(services.Live);
         await services.Previous.SaveAsync(new PreviousLibraryDto
         {
-            RestoreId = context.JobId, MovedAsideAt = movedAt, SizeBytes = services.Previous.SizeOf(context.JobId), Counts = currentCounts, RestoredArchive = previous.RestoredArchive,
+            RestoreId = context.JobId,
+            MovedAsideAt = movedAt,
+            SizeBytes = services.Previous.SizeOf(context.JobId),
+            Counts = currentCounts,
+            RestoredArchive = previous.RestoredArchive,
         }, CancellationToken.None);
         return new RestoreReportDto { Mode = RestoreReportModeDto.Undo, Restored = [], Skipped = [], MigratedFrom = null, Warnings = [], PreviousLibraryKept = true };
     }

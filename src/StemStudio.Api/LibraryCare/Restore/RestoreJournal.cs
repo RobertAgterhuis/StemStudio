@@ -97,7 +97,12 @@ public static partial class JournalPlans
         var back = Items.Where(item => Exists(paths, $"{previous}/{item}")).Select(item => new JournalStep(JournalOp.MoveIn, $"{previous}/{item}", item, false));
         return new RestoreJournalRecord
         {
-            RestoreId = undoId, Kind = "undo", Steps = [.. Aside(undoId, paths), .. back], State = JournalState.Staged, KeepPrevious = true, RemoveAfterCommit = previous,
+            RestoreId = undoId,
+            Kind = "undo",
+            Steps = [.. Aside(undoId, paths), .. back],
+            State = JournalState.Staged,
+            KeepPrevious = true,
+            RemoveAfterCommit = previous,
         };
     }
 
