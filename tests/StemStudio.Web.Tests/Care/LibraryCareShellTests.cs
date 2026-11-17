@@ -54,7 +54,7 @@ public sealed class LibraryCareShellTests : PageTestContext
         (indicator.TagName, indicator.GetAttribute("href"), indicator.GetAttribute("data-kind"), indicator.GetAttribute("data-progress"))
             .ShouldBe(("A", "care", "backup", "42"));
         indicator.TextContent.ShouldContain("Backup 42 %");
-        indicator.GetAttribute("aria-label").ShouldBe("Backup running, 42 %. Open Library care");
+        indicator.GetAttribute("aria-label").ShouldBe("Backup 42 % (running). Open Library care");
         shell.Find("header").Contains(indicator).ShouldBeTrue();
     }
 

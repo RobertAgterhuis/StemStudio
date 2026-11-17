@@ -80,6 +80,25 @@ public static class StorageView
         ? $"{ByteSize.Format(free)} free of {ByteSize.Format(total)}"
         : $"Not available: {line.Volume.Reason ?? "it cannot be measured"}";
 
+    /// <summary>
+    /// The <c>role="meter"</c> attributes of a measured volume line; none for a line without numbers, because ARIA allows
+    /// a name and a value text only on an element with a role (the visible text says why it is not available).
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <param name="label">The accessible name.</param>
+    /// <returns>The attributes.</returns>
+    public static IReadOnlyDictionary<string, object> MeterAttributes(VolumeLine line, string label) => line.UsedPercent is { } used
+        ? new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["role"] = "meter",
+            ["aria-label"] = label,
+            ["aria-valuemin"] = 0,
+            ["aria-valuemax"] = 100,
+            ["aria-valuenow"] = used,
+            ["aria-valuetext"] = FreeText(line),
+        }
+        : new Dictionary<string, object>(StringComparer.Ordinal);
+
     /// <summary>The screen where the items of an original category are deleted one by one, or null.</summary>
     /// <param name="category">The category.</param>
     /// <returns>A relative link, or null.</returns>

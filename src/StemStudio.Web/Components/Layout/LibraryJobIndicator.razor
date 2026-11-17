@@ -5,7 +5,7 @@
 {
     var view = new JobView(job);
     <a class="ss-care-indicator" href="care" data-testid="library-job-indicator" data-kind="@WireName.Of(job.Kind)" data-progress="@view.Progress"
-       aria-label="@($"{view.Title}, {view.Progress} %. Open Library care")">
+       aria-label="@($"{CareText.Kind(job.Kind)} {view.Progress} % ({CareText.Status(job.Status)}). Open Library care")">
         <span class="rzi" aria-hidden="true">archive</span>
         <span>@CareText.Kind(job.Kind) @view.Progress %</span>
     </a>

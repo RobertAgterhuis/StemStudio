@@ -34,8 +34,7 @@
                     var label = StorageView.LineLabel(line, overview.Volumes);
                     <div class="ss-care-meter" @key="line.Volume.Id" data-testid="@id" data-help-id="@id" data-free-bytes="@line.Volume.FreeBytes"
                          data-total-bytes="@line.Volume.TotalBytes" data-shared-with="@(line.SharedWith.Count == 0 ? null : string.Join(",", line.SharedWith))"
-                         role="@(line.UsedPercent is null ? null : "meter")" aria-label="@label" aria-valuemin="@(line.UsedPercent is null ? null : 0)"
-                         aria-valuemax="@(line.UsedPercent is null ? null : 100)" aria-valuenow="@line.UsedPercent" aria-valuetext="@StorageView.FreeText(line)">
+                         @attributes="StorageView.MeterAttributes(line, label)">
                         <span class="ss-label">@label</span>
                         @if (line.UsedPercent is { } used)
                         {
