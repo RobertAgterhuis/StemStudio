@@ -30,6 +30,10 @@ public static class PersistenceServiceCollectionExtensions
         services.AddScoped<ILyricsRevisionRepository, LyricsRevisionRepository>();
         services.AddScoped<ILyricWordRepository, LyricWordRepository>();
         services.AddScoped<ILyricsCorpusSource, LyricsCorpusSource>();
+        services.AddScoped<ISectionRepository, SectionRepository>();
+        services.AddScoped<IScoreViewRepository, ScoreViewRepository>();
+        services.AddScoped<ISetlistRepository, SetlistRepository>();
+        services.AddScoped<IPracticeRepository, PracticeRepository>();
         return services;
     }
 }

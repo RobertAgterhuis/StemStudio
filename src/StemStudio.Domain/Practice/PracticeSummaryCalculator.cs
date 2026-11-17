@@ -23,8 +23,7 @@ public static class PracticeSummaryCalculator
             TotalSeconds = sessions.Sum(session => session.PlayedSeconds),
             Sessions = sessions.Count,
             LastPractisedAt = sessions.Count == 0 ? null : sessions.Max(session => session.EndedAt),
-            Days = Enumerable.Range(0, window.Days).Select(i => window.Today.AddDays(i + 1 - window.Days))
-                .Select(date => new PracticeDay(date, perDay.GetValueOrDefault(date))).ToList(),
+            Days = DaysOf(perDay, window),
             Sections = sections.Select(group => group.Total).ToList(),
             Tempo = TempoPoints(sections, window),
         };
@@ -48,6 +47,9 @@ public static class PracticeSummaryCalculator
                 track.Max(session => session.EndedAt)))
             .OrderByDescending(total => total.LastPractisedAt).ToList();
     }
+
+    private static List<PracticeDay> DaysOf(Dictionary<DateOnly, double> perDay, SummaryWindow window) =>
+        Enumerable.Range(0, window.Days).Select(i => window.Today.AddDays(i + 1 - window.Days)).Select(date => new PracticeDay(date, perDay.GetValueOrDefault(date))).ToList();
 
     private static Dictionary<DateOnly, double> SecondsPerDay(IEnumerable<PracticeSession> sessions, int offsetMinutes)
     {

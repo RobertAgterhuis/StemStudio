@@ -58,11 +58,7 @@ public sealed class PracticeSession
     {
         ArgumentNullException.ThrowIfNull(input);
         var errors = PracticeSessionRules.Validate(input, nowUtc).ToList();
-        if (input.TrackId != TrackId)
-        {
-            errors.Add(new DomainError("trackId", "A session cannot move to another track."));
-        }
-
+        errors.AddRange(input.TrackId == TrackId ? [] : [new DomainError("trackId", "A session cannot move to another track.")]);
         if (errors.Count > 0)
         {
             throw new DomainValidationException(errors);

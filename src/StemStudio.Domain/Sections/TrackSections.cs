@@ -1,11 +1,9 @@
-using System.Text.RegularExpressions;
-
 namespace StemStudio.Domain.Sections;
 
 /// <summary>
 /// The section set of one track (data-model 3.1): detection status, origin, revision and the ordered sections.
 /// </summary>
-public sealed partial class TrackSections
+public sealed class TrackSections
 {
     /// <summary>Longest stored failure text.</summary>
     public const int MaxErrorLength = 500;
@@ -74,15 +72,8 @@ public sealed partial class TrackSections
     /// <summary>Records the submitted worker job (status queued).</summary>
     /// <param name="workerJobId">Worker job id (32 lower-case hex digits).</param>
     /// <param name="nowUtc">Now.</param>
-    public void StartDetection(string workerJobId, DateTime nowUtc)
-    {
-        if (!JobIdPattern().IsMatch(workerJobId))
-        {
-            throw new ArgumentException($"'{workerJobId}' is not a worker job ID.", nameof(workerJobId));
-        }
-
-        (Status, WorkerJobId, Error, UpdatedAt) = (SectionSetStatus.Queued, workerJobId, null, nowUtc);
-    }
+    public void StartDetection(string workerJobId, DateTime nowUtc) =>
+        (Status, WorkerJobId, Error, UpdatedAt) = (SectionSetStatus.Queued, JobIds.Require(workerJobId, nameof(workerJobId)), null, nowUtc);
 
     /// <summary>The worker started the job.</summary>
     /// <param name="nowUtc">Now.</param>
@@ -138,14 +129,17 @@ public sealed partial class TrackSections
         }
 
         var existing = _sections.ToDictionary(section => section.Id);
-        var errors = SectionRules.Validate(update.Sections, context, existing.Keys.ToHashSet());
+        ThrowIfAny(SectionRules.Validate(update.Sections, context, existing.Keys.ToHashSet()));
+        _sections = update.Sections.Select((input, position) => Merge(existing, input, position, newId)).ToList();
+        Stored(SectionSetOrigin.Edited, nowUtc);
+    }
+
+    private static void ThrowIfAny(IReadOnlyList<DomainError> errors)
+    {
         if (errors.Count > 0)
         {
             throw new DomainValidationException(errors);
         }
-
-        _sections = update.Sections.Select((input, position) => Merge(existing, input, position, newId)).ToList();
-        Stored(SectionSetOrigin.Edited, nowUtc);
     }
 
     private Section Merge(Dictionary<Guid, Section> existing, SectionInput input, int position, Func<Guid> newId)
@@ -164,7 +158,4 @@ public sealed partial class TrackSections
         (Origin, Revision, Status) = (origin, Revision + 1, SectionSetStatus.Ready);
         (WorkerJobId, Error, UpdatedAt) = (null, null, nowUtc);
     }
-
-    [GeneratedRegex(@"\A[0-9a-f]{32}\z", RegexOptions.CultureInvariant)]
-    private static partial Regex JobIdPattern();
 }
