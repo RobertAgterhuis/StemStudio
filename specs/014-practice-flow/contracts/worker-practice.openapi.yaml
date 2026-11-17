@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: StemStudio Worker API - practice lane delta (feature 014)
-  version: 1.8.0-delta.1
+  version: 1.8.0-delta.2
   summary: Additive delta of the worker API - section detection, score views and setlist PDFs on the new `practice` lane.
   description: |
     * **Standalone, additive delta.** Merged unchanged into the full
@@ -16,7 +16,10 @@ info:
       (ADR-016 D5); the worker never writes the library.
     * Lane `practice` (ADR-023 D8): one job at a time, FIFO, for short jobs (section detection
       1-10 s, score view < 2 s, setlist PDF < 5 s). Job states reuse `RenderJobStatus`.
-    * Changelog: 1.8.0-delta.1 (additive, feature 014 planning).
+    * Changelog: 1.8.0-delta.1 (additive, feature 014 planning). 1.8.0-delta.2 (Phase 0 part 2,
+      2026-11-17) - examples only: queued and failed section jobs, a score-view request and a
+      completed score-view job, a setlist document request and a completed document job (for the
+      backend's consumer fakes, `tests/StemStudio.Api.Tests/Worker/Examples/`).
   license:
     name: MIT
     identifier: MIT
@@ -49,6 +52,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SectionJob'
+              examples:
+                queued:
+                  $ref: '#/components/examples/SectionJobQueued'
         '400':
           $ref: '#/components/responses/InvalidInputPath'
         '404':
@@ -72,6 +78,8 @@ paths:
               examples:
                 completed:
                   $ref: '#/components/examples/SectionJobCompleted'
+                failed:
+                  $ref: '#/components/examples/SectionJobFailed'
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -94,6 +102,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ScoreViewJobRequest'
+            examples:
+              bass:
+                $ref: '#/components/examples/ScoreViewJobRequestBass'
       responses:
         '202':
           description: Queued.
@@ -121,6 +132,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ScoreViewJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/ScoreViewJobCompleted'
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -168,6 +182,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SetlistDocumentRequest'
+            examples:
+              twoSongs:
+                $ref: '#/components/examples/SetlistDocumentRequestTwoSongs'
       responses:
         '202':
           description: Queued.
@@ -191,6 +208,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SetlistDocumentJob'
+              examples:
+                completed:
+                  $ref: '#/components/examples/SetlistDocumentJobCompleted'
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -785,3 +805,86 @@ components:
             - {kind: chorus, label: Chorus, startSeconds: 24.1, endSeconds: 40.1, cluster: C, instrument: null, confidence: 0.79}
             - {kind: solo, label: Electric guitar solo, startSeconds: 40.1, endSeconds: 56.1, cluster: D, instrument: guitar.electric-guitar, confidence: 0.66}
             - {kind: outro, label: Outro, startSeconds: 56.1, endSeconds: 64, cluster: A, instrument: null, confidence: 0.71}
+    SectionJobQueued:
+      summary: A section job just queued
+      value:
+        jobId: 0123456789abcdef0123456789abcdef
+        status: queued
+        progress: 0
+        error: null
+        result: null
+        createdAt: '2026-11-16T10:11:48Z'
+    SectionJobFailed:
+      summary: Detection failed (unreadable stem)
+      value:
+        jobId: 0123456789abcdef0123456789abcdef
+        status: failed
+        progress: 0.2
+        error: The stems of this track could not be read.
+        result: null
+        createdAt: '2026-11-16T10:11:48Z'
+    ScoreViewJobRequestBass:
+      summary: A bass score made on the track's beat grid (beats shortened)
+      value:
+        musicxml: assets/9a8b7c6d-1111-4222-8333-444455556666/score.musicxml
+        grid: {kind: beat-grid, bpm: 120, beatsPerBar: 4, beats: [0.1, 0.6, 1.1, 1.6, 2.1, 2.6, 3.1, 3.6, 4.1], downbeats: [0.1, 2.1, 4.1]}
+        durationSeconds: 6.1
+    ScoreViewJobCompleted:
+      summary: A completed score view of 3 bars on one page
+      value:
+        jobId: 89abcdef0123456789abcdef01234567
+        status: completed
+        progress: 1
+        error: null
+        createdAt: '2026-11-16T10:12:05Z'
+        result:
+          pages:
+            - {page: 1, widthPx: 840, heightPx: 1188}
+          bars:
+            - {index: 0, number: 1, page: 1, x: 0.0571, y: 0.1012, width: 0.1702, height: 0.0248, startSeconds: 0, endSeconds: 2.1}
+            - {index: 1, number: 2, page: 1, x: 0.2273, y: 0.1012, width: 0.1695, height: 0.0248, startSeconds: 2.1, endSeconds: 4.1}
+            - {index: 2, number: 3, page: 1, x: 0.3968, y: 0.1012, width: 0.1544, height: 0.0248, startSeconds: 4.1, endSeconds: 6.1}
+          engine: {name: verovio, version: 6.4.0}
+    SetlistDocumentRequestTwoSongs:
+      summary: Two songs, one with sections, a mix and lyrics
+      value:
+        title: Band night
+        note: Bring the capo.
+        generatedAt: '2026-11-16T18:00:00Z'
+        options: {includeLyrics: true, includeSections: true, includeNotes: true, pageBreakPerSong: true}
+        songs:
+          - position: 1
+            title: Morning Light
+            artist: The Examples
+            bpm: 120
+            beatsPerBar: 4
+            key: A minor
+            durationSeconds: 222
+            mixName: Band night
+            note: Start soft.
+            sections:
+              - {label: Intro, kind: intro, startSeconds: 0}
+              - {label: Verse 1, kind: verse, startSeconds: 12}
+            lyrics:
+              lines: [First line of the verse, Second line, '', Chorus line]
+              shortened: false
+          - position: 2
+            title: Encore
+            artist: null
+            bpm: null
+            beatsPerBar: null
+            key: null
+            durationSeconds: 185.5
+            mixName: null
+            note: null
+            sections: []
+            lyrics: null
+    SetlistDocumentJobCompleted:
+      summary: A completed setlist PDF of 3 pages
+      value:
+        jobId: fedcba9876543210fedcba9876543210
+        status: completed
+        progress: 1
+        error: null
+        pages: 3
+        createdAt: '2026-11-16T18:00:01Z'

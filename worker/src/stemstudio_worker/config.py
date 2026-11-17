@@ -15,6 +15,7 @@ AlignModel = Literal["turbo", "small"]
 AlignAutoMode = Literal["gpu", "always", "never"]
 FakeLyricsMode = Literal["word", "line", "plain", "instrumental", "not-found", "failed"]
 TranscriberKind = Literal["real", "fake"]
+StructureAnalyzerKind = Literal["real", "fake"]
 
 _SEPARATORS: tuple[SeparatorKind, ...] = ("demucs", "fake")
 _DEVICES: tuple[DeviceKind, ...] = ("cpu", "cuda", "auto")
@@ -27,6 +28,7 @@ _FAKE_LYRICS: tuple[FakeLyricsMode, ...] = (
     "word", "line", "plain", "instrumental", "not-found", "failed",
 )  # fmt: skip
 _TRANSCRIBERS: tuple[str, ...] = ("", "real", "fake")
+_STRUCTURE_ANALYZERS: tuple[str, ...] = ("", "real", "fake")
 _MAX_THREADS = 64
 _LANGUAGE = re.compile(r"[a-z]{2,3}")
 _MAX_LANGUAGES = 5
@@ -138,6 +140,9 @@ class WorkerSettings:
         gpu_lease_wait_seconds: Longest wait for the file lease before a GPU step runs on the
             CPU with the reason "GPU busy with another StemStudio job"
             (``STEMSTUDIO_GPU_LEASE_WAIT_SECONDS``, default 900).
+        structure_analyzer: Section detection of feature 014 (``STEMSTUDIO_STRUCTURE_ANALYZER``):
+            ``real`` (``stems-novelty``) or the deterministic ``fake`` (data-model 2.4); unset =
+            ``fake`` with ``separator=fake``, else ``real``.
     """
 
     data_dir: Path
@@ -156,6 +161,7 @@ class WorkerSettings:
     transcription: TranscriptionSettings = TranscriptionSettings()
     gpu_lease_file: Path | None = None
     gpu_lease_wait_seconds: float = 900.0
+    structure_analyzer: StructureAnalyzerKind = "real"
 
 
 GPU_LEASE_BUSY_REASON = "GPU busy with another StemStudio job"
@@ -187,6 +193,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         lyrics=_lyrics_settings(env),
         transcription=_transcription_settings(env, separator),
         **_gpu_lease_settings(env),
+        structure_analyzer=_structure_analyzer(env, separator),
     )
 
 
@@ -268,6 +275,12 @@ def _transcription_settings(
         msg = f"STEMSTUDIO_TRANSCRIBE_THREADS must be a whole number from 1 to 64; got {raw!r}"
         raise ValueError(msg)
     return TranscriptionSettings(transcriber=cast(TranscriberKind, kind), threads=int(raw))
+
+
+def _structure_analyzer(env: Mapping[str, str], separator: SeparatorKind) -> StructureAnalyzerKind:
+    """Read ``STEMSTUDIO_STRUCTURE_ANALYZER`` (feature 014); unset follows the separator."""
+    kind = _choice(env, "STEMSTUDIO_STRUCTURE_ANALYZER", _STRUCTURE_ANALYZERS)
+    return cast(StructureAnalyzerKind, kind or ("fake" if separator == "fake" else "real"))
 
 
 def _languages(raw: str) -> tuple[str, ...]:

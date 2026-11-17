@@ -36,7 +36,7 @@ from stemstudio_worker.schemas import (
 _SPEC = (
     Path(__file__).resolve().parents[2]
     / "specs"
-    / "013-library-care"
+    / "014-practice-flow"
     / "contracts"
     / "worker-api.openapi.yaml"
 )
@@ -57,7 +57,7 @@ def _example(name: str) -> Any:
 
 
 def test_contract_version_matches_the_binding_document() -> None:
-    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.7.0"
+    assert CONTRACT_VERSION == _spec()["info"]["version"] == "1.8.0"
 
 
 @pytest.mark.parametrize(

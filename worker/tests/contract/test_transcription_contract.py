@@ -61,6 +61,8 @@ from stemstudio_worker.schemas import (
 from .docs import WorkerDocument
 
 V160 = WorkerDocument("008-sheet-music")
+# Health grew in 1.8.0 (014: lanes.practice, structure); its checks use the current document.
+CURRENT = WorkerDocument("014-practice-flow")
 _TRACK = "0b7e4c1a-9d2f-4e8b-a1c3-5f6e7d8c9b0a"
 
 
@@ -75,7 +77,7 @@ def _example(name: str) -> Any:
 def test_contract_version_is_1_6_0_or_a_superset() -> None:
     # 013 Phase 0: the code follows 1.7.0, which contains 1.6.0 unchanged (storage contract test).
     assert V160.root["info"]["version"] == "1.6.0"
-    assert CONTRACT_VERSION == "1.7.0"
+    assert CONTRACT_VERSION == "1.8.0"
 
 
 @pytest.mark.parametrize(
@@ -234,7 +236,7 @@ def test_summary_accepts_drums_without_key() -> None:
 
 @pytest.mark.parametrize("name", ["cpu", "gpu", "gpuUnavailable"])
 def test_health_examples_round_trip(name: str) -> None:
-    example = V160.health_examples()[name]
+    example = CURRENT.health_examples()[name]
 
     assert Health.model_validate(example).model_dump(mode="json", by_alias=True) == example
 
@@ -248,7 +250,7 @@ def test_default_health_is_valid_and_reports_nothing_ready() -> None:
         PIANO_MODEL_ID: "not-downloaded",
     }
     assert body["lanes"]["transcribe"] == {"queued": 0, "running": False}
-    assert _errors("Health", body) == []
+    assert CURRENT.errors("Health", body) == []
 
 
 def test_weights_and_gpu_needs_follow_the_phase_0_measurements() -> None:

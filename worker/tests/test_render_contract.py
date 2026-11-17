@@ -60,7 +60,7 @@ def _value(example: str) -> Any:
 
 def test_document_is_1_4_0_and_the_code_follows_the_008_document() -> None:
     assert _DOC["info"]["version"] == "1.4.0"
-    assert CONTRACT_VERSION == "1.7.0"  # 013 Phase 0; see test_storage_contract.py
+    assert CONTRACT_VERSION == "1.8.0"  # 014 Phase 0; see contract/test_practice_contract.py
 
 
 @pytest.mark.parametrize(
@@ -209,8 +209,9 @@ def test_rejected_library_paths(path: str) -> None:
     assert not is_allowed_library_path(path)
 
 
-def test_there_are_three_path_patterns() -> None:
-    assert len(LIBRARY_PATH_PATTERNS) == 3
+def test_there_are_four_path_patterns() -> None:
+    # 1.8.0 (014) adds assets/<uuid>/score.musicxml for score-view jobs.
+    assert len(LIBRARY_PATH_PATTERNS) == 4
 
 
 def test_render_errors() -> None:

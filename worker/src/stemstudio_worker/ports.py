@@ -24,6 +24,9 @@ Each protocol is implemented by a different agent and faked in unit tests:
   (``engraving/``), feature 008: sheet music (ADR-017)
 * ``StorageMeter``, ``CacheJanitor``, ``LibraryStemReader``: stem-separation (``storage/``),
   feature 013: the storage report, the cache clean-up and the rehydration source (ADR-022)
+* ``StructureAnalyzer``: beat-analysis (``analysis/structure/``; the fake by stem-separation),
+  ``ScoreViewRenderer`` and ``SetlistDocumentRenderer``: audio-ingest
+  (``engraving/score_view.py``, ``documents/``), feature 014: the ``practice`` lane (ADR-023)
 
 The job runner (``jobs/``) composes them: resolve (or accept the upload) -> fetch -> normalise ->
 separate -> analyse. The composition root (``main.create_app``) builds a ``PipelineAdapters``
@@ -45,13 +48,16 @@ import numpy.typing as npt
 
 from stemstudio_worker.schemas import (
     BASIC_PITCH_MODEL_ID,
+    DOCUMENT_FAILED_TEXT,
     LIBRARY_UNAVAILABLE_TEXT,
     LYRICS_UNREACHABLE_TEXT,
     LYRICS_UNUSABLE_TEXT,
     NO_NOTES_TEXT,
     PIANO_MODEL_ID,
+    SCORE_VIEW_FAILED_TEXT,
     ArtworkInfo,
     ArtworkSource,
+    BarBox,
     BeatGrid,
     BeatGridTempo,
     DetailModelId,
@@ -74,10 +80,15 @@ from stemstudio_worker.schemas import (
     ScoreResolution,
     ScoreTitles,
     ScoreWarning,
+    SectionJobRequest,
+    SectionResult,
+    SetlistDocumentRequest,
     SourceType,
     StemName,
     StorageCleanupRequest,
     StorageCleanupResult,
+    StructureAnalyzerName,
+    TempoGrid,
     TimedLyrics,
     WorkerStorage,
 )
@@ -736,14 +747,29 @@ class MetadataLookup(Protocol):
 
 _UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
-LIBRARY_PATH_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
-    re.compile(rf"tracks/{_UUID}/stems/(vocals|drums|bass|guitar|piano|other)\.flac"),
-    re.compile(
-        rf"tracks/{_UUID}/detail/(vocals|drums|guitar|piano|other)/[a-z][a-z-]{{0,31}}\.flac"
-    ),
-    re.compile(rf"assets/{_UUID}/[a-z][a-z0-9-]{{0,31}}\.(flac|wav|mp3)"),
+STEM_PATH_PATTERN: Final = re.compile(
+    rf"tracks/{_UUID}/stems/(vocals|drums|bass|guitar|piano|other)\.flac"
 )
-"""Allow-list of render input paths relative to the library root (data-model.md 2.1).
+"""A standard stem of a track (render inputs; section job ``stems``)."""
+
+DETAIL_PATH_PATTERN: Final = re.compile(
+    rf"tracks/{_UUID}/detail/(vocals|drums|guitar|piano|other)/[a-z][a-z-]{{0,31}}\.flac"
+)
+"""A detail stem of a track (render inputs; section job ``details``)."""
+
+SCORE_MUSICXML_PATTERN: Final = re.compile(rf"assets/{_UUID}/score\.musicxml")
+"""The MusicXML of a score asset (score-view job ``musicxml``, feature 014)."""
+
+LIBRARY_PATH_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    STEM_PATH_PATTERN,
+    DETAIL_PATH_PATTERN,
+    re.compile(rf"assets/{_UUID}/[a-z][a-z0-9-]{{0,31}}\.(flac|wav|mp3)"),
+    SCORE_MUSICXML_PATTERN,
+)
+"""Allow-list of library input paths relative to the library root (007 data-model.md 2.1;
+feature 014 adds the score MusicXML). Section jobs also require ``STEM_PATH_PATTERN`` /
+``DETAIL_PATH_PATTERN`` per field and score-view jobs ``SCORE_MUSICXML_PATTERN`` (400 otherwise);
+render and transcription jobs keep accepting any allowed path (a MusicXML fails their decoding).
 
 A path is allowed when one pattern matches it completely (``fullmatch``); the path guard then
 resolves it and requires the real path to stay inside the library root.
@@ -1358,5 +1384,140 @@ class LibraryStemReader(Protocol):
         Raises:
             LibraryUnavailableError: The library mount is unset or unreadable.
             StemMissingError: The stem file does not exist.
+        """
+        ...
+
+
+# ------------------------------------------------------------------ practice lane (feature 014)
+
+
+class StructureError(WorkerError):
+    """Section detection failed; the readable message becomes the section job's ``error``."""
+
+
+class ScoreViewError(WorkerError):
+    """A score view could not be laid out (unreadable MusicXML, Verovio failure, limits)."""
+
+    def __init__(self, message: str = SCORE_VIEW_FAILED_TEXT) -> None:
+        """Create the error; the default text is ``SCORE_VIEW_FAILED_TEXT``."""
+        super().__init__(message)
+
+
+class DocumentError(WorkerError):
+    """A setlist PDF could not be made (missing DejaVu fonts, ReportLab failure)."""
+
+    def __init__(self, message: str = DOCUMENT_FAILED_TEXT) -> None:
+        """Create the error; the default text is ``DOCUMENT_FAILED_TEXT``."""
+        super().__init__(message)
+
+
+SectionProgress = RenderProgress
+"""Progress callback of a section job (0..1, non-decreasing)."""
+
+StemFiles = Mapping[str, Path]
+"""Resolved input files of a section job by channel: the standard stem names of
+``SectionJobRequest.stems`` and the detail channels of ``details`` (``guitar.electric-guitar``).
+The job service resolves every path through the path guard before the analyser runs."""
+
+
+@runtime_checkable
+class StructureAnalyzer(Protocol):
+    """Finds the sections of a song from its stems and beat grid (beat-analysis, ADR-023 D1).
+
+    Attributes:
+        name: ``stems-novelty`` or ``fake`` (``SectionResult.analyzer.name``).
+        version: Analyser version (``1.0.0``).
+    """
+
+    name: StructureAnalyzerName
+    version: str
+
+    def analyze(
+        self, request: SectionJobRequest, files: StemFiles, progress: SectionProgress
+    ) -> SectionResult:
+        """Detect, label and snap the sections (data-model 2.2-2.4).
+
+        Args:
+            request: The job request (grid, duration, ``maxSections``).
+            files: The resolved stem and detail files of ``request``.
+            progress: Receives 0..1.
+
+        Returns:
+            Ordered, contiguous sections covering ``0..durationSeconds`` with snap and warnings.
+
+        Raises:
+            StructureError: The stems cannot be read or analysed.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreView:
+    """A laid-out score: SVG page documents and the bar map (data-model 2.5).
+
+    Attributes:
+        pages: One SVG document per page, the Leipzig ``@font-face`` as the first child.
+        bars: One box per bar in document order, times relative to the score's input start.
+        engine_version: Verovio version string.
+        page_width_px: Width of every page in CSS pixels (840 with the 008 options).
+        page_height_px: Height of every page in CSS pixels (1188 with the 008 options).
+    """
+
+    pages: tuple[str, ...]
+    bars: tuple[BarBox, ...]
+    engine_version: str
+    page_width_px: int = 840
+    page_height_px: int = 1188
+
+
+@runtime_checkable
+class ScoreViewRenderer(Protocol):
+    """Lays out MusicXML as SVG pages with a bar map (audio-ingest, ``engraving/score_view.py``)."""
+
+    def render(self, musicxml: bytes, grid: TempoGrid, duration_seconds: float) -> ScoreView:
+        """Run the two Verovio passes (plain pages, bounding boxes) and time the bars.
+
+        Args:
+            musicxml: The score's MusicXML file content.
+            grid: The 008 time base the score was made with.
+            duration_seconds: Length of the score's input (the last bar ends here).
+
+        Returns:
+            Pages (at most ``MAX_SCORE_PAGES``) and bars (at most ``MAX_SCORE_BARS``).
+
+        Raises:
+            ScoreViewError: The MusicXML cannot be read or laid out, or exceeds the limits.
+        """
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class SetlistDocument:
+    """A rendered setlist PDF.
+
+    Attributes:
+        pdf: The PDF bytes.
+        pages: Page count (``SetlistDocumentJob.pages``).
+    """
+
+    pdf: bytes
+    pages: int
+
+
+@runtime_checkable
+class SetlistDocumentRenderer(Protocol):
+    """Renders a setlist as an A4 PDF (audio-ingest, ``documents/setlist_pdf.py``, ReportLab)."""
+
+    def render(self, request: SetlistDocumentRequest) -> SetlistDocument:
+        """Lay out the overview, the songs and the footer (data-model 2.6).
+
+        Args:
+            request: The complete content; no file is read except the DejaVu fonts.
+
+        Returns:
+            The PDF and its page count.
+
+        Raises:
+            DocumentError: The fonts are missing or ReportLab fails.
         """
         ...

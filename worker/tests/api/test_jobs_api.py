@@ -50,6 +50,7 @@ def test_health_reports_fake_separator(api: Api) -> None:
         "lanes": {
             "render": {"queued": 0, "running": False},
             "transcribe": {"queued": 0, "running": False},
+            "practice": {"queued": 0, "running": False},
         },
         "lyricsAlignment": {
             "available": True,
@@ -65,7 +66,8 @@ def test_health_reports_fake_separator(api: Api) -> None:
             },
             "font": {"leipzig": False},
         },
-        "contractVersion": "1.7.0",
+        "structure": {"analyzer": "stems-novelty", "version": "1.0.0"},
+        "contractVersion": "1.8.0",
     }
 
 
