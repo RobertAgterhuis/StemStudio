@@ -90,7 +90,9 @@ test('injected lines in a sheet produce only anchored suggestions and change not
   }
   expect([...new Set(open.map((suggestion) => suggestion.anchor.original))]).toEqual(planted.map((fact) => fact.original));
   expect(assist.discarded.invalidAnchor + assist.discarded.invalidSchema + assist.discarded.failedVerification + assist.discarded.filtered).toBeGreaterThanOrEqual(3);
-  expect((await lyricAssistApi.sheet(sheet.id)).text).toBe(sheetText('inject-en'));
+  // The stored text is the fixture as the sheet keeps it (010 drops the final line break).
+  expect((await lyricAssistApi.sheet(sheet.id)).text).toBe(sheet.text);
+  expect(sheet.text).toBe(sheetText('inject-en').trimEnd());
 });
 
 test('own work: confirm lifts the sheet guard; verbatim stays withheld, imitation stays refused; revoke refuses again', { tag: '@lyric-assist' }, async ({ api, lyricsApi, lyricAssistApi, assistPane }) => {

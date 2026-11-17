@@ -1,6 +1,6 @@
 import type { LyricAssistPane } from '../pages/lyric-assist-pane';
 import type { LyricAssistApi, LyricSuggestionDto, LyricsSheetDto } from '../support/lyric-assist-api';
-import { createFixtureSheet, readAssistExpected, requireModelBackend, sheetText } from '../support/lyric-assist-fixtures';
+import { createFixtureSheet, readAssistExpected, requireModelBackend } from '../support/lyric-assist-fixtures';
 import { runAssist } from '../support/lyric-assist-flow';
 import { present } from '../support/generative';
 import { expect, test } from '../support/lyric-assist-test';
@@ -26,9 +26,11 @@ async function checkedZomeravond(api: LyricAssistApi, pane: LyricAssistPane): Pr
   return sheet;
 }
 
-/** Open suggestions whose anchor text is one of `spans`. */
-async function openOn(api: LyricAssistApi, lyricsId: string, spans: readonly string[]): Promise<LyricSuggestionDto[]> {
-  return (await api.suggestions(lyricsId, { status: 'open' })).filter((suggestion) => spans.includes(suggestion.anchor.original));
+/** Open suggestions whose anchor text is one of `spans` (only those of assist `assistId` when given). */
+async function openOn(api: LyricAssistApi, lyricsId: string, spans: readonly string[], assistId?: string): Promise<LyricSuggestionDto[]> {
+  return (await api.suggestions(lyricsId, { status: 'open' })).filter(
+    (suggestion) => spans.includes(suggestion.anchor.original) && (assistId === undefined || suggestion.assistId === assistId),
+  );
 }
 
 test('check: dictionary and model layers find the planted corrections and leave the poetic licences alone', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
@@ -86,14 +88,16 @@ test('strict shows the licences as ideas; an intentional mark is respected until
   await assistPane.part('intentional', typo.suggestionId).click();
   await expect(assistPane.entry(typo.suggestionId)).toHaveCount(0);
   expect((await lyricAssistApi.suggestions(sheet.id, { status: 'intentional' })).map((s) => s.suggestionId)).toContain(typo.suggestionId);
-  await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original])).toEqual([]);
+  // Each check adds its own suggestions (the balanced and the strict check both flagged the typo),
+  // so only what the check after the mark found counts (scenario 5: no later check flags it).
+  const marked = await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
+  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original], marked.assistId)).toEqual([]);
 
   await assistPane.byId('lyric-marks-open').click();
   const mark = assistPane.byId('lyric-marks-list').locator('[data-testid^="lyric-mark-delete-"]').first();
   await mark.click();
-  await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
-  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original])).toHaveLength(1);
+  const unmarked = await runAssist(assistPane, lyricAssistApi, sheet.id, 'check');
+  expect(await openOn(lyricAssistApi, sheet.id, [typo.anchor.original], unmarked.assistId)).toHaveLength(1);
 });
 
 test('"Add to my words" keeps a name out of the check of another Dutch sheet', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
@@ -156,7 +160,7 @@ test('writing help: three alternatives for line 4 (accepting one supersedes the 
   await runAssist(assistPane, lyricAssistApi, fresh.id, 'continue');
   const [continuation] = await lyricAssistApi.suggestions(fresh.id, { status: 'open', category: 'continuation' });
   expect(continuation?.anchor.line).toBe(5);
-  expect((await lyricAssistApi.sheet(fresh.id)).text).toBe(sheetText('zomeravond'));
+  expect((await lyricAssistApi.sheet(fresh.id)).text).toBe(fresh.text);
 });
 
 test('rhyme finder: nacht and night answer within 500 ms without a model call', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane }) => {
