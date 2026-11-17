@@ -144,9 +144,9 @@ and `polish`, with real test and coverage output.
 - [ ] T053 [US3] [audio-engine] Implement loop handling in recorder/take-channel to pass T052
 - [ ] T054 [P] [US3] [backend] Failing tests `DeleteTakesEndpointTests.cs`: batch delete, unknown and other-track ids ignored, files and hashes gone, count returned (FR-014)
 - [ ] T055 [US3] [backend] Implement `deleteRecordingTakes` to pass T054
-- [ ] T056 [P] [US3] [frontend] Failing bUnit tests: session groups, `rec-pass`, partial badge, star, `takes-keep-starred-<sessionId>` with confirmation (FR-010, FR-014)
-- [ ] T057 [US3] [frontend] Implement session grouping and keep-starred in `TakesPanel` to pass T056
-- [ ] T058 [P] [US3] [qa] E2E `recording-loop.spec.ts`: loop 4-8 s, three passes + 2 s partial -> four takes in one session; star pass 2, delete the others -> one take remains
+- [x] T056 [P] [US3] [frontend] Failing bUnit tests: session groups, `rec-pass`, partial badge, star, `takes-keep-starred-<sessionId>` with confirmation (FR-010, FR-014)
+- [x] T057 [US3] [frontend] Implement session grouping and keep-starred in `TakesPanel` to pass T056
+- [x] T058 [P] [US3] [qa] E2E `recording-loop.spec.ts`: loop 4-8 s, three passes + 2 s partial -> four takes in one session; star pass 2, delete the others -> one take remains
 
 **Checkpoint**: HO:us3 per owner.
 
