@@ -28,14 +28,13 @@ public static class LibraryCareData
     };
 
     public static LibraryCareStatusDto Status(
-        LibraryJobDto? active = null, GateModeDto gate = GateModeDto.Open, PreviousLibraryDto? previous = null, bool empty = false,
-        IReadOnlyList<ActiveWorkDto>? work = null) => new()
+        LibraryJobDto? active = null, GateModeDto gate = GateModeDto.Open, PreviousLibraryDto? previous = null, bool empty = false) => new()
         {
             Gate = gate,
             ActiveJob = active,
             BackupFolder = Folder(),
             PreviousLibrary = previous,
-            ActiveWork = work ?? [],
+            ActiveWork = [],
             LibraryEmpty = empty,
         };
 
@@ -103,9 +102,8 @@ public static class LibraryCareData
         Warnings = [new ArchiveWarningDto { Code = ArchiveWarningCodeDto.MissingFile, Message = "1 file was missing" }],
     };
 
-    public static CategorySizeDto Size(BackupCategoryDto category, long bytes, int files, bool included = true, bool optional = true,
-        RegenerabilityDto regenerability = RegenerabilityDto.Original) =>
-        new() { Category = category, Bytes = bytes, Files = files, Included = included, Optional = optional, Regenerability = regenerability };
+    public static CategorySizeDto Size(BackupCategoryDto category, long bytes, int files, bool included = true) =>
+        new() { Category = category, Bytes = bytes, Files = files, Included = included, Optional = true, Regenerability = RegenerabilityDto.Original };
 
     public static BackupEstimateDto Estimate(bool enough = true, bool detail = true, bool voices = true, int voiceFiles = 1) => new()
     {
@@ -114,19 +112,18 @@ public static class LibraryCareData
         Enough = enough,
         Categories =
         [
-            Size(BackupCategoryDto.Database, 4_000_000, 1, optional: false),
-            Size(BackupCategoryDto.Stems, 800_000_000, 24, optional: false),
-            Size(BackupCategoryDto.DetailStems, 600_000_000, 12, detail, regenerability: RegenerabilityDto.Regenerable),
+            Size(BackupCategoryDto.Database, 4_000_000, 1) with { Optional = false },
+            Size(BackupCategoryDto.Stems, 800_000_000, 24) with { Optional = false },
+            Size(BackupCategoryDto.DetailStems, 600_000_000, 12, detail) with { Regenerability = RegenerabilityDto.Regenerable },
             Size(BackupCategoryDto.VoiceProfiles, 2_000_000, voiceFiles, voices),
         ],
     };
 
     public static LibraryJobDto Job(
         LibraryJobKindDto kind = LibraryJobKindDto.Backup, LibraryJobStatusDto status = LibraryJobStatusDto.Running,
-        LibraryJobStageDto? stage = LibraryJobStageDto.Files, int progress = 42, LibraryJobReportDto? report = null,
-        LibraryJobErrorDto? error = null, bool cancellable = true, Guid? id = null) => new()
+        LibraryJobStageDto? stage = LibraryJobStageDto.Files, int progress = 42) => new()
         {
-            JobId = id ?? JobId,
+            JobId = JobId,
             Kind = kind,
             Status = status,
             Stage = stage,
@@ -137,9 +134,9 @@ public static class LibraryCareData
             CurrentItem = "Song title - vocals.flac",
             EtaSeconds = 180,
             ArchiveFileName = Archive,
-            Cancellable = cancellable,
-            Report = report,
-            Error = error,
+            Cancellable = true,
+            Report = null,
+            Error = null,
             CreatedAt = Made,
             StartedAt = Made,
             FinishedAt = null,
@@ -154,8 +151,11 @@ public static class LibraryCareData
         Warnings = [new ArchiveWarningDto { Code = ArchiveWarningCodeDto.MissingFile, Message = "Artwork of \"Song\" was missing" }],
     };
 
-    public static LibraryJobDto CompletedBackup() =>
-        Job(status: LibraryJobStatusDto.Completed, stage: null, progress: 100, report: BackupReport(), cancellable: false);
+    /// <summary>A completed, no longer cancellable job of <paramref name="kind"/> with its report.</summary>
+    public static LibraryJobDto Completed(LibraryJobKindDto kind, LibraryJobReportDto report) =>
+        Job(kind, LibraryJobStatusDto.Completed, null, 100) with { Report = report, Cancellable = false };
+
+    public static LibraryJobDto CompletedBackup() => Completed(LibraryJobKindDto.Backup, BackupReport());
 
     public static PreviousLibraryDto Previous() => new()
     {

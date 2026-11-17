@@ -10,19 +10,12 @@ namespace StemStudio.Web.Components.Care;
 /// Loads the archive list and the last library job, follows the active job through the status the page passes in
 /// (when it disappears, the final job and the list are read again) and runs the list actions.
 /// </summary>
-public sealed partial class BackupsTab
+public sealed partial class BackupsTab : CareTabBase
 {
     private Guid? _followed;
 
     [Inject]
-    private ILibraryCareClient Client { get; set; } = default!;
-
-    [Inject]
     private LibraryCareStatusSource StatusSource { get; set; } = default!;
-
-    /// <summary>The library care status (null before the first answer).</summary>
-    [Parameter]
-    public LibraryCareStatusDto? Status { get; set; }
 
     private BackupListDto? List { get; set; }
 

@@ -163,14 +163,17 @@ public sealed class RestoreDialogTests : PageTestContext
     public void ActiveJobs_AreListedWithLinks_AndBlockTheRestore()
     {
         var trackId = Guid.Parse("e1b2c3d4-0000-4000-8000-000000000001");
-        var dialog = RenderDialog(LibraryCareData.Status(empty: true, work:
-        [
-            new ActiveWorkDto { Kind = ActiveWorkKindDto.Export, Id = "2f6d8a0c-1b3e-4f5a-9c7d-8e9f0a1b2c3d", Title = "Song title - vocals" },
-            new ActiveWorkDto { Kind = ActiveWorkKindDto.Detail, Id = trackId.ToString(), Title = "Song title" },
-            new ActiveWorkDto { Kind = ActiveWorkKindDto.LyricsAlignment, Id = "not-a-guid", Title = "Song" },
-            new ActiveWorkDto { Kind = ActiveWorkKindDto.Generation, Id = "g1", Title = "Restyle of Song title" },
-            new ActiveWorkDto { Kind = ActiveWorkKindDto.AgentRun, Id = "r1", Title = "Make the drums louder" },
-        ]));
+        var dialog = RenderDialog(LibraryCareData.Status(empty: true) with
+        {
+            ActiveWork =
+            [
+                new ActiveWorkDto { Kind = ActiveWorkKindDto.Export, Id = "2f6d8a0c-1b3e-4f5a-9c7d-8e9f0a1b2c3d", Title = "Song title - vocals" },
+                new ActiveWorkDto { Kind = ActiveWorkKindDto.Detail, Id = trackId.ToString(), Title = "Song title" },
+                new ActiveWorkDto { Kind = ActiveWorkKindDto.LyricsAlignment, Id = "not-a-guid", Title = "Song" },
+                new ActiveWorkDto { Kind = ActiveWorkKindDto.Generation, Id = "g1", Title = "Restyle of Song title" },
+                new ActiveWorkDto { Kind = ActiveWorkKindDto.AgentRun, Id = "r1", Title = "Make the drums louder" },
+            ],
+        });
 
         dialog.Find("[data-testid=restore-blockers]").TextContent.ShouldContain("Wait for them or cancel them");
         dialog.Find("[data-testid=restore-blocker-export-2f6d8a0c-1b3e-4f5a-9c7d-8e9f0a1b2c3d] a").GetAttribute("href").ShouldBe("library");

@@ -69,7 +69,7 @@ public sealed class LibraryJobPanelTests : PageTestContext
     [Fact]
     public void NotCancellable_HasNoCancel_AndNoEtaOrItemWhenUnknown()
     {
-        var panel = RenderPanel(LibraryCareData.Job(cancellable: false) with { EtaSeconds = null, CurrentItem = null, BytesTotal = 0 });
+        var panel = RenderPanel(LibraryCareData.Job() with { Cancellable = false, EtaSeconds = null, CurrentItem = null, BytesTotal = 0 });
 
         panel.FindAll("[data-testid=library-job-cancel], [data-testid=library-job-eta], [data-testid=library-job-item], [data-testid=library-job-bytes]").ShouldBeEmpty();
     }
@@ -92,8 +92,11 @@ public sealed class LibraryJobPanelTests : PageTestContext
     [Fact]
     public void FailedJob_ShowsTheErrorWithItsCode()
     {
-        var panel = RenderPanel(LibraryCareData.Job(status: LibraryJobStatusDto.Failed, cancellable: false,
-            error: new LibraryJobErrorDto { Code = LibraryJobErrorCodeDto.InsufficientDiskSpace, Message = "Not enough free space" }));
+        var panel = RenderPanel(LibraryCareData.Job(status: LibraryJobStatusDto.Failed) with
+        {
+            Cancellable = false,
+            Error = new LibraryJobErrorDto { Code = LibraryJobErrorCodeDto.InsufficientDiskSpace, Message = "Not enough free space" },
+        });
 
         var error = panel.Find("[data-testid=library-job-error]");
         (error.TextContent, error.GetAttribute("data-code"), error.GetAttribute("role")).ShouldBe(("Not enough free space", "insufficient-disk-space", "alert"));
@@ -104,7 +107,7 @@ public sealed class LibraryJobPanelTests : PageTestContext
     [Fact]
     public void Verify_Ok_AndProblem_HaveTheirReports()
     {
-        var ok = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
+        var ok = RenderPanel(LibraryCareData.Completed(LibraryJobKindDto.Verify, new VerifyReportDto
         {
             Ok = true,
             EntriesChecked = 412,
@@ -114,7 +117,7 @@ public sealed class LibraryJobPanelTests : PageTestContext
         ok.Find("[data-testid=library-job-report]").TextContent.ShouldContain("The archive is complete and readable: 412 files checked, 2.0 GB.");
         ok.Find("#library-job-title").TextContent.ShouldBe("Last check: completed");
 
-        var bad = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
+        var bad = RenderPanel(LibraryCareData.Completed(LibraryJobKindDto.Verify, new VerifyReportDto
         {
             Ok = false,
             EntriesChecked = 3,
@@ -123,7 +126,7 @@ public sealed class LibraryJobPanelTests : PageTestContext
         }));
         bad.Find("[data-testid=library-job-report]").TextContent.ShouldContain("The check found a problem: files/x.flac: hash mismatch.");
 
-        var unknown = RenderPanel(LibraryCareData.Job(LibraryJobKindDto.Verify, LibraryJobStatusDto.Completed, null, 100, new VerifyReportDto
+        var unknown = RenderPanel(LibraryCareData.Completed(LibraryJobKindDto.Verify, new VerifyReportDto
         {
             Ok = false,
             EntriesChecked = 3,

@@ -9,8 +9,9 @@ namespace StemStudio.Web.Tests.Care;
 public sealed class StorageTracksTableTests : PageTestContext
 {
     private static readonly TrackStorageDto Big = StorageData.Track(StorageData.TrackA, "Big song", 900 * StorageData.MiB, 600 * StorageData.MiB);
-    private static readonly TrackStorageDto Small = StorageData.Track(StorageData.TrackB, "Small song", 100 * StorageData.MiB, removed: true) with
+    private static readonly TrackStorageDto Small = StorageData.Track(StorageData.TrackB, "Small song", 100 * StorageData.MiB) with
     {
+        DetailFilesRemoved = true,
         WorkerCacheBytes = 50 * StorageData.MiB,
         SourceBytes = 10 * StorageData.MiB,
     };

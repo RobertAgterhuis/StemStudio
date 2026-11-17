@@ -1,17 +1,13 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Web.Api;
 using StemStudio.Web.LibraryCare;
 
 namespace StemStudio.Web.Components.Care;
 
 /// <summary>Loads the archive details and the library's free space, then starts the restore (013 US2).</summary>
-public sealed partial class RestoreDialog
+public sealed partial class RestoreDialog : CareDialog
 {
-    [Inject]
-    private ILibraryCareClient Client { get; set; } = default!;
-
     /// <summary>The archive to restore.</summary>
     [Parameter, EditorRequired]
     public BackupSummaryDto Archive { get; set; } = default!;
@@ -30,12 +26,6 @@ public sealed partial class RestoreDialog
 
     private RestoreForm Form { get; set; } = default!;
 
-    private string? Error { get; set; }
-
-    private string? ErrorCode { get; set; }
-
-    private bool Busy { get; set; }
-
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
@@ -49,8 +39,6 @@ public sealed partial class RestoreDialog
     }
 
     private Task OnKeyAsync(KeyboardEventArgs args) => CloseOnEscapeAsync(args, OnClose);
-
-    private void ShowError(ApiError? error) => (Error, ErrorCode) = (error?.UserMessage, error?.Code);
 
     private async Task StartAsync()
     {

@@ -1,17 +1,13 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Web.Api;
 using StemStudio.Web.LibraryCare;
 
 namespace StemStudio.Web.Components.Care;
 
 /// <summary>Previews a clean-up, executes the plan after the confirmation and reports what was freed (013 US4).</summary>
-public sealed partial class CleanupDialog
+public sealed partial class CleanupDialog : CareDialog
 {
-    [Inject]
-    private ILibraryCareClient Client { get; set; } = default!;
-
     /// <summary>What to clean up.</summary>
     [Parameter, EditorRequired]
     public CleanupRequestDto Request { get; set; } = default!;
@@ -23,12 +19,6 @@ public sealed partial class CleanupDialog
     private CleanupPlanDto? Plan { get; set; }
 
     private CleanupResultDto? Result { get; set; }
-
-    private string? Error { get; set; }
-
-    private string? ErrorCode { get; set; }
-
-    private bool Busy { get; set; }
 
     private bool CanConfirm => Plan is { Items.Count: > 0 } && Error is null && !Busy;
 
@@ -42,8 +32,6 @@ public sealed partial class CleanupDialog
     private Task OnKeyAsync(KeyboardEventArgs args) => args.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
 
     private Task CloseAsync() => OnClose.InvokeAsync(Result is not null);
-
-    private void ShowError(ApiError? error) => (Error, ErrorCode) = (error?.UserMessage, error?.Code);
 
     private async Task PreviewAsync()
     {

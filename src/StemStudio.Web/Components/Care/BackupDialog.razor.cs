@@ -1,19 +1,15 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Web.Api;
 using StemStudio.Web.LibraryCare;
 using StemStudio.Web.Services;
 
 namespace StemStudio.Web.Components.Care;
 
 /// <summary>Estimates and starts a backup (013 US1); the estimate is read again after every change of the options.</summary>
-public sealed partial class BackupDialog
+public sealed partial class BackupDialog : CareDialog
 {
     private int _estimateVersion;
-
-    [Inject]
-    private ILibraryCareClient Client { get; set; } = default!;
 
     /// <summary>The backup was accepted; the host closes the dialog and follows the job.</summary>
     [Parameter]
@@ -28,12 +24,6 @@ public sealed partial class BackupDialog
     private BackupEstimateDto? Estimate { get; set; }
 
     private string? EstimateError { get; set; }
-
-    private string? Error { get; set; }
-
-    private string? ErrorCode { get; set; }
-
-    private bool Busy { get; set; }
 
     private bool CanStart => Estimate is { Enough: true } && !Busy;
 
@@ -78,16 +68,16 @@ public sealed partial class BackupDialog
         }
 
         (Estimate, EstimateError) = (estimate, error?.UserMessage);
-        (Error, ErrorCode) = (error?.UserMessage, error?.Code);
+        ShowError(error);
     }
 
     private async Task StartAsync()
     {
         Busy = true;
-        (Error, ErrorCode) = (null, null);
+        ShowError(null);
         var (job, error) = await CareCall.TryAsync(() => Client.CreateBackupAsync(Form.Options));
         Busy = false;
-        (Error, ErrorCode) = (error?.UserMessage, error?.Code);
+        ShowError(error);
         if (job is not null)
         {
             await OnStarted.InvokeAsync(job);
