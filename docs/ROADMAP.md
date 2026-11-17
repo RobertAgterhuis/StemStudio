@@ -38,11 +38,14 @@ a later agent-tool-catalogue minor version.
 | 021 | **Practice partner and studio bridge**: generate a missing part in key and tempo, amp/pedal simulation for guitar and bass, DAWproject export | C9, C10, C11 | 009, 015, 017, 019 |
 | 020 | **Insights and handouts**: stem quality report with tips; one-click lesson PDF (lyrics, chords, sections, tempo, scores) | C7, C8 | 014, 016 |
 | 022 | **Library by artist and album**: saved items filed automatically in Artist > Album > Song folders (in the app only) with folder art, live search over artist, album, song and stem/instrument, library info to correct names | S13 (owner request 2026-11-16) | 005, 007 (013/014 overlaps resolved in the 022 research) |
-| 023 | **Lyric writing assistant**: on-demand help writing own lyrics (continue, alternatives, rhymes, syllables vs rhythm, titles) and spelling/grammar/flow checks in Dutch and English that always allow poetic licence and propose it; local dictionaries + the 011 agent backends | S13 | 010, 011 (+ claude-key) |
+| 023 | **Lyric writing assistant**: on-demand help writing own lyrics (continue, alternatives, rhymes, syllables vs rhythm, titles) and spelling/grammar/flow checks in Dutch and English that always allow poetic licence and propose it; local dictionaries + the 011 agent backends | S14 | 010, 011 (+ claude-key) |
 
-**Delivery status (2026-11-17):** 002-012 are on `main`. 013 Library care is integrated and verified on branch
-`013-library-care` (see `docs/STATUS.md`), waiting for the merge to `main`; open for the owner: V9 throughput with a
-~20 GB library on the reference machine. 022/023 are in progress.
+**Delivery status (2026-11-17):** 002-013 are on `main` (013 Library care merged 2026-11-17; open for the owner: V9
+throughput with a ~20 GB library on the reference machine). **022 Library by artist and album and 023 Lyric writing
+assistant are delivered** (integrated on the round branch `022-023-round` with backend API 1.23.0, UI test ids 1.23.0,
+tool catalogue 1.2.0 and web interop 1.2.0, waiting for the merge to `main`; MoSCoW S13 and S14). Still open in their
+`tasks.md`: the reference-machine lyric evaluation run (023 T068, which decides the LanguageTool question T080), the
+full E2E run and the manual NVDA pass (023 T070, 022 T090/T092).
 
 Cross-cutting, every feature: in-app help entries (004 framework), user-journey level awareness
 (004), licence records (constitution IV), contract versions, >= 90 % coverage, SIG limits, E2E.

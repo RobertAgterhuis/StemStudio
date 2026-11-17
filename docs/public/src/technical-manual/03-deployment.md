@@ -161,6 +161,11 @@ ASP.NET Core settings use `__` as separator in environment variables
 | `StemStudio__LibraryCare__StorageCacheSeconds` | api | `30` | 013: cache of the storage overview |
 | `StemStudio__LibraryCare__CleanupPlanMinutes` | api | `10` | 013: validity of a clean-up preview |
 | `StemStudio__LibraryCare__ThrottleBytesPerSecond` | api | `0` (off) | 013, **test stacks only** (`docker-compose.e2e.yml`): rate-limits archive streams so E2E can observe a running job |
+| `StemStudio:LibraryBackfillBatchSize` (`StemStudio__LibraryBackfillBatchSize`) | api | `500` | 022: items filed per transaction by the background filing of existing items; it runs 2 s after start and again after a restore |
+| `StemStudio__LyricAssist__MaxInputTokensPerAssist`, `…__MaxOutputTokensPerAssist` | api | `20000`, `4000` | 023: Claude token caps per assist (a positive integer; anything else keeps the default); usage is shown in the pane |
+| `StemStudio__LyricAssist__BlockLines` | api | `8` | 023: lyric lines per model block (1-40); the event stream also reads `StemStudio__LyricAssist__StreamIdleSeconds` (`1800`) |
+| `StemStudio__LyricAssist__BlockTimeoutSeconds` | api | `60` local, `90` Claude | 023: per block; a block that times out is skipped with a note |
+| `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` | api | unset | 023, **test stacks only** (backend `fake`): a file or a folder of scripted model answers (`<title-slug>-<kind>.json`, else `<kind>.json`); `docker-compose.e2e.yml` mounts `e2e/lyric-scripts/` read-only at `/lyric-scripts` and sets it |
 
 Online lookups (005) identify themselves with the User-Agent
 `StemStudio/<worker version> ( <STEMSTUDIO_CONTACT_URL> )`, or
@@ -215,6 +220,20 @@ with `422` and the pull command. Turns use `num_ctx` 16,384; before a GPU-heavy 
 asks Ollama to unload the model (`keep_alive: 0`, chapter 4) and agent turns use the fallback
 model on the CPU while the job runs. Without Ollama the app works and the agent panel shows
 *"Local AI not reachable"* with the fix.
+
+### Lyric assistant (023)
+
+The lyric assistant needs no new container and no download. Its dictionaries are **vendored in the
+API image** under `/app/LyricAssist/Dictionaries` (7.7 MB: OpenTaal nl 2.20.23, SCOWL en_US and
+en_GB 2026.02.25, CMUdict; exact versions, licences and SHA-256 in `PROVENANCE.md` and
+`manifest.json` next to them) and are read from disk, never fetched at run time. CI fails when
+the dictionaries in the image exceed 15 MB (`scripts/check-api-image-size.{sh,ps1}`). The model
+layer uses the agent backend of Settings (Ollama on the host, `qwen3.5:9b`; Claude only when
+selected and after the notice in Settings or the pane); nothing else leaves the machine. While a
+heavy GPU job holds the GPU the lyric model is **unavailable** (no CPU fallback model for lyrics),
+the spelling check, syllables and rhyme finder keep working. In the fake stack, the
+`api` service reads `STEMSTUDIO_LYRIC_ASSIST_FAKE_SCRIPT` (a folder mounted read-only; the worker
+has no access to it); the variable only has an effect with `STEMSTUDIO_AGENT_BACKEND=fake`.
 
 Variables named `STEMSTUDIO_FAKE_*` are for the fake test stack only.
 

@@ -88,7 +88,7 @@ approval.
 
 - **"The backups folder is not available" or "read-only"**: create the folder (`./backups` next
   to `docker-compose.yml`, or the folder in `STEMSTUDIO_BACKUP_HOST_DIR`) and make it writable;
-  on Linux `sudo chown 1654 ./backups` (chapter 14).
+  on Linux `sudo chown 1654 ./backups` (chapter 16).
 - **Not enough space**: the estimate needs the archive size plus a small reserve free in the
   backups folder; a restore needs the unpacked size free on the library volume.
 - **A restore lists active jobs**: wait for the listed imports, splits, exports or generations,
@@ -96,19 +96,52 @@ approval.
 - **"Not compatible"**: the backup was made by a newer StemStudio. Update StemStudio first.
 - **A previous library exists**: undo or discard it before the next replace restore.
 
+## The library or its search shows something unexpected
+
+- **An item is in the wrong folder, or under *Unknown artist* or *Unknown album***: use
+  **Library info** on the song folder or the item to set the names (chapter 10). A name you set
+  is never changed by StemStudio; automatic names follow the band info when it is found later.
+- **The library says *Sorting your library (n items left)***: StemStudio is filing items that
+  were saved before the folders existed, or after a restore of an older backup. Wait a moment;
+  it finishes by itself.
+- **The search finds nothing**: it needs every word you typed in the same result. Remove a
+  word, check the spelling, or look at what the search covers (chapter 10). *guitar* does not
+  find bass; use *bass*. A search of more than 100 characters is cut in the box.
+- **A folder disappeared**: a folder exists only while it holds an item. Its items were
+  deleted or filed elsewhere; search for the song by name.
+- **I cannot find the flat list of items**: it is **All items**, at the Advanced level.
+
+## The lyric assistant does not work
+
+- **The buttons are disabled**: the sheet must be saved and its language must be Dutch or
+  English. For *unknown* choose the language first (chapter 14).
+- ***The assistant works on your own lyrics only***: the sheet matches the lyrics of a track in
+  your library. If the text is your own, use **This is my own text**.
+- ***Grammar, flow and writing help need the AI model***: the model is switched off in
+  **Settings**, Ollama is not running, or the graphics card is busy with another job. The
+  spelling check, the syllable counts and the rhyme finder still work. Fix the cause named in
+  the pane (chapter 15 explains the backends) and press the button again.
+- ***A check is running***: only one assist runs at a time; wait for it or press **Cancel**.
+- **Suggestions are outdated**: you changed the text or the language after the check. Check
+  again.
+- **Nothing happens after pressing a button with Claude selected**: the notice *Your lyrics go
+  to Anthropic* waits for **I agree**. Nothing is sent before you agree.
+- **Dutch suggestions are weaker than English ones**: the local model is less good in Dutch;
+  read every suggestion before you accept it.
+
 ## Frequently asked questions
 
 **Does StemStudio send my music anywhere?** No. Audio is processed on your computer. Only
 the online lookups for cover art and band info (chapter 7) send the title, artist, duration
 and ISRC code, and lyrics lookups (chapter 8) the title, artist, album and duration; both
-can be switched off. The optional Claude backend for the agent (chapter 13) sends text only,
+can be switched off. The optional Claude backend for the agent (chapter 15) sends text only,
 never audio, and only when you select it.
 
 **Can I separate more than six instruments?** Detail separation (chapter 5) splits drums,
 vocals and the remaining instruments further. Several guitars of the same kind cannot be
 separated from each other.
 
-**How do I move my library to another computer?** Make a backup (chapter 14), copy the
+**How do I move my library to another computer?** Make a backup (chapter 16), copy the
 archive into the backups folder of the other computer and restore it there. A stored Claude
 key must be entered again on the other computer: its encryption keys never leave the first one.
 
@@ -120,6 +153,14 @@ manual: your data lives in Docker volumes that can be backed up.
 
 **Does an export keep my practice speed or key?** No. Exports to the library always use the
 original speed and key; the practice tempo is only for listening and is saved with the mix.
+
+**Does the lyric assistant send my lyrics anywhere?** Not by default: the dictionary, the
+syllable counter, the rhyme finder and the local model run on your computer. Only when you
+select Claude and press **I agree** in the notice is the text of the sheet sent to Anthropic,
+for the check you asked for (chapter 14).
+
+**Does the library create folders on my disk?** No. Artist, album and song folders exist inside
+StemStudio only; downloads, exports and backups are not changed (chapter 10).
 
 **Which browsers are supported?** Chrome, Edge and Firefox are tested; Safari works on a
 best-effort basis.
