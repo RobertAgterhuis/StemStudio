@@ -7,6 +7,9 @@ namespace StemStudio.Web.Components.Lyrics.Assist;
 /// <summary>The suggestion list and its keys (FR-028).</summary>
 public sealed partial class SuggestionList
 {
+    [Inject]
+    private ILyricEditorInterop Editor { get; set; } = default!;
+
     /// <summary>Moves the text cursor to a suggestion's highlight.</summary>
     [Parameter]
     public EventCallback<LyricSuggestionDto> OnReveal { get; set; }
@@ -45,7 +48,10 @@ public sealed partial class SuggestionList
         await FollowAsync(s.SuggestionId, index);
     }
 
-    /// <summary>After a decision: focuses the entry that took the decided one's place (none when it is still open or the list is empty).</summary>
+    /// <summary>
+    /// After a decision: focuses the entry that took the decided one's place (none when it is still open or the list is
+    /// empty). The text selection stays as it is: a later Check checks the selected lines only.
+    /// </summary>
     private async Task FollowAsync(Guid decided, int index)
     {
         var visible = Session.Board.Visible;
@@ -56,8 +62,8 @@ public sealed partial class SuggestionList
 
         var next = visible[Math.Min(index, visible.Count - 1)];
         Session.Board.Focus(next.SuggestionId);
-        await OnReveal.InvokeAsync(next);
         Session.NotifyChanged();
+        await Editor.FocusAsync(SuggestionEntry.EntryId(next.SuggestionId));
     }
 
     private async Task MoveAsync(int step)

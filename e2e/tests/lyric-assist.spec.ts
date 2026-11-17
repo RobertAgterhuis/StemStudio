@@ -1,3 +1,4 @@
+import type { Locator } from '@playwright/test';
 import type { LyricAssistPane } from '../pages/lyric-assist-pane';
 import type { LyricAssistApi, LyricSuggestionDto, LyricsSheetDto } from '../support/lyric-assist-api';
 import { createFixtureSheet, readAssistExpected, requireModelBackend } from '../support/lyric-assist-fixtures';
@@ -178,6 +179,11 @@ test('rhyme finder: nacht and night answer within 500 ms without a model call', 
   expect(await lyricAssistApi.assists(sheet.id)).toHaveLength(assistsBefore);
 });
 
+/** The suggestion id of a `lyric-suggestion-<id>` entry. */
+async function entryId(entry: Locator): Promise<string> {
+  return ((await entry.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+}
+
 test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter accepts, Alt+Backspace rejects, Escape returns to the text', { tag: '@lyric-assist' }, async ({ lyricAssistApi, assistPane, page }) => {
   await requireModelBackend(lyricAssistApi, 'fake');
   const sheet = await createFixtureSheet(lyricAssistApi, 'zomeravond');
@@ -189,15 +195,21 @@ test('keyboard only (FR-028): Ctrl+Alt+C checks, F8 walks the list, Alt+Enter ac
   await expect(assistPane.live).toContainText(/Check finished/u);
 
   await page.keyboard.press('F8');
+  // The focused entry holds the browser focus (not a listbox: entries hold buttons); the keys go to it.
   const focused = assistPane.list.locator('[role="listitem"][aria-current="true"]');
-  await expect(focused).toBeVisible();
+  await expect(focused).toBeFocused();
   await expect(assistPane.live).toContainText(/Line \d+/u);
-  const firstId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  const firstId = await entryId(focused);
   await page.keyboard.press('Alt+Enter');
   await expect(assistPane.entry(firstId)).toHaveCount(0);
   expect((await lyricAssistApi.suggestions(sheet.id, { status: 'accepted' })).map((s) => s.suggestionId)).toContain(firstId);
+  // After a decision the focus moves to the entry that took the decided one's place.
+  await expect(focused).toBeFocused();
+  const followId = await entryId(focused);
   await page.keyboard.press('F8');
-  const secondId = ((await focused.getAttribute('data-testid')) ?? '').replace('lyric-suggestion-', '');
+  await expect(focused).not.toHaveAttribute('data-testid', `lyric-suggestion-${followId}`);
+  await expect(focused).toBeFocused();
+  const secondId = await entryId(focused);
   await page.keyboard.press('Alt+Backspace');
   await expect(assistPane.entry(secondId)).toHaveCount(0);
   expect((await lyricAssistApi.suggestions(sheet.id, { status: 'rejected' })).map((s) => s.suggestionId)).toContain(secondId);

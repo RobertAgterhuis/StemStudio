@@ -16,7 +16,8 @@ Branch `r22-qa023` (from e5da0ed3). Fixes the 12 of 16 a11y failures (axe `neste
   act on the entry that holds the focus. New: `FocusEntry` (focusin on an entry or its buttons makes it the focused
   suggestion, without moving the text cursor or announcing) and `FollowAsync` (after a decision by key or button the
   focus moves to the entry that takes the decided one's place, so it is not lost to `<body>`; none when the list is
-  empty or the decision failed).
+  empty or the decision failed). It only focuses (injected `ILyricEditorInterop.FocusAsync`) and leaves the text
+  selection alone: a reveal there made the next Check check only the selected lines (found by the `strict` E2E).
 - `SuggestionEntry.razor`: `<li role="listitem" tabindex="-1">` (F8 focuses it), `aria-current="true"` on the focused
   entry, id `SuggestionEntry.EntryId(id)` = `lyric-entry-<id>` (was `OptionId` / `lyric-opt-<id>`). All `data-*`
   attributes and every child test id unchanged. `OnFocus` and `OnDecided` parameters.
@@ -32,6 +33,8 @@ Branch `r22-qa023` (from e5da0ed3). Fixes the 12 of 16 a11y failures (axe `neste
 - E2E: `e2e/a11y/lyric-assist.a11y.spec.ts` expects `role="list"`; `e2e/tests/lyric-assist.spec.ts` keyboard test finds
   the focused entry by `[role="listitem"][aria-current="true"]` (was `[role="option"]:focus, [aria-selected="true"]`);
   doc comment in `e2e/pages/lyric-assist-pane.ts`.
+  The keyboard test now waits until the entry holds the browser focus (`toBeFocused`), after the accept for the focus
+  follow, and after F8 until `aria-current` moved (it read the old entry before).
 
 ## Tests
 - bUnit (`LyricAssistKeyboardTests`, `LyricAssistCheckTests`, `LyricAssistAccessibilityTests`): list/listitem roles,
@@ -44,5 +47,13 @@ Branch `r22-qa023` (from e5da0ed3). Fixes the 12 of 16 a11y failures (axe `neste
 ## Dependencies
 None added.
 
+## E2E (own stack `e2e23`, ports 18380/18381, fake lyric backend, retries 0)
+- `a11y/lyric-assist.a11y.spec.ts`: 16 passed (was 4 of 16).
+- `scripts/lyric-e2e.sh fake`: 28 passed.
+
 ## Open
+- `strict shows the licences as ideas ...` (`e2e/tests/lyric-assist.spec.ts`) failed once in 6 runs with
+  `--repeat-each 3` at its first assertion (licences after the strict check), before any list interaction; QA saw it
+  fail before this change too (round 22 run 4). Flaky, not caused by the list change; qa to look at the
+  sensitivity -> check ordering.
 - NVDA pass (SC-008, manual, `docs/testing/023-lyric-assist.md` section 6) should be repeated once on the new list.

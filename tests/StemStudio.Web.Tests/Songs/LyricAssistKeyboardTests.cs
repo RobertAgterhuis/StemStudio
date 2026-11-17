@@ -92,6 +92,7 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
 
         page.WaitForAssertion(() => ActiveEntry(page).ShouldBe($"lyric-suggestion-{Grammar}"));
         EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Grammar));
+        EditorInterop.DidNotReceive().SelectAsync(Arg.Any<ElementReference>(), Arg.Any<int>(), Arg.Any<int>());
         page.Find(Id("lyric-assist-live")).TextContent.ShouldNotStartWith("Line");
     }
 
@@ -107,6 +108,7 @@ public sealed class LyricAssistKeyboardTests : LyricEditorTestContext
 
         ActiveEntry(page).ShouldBe($"lyric-suggestion-{Spelling}");
         await EditorInterop.Received(1).FocusAsync(SuggestionEntry.EntryId(Spelling));
+        await EditorInterop.DidNotReceive().SelectAsync(Arg.Any<ElementReference>(), Arg.Any<int>(), Arg.Any<int>());
         EditorInterop.ClearReceivedCalls();
         await page.Find(Id($"lyric-suggestion-reject-{Spelling}")).ClickAsync(new());
 
