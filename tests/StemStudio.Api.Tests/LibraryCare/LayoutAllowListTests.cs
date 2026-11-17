@@ -1,39 +1,23 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using StemStudio.Api.Artwork;
 using StemStudio.Api.Assets;
 using StemStudio.Api.Generations;
 using StemStudio.Api.Storage;
 using StemStudio.Contracts;
+using StemStudio.Domain.LibraryCare;
 
 namespace StemStudio.Api.Tests.LibraryCare;
 
 /// <summary>
 /// 013 Phase 0 T004 (architect): the layout allow-list of data-model.md 3.3 (binding for archive entries, stored paths, the
-/// storage classifier and the clean-up) covers every path the 001-012 code generates. The patterns below are the binding copy
-/// of data-model 3.3; backend T013/T014 implements them as <c>Domain.LibraryCare.LibraryLayout</c> and replaces
-/// <see cref="Allowed"/> with a call to it, so this test keeps guarding the generators. The generators run for real on a
+/// storage classifier and the clean-up) covers every path the 001-012 code generates. The patterns are the binding copy
+/// of data-model 3.3, implemented by <see cref="LibraryLayout"/> (backend T014); this test keeps guarding the generators. The generators run for real on a
 /// temporary data directory (stems, detail stems, uploads, artwork, asset files, takes); the voice-sample, converted-vocal and
 /// generated-audio names are fixed literals in their services and are listed with their source.
 /// </summary>
 public sealed class LayoutAllowListTests : IDisposable
 {
-    private const string Guid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-    private const string Stem = "(vocals|drums|bass|guitar|piano|other)";
-    private const string Parent = "(vocals|drums|guitar|piano|other)";
     private const string Detail = "(kick|snare|toms|hihat|cymbals|lead|backing|strings|brass|woodwinds|keys|synth|acoustic-guitar|electric-guitar|percussion|rest)";
-    private const string Name = "(?!\\.{1,2}(/|$))(?![^/]*\\.\\.)[A-Za-z0-9][A-Za-z0-9._-]{0,99}";
-
-    private static readonly Regex[] Patterns =
-    [
-        Rx($"tracks/{Guid}/stems/{Stem}\\.flac"),
-        Rx($"tracks/{Guid}/artwork/(auto|user)/(cover|thumb)\\.jpg"),
-        Rx($"tracks/{Guid}/detail/{Parent}/{Detail}\\.flac"),
-        Rx("uploads/[0-9a-f]{64}\\.(mp3|wav|flac)"),
-        Rx($"assets/{Guid}/{Name}"),
-        Rx($"generations/{Guid}/{Name}(/{Name}){{0,2}}"),
-        Rx($"voices/{Guid}/{Name}"),
-    ];
 
     private readonly DirectoryInfo _root = Directory.CreateTempSubdirectory("stemstudio-layout-");
     private readonly DataDirectory _data;
@@ -133,9 +117,7 @@ public sealed class LayoutAllowListTests : IDisposable
 
     public void Dispose() => _root.Delete(recursive: true);
 
-    private static bool Allowed(string path) => Patterns.Any(pattern => pattern.IsMatch(path));
-
-    private static Regex Rx(string pattern) => new($"\\A{pattern}\\z", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    private static bool Allowed(string path) => LibraryLayout.IsAllowed(path);
 
     private string Relative(string path) => Path.GetRelativePath(_root.FullName, path).Replace('\\', '/');
 
