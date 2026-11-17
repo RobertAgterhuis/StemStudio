@@ -207,9 +207,12 @@ export async function seedBrowse(clients: LibrarySeedClients, salt: string): Pro
 
 /** Items of the families set by stem (standard and detail) plus the mixes by name. */
 export interface SeededFamilies {
+  readonly salt: string;
   readonly byStem: ReadonlyMap<string, SeededItem>;
   readonly mixes: ReadonlyMap<string, SeededItem>;
   readonly all: readonly SeededItem[];
+  /** The "Motörhead" item (accent case, US3-2). */
+  readonly accented: SeededItem;
 }
 
 /**
@@ -238,7 +241,28 @@ export async function seedFamilies(clients: LibrarySeedClients, salt: string): P
   for (const stem of scenarios.detail.flatMap((entry) => entry.stems)) {
     byStem.set(stem, await saveRawItem(clients, band.id, [stem], neutralName()));
   }
-  return { byStem, mixes, all: [...byStem.values(), ...mixes.values()] };
+  const accented = await seedAccented(clients, salt);
+  return { salt, byStem, mixes, all: [...byStem.values(), ...mixes.values()], accented };
+}
+
+/** A track filed under "Motörhead <salt>" with one item (US3-2: found by "motorhead"). */
+async function seedAccented(clients: LibrarySeedClients, salt: string): Promise<SeededItem> {
+  const track = await importTagged(clients, salt, salted('Ace of Spades', salt), null);
+  await clients.libraryApi.setTrackInfo(track.id, { artist: salted('Motörhead', salt), album: null, song: salted('Ace of Spades', salt) });
+  return saveRawItem(clients, track.id, ['bass'], salted('Seed accented', salt));
+}
+
+const familySeeds = new Map<string, Promise<SeededFamilies>>();
+
+/** Time a first {@link ensureFamilySet} may take (three imports, a detail phase, 15 items). */
+export const familySeedTimeoutMs = 3 * fakeJobTimeoutMs + detailPhaseTimeoutMs + 15 * renderMs;
+
+/** The families set of this browser project and run, seeded on first use (memoised per worker). */
+export function ensureFamilySet(clients: LibrarySeedClients, testInfo: TestInfo): Promise<SeededFamilies> {
+  const salt = librarySalt(testInfo, 'f');
+  const existing = familySeeds.get(salt) ?? seedFamilies(clients, salt);
+  familySeeds.set(salt, existing);
+  return existing;
 }
 
 const browseSeeds = new Map<string, Promise<Map<string, SeededBrowseTrack>>>();
