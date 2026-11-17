@@ -6,39 +6,39 @@ namespace StemStudio.Contracts.Practice;
 [JsonConverter(typeof(JsonStringEnumConverter<PracticeSectionKindDto>))]
 public enum PracticeSectionKindDto
 {
-    /// <summary>Intro.</summary>
+    /// <summary>Time practised in an intro section.</summary>
     [JsonStringEnumMemberName("intro")]
     Intro,
 
-    /// <summary>Verse.</summary>
+    /// <summary>Time practised in a verse.</summary>
     [JsonStringEnumMemberName("verse")]
     Verse,
 
-    /// <summary>Pre-chorus.</summary>
+    /// <summary>Time practised in a pre-chorus.</summary>
     [JsonStringEnumMemberName("pre-chorus")]
     PreChorus,
 
-    /// <summary>Chorus.</summary>
+    /// <summary>Time practised in a chorus.</summary>
     [JsonStringEnumMemberName("chorus")]
     Chorus,
 
-    /// <summary>Bridge.</summary>
+    /// <summary>Time practised in a bridge.</summary>
     [JsonStringEnumMemberName("bridge")]
     Bridge,
 
-    /// <summary>Solo.</summary>
+    /// <summary>Time practised in a solo (any instrument).</summary>
     [JsonStringEnumMemberName("solo")]
     Solo,
 
-    /// <summary>Instrumental.</summary>
+    /// <summary>Time practised in an instrumental part.</summary>
     [JsonStringEnumMemberName("instrumental")]
     Instrumental,
 
-    /// <summary>Outro.</summary>
+    /// <summary>Time practised in an outro.</summary>
     [JsonStringEnumMemberName("outro")]
     Outro,
 
-    /// <summary>Other.</summary>
+    /// <summary>Time practised in another part ("Part A").</summary>
     [JsonStringEnumMemberName("other")]
     Other,
 

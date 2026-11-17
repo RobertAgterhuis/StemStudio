@@ -191,9 +191,8 @@ def load_settings(environ: Mapping[str, str] | None = None) -> WorkerSettings:
         online=_online_settings(env),
         render=_render_settings(env),
         lyrics=_lyrics_settings(env),
-        transcription=_transcription_settings(env, separator),
+        **_analysis_settings(env, separator),
         **_gpu_lease_settings(env),
-        structure_analyzer=_structure_analyzer(env, separator),
     )
 
 
@@ -275,6 +274,21 @@ def _transcription_settings(
         msg = f"STEMSTUDIO_TRANSCRIBE_THREADS must be a whole number from 1 to 64; got {raw!r}"
         raise ValueError(msg)
     return TranscriptionSettings(transcriber=cast(TranscriberKind, kind), threads=int(raw))
+
+
+class _AnalysisSettings(TypedDict):
+    """The model choices of ``WorkerSettings`` that follow the separator when unset."""
+
+    transcription: TranscriptionSettings
+    structure_analyzer: StructureAnalyzerKind
+
+
+def _analysis_settings(env: Mapping[str, str], separator: SeparatorKind) -> _AnalysisSettings:
+    """Read the 008 transcription and the 014 structure analyser variables."""
+    return {
+        "transcription": _transcription_settings(env, separator),
+        "structure_analyzer": _structure_analyzer(env, separator),
+    }
 
 
 def _structure_analyzer(env: Mapping[str, str], separator: SeparatorKind) -> StructureAnalyzerKind:

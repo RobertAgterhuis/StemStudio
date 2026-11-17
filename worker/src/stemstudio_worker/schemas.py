@@ -1414,15 +1414,20 @@ class SectionResult(ContractModel):
         return self
 
 
-class SectionJob(ContractModel):
-    """Status of a section job: ``POST /v1/section-jobs`` and ``GET /v1/section-jobs/{id}``."""
+class PracticeJobStatus(ContractModel):
+    """Fields shared by the three job kinds of the ``practice`` lane (1.8.0)."""
 
     job_id: JobId
     status: RenderJobStatus
     progress: Annotated[float, Field(ge=0, le=1)]
     error: Annotated[str | None, Field(max_length=500)] = None
-    result: SectionResult | None = None
     created_at: datetime
+
+
+class SectionJob(PracticeJobStatus):
+    """Status of a section job: ``POST /v1/section-jobs`` and ``GET /v1/section-jobs/{id}``."""
+
+    result: SectionResult | None = None
 
 
 class ScoreViewJobRequest(ContractModel):
@@ -1462,6 +1467,12 @@ class ScoreViewEngine(ContractModel):
     version: Annotated[str, Field(max_length=40)]
 
 
+def _on_pages(bars: list[BarBox], pages: list[ScoreViewPageInfo]) -> bool:
+    """True when every bar lies on one of the listed pages."""
+    listed = {page.page for page in pages}
+    return all(bar.page in listed for bar in bars)
+
+
 class ScoreViewResult(ContractModel):
     """Result of a completed score-view job: page sizes and the bar map."""
 
@@ -1472,23 +1483,17 @@ class ScoreViewResult(ContractModel):
     @model_validator(mode="after")
     def _check_bars(self) -> Self:
         """Require contiguous bars that lie on listed pages."""
-        pages = {page.page for page in self.pages}
         spans = [(bar.start_seconds, bar.end_seconds) for bar in self.bars]
-        if not _contiguous(spans) or any(bar.page not in pages for bar in self.bars):
+        if not (_contiguous(spans) and _on_pages(self.bars, self.pages)):
             msg = "bars must be ascending, contiguous and on listed pages"
             raise ValueError(msg)
         return self
 
 
-class ScoreViewJob(ContractModel):
+class ScoreViewJob(PracticeJobStatus):
     """Status of a score-view job: ``POST /v1/score-view-jobs`` and ``GET .../{id}``."""
 
-    job_id: JobId
-    status: RenderJobStatus
-    progress: Annotated[float, Field(ge=0, le=1)]
-    error: Annotated[str | None, Field(max_length=500)] = None
     result: ScoreViewResult | None = None
-    created_at: datetime
 
 
 class SetlistSection(ContractModel):
@@ -1545,15 +1550,10 @@ class SetlistDocumentRequest(ContractModel):
     songs: Annotated[list[SetlistSongContent], Field(min_length=1, max_length=MAX_SETLIST_SONGS)]
 
 
-class SetlistDocumentJob(ContractModel):
+class SetlistDocumentJob(PracticeJobStatus):
     """Status of a setlist document job: ``POST /v1/setlist-document-jobs`` and ``GET``."""
 
-    job_id: JobId
-    status: RenderJobStatus
-    progress: Annotated[float, Field(ge=0, le=1)]
-    error: Annotated[str | None, Field(max_length=500)] = None
     pages: Annotated[int | None, Field(ge=1)] = None
-    created_at: datetime
 
 
 class StructureHealth(ContractModel):
