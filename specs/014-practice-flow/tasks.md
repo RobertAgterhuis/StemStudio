@@ -153,10 +153,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T055 [US1] [backend] Implement `Api/Sections/{SectionEndpoints,SectionService,SectionJobApplier,SectionDetectTrigger}.cs` to pass T054
 - [ ] T056 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/LoopSectionIdTests.cs`: save/load a mix with `loop.sectionId`; unknown id read back as null with the loop kept; 1.12.0 clients without the field unaffected (FR-005)
 - [ ] T057 [US1] [backend] Implement the `LoopRegion.SectionId` mapping to pass T056
-- [ ] T058 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionLaneTests.cs`: lane renders sections with kind/label/bars and test ids; status texts (detecting, grid uncertain, failed + retry); first open with status `none` calls `detectSections` once; click loops the section (`MixerState` loop + `sectionId`, looping on, position moved into the section when outside); current section marked from positions; previous/next/restart buttons; keyboard (list of buttons, `aria-pressed`); trainer region label shows the section (A-012-3) (FR-004, FR-005, FR-007)
-- [ ] T059 [US1] [frontend] Implement `Components/Practice/SectionLane.razor`, `MixerState.Sections` and the section commands (`mixer.loop.section`, `mixer.section.*`) to pass T058
+- [x] T058 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionLaneTests.cs`: lane renders sections with kind/label/bars and test ids; status texts (detecting, grid uncertain, failed + retry); first open with status `none` calls `detectSections` once; click loops the section (`MixerState` loop + `sectionId`, looping on, position moved into the section when outside); current section marked from positions; previous/next/restart buttons; keyboard (list of buttons, `aria-pressed`); trainer region label shows the section (A-012-3) (FR-004, FR-005, FR-007)
+- [x] T059 [US1] [frontend] Implement `Components/Practice/SectionLane.razor`, `MixerState.Sections` and the section commands (`mixer.loop.section`, `mixer.section.*`) to pass T058
 - [ ] T060 [P] [US1] [qa] E2E `e2e/tests/sections.spec.ts` (fake stack): sections appear after import (<= 30 s), click loops, N/Shift+N/Backspace, older track triggers detection on mixer open, unreliable-grid note (fixture with `reliable: false`) (US1 scenarios 1-5)
-- [ ] T061 [US1] [frontend] Help topics `mixer-sections`, glossary `section`, `speed-trainer-region`; tour `practice-section` v1; help tests updated (FR-030)
+- [x] T061 [US1] [frontend] Help topics `mixer-sections`, glossary `section`, `speed-trainer-region`; tour `practice-section` v1; help tests updated (FR-030)
 
 **Checkpoint**: HO:us1.
 

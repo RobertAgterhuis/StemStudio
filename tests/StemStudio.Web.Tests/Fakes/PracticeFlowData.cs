@@ -33,15 +33,15 @@ public static class PracticeFlowData
     public static string ToJson<T>(T value) => JsonSerializer.Serialize(value, Json);
 
     /// <summary>One section.</summary>
-    public static SectionDto Section(int index, SectionKindDto kind, string label, double start, double end, string? instrument = null) => new()
+    public static SectionDto Section(int index, SectionKindDto kind, string label, (double Start, double End) range) => new()
     {
         Id = SectionIds[index],
         Kind = kind,
         Label = label,
-        StartSeconds = start,
-        EndSeconds = end,
-        StartBar = (int)(start / 2),
-        Instrument = instrument,
+        StartSeconds = range.Start,
+        EndSeconds = range.End,
+        StartBar = (int)(range.Start / 2),
+        Instrument = null,
         Confidence = 0.8 - (index * 0.05),
         Origin = SectionOriginDto.Detected,
     };
@@ -49,28 +49,28 @@ public static class PracticeFlowData
     /// <summary>The five example sections.</summary>
     public static IReadOnlyList<SectionDto> Sections() =>
     [
-        Section(0, SectionKindDto.Intro, "Intro", 0, 8.1),
-        Section(1, SectionKindDto.Verse, "Verse 1", 8.1, 24.1),
-        Section(2, SectionKindDto.Chorus, "Chorus 1", 24.1, 40.1),
-        Section(3, SectionKindDto.Solo, "Guitar solo", 40.1, 56.1, "guitar"),
-        Section(4, SectionKindDto.Outro, "Outro", 56.1, 64.0),
+        Section(0, SectionKindDto.Intro, "Intro", (0, 8.1)),
+        Section(1, SectionKindDto.Verse, "Verse 1", (8.1, 24.1)),
+        Section(2, SectionKindDto.Chorus, "Chorus 1", (24.1, 40.1)),
+        Section(3, SectionKindDto.Solo, "Guitar solo", (40.1, 56.1)) with { Instrument = "guitar" },
+        Section(4, SectionKindDto.Outro, "Outro", (56.1, 64.0)),
     ];
 
     /// <summary>A section set.</summary>
     public static SectionSetDto SectionSet(
         SectionSetStatusDto status = SectionSetStatusDto.Ready, IReadOnlyList<SectionDto>? sections = null, int revision = 1) => new()
-    {
-        TrackId = TestData.TrackId,
-        Status = status,
-        Origin = SectionSetOriginDto.Detected,
-        Revision = revision,
-        Analyzer = "stems-novelty/1.0.0",
-        Snap = SectionSnapDto.Downbeat,
-        Warnings = [],
-        Error = status == SectionSetStatusDto.Failed ? "The analysis could not read the stems." : null,
-        Sections = sections ?? (status == SectionSetStatusDto.Ready ? Sections() : []),
-        UpdatedAt = new DateTimeOffset(2026, 11, 16, 10, 12, 0, TimeSpan.Zero),
-    };
+        {
+            TrackId = TestData.TrackId,
+            Status = status,
+            Origin = SectionSetOriginDto.Detected,
+            Revision = revision,
+            Analyzer = "stems-novelty/1.0.0",
+            Snap = SectionSnapDto.Downbeat,
+            Warnings = [],
+            Error = status == SectionSetStatusDto.Failed ? "The analysis could not read the stems." : null,
+            Sections = sections ?? (status == SectionSetStatusDto.Ready ? Sections() : []),
+            UpdatedAt = new DateTimeOffset(2026, 11, 16, 10, 12, 0, TimeSpan.Zero),
+        };
 
     /// <summary>A score of the track.</summary>
     public static TrackScoreDto TrackScore(Guid? id = null, string name = "Bass part", ScoreViewStatusDto view = ScoreViewStatusDto.Ready, bool manualTempo = false) => new()
@@ -105,7 +105,15 @@ public static class PracticeFlowData
 
     private static ScoreBarDto Bar(int index, double start, double end) => new()
     {
-        Index = index, Number = index, Page = 1, X = 0.05 + (index * 0.1), Y = 0.1, Width = 0.1, Height = 0.025, StartSeconds = start, EndSeconds = end,
+        Index = index,
+        Number = index,
+        Page = 1,
+        X = 0.05 + (index * 0.1),
+        Y = 0.1,
+        Width = 0.1,
+        Height = 0.025,
+        StartSeconds = start,
+        EndSeconds = end,
     };
 
     /// <summary>A setlist entry.</summary>
@@ -141,13 +149,20 @@ public static class PracticeFlowData
     /// <summary>A setlist summary.</summary>
     public static SetlistSummaryDto SetlistSummary(Guid? id = null, string name = "Friday rehearsal") => new()
     {
-        Id = id ?? SetlistId, Name = name, Songs = 2, TotalSeconds = 466, UpdatedAt = new DateTimeOffset(2026, 11, 15, 18, 0, 0, TimeSpan.Zero),
+        Id = id ?? SetlistId,
+        Name = name,
+        Songs = 2,
+        TotalSeconds = 466,
+        UpdatedAt = new DateTimeOffset(2026, 11, 15, 18, 0, 0, TimeSpan.Zero),
     };
 
     /// <summary>Practice log settings.</summary>
     public static PracticeLogSettingsDto LogSettings(bool enabled = true, bool acknowledged = true) => new()
     {
-        Enabled = enabled, NoticeAcknowledged = acknowledged, Sessions = 3, UpdatedAt = null,
+        Enabled = enabled,
+        NoticeAcknowledged = acknowledged,
+        Sessions = 3,
+        UpdatedAt = null,
     };
 
     /// <summary>A practice summary.</summary>
