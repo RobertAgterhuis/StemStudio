@@ -18,7 +18,7 @@ namespace StemStudio.Persistence;
 /// assembly and are applied automatically; see specs/001-stemstudio-mvp/data-model.md.
 /// </summary>
 /// <param name="options">Context options (provider and connection string).</param>
-public sealed class StemStudioDbContext(DbContextOptions<StemStudioDbContext> options) : DbContext(options)
+public sealed partial class StemStudioDbContext(DbContextOptions<StemStudioDbContext> options) : DbContext(options)
 {
     /// <summary>Imported tracks.</summary>
     public DbSet<Track> Tracks => Set<Track>();
