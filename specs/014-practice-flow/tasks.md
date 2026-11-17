@@ -207,10 +207,10 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T089 [US5] [backend] Implement `Api/Setlists/{SetlistEndpoints,SetlistService}.cs` to pass T088
 - [ ] T090 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistPdfTests.cs`: `SetlistContentBuilder` (facts, sections, lyrics lines, 10,000-character cut with `shortened`), options from the query, waits for the worker job with polling and timeout (fake time) -> 504 `document-timeout`, 409 `setlist-empty`, 503, file name sanitised, worker job deleted afterwards (FR-018)
 - [ ] T091 [US5] [backend] Implement `Api/Setlists/{SetlistPdfService,SetlistContentBuilder}.cs` to pass T090
-- [ ] T092 [P] [US5] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/SetlistsTests.cs` and `.../Practice/SetlistBarTests.cs`: list/create/delete; editor add (track picker with mix), reorder by drag and by up/down buttons, note editing (Advanced), remove, removed-entries note, PDF dialog options (Advanced) and default download (Beginner); play mode opens the first entry's mixer with its mix, setlist bar position and note, next/previous with the unsaved-changes guard, `setlist.next/previous` commands, exit; "Add to setlist" on track and mix (FR-015..FR-018)
-- [ ] T093 [US5] [frontend] Implement `Components/Pages/{Setlists,SetlistEditor}.razor`, `Components/Practice/SetlistBar.razor`, rail link and actions to pass T092
+- [x] T092 [P] [US5] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/SetlistsTests.cs` and `.../Practice/SetlistBarTests.cs`: list/create/delete; editor add (track picker with mix), reorder by drag and by up/down buttons, note editing (Advanced), remove, removed-entries note, PDF dialog options (Advanced) and default download (Beginner); play mode opens the first entry's mixer with its mix, setlist bar position and note, next/previous with the unsaved-changes guard, `setlist.next/previous` commands, exit; "Add to setlist" on track and mix (FR-015..FR-018)
+- [x] T093 [US5] [frontend] Implement `Components/Pages/{Setlists,SetlistEditor}.razor`, `Components/Practice/SetlistBar.razor`, rail link and actions to pass T092
 - [ ] T094 [P] [US5] [qa] E2E `e2e/tests/setlists.spec.ts`: create with 3 songs, reorder by keyboard, play through with next/previous (button, Ctrl/Cmd+Right, pedal preset "next-previous-song"), PDF download and pypdf text check in the test (order, notes, sections, lyrics), track delete note; axe-core on both pages (US5 scenarios 1-5, SC-008)
-- [ ] T095 [US5] [frontend] Help topics `setlists`, `setlist-play`, `setlist-pdf` (FR-030)
+- [x] T095 [US5] [frontend] Help topics `setlists`, `setlist-play`, `setlist-pdf` (FR-030)
 
 **Checkpoint**: HO:us5.
 
