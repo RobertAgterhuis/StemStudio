@@ -37,17 +37,27 @@ export class LibraryFoldersPage extends TestIdPage {
     return this.byId('library-folder-missing');
   }
 
-  /** Opens the library root and waits for the folder view. */
+  /** Header counts; rendered only once the view has loaded (the skeleton has none). */
+  get counts(): Locator {
+    return this.byId('library-folder-counts');
+  }
+
+  /**
+   * Opens the library root and waits until its view has loaded: `data-level` is `root` while the
+   * skeleton shows too, so reading the tiles right after it raced the first load (r22 library-browse:51).
+   */
   async gotoRoot(): Promise<void> {
     await this.page.goto('/library');
     await expect(this.view).toHaveAttribute('data-level', 'root');
+    await expect(this.counts).toBeVisible();
   }
 
   /** Opens one folder by id (deep link); does not assert that it exists. */
   async gotoFolder(folderId: string): Promise<void> {
     await this.page.goto(`/library/${folderId}`);
-    // The empty-folder state is shown inside the folder view, so both may match.
-    await expect(this.view.or(this.folderMissing).first()).toBeVisible();
+    // The empty-folder state is shown inside the folder view, so both may match; the counts exist
+    // only once the view has loaded (not during the skeleton).
+    await expect(this.counts.or(this.folderMissing).first()).toBeVisible();
   }
 
   /** The tile (link) of one child folder (`data-level`, `data-art`). */
