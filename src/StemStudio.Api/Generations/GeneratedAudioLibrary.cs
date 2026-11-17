@@ -1,4 +1,5 @@
 using StemStudio.Api.Assets;
+using StemStudio.Api.Library;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
 using StemStudio.Domain.Rendering;
@@ -33,7 +34,8 @@ public interface IGeneratedAudioLibrary
 /// <param name="assets">Asset repository.</param>
 /// <param name="files">Asset file store.</param>
 /// <param name="clock">Clock.</param>
-public sealed class GeneratedAudioLibraryAdapter(IAssetRepository assets, IAssetFileStore files, TimeProvider clock) : IGeneratedAudioLibrary
+/// <param name="filer">Files the new item in the library folders (feature 022).</param>
+public sealed class GeneratedAudioLibraryAdapter(IAssetRepository assets, IAssetFileStore files, TimeProvider clock, ILibraryFiler filer) : IGeneratedAudioLibrary
 {
     private const string FileName = "audio.flac";
 
@@ -46,6 +48,7 @@ public sealed class GeneratedAudioLibraryAdapter(IAssetRepository assets, IAsset
         var file = new AssetFile("audio", FileName, "audio/flac", stored.SizeBytes, stored.Sha256);
         var audio = new AudioFacts(AudioFormat.Flac, 24, null, entry.Take.DurationSeconds, Math.Min(0, entry.Take.PeakDbfs), 0) { SampleRate = 48_000 };
         var asset = Asset.CreateGenerated(id, Provenance(entry), new GeneratedAudio(entry.Title, [file], audio), clock.GetUtcNow().UtcDateTime);
+        await filer.FileAsync(asset, cancellationToken);
         assets.Add(asset);
         await assets.SaveAsync(cancellationToken);
         return id;

@@ -109,16 +109,13 @@ public static partial class LibraryKey
             return unified;
         }
 
-        var decomposed = rune.ToString().Normalize(NormalizationForm.FormKD);
-        var builder = new StringBuilder(decomposed.Length);
-        foreach (var c in decomposed.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark && (char.IsWhiteSpace(c) || !char.IsControl(c))))
-        {
-            builder.Append(c);
-        }
-
-        var lower = builder.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
+        var kept = rune.ToString().Normalize(NormalizationForm.FormKD).Where(IsKept).ToArray();
+        var lower = new string(kept).Normalize(NormalizationForm.FormKC).ToLowerInvariant();
         return lower.Length == 1 ? Letter(lower[0]) : lower;
     }
+
+    private static bool IsKept(char c) =>
+        CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark && (char.IsWhiteSpace(c) || !char.IsControl(c));
 
     private static string? Punctuation(char c) => c switch
     {

@@ -1,3 +1,4 @@
+using StemStudio.Api.Library;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Assets;
 using StemStudio.Domain.Assets;
@@ -11,7 +12,8 @@ namespace StemStudio.Api.Assets;
 /// <param name="submitter">Starts the render.</param>
 /// <param name="disk">Free-space guard.</param>
 /// <param name="assets">Asset repository.</param>
-public sealed class ExportService(ExportPlanner planner, AssetSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets)
+/// <param name="filer">Files new items in the library folders (feature 022).</param>
+public sealed class ExportService(ExportPlanner planner, AssetSubmitter submitter, DiskSpaceGuard disk, IAssetRepository assets, ILibraryFiler filer)
 {
     /// <summary>Longest stored track title.</summary>
     public const int MaxTrackTitleLength = 300;
@@ -60,6 +62,7 @@ public sealed class ExportService(ExportPlanner planner, AssetSubmitter submitte
 
     private async Task<IResult> SaveAsync(Asset asset, CancellationToken cancellationToken)
     {
+        await filer.FileAsync(asset, cancellationToken);
         assets.Add(asset);
         await assets.SaveAsync(cancellationToken);
         return TypedResults.Accepted(ApiRoutes.Asset(asset.Id), AssetMapper.ToDto(asset, trackAvailable: true));

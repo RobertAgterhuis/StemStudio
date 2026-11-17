@@ -1,3 +1,4 @@
+using StemStudio.Api.Library;
 using StemStudio.Api.Mixes;
 using StemStudio.Api.Scores;
 using StemStudio.Api.Tracks;
@@ -31,6 +32,7 @@ public static class AssetMapper
         Status = Enum.Parse<AssetStatusDto>(asset.Status.ToString()),
         Progress = asset.Progress,
         Provenance = ToDto(asset.Provenance, trackAvailable),
+        Placement = LibraryMapper.PlacementOf(asset),
         SizeBytes = asset.SizeBytes,
         CreatedAt = TrackMapper.Utc(asset.CreatedAt),
         UpdatedAt = TrackMapper.Utc(asset.UpdatedAt),

@@ -50,15 +50,17 @@ public static class PlacementResolver
     private static Placement FromTrack(TrackFacts track, Provenance provenance)
     {
         var metadata = track.Metadata;
-        var match = metadata.Status == MetadataStatus.Found;
-        var matchedArtist = match && !LibraryKey.IsVariousArtists(metadata.ArtistName, track.ArtistMbid) ? metadata.ArtistName : null;
-        var album = Pick(FolderLevel.Album, [(match ? metadata.Album : null, PlacementSource.Match), (metadata.LookupAlbum, PlacementSource.Import)]);
+        var match = metadata.Status == MetadataStatus.Found ? metadata : TrackMetadata.None;
+        var album = Pick(FolderLevel.Album, [(match.Album, PlacementSource.Match), (metadata.LookupAlbum, PlacementSource.Import)]);
         return Build(
-            Pick(FolderLevel.Artist, [(matchedArtist, PlacementSource.Match), (metadata.LookupArtist, PlacementSource.Import), (track.Artist, PlacementSource.Import), (provenance.TrackArtist, PlacementSource.Import)]),
+            Pick(FolderLevel.Artist, [(MatchedArtist(match, track.ArtistMbid), PlacementSource.Match), (metadata.LookupArtist, PlacementSource.Import), (track.Artist, PlacementSource.Import), (provenance.TrackArtist, PlacementSource.Import)]),
             album,
-            Pick(FolderLevel.Song, [(match ? metadata.RecordingTitle : null, PlacementSource.Match), (metadata.LookupTitle, PlacementSource.Import), (track.Title, PlacementSource.Import), (provenance.TrackTitle, PlacementSource.Import)]),
+            Pick(FolderLevel.Song, [(match.RecordingTitle, PlacementSource.Match), (metadata.LookupTitle, PlacementSource.Import), (track.Title, PlacementSource.Import), (provenance.TrackTitle, PlacementSource.Import)]),
             album?.Source == PlacementSource.Match ? YearOf(metadata.Year) : null);
     }
+
+    private static string? MatchedArtist(TrackMetadata match, Guid? artistMbid) =>
+        LibraryKey.IsVariousArtists(match.ArtistName, artistMbid) ? null : match.ArtistName;
 
     private static Placement? FromPrevious(PlacementInput input)
     {
@@ -68,9 +70,12 @@ public static class PlacementResolver
         }
 
         var snapshot = FromProvenance(input.Provenance);
-        var levels = Levels.Select(level => previous.Of(level) is { Source: not PlacementSource.Item } kept ? PlacementLevel.Of(level, kept.Name, kept.Source) : snapshot.Of(level)).ToArray();
-        return new Placement { Artist = levels[0], Album = levels[1], Song = levels[2], Year = levels[1].Source == previous.Album.Source && levels[1].Name == previous.Album.Name ? previous.Year : null };
+        var levels = Levels.Select(level => Kept(level, previous, snapshot)).ToArray();
+        return new Placement { Artist = levels[0], Album = levels[1], Song = levels[2], Year = levels[1] == previous.Album ? previous.Year : null };
     }
+
+    private static PlacementLevel Kept(FolderLevel level, Placement previous, Placement snapshot) =>
+        previous.Of(level) is { Source: not PlacementSource.Item } kept ? PlacementLevel.Of(level, kept.Name, kept.Source) : snapshot.Of(level);
 
     private static Placement FromProvenance(Provenance provenance)
     {

@@ -1,3 +1,4 @@
+using StemStudio.Api.Library;
 using StemStudio.Api.Worker;
 using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
@@ -8,9 +9,10 @@ namespace StemStudio.Api.Sync;
 /// <param name="tracks">Track repository (scoped).</param>
 /// <param name="worker">Worker client.</param>
 /// <param name="applier">Applies job states to tracks.</param>
+/// <param name="filer">Re-files the track's items when its state changed (feature 022).</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class TrackSynchronizer(
-    ITrackRepository tracks, IWorkerClient worker, TrackJobApplier applier, ILogger<TrackSynchronizer> logger) : ITrackSynchronizer
+    ITrackRepository tracks, IWorkerClient worker, TrackJobApplier applier, ILibraryFiler filer, ILogger<TrackSynchronizer> logger) : ITrackSynchronizer
 {
     /// <inheritdoc />
     public async Task SyncAllAsync(CancellationToken cancellationToken)
@@ -29,8 +31,17 @@ public sealed partial class TrackSynchronizer(
 
         var before = track.Status;
         await applier.ApplyAsync(track, job, cancellationToken);
+        await RefileWhenChangedAsync(track, before, cancellationToken);
         await tracks.SaveAsync(cancellationToken);
         LogTransition(track, before);
+    }
+
+    private async Task RefileWhenChangedAsync(Track track, TrackStatus before, CancellationToken cancellationToken)
+    {
+        if (track.Status != before)
+        {
+            await filer.RefileTrackAsync(track, cancellationToken);
+        }
     }
 
     private async Task<(bool Reachable, WorkerJob? Job)> TryGetJobAsync(Track track, CancellationToken cancellationToken)
