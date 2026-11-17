@@ -30,36 +30,14 @@ internal static class LyricPerformance
     public static IReadOnlyList<LyricBlock> Blocks(string text, int blockLines)
     {
         var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-        var blocks = new List<LyricBlock>();
-        var start = -1;
-        void Close(int last)
-        {
-            if (start >= 0)
-            {
-                blocks.Add(new LyricBlock { Index = blocks.Count, FirstLine = start + 1, LastLine = last + 1 });
-            }
-        }
-
+        var builder = new BlockBuilder(blockLines);
         for (var index = 0; index < lines.Length; index++)
         {
-            if (lines[index].Trim().Length == 0)
-            {
-                Close(index - 1);
-                start = -1;
-            }
-            else if (start < 0)
-            {
-                start = index;
-            }
-            else if (index - start == blockLines)
-            {
-                Close(index - 1);
-                start = index;
-            }
+            builder.Add(index, lines[index].Trim().Length == 0);
         }
 
-        Close(lines.Length - 1);
-        return blocks;
+        builder.Close(lines.Length - 1);
+        return builder.Blocks;
     }
 
     /// <summary>Runs the sheet once.</summary>
@@ -148,5 +126,39 @@ internal static class LyricPerformance
         public Task NoteAsync(AssistNoteCodeDto code, string message, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task UsageAsync(TokenUsageDto usage, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    /// <summary>Collects the blocks of <see cref="Blocks"/>: a block closes at a blank line or at the block size.</summary>
+    private sealed class BlockBuilder(int blockLines)
+    {
+        private int _start = -1;
+
+        public List<LyricBlock> Blocks { get; } = [];
+
+        public void Add(int index, bool blank)
+        {
+            if (blank)
+            {
+                Close(index - 1);
+                _start = -1;
+            }
+            else if (_start < 0)
+            {
+                _start = index;
+            }
+            else if (index - _start == blockLines)
+            {
+                Close(index - 1);
+                _start = index;
+            }
+        }
+
+        public void Close(int last)
+        {
+            if (_start >= 0)
+            {
+                Blocks.Add(new LyricBlock { Index = Blocks.Count, FirstLine = _start + 1, LastLine = last + 1 });
+            }
+        }
     }
 }

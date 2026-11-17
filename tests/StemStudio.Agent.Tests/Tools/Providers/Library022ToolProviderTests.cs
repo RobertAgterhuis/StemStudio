@@ -148,7 +148,7 @@ public sealed class Library022ToolProviderTests
         actions.Library.GetLibraryInfoAsync(Arg.Any<LibraryInfoTarget>(), Arg.Any<CancellationToken>()).Returns(State(artist: "Motörhead", album: null, song: "Ace of Spades"));
         LibraryInfoRequest? sent = null;
         actions.Library.SetLibraryInfoAsync(Arg.Any<LibraryInfoTarget>(), Arg.Do<LibraryInfoRequest>(request => sent = request), Arg.Any<CancellationToken>())
-            .Returns(State(artist: "Motörhead", album: "Ace of Spades", song: "Ace of Spades", moved: 4, placement: true));
+            .Returns(Placed(State(artist: "Motörhead", album: "Ace of Spades", song: "Ace of Spades"), moved: 4));
 
         var result = await InvokeAsync(Tool(_provider, "set_library_info"), $$"""{"trackId":"{{TrackId}}","album":"Ace of Spades","song":null}""", actions);
 
@@ -280,21 +280,24 @@ public sealed class Library022ToolProviderTests
         UpdatedAt = DateTimeOffset.UnixEpoch,
     };
 
-    private static LibraryInfoStateDto State(string? artist, string? album, string? song, int moved = 0, bool placement = false) => new()
+    private static LibraryInfoStateDto State(string? artist, string? album, string? song) => new()
     {
         Artist = Level(artist),
         Album = Level(album),
         Song = Level(song),
+        MovedItems = 0,
+    };
+
+    private static LibraryInfoStateDto Placed(LibraryInfoStateDto state, int moved) => state with
+    {
         MovedItems = moved,
-        Placement = placement
-            ? new PlacementDto
-            {
-                Artist = new PlacementLevelDto { FolderId = Artist, Name = "a", Source = PlacementSourceDto.Item },
-                Album = new PlacementLevelDto { FolderId = Album, Name = "b", Source = PlacementSourceDto.Item },
-                Song = new PlacementLevelDto { FolderId = Song, Name = "c", Source = PlacementSourceDto.Item },
-                Filed = true,
-            }
-            : null,
+        Placement = new PlacementDto
+        {
+            Artist = new PlacementLevelDto { FolderId = Artist, Name = "a", Source = PlacementSourceDto.Item },
+            Album = new PlacementLevelDto { FolderId = Album, Name = "b", Source = PlacementSourceDto.Item },
+            Song = new PlacementLevelDto { FolderId = Song, Name = "c", Source = PlacementSourceDto.Item },
+            Filed = true,
+        },
     };
 
     private static LibraryInfoLevelDto Level(string? value) => new() { Value = value, Effective = value ?? "auto", Source = value is null ? PlacementSourceDto.Fallback : PlacementSourceDto.Item, Automatic = "auto" };

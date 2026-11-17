@@ -97,17 +97,17 @@ public sealed class LyricAssist023ToolProviderTests
     }
 
     [Theory]
-    [InlineData("alternatives", 9, 3, AssistKindDto.Alternatives, 9)]
-    [InlineData("continue", 12, 2, AssistKindDto.Continue, 12)]
-    [InlineData("titles", null, 5, AssistKindDto.Titles, null)]
-    public async Task SuggestLyricLines_MapsTheModes(string mode, int? line, int count, AssistKindDto kind, int? expectedLine)
+    [InlineData("alternatives", 9, 3, AssistKindDto.Alternatives)]
+    [InlineData("continue", 12, 2, AssistKindDto.Continue)]
+    [InlineData("titles", null, 5, AssistKindDto.Titles)]
+    public async Task SuggestLyricLines_MapsTheModes(string mode, int? line, int count, AssistKindDto kind)
     {
         var lineJson = line is null ? string.Empty : $",\"line\":{line}";
 
         await Invoke("suggest_lyric_lines", $$"""{"lyricsId":"{{LyricsId}}","mode":"{{mode}}","count":{{count}}{{lineJson}}}""");
 
         await _lyrics.Received(1).StartAssistAsync(LyricsId, Arg.Is<CreateLyricAssistRequest>(request =>
-            request.Kind == kind && request.LineFrom == expectedLine && request.LineTo == expectedLine && request.Count == count && request.ExpectedRevision == 7), Arg.Any<CancellationToken>());
+            request.Kind == kind && request.LineFrom == line && request.LineTo == line && request.Count == count && request.ExpectedRevision == 7), Arg.Any<CancellationToken>());
     }
 
     [Theory]

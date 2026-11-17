@@ -37,7 +37,7 @@ internal static class LyricCommand
             set = set with { Cases = [.. set.Cases.Where(item => options.Cases.Contains(item.Id))] };
         }
 
-        var grades = await LyricSuite.RunAsync(set, _ => model, options.Runs, log, CancellationToken.None);
+        var grades = await LyricSuite.RunAsync(set, _ => model, new LyricSuiteRuns(options.Runs, log), CancellationToken.None);
         await File.WriteAllTextAsync(options.Paths.Report, LyricGrader.Report($"ollama {options.Model}, {options.Runs} run(s), harness verification (no dictionary layer)", grades));
         await log.WriteLineAsync($"lyric suite: {grades.Count} case runs; report {options.Paths.Report}.");
         return 0;

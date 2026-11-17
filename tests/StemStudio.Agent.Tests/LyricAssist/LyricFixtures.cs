@@ -98,6 +98,9 @@ public static class LyricFixtures
 
     public static ParsedLyricOutput Output(params ModelSuggestionItem[] items) => new(items, [], 0);
 
-    public static ModelSuggestionItem Item(SuggestionTypeDto type, int line, string original, string? proposal, SuggestionSeverityDto severity = SuggestionSeverityDto.Error) =>
-        new() { Type = type, Severity = severity, Line = line, Original = original, Proposal = proposal, Explanation = "Uitleg." };
+    public static ModelSuggestionItem Item(SuggestionTypeDto type, int line, string original, string? proposal) =>
+        new() { Type = type, Severity = SuggestionSeverityDto.Error, Line = line, Original = original, Proposal = proposal, Explanation = "Uitleg." };
+
+    public static ModelSuggestionItem Idea(SuggestionTypeDto type, int line, string original, string? proposal) =>
+        Item(type, line, original, proposal) with { Severity = SuggestionSeverityDto.Idea };
 }
