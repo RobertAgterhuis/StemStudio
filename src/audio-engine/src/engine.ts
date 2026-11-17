@@ -4,13 +4,14 @@
  *
  * @packageDocumentation
  */
-import { DotNetNotifier, PracticeNotifier } from './callbacks';
+import { DotNetNotifier, PracticeNotifier, loopPassNotifier } from './callbacks';
 import { clampChecked } from './channel';
 import { FrameLoop } from './frame-loop';
 import { Karaoke } from './karaoke/index';
-import { KaraokeClock } from './karaoke/clock';
+import { KaraokeClock, heardTime } from './karaoke/clock';
 import { SWAP_DELAY_SECONDS, StemGroups, groupChannels, validateGroups } from './groups';
 import { setLoopChecked } from './loop';
+import { LoopPassTracker } from './loop-pass';
 import { Meters } from './meters';
 import { ClickPlayer } from './metronome/clicks';
 import { MetronomeScheduler } from './metronome/scheduler';
@@ -71,6 +72,7 @@ interface Parts {
   readonly metronome: MetronomeScheduler;
   readonly clicks: ClickPlayer;
   readonly karaoke: Karaoke;
+  readonly passes: LoopPassTracker;
 }
 
 function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts {
@@ -85,9 +87,20 @@ function createParts(ref: DotNetObjectReference, options: EngineOptions): Parts 
   const frames = new FrameLoop();
   const meters = new Meters({ source: (target) => mixer.analyser(target), loop: frames });
   const clicks = new ClickPlayer(context);
-  const metronome = createMetronome({ context, transport, clicks }, options);
+  const passes = createLoopPasses({ context, transport, frames }, ref);
+  const metronome = createMetronome({ context, transport, clicks, onTick: passes.observe }, options);
   const karaoke = createKaraoke(context, transport, frames);
-  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke };
+  return { context, mixer, transport, notifier, frames, meters, metronome, clicks, karaoke, passes };
+}
+
+function createLoopPasses(
+  { context, transport, frames }: { context: AudioContext; transport: Transport; frames: FrameLoop },
+  ref: DotNetObjectReference,
+): LoopPassTracker {
+  const now = (): number => heardTime(context, performance.now());
+  const passes = new LoopPassTracker({ transport, frames, now, report: loopPassNotifier(ref) });
+  transport.addListener(passes);
+  return passes;
 }
 
 function createNotifier(ref: DotNetObjectReference, transport: Transport): DotNetNotifier {
@@ -103,14 +116,19 @@ function createKaraoke(context: AudioContext, transport: Transport, loop: FrameL
   return karaoke;
 }
 
-function createMetronome(
-  { context, transport, clicks }: { context: AudioContext; transport: Transport; clicks: ClickPlayer },
-  options: EngineOptions,
-): MetronomeScheduler {
+interface MetronomeParts {
+  readonly context: AudioContext;
+  readonly transport: Transport;
+  readonly clicks: ClickPlayer;
+  readonly onTick: () => void;
+}
+
+function createMetronome({ context, transport, clicks, onTick }: MetronomeParts, options: EngineOptions): MetronomeScheduler {
   const metronome = new MetronomeScheduler({
     context,
     clock: transport,
     output: clicks,
+    onTick,
     aheadSeconds: options.scheduleAheadSeconds ?? DEFAULT_SCHEDULE_AHEAD_SECONDS,
     intervalMs: options.schedulerIntervalMs ?? DEFAULT_SCHEDULER_INTERVAL_MS,
   });
@@ -188,6 +206,7 @@ export class Engine implements AudioEngine {
     this.grid = request.beatGrid;
     this.parts.metronome.configure(this.metronome, this.grid);
     this.practice.onTrackLoaded();
+    this.parts.passes.reset();
     return this.parts.transport.duration;
   }
 
@@ -207,6 +226,7 @@ export class Engine implements AudioEngine {
   public stop(): void {
     this.alive();
     this.parts.transport.stop();
+    this.parts.passes.reset();
   }
 
   /** {@inheritDoc AudioEngine.seek} */
@@ -214,6 +234,7 @@ export class Engine implements AudioEngine {
     this.alive();
     const max = this.parts.transport.duration;
     this.parts.transport.seek(clampChecked(seconds, { min: 0, max, name: 'position' }));
+    this.parts.passes.reset();
   }
 
   /** {@inheritDoc AudioEngine.getPosition} */
@@ -251,6 +272,7 @@ export class Engine implements AudioEngine {
     this.alive();
     setLoopChecked(this.parts.transport, loop);
     this.practice.onLoopChanged();
+    this.parts.passes.onLoopChanged();
     this.parts.karaoke.redraw();
   }
 
@@ -412,8 +434,8 @@ export class Engine implements AudioEngine {
       return;
     }
     this.disposed = true;
-    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context } = this.parts;
-    [transport, this.groups, mixer, notifier, meters].forEach((part) => {
+    const { transport, mixer, notifier, meters, karaoke, frames, metronome, context, passes } = this.parts;
+    [transport, this.groups, mixer, notifier, meters, passes].forEach((part) => {
       part.dispose();
     });
     karaoke.detach();

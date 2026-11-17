@@ -99,6 +99,14 @@ public sealed class MixerComponentTests : MixerTestContext
     }
 
     [Fact]
+    public void ChannelStrip_SplatsAdditionalAttributesOnItsRoot()
+    {
+        var strip = Render<ChannelStrip>(p => p.Add(c => c.Channel, new ChannelState(StemNames.Bass)).AddUnmatched("data-take-id", "take-1"));
+
+        strip.Find("[data-testid=strip-bass]").GetAttribute("data-take-id").ShouldBe("take-1");
+    }
+
+    [Fact]
     public void Inputs_IgnoreNonNumbers()
     {
         var volumes = new List<double>();

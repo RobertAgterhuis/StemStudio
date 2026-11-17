@@ -46,6 +46,10 @@ public sealed partial class ChannelStrip
     [Parameter]
     public EventCallback OnSolo { get; set; }
 
+    /// <summary>Extra attributes on the strip's root element (015 reuses the strip for the take with <c>data-take-id</c>).</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
     private string Name => Channel.Stem.Replace('.', ' ');
 
     private string StripLabel => Expanded == true ? $"{Name} channel, replaced by its detail stems" : $"{Name} channel";

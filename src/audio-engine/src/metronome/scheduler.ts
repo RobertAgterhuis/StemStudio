@@ -23,6 +23,8 @@ export interface SchedulerOptions {
   readonly aheadSeconds: number;
   /** Wake-up interval (ms); wakes the scheduler only. */
   readonly intervalMs: number;
+  /** Called on every wake-up while playing, metronome on or off (loop-pass observation, contract 2.4.0). */
+  readonly onTick?: () => void;
 }
 
 interface Scheduled {
@@ -58,7 +60,7 @@ export class MetronomeScheduler implements TransportListener {
   public onStateChanged(state: PlaybackState): void {
     this.stopTimer();
     if (state === 'playing') {
-      this.timer = setInterval(this.tick, this.options.intervalMs);
+      this.timer = setInterval(this.wake, this.options.intervalMs);
     }
     this.reschedule();
   }
@@ -78,6 +80,11 @@ export class MetronomeScheduler implements TransportListener {
     this.stopTimer();
     this.cancelFuture();
   }
+
+  private readonly wake = (): void => {
+    this.options.onTick?.();
+    this.tick();
+  };
 
   private readonly tick = (): void => {
     if (!this.enabled) {
