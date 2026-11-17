@@ -8,8 +8,8 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key\"",
-    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key|@practice\"",
+    "test": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@agent|@claude-key|@compose|@fresh-library\"",
+    "test:legacy": "playwright test --project=chromium --project=firefox --grep-invert \"@real|@restart|@worker-restart|@gpu|@ux|@artwork|@band-info|@export|@library|@karaoke|@lyrics|@sheet-music|@styles|@generation-status|@generative|@self-test|@agent|@claude-key|@practice|@library-care\"",
     "test:artwork": "playwright test --project=chromium --project=firefox --grep \"@artwork|@band-info\"",
     "test:export": "playwright test --project=chromium --project=firefox --grep \"@export|@library\" --grep-invert @detail",
     "test:ux": "playwright test --project=chromium --project=firefox --grep @ux",
@@ -25,11 +25,15 @@
     "test:worker-restart": "playwright test --project=chromium --project=firefox --grep @worker-restart",
     "test:claude-key": "playwright test --project=chromium --project=firefox --grep @claude-key",
     "test:practice": "playwright test --project=chromium --project=firefox --grep @practice",
+    "test:library-care": "playwright test --project=chromium --project=firefox --grep @library-care --grep-invert \"@compose|@fresh-library\"",
+    "test:library-care-compose": "playwright test --project=chromium --project=firefox --grep \"(?=.*@library-care)(?=.*@compose)\"",
+    "test:library-care-fresh": "playwright test --project=chromium --grep @fresh-library",
     "test:visual": "playwright test --project=visual",
     "test:a11y": "playwright test --project=a11y",
     "test:lighthouse": "playwright test --project=lighthouse-setup && node lighthouse/run-lighthouse.mts",
     "list": "playwright test --list",
     "fixtures:generative": "uv run --project ../worker python ../tests/fixtures/generate_voice_fixtures.py",
+    "fixtures:backup": "uv run --project ../worker python ../tests/fixtures/backup/make_hostile_archives.py && uv run --project ../worker python ../tests/fixtures/backup/make_schema_archives.py",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "fixtures": "uv run --project ../worker python ../tests/fixtures/generate_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_detail_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_artwork_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_lyrics_fixtures.py && uv run --project ../worker python ../tests/fixtures/generate_score_fixtures.py"

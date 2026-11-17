@@ -63,7 +63,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [x] T009 [P] [quality-gate] Failing tests for new rules: (a) only `StemStudio.Api.LibraryCare.Gate` may be referenced from other `StemStudio.Api.*` folders; nothing references `LibraryCare.{Backup,Restore,Storage,Cleanup,Archive}` except `LibraryCare` itself and `ApiComposition`; (b) banned APIs in `src/**`: `ZipFile.ExtractToDirectory`, `ZipFileExtensions.ExtractToDirectory`, `ExtractToFile`, `ZipFile.CreateFromDirectory`; (c) worker: `storage/` may import `jobs.paths` but not `separation`, `detail` or `api`
 - [x] T010 [quality-gate] Implement the rules in `tools/quality/`; update `docs/quality/SIG-REPORT.md`
 - [x] T011 [P] [devops] `docker-compose.yml`: api volume `${STEMSTUDIO_BACKUP_HOST_DIR:-./backups}:/backups`, env `StemStudio__BackupDir=/backups`, `StemStudio__BackupHostDirHint`; header comment; `.gitignore` `backups/`; `scripts/check-backup-folder.{sh,ps1}` (exists, writable by uid 1654, free space); e2e/CI: temporary backups folder owned by uid 1654; non-Docker path default `data/backups` documented in `scripts/` README (FR-005)
-- [ ] T012 [P] [qa] Fixtures: `tests/fixtures/backup/make_hostile_archives.py` (H1-H17 of research R-06, deterministic, small), schema-version archive builder (008 and 010 schemas from the committed migrations, SC-009), `compare_library.py` (row dump + file hash compare, SC-001), a fixture asset with provenance origin `recording` (SC-010); `docs/testing/TEST-STRATEGY.md` section "Library care"
+- [x] T012 [P] [qa] Fixtures: `tests/fixtures/backup/make_hostile_archives.py` (H1-H17 of research R-06, deterministic, small), schema-version archive builder (008 and 010 schemas from the committed migrations, SC-009), `compare_library.py` (row dump + file hash compare, SC-001), a fixture asset with provenance origin `recording` (SC-010); `docs/testing/TEST-STRATEGY.md` section "Library care"
 
 ---
 
@@ -109,7 +109,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [x] T038 [US1] [backend] Implement `LibraryCareEndpoints.cs`, `LibraryCareProblems.cs`, `ArchiveReader` verify mode to pass T037
 - [x] T039 [P] [US1] [frontend] bUnit tests first, then: `/care` page with tabs, `nav-care`, Backups tab (folder state and error, backup dialog with profiles, options at Advanced+, estimate rows, voice notice, start, error), library job panel (progressbar, live region, cancel, report, warnings), archive list (rows, status, download, details, verify, delete confirm), details panel (consent proofs; manifest at Expert); level visibility per the ids delta; WCAG 2.2 AA (FR-030-FR-033)
 - [x] T040 [US1] [frontend] Shell: `library-job-indicator`, `library-maintenance` overlay (alertdialog, focus), polling of `getLibraryCareStatus` (2 s while a job runs, 10 s otherwise); help topics `library-care`, `backup-contents`, `backup-folder`, `backup-voice-data` (area `mixes`)
-- [ ] T041 [US1] [qa] E2E `e2e/tests/library-care-backup.spec.ts` (fake stack): complete backup -> archive in the folder, manifest valid, list row; compact backup without detail stems; cancel; delete refused during a backup (`409` text visible) while an export runs; download via `backup-download-*`; axe on `/care`; level checks (Beginner hides options)
+- [x] T041 [US1] [qa] E2E `e2e/tests/library-care-backup.spec.ts` (fake stack): complete backup -> archive in the folder, manifest valid, list row; compact backup without detail stems; cancel; delete refused during a backup (`409` text visible) while an export runs; download via `backup-download-*`; axe on `/care`; level checks (Beginner hides options)
 
 **Checkpoint**: HO:us1 for backend, frontend, qa.
 
@@ -128,7 +128,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [x] T050 [P] [US2] [backend] Failing tests `WorkerCacheRehydratorTests.cs`: detail start and lyrics alignment on a worker cache miss -> rehydrate -> new `WorkerJobId` -> one retry; second failure surfaces the original error; stage text "Preparing stems" (FR-019)
 - [x] T051 [US2] [backend] Implement `Worker/WorkerCacheRehydrator.cs` and the hooks in `Detail/` and `Lyrics/` to pass T050
 - [x] T052 [US2] [frontend] bUnit tests first, then: restore dialog (empty library text, replace/merge radios by level, voice checkbox, space, blockers with links, typed `REPLACE`, error), previous-library panel (undo, discard dialog with `DISCARD`), restore report; help topics `backup-restore`, `backup-compatibility`
-- [ ] T053 [US2] [qa] E2E `library-care-restore.spec.ts`: backup -> delete a track and a mix -> replace restore -> items back, stems play, mix opens; undo; discard; hostile archive (fixture copied into the temp backups folder) refused and the library unchanged; incompatible and older-schema archives shown with their state; restore blocked while an export runs; "Split further" after a worker-volume reset uses rehydration (fake worker)
+- [x] T053 [US2] [qa] E2E `library-care-restore.spec.ts`: backup -> delete a track and a mix -> replace restore -> items back, stems play, mix opens; undo; discard; hostile archive (fixture copied into the temp backups folder) refused and the library unchanged; incompatible and older-schema archives shown with their state; restore blocked while an export runs; "Split further" after a worker-volume reset uses rehydration (fake worker)
 
 **Checkpoint**: HO:us2 for backend, frontend, qa.
 
@@ -139,7 +139,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [x] T054 [P] [US3] [backend] Failing tests `StorageOverviewServiceTests.cs`: sums per category equal the fixture bytes (0 deviation, SC-006), per-track rows incl. `recordingsBytes`, source attribution (pending upload + worker entry by `WorkerJobId`), unattached items, worker unavailable -> reasons, shared volumes grouping, 30 s cache and `refresh`, 500-track library under 2 s (FR-020, FR-021)
 - [x] T055 [US3] [backend] Implement `Storage/{StorageOverviewService,LibraryWalker,WorkerStorageAttribution}.cs`, `StorageEndpoints.getStorageOverview` to pass T054
 - [x] T056 [US3] [frontend] bUnit tests first, then: Storage tab (volumes as meters, categories with class badges and "how to regenerate", manage links for originals, per-track table with sortable headers and `aria-sort` at Advanced+, top-5 list at Beginner, unattached, model caches without delete, Expert worker entries, backups and previous library rows); help topics `storage-overview`, `storage-regenerable`
-- [ ] T057 [US3] [qa] E2E `library-care-storage.spec.ts`: numbers equal `du -sb` inside the containers (helper via `docker compose exec`), worker stopped -> reason shown, sorting, links
+- [x] T057 [US3] [qa] E2E `library-care-storage.spec.ts`: numbers equal `du -sb` inside the containers (helper via `docker compose exec`), worker stopped -> reason shown, sorting, links
 
 **Checkpoint**: HO:us3 for backend, frontend, qa.
 
@@ -150,7 +150,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [x] T058 [P] [US4] [backend] Failing tests `CleanupPlannerTests.cs`, `CleanupExecutorTests.cs`: plans contain only regenerable items (property test with stems, exports, scores, takes, recordings and voice samples present: none planned, SC-007, SC-010), skips with reasons (`detail-active`, `export-active`, `job-active`, `worker-unavailable`), fingerprint and `plan-stale`, expiry `plan-expired`, refused during backup/restore, detail removal sets `FilesRemovedAt`, worker clean-up call, leftovers, storage cache invalidated (FR-022-FR-026)
 - [x] T059 [US4] [backend] Implement `Cleanup/*`, `previewCleanup`, `executeCleanup` to pass T058
 - [x] T060 [US4] [frontend] bUnit tests first, then: clean-up buttons and per-row action, clean-up dialog (items, skipped, total, confirm, result, stale/expired error with "Preview again"), `detail-files-removed` on the track page, `mixer-detail-removed` in the mixer (detail channels not loaded, parents play, settings kept); help topic `storage-cleanup`
-- [ ] T061 [US4] [qa] E2E `library-care-cleanup.spec.ts`: remove detail stems -> freed bytes equal preview -> notices -> mixer plays parents -> Split further restores; clear worker cache -> Split further on another track works (rehydration); a stale plan is refused
+- [x] T061 [US4] [qa] E2E `library-care-cleanup.spec.ts`: remove detail stems -> freed bytes equal preview -> notices -> mixer plays parents -> Split further restores; clear worker cache -> Split further on another track works (rehydration); a stale plan is refused
 
 **Checkpoint**: HO:us4 for backend, frontend, qa.
 
@@ -161,7 +161,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [ ] T062 [P] [US5] [backend] Failing tests `LibraryMergerTests.cs`: dependency order, same id -> skip, same source key -> skip with dependants, unique-name clashes renamed "(restored)", one transaction (failure leaves nothing), files moved after commit and completed by start-up recovery, report entries (US5 scenarios) **011 claude-key**: `AgentSecrets` rows of the archive are never imported by a merge, and the live row is never changed (011 follow-up CK-FR-017)
 - [ ] T063 [US5] [backend] Implement `Restore/LibraryMerger.cs` and the `merge` mode to pass T062
 - [x] T064 [US5] [frontend] Merge option (Advanced+) and the skipped/renamed list in the report; bUnit tests first
-- [ ] T065 [US5] [qa] E2E `library-care-merge.spec.ts`: library A + archive of B -> merged result as in the US5 independent test
+- [x] T065 [US5] [qa] E2E `library-care-merge.spec.ts`: library A + archive of B -> merged result as in the US5 independent test
 
 **Checkpoint**: HO:us5 for backend, frontend, qa.
 
