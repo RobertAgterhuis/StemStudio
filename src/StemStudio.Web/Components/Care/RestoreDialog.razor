@@ -23,6 +23,11 @@
                     <label class="ss-check"><input type="radio" name="restore-mode" checked="@(Form.Mode == RestoreModeDto.Replace)"
                                                    @onchange="() => Form.Mode = RestoreModeDto.Replace" data-testid="restore-mode-replace" />
                         Replace my library (it is kept aside and can come back with Undo restore)</label>
+                    <LevelGate Feature="care.restore-merge">
+                        <label class="ss-check"><input type="radio" name="restore-mode" checked="@(Form.Mode == RestoreModeDto.Merge)"
+                                                       @onchange="() => Form.Mode = RestoreModeDto.Merge" data-testid="restore-mode-merge" />
+                            Add what is missing (keep everything I have)</label>
+                    </LevelGate>
                 </fieldset>
             }
 

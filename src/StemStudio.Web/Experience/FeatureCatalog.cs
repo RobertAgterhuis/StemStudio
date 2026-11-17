@@ -69,6 +69,7 @@ public static class FeatureCatalog
         new("care.track-table", Advanced, null, "storage-overview"),
         new("care.top-tracks", Beginner, Beginner, "storage-overview"),
         new("care.worker-entries", Expert, null, "storage-regenerable"),
+        new("care.restore-merge", Advanced, null, "backup-restore"),
     }.ToDictionary(f => f.Id, StringComparer.Ordinal);
 
     /// <summary>Every entry in catalogue order.</summary>
