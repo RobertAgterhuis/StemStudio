@@ -5,6 +5,7 @@ using StemStudio.Api.LibraryCare.Archive;
 using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Contracts.LibraryCare;
+using StemStudio.Domain.Assets;
 using StemStudio.Domain.Generations;
 using StemStudio.Domain.LibraryCare;
 using StemStudio.Domain.Voices;
@@ -41,34 +42,15 @@ public sealed class StagedDatabase(IKnownMigrations migrations, TimeProvider clo
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(options);
         var database = Path.Combine(stagingRoot, "stemstudio.db");
-        await CheckReadOnlyAsync(database, manifest, cancellationToken);
+        await ArchivedDatabase.CheckReadOnlyAsync(database, manifest, cancellationToken);
         var migratedFrom = await MigrateAsync(database, manifest, cancellationToken);
-        await using var context = BackupScrubber.StagedContext(database);
-        await StoredPaths.CheckAsync(context, cancellationToken);
+        await using var context = ArchivedDatabase.Context(database);
+        await ArchivedDatabase.CheckStoredPathsAsync(context, cancellationToken);
         var skipped = await new ConsentCheck(stagingRoot, manifest, clock).ApplyAsync(context, options.VoiceProfiles, cancellationToken);
         var warnings = await ReconcileAsync(context, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await ArchivedDatabase.CheckStoredPathsAsync(context, cancellationToken);
         return new StagedResult(migratedFrom, skipped, warnings);
-    }
-
-    private static async Task CheckReadOnlyAsync(string database, BackupManifest manifest, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await using var connection = new SqliteConnection(DatabaseSnapshot.StagingConnectionString(database, readOnly: true));
-            await connection.OpenAsync(cancellationToken);
-            if (await DatabaseSnapshot.IsIntactAsync(connection, cancellationToken)
-                && (await BackupRun.MigrationsAsync(database, cancellationToken)).SequenceEqual(manifest.Schema.Migrations, StringComparer.Ordinal))
-            {
-                return;
-            }
-        }
-        catch (SqliteException)
-        {
-            // Not a StemStudio database: reported below.
-        }
-
-        throw ArchiveReader.Corrupt("The database in the archive is damaged or not a StemStudio library; nothing was changed.");
     }
 
     private async Task<string?> MigrateAsync(string database, BackupManifest manifest, CancellationToken cancellationToken)
@@ -80,7 +62,7 @@ public sealed class StagedDatabase(IKnownMigrations migrations, TimeProvider clo
 
         try
         {
-            await using var context = BackupScrubber.StagedContext(database);
+            await using var context = ArchivedDatabase.Context(database);
             await context.Database.MigrateAsync(cancellationToken);
             return manifest.Schema.LastMigration;
         }
@@ -124,7 +106,11 @@ public sealed class StagedDatabase(IKnownMigrations migrations, TimeProvider clo
     }
 }
 
-/// <summary>Stored relative paths of the staged database must match the layout (data-model 3.4 step 8, H14).</summary>
+/// <summary>
+/// Stored relative paths of the staged database must match the layout (data-model 3.4 step 8, H14): voice samples, take and
+/// converted vocal paths, asset file names and pending uploads. Only the path columns are read, and a table that an older
+/// schema does not have yet has no rows to check, so verify can run this on an archive it does not migrate.
+/// </summary>
 public static class StoredPaths
 {
     /// <summary>Checks every stored path.</summary>
@@ -134,14 +120,41 @@ public static class StoredPaths
     public static async Task CheckAsync(StemStudioDbContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var paths = (await context.VoiceProfiles.AsNoTracking().ToListAsync(cancellationToken)).Select(profile => profile.SamplePath)
-            .Concat((await context.Generations.AsNoTracking().ToListAsync(cancellationToken)).SelectMany(generation => generation.Takes.Select(take => take.FilePath)))
-            .Concat((await context.Assets.AsNoTracking().ToListAsync(cancellationToken)).SelectMany(asset => asset.Files.Select(file => $"assets/{asset.Id:D}/{file.FileName}")))
+        var tables = (await context.Database.SqlQueryRaw<string>("SELECT name AS Value FROM sqlite_master WHERE type = 'table'").ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.Ordinal);
+        var paths = (await SamplePathsAsync(context, tables, cancellationToken))
+            .Concat(await TakePathsAsync(context, tables, cancellationToken))
+            .Concat(await AssetPathsAsync(context, tables, cancellationToken))
             .Concat((await context.Tracks.AsNoTracking().Select(track => track.UploadFileName).ToListAsync(cancellationToken)).OfType<string>().Select(name => "uploads/" + name));
-        if (paths.FirstOrDefault(path => !LibraryLayout.IsAllowed(path)) is not null)
+        if (paths.Any(path => !LibraryLayout.IsAllowed(path)))
         {
             throw ArchiveReader.Unsafe("The archived database refers to a file outside the library layout; nothing was changed.");
         }
+    }
+
+    private static async Task<IEnumerable<string>> SamplePathsAsync(StemStudioDbContext context, HashSet<string> tables, CancellationToken cancellationToken) =>
+        tables.Contains("VoiceProfiles") ? await context.VoiceProfiles.AsNoTracking().Select(profile => profile.SamplePath).ToListAsync(cancellationToken) : [];
+
+    private static async Task<IEnumerable<string>> TakePathsAsync(StemStudioDbContext context, HashSet<string> tables, CancellationToken cancellationToken)
+    {
+        if (!tables.Contains("Generations"))
+        {
+            return [];
+        }
+
+        var takes = await context.Generations.AsNoTracking().Select(generation => EF.Property<List<GenerationTake>>(generation, "_takes")).ToListAsync(cancellationToken);
+        return takes.SelectMany(list => list ?? []).SelectMany(take => new[] { take.FilePath, take.VocalFilePath }).OfType<string>();
+    }
+
+    private static async Task<IEnumerable<string>> AssetPathsAsync(StemStudioDbContext context, HashSet<string> tables, CancellationToken cancellationToken)
+    {
+        if (!tables.Contains("Assets"))
+        {
+            return [];
+        }
+
+        var assets = await context.Assets.AsNoTracking().Select(asset => new { asset.Id, Files = EF.Property<List<AssetFile>>(asset, "_files") }).ToListAsync(cancellationToken);
+        return assets.SelectMany(asset => (asset.Files ?? []).Select(file => $"assets/{asset.Id:D}/{file.FileName}"));
     }
 }
 

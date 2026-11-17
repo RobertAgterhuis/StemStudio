@@ -93,6 +93,35 @@ public sealed class StagedDatabaseTests : ApiTestBase
             .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
     }
 
+    // Security review 013 item 1: a converted vocal path is a stored path too (data-model 3.4 step 8, "take/vocal paths").
+    [Fact]
+    public async Task StoredVocalPathOutsideTheLayout_IsUnsafe()
+    {
+        var track = await _library.TrackAsync();
+        await _library.GenerationAsync(track, _ => "../keys/key-1.xml");
+        var manifest = await StageAsync();
+
+        (await Should.ThrowAsync<LibraryJobException>(() => Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct)))
+            .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
+    }
+
+    // Security review 013 item 2: SQL objects of the archive (triggers, views) would run on later writes; they are refused.
+    [Theory]
+    [InlineData("CREATE TRIGGER evil AFTER UPDATE ON Tracks BEGIN UPDATE VoiceProfiles SET SamplePath = '../../x'; END")]
+    [InlineData("CREATE VIEW evil AS SELECT 1")]
+    public async Task ArchivedTriggerOrView_IsUnsafe(string sql)
+    {
+        await _library.TrackAsync();
+        var manifest = await StageAsync();
+        await using (var context = BackupScrubber.StagedContext(Db))
+        {
+            await context.Database.ExecuteSqlRawAsync(sql, Ct);
+        }
+
+        (await Should.ThrowAsync<LibraryJobException>(() => Prepare().PrepareAsync(Staging, manifest, new RestoreOptionsDto { Mode = RestoreModeDto.Replace }, Ct)))
+            .Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveUnsafe);
+    }
+
     [Fact]
     public async Task InvalidConsentProof_DropsTheProfileAndDetachesItsConversions()
     {
