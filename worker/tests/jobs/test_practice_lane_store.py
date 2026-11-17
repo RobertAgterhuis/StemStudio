@@ -191,17 +191,23 @@ class _Kinds:
         return process
 
 
+def _run_four_jobs(lane: PracticeLane, kinds: _Kinds) -> LaneHealth:
+    """Queue four jobs of three kinds; return the health seen while the first one runs."""
+    for name, job_id in (("section", "a"), ("score-view", "b"), ("setlist", "c"),
+                         ("section", "d")):  # fmt: skip
+        lane.submit(kinds.of(name), job_id)
+    assert kinds.started.wait(5)
+    health = lane.health()
+    kinds.gate.set()
+    assert lane.join(5)
+    return health
+
+
 def test_the_lane_runs_one_job_at_a_time_fifo_across_the_kinds(tmp_path: Path) -> None:
     lane, kinds = PracticeLane(PracticeStores.of(DataPaths(tmp_path)), FakeClock()), _Kinds()
     lane.start()
     try:
-        for name, job_id in (("section", "a"), ("score-view", "b"), ("setlist", "c"),
-                             ("section", "d")):  # fmt: skip
-            lane.submit(kinds.of(name), job_id)
-        assert kinds.started.wait(5)
-        health = lane.health()
-        kinds.gate.set()
-        assert lane.join(5)
+        health = _run_four_jobs(lane, kinds)
     finally:
         lane.stop(5)
 
