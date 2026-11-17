@@ -50,7 +50,9 @@ public static class ApiComposition
         var services = builder.Services;
         services.AddSingleton(dataDirectory);
         services.AddClaudeKeyProtection(builder.Configuration, builder.Environment.ContentRootPath, dataDirectory);
-        services.AddStemStudioPersistence(ConnectionString(builder.Configuration, dataDirectory));
+        var connectionString = ConnectionString(builder.Configuration, dataDirectory);
+        services.AddStemStudioPersistence(connectionString);
+        services.AddSingleton(new LiveDatabase(connectionString));
         AddServiceClients(services, builder.Configuration);
         AddApplicationServices(services);
         AddHttpServices(services, options);

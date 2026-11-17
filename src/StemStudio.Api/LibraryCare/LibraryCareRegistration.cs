@@ -1,4 +1,7 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Jobs;
+using StemStudio.Api.LibraryCare.Storage;
 using StemStudio.Api.Storage;
 
 namespace StemStudio.Api.LibraryCare;
@@ -19,7 +22,21 @@ public static class LibraryCareRegistration
         services.AddSingleton<LibraryJobStore>();
         services.AddSingleton<LibraryJobRunner>();
         services.AddSingleton<LibraryJobRecovery>();
+        services.TryAddSingleton<ILibraryFiles, LibraryFiles>();
+        services.AddSingleton<LibraryWalker>();
+        AddBackup(services);
         return services;
+    }
+
+    private static void AddBackup(IServiceCollection services)
+    {
+        services.AddSingleton<BackupFolder>();
+        services.AddSingleton(provider => new DatabaseSnapshot(provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<DatabaseSnapshot>>()));
+        services.AddSingleton<BackupSelection>();
+        services.AddSingleton<BackupRunServices>();
+        services.AddSingleton<BackupRun>();
+        services.AddScoped<BackupEstimates>();
+        services.AddScoped<BackupService>();
     }
 
     /// <summary>Start-up recovery of library care (before the endpoints are served).</summary>

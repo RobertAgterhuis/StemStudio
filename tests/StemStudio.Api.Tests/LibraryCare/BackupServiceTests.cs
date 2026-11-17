@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using StemStudio.Api.LibraryCare;
@@ -11,7 +12,6 @@ using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Contracts;
 using StemStudio.Contracts.LibraryCare;
-using StemStudio.Domain.Tracks;
 using StemStudio.TestDoubles.ClaudeKey;
 using StemStudio.TestDoubles.JsonSchema;
 
@@ -93,8 +93,7 @@ public sealed class BackupServiceTests : IDisposable
         var outcome = await StartAsync(new BackupOptionsDto());
 
         outcome.ProblemCode.ShouldBe(LibraryCareProblemTypes.InsufficientDiskSpace);
-        using var response = await _client.PostAsJsonAsync(ApiRoutes.Backups, new BackupOptionsDto(), Ct);
-        var problem = await response.JsonAsync();
+        var problem = await ProblemJsonAsync(outcome.Problem!);
         (problem.GetProperty("freeBytes").GetInt64(), problem.GetProperty("requiredBytes").GetInt64() > 64L * 1024 * 1024).ShouldBe((1000, true));
         Directory.Exists(_factory.BackupDir).ShouldBeTrue();
         Directory.GetFiles(_factory.BackupDir).ShouldBeEmpty();
@@ -243,6 +242,15 @@ public sealed class BackupServiceTests : IDisposable
         outcome.Job.ShouldNotBeNull(outcome.ProblemCode);
         await Runner.WhenIdleAsync();
         return (await Runner.GetAsync(outcome.Job.JobId, Ct))!;
+    }
+
+    private async Task<JsonElement> ProblemJsonAsync(IResult problem)
+    {
+        var http = new DefaultHttpContext { RequestServices = _factory.Services };
+        using var body = new MemoryStream();
+        http.Response.Body = body;
+        await problem.ExecuteAsync(http);
+        return JsonDocument.Parse(body.ToArray()).RootElement.Clone();
     }
 
     private static async Task<JsonElement> ManifestAsync(ZipArchive zip)

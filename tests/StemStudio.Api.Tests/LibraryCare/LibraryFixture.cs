@@ -53,7 +53,7 @@ internal sealed class LibraryFixture(ApiFactory factory)
     {
         var bytes = Encoding.UTF8.GetBytes("pending upload " + Guid.NewGuid());
         var name = Convert.ToHexStringLower(SHA256.HashData(bytes)) + ".mp3";
-        var track = Track.FromUpload(Guid.NewGuid(), SourceKey.FromStored("upload:" + name[..32]), new UploadedFile("song.mp3", name), T0);
+        var track = Track.FromUpload(Guid.NewGuid(), SourceKey.FromStored("upload:" + name[..64]), new UploadedFile("song.mp3", name), T0);
         await AddAsync(track);
         await WriteAsync("uploads/" + name, bytes);
         return track;
