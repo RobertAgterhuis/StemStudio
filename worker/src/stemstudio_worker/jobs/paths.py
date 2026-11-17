@@ -41,9 +41,14 @@ class DataPaths:
         """Received upload of a job (``input<ext>``); deleted when terminal."""
         return self.root / "uploads" / job_id
 
+    @property
+    def source_pointers(self) -> Path:
+        """Directory of the ``cache/by-source`` pointers."""
+        return self.root / "cache" / "by-source"
+
     def by_source(self, source_key: str) -> Path:
         """Cache pointer ``{"audioSha256": ...}`` for a source key (``:`` becomes ``_``)."""
-        return self.root / "cache" / "by-source" / f"{source_key.replace(':', '_')}.json"
+        return self.source_pointers / f"{source_key.replace(':', '_')}.json"
 
     @property
     def audio_cache(self) -> Path:

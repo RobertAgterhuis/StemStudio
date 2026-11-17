@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.models import StoredJob
 from stemstudio_worker.jobs.paths import DataPaths
 from stemstudio_worker.jobs.store import JobStore
 from stemstudio_worker.ports import CacheJanitor
@@ -77,8 +78,8 @@ class _Env:
         result = self.janitor().clean(StorageCleanupRequest.model_validate(request))
         return result.freed_bytes, result.removed_entries, result.skipped
 
-    def job(self, job_id: str, sha: str | None, status: JobState, **flags: object) -> None:
-        self.jobs.save(stored_job(job_id, sha, status, **flags))
+    def save(self, record: StoredJob) -> None:
+        self.jobs.save(record)
 
 
 @pytest.fixture
@@ -134,7 +135,7 @@ def test_deletes_while_holding_the_queue_lock(env: _Env) -> None:
 def test_entries_in_use_are_skipped(env: _Env) -> None:
     cache_entry(env.paths, SHA_A, _ENTRY)
     cache_entry(env.paths, SHA_B, _ENTRY)
-    env.job(_JOB_1, SHA_A, JobState.SEPARATING)
+    env.save(stored_job(_JOB_1, SHA_A, JobState.SEPARATING))
     save_detail(env.paths, "d" * 32, SHA_B, DetailJobState.QUEUED)
 
     freed, removed, skipped = env.clean(cacheEntries=[SHA_A, SHA_B])
@@ -156,7 +157,7 @@ def test_unknown_entries_are_reported_once(env: _Env) -> None:
 def test_wildcard_removes_every_entry_not_in_use(env: _Env) -> None:
     for sha in (SHA_A, SHA_B, SHA_C):
         cache_entry(env.paths, sha, _ENTRY)
-    env.job(_JOB_1, SHA_B, JobState.QUEUED)
+    env.save(stored_job(_JOB_1, SHA_B, JobState.QUEUED))
     write(env.paths.audio_cache / f"{SHA_C}.partial" / "stems" / "vocals.flac", 5)
 
     freed, removed, skipped = env.clean(cacheEntries=["*"])
@@ -181,8 +182,8 @@ def test_by_source_pointers_to_the_entry_are_removed(env: _Env) -> None:
 
 def test_referencing_jobs_are_marked_evicted(env: _Env) -> None:
     cache_entry(env.paths, SHA_A, _ENTRY)
-    env.job(_JOB_1, SHA_A, JobState.COMPLETED)
-    env.job(_JOB_2, SHA_B, JobState.COMPLETED)
+    env.save(stored_job(_JOB_1, SHA_A, JobState.COMPLETED))
+    env.save(stored_job(_JOB_2, SHA_B, JobState.COMPLETED))
 
     env.clean(cacheEntries=[SHA_A])
 
@@ -196,8 +197,8 @@ def test_referencing_jobs_are_marked_evicted(env: _Env) -> None:
 
 
 def test_scratch_of_terminal_and_stale_unknown_jobs(env: _Env) -> None:
-    env.job(_JOB_1, None, JobState.FAILED)
-    env.job(_JOB_2, None, JobState.DOWNLOADING)
+    env.save(stored_job(_JOB_1, None, JobState.FAILED))
+    env.save(stored_job(_JOB_2, None, JobState.DOWNLOADING))
     write(env.paths.work(_JOB_1) / "audio.wav", 10)
     write(env.paths.work(_JOB_2) / "audio.wav", 20)
     _age(write(env.paths.uploads(_JOB_3) / "input.mp3", 30).parent, env, hours=2)
@@ -236,10 +237,10 @@ def test_scratch_ignores_loose_files(env: _Env) -> None:
 def test_old_job_files_older_than_7_days(env: _Env) -> None:
     old, recent = env.clock.now - timedelta(days=8), env.clock.now - timedelta(days=6)
     cache_entry(env.paths, SHA_A, _ENTRY)
-    env.job(_JOB_1, SHA_A, JobState.COMPLETED, updated=old)
-    env.job(_JOB_2, SHA_B, JobState.COMPLETED, updated=old)
-    env.job(_JOB_3, None, JobState.FAILED, updated=recent)
-    env.job(_JOB_4, None, JobState.FAILED, updated=old)
+    env.save(stored_job(_JOB_1, SHA_A, JobState.COMPLETED, updated=old))
+    env.save(stored_job(_JOB_2, SHA_B, JobState.COMPLETED, updated=old))
+    env.save(stored_job(_JOB_3, None, JobState.FAILED, updated=recent))
+    env.save(stored_job(_JOB_4, None, JobState.FAILED, updated=old))
     artwork = write(env.paths.job_artwork(_JOB_4) / "cover.jpg", 9)
     sizes = {j: (env.paths.jobs / f"{j}.json").stat().st_size for j in (_JOB_2, _JOB_4)}
 
@@ -251,7 +252,7 @@ def test_old_job_files_older_than_7_days(env: _Env) -> None:
 
 
 def test_old_job_files_keep_active_jobs(env: _Env) -> None:
-    env.job(_JOB_1, None, JobState.QUEUED, updated=env.clock.now - timedelta(days=9))
+    env.save(stored_job(_JOB_1, None, JobState.QUEUED, updated=env.clock.now - timedelta(days=9)))
 
     env.clean(oldJobFiles=True)
 
@@ -261,7 +262,7 @@ def test_old_job_files_keep_active_jobs(env: _Env) -> None:
 def test_evicted_completed_jobs_are_old_job_files(env: _Env) -> None:
     cache_entry(env.paths, SHA_A, _ENTRY)
     old = env.clock.now - timedelta(days=8)
-    env.job(_JOB_1, SHA_A, JobState.COMPLETED, updated=old, cacheEvicted=True)
+    env.save(stored_job(_JOB_1, SHA_A, JobState.COMPLETED, updated=old, cacheEvicted=True))
 
     env.clean(oldJobFiles=True)
 
