@@ -7,9 +7,16 @@ using StemStudio.Persistence;
 
 namespace StemStudio.Api.LibraryCare.Backup;
 
+/// <summary>The migrations this StemStudio knows.</summary>
+public interface IKnownMigrations
+{
+    /// <summary>Every migration id of the app, in order.</summary>
+    IReadOnlyList<string> All { get; }
+}
+
 /// <summary>The migrations this StemStudio knows (restore compatibility, research R-08).</summary>
 /// <param name="scopes">Scope factory for a context.</param>
-public sealed class MigrationCatalog(IServiceScopeFactory scopes)
+public sealed class MigrationCatalog(IServiceScopeFactory scopes) : IKnownMigrations
 {
     private IReadOnlyList<string>? _all;
 

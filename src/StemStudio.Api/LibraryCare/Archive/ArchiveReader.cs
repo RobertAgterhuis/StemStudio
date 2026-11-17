@@ -140,9 +140,14 @@ public static class ArchiveReader
             return;
         }
 
-        if (!declared.TryGetValue(name, out var expected) || expected.SizeBytes != entry.Length)
+        if (!declared.TryGetValue(name, out var expected))
         {
             throw Unsafe($"Entry \"{Printable(name)}\" is not listed in the manifest; nothing was changed.");
+        }
+
+        if (expected.SizeBytes != entry.Length)
+        {
+            throw Corrupt($"Entry \"{Printable(name)}\" is larger or smaller than declared; nothing was changed.");
         }
     }
 

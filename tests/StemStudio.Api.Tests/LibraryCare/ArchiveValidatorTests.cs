@@ -1,5 +1,4 @@
-using System.Text;
-using StemStudio.Api.LibraryCare;
+using StemStudio.Api.LibraryCare.Backup;
 using StemStudio.Api.LibraryCare.Jobs;
 using StemStudio.Api.LibraryCare.Restore;
 using StemStudio.Api.Storage;
@@ -77,6 +76,7 @@ public sealed class ArchiveValidatorTests : IDisposable
     [Fact]
     public void ReparsePointArchive_IsRefused()
     {
+        Write(Archive, [StemEntry()]);
         ArchiveValidator.IsLink(new FileInfo(Archive)).ShouldBeFalse();
         Should.Throw<LibraryJobException>(() => Validator().Validate("../x.zip")).Code.ShouldBe(LibraryJobErrorCodeDto.ArchiveInvalid);
     }
