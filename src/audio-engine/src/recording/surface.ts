@@ -63,6 +63,26 @@ export function validateAdjustment(samples: number): number {
   return samples;
 }
 
+/** Longest take accepted by `loadTake` (samples, the 30-minute session limit). */
+export const MAX_TAKE_SAMPLES = 1800 * 44100;
+
+/**
+ * @param source - A saved take's span (from the backend, untrusted shape).
+ * @throws Error `Invalid take source: <field> ...` for a negative or fractional start, a length outside
+ *   1..{@link MAX_TAKE_SAMPLES} or a channel count other than 1 or 2.
+ */
+export function validateTakeSlice(source: { readonly startSample: number; readonly lengthSamples: number; readonly channels: number }): void {
+  const checks: readonly [string, boolean][] = [
+    ['startSample', Number.isInteger(source.startSample) && source.startSample >= 0],
+    ['lengthSamples', Number.isInteger(source.lengthSamples) && source.lengthSamples >= 1 && source.lengthSamples <= MAX_TAKE_SAMPLES],
+    ['channels', source.channels === 1 || source.channels === 2],
+  ];
+  const failed = checks.find(([, ok]) => !ok);
+  if (failed !== undefined) {
+    throw new Error(`Invalid take source: ${failed[0]}`);
+  }
+}
+
 /** Recording surface of one engine. */
 export class Recording implements RecordingSurface {
   private readonly env: MediaEnvironment;
@@ -247,6 +267,7 @@ export class Recording implements RecordingSurface {
     if ('captureKey' in source) {
       return { buffer: this.captureBuffer(source.captureKey), startSample: this.store.startOf(source.captureKey) };
     }
+    validateTakeSlice(source);
     const { context } = this.host;
     const decoded = await loadStems(context, this.host.fetch, [{ name: 'take', url: source.url }]);
     return { buffer: sliceTake(context, [...decoded.values()][0] ?? context.createBuffer(1, 1, context.sampleRate), source), startSample: source.startSample };
