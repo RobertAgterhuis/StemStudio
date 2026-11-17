@@ -18,7 +18,7 @@ public sealed class TrackRepository(StemStudioDbContext context) : ITrackReposit
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Track>> ListAsync(CancellationToken cancellationToken) =>
-        await context.Tracks.AsNoTracking().OrderByDescending(track => track.UpdatedAt).ToListAsync(cancellationToken);
+        await context.Tracks.AsNoTracking().OrderByDescending(track => track.UpdatedAt).ThenBy(track => track.Id).ToListAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Track>> ListActiveAsync(CancellationToken cancellationToken) =>
