@@ -113,7 +113,7 @@ public static class RenderPlanner
         var inputs = (mode == ExportMode.Raw ? Raw(selected!) : Mixed(source, selected, mix!))
             .Where(input => input.Gain > 0).OrderBy(input => input.Channel.SortKey).ToList();
         var stems = inputs.Select(input => new PlannedInput(input.Channel.Id, input.Channel.PathFor(source.TrackId), input.Gain, input.Pan)).ToList();
-        var take = TakePlan.Input(source, mode, channels, mix, AnySolo(source, mix, selected));
+        var take = TakePlan.Input(source, mode, channels, mix);
         if (stems.Count == 0 && take is null)
         {
             throw new NothingToExportException();
@@ -126,7 +126,7 @@ public static class RenderPlanner
     }
 
     /// <summary>True when a visible stem channel or the take is soloed (gate rule v2 with the take strip, feature 015).</summary>
-    private static bool AnySolo(RenderSource source, ExportMix? mix, List<RenderChannel>? selected) =>
+    internal static bool AnySolo(RenderSource source, ExportMix? mix, List<RenderChannel>? selected) =>
         mix is not null && selected is null
         && (source.AllChannels().Any(channel => !IsHidden(mix, channel) && Fader(mix, channel).Solo) || (source.Take is not null && mix.Take?.Solo == true));
 

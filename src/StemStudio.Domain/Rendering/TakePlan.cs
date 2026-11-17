@@ -40,20 +40,23 @@ internal static class TakePlan
     /// <param name="mode">Raw or mixed.</param>
     /// <param name="channels">Explicit channel ids, or null.</param>
     /// <param name="mix">The mix (mix mode).</param>
-    /// <param name="anySolo">True when a visible channel or the take is soloed.</param>
     /// <returns>The input or null.</returns>
     /// <exception cref="TakeRequiredException">The channel <c>take</c> is listed without a take.</exception>
-    public static PlannedInput? Input(RenderSource source, ExportMode mode, IReadOnlyList<string>? channels, ExportMix? mix, bool anySolo)
+    public static PlannedInput? Input(RenderSource source, ExportMode mode, IReadOnlyList<string>? channels, ExportMix? mix)
     {
         var listed = channels?.Contains(RenderPlanner.TakeChannelId, StringComparer.Ordinal) == true;
-        var strip = mix?.Take;
+        RequireTake(listed, source, mode == ExportMode.Mix ? mix?.Take : null, mode);
+        var anySolo = channels is null && RenderPlanner.AnySolo(source, mix, null);
+        var (gain, pan) = mode == ExportMode.Raw ? Raw(listed) : Mixed(listed, channels is null, mix?.Take, anySolo);
+        return source.Take is { } take && gain > 0 ? new PlannedInput(RenderPlanner.TakeChannelId, take.Path, gain, pan) : null;
+    }
+
+    private static void RequireTake(bool listed, RenderSource source, Mixes.TakeChannelSettings? strip, ExportMode mode)
+    {
         if (listed && (source.Take is null || (mode == ExportMode.Mix && strip is null)))
         {
             throw new TakeRequiredException();
         }
-
-        var (gain, pan) = mode == ExportMode.Raw ? Raw(listed) : Mixed(listed, channels is null, strip, anySolo);
-        return source.Take is { } take && gain > 0 ? new PlannedInput(RenderPlanner.TakeChannelId, take.Path, gain, pan) : null;
     }
 
     /// <summary>"Take n - &lt;channels&gt;" or "Take n" when the take is in the plan, else the channel text.</summary>
