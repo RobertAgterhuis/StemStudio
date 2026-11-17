@@ -17,7 +17,7 @@ pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 
 [tool.coverage.run]
-source = ["key_volume_checks", "backup_folder_checks"]
+source = ["key_volume_checks", "backup_folder_checks", "api_image_size_checks"]
 branch = true
 
 [tool.coverage.report]
@@ -39,7 +39,7 @@ select = [
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["key_volume_checks", "backup_folder_checks"]
+known-first-party = ["key_volume_checks", "backup_folder_checks", "api_image_size_checks"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5
