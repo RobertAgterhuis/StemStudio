@@ -128,7 +128,7 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 - [ ] T050 [P] [US2] [backend] Failing tests `WorkerCacheRehydratorTests.cs`: detail start and lyrics alignment on a worker cache miss -> rehydrate -> new `WorkerJobId` -> one retry; second failure surfaces the original error; stage text "Preparing stems" (FR-019)
 - [ ] T051 [US2] [backend] Implement `Worker/WorkerCacheRehydrator.cs` and the hooks in `Detail/` and `Lyrics/` to pass T050
 - [ ] T052 [US2] [frontend] bUnit tests first, then: restore dialog (empty library text, replace/merge radios by level, voice checkbox, space, blockers with links, typed `REPLACE`, error), previous-library panel (undo, discard dialog with `DISCARD`), restore report; help topics `backup-restore`, `backup-compatibility`
-- [ ] T053 [US2] [qa] E2E `library-care-restore.spec.ts`: backup -> delete a track and a mix -> replace restore -> items back, stems play, mix opens; undo; discard; hostile archive (fixture copied into the temp backups folder) refused and the library unchanged; incompatible and older-schema archives shown with their state; restore blocked while an export runs; "Split further" after a worker-volume reset uses rehydration (fake worker)
+- [x] T053 [US2] [qa] E2E `library-care-restore.spec.ts`: backup -> delete a track and a mix -> replace restore -> items back, stems play, mix opens; undo; discard; hostile archive (fixture copied into the temp backups folder) refused and the library unchanged; incompatible and older-schema archives shown with their state; restore blocked while an export runs; "Split further" after a worker-volume reset uses rehydration (fake worker)
 
 **Checkpoint**: HO:us2 for backend, frontend, qa.
 

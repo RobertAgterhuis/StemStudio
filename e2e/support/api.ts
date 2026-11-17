@@ -291,6 +291,21 @@ export class StemStudioApi {
     return json<MixDto>(await this.request.get(`/api/mixes/${id}`));
   }
 
+  /** `DELETE /api/mixes/{id}`; returns the HTTP status (feature 013 removes a mix before a restore). */
+  async deleteMix(id: string): Promise<number> {
+    return (await this.request.delete(`/api/mixes/${id}`)).status();
+  }
+
+  /** `GET /api/mixes/{id}`; returns the HTTP status only (200 present, 404 gone). */
+  async mixStatus(id: string): Promise<number> {
+    return (await this.request.get(`/api/mixes/${id}`)).status();
+  }
+
+  /** `GET /api/tracks/{id}`; returns the HTTP status only (200 present, 404 gone). */
+  async trackStatus(id: string): Promise<number> {
+    return (await this.request.get(`/api/tracks/${id}`)).status();
+  }
+
   /** `POST /api/mixes/{id}/duplicate`; returns the copy. */
   async duplicateMix(id: string): Promise<MixDto> {
     return json<MixDto>(await this.request.post(`/api/mixes/${id}/duplicate`));
