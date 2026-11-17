@@ -371,7 +371,7 @@ public sealed class RecordingPanelTests : RecordingTestContext
             var visible = control.TextContent.Trim();
             var label = control.GetAttribute("aria-label");
             var id = control.GetAttribute("id");
-            var labelled = id is not null && panel.FindAll($"label[for={id}]").Count > 0;
+            var labelled = id is not null && panel.FindAll($"label[for=\"{id}\"]").Count > 0;
             (label is not null || visible.Length > 0 || labelled).ShouldBeTrue($"{control.GetAttribute("data-testid")} has no name");
             if (label is not null && visible.Length > 0 && control.TagName == "BUTTON")
             {
