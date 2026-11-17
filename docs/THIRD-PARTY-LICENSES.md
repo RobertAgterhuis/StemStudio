@@ -35,6 +35,22 @@ licence report (pip-licenses, nuget-license, license-checker) as a build artifac
 | OllamaSharp (Ollama client, `IChatClient` implementation) | 5.5.0 | MIT | https://github.com/awaescher/OllamaSharp |
 | Anthropic (official C# SDK; optional paid backend, constitution 1.3.0 principle IV exception, only called when Claude is selected and `ANTHROPIC_API_KEY` is set) | 13.3.0 | Apache-2.0 | https://github.com/anthropics/anthropic-sdk-csharp |
 
+### Lyric writing assistant (feature 023, ADR-037; dictionaries vendored in the API image)
+
+The dictionaries are copied byte-identical into `src/StemStudio.Api/LyricAssist/Dictionaries/` (7,740,587
+bytes), with their licence files; `PROVENANCE.md` and `manifest.json` there record the source, pin and
+SHA-256 of every file, and `VendoredDictionaryTests` checks them. Nothing is downloaded at run time.
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| WeCantSpell.Hunspell (managed Hunspell port; NuGet, used unmodified) | 7.0.1 | **MPL-1.1** (chosen from the MPL-1.1 / GPL-2.0 / LGPL-2.1 tri-licence; file-level copyleft, no effect on StemStudio's MIT code) | https://github.com/aarondandy/WeCantSpell.Hunspell |
+| OpenTaal Hunspell `nl` word list | 2.20.23 (commit `1c22bc3d`, 2022-11-29) | BSD-3-Clause (chosen from "BSD-3-Clause and/or CC BY 3.0"; `nl/LICENSE.txt` kept with the data) | https://github.com/OpenTaal/opentaal-hunspell |
+| SCOWL English word lists (Hunspell `en_US`, `en_GB-ise`, `en_GB-ize`, size 60) | `rel-2026.02.25` (SCOWL commit `7e99eda`) | SCOWL notice (MIT/HPND-style permissive licence, Kevin Atkinson; affix files under Geoff Kuenning's Ispell BSD-style licence; `README_<dict>.txt` kept with the data) | https://github.com/en-wl/wordlist |
+| CMU Pronouncing Dictionary (CMUdict) | commit `74790861` (2025-10-24) | BSD-2-Clause wording (Carnegie Mellon University; `cmudict/LICENSE` kept with the data) | https://github.com/cmusphinx/cmudict |
+
+LanguageTool is not used. No new model weights: the lyric model is `qwen3.5:9b` via Ollama (Apache-2.0, pulled by
+the user, as for the 011 agent).
+
 ### Practice tempo time stretch (feature 012, ADR-021; separate `soundtouch.wasm` in the web image)
 
 | Component | Version | Licence | Source |
@@ -152,6 +168,7 @@ that runs locally for a single user; StemStudio is not redistributed as a closed
 | certifi, pathspec | MPL-2.0 | requests stack / lizard; certifi also in the singer image |
 | frozendict 2.5.1 | LGPL-3.0-only | ACE-Step 1.5 (generator image only, used unmodified as a separate library) |
 | soxr 1.1.0 (singer image) | LGPL-2.1+ | librosa in the singer image |
+| WeCantSpell.Hunspell 7.0.1 | MPL-1.1 (file-level copyleft) | **direct** since feature 023 (lyric spelling check in the API; used unmodified through its NuGet package, chosen from its MPL-1.1 / GPL-2.0 / LGPL-2.1 tri-licence) |
 
 **Distribution note:** anyone who redistributes the worker image must comply with the GPL/LGPL
 terms of these components (offer source, keep notices).

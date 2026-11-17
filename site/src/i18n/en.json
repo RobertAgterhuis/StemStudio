@@ -108,7 +108,8 @@
       "lead": "Every song you practise, ready when you are.",
       "p1": "Import from a YouTube link, a Spotify track link or your own MP3, WAV or FLAC file (up to 200 MB and 15 minutes).",
       "p2": "Save stems, stem packs and mixes as FLAC, WAV or MP3.",
-      "p3": "Back up the whole library to one file, restore it with undo, and see where your disk space goes before you free it safely."
+      "p3": "Back up the whole library to one file, restore it with undo, and see where your disk space goes before you free it safely.",
+      "p4": "Saved items are filed by artist, album and song by themselves, with the cover art you already have, and a search that finds a song or a stem such as \"snare\" while you type."
     },
     "create": {
       "title": "Create",
@@ -116,6 +117,7 @@
       "p1": "Restyle a song, or part of it, with one of 24 preset styles or your own. Needs an NVIDIA graphics card.",
       "p2": "Write lyrics and generate a sung song; turn the vocal into your own voice, only after your explicit consent. Needs an NVIDIA graphics card.",
       "p3": "Type a command in English or Dutch, such as “mute the drums and loop the chorus”, and a local AI model turns it into steps and carries them out with StemStudio's own tools. Heavy and destructive steps ask you first.",
+      "p4": "Write your own lyrics with a helper that checks spelling, grammar and flow in Dutch or English, suggests rhymes and alternatives, counts syllables, and treats poetic licence as a choice, not a mistake. It only helps when you ask.",
       "note": "Every generated take is labelled AI-generated."
     }
   },

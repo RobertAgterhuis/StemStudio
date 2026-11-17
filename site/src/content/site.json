@@ -23,7 +23,9 @@
     "Songs from your own lyrics": "theme-create",
     "AI composer agent": "theme-create",
     "Practice tempo": "theme-practice",
-    "Library care": "theme-library"
+    "Library by artist and album": "theme-library",
+    "Library care": "theme-library",
+    "Lyric writing assistant": "theme-create"
   },
   "comingSoon": {
     "$comment": "Roadmap features shown under 'Coming soon' on the home page; check.mjs fails once one is delivered, so it moves out of the list.",
