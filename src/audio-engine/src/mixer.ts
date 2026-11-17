@@ -104,10 +104,13 @@ export class Mixer {
   }
 
   /**
-   * @param target - Channel id or `"master"`.
-   * @returns The meter tap of the target, or undefined when the channel is not loaded.
+   * @param target - Channel id, `"master"` or `"input"` (the input tap belongs to the recording input, contract 2.5.0).
+   * @returns The meter tap of the target, or undefined when the channel is not loaded (always for `"input"`).
    */
   public analyser(target: MeterTarget): AnalyserNode | undefined {
+    if (target === 'input') {
+      return undefined;
+    }
     return target === 'master' ? this.masterAnalyser : this.channels.get(target)?.analyser;
   }
 

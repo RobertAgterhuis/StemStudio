@@ -23,12 +23,12 @@ function engine(options: EngineOptions = {}): AudioEngine {
 }
 
 describe('practice contract 2.3.0 (skeleton)', () => {
-  it('exports version 2.3.0 with the practice state names and the new callback', () => {
+  it('exports the current version with the practice state names and the new callback', () => {
     const stretch: readonly StretchState[] = ['bypass', 'loading', 'active', 'unavailable'];
     const trainer: readonly TrainerState[] = ['off', 'waiting', 'running', 'target'];
     const callback: DotNetCallbacks = 'OnPracticeChanged';
 
-    expect(ENGINE_CONTRACT_VERSION).toBe('2.3.0');
+    expect(ENGINE_CONTRACT_VERSION).toBe('2.5.0');
     expect([stretch.length, trainer.length, callback]).toEqual([4, 4, 'OnPracticeChanged']);
   });
 
