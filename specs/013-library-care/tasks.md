@@ -71,18 +71,18 @@ free space, rename failures, crashes between journal steps) use the seams `ILibr
 
 ### backend (tests first)
 
-- [ ] T013 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/LibraryCare/LibraryLayoutTests.cs`, `StorageClassifierTests.cs`: every pattern of data-model 3.3, entry-name rules (traversal, absolute, backslash, control characters, length, `.`/`..`), classification incl. `recordings` vs `exports` by provenance origin, leftovers; property test over generated libraries: clean-up kinds only match regenerable paths (FR-022, FR-034, SC-007, SC-010)
-- [ ] T014 [backend] Implement `Domain/LibraryCare/{LibraryLayout,StorageClassifier,BackupCategory,Regenerability,CleanupRules}.cs` to pass T013
-- [ ] T015 [P] [backend] Failing tests `ConsentProofTests.cs`: `ConsentStatement.Known` (v1 text and hash), proof valid/invalid cases of data-model 5.4 (unknown version, hash mismatch, name length, time after archive, manifest vs database difference) (FR-009, FR-016)
-- [ ] T016 [backend] Implement `ConsentStatement.Known`, `Domain/LibraryCare/ConsentProof.cs` to pass T015
-- [ ] T017 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/LibraryCare/GateTests.cs`: every endpoint of data-model 5.2 answers `409 backup-running` in `BackupRunning`; reads and job starts pass; `Maintenance` answers `503` + `Retry-After: 5` except the three allowed routes; in-flight request counter; synchronisers and the agent executor skip ticks (FR-002, FR-013)
-- [ ] T018 [backend] Implement `LibraryCare/Gate/*`, attach `RequireGateOpen` to the 001-011 endpoints listed, wire synchronisers, to pass T017
-- [ ] T019 [P] [backend] Failing tests `LibraryJobRunnerTests.cs`, `LibraryJobStoreTests.cs`: one job at a time (`409 library-job-running`), JSON records, last 50 kept, start-up marks `running` as failed `interrupted` and removes `.partial` and staging, cancel token propagation (FR-006)
-- [ ] T020 [backend] Implement `LibraryCare/Jobs/*` to pass T019
-- [ ] T021 [P] [backend] Failing tests: `DetailPhase.FilesRemovedAt` JSON round trip (old rows without the field), `Track.RemoveDetailFiles`, detail start accepted for a completed phase with removed files and the field cleared on completion, DTO mapping (FR-025)
-- [ ] T022 [backend] Implement to pass T021
-- [ ] T023 [P] [backend] Failing tests `WorkerClientStorageTests.cs` with the 1.7.0 examples: storage report, cleanup (skipped `inUse`), rehydrate (201/200/404/409/422), 2 s timeout for the storage report
-- [ ] T024 [backend] Implement the worker client additions to pass T023
+- [x] T013 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/LibraryCare/LibraryLayoutTests.cs`, `StorageClassifierTests.cs`: every pattern of data-model 3.3, entry-name rules (traversal, absolute, backslash, control characters, length, `.`/`..`), classification incl. `recordings` vs `exports` by provenance origin, leftovers; property test over generated libraries: clean-up kinds only match regenerable paths (FR-022, FR-034, SC-007, SC-010)
+- [x] T014 [backend] Implement `Domain/LibraryCare/{LibraryLayout,StorageClassifier,BackupCategory,Regenerability,CleanupRules}.cs` to pass T013
+- [x] T015 [P] [backend] Failing tests `ConsentProofTests.cs`: `ConsentStatement.Known` (v1 text and hash), proof valid/invalid cases of data-model 5.4 (unknown version, hash mismatch, name length, time after archive, manifest vs database difference) (FR-009, FR-016)
+- [x] T016 [backend] Implement `ConsentStatement.Known`, `Domain/LibraryCare/ConsentProof.cs` to pass T015
+- [x] T017 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/LibraryCare/GateTests.cs`: every endpoint of data-model 5.2 answers `409 backup-running` in `BackupRunning`; reads and job starts pass; `Maintenance` answers `503` + `Retry-After: 5` except the three allowed routes; in-flight request counter; synchronisers and the agent executor skip ticks (FR-002, FR-013)
+- [x] T018 [backend] Implement `LibraryCare/Gate/*`, attach `RequireGateOpen` to the 001-011 endpoints listed, wire synchronisers, to pass T017
+- [x] T019 [P] [backend] Failing tests `LibraryJobRunnerTests.cs`, `LibraryJobStoreTests.cs`: one job at a time (`409 library-job-running`), JSON records, last 50 kept, start-up marks `running` as failed `interrupted` and removes `.partial` and staging, cancel token propagation (FR-006)
+- [x] T020 [backend] Implement `LibraryCare/Jobs/*` to pass T019
+- [x] T021 [P] [backend] Failing tests: `DetailPhase.FilesRemovedAt` JSON round trip (old rows without the field), `Track.RemoveDetailFiles`, detail start accepted for a completed phase with removed files and the field cleared on completion, DTO mapping (FR-025)
+- [x] T022 [backend] Implement to pass T021
+- [x] T023 [P] [backend] Failing tests `WorkerClientStorageTests.cs` with the 1.7.0 examples: storage report, cleanup (skipped `inUse`), rehydrate (201/200/404/409/422), 2 s timeout for the storage report
+- [x] T024 [backend] Implement the worker client additions to pass T023
 
 ### stem-separation (worker, tests first)
 

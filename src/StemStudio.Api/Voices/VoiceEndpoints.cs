@@ -1,6 +1,6 @@
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Voices;
-using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Voices;
 

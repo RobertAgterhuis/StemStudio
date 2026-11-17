@@ -74,13 +74,28 @@ public static class GateProblems
         "Library is being restored",
         "StemStudio is switching to the restored library; this takes a few seconds.");
 
-    /// <summary>A typed library-care problem.</summary>
+    /// <summary>A typed library-care problem without extension members.</summary>
     /// <param name="status">HTTP status.</param>
     /// <param name="code">Problem code (<see cref="LibraryCareProblemTypes"/>).</param>
     /// <param name="title">Title.</param>
     /// <param name="detail">Detail.</param>
+    /// <returns>The result.</returns>
+    public static IResult Typed(int status, string code, string title, string detail) => Typed(new ProblemText(status, code, title, detail), null);
+
+    /// <summary>A typed library-care problem.</summary>
+    /// <param name="text">Status, code, title and detail.</param>
     /// <param name="extensions">Extension members, or null.</param>
     /// <returns>The result.</returns>
-    public static IResult Typed(int status, string code, string title, string detail, IDictionary<string, object?>? extensions = null) =>
-        TypedResults.Problem(detail, statusCode: status, title: title, type: LibraryCareProblemTypes.BaseUri + code, extensions: extensions);
+    public static IResult Typed(ProblemText text, IDictionary<string, object?>? extensions)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return TypedResults.Problem(text.Detail, statusCode: text.Status, title: text.Title, type: LibraryCareProblemTypes.BaseUri + text.Code, extensions: extensions);
+    }
 }
+
+/// <summary>Status, code, title and detail of a library-care problem.</summary>
+/// <param name="Status">HTTP status.</param>
+/// <param name="Code">Problem code (<see cref="LibraryCareProblemTypes"/>).</param>
+/// <param name="Title">Title.</param>
+/// <param name="Detail">Detail.</param>
+public sealed record ProblemText(int Status, string Code, string Title, string Detail);

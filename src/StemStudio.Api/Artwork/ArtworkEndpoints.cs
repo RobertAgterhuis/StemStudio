@@ -1,6 +1,6 @@
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Tracks;
 using StemStudio.Contracts.Tracks;
-using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Artwork;
 

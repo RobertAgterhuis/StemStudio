@@ -1,8 +1,8 @@
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Styles;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Lyrics;
 using StemStudio.Domain.Lyrics;
-using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Lyrics;
 

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using StemStudio.Agent.Ports;
 using StemStudio.Api.Agent.Secrets;
+using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Contracts;
 using StemStudio.Contracts.Agent;
-using StemStudio.Api.LibraryCare.Gate;
 
 namespace StemStudio.Api.Agent;
 
