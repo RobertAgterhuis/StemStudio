@@ -293,7 +293,7 @@ export class Recorder implements TransportListener {
     const { context, capture } = this.host;
     const expectedMs = ((frame - context.currentTime * context.sampleRate + CAPTURE_BATCH_FRAMES) / context.sampleRate) * 1000;
     const polls = Math.ceil((Math.max(0, expectedMs) + TAIL_SLACK_MS) / TAIL_POLL_MS);
-    for (let i = 0; i < polls && capture.endFrame < frame; i++) {
+    for (let i = 0; i < polls && capture.endFrame < frame && !capture.full; i++) {
       await new Promise((resolve) => setTimeout(resolve, TAIL_POLL_MS));
     }
   }
@@ -315,7 +315,7 @@ export class Recorder implements TransportListener {
     });
     return mapped.map((take) => {
       const key = newUuid();
-      store.put(key, take.channels);
+      store.put(key, take.channels, take.startSample);
       return describeTake(take, session.info, key);
     });
   }

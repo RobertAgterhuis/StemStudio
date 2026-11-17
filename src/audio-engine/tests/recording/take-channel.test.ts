@@ -176,6 +176,16 @@ describe('TakeChannel', () => {
     expect(takeSources(rig)[0]?.stopCalls).toEqual([20]);
   });
 
+  it('moveTo shifts the loaded take and re-plans at once; without a take it is a no-op', async () => {
+    const rig = makeRig();
+    rig.take.moveTo(SR);
+    rig.take.load(buffer(rig, 1), 2 * SR);
+    await rig.transport.play();
+    rig.take.moveTo(3 * SR);
+    expect(starts(rig)).toEqual([[2.1, 0, 1], [3.1, 0, 1]]);
+    expect(takeSources(rig)[0]?.stopCalls.length).toBe(1);
+  });
+
   it('unload stops the sources and plays nothing afterwards', async () => {
     const rig = makeRig();
     rig.take.load(buffer(rig, 1), 0);

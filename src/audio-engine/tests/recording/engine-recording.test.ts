@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEngine, type AudioEngine, type BeatGrid, type CapturedTake, type RecordOptions } from '../../src/index';
 import { FakeStretchStage } from '../../src/stretch/fake-stage';
-import type { MockAudioBuffer, MockGainNode } from '../mocks/audio-context';
+import type { MockAudioBuffer, MockAudioBufferSourceNode, MockGainNode } from '../mocks/audio-context';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
 import { FetchStub } from '../mocks/fetch';
 import { FakeMediaDevices, RecordingContext } from '../mocks/media';
@@ -80,6 +80,15 @@ async function record(rig: Rig, seconds = 1, options: RecordOptions = OPTIONS): 
   return stopping;
 }
 
+/** The only take, failing the test when there is none. */
+function first(takes: readonly CapturedTake[]): CapturedTake {
+  const [take] = takes;
+  if (take === undefined) {
+    throw new Error('no take');
+  }
+  return take;
+}
+
 function states(rig: Rig): unknown[] {
   return rig.ref.argsOf('OnRecordingStateChanged');
 }
@@ -88,6 +97,11 @@ function states(rig: Rig): unknown[] {
 function guitarGain(rig: Rig): MockGainNode | undefined {
   const source = rig.ctx.sources.find((s) => s.connections.length > 0 && bytesOf(s.buffer) === 101);
   return source?.connections[0] as MockGainNode | undefined;
+}
+
+/** `when` of the first start call of the last source matching `match` (NaN when none). */
+function startOf(rig: Rig, match: (source: MockAudioBufferSourceNode) => boolean): number {
+  return rig.ctx.sources.filter(match).at(-1)?.startCalls[0]?.when ?? Number.NaN;
 }
 
 function bytesOf(buffer: MockAudioBuffer | null): number {
@@ -169,8 +183,8 @@ describe('recording', () => {
     const rig = await opened();
     await rig.engine.startRecording(OPTIONS);
     expect(states(rig)).toEqual(['open', 'recording']);
-    const gain = guitarGain(rig);
-    expect(gain?.gain.value).toBe(0);
+    const gain = guitarGain(rig)?.gain;
+    expect(gain?.value).toBe(0);
     const locked = 'Stop the recording first';
     expect(() => {
       rig.engine.seek(3);
@@ -191,12 +205,11 @@ describe('recording', () => {
     expect(states(rig)).toEqual(['open', 'recording', 'finishing', 'open']);
     expect(rig.ref.argsOf('OnTakesCaptured')).toEqual([takes]);
     expect(rig.ref.argsOf('OnRecordingProgress').length).toBeGreaterThanOrEqual(3);
-    expect(gain?.gain.value).toBe(1);
-    const [take] = takes;
-    const blob = rig.engine.captureWav(take?.captureKey ?? '');
-    expect(blob.size).toBe(44 + (take?.lengthSamples ?? 0) * 3);
-    rig.engine.releaseCapture(take?.captureKey ?? '');
-    expect(() => rig.engine.captureWav(take?.captureKey ?? '')).toThrow('Unknown capture');
+    expect(gain?.value).toBe(1);
+    const take = first(takes);
+    expect(rig.engine.captureWav(take.captureKey).size).toBe(44 + take.lengthSamples * 3);
+    rig.engine.releaseCapture(take.captureKey);
+    expect(() => rig.engine.captureWav(take.captureKey)).toThrow('Unknown capture');
   });
 
   it('refuses at another speed and with the trainer on', async () => {
@@ -235,13 +248,32 @@ describe('recording', () => {
 describe('take channel', () => {
   it('loadTake from the capture plays it in the take strip sample-locked with the stems', async () => {
     const rig = await opened();
-    const [take] = await record(rig);
-    await rig.engine.loadTake({ takeId: take?.captureKey ?? '', source: { captureKey: take?.captureKey ?? '' }, part: 'guitar' });
+    const take = first(await record(rig));
+    await rig.engine.loadTake({ takeId: take.captureKey, source: { captureKey: take.captureKey }, part: 'guitar' });
     rig.engine.seek(0);
     await rig.engine.play();
-    const takeSource = rig.ctx.sources.find((s) => s.buffer?.length === take?.lengthSamples);
-    const stem = rig.ctx.sources.filter((s) => bytesOf(s.buffer) === 100).at(-1);
-    expect(takeSource?.startCalls[0]?.when).toBeCloseTo((stem?.startCalls[0]?.when ?? 0) + (take?.startSample ?? 0) / SR, 9);
+    const takeStart = startOf(rig, (s) => s.buffer?.length === take.lengthSamples);
+    const stemStart = startOf(rig, (s) => bytesOf(s.buffer) === 100);
+    expect(takeStart).toBeCloseTo(stemStart + take.startSample / SR, 9);
+  });
+
+  it('loadTake validates the adjustment and applies it to the song position', async () => {
+    const rig = await loaded();
+    const source = { url: '/take.flac', startSample: 0, lengthSamples: SR, channels: 1 } as const;
+    await expect(rig.engine.loadTake({ takeId: 't', source, part: 'none', adjustmentSamples: 8821 })).rejects.toThrow('Invalid take adjustment: 8821');
+    await rig.engine.loadTake({ takeId: 't', source, part: 'none', adjustmentSamples: 4410 });
+    await rig.engine.play();
+    expect(rig.ctx.sources.find((s) => s.buffer?.length === SR)?.startCalls[0]?.when).toBeCloseTo(0.2, 9);
+  });
+
+  it('a capture processor error is handled like a lost input; the session limit stops the recording', async () => {
+    const rig = await opened();
+    rig.ctx.captureNodes()[0]?.onprocessorerror?.(new Event('processorerror'));
+    expect(rig.ref.argsOf('OnInputLost')).toEqual(['processorError']);
+    await rig.engine.openInput({ deviceId: 'usb', mode: 'mono-1' });
+    await rig.engine.startRecording({ ...OPTIONS, maxSeconds: 1 });
+    await run(rig, 1.5);
+    expect(rig.ref.argsOf('OnTakesCaptured')).toHaveLength(1);
   });
 
   it('loadTake from a URL slices the saved file; an unknown capture or HTTP error rejects', async () => {

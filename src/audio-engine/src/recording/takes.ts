@@ -15,13 +15,16 @@ const FULL_SCALE = (2 ** 23 - 1) / 2 ** 23;
 /** Local audio of captured takes by capture key. */
 export class CaptureStore {
   private readonly audio = new Map<string, Float32Array[]>();
+  private readonly starts = new Map<string, number>();
 
   /**
    * @param key - Capture key.
    * @param channels - Take audio per channel.
+   * @param startSample - Song sample of the first frame.
    */
-  public put(key: string, channels: Float32Array[]): void {
+  public put(key: string, channels: Float32Array[], startSample = 0): void {
     this.audio.set(key, channels);
+    this.starts.set(key, startSample);
   }
 
   /**
@@ -30,6 +33,14 @@ export class CaptureStore {
    */
   public samples(key: string): readonly Float32Array[] | undefined {
     return this.audio.get(key);
+  }
+
+  /**
+   * @param key - Capture key.
+   * @returns Song sample of the capture's first frame (0 for an unknown key).
+   */
+  public startOf(key: string): number {
+    return this.starts.get(key) ?? 0;
   }
 
   /**
@@ -48,11 +59,13 @@ export class CaptureStore {
   /** @param key - Capture key; unknown keys are ignored. */
   public release(key: string): void {
     this.audio.delete(key);
+    this.starts.delete(key);
   }
 
   /** Frees every capture. */
   public clear(): void {
     this.audio.clear();
+    this.starts.clear();
   }
 }
 

@@ -20,7 +20,6 @@ function engine(options: EngineOptions = {}): AudioEngine {
   return createEngine(new FakeDotNetRef(), { audioContextFactory: () => ctx.asAudioContext(), ...options });
 }
 
-const TAKE = { captureKey: 'c1', takeId: 't1', part: 'guitar' } as const;
 
 describe('recording contract 2.5.0 (skeleton)', () => {
   it('exports version 2.5.0 with the recording names, the take channel, the input meter and the new callbacks', () => {
@@ -39,26 +38,15 @@ describe('recording contract 2.5.0 (skeleton)', () => {
   });
 
   it.each([
-    ['recordingSupport', (e: AudioEngine) => e.recordingSupport()],
-    ['listInputDevices', (e: AudioEngine) => e.listInputDevices()],
-    ['openInput', (e: AudioEngine) => e.openInput({ deviceId: null, mode: 'mono-1' })],
     ['calibrateLatency', (e: AudioEngine) => e.calibrateLatency({ clicks: 8, seed: 1 })],
-    ['startRecording', (e: AudioEngine) => e.startRecording({ latencySamples: 0, latencyMethod: 'estimated', part: 'none', muteOriginal: false, countInBars: 0 })],
-    ['stopRecording', (e: AudioEngine) => e.stopRecording()],
-    ['loadTake', (e: AudioEngine) => e.loadTake({ takeId: TAKE.takeId, source: { captureKey: TAKE.captureKey }, part: TAKE.part })],
-  ] as const)('%s rejects with "not implemented"', async (name, call) => {
+  ] as const)('%s rejects with "not implemented" until its user story (US2)', async (name, call) => {
     await expect(call(engine())).rejects.toThrow(`not implemented: ${name}`);
   });
 
   it.each([
-    ['closeInput', (e: AudioEngine) => { e.closeInput(); }],
-    ['setMonitoring', (e: AudioEngine) => { e.setMonitoring({ enabled: true, volume: 0.5 }); }],
-    ['captureWav', (e: AudioEngine) => { e.captureWav(TAKE.captureKey); }],
-    ['releaseCapture', (e: AudioEngine) => { e.releaseCapture(TAKE.captureKey); }],
-    ['unloadTake', (e: AudioEngine) => { e.unloadTake(); }],
     ['setTakeAdjustment', (e: AudioEngine) => { e.setTakeAdjustment(441); }],
     ['setTakeCompare', (e: AudioEngine) => { e.setTakeCompare('original'); }],
-  ] as const)('%s throws "not implemented"', (name, call) => {
+  ] as const)('%s throws "not implemented" until its user story (US4, US7)', (name, call) => {
     expect(() => { call(engine()); }).toThrow(`not implemented: ${name}`);
   });
 
@@ -69,7 +57,7 @@ describe('recording contract 2.5.0 (skeleton)', () => {
     expect(() => subject.recordingSupport()).toThrow('Audio engine has been disposed');
   });
 
-  it('has no input meter tap until the recording input exists (skeleton)', () => {
+  it('has no input meter tap until the recording input exists', () => {
     expect(() => { engine().attachMeter('input', 'meter-input'); }).toThrow('Unknown meter target "input"');
   });
 

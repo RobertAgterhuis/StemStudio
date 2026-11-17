@@ -69,6 +69,11 @@ export class CaptureReceiver {
     return buffer === null || buffer.empty ? 0 : buffer.endFrame - buffer.firstFrame;
   }
 
+  /** Whether the session reached its limit (no more audio is accepted). */
+  public get full(): boolean {
+    return this.limited;
+  }
+
   /** Context frame after the last captured sample (0 without a session). */
   public get endFrame(): number {
     return this.buffer?.endFrame ?? 0;
