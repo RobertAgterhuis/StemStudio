@@ -92,6 +92,7 @@ public sealed partial class LyricAssistContractTests
     private static readonly (string Route, string Method, string OperationId)[] RouteTable =
     [
         (ApiRoutes.LyricAssistStatus, "get", "getLyricAssistStatus"),
+        (ApiRoutes.LyricAssistSettings, "get", "getLyricAssistSettings"),
         (ApiRoutes.LyricAssistSettings, "put", "updateLyricAssistSettings"),
         (ApiRoutes.LyricsAssists(SheetId), "post", "createLyricAssist"),
         (ApiRoutes.LyricsAssists(SheetId), "get", "listLyricAssists"),
