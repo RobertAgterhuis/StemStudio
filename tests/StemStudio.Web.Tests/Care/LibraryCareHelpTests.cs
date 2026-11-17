@@ -22,6 +22,9 @@ public sealed class LibraryCareHelpTests
     [InlineData("backup-voice-data", "restore-voice-profiles")]
     [InlineData("storage-overview", "storage-volume-library")]
     [InlineData("storage-regenerable", "storage-category-detail-stems")]
+    [InlineData("storage-cleanup", "cleanup-dialog")]
+    [InlineData("storage-cleanup", "mixer-detail-removed")]
+    [InlineData("storage-cleanup", "detail-files-removed")]
     public void Topics_AreReviewedFor013_InAreaMixes_AndOwnTheirAnchors(string id, string anchor)
     {
         var topic = Catalog.Topic(id).ShouldNotBeNull(id);
@@ -50,5 +53,7 @@ public sealed class LibraryCareHelpTests
     [InlineData("storage-overview", "same virtual disk")]
     [InlineData("storage-overview", "cannot be removed here")]
     [InlineData("storage-regenerable", "Original")]
+    [InlineData("storage-cleanup", "Never removed")]
+    [InlineData("storage-cleanup", "preview again")]
     public void Topics_StateTheLimits(string id, string text) => Catalog.Topic(id)!.Markdown.ShouldContain(text);
 }
