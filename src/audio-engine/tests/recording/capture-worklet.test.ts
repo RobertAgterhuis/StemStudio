@@ -44,12 +44,16 @@ function withChannels(channels: 1 | 2): Rig {
   return make({ processorOptions: { channels } });
 }
 
+function quantum(channel: number, frame: number): Float32Array {
+  return Float32Array.from({ length: QUANTUM }, (_, i) => channel * 1000 + ((frame + i) % 1000));
+}
+
 /** Runs `quanta` render quanta whose samples are `channel * 1000 + frame % 1000`. */
 function render(rig: Rig, quanta: number, inputChannels = 2): boolean[] {
   const alive: boolean[] = [];
   for (let q = 0; q < quanta; q++) {
     const frame = rig.scope.currentFrame;
-    const input = Array.from({ length: inputChannels }, (_, c) => Float32Array.from({ length: QUANTUM }, (_, i) => c * 1000 + ((frame + i) % 1000)));
+    const input = Array.from({ length: inputChannels }, (_, c) => quantum(c, frame));
     alive.push(rig.processor.process([input], [[new Float32Array(QUANTUM)]]));
     rig.scope.currentFrame += QUANTUM;
   }
@@ -58,6 +62,14 @@ function render(rig: Rig, quanta: number, inputChannels = 2): boolean[] {
 
 function blocks(port: FakeProcessorPort): Block[] {
   return port.ofType('block') as unknown as Block[];
+}
+
+function firstBlock(rig: Rig): Block {
+  const [block] = blocks(rig.port);
+  if (block === undefined) {
+    throw new Error('no block');
+  }
+  return block;
 }
 
 describe('capture processor', () => {
@@ -86,8 +98,8 @@ describe('capture processor', () => {
       rig.port.send({ type: 'start' });
       render(rig, 16);
     });
-    expect(blocks(mono.port)[0]?.channels).toHaveLength(1);
-    const [left, right] = blocks(stereo.port)[0]?.channels ?? [];
+    expect(firstBlock(mono).channels).toHaveLength(1);
+    const [left, right] = firstBlock(stereo).channels;
     expect([left?.[5], right?.[5]]).toEqual([5, 1005]);
   });
 

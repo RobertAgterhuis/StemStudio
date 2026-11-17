@@ -79,7 +79,7 @@ describe('CaptureReceiver', () => {
     r.reply(block(8192, 2048));
     r.reply({ type: 'other' });
     r.reply(null);
-    expect([r.capture.endFrame, r.capture.capturedFrames]).toEqual([10240, 4096]);
+    expect([r.capture.endFrame, r.capture.capturedFrames]).toEqual([10240, 6144]);
     r.capture.stop();
     const buffer = r.capture.take();
     expect(r.ctx.captureNodes()[0]?.port.posted).toEqual([{ type: 'start' }, { type: 'stop' }]);

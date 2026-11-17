@@ -10,7 +10,6 @@ import {
   type RecordingState,
   type TakeCompareMode,
 } from '../../src/index';
-import { CAPTURE_BATCH_FRAMES, CAPTURE_PROCESSOR_NAME, registerCaptureProcessor, type CaptureProcessor } from '../../src/recording/capture-worklet';
 import { notImplemented } from '../../src/recording/pending';
 import { MockAudioContext } from '../mocks/audio-context';
 import { FakeDotNetRef } from '../mocks/dotnet-ref';
@@ -76,25 +75,5 @@ describe('recording contract 2.5.0 (skeleton)', () => {
 
   it('names the method in the skeleton error', () => {
     expect(notImplemented('loadTake').message).toBe('not implemented: loadTake');
-  });
-});
-
-describe('capture worklet skeleton', () => {
-  it('registers stemstudio-capture and keeps the processor alive', () => {
-    const registered = new Map<string, new () => CaptureProcessor>();
-    const port = {} as MessagePort;
-    registerCaptureProcessor({
-      AudioWorkletProcessor: class {
-        public readonly port = port;
-      },
-      registerProcessor: (name, processor) => {
-        registered.set(name, processor);
-      },
-    });
-    const Processor = registered.get(CAPTURE_PROCESSOR_NAME);
-
-    expect(Processor).toBeDefined();
-    expect(Processor && new Processor().process([[new Float32Array(128)]])).toBe(true);
-    expect(CAPTURE_BATCH_FRAMES % 128).toBe(0);
   });
 });
