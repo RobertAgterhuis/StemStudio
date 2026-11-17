@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using StemStudio.Contracts.LyricAssist;
@@ -47,9 +48,8 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
 
     private async Task LoopAsync(HttpResponse response, Guid assistId, int last, CancellationToken cancellationToken)
     {
-        var quiet = TimeSpan.Zero;
-        var idle = TimeSpan.Zero;
         var poll = TimeSpan.FromMilliseconds(Math.Max(options.StreamPollMilliseconds, 10));
+        var (lastEvent, lastWrite) = (Stopwatch.GetTimestamp(), Stopwatch.GetTimestamp());
         while (true)
         {
             var stored = await assists.EventsAsync(assistId, last, cancellationToken);
@@ -63,26 +63,45 @@ public sealed class LyricAssistEventWriter(ILyricAssistRepository assists, Lyric
                 }
             }
 
-            quiet = stored.Count > 0 ? TimeSpan.Zero : quiet + poll;
-            idle = stored.Count > 0 ? TimeSpan.Zero : idle + poll;
-            if (idle >= TimeSpan.FromSeconds(options.StreamIdleSeconds))
+            if (stored.Count > 0)
             {
-                return;
+                (lastEvent, lastWrite) = (Stopwatch.GetTimestamp(), Stopwatch.GetTimestamp());
             }
-
-            if (quiet >= TimeSpan.FromSeconds(options.KeepAliveSeconds))
+            else
             {
-                if (await assists.FindAsync(assistId, cancellationToken) is null)
+                var (open, written) = await IdleTickAsync(response, assistId, lastEvent, lastWrite, cancellationToken);
+                if (!open)
                 {
                     return;
                 }
 
-                await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
-                quiet = TimeSpan.Zero;
+                lastWrite = written;
             }
 
             await Task.Delay(poll, cancellationToken);
         }
+    }
+
+    // Closes an idle stream (security review) or a stream of a deleted assist; writes the keep-alive comment when due.
+    private async Task<(bool Open, long LastWrite)> IdleTickAsync(HttpResponse response, Guid assistId, long lastEvent, long lastWrite, CancellationToken cancellationToken)
+    {
+        if (Stopwatch.GetElapsedTime(lastEvent) >= TimeSpan.FromSeconds(options.StreamIdleSeconds))
+        {
+            return (false, lastWrite);
+        }
+
+        if (Stopwatch.GetElapsedTime(lastWrite) < TimeSpan.FromSeconds(options.KeepAliveSeconds))
+        {
+            return (true, lastWrite);
+        }
+
+        if (await assists.FindAsync(assistId, cancellationToken) is null)
+        {
+            return (false, lastWrite);
+        }
+
+        await WriteAsync(response, ": keep-alive\n\n", cancellationToken);
+        return (true, Stopwatch.GetTimestamp());
     }
 
     private static async Task WriteAsync(HttpResponse response, string text, CancellationToken cancellationToken)

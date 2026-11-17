@@ -288,7 +288,7 @@ public sealed class LyricAssistEndpointTests : AssistTestBase
         var id = (await created.BodyAsync<LyricAssistSummaryDto>()).AssistId;
 
         var reading = StreamTextAsync(ApiRoutes.LyricAssistEvents(id));
-        await Task.Delay(1500, Ct);
+        await Task.Delay(2500, Ct);
         release.SetResult();
         var text = await reading.WaitAsync(TimeSpan.FromSeconds(10), Ct);
 
@@ -338,7 +338,8 @@ public sealed class LyricAssistEndpointTests : AssistTestBase
 
         var assist = await RunToEndAsync(sheet.Id, Check());
 
-        (assist.Suggestions.Select(x => x.Type), assist.Discarded.Verbatim).ShouldBe(([SuggestionTypeDto.GrammarAgreement, SuggestionTypeDto.SpellingUnknownWord], 2));
+        assist.Suggestions.Select(x => x.Type).ShouldBe([SuggestionTypeDto.GrammarAgreement, SuggestionTypeDto.SpellingUnknownWord]);
+        assist.Discarded.Verbatim.ShouldBe(2);
     }
 
     private static AssistantSuggestion Grammar(AnchorDto anchor) => new()

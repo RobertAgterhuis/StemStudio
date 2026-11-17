@@ -8,8 +8,7 @@ public sealed partial class BackendContractTests
     // T046 (rhymes, language guess), T062 (lyric-assist settings), T075 (own-work override).
     private static readonly string[] PendingLyricAssistOperations =
     [
-        "getLyricAssistStatus", "getLyricAssistSettings", "updateLyricAssistSettings", "createLyricAssist", "listLyricAssists", "getLyricAssist", "streamLyricAssistEvents",
-        "cancelLyricAssist", "listLyricSuggestions", "acceptLyricSuggestions", "rejectLyricSuggestions", "markSuggestionIntentional",
+        "getLyricAssistStatus", "getLyricAssistSettings", "updateLyricAssistSettings",         "listLyricSuggestions", "acceptLyricSuggestions", "rejectLyricSuggestions", "markSuggestionIntentional",
         "listIntentionalMarks", "createIntentionalMark", "deleteIntentionalMark", "updateSheetAssistSettings", "confirmOwnWork", "revokeOwnWork",
         "undoLyricSuggestions", "listLyricsRevisions", "restoreLyricsRevision", "getSheetSyllables", "countSyllables", "findRhymes",
         "listLyricWords", "addLyricWord", "deleteLyricWord", "guessLyricsLanguage",
