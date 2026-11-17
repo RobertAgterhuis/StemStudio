@@ -71,14 +71,14 @@ and `polish`, with real test and coverage output.
 
 ### audio-engine (tests first)
 
-- [ ] T012 [P] [audio-engine] Failing tests `tests/recording/wav.test.ts`: `encodeWav24` header fields, quantisation `clamp(round(x*2^23))` incl. +-1.0 and NaN -> 0, mono/stereo interleave, length, little-endian vectors (FR-011)
-- [ ] T013 [audio-engine] Implement `src/recording/wav.ts` to pass T012
-- [ ] T014 [P] [audio-engine] Failing tests `tests/recording/mapping.test.ts`: `mapCaptureToTakes` without loop, with loop passes, with count-in gaps, negative start dropped, end of track, partial pass >= 1 s kept / < 1 s dropped, frame gaps filled and counted, compensation `L + P` (data-model 3.2, FR-008, FR-010)
-- [ ] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment log (T001 found the anchors pruned; tempo-stage latency is already in the heard anchors, P0-8) with its own unit tests (no public API change)
-- [ ] T016 [P] [audio-engine] Failing tests `tests/recording/calibration.test.ts`: seeded click schedule, chirp template, `estimateLatency` vectors of research R-04 (exact delays 0/128/1,000/4,410/20,000, noise -20/-40 dB, echo, missing clicks, clipping warning, jitter, every failure reason) (FR-007)
-- [ ] T017 [audio-engine] Implement `src/recording/calibration.ts` to pass T016
-- [ ] T018 [P] [audio-engine] Failing tests `tests/recording/compare.test.ts` and `tests/gate.test.ts` additions: `take` is an audible-level channel for `anySolo`; `compareGate` per mode incl. expanded detail channels and part `none` (research R-10)
-- [ ] T019 [audio-engine] Implement `src/recording/compare.ts`, gate and mixer changes to pass T018
+- [x] T012 [P] [audio-engine] Failing tests `tests/recording/wav.test.ts`: `encodeWav24` header fields, quantisation `clamp(round(x*2^23))` incl. +-1.0 and NaN -> 0, mono/stereo interleave, length, little-endian vectors (FR-011)
+- [x] T013 [audio-engine] Implement `src/recording/wav.ts` to pass T012
+- [x] T014 [P] [audio-engine] Failing tests `tests/recording/mapping.test.ts`: `mapCaptureToTakes` without loop, with loop passes, with count-in gaps, negative start dropped, end of track, partial pass >= 1 s kept / < 1 s dropped, frame gaps filled and counted, compensation `L + P` (data-model 3.2, FR-008, FR-010)
+- [x] T015 [audio-engine] Implement `src/recording/mapping.ts`; add the internal transport-segment log (T001 found the anchors pruned; tempo-stage latency is already in the heard anchors, P0-8) with its own unit tests (no public API change)
+- [x] T016 [P] [audio-engine] Failing tests `tests/recording/calibration.test.ts`: seeded click schedule, chirp template, `estimateLatency` vectors of research R-04 (exact delays 0/128/1,000/4,410/20,000, noise -20/-40 dB, echo, missing clicks, clipping warning, jitter, every failure reason) (FR-007)
+- [x] T017 [audio-engine] Implement `src/recording/calibration.ts` to pass T016
+- [x] T018 [P] [audio-engine] Failing tests `tests/recording/compare.test.ts` and `tests/gate.test.ts` additions: `take` is an audible-level channel for `anySolo`; `compareGate` per mode incl. expanded detail channels and part `none` (research R-10)
+- [x] T019 [audio-engine] Implement `src/recording/compare.ts`, gate and mixer changes to pass T018
 
 ### backend (tests first)
 
@@ -102,14 +102,14 @@ and `polish`, with real test and coverage output.
 
 ## Phase 3: User Story 1 - Record myself over the mix and hear it back (P1)
 
-- [ ] T028 [P] [US1] [audio-engine] Failing tests `tests/recording/input.test.ts`, `monitoring.test.ts`: support reasons (insecure, no AudioWorklet, no getUserMedia), permission query incl. not queryable, constraints of research R-02, error mapping (NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError, rate mismatch), mode availability, `devicechange`, track `ended` -> `OnInputLost`, monitoring routing/volume ramps, `closeInput` rules (FR-001..FR-003, FR-006)
-- [ ] T029 [US1] [audio-engine] Implement `src/recording/{input,monitoring}.ts` to pass T028
-- [ ] T030 [P] [US1] [audio-engine] Failing tests `tests/recording/capture-worklet.test.ts`, `capture.test.ts`: processor channel selection per mode, `currentFrame` stamps, 2,048-frame batches, zero-gain keep-alive connection; receiver gap fill, 30-minute limit, release
-- [ ] T031 [US1] [audio-engine] Implement `src/recording/{capture-worklet,capture}.ts` and the Vite entry to pass T030
-- [ ] T032 [P] [US1] [audio-engine] Failing tests `tests/recording/recorder.test.ts`: state machine, refusals (`recordingSpeed:`, `speedTrainer:`, input not open), 012 count-in start, locked transport controls, mute-original gate, take gated while recording, finishing tail `L + P` + one batch, stop at end of song, `OnRecordingProgress` <= 4 Hz, `captureWav`/`releaseCapture` (FR-004, FR-005, FR-009)
-- [ ] T033 [US1] [audio-engine] Implement `src/recording/recorder.ts` to pass T032
-- [ ] T034 [P] [US1] [audio-engine] Failing tests `tests/recording/take-channel.test.ts`: `loadTake` from capture and from URL, slicing and mono reduction, scheduling with the shared anchor (play, seek inside/before/after the take, pause, loop passes), meter and `setChannel('take')` before load, `unloadTake`, decode errors; playback through the tempo stage like stems (FR-009, FR-012)
-- [ ] T035 [US1] [audio-engine] Implement `src/recording/take-channel.ts`, wire everything in `engine.ts` and `callbacks.ts` to pass T034 (2.5.0 complete for US1)
+- [x] T028 [P] [US1] [audio-engine] Failing tests `tests/recording/input.test.ts`, `monitoring.test.ts`: support reasons (insecure, no AudioWorklet, no getUserMedia), permission query incl. not queryable, constraints of research R-02, error mapping (NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError, rate mismatch), mode availability, `devicechange`, track `ended` -> `OnInputLost`, monitoring routing/volume ramps, `closeInput` rules (FR-001..FR-003, FR-006)
+- [x] T029 [US1] [audio-engine] Implement `src/recording/{input,monitoring}.ts` to pass T028
+- [x] T030 [P] [US1] [audio-engine] Failing tests `tests/recording/capture-worklet.test.ts`, `capture.test.ts`: processor channel selection per mode, `currentFrame` stamps, 2,048-frame batches, zero-gain keep-alive connection; receiver gap fill, 30-minute limit, release
+- [x] T031 [US1] [audio-engine] Implement `src/recording/{capture-worklet,capture}.ts` and the Vite entry to pass T030
+- [x] T032 [P] [US1] [audio-engine] Failing tests `tests/recording/recorder.test.ts`: state machine, refusals (`recordingSpeed:`, `speedTrainer:`, input not open), 012 count-in start, locked transport controls, mute-original gate, take gated while recording, finishing tail `L + P` + one batch, stop at end of song, `OnRecordingProgress` <= 4 Hz, `captureWav`/`releaseCapture` (FR-004, FR-005, FR-009)
+- [x] T033 [US1] [audio-engine] Implement `src/recording/recorder.ts` to pass T032
+- [x] T034 [P] [US1] [audio-engine] Failing tests `tests/recording/take-channel.test.ts`: `loadTake` from capture and from URL, slicing and mono reduction, scheduling with the shared anchor (play, seek inside/before/after the take, pause, loop passes), meter and `setChannel('take')` before load, `unloadTake`, decode errors; playback through the tempo stage like stems (FR-009, FR-012)
+- [x] T035 [US1] [audio-engine] Implement `src/recording/take-channel.ts`, wire everything in `engine.ts` and `callbacks.ts` to pass T034 (2.5.0 complete for US1)
 - [x] T036 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Recording/CreateTakeEndpointTests.cs`, `ListTakesEndpointTests.cs`: streamed multipart, metadata validation, every problem code of DELTA.md section 1 for create, padded `capture.wav` bytes, Asset (`recording`, provenance, recipe) and the exact worker render request, `202` + `Location`, per-endpoint body limit, list order and total size (FR-011)
 - [x] T037 [US1] [backend] Implement `src/StemStudio.Api/Recording/{TakeEndpoints,TakeUploadService,TakeStorage}.cs` to pass T036
 - [x] T038 [P] [US1] [backend] Failing tests `TakeAssetFinisherTests.cs`, `AssetOriginPolicyTests.cs`: asset ready -> `capture.wav` deleted, audio hash registered (010 guard refuses the take as a voice sample), status mapping, `listAssets` excludes `recording` without `origin`, `managed-by-take` refusals, `retryRecordingTake` (`take-not-failed`, `capture-missing`) (FR-011, FR-017)
@@ -126,8 +126,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 4: User Story 2 - Calibrate latency (P1)
 
-- [ ] T045 [P] [US2] [audio-engine] Failing tests `tests/recording/calibrate-engine.test.ts`: refuses while playing, forces monitoring off and mutes the mix, clicks scheduled on the destination, capture window, result object incl. `outputLatencySamples`, `testInput: 'loopback'` wiring (FR-007)
-- [ ] T046 [US2] [audio-engine] Implement `calibrateLatency` and the loopback test input to pass T045
+- [x] T045 [P] [US2] [audio-engine] Failing tests `tests/recording/calibrate-engine.test.ts`: refuses while playing, forces monitoring off and mutes the mix, clicks scheduled on the destination, capture window, result object incl. `outputLatencySamples`, `testInput: 'loopback'` wiring (FR-007)
+- [x] T046 [US2] [audio-engine] Implement `calibrateLatency` and the loopback test input to pass T045
 - [x] T047 [P] [US2] [backend] Failing tests `CalibrationEndpointTests.cs`: list, upsert by label (create/replace), validation, delete (takes keep their latency, `calibrationId` set null)
 - [x] T048 [US2] [backend] Implement `Recording/CalibrationEndpoints.cs` to pass T047
 - [ ] T049 [P] [US2] [frontend] Failing bUnit tests `CalibrationDialogTests.cs`: instructions, running state (`aria-busy`), success and every failure reason with its tip, manual entry (0-1000, 0.1 step, rounding), save -> upsert, Expert samples, `rec-latency-status` per method, `rec-setup-changed` (> 220 samples) (FR-007, FR-020)
@@ -140,8 +140,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 5: User Story 3 - Loop recording, one take per pass (P2)
 
-- [ ] T052 [P] [US3] [audio-engine] Failing tests `tests/recording/loop-recording.test.ts`: passes from transport segments, count-in before every pass not captured, partial last pass, 50-pass and 30-minute limits, loaded take replays in each pass (FR-010)
-- [ ] T053 [US3] [audio-engine] Implement loop handling in recorder/take-channel to pass T052
+- [x] T052 [P] [US3] [audio-engine] Failing tests `tests/recording/loop-recording.test.ts`: passes from transport segments, count-in before every pass not captured, partial last pass, 50-pass and 30-minute limits, loaded take replays in each pass (FR-010)
+- [x] T053 [US3] [audio-engine] Implement loop handling in recorder/take-channel to pass T052
 - [x] T054 [P] [US3] [backend] Failing tests `DeleteTakesEndpointTests.cs`: batch delete, unknown and other-track ids ignored, files and hashes gone, count returned (FR-014)
 - [x] T055 [US3] [backend] Implement `deleteRecordingTakes` to pass T054
 - [ ] T056 [P] [US3] [frontend] Failing bUnit tests: session groups, `rec-pass`, partial badge, star, `takes-keep-starred-<sessionId>` with confirmation (FR-010, FR-014)
@@ -154,8 +154,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 6: User Story 4 - Compare take and original (P2)
 
-- [ ] T059 [P] [US4] [audio-engine] Failing tests: `setTakeCompare` swaps gates at one context time with <= 10 ms ramps, user mute/solo untouched, expanded detail channels, part `none` toggle (FR-013)
-- [ ] T060 [US4] [audio-engine] Implement `setTakeCompare` to pass T059
+- [x] T059 [P] [US4] [audio-engine] Failing tests: `setTakeCompare` swaps gates at one context time with <= 10 ms ramps, user mute/solo untouched, expanded detail channels, part `none` toggle (FR-013)
+- [x] T060 [US4] [audio-engine] Implement `setTakeCompare` to pass T059
 - [x] T061 [P] [US4] [backend] Failing tests `MixTakeChannelTests.cs`: `MixSettings.take` save/load, stale take id -> null, duplicate copies it, deleting the take nulls it (FR-012)
 - [x] T062 [US4] [backend] Implement the mix additions to pass T061
 - [ ] T063 [P] [US4] [frontend] Failing bUnit tests `TakeCompareTests.cs`: radio group and toggle, `C` shortcut cycles, aria states, strip settings saved with the mix (FR-012, FR-013, FR-021)
@@ -182,7 +182,7 @@ and `polish`, with real test and coverage output.
 
 - [x] T071 [P] [US6] [backend] Failing tests `Domain.Tests/Rendering/TakeExportPlannerTests.cs` and Api export tests: raw take (default range = span, explicit range intersected), mix with `take` (gate, volume, pan), explicit `["take", ...]`, `take-required`, `take-not-in-track`, `take-not-ready`, provenance `contents` and `sourceAssetIds`; render-vectors 1.1.0 consumer (FR-015)
 - [x] T072 [US6] [backend] Implement the planner and export request additions to pass T071
-- [ ] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
+- [x] T073 [P] [US6] [audio-engine] render-vectors 1.1.0 consumer test with the take cases (gate parity with the planner); fix the gate if red
 - [ ] T074 [P] [US6] [frontend] Failing bUnit tests: export dialog presets from a take row (take only, take + mix), compare translated into explicit mutes, `export-channel-take`, `export-take-saving` (FR-015)
 - [ ] T075 [US6] [frontend] Implement the export presets to pass T074
 - [ ] T076 [P] [US6] [qa] E2E `recording-export.spec.ts`: take only as WAV 24-bit has the take's length and samples; take + mix MP3 appears in the Library with contents starting "Take n"
@@ -193,8 +193,8 @@ and `polish`, with real test and coverage output.
 
 ## Phase 9: User Story 7 - Adjust the timing of a take (P3)
 
-- [ ] T077 [P] [US7] [audio-engine] Failing tests: `setTakeAdjustment` re-schedules at `currentTime + 0.01`; re-encoding the loaded span with a shifted start (positive later, clamped at 0) (FR-016)
-- [ ] T078 [US7] [audio-engine] Implement to pass T077
+- [x] T077 [P] [US7] [audio-engine] Failing tests: `setTakeAdjustment` re-schedules at `currentTime + 0.01`; re-encoding the loaded span with a shifted start (positive later, clamped at 0) (FR-016)
+- [x] T078 [US7] [audio-engine] Implement to pass T077
 - [x] T079 [P] [US7] [backend] Failing tests `ReplaceTakeAudioEndpointTests.cs`: previous audio kept until ready, `alignmentRevision` + 1, `adjustmentSamples` summed, `take-saving` 409, failure keeps the old audio (data-model 2.4)
 - [x] T080 [US7] [backend] Implement `replaceRecordingTakeAudio` to pass T079
 - [ ] T081 [P] [US7] [frontend] Failing bUnit tests `TakeAdjustTests.cs`: Expert only, slider and number (0.1 ms), live playback shift, apply/reset, note (FR-016, FR-020)

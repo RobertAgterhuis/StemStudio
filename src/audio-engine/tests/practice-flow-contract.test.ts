@@ -11,7 +11,7 @@ import {
 import { MockAudioContext } from './mocks/audio-context';
 import { FakeDotNetRef } from './mocks/dotnet-ref';
 
-/** Contract tests of the 2.4.0 surface (architect skeleton 014 T004; the stubs are replaced in T081, OnLoopPass in T043). */
+/** Contract tests of the 2.4.0 surface (architect skeleton 014 T004; follower in T081, OnLoopPass in T043). */
 const VIEW: ScoreViewMap = {
   pages: [{ page: 1, url: '/api/assets/a/score-view/pages/1?v=1', widthPx: 840, heightPx: 1188 }],
   bars: [
@@ -35,18 +35,16 @@ describe('practice flow contract 2.4.0 (skeleton)', () => {
     expect([callback, pass.pass]).toEqual(['OnLoopPass', 1]);
   });
 
-  it('has the three score follower methods (stubs until T081)', () => {
+  it('has the three score follower methods (implemented in T081, tests in score-follow.test.ts)', () => {
     const subject = engine();
 
     expect(() => {
       subject.attachScoreFollower('score-view', VIEW, FOLLOW);
-    }).toThrow(/not implemented yet \(contract 2\.4\.0; 3 arguments\)/);
+    }).toThrow('Score host not found: score-view');
     expect(() => {
       subject.setScoreFollowOptions({ follow: false });
-    }).toThrow(/1 arguments/);
-    expect(() => {
       subject.detachScoreFollower();
-    }).toThrow(/0 arguments/);
+    }).not.toThrow();
   });
 
   it('rejects score follower calls after dispose like every other call', async () => {

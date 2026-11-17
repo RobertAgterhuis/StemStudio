@@ -117,6 +117,7 @@ export class Transport implements TransportClock {
   private current: TransportTiming = { rate: 1, latency: 0 };
   private restartHook: () => void = () => undefined;
   private planner: PassPlanner | null = null;
+  private anchorSink: ((anchor: TransportAnchor) => void) | null = null;
   private readonly ends = new WeakMap<AudioBufferSourceNode, number>();
   private pausedAt = 0;
   private playState: PlaybackState = 'stopped';
@@ -175,6 +176,14 @@ export class Transport implements TransportClock {
   /** @param planner - Explicit-pass planner used by every later start of all sources, or null for normal playback. */
   public setPlanner(planner: PassPlanner | null): void {
     this.planner = planner;
+  }
+
+  /**
+   * @param sink - Receives every new heard anchor (start, pass, live change) until replaced by null; the recorder's
+   *   segment log (015 T015). Internal, no public API.
+   */
+  public setAnchorSink(sink: ((anchor: TransportAnchor) => void) | null): void {
+    this.anchorSink = sink;
   }
 
   /** Whether starts go through a pass planner. */
@@ -295,6 +304,7 @@ export class Transport implements TransportClock {
     const played = anchorOf(change.at, this.offsetAt(this.played, change.at), change.rate);
     this.sources.forEach((source) => source.playbackRate.setValueAtTime(change.rate, change.at));
     this.heard.push(change.anchor);
+    this.anchorSink?.(change.anchor);
     this.played.push(played);
     this.pending = { at: change.at, heard: change.anchor, played };
     this.current = { rate: change.rate, latency: change.latency };
@@ -418,7 +428,7 @@ export class Transport implements TransportClock {
   private startSpec(spec: PassSpec, fresh: boolean): void {
     const start = spec.heardWhen - spec.latency;
     const span = spec.duration === undefined ? undefined : spec.duration / spec.rate;
-    this.record(this.heard, withUntil(anchorOf(spec.heardWhen, spec.offset, spec.rate), span), fresh);
+    this.recordHeard(withUntil(anchorOf(spec.heardWhen, spec.offset, spec.rate), span), fresh);
     this.record(this.played, withUntil(anchorOf(start, spec.offset, spec.rate), span), fresh);
     this.current = { rate: spec.rate, latency: spec.latency };
     this.sourceStart = fresh ? start : this.sourceStart;
@@ -430,6 +440,12 @@ export class Transport implements TransportClock {
     if (spec.duration === undefined) {
       this.watchEnd(started.reduce((a, b) => (b.duration > a.duration ? b : a)).source);
     }
+  }
+
+  /** Records a heard anchor and hands it to the anchor sink (segment log). */
+  private recordHeard(anchor: TransportAnchor, fresh: boolean): void {
+    this.record(this.heard, anchor, fresh);
+    this.anchorSink?.(anchor);
   }
 
   private record(queue: AnchorQueue, anchor: TransportAnchor, fresh: boolean): void {
