@@ -84,6 +84,27 @@ export function barAt(view: ScoreViewDto, seconds: number): ScoreBarDto | undefi
   return view.bars.find((bar) => bar.startSeconds <= seconds && seconds < bar.endSeconds);
 }
 
+/** Contract `SetlistEntry` (the parts the suite reads). */
+export interface SetlistEntryDto {
+  readonly id: string;
+  readonly position: number;
+  readonly trackId: string;
+  readonly trackTitle: string;
+  readonly mixId: string | null;
+  readonly mixName: string | null;
+  readonly note: string;
+}
+
+/** Contract `Setlist` (the parts the suite reads). */
+export interface SetlistDto {
+  readonly id: string;
+  readonly name: string;
+  readonly note: string;
+  readonly entries: readonly SetlistEntryDto[];
+  readonly totalSeconds: number;
+  readonly removedEntries: number;
+}
+
 /** The status text the section lane shows for an unreliable grid (ui-test-ids 1.13.0 `section-status`). */
 export const unreliableGridText = 'Tempo grid uncertain - boundaries may be off';
 
@@ -138,6 +159,16 @@ export class PracticeFlowApi {
     }
     await expect.poll(async () => (await this.scoreView(assetId)).status, { timeout: timeoutMs, intervals: [250, 500, 1000] }).toBe('ready');
     return this.scoreView(assetId);
+  }
+
+  /** `GET /api/setlists/{id}`. */
+  async setlist(setlistId: string): Promise<SetlistDto> {
+    return okJson<SetlistDto>(await this.request.get(`/api/setlists/${setlistId}`));
+  }
+
+  /** `PATCH /api/setlists/{id}` (the note). */
+  async setSetlistNote(setlistId: string, note: string): Promise<SetlistDto> {
+    return okJson<SetlistDto>(await this.request.patch(`/api/setlists/${setlistId}`, { data: { note } }));
   }
 
   /** Polls until the set is `ready` (or fails the test when it becomes `failed`). */
