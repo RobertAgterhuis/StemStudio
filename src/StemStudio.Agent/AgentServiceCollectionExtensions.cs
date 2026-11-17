@@ -79,7 +79,10 @@ public static class AgentServiceCollectionExtensions
     {
         AddProviders(services);
         services.TryAddSingleton(sp => new AgentToolRegistry(sp.GetServices<IAgentToolProvider>()));
-        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp)));
+        services.TryAddSingleton(sp => new ServiceStatusReader(sp.GetRequiredService<IStemStudioActions>().Generations, Time(sp))
+        {
+            LyricModel = cancellationToken => ServiceStatusReader.LyricModelAsync(sp.GetRequiredService<IAgentStatusService>(), cancellationToken),
+        });
         services.TryAddSingleton(sp => new ToolCatalog(sp.GetRequiredService<AgentToolRegistry>(), sp.GetRequiredService<ServiceStatusReader>()));
     }
 
@@ -97,6 +100,7 @@ public static class AgentServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, StyleToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, SongToolProvider>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LibraryToolProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentToolProvider, LyricAssistToolProvider>());
     }
 
     private static void AddRuntime(IServiceCollection services)
@@ -121,6 +125,7 @@ public static class AgentServiceCollectionExtensions
         Settings = sp.GetRequiredService<IAgentSettingsStore>(),
         Events = sp.GetRequiredService<IRunEventSink>(),
         Actions = sp.GetRequiredService<IStemStudioActions>(),
+        LyricAssist = sp.GetService<ILyricAssistActions>(),
         Ui = sp.GetRequiredService<IUiToolGateway>(),
         Registry = sp.GetRequiredService<AgentToolRegistry>(),
         Chat = sp.GetRequiredService<IAgentChatSession>(),

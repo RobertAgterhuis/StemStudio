@@ -19,9 +19,9 @@ public sealed class LyricAssistSkeletonTests
     }
 
     [Fact]
-    public void Provider_HasNoToolsYet()
+    public void Provider_HasTheEightToolsOfTheCatalogue()
     {
-        new LyricAssistToolProvider().GetTools().ShouldBeEmpty();
+        new LyricAssistToolProvider().GetTools().Select(tool => tool.Name).ShouldBe(LyricAssistToolNames.All);
     }
 
     [Fact]

@@ -69,6 +69,15 @@ public sealed record AgentToolDescriptor
     /// <summary>Lyrics arguments that must occur in a user message (lyrics-not-from-user).</summary>
     public IReadOnlyList<string> LyricsArguments { get; init; } = [];
 
+    /// <summary>Single words that must occur as a word in a user message (find_rhymes.word, tool catalogue 1.2.0).</summary>
+    public IReadOnlyList<string> UserWordArguments { get; init; } = [];
+
+    /// <summary>
+    /// A decision reason that always requires approval (e.g. <c>lyrics-edit</c> of apply_lyric_suggestions): never covered by a
+    /// plan grant, never skipped as fresh.
+    /// </summary>
+    public string? AlwaysApprovalReason { get; init; }
+
     /// <summary>Argument naming the target of the step for plan-scoped approvals (usually trackId).</summary>
     public string? TargetArgument { get; init; }
 }

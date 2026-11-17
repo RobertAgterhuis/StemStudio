@@ -59,6 +59,8 @@ public sealed class RunnerHarness
 
     public IStemStudioActions Actions { get; }
 
+    public ILyricAssistActions? LyricAssist { get; set; }
+
     public AgentToolRegistry Registry { get; set; }
 
     public Guid ConversationId { get; } = Guid.NewGuid();
@@ -90,6 +92,7 @@ public sealed class RunnerHarness
         Settings = Settings,
         Events = Events,
         Actions = Actions,
+        LyricAssist = LyricAssist,
         Ui = UiGateway ?? Ui,
         Registry = Registry,
         Chat = Session,
