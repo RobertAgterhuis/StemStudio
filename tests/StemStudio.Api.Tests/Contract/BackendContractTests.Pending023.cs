@@ -9,7 +9,5 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingLyricAssistOperations =
     [
         "getLyricAssistStatus", "getLyricAssistSettings", "updateLyricAssistSettings", "confirmOwnWork", "revokeOwnWork",
-        "getSheetSyllables", "countSyllables", "findRhymes",
-        "guessLyricsLanguage",
-    ];
+                    ];
 }

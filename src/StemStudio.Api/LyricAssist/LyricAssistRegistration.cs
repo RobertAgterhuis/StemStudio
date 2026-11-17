@@ -17,6 +17,13 @@ public static class LyricAssistRegistration
         services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LyricAssistHostOptions>>().Value);
         services.AddSingleton<ISpellChecker>(_ => new HunspellSpellChecker(HunspellSpellChecker.DefaultRoot));
         services.AddSingleton<LyricsCorpusProvider>();
+        services.AddSingleton(_ => new CmuPronunciationLexicon(CmuPronunciationLexicon.DefaultPath));
+        services.AddSingleton<IPronunciationLexicon>(sp => sp.GetRequiredService<CmuPronunciationLexicon>());
+        services.AddSingleton<IWordList>(sp => new DictionaryWordList(DictionaryWordList.DefaultDutchPath, sp.GetRequiredService<CmuPronunciationLexicon>()));
+        services.AddSingleton<LyricPhonology>();
+        services.AddSingleton<RhymeFinder>();
+        services.AddSingleton<StemStudio.Agent.LyricAssist.ILyricVerification, LyricVerification>();
+        StemStudio.Agent.LyricAssist.LyricAssistServiceCollectionExtensions.AddLyricAssistAgent(services);
         services.AddSingleton<LyricAssistRunner>();
         services.AddHostedService<LyricAssistStartupRecovery>();
         services.AddScoped<LyricsSheetChanges>();
@@ -35,6 +42,7 @@ public static class LyricAssistRegistration
         services.AddScoped<SuggestionService>();
         services.AddScoped<LyricsRevisionService>();
         services.AddScoped<AssistPreferencesService>();
+        services.AddScoped<LyricLanguageService>();
         services.AddScoped(sp => new LyricAssistService(new LyricAssistServiceDeps
         {
             Stores = sp.GetRequiredService<LyricAssistStores>(), ModelLayer = sp.GetRequiredService<LyricModelLayer>(),
@@ -47,5 +55,5 @@ public static class LyricAssistRegistration
     /// <summary>Maps the 023 endpoints (tag <c>lyric-assist</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints().MapSuggestionEndpoints();
+    public static IEndpointRouteBuilder MapLyricAssistEndpoints(this IEndpointRouteBuilder app) => app.MapAssistEndpoints().MapSuggestionEndpoints().MapLyricLanguageEndpoints();
 }
