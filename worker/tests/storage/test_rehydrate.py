@@ -8,6 +8,14 @@ from uuid import UUID
 import numpy as np
 import pytest
 import soundfile as sf
+
+from stemstudio_worker.jobs.cache import ResultCache
+from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
+from stemstudio_worker.jobs.detail_store import DetailJobStore
+from stemstudio_worker.jobs.paths import DataPaths
+from stemstudio_worker.jobs.store import JobStore
+from stemstudio_worker.ports import LibraryStemReader, LibraryUnavailableError, StemMissingError
+from stemstudio_worker.schemas import JobState, RehydrateRequest, SourceType, StemName
 from stemstudio_worker.storage.library import FileLibraryStemReader
 from stemstudio_worker.storage.rehydrate import (
     InvalidStemError,
@@ -17,14 +25,6 @@ from stemstudio_worker.storage.rehydrate import (
     flac_duration,
     library_key,
 )
-
-from stemstudio_worker.jobs.cache import ResultCache
-from stemstudio_worker.jobs.detail_service import DetailContext, DetailService
-from stemstudio_worker.jobs.detail_store import DetailJobStore
-from stemstudio_worker.jobs.paths import DataPaths
-from stemstudio_worker.jobs.store import JobStore
-from stemstudio_worker.ports import LibraryStemReader, LibraryUnavailableError, StemMissingError
-from stemstudio_worker.schemas import JobState, RehydrateRequest, SourceType, StemName
 
 from .builders import T0, StepClock, library_stems
 
@@ -92,14 +92,10 @@ def test_copies_the_stems_into_a_new_cache_entry(env: _Env) -> None:
     assert job.audio_sha256 == library_key(digests)
     for stem, data in written.items():
         assert env.paths.stem_file(job.audio_sha256, stem).read_bytes() == data
-    assert ResultCache(env.paths).lookup_audio(job.audio_sha256) is not None
-    assert (job.status, job.model, job.stems, job.created_at) == (
-        "completed",
-        "htdemucs_6s",
-        _SIX,
-        T0,
-    )
+    expected = ("completed", "htdemucs_6s", _SIX, T0)
+    assert (job.status, job.model, job.stems, job.created_at) == expected
     assert list(env.paths.audio_cache.glob("*.partial")) == []
+    assert ResultCache(env.paths).lookup_audio(job.audio_sha256) is not None
 
 
 def test_writes_a_completed_job_file_flagged_from_library(env: _Env) -> None:
@@ -119,6 +115,15 @@ def test_writes_a_completed_job_file_flagged_from_library(env: _Env) -> None:
     )  # fmt: skip
     assert (record.job.source_type, record.job.source_key) == (SourceType.UPLOAD, "upload:abc")
     assert record.audio_sha256 == job.audio_sha256
+
+
+def test_the_stored_result_has_the_duration_and_the_stems(env: _Env) -> None:
+    library_stems(env.library, _TRACK, _SIX)
+
+    job, _created = env.rehydrator().rehydrate(_request())
+
+    record = env.jobs.get(job.job_id)
+    assert record is not None
     assert record.result is not None
     assert record.result.duration_seconds == pytest.approx(0.1)
     assert [s.name for s in record.result.stems] == _SIX
@@ -269,3 +274,13 @@ def test_reader_maps_other_os_errors_to_an_unavailable_library(env: _Env) -> Non
 
     with pytest.raises(LibraryUnavailableError):
         FileLibraryStemReader(env.paths).open(_TRACK, "bass")
+
+
+def test_an_empty_stem_is_invalid(env: _Env) -> None:
+    library_stems(env.library, _TRACK, _SIX)
+    context = RehydrateContext(
+        env.paths, env.jobs, FileLibraryStemReader(env.paths), env.clock, duration=lambda _p: 0
+    )
+
+    with pytest.raises(InvalidStemError):
+        Rehydrator(context).rehydrate(_request())

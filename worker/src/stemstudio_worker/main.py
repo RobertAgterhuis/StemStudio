@@ -10,6 +10,7 @@ The adapters of features 005 and 007 come from the ``metadata`` package (picture
 song lookup, source details reader; one rate-limited online client) and the ``render`` package
 (one library reader shared by ``/health`` and the render executor). Feature 006 adds the lyrics
 lookup, the aligner and the vocal loader; alignments run through the shared device runner.
+Feature 013 adds the storage services (meter, janitor, rehydrator) over the running jobs.
 """
 
 from collections.abc import AsyncIterator, Callable
@@ -26,6 +27,7 @@ from stemstudio_worker.api import (
     lyrics_routes,
     metadata_routes,
     render_routes,
+    storage,
     transcription_routes,
 )
 from stemstudio_worker.api.problems import install_problem_handlers
@@ -43,6 +45,7 @@ from stemstudio_worker.jobs.runtime import (
     RenderParts,
     WorkerParts,
     WorkerRuntime,
+    utc_now,
 )
 from stemstudio_worker.jobs.transcription_pipeline import (
     ScoreRules,
@@ -75,6 +78,11 @@ from stemstudio_worker.ports import (
 from stemstudio_worker.render import create_library_reader, create_render_executor
 from stemstudio_worker.schemas import CONTRACT_VERSION, ScoreProfile
 from stemstudio_worker.separation import create_separator
+from stemstudio_worker.storage.services import (
+    StorageServices,
+    StorageWiring,
+    create_storage_services,
+)
 from stemstudio_worker.transcription import create_transcription_engines
 
 Lifespan = Callable[[FastAPI], AbstractAsyncContextManager[None]]
@@ -87,6 +95,7 @@ _ROUTERS = (
     render_routes.router,
     lyrics_routes.router,
     transcription_routes.router,
+    storage.router,
 )
 
 
@@ -283,11 +292,22 @@ class _GpuModels:
         return release
 
 
+def default_storage(runtime: WorkerRuntime, settings: WorkerSettings) -> StorageServices:
+    """The feature 013 storage services over the running job subsystem."""
+    wiring = StorageWiring(
+        paths=runtime.paths, jobs=runtime.store, details=runtime.details,
+        model_dir=settings.model_dir, queue_hold=runtime.scheduler.hold,
+        sweep_artwork=runtime.lanes.artwork.sweep, clock=utc_now,
+    )  # fmt: skip
+    return create_storage_services(wiring)
+
+
 def _lifespan(settings: WorkerSettings, parts: _Parts) -> Lifespan:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         runtime = parts.start(settings)
         app.state.runtime = runtime
+        app.state.storage = default_storage(runtime, settings)
         try:
             yield
         finally:
