@@ -16,7 +16,10 @@ namespace StemStudio.Api.Scores;
 /// <param name="files">Asset file store.</param>
 /// <param name="devices">Validates the device.</param>
 /// <param name="clock">Clock.</param>
-public sealed class ScoreJobApplier(IWorkerClient worker, IAssetFileStore files, JobDeviceApplier devices, TimeProvider clock)
+/// <param name="hooks">Run after the item became ready (feature 014 score views); a failing hook is logged only.</param>
+/// <param name="logger">Logger.</param>
+public sealed partial class ScoreJobApplier(
+    IWorkerClient worker, IAssetFileStore files, JobDeviceApplier devices, TimeProvider clock, IEnumerable<IAssetReadyHook> hooks, ILogger<ScoreJobApplier> logger)
 {
     /// <summary>Error when a copied file does not match the worker's hash.</summary>
     public const string DamagedFile = "A score file was damaged while it was copied; try again.";
@@ -49,6 +52,22 @@ public sealed class ScoreJobApplier(IWorkerClient worker, IAssetFileStore files,
         var result = job.Result ?? throw new InvalidDataException("The completed job has no result.");
         var facts = Facts(asset, result.Summary, job.Device);
         asset.CompleteScore(await StoreAsync(asset, job.TranscriptionJobId, result.Files, cancellationToken), facts, Now);
+        await RunReadyHooksAsync(asset, cancellationToken);
+    }
+
+    private async Task RunReadyHooksAsync(Asset asset, CancellationToken cancellationToken)
+    {
+        foreach (var hook in hooks)
+        {
+            try
+            {
+                await hook.OnReadyAsync(asset, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                LogHookFailed(logger, asset.Id, exception);
+            }
+        }
     }
 
     /// <summary>The validated facts: the summary, the device, and the piano model credit when the worker gave none (CC BY 4.0).</summary>
@@ -80,4 +99,7 @@ public sealed class ScoreJobApplier(IWorkerClient worker, IAssetFileStore files,
     private static string? FailureReason(Exception exception) => exception is DomainValidationException invalid
         ? $"The score facts are invalid: {invalid.Message}"
         : AssetJobApplier.FailureReason(exception)?.Replace("rendered file", "score file", StringComparison.Ordinal);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Score {AssetId}: a ready hook failed; the score stays ready")]
+    private static partial void LogHookFailed(ILogger logger, Guid assetId, Exception exception);
 }

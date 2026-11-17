@@ -116,14 +116,14 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### backend (tests first)
 
-- [ ] T034 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Sections/SectionRulesTests.cs`: 1..64 sections, ordering, overlap, bounds, min 1 s, label length/trim, instrument only for solo and only channels of the track, id ownership, revision rule; `SectionSnapper` (downbeat, beat, 0.1 s) (FR-002, FR-003, FR-006)
-- [ ] T035 [backend] Implement `Domain/Sections/*` to pass T034
-- [ ] T036 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Setlists/SetlistRulesTests.cs` and `.../Practice/PracticeRulesTests.cs`: setlist name/note/entry limits, mix-track match, duplicates allowed; session rules (12 h, future start, played <= span + 5, sections sum, kinds incl. `none`, percents 50..120); `PracticeSummaryCalculator` (local-day buckets with offsets -840..840, split at local midnight, last 7 days, per-section grouping by id or label+kind, best trainer percent, tempo points per day) (FR-015, FR-025, FR-027)
-- [ ] T037 [backend] Implement `Domain/Setlists/*`, `Domain/Practice/*` to pass T036
-- [ ] T038 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/PracticeFlowPersistenceTests.cs`: migration `AddPracticeFlow` applies on a 1.12.0 database; round trips of every new table; cascades (track delete -> sections, setlist entries, practice sessions; mix delete -> entry `MixId` null, session `MixId` null; asset delete -> score view); mix loop JSON with and without `sectionId` (FR-005, FR-028)
-- [ ] T039 [backend] Implement entities, configurations and the migration to pass T038
-- [ ] T040 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerPracticeClientTests.cs` with the worker delta examples: create/get/delete per job kind, page and file downloads, problem mapping (400/404/409/422), `Health.lanes.practice` parsed
-- [ ] T041 [backend] Implement `Worker/WorkerClient.Practice.cs` and job records to pass T040
+- [x] T034 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Sections/SectionRulesTests.cs`: 1..64 sections, ordering, overlap, bounds, min 1 s, label length/trim, instrument only for solo and only channels of the track, id ownership, revision rule; `SectionSnapper` (downbeat, beat, 0.1 s) (FR-002, FR-003, FR-006)
+- [x] T035 [backend] Implement `Domain/Sections/*` to pass T034
+- [x] T036 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Setlists/SetlistRulesTests.cs` and `.../Practice/PracticeRulesTests.cs`: setlist name/note/entry limits, mix-track match, duplicates allowed; session rules (12 h, future start, played <= span + 5, sections sum, kinds incl. `none`, percents 50..120); `PracticeSummaryCalculator` (local-day buckets with offsets -840..840, split at local midnight, last 7 days, per-section grouping by id or label+kind, best trainer percent, tempo points per day) (FR-015, FR-025, FR-027)
+- [x] T037 [backend] Implement `Domain/Setlists/*`, `Domain/Practice/*` to pass T036
+- [x] T038 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/PracticeFlowPersistenceTests.cs`: migration `AddPracticeFlow` applies on a 1.12.0 database; round trips of every new table; cascades (track delete -> sections, setlist entries, practice sessions; mix delete -> entry `MixId` null, session `MixId` null; asset delete -> score view); mix loop JSON with and without `sectionId` (FR-005, FR-028)
+- [x] T039 [backend] Implement entities, configurations and the migration to pass T038
+- [x] T040 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerPracticeClientTests.cs` with the worker delta examples: create/get/delete per job kind, page and file downloads, problem mapping (400/404/409/422), `Health.lanes.practice` parsed
+- [x] T041 [backend] Implement `Worker/WorkerClient.Practice.cs` and job records to pass T040
 
 ### audio-engine (tests first)
 
@@ -149,13 +149,13 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T051 [US1] [beat-analysis] Implement `analysis/structure/analyzer.py` (`StemsNoveltyAnalyzer`, progress callbacks) to pass T050
 - [ ] T052 [P] [US1] [stem-separation] Failing tests `worker/tests/api/test_section_routes.py`: create/get/delete per the delta; path guard 400 for a non-stem path; 404 missing input; 422 schema errors; completed result shape; progress; analyser errors -> `failed` with the text (FR-001)
 - [ ] T053 [US1] [stem-separation] Implement `jobs/practice_service.py` (section part), `api/practice_routes.py` (section routes), composition and `Health.structure` to pass T052
-- [ ] T054 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/SectionEndpointsTests.cs`: `getSections` (none/queued/ready), `detectSections` (202, 409 `track-not-ready`, `sections-edited`, `detection-running`, 503), the detect trigger after a completed separation (config on/off), `SectionJobApplier` (completed -> new ids, revision + 1; failed -> reason), worker job deleted after applying, re-separation keeps sections; contract tests against the delta (FR-001, FR-007, FR-008)
-- [ ] T055 [US1] [backend] Implement `Api/Sections/{SectionEndpoints,SectionService,SectionJobApplier,SectionDetectTrigger}.cs` to pass T054
+- [x] T054 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/SectionEndpointsTests.cs`: `getSections` (none/queued/ready), `detectSections` (202, 409 `track-not-ready`, `sections-edited`, `detection-running`, 503), the detect trigger after a completed separation (config on/off), `SectionJobApplier` (completed -> new ids, revision + 1; failed -> reason), worker job deleted after applying, re-separation keeps sections; contract tests against the delta (FR-001, FR-007, FR-008)
+- [x] T055 [US1] [backend] Implement `Api/Sections/{SectionEndpoints,SectionService,SectionJobApplier,SectionDetectTrigger}.cs` to pass T054
 - [ ] T056 [P] [US1] [backend] Failing tests `tests/StemStudio.Api.Tests/Mixes/LoopSectionIdTests.cs`: save/load a mix with `loop.sectionId`; unknown id read back as null with the loop kept; 1.12.0 clients without the field unaffected (FR-005)
 - [ ] T057 [US1] [backend] Implement the `LoopRegion.SectionId` mapping to pass T056
 - [ ] T058 [P] [US1] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionLaneTests.cs`: lane renders sections with kind/label/bars and test ids; status texts (detecting, grid uncertain, failed + retry); first open with status `none` calls `detectSections` once; click loops the section (`MixerState` loop + `sectionId`, looping on, position moved into the section when outside); current section marked from positions; previous/next/restart buttons; keyboard (list of buttons, `aria-pressed`); trainer region label shows the section (A-012-3) (FR-004, FR-005, FR-007)
 - [ ] T059 [US1] [frontend] Implement `Components/Practice/SectionLane.razor`, `MixerState.Sections` and the section commands (`mixer.loop.section`, `mixer.section.*`) to pass T058
-- [ ] T060 [P] [US1] [qa] E2E `e2e/tests/sections.spec.ts` (fake stack): sections appear after import (<= 30 s), click loops, N/Shift+N/Backspace, older track triggers detection on mixer open, unreliable-grid note (fixture with `reliable: false`) (US1 scenarios 1-5)
+- [x] T060 [P] [US1] [qa] E2E `e2e/tests/sections.spec.ts` (fake stack): sections appear after import (<= 30 s), click loops, N/Shift+N/Backspace, older track triggers detection on mixer open, unreliable-grid note (fixture with `reliable: false`) (US1 scenarios 1-5)
 - [ ] T061 [US1] [frontend] Help topics `mixer-sections`, glossary `section`, `speed-trainer-region`; tour `practice-section` v1; help tests updated (FR-030)
 
 **Checkpoint**: HO:us1.
@@ -168,18 +168,18 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 - [ ] T065 [US2] [frontend] Implement `Components/Pages/ShortcutSettings.razor`, the Preferences switch and the layout wiring (`registerShortcuts` with the key map; `mixer-keys.js` retired) to pass T064
 - [ ] T066 [P] [US2] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Mixer/MixerCommandsTests.cs`: every mixer command id of data-model 5.2 dispatches to the same `MixerState` action as its control (012 commands via the 012 handlers, A-012-2..4); unknown/reserved ids ignored (FR-019, FR-020)
 - [ ] T067 [US2] [frontend] Implement the command dispatcher to pass T066
-- [ ] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
+- [x] T068 [P] [US2] [qa] E2E `e2e/tests/shortcuts-pedals.spec.ts`: every FR-020 command by keyboard; typing in a text field types; slider keeps arrows; remap with conflict and reset; pedal mode with PageDown/PageUp while a mute button has focus; single-key off; axe-core on the shortcut settings page (US2 scenarios 1-5, SC-006)
 - [ ] T069 [US2] [frontend] Help topics `shortcuts-custom`, `foot-pedals`; tour `hands-free` v1 (FR-030)
 
 **Checkpoint**: HO:us2.
 
 ## Phase 5: User Story 3 - Edit the sections (P2)
 
-- [ ] T070 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/ReplaceSectionsTests.cs`: `replaceSections` 200 with kept and new ids, origin `edited`, revision + 1; 409 `sections-changed`; 422 field errors per rule; detect with/without `overwrite` after edits (FR-006)
-- [ ] T071 [US3] [backend] Implement `replaceSections` to pass T070
+- [x] T070 [P] [US3] [backend] Failing tests `tests/StemStudio.Api.Tests/Sections/ReplaceSectionsTests.cs`: `replaceSections` 200 with kept and new ids, origin `edited`, revision + 1; 409 `sections-changed`; 422 field errors per rule; detect with/without `overwrite` after edits (FR-006)
+- [x] T071 [US3] [backend] Implement `replaceSections` to pass T070
 - [ ] T072 [P] [US3] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/SectionEditorTests.cs`: split at playhead (snapped), merge keeps the first id/kind/label, rename, change kind (instrument select only for solo), move boundary by field and keyboard with the 1 s minimum, delete, add; renumbering unless named; Done saves, Cancel discards; 409 shows the reload prompt; overwrite confirmation for re-detect (Expert); confidence shown at Expert (FR-006, FR-007)
 - [ ] T073 [US3] [frontend] Implement `Components/Practice/SectionEditor.razor` to pass T072
-- [ ] T074 [P] [US3] [qa] E2E `e2e/tests/sections-edit.spec.ts`: split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation (US3 scenarios 1-5)
+- [x] T074 [P] [US3] [qa] E2E `e2e/tests/sections-edit.spec.ts`: split/merge/rename/re-kind/move, reload persists, two-tab conflict, re-detect confirmation (US3 scenarios 1-5)
 - [ ] T075 [US3] [frontend] Help topics `mixer-sections-edit`, `mixer-sections-detection` (FR-030)
 
 **Checkpoint**: HO:us3.
@@ -188,13 +188,13 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T076 [P] [US4] [stem-separation] Failing tests `worker/tests/api/test_score_view_routes.py`: create/get/pages/delete; allow-list accepts `assets/<id>/score.musicxml` and rejects other files; 409 before completion; result shape (FR-014)
 - [ ] T077 [US4] [stem-separation] Implement the score-view part of `jobs/practice_service.py` and routes to pass T076
-- [ ] T078 [P] [US4] [backend] Failing tests `tests/StemStudio.Api.Tests/ScoreFollow/ScoreFollowEndpointsTests.cs`: `listTrackScores` (direct scores and scores from exported audio of the track, not others); view created automatically when a 008 score becomes ready; `createScoreView` idempotent, 409 `not-a-score`/`score-not-ready`, 503; applier stores pages and bars shifted by the range offset (008 range, exported asset range, both); `getScoreViewPage` headers (CSP, nosniff, cache) and 409 before ready; asset delete removes view files (FR-009, FR-014)
-- [ ] T079 [US4] [backend] Implement `Api/ScoreFollow/*` to pass T078
+- [x] T078 [P] [US4] [backend] Failing tests `tests/StemStudio.Api.Tests/ScoreFollow/ScoreFollowEndpointsTests.cs`: `listTrackScores` (direct scores and scores from exported audio of the track, not others); view created automatically when a 008 score becomes ready; `createScoreView` idempotent, 409 `not-a-score`/`score-not-ready`, 503; applier stores pages and bars shifted by the range offset (008 range, exported asset range, both); `getScoreViewPage` headers (CSP, nosniff, cache) and 409 before ready; asset delete removes view files (FR-009, FR-014)
+- [x] T079 [US4] [backend] Implement `Api/ScoreFollow/*` to pass T078
 - [ ] T080 [P] [US4] [audio-engine] Failing tests `src/audio-engine/tests/score-follow.test.ts`: per data-model 4 and the 2.4.0 delta - bar changes at boundaries on the heard clock, loop wrap jump, seek binary search, speed 50/75/100/120 % (A-012-1), none before the first/after the last bar, highlight percentages, host attributes, scroll once per system change, manual-scroll pause (fake timers), reduced motion, validation errors keep the old follower, detach cleanup, frame cost counter (FR-010, FR-011, SC-003, SC-004)
 - [ ] T081 [US4] [audio-engine] Implement `src/audio-engine/src/score-follow/{follower,cursor,dom,scroll}.ts` and the engine methods to pass T080
 - [ ] T082 [P] [US4] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/ScorePanelTests.cs`: list and select, empty state with link to 008, preparing state polls, pages as `<img>` in `score-page-<n>`, attach/detach on select and track change, follow toggle, transpose note while transpose != 0, manual-tempo note, click a bar seeks, Shift+click sets a bar loop (Advanced), "Read bar" announcement (FR-009..FR-013)
 - [ ] T083 [US4] [frontend] Implement `Components/Practice/ScorePanel.razor` and `mixer.score.*` commands to pass T082
-- [ ] T084 [P] [US4] [qa] E2E `e2e/tests/score-follow.spec.ts`: one score per family (vocals, bass, guitar, piano, drums; fake transcriber + real view) - bar number at known times, loop wrap, 50 % and 120 % speed, range score, manual scroll pause; Chromium trace for SC-004 (US4 scenarios 1-6, FR-033)
+- [x] T084 [P] [US4] [qa] E2E `e2e/tests/score-follow.spec.ts`: one score per family (vocals, bass, guitar, piano, drums; fake transcriber + real view) - bar number at known times, loop wrap, 50 % and 120 % speed, range score, manual scroll pause; Chromium trace for SC-004 (US4 scenarios 1-6, FR-033)
 - [ ] T085 [US4] [frontend] Help topic `mixer-score-follow` (FR-030)
 
 **Checkpoint**: HO:us4.
@@ -203,24 +203,24 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 - [ ] T086 [P] [US5] [stem-separation] Failing tests `worker/tests/api/test_setlist_document_routes.py`: create/get/file/delete; 422 for >100 songs or long lyrics lines; PDF media type (FR-018)
 - [ ] T087 [US5] [stem-separation] Implement the setlist part of `jobs/practice_service.py` and routes to pass T086
-- [ ] T088 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistEndpointsTests.cs`: CRUD, `replaceSetlistEntries` (kept ids, order, field errors `track-not-found`, `mix-track-mismatch`), total duration, `removedEntries` after a track delete and its acknowledgement, mix delete -> `mixId` null (FR-015, FR-016)
-- [ ] T089 [US5] [backend] Implement `Api/Setlists/{SetlistEndpoints,SetlistService}.cs` to pass T088
-- [ ] T090 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistPdfTests.cs`: `SetlistContentBuilder` (facts, sections, lyrics lines, 10,000-character cut with `shortened`), options from the query, waits for the worker job with polling and timeout (fake time) -> 504 `document-timeout`, 409 `setlist-empty`, 503, file name sanitised, worker job deleted afterwards (FR-018)
-- [ ] T091 [US5] [backend] Implement `Api/Setlists/{SetlistPdfService,SetlistContentBuilder}.cs` to pass T090
+- [x] T088 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistEndpointsTests.cs`: CRUD, `replaceSetlistEntries` (kept ids, order, field errors `track-not-found`, `mix-track-mismatch`), total duration, `removedEntries` after a track delete and its acknowledgement, mix delete -> `mixId` null (FR-015, FR-016)
+- [x] T089 [US5] [backend] Implement `Api/Setlists/{SetlistEndpoints,SetlistService}.cs` to pass T088
+- [x] T090 [P] [US5] [backend] Failing tests `tests/StemStudio.Api.Tests/Setlists/SetlistPdfTests.cs`: `SetlistContentBuilder` (facts, sections, lyrics lines, 10,000-character cut with `shortened`), options from the query, waits for the worker job with polling and timeout (fake time) -> 504 `document-timeout`, 409 `setlist-empty`, 503, file name sanitised, worker job deleted afterwards (FR-018)
+- [x] T091 [US5] [backend] Implement `Api/Setlists/{SetlistPdfService,SetlistContentBuilder}.cs` to pass T090
 - [ ] T092 [P] [US5] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Pages/SetlistsTests.cs` and `.../Practice/SetlistBarTests.cs`: list/create/delete; editor add (track picker with mix), reorder by drag and by up/down buttons, note editing (Advanced), remove, removed-entries note, PDF dialog options (Advanced) and default download (Beginner); play mode opens the first entry's mixer with its mix, setlist bar position and note, next/previous with the unsaved-changes guard, `setlist.next/previous` commands, exit; "Add to setlist" on track and mix (FR-015..FR-018)
 - [ ] T093 [US5] [frontend] Implement `Components/Pages/{Setlists,SetlistEditor}.razor`, `Components/Practice/SetlistBar.razor`, rail link and actions to pass T092
-- [ ] T094 [P] [US5] [qa] E2E `e2e/tests/setlists.spec.ts`: create with 3 songs, reorder by keyboard, play through with next/previous (button, Ctrl/Cmd+Right, pedal preset "next-previous-song"), PDF download and pypdf text check in the test (order, notes, sections, lyrics), track delete note; axe-core on both pages (US5 scenarios 1-5, SC-008)
+- [x] T094 [P] [US5] [qa] E2E `e2e/tests/setlists.spec.ts`: create with 3 songs, reorder by keyboard, play through with next/previous (button, Ctrl/Cmd+Right, pedal preset "next-previous-song"), PDF download and pypdf text check in the test (order, notes, sections, lyrics), track delete note; axe-core on both pages (US5 scenarios 1-5, SC-008)
 - [ ] T095 [US5] [frontend] Help topics `setlists`, `setlist-play`, `setlist-pdf` (FR-030)
 
 **Checkpoint**: HO:us5.
 
 ## Phase 8: User Story 6 - Practice log and progress (P2)
 
-- [ ] T096 [P] [US6] [backend] Failing tests `tests/StemStudio.Api.Tests/Practice/PracticeEndpointsTests.cs`: settings get/put; upsert create/replace with sections, 409 `practice-log-off`, 404 unknown track, 422 rules; list with paging; delete per track and all (`deleted` count); delete one; summary and overview with offsets; no outgoing HTTP call from any practice endpoint (handler spy) (FR-025..FR-028, SC-009)
-- [ ] T097 [US6] [backend] Implement `Api/Practice/{PracticeEndpoints,PracticeService}.cs` to pass T096
+- [x] T096 [P] [US6] [backend] Failing tests `tests/StemStudio.Api.Tests/Practice/PracticeEndpointsTests.cs`: settings get/put; upsert create/replace with sections, 409 `practice-log-off`, 404 unknown track, 422 rules; list with paging; delete per track and all (`deleted` count); delete one; summary and overview with offsets; no outgoing HTTP call from any practice endpoint (handler spy) (FR-025..FR-028, SC-009)
+- [x] T097 [US6] [backend] Implement `Api/Practice/{PracticeEndpoints,PracticeService}.cs` to pass T096
 - [ ] T098 [P] [US6] [frontend] Failing bUnit tests `tests/StemStudio.Web.Tests/Components/Practice/PracticePanelTests.cs` and `.../Pages/PracticePageTests.cs`: today/week/total, per-section table (Advanced), day chart and tempo chart with table toggles and text summaries, off note with turn-on, first-use notice (ok / turn off), delete with confirmation; Practice page overview, enabled switch, delete all, sessions list (Expert); recorder wired to the mixer (state, positions, `OnLoopPass`, trainer state) (FR-025, FR-027, FR-028)
 - [ ] T099 [US6] [frontend] Implement `Components/Practice/{PracticePanel,PracticeCharts}.razor`, `Components/Pages/PracticePage.razor`, rail link and recorder wiring to pass T098
-- [ ] T100 [P] [US6] [qa] E2E `e2e/tests/practice-log.spec.ts`: play with pauses -> totals; section loop with trainer passes at rising speed -> tempo reached; switch off -> nothing recorded (409 in the network log); delete -> zeros; the whole run's request log contains only the app's own origin (US6 scenarios 1-5, SC-009)
+- [x] T100 [P] [US6] [qa] E2E `e2e/tests/practice-log.spec.ts`: play with pauses -> totals; section loop with trainer passes at rising speed -> tempo reached; switch off -> nothing recorded (409 in the network log); delete -> zeros; the whole run's request log contains only the app's own origin (US6 scenarios 1-5, SC-009)
 - [ ] T101 [US6] [frontend] Help topics `mixer-practice-log`, `practice-privacy` (FR-030)
 
 **Checkpoint**: HO:us6.
