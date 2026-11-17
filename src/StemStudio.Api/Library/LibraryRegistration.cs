@@ -18,11 +18,13 @@ public static class LibraryRegistration
         services.AddSingleton<LibraryFilingBackfill>();
         services.AddSingleton<ILibraryFilingTrigger>(provider => provider.GetRequiredService<LibraryFilingBackfill>());
         services.AddHostedService(provider => provider.GetRequiredService<LibraryFilingBackfill>());
+        services.AddSingleton<LibraryIndex>();
+        services.AddScoped<LibraryBrowseService>();
         return services;
     }
 
     /// <summary>Maps the 022 endpoints (tag <c>library</c>).</summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The same route builder.</returns>
-    public static IEndpointRouteBuilder MapLibraryEndpoints(this IEndpointRouteBuilder app) => app;
+    public static IEndpointRouteBuilder MapLibraryEndpoints(this IEndpointRouteBuilder app) => app.MapLibraryFolderEndpoints();
 }
