@@ -38,7 +38,7 @@ Branch `022-023-round` (worktree `.claude/worktrees/r22`). Not pushed, not merge
   valid (13 + 2 warnings). ruff clean on both merge scripts.
 - `tools/quality/run_all.py`: 0 errors (1093 warnings, pre-existing kinds) -> exit 0.
 
-## Decisions taken (recorded in CTO-DECISIONS)
+## Decisions taken (first: CTO-DECISIONS; the other two: lane plan, for the CTO to record)
 
 - 023 merge onto 022 by a block-level three-way merge script instead of a hand merge (repeatable, CI-checkable).
 - 022 T081/T082 and the `AgentPageContexts` part of 022 T021 move to frontend-023 (single owner of `Web/Agent/**`).
