@@ -53,6 +53,13 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
     /// <returns>A task.</returns>
     public async Task OfferAsync(SuggestionDraft draft, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(draft);
+        if (!AnchorHolds(draft.Anchor))
+        {
+            Assist.CountDiscarded(new DiscardedCounts { InvalidAnchor = 1 });
+            return;
+        }
+
         if (draft.Source == SuggestionSource.Model && (VerbatimGuard.IsVerbatim(draft.Proposal, run.Corpus) || VerbatimGuard.IsVerbatim(draft.Explanation, run.Corpus)))
         {
             Assist.CountDiscarded(new DiscardedCounts { Verbatim = 1 });
@@ -155,12 +162,31 @@ public sealed class AssistSink(AssistRunContext run) : ILyricAssistSink
 
     private SuggestionDraft Draft(AssistantSuggestion suggestion) => new()
     {
-        Type = LyricAssistMapper.Map<SuggestionType>(suggestion.Type), Severity = LyricAssistMapper.Map<SuggestionSeverity>(suggestion.Severity),
-        Anchor = LyricAssistMapper.ToDomain(suggestion.Anchor), Operation = LyricAssistMapper.Map<SuggestionOperation>(suggestion.Operation),
-        Proposal = suggestion.Proposal, GroupId = suggestion.GroupId, Explanation = suggestion.Explanation, Source = SuggestionSource.Model, Model = Assist.Model,
-        SyllablesBefore = suggestion.SyllablesBefore, SyllablesAfter = suggestion.SyllablesAfter,
+        Type = LyricAssistMapper.Map<SuggestionType>(suggestion.Type),
+        Severity = LyricAssistMapper.Map<SuggestionSeverity>(suggestion.Severity),
+        Anchor = LyricAssistMapper.ToDomain(suggestion.Anchor),
+        Operation = LyricAssistMapper.Map<SuggestionOperation>(suggestion.Operation),
+        Proposal = suggestion.Proposal,
+        GroupId = suggestion.GroupId,
+        Explanation = suggestion.Explanation,
+        Source = SuggestionSource.Model,
+        Model = Assist.Model,
+        SyllablesBefore = suggestion.SyllablesBefore,
+        SyllablesAfter = suggestion.SyllablesAfter,
         RhymeWith = suggestion.RhymeWith is { } rhyme ? new RhymePartner(rhyme.Line, rhyme.Word) : null,
     };
+
+    // Defence in depth after the assistant's validation: model output is untrusted, so the anchor must hold in the checked text.
+    private bool AnchorHolds(Anchor anchor)
+    {
+        if (anchor.IsTitle)
+        {
+            return true;
+        }
+
+        var lines = SheetText.Lines(run.Filter.Text);
+        return anchor.Line >= 1 && anchor.Line <= lines.Length && anchor.MatchesIn(lines[anchor.Line - 1]);
+    }
 
     private int Total()
     {

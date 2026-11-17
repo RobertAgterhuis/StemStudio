@@ -77,8 +77,11 @@ public sealed record DiscardedCounts
         ArgumentNullException.ThrowIfNull(other);
         return new DiscardedCounts
         {
-            InvalidAnchor = InvalidAnchor + other.InvalidAnchor, InvalidSchema = InvalidSchema + other.InvalidSchema,
-            FailedVerification = FailedVerification + other.FailedVerification, Filtered = Filtered + other.Filtered, Verbatim = Verbatim + other.Verbatim,
+            InvalidAnchor = InvalidAnchor + other.InvalidAnchor,
+            InvalidSchema = InvalidSchema + other.InvalidSchema,
+            FailedVerification = FailedVerification + other.FailedVerification,
+            Filtered = Filtered + other.Filtered,
+            Verbatim = Verbatim + other.Verbatim,
         };
     }
 }
@@ -233,10 +236,21 @@ public sealed class AssistRun
         ArgumentNullException.ThrowIfNull(request);
         return new AssistRun
         {
-            Id = id, SheetId = sheet.Id, SheetRevision = sheet.Revision, Kind = request.Kind, Categories = request.Categories,
-            LineFrom = request.LineFrom, LineTo = request.LineTo, Count = request.Count, Instruction = request.Instruction,
-            Sensitivity = sheet.Sensitivity, Language = AssistEnumExtensions.AssistLanguageOf(sheet.Language) ?? AssistLanguage.English,
-            Status = AssistStatus.Queued, Origin = request.Origin, AgentRunId = request.AgentRunId, CreatedAt = nowUtc,
+            Id = id,
+            SheetId = sheet.Id,
+            SheetRevision = sheet.Revision,
+            Kind = request.Kind,
+            Categories = request.Categories,
+            LineFrom = request.LineFrom,
+            LineTo = request.LineTo,
+            Count = request.Count,
+            Instruction = request.Instruction,
+            Sensitivity = sheet.Sensitivity,
+            Language = AssistEnumExtensions.AssistLanguageOf(sheet.Language) ?? AssistLanguage.English,
+            Status = AssistStatus.Queued,
+            Origin = request.Origin,
+            AgentRunId = request.AgentRunId,
+            CreatedAt = nowUtc,
         };
     }
 
@@ -253,7 +267,7 @@ public sealed class AssistRun
     /// <param name="usingFallback">Fallback in use.</param>
     /// <param name="estimatedSeconds">Estimate.</param>
     public void UseModel(string backend, string model, bool usingFallback, double? estimatedSeconds) =>
-        (Backend, Model, UsingFallback, EstimatedSeconds) = (backend, model, usingFallback, estimatedSeconds);
+        (Backend, Model, UsingFallback, EstimatedSeconds) = (Domain.Text.TrimToLength(backend, 16), Domain.Text.TrimToLength(model, 100), usingFallback, estimatedSeconds);
 
     /// <summary>Counts a finished block.</summary>
     /// <param name="skipped">True when skipped.</param>
