@@ -135,9 +135,8 @@ public sealed class PracticeRecorder
             return;
         }
 
-        var section = loopSectionId is { } id ? _sections.FirstOrDefault(s => s.Id == id) : SectionNavigator.Current(_sections, (pass.Start + pass.End) / 2);
-        var full = trainerOn && section is not null && loopSectionId is not null && Covers(pass, section);
-        _session.AddPass(section, full ? pass.SpeedPercent : null);
+        var section = LoopSection(pass, loopSectionId);
+        _session.AddPass(section, trainerOn && loopSectionId is not null && Covers(pass, section) ? pass.SpeedPercent : null);
     }
 
     /// <summary>Ends the session (page leave, track change) with a final flush.</summary>
@@ -158,8 +157,12 @@ public sealed class PracticeRecorder
         State = State == PracticeRecorderState.Off ? State : PracticeRecorderState.Closed;
     }
 
-    private static bool Covers(LoopPassInfo pass, SectionDto section) =>
-        Math.Abs(pass.Start - section.StartSeconds) <= PassTolerance && Math.Abs(pass.End - section.EndSeconds) <= PassTolerance;
+    private static bool Covers(LoopPassInfo pass, SectionDto? section) =>
+        section is not null && Math.Abs(pass.Start - section.StartSeconds) <= PassTolerance && Math.Abs(pass.End - section.EndSeconds) <= PassTolerance;
+
+    private SectionDto? LoopSection(LoopPassInfo pass, Guid? loopSectionId) => loopSectionId is { } id
+        ? _sections.FirstOrDefault(s => s.Id == id)
+        : SectionNavigator.Current(_sections, (pass.Start + pass.End) / 2);
 
     private void Run(double position)
     {

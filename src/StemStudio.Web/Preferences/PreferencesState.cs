@@ -1,7 +1,7 @@
 using Microsoft.JSInterop;
-using StemStudio.Web.Practice;
 using StemStudio.Web.Experience;
 using StemStudio.Web.Interop;
+using StemStudio.Web.Practice;
 
 namespace StemStudio.Web.Preferences;
 

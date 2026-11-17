@@ -1,10 +1,10 @@
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using StemStudio.Web.Audio;
 using StemStudio.Web.Interop;
 using StemStudio.Web.Mixer;
 using StemStudio.Web.Practice;
-using Microsoft.Extensions.DependencyInjection;
 using MixerPage = StemStudio.Web.Components.Mixer.Mixer;
 
 namespace StemStudio.Web.Tests.Mixer;
