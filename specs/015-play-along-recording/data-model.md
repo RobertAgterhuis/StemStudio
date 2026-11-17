@@ -97,7 +97,7 @@ unique `AssetId`.
 | `Provenance.origin` | `recording` (new `AssetOrigin` value) |
 | `Provenance.trackId/trackTitle/trackArtist` | of the take's track |
 | `Provenance.contents` | `"Take <n> - <Part label> (recording)"` |
-| `Provenance.recipe` | `RecordingRecipe { kind: "recording", takeId, captureFile: "capture.wav" }` (new member of the 008 `oneOf`) |
+| `Provenance.recording` | `RecordingRecipe { kind: "recording", takeId, captureFile: "capture.wav" }` (optional member like 1.8.0 `generation`; `recipe` is null; DELTA.md P0-1) |
 | `Files` | `[{ role: audio, fileName: "audio.flac", contentType: "audio/flac" }]` when ready |
 | `Audio` | `{ format: flac, bitDepth: 24, sampleRate: 44100, channels: 2, durationSeconds = (StartSample + LengthSamples) / 44100, peakDbfs, appliedGainDb: 0 }` |
 
@@ -147,13 +147,14 @@ Upsert by `DeviceLabel` (`PUT /api/recording/calibrations`); delete by id.
 
 `TakeChannelSettings { takeId: GUID, volume: 0..1 (default 1), pan: -1..1 (default 0), mute: bool,
 solo: bool }`. On load, a `takeId` that no longer exists (or belongs to another track) is
-ignored with no error (the mixer shows no take). `MixSettings` and `MixSettingsInput` (007) gain
-the optional `take` field; duplicating a mix copies it.
+ignored with no error (the mixer shows no take). `MixSettings` (007; request and response) gains
+the optional `take` field (absent when null); duplicating a mix copies it.
 
 ### 2.7 Export additions (007 planner)
 
-- `ChannelId` pattern adds the literal `take`:
-  `^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$`.
+- The export channel lists use the new `ExportChannelId` (`ChannelId` or the literal `take`):
+  `^(take|(vocals|drums|bass|guitar|piano|other)(\.[a-z][a-z-]{0,31})?)$`; `ChannelId` itself is
+  unchanged (DELTA.md P0-2).
 - `CreateAudioExportRequest.takeId: uuid | null`.
 - Raw mode: `channels: ["take"]` + `takeId` -> one input `assets/<assetId>/audio.flac` (gain 1,
   pan 0), `range` default = `[StartSample, StartSample + LengthSamples) / 44100` (whole take;

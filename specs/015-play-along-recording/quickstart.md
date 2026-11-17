@@ -5,6 +5,11 @@ README (`docker compose up`, web on http://localhost:8080, API on http://localho
 completed track, Chrome or Edge, headphones; for exact timing a cable from an output of your
 audio interface to one of its inputs.
 
+Open StemStudio **on the computer it runs on** (http://localhost:8080 or http://127.0.0.1:8080).
+From another device over the network (http://<LAN address>:8080) the browser offers no microphone
+and no AudioWorklet (not a secure context); the panel then shows `rec-unavailable` with
+`data-reason="insecure"` (Phase 0 measurement, audio-engine.md "Browser constraints").
+
 ## 1. First recording (Beginner)
 
 1. Open a track's mixer and click **Record** in the toolbar (`mixer-record-panel-toggle`).
