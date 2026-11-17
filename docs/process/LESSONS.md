@@ -19,6 +19,8 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   (`wwwroot/js/dock-inset.js`, `scroll-padding-bottom`). (012: two axe target-size failures)
 - `RadzenButton` ignores clicks while its previous click handler is still running: do not await the
   audio engine inside rapid-click handlers. (012: lost +1 / +5 % clicks)
+- A new navigation item: check the rail at 720 px height and at 320 px width (013: Help and
+  Settings were cut off).
 
 ## backend
 
@@ -35,6 +37,7 @@ section for your role before you start. The orchestrator appends 3-5 lines after
   still show the previous finished job. (013: backup E2E race)
 - Lanes do not start E2E stacks; write specs against contracts and test ids, typecheck and lint
   them. The integration runs E2E.
+- The default `npm test` includes the feature specs: plan about 1.2 h for it at integration. (013)
 
 ## devops
 
@@ -45,3 +48,5 @@ section for your role before you start. The orchestrator appends 3-5 lines after
 
 - Rebuild generated docs (manual PDFs, manifest) as the very last step and run the CI checks
   locally afterwards; an edit to STATUS after the PDF build turned `main` red. (012)
+- Run heavy suites one after the other; `test-all` in parallel with E2E gave timing flakes. (013)
+- Make visual baselines only in the environment of the CI visual job. (013)
