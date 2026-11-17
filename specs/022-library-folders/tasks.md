@@ -150,8 +150,8 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ## Phase 5: User Story 4 - Put items in the right folder (P2)
 
-- [ ] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
-- [ ] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
+- [x] T072 [P] [US4] [backend] Tests (red) `LibraryInfoServiceTests` + endpoint tests: GET/PUT/DELETE for tracks and items, per-level sources and automatic names, `movedItems`, item-source levels kept on track edits, a later lookup never overrides user names, 400 field messages, 404, 409 `not-fileable` for recordings (FR-009, FR-031..FR-033)
+- [x] T073 [US4] [backend] `LibraryInfoService.cs`, library-info endpoints (green)
 - [ ] T074 [P] [US4] [frontend] Tests (red) `LibraryInfoDialog` (track and item scope): fields with "Automatic" boxes showing the automatic name and its source, validation messages, reset, save follows to the new song folder, `library-info-lookup` link to the 005 correction, rendered at every level including Beginner (owner decision 2026-11-16) (FR-031..FR-033)
 - [ ] T075 [US4] [frontend] `LibraryInfoDialog`, `library-info-edit`, `asset-library-info-<id>` (green)
 - [ ] T076 [P] [US4] [qa] E2E `e2e/tests/library-info.spec.ts`: edit track album -> all items move and old folders vanish; edit one item; Automatic restores; fake lookup found later moves automatic items only (US4 scenarios 1-7)

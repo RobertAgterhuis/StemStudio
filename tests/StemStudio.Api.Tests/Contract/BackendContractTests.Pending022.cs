@@ -8,7 +8,5 @@ public sealed partial class BackendContractTests
     private static readonly string[] PendingLibraryOperations =
     [
         "searchLibrary",
-        "getTrackLibraryInfo", "setTrackLibraryInfo", "resetTrackLibraryInfo",
-        "getAssetLibraryInfo", "setAssetLibraryInfo", "resetAssetLibraryInfo",
     ];
 }
