@@ -59,6 +59,25 @@ public sealed class TakeItem
     /// <summary>Song sample of the first sample.</summary>
     public long StartSample => Take?.StartSample ?? Capture!.StartSample;
 
+    /// <summary>The display name (<c>Take n</c> once saved; "New take" before).</summary>
+    public string Name => Take?.Name ?? "New take";
+
+    /// <summary>The recorded part.</summary>
+    public RecordingPartDto Part => Take?.Part ?? Upload!.Part;
+
+    /// <summary>Length in samples.</summary>
+    public long LengthSamples => Take?.LengthSamples ?? Capture!.LengthSamples;
+
+    /// <summary>Loop pass, or null.</summary>
+    public int? PassIndex => Take?.PassIndex ?? Capture?.PassIndex;
+
+    /// <summary>True for a partial last pass.</summary>
+    public bool Partial => Take?.Partial ?? Capture!.Partial;
+
+    /// <summary>Song range, e.g. <c>1:00.0 - 1:08.0</c> (rec-take-range).</summary>
+    public string Range =>
+        $"{RecordingText.Elapsed(StartSample / (double)RecordingLimits.SampleRate)} - {RecordingText.Elapsed((StartSample + LengthSamples) / (double)RecordingLimits.SampleRate)}";
+
     /// <summary>A new local capture.</summary>
     /// <param name="capture">The capture.</param>
     /// <param name="upload">Its upload metadata.</param>
