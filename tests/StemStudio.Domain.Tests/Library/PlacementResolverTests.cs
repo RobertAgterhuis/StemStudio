@@ -234,4 +234,44 @@ public sealed class PlacementResolverTests
         Should.Throw<ArgumentNullException>(() => PlacementResolver.Automatic(null!));
         Should.Throw<ArgumentNullException>(() => TrackFacts.From(null!));
     }
+    private const string Sha = "28c19d35e0b1a4f6c7d8e9fa0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c";
+
+    private static TrackFacts Upload(string? lookupTitle, string title = "My demo", string? uploadFileName = Sha + ".mp3") =>
+        new(title, null, new TrackMetadata { Status = MetadataStatus.NotFound, LookupTitle = lookupTitle }, null, uploadFileName);
+
+    [Theory]
+    [InlineData(Sha)]
+    [InlineData(Sha + ".mp3")]
+    public void HashedLookupTitle_IsIgnoredForTheSongFolder(string lookupTitle)
+    {
+        var placement = Resolve(new PlacementInput { Provenance = Provenance(TrackId), Track = Upload(lookupTitle) });
+
+        Level(placement.Song).ShouldBe(("My demo", PlacementSource.Import));
+    }
+
+    [Fact]
+    public void LookupTitleEqualToTheStoredFileStem_IsIgnored()
+    {
+        var placement = Resolve(new PlacementInput { Provenance = Provenance(TrackId), Track = Upload("stored-name", uploadFileName: "stored-name.wav") });
+
+        Level(placement.Song).ShouldBe(("My demo", PlacementSource.Import));
+    }
+
+    [Theory]
+    [InlineData("Enter Sandman")]
+    [InlineData("deadbeef")]
+    public void RealLookupTitle_IsKept(string lookupTitle)
+    {
+        var placement = Resolve(new PlacementInput { Provenance = Provenance(TrackId), Track = Upload(lookupTitle) });
+
+        Level(placement.Song).ShouldBe((lookupTitle, PlacementSource.Import));
+    }
+
+    [Fact]
+    public void TrackFactsFrom_CarriesTheStoredUploadName()
+    {
+        var track = Track.FromUpload(TrackId, SourceKey.ForUpload(Sha), new UploadedFile("My demo.mp3", Sha + ".mp3"), new DateTime(2026, 11, 17, 0, 0, 0, DateTimeKind.Utc));
+
+        TrackFacts.From(track).UploadFileName.ShouldBe(Sha + ".mp3");
+    }
 }

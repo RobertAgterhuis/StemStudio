@@ -8,15 +8,20 @@ namespace StemStudio.Domain.Library;
 /// <param name="Artist">Track artist (import).</param>
 /// <param name="Metadata">Band info (005): lookup names and the match.</param>
 /// <param name="ArtistMbid">Matched MusicBrainz artist id.</param>
-public sealed record TrackFacts(string Title, string? Artist, TrackMetadata Metadata, Guid? ArtistMbid)
+/// <param name="UploadFileName">Stored upload file name (<c>&lt;sha256&gt;&lt;ext&gt;</c>), or null when not an upload.</param>
+public sealed record TrackFacts(string Title, string? Artist, TrackMetadata Metadata, Guid? ArtistMbid, string? UploadFileName = null)
 {
+    /// <summary>The lookup title for filing: null when it is the stored (hashed) upload name (<see cref="StoredUploadName"/>),
+    /// so a library from before the 404c8031 fix does not get hash-named song folders.</summary>
+    public string? LookupTitle => StoredUploadName.IsStoredName(Metadata.LookupTitle, UploadFileName) ? null : Metadata.LookupTitle;
+
     /// <summary>The facts of a track.</summary>
     /// <param name="track">The track.</param>
     /// <returns>The facts.</returns>
     public static TrackFacts From(Track track)
     {
         ArgumentNullException.ThrowIfNull(track);
-        return new TrackFacts(track.Title, track.Artist, track.Metadata, track.ArtistId);
+        return new TrackFacts(track.Title, track.Artist, track.Metadata, track.ArtistId, track.UploadFileName);
     }
 }
 

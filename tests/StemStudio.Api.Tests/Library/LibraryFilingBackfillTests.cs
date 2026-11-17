@@ -4,6 +4,7 @@ using StemStudio.Api.LibraryCare.Gate;
 using StemStudio.Api.Tests.TestSupport;
 using StemStudio.Domain.Assets;
 using StemStudio.Domain.Library;
+using StemStudio.Domain.Tracks;
 using StemStudio.Persistence.Repositories;
 using static StemStudio.Api.Tests.Library.LibraryTestData;
 
@@ -86,5 +87,20 @@ public sealed class LibraryFilingBackfillTests : IDisposable
 
         (await run).ShouldBe(3);
         Backfill.Pending.ShouldBe(0);
+    }
+    [Fact]
+    public async Task Run_FilesAPre022UploadWithAHashedLookupTitleUnderItsOwnTitle()
+    {
+        const string sha = "28c19d35e0b1a4f6c7d8e9fa0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c";
+        var track = Track.FromUpload(Guid.NewGuid(), SourceKey.ForUpload(sha), new UploadedFile("My demo.mp3", sha + ".mp3"), T0);
+        track.ScheduleLookup(new LookupQuery(sha, null), T0);
+        await _factory.SeedAsync(track);
+        var item = Asset.Create(Guid.NewGuid(), "drums", ExportProvenance(track.Id, title: sha, artist: null), T0);
+        await _factory.AddUnfiledAsync(item);
+
+        (await Backfill.RunOnceAsync(Ct)).ShouldBe(1);
+
+        var filed = await _factory.FindAssetAsync(item.Id);
+        Level(filed!.Placement!.Song).ShouldBe(("My demo", PlacementSource.Import));
     }
 }
