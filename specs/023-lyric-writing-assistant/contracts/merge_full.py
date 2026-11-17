@@ -43,8 +43,16 @@ LABEL = "1.23.0"
 SECTIONS = ("parameters", "headers", "schemas", "responses", "examples")
 # Base schemas one side extends (023 changelog; 022 `Asset.placement`): lists (`enum`, `required`) may
 # only grow (old values kept in order) and descriptions may be re-worded; nothing else may change.
-EXTENDED = {"LyricsSheet", "LyricsInput", "LyricsSnapshot", "PageContext", "DecisionReason", "JobPhase", "Asset"}
-OLD_BASE = re.compile(r"Base: 1\.11\.0 \(012\).*?section 5\)\.", re.S)
+EXTENDED = {
+    "LyricsSheet",
+    "LyricsInput",
+    "LyricsSnapshot",
+    "PageContext",
+    "DecisionReason",
+    "JobPhase",
+    "Asset",
+}
+OLD_BASE = re.compile(r"Base: 1\.11\.0 \(012\).*?section 5\)\.", re.DOTALL)
 NEW_BASE = (
     "Base: 1.22.0 (022 = 1.12.0 of 013 + 022), re-based at the 022+023 round start with\n"
     "      `merge_full.py` (023 DELTA.md section 5)."
@@ -79,7 +87,10 @@ def blocks(lines: list[str], header: str, pattern: str) -> dict[str, list[str]]:
 
 
 def merge_section(
-    where: str, base: dict[str, list[str]], ours: dict[str, list[str]], theirs: dict[str, list[str]]
+    where: str,
+    base: dict[str, list[str]],
+    ours: dict[str, list[str]],
+    theirs: dict[str, list[str]],
 ) -> list[str]:
     """The merged blocks of one section (rules 1 and 2)."""
     removed = set(base) - set(theirs)
@@ -103,7 +114,13 @@ def merge_section(
 def paragraph(base: list[str], theirs: list[str]) -> list[str]:
     """023's changelog paragraph: the info lines 023 inserted before ``license``."""
     at = theirs.index("  license:")
-    first = next(i for i, (a, b) in enumerate(zip(base, theirs)) if a != b and not a.startswith("  version") and not a.startswith("  x-stemstudio"))
+    first = next(
+        i
+        for i, (a, b) in enumerate(zip(base, theirs))
+        if a != b
+        and not a.startswith("  version")
+        and not a.startswith("  x-stemstudio")
+    )
     text = "\n".join(theirs[first:at])
     return OLD_BASE.sub(NEW_BASE, text).split("\n")
 
@@ -132,21 +149,38 @@ def merge(base_text: str, ours_text: str, theirs_text: str) -> str:
     """The merged document text."""
     base, ours, theirs = (t.split("\n") for t in (base_text, ours_text, theirs_text))
     for header in ("openapi: 3.1.0", "servers:"):
-        parts = [lines[slice(*section_bounds(lines, header))] for lines in (base, ours, theirs)]
+        parts = [
+            lines[slice(*section_bounds(lines, header))]
+            for lines in (base, ours, theirs)
+        ]
         if not parts[0] == parts[1] == parts[2]:
             raise SystemExit(f"{header} differs")
-    info = [lines[slice(*section_bounds(lines, "info:"))] for lines in (base, ours, theirs)]
+    info = [
+        lines[slice(*section_bounds(lines, "info:"))] for lines in (base, ours, theirs)
+    ]
     out = list(ours)
     start, end = section_bounds(out, "info:")
     out[start:end] = merged_info(info[1], paragraph(info[0], info[2]))
     tag = r"^  - name: (\S+)"
-    out = replace(out, "tags:", merge_section("tags", *(blocks(x, "tags:", tag) for x in (base, out, theirs))))
+    out = replace(
+        out,
+        "tags:",
+        merge_section("tags", *(blocks(x, "tags:", tag) for x in (base, out, theirs))),
+    )
     path = r"^  ([^ #][^:]*):"
-    out = replace(out, "paths:", merge_section("paths", *(blocks(x, "paths:", path) for x in (base, out, theirs))))
+    out = replace(
+        out,
+        "paths:",
+        merge_section(
+            "paths", *(blocks(x, "paths:", path) for x in (base, out, theirs))
+        ),
+    )
     child = r"^    ([^ #][^:]*):"
     for section in SECTIONS:
         header = f"  {section}:"
-        body = merge_section(section, *(blocks(x, header, child) for x in (base, out, theirs)))
+        body = merge_section(
+            section, *(blocks(x, header, child) for x in (base, out, theirs))
+        )
         out = replace(out, header, body)
     return "\n".join(out)
 
@@ -161,7 +195,10 @@ def grows(old: Any, new: Any) -> bool:
 def extends(old: Any, new: Any) -> bool:
     """``grows`` for the ``EXTENDED`` schemas: lists may gain values, descriptions may change."""
     if isinstance(old, dict) and isinstance(new, dict):
-        return all(key == "description" or (key in new and extends(value, new[key])) for key, value in old.items())
+        return all(
+            key == "description" or (key in new and extends(value, new[key]))
+            for key, value in old.items()
+        )
     if isinstance(old, list) and isinstance(new, list):
         rest = iter(new)
         return all(any(item == other for other in rest) for item in old)
@@ -170,7 +207,11 @@ def extends(old: Any, new: Any) -> bool:
 
 def lost(older: dict[str, Any], newer: dict[str, Any]) -> list[str]:
     """Entries of ``older`` that ``newer`` lost or changed (``info`` aside)."""
-    found = [f"paths {n}" for n, v in older["paths"].items() if not grows(v, newer["paths"].get(n))]
+    found = [
+        f"paths {n}"
+        for n, v in older["paths"].items()
+        if not grows(v, newer["paths"].get(n))
+    ]
     found += [f"tags {t['name']}" for t in older["tags"] if t not in newer["tags"]]
     for section in SECTIONS:
         for name, value in older["components"].get(section, {}).items():
