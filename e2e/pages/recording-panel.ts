@@ -87,6 +87,11 @@ export class RecordingPanel {
     return id ?? '';
   }
 
+  /** Every row of the Takes panel. */
+  get rows(): Locator {
+    return this.page.locator('[data-testid^="rec-take-row-"]');
+  }
+
   /** A row of the Takes panel. */
   row(takeId: string): Locator {
     return this.byId(`rec-take-row-${takeId}`);
@@ -131,6 +136,28 @@ export class RecordingPanel {
   async closeCalibration(): Promise<void> {
     await this.byId('cal-cancel').click();
     await expect(this.byId('cal-dialog')).toHaveCount(0);
+  }
+
+  /** Records until the engine reports loop pass `pass` (Advanced: `rec-pass`), then `extraSeconds` more, and stops. */
+  async recordLoopUntilPass(pass: number, extraSeconds: number, timeoutMs = 60_000): Promise<void> {
+    await this.record.click();
+    await this.waitForState('recording');
+    await expect(this.byId('rec-pass')).toHaveAttribute('data-pass', String(pass), { timeout: timeoutMs });
+    await this.page.waitForTimeout(extraSeconds * 1000);
+    await this.record.click();
+    await this.waitForState('open', 30_000);
+  }
+
+  /** Stars a take. */
+  async star(takeId: string): Promise<void> {
+    await this.byId(`rec-take-star-${takeId}`).click();
+    await expect(this.byId(`rec-take-star-${takeId}`)).toHaveAttribute('aria-pressed', 'true');
+  }
+
+  /** "Delete the other passes" of a session, confirmed. */
+  async keepStarred(sessionId: string): Promise<void> {
+    await this.byId(`takes-keep-starred-${sessionId}`).click();
+    await this.byId('confirm-dialog-ok').click();
   }
 
   /** Why Record is disabled, or null. */
