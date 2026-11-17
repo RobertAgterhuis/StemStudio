@@ -44,8 +44,8 @@ public sealed class SectionNavigatorTests
 
     [Theory]
     [InlineData(0, "Verse 1")]
-    [InlineData(9.96, "Verse 1")]
-    [InlineData(9.97, "Chorus 1")]
+    [InlineData(9.94, "Verse 1")]
+    [InlineData(9.96, "Chorus 1")]
     [InlineData(29.5, "Chorus 1")]
     public void Next_IsTheFirstSectionStartingMoreThan50msAhead(double position, string label)
     {
