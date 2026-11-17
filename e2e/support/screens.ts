@@ -102,7 +102,7 @@ const screens: Readonly<Record<ScreenId, ScreenDefinition>> = {
   mixes: { path: () => '/mixes', ready: (p, d) => expect(p.getByTestId(`mix-row-${d.mixId}`)).toBeVisible() },
   'band-info': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: bandInfoReady },
   'export-dialog': { path: (d) => `/tracks/${d.detailTrack.id}/mixer`, ready: exportDialogReady },
-  library: { path: () => '/library', ready: libraryReady, prepare: prepareLibrary },
+  library: { path: () => '/library?view=all', ready: libraryReady, prepare: prepareLibrary },
   'score-dialog': { path: (d) => `/tracks/${d.detailTrack.id}`, ready: scoreDialogReady },
   'style-library': { path: () => '/styles', ready: styleLibraryReady },
   song: { path: () => '/songs/new', ready: songReady },

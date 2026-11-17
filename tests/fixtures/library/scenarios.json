@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "about": "Feature 022 E2E fixtures (qa T023). Every name is fictional except 'Metallica', 'Master of Puppets', 'Battery', 'Motörhead', 'Ace of Spades', 'The Beatles' and 'Guns N’ Roses' (public facts named in the spec). The suite appends a run salt (' qa<salt>') to every artist, album and song name it writes, so reruns on one data volume never share folders; expectations compare with the same salt appended. All text is self-written (CC0).",
+  "normalisation": {
+    "about": "Each group must end in exactly one artist folder (FR-004, FR-005, SC-002). 'display' is the folder name the spec expects when every spelling comes from the same source (most-used spelling, ties: earliest filed; FR-011): the first spelling is filed twice.",
+    "groups": [
+      { "key": "metallica", "spellings": ["Metallica", "metallica ", "METALLICA"], "display": "Metallica" },
+      { "key": "motorhead", "spellings": ["Motörhead", "Motorhead", "MOTÖRHEAD"], "display": "Motörhead" },
+      { "key": "beatles", "spellings": ["The Beatles", "Beatles", "the  beatles"], "display": "The Beatles" },
+      { "key": "gnr", "spellings": ["Guns N’ Roses", "Guns N' Roses", "guns n' roses"], "display": "Guns N’ Roses" },
+      { "key": "featuring", "spellings": ["Nora Fieldings", "Nora Fieldings feat. Ada Brook", "Nora Fieldings (ft. Ada Brook)", "Nora Fieldings featuring Ada Brook"], "display": "Nora Fieldings" },
+      { "key": "ampersand", "spellings": ["Salt & Static"], "display": "Salt & Static", "note": "FR-005: never split on '&'; 'Salt' alone is a different folder", "distinctFrom": ["Salt"] },
+      { "key": "letters", "spellings": ["Strøm Æsir", "Strom AEsir", "strom aesir"], "display": "Strøm Æsir" },
+      { "key": "dashes", "spellings": ["Rock–Paper", "Rock-Paper", "Rock—Paper"], "display": "Rock–Paper" }
+    ]
+  },
+  "filing": {
+    "about": "Tagged uploads (RIFF LIST/INFO: INAM title, IART artist, IPRD album; read by the 005 upload details) for STEMSTUDIO_FAKE_ONLINE=not-found, where the import names decide the folders (FR-003). In mode 'found' the fake match ('The Fixture Band' > 'Synthetic Sessions') wins, so the specs set track library info instead.",
+    "songs": [
+      { "key": "battery", "tags": { "artist": "Metallica", "album": "Master of Puppets", "title": "Battery" }, "expect": { "artist": "Metallica", "album": "Master of Puppets", "song": "Battery" } },
+      { "key": "battery-lower", "tags": { "artist": "metallica ", "album": "Master of Puppets", "title": "Orion" }, "expect": { "artist": "Metallica", "album": "Master of Puppets", "song": "Orion" } },
+      { "key": "ace", "tags": { "artist": "Motörhead", "album": null, "title": "Ace of Spades" }, "expect": { "artist": "Motörhead", "album": "Unknown album", "song": "Ace of Spades" } },
+      { "key": "untagged", "tags": null, "expect": { "artist": "Unknown artist", "album": "Unknown album", "song": "<track title>" } },
+      { "key": "compilation", "tags": { "artist": "Various Artists", "album": "Harbour Hits", "title": "Low Tide" }, "expect": { "artist": "Various Artists", "album": "Harbour Hits", "song": "Low Tide" }, "note": "research.md R-01 table: only a *matched* 'Various Artists' is ignored (FR-005); an import name is kept. The matched case is a backend unit test (the fake provider never matches Various Artists)." },
+      { "key": "two-albums-a", "tags": { "artist": "The Quiet Meters", "album": "First Light", "title": "Paper Boats" }, "expect": { "artist": "The Quiet Meters", "album": "First Light", "song": "Paper Boats" } },
+      { "key": "two-albums-b", "tags": { "artist": "Quiet Meters", "album": "Live at the Pier", "title": "Paper Boats" }, "expect": { "artist": "The Quiet Meters", "album": "Live at the Pier", "song": "Paper Boats" } }
+    ]
+  },
+  "browse": {
+    "about": "Library info per track (source 'track'), so the art and counts are mode independent. 'picture' = own picture of the track (tests/fixtures/artwork, generated). Artists sort A-Z with a leading 'The' ignored; 'Unknown artist' and 'My songs' last (US2-1).",
+    "tracks": [
+      { "key": "nora-harbour", "artist": "Nora Fieldings", "album": "Harbour", "song": "Low Tide", "year": 2019, "picture": "own_picture_800x600.png" },
+      { "key": "nora-lanterns", "artist": "Nora Fieldings", "album": "Lanterns", "song": "River Lights", "year": 2021, "picture": "own_picture_640x640.jpg" },
+      { "key": "nora-static", "artist": "Nora Fieldings", "album": "Static", "song": "Copper Rain", "year": 2023, "picture": "own_picture_800x600.png" },
+      { "key": "meters", "artist": "The Quiet Meters", "album": "First Light", "song": "Paper Boats", "year": 2018, "picture": "own_picture_640x640.jpg" },
+      { "key": "abel", "artist": "Abel Stroom", "album": "Unknown album", "song": "Kettle Song", "year": null, "picture": null }
+    ],
+    "expectArt": { "Nora Fieldings": "mosaic", "The Quiet Meters": "cover", "Abel Stroom": "placeholder-unless-found" },
+    "expectOrder": ["Abel Stroom", "Nora Fieldings", "The Quiet Meters"]
+  },
+  "families": {
+    "about": "Search cases of SC-006 / US3-3: one query per instrument family and per detail stem group of the fake detail models (support/detail.ts fakeDetailOutcomes). The fake guitar and piano never split, so 'acoustic guitar' and piano detail groups are covered by the backend search tests only.",
+    "standard": [
+      { "query": "vocal", "stems": ["vocals"] },
+      { "query": "drum", "stems": ["drums"] },
+      { "query": "bass", "stems": ["bass"] },
+      { "query": "guitar", "stems": ["guitar"] },
+      { "query": "piano", "stems": ["piano"] },
+      { "query": "other", "stems": ["other"] }
+    ],
+    "detail": [
+      { "query": "snare", "stems": ["drums.snare"] },
+      { "query": "kick", "stems": ["drums.kick"] },
+      { "query": "lead vocals", "stems": ["vocals.lead"] },
+      { "query": "backing", "stems": ["vocals.backing"] },
+      { "query": "strings", "stems": ["other.strings"] },
+      { "query": "brass", "stems": ["other.brass"] }
+    ],
+    "mixes": [
+      { "name": "Drums and bass", "audible": ["drums", "bass"], "foundBy": ["drum", "bass"] }
+    ]
+  },
+  "seed5000": {
+    "about": "Database fixtures for SC-003 (migration) and SC-004 (search speed), written by the backend seeder (022 T044, LibrarySeed, test category 'Seed') to the folder qa passes in: dotnet test tests/StemStudio.Api.Tests --filter Category=Seed -e STEMSTUDIO_LIBRARY_SEED_OUT=<repo>/tests/fixtures/library/db. Not committed (generated, about 10 MB each; .gitignore of this folder).",
+    "files": { "pre022": "db/library-5000-pre022.db", "current": "db/library-5000.db" },
+    "items": 5000,
+    "artists": 150,
+    "searchQueries": 30,
+    "targets": { "filingSeconds": 10, "searchP95Ms": 400 }
+  }
+}
