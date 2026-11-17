@@ -60,7 +60,7 @@ def _value(example: str) -> Any:
 
 def test_document_is_1_4_0_and_the_code_follows_the_008_document() -> None:
     assert _DOC["info"]["version"] == "1.4.0"
-    assert CONTRACT_VERSION == "1.6.0"  # 006 + 008 Phase 0; see test_transcription_contract.py
+    assert CONTRACT_VERSION == "1.7.0"  # 013 Phase 0; see test_storage_contract.py
 
 
 @pytest.mark.parametrize(

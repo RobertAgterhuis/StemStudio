@@ -1,24 +1,36 @@
 """Pydantic v2 models of the worker HTTP contract.
 
-These models mirror ``specs/008-sheet-music/contracts/worker-api.openapi.yaml`` (1.6.0) and
+These models mirror ``specs/013-library-care/contracts/worker-api.openapi.yaml`` (1.7.0) and
 are the single source of truth for JSON on the wire (camelCase aliases) and for ``result.json``
 on disk. Models are immutable; use ``model.model_copy(update={...})`` to derive new states.
 1.3.0 (feature 005, ``specs/005-artwork-band-info/contracts``) added artwork and metadata jobs;
 1.4.0 (feature 007) added render jobs and ``Health.library`` / ``Health.lanes``; 1.5.0 (feature 006,
 ``specs/006-synced-lyrics-karaoke/contracts``) lyrics jobs and ``Health.lyricsAlignment``; 1.6.0
-(feature 008) transcription jobs, ``Health.transcription`` and ``Health.lanes.transcribe``.
+(feature 008) transcription jobs, ``Health.transcription`` and ``Health.lanes.transcribe``;
+1.7.0 (feature 013, ``specs/013-library-care/contracts``) the storage report, the storage clean-up
+and the rehydration of a completed standard job from library stems.
 """
 
 import itertools
 import re
+from collections.abc import Mapping
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
+from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, TypeAdapter, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    model_validator,
+)
 from pydantic.alias_generators import to_camel
 
-CONTRACT_VERSION = "1.6.0"
+CONTRACT_VERSION = "1.7.0"
 """Version of the worker API contract (``info.version`` in the OpenAPI document)."""
 
 SAMPLE_RATE: Final = 44_100
@@ -1284,6 +1296,154 @@ class Health(ContractModel):
         default=TranscriptionHealth(), description="Transcription readiness (1.6.0)."
     )
     contract_version: str = CONTRACT_VERSION
+
+
+# ------------------------------------------------------------------ storage (1.7.0, feature 013)
+
+MODEL_STEMS: Final[Mapping[ModelName, frozenset[StemName]]] = {
+    "htdemucs_6s": frozenset({"vocals", "drums", "bass", "guitar", "piano", "other"}),
+    "htdemucs": frozenset({"vocals", "drums", "bass", "other"}),
+    "fake": frozenset({"vocals", "drums", "bass", "guitar", "piano", "other"}),
+}
+"""Stem set of every separation model (``ModelName``); a rehydrate request must match it."""
+
+_LOWER_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+ByteCount = Annotated[int, Field(ge=0)]
+"""A size or count in bytes (non-negative)."""
+
+
+def _lower_d_uuid(value: object) -> object:
+    """Accept a UUID only in its lower-case ``D`` format (or an existing ``UUID``)."""
+    if isinstance(value, str) and _LOWER_UUID.fullmatch(value):
+        return value
+    if isinstance(value, UUID):
+        return value
+    msg = "must be a lower-case UUID in D format"
+    raise ValueError(msg)
+
+
+def _unique(values: list[StemName]) -> list[StemName]:
+    """Reject repeated stems."""
+    if len(set(values)) != len(values):
+        msg = "stems must be unique"
+        raise ValueError(msg)
+    return values
+
+
+TrackUuid = Annotated[UUID, BeforeValidator(_lower_d_uuid)]
+"""Backend track id; lower-case ``D`` format on the wire."""
+
+
+class VolumeUsage(ContractModel):
+    """Free and total bytes of a worker volume (``data`` or ``models``)."""
+
+    id: Literal["data", "models"]
+    free_bytes: ByteCount
+    total_bytes: ByteCount
+
+
+class CacheEntryUsage(ContractModel):
+    """One per-audio cache entry (``cache/by-audio/<sha>/``) with its sizes and users."""
+
+    audio_sha256: Sha256
+    standard_bytes: ByteCount = Field(description="result.json and stems/.")
+    detail_bytes: ByteCount = Field(description="detail/ (finished detail result).")
+    partial_bytes: ByteCount = Field(description="detail.partial/ (checkpoints).")
+    artwork_bytes: ByteCount
+    job_ids: list[JobId] = Field(description="Standard jobs whose audio is this entry.")
+    in_use: bool = Field(description="A queued or running job uses it; clean-up skips it.")
+    from_library: bool = Field(description="Created by POST /v1/jobs/rehydrate.")
+    last_used_at: datetime | None
+
+
+class ModelCacheUsage(ContractModel):
+    """Size of one top-level folder under ``STEMSTUDIO_MODEL_DIR`` and the known models in it."""
+
+    id: Annotated[str, Field(pattern=r"^[A-Za-z0-9._-]{1,64}$")]
+    bytes: ByteCount
+    models: list[str]
+
+
+class WorkerStorage(ContractModel):
+    """Body of ``GET /v1/storage``: disk use of the worker data and model volumes."""
+
+    measured_at: datetime
+    volumes: list[VolumeUsage]
+    cache_entries: list[CacheEntryUsage]
+    job_files_bytes: ByteCount
+    job_files_count: ByteCount
+    scratch_bytes: ByteCount = Field(description="work/, uploads/ and artwork/.")
+    model_caches: list[ModelCacheUsage]
+
+
+CacheEntrySelector = Annotated[str, Field(pattern=r"^([0-9a-f]{64}|\*)$")]
+"""An ``audioSha256`` value or the wildcard ``*`` (only as the single element)."""
+
+ALL_CACHE_ENTRIES: Final = "*"
+"""Wildcard of ``StorageCleanupRequest.cacheEntries``: every entry not in use."""
+
+
+class StorageCleanupRequest(ContractModel):
+    """Body of ``POST /v1/storage/cleanup``; the defaults remove nothing."""
+
+    cache_entries: Annotated[list[CacheEntrySelector], Field(max_length=100_000)] = Field(
+        default_factory=list
+    )
+    scratch: bool = False
+    old_job_files: bool = False
+
+    @model_validator(mode="after")
+    def _wildcard_alone(self) -> Self:
+        """``*`` is only allowed as ``["*"]``."""
+        if ALL_CACHE_ENTRIES in self.cache_entries and len(self.cache_entries) != 1:
+            msg = 'cacheEntries must be exactly ["*"] or a list of audioSha256 values'
+            raise ValueError(msg)
+        return self
+
+    @property
+    def all_entries(self) -> bool:
+        """True for ``["*"]`` (every entry not in use)."""
+        return self.cache_entries == [ALL_CACHE_ENTRIES]
+
+
+class SkippedEntry(ContractModel):
+    """A requested cache entry that was not removed, with the reason."""
+
+    audio_sha256: Sha256
+    reason: Literal["inUse", "notFound"]
+
+
+class StorageCleanupResult(ContractModel):
+    """Body of the ``POST /v1/storage/cleanup`` response."""
+
+    freed_bytes: ByteCount
+    removed_entries: list[Sha256]
+    skipped: list[SkippedEntry]
+
+
+class RehydrateRequest(ContractModel):
+    """Body of ``POST /v1/jobs/rehydrate``: re-create a standard job from library stems."""
+
+    track_id: TrackUuid
+    source_type: SourceType
+    source_key: Annotated[str, Field(pattern=r"^(youtube|spotify|upload):[A-Za-z0-9_-]{1,64}$")]
+    model: ModelName
+    stems: Annotated[list[StemName], Field(min_length=4, max_length=6), AfterValidator(_unique)]
+
+    def stems_match_model(self) -> bool:
+        """True when ``stems`` equals the model's stem set (otherwise the route answers 422)."""
+        return frozenset(self.stems) == MODEL_STEMS[self.model]
+
+
+class RehydratedJob(ContractModel):
+    """Body of the ``POST /v1/jobs/rehydrate`` response (201 created, 200 existing)."""
+
+    job_id: JobId
+    audio_sha256: Sha256
+    status: Literal["completed"] = "completed"
+    model: ModelName
+    stems: list[StemName]
+    created_at: datetime
 
 
 class ProblemDetails(BaseModel):
