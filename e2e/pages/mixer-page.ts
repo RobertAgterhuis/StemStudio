@@ -16,6 +16,9 @@ export interface MixerSettings {
 /** A standard stem or a detail channel `<parent>-<detail>` as used in the 1.1.0 test ids. */
 export type ChannelKey = StemName | `${ParentStemName}-${DetailStemName}`;
 
+/** Meter targets: channels, the master bus, the take strip and the recording input (015). */
+export type MeterTarget = ChannelKey | 'master' | 'take' | 'input';
+
 /** Test-id key of one detail channel, e.g. `drums-snare`. */
 export function detailKey(parent: ParentStemName, detail: DetailStemName): ChannelKey {
   return `${parent}-${detail}`;
@@ -57,7 +60,7 @@ export class MixerPage {
   }
 
   /** Meter of a stem or of the master bus (engine writes `data-peak-db`). */
-  meter(target: ChannelKey | 'master'): Locator {
+  meter(target: MeterTarget): Locator {
     return this.byId(`meter-${target}`);
   }
 
@@ -120,12 +123,12 @@ export class MixerPage {
   }
 
   /** Current peak level of a meter in dBFS. */
-  async peak(target: ChannelKey | 'master'): Promise<number> {
+  async peak(target: MeterTarget): Promise<number> {
     return peakDb(this.meter(target));
   }
 
   /** Highest `data-peak-db` a meter shows during `windowMs`, sampled in the page on every frame. */
-  async maxPeakOver(target: ChannelKey | 'master', windowMs: number): Promise<number> {
+  async maxPeakOver(target: MeterTarget, windowMs: number): Promise<number> {
     return this.meter(target).evaluate(sampleMaxPeak, windowMs);
   }
 
