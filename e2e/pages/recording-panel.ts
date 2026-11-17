@@ -105,6 +105,34 @@ export class RecordingPanel {
     return testId.replace('rec-take-row-', '');
   }
 
+  /** Runs the click test from the panel; resolves with the time to the result (ms) and whether it succeeded. */
+  async calibrate(timeoutMs = 15_000): Promise<{ readonly ok: boolean; readonly elapsedMs: number }> {
+    await this.byId('rec-calibrate').click();
+    await expect(this.byId('cal-dialog')).toBeVisible();
+    const started = Date.now();
+    await this.byId('cal-start').click();
+    await expect(this.byId('cal-result')).toBeVisible({ timeout: timeoutMs });
+    const elapsedMs = Date.now() - started;
+    return { ok: (await this.byId('cal-result').getAttribute('data-ok')) === 'true', elapsedMs };
+  }
+
+  /** Enters a manual latency (Advanced) and saves it; the dialog stays open. */
+  async enterManualLatency(milliseconds: number): Promise<void> {
+    if (!(await this.byId('cal-dialog').isVisible())) {
+      await this.byId('rec-calibrate').click();
+    }
+    await this.byId('cal-manual').click();
+    await this.byId('cal-manual-ms').fill(String(milliseconds));
+    await this.byId('cal-manual-ms').press('Tab');
+    await this.byId('cal-save').click();
+  }
+
+  /** Closes the calibration dialog. */
+  async closeCalibration(): Promise<void> {
+    await this.byId('cal-cancel').click();
+    await expect(this.byId('cal-dialog')).toHaveCount(0);
+  }
+
   /** Why Record is disabled, or null. */
   async disabledReason(): Promise<string | null> {
     const reason = this.byId('rec-record-disabled-reason');

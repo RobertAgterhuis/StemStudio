@@ -92,6 +92,13 @@ export class RecordingApi {
     }
   }
 
+  /** Bytes of an API file URL (take audio, stem) relative to the API origin. */
+  async audio(url: string): Promise<Buffer> {
+    const response = await this.request.get(url);
+    expect(response.ok(), `${url} -> ${String(response.status())}`).toBe(true);
+    return response.body();
+  }
+
   /** `listInputCalibrations`. */
   async listCalibrations(): Promise<InputCalibrationDto[]> {
     return okJson<InputCalibrationDto[]>(await this.request.get('/api/recording/calibrations'));

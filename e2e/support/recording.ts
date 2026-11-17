@@ -6,7 +6,7 @@
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { expect, type LaunchOptions, type Page } from '@playwright/test';
+import { expect, test, type LaunchOptions, type Page } from '@playwright/test';
 import { apiBaseUrl, webBaseUrl } from './env';
 import { fakeMicrophoneLaunchOptions } from './fake-microphone';
 import type { RecordingPart } from './recording-api';
@@ -86,6 +86,49 @@ export function watchOrigins(page: Page): string[] {
 export function expectOnlyAppOrigins(origins: readonly string[]): void {
   const allowed = new Set([new URL(webBaseUrl).origin, new URL(apiBaseUrl).origin]);
   expect([...new Set(origins)].filter((origin) => !allowed.has(origin)), 'requests to other hosts').toEqual([]);
+}
+
+/** True when the stack runs the web with `StemStudio__Recording__TestLoopback=true` (e2e compose override, devops T010). */
+export const loopbackStack: boolean = process.env.E2E_RECORDING_LOOPBACK === '1';
+
+/** Skips unless the stack is the TestLoopback stack. */
+export function requireLoopbackStack(): void {
+  test.skip(!loopbackStack, 'needs the TestLoopback stack (E2E_RECORDING_LOOPBACK=1, e2e compose override)');
+}
+
+/** Range of a take in song samples, for {@link alignmentOffset}. */
+export interface SampleRange {
+  readonly from: number;
+  readonly to: number;
+}
+
+/**
+ * Lag (samples) at which a stored take best matches the stem it recorded, by cross-correlation over `range` within
+ * +-`maxLag` (SC-001). The stored take is padded to song sample 0, so a perfectly compensated take has lag 0.
+ */
+export async function alignmentOffset(scratch: Page, files: { readonly take: Buffer; readonly stem: Buffer }, range: SampleRange, maxLag = 64): Promise<number> {
+  return scratch.evaluate(correlateInPage, { take: files.take.toString('base64'), stem: files.stem.toString('base64'), range, maxLag });
+}
+
+/** Runs inside the scratch page (serialised by Playwright, so it must be self-contained). */
+async function correlateInPage(input: { take: string; stem: string; range: SampleRange; maxLag: number }): Promise<number> {
+  const bytes = (text: string): ArrayBuffer => Uint8Array.from(atob(text), (c) => c.charCodeAt(0)).buffer;
+  const context = new OfflineAudioContext(2, 1, 44_100);
+  const [take, stem] = await Promise.all([context.decodeAudioData(bytes(input.take)), context.decodeAudioData(bytes(input.stem))]);
+  const a = take.getChannelData(0);
+  const b = stem.getChannelData(0);
+  const score = (lag: number): number => {
+    let sum = 0;
+    for (let i = input.range.from + input.maxLag; i < input.range.to - input.maxLag; i++) {
+      sum += (a[i] ?? 0) * (b[i - lag] ?? 0);
+    }
+    return sum;
+  };
+  let best = 0;
+  for (let lag = -input.maxLag; lag <= input.maxLag; lag++) {
+    best = score(lag) > score(best) ? lag : best;
+  }
+  return best;
 }
 
 /** Bit depth of a FLAC file from its STREAMINFO block (bytes 8.. after `fLaC` + block header). */
