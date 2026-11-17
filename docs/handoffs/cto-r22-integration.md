@@ -26,18 +26,18 @@ See the per-suite table in `docs/STATUS.md` (section "Feature 022 + 023"). Stack
 
 ## Open items
 
-1. **Live search loses typed characters (product, frontend-022; blocks a green E2E).** Typing fast into
-   `library-search` sometimes drops a character: Firefox `library-search.spec.ts:87` ("qam" became "qm") and `:157`
-   ("<salt> bass" became "<salt>bss", "No results"), failing again on a rerun (`:157`); Chromium `library-search-perf.spec.ts`
-   on the 5,000-item database ("snare" became "snre"/"snae", reproduced in 2 of 2 runs). The fix `1ab8337a` (own URL
-   echoes) is not enough. Lead: after the loss the inline clear button is gone while the box shows text, so the server's
-   `LiveSearchController.Text` was reset (a location event not recognised as its own echo, e.g. a stale or duplicated
-   `LocationChanged`) and the next render wrote the older value into the box (`value="@Controller.Text"`). Needs a
-   bUnit reproduction with out-of-order/duplicated echoes, then a fix that never lets a location event older than the
-   newest own navigation replace the text. Not fixed here: the 3-attempt budget went to the library-db harness and the
-   fix needs a frontend lane plus a rerun of the library specs in both browsers.
-2. **SC-004 (search p95 <= 400 ms on 5,000 items) not measured** because of item 1 (the perf spec stops at the first
-   lost key). SC-003 (pre-022 library filed after start) passed.
+1. **Live search loses typed characters: fixed** (frontend-022, `docs/handoffs/frontend-022-live-search-keys.md`,
+   commits `cb6f2e02`, `9db52012`, `d33a3815`, `d75c2be4`). Three causes: own `?q=` echoes taken for navigations
+   (now told apart by a per-controller history entry state, `OwnNavigations`); the page's parameters set again before
+   the echo (the page now takes over a URL/state pair once); and the box's `value` was not bound (`value=` plus
+   `@oninput` is not kept in step with the browser, so every render wrote the server's text back over keys in flight;
+   now `@bind:get/@bind:set`, `@bind:event="oninput"`). Verified on an own stack (`e2efix`, 18680/18681, retries 0):
+   `library-search.spec.ts --repeat-each 5` 70/70 (Chromium + Firefox); browse, filing, info, feature-levels 70 passed /
+   4 skipped; `test:library-db`: migration SC-003 passed.
+2. **SC-004 measured outside the spec: p95 292 ms** (median 252, max 347; 30 queries, 5,000-item fixture, last key to
+   the last change in the results, debounce included; no lost key). The spec `library-search-perf.spec.ts` itself still
+   fails, now on a spec bug (qa): it waits for a browser request to `/api/library/search`, but in Blazor Server the
+   search runs on the server, so no such request is ever made (timeout after 15 s with the right results on screen).
 3. Known flake: `lyric-assist.spec.ts` "strict shows the licences as ideas" (1 in 6, QA); green in this run.
 4. One-off Firefox axe `color-contrast` on `level-beginner` in `library-care-backup.spec.ts:201` (013); green on the
    rerun (transition caught mid-way); not quarantined, watch.
