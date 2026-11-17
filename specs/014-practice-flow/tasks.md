@@ -116,14 +116,14 @@ commit hashes per task pair, exact coverage numbers and lint/SIG output. Marker 
 
 ### backend (tests first)
 
-- [ ] T034 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Sections/SectionRulesTests.cs`: 1..64 sections, ordering, overlap, bounds, min 1 s, label length/trim, instrument only for solo and only channels of the track, id ownership, revision rule; `SectionSnapper` (downbeat, beat, 0.1 s) (FR-002, FR-003, FR-006)
-- [ ] T035 [backend] Implement `Domain/Sections/*` to pass T034
-- [ ] T036 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Setlists/SetlistRulesTests.cs` and `.../Practice/PracticeRulesTests.cs`: setlist name/note/entry limits, mix-track match, duplicates allowed; session rules (12 h, future start, played <= span + 5, sections sum, kinds incl. `none`, percents 50..120); `PracticeSummaryCalculator` (local-day buckets with offsets -840..840, split at local midnight, last 7 days, per-section grouping by id or label+kind, best trainer percent, tempo points per day) (FR-015, FR-025, FR-027)
-- [ ] T037 [backend] Implement `Domain/Setlists/*`, `Domain/Practice/*` to pass T036
-- [ ] T038 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/PracticeFlowPersistenceTests.cs`: migration `AddPracticeFlow` applies on a 1.12.0 database; round trips of every new table; cascades (track delete -> sections, setlist entries, practice sessions; mix delete -> entry `MixId` null, session `MixId` null; asset delete -> score view); mix loop JSON with and without `sectionId` (FR-005, FR-028)
-- [ ] T039 [backend] Implement entities, configurations and the migration to pass T038
-- [ ] T040 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerPracticeClientTests.cs` with the worker delta examples: create/get/delete per job kind, page and file downloads, problem mapping (400/404/409/422), `Health.lanes.practice` parsed
-- [ ] T041 [backend] Implement `Worker/WorkerClient.Practice.cs` and job records to pass T040
+- [x] T034 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Sections/SectionRulesTests.cs`: 1..64 sections, ordering, overlap, bounds, min 1 s, label length/trim, instrument only for solo and only channels of the track, id ownership, revision rule; `SectionSnapper` (downbeat, beat, 0.1 s) (FR-002, FR-003, FR-006)
+- [x] T035 [backend] Implement `Domain/Sections/*` to pass T034
+- [x] T036 [P] [backend] Failing tests `tests/StemStudio.Domain.Tests/Setlists/SetlistRulesTests.cs` and `.../Practice/PracticeRulesTests.cs`: setlist name/note/entry limits, mix-track match, duplicates allowed; session rules (12 h, future start, played <= span + 5, sections sum, kinds incl. `none`, percents 50..120); `PracticeSummaryCalculator` (local-day buckets with offsets -840..840, split at local midnight, last 7 days, per-section grouping by id or label+kind, best trainer percent, tempo points per day) (FR-015, FR-025, FR-027)
+- [x] T037 [backend] Implement `Domain/Setlists/*`, `Domain/Practice/*` to pass T036
+- [x] T038 [P] [backend] Failing tests `tests/StemStudio.Persistence.Tests/PracticeFlowPersistenceTests.cs`: migration `AddPracticeFlow` applies on a 1.12.0 database; round trips of every new table; cascades (track delete -> sections, setlist entries, practice sessions; mix delete -> entry `MixId` null, session `MixId` null; asset delete -> score view); mix loop JSON with and without `sectionId` (FR-005, FR-028)
+- [x] T039 [backend] Implement entities, configurations and the migration to pass T038
+- [x] T040 [P] [backend] Failing tests `tests/StemStudio.Api.Tests/Worker/WorkerPracticeClientTests.cs` with the worker delta examples: create/get/delete per job kind, page and file downloads, problem mapping (400/404/409/422), `Health.lanes.practice` parsed
+- [x] T041 [backend] Implement `Worker/WorkerClient.Practice.cs` and job records to pass T040
 
 ### audio-engine (tests first)
 

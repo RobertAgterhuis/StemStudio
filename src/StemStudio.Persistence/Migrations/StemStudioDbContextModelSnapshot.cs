@@ -940,6 +940,276 @@ namespace StemStudio.Persistence.Migrations
                     b.ToTable("Mixes", (string)null);
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Practice.PracticeLogSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NoticeAcknowledged")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PracticeLogSettings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Enabled = true,
+                            NoticeAcknowledged = false
+                        });
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Practice.PracticeSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EndedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LoopPasses")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("MaxSpeedPercent")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid?>("MixId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("PlayedSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MixId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("TrackId", "StartedAt");
+
+                    b.ToTable("PracticeSessions", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Practice.ScoreView", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Bars")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("BarsJson");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("OffsetSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WorkerJobId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("AssetId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("ScoreViews", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Sections.Section", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("EndSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Instrument")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("StartSeconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrackId", "Position");
+
+                    b.ToTable("Sections", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Sections.TrackSections", b =>
+                {
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Analyzer")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Snap")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("WarningsJson");
+
+                    b.Property<string>("WorkerJobId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TrackId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("TrackSections", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Setlists.Setlist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RemovedEntries")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.ToTable("Setlists", (string)null);
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Setlists.SetlistEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("MixId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SetlistId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MixId");
+
+                    b.HasIndex("TrackId");
+
+                    b.HasIndex("SetlistId", "Position");
+
+                    b.ToTable("SetlistEntries", (string)null);
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Styles.Style", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1862,6 +2132,107 @@ namespace StemStudio.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("StemStudio.Domain.Practice.PracticeSession", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Mixes.Mix", null)
+                        .WithMany()
+                        .HasForeignKey("MixId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("StemStudio.Domain.Practice.PracticeSectionTime", "Sections", b1 =>
+                        {
+                            b1.Property<Guid>("SessionId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<int>("Index")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasMaxLength(16)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Label")
+                                .IsRequired()
+                                .HasMaxLength(40)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<int>("LoopPasses")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<double>("PlayedSeconds")
+                                .HasColumnType("REAL");
+
+                            b1.Property<Guid?>("SectionId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<double?>("TrainerReachedPercent")
+                                .HasColumnType("REAL");
+
+                            b1.HasKey("SessionId", "Index");
+
+                            b1.ToTable("PracticeSectionTimes", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("SessionId");
+                        });
+
+                    b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Practice.ScoreView", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Assets.Asset", null)
+                        .WithOne()
+                        .HasForeignKey("StemStudio.Domain.Practice.ScoreView", "AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Sections.Section", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Sections.TrackSections", null)
+                        .WithMany("Sections")
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Sections.TrackSections", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithOne()
+                        .HasForeignKey("StemStudio.Domain.Sections.TrackSections", "TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Setlists.SetlistEntry", b =>
+                {
+                    b.HasOne("StemStudio.Domain.Mixes.Mix", null)
+                        .WithMany()
+                        .HasForeignKey("MixId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StemStudio.Domain.Setlists.Setlist", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("SetlistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StemStudio.Domain.Tracks.Track", null)
+                        .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("StemStudio.Domain.Tracks.Track", b =>
                 {
                     b.HasOne("StemStudio.Domain.Artists.Artist", null)
@@ -1922,6 +2293,16 @@ namespace StemStudio.Persistence.Migrations
                         .HasForeignKey("RunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Sections.TrackSections", b =>
+                {
+                    b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("StemStudio.Domain.Setlists.Setlist", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("StemStudio.Domain.Tracks.Track", b =>

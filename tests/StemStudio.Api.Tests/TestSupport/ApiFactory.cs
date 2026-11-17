@@ -40,6 +40,9 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
 
     public FakeWorkerClient Worker { get; } = new();
 
+    /// <summary>The fake practice lane of the worker (feature 014: sections, score views, setlist documents).</summary>
+    public StemStudio.Api.Tests.Worker.FakeWorkerPracticeClient PracticeWorker { get; } = new();
+
     public FakeTimeProvider Clock { get; } = new(Start);
 
     /// <summary>The fake generator service behind the real generator client (feature 009).</summary>
@@ -137,6 +140,7 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IWorkerClient>(Worker);
+            services.AddSingleton<IWorkerPracticeClient>(PracticeWorker);
             services.AddSingleton<TimeProvider>(Clock);
             services.AddSingleton<IGeneratorClient>(new GeneratorClient(GeneratorHttp(), NullLogger<GeneratorClient>.Instance, Clock));
             services.AddSingleton<ISingerClient>(new SingerClient(
